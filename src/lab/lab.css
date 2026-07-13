@@ -397,3 +397,18 @@
   background: #fde2d9;
   color: #742d1b;
 }
+
+.preset-notice {
+  border: 1px solid #d3a64b;
+  border-radius: 0.8rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.9rem;
+  background: #fff3cf;
+  color: #684d13;
+}
+
+.guided-return {
+  display: inline-block;
+  margin: 0 0 1rem;
+  font-weight: 800;
+}

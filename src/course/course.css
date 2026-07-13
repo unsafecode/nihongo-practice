@@ -382,3 +382,222 @@
   .lesson-examples { grid-template-columns: 1fr; }
   .lesson-guided-tool { align-items: flex-start; flex-direction: column; }
 }
+
+.guided-board {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.4rem;
+  padding: 1.45rem;
+  background: var(--course-board);
+  box-shadow: 0 1.25rem 2.8rem rgba(41, 44, 50, 0.18);
+  color: white;
+}
+
+.guided-board::after {
+  position: absolute;
+  width: 14rem;
+  height: 14rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--course-teal) 52%, transparent),
+    transparent 68%
+  );
+  content: "";
+  inset: -6rem -5rem auto auto;
+}
+
+.guided-board > * {
+  position: relative;
+  z-index: 1;
+}
+
+.guided-board__top {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.guided-board__top h2 {
+  margin: 0.35rem 0;
+}
+
+.guided-board__top > div > p:last-child,
+.guided-board__translation,
+.guided-board__secondary {
+  color: #c8cbd2;
+}
+
+.guided-board__label {
+  margin: 0;
+  color: #89d1c8;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.guided-board__listen {
+  flex: 0 0 auto;
+  border: 1px solid #59606d;
+  border-radius: 0.65rem;
+  padding: 0.55rem 0.7rem;
+  background: #373b44;
+  color: white;
+  font-weight: 800;
+}
+
+.guided-board__error {
+  border: 1px solid #ffb49b;
+  border-radius: 0.7rem;
+  padding: 0.7rem;
+  background: #5a3028;
+  color: white;
+}
+
+.guided-board__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 1.2rem 0 1rem;
+}
+
+.guided-board__chip {
+  display: grid;
+  border-radius: 0.75rem;
+  padding: 0.7rem 0.8rem;
+  background: white;
+  color: var(--course-ink);
+}
+
+.guided-board__chip small,
+.guided-board__chip > span {
+  color: #716f6a;
+  font-size: 0.66rem;
+}
+
+.guided-board__chip b {
+  font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+  font-size: 1.1rem;
+}
+
+.guided-board__chip .particle {
+  border-radius: 0.3rem;
+  padding: 0 0.12rem;
+  background: #fff0cf;
+  color: #a96000;
+}
+
+.guided-board__chip .ending {
+  border-radius: 0.3rem;
+  padding: 0 0.12rem;
+  background: #fde2d9;
+  color: #b73b1e;
+}
+
+.guided-board__sentence {
+  margin: 0;
+  font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+  font-size: clamp(1.55rem, 4vw, 2rem);
+  font-weight: 850;
+}
+
+.guided-board__sentence .particle,
+.guided-board__secondary .particle {
+  color: var(--course-particle);
+}
+
+.guided-board__sentence .ending,
+.guided-board__secondary .ending {
+  color: var(--course-ending);
+}
+
+.guided-board__secondary,
+.guided-board__translation {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+}
+
+.guided-board__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  border-top: 1px solid #4a4e57;
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  color: #d5d7dc;
+  font-size: 0.7rem;
+}
+
+.guided-board__legend > span {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.guided-board__legend b {
+  border-radius: 0.3rem;
+  padding: 0.1rem 0.3rem;
+  background: #373b44;
+}
+
+.guided-board__legend .particle { color: var(--course-particle); }
+.guided-board__legend .ending { color: var(--course-ending); }
+
+.guided-board__action {
+  display: inline-block;
+  border-radius: 0.75rem;
+  margin-top: 1.1rem;
+  padding: 0.75rem 0.95rem;
+  background: var(--course-coral);
+  color: white;
+  text-decoration: none;
+  font-weight: 850;
+}
+
+@media (max-width: 620px) {
+  .guided-board__top {
+    flex-direction: column;
+  }
+}
+
+.practice-home {
+  width: min(100% - 2.5rem, 70rem);
+  margin: 0 auto;
+  padding: clamp(2.5rem, 7vw, 6rem) 0;
+}
+
+.practice-home header {
+  max-width: 48rem;
+}
+
+.practice-home h1 {
+  margin: 0.5rem 0 0.8rem;
+  font-size: clamp(2.5rem, 6vw, 4.8rem);
+  line-height: 0.98;
+}
+
+.practice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.practice-grid article {
+  border: 1px solid var(--course-line);
+  border-radius: 1rem;
+  padding: 1.4rem;
+  background: var(--course-surface);
+}
+
+.practice-grid article > span {
+  color: var(--course-coral);
+  font-size: 2rem;
+  font-weight: 900;
+}
+
+@media (max-width: 680px) {
+  .practice-grid { grid-template-columns: 1fr; }
+}

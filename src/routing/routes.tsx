@@ -1,11 +1,10 @@
 import { Navigate, Route, Routes, useLocation } from "react-router";
 import { Phrasebook } from "../components/Phrasebook";
-import { getCatalog } from "../i18n/catalog";
-import { useLocale } from "../i18n/LocaleContext";
 import { Lab } from "../lab/components/Lab";
 import { Syllabary } from "../syllabary/Syllabary";
 import { CourseHome } from "../course/components/CourseHome";
 import { LessonPage } from "../course/components/LessonPage";
+import { PracticeHome } from "../course/components/PracticeHome";
 
 export const routePaths = {
   course: "/percorso",
@@ -18,15 +17,6 @@ export const routePaths = {
 
 export function lessonPath(chapterId: string, lessonId: string): string {
   return `/percorso/${encodeURIComponent(chapterId)}/${encodeURIComponent(lessonId)}`;
-}
-
-function Placeholder({ page }: { page: "course" | "practice" }) {
-  const { locale } = useLocale();
-  return (
-    <main className="route-placeholder">
-      <h1>{getCatalog(locale).ui.nav[page]}</h1>
-    </main>
-  );
 }
 
 function InvalidRoute() {
@@ -46,7 +36,7 @@ export function AppRoutes() {
       <Route path="/" element={<Navigate replace to={routePaths.course} />} />
       <Route path={routePaths.course} element={<CourseHome />} />
       <Route path={routePaths.lesson} element={<LessonPage />} />
-      <Route path={routePaths.practice} element={<Placeholder page="practice" />} />
+      <Route path={routePaths.practice} element={<PracticeHome />} />
       <Route path={routePaths.lab} element={<Lab />} />
       <Route path={routePaths.syllabary} element={<Syllabary />} />
       <Route path={routePaths.phrasebook} element={<Phrasebook />} />

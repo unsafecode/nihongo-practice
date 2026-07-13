@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link, useSearchParams } from "react-router";
 import { SpeechNotice } from "../../components/SpeechNotice";
 import { scenarios } from "../../content/scenarios";
 import type {
@@ -11,7 +12,9 @@ import { useSpeech } from "../../hooks/useSpeech";
 import { getCatalog } from "../../i18n/catalog";
 import { useLocale } from "../../i18n/LocaleContext";
 import { useScript } from "../../settings/ScriptContext";
+import { getCourseCopy } from "../../course/i18n/catalog";
 import type { Form } from "../engine/conjugate";
+import { hasLabPreset, parseLabPreset } from "../presets";
 import { Board } from "./Board";
 import { ControlPanel } from "./ControlPanel";
 import { TeachNote } from "./TeachNote";
@@ -35,9 +38,15 @@ export function Lab() {
   const { locale, referenceLocale, showReference } = useLocale();
   const { script } = useScript();
   const { supported, japaneseVoiceAvailable, speakingKey, playbackFailed, speak } = useSpeech();
+  const [searchParams] = useSearchParams();
+  const [initialPreset] = useState(() => ({
+    attempted: hasLabPreset(searchParams),
+    parsed: parseLabPreset(searchParams),
+  }));
   const [selection, setSelection] = useState<LabSelection>(() =>
-    defaultSelection(scenarios[0].id),
+    initialPreset.parsed?.selection ?? defaultSelection(scenarios[0].id),
   );
+  const courseCopy = getCourseCopy(locale);
   const pack = getCatalog(locale);
   const vm = buildLabViewModel(selection, locale, referenceLocale);
 
@@ -74,6 +83,16 @@ export function Lab() {
         japaneseVoiceAvailable={japaneseVoiceAvailable}
         playbackFailed={playbackFailed}
       />
+      {initialPreset.attempted && !initialPreset.parsed ? (
+        <p className="preset-notice" role="status">
+          {courseCopy.practice.invalidPreset}
+        </p>
+      ) : null}
+      {initialPreset.parsed?.from ? (
+        <Link className="guided-return" to={initialPreset.parsed.from}>
+          ← {courseCopy.practice.backToLesson}
+        </Link>
+      ) : null}
 
       <div
         className="scenario"
