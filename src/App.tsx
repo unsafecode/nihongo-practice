@@ -5,6 +5,25 @@ import { AppRoutes } from "./routing/routes";
 import { LocaleProvider, useLocale } from "./i18n/LocaleContext";
 import { getCatalog } from "./i18n/catalog";
 import { ScriptProvider, useScript } from "./settings/ScriptContext";
+import {
+  ProgressProvider,
+  useProgress,
+} from "./course/progress/ProgressContext";
+
+function PersistenceWarning({
+  settingsUnavailable,
+}: {
+  settingsUnavailable: boolean;
+}) {
+  const { locale } = useLocale();
+  const { persistenceAvailable: progressPersistence } = useProgress();
+  if (!settingsUnavailable && progressPersistence) return null;
+  return (
+    <p className="settings-warning" role="status">
+      {getCatalog(locale).ui.settings.unavailable}
+    </p>
+  );
+}
 
 function AppContent() {
   const { locale, persistenceAvailable: localePersistence } = useLocale();
@@ -18,16 +37,16 @@ function AppContent() {
 
   return (
     <HashRouter>
-      <div className="app">
-        <Header />
-        {!localePersistence || !scriptPersistence ? (
-          <p className="settings-warning" role="status">
-            {ui.settings.unavailable}
-          </p>
-        ) : null}
-        <AppRoutes />
-        <footer className="footer"><p>{ui.footer}</p></footer>
-      </div>
+      <ProgressProvider>
+        <div className="app">
+          <Header />
+          <PersistenceWarning
+            settingsUnavailable={!localePersistence || !scriptPersistence}
+          />
+          <AppRoutes />
+          <footer className="footer"><p>{ui.footer}</p></footer>
+        </div>
+      </ProgressProvider>
     </HashRouter>
   );
 }

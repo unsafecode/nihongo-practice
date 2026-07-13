@@ -135,7 +135,7 @@ const ui: LocalePack["ui"] = {
   documentTitle: "Hanasō · Learn Japanese",
   brand: { title: "Practical Japanese", subtitle: "Speaking · sentence building · hiragana first" },
   nav: { modes: "Study modes", syllabary: "Hiragana", phrasebook: "Phrasebook", laboratory: "Sentence Lab", primary: "Primary navigation", course: "Course", practice: "Free practice" },
-  settings: { language: "Language", writing: "Writing", reference: "Show Italian reference", unavailable: "Preferences cannot be saved in this browser." },
+  settings: { language: "Language", writing: "Writing", reference: "Show Italian reference", unavailable: "Preferences and progress cannot be saved in this browser." },
   common: { listen: "Listen", slow: "Slow", playing: "Playing…", none: "—", optional: "optional", phrases: "phrases" },
   lab: {
     scenario: "Scenario", board: "Board", verb: "Verb", verbForm: "What happens to the verb?", when: "When?", rule: "Rule",
