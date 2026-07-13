@@ -21,6 +21,11 @@
   --gear-ending: #ff9d7a;
 }
 
+/* Contenitore della modalità (occupa lo spazio nel guscio flex della .app) */
+.lab-page {
+  flex: 1;
+}
+
 /* Selettore di scenario */
 .scenario {
   display: flex;
