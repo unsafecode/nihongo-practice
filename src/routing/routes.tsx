@@ -4,6 +4,7 @@ import { getCatalog } from "../i18n/catalog";
 import { useLocale } from "../i18n/LocaleContext";
 import { Lab } from "../lab/components/Lab";
 import { Syllabary } from "../syllabary/Syllabary";
+import { CourseHome } from "../course/components/CourseHome";
 
 export const routePaths = {
   course: "/percorso",
@@ -42,7 +43,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Navigate replace to={routePaths.course} />} />
-      <Route path={routePaths.course} element={<Placeholder page="course" />} />
+      <Route path={routePaths.course} element={<CourseHome />} />
       <Route path={routePaths.lesson} element={<Placeholder page="course" />} />
       <Route path={routePaths.practice} element={<Placeholder page="practice" />} />
       <Route path={routePaths.lab} element={<Lab />} />
