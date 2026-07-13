@@ -66,6 +66,18 @@ describe("time and form selection", () => {
     expect(realizeSentence(habitual, "en")).toBe("Every day, I eat sushi.");
   });
 
+  it("uses future for tonight", () => {
+    const tonight = { ...base, timeId: "tonight" as const };
+    expect(realizeSentence(tonight, "it")).toBe("Stasera mangerò il sushi.");
+    expect(realizeSentence(tonight, "en")).toBe("Tonight, I'll eat sushi.");
+  });
+
+  it("uses habitual negative every day", () => {
+    const habitualNeg = { ...base, form: "neg" as const, timeId: "everyDay" as const };
+    expect(realizeSentence(habitualNeg, "it")).toBe("Ogni giorno non mangio il sushi.");
+    expect(realizeSentence(habitualNeg, "en")).toBe("Every day, I don't eat sushi.");
+  });
+
   it("uses past forms", () => {
     const past = { ...base, form: "past" as const, timeId: "yesterday" as const };
     expect(realizeSentence(past, "it")).toBe("Ieri ho mangiato il sushi.");
