@@ -133,7 +133,7 @@ const times: LocalePack["times"] = { today: "oggi", yesterday: "ieri", tomorrow:
 const ui: LocalePack["ui"] = {
   documentTitle: "Hanasō · Impara il giapponese",
   brand: { title: "Giapponese pratico", subtitle: "Parlato · costruzione delle frasi · hiragana prima di tutto" },
-  nav: { modes: "Modalità di studio", syllabary: "Sillabario", phrasebook: "Frasario", laboratory: "Laboratorio" },
+  nav: { modes: "Modalità di studio", syllabary: "Sillabario", phrasebook: "Frasario", laboratory: "Laboratorio", primary: "Navigazione principale", course: "Percorso", practice: "Pratica libera" },
   settings: { language: "Lingua", writing: "Scrittura", reference: "Mostra l'inglese di riferimento", unavailable: "Le preferenze non possono essere salvate in questo browser." },
   common: { listen: "Ascolta", slow: "Lento", playing: "In riproduzione…", none: "—", optional: "opzionale", phrases: "frasi" },
   lab: {

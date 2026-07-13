@@ -48,6 +48,9 @@ export interface UiMessages {
     syllabary: string;
     phrasebook: string;
     laboratory: string;
+    primary: string;
+    course: string;
+    practice: string;
   };
   settings: {
     language: string;

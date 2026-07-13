@@ -1,22 +1,17 @@
+import { NavLink } from "react-router";
 import { getCatalog } from "../i18n/catalog";
 import { useLocale } from "../i18n/LocaleContext";
+import { routePaths } from "../routing/routes";
 import { useScript } from "../settings/ScriptContext";
 
-export type Mode = "sillabario" | "frasario" | "laboratorio";
-
-interface Props {
-  mode: Mode;
-  onModeChange: (mode: Mode) => void;
-}
-
-export function Header({ mode, onModeChange }: Props) {
+export function Header() {
   const { locale, showReference, setLocale, setShowReference } = useLocale();
   const { script, setScript } = useScript();
   const ui = getCatalog(locale).ui;
-  const modes: Array<{ id: Mode; label: string; emoji: string }> = [
-    { id: "sillabario", label: ui.nav.syllabary, emoji: "🈂️" },
-    { id: "frasario", label: ui.nav.phrasebook, emoji: "📖" },
-    { id: "laboratorio", label: ui.nav.laboratory, emoji: "🧑‍🏫" },
+  const primaryNav = [
+    { to: routePaths.course, label: ui.nav.course },
+    { to: routePaths.practice, label: ui.nav.practice },
+    { to: routePaths.phrasebook, label: ui.nav.phrasebook },
   ];
 
   return (
@@ -30,13 +25,17 @@ export function Header({ mode, onModeChange }: Props) {
       </div>
 
       <div className="header__tools">
-        <nav className="modenav" aria-label={ui.nav.modes}>
-          {modes.map((item) => (
-            <button key={item.id} type="button"
-              className={`modenav__item${mode === item.id ? " is-active" : ""}`}
-              aria-pressed={mode === item.id} onClick={() => onModeChange(item.id)}>
-              <span aria-hidden="true">{item.emoji}</span> {item.label}
-            </button>
+        <nav className="modenav" aria-label={ui.nav.primary}>
+          {primaryNav.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `modenav__item${isActive ? " is-active" : ""}`
+              }
+            >
+              {item.label}
+            </NavLink>
           ))}
         </nav>
 

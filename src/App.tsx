@@ -1,14 +1,12 @@
-import { useEffect, useState } from "react";
-import { Header, type Mode } from "./components/Header";
-import { Phrasebook } from "./components/Phrasebook";
-import { getCatalog } from "./i18n/catalog";
+import { useEffect } from "react";
+import { HashRouter } from "react-router";
+import { Header } from "./components/Header";
+import { AppRoutes } from "./routing/routes";
 import { LocaleProvider, useLocale } from "./i18n/LocaleContext";
-import { Lab } from "./lab/components/Lab";
+import { getCatalog } from "./i18n/catalog";
 import { ScriptProvider, useScript } from "./settings/ScriptContext";
-import { Syllabary } from "./syllabary/Syllabary";
 
 function AppContent() {
-  const [mode, setMode] = useState<Mode>("laboratorio");
   const { locale, persistenceAvailable: localePersistence } = useLocale();
   const { persistenceAvailable: scriptPersistence } = useScript();
   const ui = getCatalog(locale).ui;
@@ -19,16 +17,18 @@ function AppContent() {
   }, [locale, ui.documentTitle]);
 
   return (
-    <div className="app">
-      <Header mode={mode} onModeChange={setMode} />
-      {!localePersistence || !scriptPersistence ? (
-        <p className="settings-warning" role="status">{ui.settings.unavailable}</p>
-      ) : null}
-      {mode === "sillabario" && <Syllabary />}
-      {mode === "frasario" && <Phrasebook />}
-      {mode === "laboratorio" && <Lab />}
-      <footer className="footer"><p>{ui.footer}</p></footer>
-    </div>
+    <HashRouter>
+      <div className="app">
+        <Header />
+        {!localePersistence || !scriptPersistence ? (
+          <p className="settings-warning" role="status">
+            {ui.settings.unavailable}
+          </p>
+        ) : null}
+        <AppRoutes />
+        <footer className="footer"><p>{ui.footer}</p></footer>
+      </div>
+    </HashRouter>
   );
 }
 
