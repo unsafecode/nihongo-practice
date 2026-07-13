@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lezione · Azioni e oggetti</title>
+  <style>
+    :root {
+      --paper:#f8f0e4; --surface:#fffaf2; --white:#fff;
+      --ink:#24231f; --muted:#736d64; --line:#e7d9c7;
+      --coral:#e4572e; --coral-soft:#fae1d5; --teal:#2f6f6a;
+      --teal-soft:#dbeae7; --board:#292c32; --particle:#ffd08a; --ending:#ff9d7a;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif}
+    button{font:inherit}
+    .app{min-height:100vh}
+    header{height:76px;padding:0 34px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:rgba(255,250,242,.94);backdrop-filter:blur(16px);position:sticky;top:0;z-index:5}
+    .brand{display:flex;align-items:center;gap:13px}.mark{font-family:"Hiragino Sans","Yu Gothic",sans-serif;font-size:25px;font-weight:900;color:var(--coral)}
+    .brandtext b{display:block;font-size:14px}.brandtext small{color:var(--muted);font-size:11px}
+    .nav{display:flex;gap:5px;background:#efe4d5;padding:4px;border-radius:13px}
+    .nav span{padding:8px 13px;border-radius:9px;font-size:12px;font-weight:750;color:#71695f}
+    .nav .active{background:white;color:var(--ink);box-shadow:0 3px 12px rgba(78,59,38,.09)}
+    .tools{display:flex;gap:8px}.tool{border:1px solid var(--line);background:var(--surface);border-radius:11px;padding:8px 11px;font-size:12px;font-weight:750}
+    .layout{display:grid;grid-template-columns:278px minmax(0,1fr);max-width:1380px;margin:0 auto;min-height:calc(100vh - 76px)}
+    aside{border-right:1px solid var(--line);padding:28px 22px 40px;position:sticky;top:76px;height:calc(100vh - 76px);overflow:auto}
+    .back{color:var(--teal);font-size:12px;font-weight:800;margin-bottom:24px}
+    .chapter-label{font-size:10px;letter-spacing:.14em;font-weight:900;color:var(--muted)}
+    aside h2{font-size:21px;line-height:1.08;margin:7px 0 8px}
+    aside>p{font-size:12px;line-height:1.5;color:var(--muted);margin:0 0 18px}
+    .mini-progress{height:6px;background:#e8ddcf;border-radius:8px;overflow:hidden;margin-bottom:22px}.mini-progress div{width:50%;height:100%;background:var(--coral)}
+    .steps{display:grid;gap:7px}.step{display:grid;grid-template-columns:29px 1fr;gap:10px;align-items:center;padding:10px;border-radius:12px;font-size:12px;color:#6f685f}
+    .step .n{width:27px;height:27px;border-radius:9px;display:grid;place-items:center;background:#eee2d3;font-weight:900}
+    .step.done{color:var(--teal)}.step.done .n{background:var(--teal-soft)}
+    .step.active{background:white;color:var(--ink);box-shadow:0 5px 18px rgba(79,61,37,.09)}.step.active .n{background:var(--coral);color:white}
+    main{padding:42px clamp(34px,6vw,88px) 70px;max-width:1020px}
+    .crumb{font-size:11px;font-weight:850;letter-spacing:.1em;color:var(--teal);text-transform:uppercase}
+    h1{font-size:clamp(36px,5vw,58px);line-height:.98;letter-spacing:-.045em;margin:13px 0 15px;max-width:780px}
+    .lead{font-size:17px;line-height:1.6;color:#5f5a53;max-width:710px;margin:0 0 30px}
+    .rule{display:grid;grid-template-columns:72px 1fr;gap:18px;padding:20px;border:1px solid #efc9b7;background:linear-gradient(115deg,#fff9f2,#fae1d5);border-radius:19px;margin-bottom:26px}
+    .rule-kana{width:68px;height:68px;border-radius:18px;background:var(--coral);color:white;display:grid;place-items:center;font-family:"Hiragino Sans",sans-serif;font-size:29px;font-weight:900;box-shadow:0 9px 20px rgba(228,87,46,.2)}
+    .rule small{font-size:10px;font-weight:900;letter-spacing:.13em;color:#9a472d}.rule h3{margin:4px 0 5px;font-size:19px}.rule p{margin:0;color:#6c5b50;font-size:13px;line-height:1.5}
+    .section-head{display:flex;align-items:end;justify-content:space-between;margin:34px 0 12px}.section-head h2{font-size:23px;margin:0;letter-spacing:-.025em}.section-head span{font-size:11px;color:var(--muted)}
+    .examples{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+    .example{background:var(--surface);border:1px solid var(--line);border-radius:17px;padding:17px}
+    .example-label{display:flex;justify-content:space-between;color:var(--muted);font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
+    .example .jp{font-family:"Hiragino Sans","Yu Gothic",sans-serif;font-size:25px;font-weight:850;line-height:1.4}.particle{color:#c47705;background:#fff0cf;border-radius:5px;padding:0 2px}.ending{color:#d24c27;background:#fde2d9;border-radius:5px;padding:0 2px}
+    .romaji{font-size:12px;color:var(--muted);margin-top:3px}.it{font-size:14px;font-weight:750;margin-top:13px}.en{font-size:11px;color:var(--muted);margin-top:3px}
+    .lab-card{background:var(--board);color:white;border-radius:23px;padding:23px;margin-top:12px;box-shadow:0 20px 45px rgba(41,44,50,.18);position:relative;overflow:hidden}
+    .lab-card:after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;right:-90px;top:-100px;background:radial-gradient(circle,rgba(47,111,106,.5),transparent 68%)}
+    .lab-top{display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1}.lab-label{color:#89d1c8;font-size:10px;font-weight:900;letter-spacing:.14em}.listen{border:1px solid #59606d;background:#373b44;color:white;border-radius:10px;padding:8px 11px;font-size:11px}
+    .chips{display:flex;gap:8px;flex-wrap:wrap;margin:19px 0 15px;position:relative;z-index:1}.chip{background:white;color:var(--ink);padding:11px 13px;border-radius:12px}.chip small{display:block;color:#777;font-size:9px;margin-bottom:2px}.chip b{font-family:"Hiragino Sans",sans-serif;font-size:18px}
+    .sentence{font-family:"Hiragino Sans",sans-serif;font-size:29px;font-weight:850;position:relative;z-index:1}.translation{color:#c8cbd2;font-size:12px;margin-top:7px;position:relative;z-index:1}
+    .lab-action{margin-top:20px;border:0;background:var(--coral);color:white;padding:12px 16px;border-radius:12px;font-weight:850;font-size:12px;position:relative;z-index:1}
+    .footer-actions{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);margin-top:34px;padding-top:22px}
+    .secondary{border:1px solid var(--line);background:transparent;padding:11px 14px;border-radius:12px;font-size:12px;font-weight:750}.complete{border:0;background:var(--teal);color:white;padding:12px 17px;border-radius:12px;font-size:12px;font-weight:850}
+    @media(max-width:850px){header{padding:0 16px}.brandtext,.nav{display:none}.layout{grid-template-columns:1fr}aside{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:30px 20px}.examples{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand"><div class="mark">はなそう</div><div class="brandtext"><b>Giapponese pratico</b><small>costruisci, ascolta, parla</small></div></div>
+      <div class="nav"><span class="active">Percorso</span><span>Pratica libera</span><span>Frasario</span></div>
+      <div class="tools"><button class="tool">IT · EN ✓</button><button class="tool">あ Hiragana</button></div>
+    </header>
+
+    <div class="layout">
+      <aside>
+        <div class="back">← Tutti i capitoli</div>
+        <div class="chapter-label">CAPITOLO 3 DI 8</div>
+        <h2>Azioni e oggetti</h2>
+        <p>Scopri come を collega ciò che fai al verbo della frase.</p>
+        <div class="mini-progress"><div></div></div>
+        <div class="steps">
+          <div class="step done"><div class="n">✓</div><b>La regola</b></div>
+          <div class="step active"><div class="n">2</div><b>Guarda cambiare</b></div>
+          <div class="step"><div class="n">3</div><b>Esplora</b></div>
+          <div class="step"><div class="n">4</div><b>Riepilogo</b></div>
+        </div>
+      </aside>
+
+      <main>
+        <div class="crumb">Lezione 2 · Osserva</div>
+        <h1>Che cosa riceve l’azione?</h1>
+        <p class="lead">
+          In giapponese la particella <b>を</b> viene subito dopo ciò su cui agisce il verbo.
+          La posizione mostra il ruolo: non serve tradurla parola per parola.
+        </p>
+
+        <div class="rule">
+          <div class="rule-kana">を</div>
+          <div>
+            <small>INGRANAGGIO DI OGGI</small>
+            <h3>Che cosa? · oggetto diretto</h3>
+            <p><b>Nome + を + verbo</b>. Pensa a を come a un’etichetta che dice: “questa è la cosa coinvolta nell’azione”.</p>
+          </div>
+        </div>
+
+        <div class="section-head"><h2>Stessa struttura, azioni diverse</h2><span>tocca ▶ per ascoltare</span></div>
+        <div class="examples">
+          <div class="example">
+            <div class="example-label"><span>Mangiare</span><span>▶</span></div>
+            <div class="jp">らーめん<span class="particle">を</span> たべ<span class="ending">ます</span></div>
+            <div class="romaji">rāmen o tabemasu</div>
+            <div class="it">Mangio il ramen.</div>
+            <div class="en">EN · I eat ramen.</div>
+          </div>
+          <div class="example">
+            <div class="example-label"><span>Bere</span><span>▶</span></div>
+            <div class="jp">みず<span class="particle">を</span> のみ<span class="ending">ます</span></div>
+            <div class="romaji">mizu o nomimasu</div>
+            <div class="it">Bevo acqua.</div>
+            <div class="en">EN · I drink water.</div>
+          </div>
+        </div>
+
+        <div class="section-head"><h2>Ora muovi tu gli ingranaggi</h2><span>preset guidato</span></div>
+        <div class="lab-card">
+          <div class="lab-top"><div class="lab-label">LAVAGNA GUIDATA · OGGETTO を</div><button class="listen">▶ Ascolta</button></div>
+          <div class="chips">
+            <div class="chip"><small>Che cosa? · を</small><b>すし<span class="particle">を</span></b></div>
+            <div class="chip"><small>Azione</small><b>たべ<span class="ending">ます</span></b></div>
+          </div>
+          <div class="sentence">すし<span style="color:var(--particle)">を</span> たべ<span style="color:var(--ending)">ます</span></div>
+          <div class="translation">Mangio il sushi. · EN: I eat sushi.</div>
+          <button class="lab-action">Apri il Laboratorio guidato →</button>
+        </div>
+
+        <div class="footer-actions">
+          <button class="secondary">← La regola</button>
+          <button class="complete">Segna lezione come completata ✓</button>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
