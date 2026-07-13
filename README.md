@@ -139,13 +139,16 @@ src/
     engine/
       conjugate.ts         # gambo + 6 forme cortesi (+ test)
       assemble.ts          # assemblatore frase giapponese (+ test)
+      japanese.ts          # costruzione frase JP: chip + frase + audio (fonte unica)
+      realize.ts           # realizzazione bilingue della frase (IT/EN, + test)
+      naturalness.ts       # stato naturale / contestuale / incompatibile (+ test)
     components/            # Board, Chip, ControlPanel, TeachNote, Lab
     lab.css
   syllabary/               # modalità Sillabario
     kana.ts                # tavola hiragana (gojūon + dakuten + yōon)
     Syllabary.tsx
     syllabary.css
-  App.tsx                  # switch a 3 modalità + ScriptProvider
+  App.tsx                  # switch a 3 modalità + LocaleProvider/ScriptProvider
   styles.css
 ```
 
