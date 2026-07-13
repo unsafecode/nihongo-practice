@@ -1,59 +1,37 @@
 import { useState } from "react";
 import { categories } from "../data/phrases";
 import { useSpeech } from "../hooks/useSpeech";
+import { getCatalog } from "../i18n/catalog";
+import { useLocale } from "../i18n/LocaleContext";
 import { CategoryNav } from "./CategoryNav";
-import { SpeechNotice } from "./SpeechNotice";
 import { PhraseCard } from "./PhraseCard";
+import { SpeechNotice } from "./SpeechNotice";
 
-/**
- * Modalità Frasario (v1): il frasario con audio. Estratto da App.tsx senza
- * cambiare comportamento — possiede il proprio stato `activeId` e usa useSpeech.
- */
 export function Phrasebook() {
+  const { locale } = useLocale();
   const [activeId, setActiveId] = useState(categories[0].id);
   const { supported, japaneseVoiceAvailable, speakingKey, speak } = useSpeech();
-
-  const active = categories.find((c) => c.id === activeId) ?? categories[0];
+  const ui = getCatalog(locale).ui;
+  const active = categories.find((category) => category.id === activeId) ?? categories[0];
 
   return (
     <main className="app__main">
-      <CategoryNav
-        categories={categories}
-        activeId={activeId}
-        onSelect={setActiveId}
-      />
-
+      <CategoryNav categories={categories} activeId={activeId} onSelect={setActiveId} />
       <section className="content">
-        <SpeechNotice
-          supported={supported}
-          japaneseVoiceAvailable={japaneseVoiceAvailable}
-        />
-
+        <SpeechNotice supported={supported} japaneseVoiceAvailable={japaneseVoiceAvailable} />
         <div className="content__head">
           <h2 className="content__title">
             <span aria-hidden="true">{active.emoji}</span>
-            {active.label}
-            <span className="content__jp" lang="ja">
-              {active.hiragana}
-            </span>
+            {active.labels[locale]}
+            <span className="content__jp" lang="ja">{active.hiragana}</span>
           </h2>
-          <p className="content__count">{active.phrases.length} frasi</p>
+          <p className="content__count">{active.phrases.length} {ui.common.phrases}</p>
         </div>
-
         <div className="grid">
-          {active.phrases.map((phrase, i) => {
-            const key = `${active.id}-${i}`;
-            return (
-              <PhraseCard
-                key={key}
-                phrase={phrase}
-                phraseKey={key}
-                isSpeaking={speakingKey === key}
-                supported={supported}
-                onSpeak={speak}
-              />
-            );
-          })}
+          {active.phrases.map((phrase) => (
+            <PhraseCard key={phrase.id} phrase={phrase} phraseKey={phrase.id}
+              isSpeaking={speakingKey === phrase.id} supported={supported} onSpeak={speak} />
+          ))}
         </div>
       </section>
     </main>
