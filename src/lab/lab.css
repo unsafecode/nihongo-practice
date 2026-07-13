@@ -1,0 +1,355 @@
+/*
+ * Stili della modalità Laboratorio ("Lavagna delle frasi").
+ * Portati fedelmente dal mockup approvato
+ * (docs/superpowers/specs/2026-07-13-sentence-lab-mockup.html).
+ *
+ * Le variabili :root qui sotto sono TUTTE nuove (--time, --topic, --obj,
+ * --place, --gear-*): non entrano in conflitto con la palette v1 di styles.css.
+ * Le classi (.lab, .board, .chip*, .panel, .opt, .note…) sono namespaced e non
+ * toccano quelle del Frasario.
+ */
+:root {
+  --time: #2f6f6a;
+  --time-soft: #e7f2f0;
+  --topic: #6b4e9e;
+  --topic-soft: #efe9f7;
+  --obj: #c53f1c;
+  --obj-soft: #fdeee7;
+  --place: #2f7a3f;
+  --place-soft: #e7f4ea;
+  --gear-particle: #ffd8a8;
+  --gear-ending: #ff9d7a;
+}
+
+/* Selettore di scenario */
+.scenario {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 16px;
+  flex-wrap: wrap;
+}
+.scenario__label {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.scenario .pill {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 700;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+.scenario .pill.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+/* Layout a due colonne */
+.lab {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(290px, 0.85fr);
+  gap: 22px;
+  align-items: start;
+}
+@media (max-width: 880px) {
+  .lab {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Lavagna (sinistra, sticky) */
+.board {
+  background: #0f1512;
+  border-radius: 22px;
+  padding: clamp(20px, 3vw, 32px);
+  color: #fff;
+  box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.5);
+  position: sticky;
+  top: 18px;
+  overflow: hidden;
+}
+.board::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  pointer-events: none;
+}
+.board__label {
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 16px;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: stretch;
+  margin-bottom: 22px;
+}
+.chip {
+  border-radius: 14px;
+  padding: 12px 16px 11px;
+  min-width: 78px;
+  text-align: center;
+  position: relative;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  cursor: default;
+}
+.chip__role {
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.8;
+  margin-bottom: 5px;
+  font-weight: 700;
+}
+.chip__main {
+  font-family: var(--font-jp);
+  font-size: 1.95rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+.chip__main.romaji {
+  font-family: var(--font-ui);
+  font-style: italic;
+  font-size: 1.5rem;
+}
+.chip__sub {
+  font-size: 0.82rem;
+  opacity: 0.72;
+  margin-top: 4px;
+}
+.chip__sub.jp {
+  font-family: var(--font-jp);
+  font-style: normal;
+}
+.particle {
+  color: var(--gear-particle);
+  font-weight: 800;
+}
+.ending {
+  color: var(--gear-ending);
+  font-weight: 800;
+}
+.chip--time {
+  background: var(--time);
+}
+.chip--topic {
+  background: var(--topic);
+}
+.chip--obj {
+  background: var(--obj);
+}
+.chip--place {
+  background: var(--place);
+}
+.chip--verb {
+  background: #fff;
+  color: #111;
+}
+.chip--verb .chip__role {
+  color: #8a3313;
+}
+.chip--verb .ending {
+  color: var(--accent-dark);
+}
+.chip--verb .chip__sub {
+  opacity: 0.6;
+}
+.chip.bump {
+  transform: translateY(-4px) scale(1.03);
+  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.6);
+}
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    transition: none;
+  }
+  .chip.bump {
+    transform: none;
+  }
+}
+
+/* Frase completa */
+.sentence {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 18px;
+  margin-top: 4px;
+}
+.sentence__main {
+  font-family: var(--font-jp);
+  font-size: clamp(1.8rem, 4vw, 2.45rem);
+  font-weight: 600;
+  line-height: 1.4;
+}
+.sentence__main.romaji {
+  font-family: var(--font-ui);
+  font-style: italic;
+  font-weight: 600;
+}
+.sentence__sub {
+  opacity: 0.72;
+  margin-top: 6px;
+  font-size: 1rem;
+}
+.sentence__sub.jp {
+  font-family: var(--font-jp);
+  font-size: 1.15rem;
+}
+.sentence__it {
+  margin-top: 10px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--gear-particle);
+}
+.listen {
+  margin-top: 16px;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 11px 20px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-family: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.listen:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Legenda degli ingranaggi */
+.legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+.legend b {
+  color: #fff;
+}
+.legend .sw {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.legend .sw--p {
+  background: var(--gear-particle);
+}
+.legend .sw--e {
+  background: var(--gear-ending);
+}
+
+/* Controlli (colonna destra) */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 15px 16px;
+}
+.panel h3 {
+  margin: 0 0 11px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.dot--time {
+  background: var(--time);
+}
+.dot--obj {
+  background: var(--obj);
+}
+.dot--topic {
+  background: var(--topic);
+}
+.dot--verb {
+  background: #111;
+}
+.dot--place {
+  background: var(--place);
+}
+.opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.opt {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.92rem;
+  transition: all 0.12s ease;
+  text-align: left;
+}
+.opt .jp {
+  font-family: var(--font-jp);
+  font-weight: 700;
+}
+.opt .it {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  margin-left: 5px;
+}
+.opt:hover {
+  border-color: #dcd0c2;
+}
+.opt.is-active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.opt.is-active .it {
+  color: rgba(255, 255, 255, 0.85);
+}
+.forms .opt.is-active {
+  background: #111;
+  border-color: #111;
+}
+
+/* Box regola pedagogica */
+.note {
+  margin: 2px 0 18px;
+  padding: 14px 16px;
+  background: var(--time-soft);
+  border: 1px solid #cfe4e1;
+  border-radius: 12px;
+  color: #22504c;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+.note b {
+  color: #123f3b;
+}
