@@ -107,6 +107,33 @@ L'app funziona anche senza audio, ma per sentire le frasi serve una **voce giapp
 
 Se non c'è nessuna voce ja-JP, l'app mostra un avviso ma resta usabile (hiragana + romaji + traduzione).
 
+## Esperienza v2.1
+
+L'app è organizzata in tre aree:
+
+- **Percorso** — 8 capitoli e 16 lezioni compatte, dai suoni alle trappole comuni. Tutti i capitoli sono sempre aperti.
+- **Pratica libera** — Laboratorio delle frasi e Sillabario hiragana, accessibili anche dai collegamenti guidati nelle lezioni.
+- **Frasario** — frasi pratiche da viaggio con testo e audio.
+
+Italiano e inglese sono entrambi completi. Una lingua è primaria; l'altra può comparire sotto esempi, frasi e riepiloghi come traduzione di controllo. Hiragana/rōmaji è un'impostazione indipendente.
+
+La conclusione di una lezione è un'azione esplicita e reversibile. I progressi restano solo nel browser e non bloccano mai i contenuti.
+
+### Dati locali
+
+Non esistono account né un backend. `localStorage` contiene soltanto:
+
+- `nihongo.locale.primary`
+- `nihongo.locale.reference`
+- `nihongo.script`
+- `nihongo.course.progress`
+
+Se lo storage non è disponibile, l'app continua a funzionare per la sessione corrente.
+
+### Fuori dallo scope v2.1
+
+Gli esercizi deterministici sono previsti per v2.2. Il riconoscimento vocale è previsto per v2.3 e non verrà presentato come valutazione della pronuncia. Una valutazione fonetica reale richiederebbe un servizio con credenziali protette.
+
 ## Contenuti
 
 8 categorie pratiche: Saluti, Parole base, Presentarsi, Mangiare e bere, Shopping, Indicazioni,
