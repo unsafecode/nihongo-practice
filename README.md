@@ -6,6 +6,56 @@ grazie alla sintesi vocale del browser.
 
 > Progetto fatto per divertimento e per uso personale — non è un corso strutturato né materiale "business".
 
+## Le tre modalità (v2)
+
+Un interruttore in alto sceglie la modalità:
+
+- **🧑‍🏫 Laboratorio** (default) — la *lavagna delle frasi*. Parti da un caso reale
+  (mangiare, andare, comprare…), scegli **forma del verbo**, **tempo** e complementi,
+  e guarda la frase montarsi pezzo per pezzo. Le **particelle** (を, で, に…) e le
+  **terminazioni** del verbo (ます, ました, ません…) sono evidenziate come "ingranaggi",
+  così si vede *a colpo d'occhio* cosa dà il ruolo alle parole e cosa dà tempo/polarità.
+  Ogni frase si può ascoltare.
+- **🈂️ Sillabario** — tavola hiragana interattiva (gojūon, dakuten/handakuten, yōon).
+  Tocca una casella per **sentirne il suono**. È la base per imparare a leggere tutto
+  il resto dell'app. Include note su っ (raddoppio), ー (allungamento) e ん.
+- **📖 Frasario** — il frasario da viaggio della v1 (vedi sotto), invariato.
+
+### Impostazione scrittura: hiragana / rōmaji
+
+Un secondo interruttore, valido in **tutte** le modalità, sceglie quale testo è
+**primario (grande)**: hiragana (default) o rōmaji (latino). L'altro resta sempre
+visibile in piccolo, così chi non sa ancora leggere l'hiragana "legge bene" comunque.
+La scelta è **persistita in `localStorage`**.
+
+### Il motore di coniugazione
+
+Il Laboratorio è costruito su un motore **puro** (senza React) in `src/lab/engine/`.
+Intuizione chiave: **le 6 forme cortesi derivano tutte dallo stesso gambo (masu-stem)** —
+`gambo + ます / ました / ません / ませんでした / ましょう / たいです`. L'unica cosa che
+cambia per verbo è come si ottiene il gambo:
+
+| gruppo | regola | esempio |
+|---|---|---|
+| ichidan | togli る | たべる → たべ |
+| godan | ultima kana riga-う → riga-い | のむ → のみ, **かえる → かえり** |
+| irregolare | tabella fissa | する → し, くる → き |
+
+> Nota: **かえる ("tornare") è godan**, non ichidan (gambo かえり) — un tranello classico,
+> coperto da un test apposta.
+
+In giapponese **presente e futuro sono la stessa forma**: è l'avverbio di tempo a
+disambiguare. La traduzione italiana usa il futuro solo quando la forma è
+presente/negativa **e** il tempo è futuro (あした / こんばん). Il rōmaji non è
+traslitterato a runtime: è memorizzato nei dati.
+
+I 12 scenari (12 verbi × 6 forme), l'integrità dei dati e gli assemblatori JP/IT
+sono coperti dai test:
+
+```bash
+npm test
+```
+
 ## Scelte di design (v1)
 
 - **Solo hiragana per la scrittura.** Niente kanji né katakana: chi impara deve leggere un
@@ -34,6 +84,12 @@ npm run build
 npm run preview
 ```
 
+Test (motore di coniugazione, integrità dati, assemblatori):
+
+```bash
+npm test
+```
+
 ### Audio: se non senti nulla
 
 L'app funziona anche senza audio, ma per sentire le frasi serve una **voce giapponese** installata:
@@ -52,6 +108,7 @@ Emergenze, Numeri. Le frasi sono in `src/data/phrases.ts` — facilissime da est
 ## Stack
 
 - [Vite](https://vite.dev/) + React + TypeScript
+- [Vitest](https://vitest.dev/) per i test del motore di coniugazione e dei dati
 - CSS scritto a mano (nessun framework di stile, per tenere le dipendenze al minimo)
 - Web Speech API (`speechSynthesis`) per l'audio
 
@@ -59,21 +116,37 @@ Emergenze, Numeri. Le frasi sono in `src/data/phrases.ts` — facilissime da est
 
 ```
 src/
-  data/phrases.ts        # tutti i contenuti (categorie + frasi)
-  hooks/useSpeech.ts     # layer audio (Web Speech API)
+  data/phrases.ts          # contenuti del Frasario (categorie + frasi)
+  hooks/useSpeech.ts       # layer audio condiviso (Web Speech API)
+  settings/
+    ScriptContext.tsx      # impostazione globale hiragana/rōmaji (localStorage)
   components/
-    Header.tsx
-    CategoryNav.tsx      # navigazione categorie (sidebar / scroll su mobile)
-    PhraseCard.tsx       # card frase con pulsanti Ascolta / Lento
-    SpeechNotice.tsx     # avviso se manca il supporto audio
-  App.tsx
+    Header.tsx             # brand + nav modalità + toggle scrittura
+    CategoryNav.tsx        # navigazione categorie del Frasario
+    PhraseCard.tsx         # card frase (rispetta l'impostazione scrittura)
+    SpeechNotice.tsx       # avviso se manca il supporto audio
+    Phrasebook.tsx         # modalità Frasario (v1, estratta da App.tsx)
+  lab/                     # modalità Laboratorio
+    engine/
+      conjugate.ts         # gambo + 6 forme cortesi (+ test)
+      assemble.ts          # assemblatori frase JP e IT (+ test)
+    data/
+      types.ts             # modello dati (Scenario/Slot/Option/Role/particelle)
+      scenarios.ts         # 12 scenari autoriali (+ test integrità)
+    components/            # Board, Chip, ControlPanel, TeachNote, Lab
+    lab.css
+  syllabary/               # modalità Sillabario
+    kana.ts                # tavola hiragana (gojūon + dakuten + yōon)
+    Syllabary.tsx
+    syllabary.css
+  App.tsx                  # switch a 3 modalità + ScriptProvider
   styles.css
 ```
 
-## Idee per la v2 (non incluse nella v1)
+## Idee per la v3 (non incluse)
 
 - TTS neurale in cloud (Azure Speech / OpenAI / ElevenLabs) per voci più naturali
-- Modalità "quiz / flashcard" (nascondi la traduzione, prova a ricordare)
-- Ricerca e preferiti tra le frasi
+- Quiz / drill del Sillabario e del Laboratorio
+- Preferiti e progresso di apprendimento
 - Riconoscimento vocale per esercitare la pronuncia
 - Toggle opzionale per mostrare anche katakana/kanji quando si è più avanti
