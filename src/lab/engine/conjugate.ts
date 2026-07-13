@@ -24,3 +24,38 @@ export function stem(dict: string, group: Group): string {
   if (!replaced) throw new Error(`Finale godan non valida: ${dict}`);
   return dict.slice(0, -1) + replaced;
 }
+
+export type Form = "pres" | "past" | "neg" | "pastneg" | "vol" | "des";
+
+export interface Verb {
+  dict: string; // forma del dizionario, es. たべる
+  group: Group;
+  stemRomaji: string; // es. "tabe" — la radice masu in rōmaji
+}
+
+export interface Conjugation {
+  jp: string;
+  romaji: string;
+  ending: string; // suffisso in hiragana (per l'evidenziazione "ingranaggio")
+  endingRomaji: string;
+}
+
+const SUFFIX: Record<Form, { jp: string; romaji: string }> = {
+  pres: { jp: "ます", romaji: "masu" },
+  past: { jp: "ました", romaji: "mashita" },
+  neg: { jp: "ません", romaji: "masen" },
+  pastneg: { jp: "ませんでした", romaji: "masen deshita" },
+  vol: { jp: "ましょう", romaji: "mashō" },
+  des: { jp: "たいです", romaji: "tai desu" },
+};
+
+export function conjugate(verb: Verb, form: Form): Conjugation {
+  const s = stem(verb.dict, verb.group);
+  const suf = SUFFIX[form];
+  return {
+    jp: s + suf.jp,
+    romaji: verb.stemRomaji + suf.romaji, // es. "tabe"+"tai desu" = "tabetai desu"
+    ending: suf.jp,
+    endingRomaji: suf.romaji,
+  };
+}
