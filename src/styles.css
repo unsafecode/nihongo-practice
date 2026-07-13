@@ -546,3 +546,34 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+.app-error {
+  display: grid;
+  min-height: 100vh;
+  place-content: center;
+  justify-items: start;
+  padding: 2rem;
+  background: var(--paper);
+}
+
+.app-error__mark {
+  display: grid;
+  width: 4rem;
+  height: 4rem;
+  margin: 0 0 1rem;
+  place-items: center;
+  border-radius: 1.2rem;
+  background: var(--accent);
+  color: white;
+  font-size: 2rem;
+  font-weight: 900;
+}
+
+.app-error button {
+  border: 0;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--time);
+  color: white;
+  font-weight: 800;
+}

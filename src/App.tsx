@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { HashRouter } from "react-router";
 import { Header } from "./components/Header";
+import { AppErrorBoundary } from "./errors/AppErrorBoundary";
 import { AppRoutes } from "./routing/routes";
 import { LocaleProvider, useLocale } from "./i18n/LocaleContext";
 import { getCatalog } from "./i18n/catalog";
@@ -36,18 +37,20 @@ function AppContent() {
   }, [locale, ui.documentTitle]);
 
   return (
-    <HashRouter>
-      <ProgressProvider>
-        <div className="app">
-          <Header />
-          <PersistenceWarning
-            settingsUnavailable={!localePersistence || !scriptPersistence}
-          />
-          <AppRoutes />
-          <footer className="footer"><p>{ui.footer}</p></footer>
-        </div>
-      </ProgressProvider>
-    </HashRouter>
+    <AppErrorBoundary locale={locale}>
+      <HashRouter>
+        <ProgressProvider>
+          <div className="app">
+            <Header />
+            <PersistenceWarning
+              settingsUnavailable={!localePersistence || !scriptPersistence}
+            />
+            <AppRoutes />
+            <footer className="footer"><p>{ui.footer}</p></footer>
+          </div>
+        </ProgressProvider>
+      </HashRouter>
+    </AppErrorBoundary>
   );
 }
 
