@@ -68,3 +68,317 @@
     grid-template-columns: 1fr;
   }
 }
+.lesson-layout {
+  display: grid;
+  grid-template-columns: 17.375rem minmax(0, 1fr);
+  max-width: 86rem;
+  min-height: calc(100vh - var(--header-height));
+  margin: 0 auto;
+}
+
+.lesson-sidebar {
+  position: sticky;
+  top: var(--header-height);
+  height: calc(100vh - var(--header-height));
+  overflow: auto;
+  border-right: 1px solid var(--course-line);
+  padding: 1.75rem 1.4rem 2.5rem;
+}
+
+.lesson-sidebar-mobile {
+  display: none;
+}
+
+.lesson-sidebar h2 {
+  margin: 0.45rem 0 0.55rem;
+  font-size: 1.45rem;
+}
+
+.lesson-sidebar__back {
+  display: inline-block;
+  margin-bottom: 1.8rem;
+}
+
+.lesson-sidebar__list {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0;
+  margin: 1.3rem 0 0;
+  list-style: none;
+}
+
+.lesson-sidebar__list a {
+  display: grid;
+  grid-template-columns: 1.8rem 1fr;
+  gap: 0.65rem;
+  align-items: center;
+  border-radius: 0.7rem;
+  padding: 0.7rem;
+  color: var(--course-ink);
+  text-decoration: none;
+}
+
+.lesson-sidebar__list a[aria-current="page"] {
+  background: var(--course-coral-soft);
+}
+
+.lesson-sidebar__list .is-complete a > span {
+  color: var(--course-teal);
+  font-weight: 800;
+}
+
+.lesson-main {
+  width: min(100%, 64rem);
+  padding: clamp(2rem, 6vw, 5.5rem);
+}
+
+.lesson-header h1 {
+  max-width: 13ch;
+  margin: 0.7rem 0 1rem;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+}
+
+.lesson-header > p:last-child {
+  max-width: 42rem;
+  color: var(--course-muted);
+  font-size: 1.12rem;
+  line-height: 1.65;
+}
+
+.lesson-blocks {
+  display: grid;
+  gap: 1.6rem;
+  margin-top: 2.5rem;
+}
+
+.lesson-rule {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  gap: 1.1rem;
+  border: 1px solid #efc9b7;
+  border-radius: 1.2rem;
+  padding: 1.25rem;
+  background: linear-gradient(115deg, #fff9f2, var(--course-coral-soft));
+}
+
+.lesson-rule__gear {
+  display: grid;
+  min-height: 4.5rem;
+  place-items: center;
+  border-radius: 1rem;
+  background: var(--course-coral);
+  color: white;
+  font-size: 1.35rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.lesson-rule h2,
+.lesson-section h2,
+.lesson-guided-tool h2,
+.lesson-summary h2 {
+  margin: 0 0 0.45rem;
+}
+
+.lesson-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.lesson-section__header > p {
+  max-width: 44rem;
+  margin: 0;
+  color: var(--course-muted);
+}
+
+.lesson-gear-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  color: var(--course-muted);
+  font-size: 0.78rem;
+}
+
+.lesson-gear-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.lesson-gear-legend b {
+  border-radius: 0.35rem;
+  padding: 0.1rem 0.3rem;
+  background: var(--course-board);
+}
+
+.lesson-gear-legend .particle { color: #f4bd55; }
+.lesson-gear-legend .ending { color: #ff835e; }
+
+.lesson-examples {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.lesson-audio-error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.lesson-examples--examples:has(.lesson-example:only-child) {
+  grid-template-columns: 1fr;
+}
+
+.lesson-example {
+  position: relative;
+  border-radius: 1rem;
+  padding: 1.2rem;
+  background: var(--course-board);
+  color: #f8f0e4;
+}
+
+.lesson-example__main,
+.lesson-example__sub,
+.lesson-example__translation,
+.lesson-example__reference,
+.lesson-example__note {
+  margin: 0;
+}
+
+.lesson-example__main {
+  padding-right: 3rem;
+  font-size: clamp(1.65rem, 4vw, 2.55rem);
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.lesson-example__main.is-romaji {
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+}
+
+.lesson-example__sub {
+  margin-top: 0.2rem;
+  color: #c9c4bb;
+}
+
+.lesson-example__translation {
+  margin-top: 1.05rem;
+  font-size: 1.05rem;
+}
+
+.lesson-example__reference {
+  margin-top: 0.35rem;
+  color: #a9d3cd;
+  font-size: 0.9rem;
+}
+
+.lesson-example__reference > span,
+.lesson-summary__reference > span {
+  margin-right: 0.35rem;
+  color: #72b7ad;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.lesson-example .particle {
+  color: #f4bd55;
+}
+
+.lesson-example .ending {
+  color: #ff835e;
+}
+
+.lesson-listen {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  border: 1px solid #5a5d63;
+  border-radius: 999px;
+  padding: 0.42rem 0.65rem;
+  background: transparent;
+  color: inherit;
+}
+
+.lesson-guided-tool {
+  display: flex;
+  gap: 1.2rem;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--course-line);
+  border-radius: 1rem;
+  padding: 1.2rem;
+  background: var(--course-surface);
+}
+
+.lesson-callout {
+  border-left: 0.35rem solid var(--course-teal);
+  border-radius: 0.8rem;
+  padding: 1rem 1.1rem;
+  background: var(--course-teal-soft);
+}
+
+.lesson-callout--warning {
+  border-left-color: #b77520;
+  background: #fff3cf;
+}
+
+.lesson-callout--exception {
+  border-left-color: var(--course-coral);
+  background: var(--course-coral-soft);
+}
+
+.lesson-callout h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.lesson-callout p {
+  margin: 0;
+}
+
+.lesson-summary {
+  border-radius: 1rem;
+  padding: 1.35rem;
+  background: var(--course-teal-soft);
+}
+
+.lesson-summary ul {
+  margin-bottom: 0;
+}
+
+.lesson-summary__reference {
+  border-top: 1px solid color-mix(in srgb, var(--course-teal) 25%, transparent);
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.lesson-footer {
+  display: grid;
+  gap: 1.1rem;
+  border-top: 1px solid var(--course-line);
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+}
+
+.lesson-footer > div {
+  display: flex;
+  justify-content: space-between;
+}
+
+@media (max-width: 850px) {
+  .lesson-layout { grid-template-columns: 1fr; }
+  .lesson-sidebar { display: none; }
+  .lesson-sidebar-mobile {
+    display: block;
+    border-bottom: 1px solid var(--course-line);
+    padding: 1rem 1.25rem;
+  }
+  .lesson-sidebar-mobile > div {
+    padding-top: 1rem;
+  }
+  .lesson-examples { grid-template-columns: 1fr; }
+  .lesson-guided-tool { align-items: flex-start; flex-direction: column; }
+}
