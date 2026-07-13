@@ -63,6 +63,9 @@ describe("locale persistence", () => {
     const storage = memoryStorage();
 
     expect(persistLocaleState(storage, "en", true)).toBe(true);
+    // Pin the exact external keys + serialization (cross-version contract).
+    expect(storage.getItem("nihongo.locale.primary")).toBe("en");
+    expect(storage.getItem("nihongo.locale.reference")).toBe("true");
 
     expect(readInitialLocaleState(storage)).toEqual({
       locale: "en",
