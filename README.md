@@ -186,3 +186,89 @@ src/
 - Preferiti e progresso di apprendimento
 - Riconoscimento vocale per esercitare la pronuncia
 - Toggle opzionale per mostrare anche katakana/kanji quando si è più avanti
+
+
+## GitHub Pages (predisposto, non pubblicato)
+
+L'app è interamente statica. Percorso, traduzioni bilingui, progressi,
+Laboratorio, Sillabario e sintesi vocale del browser non richiedono un backend.
+
+Il repository include il workflow esclusivamente manuale
+`.github/workflows/deploy-pages.yml`.
+
+Per pubblicare dopo un'approvazione esplicita:
+
+1. Creare o collegare il repository GitHub come `nihongo-practice`.
+2. Eseguire il push del branch approvato per la pubblicazione.
+3. In **Settings → Pages**, scegliere **GitHub Actions** come sorgente.
+4. Aprire **Actions → Deploy GitHub Pages → Run workflow**.
+5. Verificare l'URL generato e tutte le route hash.
+
+Il workflow non ha trigger `push` e non può pubblicare automaticamente.
+
+### English
+
+The app is fully static. The course, bilingual translations, progress,
+Sentence Lab, Hiragana chart, and browser speech synthesis do not require a
+backend.
+
+The repository includes the manual-only workflow
+`.github/workflows/deploy-pages.yml`.
+
+To publish after explicit approval:
+
+1. Create or connect the GitHub repository as `nihongo-practice`.
+2. Push the branch approved for publication.
+3. In **Settings → Pages**, select **GitHub Actions** as the source.
+4. Open **Actions → Deploy GitHub Pages → Run workflow**.
+5. Verify the generated URL and every hash route.
+
+The workflow has no `push` trigger and cannot publish automatically.
+
+### Dati locali e voce
+
+Le preferenze e i progressi restano sul browser e dispositivo correnti nelle
+chiavi `nihongo.script`, `nihongo.locale.primary`,
+`nihongo.locale.reference` e `nihongo.course.progress`.
+
+La v2.1 usa soltanto la sintesi vocale fornita dal browser o dal sistema
+operativo. L'app non registra audio e non invia testo o audio a un proprio
+backend; l'eventuale elaborazione online di una voce dipende dal browser,
+dal sistema e dalla voce scelta.
+
+Un futuro riconoscimento vocale del browser potrebbe usare server del
+fornitore e richiederà un avviso visibile. Una valutazione reale della
+pronuncia richiederebbe invece un servizio con credenziali protette.
+
+#### Local data and speech
+
+Preferences and progress stay on the current browser and device under
+`nihongo.script`, `nihongo.locale.primary`, `nihongo.locale.reference`, and
+`nihongo.course.progress`.
+
+V2.1 only uses speech synthesis supplied by the browser or operating system.
+The app records no audio and sends no text or audio to an application backend;
+whether a voice is processed online depends on the browser, operating system,
+and selected voice.
+
+Future browser speech recognition may use vendor servers and will require a
+visible notice. Real pronunciation assessment would require a service with
+protected credentials.
+
+### Disattivare o ripristinare Pages
+
+- In **Settings → Pages**, usare **Unpublish site** per rimuovere il sito; oppure
+- rieseguire il workflow di una distribuzione precedente già verificata, o
+  eseguirlo manualmente da un branch che punta al commit desiderato.
+
+La disattivazione di Pages non modifica lo sviluppo locale né i progressi già
+salvati nei browser.
+
+#### Disable or roll back Pages
+
+- In **Settings → Pages**, use **Unpublish site** to remove the site; or
+- rerun the workflow for a previously verified deployment, or run it manually
+  from a branch that points to the desired commit.
+
+Disabling Pages does not affect local development or progress already stored
+in browsers.
