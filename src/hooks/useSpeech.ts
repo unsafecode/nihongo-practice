@@ -18,12 +18,10 @@ export interface SpeakOptions {
 }
 
 export interface UseSpeech {
-  /** true se il browser supporta la sintesi vocale */
   supported: boolean;
-  /** true se è disponibile almeno una voce giapponese */
   japaneseVoiceAvailable: boolean;
-  /** chiave della frase attualmente in riproduzione (o null) */
   speakingKey: string | null;
+  playbackFailed: boolean;
   speak: (text: string, opts?: SpeakOptions) => void;
   cancel: () => void;
 }
@@ -42,12 +40,17 @@ function pickJapaneseVoice(
   return japanese[0];
 }
 
+export function shouldReportSpeechError(error: string): boolean {
+  return error !== "canceled" && error !== "interrupted";
+}
+
 export function useSpeech(): UseSpeech {
   const supported =
     typeof window !== "undefined" && "speechSynthesis" in window;
 
   const [voice, setVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [speakingKey, setSpeakingKey] = useState<string | null>(null);
+  const [playbackFailed, setPlaybackFailed] = useState(false);
   // Mantiene un riferimento all'utterance per evitare che venga rimossa dal GC
   // (bug noto di Chrome in cui onend non viene mai chiamato).
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -68,16 +71,20 @@ export function useSpeech(): UseSpeech {
 
   const cancel = useCallback(() => {
     if (!supported) return;
+    utteranceRef.current = null;
     window.speechSynthesis.cancel();
     setSpeakingKey(null);
+    setPlaybackFailed(false);
   }, [supported]);
 
   const speak = useCallback(
     (text: string, opts: SpeakOptions = {}) => {
       if (!supported) return;
       const synth = window.speechSynthesis;
-      // Interrompe eventuali riproduzioni in corso (evita code / blocchi).
+      utteranceRef.current = null;
       synth.cancel();
+      setSpeakingKey(null);
+      setPlaybackFailed(false);
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "ja-JP";
@@ -85,12 +92,29 @@ export function useSpeech(): UseSpeech {
       if (voice) utterance.voice = voice;
 
       const key = opts.key ?? text;
-      utterance.onstart = () => setSpeakingKey(key);
-      utterance.onend = () => setSpeakingKey(null);
-      utterance.onerror = () => setSpeakingKey(null);
+      utterance.onstart = () => {
+        if (utteranceRef.current === utterance) setSpeakingKey(key);
+      };
+      utterance.onend = () => {
+        if (utteranceRef.current !== utterance) return;
+        utteranceRef.current = null;
+        setSpeakingKey(null);
+      };
+      utterance.onerror = (event) => {
+        if (utteranceRef.current !== utterance) return;
+        utteranceRef.current = null;
+        setSpeakingKey(null);
+        if (shouldReportSpeechError(event.error)) setPlaybackFailed(true);
+      };
 
       utteranceRef.current = utterance;
-      synth.speak(utterance);
+      try {
+        synth.speak(utterance);
+      } catch {
+        utteranceRef.current = null;
+        setSpeakingKey(null);
+        setPlaybackFailed(true);
+      }
     },
     [supported, voice],
   );
@@ -99,6 +123,7 @@ export function useSpeech(): UseSpeech {
     supported,
     japaneseVoiceAvailable: voice !== null,
     speakingKey,
+    playbackFailed,
     speak,
     cancel,
   };

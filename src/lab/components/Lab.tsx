@@ -34,7 +34,7 @@ function defaultSelection(scenarioId: ScenarioId): LabSelection {
 export function Lab() {
   const { locale, referenceLocale, showReference } = useLocale();
   const { script } = useScript();
-  const { supported, japaneseVoiceAvailable, speakingKey, speak } = useSpeech();
+  const { supported, japaneseVoiceAvailable, speakingKey, playbackFailed, speak } = useSpeech();
   const [selection, setSelection] = useState<LabSelection>(() =>
     defaultSelection(scenarios[0].id),
   );
@@ -72,6 +72,7 @@ export function Lab() {
       <SpeechNotice
         supported={supported}
         japaneseVoiceAvailable={japaneseVoiceAvailable}
+        playbackFailed={playbackFailed}
       />
 
       <div

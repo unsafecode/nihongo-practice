@@ -10,7 +10,7 @@ import { SpeechNotice } from "./SpeechNotice";
 export function Phrasebook() {
   const { locale } = useLocale();
   const [activeId, setActiveId] = useState(categories[0].id);
-  const { supported, japaneseVoiceAvailable, speakingKey, speak } = useSpeech();
+  const { supported, japaneseVoiceAvailable, speakingKey, playbackFailed, speak } = useSpeech();
   const ui = getCatalog(locale).ui;
   const active = categories.find((category) => category.id === activeId) ?? categories[0];
 
@@ -18,7 +18,7 @@ export function Phrasebook() {
     <main className="app__main">
       <CategoryNav categories={categories} activeId={activeId} onSelect={setActiveId} />
       <section className="content">
-        <SpeechNotice supported={supported} japaneseVoiceAvailable={japaneseVoiceAvailable} />
+        <SpeechNotice supported={supported} japaneseVoiceAvailable={japaneseVoiceAvailable} playbackFailed={playbackFailed} />
         <div className="content__head">
           <h2 className="content__title">
             <span aria-hidden="true">{active.emoji}</span>

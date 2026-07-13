@@ -1,3 +1,5 @@
+import type { Locale } from "../i18n/LocaleContext";
+
 /**
  * Tavola statica dell'hiragana (kana → rōmaji).
  *
@@ -66,33 +68,24 @@ export const YOON: KanaRow[] = [
 
 export interface SpecialNote {
   kana: string;
-  title: string;
-  body: string;
+  title: Record<Locale, string>;
+  body: Record<Locale, string>;
 }
 
 /** Note brevi su っ (raddoppio), ー (allungamento), ん (nasale). */
 export const NOTES: SpecialNote[] = [
-  {
-    kana: "っ",
-    title: "Piccolo つ — raddoppio",
-    body:
-      "Un つ in formato ridotto raddoppia la consonante che segue: がっこう = gakkō, きって = kitte. Non si pronuncia da solo, è una piccola pausa.",
-  },
-  {
-    kana: "ー",
-    title: "Trattino — vocale lunga",
-    body:
-      "Allunga la vocale precedente (soprattutto in parole straniere in katakana): ラーメン = rāmen. In hiragana la vocale lunga si scrive spesso con una vocale in più (おおきい).",
-  },
-  {
-    kana: "ん",
-    title: "ん — la nasale",
-    body:
-      "È l'unica consonante che sta da sola. Si adatta al suono seguente (n / m / ng): せんせい = sensei, こんばんは = konban wa.",
-  },
+  { kana: "っ",
+    title: { it: "Piccolo つ — raddoppio consonantico", en: "Small つ — consonant doubling" },
+    body: { it: "Il piccolo つ raddoppia la consonante successiva: がっこう = gakkō, きって = kitte. Segna una breve pausa, non un suono autonomo.", en: "A small つ doubles the next consonant: がっこう = gakkō, きって = kitte. It is a short pause, not a separate sound." } },
+  { kana: "ー",
+    title: { it: "Segno di vocale lunga", en: "Long-vowel mark" },
+    body: { it: "Allunga la vocale precedente, soprattutto nei prestiti scritti in katakana. In hiragana, una vocale lunga si scrive di solito aggiungendo una vocale.", en: "It lengthens the previous vowel, especially in katakana loanwords. In hiragana, long vowels are usually written with an additional vowel." } },
+  { kana: "ん",
+    title: { it: "ん — nasale moraica", en: "ん — the moraic nasal" },
+    body: { it: "È l'unico suono simile a una consonante che può occupare da solo un'unità ritmica. La pronuncia si adatta al suono successivo.", en: "It is the only consonant-like sound that stands alone. Its pronunciation adapts to the following sound." } },
 ];
 
-/** Introduzione (italiano) mostrata in cima alla tavola. */
-export const INTRO =
-  "L'hiragana è l'alfabeto sillabico di base del giapponese: ogni segno è una sillaba. " +
-  "Impara a leggerlo e potrai leggere tutti i contenuti di quest'app. Tocca una casella per sentirne il suono.";
+export const INTRO = {
+  it: "L'hiragana è uno dei sistemi di scrittura del giapponese: ogni segno rappresenta un suono ritmico. Impara a leggerlo per usare tutto il resto dell'app. Tocca una casella per ascoltare.",
+  en: "Hiragana is one of the Japanese writing systems: each sign represents a rhythmic sound unit. Learn it to use the rest of the app. Tap a cell to listen.",
+} satisfies Record<Locale, string>;

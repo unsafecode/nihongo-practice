@@ -1,29 +1,42 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Header, type Mode } from "./components/Header";
 import { Phrasebook } from "./components/Phrasebook";
-import { LocaleProvider } from "./i18n/LocaleContext";
+import { getCatalog } from "./i18n/catalog";
+import { LocaleProvider, useLocale } from "./i18n/LocaleContext";
 import { Lab } from "./lab/components/Lab";
-import { ScriptProvider } from "./settings/ScriptContext";
+import { ScriptProvider, useScript } from "./settings/ScriptContext";
 import { Syllabary } from "./syllabary/Syllabary";
 
-export default function App() {
+function AppContent() {
   const [mode, setMode] = useState<Mode>("laboratorio");
+  const { locale, persistenceAvailable: localePersistence } = useLocale();
+  const { persistenceAvailable: scriptPersistence } = useScript();
+  const ui = getCatalog(locale).ui;
 
+  useEffect(() => {
+    document.documentElement.lang = locale;
+    document.title = ui.documentTitle;
+  }, [locale, ui.documentTitle]);
+
+  return (
+    <div className="app">
+      <Header mode={mode} onModeChange={setMode} />
+      {!localePersistence || !scriptPersistence ? (
+        <p className="settings-warning" role="status">{ui.settings.unavailable}</p>
+      ) : null}
+      {mode === "sillabario" && <Syllabary />}
+      {mode === "frasario" && <Phrasebook />}
+      {mode === "laboratorio" && <Lab />}
+      <footer className="footer"><p>{ui.footer}</p></footer>
+    </div>
+  );
+}
+
+export default function App() {
   return (
     <LocaleProvider>
       <ScriptProvider>
-        <div className="app">
-          <Header mode={mode} onModeChange={setMode} />
-          {mode === "sillabario" && <Syllabary />}
-          {mode === "frasario" && <Phrasebook />}
-          {mode === "laboratorio" && <Lab />}
-          <footer className="footer">
-            <p>
-              Fatto per imparare · audio con la sintesi vocale del browser · solo
-              hiragana
-            </p>
-          </footer>
-        </div>
+        <AppContent />
       </ScriptProvider>
     </LocaleProvider>
   );

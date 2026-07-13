@@ -1,51 +1,36 @@
 import { Fragment } from "react";
-import { useSpeech } from "../hooks/useSpeech";
-import { useScript } from "../settings/ScriptContext";
 import { SpeechNotice } from "../components/SpeechNotice";
-import {
-  GOJUON,
-  DAKUTEN,
-  YOON,
-  VOWELS,
-  YOON_VOWELS,
-  NOTES,
-  INTRO,
-  type Kana,
-  type KanaRow,
-} from "./kana";
+import { useSpeech } from "../hooks/useSpeech";
+import { getCatalog } from "../i18n/catalog";
+import { useLocale } from "../i18n/LocaleContext";
+import { useScript } from "../settings/ScriptContext";
+import { DAKUTEN, GOJUON, INTRO, NOTES, VOWELS, YOON, YOON_VOWELS, type Kana, type KanaRow } from "./kana";
 import "./syllabary.css";
 
-/**
- * Modalità Sillabario: tavola hiragana interattiva. Ogni casella si pronuncia
- * al tocco (useSpeech). L'impostazione script decide solo quale testo è grande
- * (kana o rōmaji): entrambi restano sempre visibili, perché è una tavola per
- * imparare a leggere.
- */
 export function Syllabary() {
-  const { supported, japaneseVoiceAvailable, speakingKey, speak } = useSpeech();
+  const { locale } = useLocale();
   const { script } = useScript();
+  const { supported, japaneseVoiceAvailable, speakingKey, playbackFailed, speak } = useSpeech();
+  const ui = getCatalog(locale).ui;
 
-  const cell = (c: Kana | null, key: string) => {
-    if (!c) return <div className="kana-empty" key={key} aria-hidden="true" />;
-    const active = speakingKey === c.kana;
+  const cell = (kana: Kana | null, key: string) => {
+    if (!kana) {
+      return <div className="kana-empty" key={key} aria-hidden="true" />;
+    }
+    const active = speakingKey === kana.kana;
     return (
-      <button
-        key={key}
-        type="button"
-        className={`kana${active ? " is-active" : ""}`}
-        onClick={() => speak(c.kana, { key: c.kana })}
-        disabled={!supported}
-        aria-label={`${c.kana} (${c.romaji})`}
-      >
+      <button key={key} type="button" className={`kana${active ? " is-active" : ""}`}
+        onClick={() => speak(kana.kana, { key: kana.kana })} disabled={!supported}
+        aria-label={`${kana.kana} (${kana.romaji})`}>
         {script === "hiragana" ? (
           <>
-            <span className="kana__main" lang="ja">{c.kana}</span>
-            <span className="kana__sub">{c.romaji}</span>
+            <span className="kana__main" lang="ja">{kana.kana}</span>
+            <span className="kana__sub">{kana.romaji}</span>
           </>
         ) : (
           <>
-            <span className="kana__main kana__main--romaji">{c.romaji}</span>
-            <span className="kana__sub kana__sub--jp" lang="ja">{c.kana}</span>
+            <span className="kana__main kana__main--romaji">{kana.romaji}</span>
+            <span className="kana__sub kana__sub--jp" lang="ja">{kana.kana}</span>
           </>
         )}
       </button>
@@ -53,18 +38,13 @@ export function Syllabary() {
   };
 
   const grid = (rows: KanaRow[], heads: string[]) => (
-    <div
-      className="kana-grid"
-      style={{ gridTemplateColumns: `2.2rem repeat(${heads.length}, minmax(0, 1fr))` }}
-    >
+    <div className="kana-grid" style={{ gridTemplateColumns: `2.2rem repeat(${heads.length}, minmax(0, 1fr))` }}>
       <div className="kana-corner" aria-hidden="true" />
-      {heads.map((h) => (
-        <div className="kana-head" key={`h-${h}`}>{h}</div>
-      ))}
-      {rows.map((row, ri) => (
-        <Fragment key={`r-${ri}`}>
+      {heads.map((head) => (<div className="kana-head" key={`head-${head}`}>{head}</div>))}
+      {rows.map((row) => (
+        <Fragment key={row.label}>
           <div className="kana-rowlabel">{row.label}</div>
-          {row.cells.map((c, ci) => cell(c, `${ri}-${ci}`))}
+          {row.cells.map((entry, index) => cell(entry, `${row.label}-${index}`))}
         </Fragment>
       ))}
     </div>
@@ -72,37 +52,32 @@ export function Syllabary() {
 
   return (
     <main className="syllabary">
-      <SpeechNotice supported={supported} japaneseVoiceAvailable={japaneseVoiceAvailable} />
-
+      <SpeechNotice supported={supported} japaneseVoiceAvailable={japaneseVoiceAvailable} playbackFailed={playbackFailed} />
       <div className="syllabary__intro">
-        <h1>Sillabario · Hiragana</h1>
-        <p>{INTRO}</p>
+        <h1>{ui.syllabary.title}</h1>
+        <p>{INTRO[locale]}</p>
       </div>
-
       <section className="kana-section">
-        <h2>Gojūon — le 46 sillabe di base</h2>
+        <h2>Gojūon · {ui.syllabary.base}</h2>
         {grid(GOJUON, VOWELS)}
       </section>
-
       <section className="kana-section">
-        <h2>Dakuten · Handakuten — suoni sonori (゛) e ぱ (゜)</h2>
+        <h2>{ui.syllabary.voiced}</h2>
         {grid(DAKUTEN, VOWELS)}
       </section>
-
       <section className="kana-section">
-        <h2>Yōon — sillabe con ゃ ゅ ょ piccoli</h2>
+        <h2>Yōon · {ui.syllabary.combinations}</h2>
         {grid(YOON, YOON_VOWELS)}
       </section>
-
       <section className="kana-section">
-        <h2>Da sapere</h2>
+        <h2>{ui.syllabary.notes}</h2>
         <div className="kana-notes">
-          {NOTES.map((n) => (
-            <div className="kana-note" key={n.kana}>
-              <span className="kana-note__glyph" lang="ja">{n.kana}</span>
+          {NOTES.map((note) => (
+            <div className="kana-note" key={note.kana}>
+              <span className="kana-note__glyph" lang="ja">{note.kana}</span>
               <div>
-                <b>{n.title}</b>
-                <p>{n.body}</p>
+                <b>{note.title[locale]}</b>
+                <p>{note.body[locale]}</p>
               </div>
             </div>
           ))}
