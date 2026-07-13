@@ -23,6 +23,7 @@ export function validateContent(content: Content): string[] {
     for (const slot of scenario.slots) {
       if (slotIds.has(slot.id)) errors.push(`duplicate slot:${scenario.id}:${slot.id}`);
       slotIds.add(slot.id);
+      if (slot.optionIds.length === 0) errors.push(`empty options:${scenario.id}:${slot.id}`);
       if (!slot.optional && slot.defaultOptionId === null) {
         errors.push(`required default missing:${scenario.id}:${slot.id}`);
       }
