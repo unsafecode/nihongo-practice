@@ -1,0 +1,96 @@
+import { concepts } from "../../content/concepts";
+import { resolveLabSelection } from "../../content/selection";
+import type {
+  LabSelection,
+  Scenario,
+  SemanticRole,
+  TimeOption,
+} from "../../content/types";
+import { assembleJP, type Assembled, type Segment } from "./assemble";
+import { conjugate } from "./conjugate";
+
+const JP_ROLE_ORDER: SemanticRole[] = [
+  "actionPlace",
+  "transport",
+  "personTarget",
+  "object",
+  "destination",
+  "vehicleBoarded",
+];
+
+export interface JapaneseSentencePart {
+  id: string;
+  kind: "time" | "slot" | "verb";
+  jp: string;
+  romaji: string;
+  semanticRole?: SemanticRole;
+  particle?: { jp: string; romaji: string; kind: "particle" };
+  suffix?: { jp: string; romaji: string; kind: "ending" };
+}
+
+export interface JapaneseSentenceModel {
+  scenario: Scenario;
+  time: TimeOption;
+  parts: JapaneseSentencePart[];
+  sentence: Assembled;
+}
+
+export function buildJapaneseSentence(
+  selection: LabSelection,
+): JapaneseSentenceModel {
+  const { scenario, time, slots } = resolveLabSelection(selection);
+  const selected = slots
+    .slice()
+    .sort(
+      (a, b) =>
+        JP_ROLE_ORDER.indexOf(a.slot.semanticRole) -
+        JP_ROLE_ORDER.indexOf(b.slot.semanticRole),
+    );
+
+  const conjugation = conjugate(scenario.verb, selection.form);
+  const parts: JapaneseSentencePart[] = [];
+  if (time.jp) {
+    parts.push({
+      id: "time",
+      kind: "time",
+      jp: time.jp,
+      romaji: time.romaji,
+    });
+  }
+  for (const { slot, conceptId } of selected) {
+    const concept = concepts[conceptId];
+    parts.push({
+      id: slot.id,
+      kind: "slot",
+      jp: concept.jp,
+      romaji: concept.romaji,
+      semanticRole: slot.semanticRole,
+      particle: { ...slot.particle, kind: "particle" },
+    });
+  }
+  parts.push({
+    id: "verb",
+    kind: "verb",
+    jp: conjugation.jp.slice(0, -conjugation.ending.length),
+    romaji: scenario.verb.stemRomaji,
+    suffix: {
+      jp: conjugation.ending,
+      romaji: conjugation.endingRomaji,
+      kind: "ending",
+    },
+  });
+
+  const segments: Segment[] = parts.map((part) => ({
+    kind: part.kind,
+    jp: `${part.jp}${part.suffix?.jp ?? ""}`,
+    romaji: `${part.romaji}${part.suffix?.romaji ?? ""}`,
+    particle: part.particle,
+  }));
+
+  return {
+    scenario,
+    time,
+    parts,
+    sentence: assembleJP(segments),
+  };
+}

@@ -1,89 +1,126 @@
-import { useEffect, useState } from "react";
-import { scenarios } from "../data/scenarios";
-import { useSpeech } from "../../hooks/useSpeech";
-import { useScript } from "../../settings/ScriptContext";
+import { useState } from "react";
 import { SpeechNotice } from "../../components/SpeechNotice";
-import type { Form } from "../data/types";
-import { TIMES } from "./labData";
+import { scenarios } from "../../content/scenarios";
+import type {
+  ConceptId,
+  LabSelection,
+  ScenarioId,
+  TimeId,
+} from "../../content/types";
+import { useSpeech } from "../../hooks/useSpeech";
+import { getCatalog } from "../../i18n/catalog";
+import { useLocale } from "../../i18n/LocaleContext";
+import { useScript } from "../../settings/ScriptContext";
+import type { Form } from "../engine/conjugate";
 import { Board } from "./Board";
 import { ControlPanel } from "./ControlPanel";
 import { TeachNote } from "./TeachNote";
+import { buildLabViewModel } from "./viewModel";
 import "../lab.css";
 
-/**
- * Modalità Laboratorio: la "lavagna delle frasi". L'utente sceglie uno scenario
- * reale, la forma del verbo, il tempo e i complementi, e vede la frase montarsi
- * con particelle e desinenze evidenziate (gli "ingranaggi").
- */
+function defaultSelection(scenarioId: ScenarioId): LabSelection {
+  const scenario =
+    scenarios.find((item) => item.id === scenarioId) ?? scenarios[0];
+  return {
+    scenarioId: scenario.id,
+    form: "pres",
+    timeId: "today",
+    options: Object.fromEntries(
+      scenario.slots.map((slot) => [slot.id, slot.defaultOptionId]),
+    ),
+  };
+}
+
 export function Lab() {
+  const { locale, referenceLocale, showReference } = useLocale();
   const { script } = useScript();
   const { supported, japaneseVoiceAvailable, speakingKey, speak } = useSpeech();
-
-  const [scenarioId, setScenarioId] = useState(scenarios[0].id);
-  const [form, setForm] = useState<Form>("pres");
-  const [timeIndex, setTimeIndex] = useState(0);
-
-  const scenario = scenarios.find((s) => s.id === scenarioId) ?? scenarios[0];
-  const [selections, setSelections] = useState<number[]>(() =>
-    scenario.slots.map((s) => s.defaultIndex),
+  const [selection, setSelection] = useState<LabSelection>(() =>
+    defaultSelection(scenarios[0].id),
   );
+  const pack = getCatalog(locale);
+  const vm = buildLabViewModel(selection, locale, referenceLocale);
 
-  // Reset dei complementi ai default quando cambia lo scenario.
-  useEffect(() => {
-    setSelections(scenario.slots.map((s) => s.defaultIndex));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scenarioId]);
+  const setScenario = (scenarioId: ScenarioId) => {
+    setSelection((current) => {
+      const next = defaultSelection(scenarioId);
+      return {
+        ...next,
+        form: current.form,
+        timeId: current.timeId,
+      };
+    });
+  };
 
-  const setSelection = (slotIndex: number, optionIndex: number) =>
-    setSelections((prev) => prev.map((v, i) => (i === slotIndex ? optionIndex : v)));
+  const setForm = (form: Form) => {
+    setSelection((current) => ({ ...current, form }));
+  };
 
-  const time = TIMES[timeIndex];
+  const setTime = (timeId: TimeId) => {
+    setSelection((current) => ({ ...current, timeId }));
+  };
+
+  const setOption = (slotId: string, conceptId: ConceptId | null) => {
+    setSelection((current) => ({
+      ...current,
+      options: { ...current.options, [slotId]: conceptId },
+    }));
+  };
 
   return (
     <div className="lab-page">
-      <SpeechNotice supported={supported} japaneseVoiceAvailable={japaneseVoiceAvailable} />
+      <SpeechNotice
+        supported={supported}
+        japaneseVoiceAvailable={japaneseVoiceAvailable}
+      />
 
-      <div className="scenario">
-        <span className="scenario__label">SCENARIO:</span>
-        {scenarios.map((s) => (
+      <div
+        className="scenario"
+        role="group"
+        aria-label={vm.ui.lab.scenario}
+      >
+        <span className="scenario__label">{vm.ui.lab.scenario}:</span>
+        {scenarios.map((scenario) => (
           <button
-            key={s.id}
+            key={scenario.id}
             type="button"
-            className={`pill${s.id === scenarioId ? " is-active" : ""}`}
-            onClick={() => setScenarioId(s.id)}
+            className={`pill${
+              scenario.id === selection.scenarioId ? " is-active" : ""
+            }`}
+            aria-pressed={scenario.id === selection.scenarioId}
+            onClick={() => setScenario(scenario.id)}
           >
-            <span aria-hidden="true">{s.emoji}</span> {s.label}
+            <span aria-hidden="true">{scenario.emoji}</span>{" "}
+            {pack.scenarios[scenario.id].title}
           </button>
         ))}
       </div>
 
       <TeachNote
-        verb={scenario.verb}
-        form={form}
-        timeIt={time.none ? "" : time.it}
-        timeFuture={!!time.future}
+        verb={vm.scenario.verb}
+        form={selection.form}
+        formCopy={vm.forms[selection.form]}
+        ui={vm.ui.lab}
       />
 
       <div className="lab">
         <Board
-          scenario={scenario}
-          form={form}
-          timeIndex={timeIndex}
-          selections={selections}
+          selection={selection}
+          vm={vm}
           script={script}
+          showReference={showReference}
+          referenceLocale={referenceLocale}
           supported={supported}
           speakingKey={speakingKey}
           speak={speak}
         />
         <ControlPanel
-          scenario={scenario}
-          form={form}
-          setForm={setForm}
-          timeIndex={timeIndex}
-          setTimeIndex={setTimeIndex}
-          selections={selections}
-          setSelection={setSelection}
+          selection={selection}
+          vm={vm}
           script={script}
+          onFormChange={setForm}
+          onTimeChange={setTime}
+          onOptionChange={setOption}
         />
       </div>
     </div>

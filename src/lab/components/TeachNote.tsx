@@ -1,51 +1,27 @@
-import { conjugate, stem } from "../engine/conjugate";
-import type { Form, Scenario } from "../data/types";
+import type { Scenario } from "../../content/types";
+import type { UiMessages } from "../../i18n/types";
+import { conjugate, stem, type Form } from "../engine/conjugate";
+import type { LabViewModel } from "./viewModel";
 
 interface Props {
   verb: Scenario["verb"];
   form: Form;
-  timeIt: string;
-  timeFuture: boolean;
+  formCopy: LabViewModel["forms"][Form];
+  ui: UiMessages["lab"];
 }
 
-const FORM_NOTE: Record<Form, string> = {
-  pres: "ます = presente e futuro.",
-  past: "ました = passato. La radice non cambia, cambia solo la desinenza.",
-  neg: "ません = negativo (presente / futuro).",
-  pastneg: "ませんでした = passato negativo.",
-  vol: "ましょう = «facciamo…?» (proposta / invito).",
-  des: "たいです = «voglio…» (desiderio).",
-};
-
-/**
- * Box regola in cima (mockup `.note`). Mostra dinamicamente gambo + desinenza
- * della forma attiva e una nota pedagogica per forma. Per il presente spiega
- * la regola presente=futuro.
- */
-export function TeachNote({ verb, form, timeIt, timeFuture }: Props) {
+export function TeachNote({ verb, form, formCopy, ui }: Props) {
   const stemJp = stem(verb.dict, verb.group);
-  const conj = conjugate(verb, form);
-
+  const conjugation = conjugate(verb, form);
   return (
     <div className="note">
-      💡 <b>Regola:</b> gambo <b lang="ja">{stemJp}</b> (<i>{verb.stemRomaji}</i>) +
-      terminazione <b lang="ja">{conj.ending}</b> (<i>{conj.endingRomaji}</i>). Cambi
-      la forma → cambia solo la coda del verbo.
+      <span aria-hidden="true">💡</span> <b>{ui.rule}:</b> {ui.base}{" "}
+      <b lang="ja">{stemJp}</b> (<i>{verb.stemRomaji}</i>) + {ui.ending}{" "}
+      <b lang="ja">{conjugation.ending}</b> (
+      <i>{conjugation.endingRomaji}</i>).
       <br />
-      {form === "pres" && timeFuture ? (
-        <>
-          🔎 Qui il tempo è <b>futuro</b>
-          {timeIt ? <> ({timeIt})</> : null} → in giapponese presente e futuro sono
-          la stessa forma, in italiano usiamo il futuro «{verb.it.future}».
-        </>
-      ) : form === "pres" ? (
-        <>
-          🔎 In giapponese presente e futuro sono <b>la stessa forma</b> — è
-          l'avverbio di tempo a dire se è «{verb.it.pres}» o «{verb.it.future}».
-        </>
-      ) : (
-        <>🔎 {FORM_NOTE[form]}</>
-      )}
+      <span aria-hidden="true">🔎</span> <b>{formCopy.label}</b> ·{" "}
+      {formCopy.grammar}
     </div>
   );
 }

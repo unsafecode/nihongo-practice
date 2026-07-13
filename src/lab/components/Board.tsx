@@ -1,161 +1,196 @@
-import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
-import type { Scenario, Form } from "../data/types";
-import { PARTICLE } from "../data/types";
-import { conjugate } from "../engine/conjugate";
-import { assembleJP, assembleIT, type Segment } from "../engine/assemble";
-import type { Script } from "../../settings/ScriptContext";
+import {
+  Fragment,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import type { LabSelection } from "../../content/types";
 import type { SpeakOptions } from "../../hooks/useSpeech";
-import { TIMES, JP_ORDER, IT_ORDER, ROLE_CHIP } from "./labData";
+import type { Locale } from "../../i18n/LocaleContext";
+import type { Script } from "../../settings/ScriptContext";
+import {
+  buildJapaneseSentence,
+  type JapaneseSentencePart,
+} from "../engine/japanese";
 import { Chip } from "./Chip";
+import { ROLE_CHIP } from "./labData";
+import type { LabViewModel } from "./viewModel";
 
-interface BoardProps {
-  scenario: Scenario;
-  form: Form;
-  timeIndex: number;
-  selections: number[];
+interface Props {
+  selection: LabSelection;
+  vm: LabViewModel;
   script: Script;
+  showReference: boolean;
+  referenceLocale: Locale;
   supported: boolean;
   speakingKey: string | null;
   speak: (text: string, opts?: SpeakOptions) => void;
 }
 
-interface VisualSegment {
-  jp: ReactNode;
-  romaji: ReactNode;
+type ScriptField = "jp" | "romaji";
+
+function PartText({
+  part,
+  field,
+}: {
+  part: JapaneseSentencePart;
+  field: ScriptField;
+}) {
+  const gear = part.particle ?? part.suffix;
+  return (
+    <>
+      {part[field]}
+      {gear ? (
+        <>
+          {field === "romaji" ? " " : null}
+          <span className={gear.kind}>{gear[field]}</span>
+        </>
+      ) : null}
+    </>
+  );
+}
+
+function joinSpaced(nodes: ReactNode[]): ReactNode[] {
+  return nodes.map((node, index) => (
+    <Fragment key={index}>
+      {index > 0 ? " " : null}
+      {node}
+    </Fragment>
+  ));
 }
 
 export function Board({
-  scenario,
-  form,
-  timeIndex,
-  selections,
+  selection,
+  vm,
   script,
+  showReference,
+  referenceLocale,
   supported,
   speakingKey,
   speak,
-}: BoardProps) {
-  const time = TIMES[timeIndex];
-  const conj = conjugate(scenario.verb, form);
-  const stemJp = conj.jp.slice(0, conj.jp.length - conj.ending.length);
-  const stemRomaji = scenario.verb.stemRomaji;
-  const bump = useBump(`${scenario.id}|${form}|${timeIndex}|${selections.join(",")}`);
+}: Props) {
+  const japanese = buildJapaneseSentence(selection);
+  const bump = useBump(JSON.stringify(selection));
+  const mainField: ScriptField = script === "hiragana" ? "jp" : "romaji";
+  const subField: ScriptField = script === "hiragana" ? "romaji" : "jp";
+  const compatible = vm.naturalness !== "incompatible";
 
-  // Slot presenti (opzione ≠ none), ordinati come in giapponese.
-  const present = scenario.slots
-    .map((slot, i) => {
-      const idx = selections[i] ?? slot.defaultIndex;
-      return { slot, opt: slot.options[idx] ?? slot.options[slot.defaultIndex] };
-    })
-    .filter(({ opt }) => opt && !opt.none)
-    .sort((a, b) => JP_ORDER.indexOf(a.slot.role) - JP_ORDER.indexOf(b.slot.role));
-
-  // --- Chips ---
-  const chips: ReactNode[] = [];
-  if (!time.none) {
-    chips.push(
-      <Chip key="time" kind="time" role="quando" jp={time.jp} romaji={time.romaji} script={script} />,
-    );
-  }
-  present.forEach(({ slot, opt }) => {
-    const p = PARTICLE[slot.role];
-    chips.push(
+  const chips = japanese.parts.map((part) => {
+    if (part.kind === "time") {
+      return (
+        <Chip
+          key={part.id}
+          kind="time"
+          role={vm.ui.lab.when}
+          jp={<PartText part={part} field="jp" />}
+          romaji={<PartText part={part} field="romaji" />}
+          script={script}
+        />
+      );
+    }
+    if (part.kind === "verb") {
+      return (
+        <Chip
+          key={part.id}
+          kind="verb"
+          role={vm.ui.lab.verb}
+          jp={<PartText part={part} field="jp" />}
+          romaji={<PartText part={part} field="romaji" />}
+          script={script}
+          bump={bump}
+        />
+      );
+    }
+    if (!part.semanticRole) {
+      throw new Error(`Missing semantic role for Lab part: ${part.id}`);
+    }
+    const slot = vm.slots.find((item) => item.id === part.id);
+    if (!slot) throw new Error(`Missing Lab slot copy: ${part.id}`);
+    return (
       <Chip
-        key={slot.role}
-        kind={ROLE_CHIP[slot.role]}
-        role={`${slot.label} · ${p.jp}`}
-        jp={<>{opt.jp}<span className="particle">{p.jp}</span></>}
-        romaji={<>{opt.romaji} <span className="particle">{p.romaji}</span></>}
+        key={part.id}
+        kind={ROLE_CHIP[part.semanticRole]}
+        role={`${slot.copy.prompt} · ${part.particle?.jp ?? ""}`}
+        jp={<PartText part={part} field="jp" />}
+        romaji={<PartText part={part} field="romaji" />}
         script={script}
-      />,
+      />
     );
   });
-  chips.push(
-    <Chip
-      key="verb"
-      kind="verb"
-      role="verbo"
-      jp={<>{stemJp}<span className="ending">{conj.ending}</span></>}
-      romaji={<>{stemRomaji} <span className="ending">{conj.endingRomaji}</span></>}
-      script={script}
-      bump={bump}
-    />,
+
+  const mainNodes = joinSpaced(
+    japanese.parts.map((part) => (
+      <PartText part={part} field={mainField} />
+    )),
   );
-
-  // --- Frase completa (con ingranaggi evidenziati) ---
-  const segs: VisualSegment[] = [];
-  if (!time.none) segs.push({ jp: time.jp, romaji: time.romaji });
-  present.forEach(({ slot, opt }) => {
-    const p = PARTICLE[slot.role];
-    segs.push({
-      jp: <>{opt.jp}<span className="particle">{p.jp}</span></>,
-      romaji: <>{opt.romaji} <span className="particle">{p.romaji}</span></>,
-    });
-  });
-  segs.push({
-    jp: <>{stemJp}<span className="ending">{conj.ending}</span></>,
-    romaji: <>{stemRomaji} <span className="ending">{conj.endingRomaji}</span></>,
-  });
-
-  const mainNodes = joinSpaced(segs.map((s) => (script === "hiragana" ? s.jp : s.romaji)));
-  const subNodes = joinSpaced(segs.map((s) => (script === "hiragana" ? s.romaji : s.jp)));
-
-  // --- Italiano ---
-  const itArgs = present
-    .slice()
-    .sort((a, b) => IT_ORDER[a.slot.role] - IT_ORDER[b.slot.role])
-    .map(({ opt }) => opt.it)
-    .filter((x) => x.length > 0);
-  const itSentence = assembleIT({
-    verb: scenario.verb.it,
-    form,
-    timeIt: time.none ? "" : time.it,
-    timeFuture: !!time.future,
-    args: itArgs,
-  });
-
-  // --- Audio (testo giapponese semplice, senza spazi) ---
-  const audioSegments: Segment[] = [];
-  if (!time.none) audioSegments.push({ kind: "time", jp: time.jp, romaji: time.romaji });
-  present.forEach(({ slot, opt }) => {
-    audioSegments.push({ kind: slot.role, jp: opt.jp, romaji: opt.romaji, particle: PARTICLE[slot.role] });
-  });
-  audioSegments.push({ kind: "verb", jp: conj.jp, romaji: conj.romaji });
-  const audioText = assembleJP(audioSegments).jp;
+  const subNodes = joinSpaced(
+    japanese.parts.map((part) => (
+      <PartText part={part} field={subField} />
+    )),
+  );
 
   return (
     <div className="board">
-      <div className="board__label">Lavagna</div>
+      <div className="board__label">{vm.ui.lab.board}</div>
+      {vm.naturalness !== "natural" ? (
+        <div
+          className={`naturalness naturalness--${vm.naturalness}`}
+          role="status"
+        >
+          {vm.naturalness === "contextual"
+            ? vm.ui.lab.contextual
+            : vm.ui.lab.incompatible}
+        </div>
+      ) : null}
       <div className="chips">{chips}</div>
       <div className="sentence">
         <div
-          className={script === "hiragana" ? "sentence__main" : "sentence__main romaji"}
-          lang={script === "hiragana" ? "ja" : undefined}
+          className={`sentence__main${
+            mainField === "romaji" ? " romaji" : ""
+          }`}
+          lang={mainField === "jp" ? "ja" : undefined}
         >
           {mainNodes}
         </div>
         <div
-          className={script === "hiragana" ? "sentence__sub" : "sentence__sub jp"}
-          lang={script === "romaji" ? "ja" : undefined}
+          className={`sentence__sub${subField === "jp" ? " jp" : ""}`}
+          lang={subField === "jp" ? "ja" : undefined}
         >
           {subNodes}
         </div>
-        <div className="sentence__it">{itSentence}</div>
+        <div
+          className={`sentence__translation${
+            compatible ? "" : " is-unavailable"
+          }`}
+        >
+          {compatible ? vm.sentence.primary : vm.ui.common.none}
+        </div>
+        {compatible && showReference ? (
+          <div className="sentence__reference">
+            <span>{referenceLocale.toUpperCase()}</span> {vm.sentence.reference}
+          </div>
+        ) : null}
         <button
           type="button"
           className="listen"
           disabled={!supported}
-          onClick={() => speak(audioText, { key: "lab-full" })}
-          aria-label="Ascolta la frase"
+          onClick={() =>
+            speak(japanese.sentence.jp, { key: "lab-full" })
+          }
+          aria-label={`${vm.ui.common.listen}: ${japanese.sentence.jp}`}
         >
           <span aria-hidden="true">▶</span>{" "}
-          {speakingKey === "lab-full" ? "In riproduzione…" : "Ascolta"}
+          {speakingKey === "lab-full"
+            ? vm.ui.common.playing
+            : vm.ui.common.listen}
         </button>
         <div className="legend">
           <span>
-            <span className="sw sw--p" /> <b>Particelle</b> — il <i>ruolo</i> delle parole (を chi/cosa, で dove, に verso…)
+            <span className="sw sw--p" /> {vm.ui.lab.particles}
           </span>
           <span>
-            <span className="sw sw--e" /> <b>Terminazioni</b> — <i>tempo</i> e <i>polarità</i> (ます, ました, ません…)
+            <span className="sw sw--e" /> {vm.ui.lab.endings}
           </span>
         </div>
       </div>
@@ -163,32 +198,21 @@ export function Board({
   );
 }
 
-/** Unisce nodi con uno spazio, preservando le key. */
-function joinSpaced(nodes: ReactNode[]): ReactNode[] {
-  return nodes.map((n, i) => (
-    <Fragment key={i}>
-      {i > 0 ? " " : null}
-      {n}
-    </Fragment>
-  ));
-}
-
-/** Custom hook: true per ~200ms dopo ogni cambio della firma (anima il verbo). */
-function useBump(sig: string): boolean {
+function useBump(signature: string): boolean {
   const [bump, setBump] = useState(false);
   const first = useRef(true);
-  const prev = useRef(sig);
+  const previous = useRef(signature);
   useEffect(() => {
     if (first.current) {
       first.current = false;
-      prev.current = sig;
+      previous.current = signature;
       return;
     }
-    if (prev.current === sig) return;
-    prev.current = sig;
+    if (previous.current === signature) return;
+    previous.current = signature;
     setBump(true);
-    const t = setTimeout(() => setBump(false), 200);
-    return () => clearTimeout(t);
-  }, [sig]);
+    const timer = window.setTimeout(() => setBump(false), 200);
+    return () => window.clearTimeout(timer);
+  }, [signature]);
   return bump;
 }

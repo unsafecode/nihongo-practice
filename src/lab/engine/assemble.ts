@@ -4,7 +4,7 @@ export interface Particle {
 }
 
 export interface Segment {
-  kind: "time" | "place" | "transport" | "person" | "object" | "destination" | "verb";
+  kind: string;
   jp: string;
   romaji: string;
   particle?: Particle;
