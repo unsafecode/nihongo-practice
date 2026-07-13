@@ -53,6 +53,7 @@ export interface UiMessages {
     practice: string;
   };
   settings: {
+    menu: string;
     language: string;
     writing: string;
     reference: string;

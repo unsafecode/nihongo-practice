@@ -3,22 +3,18 @@
  * Portati fedelmente dal mockup approvato
  * (docs/superpowers/specs/2026-07-13-sentence-lab-mockup.html).
  *
- * Le variabili :root qui sotto sono TUTTE nuove (--time, --topic, --obj,
- * --place, --gear-*): non entrano in conflitto con la palette v1 di styles.css.
+ * Le variabili :root qui sotto sono specifiche del laboratorio (--topic, --obj,
+ * --place): non entrano in conflitto con la palette globale di styles.css.
  * Le classi (.lab, .board, .chip*, .panel, .opt, .note…) sono namespaced e non
  * toccano quelle del Frasario.
  */
 :root {
-  --time: #2f6f6a;
-  --time-soft: #e7f2f0;
   --topic: #6b4e9e;
   --topic-soft: #efe9f7;
   --obj: #c53f1c;
   --obj-soft: #fdeee7;
   --place: #2f7a3f;
   --place-soft: #e7f4ea;
-  --gear-particle: #ffd8a8;
-  --gear-ending: #ff9d7a;
 }
 
 /* Contenitore della modalità (occupa lo spazio nel guscio flex della .app) */

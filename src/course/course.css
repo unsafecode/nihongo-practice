@@ -1,18 +1,3 @@
-:root {
-  --course-paper: #f8f0e4;
-  --course-surface: #fffaf2;
-  --course-ink: #24231f;
-  --course-muted: #736d64;
-  --course-line: #e7d9c7;
-  --course-coral: #e4572e;
-  --course-coral-soft: #fae1d5;
-  --course-teal: #2f6f6a;
-  --course-teal-soft: #dbeae7;
-  --course-board: #292c32;
-  --course-particle: #ffd08a;
-  --course-ending: #ff9d7a;
-}
-
 .course-home {
   max-width: 76rem;
   margin: 0 auto;

@@ -133,9 +133,18 @@ const times: LocalePack["times"] = { today: "today", yesterday: "yesterday", tom
 
 const ui: LocalePack["ui"] = {
   documentTitle: "Hanasō · Learn Japanese",
-  brand: { title: "Practical Japanese", subtitle: "Speaking · sentence building · hiragana first" },
+  brand: {
+    title: "Practical Japanese",
+    subtitle: "Speaking · sentence building · hiragana first",
+  },
   nav: { modes: "Study modes", syllabary: "Hiragana", phrasebook: "Phrasebook", laboratory: "Sentence Lab", primary: "Primary navigation", course: "Course", practice: "Free practice" },
-  settings: { language: "Language", writing: "Writing", reference: "Show Italian reference", unavailable: "Preferences and progress cannot be saved in this browser." },
+  settings: {
+    menu: "Settings",
+    language: "Language",
+    writing: "Script",
+    reference: "Show reference translation",
+    unavailable: "Preferences will remain active for this session only.",
+  },
   common: { listen: "Listen", slow: "Slow", playing: "Playing…", none: "—", optional: "optional", phrases: "phrases" },
   lab: {
     scenario: "Scenario", board: "Board", verb: "Verb", verbForm: "What happens to the verb?", when: "When?", rule: "Rule",
