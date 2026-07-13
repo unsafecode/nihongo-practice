@@ -72,6 +72,7 @@ export function CourseHome() {
           <div
             className="course-progress"
             role="progressbar"
+            aria-label={copy.home.lessonsProgress(completedCount, lessons.length)}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={percent}
