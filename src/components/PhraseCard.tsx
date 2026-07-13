@@ -1,5 +1,6 @@
 import type { Phrase } from "../data/phrases";
 import type { SpeakOptions } from "../hooks/useSpeech";
+import { useScript } from "../settings/ScriptContext";
 
 interface Props {
   phrase: Phrase;
@@ -16,12 +17,27 @@ export function PhraseCard({
   supported,
   onSpeak,
 }: Props) {
+  const { script } = useScript();
+
   return (
     <article className={`card${isSpeaking ? " is-speaking" : ""}`}>
-      <p className="card__hiragana" lang="ja">
-        {phrase.hiragana}
-      </p>
-      <p className="card__romaji">{phrase.romaji}</p>
+      {script === "hiragana" ? (
+        <>
+          <p className="card__hiragana" lang="ja">
+            {phrase.hiragana}
+          </p>
+          <p className="card__romaji">{phrase.romaji}</p>
+        </>
+      ) : (
+        <>
+          <p className="card__hiragana card__hiragana--romaji">
+            {phrase.romaji}
+          </p>
+          <p className="card__romaji card__romaji--jp" lang="ja">
+            {phrase.hiragana}
+          </p>
+        </>
+      )}
       <p className="card__it">{phrase.it}</p>
       {phrase.note && <p className="card__note">{phrase.note}</p>}
 

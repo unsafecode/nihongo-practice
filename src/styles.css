@@ -68,6 +68,11 @@ body {
 /* ---------- Header ---------- */
 .header {
   padding: clamp(24px, 5vw, 44px) 0 clamp(16px, 3vw, 28px);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 18px;
+  flex-wrap: wrap;
 }
 
 .header__brand {
@@ -100,6 +105,82 @@ body {
   margin: 4px 0 0;
   color: var(--ink-soft);
   font-size: 0.98rem;
+}
+
+/* ---------- Header tools: mode nav + script toggle ---------- */
+.header__tools {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.modenav {
+  display: inline-flex;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+.modenav__item {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  padding: 7px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.modenav__item:hover {
+  color: var(--ink);
+}
+.modenav__item.is-active {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.scripttoggle {
+  display: inline-flex;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px;
+  gap: 2px;
+}
+.scripttoggle button {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  padding: 7px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.scripttoggle button .k {
+  font-family: var(--font-jp);
+  font-size: 1.05rem;
+}
+.scripttoggle button.is-active {
+  background: var(--ink);
+  color: #fff;
 }
 
 /* ---------- Layout ---------- */
@@ -254,11 +335,23 @@ body {
   color: var(--ink);
 }
 
+.card__hiragana--romaji {
+  font-family: var(--font-ui);
+  font-style: italic;
+  font-size: 1.45rem;
+}
+
 .card__romaji {
   margin: 0;
   font-style: italic;
   color: var(--ink-soft);
   font-size: 0.95rem;
+}
+
+.card__romaji--jp {
+  font-family: var(--font-jp);
+  font-style: normal;
+  font-size: 1.05rem;
 }
 
 .card__it {
@@ -375,6 +468,15 @@ body {
 
 /* ---------- Responsive ---------- */
 @media (max-width: 820px) {
+  .header {
+    align-items: flex-start;
+  }
+
+  .header__tools {
+    align-items: flex-start;
+    width: 100%;
+  }
+
   .app__main {
     grid-template-columns: 1fr;
     gap: 18px;
