@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mockup · Lavagna delle frasi</title>
+<style>
+  :root{
+    --ink:#23201d;--ink-soft:#6b625a;--paper:#fffaf4;--card:#fff;--line:#ece3d8;
+    --accent:#e4572e;--accent-dark:#c53f1c;--accent-soft:#fdeee7;
+    --time:#2f6f6a;--time-soft:#e7f2f0;
+    --topic:#6b4e9e;--topic-soft:#efe9f7;
+    --obj:#c53f1c;--obj-soft:#fdeee7;
+    --place:#2f7a3f;--place-soft:#e7f4ea;
+    --verb:#1f2937;--verb-soft:#eef1f4;
+    --gear-particle:#ffd8a8;--gear-ending:#ff9d7a;
+    --font-jp:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;
+    --font-ui:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--font-ui);color:var(--ink);background:var(--paper);
+    background-image:radial-gradient(1200px 500px at 100% -10%,rgba(228,87,46,.10),transparent 60%),
+      radial-gradient(900px 500px at -10% 0%,rgba(47,111,106,.08),transparent 55%);
+    background-attachment:fixed;-webkit-font-smoothing:antialiased;padding:24px clamp(16px,4vw,40px) 60px}
+  .wrap{max-width:1160px;margin:0 auto}
+  .mock-badge{display:inline-block;font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    color:#8a3313;background:#fdeee7;border:1px solid #f5cdbc;padding:4px 10px;border-radius:999px;margin-bottom:14px}
+  .topbar{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+  h1{font-size:clamp(1.3rem,3vw,1.7rem);margin:0 0 4px;letter-spacing:-.02em}
+  .sub{color:var(--ink-soft);margin:0}
+  /* Script toggle */
+  .scripttoggle{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px;gap:2px}
+  .scripttoggle button{border:none;background:transparent;font-family:inherit;font-weight:800;font-size:.9rem;color:var(--ink-soft);
+    padding:7px 14px;border-radius:999px;cursor:pointer;display:flex;align-items:center;gap:7px}
+  .scripttoggle button .k{font-family:var(--font-jp);font-size:1.05rem}
+  .scripttoggle button.is-active{background:var(--ink);color:#fff}
+
+  .scenario{display:flex;align-items:center;gap:10px;margin:20px 0 16px;flex-wrap:wrap}
+  .scenario .pill{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;font-weight:700;cursor:pointer}
+  .scenario .pill.is-active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-dark)}
+
+  /* Two-column lab layout */
+  .lab{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(290px,.85fr);gap:22px;align-items:start}
+  @media(max-width:880px){.lab{grid-template-columns:1fr}}
+
+  /* Whiteboard (left, sticky) */
+  .board{background:#0f1512;border-radius:22px;padding:clamp(20px,3vw,32px);color:#fff;
+    box-shadow:0 20px 50px -20px rgba(0,0,0,.5);position:sticky;top:18px;overflow:hidden}
+  .board::before{content:"";position:absolute;inset:12px;border:1.5px solid rgba(255,255,255,.10);border-radius:16px;pointer-events:none}
+  .board__label{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:16px}
+  .chips{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch;margin-bottom:22px}
+  .chip{border-radius:14px;padding:12px 16px 11px;min-width:78px;text-align:center;position:relative;
+    transition:transform .18s ease, box-shadow .18s ease;cursor:default}
+  .chip__role{font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;opacity:.8;margin-bottom:5px;font-weight:700}
+  .chip__main{font-family:var(--font-jp);font-size:1.95rem;font-weight:600;line-height:1.15}
+  .chip__main.romaji{font-family:var(--font-ui);font-style:italic;font-size:1.5rem}
+  .chip__sub{font-size:.82rem;opacity:.72;margin-top:4px}
+  .chip__sub.jp{font-family:var(--font-jp);font-style:normal}
+  .particle{color:var(--gear-particle);font-weight:800}
+  .ending{color:var(--gear-ending);font-weight:800}
+  .chip--time{background:var(--time)}
+  .chip--topic{background:var(--topic)}
+  .chip--obj{background:var(--obj)}
+  .chip--place{background:var(--place)}
+  .chip--verb{background:#fff;color:#111}
+  .chip--verb .chip__role{color:#8a3313}
+  .chip--verb .ending{color:var(--accent-dark)}
+  .chip--verb .chip__sub{opacity:.6}
+  .chip.bump{transform:translateY(-4px) scale(1.03);box-shadow:0 12px 24px -10px rgba(0,0,0,.6)}
+  @media(prefers-reduced-motion:reduce){.chip{transition:none}.chip.bump{transform:none}}
+
+  .sentence{border-top:1px solid rgba(255,255,255,.12);padding-top:18px;margin-top:4px}
+  .sentence__main{font-family:var(--font-jp);font-size:clamp(1.8rem,4vw,2.45rem);font-weight:600;line-height:1.4}
+  .sentence__main.romaji{font-family:var(--font-ui);font-style:italic;font-weight:600}
+  .sentence__sub{opacity:.72;margin-top:6px;font-size:1rem}
+  .sentence__sub.jp{font-family:var(--font-jp);font-size:1.15rem}
+  .sentence__it{margin-top:10px;font-size:1.15rem;font-weight:700;color:var(--gear-particle)}
+  .listen{margin-top:16px;display:inline-flex;gap:8px;align-items:center;background:var(--accent);color:#fff;border:none;
+    padding:11px 20px;border-radius:999px;font-weight:800;font-family:inherit;font-size:1rem;cursor:pointer}
+  /* Gears legend */
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px;font-size:.82rem;color:rgba(255,255,255,.75)}
+  .legend b{color:#fff}
+  .legend .sw{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:middle}
+  .legend .sw--p{background:var(--gear-particle)}
+  .legend .sw--e{background:var(--gear-ending)}
+
+  /* Controls (right column, stacked) */
+  .controls{display:flex;flex-direction:column;gap:14px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px 16px}
+  .panel h3{margin:0 0 11px;font-size:.9rem;display:flex;align-items:center;gap:8px}
+  .dot{width:10px;height:10px;border-radius:50%}
+  .dot--time{background:var(--time)}.dot--obj{background:var(--obj)}.dot--verb{background:#111}.dot--place{background:var(--place)}
+  .opts{display:flex;flex-wrap:wrap;gap:8px}
+  .opt{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer;font-family:inherit;
+    font-size:.92rem;transition:all .12s ease;text-align:left}
+  .opt .jp{font-family:var(--font-jp);font-weight:700}
+  .opt .it{color:var(--ink-soft);font-size:.8rem;margin-left:5px}
+  .opt:hover{border-color:#dcd0c2}
+  .opt.is-active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .opt.is-active .it{color:rgba(255,255,255,.85)}
+  .forms .opt.is-active{background:#111;border-color:#111}
+  .note{margin:2px 0 18px;padding:14px 16px;background:var(--time-soft);border:1px solid #cfe4e1;border-radius:12px;
+    color:#22504c;font-size:.92rem;line-height:1.55}
+  .note b lang, .note b{color:#123f3b}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="mock-badge">Mockup · non definitivo</span>
+  <div class="topbar">
+    <div>
+      <h1>Lavagna delle frasi 🧑‍🏫</h1>
+      <p class="sub">Parti da un caso reale e guarda la frase trasformarsi. Le <b>particelle</b> e le <b>terminazioni</b> sono gli ingranaggi.</p>
+    </div>
+    <div class="scripttoggle" id="scripttoggle">
+      <button data-script="hiragana" class="is-active"><span class="k">あ</span> Hiragana</button>
+      <button data-script="romaji"><span class="k">A</span> Rōmaji</button>
+    </div>
+  </div>
+
+  <div class="scenario">
+    <span style="color:var(--ink-soft);font-size:.85rem;font-weight:700">SCENARIO:</span>
+    <button class="pill is-active">🍜 Mangiare</button>
+    <button class="pill" title="nel mockup lo scenario è fisso">🚉 Andare (presto)</button>
+    <button class="pill" title="nel mockup lo scenario è fisso">🛍️ Comprare (presto)</button>
+  </div>
+
+  <div class="note" id="teach"></div>
+
+  <div class="lab">
+    <!-- LEFT: whiteboard -->
+    <div class="board">
+      <div class="board__label">Lavagna</div>
+      <div class="chips" id="chips"></div>
+      <div class="sentence">
+        <div class="sentence__main" id="s-main"></div>
+        <div class="sentence__sub" id="s-sub"></div>
+        <div class="sentence__it" id="s-it"></div>
+        <button class="listen" onclick="speak()">▶ Ascolta</button>
+        <div class="legend">
+          <span><span class="sw sw--p"></span><b>Particelle</b> — il <i>ruolo</i> delle parole (を chi/cosa, で dove, に verso…)</span>
+          <span><span class="sw sw--e"></span><b>Terminazioni</b> — <i>tempo</i> e <i>polarità</i> (ます, ました, ません…)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: controls -->
+    <div class="controls">
+      <div class="panel forms">
+        <h3><span class="dot dot--verb"></span> Forma del verbo</h3>
+        <div class="opts" id="forms"></div>
+      </div>
+      <div class="panel">
+        <h3><span class="dot dot--time"></span> Quando (avverbio di tempo)</h3>
+        <div class="opts" id="times"></div>
+      </div>
+      <div class="panel">
+        <h3><span class="dot dot--obj"></span> Cosa (oggetto を)</h3>
+        <div class="opts" id="objs"></div>
+      </div>
+      <div class="panel">
+        <h3><span class="dot dot--place"></span> Dove (luogo で) — opzionale</h3>
+        <div class="opts" id="places"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- Scenario "mangiare" (verbo たべる, ichidan) ---
+const stem = "たべ", stemR = "tabe";
+const forms = [
+  {id:"pres", label:"presente / futuro", jp:"ます", r:"masu"},
+  {id:"past", label:"passato", jp:"ました", r:"mashita"},
+  {id:"neg", label:"negativo", jp:"ません", r:"masen"},
+  {id:"pastneg", label:"passato neg.", jp:"ませんでした", r:"masen deshita"},
+  {id:"vol", label:"invito / volitiva", jp:"ましょう", r:"mashō"},
+  {id:"des", label:"voglio…", jp:"たいです", r:"tai desu"},
+];
+const times = [
+  {id:"kyo", jp:"きょう", r:"kyō", it:"oggi"},
+  {id:"kino", jp:"きのう", r:"kinō", it:"ieri"},
+  {id:"ashita", jp:"あした", r:"ashita", it:"domani"},
+  {id:"konban", jp:"こんばん", r:"konban", it:"stasera"},
+  {id:"none", jp:"—", r:"", it:"(nessuno)"},
+];
+const objs = [
+  {id:"ramen", jp:"らーめん", r:"rāmen", it:"il ramen"},
+  {id:"sushi", jp:"すし", r:"sushi", it:"il sushi"},
+  {id:"onigiri", jp:"おにぎり", r:"onigiri", it:"l'onigiri"},
+];
+const places = [
+  {id:"none", jp:"—", r:"", it:"(nessuno)"},
+  {id:"resto", jp:"れすとらん", r:"resutoran", it:"al ristorante"},
+  {id:"ie", jp:"いえ", r:"ie", it:"a casa"},
+];
+
+let sel = {form:"pres", time:"kyo", obj:"ramen", place:"none"};
+let script = "hiragana"; // 'hiragana' | 'romaji'
+
+function italianVerb(formId, timeId){
+  const future = (timeId==="ashita"||timeId==="konban");
+  switch(formId){
+    case "pres": return future ? "mangerò" : "mangio";
+    case "past": return "ho mangiato";
+    case "neg": return future ? "non mangerò" : "non mangio";
+    case "pastneg": return "non ho mangiato";
+    case "vol": return "mangiamo";
+    case "des": return "voglio mangiare";
+  }
+}
+function italianTime(timeId){ const t=times.find(x=>x.id===timeId); return t.id==="none"?"":t.it; }
+
+// Build a chip: primary (big) + secondary (small), respecting the script setting.
+function chipHTML(cls, role, jpHTML, rHTML){
+  const primary = script==="hiragana"
+    ? `<div class="chip__main" lang="ja">${jpHTML}</div><div class="chip__sub">${rHTML}</div>`
+    : `<div class="chip__main romaji">${rHTML}</div><div class="chip__sub jp" lang="ja">${jpHTML}</div>`;
+  return `<div class="chip chip--${cls}" ${cls==="verb"?'id="verbchip"':''}><div class="chip__role">${role}</div>${primary}</div>`;
+}
+
+function render(){
+  const f = forms.find(x=>x.id===sel.form);
+  const t = times.find(x=>x.id===sel.time);
+  const o = objs.find(x=>x.id===sel.obj);
+  const p = places.find(x=>x.id===sel.place);
+
+  // chips
+  const chips=[];
+  if(t.id!=="none") chips.push(chipHTML("time","quando", t.jp, t.r));
+  if(p.id!=="none") chips.push(chipHTML("place","dove · で", `${p.jp}<span class="particle">で</span>`, `${p.r} <span class="particle">de</span>`));
+  chips.push(chipHTML("obj","cosa · を", `${o.jp}<span class="particle">を</span>`, `${o.r} <span class="particle">o</span>`));
+  chips.push(chipHTML("verb","verbo", `${stem}<span class="ending">${f.jp}</span>`, `${stemR} <span class="ending">${f.r}</span>`));
+  document.getElementById("chips").innerHTML = chips.join("");
+
+  // full sentence (both scripts, with highlighted gears)
+  const jp = (t.id!=="none"?t.jp+" ":"")
+           + (p.id!=="none"?`${p.jp}<span class="particle">で</span> `:"")
+           + `${o.jp}<span class="particle">を</span> `
+           + `${stem}<span class="ending">${f.jp}</span>`;
+  const rom = (t.id!=="none"?t.r+" ":"")
+           + (p.id!=="none"?`${p.r} <span class="particle">de</span> `:"")
+           + `${o.r} <span class="particle">o</span> `
+           + `${stemR} <span class="ending">${f.r}</span>`;
+  const it = [italianTime(sel.time), italianVerb(sel.form,sel.time), o.it, (p.id!=="none"?p.it:"")]
+              .filter(Boolean).join(" ").replace(/\s+/g," ").trim();
+
+  const main=document.getElementById("s-main"), sub=document.getElementById("s-sub");
+  if(script==="hiragana"){
+    main.className="sentence__main"; main.lang="ja"; main.innerHTML=jp;
+    sub.className="sentence__sub"; sub.removeAttribute("lang"); sub.innerHTML=rom;
+  }else{
+    main.className="sentence__main romaji"; main.removeAttribute("lang"); main.innerHTML=rom;
+    sub.className="sentence__sub jp"; sub.lang="ja"; sub.innerHTML=jp;
+  }
+  document.getElementById("s-it").textContent = it.charAt(0).toUpperCase()+it.slice(1);
+
+  // teaching note
+  let note = `💡 <b>Regola:</b> gambo <b lang="ja">${stem}</b> (<i>${stemR}</i>) + terminazione <b lang="ja">${f.jp}</b> (<i>${f.r}</i>). Cambi la forma → cambia solo la coda del verbo.`;
+  if(sel.form==="pres"){ note += `<br>🔎 <b>${times.find(x=>x.id===sel.time).it}</b>: in giapponese presente e futuro sono <b>la stessa forma</b> — è l'avverbio di tempo a dire se è "mangio" o "mangerò".`; }
+  document.getElementById("teach").innerHTML = note;
+
+  // bump animation on verb chip
+  const vc=document.getElementById("verbchip"); if(vc){ vc.classList.add("bump"); setTimeout(()=>vc.classList.remove("bump"),200); }
+  paintActive();
+}
+
+function paintActive(){
+  document.querySelectorAll("#forms .opt").forEach(el=>el.classList.toggle("is-active",el.dataset.id===sel.form));
+  document.querySelectorAll("#times .opt").forEach(el=>el.classList.toggle("is-active",el.dataset.id===sel.time));
+  document.querySelectorAll("#objs .opt").forEach(el=>el.classList.toggle("is-active",el.dataset.id===sel.obj));
+  document.querySelectorAll("#places .opt").forEach(el=>el.classList.toggle("is-active",el.dataset.id===sel.place));
+  document.querySelectorAll("#scripttoggle button").forEach(el=>el.classList.toggle("is-active",el.dataset.script===script));
+}
+
+function buildOpts(containerId, arr, key, showIt){
+  document.getElementById(containerId).innerHTML = arr.map(x=>{
+    const label = key==="form" ? `<span class="jp">${x.jp}</span><span class="it">${x.label}</span>`
+                               : `<span class="jp">${x.jp}</span>${showIt?`<span class="it">${x.it}</span>`:""}`;
+    return `<button class="opt" data-id="${x.id}" onclick="pick('${key}','${x.id}')">${label}</button>`;
+  }).join("");
+}
+
+function pick(key,id){ sel[key]=id; render(); }
+
+document.getElementById("scripttoggle").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return; script=b.dataset.script; render();
+});
+
+function speak(){
+  const jp = (function(){ const t=times.find(x=>x.id===sel.time),p=places.find(x=>x.id===sel.place),o=objs.find(x=>x.id===sel.obj),f=forms.find(x=>x.id===sel.form);
+    return (t.id!=="none"?t.jp+" ":"")+(p.id!=="none"?p.jp+"で ":"")+o.jp+"を "+stem+f.jp; })();
+  if(!("speechSynthesis" in window)) return;
+  const u=new SpeechSynthesisUtterance(jp); u.lang="ja-JP"; u.rate=.95;
+  const v=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith("ja")); if(v)u.voice=v;
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+
+buildOpts("forms",forms,"form");
+buildOpts("times",times,"time",true);
+buildOpts("objs",objs,"obj",true);
+buildOpts("places",places,"place",true);
+render();
+</script>
+</body>
+</html>
