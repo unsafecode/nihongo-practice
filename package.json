@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Giapponese pratico da viaggio — parlato, solo hiragana, con audio (Web Speech API).",
+  "description": "Bilingual practical Japanese learning with hiragana, sentence building, and browser speech.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

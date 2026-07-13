@@ -28,6 +28,10 @@ Un secondo interruttore, valido in **tutte** le modalità, sceglie quale testo �
 visibile in piccolo, così chi non sa ancora leggere l'hiragana "legge bene" comunque.
 La scelta è **persistita in `localStorage`**.
 
+### Interfaccia bilingue
+
+Un interruttore **IT / EN** cambia la lingua dell'interfaccia e delle traduzioni in tutte le modalità. Una casella **traduzione di riferimento** mostra opzionalmente la traduzione nell'altra lingua, utile per confrontare al volo i significati. Anche questa scelta è **persistita in `localStorage`**.
+
 ### Il motore di coniugazione
 
 Il Laboratorio è costruito su un motore **puro** (senza React) in `src/lab/engine/`.
@@ -49,12 +53,15 @@ disambiguare. La traduzione italiana usa il futuro solo quando la forma è
 presente/negativa **e** il tempo è futuro (あした / こんばん). Il rōmaji non è
 traslitterato a runtime: è memorizzato nei dati.
 
-I 12 scenari (12 verbi × 6 forme), l'integrità dei dati e gli assemblatori JP/IT
-sono coperti dai test:
+Gli scenari, l'integrità dei dati e l'assemblatore giapponese sono coperti dai test:
 
 ```bash
 npm test
 ```
+
+### Stati di naturalezza del Laboratorio
+
+Alcune combinazioni forma+tempo sono **naturali**, altre **contestuali** (accettabili con una spiegazione) o **incompatibili**. Quando una frase suona strana, il Laboratorio mostra il perché invece di lasciarla passare senza contesto.
 
 ## Scelte di design (v1)
 
@@ -84,7 +91,7 @@ npm run build
 npm run preview
 ```
 
-Test (motore di coniugazione, integrità dati, assemblatori):
+Test (motore di coniugazione, integrità dati, assemblatore giapponese):
 
 ```bash
 npm test
@@ -103,7 +110,7 @@ Se non c'è nessuna voce ja-JP, l'app mostra un avviso ma resta usabile (hiragan
 ## Contenuti
 
 8 categorie pratiche: Saluti, Parole base, Presentarsi, Mangiare e bere, Shopping, Indicazioni,
-Emergenze, Numeri. Le frasi sono in `src/data/phrases.ts` — facilissime da estendere.
+Emergenze, Numeri. Le frasi bilingui sono in `src/data/phrases.ts` — facilissime da estendere.
 
 ## Stack
 
@@ -116,8 +123,10 @@ Emergenze, Numeri. Le frasi sono in `src/data/phrases.ts` — facilissime da est
 
 ```
 src/
-  data/phrases.ts          # contenuti del Frasario (categorie + frasi)
+  content/                 # scenari, concetti, tempi, selezione (dati JP neutri)
+  data/phrases.ts          # contenuti bilingui del Frasario (categorie + frasi)
   hooks/useSpeech.ts       # layer audio condiviso (Web Speech API)
+  i18n/                    # cataloghi IT/EN + contesto locale
   settings/
     ScriptContext.tsx      # impostazione globale hiragana/rōmaji (localStorage)
   components/
@@ -129,10 +138,7 @@ src/
   lab/                     # modalità Laboratorio
     engine/
       conjugate.ts         # gambo + 6 forme cortesi (+ test)
-      assemble.ts          # assemblatori frase JP e IT (+ test)
-    data/
-      types.ts             # modello dati (Scenario/Slot/Option/Role/particelle)
-      scenarios.ts         # 12 scenari autoriali (+ test integrità)
+      assemble.ts          # assemblatore frase giapponese (+ test)
     components/            # Board, Chip, ControlPanel, TeachNote, Lab
     lab.css
   syllabary/               # modalità Sillabario
