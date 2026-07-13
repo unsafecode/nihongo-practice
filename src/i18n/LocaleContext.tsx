@@ -21,6 +21,40 @@ export function normalizeReference(value: string | null): boolean {
   return value === "true";
 }
 
+export interface LocaleState {
+  locale: Locale;
+  showReference: boolean;
+  persistenceAvailable: boolean;
+}
+
+export function readInitialLocaleState(storage: Storage | null): LocaleState {
+  const localeRead = readSetting(storage, LOCALE_KEY);
+  const referenceRead = readSetting(storage, REFERENCE_KEY);
+  return {
+    locale: normalizeLocale(localeRead.value),
+    showReference: normalizeReference(referenceRead.value),
+    persistenceAvailable: localeRead.available && referenceRead.available,
+  };
+}
+
+export function persistLocaleState(
+  storage: Storage | null,
+  locale: Locale,
+  showReference: boolean,
+): boolean {
+  const localeWritten = writeSetting(storage, LOCALE_KEY, locale);
+  const referenceWritten = writeSetting(
+    storage,
+    REFERENCE_KEY,
+    String(showReference),
+  );
+  return localeWritten && referenceWritten;
+}
+
+export function referenceLocaleFor(locale: Locale): Locale {
+  return locale === "it" ? "en" : "it";
+}
+
 interface LocaleContextValue {
   locale: Locale;
   referenceLocale: Locale;
@@ -34,15 +68,7 @@ const LocaleCtx = createContext<LocaleContextValue | null>(null);
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const storage = useMemo(() => browserStorage(), []);
-  const [initial] = useState(() => {
-    const localeRead = readSetting(storage, LOCALE_KEY);
-    const referenceRead = readSetting(storage, REFERENCE_KEY);
-    return {
-      locale: normalizeLocale(localeRead.value),
-      showReference: normalizeReference(referenceRead.value),
-      persistenceAvailable: localeRead.available && referenceRead.available,
-    };
-  });
+  const [initial] = useState(() => readInitialLocaleState(storage));
   const [locale, setLocaleState] = useState<Locale>(initial.locale);
   const [showReference, setReferenceState] = useState(
     initial.showReference,
@@ -52,19 +78,15 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    const localeWritten = writeSetting(storage, LOCALE_KEY, locale);
-    const referenceWritten = writeSetting(
-      storage,
-      REFERENCE_KEY,
-      String(showReference),
+    setPersistenceAvailable(
+      persistLocaleState(storage, locale, showReference),
     );
-    setPersistenceAvailable(localeWritten && referenceWritten);
   }, [locale, showReference, storage]);
 
   const value = useMemo<LocaleContextValue>(
     () => ({
       locale,
-      referenceLocale: locale === "it" ? "en" : "it",
+      referenceLocale: referenceLocaleFor(locale),
       showReference,
       persistenceAvailable,
       setLocale: setLocaleState,
