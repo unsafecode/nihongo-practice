@@ -502,6 +502,8 @@ summary {
   font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
+  min-width: var(--action-target-min);
+  min-height: var(--action-target-min);
   transition:
     transform 0.1s ease,
     background 0.15s ease,

@@ -86,4 +86,16 @@ describe("44 × 44 tap-target enforcement", () => {
     expect(rule).toBeDefined();
     expect(rule).toMatch(/min-height\s*:\s*var\(--action-target-min\)/);
   });
+
+  it(".btn meets 44px minimum width", () => {
+    const rule = findRule(readStyles(), ".btn");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/min-width\s*:\s*var\(--action-target-min\)/);
+  });
+
+  it(".btn meets 44px minimum height", () => {
+    const rule = findRule(readStyles(), ".btn");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/min-height\s*:\s*var\(--action-target-min\)/);
+  });
 });
