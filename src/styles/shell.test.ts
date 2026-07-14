@@ -123,3 +123,48 @@ describe("44 × 44 tap-target enforcement", () => {
     expect(rule).toMatch(/min-height\s*:\s*var\(--action-target-min\)/);
   });
 });
+
+describe("settings trigger cascade: mobile-only button hidden on desktop", () => {
+  it("desktop-hide rule uses .header__settings-trigger.action so it outranks .action (specificity 0,2,0 vs 0,1,0)", () => {
+    const css = readStyles();
+    // The base .action { display: inline-flex } has specificity (0,1,0).
+    // A bare .header__settings-trigger { display: none } has equal specificity and
+    // therefore loses when .action appears later in the source — the trigger becomes
+    // visible on desktop. The fix: use a two-class compound selector so the hide rule
+    // always wins at (0,2,0), regardless of Action source order.
+    const compoundHide = findRule(css, ".header__settings-trigger.action");
+    expect(
+      compoundHide,
+      "need .header__settings-trigger.action { display:none } (specificity 0,2,0) " +
+        "to beat .action { display:inline-flex } (0,1,0) regardless of source order",
+    ).toBeDefined();
+    expect(compoundHide).toMatch(/display\s*:\s*none/);
+  });
+
+  it("max-width:980px media block restores the trigger to inline-flex for mobile", () => {
+    const css = readStyles();
+    const mediaStart = css.indexOf("@media (max-width: 980px)");
+    expect(mediaStart, "missing @media (max-width: 980px) block").toBeGreaterThan(-1);
+    // Extract the block by counting braces so nested rules don't confuse the regex.
+    let depth = 0;
+    let blockStart = -1;
+    let blockEnd = -1;
+    for (let i = mediaStart; i < css.length; i++) {
+      if (css[i] === "{") {
+        if (depth === 0) blockStart = i + 1;
+        depth++;
+      } else if (css[i] === "}") {
+        depth--;
+        if (depth === 0) {
+          blockEnd = i;
+          break;
+        }
+      }
+    }
+    const mobileBlock = css.slice(blockStart, blockEnd);
+    // The restore rule may target .header__settings-trigger or .header__settings-trigger.action.
+    expect(mobileBlock).toMatch(
+      /\.header__settings-trigger[^{]*\{[^}]*display\s*:\s*inline-flex/,
+    );
+  });
+});
