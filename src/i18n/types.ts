@@ -58,6 +58,7 @@ export interface UiMessages {
     writing: string;
     reference: string;
     unavailable: string;
+    close: string;
   };
   common: {
     listen: string;

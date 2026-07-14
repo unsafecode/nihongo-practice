@@ -3,20 +3,26 @@
    Stile: caldo, moderno, giapponese-ispirato ma pulito.
    ============================================================ */
 
+@import "./styles/fonts.css";
+@import "./styles/tokens.css";
+
 :root {
-  --paper: #f8f0e4;
-  --surface: #fffaf2;
-  --ink: #24231f;
-  --muted: #736d64;
+  /* Legacy application variables now derive from the finite token
+     source in ./styles/tokens.css (and its typed mirror tokens.ts)
+     instead of redeclaring their own literal colors. */
+  --paper: var(--color-paper);
+  --surface: var(--color-surface);
+  --ink: var(--color-ink);
+  --muted: var(--color-muted);
   --line: #e7d9c7;
-  --accent: #e4572e;
+  --accent: var(--color-coral);
   --accent-soft: #fae1d5;
-  --time: #2f6f6a;
+  --time: var(--color-teal);
   --time-soft: #dbeae7;
-  --board: #292c32;
-  --gear-particle: #ffd08a;
+  --board: var(--color-board);
+  --danger: var(--color-danger);
+  --gear-particle: var(--color-amber);
   --gear-ending: #ff9d7a;
-  --header-height: 4.75rem;
   --course-paper: var(--paper);
   --course-surface: var(--surface);
   --course-ink: var(--ink);
@@ -33,17 +39,17 @@
   --ink-faint: #a89f95;
   --card: #ffffff;
   --accent-dark: #c53f1c;
-  --slow: #2f6f6a;
+  --slow: var(--color-teal);
   --slow-soft: #e7f2f0;
   --shadow: 0 10px 30px -12px rgba(60, 40, 20, 0.25);
   --shadow-sm: 0 4px 14px -8px rgba(60, 40, 20, 0.3);
   --radius: 20px;
   --radius-sm: 12px;
 
-  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
-    sans-serif;
-  --font-jp: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic",
-    "Noto Sans JP", "Meiryo", sans-serif;
+  --font-ui: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-jp: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic",
+    "Noto Sans JP", Meiryo, sans-serif;
 }
 
 * {
@@ -76,45 +82,78 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* The shell no longer imposes one global content width: the header
+   is full-bleed, and each mode owns its own width via .app__content
+   (shell measure) or a narrower reading measure it declares itself. */
 .app {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 0 clamp(16px, 4vw, 40px);
 }
 
-/* ---------- Header ---------- */
+.app__content {
+  width: 100%;
+  max-width: var(--shell-max);
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 40px);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+button,
+input,
+select,
+textarea,
+summary {
+  font: inherit;
+}
+
+/* ---------- Header ----------
+   Three stable desktop regions — brand, primary nav, compact settings —
+   each reserving its own grid column so none overlap and the brand
+   region (auto, with an explicit min-width) can never collapse to zero.
+   On mobile the settings region becomes a single trigger button that
+   opens the SettingsDrawer overlay instead of pushing header layout. */
 .header {
   position: sticky;
   z-index: 20;
   top: 0;
-  display: grid;
-  grid-template-columns: minmax(15rem, 1fr) auto minmax(15rem, 1fr);
-  gap: 1rem;
-  align-items: center;
-  min-height: var(--header-height);
   border-bottom: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
-  padding: 0.65rem clamp(1rem, 3vw, 2rem);
   background: color-mix(in srgb, var(--paper) 88%, transparent);
   backdrop-filter: blur(18px);
 }
 
-.header__brand,
-.header__settings,
-.modenav {
-  display: flex;
+.header__inner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
+  gap: var(--space-4);
+  min-height: var(--header-height);
+  max-width: var(--shell-max);
+  margin: 0 auto;
+  padding: var(--space-2) clamp(16px, 4vw, 40px);
 }
 
-.header__brand { gap: 0.75rem; }
+.header__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 12rem;
+  flex-shrink: 0;
+}
+
 .header__logo { color: var(--accent); font-size: 1.35rem; font-weight: 900; }
 .header__text { display: grid; }
 .header__title { color: var(--ink); font-weight: 900; }
 .header__subtitle { color: var(--muted); font-size: 0.72rem; }
 
 .modenav {
+  display: flex;
+  align-items: center;
+  justify-self: center;
+  max-width: 100%;
+  overflow-x: auto;
   gap: 0.2rem;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -137,19 +176,27 @@ body {
   color: var(--surface);
 }
 
-.header__settings {
-  justify-content: flex-end;
-  gap: 0.55rem;
+.header__settings--desktop {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: var(--space-2);
 }
 
-.header__settings-mobile { display: none; }
+.header__settings-trigger { display: none; }
 
 @media (max-width: 980px) {
-  :root { --header-height: 8.5rem; }
-  .header {
+  :root { --header-height: 7rem; }
+  .header__inner {
     grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
     align-items: start;
+    min-height: 0;
+    max-height: var(--header-mobile-max);
+    padding: var(--space-2) clamp(12px, 4vw, 24px);
+    gap: var(--space-2);
   }
+  .header__brand { min-width: 3rem; }
   .modenav {
     grid-column: 1 / -1;
     grid-row: 2;
@@ -157,24 +204,63 @@ body {
     overflow-x: auto;
   }
   .header__settings--desktop { display: none; }
-  .header__settings-mobile {
-    display: block;
+  .header__settings-trigger {
+    display: inline-flex;
     justify-self: end;
-  }
-  .header__settings-mobile > summary {
-    cursor: pointer;
-    font-weight: 800;
-  }
-  .header__settings-mobile > div {
-    display: grid;
-    gap: 0.7rem;
-    min-width: min(20rem, calc(100vw - 2rem));
-    padding-top: 0.8rem;
   }
 }
 
 @media (max-width: 520px) {
   .header__subtitle { display: none; }
+}
+
+/* ---------- Settings drawer (mobile overlay) ----------
+   Portalled to <body>; sits outside .app so it never changes header
+   flow or pushes page content. */
+.settings-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+
+.settings-drawer__backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--board) 55%, transparent);
+}
+
+.settings-drawer__panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(22rem, 88vw);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-4);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow-y: auto;
+}
+
+.settings-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.settings-drawer__heading {
+  margin: 0;
+  font-weight: 900;
+  font-size: var(--text-3);
+  color: var(--ink);
+}
+
+.settings-drawer__body {
+  display: grid;
+  gap: var(--space-4);
 }
 
 .scripttoggle {
@@ -576,4 +662,134 @@ body {
   background: var(--time);
   color: white;
   font-weight: 800;
+}
+
+/* ---------- Icon ----------
+   Typed inline-SVG semantic icons (see components/icons/Icon.tsx). Color
+   is inherited via currentColor so context sets tint; only display/size
+   concerns live here. */
+.icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+/* ---------- Action primitives ----------
+   Shared button/link styling for the five approved variants: primary,
+   secondary, destructive, inline, icon. Every variant keeps at least a
+   44x44 visible target (--action-target-min) and defines its own
+   hover/active colors on top of the shared disabled/focus-visible base. */
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: var(--action-target-min);
+  min-height: var(--action-target-min);
+  padding: 0 var(--space-4);
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font: inherit;
+  font-weight: 800;
+  font-size: var(--text-2);
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.action:focus-visible {
+  outline: 3px solid var(--time);
+  outline-offset: 2px;
+}
+
+.action:disabled,
+.action[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.action--primary {
+  background: var(--accent);
+  color: var(--surface);
+}
+.action--primary:hover { background: var(--accent-dark); }
+.action--primary:active { background: color-mix(in srgb, var(--accent-dark) 85%, black); }
+
+.action--secondary {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line);
+}
+.action--secondary:hover { background: var(--card); border-color: var(--accent); }
+.action--secondary:active { background: var(--accent-soft); }
+
+.action--destructive {
+  background: var(--danger);
+  color: var(--surface);
+}
+.action--destructive:hover { background: color-mix(in srgb, var(--danger) 85%, black); }
+.action--destructive:active { background: color-mix(in srgb, var(--danger) 70%, black); }
+
+.action--inline {
+  min-width: 0;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--accent-dark);
+  text-decoration: underline;
+}
+.action--inline:hover { color: var(--accent); background: var(--accent-soft); }
+.action--inline:active { color: var(--accent-dark); background: color-mix(in srgb, var(--accent-soft) 70%, var(--surface)); }
+
+.action--icon {
+  width: var(--action-target-min);
+  height: var(--action-target-min);
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  border-color: var(--line);
+}
+.action--icon:hover { background: var(--card); color: var(--ink); }
+.action--icon:active { background: var(--accent-soft); color: var(--accent-dark); }
+
+/* ---------- Notice ---------- */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+}
+
+.notice__body { flex: 1; display: grid; gap: var(--space-1); }
+.notice__title { margin: 0; font-weight: 800; }
+.notice__text { margin: 0; color: var(--ink-soft); }
+.notice__dismiss { flex-shrink: 0; }
+
+.notice--info {
+  border-color: color-mix(in srgb, var(--time) 45%, var(--line));
+  background: var(--time-soft);
+}
+
+.notice--warning {
+  border-color: color-mix(in srgb, var(--gear-particle) 55%, var(--line));
+  background: color-mix(in srgb, var(--gear-particle) 20%, var(--surface));
+}
+
+.notice--error {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface));
+  color: var(--danger);
 }

@@ -42,11 +42,13 @@ function AppContent() {
         <ProgressProvider>
           <div className="app">
             <Header />
-            <PersistenceWarning
-              settingsUnavailable={!localePersistence || !scriptPersistence}
-            />
-            <AppRoutes />
-            <footer className="footer"><p>{ui.footer}</p></footer>
+            <div className="app__content">
+              <PersistenceWarning
+                settingsUnavailable={!localePersistence || !scriptPersistence}
+              />
+              <AppRoutes />
+              <footer className="footer"><p>{ui.footer}</p></footer>
+            </div>
           </div>
         </ProgressProvider>
       </HashRouter>

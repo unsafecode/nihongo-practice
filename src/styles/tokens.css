@@ -1,0 +1,49 @@
+/* ============================================================
+   Visual tokens — single finite source for color, type, spacing,
+   widths, action targets, and header offsets.
+   Mirrored by the typed module in ./tokens.ts (see tokens.test.ts
+   for the contract keeping both in sync).
+   ============================================================ */
+
+:root {
+  /* Palette */
+  --color-paper: #f8f0e4;
+  --color-surface: #fffaf2;
+  --color-ink: #24231f;
+  --color-muted: #736d64;
+  --color-coral: #e4572e;
+  --color-teal: #2f6f6a;
+  --color-amber: #ffb347;
+  --color-board: #292c32;
+  --color-danger: #c81e3a;
+
+  /* Spacing scale: 4 / 8 / 12 / 16 / 24 / 32 / 48 / 64 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* UI type scale: 14 / 16 / 20 / 28 / 42 / 50 / 54 */
+  --text-1: 14px;
+  --text-2: 16px;
+  --text-3: 20px;
+  --text-4: 28px;
+  --text-5: 42px;
+  --text-6: 50px;
+  --text-7: 54px;
+
+  /* Shared geometry */
+  --shell-max: 1320px;
+  --reading-min: 760px;
+  --reading-max: 860px;
+  --action-target-min: 44px;
+  --header-mobile-max: 112px;
+
+  /* Shared header/sticky offsets */
+  --header-height: 4.75rem;
+  --sticky-offset: calc(var(--header-height) + var(--space-3));
+}

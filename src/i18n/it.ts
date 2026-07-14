@@ -143,6 +143,7 @@ const ui: LocalePack["ui"] = {
     writing: "Scrittura",
     reference: "Mostra traduzione di controllo",
     unavailable: "Le preferenze restano attive solo per questa sessione.",
+    close: "Chiudi impostazioni",
   },
   common: { listen: "Ascolta", slow: "Lento", playing: "In riproduzione…", none: "—", optional: "opzionale", phrases: "frasi" },
   lab: {

@@ -144,6 +144,7 @@ const ui: LocalePack["ui"] = {
     writing: "Script",
     reference: "Show reference translation",
     unavailable: "Preferences will remain active for this session only.",
+    close: "Close settings",
   },
   common: { listen: "Listen", slow: "Slow", playing: "Playing…", none: "—", optional: "optional", phrases: "phrases" },
   lab: {
