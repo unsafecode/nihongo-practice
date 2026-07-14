@@ -13,6 +13,7 @@ const exploration: GuidedToolExploration = {
   id: "exp-sounds-core",
   objectiveId: "sounds-core",
   target: "syllabary",
+  group: "gojuon",
   returnTarget: {
     pathname: lessonPath("sounds", "sounds-core"),
     sectionId: "explore",
@@ -46,6 +47,12 @@ describe("GuidedToolLink", () => {
     expect(html).toContain('class="action');
     expect(html).toContain("/pratica/sillabario");
     expect(html).toContain(itCopy.lesson.guided.openSyllabary);
+  });
+
+  it("targets the lesson's Syllabary group and carries the exact explore return", () => {
+    const html = render();
+    expect(html).toContain("group=gojuon");
+    expect(html).toContain("from=%2Fpercorso%2Fsounds%2Fsounds-core%23explore");
   });
 
   it("describes what the link opens using the explore copy body", () => {

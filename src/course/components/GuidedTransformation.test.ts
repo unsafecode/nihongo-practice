@@ -102,10 +102,10 @@ describe("GuidedTransformation (lab endpoints reuse the engine)", () => {
     expect(found).toContain("ました");
   });
 
-  it("offers a Lab action carrying the lesson return metadata", () => {
+  it("offers a Lab action carrying the exact lesson explore return", () => {
     const html = render(lab);
     expect(html).toContain('class="action');
     expect(html).toContain("scenario=eat");
-    expect(html).toContain("from=%2Fpercorso%2Ftime%2Ftime-past");
+    expect(html).toContain("from=%2Fpercorso%2Ftime%2Ftime-past%23explore");
   });
 });

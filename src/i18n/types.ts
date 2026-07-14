@@ -84,8 +84,11 @@ export interface UiMessages {
     incompatible: string;
   };
   speech: {
+    unsupportedTitle: string;
     unsupported: string;
+    missingVoiceTitle: string;
     missingVoice: string;
+    failedTitle: string;
     failed: string;
   };
   syllabary: {
@@ -94,6 +97,19 @@ export interface UiMessages {
     voiced: string;
     combinations: string;
     notes: string;
+    groupNavLabel: string;
+    groups: {
+      gojuon: string;
+      dakuten: string;
+      yoon: string;
+      "special-notes": string;
+    };
+    backToLesson: string;
+    invalidGroupTitle: string;
+    invalidGroup: string;
+    invalidReturnTitle: string;
+    invalidReturn: string;
+    targetAnnounce: (groupName: string) => string;
   };
   phrasebook: {
     categoriesLabel: string;

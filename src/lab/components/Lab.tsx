@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Link, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
+import { ActionLink } from "../../components/actions/Action";
+import { Notice } from "../../components/Notice";
 import { SpeechNotice } from "../../components/SpeechNotice";
 import { scenarios } from "../../content/scenarios";
 import type {
@@ -13,6 +15,7 @@ import { getCatalog } from "../../i18n/catalog";
 import { useLocale } from "../../i18n/LocaleContext";
 import { useScript } from "../../settings/ScriptContext";
 import { getCourseCopy } from "../../course/i18n/catalog";
+import { readGuidedReturn } from "../../routing/guidedToolLink";
 import type { Form } from "../engine/conjugate";
 import { hasLabPreset, parseLabPreset } from "../presets";
 import { Board } from "./Board";
@@ -43,6 +46,7 @@ export function Lab() {
     attempted: hasLabPreset(searchParams),
     parsed: parseLabPreset(searchParams),
   }));
+  const [guidedReturn] = useState(() => readGuidedReturn(searchParams));
   const [selection, setSelection] = useState<LabSelection>(() =>
     initialPreset.parsed?.selection ?? defaultSelection(scenarios[0].id),
   );
@@ -84,14 +88,27 @@ export function Lab() {
         playbackFailed={playbackFailed}
       />
       {initialPreset.attempted && !initialPreset.parsed ? (
-        <p className="preset-notice" role="status">
-          {courseCopy.practice.invalidPreset}
-        </p>
+        <Notice
+          tone="warning"
+          title={courseCopy.practice.invalidPresetTitle}
+          body={courseCopy.practice.invalidPreset}
+        />
       ) : null}
-      {initialPreset.parsed?.from ? (
-        <Link className="guided-return" to={initialPreset.parsed.from}>
+      {guidedReturn.status === "invalid" ? (
+        <Notice
+          tone="warning"
+          title={courseCopy.practice.invalidReturnTitle}
+          body={courseCopy.practice.invalidReturn}
+        />
+      ) : null}
+      {guidedReturn.status === "valid" ? (
+        <ActionLink
+          className="guided-return"
+          variant="secondary"
+          to={guidedReturn.href}
+        >
           ← {courseCopy.practice.backToLesson}
-        </Link>
+        </ActionLink>
       ) : null}
 
       <div

@@ -8,6 +8,13 @@ import type {
   ScenarioSlot,
   TimeId,
 } from "../content/types";
+import {
+  GUIDED_RETURN_PARAM,
+  buildGuidedToolHref,
+  type GuidedToolHref,
+} from "../routing/guidedToolLink";
+import { routePaths } from "../routing/routePaths";
+import type { CreateRouteTargetInput } from "../routing/routeTarget";
 import type { Form } from "./engine/conjugate";
 
 const forms: readonly Form[] = [
@@ -21,15 +28,10 @@ const forms: readonly Form[] = [
 
 export interface ParsedLabPreset {
   selection: LabSelection;
-  from: string | null;
 }
 
 function isForm(value: string | null): value is Form {
   return forms.some((form) => form === value);
-}
-
-function isCoursePath(value: string): boolean {
-  return /^\/percorso\/[a-z0-9-]+\/[a-z0-9-]+$/.test(value);
 }
 
 function scenarioById(value: string | null): Scenario | undefined {
@@ -48,18 +50,12 @@ function isSlotOption(
 }
 
 export function hasLabPreset(params: URLSearchParams): boolean {
-  return [...params.keys()].length > 0;
+  return [...params.keys()].some((key) => key !== GUIDED_RETURN_PARAM);
 }
 
-export function serializeLabPreset(
-  selection: LabSelection,
-  from?: string,
-): URLSearchParams {
+export function serializeLabPreset(selection: LabSelection): URLSearchParams {
   const { scenario } = resolveLabSelection(selection);
   if (!isForm(selection.form)) throw new Error(`Unknown form: ${selection.form}`);
-  if (from !== undefined && !isCoursePath(from)) {
-    throw new Error(`Invalid course return path: ${from}`);
-  }
 
   const params = new URLSearchParams({
     scenario: selection.scenarioId,
@@ -70,8 +66,24 @@ export function serializeLabPreset(
     const value = selection.options[slot.id] ?? null;
     params.set(`slot.${slot.id}`, value ?? "");
   }
-  if (from !== undefined) params.set("from", from);
   return params;
+}
+
+/**
+ * Builds a Lab deep link that carries this selection as a preset plus the
+ * exact lesson return, using the shared guided-tool contract. Preset and
+ * return are assembled here but validated independently downstream, so an
+ * invalid return can never silently corrupt the preset (design spec §7.2).
+ */
+export function buildLabDeepLink(
+  selection: LabSelection,
+  returnInput: CreateRouteTargetInput,
+): GuidedToolHref {
+  return buildGuidedToolHref(
+    routePaths.lab,
+    serializeLabPreset(selection),
+    returnInput,
+  );
 }
 
 export function parseLabPreset(
@@ -92,10 +104,13 @@ export function parseLabPreset(
     "scenario",
     "form",
     "time",
-    "from",
     ...scenario.slots.map((slot) => `slot.${slot.id}`),
   ]);
   for (const key of params.keys()) {
+    // The return param is owned and validated by the shared guided-tool
+    // contract; the preset parser ignores it so preset and return validate
+    // independently (design spec §7.2, Task B.2).
+    if (key === GUIDED_RETURN_PARAM) continue;
     if (!allowedKeys.has(key) || params.getAll(key).length !== 1) return null;
   }
 
@@ -113,9 +128,6 @@ export function parseLabPreset(
     options[slot.id] = value;
   }
 
-  const from = params.get("from");
-  if (from !== null && !isCoursePath(from)) return null;
-
   return {
     selection: {
       scenarioId: scenario.id,
@@ -123,6 +135,5 @@ export function parseLabPreset(
       timeId,
       options,
     },
-    from,
   };
 }

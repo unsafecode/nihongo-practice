@@ -80,6 +80,9 @@ const itUi = {
     openGuidedLab: "Apri il Laboratorio guidato",
     backToLesson: "Torna alla lezione",
     invalidPreset: "Il collegamento guidato non è valido: il Laboratorio è partito dai valori iniziali.",
+    invalidPresetTitle: "Collegamento guidato non valido",
+    invalidReturn: "Il collegamento di ritorno non è valido: usa la navigazione per tornare alla lezione.",
+    invalidReturnTitle: "Ritorno non valido",
   },
 } satisfies Pick<CourseCopy, "home" | "lesson" | "practice">;
 

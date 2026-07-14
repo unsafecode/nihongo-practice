@@ -156,11 +156,35 @@ const ui: LocalePack["ui"] = {
     incompatible: "Questa combinazione non concorda nel modello base. Con ieri scegli una forma passata; con domani una forma non-passata. Desideri e inviti riferiti al passato richiedono costruzioni non ancora incluse.",
   },
   speech: {
+    unsupportedTitle: "Audio non disponibile",
     unsupported: "Questo browser non supporta la sintesi vocale.",
+    missingVoiceTitle: "Voce giapponese assente",
     missingVoice: "Non è disponibile una voce giapponese; il testo resta utilizzabile.",
+    failedTitle: "Audio non riuscito",
     failed: "Non è stato possibile riprodurre l'audio. Puoi continuare a usare il testo.",
   },
-  syllabary: { title: "Sillabario · Hiragana", base: "Segni e suoni di base", voiced: "Dakuten e handakuten", combinations: "Combinazioni con ゃ・ゅ・ょ piccoli", notes: "Da ricordare" },
+  syllabary: {
+    title: "Sillabario · Hiragana",
+    base: "Segni e suoni di base",
+    voiced: "Dakuten e handakuten",
+    combinations: "Combinazioni con ゃ・ゅ・ょ piccoli",
+    notes: "Da ricordare",
+    groupNavLabel: "Vai a un gruppo di kana",
+    groups: {
+      gojuon: "Gojūon",
+      dakuten: "Dakuten",
+      yoon: "Yōon",
+      "special-notes": "Note speciali",
+    },
+    backToLesson: "Torna alla lezione",
+    invalidGroupTitle: "Gruppo non valido",
+    invalidGroup:
+      "Il gruppo richiesto non esiste: è mostrata la tabella completa.",
+    invalidReturnTitle: "Ritorno non valido",
+    invalidReturn:
+      "Il collegamento di ritorno non è valido: usa la navigazione per tornare alla lezione.",
+    targetAnnounce: (groupName) => `Gruppo attivo: ${groupName}`,
+  },
   phrasebook: { categoriesLabel: "Categorie di frasi" },
   footer: "Fatto per imparare · audio del browser · hiragana prima di tutto",
 };

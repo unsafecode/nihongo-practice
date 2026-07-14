@@ -80,6 +80,9 @@ const enUi = {
     openGuidedLab: "Open the guided Sentence Lab",
     backToLesson: "Back to lesson",
     invalidPreset: "This guided link is invalid, so the Sentence Lab opened with its default values.",
+    invalidPresetTitle: "Invalid guided link",
+    invalidReturn: "This return link is invalid; use the navigation to go back to the lesson.",
+    invalidReturnTitle: "Invalid return",
   },
 } satisfies Pick<CourseCopy, "home" | "lesson" | "practice">;
 

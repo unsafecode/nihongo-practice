@@ -1,6 +1,7 @@
 import type { SemanticIconId } from "../../components/icons/Icon";
 import type { LabSelection } from "../../content/types";
 import type { LessonSectionId } from "../../routing/lessonSections";
+import type { SyllabaryGroupId } from "../../syllabary/groups";
 
 /**
  * Stable semantic IDs (design spec §6.1/§6.2). Module and lesson IDs are
@@ -221,6 +222,12 @@ export interface GuidedToolExploration {
   readonly id: string;
   readonly objectiveId: string;
   readonly target: "syllabary";
+  /**
+   * The Syllabary group this lesson's link should target (e.g. the core kana
+   * lesson targets `gojuon`, the special lesson targets `special-notes`).
+   * Omitted for a plain top-of-chart link.
+   */
+  readonly group?: SyllabaryGroupId;
   readonly returnTarget: RouteReturnTarget;
 }
 

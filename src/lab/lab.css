@@ -73,7 +73,7 @@
   color: #fff;
   box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.5);
   position: sticky;
-  top: 18px;
+  top: var(--sticky-offset);
   overflow: hidden;
 }
 .board::before {
@@ -83,6 +83,17 @@
   border: 1.5px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   pointer-events: none;
+}
+/* On narrow viewports the board stacks above the controls; a sticky board
+ * here would sit under the shared header and consume the viewport, so it
+ * scrolls with the page instead. Declared after the base .board rule so the
+ * static override actually wins the cascade (media queries add no
+ * specificity). */
+@media (max-width: 880px) {
+  .board {
+    position: static;
+    top: auto;
+  }
 }
 .board__label {
   font-size: 0.75rem;
@@ -394,17 +405,6 @@
   color: #742d1b;
 }
 
-.preset-notice {
-  border: 1px solid #d3a64b;
-  border-radius: 0.8rem;
-  margin: 0 0 1rem;
-  padding: 0.75rem 0.9rem;
-  background: #fff3cf;
-  color: #684d13;
-}
-
 .guided-return {
-  display: inline-block;
   margin: 0 0 1rem;
-  font-weight: 800;
 }

@@ -1,5 +1,6 @@
 import type { LabSelection } from "../../content/types";
 import { lessonPath } from "../../routing/routePaths";
+import type { SyllabaryGroupId } from "../../syllabary/groups";
 import type {
   AuthoredSelection,
   ComparisonSection,
@@ -37,7 +38,7 @@ interface ComparisonSpec {
 }
 
 type ExplorationSpec =
-  | { readonly kind: "tool" }
+  | { readonly kind: "tool"; readonly group?: SyllabaryGroupId }
   | {
       readonly kind: "authored";
       readonly initial: AuthoredSelection;
@@ -92,7 +93,13 @@ function buildExploration(spec: LessonSpec): GuidedExploration {
   if (exploration.kind === "tool") {
     return {
       kind: "tool",
-      data: { id, objectiveId, target: "syllabary", returnTarget },
+      data: {
+        id,
+        objectiveId,
+        target: "syllabary",
+        ...(exploration.group ? { group: exploration.group } : {}),
+        returnTarget,
+      },
     };
   }
   if (exploration.kind === "journey") {
@@ -215,7 +222,7 @@ export const courseModules: CourseModule[] = [
           changedSegmentIds: ["0"],
           changedGearIds: ["か"],
         },
-        exploration: { kind: "tool" },
+        exploration: { kind: "tool", group: "gojuon" },
       }),
       lesson({
         id: "sounds-special",
@@ -232,7 +239,7 @@ export const courseModules: CourseModule[] = [
           changedSegmentIds: ["1"],
           changedGearIds: ["っ"],
         },
-        exploration: { kind: "tool" },
+        exploration: { kind: "tool", group: "special-notes" },
       }),
     ],
   }),

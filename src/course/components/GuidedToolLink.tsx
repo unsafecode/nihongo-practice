@@ -1,7 +1,8 @@
 import { ActionLink } from "../../components/actions/Action";
 import { useLocale } from "../../i18n/LocaleContext";
+import { buildGuidedToolHref } from "../../routing/guidedToolLink";
 import { routePaths } from "../../routing/routePaths";
-import { serializeRouteTarget, createRouteTarget } from "../../routing/routeTarget";
+import { buildSyllabaryDeepLink } from "../../syllabary/groups";
 import type { GuidedToolExploration } from "../data/types";
 import { getCourseCopy } from "../i18n/catalog";
 
@@ -11,8 +12,8 @@ import { getCourseCopy } from "../i18n/catalog";
  * Syllabary instead of faking an in-page transformation: this component only
  * describes what the link opens (via the explore copy body) and never renders
  * before/after or endpoint labels. The link is an Action primitive (Task 1),
- * not a naked anchor, and carries this lesson's explore anchor as a `from`
- * return hint for Task 7 to wire into the real round-trip.
+ * not a naked anchor, and carries — through the shared guided-tool contract —
+ * this lesson's target Syllabary group plus the exact `#explore` return.
  */
 export function GuidedToolLink({
   exploration,
@@ -24,13 +25,13 @@ export function GuidedToolLink({
   const { locale } = useLocale();
   const copy = getCourseCopy(locale);
   const content = copy.blocks[copyId];
-  const from = serializeRouteTarget(
-    createRouteTarget({
-      pathname: exploration.returnTarget.pathname,
-      sectionId: exploration.returnTarget.sectionId,
-    }).target,
-  );
-  const to = `${routePaths.syllabary}?from=${encodeURIComponent(from)}`;
+  const returnInput = {
+    pathname: exploration.returnTarget.pathname,
+    sectionId: exploration.returnTarget.sectionId,
+  };
+  const { href: to } = exploration.group
+    ? buildSyllabaryDeepLink(exploration.group, returnInput)
+    : buildGuidedToolHref(routePaths.syllabary, new URLSearchParams(), returnInput);
 
   return (
     <div className="lesson-tool">

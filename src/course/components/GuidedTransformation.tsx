@@ -3,8 +3,7 @@ import { ActionLink } from "../../components/actions/Action";
 import type { LabSelection } from "../../content/types";
 import { useLocale } from "../../i18n/LocaleContext";
 import { buildJapaneseSentence } from "../../lab/engine/japanese";
-import { serializeLabPreset } from "../../lab/presets";
-import { routePaths } from "../../routing/routePaths";
+import { buildLabDeepLink } from "../../lab/presets";
 import { useScript } from "../../settings/ScriptContext";
 import { examples } from "../data/examples";
 import type {
@@ -140,14 +139,25 @@ export function GuidedTransformation({
   const initialTokens = endpointTokens(data.initialSelection, changedGears);
   const targetTokens = endpointTokens(data.targetSelection, changedGears);
 
-  const labLink =
-    isLabSelection(data.initialSelection) &&
-    isLabSelection(data.targetSelection)
-      ? `${routePaths.lab}?${serializeLabPreset(
-          data.targetSelection,
-          data.returnTarget.pathname,
-        ).toString()}`
-      : null;
+  const labLink = (() => {
+    if (
+      !isLabSelection(data.initialSelection) ||
+      !isLabSelection(data.targetSelection)
+    ) {
+      return null;
+    }
+    try {
+      return buildLabDeepLink(data.targetSelection, {
+        pathname: data.returnTarget.pathname,
+        sectionId: data.returnTarget.sectionId,
+      }).href;
+    } catch {
+      // A preset that cannot be serialized (e.g. an unknown slot/form) must
+      // never open an unrelated default board disguised as this lesson's
+      // transformation — omit the link instead.
+      return null;
+    }
+  })();
 
   return (
     <div className="guided-board">

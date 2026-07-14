@@ -106,6 +106,9 @@ export interface CourseCopy {
     openGuidedLab: string;
     backToLesson: string;
     invalidPreset: string;
+    invalidPresetTitle: string;
+    invalidReturn: string;
+    invalidReturnTitle: string;
   };
   /**
    * Copy for the phase-based course map (§4.1-4.4/§5.1-5.4/§6.2): phase
