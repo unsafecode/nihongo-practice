@@ -6,7 +6,6 @@ const itUi = {
     title: "Costruisci il giapponese, un ingranaggio alla volta.",
     lead: "Parti dai suoni, impara a vedere i ruoli nella frase e arriva agli schemi più utili in viaggio.",
     continue: "Continua",
-    allVisited: "Tutto visitato",
     start: "Inizia",
     review: "Ripassa",
     reset: "Azzera i progressi",
@@ -16,6 +15,12 @@ const itUi = {
     invalidRoute: (path: string) => `La pagina “${path}” non esiste. Sei tornato al percorso.`,
     lessonsProgress: (visited: number, total: number) =>
       `${visited} di ${total} lezioni`,
+    explorePractice: "Esplora la pratica libera",
+    corruptProgressTitle: "Progressi azzerati",
+    invalidRouteTitle: "Pagina non trovata",
+    persistenceWarningTitle: "I progressi non verranno salvati",
+    persistenceWarningBody:
+      "Il browser non permette di salvare i progressi del percorso in questa sessione. Puoi continuare a usare l'app, ma alla chiusura le lezioni visitate non verranno ricordate.",
   },
   lesson: {
     back: "Tutti i moduli",
@@ -44,6 +49,41 @@ const itUi = {
     invalidPreset: "Il collegamento guidato non è valido: il Laboratorio è partito dai valori iniziali.",
   },
 } satisfies Pick<CourseCopy, "home" | "lesson" | "practice">;
+
+const itCourseMap: CourseCopy["courseMap"] = {
+  heading: "Le fasi del percorso",
+  phases: {
+    orient: {
+      title: "Orientati",
+      purpose: "Suoni e struttura di base della frase.",
+    },
+    build: {
+      title: "Costruisci",
+      purpose: "Aggiungi azioni, oggetti e riferimenti di tempo.",
+    },
+    navigate: {
+      title: "Naviga",
+      purpose: "Muoviti tra luoghi, persone e richieste quotidiane.",
+    },
+    synthesize: {
+      title: "Sintetizza",
+      purpose: "Metti insieme tutto in una lezione conclusiva.",
+    },
+  },
+  prerequisites: (moduleNames: string[]) =>
+    moduleNames.length === 0
+      ? "Nessuno: puoi iniziare da qui."
+      : `Idealmente dopo: ${moduleNames.join(", ")}.`,
+  estimatedMinutes: (minutes: number) => `Circa ${minutes} min`,
+  stateCurrent: "Sei qui",
+  stateRecommended: "Consigliato",
+  stateVisited: "Visitato",
+  expandLabel: (moduleTitle: string) => `Espandi le lezioni di ${moduleTitle}`,
+  collapseLabel: (moduleTitle: string) => `Comprimi le lezioni di ${moduleTitle}`,
+  revisitTitle: "Hai visitato tutte le lezioni",
+  revisitBody:
+    "Puoi rivedere qualunque lezione quando vuoi: non c'è un traguardo finale da raggiungere.",
+};
 
 const itModules: CourseCopy["modules"] = {
   sounds: { title: "Suoni e hiragana" },
@@ -411,6 +451,7 @@ const itExamples: CourseCopy["examples"] = {
 
 export const it = {
   ...itUi,
+  courseMap: itCourseMap,
   modules: itModules,
   lessons: itLessons,
   objectives: itObjectives,

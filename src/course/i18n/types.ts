@@ -1,4 +1,4 @@
-import type { ModuleId } from "../data/types";
+import type { ModuleId, PhaseId } from "../data/types";
 
 export interface BlockCopy {
   eyebrow?: string;
@@ -21,13 +21,18 @@ export interface LessonCopy {
   title: string;
 }
 
+/** A single curriculum phase's localized name and concise purpose (§4.2/§6.2). */
+export interface PhaseCopy {
+  title: string;
+  purpose: string;
+}
+
 export interface CourseCopy {
   home: {
     eyebrow: string;
     title: string;
     lead: string;
     continue: string;
-    allVisited: string;
     start: string;
     review: string;
     reset: string;
@@ -36,6 +41,15 @@ export interface CourseCopy {
     dismiss: string;
     invalidRoute: (path: string) => string;
     lessonsProgress: (visited: number, total: number) => string;
+    /** Secondary hero action linking to free practice. */
+    explorePractice: string;
+    /** Notice title paired with the existing `corruptProgress` body. */
+    corruptProgressTitle: string;
+    /** Notice title paired with the existing `invalidRoute` body. */
+    invalidRouteTitle: string;
+    /** Notice shown when `persistenceAvailable === false` for progress. */
+    persistenceWarningTitle: string;
+    persistenceWarningBody: string;
   };
   lesson: {
     back: string;
@@ -60,6 +74,28 @@ export interface CourseCopy {
     openGuidedLab: string;
     backToLesson: string;
     invalidPreset: string;
+  };
+  /**
+   * Copy for the phase-based course map (§4.1-4.4/§5.1-5.4/§6.2): phase
+   * bands, per-module prerequisite/estimate/state text, and the
+   * revisit/capstone state shown once every known lesson is visited.
+   */
+  courseMap: {
+    heading: string;
+    /** Keyed by PhaseId; a closed union, so `satisfies CourseCopy` already
+     * enforces all four phases are present at compile time. */
+    phases: Record<PhaseId, PhaseCopy>;
+    /** Localized module names, or the localized "none/start here" text. */
+    prerequisites: (moduleNames: string[]) => string;
+    /** Shared wording for a module's total or a lesson's own estimate. */
+    estimatedMinutes: (minutes: number) => string;
+    stateCurrent: string;
+    stateRecommended: string;
+    stateVisited: string;
+    expandLabel: (moduleTitle: string) => string;
+    collapseLabel: (moduleTitle: string) => string;
+    revisitTitle: string;
+    revisitBody: string;
   };
   /** Keyed by CourseModule.id. */
   modules: Record<ModuleId, ModuleCopy>;

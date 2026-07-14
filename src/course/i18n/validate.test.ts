@@ -50,6 +50,7 @@ describe.each([itCopy, enCopy])("course locale", (copy) => {
       home: copy.home,
       lesson: copy.lesson,
       practice: copy.practice,
+      courseMap: copy.courseMap,
       modules: copy.modules,
       lessons: copy.lessons,
       objectives: copy.objectives,
@@ -62,6 +63,13 @@ describe.each([itCopy, enCopy])("course locale", (copy) => {
     expect(copy.home.invalidRoute("/missing").trim().length).toBeGreaterThan(0);
     expect(copy.home.lessonsProgress(1, 16).trim().length).toBeGreaterThan(0);
     expect(copy.lesson.modulePosition(1, 8).trim().length).toBeGreaterThan(0);
+    expect(copy.courseMap.prerequisites([]).trim().length).toBeGreaterThan(0);
+    expect(
+      copy.courseMap.prerequisites(["Suoni e hiragana"]).trim().length,
+    ).toBeGreaterThan(0);
+    expect(copy.courseMap.estimatedMinutes(12).trim().length).toBeGreaterThan(0);
+    expect(copy.courseMap.expandLabel("X").trim().length).toBeGreaterThan(0);
+    expect(copy.courseMap.collapseLabel("X").trim().length).toBeGreaterThan(0);
   });
 
   it("has no orphan localized keys beyond what course data references", () => {

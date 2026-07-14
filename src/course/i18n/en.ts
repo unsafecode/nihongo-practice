@@ -6,7 +6,6 @@ const enUi = {
     title: "Build Japanese one gear at a time.",
     lead: "Start with sounds, learn to see sentence roles, and reach the patterns most useful while traveling.",
     continue: "Continue",
-    allVisited: "All visited",
     start: "Start",
     review: "Review",
     reset: "Reset progress",
@@ -16,6 +15,12 @@ const enUi = {
     invalidRoute: (path: string) => `“${path}” does not exist. You are back at the course.`,
     lessonsProgress: (visited: number, total: number) =>
       `${visited} of ${total} lessons`,
+    explorePractice: "Explore free practice",
+    corruptProgressTitle: "Progress reset",
+    invalidRouteTitle: "Page not found",
+    persistenceWarningTitle: "Progress will not be saved",
+    persistenceWarningBody:
+      "Your browser does not allow saving course progress in this session. You can keep using the app, but visited lessons will not be remembered after you close it.",
   },
   lesson: {
     back: "All modules",
@@ -44,6 +49,41 @@ const enUi = {
     invalidPreset: "This guided link is invalid, so the Sentence Lab opened with its default values.",
   },
 } satisfies Pick<CourseCopy, "home" | "lesson" | "practice">;
+
+const enCourseMap: CourseCopy["courseMap"] = {
+  heading: "The course phases",
+  phases: {
+    orient: {
+      title: "Orient",
+      purpose: "Sounds and the basic sentence structure.",
+    },
+    build: {
+      title: "Build",
+      purpose: "Add actions, objects, and time references.",
+    },
+    navigate: {
+      title: "Navigate",
+      purpose: "Move between places, people, and everyday requests.",
+    },
+    synthesize: {
+      title: "Synthesize",
+      purpose: "Bring it all together in a closing lesson.",
+    },
+  },
+  prerequisites: (moduleNames: string[]) =>
+    moduleNames.length === 0
+      ? "None — start here."
+      : `Ideally after: ${moduleNames.join(", ")}.`,
+  estimatedMinutes: (minutes: number) => `About ${minutes} min`,
+  stateCurrent: "You are here",
+  stateRecommended: "Recommended",
+  stateVisited: "Visited",
+  expandLabel: (moduleTitle: string) => `Expand lessons for ${moduleTitle}`,
+  collapseLabel: (moduleTitle: string) => `Collapse lessons for ${moduleTitle}`,
+  revisitTitle: "You've visited every lesson",
+  revisitBody:
+    "You can revisit any lesson whenever you like — there's no final finish line to reach.",
+};
 
 const enModules: CourseCopy["modules"] = {
   sounds: { title: "Sounds and hiragana" },
@@ -411,6 +451,7 @@ const enExamples: CourseCopy["examples"] = {
 
 export const en = {
   ...enUi,
+  courseMap: enCourseMap,
   modules: enModules,
   lessons: enLessons,
   objectives: enObjectives,

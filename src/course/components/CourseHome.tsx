@@ -1,47 +1,53 @@
-import { Link } from "react-router";
+import type { ReactElement } from "react";
+import { ActionButton, ActionLink } from "../../components/actions/Action";
+import { Notice } from "../../components/Notice";
 import { useLocale } from "../../i18n/LocaleContext";
+import { lessonPath, routePaths } from "../../routing/routes";
 import { courseModules } from "../data/course";
-import type { Lesson } from "../data/types";
 import { getCourseCopy } from "../i18n/catalog";
-import {
-  knownVisitedLessonIds,
-  recommendContinuationLessonId,
-  visitedPercent,
-} from "../progress/progress";
 import { useProgress } from "../progress/ProgressContext";
-import { lessonPath } from "../../routing/routes";
-import { ChapterCard } from "./ChapterCard";
+import { buildCourseMapModel } from "./courseMapModel";
+import { CourseMap } from "./CourseMap";
 import { RouteNotice } from "./RouteNotice";
 import "../course.css";
 
 const lessons = courseModules.flatMap((courseModule) => courseModule.lessons);
-const knownLessonIds = new Set(lessons.map((lesson) => lesson.id));
 
-function moduleFor(lesson: Lesson) {
-  const courseModule = courseModules.find((item) => item.id === lesson.moduleId);
-  if (!courseModule) throw new Error(`Missing module for lesson ${lesson.id}`);
-  return courseModule;
-}
-
-export function CourseHome() {
+/**
+ * Course home (design spec §5.7/§6.1): a bounded "editoriale mnemonico"
+ * hero (title, eyebrow, lead, visited progress, primary + secondary
+ * actions) followed by the phase-based `CourseMap`. Replaces the old
+ * uniform chapter grid and raw status markup - all route/reset/storage
+ * status uses the Task 1 `Notice`/Action primitives, and nothing here
+ * locks or blocks navigation to any lesson.
+ */
+export function CourseHome(): ReactElement {
   const { locale } = useLocale();
   const copy = getCourseCopy(locale);
-  const { progress, corrupted, dismissCorruption, reset } = useProgress();
-  const visitedKnown = knownVisitedLessonIds(
-    progress.visitedLessonIds,
-    knownLessonIds,
-  );
-  const visitedSet = new Set(visitedKnown);
-  const continuationLessonId = recommendContinuationLessonId(
+  const { progress, corrupted, persistenceAvailable, dismissCorruption, reset } =
+    useProgress();
+
+  const model = buildCourseMapModel(
     courseModules,
     progress.visitedLessonIds,
     progress.lastVisitedLessonId,
   );
+
+  const continuationLessonId = model.recommendedLessonId ?? model.currentLessonId;
   const continuation =
     lessons.find((lesson) => lesson.id === continuationLessonId) ?? lessons[0];
-  const continuationModule = moduleFor(continuation);
-  const percent = visitedPercent(visitedKnown, lessons.length);
-  const allVisited = visitedKnown.length === lessons.length;
+  const continuationModule =
+    courseModules.find((courseModule) => courseModule.id === continuation.moduleId) ??
+    courseModules[0];
+
+  const primaryLabel = model.allVisited
+    ? copy.home.review
+    : model.visitedLessonCount > 0
+      ? copy.home.continue
+      : copy.home.start;
+
+  const canReset =
+    progress.visitedLessonIds.length > 0 || progress.lastVisitedLessonId !== null;
 
   const resetProgress = () => {
     if (window.confirm(copy.home.resetConfirm)) reset();
@@ -50,70 +56,59 @@ export function CourseHome() {
   return (
     <main className="course-home">
       <RouteNotice />
+
       {corrupted ? (
-        <div className="route-notice" role="status">
-          <p>{copy.home.corruptProgress}</p>
-          <button type="button" onClick={dismissCorruption}>
-            {copy.home.dismiss}
-          </button>
-        </div>
+        <Notice
+          tone="warning"
+          title={copy.home.corruptProgressTitle}
+          body={copy.home.corruptProgress}
+          dismissLabel={copy.home.dismiss}
+          onDismiss={dismissCorruption}
+        />
+      ) : null}
+
+      {!persistenceAvailable ? (
+        <Notice
+          tone="warning"
+          title={copy.home.persistenceWarningTitle}
+          body={copy.home.persistenceWarningBody}
+        />
       ) : null}
 
       <section className="course-hero" aria-labelledby="course-title">
         <div>
-          <p className="course-eyebrow">{copy.home.eyebrow}</p>
-          <h1 id="course-title">{copy.home.title}</h1>
-          <p className="course-lead">{copy.home.lead}</p>
+          <p className="course-hero__eyebrow">{copy.home.eyebrow}</p>
+          <h1 id="course-title" className="course-hero__title">
+            {copy.home.title}
+          </h1>
+          <p className="course-hero__lead">{copy.home.lead}</p>
         </div>
         <div className="course-hero__progress">
-          <p>
-            <strong>{allVisited ? copy.home.allVisited : `${percent}%`}</strong>
-            <span>
-              {copy.home.lessonsProgress(
-                visitedKnown.length,
-                lessons.length,
-              )}
-            </span>
+          <p className="course-hero__progress-summary">
+            {copy.home.lessonsProgress(model.visitedLessonCount, model.totalLessonCount)}
           </p>
-          <div
-            className="course-progress"
-            role="progressbar"
-            aria-label={copy.home.lessonsProgress(visitedKnown.length, lessons.length)}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={percent}
-          >
-            <span style={{ width: `${percent}%` }} />
+          <div className="course-hero__actions">
+            <ActionLink
+              variant="primary"
+              to={lessonPath(continuationModule.id, continuation.id)}
+            >
+              {primaryLabel}
+            </ActionLink>
+            <ActionLink variant="secondary" to={routePaths.practice}>
+              {copy.home.explorePractice}
+            </ActionLink>
+            <ActionButton
+              variant="destructive"
+              onClick={resetProgress}
+              disabled={!canReset}
+            >
+              {copy.home.reset}
+            </ActionButton>
           </div>
-          <Link
-            className="course-primary-action"
-            to={lessonPath(continuationModule.id, continuation.id)}
-          >
-            {allVisited ? copy.home.review : copy.home.continue}
-          </Link>
-          <button
-            className="course-reset"
-            type="button"
-            onClick={resetProgress}
-            disabled={
-              progress.visitedLessonIds.length === 0 &&
-              progress.lastVisitedLessonId === null
-            }
-          >
-            {copy.home.reset}
-          </button>
         </div>
       </section>
 
-      <section className="chapter-grid" aria-label={copy.home.eyebrow}>
-        {courseModules.map((courseModule) => (
-          <ChapterCard
-            key={courseModule.id}
-            courseModule={courseModule}
-            visitedLessonIds={visitedSet}
-          />
-        ))}
-      </section>
+      <CourseMap model={model} />
     </main>
   );
 }

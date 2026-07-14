@@ -22,7 +22,7 @@ import {
 
 export const STORAGE_KEY = "nihongo.course.progress";
 
-interface ProgressContextValue {
+export interface ProgressContextValue {
   progress: CourseProgressV2;
   corrupted: boolean;
   persistenceAvailable: boolean;
@@ -65,7 +65,9 @@ export function resetStoredProgress(storage: Storage | null): boolean {
   return removeSetting(storage, STORAGE_KEY);
 }
 
-const ProgressContext = createContext<ProgressContextValue | undefined>(undefined);
+export const ProgressContext = createContext<ProgressContextValue | undefined>(
+  undefined,
+);
 
 export function ProgressProvider({ children }: { children: ReactNode }) {
   const storage = useMemo(() => browserStorage(), []);

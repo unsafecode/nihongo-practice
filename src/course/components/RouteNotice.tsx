@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "react-router";
+import { Notice } from "../../components/Notice";
 import { useLocale } from "../../i18n/LocaleContext";
 import { getCourseCopy } from "../i18n/catalog";
 
@@ -24,19 +25,17 @@ export function RouteNotice() {
   if (!invalidPath) return null;
 
   return (
-    <div className="route-notice" role="status">
-      <p>{copy.home.invalidRoute(invalidPath)}</p>
-      <button
-        type="button"
-        onClick={() =>
-          navigate(
-            { pathname: location.pathname, search: location.search },
-            { replace: true, state: null },
-          )
-        }
-      >
-        {copy.home.dismiss}
-      </button>
-    </div>
+    <Notice
+      tone="warning"
+      title={copy.home.invalidRouteTitle}
+      body={copy.home.invalidRoute(invalidPath)}
+      dismissLabel={copy.home.dismiss}
+      onDismiss={() =>
+        navigate(
+          { pathname: location.pathname, search: location.search },
+          { replace: true, state: null },
+        )
+      }
+    />
   );
 }

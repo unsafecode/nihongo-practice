@@ -11,12 +11,39 @@
   align-items: end;
 }
 
-.course-hero h1 {
-  max-width: 12ch;
+.course-hero__eyebrow {
+  margin: 0;
+  color: var(--course-muted);
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+/* Editoriale mnemonico hero title: bounded between the shared 42px and
+   54px type tokens (--text-5/--text-7) — never the old uncapped ~84px
+   display size, and never smaller than a confident editorial headline. */
+.course-hero__title {
+  max-width: 14ch;
   margin: 0.45rem 0 0.8rem;
-  font-size: clamp(2.6rem, 6vw, 5.3rem);
-  line-height: 0.96;
-  letter-spacing: -0.055em;
+  font-size: clamp(var(--text-5), 5vw, var(--text-7));
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+}
+
+.course-hero__lead {
+  max-width: 44rem;
+  margin: 0 0 1.1rem;
+  color: var(--course-muted);
+  font-size: 1.08rem;
+  line-height: 1.6;
+}
+
+.course-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 .course-progress {
@@ -33,26 +60,267 @@
   background: linear-gradient(90deg, var(--course-coral), #ef8b56);
 }
 
-.chapter-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.85rem;
-  margin-top: 2rem;
+@media (max-width: 720px) {
+  .course-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .course-hero__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
-.chapter-card {
+/* ---------- Course map: vertical phase path ----------
+   Replaces the old uniform eight-card chapter grid. The whole map is a
+   single vertical timeline: four phase bands, each a flex column of its
+   modules — never a responsive equal-card grid. */
+.course-map {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+  margin-top: var(--space-7);
+}
+
+.course-map__heading {
+  margin: 0 0 var(--space-6);
+  font-size: var(--text-4);
+}
+
+.course-phase {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  border-left: 3px solid var(--course-line);
+  padding-left: var(--space-6);
+}
+
+.course-phase__heading {
+  margin: 0;
+  color: var(--course-ink);
+  font-size: var(--text-3);
+}
+
+.course-phase__purpose {
+  max-width: 42rem;
+  margin: 0;
+  color: var(--course-muted);
+  font-size: var(--text-2);
+  line-height: 1.5;
+}
+
+.course-phase__modules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+}
+
+/* ---------- Module card ---------- */
+.module-card {
+  display: flex;
+  gap: var(--space-4);
   border: 1px solid var(--course-line);
   border-radius: 1rem;
-  padding: 1.1rem;
+  padding: var(--space-5);
   background: color-mix(in srgb, white 76%, transparent);
 }
 
+.module-card.is-current {
+  border-color: var(--course-coral);
+  background: var(--course-coral-soft);
+}
+
+.module-card.is-recommended {
+  border-color: var(--course-teal);
+  background: var(--course-teal-soft);
+}
+
+.module-card__marker {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: 999px;
+  background: var(--course-surface);
+  color: var(--course-coral);
+}
+
+.module-card__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.module-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.module-card__title {
+  margin: 0;
+  font-size: var(--text-3);
+}
+
+/* Sizing/44px target inherited unchanged from .action--icon; this rule
+   only keeps the disclosure control from being squeezed by a long title
+   in the flex header row. */
+.module-card__disclosure {
+  flex-shrink: 0;
+}
+
+.module-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.module-card__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border-radius: 999px;
+  padding: 0.2rem var(--space-3);
+  font-size: var(--text-1);
+  font-weight: 800;
+}
+
+/* Each state tag pairs its localized text with a distinct shape glyph
+   (not only a color) so state is never communicated by color alone. */
+.module-card__tag--current {
+  background: var(--course-coral-soft);
+  color: var(--accent-dark);
+}
+.module-card__tag--current::before {
+  content: "●";
+}
+
+.module-card__tag--recommended {
+  background: var(--course-teal-soft);
+  color: var(--course-teal);
+}
+.module-card__tag--recommended::before {
+  content: "→";
+}
+
+.module-card__tag--visited {
+  border: 1px solid var(--course-line);
+  background: var(--card);
+  color: var(--ink-soft);
+}
+.module-card__tag--visited::before {
+  content: "✓";
+}
+
+.module-card__outcome {
+  margin: 0;
+  color: var(--course-ink);
+}
+
+.module-card__prerequisites {
+  margin: 0;
+  color: var(--course-muted);
+  font-size: var(--text-1);
+}
+
+.module-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  color: var(--course-muted);
+  font-size: var(--text-1);
+}
+
+.module-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.module-card__lessons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.module-card__lesson-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  min-height: var(--action-target-min);
+  border: 1px solid transparent;
+  border-radius: 0.65rem;
+  padding: var(--space-2) var(--space-3);
+  color: inherit;
+  text-decoration: none;
+}
+
+.module-card__lesson-link:hover {
+  border-color: var(--course-line);
+  background: var(--course-surface);
+}
+
+.module-card__lesson-link:focus-visible {
+  outline: 3px solid var(--time);
+  outline-offset: 2px;
+}
+
+/* Current lesson gets a border + weight change alongside its "step"
+   semantics, not just a background tint. */
+.module-card__lesson-link[aria-current="step"] {
+  border-color: var(--course-teal);
+  background: var(--course-teal-soft);
+  font-weight: 800;
+}
+
+.module-card__lesson-title {
+  font-weight: 700;
+}
+
+.module-card__lesson-objective {
+  flex: 1 1 100%;
+  color: var(--course-muted);
+  font-size: var(--text-1);
+}
+
+.module-card__lesson-meta,
+.module-card__lesson-state {
+  color: var(--course-muted);
+  font-size: var(--text-1);
+  white-space: nowrap;
+}
+
 @media (max-width: 720px) {
-  .course-hero,
-  .chapter-grid {
-    grid-template-columns: 1fr;
+  .module-card {
+    flex-direction: column;
+  }
+
+  .module-card__actions {
+    flex-direction: column;
+  }
+
+  .module-card__lesson-link {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
+
 .lesson-layout {
   display: grid;
   grid-template-columns: 17.375rem minmax(0, 1fr);
