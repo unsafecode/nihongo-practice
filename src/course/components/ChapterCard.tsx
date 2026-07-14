@@ -1,40 +1,44 @@
 import { Link } from "react-router";
+import { Icon } from "../../components/icons/Icon";
 import { useLocale } from "../../i18n/LocaleContext";
 import { lessonPath } from "../../routing/routes";
-import type { Chapter } from "../data/types";
+import type { CourseModule } from "../data/types";
 import { getCourseCopy } from "../i18n/catalog";
 
 interface ChapterCardProps {
-  chapter: Chapter;
-  completedLessonIds: ReadonlySet<string>;
+  courseModule: CourseModule;
+  visitedLessonIds: ReadonlySet<string>;
 }
 
 export function ChapterCard({
-  chapter,
-  completedLessonIds,
+  courseModule,
+  visitedLessonIds,
 }: ChapterCardProps) {
   const { locale } = useLocale();
   const copy = getCourseCopy(locale);
-  const chapterCopy = copy.chapters[chapter.id];
-  const completed = chapter.lessons.filter((lesson) =>
-    completedLessonIds.has(lesson.id)
+  const moduleCopy = copy.modules[courseModule.id];
+  const outcome = courseModule.outcomeCopyIds
+    .map((id) => copy.outcomes[id])
+    .join(" ");
+  const visited = courseModule.lessons.filter((lesson) =>
+    visitedLessonIds.has(lesson.id)
   ).length;
-  const total = chapter.lessons.length;
-  const done = completed === total;
+  const total = courseModule.lessons.length;
+  const done = visited === total;
   const target =
-    chapter.lessons.find((lesson) => !completedLessonIds.has(lesson.id)) ??
-    chapter.lessons[0];
-  const progressLabel = copy.home.lessonsProgress(completed, total);
+    courseModule.lessons.find((lesson) => !visitedLessonIds.has(lesson.id)) ??
+    courseModule.lessons[0];
+  const progressLabel = copy.home.lessonsProgress(visited, total);
 
   return (
-    <article className={`chapter-card${done ? " is-complete" : ""}`}>
+    <article className={`chapter-card${done ? " is-visited" : ""}`}>
       <div className="chapter-card__meta">
-        <span aria-hidden="true">{chapter.emoji}</span>
-        <span>{String(chapter.order).padStart(2, "0")}</span>
+        <Icon id={courseModule.iconId} decorative size="small" />
+        <span>{String(courseModule.order).padStart(2, "0")}</span>
         {done ? <span className="chapter-card__check" aria-hidden="true">✓</span> : null}
       </div>
-      <h2>{chapterCopy.title}</h2>
-      <p>{chapterCopy.description}</p>
+      <h2>{moduleCopy.title}</h2>
+      <p>{outcome}</p>
       <div className="chapter-card__footer">
         <div>
           <span>{progressLabel}</span>
@@ -44,14 +48,14 @@ export function ChapterCard({
             aria-label={progressLabel}
             aria-valuemin={0}
             aria-valuemax={total}
-            aria-valuenow={completed}
+            aria-valuenow={visited}
           >
-            <span style={{ width: `${(completed / total) * 100}%` }} />
+            <span style={{ width: `${(visited / total) * 100}%` }} />
           </div>
         </div>
         <Link
-          to={lessonPath(chapter.id, target.id)}
-          aria-label={`${done ? copy.home.review : copy.home.start}: ${chapterCopy.title}; ${progressLabel}`}
+          to={lessonPath(courseModule.id, target.id)}
+          aria-label={`${done ? copy.home.review : copy.home.start}: ${moduleCopy.title}; ${progressLabel}`}
         >
           {done ? copy.home.review : copy.home.start}
         </Link>

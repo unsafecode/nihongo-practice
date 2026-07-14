@@ -1,4 +1,4 @@
-import type { ChapterId } from "../data/types";
+import type { ModuleId } from "../data/types";
 
 export interface BlockCopy {
   eyebrow?: string;
@@ -13,14 +13,12 @@ export interface ExampleCopy {
   note?: string;
 }
 
-export interface LessonCopy {
+export interface ModuleCopy {
   title: string;
-  lead: string;
 }
 
-export interface ChapterCopy {
+export interface LessonCopy {
   title: string;
-  description: string;
 }
 
 export interface CourseCopy {
@@ -29,7 +27,7 @@ export interface CourseCopy {
     title: string;
     lead: string;
     continue: string;
-    completed: string;
+    allVisited: string;
     start: string;
     review: string;
     reset: string;
@@ -37,13 +35,11 @@ export interface CourseCopy {
     corruptProgress: string;
     dismiss: string;
     invalidRoute: (path: string) => string;
-    lessonsProgress: (completed: number, total: number) => string;
+    lessonsProgress: (visited: number, total: number) => string;
   };
   lesson: {
     back: string;
-    chapterPosition: (current: number, total: number) => string;
-    complete: string;
-    undoComplete: string;
+    modulePosition: (current: number, total: number) => string;
     previous: string;
     next: string;
     listen: string;
@@ -63,8 +59,14 @@ export interface CourseCopy {
     backToLesson: string;
     invalidPreset: string;
   };
-  chapters: Record<ChapterId, ChapterCopy>;
+  /** Keyed by CourseModule.id. */
+  modules: Record<ModuleId, ModuleCopy>;
+  /** Keyed by Lesson.titleCopyId. */
   lessons: Record<string, LessonCopy>;
+  /** Keyed by entries in Lesson.objectiveCopyIds. */
+  objectives: Record<string, string>;
+  /** Keyed by entries in CourseModule.outcomeCopyIds. */
+  outcomes: Record<string, string>;
   blocks: Record<string, BlockCopy>;
   examples: Record<string, ExampleCopy>;
 }

@@ -6,7 +6,7 @@ const itUi = {
     title: "Costruisci il giapponese, un ingranaggio alla volta.",
     lead: "Parti dai suoni, impara a vedere i ruoli nella frase e arriva agli schemi più utili in viaggio.",
     continue: "Continua",
-    completed: "Percorso completato",
+    allVisited: "Tutto visitato",
     start: "Inizia",
     review: "Ripassa",
     reset: "Azzera i progressi",
@@ -14,15 +14,13 @@ const itUi = {
     corruptProgress: "I progressi del percorso erano illeggibili e sono stati azzerati. Lingua e scrittura non sono cambiate.",
     dismiss: "Chiudi",
     invalidRoute: (path: string) => `La pagina “${path}” non esiste. Sei tornato al percorso.`,
-    lessonsProgress: (completed: number, total: number) =>
-      `${completed} di ${total} lezioni`,
+    lessonsProgress: (visited: number, total: number) =>
+      `${visited} di ${total} lezioni`,
   },
   lesson: {
-    back: "Tutti i capitoli",
-    chapterPosition: (current: number, total: number) =>
-      `Capitolo ${current} di ${total}`,
-    complete: "Segna come completata",
-    undoComplete: "Segna da ripassare",
+    back: "Tutti i moduli",
+    modulePosition: (current: number, total: number) =>
+      `Modulo ${current} di ${total}`,
     previous: "Lezione precedente",
     next: "Lezione successiva",
     listen: "Ascolta",
@@ -44,106 +42,65 @@ const itUi = {
   },
 } satisfies Pick<CourseCopy, "home" | "lesson" | "practice">;
 
-const itChapters: CourseCopy["chapters"] = {
-  sounds: {
-    title: "Suoni e hiragana",
-    description: "Leggi e ascolta i segni che userai in tutto il percorso.",
-  },
-  "sentence-map": {
-    title: "La mappa della frase",
-    description: "Vedi dove vanno tema, dettagli e verbo.",
-  },
-  actions: {
-    title: "Azioni e oggetti",
-    description: "Collega l'oggetto dell'azione al verbo con を.",
-  },
-  time: {
-    title: "Quando succede?",
-    description: "Cambia tempo e passa dall'affermativo al negativo senza perdere la struttura.",
-  },
-  places: {
-    title: "Luoghi e movimento",
-    description: "Distingui dove agisci, dove vai e come ti muovi.",
-  },
-  people: {
-    title: "Persone, desideri e inviti",
-    description: "Collega persone, desideri e proposte.",
-  },
-  "travel-patterns": {
-    title: "Schemi pratici da viaggio",
-    description: "Fai domande, formula richieste e indica che qualcosa o qualcuno c'è.",
-  },
-  traps: {
-    title: "Trappole ed eccezioni",
-    description: "Riconosci le eccezioni che incontrerai più spesso.",
-  },
+const itModules: CourseCopy["modules"] = {
+  sounds: { title: "Suoni e hiragana" },
+  "sentence-map": { title: "La mappa della frase" },
+  actions: { title: "Azioni e oggetti" },
+  time: { title: "Quando succede?" },
+  places: { title: "Luoghi e movimento" },
+  people: { title: "Persone, desideri e inviti" },
+  "questions-existence": { title: "Domande, richieste e ciò che esiste" },
+  capstone: { title: "Sintesi finale: verbi ed eccezioni" },
+};
+
+const itOutcomes: CourseCopy["outcomes"] = {
+  sounds: "Leggi e ascolta i segni che userai in tutto il percorso.",
+  "sentence-map": "Vedi dove vanno tema, dettagli e verbo.",
+  actions: "Collega l'oggetto dell'azione al verbo con を.",
+  time: "Cambia tempo e passa dall'affermativo al negativo senza perdere la struttura.",
+  places: "Distingui dove agisci, dove vai e come ti muovi.",
+  people: "Collega persone, desideri e proposte.",
+  "questions-existence":
+    "Fai domande con か, formula richieste con ください, di' che qualcosa o qualcuno c'è e riconosci le letture speciali di は・へ・を come particelle.",
+  capstone: "Riconosci かえる come godan: る non basta per capire il gruppo di un verbo.",
 };
 
 const itLessons: CourseCopy["lessons"] = {
-  "sounds-core": {
-    title: "I cinque suoni di base",
-    lead: "Parti dalle vocali: restano riconoscibili in ogni riga.",
-  },
-  "sounds-special": {
-    title: "Piccoli segni, grandi differenze",
-    lead: "っ e le vocali lunghe cambiano ritmo e significato.",
-  },
-  "sentence-order": {
-    title: "Il verbo chiude la frase",
-    lead: "I dettagli arrivano prima; l'azione principale arriva alla fine.",
-  },
-  "sentence-omission": {
-    title: "Di chi stiamo parlando?",
-    lead: "は introduce il tema; ciò che è ovvio può sparire.",
-  },
-  "actions-object": {
-    title: "Che cosa riceve l'azione?",
-    lead: "を viene dopo l'oggetto diretto.",
-  },
-  "actions-masu": {
-    title: "La base resta, la coda cambia",
-    lead: "ます crea una forma cortese e riutilizzabile.",
-  },
-  "time-past": {
-    title: "Oggi o ieri?",
-    lead: "ます e ました mostrano se l'azione è conclusa.",
-  },
-  "time-negative": {
-    title: "Quando non succede",
-    lead: "ません e ませんでした negano senza cambiare la base.",
-  },
-  "places-action": {
-    title: "Dove avviene?",
-    lead: "で marca il luogo in cui si svolge l'azione.",
-  },
-  "places-movement": {
-    title: "Meta, mezzo o veicolo?",
-    lead: "に e で segnano ruoli diversi secondo ciò che vuoi dire.",
-  },
-  "people-particles": {
-    title: "La particella dipende dal verbo",
-    lead: "Incontri qualcuno con に, aspetti qualcuno con を.",
-  },
-  "people-desire": {
-    title: "Voglio… Facciamo…?",
-    lead: "たいです esprime desiderio; ましょう propone.",
-  },
-  "travel-questions": {
-    title: "Chiedere con cortesia",
-    lead: "か trasforma la frase in domanda; ください serve per fare una richiesta.",
-  },
-  "travel-existence": {
-    title: "C'è qualcosa o qualcuno?",
-    lead: "あります si usa per cose; います per persone e animali.",
-  },
-  "traps-particles": {
-    title: "Si scrive così, si legge diversamente",
-    lead: "Come particelle, は・へ・を hanno pronunce speciali.",
-  },
-  "traps-verbs": {
-    title: "る non basta per riconoscere il gruppo",
-    lead: "かえる è godan; il futuro resta implicito.",
-  },
+  "sounds-core": { title: "I cinque suoni di base" },
+  "sounds-special": { title: "Piccoli segni, grandi differenze" },
+  "sentence-order": { title: "Il verbo chiude la frase" },
+  "sentence-omission": { title: "Di chi stiamo parlando?" },
+  "actions-object": { title: "Che cosa riceve l'azione?" },
+  "actions-masu": { title: "La base resta, la coda cambia" },
+  "time-past": { title: "Oggi o ieri?" },
+  "time-negative": { title: "Quando non succede" },
+  "places-action": { title: "Dove avviene?" },
+  "places-movement": { title: "Meta, mezzo o veicolo?" },
+  "people-particles": { title: "La particella dipende dal verbo" },
+  "people-desire": { title: "Voglio… Facciamo…?" },
+  "travel-questions": { title: "Chiedere con cortesia" },
+  "travel-existence": { title: "C'è qualcosa o qualcuno?" },
+  "traps-particles": { title: "Si scrive così, si legge diversamente" },
+  "traps-verbs": { title: "る non basta per riconoscere il gruppo" },
+};
+
+const itObjectives: CourseCopy["objectives"] = {
+  "sounds-core": "Parti dalle vocali: restano riconoscibili in ogni riga.",
+  "sounds-special": "っ e le vocali lunghe cambiano ritmo e significato.",
+  "sentence-order": "I dettagli arrivano prima; l'azione principale arriva alla fine.",
+  "sentence-omission": "は introduce il tema; ciò che è ovvio può sparire.",
+  "actions-object": "を viene dopo l'oggetto diretto.",
+  "actions-masu": "ます crea una forma cortese e riutilizzabile.",
+  "time-past": "ます e ました mostrano se l'azione è conclusa.",
+  "time-negative": "ません e ませんでした negano senza cambiare la base.",
+  "places-action": "で marca il luogo in cui si svolge l'azione.",
+  "places-movement": "に e で segnano ruoli diversi secondo ciò che vuoi dire.",
+  "people-particles": "Incontri qualcuno con に, aspetti qualcuno con を.",
+  "people-desire": "たいです esprime desiderio; ましょう propone.",
+  "travel-questions": "か trasforma la frase in domanda; ください serve per fare una richiesta.",
+  "travel-existence": "あります si usa per cose; います per persone e animali.",
+  "traps-particles": "Come particelle, は・へ・を hanno pronunce speciali.",
+  "traps-verbs": "かえる è godan; il futuro resta implicito.",
 };
 
 const itBlocks: CourseCopy["blocks"] = {
@@ -449,4 +406,12 @@ const itExamples: CourseCopy["examples"] = {
   "tomorrow-return": { translation: "Domani tornerò a casa." },
 };
 
-export const it = { ...itUi, chapters: itChapters, lessons: itLessons, blocks: itBlocks, examples: itExamples } satisfies CourseCopy;
+export const it = {
+  ...itUi,
+  modules: itModules,
+  lessons: itLessons,
+  objectives: itObjectives,
+  outcomes: itOutcomes,
+  blocks: itBlocks,
+  examples: itExamples,
+} satisfies CourseCopy;

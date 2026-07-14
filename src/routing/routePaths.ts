@@ -7,13 +7,19 @@
 
 export const routePaths = {
   course: "/percorso",
-  lesson: "/percorso/:chapterId/:lessonId",
+  lesson: "/percorso/:moduleId/:lessonId",
   practice: "/pratica",
   lab: "/pratica/laboratorio",
   syllabary: "/pratica/sillabario",
   phrasebook: "/frasario",
 } as const;
 
-export function lessonPath(chapterId: string, lessonId: string): string {
-  return `/percorso/${encodeURIComponent(chapterId)}/${encodeURIComponent(lessonId)}`;
+/**
+ * Builds a lesson URL. The `moduleId` segment is cosmetic: LessonPage
+ * resolves the lesson by `lessonId` alone (lesson IDs are preserved across
+ * the Task 3 module migration), so old bookmarked URLs whose module id no
+ * longer exists (e.g. former `travel-patterns`/`traps`) keep resolving.
+ */
+export function lessonPath(moduleId: string, lessonId: string): string {
+  return `/percorso/${encodeURIComponent(moduleId)}/${encodeURIComponent(lessonId)}`;
 }

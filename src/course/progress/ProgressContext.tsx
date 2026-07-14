@@ -14,27 +14,25 @@ import {
   writeSetting,
 } from "../../settings/storage";
 import {
-  type CourseProgressV1,
+  type CourseProgressV2,
   emptyProgress,
+  markLessonVisited,
   parseProgress,
-  setLastVisited,
-  setLessonComplete,
 } from "./progress";
 
 export const STORAGE_KEY = "nihongo.course.progress";
 
 interface ProgressContextValue {
-  progress: CourseProgressV1;
+  progress: CourseProgressV2;
   corrupted: boolean;
   persistenceAvailable: boolean;
   markVisited: (lessonId: string) => void;
-  setComplete: (lessonId: string, complete: boolean) => void;
   dismissCorruption: () => void;
   reset: () => void;
 }
 
 interface InitialProgress {
-  progress: CourseProgressV1;
+  progress: CourseProgressV2;
   corrupted: boolean;
   persistenceAvailable: boolean;
 }
@@ -49,6 +47,18 @@ export function loadProgress(storage: Storage | null): InitialProgress {
     ...parsed,
     persistenceAvailable: stored.available && cleanupAvailable,
   };
+}
+
+/**
+ * Persists progress to storage and reports whether the write actually
+ * succeeded - never reports success after `setItem` throws (e.g. storage
+ * quota exceeded or unavailable in private browsing).
+ */
+export function persistProgress(
+  storage: Storage | null,
+  progress: CourseProgressV2,
+): boolean {
+  return writeSetting(storage, STORAGE_KEY, JSON.stringify(progress));
 }
 
 export function resetStoredProgress(storage: Storage | null): boolean {
@@ -67,17 +77,11 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    setPersistenceAvailable(
-      writeSetting(storage, STORAGE_KEY, JSON.stringify(progress)),
-    );
+    setPersistenceAvailable(persistProgress(storage, progress));
   }, [progress, storage]);
 
   const markVisited = useCallback((lessonId: string) => {
-    setProgress((current) => setLastVisited(current, lessonId));
-  }, []);
-
-  const setComplete = useCallback((lessonId: string, complete: boolean) => {
-    setProgress((current) => setLessonComplete(current, lessonId, complete));
+    setProgress((current) => markLessonVisited(current, lessonId));
   }, []);
 
   const dismissCorruption = useCallback(() => {
@@ -96,7 +100,6 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       corrupted,
       persistenceAvailable,
       markVisited,
-      setComplete,
       dismissCorruption,
       reset,
     }),
@@ -105,7 +108,6 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       corrupted,
       persistenceAvailable,
       markVisited,
-      setComplete,
       dismissCorruption,
       reset,
     ],

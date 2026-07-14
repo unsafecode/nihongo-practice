@@ -107,7 +107,7 @@
   background: var(--course-coral-soft);
 }
 
-.lesson-sidebar__list .is-complete a > span {
+.lesson-sidebar__list .is-visited a > span {
   color: var(--course-teal);
   font-weight: 800;
 }

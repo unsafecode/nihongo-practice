@@ -8,35 +8,40 @@ import {
 import { SpeechNotice } from "../../components/SpeechNotice";
 import { useSpeech } from "../../hooks/useSpeech";
 import { useLocale } from "../../i18n/LocaleContext";
+import {
+  LESSON_SECTION_ANCHOR_CLASS,
+  lessonSectionAnchorId,
+} from "../../routing/lessonSections";
 import { lessonPath, routePaths } from "../../routing/routes";
-import { chapters } from "../data/course";
+import { courseModules } from "../data/course";
 import { getCourseCopy } from "../i18n/catalog";
 import { useProgress } from "../progress/ProgressContext";
 import { LessonBlock } from "./LessonBlock";
 import { LessonSidebar } from "./LessonSidebar";
 
-const orderedLessons = chapters.flatMap((chapter) =>
-  chapter.lessons.map((lesson) => ({ chapter, lesson })),
+const orderedLessons = courseModules.flatMap((courseModule) =>
+  courseModule.lessons.map((lesson) => ({ courseModule, lesson })),
 );
 
 export function LessonPage() {
-  const { chapterId, lessonId } = useParams<{
-    chapterId: string;
-    lessonId: string;
-  }>();
+  // The `:moduleId` segment is cosmetic only (see routePaths.ts): a lesson
+  // is looked up by its own stable id across every module so old bookmarked
+  // URLs still resolve even where the module id in the path has changed.
+  const { lessonId } = useParams<{ moduleId: string; lessonId: string }>();
   const location = useLocation();
   const { locale } = useLocale();
   const copy = getCourseCopy(locale);
   const { supported, japaneseVoiceAvailable, playbackFailed } = useSpeech();
-  const { progress, markVisited, setComplete } = useProgress();
-  const chapter = chapters.find((item) => item.id === chapterId);
-  const lesson = chapter?.lessons.find((item) => item.id === lessonId);
+  const { progress, markVisited } = useProgress();
+  const entry = orderedLessons.find((item) => item.lesson.id === lessonId);
+  const courseModule = entry?.courseModule;
+  const lesson = entry?.lesson;
 
   useEffect(() => {
     if (lesson) markVisited(lesson.id);
   }, [lesson, markVisited]);
 
-  if (!chapter || !lesson) {
+  if (!courseModule || !lesson) {
     return (
       <Navigate
         replace
@@ -51,25 +56,27 @@ export function LessonPage() {
   );
   const previous = orderedLessons[currentIndex - 1];
   const next = orderedLessons[currentIndex + 1];
-  const completed = new Set(progress.completedLessonIds);
-  const isComplete = completed.has(lesson.id);
-  const lessonCopy = copy.lessons[lesson.id];
+  const visited = new Set(progress.visitedLessonIds);
+  const lessonCopy = copy.lessons[lesson.titleCopyId];
+  const objective = lesson.objectiveCopyIds
+    .map((id) => copy.objectives[id])
+    .join(" ");
 
   return (
     <main className="lesson-layout">
       <LessonSidebar
-        chapter={chapter}
+        courseModule={courseModule}
         currentLessonId={lesson.id}
-        completedLessonIds={completed}
+        visitedLessonIds={visited}
       />
 
       <article className="lesson-main">
         <header className="lesson-header">
           <p className="course-eyebrow">
-            {copy.lesson.chapterPosition(chapter.order, chapters.length)}
+            {copy.lesson.modulePosition(courseModule.order, courseModules.length)}
           </p>
           <h1>{lessonCopy.title}</h1>
-          <p>{lessonCopy.lead}</p>
+          <p>{objective}</p>
         </header>
 
         <SpeechNotice
@@ -79,32 +86,38 @@ export function LessonPage() {
         />
 
         <div className="lesson-blocks">
-          {lesson.blocks.map((block, index) => (
-            <LessonBlock key={`${block.copyId}-${index}`} block={block} />
+          {lesson.sections.map((section) => (
+            <section
+              key={section.id}
+              id={lessonSectionAnchorId(section.id)}
+              className={LESSON_SECTION_ANCHOR_CLASS}
+            >
+              {section.blocks.map((block, index) => (
+                <LessonBlock key={`${block.copyId}-${index}`} block={block} />
+              ))}
+            </section>
           ))}
         </div>
 
         <footer className="lesson-footer">
           <div>
             {previous ? (
-              <Link to={lessonPath(previous.chapter.id, previous.lesson.id)}>
+              <Link
+                to={lessonPath(previous.courseModule.id, previous.lesson.id)}
+              >
                 ← {copy.lesson.previous}
               </Link>
-            ) : <span />}
+            ) : (
+              <span />
+            )}
             {next ? (
-              <Link to={lessonPath(next.chapter.id, next.lesson.id)}>
+              <Link to={lessonPath(next.courseModule.id, next.lesson.id)}>
                 {copy.lesson.next} →
               </Link>
-            ) : <span />}
+            ) : (
+              <span />
+            )}
           </div>
-          <button
-            type="button"
-            className={isComplete ? "course-secondary-action" : "course-primary-action"}
-            aria-pressed={isComplete}
-            onClick={() => setComplete(lesson.id, !isComplete)}
-          >
-            {isComplete ? copy.lesson.undoComplete : copy.lesson.complete}
-          </button>
         </footer>
       </article>
     </main>

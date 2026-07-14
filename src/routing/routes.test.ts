@@ -5,7 +5,7 @@ describe("routePaths", () => {
   it("defines all public locations", () => {
     expect(routePaths).toEqual({
       course: "/percorso",
-      lesson: "/percorso/:chapterId/:lessonId",
+      lesson: "/percorso/:moduleId/:lessonId",
       practice: "/pratica",
       lab: "/pratica/laboratorio",
       syllabary: "/pratica/sillabario",

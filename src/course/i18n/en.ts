@@ -6,7 +6,7 @@ const enUi = {
     title: "Build Japanese one gear at a time.",
     lead: "Start with sounds, learn to see sentence roles, and reach the patterns most useful while traveling.",
     continue: "Continue",
-    completed: "Course complete",
+    allVisited: "All visited",
     start: "Start",
     review: "Review",
     reset: "Reset progress",
@@ -14,15 +14,13 @@ const enUi = {
     corruptProgress: "Course progress could not be read and was reset. Language and script settings were not changed.",
     dismiss: "Dismiss",
     invalidRoute: (path: string) => `“${path}” does not exist. You are back at the course.`,
-    lessonsProgress: (completed: number, total: number) =>
-      `${completed} of ${total} lessons`,
+    lessonsProgress: (visited: number, total: number) =>
+      `${visited} of ${total} lessons`,
   },
   lesson: {
-    back: "All chapters",
-    chapterPosition: (current: number, total: number) =>
-      `Chapter ${current} of ${total}`,
-    complete: "Mark lesson complete",
-    undoComplete: "Mark for review",
+    back: "All modules",
+    modulePosition: (current: number, total: number) =>
+      `Module ${current} of ${total}`,
     previous: "Previous lesson",
     next: "Next lesson",
     listen: "Listen",
@@ -44,106 +42,65 @@ const enUi = {
   },
 } satisfies Pick<CourseCopy, "home" | "lesson" | "practice">;
 
-const enChapters: CourseCopy["chapters"] = {
-  sounds: {
-    title: "Sounds and hiragana",
-    description: "Read and hear the signs used throughout the course.",
-  },
-  "sentence-map": {
-    title: "The sentence map",
-    description: "See where the topic, details, and verb belong.",
-  },
-  actions: {
-    title: "Actions and objects",
-    description: "Link an action's object to the verb with を.",
-  },
-  time: {
-    title: "When does it happen?",
-    description: "Change time and switch between affirmative and negative without losing the structure.",
-  },
-  places: {
-    title: "Places and movement",
-    description: "Distinguish where you act, where you go, and how you travel.",
-  },
-  people: {
-    title: "People, wishes, and invitations",
-    description: "Connect people, wishes, and suggestions.",
-  },
-  "travel-patterns": {
-    title: "Practical travel patterns",
-    description: "Ask questions, make requests, and say that something or someone is there.",
-  },
-  traps: {
-    title: "Common traps and exceptions",
-    description: "Recognize the exceptions you will meet most often.",
-  },
+const enModules: CourseCopy["modules"] = {
+  sounds: { title: "Sounds and hiragana" },
+  "sentence-map": { title: "The sentence map" },
+  actions: { title: "Actions and objects" },
+  time: { title: "When does it happen?" },
+  places: { title: "Places and movement" },
+  people: { title: "People, wishes, and invitations" },
+  "questions-existence": { title: "Questions, requests, and what exists" },
+  capstone: { title: "Final synthesis: verbs and exceptions" },
+};
+
+const enOutcomes: CourseCopy["outcomes"] = {
+  sounds: "Read and hear the signs used throughout the course.",
+  "sentence-map": "See where the topic, details, and verb belong.",
+  actions: "Link an action's object to the verb with を.",
+  time: "Change time and switch between affirmative and negative without losing the structure.",
+  places: "Distinguish where you act, where you go, and how you travel.",
+  people: "Connect people, wishes, and suggestions.",
+  "questions-existence":
+    "Ask questions with か, make requests with ください, say that something or someone is there, and recognize the special particle readings of は・へ・を.",
+  capstone: "Recognize that かえる is godan: ending in る is not enough to tell a verb's group.",
 };
 
 const enLessons: CourseCopy["lessons"] = {
-  "sounds-core": {
-    title: "The five core sounds",
-    lead: "Start with vowels: they remain recognizable in every row.",
-  },
-  "sounds-special": {
-    title: "Small signs, big differences",
-    lead: "っ and long vowels change rhythm and meaning.",
-  },
-  "sentence-order": {
-    title: "The verb closes the sentence",
-    lead: "Details come first; the main action comes last.",
-  },
-  "sentence-omission": {
-    title: "Who are we talking about?",
-    lead: "は introduces the topic; obvious information can disappear.",
-  },
-  "actions-object": {
-    title: "What receives the action?",
-    lead: "を follows the direct object.",
-  },
-  "actions-masu": {
-    title: "The base stays, the ending changes",
-    lead: "ます creates a reusable polite form.",
-  },
-  "time-past": {
-    title: "Today or yesterday?",
-    lead: "ます and ました show whether the action is complete.",
-  },
-  "time-negative": {
-    title: "When it does not happen",
-    lead: "ません and ませんでした negate without changing the base.",
-  },
-  "places-action": {
-    title: "Where does it happen?",
-    lead: "で marks where the action takes place.",
-  },
-  "places-movement": {
-    title: "Destination, transport, or vehicle?",
-    lead: "に and で mark different roles depending on meaning.",
-  },
-  "people-particles": {
-    title: "The verb chooses the particle",
-    lead: "You meet someone with に and wait for someone with を.",
-  },
-  "people-desire": {
-    title: "I want to… Shall we…?",
-    lead: "たいです expresses desire; ましょう makes a suggestion.",
-  },
-  "travel-questions": {
-    title: "Ask politely",
-    lead: "か makes a question; ください requests something.",
-  },
-  "travel-existence": {
-    title: "Is there something or someone?",
-    lead: "あります is for things; います is for people and animals.",
-  },
-  "traps-particles": {
-    title: "Written one way, pronounced another",
-    lead: "As particles, は・へ・を have special readings.",
-  },
-  "traps-verbs": {
-    title: "る does not identify the group",
-    lead: "かえる is godan; the future remains implicit.",
-  },
+  "sounds-core": { title: "The five core sounds" },
+  "sounds-special": { title: "Small signs, big differences" },
+  "sentence-order": { title: "The verb closes the sentence" },
+  "sentence-omission": { title: "Who are we talking about?" },
+  "actions-object": { title: "What receives the action?" },
+  "actions-masu": { title: "The base stays, the ending changes" },
+  "time-past": { title: "Today or yesterday?" },
+  "time-negative": { title: "When it does not happen" },
+  "places-action": { title: "Where does it happen?" },
+  "places-movement": { title: "Destination, transport, or vehicle?" },
+  "people-particles": { title: "The verb chooses the particle" },
+  "people-desire": { title: "I want to… Shall we…?" },
+  "travel-questions": { title: "Ask politely" },
+  "travel-existence": { title: "Is there something or someone?" },
+  "traps-particles": { title: "Written one way, pronounced another" },
+  "traps-verbs": { title: "る does not identify the group" },
+};
+
+const enObjectives: CourseCopy["objectives"] = {
+  "sounds-core": "Start with vowels: they remain recognizable in every row.",
+  "sounds-special": "っ and long vowels change rhythm and meaning.",
+  "sentence-order": "Details come first; the main action comes last.",
+  "sentence-omission": "は introduces the topic; obvious information can disappear.",
+  "actions-object": "を follows the direct object.",
+  "actions-masu": "ます creates a reusable polite form.",
+  "time-past": "ます and ました show whether the action is complete.",
+  "time-negative": "ません and ませんでした negate without changing the base.",
+  "places-action": "で marks where the action takes place.",
+  "places-movement": "に and で mark different roles depending on meaning.",
+  "people-particles": "You meet someone with に and wait for someone with を.",
+  "people-desire": "たいです expresses desire; ましょう makes a suggestion.",
+  "travel-questions": "か makes a question; ください requests something.",
+  "travel-existence": "あります is for things; います is for people and animals.",
+  "traps-particles": "As particles, は・へ・を have special readings.",
+  "traps-verbs": "かえる is godan; the future remains implicit.",
 };
 
 const enBlocks: CourseCopy["blocks"] = {
@@ -449,4 +406,12 @@ const enExamples: CourseCopy["examples"] = {
   "tomorrow-return": { translation: "Tomorrow, I'll go back home." },
 };
 
-export const en = { ...enUi, chapters: enChapters, lessons: enLessons, blocks: enBlocks, examples: enExamples } satisfies CourseCopy;
+export const en = {
+  ...enUi,
+  modules: enModules,
+  lessons: enLessons,
+  objectives: enObjectives,
+  outcomes: enOutcomes,
+  blocks: enBlocks,
+  examples: enExamples,
+} satisfies CourseCopy;
