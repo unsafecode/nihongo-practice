@@ -4,7 +4,7 @@ import { courseModules } from "../data/course";
 import type { CourseModule, Lesson, LessonSections } from "../data/types";
 import {
   isLegacyModuleRedirectState,
-  LEGACY_MODULE_ALIASES,
+  LEGACY_CHAPTER_ROUTES,
   LEGACY_MODULE_REDIRECT_STATE,
   resolveLessonRoute,
 } from "./lessonRouteResolution";
@@ -43,12 +43,26 @@ function makeModule(id: string, lessons: Lesson[]): CourseModule {
   };
 }
 
-describe("LEGACY_MODULE_ALIASES", () => {
-  it("contains only the two real Task 3 renames", () => {
-    expect(LEGACY_MODULE_ALIASES).toEqual({
-      "travel-patterns": "questions-existence",
-      traps: "capstone",
-    });
+describe("LEGACY_CHAPTER_ROUTES", () => {
+  it("contains exactly the historical chapter+lesson pairs from the Task 3 split", () => {
+    expect(LEGACY_CHAPTER_ROUTES).toEqual([
+      {
+        chapterId: "traps",
+        lessonId: "traps-particles",
+        moduleId: "questions-existence",
+      },
+      { chapterId: "traps", lessonId: "traps-verbs", moduleId: "capstone" },
+      {
+        chapterId: "travel-patterns",
+        lessonId: "travel-questions",
+        moduleId: "questions-existence",
+      },
+      {
+        chapterId: "travel-patterns",
+        lessonId: "travel-existence",
+        moduleId: "questions-existence",
+      },
+    ]);
   });
 });
 
@@ -63,7 +77,7 @@ describe("resolveLessonRoute: canonical match", () => {
 });
 
 describe("resolveLessonRoute: legacy aliases", () => {
-  it("redirects the former travel-patterns alias to questions-existence", () => {
+  it("redirects the former travel-patterns/travel-questions pair to questions-existence", () => {
     const result = resolveLessonRoute(
       "travel-patterns",
       "travel-questions",
@@ -75,7 +89,34 @@ describe("resolveLessonRoute: legacy aliases", () => {
     expect(result.lesson.id).toBe("travel-questions");
   });
 
-  it("redirects the former traps alias to capstone", () => {
+  it("redirects the former travel-patterns/travel-existence pair to questions-existence", () => {
+    const result = resolveLessonRoute(
+      "travel-patterns",
+      "travel-existence",
+      courseModules,
+    );
+    expect(result.kind).toBe("redirect");
+    if (result.kind !== "redirect") throw new Error("expected redirect");
+    expect(result.courseModule.id).toBe("questions-existence");
+    expect(result.lesson.id).toBe("travel-existence");
+  });
+
+  // Regression: the old traps chapter was split across two modules. A
+  // module-level "traps -> capstone" alias alone makes this real legacy
+  // route (traps/traps-particles) wrongly invalid.
+  it("redirects the former traps/traps-particles pair to questions-existence", () => {
+    const result = resolveLessonRoute(
+      "traps",
+      "traps-particles",
+      courseModules,
+    );
+    expect(result.kind).toBe("redirect");
+    if (result.kind !== "redirect") throw new Error("expected redirect");
+    expect(result.courseModule.id).toBe("questions-existence");
+    expect(result.lesson.id).toBe("traps-particles");
+  });
+
+  it("redirects the former traps/traps-verbs pair to capstone", () => {
     const result = resolveLessonRoute(
       "traps",
       "traps-verbs",
@@ -107,6 +148,29 @@ describe("resolveLessonRoute: mismatches are invalid", () => {
     const result = resolveLessonRoute(
       "traps",
       "travel-questions",
+      courseModules,
+    );
+    expect(result).toEqual({ kind: "invalid" });
+  });
+
+  // Membership rejection: traps-particles now lives in questions-existence,
+  // but the travel-patterns chapter never owned it -- only the traps
+  // chapter did. A route map keyed by lesson id alone would wrongly accept
+  // this pairing just because both legacy chapters resolve to the same
+  // current module.
+  it("rejects the travel-patterns alias paired with traps-particles, which travel-patterns never owned", () => {
+    const result = resolveLessonRoute(
+      "travel-patterns",
+      "traps-particles",
+      courseModules,
+    );
+    expect(result).toEqual({ kind: "invalid" });
+  });
+
+  it("rejects the traps alias paired with travel-existence, which traps never owned", () => {
+    const result = resolveLessonRoute(
+      "traps",
+      "travel-existence",
       courseModules,
     );
     expect(result).toEqual({ kind: "invalid" });
