@@ -7,6 +7,7 @@ import { useSpeech } from "../hooks/useSpeech";
 import { getCatalog } from "../i18n/catalog";
 import { useLocale } from "../i18n/LocaleContext";
 import { readGuidedReturn } from "../routing/guidedToolLink";
+import { validateGuidedLessonReturn } from "../course/routing/guidedLessonReturn";
 import { useScript } from "../settings/ScriptContext";
 import {
   SYLLABARY_GROUP_IDS,
@@ -31,7 +32,7 @@ export function Syllabary() {
     [searchParams],
   );
   const guidedReturn = useMemo(
-    () => readGuidedReturn(searchParams),
+    () => readGuidedReturn(searchParams, validateGuidedLessonReturn),
     [searchParams],
   );
   const plan = planSyllabaryScroll(groupSelection);

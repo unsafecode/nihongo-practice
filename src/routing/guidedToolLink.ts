@@ -19,6 +19,8 @@
 import { routePaths } from "./routePaths";
 import {
   createRouteTarget,
+  FALLBACK_ROUTE_TARGET,
+  isCourseLessonPathname,
   parseRouteTarget,
   serializeRouteTarget,
   type CreateRouteTargetInput,
@@ -30,8 +32,38 @@ import {
 /** The single query parameter carrying a guided tool's internal return route. */
 export const GUIDED_RETURN_PARAM = "from";
 
-/** Why a raw return value was rejected: any route reason, or a duplicated key. */
-export type GuidedReturnInvalidReason = RouteTargetInvalidReason | "duplicate";
+/**
+ * Why a raw return value was rejected: any generic route reason, a duplicated
+ * key, or — added by the guided-return layer's course-association check — a
+ * `/percorso/<module>/<lesson>` pair that is shape-valid but does not name a
+ * real lesson-in-module association (`module-lesson-mismatch`).
+ */
+export type GuidedReturnInvalidReason =
+  | RouteTargetInvalidReason
+  | "duplicate"
+  | "module-lesson-mismatch";
+
+/**
+ * The result of validating a parsed course-lesson return target against the
+ * real course data. This keeps `routeTarget.ts` course-data-independent: the
+ * generic parser proves shape and safety, and an *injected* validator proves
+ * the module actually owns the lesson (Task 3 `resolveLessonRoute`).
+ *
+ * - `ok`: `moduleId` names the lesson's current module — keep the target.
+ * - `canonical`: `moduleId` is a recognized legacy chapter that owned the
+ *   lesson — replace the target with the canonical current-module target
+ *   (preserving the already-validated section anchor) so the return never
+ *   triggers a second legacy redirect.
+ * - `mismatch`: any other pairing — surfaced as `module-lesson-mismatch`.
+ */
+export type GuidedReturnLessonCheck =
+  | { readonly kind: "ok" }
+  | { readonly kind: "canonical"; readonly target: RouteTarget }
+  | { readonly kind: "mismatch" };
+
+export type GuidedReturnLessonValidator = (
+  target: RouteTarget,
+) => GuidedReturnLessonCheck;
 
 /**
  * The typed outcome of reading a guided return. `valid` carries both the
@@ -64,8 +96,19 @@ export interface GuidedToolHref {
  * `absent`; everything else is validated through `parseRouteTarget`, so a
  * plain legacy pathname (no `#section`) is accepted and returns the learner
  * to the lesson top, while any unsafe/unknown/bad-section value is `invalid`.
+ *
+ * `parseRouteTarget` proves only that the value is a safe, known-shape route;
+ * a `/percorso/<module>/<lesson>` pair can be shape-valid yet name a lesson
+ * the module does not own. When `validateLesson` is supplied, every parsed
+ * course-lesson target is checked against the real course data: a mismatch
+ * becomes `invalid: "module-lesson-mismatch"` (never a return Action), and a
+ * recognized legacy chapter pair is canonicalized to its current module so
+ * the return does not trigger a second redirect.
  */
-export function parseGuidedReturnValue(raw: string | null): GuidedReturn {
+export function parseGuidedReturnValue(
+  raw: string | null,
+  validateLesson?: GuidedReturnLessonValidator,
+): GuidedReturn {
   if (raw === null || raw === "") return { status: "absent" };
   const result = parseRouteTarget(raw);
   if (!result.valid) {
@@ -75,19 +118,38 @@ export function parseGuidedReturnValue(raw: string | null): GuidedReturn {
       fallback: result.target,
     };
   }
+  let target = result.target;
+  if (validateLesson && isCourseLessonPathname(target.pathname)) {
+    const check = validateLesson(target);
+    if (check.kind === "mismatch") {
+      return {
+        status: "invalid",
+        reason: "module-lesson-mismatch",
+        fallback: FALLBACK_ROUTE_TARGET,
+      };
+    }
+    if (check.kind === "canonical") {
+      target = check.target;
+    }
+  }
   return {
     status: "valid",
-    target: result.target,
-    href: serializeRouteTarget(result.target),
+    target,
+    href: serializeRouteTarget(target),
   };
 }
 
 /**
  * Reads the guided return from a tool page's query string. A duplicated
  * `from` key is rejected outright (`invalid: "duplicate"`) rather than
- * silently trusting one of two conflicting returns.
+ * silently trusting one of two conflicting returns. An optional
+ * `validateLesson` is forwarded to `parseGuidedReturnValue` so the tool page
+ * can enforce the real lesson-in-module association.
  */
-export function readGuidedReturn(params: URLSearchParams): GuidedReturn {
+export function readGuidedReturn(
+  params: URLSearchParams,
+  validateLesson?: GuidedReturnLessonValidator,
+): GuidedReturn {
   const all = params.getAll(GUIDED_RETURN_PARAM);
   if (all.length > 1) {
     return {
@@ -96,7 +158,10 @@ export function readGuidedReturn(params: URLSearchParams): GuidedReturn {
       fallback: { pathname: routePaths.course, search: "", sectionId: null },
     };
   }
-  return parseGuidedReturnValue(all.length === 1 ? all[0] : null);
+  return parseGuidedReturnValue(
+    all.length === 1 ? all[0] : null,
+    validateLesson,
+  );
 }
 
 /**

@@ -15,6 +15,7 @@ import { getCatalog } from "../../i18n/catalog";
 import { useLocale } from "../../i18n/LocaleContext";
 import { useScript } from "../../settings/ScriptContext";
 import { getCourseCopy } from "../../course/i18n/catalog";
+import { validateGuidedLessonReturn } from "../../course/routing/guidedLessonReturn";
 import { readGuidedReturn } from "../../routing/guidedToolLink";
 import type { Form } from "../engine/conjugate";
 import { hasLabPreset, parseLabPreset } from "../presets";
@@ -46,7 +47,9 @@ export function Lab() {
     attempted: hasLabPreset(searchParams),
     parsed: parseLabPreset(searchParams),
   }));
-  const [guidedReturn] = useState(() => readGuidedReturn(searchParams));
+  const [guidedReturn] = useState(() =>
+    readGuidedReturn(searchParams, validateGuidedLessonReturn),
+  );
   const [selection, setSelection] = useState<LabSelection>(() =>
     initialPreset.parsed?.selection ?? defaultSelection(scenarios[0].id),
   );

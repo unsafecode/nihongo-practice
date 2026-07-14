@@ -68,4 +68,23 @@ describe("Syllabary group deep links", () => {
     // The valid group still targets, proving preset/return are independent.
     expect(html).toContain("is-targeted");
   });
+
+  it("rejects a shape-valid cross-module return as a Notice, never a return Action", () => {
+    const html = render(
+      "/pratica/sillabario?group=gojuon&from=%2Fpercorso%2Fsounds%2Ftraps-verbs%23explore",
+    );
+    expect(html).toContain(syl.invalidReturn);
+    expect(html).not.toContain('href="/percorso/sounds/traps-verbs#explore"');
+    expect(html).not.toContain(syl.backToLesson);
+    expect(html).toContain("is-targeted");
+  });
+
+  it("canonicalizes a legacy chapter return to the current module return Action", () => {
+    const html = render(
+      "/pratica/sillabario?group=gojuon&from=%2Fpercorso%2Ftraps%2Ftraps-verbs%23explore",
+    );
+    expect(html).toContain('href="/percorso/capstone/traps-verbs#explore"');
+    expect(html).toContain(syl.backToLesson);
+    expect(html).not.toContain(syl.invalidReturn);
+  });
 });

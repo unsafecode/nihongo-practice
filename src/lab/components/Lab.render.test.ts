@@ -43,6 +43,25 @@ describe("Lab guided context", () => {
     expect(html).toContain("scenario");
   });
 
+  it("rejects a shape-valid but cross-module return as a Notice, never a return Action", () => {
+    const html = render(
+      `/pratica/laboratorio?${validPreset}&from=%2Fpercorso%2Fsounds%2Ftraps-verbs%23explore`,
+    );
+    expect(html).toContain(itCopy.practice.invalidReturn);
+    expect(html).not.toContain('href="/percorso/sounds/traps-verbs#explore"');
+    expect(html).not.toContain(itCopy.practice.backToLesson);
+    expect(html).not.toContain(itCopy.practice.invalidPreset);
+  });
+
+  it("canonicalizes a legacy chapter return to the current module return Action", () => {
+    const html = render(
+      `/pratica/laboratorio?${validPreset}&from=%2Fpercorso%2Ftraps%2Ftraps-verbs%23explore`,
+    );
+    expect(html).toContain('href="/percorso/capstone/traps-verbs#explore"');
+    expect(html).toContain(itCopy.practice.backToLesson);
+    expect(html).not.toContain(itCopy.practice.invalidReturn);
+  });
+
   it("validates the return independently: an external return is a Notice, never a link", () => {
     const html = render(
       `/pratica/laboratorio?${validPreset}&from=https://evil.example.com`,
