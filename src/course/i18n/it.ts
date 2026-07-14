@@ -28,11 +28,43 @@ const itUi = {
       `Modulo ${current} di ${total}`,
     previous: "Lezione precedente",
     next: "Lezione successiva",
+    map: "Mappa del percorso",
     listen: "Ascolta",
     playing: "In riproduzione…",
     legacyModuleNoticeTitle: "Link del modulo aggiornato",
     legacyModuleNoticeBody:
       "Questa lezione ora si trova in un altro modulo. Sei stato portato alla sua posizione attuale.",
+    sections: {
+      rule: "Regola",
+      comparison: "Confronto",
+      explore: "Esplora",
+      recap: "Ripasso",
+    },
+    railLabel: "Sezioni della lezione",
+    sectionMenuLabel: "Vai a una sezione",
+    comparison: {
+      before: "Prima",
+      after: "Dopo",
+      changed: "Cosa cambia",
+      dimensions: {
+        particle: "Particella",
+        ending: "Desinenza",
+        time: "Tempo",
+        polarity: "Polarità",
+        topic: "Tema",
+        request: "Richiesta",
+        question: "Domanda",
+        existence: "Esistenza",
+        "word-order": "Ordine delle parole",
+        sound: "Suono",
+      },
+    },
+    guided: {
+      initial: "Punto di partenza",
+      target: "Punto di arrivo",
+      changed: "Ingranaggi che cambiano",
+      openSyllabary: "Apri il Sillabario",
+    },
   },
   practice: {
     eyebrow: "Pratica libera",
@@ -151,260 +183,256 @@ const itBlocks: CourseCopy["blocks"] = {
     title: "Cinque vocali stabili",
     body: "Ogni riga combina una consonante con a・i・u・e・o.",
   },
-  "sounds-core-examples": {
-    title: "Leggi per colonne",
-    body: "Ascolta senza imporre il ritmo dell'italiano.",
+  "sounds-core-comparison": {
+    title: "Da vocale a sillaba",
+    body: "Metti una consonante davanti alla vocale: あ diventa か.",
   },
-  "sounds-core-tool": {
-    title: "Esplora segni base e suoni modificati",
-    body: "Percorri i 46 segni, poi confronta dakuten e handakuten nel Sillabario.",
+  "sounds-core-explore": {
+    title: "Esplora segni e suoni nel Sillabario",
+    body: "Percorri i 46 segni di base e ascolta come cambiano con dakuten e handakuten.",
   },
-  "sounds-core-summary": {
-    title: "Ricorda",
+  "sounds-core-recap": {
+    title: "In sintesi",
     bullets: ["Ogni segno ha un ritmo breve", "Il rōmaji è un aiuto temporaneo", "Ascolta e ripeti"],
   },
   "sounds-special-rule": {
     title: "Il ritmo è scritto",
     body: "っ crea una pausa e raddoppia; una vocale lunga dura due tempi.",
   },
-  "sounds-special-examples": {
-    title: "Confronta durata e pausa",
-    body: "Non saltare i piccoli segni.",
+  "sounds-special-comparison": {
+    title: "きて o きって?",
+    body: "Il piccolo っ inserisce una pausa che cambia la parola.",
   },
-  "sounds-special-tool": {
-    title: "Cerca っ, ゃ, ゅ, ょ",
-    body: "Usa le sezioni speciali del Sillabario.",
+  "sounds-special-explore": {
+    title: "Cerca っ e i segni piccoli nel Sillabario",
+    body: "Apri le sezioni speciali e confronta segni normali e piccoli.",
   },
-  "sounds-special-summary": {
-    title: "Ricorda",
+  "sounds-special-recap": {
+    title: "In sintesi",
     bullets: ["っ non si pronuncia da solo", "Una vocale lunga dura due battiti", "ん è una mora autonoma"],
   },
   "sentence-order-rule": {
     title: "I dettagli prima, il verbo alla fine",
     body: "Parti dall'azione e aggiungi ciò che serve davanti.",
   },
-  "sentence-order-examples": {
-    title: "Segui il percorso",
-    body: "Tempo → oggetto → verbo.",
+  "sentence-order-comparison": {
+    title: "Aggiungi un riferimento di tempo",
+    body: "Da “mangio il ramen” a “oggi mangio il ramen”: きょう apre la frase.",
   },
-  "sentence-order-topic": {
-    title: "は mette il tema sul tavolo",
-    body: "Non tradurre は parola per parola; quando è particella, si pronuncia wa.",
+  "sentence-order-explore": {
+    title: "Sposta il tempo in testa alla frase",
+    body: "Confronta la frase con e senza きょう davanti.",
   },
-  "sentence-order-tool": {
-    title: "Apri la prima lavagna",
-    body: "Osserva come tempo, oggetto e verbo occupano posizioni diverse.",
-  },
-  "sentence-order-summary": {
-    title: "Ricorda",
+  "sentence-order-recap": {
+    title: "In sintesi",
     bullets: ["Il verbo tende a chiudere la frase", "Le particelle mostrano i ruoli", "L'ordine italiano non va copiato"],
   },
   "sentence-omission-rule": {
     title: "Ciò che è ovvio può sparire",
     body: "Se il contesto è chiaro, io, tu o lui/lei spesso non vengono detti.",
   },
-  "sentence-omission-examples": {
+  "sentence-omission-comparison": {
     title: "Con e senza tema",
-    body: "りっちです può bastare dopo “come ti chiami?”.",
+    body: "わたしは può cadere quando il contesto è chiaro: resta りっちです.",
   },
-  "sentence-omission-summary": {
-    title: "Ricorda",
+  "sentence-omission-explore": {
+    title: "Togli il tema esplicito",
+    body: "Parti da わたしは…, poi osserva la frase senza tema.",
+  },
+  "sentence-omission-recap": {
+    title: "In sintesi",
     bullets: ["は indica il tema", "です rende cortese la frase nominale", "Non aggiungere sempre わたし"],
   },
   "actions-object-rule": {
     title: "Nome + を + verbo",
     body: "を etichetta ciò su cui agisce il verbo.",
   },
-  "actions-object-examples": {
-    title: "Stessa struttura, azioni diverse",
-    body: "Cambiano nome e verbo; を mantiene il ruolo.",
+  "actions-object-comparison": {
+    title: "Aggiungi l'oggetto",
+    body: "Da “mangio” a “mangio il ramen”: らーめん を precede il verbo.",
   },
-  "actions-object-tool": {
-    title: "Muovi l'oggetto sulla lavagna",
-    body: "Parti da “mangiare”, poi cambia scenario: bere, comprare, guardare o parlare.",
+  "actions-object-explore": {
+    title: "Collega un oggetto al verbo",
+    body: "Parti dal solo verbo e aggiungi らーめん を davanti.",
   },
-  "actions-object-summary": {
-    title: "Ricorda",
+  "actions-object-recap": {
+    title: "In sintesi",
     bullets: ["を segue l'oggetto", "を si pronuncia o", "Il verbo resta in fondo"],
   },
   "actions-masu-rule": {
     title: "Base della forma in ます + desinenza",
     body: "La parte che precede ます si riusa nelle forme cortesi.",
   },
-  "actions-masu-examples": {
-    title: "Trova la base",
-    body: "たべ・はなし restano visibili.",
+  "actions-masu-comparison": {
+    title: "Dalla forma base a ます",
+    body: "たべる diventa たべます: la base たべ resta, cambia la coda.",
   },
-  "actions-masu-tool": {
-    title: "Cambia verbo, conserva la forma",
-    body: "Confronta parlare e mangiare.",
+  "actions-masu-explore": {
+    title: "Scambia la desinenza",
+    body: "Confronta たべる e たべます tenendo la stessa base.",
   },
-  "actions-masu-summary": {
-    title: "Ricorda",
+  "actions-masu-recap": {
+    title: "In sintesi",
     bullets: ["ます è cortese", "La base dipende dal gruppo", "La desinenza è l'ingranaggio"],
   },
   "time-past-rule": {
     title: "ます → ました",
     body: "La base non cambia; ました indica azione conclusa.",
   },
-  "time-past-examples": {
-    title: "Oggi e ieri",
-    body: "L'avverbio e la desinenza devono raccontare lo stesso tempo.",
+  "time-past-comparison": {
+    title: "Oggi o ieri?",
+    body: "たべます diventa たべました quando l'azione è conclusa.",
   },
-  "time-past-tool": {
-    title: "Trasforma la frase",
-    body: "Passa da oggi a ieri e osserva la coda.",
+  "time-past-explore": {
+    title: "Trasforma il tempo sulla lavagna",
+    body: "Nel Laboratorio, passa da ます a ました e osserva la coda.",
   },
-  "time-past-summary": {
-    title: "Ricorda",
+  "time-past-recap": {
+    title: "In sintesi",
     bullets: ["ます è non-passato", "ました è passato", "Il futuro usa ancora ます"],
   },
   "time-negative-rule": {
     title: "ません e ませんでした",
     body: "La negazione vive nella desinenza.",
   },
-  "time-negative-examples": {
-    title: "Non ora, non ieri",
-    body: "ません è non-passato; ませんでした è passato.",
+  "time-negative-comparison": {
+    title: "Affermo o nego?",
+    body: "たべます diventa たべません senza toccare la base.",
   },
-  "time-negative-tool": {
+  "time-negative-explore": {
     title: "Accendi e spegni l'azione",
-    body: "Confronta affermativo e negativo.",
+    body: "Nel Laboratorio, confronta affermativo e negativo.",
   },
-  "time-negative-summary": {
-    title: "Ricorda",
+  "time-negative-recap": {
+    title: "In sintesi",
     bullets: ["ません nega il non-passato", "ませんでした nega il passato", "La base resta riconoscibile"],
   },
   "places-action-rule": {
     title: "Luogo + で",
     body: "で dice dove si svolge l'azione.",
   },
-  "places-action-examples": {
-    title: "Ristorante o casa",
-    body: "Il luogo cambia, l'azione resta.",
+  "places-action-comparison": {
+    title: "Aggiungi il luogo",
+    body: "Da “mangio il ramen” a “mangio il ramen al ristorante”: れすとらん で.",
   },
-  "places-action-tool": {
+  "places-action-explore": {
     title: "Aggiungi e togli il luogo",
-    body: "Il luogo è opzionale se il contesto è chiaro.",
+    body: "Nel Laboratorio, inserisci un luogo con で e confronta.",
   },
-  "places-action-summary": {
-    title: "Ricorda",
+  "places-action-recap": {
+    title: "In sintesi",
     bullets: ["で = luogo dell'azione", "Non usare に per questa funzione", "Il luogo precede l'oggetto"],
   },
   "places-movement-rule": {
     title: "に per la meta, で per il mezzo",
-    body: "Con のる, il veicolo usa に perché è ciò su cui sali. Per indicare la direzione incontrerai anche へ, pronunciata e.",
+    body: "Per indicare la direzione incontrerai anche へ, pronunciata e.",
   },
-  "places-movement-examples": {
-    title: "Tre ruoli, due particelle",
-    body: "Meta, mezzo e veicolo non sono la stessa cosa.",
+  "places-movement-comparison": {
+    title: "Meta o mezzo?",
+    body: "Da “vado alla stazione” a “vado in treno”: でんしゃ で indica il mezzo.",
   },
-  "places-movement-tool": {
+  "places-movement-explore": {
     title: "Costruisci un viaggio",
-    body: "Scegli meta e mezzo separatamente.",
+    body: "Nel Laboratorio, scegli meta e mezzo separatamente.",
   },
-  "places-movement-summary": {
-    title: "Ricorda",
+  "places-movement-recap": {
+    title: "In sintesi",
     bullets: ["えきに = verso la stazione", "でんしゃで = in treno", "でんしゃにのる = salire sul treno"],
   },
   "people-particles-rule": {
     title: "Il verbo sceglie il collegamento",
     body: "あう usa に; まつ usa を.",
   },
-  "people-particles-examples": {
-    title: "Incontrare e aspettare",
-    body: "Non scegliere la particella traducendo “persona”.",
+  "people-particles-comparison": {
+    title: "Aspetto o incontro?",
+    body: "Da ともだち を まつ a ともだち に あう: cambiano particella e verbo.",
   },
-  "people-particles-tool": {
-    title: "Cambia persona",
-    body: "Prova amico, insegnante e famiglia.",
+  "people-particles-explore": {
+    title: "Scambia verbo e particella",
+    body: "Confronta “aspettare un amico” e “incontrare un amico”.",
   },
-  "people-particles-summary": {
-    title: "Ricorda",
+  "people-particles-recap": {
+    title: "In sintesi",
     bullets: ["ともだちにあう", "ともだちをまつ", "Impara verbo + particella insieme"],
   },
   "people-desire-rule": {
-    title: "Base + たいです; base + ましょう",
-    body: "Una forma esprime desiderio, l'altra propone un'azione condivisa.",
+    title: "Base + たいです",
+    body: "たいです esprime il desiderio personale di fare qualcosa.",
   },
-  "people-desire-examples": {
-    title: "Voglio o facciamo?",
-    body: "Guarda chi compie l'azione.",
+  "people-desire-comparison": {
+    title: "Mangio o voglio mangiare?",
+    body: "たべます diventa たべたいです per esprimere il desiderio.",
   },
-  "people-desire-tool": {
-    title: "Cambia intenzione",
-    body: "Passa da mangio a voglio mangiare.",
+  "people-desire-explore": {
+    title: "Cambia intenzione sulla lavagna",
+    body: "Nel Laboratorio, passa da “mangio” a “voglio mangiare”.",
   },
-  "people-desire-summary": {
-    title: "Ricorda",
-    bullets: ["たいです = desiderio personale", "ましょう = proposta", "Non sono tempi verbali"],
+  "people-desire-recap": {
+    title: "In sintesi",
+    bullets: ["たいです = desiderio personale", "Si aggancia alla base ます", "Non è un tempo verbale"],
   },
   "travel-questions-rule": {
-    title: "か chiude la domanda; ください formula una richiesta",
-    body: "Sono schemi fissi molto utili in viaggio.",
+    title: "か chiude la domanda",
+    body: "か alla fine trasforma un'affermazione in domanda cortese.",
   },
-  "travel-questions-examples": {
-    title: "Dove? Per favore.",
-    body: "Ascolta l'intonazione ma riconosci anche la struttura.",
+  "travel-questions-comparison": {
+    title: "Manca solo か",
+    body: "えきは どこです diventa una domanda cortese aggiungendo か.",
   },
-  "travel-questions-tool": {
-    title: "Porta lo schema alla stazione",
-    body: "Apri una frase di movimento e osserva la destinazione con に.",
+  "travel-questions-explore": {
+    title: "Aggiungi か in fondo",
+    body: "Confronta la frase con e senza か finale.",
   },
-  "travel-questions-summary": {
-    title: "Ricorda",
-    bullets: ["ですか = domanda cortese", "〜をください = vorrei…", "Evita di tradurre ogni parola"],
+  "travel-questions-recap": {
+    title: "In sintesi",
+    bullets: ["か crea la domanda", "です か = domanda cortese", "Serve spesso in viaggio"],
   },
   "travel-existence-rule": {
     title: "あります per cose; います per esseri animati",
-    body: "Entrambi significano “esserci/esistere”, ma la scelta dipende da ciò che esiste.",
+    body: "Entrambi significano “esserci”, ma la scelta dipende da ciò che esiste.",
   },
-  "travel-existence-examples": {
-    title: "Bagno o insegnante?",
-    body: "Una cosa usa あります; una persona usa います.",
+  "travel-existence-comparison": {
+    title: "Cosa o persona?",
+    body: "といれ が あります (cosa) diventa せんせい が います (persona).",
   },
-  "travel-existence-summary": {
-    title: "Ricorda",
+  "travel-existence-explore": {
+    title: "Scambia cosa e persona",
+    body: "Confronta “c'è un bagno” e “c'è un insegnante”.",
+  },
+  "travel-existence-recap": {
+    title: "In sintesi",
     bullets: ["cose = あります", "persone/animali = います", "が marca ciò che esiste"],
   },
   "traps-particles-rule": {
-    title: "は→wa, へ→e, を→o",
-    body: "Queste letture speciali compaiono quando i segni sono particelle.",
+    title: "Come particella, へ si legge e",
+    body: "Per indicare la direzione, へ accompagna la meta e si pronuncia e.",
   },
-  "traps-particles-examples": {
-    title: "Leggi il ruolo, non solo il segno",
-    body: "La stessa grafia può avere una lettura diversa fuori dalla particella.",
+  "traps-particles-comparison": {
+    title: "に o へ?",
+    body: "えきに いきます diventa えきへ いきます: へ segna la direzione.",
   },
-  "traps-omission-callout": {
-    title: "Il soggetto può restare sottinteso",
-    body: "Se il contesto è chiaro, il giapponese non ripete io, tu o lui/lei: non aggiungere sempre わたし.",
+  "traps-particles-explore": {
+    title: "Scambia に e へ",
+    body: "Confronta la meta con に e con へ.",
   },
-  "traps-existence-callout": {
-    title: "Cose e persone non “esistono” allo stesso modo",
-    body: "Usa あります per cose; usa います per persone e animali.",
-  },
-  "traps-loanwords-callout": {
-    title: "Qui i prestiti restano in hiragana",
-    body: "Per allenare la lettura, l'app mostra parole come れすとらん in hiragana; nel giapponese reale i prestiti si scrivono normalmente in katakana: レストラン.",
-  },
-  "traps-particles-summary": {
-    title: "Ricorda",
-    bullets: ["In こんにちは, は si legge wa", "Come particella, へ si legge e", "Come particella, を si legge o"],
+  "traps-particles-recap": {
+    title: "In sintesi",
+    bullets: ["Come particella, へ si legge e", "へ segna la direzione", "に e へ possono alternarsi verso una meta"],
   },
   "traps-verbs-rule": {
     title: "かえる è godan",
     body: "Finire in る non basta: qui la base è かえり.",
   },
-  "traps-verbs-examples": {
-    title: "Gruppo ed effetto del tempo",
-    body: "あした cambia la traduzione, non la forma ます.",
+  "traps-verbs-comparison": {
+    title: "Aggiungi quando",
+    body: "かえります diventa あした かえります aggiungendo il riferimento di tempo.",
   },
-  "traps-verbs-tool": {
-    title: "Verifica sulla lavagna",
-    body: "Apri “Tornare” con domani.",
+  "traps-verbs-explore": {
+    title: "Aggiungi あした",
+    body: "Confronta la frase con e senza あした davanti.",
   },
-  "traps-verbs-summary": {
-    title: "Ricorda",
+  "traps-verbs-recap": {
+    title: "In sintesi",
     bullets: ["かえる→かえります", "Il gruppo va imparato insieme al verbo", "Il futuro è espresso dal contesto"],
   },
 };
@@ -447,6 +475,14 @@ const itExamples: CourseCopy["examples"] = {
   "particle-e": { translation: "Vado verso la stazione." },
   "return-godan": { translation: "Torno a casa." },
   "tomorrow-return": { translation: "Domani tornerò a casa." },
+  "vowel-a": { translation: "a" },
+  "syllable-ka": { translation: "ka" },
+  "kana-kite": { translation: "vieni" },
+  "kana-kitte": { translation: "francobollo" },
+  "eat-dict": { translation: "mangiare" },
+  "eat-masu": { translation: "Mangio." },
+  "today-ate": { translation: "Oggi ho mangiato il ramen." },
+  "station-copula": { translation: "La stazione, dov'è" },
 };
 
 export const it = {

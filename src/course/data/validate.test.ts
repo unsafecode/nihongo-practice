@@ -1,29 +1,101 @@
 import { describe, expect, it } from "vitest";
 import { semanticIconIds } from "../../components/icons/Icon";
+import { lessonPath } from "../../routing/routePaths";
 import { LESSON_SECTION_IDS } from "../../routing/lessonSections";
 import { courseModules } from "./course";
 import { examples } from "./examples";
-import type { CourseModule, Lesson, LessonSections, PhaseId } from "./types";
+import type {
+  CourseModule,
+  Lesson,
+  LessonSections,
+  PhaseId,
+  StaticExample,
+} from "./types";
 import { findPrerequisiteCycle, validateCourse } from "./validate";
 
-function emptySections(): LessonSections {
+/**
+ * Two segmented fixture examples forming a genuine before/after minimal pair
+ * (ねこ → ねこだ) so `validSections` can declare an honest single-delta
+ * comparison the real `validateComparison` accepts. Synthetic `.toEqual([])`
+ * fixtures pass these as the example table; `.toContain` fixtures may pass
+ * `{}` because the specific error they assert precedes/ignores example lookup.
+ */
+function fixtureExamples(): Record<string, StaticExample> {
+  return {
+    "fx-base": {
+      id: "fx-base",
+      jp: "ねこ",
+      romaji: "neko",
+      segments: [{ id: "0", jp: "ねこ", romaji: "neko", kind: "word" }],
+    },
+    "fx-changed": {
+      id: "fx-changed",
+      jp: "ねこだ",
+      romaji: "nekoda",
+      segments: [
+        { id: "0", jp: "ねこ", romaji: "neko", kind: "word" },
+        { id: "1", jp: "だ", romaji: "da", kind: "ending" },
+      ],
+    },
+  };
+}
+
+/**
+ * A fully valid typed four-section set (rule → comparison → explore → recap)
+ * anchored to a specific lesson identity so the exploration's return target
+ * resolves through the same `lessonPath`/route contract production uses.
+ */
+function validSections(
+  moduleId: string,
+  lessonId: string,
+  objectiveId: string,
+): LessonSections {
   return [
-    { id: "rule", blocks: [] },
-    { id: "comparison", blocks: [] },
-    { id: "explore", blocks: [] },
-    { id: "recap", blocks: [] },
+    { id: "rule", copyId: `${lessonId}-rule`, gear: "topic" },
+    {
+      id: "comparison",
+      copyId: `${lessonId}-comparison`,
+      comparison: {
+        id: `cmp-${lessonId}`,
+        baseExampleId: "fx-base",
+        changedExampleId: "fx-changed",
+        contrastDimension: "ending",
+        changedGearIds: ["だ"],
+        changedSegmentIds: ["1"],
+      },
+    },
+    {
+      id: "explore",
+      copyId: `${lessonId}-explore`,
+      exploration: {
+        kind: "tool",
+        data: {
+          id: `exp-${lessonId}`,
+          objectiveId,
+          target: "syllabary",
+          returnTarget: {
+            pathname: lessonPath(moduleId, lessonId),
+            sectionId: "explore",
+          },
+        },
+      },
+    },
+    { id: "recap", copyId: `${lessonId}-recap` },
   ];
 }
 
 function makeLesson(overrides: Partial<Lesson> = {}): Lesson {
+  const id = overrides.id ?? "lesson-a";
+  const moduleId = overrides.moduleId ?? "module-a";
+  const objectiveCopyIds = overrides.objectiveCopyIds ?? [id];
   return {
-    id: "lesson-a",
-    moduleId: "module-a",
+    id,
+    moduleId,
     order: 1,
-    titleCopyId: "lesson-a",
-    objectiveCopyIds: ["lesson-a"],
+    titleCopyId: id,
+    objectiveCopyIds,
     estimatedMinutes: 5,
-    sections: emptySections(),
+    sections: validSections(moduleId, id, objectiveCopyIds[0]),
     ...overrides,
   };
 }
@@ -117,7 +189,7 @@ describe("findPrerequisiteCycle", () => {
 
 describe("validateCourse (synthetic fixtures)", () => {
   it("passes for a minimal valid two-module fixture", () => {
-    expect(validateCourse(twoValidModules(), {})).toEqual([]);
+    expect(validateCourse(twoValidModules(), fixtureExamples())).toEqual([]);
   });
 
   it("flags a duplicate module id", () => {
@@ -175,7 +247,7 @@ describe("validateCourse (synthetic fixtures)", () => {
     const phases: PhaseId[] = ["orient", "build", "navigate", "synthesize"];
     for (const phase of phases) {
       const moduleA = makeModule({ phase });
-      expect(validateCourse([moduleA], {})).toEqual([]);
+      expect(validateCourse([moduleA], fixtureExamples())).toEqual([]);
     }
   });
 
@@ -243,7 +315,7 @@ describe("validateCourse (synthetic fixtures)", () => {
         makeLesson({ id: "lesson-3", moduleId: "module-a", order: 3 }),
       ],
     });
-    expect(validateCourse([moduleA], {})).toEqual([]);
+    expect(validateCourse([moduleA], fixtureExamples())).toEqual([]);
   });
 
   it("flags a non-positive or non-finite module estimate", () => {
@@ -292,7 +364,7 @@ describe("validateCourse (synthetic fixtures)", () => {
   it("accepts every real semantic icon id", () => {
     for (const iconId of semanticIconIds) {
       const moduleA = makeModule({ iconId });
-      expect(validateCourse([moduleA], {})).toEqual([]);
+      expect(validateCourse([moduleA], fixtureExamples())).toEqual([]);
     }
   });
 
@@ -345,37 +417,63 @@ describe("validateCourse (synthetic fixtures)", () => {
     );
   });
 
-  it("keeps existing example/preset checks working over nested sections", () => {
-    const moduleA = makeModule({
-      id: "module-a",
-      order: 1,
-      lessons: [
-        makeLesson({
-          id: "lesson-a",
-          moduleId: "module-a",
-          sections: [
-            {
-              id: "rule",
-              blocks: [{ type: "rule", copyId: "rule-copy", gear: "x" }],
-            },
-            {
-              id: "comparison",
-              blocks: [
-                {
-                  type: "examples",
-                  copyId: "examples-copy",
-                  exampleIds: ["missing-example"],
-                },
-              ],
-            },
-            { id: "explore", blocks: [] },
-            { id: "recap", blocks: [] },
-          ],
-        }),
+  it("runs typed comparison validation over a lesson's sections", () => {
+    const base = makeLesson({ id: "lesson-a", moduleId: "module-a" });
+    const broken = asLesson({
+      ...base,
+      sections: [
+        base.sections[0],
+        {
+          id: "comparison",
+          copyId: "lesson-a-comparison",
+          comparison: {
+            id: "cmp-lesson-a",
+            baseExampleId: "missing-example",
+            changedExampleId: "fx-changed",
+            contrastDimension: "ending",
+            changedGearIds: ["だ"],
+            changedSegmentIds: ["1"],
+          },
+        },
+        base.sections[2],
+        base.sections[3],
       ],
     });
-    expect(validateCourse([moduleA], {})).toContain(
-      "unknown example:lesson-a:missing-example",
+    const moduleA = makeModule({ lessons: [broken] });
+    expect(validateCourse([moduleA], fixtureExamples())).toContain(
+      "comparison-unknown-example:cmp-lesson-a:missing-example",
+    );
+  });
+
+  it("runs typed exploration validation over a lesson's sections", () => {
+    const base = makeLesson({ id: "lesson-a", moduleId: "module-a" });
+    const broken = asLesson({
+      ...base,
+      sections: [
+        base.sections[0],
+        base.sections[1],
+        {
+          id: "explore",
+          copyId: "lesson-a-explore",
+          exploration: {
+            kind: "tool",
+            data: {
+              id: "exp-lesson-a",
+              objectiveId: "not-an-objective",
+              target: "syllabary",
+              returnTarget: {
+                pathname: lessonPath("module-a", "lesson-a"),
+                sectionId: "explore",
+              },
+            },
+          },
+        },
+        base.sections[3],
+      ],
+    });
+    const moduleA = makeModule({ lessons: [broken] });
+    expect(validateCourse([moduleA], fixtureExamples())).toContain(
+      "exploration-unknown-objective:exp-lesson-a:not-an-objective",
     );
   });
 });

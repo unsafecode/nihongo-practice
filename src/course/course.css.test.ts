@@ -141,3 +141,118 @@ describe("course map CSS contract: mobile action stacking, no horizontal overflo
     expect(tags).toMatch(/flex-wrap:\s*wrap/);
   });
 });
+
+describe("lesson page CSS contract: reading width separated from shell width", () => {
+  it("bounds the outer lesson shell with the shared shell-max token, not a bespoke rem width", () => {
+    const rule = findRule(readCourseCss(), ".lesson-layout");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/var\(--shell-max\)/);
+    expect(rule).not.toMatch(/86rem/);
+  });
+
+  it("constrains the reading column to the shared 760-860px reading tokens, never the old 589px/64rem column or 86.4px padding", () => {
+    const rule = findRule(readCourseCss(), ".lesson-main");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/var\(--reading-max\)/);
+    expect(rule).not.toMatch(/64rem|589px|86\.4px|5\.5rem/);
+  });
+});
+
+describe("lesson page CSS contract: bounded editorial heading", () => {
+  it("caps the lesson H1 at the shared 50px heading token", () => {
+    const rule = findRule(readCourseCss(), ".lesson-header h1");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(
+      /font-size:\s*clamp\(\s*var\(--text-4\)\s*,[^)]*var\(--text-6\)\s*\)/,
+    );
+    expect(rule).not.toMatch(/\b4rem\b/);
+  });
+});
+
+describe("lesson page CSS contract: shared sticky offset, no magic pixels", () => {
+  it("sticks the desktop rail with the shared sticky-offset token", () => {
+    const rule = findRule(readCourseCss(), ".lesson-rail");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/position:\s*sticky/);
+    expect(rule).toMatch(/top:\s*var\(--sticky-offset\)/);
+  });
+
+  it("never hard-codes the old 18px/88px sticky offsets", () => {
+    const css = readCourseCss().replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(css).not.toMatch(/\b88px\b/);
+    expect(css).not.toMatch(/\b18px\b/);
+  });
+
+  it("removes the obsolete LessonSidebar styles entirely", () => {
+    const css = readCourseCss();
+    expect(css).not.toMatch(/\.lesson-sidebar/);
+    expect(css).not.toMatch(/\.lesson-blocks/);
+  });
+});
+
+describe("lesson page CSS contract: real before/after comparison", () => {
+  it("lays the two comparison cards out as two columns at reading width", () => {
+    const rule = findRule(readCourseCss(), ".lesson-comparison__cards");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/grid-template-columns:\s*repeat\(2/);
+  });
+
+  it("collapses the comparison to a single column under the shared mobile breakpoint", () => {
+    const block = findMediaBlock(readCourseCss(), "@media (max-width: 720px)");
+    expect(block).toMatch(
+      /\.lesson-comparison__cards\s*{[^}]*grid-template-columns:\s*1fr/,
+    );
+  });
+
+  it("sizes comparison Japanese with container units, never viewport vw", () => {
+    const css = readCourseCss();
+    const container = findRule(css, ".lesson-comparison");
+    expect(container).toMatch(/container-type:\s*inline-size/);
+    const jp = findRule(css, ".lesson-comparison__jp");
+    expect(jp).toBeDefined();
+    expect(jp).toMatch(/cqi/);
+    expect(jp).not.toMatch(/vw/);
+  });
+
+  it("uses the shared system font stack (not a bespoke inline family) for comparison Japanese", () => {
+    const jp = findRule(readCourseCss(), ".lesson-comparison__jp");
+    expect(jp).toMatch(/font-family:\s*var\(--font-jp\)/);
+  });
+});
+
+describe("lesson page CSS contract: honest dark guided board", () => {
+  it("keeps the guided board on the shared dark board token", () => {
+    const rule = findRule(readCourseCss(), ".guided-board");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/background:\s*var\(--course-board\)/);
+  });
+
+  it("sizes guided board Japanese with container units, never viewport vw", () => {
+    const css = readCourseCss();
+    const board = findRule(css, ".guided-board");
+    expect(board).toMatch(/container-type:\s*inline-size/);
+    const jp = findRule(css, ".guided-board__jp");
+    expect(jp).toBeDefined();
+    expect(jp).toMatch(/cqi/);
+    expect(jp).not.toMatch(/vw/);
+  });
+});
+
+describe("lesson page CSS contract: 44px rail + footer targets, mobile stacking", () => {
+  it("gives each desktop rail step the shared 44px minimum target", () => {
+    const rule = findRule(readCourseCss(), ".lesson-rail__step");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/min-height:\s*var\(--action-target-min\)/);
+  });
+
+  it("gives each mobile rail step the shared 44px minimum target", () => {
+    const rule = findRule(readCourseCss(), ".lesson-rail-mobile__step");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/min-height:\s*var\(--action-target-min\)/);
+  });
+
+  it("stacks the lesson footer actions into a single column under the shared mobile breakpoint", () => {
+    const block = findMediaBlock(readCourseCss(), "@media (max-width: 720px)");
+    expect(block).toMatch(/\.lesson-footer\s*{[^}]*flex-direction:\s*column/);
+  });
+});

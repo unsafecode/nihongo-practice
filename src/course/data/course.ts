@@ -1,58 +1,128 @@
-import type { CourseModule, Lesson, LessonBlock, LessonSections } from "./types";
+import type { LabSelection } from "../../content/types";
+import { lessonPath } from "../../routing/routePaths";
+import type {
+  AuthoredSelection,
+  ComparisonSection,
+  ContrastDimension,
+  CourseModule,
+  ExplorationSection,
+  GuidedExploration,
+  Lesson,
+  LessonSections,
+  RecapSection,
+  RuleSection,
+} from "./types";
 
 /**
- * Groups a lesson's existing blocks into the four stable sections
- * (rule/comparison/explore/recap) by block type, deterministically and
- * without dropping any block. This is data migration only: Task 5 replaces
- * the raw block lists inside `comparison`/`explore` with final typed
- * `TransformComparisonData`/`GuidedTransformationData` contracts.
+ * Task 5 lesson data (design spec §4.4, §6.2-§6.4). Every lesson is one
+ * semantic page of exactly four sections (rule → comparison → explore →
+ * recap). Instead of a loose block list, each lesson declares one real
+ * before/after `TransformComparisonData` and one honest `GuidedExploration`
+ * (a live Lab transformation, an authored two-endpoint transformation, or a
+ * syllabary tool link). `validateComparison`/`validateExploration` (wired into
+ * `validateCourse`) prove every declaration is honest: the comparison marks
+ * only the segments genuinely introduced between its endpoints, and a
+ * transformation's declared changed gears exactly equal its endpoint delta.
+ * All Japanese here stays locale-independent; localized prose lives in the
+ * copy catalog keyed by each section's `copyId`.
  */
-function sectionize(blocks: LessonBlock[]): LessonSections {
-  const rule: LessonBlock[] = [];
-  const comparison: LessonBlock[] = [];
-  const explore: LessonBlock[] = [];
-  const recap: LessonBlock[] = [];
-  for (const block of blocks) {
-    switch (block.type) {
-      case "rule":
-        rule.push(block);
-        break;
-      case "examples":
-      case "comparison":
-        comparison.push(block);
-        break;
-      case "guidedTool":
-        explore.push(block);
-        break;
-      case "callout":
-      case "summary":
-        recap.push(block);
-        break;
-    }
-  }
-  return [
-    { id: "rule", blocks: rule },
-    { id: "comparison", blocks: comparison },
-    { id: "explore", blocks: explore },
-    { id: "recap", blocks: recap },
-  ];
+
+interface ComparisonSpec {
+  readonly base: string;
+  readonly changed: string;
+  readonly dimension: ContrastDimension;
+  readonly changedSegmentIds: readonly string[];
+  readonly changedGearIds: readonly string[];
 }
 
-function lesson(
-  id: string,
-  moduleId: string,
-  order: number,
-  estimatedMinutes: number,
-  blocks: LessonBlock[],
-): Lesson {
+type ExplorationSpec =
+  | { readonly kind: "tool" }
+  | {
+      readonly kind: "authored";
+      readonly initial: AuthoredSelection;
+      readonly target: AuthoredSelection;
+      readonly changedGearIds: readonly string[];
+    }
+  | {
+      readonly kind: "lab";
+      readonly initial: LabSelection;
+      readonly target: LabSelection;
+      readonly changedGearIds: readonly string[];
+    };
+
+interface LessonSpec {
+  readonly id: string;
+  readonly moduleId: string;
+  readonly order: number;
+  readonly minutes: number;
+  readonly gear: string;
+  readonly comparison: ComparisonSpec;
+  readonly exploration: ExplorationSpec;
+}
+
+function buildExploration(spec: LessonSpec): GuidedExploration {
+  const returnTarget = {
+    pathname: lessonPath(spec.moduleId, spec.id),
+    sectionId: "explore" as const,
+  };
+  const id = `exp-${spec.id}`;
+  const objectiveId = spec.id;
+  const exploration = spec.exploration;
+  if (exploration.kind === "tool") {
+    return {
+      kind: "tool",
+      data: { id, objectiveId, target: "syllabary", returnTarget },
+    };
+  }
   return {
-    id,
-    moduleId,
-    order,
-    titleCopyId: id,
-    objectiveCopyIds: [id],
-    estimatedMinutes,
-    sections: sectionize(blocks),
+    kind: "transformation",
+    data: {
+      id,
+      objectiveId,
+      initialSelection: exploration.initial,
+      targetSelection: exploration.target,
+      changedGearIds: exploration.changedGearIds,
+      returnTarget,
+    },
+  };
+}
+
+function buildSections(spec: LessonSpec): LessonSections {
+  const rule: RuleSection = {
+    id: "rule",
+    copyId: `${spec.id}-rule`,
+    gear: spec.gear,
+  };
+  const comparison: ComparisonSection = {
+    id: "comparison",
+    copyId: `${spec.id}-comparison`,
+    comparison: {
+      id: `cmp-${spec.id}`,
+      baseExampleId: spec.comparison.base,
+      changedExampleId: spec.comparison.changed,
+      contrastDimension: spec.comparison.dimension,
+      changedGearIds: spec.comparison.changedGearIds,
+      changedSegmentIds: spec.comparison.changedSegmentIds,
+    },
+  };
+  const explore: ExplorationSection = {
+    id: "explore",
+    copyId: `${spec.id}-explore`,
+    exploration: buildExploration(spec),
+  };
+  const recap: RecapSection = { id: "recap", copyId: `${spec.id}-recap` };
+  return [rule, comparison, explore, recap];
+}
+
+function lesson(spec: LessonSpec): Lesson {
+  return {
+    id: spec.id,
+    moduleId: spec.moduleId,
+    order: spec.order,
+    titleCopyId: spec.id,
+    objectiveCopyIds: [spec.id],
+    estimatedMinutes: spec.minutes,
+    sections: buildSections(spec),
   };
 }
 
@@ -71,6 +141,18 @@ function courseModule(
   };
 }
 
+const eat = (
+  form: LabSelection["form"],
+  timeId: LabSelection["timeId"],
+  options: LabSelection["options"],
+): LabSelection => ({ scenarioId: "eat", form, timeId, options });
+
+const go = (
+  form: LabSelection["form"],
+  timeId: LabSelection["timeId"],
+  options: LabSelection["options"],
+): LabSelection => ({ scenarioId: "go", form, timeId, options });
+
 export const courseModules: CourseModule[] = [
   courseModule({
     id: "sounds",
@@ -79,18 +161,36 @@ export const courseModules: CourseModule[] = [
     prerequisiteIds: [],
     iconId: "sounds",
     lessons: [
-      lesson("sounds-core", "sounds", 1, 10, [
-        { type: "rule", copyId: "sounds-core-rule", gear: "あ" },
-        { type: "examples", copyId: "sounds-core-examples", exampleIds: ["vowels", "k-row"] },
-        { type: "guidedTool", copyId: "sounds-core-tool", target: "syllabary" },
-        { type: "summary", copyId: "sounds-core-summary" },
-      ]),
-      lesson("sounds-special", "sounds", 2, 8, [
-        { type: "rule", copyId: "sounds-special-rule", gear: "っ" },
-        { type: "comparison", copyId: "sounds-special-examples", exampleIds: ["small-tsu", "long-vowel"] },
-        { type: "guidedTool", copyId: "sounds-special-tool", target: "syllabary" },
-        { type: "summary", copyId: "sounds-special-summary" },
-      ]),
+      lesson({
+        id: "sounds-core",
+        moduleId: "sounds",
+        order: 1,
+        minutes: 10,
+        gear: "あ",
+        comparison: {
+          base: "vowel-a",
+          changed: "syllable-ka",
+          dimension: "sound",
+          changedSegmentIds: ["0"],
+          changedGearIds: ["か"],
+        },
+        exploration: { kind: "tool" },
+      }),
+      lesson({
+        id: "sounds-special",
+        moduleId: "sounds",
+        order: 2,
+        minutes: 8,
+        gear: "っ",
+        comparison: {
+          base: "kana-kite",
+          changed: "kana-kitte",
+          dimension: "sound",
+          changedSegmentIds: ["1"],
+          changedGearIds: ["っ"],
+        },
+        exploration: { kind: "tool" },
+      }),
     ],
   }),
   courseModule({
@@ -100,18 +200,46 @@ export const courseModules: CourseModule[] = [
     prerequisiteIds: ["sounds"],
     iconId: "sentence",
     lessons: [
-      lesson("sentence-order", "sentence-map", 1, 9, [
-        { type: "rule", copyId: "sentence-order-rule", gear: "→" },
-        { type: "examples", copyId: "sentence-order-examples", exampleIds: ["sentence-order"] },
-        { type: "comparison", copyId: "sentence-order-topic", exampleIds: ["topic-copula"] },
-        { type: "guidedTool", copyId: "sentence-order-tool", target: "lab", preset: { scenarioId: "eat", form: "pres", timeId: "today", options: { object: "ramen", place: null } } },
-        { type: "summary", copyId: "sentence-order-summary" },
-      ]),
-      lesson("sentence-omission", "sentence-map", 2, 7, [
-        { type: "rule", copyId: "sentence-omission-rule", gear: "は" },
-        { type: "comparison", copyId: "sentence-omission-examples", exampleIds: ["topic-copula", "omitted-subject", "this-water"] },
-        { type: "summary", copyId: "sentence-omission-summary" },
-      ]),
+      lesson({
+        id: "sentence-order",
+        moduleId: "sentence-map",
+        order: 1,
+        minutes: 9,
+        gear: "→",
+        comparison: {
+          base: "eat-ramen",
+          changed: "sentence-order",
+          dimension: "word-order",
+          changedSegmentIds: ["0"],
+          changedGearIds: ["きょう"],
+        },
+        exploration: {
+          kind: "authored",
+          initial: { exampleId: "eat-ramen", segmentIds: [] },
+          target: { exampleId: "sentence-order", segmentIds: ["0"] },
+          changedGearIds: ["きょう"],
+        },
+      }),
+      lesson({
+        id: "sentence-omission",
+        moduleId: "sentence-map",
+        order: 2,
+        minutes: 7,
+        gear: "は",
+        comparison: {
+          base: "omitted-subject",
+          changed: "topic-copula",
+          dimension: "topic",
+          changedSegmentIds: ["0", "1"],
+          changedGearIds: ["わたし", "は"],
+        },
+        exploration: {
+          kind: "authored",
+          initial: { exampleId: "topic-copula", segmentIds: ["0", "1"] },
+          target: { exampleId: "omitted-subject", segmentIds: [] },
+          changedGearIds: ["わたし", "は"],
+        },
+      }),
     ],
   }),
   courseModule({
@@ -121,18 +249,46 @@ export const courseModules: CourseModule[] = [
     prerequisiteIds: ["sentence-map"],
     iconId: "ordering",
     lessons: [
-      lesson("actions-object", "actions", 1, 8, [
-        { type: "rule", copyId: "actions-object-rule", gear: "を" },
-        { type: "comparison", copyId: "actions-object-examples", exampleIds: ["eat-ramen", "drink-water"] },
-        { type: "guidedTool", copyId: "actions-object-tool", target: "lab", preset: { scenarioId: "eat", form: "pres", timeId: "none", options: { object: "ramen", place: null } } },
-        { type: "summary", copyId: "actions-object-summary" },
-      ]),
-      lesson("actions-masu", "actions", 2, 8, [
-        { type: "rule", copyId: "actions-masu-rule", gear: "ます" },
-        { type: "comparison", copyId: "actions-masu-examples", exampleIds: ["eat-sushi", "speak-english"] },
-        { type: "guidedTool", copyId: "actions-masu-tool", target: "lab", preset: { scenarioId: "speak", form: "pres", timeId: "today", options: { language: "englishLanguage" } } },
-        { type: "summary", copyId: "actions-masu-summary" },
-      ]),
+      lesson({
+        id: "actions-object",
+        moduleId: "actions",
+        order: 1,
+        minutes: 8,
+        gear: "を",
+        comparison: {
+          base: "eat-masu",
+          changed: "eat-ramen",
+          dimension: "particle",
+          changedSegmentIds: ["0", "1"],
+          changedGearIds: ["らーめん", "を"],
+        },
+        exploration: {
+          kind: "authored",
+          initial: { exampleId: "eat-masu", segmentIds: [] },
+          target: { exampleId: "eat-ramen", segmentIds: ["0", "1"] },
+          changedGearIds: ["らーめん", "を"],
+        },
+      }),
+      lesson({
+        id: "actions-masu",
+        moduleId: "actions",
+        order: 2,
+        minutes: 8,
+        gear: "ます",
+        comparison: {
+          base: "eat-dict",
+          changed: "eat-masu",
+          dimension: "ending",
+          changedSegmentIds: ["1"],
+          changedGearIds: ["ます"],
+        },
+        exploration: {
+          kind: "authored",
+          initial: { exampleId: "eat-dict", segmentIds: ["1"] },
+          target: { exampleId: "eat-masu", segmentIds: ["1"] },
+          changedGearIds: ["る", "ます"],
+        },
+      }),
     ],
   }),
   courseModule({
@@ -142,18 +298,46 @@ export const courseModules: CourseModule[] = [
     prerequisiteIds: ["actions"],
     iconId: "time",
     lessons: [
-      lesson("time-past", "time", 1, 8, [
-        { type: "rule", copyId: "time-past-rule", gear: "ました" },
-        { type: "comparison", copyId: "time-past-examples", exampleIds: ["today-eat", "yesterday-ate", "tomorrow-eat"] },
-        { type: "guidedTool", copyId: "time-past-tool", target: "lab", preset: { scenarioId: "eat", form: "past", timeId: "yesterday", options: { object: "ramen", place: null } } },
-        { type: "summary", copyId: "time-past-summary" },
-      ]),
-      lesson("time-negative", "time", 2, 8, [
-        { type: "rule", copyId: "time-negative-rule", gear: "ません" },
-        { type: "comparison", copyId: "time-negative-examples", exampleIds: ["today-not-eat", "yesterday-not-eat"] },
-        { type: "guidedTool", copyId: "time-negative-tool", target: "lab", preset: { scenarioId: "eat", form: "neg", timeId: "today", options: { object: "ramen", place: null } } },
-        { type: "summary", copyId: "time-negative-summary" },
-      ]),
+      lesson({
+        id: "time-past",
+        moduleId: "time",
+        order: 1,
+        minutes: 8,
+        gear: "ました",
+        comparison: {
+          base: "today-eat",
+          changed: "today-ate",
+          dimension: "time",
+          changedSegmentIds: ["4"],
+          changedGearIds: ["ました"],
+        },
+        exploration: {
+          kind: "lab",
+          initial: eat("pres", "today", { object: "ramen", place: null }),
+          target: eat("past", "today", { object: "ramen", place: null }),
+          changedGearIds: ["ます", "ました"],
+        },
+      }),
+      lesson({
+        id: "time-negative",
+        moduleId: "time",
+        order: 2,
+        minutes: 8,
+        gear: "ません",
+        comparison: {
+          base: "today-eat",
+          changed: "today-not-eat",
+          dimension: "polarity",
+          changedSegmentIds: ["4"],
+          changedGearIds: ["ません"],
+        },
+        exploration: {
+          kind: "lab",
+          initial: eat("pres", "today", { object: "ramen", place: null }),
+          target: eat("neg", "today", { object: "ramen", place: null }),
+          changedGearIds: ["ます", "ません"],
+        },
+      }),
     ],
   }),
   courseModule({
@@ -163,18 +347,46 @@ export const courseModules: CourseModule[] = [
     prerequisiteIds: ["time"],
     iconId: "places",
     lessons: [
-      lesson("places-action", "places", 1, 8, [
-        { type: "rule", copyId: "places-action-rule", gear: "で" },
-        { type: "comparison", copyId: "places-action-examples", exampleIds: ["restaurant-eat", "home-drink"] },
-        { type: "guidedTool", copyId: "places-action-tool", target: "lab", preset: { scenarioId: "eat", form: "pres", timeId: "today", options: { object: "ramen", place: "restaurant" } } },
-        { type: "summary", copyId: "places-action-summary" },
-      ]),
-      lesson("places-movement", "places", 2, 9, [
-        { type: "rule", copyId: "places-movement-rule", gear: "に・で" },
-        { type: "comparison", copyId: "places-movement-examples", exampleIds: ["go-station", "go-by-train", "board-train", "return-godan"] },
-        { type: "guidedTool", copyId: "places-movement-tool", target: "lab", preset: { scenarioId: "go", form: "pres", timeId: "today", options: { destination: "station", transport: "train" } } },
-        { type: "summary", copyId: "places-movement-summary" },
-      ]),
+      lesson({
+        id: "places-action",
+        moduleId: "places",
+        order: 1,
+        minutes: 8,
+        gear: "で",
+        comparison: {
+          base: "eat-ramen",
+          changed: "restaurant-eat",
+          dimension: "particle",
+          changedSegmentIds: ["0", "1"],
+          changedGearIds: ["れすとらん", "で"],
+        },
+        exploration: {
+          kind: "lab",
+          initial: eat("pres", "today", { object: "ramen", place: null }),
+          target: eat("pres", "today", { object: "ramen", place: "restaurant" }),
+          changedGearIds: ["で"],
+        },
+      }),
+      lesson({
+        id: "places-movement",
+        moduleId: "places",
+        order: 2,
+        minutes: 9,
+        gear: "に・で",
+        comparison: {
+          base: "go-station",
+          changed: "go-by-train",
+          dimension: "particle",
+          changedSegmentIds: ["0", "1"],
+          changedGearIds: ["でんしゃ", "で"],
+        },
+        exploration: {
+          kind: "lab",
+          initial: go("pres", "today", { destination: "station", transport: null }),
+          target: go("pres", "today", { destination: "station", transport: "train" }),
+          changedGearIds: ["で"],
+        },
+      }),
     ],
   }),
   courseModule({
@@ -184,18 +396,46 @@ export const courseModules: CourseModule[] = [
     prerequisiteIds: ["places"],
     iconId: "people",
     lessons: [
-      lesson("people-particles", "people", 1, 8, [
-        { type: "rule", copyId: "people-particles-rule", gear: "に・を" },
-        { type: "comparison", copyId: "people-particles-examples", exampleIds: ["meet-friend", "wait-friend"] },
-        { type: "guidedTool", copyId: "people-particles-tool", target: "lab", preset: { scenarioId: "meet", form: "pres", timeId: "today", options: { person: "friend" } } },
-        { type: "summary", copyId: "people-particles-summary" },
-      ]),
-      lesson("people-desire", "people", 2, 8, [
-        { type: "rule", copyId: "people-desire-rule", gear: "たい・ましょう" },
-        { type: "comparison", copyId: "people-desire-examples", exampleIds: ["want-sushi", "lets-go"] },
-        { type: "guidedTool", copyId: "people-desire-tool", target: "lab", preset: { scenarioId: "eat", form: "des", timeId: "today", options: { object: "sushi", place: null } } },
-        { type: "summary", copyId: "people-desire-summary" },
-      ]),
+      lesson({
+        id: "people-particles",
+        moduleId: "people",
+        order: 1,
+        minutes: 8,
+        gear: "に・を",
+        comparison: {
+          base: "wait-friend",
+          changed: "meet-friend",
+          dimension: "particle",
+          changedSegmentIds: ["1", "2"],
+          changedGearIds: ["に", "あい"],
+        },
+        exploration: {
+          kind: "authored",
+          initial: { exampleId: "wait-friend", segmentIds: ["1", "2"] },
+          target: { exampleId: "meet-friend", segmentIds: ["1", "2"] },
+          changedGearIds: ["を", "まち", "に", "あい"],
+        },
+      }),
+      lesson({
+        id: "people-desire",
+        moduleId: "people",
+        order: 2,
+        minutes: 8,
+        gear: "たい",
+        comparison: {
+          base: "eat-sushi",
+          changed: "want-sushi",
+          dimension: "ending",
+          changedSegmentIds: ["3"],
+          changedGearIds: ["たいです"],
+        },
+        exploration: {
+          kind: "lab",
+          initial: eat("pres", "today", { object: "sushi", place: null }),
+          target: eat("des", "today", { object: "sushi", place: null }),
+          changedGearIds: ["ます", "たいです"],
+        },
+      }),
     ],
   }),
   courseModule({
@@ -205,28 +445,69 @@ export const courseModules: CourseModule[] = [
     prerequisiteIds: ["people"],
     iconId: "questions",
     lessons: [
-      lesson("travel-questions", "questions-existence", 1, 9, [
-        { type: "rule", copyId: "travel-questions-rule", gear: "か・ください" },
-        { type: "comparison", copyId: "travel-questions-examples", exampleIds: ["where-station", "where-hotel", "where-shop", "water-please", "menu-please"] },
-        { type: "guidedTool", copyId: "travel-questions-tool", target: "lab", preset: { scenarioId: "go", form: "pres", timeId: "today", options: { destination: "station", transport: null } } },
-        { type: "summary", copyId: "travel-questions-summary" },
-      ]),
-      lesson("travel-existence", "questions-existence", 2, 7, [
-        { type: "rule", copyId: "travel-existence-rule", gear: "あります・います" },
-        { type: "comparison", copyId: "travel-existence-examples", exampleIds: ["restroom-exists", "teacher-exists"] },
-        { type: "summary", copyId: "travel-existence-summary" },
-      ]),
+      lesson({
+        id: "travel-questions",
+        moduleId: "questions-existence",
+        order: 1,
+        minutes: 9,
+        gear: "か",
+        comparison: {
+          base: "station-copula",
+          changed: "where-station",
+          dimension: "question",
+          changedSegmentIds: ["4"],
+          changedGearIds: ["か"],
+        },
+        exploration: {
+          kind: "authored",
+          initial: { exampleId: "station-copula", segmentIds: [] },
+          target: { exampleId: "where-station", segmentIds: ["4"] },
+          changedGearIds: ["か"],
+        },
+      }),
+      lesson({
+        id: "travel-existence",
+        moduleId: "questions-existence",
+        order: 2,
+        minutes: 7,
+        gear: "あります・います",
+        comparison: {
+          base: "restroom-exists",
+          changed: "teacher-exists",
+          dimension: "existence",
+          changedSegmentIds: ["0", "2"],
+          changedGearIds: ["せんせい", "い"],
+        },
+        exploration: {
+          kind: "authored",
+          initial: { exampleId: "restroom-exists", segmentIds: ["0", "2"] },
+          target: { exampleId: "teacher-exists", segmentIds: ["0", "2"] },
+          changedGearIds: ["といれ", "あり", "せんせい", "い"],
+        },
+      }),
       // Moved in from the former "traps" chapter (Task 3 §4/redistribution):
-      // this lesson's questions-vs-existence particle contrasts belong with
-      // this module's concept better than as a standalone "traps" chapter.
-      lesson("traps-particles", "questions-existence", 3, 9, [
-        { type: "rule", copyId: "traps-particles-rule", gear: "は・へ・を" },
-        { type: "comparison", copyId: "traps-particles-examples", exampleIds: ["particle-wa", "particle-e", "eat-ramen"] },
-        { type: "callout", copyId: "traps-omission-callout", tone: "note" },
-        { type: "callout", copyId: "traps-existence-callout", tone: "exception" },
-        { type: "callout", copyId: "traps-loanwords-callout", tone: "note" },
-        { type: "summary", copyId: "traps-particles-summary" },
-      ]),
+      // the destination-vs-direction particle contrast (に vs へ) fits this
+      // module's navigation concept better than a standalone "traps" chapter.
+      lesson({
+        id: "traps-particles",
+        moduleId: "questions-existence",
+        order: 3,
+        minutes: 9,
+        gear: "へ",
+        comparison: {
+          base: "go-station",
+          changed: "particle-e",
+          dimension: "particle",
+          changedSegmentIds: ["1"],
+          changedGearIds: ["へ"],
+        },
+        exploration: {
+          kind: "authored",
+          initial: { exampleId: "go-station", segmentIds: ["1"] },
+          target: { exampleId: "particle-e", segmentIds: ["1"] },
+          changedGearIds: ["に", "へ"],
+        },
+      }),
     ],
   }),
   courseModule({
@@ -236,15 +517,30 @@ export const courseModules: CourseModule[] = [
     prerequisiteIds: ["questions-existence"],
     iconId: "capstone",
     lessons: [
-      // Sole capstone placeholder/content shell (Task 3 §4): the full
-      // day-in-travel synthesis rewrite with only common exceptions is
-      // Task 6; this preserves the "traps-verbs" lesson id/content as-is.
-      lesson("traps-verbs", "capstone", 1, 10, [
-        { type: "rule", copyId: "traps-verbs-rule", gear: "かえり" },
-        { type: "comparison", copyId: "traps-verbs-examples", exampleIds: ["return-godan", "tomorrow-return"] },
-        { type: "guidedTool", copyId: "traps-verbs-tool", target: "lab", preset: { scenarioId: "return", form: "pres", timeId: "tomorrow", options: { destination: "home" } } },
-        { type: "summary", copyId: "traps-verbs-summary" },
-      ]),
+      // Sole capstone lesson (Task 3 §4). The full day-in-travel synthesis
+      // rewrite is Task 6; Task 5 preserves the "traps-verbs" lesson id and
+      // gives it a genuine before/after (adding a time word to the かえります
+      // sentence) plus a matching authored exploration.
+      lesson({
+        id: "traps-verbs",
+        moduleId: "capstone",
+        order: 1,
+        minutes: 10,
+        gear: "かえり",
+        comparison: {
+          base: "return-godan",
+          changed: "tomorrow-return",
+          dimension: "time",
+          changedSegmentIds: ["0"],
+          changedGearIds: ["あした"],
+        },
+        exploration: {
+          kind: "authored",
+          initial: { exampleId: "return-godan", segmentIds: [] },
+          target: { exampleId: "tomorrow-return", segmentIds: ["0"] },
+          changedGearIds: ["あした"],
+        },
+      }),
     ],
   }),
 ];

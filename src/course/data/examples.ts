@@ -4,11 +4,15 @@ function segmentedExample(
   id: string,
   segments: NonNullable<StaticExample["segments"]>,
 ): StaticExample {
+  const withIds = segments.map((segment, index) => ({
+    ...segment,
+    id: segment.id ?? String(index),
+  }));
   return {
     id,
-    jp: segments.map((segment) => segment.jp).join(""),
-    romaji: segments.map((segment) => segment.romaji).join(""),
-    segments,
+    jp: withIds.map((segment) => segment.jp).join(""),
+    romaji: withIds.map((segment) => segment.romaji).join(""),
+    segments: withIds,
   };
 }
 
@@ -222,6 +226,40 @@ const list: StaticExample[] = [
     { jp: "に ", romaji: "ni ", kind: "particle" },
     { jp: "かえり", romaji: "kaeri", kind: "word" },
     { jp: "ます", romaji: "masu", kind: "ending" },
+  ]),
+  // --- Task 5: minimal-pair / before-state endpoints for the rebuilt
+  // comparison + guided-exploration contracts (design spec §6.3-§6.4). ---
+  segmentedExample("vowel-a", [{ jp: "あ", romaji: "a", kind: "word" }]),
+  segmentedExample("syllable-ka", [{ jp: "か", romaji: "ka", kind: "word" }]),
+  segmentedExample("kana-kite", [
+    { jp: "き", romaji: "ki", kind: "word" },
+    { jp: "て", romaji: "te", kind: "word" },
+  ]),
+  segmentedExample("kana-kitte", [
+    { jp: "き", romaji: "ki", kind: "word" },
+    { jp: "っ", romaji: "t", kind: "word" },
+    { jp: "て", romaji: "te", kind: "word" },
+  ]),
+  segmentedExample("eat-dict", [
+    { jp: "たべ", romaji: "tabe", kind: "word" },
+    { jp: "る", romaji: "ru", kind: "ending" },
+  ]),
+  segmentedExample("eat-masu", [
+    { jp: "たべ", romaji: "tabe", kind: "word" },
+    { jp: "ます", romaji: "masu", kind: "ending" },
+  ]),
+  segmentedExample("today-ate", [
+    { jp: "きょう ", romaji: "kyō ", kind: "word" },
+    { jp: "らーめん", romaji: "rāmen ", kind: "word" },
+    { jp: "を ", romaji: "o ", kind: "particle" },
+    { jp: "たべ", romaji: "tabe", kind: "word" },
+    { jp: "ました", romaji: "mashita", kind: "ending" },
+  ]),
+  segmentedExample("station-copula", [
+    { jp: "えき", romaji: "eki ", kind: "word" },
+    { jp: "は ", romaji: "wa ", kind: "particle" },
+    { jp: "どこ", romaji: "doko ", kind: "word" },
+    { jp: "です", romaji: "desu ", kind: "ending" },
   ]),
 ];
 

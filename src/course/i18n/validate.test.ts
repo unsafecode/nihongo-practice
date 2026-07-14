@@ -27,16 +27,30 @@ describe.each([itCopy, enCopy])("course locale", (copy) => {
           expect(copy.objectives[objectiveId]).toBeTruthy();
         }
         for (const section of lesson.sections) {
-          for (const block of section.blocks) {
-            const blockCopy = copy.blocks[block.copyId];
-            expect(blockCopy).toBeTruthy();
-            if (block.type === "summary") {
-              expect(blockCopy.bullets?.length).toBeGreaterThan(0);
+          const sectionCopy = copy.blocks[section.copyId];
+          expect(sectionCopy).toBeTruthy();
+          if (section.id === "recap") {
+            expect(sectionCopy.bullets?.length).toBeGreaterThan(0);
+          }
+          if (section.id === "comparison") {
+            for (const exampleId of [
+              section.comparison.baseExampleId,
+              section.comparison.changedExampleId,
+            ]) {
+              expect(examples[exampleId]).toBeTruthy();
+              expect(copy.examples[exampleId]).toBeTruthy();
             }
-            if ("exampleIds" in block) {
-              for (const exampleId of block.exampleIds) {
-                expect(examples[exampleId]).toBeTruthy();
-                expect(copy.examples[exampleId]).toBeTruthy();
+          }
+          if (
+            section.id === "explore" &&
+            section.exploration.kind === "transformation"
+          ) {
+            const { initialSelection, targetSelection } =
+              section.exploration.data;
+            for (const selection of [initialSelection, targetSelection]) {
+              if ("exampleId" in selection) {
+                expect(examples[selection.exampleId]).toBeTruthy();
+                expect(copy.examples[selection.exampleId]).toBeTruthy();
               }
             }
           }
@@ -85,9 +99,7 @@ describe.each([itCopy, enCopy])("course locale", (copy) => {
     );
     const knownBlockCopyIds = new Set(
       courseModules.flatMap((m) =>
-        m.lessons.flatMap((l) =>
-          l.sections.flatMap((s) => s.blocks.map((b) => b.copyId)),
-        ),
+        m.lessons.flatMap((l) => l.sections.map((s) => s.copyId)),
       ),
     );
     const knownExampleIds = new Set(Object.keys(examples));

@@ -1,4 +1,5 @@
-import type { ModuleId, PhaseId } from "../data/types";
+import type { LessonSectionId } from "../../routing/lessonSections";
+import type { ContrastDimension, ModuleId, PhaseId } from "../data/types";
 
 export interface BlockCopy {
   eyebrow?: string;
@@ -56,10 +57,39 @@ export interface CourseCopy {
     modulePosition: (current: number, total: number) => string;
     previous: string;
     next: string;
+    /** Footer action returning to the phase course map. */
+    map: string;
     listen: string;
     playing: string;
     legacyModuleNoticeTitle: string;
     legacyModuleNoticeBody: string;
+    /**
+     * The four section landmark names (design spec §4.3). Used verbatim as the
+     * lesson rail's step labels, the mobile context bar's section name, and
+     * each `<section>`'s accessible label, so the rail and the page can never
+     * disagree on section identity.
+     */
+    sections: Record<LessonSectionId, string>;
+    /** Accessible name for the lesson rail / section navigation landmark. */
+    railLabel: string;
+    /** Accessible name for the mobile "jump to a section" control. */
+    sectionMenuLabel: string;
+    /** Before/after comparison labels and the delta-strip heading (§6.3). */
+    comparison: {
+      before: string;
+      after: string;
+      /** Delta-strip heading introducing the changed gear(s). */
+      changed: string;
+      /** Localized name for each contrast dimension named on the delta strip. */
+      dimensions: Record<ContrastDimension, string>;
+    };
+    /** Guided exploration endpoint labels and the syllabary link (§6.4). */
+    guided: {
+      initial: string;
+      target: string;
+      changed: string;
+      openSyllabary: string;
+    };
   };
   practice: {
     eyebrow: string;

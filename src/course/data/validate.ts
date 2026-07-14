@@ -1,9 +1,20 @@
 import { semanticIconIds } from "../../components/icons/Icon";
-import { resolveLabSelection } from "../../content/selection";
+import type { LabSelection } from "../../content/types";
 import { classifyNaturalness } from "../../lab/engine/naturalness";
+import { buildJapaneseSentence } from "../../lab/engine/japanese";
 import { LESSON_SECTION_IDS } from "../../routing/lessonSections";
+import { lessonPath } from "../../routing/routePaths";
+import { createRouteTarget } from "../../routing/routeTarget";
 import { PHASE_IDS } from "./types";
-import type { CourseModule, StaticExample } from "./types";
+import type {
+  AuthoredSelection,
+  CourseModule,
+  ExampleSegment,
+  GuidedExploration,
+  RouteReturnTarget,
+  StaticExample,
+  TransformComparisonData,
+} from "./types";
 
 export interface PrerequisiteNode {
   id: string;
@@ -55,6 +66,262 @@ const PHASE_ID_SET = new Set<string>(PHASE_IDS);
 
 function hasValidEstimate(minutes: number): boolean {
   return Number.isFinite(minutes) && minutes > 0;
+}
+
+function segmentId(segment: ExampleSegment, index: number): string {
+  return segment.id ?? String(index);
+}
+
+function setsEqual(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
+  return a.size === b.size && [...a].every((value) => b.has(value));
+}
+
+/**
+ * Pure integrity check for one lesson comparison (design spec §6.3). Proves
+ * the declared before/after delta is honest so the renderer can mark exactly
+ * the changed segments and nothing else. Never throws; returns stable error
+ * codes. Rejects: identical endpoints (same id or same text), a
+ * missing/unsegmented endpoint, an empty gear or segment declaration, an
+ * unknown or duplicated changed-segment id, marking a segment that is
+ * unchanged between the two endpoints, and any mismatch between the declared
+ * changed gears and the glyphs actually carried by the declared segments.
+ */
+export function validateComparison(
+  comparison: TransformComparisonData,
+  examples: Record<string, StaticExample>,
+): string[] {
+  const errors: string[] = [];
+  const {
+    id,
+    baseExampleId,
+    changedExampleId,
+    changedGearIds,
+    changedSegmentIds,
+  } = comparison;
+
+  if (baseExampleId === changedExampleId) {
+    errors.push(`comparison-same-endpoints:${id}`);
+  }
+  const base = examples[baseExampleId];
+  const changed = examples[changedExampleId];
+  if (!base) errors.push(`comparison-unknown-example:${id}:${baseExampleId}`);
+  if (!changed) {
+    errors.push(`comparison-unknown-example:${id}:${changedExampleId}`);
+  }
+  if (changedGearIds.length === 0) errors.push(`comparison-empty-gears:${id}`);
+  if (changedSegmentIds.length === 0) {
+    errors.push(`comparison-empty-segments:${id}`);
+  }
+  if (!base || !changed) return errors;
+
+  if (base.jp === changed.jp) errors.push(`comparison-identical-text:${id}`);
+
+  if (!base.segments || !changed.segments) {
+    errors.push(`comparison-unsegmented:${id}`);
+    return errors;
+  }
+
+  const changedById = new Map<string, ExampleSegment>();
+  changed.segments.forEach((segment, index) => {
+    changedById.set(segmentId(segment, index), segment);
+  });
+  const baseTrimmed = new Set(
+    base.segments.map((segment) => segment.jp.trim()),
+  );
+  const introduced = new Set(
+    changed.segments
+      .map((segment) => segment.jp.trim())
+      .filter((jp) => !baseTrimmed.has(jp)),
+  );
+
+  const seenSegmentIds = new Set<string>();
+  const declaredGears = new Set<string>();
+  for (const declaredId of changedSegmentIds) {
+    if (seenSegmentIds.has(declaredId)) {
+      errors.push(`comparison-duplicate-segment:${id}:${declaredId}`);
+      continue;
+    }
+    seenSegmentIds.add(declaredId);
+    const segment = changedById.get(declaredId);
+    if (!segment) {
+      errors.push(`comparison-unknown-segment:${id}:${declaredId}`);
+      continue;
+    }
+    const trimmed = segment.jp.trim();
+    if (!introduced.has(trimmed)) {
+      errors.push(`comparison-segment-not-changed:${id}:${declaredId}`);
+      continue;
+    }
+    declaredGears.add(trimmed);
+  }
+
+  if (!setsEqual(new Set(changedGearIds), declaredGears)) {
+    errors.push(`comparison-gear-segment-mismatch:${id}`);
+  }
+
+  return errors;
+}
+
+/** The minimal lesson identity `validateExploration` needs. */
+export interface ExplorationLesson {
+  readonly id: string;
+  readonly moduleId: string;
+  readonly objectiveCopyIds: readonly string[];
+}
+
+function isLabSelection(
+  selection: LabSelection | AuthoredSelection,
+): selection is LabSelection {
+  return !("exampleId" in selection);
+}
+
+function returnTargetValid(
+  target: RouteReturnTarget,
+  lesson: ExplorationLesson,
+): boolean {
+  if (target.pathname !== lessonPath(lesson.moduleId, lesson.id)) return false;
+  if (target.sectionId !== "explore") return false;
+  return createRouteTarget({
+    pathname: target.pathname,
+    sectionId: target.sectionId,
+  }).valid;
+}
+
+interface EndpointModel {
+  readonly gears: Set<string>;
+  readonly signature: string;
+}
+
+function authoredEndpoint(
+  selection: AuthoredSelection,
+  examples: Record<string, StaticExample>,
+  id: string,
+  errors: string[],
+): EndpointModel | null {
+  const example = examples[selection.exampleId];
+  if (!example) {
+    errors.push(`exploration-unknown-example:${id}:${selection.exampleId}`);
+    return null;
+  }
+  if (!example.segments) {
+    errors.push(`exploration-unsegmented:${id}:${selection.exampleId}`);
+    return null;
+  }
+  const knownIds = new Set(
+    example.segments.map((segment, index) => segmentId(segment, index)),
+  );
+  for (const declaredId of selection.segmentIds) {
+    if (!knownIds.has(declaredId)) {
+      errors.push(`exploration-unknown-segment:${id}:${declaredId}`);
+    }
+  }
+  return {
+    gears: new Set(example.segments.map((segment) => segment.jp.trim())),
+    signature: example.jp,
+  };
+}
+
+function labEndpoint(
+  selection: LabSelection,
+  id: string,
+  which: "initial" | "target",
+  errors: string[],
+): EndpointModel | null {
+  let model;
+  try {
+    model = buildJapaneseSentence(selection);
+  } catch {
+    errors.push(`exploration-invalid-lab:${id}:${which}`);
+    return null;
+  }
+  if (classifyNaturalness(selection.form, selection.timeId) !== "natural") {
+    errors.push(`exploration-non-natural:${id}:${which}`);
+  }
+  const gears = new Set<string>();
+  for (const part of model.parts) {
+    const particle = part.particle?.jp?.trim();
+    const suffix = part.suffix?.jp?.trim();
+    if (particle) gears.add(particle);
+    if (suffix) gears.add(suffix);
+  }
+  return { gears, signature: model.sentence.jp };
+}
+
+function endpointModel(
+  selection: LabSelection | AuthoredSelection,
+  which: "initial" | "target",
+  examples: Record<string, StaticExample>,
+  id: string,
+  errors: string[],
+): EndpointModel | null {
+  return isLabSelection(selection)
+    ? labEndpoint(selection, id, which, errors)
+    : authoredEndpoint(selection, examples, id, errors);
+}
+
+function symmetricDifference(
+  a: ReadonlySet<string>,
+  b: ReadonlySet<string>,
+): Set<string> {
+  const result = new Set<string>();
+  for (const value of a) if (!b.has(value)) result.add(value);
+  for (const value of b) if (!a.has(value)) result.add(value);
+  return result;
+}
+
+/**
+ * Pure integrity check for one lesson's guided exploration (design spec §6.4).
+ * Guarantees the exploration is honest: it targets a declared objective of the
+ * lesson, its return target is exactly this lesson's explore anchor, and — for
+ * transformations — that the two endpoints genuinely differ and the declared
+ * changed gears exactly equal the endpoint gear delta (reusing the live
+ * Japanese engine for Lab endpoints so grammar is never duplicated). Never
+ * throws; returns stable error codes.
+ */
+export function validateExploration(
+  exploration: GuidedExploration,
+  lesson: ExplorationLesson,
+  examples: Record<string, StaticExample>,
+): string[] {
+  const errors: string[] = [];
+  const { id, objectiveId, returnTarget } = exploration.data;
+
+  if (!lesson.objectiveCopyIds.includes(objectiveId)) {
+    errors.push(`exploration-unknown-objective:${id}:${objectiveId}`);
+  }
+  if (!returnTargetValid(returnTarget, lesson)) {
+    errors.push(`exploration-bad-return:${id}`);
+  }
+
+  if (exploration.kind === "tool") {
+    return errors;
+  }
+
+  const { initialSelection, targetSelection, changedGearIds } = exploration.data;
+  if (changedGearIds.length === 0) {
+    errors.push(`exploration-empty-gears:${id}`);
+  }
+
+  const initial = endpointModel(
+    initialSelection,
+    "initial",
+    examples,
+    id,
+    errors,
+  );
+  const target = endpointModel(targetSelection, "target", examples, id, errors);
+  if (!initial || !target) return errors;
+
+  if (initial.signature === target.signature) {
+    errors.push(`exploration-identical-endpoints:${id}`);
+  }
+
+  const delta = symmetricDifference(initial.gears, target.gears);
+  if (!setsEqual(new Set(changedGearIds), delta)) {
+    errors.push(`exploration-gear-diff-mismatch:${id}`);
+  }
+
+  return errors;
 }
 
 export function validateCourse(
@@ -133,36 +400,17 @@ export function validateCourse(
         errors.push(`invalid sections:${lesson.id}`);
       }
 
-      for (const section of lesson.sections) {
-        for (const block of section.blocks) {
-          if ("exampleIds" in block) {
-            for (const id of block.exampleIds) {
-              if (!examples[id]) errors.push(`unknown example:${lesson.id}:${id}`);
-            }
-          }
-          if (block.type === "guidedTool" && block.target === "lab") {
-            if (!block.preset) {
-              errors.push(`missing preset:${lesson.id}`);
-              continue;
-            }
-            try {
-              resolveLabSelection(block.preset);
-              const naturalness = classifyNaturalness(
-                block.preset.form,
-                block.preset.timeId,
-              );
-              if (naturalness !== "natural") {
-                errors.push(`non-natural preset:${lesson.id}:${naturalness}`);
-              }
-            } catch (error) {
-              const reason =
-                error instanceof Error
-                  ? error.message
-                  : "unknown selection error";
-              errors.push(`invalid preset:${lesson.id}:${reason}`);
-            }
-          }
-        }
+      // Only validate typed section content once the section shape/order is
+      // trusted, so a deliberately malformed-order fixture reports
+      // `invalid sections` without crashing on a missing typed field.
+      if (sectionsValid) {
+        const [, comparisonSection, exploreSection] = lesson.sections;
+        errors.push(
+          ...validateComparison(comparisonSection.comparison, examples),
+        );
+        errors.push(
+          ...validateExploration(exploreSection.exploration, lesson, examples),
+        );
       }
     });
 

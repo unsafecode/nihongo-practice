@@ -11,10 +11,33 @@ import {
 
 function emptySections(): LessonSections {
   return [
-    { id: "rule", blocks: [] },
-    { id: "comparison", blocks: [] },
-    { id: "explore", blocks: [] },
-    { id: "recap", blocks: [] },
+    { id: "rule", copyId: "fixture-rule", gear: "x" },
+    {
+      id: "comparison",
+      copyId: "fixture-comparison",
+      comparison: {
+        id: "fixture-cmp",
+        baseExampleId: "fixture-a",
+        changedExampleId: "fixture-b",
+        contrastDimension: "sound",
+        changedGearIds: ["x"],
+        changedSegmentIds: ["s"],
+      },
+    },
+    {
+      id: "explore",
+      copyId: "fixture-explore",
+      exploration: {
+        kind: "tool",
+        data: {
+          id: "fixture-expl",
+          objectiveId: "fixture-obj",
+          target: "syllabary",
+          returnTarget: { pathname: "/percorso/mx/lx", sectionId: "explore" },
+        },
+      },
+    },
+    { id: "recap", copyId: "fixture-recap" },
   ];
 }
 
