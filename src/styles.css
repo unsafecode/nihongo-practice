@@ -590,7 +590,7 @@ summary {
 .localetoggle { display: inline-flex; gap: 0.2rem; border: 1px solid var(--line); border-radius: 0.75rem; padding: 0.2rem; background: var(--paper); }
 .localetoggle button { border: 0; border-radius: 0.55rem; padding: 0.45rem 0.65rem; min-width: var(--action-target-min); min-height: var(--action-target-min); background: transparent; color: var(--muted); font-weight: 800; }
 .localetoggle button.is-active { background: white; color: var(--ink); }
-.reference-toggle { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--muted); font-size: 0.76rem; font-weight: 700; }
+.reference-toggle { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--muted); font-size: 0.76rem; font-weight: 700; min-width: var(--action-target-min); min-height: var(--action-target-min); }
 .card__reference { margin: -0.35rem 0 0.75rem; color: var(--muted); font-size: 0.75rem; }
 .settings-warning { margin: 0; padding: 0.55rem 1rem; background: #fff3cf; color: #684d13; text-align: center; font-size: 0.75rem; font-weight: 700; }
 
@@ -665,6 +665,8 @@ summary {
   border: 0;
   border-radius: 0.75rem;
   padding: 0.75rem 1rem;
+  min-width: var(--action-target-min);
+  min-height: var(--action-target-min);
   background: var(--time);
   color: white;
   font-weight: 800;

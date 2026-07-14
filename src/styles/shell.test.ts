@@ -98,4 +98,28 @@ describe("44 × 44 tap-target enforcement", () => {
     expect(rule).toBeDefined();
     expect(rule).toMatch(/min-height\s*:\s*var\(--action-target-min\)/);
   });
+
+  it(".reference-toggle (checkbox label, header + mobile drawer) meets 44px minimum width", () => {
+    const rule = findRule(readStyles(), ".reference-toggle");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/min-width\s*:\s*var\(--action-target-min\)/);
+  });
+
+  it(".reference-toggle (checkbox label, header + mobile drawer) meets 44px minimum height", () => {
+    const rule = findRule(readStyles(), ".reference-toggle");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/min-height\s*:\s*var\(--action-target-min\)/);
+  });
+
+  it(".app-error button (unrecoverable-error recovery control) meets 44px minimum width", () => {
+    const rule = findRule(readStyles(), ".app-error button");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/min-width\s*:\s*var\(--action-target-min\)/);
+  });
+
+  it(".app-error button (unrecoverable-error recovery control) meets 44px minimum height", () => {
+    const rule = findRule(readStyles(), ".app-error button");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/min-height\s*:\s*var\(--action-target-min\)/);
+  });
 });
