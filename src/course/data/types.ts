@@ -24,6 +24,93 @@ export const PHASE_IDS: readonly PhaseId[] = [
   "synthesize",
 ];
 
+/**
+ * The finite, locale-independent vocabulary of grammatical "concepts" this
+ * course actually teaches (design spec §2.6/§6.5). Each id names one gear a
+ * lesson introduces and later lessons may declare as a prerequisite. This is
+ * deliberately scoped to *only* what the 16 lessons teach — it is not a general
+ * grammar taxonomy. `validateConceptOrder` proves every required concept is
+ * introduced before use, and that the synthesize-phase capstone introduces
+ * none of them (it only recombines earlier gears). The visible explanation of
+ * each concept is localized separately in the copy catalog; this union stays
+ * locale-independent.
+ */
+export type CourseConceptId =
+  | "copula-desu"
+  | "topic-wa"
+  | "topic-omission"
+  | "object-o"
+  | "polite-masu"
+  | "request-kudasai"
+  | "past-mashita"
+  | "negative-masen"
+  | "particle-de"
+  | "destination-ni"
+  | "direction-e"
+  | "person-ni"
+  | "with-to"
+  | "desire-tai"
+  | "volitional-mashou"
+  | "offer-mashouka"
+  | "question-ka"
+  | "subject-ga"
+  | "existence-arimasu"
+  | "existence-imasu";
+
+export const COURSE_CONCEPT_IDS: readonly CourseConceptId[] = [
+  "copula-desu",
+  "topic-wa",
+  "topic-omission",
+  "object-o",
+  "polite-masu",
+  "request-kudasai",
+  "past-mashita",
+  "negative-masen",
+  "particle-de",
+  "destination-ni",
+  "direction-e",
+  "person-ni",
+  "with-to",
+  "desire-tai",
+  "volitional-mashou",
+  "offer-mashouka",
+  "question-ka",
+  "subject-ga",
+  "existence-arimasu",
+  "existence-imasu",
+];
+
+/**
+ * The locale-independent glyph(s) that realize each concept, used to prove a
+ * lesson's guided exploration genuinely practices its declared objective — the
+ * exploration's changed-gear delta must intersect the objective gears, so a
+ * matching `objectiveId` string alone can never certify an honest exploration
+ * (design spec §6.4/§8.4, Task D). Concepts realized by a *removal* (topic
+ * omission) or by animacy-driven verb choice list every surface glyph involved.
+ */
+export const CONCEPT_GEARS: Record<CourseConceptId, readonly string[]> = {
+  "copula-desu": ["です"],
+  "topic-wa": ["は"],
+  "topic-omission": ["は"],
+  "object-o": ["を"],
+  "polite-masu": ["ます"],
+  "request-kudasai": ["ください"],
+  "past-mashita": ["ました"],
+  "negative-masen": ["ません"],
+  "particle-de": ["で"],
+  "destination-ni": ["に"],
+  "direction-e": ["へ"],
+  "person-ni": ["に"],
+  "with-to": ["と"],
+  "desire-tai": ["たいです", "たい"],
+  "volitional-mashou": ["ましょう"],
+  "offer-mashouka": ["ましょうか"],
+  "question-ka": ["か"],
+  "subject-ga": ["が"],
+  "existence-arimasu": ["あります", "あり"],
+  "existence-imasu": ["います", "い"],
+};
+
 export interface ExampleSegment {
   /**
    * Stable within-example segment id (auto-assigned as the segment's index
@@ -35,6 +122,13 @@ export interface ExampleSegment {
   jp: string;
   romaji: string;
   kind: "word" | "particle" | "ending";
+  /**
+   * Optional hiragana reading shown as ruby over a katakana loanword at its
+   * first course exposure (design spec §8.3, Task C). Locale-independent: the
+   * standard katakana lives in `jp`, this is the hiragana reading support. Only
+   * set on the loanword segment itself; leaving it undefined means "no ruby".
+   */
+  reading?: string;
 }
 
 export interface StaticExample {
@@ -193,6 +287,18 @@ export interface Lesson {
   titleCopyId: string;
   /** Copy-catalog keys describing what the lesson teaches (§6.2). */
   objectiveCopyIds: string[];
+  /**
+   * The course concepts this lesson is the first to introduce (design spec
+   * §2.6/§6.5, Task A). A synthesize-phase capstone introduces none. Ordering
+   * is proven by `validateConceptOrder`.
+   */
+  introducedConceptIds: readonly CourseConceptId[];
+  /**
+   * The course concepts this lesson assumes already known. Every one must be
+   * introduced by an earlier lesson, an earlier lesson of the same module, or
+   * this same lesson before it is used (`validateConceptOrder`).
+   */
+  requiredConceptIds: readonly CourseConceptId[];
   estimatedMinutes: number;
   sections: LessonSections;
 }

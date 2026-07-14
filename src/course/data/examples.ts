@@ -38,6 +38,19 @@ const list: StaticExample[] = [
     { jp: "りっち", romaji: "Ricchi ", kind: "word" },
     { jp: "です", romaji: "desu", kind: "ending" },
   ]),
+  // Module 2 (topic/copula) minimal pair. `these` segments carry NO trailing
+  // jp space so the changed sentence renders continuously as これはみずです
+  // (design spec §8.3, Task B): the romaji keeps its spaces for readability.
+  segmentedExample("it-is-water", [
+    { jp: "みず", romaji: "mizu ", kind: "word" },
+    { jp: "です", romaji: "desu", kind: "ending" },
+  ]),
+  segmentedExample("this-is-water", [
+    { jp: "これ", romaji: "kore ", kind: "word" },
+    { jp: "は", romaji: "wa ", kind: "particle" },
+    { jp: "みず", romaji: "mizu ", kind: "word" },
+    { jp: "です", romaji: "desu", kind: "ending" },
+  ]),
   segmentedExample("this-water", [
     { jp: "これ", romaji: "kore ", kind: "word" },
     { jp: "は ", romaji: "wa ", kind: "particle" },
@@ -104,7 +117,7 @@ const list: StaticExample[] = [
     { jp: "ませんでした", romaji: "masen deshita", kind: "ending" },
   ]),
   segmentedExample("restaurant-eat", [
-    { jp: "れすとらん", romaji: "resutoran ", kind: "word" },
+    { jp: "レストラン", reading: "れすとらん", romaji: "resutoran ", kind: "word" },
     { jp: "で ", romaji: "de ", kind: "particle" },
     { jp: "らーめん", romaji: "rāmen ", kind: "word" },
     { jp: "を ", romaji: "o ", kind: "particle" },
@@ -193,7 +206,7 @@ const list: StaticExample[] = [
     { jp: "か", romaji: "ka", kind: "particle" },
   ]),
   segmentedExample("restroom-exists", [
-    { jp: "といれ", romaji: "toire ", kind: "word" },
+    { jp: "トイレ", reading: "といれ", romaji: "toire ", kind: "word" },
     { jp: "が ", romaji: "ga ", kind: "particle" },
     { jp: "あり", romaji: "ari", kind: "word" },
     { jp: "ます", romaji: "masu", kind: "ending" },
@@ -225,6 +238,52 @@ const list: StaticExample[] = [
     { jp: "いえ", romaji: "ie ", kind: "word" },
     { jp: "に ", romaji: "ni ", kind: "particle" },
     { jp: "かえり", romaji: "kaeri", kind: "word" },
+    { jp: "ます", romaji: "masu", kind: "ending" },
+  ]),
+  // --- Task 6: prerequisite-led situational spiral endpoints (design spec
+  // §§2.6-2.7, 6.2-6.6, 8.3). Loanwords make their first appearance in the
+  // standard katakana spelling with a hiragana `reading` for reading support;
+  // these authored sentences carry NO trailing jp space so they render
+  // continuously, while the romaji keeps its spaces for readability. ---
+  segmentedExample("water", [{ jp: "みず", romaji: "mizu", kind: "word" }]),
+  segmentedExample("order-ramen-eat", [
+    { jp: "ラーメン", reading: "らーめん", romaji: "rāmen ", kind: "word" },
+    { jp: "を", romaji: "o ", kind: "particle" },
+    { jp: "たべ", romaji: "tabe", kind: "word" },
+    { jp: "ます", romaji: "masu", kind: "ending" },
+  ]),
+  segmentedExample("order-ramen-please", [
+    { jp: "ラーメン", reading: "らーめん", romaji: "rāmen ", kind: "word" },
+    { jp: "を", romaji: "o ", kind: "particle" },
+    { jp: "ください", romaji: "kudasai", kind: "ending" },
+  ]),
+  segmentedExample("go-bare", [
+    { jp: "いき", romaji: "iki", kind: "word" },
+    { jp: "ます", romaji: "masu", kind: "ending" },
+  ]),
+  segmentedExample("meet-teacher", [
+    { jp: "せんせい", romaji: "sensei ", kind: "word" },
+    { jp: "に", romaji: "ni ", kind: "particle" },
+    { jp: "あい", romaji: "ai", kind: "word" },
+    { jp: "ます", romaji: "masu", kind: "ending" },
+  ]),
+  segmentedExample("meet-with-friend", [
+    { jp: "ともだち", romaji: "tomodachi ", kind: "word" },
+    { jp: "と", romaji: "to ", kind: "particle" },
+    { jp: "せんせい", romaji: "sensei ", kind: "word" },
+    { jp: "に", romaji: "ni ", kind: "particle" },
+    { jp: "あい", romaji: "ai", kind: "word" },
+    { jp: "ます", romaji: "masu", kind: "ending" },
+  ]),
+  segmentedExample("travel-day", [
+    { jp: "あした", romaji: "ashita ", kind: "word" },
+    { jp: "れすとらん", romaji: "resutoran ", kind: "word" },
+    { jp: "で", romaji: "de ", kind: "particle" },
+    { jp: "ともだち", romaji: "tomodachi ", kind: "word" },
+    { jp: "と", romaji: "to ", kind: "particle" },
+    { jp: "らーめん", romaji: "rāmen ", kind: "word" },
+    { jp: "を", romaji: "o ", kind: "particle" },
+    { jp: "たべ", romaji: "tabe", kind: "word" },
     { jp: "ます", romaji: "masu", kind: "ending" },
   ]),
   // --- Task 5: minimal-pair / before-state endpoints for the rebuilt

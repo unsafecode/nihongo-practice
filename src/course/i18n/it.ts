@@ -124,58 +124,59 @@ const itModules: CourseCopy["modules"] = {
   time: { title: "Quando succede?" },
   places: { title: "Luoghi e movimento" },
   people: { title: "Persone, desideri e inviti" },
-  "questions-existence": { title: "Domande, richieste e ciò che esiste" },
-  capstone: { title: "Sintesi finale: verbi ed eccezioni" },
+  "questions-existence": { title: "Domande, esistenza e direzione" },
+  capstone: { title: "Sintesi: una giornata in viaggio" },
 };
 
 const itOutcomes: CourseCopy["outcomes"] = {
   sounds: "Leggi e ascolta i segni che userai in tutto il percorso.",
-  "sentence-map": "Vedi dove vanno tema, dettagli e verbo.",
-  actions: "Collega l'oggetto dell'azione al verbo con を.",
+  "sentence-map": "Riconosci il tema con は e chiudi la frase con です.",
+  actions: "Collega l'oggetto al verbo con を e chiedi qualcosa con ください.",
   time: "Cambia tempo e passa dall'affermativo al negativo senza perdere la struttura.",
-  places: "Distingui dove agisci, dove vai e come ti muovi.",
-  people: "Collega persone, desideri e proposte.",
+  places: "Distingui dove agisci con で e dove vai con に.",
+  people: "Collega persone con と e に, esprimi desideri e fai proposte.",
   "questions-existence":
-    "Fai domande con か, formula richieste con ください, di' che qualcosa o qualcuno c'è e riconosci le letture speciali di は・へ・を come particelle.",
-  capstone: "Riconosci かえる come godan: る non basta per capire il gruppo di un verbo.",
+    "Fai domande con か, di' che qualcosa o qualcuno c'è con あります・います e segna la direzione con へ.",
+  capstone: "Ricombina tempo, luogo, persone e azioni in un'unica frase di viaggio.",
 };
 
 const itLessons: CourseCopy["lessons"] = {
   "sounds-core": { title: "I cinque suoni di base" },
   "sounds-special": { title: "Piccoli segni, grandi differenze" },
-  "sentence-order": { title: "Il verbo chiude la frase" },
+  "sentence-order": { title: "Questo è… (これは…です)" },
   "sentence-omission": { title: "Di chi stiamo parlando?" },
   "actions-object": { title: "Che cosa riceve l'azione?" },
-  "actions-masu": { title: "La base resta, la coda cambia" },
+  "actions-masu": { title: "Chiedere con ください" },
   "time-past": { title: "Oggi o ieri?" },
   "time-negative": { title: "Quando non succede" },
   "places-action": { title: "Dove avviene?" },
-  "places-movement": { title: "Meta, mezzo o veicolo?" },
-  "people-particles": { title: "La particella dipende dal verbo" },
+  "places-movement": { title: "Dove vai? La meta con に" },
+  "people-particles": { title: "Con chi fai qualcosa?" },
   "people-desire": { title: "Voglio… Facciamo…?" },
   "travel-questions": { title: "Chiedere con cortesia" },
   "travel-existence": { title: "C'è qualcosa o qualcuno?" },
   "traps-particles": { title: "Si scrive così, si legge diversamente" },
-  "traps-verbs": { title: "る non basta per riconoscere il gruppo" },
+  "traps-verbs": { title: "Una giornata in viaggio" },
 };
 
 const itObjectives: CourseCopy["objectives"] = {
   "sounds-core": "Parti dalle vocali: restano riconoscibili in ogni riga.",
   "sounds-special": "っ e le vocali lunghe cambiano ritmo e significato.",
-  "sentence-order": "I dettagli arrivano prima; l'azione principale arriva alla fine.",
+  "sentence-order": "これは introduce il tema con は; です chiude la frase nominale.",
   "sentence-omission": "は introduce il tema; ciò che è ovvio può sparire.",
   "actions-object": "を viene dopo l'oggetto diretto.",
-  "actions-masu": "ます crea una forma cortese e riutilizzabile.",
-  "time-past": "ます e ました mostrano se l'azione è conclusa.",
+  "actions-masu": "ください trasforma la frase in una richiesta cortese.",
+  "time-past": "ます è non-passato; ました indica che l'azione è conclusa.",
   "time-negative": "ません e ませんでした negano senza cambiare la base.",
   "places-action": "で marca il luogo in cui si svolge l'azione.",
-  "places-movement": "に e で segnano ruoli diversi secondo ciò che vuoi dire.",
-  "people-particles": "Incontri qualcuno con に, aspetti qualcuno con を.",
-  "people-desire": "たいです esprime desiderio; ましょう propone.",
-  "travel-questions": "か trasforma la frase in domanda; ください serve per fare una richiesta.",
+  "places-movement": "に segna la meta verso cui ti muovi.",
+  "people-particles": "に segna la persona che incontri; と segna con chi lo fai.",
+  "people-desire":
+    "たいです esprime un desiderio; ましょう propone («facciamo…»), ましょうか offre o chiede in modo tentativo («facciamo…? / vuoi che…?»).",
+  "travel-questions": "か alla fine trasforma un'affermazione in domanda cortese.",
   "travel-existence": "あります si usa per cose; います per persone e animali.",
-  "traps-particles": "Come particelle, は・へ・を hanno pronunce speciali.",
-  "traps-verbs": "かえる è godan; il futuro resta implicito.",
+  "traps-particles": "Come particella di direzione, へ si scrive he ma si legge e.",
+  "traps-verbs": "Combina で, と, を e ます in un'unica frase di viaggio.",
 };
 
 const itBlocks: CourseCopy["blocks"] = {
@@ -212,20 +213,20 @@ const itBlocks: CourseCopy["blocks"] = {
     bullets: ["っ non si pronuncia da solo", "Una vocale lunga dura due battiti", "ん è una mora autonoma"],
   },
   "sentence-order-rule": {
-    title: "I dettagli prima, il verbo alla fine",
-    body: "Parti dall'azione e aggiungi ciò che serve davanti.",
+    title: "Tema + は + です",
+    body: "これは segna il tema; です chiude la frase in modo cortese. Si scrive tutto unito: これはみずです.",
   },
   "sentence-order-comparison": {
-    title: "Aggiungi un riferimento di tempo",
-    body: "Da “mangio il ramen” a “oggi mangio il ramen”: きょう apre la frase.",
+    title: "Aggiungi il tema",
+    body: "Da みずです a これはみずです: これは dice di che cosa parli.",
   },
   "sentence-order-explore": {
-    title: "Sposta il tempo in testa alla frase",
-    body: "Confronta la frase con e senza きょう davanti.",
+    title: "Aggiungi これは davanti",
+    body: "Confronta la frase con e senza これは davanti.",
   },
   "sentence-order-recap": {
     title: "In sintesi",
-    bullets: ["Il verbo tende a chiudere la frase", "Le particelle mostrano i ruoli", "L'ordine italiano non va copiato"],
+    bullets: ["これは introduce il tema con は", "です rende cortese la frase nominale", "これはみずです si scrive senza spazi"],
   },
   "sentence-omission-rule": {
     title: "Ciò che è ovvio può sparire",
@@ -249,38 +250,38 @@ const itBlocks: CourseCopy["blocks"] = {
   },
   "actions-object-comparison": {
     title: "Aggiungi l'oggetto",
-    body: "Da “mangio” a “mangio il ramen”: らーめん を precede il verbo.",
+    body: "Da たべます a ラーメンをたべます: ラーメンを precede il verbo.",
   },
   "actions-object-explore": {
     title: "Collega un oggetto al verbo",
-    body: "Parti dal solo verbo e aggiungi らーめん を davanti.",
+    body: "Parti da たべます e aggiungi ラーメンを davanti.",
   },
   "actions-object-recap": {
     title: "In sintesi",
     bullets: ["を segue l'oggetto", "を si pronuncia o", "Il verbo resta in fondo"],
   },
   "actions-masu-rule": {
-    title: "Base della forma in ます + desinenza",
-    body: "La parte che precede ます si riusa nelle forme cortesi.",
+    title: "Oggetto + を + ください",
+    body: "ください chiede qualcosa con cortesia: ラーメンをください.",
   },
   "actions-masu-comparison": {
-    title: "Dalla forma base a ます",
-    body: "たべる diventa たべます: la base たべ resta, cambia la coda.",
+    title: "Mangiare o ordinare?",
+    body: "Da ラーメンをたべます a ラーメンをください: ください fa la richiesta.",
   },
   "actions-masu-explore": {
-    title: "Scambia la desinenza",
-    body: "Confronta たべる e たべます tenendo la stessa base.",
+    title: "Trasforma in richiesta",
+    body: "Parti da みず e aggiungi をください per chiedere: みずをください.",
   },
   "actions-masu-recap": {
     title: "In sintesi",
-    bullets: ["ます è cortese", "La base dipende dal gruppo", "La desinenza è l'ingranaggio"],
+    bullets: ["ください = richiesta cortese", "を marca ciò che chiedi", "Utile per ordinare in viaggio"],
   },
   "time-past-rule": {
     title: "ます → ました",
     body: "La base non cambia; ました indica azione conclusa.",
   },
   "time-past-comparison": {
-    title: "Oggi o ieri?",
+    title: "Non-passato o passato?",
     body: "たべます diventa たべました quando l'azione è conclusa.",
   },
   "time-past-explore": {
@@ -289,7 +290,7 @@ const itBlocks: CourseCopy["blocks"] = {
   },
   "time-past-recap": {
     title: "In sintesi",
-    bullets: ["ます è non-passato", "ました è passato", "Il futuro usa ancora ます"],
+    bullets: ["ます è non-passato", "ました è passato", "Il futuro si deduce dal contesto e dalle parole di tempo"],
   },
   "time-negative-rule": {
     title: "ません e ませんでした",
@@ -313,7 +314,7 @@ const itBlocks: CourseCopy["blocks"] = {
   },
   "places-action-comparison": {
     title: "Aggiungi il luogo",
-    body: "Da “mangio il ramen” a “mangio il ramen al ristorante”: れすとらん で.",
+    body: "Da “mangio il ramen” a “mangio il ramen al ristorante”: レストランで.",
   },
   "places-action-explore": {
     title: "Aggiungi e togli il luogo",
@@ -324,40 +325,40 @@ const itBlocks: CourseCopy["blocks"] = {
     bullets: ["で = luogo dell'azione", "Non usare に per questa funzione", "Il luogo precede l'oggetto"],
   },
   "places-movement-rule": {
-    title: "に per la meta, で per il mezzo",
-    body: "Per indicare la direzione incontrerai anche へ, pronunciata e.",
+    title: "Meta + に + verbo di movimento",
+    body: "に segna il luogo verso cui ti muovi: えきにいきます.",
   },
   "places-movement-comparison": {
-    title: "Meta o mezzo?",
-    body: "Da “vado alla stazione” a “vado in treno”: でんしゃ で indica il mezzo.",
+    title: "Aggiungi la meta",
+    body: "Da いきます a えきにいきます: えきに indica dove vai.",
   },
   "places-movement-explore": {
-    title: "Costruisci un viaggio",
-    body: "Nel Laboratorio, scegli meta e mezzo separatamente.",
+    title: "Aggiungi えきに davanti",
+    body: "Parti da いきます e aggiungi えきに per dire dove vai.",
   },
   "places-movement-recap": {
     title: "In sintesi",
-    bullets: ["えきに = verso la stazione", "でんしゃで = in treno", "でんしゃにのる = salire sul treno"],
+    bullets: ["えきに = verso la stazione", "に segna la meta del movimento", "いきます = vado"],
   },
   "people-particles-rule": {
-    title: "Il verbo sceglie il collegamento",
-    body: "あう usa に; まつ usa を.",
+    title: "に per la persona, と per la compagnia",
+    body: "せんせいにあいます: に segna chi incontri. ともだちと…: と segna con chi.",
   },
   "people-particles-comparison": {
-    title: "Aspetto o incontro?",
-    body: "Da ともだち を まつ a ともだち に あう: cambiano particella e verbo.",
+    title: "Aggiungi la compagnia",
+    body: "Da せんせいにあいます a ともだちとせんせいにあいます: ともだちと dice con chi.",
   },
   "people-particles-explore": {
-    title: "Scambia verbo e particella",
-    body: "Confronta “aspettare un amico” e “incontrare un amico”.",
+    title: "Aggiungi ともだちと davanti",
+    body: "Parti da せんせいにあいます e aggiungi ともだちと per dire con chi.",
   },
   "people-particles-recap": {
     title: "In sintesi",
-    bullets: ["ともだちにあう", "ともだちをまつ", "Impara verbo + particella insieme"],
+    bullets: ["に segna la persona che incontri", "と segna con chi fai qualcosa", "せんせいにあいます / ともだちとあいます"],
   },
   "people-desire-rule": {
     title: "Base + たいです",
-    body: "たいです esprime il desiderio personale di fare qualcosa.",
+    body: "たいです esprime il desiderio di fare qualcosa: たべたいです.",
   },
   "people-desire-comparison": {
     title: "Mangio o voglio mangiare?",
@@ -369,7 +370,11 @@ const itBlocks: CourseCopy["blocks"] = {
   },
   "people-desire-recap": {
     title: "In sintesi",
-    bullets: ["たいです = desiderio personale", "Si aggancia alla base ます", "Non è un tempo verbale"],
+    bullets: [
+      "たいです = «voglio…»",
+      "いきましょう = proposta («andiamo»)",
+      "いきましょうか = offerta tentativa («andiamo? / vuoi che andiamo?»)",
+    ],
   },
   "travel-questions-rule": {
     title: "か chiude la domanda",
@@ -377,7 +382,7 @@ const itBlocks: CourseCopy["blocks"] = {
   },
   "travel-questions-comparison": {
     title: "Manca solo か",
-    body: "えきは どこです diventa una domanda cortese aggiungendo か.",
+    body: "えきはどこです diventa えきはどこですか aggiungendo か.",
   },
   "travel-questions-explore": {
     title: "Aggiungi か in fondo",
@@ -393,7 +398,7 @@ const itBlocks: CourseCopy["blocks"] = {
   },
   "travel-existence-comparison": {
     title: "Cosa o persona?",
-    body: "といれ が あります (cosa) diventa せんせい が います (persona).",
+    body: "トイレがあります (cosa) diventa せんせいがいます (persona).",
   },
   "travel-existence-explore": {
     title: "Scambia cosa e persona",
@@ -409,7 +414,7 @@ const itBlocks: CourseCopy["blocks"] = {
   },
   "traps-particles-comparison": {
     title: "に o へ?",
-    body: "えきに いきます diventa えきへ いきます: へ segna la direzione.",
+    body: "えきにいきます diventa えきへいきます: へ segna la direzione.",
   },
   "traps-particles-explore": {
     title: "Scambia に e へ",
@@ -420,20 +425,24 @@ const itBlocks: CourseCopy["blocks"] = {
     bullets: ["Come particella, へ si legge e", "へ segna la direzione", "に e へ possono alternarsi verso una meta"],
   },
   "traps-verbs-rule": {
-    title: "かえる è godan",
-    body: "Finire in る non basta: qui la base è かえり.",
+    title: "Ricombina gli ingranaggi",
+    body: "Nessuna nuova grammatica: metti in fila tempo, luogo, persone, oggetto e verbo.",
   },
   "traps-verbs-comparison": {
-    title: "Aggiungi quando",
-    body: "かえります diventa あした かえります aggiungendo il riferimento di tempo.",
+    title: "Ricombina gli ingranaggi",
+    body: "Da らーめんをたべます a あしたれすとらんでともだちとらーめんをたべます: entrano in gioco あした (quando), で (dove) e と (con chi).",
   },
   "traps-verbs-explore": {
-    title: "Aggiungi あした",
-    body: "Confronta la frase con e senza あした davanti.",
+    title: "Costruisci la giornata",
+    body: "Parti da らーめんをたべます e aggiungi quando, dove e con chi.",
   },
   "traps-verbs-recap": {
     title: "In sintesi",
-    bullets: ["かえる→かえります", "Il gruppo va imparato insieme al verbo", "Il futuro è espresso dal contesto"],
+    bullets: [
+      "Una frase può unire più ingranaggi",
+      "Ordine: tempo → luogo → persone → oggetto → verbo",
+      "Riusi ciò che sai, senza nuova grammatica",
+    ],
   },
 };
 
@@ -445,7 +454,16 @@ const itExamples: CourseCopy["examples"] = {
   "sentence-order": { translation: "Oggi mangio il ramen." },
   "topic-copula": { translation: "Sono Ricchi." },
   "omitted-subject": { translation: "Sono Ricchi." },
-  "this-water": { translation: "Questa è dell'acqua." },
+  "this-water": { translation: "Questa è acqua." },
+  "it-is-water": { translation: "È acqua." },
+  "this-is-water": { translation: "Questa è acqua." },
+  water: { translation: "Acqua." },
+  "order-ramen-eat": { translation: "Mangio il ramen." },
+  "order-ramen-please": { translation: "Un ramen, per favore." },
+  "go-bare": { translation: "Vado." },
+  "meet-teacher": { translation: "Incontro l'insegnante." },
+  "meet-with-friend": { translation: "Incontro l'insegnante con un amico." },
+  "travel-day": { translation: "Domani mangio il ramen al ristorante con un amico." },
   "eat-ramen": { translation: "Mangio il ramen." },
   "drink-water": { translation: "Bevo dell'acqua." },
   "eat-sushi": { translation: "Mangio il sushi." },

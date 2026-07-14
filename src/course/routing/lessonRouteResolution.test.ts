@@ -48,6 +48,8 @@ function makeLesson(id: string, moduleId: string): Lesson {
     order: 1,
     titleCopyId: id,
     objectiveCopyIds: [],
+    introducedConceptIds: [],
+    requiredConceptIds: [],
     estimatedMinutes: 1,
     sections: emptySections(),
   };

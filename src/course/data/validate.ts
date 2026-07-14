@@ -5,12 +5,16 @@ import { buildJapaneseSentence } from "../../lab/engine/japanese";
 import { LESSON_SECTION_IDS } from "../../routing/lessonSections";
 import { lessonPath } from "../../routing/routePaths";
 import { createRouteTarget } from "../../routing/routeTarget";
-import { PHASE_IDS } from "./types";
+import { PHASE_IDS, COURSE_CONCEPT_IDS, CONCEPT_GEARS } from "./types";
+import { loanwords } from "./loanwords";
+import type { Loanword } from "./loanwords";
 import type {
   AuthoredSelection,
+  CourseConceptId,
   CourseModule,
   ExampleSegment,
   GuidedExploration,
+  PhaseId,
   RouteReturnTarget,
   StaticExample,
   TransformComparisonData,
@@ -63,6 +67,191 @@ export function findPrerequisiteCycle(
 
 const SEMANTIC_ICON_ID_SET = new Set<string>(semanticIconIds);
 const PHASE_ID_SET = new Set<string>(PHASE_IDS);
+const CONCEPT_ID_SET = new Set<string>(COURSE_CONCEPT_IDS);
+
+/** The minimal lesson identity `validateConceptOrder` needs. */
+export interface ConceptLesson {
+  readonly id: string;
+  readonly introducedConceptIds: readonly CourseConceptId[];
+  readonly requiredConceptIds: readonly CourseConceptId[];
+}
+
+/** The minimal module identity `validateConceptOrder` needs. */
+export interface ConceptModule {
+  readonly id: string;
+  readonly order: number;
+  readonly phase: PhaseId;
+  readonly lessons: readonly ConceptLesson[];
+}
+
+/**
+ * Pure prerequisite-contract check over the whole course (design spec
+ * §2.6/§6.5, Task A). Walking modules in `order` and lessons in array order,
+ * it proves: no unknown concept id is used; no concept is introduced by two
+ * lessons; every `requiredConceptId` is introduced by an earlier lesson, an
+ * earlier lesson of the same module, or the same lesson before use (never
+ * later, never absent); and a synthesize-phase (capstone) lesson introduces no
+ * foundational grammar — it may only recombine earlier gears. Never throws;
+ * returns stable string error codes.
+ */
+export function validateConceptOrder(modules: readonly ConceptModule[]): string[] {
+  const errors: string[] = [];
+  const ordered = [...modules].sort((a, b) => a.order - b.order);
+
+  // First pass: assign each lesson a monotonic course position and record the
+  // earliest position that introduces each concept (rejecting duplicates and
+  // unknown ids as we go).
+  const introducedAt = new Map<string, number>();
+  const lessonPositions: { lesson: ConceptLesson; position: number }[] = [];
+  let position = 0;
+  for (const courseModule of ordered) {
+    for (const lesson of courseModule.lessons) {
+      const pos = position++;
+      lessonPositions.push({ lesson, position: pos });
+      for (const conceptId of lesson.introducedConceptIds) {
+        if (!CONCEPT_ID_SET.has(conceptId)) {
+          errors.push(`concept-unknown:${lesson.id}:${conceptId}`);
+          continue;
+        }
+        if (introducedAt.has(conceptId)) {
+          errors.push(`concept-duplicate-introduced:${conceptId}:${lesson.id}`);
+          continue;
+        }
+        introducedAt.set(conceptId, pos);
+      }
+      if (courseModule.phase === "synthesize") {
+        for (const conceptId of lesson.introducedConceptIds) {
+          errors.push(`concept-capstone-introduces:${lesson.id}:${conceptId}`);
+        }
+      }
+    }
+  }
+
+  // Second pass: every required concept must be known and introduced no later
+  // than the lesson that requires it.
+  for (const { lesson, position: pos } of lessonPositions) {
+    for (const conceptId of lesson.requiredConceptIds) {
+      if (!CONCEPT_ID_SET.has(conceptId)) {
+        errors.push(`concept-unknown:${lesson.id}:${conceptId}`);
+        continue;
+      }
+      const introPos = introducedAt.get(conceptId);
+      if (introPos === undefined || introPos > pos) {
+        errors.push(
+          `concept-required-before-introduced:${lesson.id}:${conceptId}`,
+        );
+      }
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * Ordered, de-duplicated list of the static examples the course actually
+ * shows on screen, in course order (module order, then lesson order): each
+ * lesson's comparison endpoints followed by its authored guided-transformation
+ * endpoints. Lab guided-transformation endpoints are intentionally excluded —
+ * the Lab renders hiragana-first and never carries authored katakana spelling,
+ * so it is not a loanword "first exposure" surface. First occurrence wins,
+ * which is exactly what the loanword first-exposure contract needs.
+ */
+export function referencedExampleOrder(
+  modules: readonly CourseModule[],
+): string[] {
+  const ordered: string[] = [];
+  const seen = new Set<string>();
+  const push = (exampleId: string) => {
+    if (seen.has(exampleId)) return;
+    seen.add(exampleId);
+    ordered.push(exampleId);
+  };
+  const sortedModules = [...modules].sort((a, b) => a.order - b.order);
+  for (const courseModule of sortedModules) {
+    const sortedLessons = [...courseModule.lessons].sort(
+      (a, b) => a.order - b.order,
+    );
+    for (const lesson of sortedLessons) {
+      // Defensive against deliberately malformed synthetic fixtures: a lesson
+      // whose sections are missing or reordered is separately reported by
+      // validateCourse as `invalid sections`, so here we simply skip any
+      // section that does not carry the typed field we expect rather than
+      // assume the tuple shape and crash.
+      for (const section of lesson.sections) {
+        if (section.id === "comparison" && "comparison" in section) {
+          push(section.comparison.baseExampleId);
+          push(section.comparison.changedExampleId);
+        }
+        if (
+          section.id === "explore" &&
+          "exploration" in section &&
+          section.exploration.kind === "transformation"
+        ) {
+          for (const selection of [
+            section.exploration.data.initialSelection,
+            section.exploration.data.targetSelection,
+          ]) {
+            if ("exampleId" in selection) push(selection.exampleId);
+          }
+        }
+      }
+    }
+  }
+  return ordered;
+}
+
+/**
+ * Katakana-first loanword contract (design spec §8.3, Task C). Given the
+ * examples shown on screen in course order, proves that every registered
+ * loanword the course actually uses first appears in its standard katakana
+ * spelling *with* a hiragana reading — the honest way to introduce a loanword
+ * while keeping the course hiragana-first for reading support. Never throws;
+ * returns stable error codes. Rejects: a hiragana-only first exposure (kana
+ * pretending to be the standard spelling), a katakana first exposure missing
+ * or mismatching its hiragana reading, and a first exposure whose visible form
+ * is neither the standard katakana nor the plain hiragana reading (an
+ * incorrect standard form). Loanwords the course never references are ignored,
+ * and any later hiragana reuse is the sanctioned reading support.
+ */
+export function validateLoanwordExposure(
+  orderedExampleIds: readonly string[],
+  examples: Record<string, StaticExample>,
+  registry: Record<string, Loanword>,
+): string[] {
+  const errors: string[] = [];
+  for (const loanword of Object.values(registry)) {
+    let firstExposure: { exampleId: string; segment: ExampleSegment } | null =
+      null;
+    for (const exampleId of orderedExampleIds) {
+      const example = examples[exampleId];
+      if (!example?.segments) continue;
+      const segment = example.segments.find(
+        (candidate) =>
+          candidate.jp.trim() === loanword.katakana ||
+          candidate.jp.trim() === loanword.hiragana ||
+          candidate.reading === loanword.hiragana,
+      );
+      if (segment) {
+        firstExposure = { exampleId, segment };
+        break;
+      }
+    }
+    if (!firstExposure) continue;
+
+    const { exampleId, segment } = firstExposure;
+    const visible = segment.jp.trim();
+    if (visible === loanword.katakana) {
+      if (segment.reading !== loanword.hiragana) {
+        errors.push(`loanword-missing-reading:${loanword.id}:${exampleId}`);
+      }
+    } else if (visible === loanword.hiragana) {
+      errors.push(`loanword-hiragana-first:${loanword.id}:${exampleId}`);
+    } else {
+      errors.push(`loanword-wrong-standard:${loanword.id}:${exampleId}`);
+    }
+  }
+  return errors;
+}
 
 function hasValidEstimate(minutes: number): boolean {
   return Number.isFinite(minutes) && minutes > 0;
@@ -167,6 +356,33 @@ export interface ExplorationLesson {
   readonly id: string;
   readonly moduleId: string;
   readonly objectiveCopyIds: readonly string[];
+  /**
+   * The lesson's declared objective grammar (design spec §6.4, Task D). A
+   * guided transformation's changed-gear delta must intersect the gears these
+   * concepts map to. Introduced concepts are the objective; a capstone that
+   * introduces nothing falls back to its required concepts (the gears it
+   * recombines). Optional so lightweight synthetic fixtures can omit it — an
+   * empty objective simply skips the intersection check.
+   */
+  readonly introducedConceptIds?: readonly CourseConceptId[];
+  readonly requiredConceptIds?: readonly CourseConceptId[];
+}
+
+/**
+ * The grammar gears a lesson's objective targets: the union of `CONCEPT_GEARS`
+ * over its introduced concepts, or — when it introduces nothing (the capstone)
+ * — over its required concepts.
+ */
+function objectiveGears(lesson: ExplorationLesson): Set<string> {
+  const conceptIds =
+    (lesson.introducedConceptIds && lesson.introducedConceptIds.length > 0
+      ? lesson.introducedConceptIds
+      : lesson.requiredConceptIds) ?? [];
+  const gears = new Set<string>();
+  for (const conceptId of conceptIds) {
+    for (const gear of CONCEPT_GEARS[conceptId] ?? []) gears.add(gear);
+  }
+  return gears;
 }
 
 function isLabSelection(
@@ -321,6 +537,14 @@ export function validateExploration(
     errors.push(`exploration-gear-diff-mismatch:${id}`);
   }
 
+  // Alignment (Task D): the changed gears must genuinely touch the lesson's
+  // declared objective grammar, so a matching objectiveId string alone can't
+  // certify an exploration that only shuffles an unrelated word.
+  const objective = objectiveGears(lesson);
+  if (objective.size > 0 && ![...delta].some((gear) => objective.has(gear))) {
+    errors.push(`exploration-objective-gear-miss:${id}`);
+  }
+
   return errors;
 }
 
@@ -431,6 +655,16 @@ export function validateCourse(
   if (cycle) {
     errors.push(`prerequisite cycle:${cycle.join("->")}`);
   }
+
+  errors.push(...validateConceptOrder(modules));
+
+  errors.push(
+    ...validateLoanwordExposure(
+      referencedExampleOrder(modules),
+      examples,
+      loanwords,
+    ),
+  );
 
   for (const example of Object.values(examples)) {
     if (!example.segments) continue;

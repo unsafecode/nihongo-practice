@@ -94,6 +94,8 @@ function makeLesson(overrides: Partial<Lesson> = {}): Lesson {
     order: 1,
     titleCopyId: id,
     objectiveCopyIds,
+    introducedConceptIds: [],
+    requiredConceptIds: [],
     estimatedMinutes: 5,
     sections: validSections(moduleId, id, objectiveCopyIds[0]),
     ...overrides,

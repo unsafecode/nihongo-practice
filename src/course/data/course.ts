@@ -4,6 +4,7 @@ import type {
   AuthoredSelection,
   ComparisonSection,
   ContrastDimension,
+  CourseConceptId,
   CourseModule,
   ExplorationSection,
   GuidedExploration,
@@ -56,6 +57,10 @@ interface LessonSpec {
   readonly order: number;
   readonly minutes: number;
   readonly gear: string;
+  /** Course concepts this lesson is the first to introduce (Task A). */
+  readonly introduces: readonly CourseConceptId[];
+  /** Course concepts this lesson assumes already taught (Task A). */
+  readonly requires: readonly CourseConceptId[];
   readonly comparison: ComparisonSpec;
   readonly exploration: ExplorationSpec;
 }
@@ -121,6 +126,8 @@ function lesson(spec: LessonSpec): Lesson {
     order: spec.order,
     titleCopyId: spec.id,
     objectiveCopyIds: [spec.id],
+    introducedConceptIds: spec.introduces,
+    requiredConceptIds: spec.requires,
     estimatedMinutes: spec.minutes,
     sections: buildSections(spec),
   };
@@ -147,12 +154,6 @@ const eat = (
   options: LabSelection["options"],
 ): LabSelection => ({ scenarioId: "eat", form, timeId, options });
 
-const go = (
-  form: LabSelection["form"],
-  timeId: LabSelection["timeId"],
-  options: LabSelection["options"],
-): LabSelection => ({ scenarioId: "go", form, timeId, options });
-
 export const courseModules: CourseModule[] = [
   courseModule({
     id: "sounds",
@@ -167,6 +168,8 @@ export const courseModules: CourseModule[] = [
         order: 1,
         minutes: 10,
         gear: "あ",
+        introduces: [],
+        requires: [],
         comparison: {
           base: "vowel-a",
           changed: "syllable-ka",
@@ -182,6 +185,8 @@ export const courseModules: CourseModule[] = [
         order: 2,
         minutes: 8,
         gear: "っ",
+        introduces: [],
+        requires: [],
         comparison: {
           base: "kana-kite",
           changed: "kana-kitte",
@@ -205,19 +210,21 @@ export const courseModules: CourseModule[] = [
         moduleId: "sentence-map",
         order: 1,
         minutes: 9,
-        gear: "→",
+        gear: "です",
+        introduces: ["copula-desu", "topic-wa"],
+        requires: [],
         comparison: {
-          base: "eat-ramen",
-          changed: "sentence-order",
-          dimension: "word-order",
-          changedSegmentIds: ["0"],
-          changedGearIds: ["きょう"],
+          base: "it-is-water",
+          changed: "this-is-water",
+          dimension: "topic",
+          changedSegmentIds: ["0", "1"],
+          changedGearIds: ["これ", "は"],
         },
         exploration: {
           kind: "authored",
-          initial: { exampleId: "eat-ramen", segmentIds: [] },
-          target: { exampleId: "sentence-order", segmentIds: ["0"] },
-          changedGearIds: ["きょう"],
+          initial: { exampleId: "it-is-water", segmentIds: [] },
+          target: { exampleId: "this-is-water", segmentIds: ["0", "1"] },
+          changedGearIds: ["これ", "は"],
         },
       }),
       lesson({
@@ -226,6 +233,8 @@ export const courseModules: CourseModule[] = [
         order: 2,
         minutes: 7,
         gear: "は",
+        introduces: ["topic-omission"],
+        requires: ["topic-wa", "copula-desu"],
         comparison: {
           base: "omitted-subject",
           changed: "topic-copula",
@@ -255,18 +264,20 @@ export const courseModules: CourseModule[] = [
         order: 1,
         minutes: 8,
         gear: "を",
+        introduces: ["object-o", "polite-masu"],
+        requires: [],
         comparison: {
           base: "eat-masu",
-          changed: "eat-ramen",
+          changed: "order-ramen-eat",
           dimension: "particle",
           changedSegmentIds: ["0", "1"],
-          changedGearIds: ["らーめん", "を"],
+          changedGearIds: ["ラーメン", "を"],
         },
         exploration: {
           kind: "authored",
           initial: { exampleId: "eat-masu", segmentIds: [] },
-          target: { exampleId: "eat-ramen", segmentIds: ["0", "1"] },
-          changedGearIds: ["らーめん", "を"],
+          target: { exampleId: "order-ramen-eat", segmentIds: ["0", "1"] },
+          changedGearIds: ["ラーメン", "を"],
         },
       }),
       lesson({
@@ -274,19 +285,21 @@ export const courseModules: CourseModule[] = [
         moduleId: "actions",
         order: 2,
         minutes: 8,
-        gear: "ます",
+        gear: "ください",
+        introduces: ["request-kudasai"],
+        requires: ["object-o"],
         comparison: {
-          base: "eat-dict",
-          changed: "eat-masu",
-          dimension: "ending",
-          changedSegmentIds: ["1"],
-          changedGearIds: ["ます"],
+          base: "order-ramen-eat",
+          changed: "order-ramen-please",
+          dimension: "request",
+          changedSegmentIds: ["2"],
+          changedGearIds: ["ください"],
         },
         exploration: {
           kind: "authored",
-          initial: { exampleId: "eat-dict", segmentIds: ["1"] },
-          target: { exampleId: "eat-masu", segmentIds: ["1"] },
-          changedGearIds: ["る", "ます"],
+          initial: { exampleId: "water", segmentIds: [] },
+          target: { exampleId: "water-please", segmentIds: ["1", "2"] },
+          changedGearIds: ["を", "ください"],
         },
       }),
     ],
@@ -304,6 +317,8 @@ export const courseModules: CourseModule[] = [
         order: 1,
         minutes: 8,
         gear: "ました",
+        introduces: ["past-mashita"],
+        requires: ["object-o", "polite-masu"],
         comparison: {
           base: "today-eat",
           changed: "today-ate",
@@ -324,6 +339,8 @@ export const courseModules: CourseModule[] = [
         order: 2,
         minutes: 8,
         gear: "ません",
+        introduces: ["negative-masen"],
+        requires: ["object-o", "polite-masu"],
         comparison: {
           base: "today-eat",
           changed: "today-not-eat",
@@ -353,12 +370,14 @@ export const courseModules: CourseModule[] = [
         order: 1,
         minutes: 8,
         gear: "で",
+        introduces: ["particle-de"],
+        requires: ["object-o", "polite-masu"],
         comparison: {
           base: "eat-ramen",
           changed: "restaurant-eat",
           dimension: "particle",
           changedSegmentIds: ["0", "1"],
-          changedGearIds: ["れすとらん", "で"],
+          changedGearIds: ["レストラン", "で"],
         },
         exploration: {
           kind: "lab",
@@ -372,19 +391,21 @@ export const courseModules: CourseModule[] = [
         moduleId: "places",
         order: 2,
         minutes: 9,
-        gear: "に・で",
+        gear: "に",
+        introduces: ["destination-ni"],
+        requires: ["polite-masu"],
         comparison: {
-          base: "go-station",
-          changed: "go-by-train",
+          base: "go-bare",
+          changed: "go-station",
           dimension: "particle",
           changedSegmentIds: ["0", "1"],
-          changedGearIds: ["でんしゃ", "で"],
+          changedGearIds: ["えき", "に"],
         },
         exploration: {
-          kind: "lab",
-          initial: go("pres", "today", { destination: "station", transport: null }),
-          target: go("pres", "today", { destination: "station", transport: "train" }),
-          changedGearIds: ["で"],
+          kind: "authored",
+          initial: { exampleId: "go-bare", segmentIds: [] },
+          target: { exampleId: "go-station", segmentIds: ["0", "1"] },
+          changedGearIds: ["えき", "に"],
         },
       }),
     ],
@@ -401,19 +422,21 @@ export const courseModules: CourseModule[] = [
         moduleId: "people",
         order: 1,
         minutes: 8,
-        gear: "に・を",
+        gear: "と・に",
+        introduces: ["person-ni", "with-to"],
+        requires: ["polite-masu"],
         comparison: {
-          base: "wait-friend",
-          changed: "meet-friend",
+          base: "meet-teacher",
+          changed: "meet-with-friend",
           dimension: "particle",
-          changedSegmentIds: ["1", "2"],
-          changedGearIds: ["に", "あい"],
+          changedSegmentIds: ["0", "1"],
+          changedGearIds: ["ともだち", "と"],
         },
         exploration: {
           kind: "authored",
-          initial: { exampleId: "wait-friend", segmentIds: ["1", "2"] },
-          target: { exampleId: "meet-friend", segmentIds: ["1", "2"] },
-          changedGearIds: ["を", "まち", "に", "あい"],
+          initial: { exampleId: "meet-teacher", segmentIds: [] },
+          target: { exampleId: "meet-with-friend", segmentIds: ["0", "1"] },
+          changedGearIds: ["ともだち", "と"],
         },
       }),
       lesson({
@@ -422,6 +445,8 @@ export const courseModules: CourseModule[] = [
         order: 2,
         minutes: 8,
         gear: "たい",
+        introduces: ["desire-tai", "volitional-mashou", "offer-mashouka"],
+        requires: ["object-o", "polite-masu"],
         comparison: {
           base: "eat-sushi",
           changed: "want-sushi",
@@ -451,6 +476,8 @@ export const courseModules: CourseModule[] = [
         order: 1,
         minutes: 9,
         gear: "か",
+        introduces: ["question-ka"],
+        requires: ["copula-desu", "topic-wa"],
         comparison: {
           base: "station-copula",
           changed: "where-station",
@@ -471,6 +498,8 @@ export const courseModules: CourseModule[] = [
         order: 2,
         minutes: 7,
         gear: "あります・います",
+        introduces: ["subject-ga", "existence-arimasu", "existence-imasu"],
+        requires: [],
         comparison: {
           base: "restroom-exists",
           changed: "teacher-exists",
@@ -482,7 +511,7 @@ export const courseModules: CourseModule[] = [
           kind: "authored",
           initial: { exampleId: "restroom-exists", segmentIds: ["0", "2"] },
           target: { exampleId: "teacher-exists", segmentIds: ["0", "2"] },
-          changedGearIds: ["といれ", "あり", "せんせい", "い"],
+          changedGearIds: ["トイレ", "あり", "せんせい", "い"],
         },
       }),
       // Moved in from the former "traps" chapter (Task 3 §4/redistribution):
@@ -494,6 +523,8 @@ export const courseModules: CourseModule[] = [
         order: 3,
         minutes: 9,
         gear: "へ",
+        introduces: ["direction-e"],
+        requires: ["destination-ni"],
         comparison: {
           base: "go-station",
           changed: "particle-e",
@@ -517,28 +548,33 @@ export const courseModules: CourseModule[] = [
     prerequisiteIds: ["questions-existence"],
     iconId: "capstone",
     lessons: [
-      // Sole capstone lesson (Task 3 §4). The full day-in-travel synthesis
-      // rewrite is Task 6; Task 5 preserves the "traps-verbs" lesson id and
-      // gives it a genuine before/after (adding a time word to the かえります
-      // sentence) plus a matching authored exploration.
+      // Sole capstone lesson (Task 3 §4). Task 6 makes this a genuine
+      // "day in travel" synthesis: it recombines gears from earlier gears —
+      // time (あした), place-of-action (で), companion (と), and object (を) —
+      // into one sentence without teaching any new foundational grammar.
       lesson({
         id: "traps-verbs",
         moduleId: "capstone",
         order: 1,
         minutes: 10,
-        gear: "かえり",
+        gear: "で・と",
+        introduces: [],
+        requires: ["object-o", "polite-masu", "particle-de", "with-to"],
         comparison: {
-          base: "return-godan",
-          changed: "tomorrow-return",
-          dimension: "time",
-          changedSegmentIds: ["0"],
-          changedGearIds: ["あした"],
+          base: "eat-ramen",
+          changed: "travel-day",
+          dimension: "word-order",
+          changedSegmentIds: ["0", "1", "2", "3", "4"],
+          changedGearIds: ["あした", "れすとらん", "で", "ともだち", "と"],
         },
         exploration: {
           kind: "authored",
-          initial: { exampleId: "return-godan", segmentIds: [] },
-          target: { exampleId: "tomorrow-return", segmentIds: ["0"] },
-          changedGearIds: ["あした"],
+          initial: { exampleId: "eat-ramen", segmentIds: [] },
+          target: {
+            exampleId: "travel-day",
+            segmentIds: ["0", "1", "2", "3", "4"],
+          },
+          changedGearIds: ["あした", "れすとらん", "で", "ともだち", "と"],
         },
       }),
     ],
