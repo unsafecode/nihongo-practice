@@ -89,6 +89,8 @@ export interface CourseCopy {
       target: string;
       changed: string;
       openSyllabary: string;
+      /** Accessible name for the multi-scene capstone journey list (§6.6). */
+      journeyLabel: string;
     };
   };
   practice: {
@@ -137,4 +139,10 @@ export interface CourseCopy {
   outcomes: Record<string, string>;
   blocks: Record<string, BlockCopy>;
   examples: Record<string, ExampleCopy>;
+  /**
+   * Localized captions for each guided-journey scene, keyed by a scene's
+   * `captionCopyId` (Task 6 capstone §6.6). Kept in its own dictionary because
+   * scenes are internal to one exploration rather than a lesson-level block.
+   */
+  journeyScenes: Record<string, string>;
 }

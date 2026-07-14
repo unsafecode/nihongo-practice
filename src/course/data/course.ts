@@ -49,7 +49,23 @@ type ExplorationSpec =
       readonly initial: LabSelection;
       readonly target: LabSelection;
       readonly changedGearIds: readonly string[];
+    }
+  | {
+      readonly kind: "journey";
+      readonly scenes: readonly JourneySceneSpec[];
     };
+
+/**
+ * One scene of a capstone journey: a genuine authored two-endpoint
+ * transformation. Each scene is validated exactly like a single lesson's
+ * authored exploration, so a journey never renders an unproven interaction.
+ */
+interface JourneySceneSpec {
+  readonly id: string;
+  readonly initial: AuthoredSelection;
+  readonly target: AuthoredSelection;
+  readonly changedGearIds: readonly string[];
+}
 
 interface LessonSpec {
   readonly id: string;
@@ -77,6 +93,28 @@ function buildExploration(spec: LessonSpec): GuidedExploration {
     return {
       kind: "tool",
       data: { id, objectiveId, target: "syllabary", returnTarget },
+    };
+  }
+  if (exploration.kind === "journey") {
+    return {
+      kind: "journey",
+      data: {
+        id,
+        objectiveId,
+        returnTarget,
+        scenes: exploration.scenes.map((scene) => ({
+          id: scene.id,
+          captionCopyId: `${spec.id}-journey-${scene.id}`,
+          transformation: {
+            id: `${id}-${scene.id}`,
+            objectiveId,
+            initialSelection: scene.initial,
+            targetSelection: scene.target,
+            changedGearIds: scene.changedGearIds,
+            returnTarget,
+          },
+        })),
+      },
     };
   }
   return {
@@ -391,8 +429,8 @@ export const courseModules: CourseModule[] = [
         moduleId: "places",
         order: 2,
         minutes: 9,
-        gear: "に",
-        introduces: ["destination-ni"],
+        gear: "に・へ",
+        introduces: ["destination-ni", "direction-e"],
         requires: ["polite-masu"],
         comparison: {
           base: "go-bare",
@@ -401,11 +439,14 @@ export const courseModules: CourseModule[] = [
           changedSegmentIds: ["0", "1"],
           changedGearIds: ["えき", "に"],
         },
+        // The guided step honestly contrasts destination に with directional へ
+        // on the same sentence (えきにいきます ↔ えきへいきます): both mark where
+        // you go, so the delta is exactly the particle pair {に, へ}.
         exploration: {
           kind: "authored",
-          initial: { exampleId: "go-bare", segmentIds: [] },
-          target: { exampleId: "go-station", segmentIds: ["0", "1"] },
-          changedGearIds: ["えき", "に"],
+          initial: { exampleId: "go-station", segmentIds: ["1"] },
+          target: { exampleId: "particle-e", segmentIds: ["1"] },
+          changedGearIds: ["に", "へ"],
         },
       }),
     ],
@@ -514,29 +555,35 @@ export const courseModules: CourseModule[] = [
           changedGearIds: ["トイレ", "あり", "せんせい", "い"],
         },
       }),
-      // Moved in from the former "traps" chapter (Task 3 §4/redistribution):
-      // the destination-vs-direction particle contrast (に vs へ) fits this
-      // module's navigation concept better than a standalone "traps" chapter.
+      // Task 6 corrective redesign: destination-vs-direction (に/へ) now lives
+      // in Module 5 (places-movement). This third Module 7 lesson consolidates
+      // the module's own question + existence grammar already introduced above
+      // — choosing whether a thing or a person exists and asking about it —
+      // introducing no new concept and never claiming direction or an
+      // affirmative movement drill.
       lesson({
         id: "traps-particles",
         moduleId: "questions-existence",
         order: 3,
         minutes: 9,
-        gear: "へ",
-        introduces: ["direction-e"],
-        requires: ["destination-ni"],
+        gear: "ありますか・いますか",
+        introduces: [],
+        requires: ["question-ka", "existence-arimasu", "existence-imasu"],
         comparison: {
-          base: "go-station",
-          changed: "particle-e",
-          dimension: "particle",
-          changedSegmentIds: ["1"],
-          changedGearIds: ["へ"],
+          base: "restroom-exists",
+          changed: "restroom-exists-q",
+          dimension: "question",
+          changedSegmentIds: ["4"],
+          changedGearIds: ["か"],
         },
+        // Both endpoints are yes/no existence questions; the delta swaps the
+        // thing-that-exists (トイレ + あり) for the person-that-exists
+        // (せんせい + い), consolidating あります vs います under か.
         exploration: {
           kind: "authored",
-          initial: { exampleId: "go-station", segmentIds: ["1"] },
-          target: { exampleId: "particle-e", segmentIds: ["1"] },
-          changedGearIds: ["に", "へ"],
+          initial: { exampleId: "restroom-exists-q", segmentIds: ["0", "2"] },
+          target: { exampleId: "teacher-exists-q", segmentIds: ["0", "2"] },
+          changedGearIds: ["トイレ", "あり", "せんせい", "い"],
         },
       }),
     ],
@@ -548,33 +595,73 @@ export const courseModules: CourseModule[] = [
     prerequisiteIds: ["questions-existence"],
     iconId: "capstone",
     lessons: [
-      // Sole capstone lesson (Task 3 §4). Task 6 makes this a genuine
-      // "day in travel" synthesis: it recombines gears from earlier gears —
-      // time (あした), place-of-action (で), companion (と), and object (を) —
-      // into one sentence without teaching any new foundational grammar.
+      // Sole capstone lesson (Task 3 §4). Task 6 makes this a genuine "day in
+      // travel" synthesis. The comparison recombines several prior families in
+      // one natural desire sentence — time (あした), companion + と, place +
+      // で, and the desire ending たいです — while the guided step is a
+      // multi-scene journey that replays the day (order/request, move to a
+      // place, invite, ask whether something exists). It teaches no new grammar
+      // (introduces: []), so its objective falls back to the families it
+      // requires below.
       lesson({
         id: "traps-verbs",
         moduleId: "capstone",
         order: 1,
         minutes: 10,
-        gear: "で・と",
+        gear: "たいです",
         introduces: [],
-        requires: ["object-o", "polite-masu", "particle-de", "with-to"],
+        requires: [
+          "object-o",
+          "polite-masu",
+          "particle-de",
+          "destination-ni",
+          "with-to",
+          "request-kudasai",
+          "desire-tai",
+          "volitional-mashou",
+          "question-ka",
+          "existence-arimasu",
+          "existence-imasu",
+        ],
         comparison: {
           base: "eat-ramen",
           changed: "travel-day",
           dimension: "word-order",
-          changedSegmentIds: ["0", "1", "2", "3", "4"],
-          changedGearIds: ["あした", "れすとらん", "で", "ともだち", "と"],
+          changedSegmentIds: ["0", "1", "2", "3", "4", "8"],
+          changedGearIds: ["あした", "ともだち", "と", "レストラン", "で", "たいです"],
         },
         exploration: {
-          kind: "authored",
-          initial: { exampleId: "eat-ramen", segmentIds: [] },
-          target: {
-            exampleId: "travel-day",
-            segmentIds: ["0", "1", "2", "3", "4"],
-          },
-          changedGearIds: ["あした", "れすとらん", "で", "ともだち", "と"],
+          kind: "journey",
+          scenes: [
+            // Order / request at the restaurant: ラーメンをたべます → ラーメンをください
+            {
+              id: "order",
+              initial: { exampleId: "order-ramen-eat", segmentIds: ["2", "3"] },
+              target: { exampleId: "order-ramen-please", segmentIds: ["2"] },
+              changedGearIds: ["たべ", "ます", "ください"],
+            },
+            // Move to a place: いきます → えきにいきます
+            {
+              id: "move",
+              initial: { exampleId: "go-bare", segmentIds: [] },
+              target: { exampleId: "go-station", segmentIds: ["0", "1"] },
+              changedGearIds: ["えき", "に"],
+            },
+            // Invite a companion: えきにいきます → えきにいきましょう
+            {
+              id: "invite",
+              initial: { exampleId: "go-station", segmentIds: ["3"] },
+              target: { exampleId: "lets-go", segmentIds: ["3"] },
+              changedGearIds: ["ます", "ましょう"],
+            },
+            // Ask whether something exists: トイレがあります → トイレがありますか
+            {
+              id: "ask-exists",
+              initial: { exampleId: "restroom-exists", segmentIds: [] },
+              target: { exampleId: "restroom-exists-q", segmentIds: ["4"] },
+              changedGearIds: ["か"],
+            },
+          ],
         },
       }),
     ],

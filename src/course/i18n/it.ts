@@ -64,6 +64,7 @@ const itUi = {
       target: "Punto di arrivo",
       changed: "Ingranaggi che cambiano",
       openSyllabary: "Apri il Sillabario",
+      journeyLabel: "Una giornata in viaggio, scena per scena",
     },
   },
   practice: {
@@ -124,7 +125,7 @@ const itModules: CourseCopy["modules"] = {
   time: { title: "Quando succede?" },
   places: { title: "Luoghi e movimento" },
   people: { title: "Persone, desideri e inviti" },
-  "questions-existence": { title: "Domande, esistenza e direzione" },
+  "questions-existence": { title: "Domande ed esistenza" },
   capstone: { title: "Sintesi: una giornata in viaggio" },
 };
 
@@ -133,11 +134,12 @@ const itOutcomes: CourseCopy["outcomes"] = {
   "sentence-map": "Riconosci il tema con は e chiudi la frase con です.",
   actions: "Collega l'oggetto al verbo con を e chiedi qualcosa con ください.",
   time: "Cambia tempo e passa dall'affermativo al negativo senza perdere la struttura.",
-  places: "Distingui dove agisci con で e dove vai con に.",
+  places: "Distingui dove agisci con で e dove vai con に e へ.",
   people: "Collega persone con と e に, esprimi desideri e fai proposte.",
   "questions-existence":
-    "Fai domande con か, di' che qualcosa o qualcuno c'è con あります・います e segna la direzione con へ.",
-  capstone: "Ricombina tempo, luogo, persone e azioni in un'unica frase di viaggio.",
+    "Fai domande con か e di' che qualcosa o qualcuno c'è con あります・います.",
+  capstone:
+    "Ricombina ordinare, muoverti, persone, desideri, domande ed esistenza in una giornata in viaggio.",
 };
 
 const itLessons: CourseCopy["lessons"] = {
@@ -150,12 +152,12 @@ const itLessons: CourseCopy["lessons"] = {
   "time-past": { title: "Oggi o ieri?" },
   "time-negative": { title: "Quando non succede" },
   "places-action": { title: "Dove avviene?" },
-  "places-movement": { title: "Dove vai? La meta con に" },
+  "places-movement": { title: "Dove vai? に e へ" },
   "people-particles": { title: "Con chi fai qualcosa?" },
   "people-desire": { title: "Voglio… Facciamo…?" },
   "travel-questions": { title: "Chiedere con cortesia" },
   "travel-existence": { title: "C'è qualcosa o qualcuno?" },
-  "traps-particles": { title: "Si scrive così, si legge diversamente" },
+  "traps-particles": { title: "C'è? Chiedere con か" },
   "traps-verbs": { title: "Una giornata in viaggio" },
 };
 
@@ -169,14 +171,17 @@ const itObjectives: CourseCopy["objectives"] = {
   "time-past": "ます è non-passato; ました indica che l'azione è conclusa.",
   "time-negative": "ません e ませんでした negano senza cambiare la base.",
   "places-action": "で marca il luogo in cui si svolge l'azione.",
-  "places-movement": "に segna la meta verso cui ti muovi.",
+  "places-movement":
+    "に segna la meta verso cui ti muovi; へ indica la stessa direzione.",
   "people-particles": "に segna la persona che incontri; と segna con chi lo fai.",
   "people-desire":
     "たいです esprime un desiderio; ましょう propone («facciamo…»), ましょうか offre o chiede in modo tentativo («facciamo…? / vuoi che…?»).",
   "travel-questions": "か alla fine trasforma un'affermazione in domanda cortese.",
   "travel-existence": "あります si usa per cose; います per persone e animali.",
-  "traps-particles": "Come particella di direzione, へ si scrive he ma si legge e.",
-  "traps-verbs": "Combina で, と, を e ます in un'unica frase di viaggio.",
+  "traps-particles":
+    "Chiedi se una cosa (あります) o una persona (います) c'è terminando con か.",
+  "traps-verbs":
+    "Ricombina ordinare, muoverti, persone, desideri, domande ed esistenza in una giornata in viaggio.",
 };
 
 const itBlocks: CourseCopy["blocks"] = {
@@ -325,20 +330,24 @@ const itBlocks: CourseCopy["blocks"] = {
     bullets: ["で = luogo dell'azione", "Non usare に per questa funzione", "Il luogo precede l'oggetto"],
   },
   "places-movement-rule": {
-    title: "Meta + に + verbo di movimento",
-    body: "に segna il luogo verso cui ti muovi: えきにいきます.",
+    title: "La meta con に — e la sua gemella へ",
+    body: "に segna il luogo verso cui ti muovi: えきにいきます. へ (letto e) indica la stessa direzione: えきへいきます.",
   },
   "places-movement-comparison": {
     title: "Aggiungi la meta",
     body: "Da いきます a えきにいきます: えきに indica dove vai.",
   },
   "places-movement-explore": {
-    title: "Aggiungi えきに davanti",
-    body: "Parti da いきます e aggiungi えきに per dire dove vai.",
+    title: "Scambia に con へ",
+    body: "Da えきにいきます a えきへいきます: entrambe segnano dove vai; へ è la gemella direzionale di に (si scrive he, si legge e).",
   },
   "places-movement-recap": {
     title: "In sintesi",
-    bullets: ["えきに = verso la stazione", "に segna la meta del movimento", "いきます = vado"],
+    bullets: [
+      "に segna la meta del movimento: えきにいきます",
+      "へ indica la stessa direzione, si legge e: えきへいきます",
+      "いきます = vado",
+    ],
   },
   "people-particles-rule": {
     title: "に per la persona, と per la compagnia",
@@ -409,38 +418,42 @@ const itBlocks: CourseCopy["blocks"] = {
     bullets: ["cose = あります", "persone/animali = います", "が marca ciò che esiste"],
   },
   "traps-particles-rule": {
-    title: "Come particella, へ si legge e",
-    body: "Per indicare la direzione, へ accompagna la meta e si pronuncia e.",
+    title: "Chiedi se c'è con か",
+    body: "Termina una frase di esistenza con か per fare una domanda sì/no: トイレがありますか?",
   },
   "traps-particles-comparison": {
-    title: "に o へ?",
-    body: "えきにいきます diventa えきへいきます: へ segna la direzione.",
+    title: "Affermazione → domanda",
+    body: "トイレがあります diventa トイレがありますか: か trasforma l'esistenza in una domanda sì/no.",
   },
   "traps-particles-explore": {
-    title: "Scambia に e へ",
-    body: "Confronta la meta con に e con へ.",
+    title: "Una cosa o una persona?",
+    body: "Scambia la cosa con una persona: トイレがありますか ↔ せんせいがいますか (あります per le cose, います per le persone).",
   },
   "traps-particles-recap": {
     title: "In sintesi",
-    bullets: ["Come particella, へ si legge e", "へ segna la direzione", "に e へ possono alternarsi verso una meta"],
+    bullets: [
+      "か alla fine fa una domanda sì/no",
+      "あります chiede di cose, います di persone",
+      "トイレがありますか / せんせいがいますか",
+    ],
   },
   "traps-verbs-rule": {
     title: "Ricombina gli ingranaggi",
-    body: "Nessuna nuova grammatica: metti in fila tempo, luogo, persone, oggetto e verbo.",
+    body: "Nessuna nuova grammatica: metti in fila tempo, compagnia, luogo, oggetto e il verbo del desiderio.",
   },
   "traps-verbs-comparison": {
     title: "Ricombina gli ingranaggi",
-    body: "Da らーめんをたべます a あしたれすとらんでともだちとらーめんをたべます: entrano in gioco あした (quando), で (dove) e と (con chi).",
+    body: "Da ラーメンをたべます a あしたともだちとレストランでラーメンをたべたいです: entrano in gioco あした (quando), と (con chi), で (dove) e たいです (il desiderio).",
   },
   "traps-verbs-explore": {
-    title: "Costruisci la giornata",
-    body: "Parti da らーめんをたべます e aggiungi quando, dove e con chi.",
+    title: "Ripercorri la giornata",
+    body: "Rivivi la giornata scena per scena: ordina al ristorante, va' alla stazione, invita un amico e chiedi se qualcosa c'è.",
   },
   "traps-verbs-recap": {
     title: "In sintesi",
     bullets: [
-      "Una frase può unire più ingranaggi",
-      "Ordine: tempo → luogo → persone → oggetto → verbo",
+      "Una giornata riusa molti ingranaggi insieme",
+      "ordina → muoviti → invita → chiedi se c'è",
       "Riusi ciò che sai, senza nuova grammatica",
     ],
   },
@@ -463,7 +476,7 @@ const itExamples: CourseCopy["examples"] = {
   "go-bare": { translation: "Vado." },
   "meet-teacher": { translation: "Incontro l'insegnante." },
   "meet-with-friend": { translation: "Incontro l'insegnante con un amico." },
-  "travel-day": { translation: "Domani mangio il ramen al ristorante con un amico." },
+  "travel-day": { translation: "Domani voglio mangiare il ramen al ristorante con un amico." },
   "eat-ramen": { translation: "Mangio il ramen." },
   "drink-water": { translation: "Bevo dell'acqua." },
   "eat-sushi": { translation: "Mangio il sushi." },
@@ -489,6 +502,8 @@ const itExamples: CourseCopy["examples"] = {
   "menu-please": { translation: "Il menù, per favore." },
   "restroom-exists": { translation: "C'è un bagno." },
   "teacher-exists": { translation: "C'è un insegnante." },
+  "restroom-exists-q": { translation: "C'è un bagno?" },
+  "teacher-exists-q": { translation: "C'è un insegnante?" },
   "particle-wa": { translation: "Buongiorno." },
   "particle-e": { translation: "Vado verso la stazione." },
   "return-godan": { translation: "Torno a casa." },
@@ -503,6 +518,13 @@ const itExamples: CourseCopy["examples"] = {
   "station-copula": { translation: "La stazione, dov'è" },
 };
 
+const itJourneyScenes: CourseCopy["journeyScenes"] = {
+  "traps-verbs-journey-order": "1. Ordina al ristorante: chiedi il ramen con ください.",
+  "traps-verbs-journey-move": "2. Esci: di' dove vai con に.",
+  "traps-verbs-journey-invite": "3. Invita un amico con ましょう.",
+  "traps-verbs-journey-ask-exists": "4. Chiedi se qualcosa c'è con か.",
+};
+
 export const it = {
   ...itUi,
   courseMap: itCourseMap,
@@ -512,4 +534,5 @@ export const it = {
   outcomes: itOutcomes,
   blocks: itBlocks,
   examples: itExamples,
+  journeyScenes: itJourneyScenes,
 } satisfies CourseCopy;

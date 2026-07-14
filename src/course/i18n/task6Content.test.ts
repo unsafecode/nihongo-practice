@@ -229,6 +229,35 @@ describe("Task 6 — questions / existence (Module 7)", () => {
       );
     }
   });
+
+  it("consolidates question + existence (か / あります / います) with no direction or trap claims", () => {
+    const target = lesson("traps-particles");
+    expect([...target.introducedConceptIds]).toEqual([]);
+    const comparisonGears = [...comparisonOf("traps-particles").changedGearIds];
+    const guidedGears = [...explorationGears("traps-particles")];
+    const allGears = new Set([...comparisonGears, ...guidedGears]);
+    expect(allGears.has("へ")).toBe(false);
+    expect(allGears.has("に")).toBe(false);
+    expect(
+      [...allGears].some((gear) =>
+        ["か", "あり", "あります", "い", "います"].includes(gear),
+      ),
+    ).toBe(true);
+    for (const copy of [itCopy, enCopy]) {
+      for (const copyId of [
+        "traps-particles-rule",
+        "traps-particles-comparison",
+        "traps-particles-explore",
+        "traps-particles-recap",
+      ]) {
+        const block = copy.blocks[copyId];
+        const text = [block.title, block.body, ...(block.bullets ?? [])]
+          .filter(Boolean)
+          .join(" ");
+        expect(text).not.toMatch(/へ|direction|direzione|movement|movimento/i);
+      }
+    }
+  });
 });
 
 describe("Task 6 — synthesis capstone (Module 8)", () => {
@@ -236,13 +265,27 @@ describe("Task 6 — synthesis capstone (Module 8)", () => {
     const comparison = comparisonOf("traps-verbs");
     const gears = [...comparison.changedGearIds];
     expect(new Set(gears).size).toBeGreaterThanOrEqual(3);
-    // spans place (で) and companion (と) — not merely a time expression
+    // spans place (で), companion (と) and desire (たいです) — a genuine
+    // multi-gear day, not merely a time expression bolted onto one sentence.
     expect(gears).toContain("で");
     expect(gears).toContain("と");
+    expect(gears).toContain("たいです");
     const timeWordsOnly = gears.every((gear) =>
       ["あした", "きょう", "きのう"].includes(gear),
     );
     expect(timeWordsOnly).toBe(false);
+  });
+
+  it("demonstrates the day as a multi-scene guided journey, not one sentence", () => {
+    const section = lesson("traps-verbs").sections.find(
+      (s) => s.id === "explore",
+    );
+    if (!section || section.id !== "explore") {
+      throw new Error("explore section missing for traps-verbs");
+    }
+    expect(section.exploration.kind).toBe("journey");
+    if (section.exploration.kind !== "journey") return;
+    expect(section.exploration.data.scenes.length).toBeGreaterThanOrEqual(4);
   });
 
   it("introduces no new foundational grammar in the capstone", () => {

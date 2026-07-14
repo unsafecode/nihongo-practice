@@ -224,9 +224,40 @@ export interface GuidedToolExploration {
   readonly returnTarget: RouteReturnTarget;
 }
 
-/** A lesson's explore-section content: either a transformation or a tool link. */
+/**
+ * One captioned step of a multi-scene guided journey (design spec §6.4/§6.6,
+ * Task 6 capstone). Each scene is a genuine `GuidedTransformationData` reusing
+ * the exact same engine semantics as a single-lesson transformation, so a
+ * journey can never render an interaction it does not prove. The caption is a
+ * copy-catalog key describing what the scene demonstrates.
+ */
+export interface GuidedJourneyScene {
+  readonly id: string;
+  readonly captionCopyId: string;
+  readonly transformation: GuidedTransformationData;
+}
+
+/**
+ * A guided journey: an ordered sequence of honest transformation scenes that
+ * together recombine several prior grammar families across one coherent
+ * scenario (the capstone "day in travel"). One engine-derived initial/target
+ * pair cannot express a whole day, so this is the smallest honest typed
+ * extension — each scene remains a fully validated `GuidedTransformationData`.
+ */
+export interface GuidedJourneyData {
+  readonly id: string;
+  readonly objectiveId: string;
+  readonly scenes: readonly GuidedJourneyScene[];
+  readonly returnTarget: RouteReturnTarget;
+}
+
+/**
+ * A lesson's explore-section content: a single transformation, a multi-scene
+ * journey, or a tool link.
+ */
 export type GuidedExploration =
   | { readonly kind: "transformation"; readonly data: GuidedTransformationData }
+  | { readonly kind: "journey"; readonly data: GuidedJourneyData }
   | { readonly kind: "tool"; readonly data: GuidedToolExploration };
 
 /**

@@ -22,6 +22,7 @@ import {
 } from "../routing/lessonRouteResolution";
 import { useProgress } from "../progress/ProgressContext";
 import { GuidedToolLink } from "./GuidedToolLink";
+import { GuidedJourney } from "./GuidedJourney";
 import { GuidedTransformation } from "./GuidedTransformation";
 import { LessonRail } from "./LessonRail";
 import { TransformComparison } from "./TransformComparison";
@@ -141,7 +142,11 @@ export function LessonPage() {
               <h3>{content.title}</h3>
               {content.body ? <p>{content.body}</p> : null}
             </div>
-            <GuidedTransformation data={section.exploration.data} />
+            {section.exploration.kind === "journey" ? (
+              <GuidedJourney data={section.exploration.data} />
+            ) : (
+              <GuidedTransformation data={section.exploration.data} />
+            )}
           </>
         );
       }

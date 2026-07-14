@@ -58,7 +58,7 @@ const list: StaticExample[] = [
     { jp: "です", romaji: "desu", kind: "ending" },
   ]),
   segmentedExample("eat-ramen", [
-    { jp: "らーめん", romaji: "rāmen ", kind: "word" },
+    { jp: "ラーメン", reading: "らーめん", romaji: "rāmen ", kind: "word" },
     { jp: "を ", romaji: "o ", kind: "particle" },
     { jp: "たべ", romaji: "tabe", kind: "word" },
     { jp: "ます", romaji: "masu", kind: "ending" },
@@ -83,7 +83,7 @@ const list: StaticExample[] = [
   ]),
   segmentedExample("today-eat", [
     { jp: "きょう ", romaji: "kyō ", kind: "word" },
-    { jp: "らーめん", romaji: "rāmen ", kind: "word" },
+    { jp: "ラーメン", reading: "らーめん", romaji: "rāmen ", kind: "word" },
     { jp: "を ", romaji: "o ", kind: "particle" },
     { jp: "たべ", romaji: "tabe", kind: "word" },
     { jp: "ます", romaji: "masu", kind: "ending" },
@@ -104,7 +104,7 @@ const list: StaticExample[] = [
   ]),
   segmentedExample("today-not-eat", [
     { jp: "きょう ", romaji: "kyō ", kind: "word" },
-    { jp: "らーめん", romaji: "rāmen ", kind: "word" },
+    { jp: "ラーメン", reading: "らーめん", romaji: "rāmen ", kind: "word" },
     { jp: "を ", romaji: "o ", kind: "particle" },
     { jp: "たべ", romaji: "tabe", kind: "word" },
     { jp: "ません", romaji: "masen", kind: "ending" },
@@ -119,7 +119,7 @@ const list: StaticExample[] = [
   segmentedExample("restaurant-eat", [
     { jp: "レストラン", reading: "れすとらん", romaji: "resutoran ", kind: "word" },
     { jp: "で ", romaji: "de ", kind: "particle" },
-    { jp: "らーめん", romaji: "rāmen ", kind: "word" },
+    { jp: "ラーメン", reading: "らーめん", romaji: "rāmen ", kind: "word" },
     { jp: "を ", romaji: "o ", kind: "particle" },
     { jp: "たべ", romaji: "tabe", kind: "word" },
     { jp: "ます", romaji: "masu", kind: "ending" },
@@ -217,6 +217,24 @@ const list: StaticExample[] = [
     { jp: "い", romaji: "i", kind: "word" },
     { jp: "ます", romaji: "masu", kind: "ending" },
   ]),
+  // Task 6 Module 7 consolidation endpoints: yes/no existence questions that
+  // append か to the あります / います contrast (トイレ = thing, せんせい =
+  // person). トイレ keeps its hiragana reading support. No trailing jp space so
+  // they render continuously (トイレがありますか) while romaji keeps spaces.
+  segmentedExample("restroom-exists-q", [
+    { jp: "トイレ", reading: "といれ", romaji: "toire ", kind: "word" },
+    { jp: "が ", romaji: "ga ", kind: "particle" },
+    { jp: "あり", romaji: "ari", kind: "word" },
+    { jp: "ます", romaji: "masu", kind: "ending" },
+    { jp: "か", romaji: "ka", kind: "particle" },
+  ]),
+  segmentedExample("teacher-exists-q", [
+    { jp: "せんせい", romaji: "sensei ", kind: "word" },
+    { jp: "が ", romaji: "ga ", kind: "particle" },
+    { jp: "い", romaji: "i", kind: "word" },
+    { jp: "ます", romaji: "masu", kind: "ending" },
+    { jp: "か", romaji: "ka", kind: "particle" },
+  ]),
   segmentedExample("particle-wa", [
     { jp: "こんにち", romaji: "konnichi", kind: "word" },
     { jp: "は", romaji: "wa", kind: "particle" },
@@ -275,16 +293,21 @@ const list: StaticExample[] = [
     { jp: "あい", romaji: "ai", kind: "word" },
     { jp: "ます", romaji: "masu", kind: "ending" },
   ]),
+  // Task 6 capstone anchor: a natural "day in travel" desire sentence that
+  // recombines time (あした), companion + と, place-of-action + で, the object
+  // ラーメン, and the desire ending たいです. Registered loanwords appear in
+  // standard katakana with a hiragana `reading`; no trailing jp spaces so it
+  // renders continuously while romaji keeps spaces.
   segmentedExample("travel-day", [
     { jp: "あした", romaji: "ashita ", kind: "word" },
-    { jp: "れすとらん", romaji: "resutoran ", kind: "word" },
-    { jp: "で", romaji: "de ", kind: "particle" },
     { jp: "ともだち", romaji: "tomodachi ", kind: "word" },
     { jp: "と", romaji: "to ", kind: "particle" },
-    { jp: "らーめん", romaji: "rāmen ", kind: "word" },
+    { jp: "レストラン", reading: "れすとらん", romaji: "resutoran ", kind: "word" },
+    { jp: "で", romaji: "de ", kind: "particle" },
+    { jp: "ラーメン", reading: "らーめん", romaji: "rāmen ", kind: "word" },
     { jp: "を", romaji: "o ", kind: "particle" },
     { jp: "たべ", romaji: "tabe", kind: "word" },
-    { jp: "ます", romaji: "masu", kind: "ending" },
+    { jp: "たいです", romaji: "tai desu", kind: "ending" },
   ]),
   // --- Task 5: minimal-pair / before-state endpoints for the rebuilt
   // comparison + guided-exploration contracts (design spec §6.3-§6.4). ---
@@ -309,7 +332,7 @@ const list: StaticExample[] = [
   ]),
   segmentedExample("today-ate", [
     { jp: "きょう ", romaji: "kyō ", kind: "word" },
-    { jp: "らーめん", romaji: "rāmen ", kind: "word" },
+    { jp: "ラーメン", reading: "らーめん", romaji: "rāmen ", kind: "word" },
     { jp: "を ", romaji: "o ", kind: "particle" },
     { jp: "たべ", romaji: "tabe", kind: "word" },
     { jp: "ました", romaji: "mashita", kind: "ending" },

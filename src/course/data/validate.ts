@@ -14,6 +14,7 @@ import type {
   CourseModule,
   ExampleSegment,
   GuidedExploration,
+  GuidedTransformationData,
   PhaseId,
   RouteReturnTarget,
   StaticExample,
@@ -194,6 +195,22 @@ export function referencedExampleOrder(
             if ("exampleId" in selection) push(selection.exampleId);
           }
         }
+        // A journey exploration shows each scene's two endpoints on screen, so
+        // they are learner-visible references too (Task 6 capstone §6.6).
+        if (
+          section.id === "explore" &&
+          "exploration" in section &&
+          section.exploration.kind === "journey"
+        ) {
+          for (const scene of section.exploration.data.scenes) {
+            for (const selection of [
+              scene.transformation.initialSelection,
+              scene.transformation.targetSelection,
+            ]) {
+              if ("exampleId" in selection) push(selection.exampleId);
+            }
+          }
+        }
       }
     }
   }
@@ -253,12 +270,55 @@ export function validateLoanwordExposure(
   return errors;
 }
 
-function hasValidEstimate(minutes: number): boolean {
-  return Number.isFinite(minutes) && minutes > 0;
+/**
+ * Post-exposure loanword usage contract (design spec §8.3, Task C — Task 6
+ * hardening). Stricter than {@link validateLoanwordExposure}: it walks *every*
+ * learner-visible occurrence of a registered loanword (not just the first) and
+ * proves the primary Japanese spelling is always the standard katakana. Any
+ * later bare-hiragana occurrence — kana pretending to be the word rather than
+ * reading support — is rejected, and every katakana occurrence must keep its
+ * explicit hiragana `reading`. Hiragana that appears only in a segment's
+ * `reading` field is the sanctioned reading support and is allowed. Words the
+ * course never references, and non-loanword segments, are ignored. Never
+ * throws; returns stable error codes keyed by loanword id + example id.
+ */
+export function validateLoanwordUsage(
+  orderedExampleIds: readonly string[],
+  examples: Record<string, StaticExample>,
+  registry: Record<string, Loanword>,
+): string[] {
+  const errors: string[] = [];
+  const byHiragana = new Map<string, Loanword>();
+  const byKatakana = new Map<string, Loanword>();
+  for (const loanword of Object.values(registry)) {
+    byHiragana.set(loanword.hiragana, loanword);
+    byKatakana.set(loanword.katakana, loanword);
+  }
+  for (const exampleId of orderedExampleIds) {
+    const example = examples[exampleId];
+    if (!example?.segments) continue;
+    for (const segment of example.segments) {
+      const visible = segment.jp.trim();
+      const asHiragana = byHiragana.get(visible);
+      if (asHiragana) {
+        errors.push(`loanword-hiragana-primary:${asHiragana.id}:${exampleId}`);
+        continue;
+      }
+      const asKatakana = byKatakana.get(visible);
+      if (asKatakana && segment.reading?.trim() !== asKatakana.hiragana) {
+        errors.push(`loanword-missing-reading:${asKatakana.id}:${exampleId}`);
+      }
+    }
+  }
+  return errors;
 }
 
 function segmentId(segment: ExampleSegment, index: number): string {
   return segment.id ?? String(index);
+}
+
+function hasValidEstimate(minutes: number): boolean {
+  return Number.isFinite(minutes) && minutes > 0;
 }
 
 function setsEqual(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
@@ -494,6 +554,53 @@ function symmetricDifference(
  * Japanese engine for Lab endpoints so grammar is never duplicated). Never
  * throws; returns stable error codes.
  */
+/**
+ * Core integrity check for a single honest transformation (one initial/target
+ * pair). Shared by both a lesson's single guided transformation and each scene
+ * of a capstone journey, so a journey scene is validated with the exact same
+ * engine semantics as a standalone transformation — it can never render an
+ * interaction it does not prove. Pushes stable error codes keyed by `data.id`;
+ * never throws. `objective` is the lesson's objective-gear set (empty skips the
+ * alignment check for lightweight fixtures).
+ */
+function validateTransformationCore(
+  data: GuidedTransformationData,
+  examples: Record<string, StaticExample>,
+  objective: ReadonlySet<string>,
+  errors: string[],
+): void {
+  const { id, initialSelection, targetSelection, changedGearIds } = data;
+  if (changedGearIds.length === 0) {
+    errors.push(`exploration-empty-gears:${id}`);
+  }
+
+  const initial = endpointModel(
+    initialSelection,
+    "initial",
+    examples,
+    id,
+    errors,
+  );
+  const target = endpointModel(targetSelection, "target", examples, id, errors);
+  if (!initial || !target) return;
+
+  if (initial.signature === target.signature) {
+    errors.push(`exploration-identical-endpoints:${id}`);
+  }
+
+  const delta = symmetricDifference(initial.gears, target.gears);
+  if (!setsEqual(new Set(changedGearIds), delta)) {
+    errors.push(`exploration-gear-diff-mismatch:${id}`);
+  }
+
+  // Alignment (Task D): the changed gears must genuinely touch the lesson's
+  // declared objective grammar, so a matching objectiveId string alone can't
+  // certify an exploration that only shuffles an unrelated word.
+  if (objective.size > 0 && ![...delta].some((gear) => objective.has(gear))) {
+    errors.push(`exploration-objective-gear-miss:${id}`);
+  }
+}
+
 export function validateExploration(
   exploration: GuidedExploration,
   lesson: ExplorationLesson,
@@ -513,38 +620,28 @@ export function validateExploration(
     return errors;
   }
 
-  const { initialSelection, targetSelection, changedGearIds } = exploration.data;
-  if (changedGearIds.length === 0) {
-    errors.push(`exploration-empty-gears:${id}`);
-  }
-
-  const initial = endpointModel(
-    initialSelection,
-    "initial",
-    examples,
-    id,
-    errors,
-  );
-  const target = endpointModel(targetSelection, "target", examples, id, errors);
-  if (!initial || !target) return errors;
-
-  if (initial.signature === target.signature) {
-    errors.push(`exploration-identical-endpoints:${id}`);
-  }
-
-  const delta = symmetricDifference(initial.gears, target.gears);
-  if (!setsEqual(new Set(changedGearIds), delta)) {
-    errors.push(`exploration-gear-diff-mismatch:${id}`);
-  }
-
-  // Alignment (Task D): the changed gears must genuinely touch the lesson's
-  // declared objective grammar, so a matching objectiveId string alone can't
-  // certify an exploration that only shuffles an unrelated word.
   const objective = objectiveGears(lesson);
-  if (objective.size > 0 && ![...delta].some((gear) => objective.has(gear))) {
-    errors.push(`exploration-objective-gear-miss:${id}`);
+
+  // A journey is an ordered sequence of honest transformation scenes that
+  // together recombine several prior families across one coherent scenario
+  // (Task 6 capstone §6.6). Each scene is validated exactly like a single
+  // transformation; a journey with no scenes proves nothing.
+  if (exploration.kind === "journey") {
+    if (exploration.data.scenes.length === 0) {
+      errors.push(`exploration-empty-journey:${id}`);
+    }
+    for (const scene of exploration.data.scenes) {
+      validateTransformationCore(
+        scene.transformation,
+        examples,
+        objective,
+        errors,
+      );
+    }
+    return errors;
   }
 
+  validateTransformationCore(exploration.data, examples, objective, errors);
   return errors;
 }
 
@@ -660,6 +757,14 @@ export function validateCourse(
 
   errors.push(
     ...validateLoanwordExposure(
+      referencedExampleOrder(modules),
+      examples,
+      loanwords,
+    ),
+  );
+
+  errors.push(
+    ...validateLoanwordUsage(
       referencedExampleOrder(modules),
       examples,
       loanwords,

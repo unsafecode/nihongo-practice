@@ -4,7 +4,7 @@ import { examples } from "./examples";
 import { loanwords } from "./loanwords";
 import type { Loanword } from "./loanwords";
 import type { StaticExample } from "./types";
-import { referencedExampleOrder, validateLoanwordExposure } from "./validate";
+import { referencedExampleOrder, validateLoanwordExposure, validateLoanwordUsage } from "./validate";
 
 /**
  * Synthetic first-exposure fixtures for the katakana-first loanword contract
@@ -115,6 +115,76 @@ describe("validateLoanwordExposure — real shipped course data", () => {
         examples,
         loanwords,
       ),
+    ).toEqual([]);
+  });
+});
+
+describe("validateLoanwordUsage — no post-exposure hiragana-primary loanword", () => {
+  it("accepts katakana-with-reading occurrences and ignores unregistered words", () => {
+    const examples = {
+      "order-ramen": ex("order-ramen", [
+        { jp: "ラーメン", reading: "らーめん", romaji: "rāmen ", kind: "word" },
+        { jp: "を", romaji: "o ", kind: "particle" },
+        { jp: "ください", romaji: "kudasai", kind: "ending" },
+      ]),
+      water: ex("water", [{ jp: "みず", romaji: "mizu", kind: "word" }]),
+    };
+    expect(
+      validateLoanwordUsage(
+        ["order-ramen", "water"],
+        examples,
+        TEST_LOANWORDS,
+      ),
+    ).toEqual([]);
+  });
+
+  it("rejects a later hiragana-primary reuse of a registered loanword", () => {
+    const examples = {
+      "order-ramen": ex("order-ramen", [
+        { jp: "ラーメン", reading: "らーめん", romaji: "rāmen ", kind: "word" },
+        { jp: "を", romaji: "o ", kind: "particle" },
+        { jp: "ください", romaji: "kudasai", kind: "ending" },
+      ]),
+      "today-ate": ex("today-ate", [
+        { jp: "らーめん", romaji: "rāmen ", kind: "word" },
+        { jp: "を", romaji: "o ", kind: "particle" },
+        { jp: "たべました", romaji: "tabemashita", kind: "ending" },
+      ]),
+    };
+    expect(
+      validateLoanwordUsage(
+        ["order-ramen", "today-ate"],
+        examples,
+        TEST_LOANWORDS,
+      ),
+    ).toContain("loanword-hiragana-primary:ramen:today-ate");
+  });
+
+  it("rejects a katakana occurrence missing its hiragana reading support", () => {
+    const examples = {
+      "bare-katakana": ex("bare-katakana", [
+        { jp: "ラーメン", romaji: "rāmen ", kind: "word" },
+        { jp: "を", romaji: "o ", kind: "particle" },
+        { jp: "たべ", romaji: "tabe", kind: "word" },
+        { jp: "ます", romaji: "masu", kind: "ending" },
+      ]),
+    };
+    expect(
+      validateLoanwordUsage(["bare-katakana"], examples, TEST_LOANWORDS),
+    ).toContain("loanword-missing-reading:ramen:bare-katakana");
+  });
+
+  it("allows a registered loanword's hiragana that appears only as reading support", () => {
+    const examples = {
+      "order-ramen": ex("order-ramen", [
+        { jp: "ラーメン", reading: "らーめん", romaji: "rāmen ", kind: "word" },
+        { jp: "を", romaji: "o ", kind: "particle" },
+        { jp: "たべ", romaji: "tabe", kind: "word" },
+        { jp: "ます", romaji: "masu", kind: "ending" },
+      ]),
+    };
+    expect(
+      validateLoanwordUsage(["order-ramen"], examples, TEST_LOANWORDS),
     ).toEqual([]);
   });
 });

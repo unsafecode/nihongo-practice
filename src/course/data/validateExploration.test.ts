@@ -4,6 +4,7 @@ import { validateExploration } from "./validate";
 import type {
   ExampleSegment,
   GuidedExploration,
+  GuidedJourneyData,
   GuidedTransformationData,
   RouteReturnTarget,
   StaticExample,
@@ -240,5 +241,140 @@ describe("validateExploration — tool exploration", () => {
     expect(validateExploration(exploration, LESSON, {})).toContain(
       "exploration-bad-return:tool",
     );
+  });
+});
+
+const journeyExamples: Record<string, StaticExample> = {
+  ...authoredExamples,
+  "b-init": example("b-init", [
+    seg("いき", "word", "0"),
+    seg("ます", "ending", "1"),
+  ]),
+  "b-target": example("b-target", [
+    seg("いき", "word", "0"),
+    seg("ましょう", "ending", "1"),
+  ]),
+};
+
+function journeyScene(
+  id: string,
+  initial: string,
+  target: string,
+  changedGearIds: string[],
+) {
+  return {
+    id,
+    captionCopyId: `jrn-${id}`,
+    transformation: {
+      id,
+      objectiveId: "lx",
+      initialSelection: { exampleId: initial, segmentIds: ["1"] },
+      targetSelection: { exampleId: target, segmentIds: ["1"] },
+      changedGearIds,
+      returnTarget: returnTarget(),
+    } satisfies GuidedTransformationData,
+  };
+}
+
+function journey(): GuidedExploration {
+  return {
+    kind: "journey",
+    data: {
+      id: "jrn",
+      objectiveId: "lx",
+      returnTarget: returnTarget(),
+      scenes: [
+        journeyScene("s1", "a-init", "a-target", ["る", "ます"]),
+        journeyScene("s2", "b-init", "b-target", ["ます", "ましょう"]),
+      ],
+    },
+  };
+}
+
+describe("validateExploration — journey (multi-scene recombination)", () => {
+  it("accepts a genuine multi-scene journey of honest transformations", () => {
+    expect(validateExploration(journey(), LESSON, journeyExamples)).toEqual([]);
+  });
+
+  it("rejects a journey with no scenes", () => {
+    const base = journey().data as GuidedJourneyData;
+    expect(
+      validateExploration(
+        { kind: "journey", data: { ...base, scenes: [] } },
+        LESSON,
+        journeyExamples,
+      ),
+    ).toContain("exploration-empty-journey:jrn");
+  });
+
+  it("rejects a scene whose endpoints are identical", () => {
+    const base = journey().data as GuidedJourneyData;
+    const scenes = [
+      {
+        ...base.scenes[0],
+        transformation: {
+          ...base.scenes[0].transformation,
+          targetSelection: { exampleId: "a-init", segmentIds: ["1"] },
+          changedGearIds: ["る"],
+        },
+      },
+      base.scenes[1],
+    ];
+    expect(
+      validateExploration(
+        { kind: "journey", data: { ...base, scenes } },
+        LESSON,
+        journeyExamples,
+      ),
+    ).toContain("exploration-identical-endpoints:s1");
+  });
+
+  it("rejects a scene whose changed gears do not equal its endpoint delta", () => {
+    const base = journey().data as GuidedJourneyData;
+    const scenes = [
+      base.scenes[0],
+      {
+        ...base.scenes[1],
+        transformation: {
+          ...base.scenes[1].transformation,
+          changedGearIds: ["を"],
+        },
+      },
+    ];
+    expect(
+      validateExploration(
+        { kind: "journey", data: { ...base, scenes } },
+        LESSON,
+        journeyExamples,
+      ),
+    ).toContain("exploration-gear-diff-mismatch:s2");
+  });
+
+  it("rejects a journey objective the lesson does not declare", () => {
+    const base = journey().data as GuidedJourneyData;
+    expect(
+      validateExploration(
+        { kind: "journey", data: { ...base, objectiveId: "ghost" } },
+        LESSON,
+        journeyExamples,
+      ),
+    ).toContain("exploration-unknown-objective:jrn:ghost");
+  });
+
+  it("rejects a journey with a bad return target", () => {
+    const base = journey().data as GuidedJourneyData;
+    expect(
+      validateExploration(
+        {
+          kind: "journey",
+          data: {
+            ...base,
+            returnTarget: { pathname: "/nope", sectionId: "explore" },
+          },
+        },
+        LESSON,
+        journeyExamples,
+      ),
+    ).toContain("exploration-bad-return:jrn");
   });
 });

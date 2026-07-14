@@ -14,7 +14,7 @@ const authored: GuidedTransformationData = {
   objectiveId: "actions-object",
   initialSelection: { exampleId: "eat-masu", segmentIds: [] },
   targetSelection: { exampleId: "eat-ramen", segmentIds: ["0", "1"] },
-  changedGearIds: ["らーめん", "を"],
+  changedGearIds: ["ラーメン", "を"],
   returnTarget: {
     pathname: lessonPath("actions", "actions-object"),
     sectionId: "explore",
@@ -76,12 +76,12 @@ describe("GuidedTransformation (authored endpoints)", () => {
   it("shows both endpoints derived from the authored examples", () => {
     const html = render(authored);
     expect(html).toContain("たべ");
-    expect(html).toContain("らーめん");
+    expect(html).toContain("ラーメン");
   });
 
   it("marks the introduced gears on the target endpoint only", () => {
     const found = marks(render(authored)).join("|");
-    expect(found).toContain("らーめん");
+    expect(found).toContain("ラーメン");
     expect(found).toContain("を");
     // Both declared gears live in the target endpoint; the initial has none.
     expect(marks(render(authored))).toHaveLength(2);
