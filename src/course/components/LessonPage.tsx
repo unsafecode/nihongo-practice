@@ -3,8 +3,10 @@ import {
   Link,
   Navigate,
   useLocation,
+  useNavigate,
   useParams,
 } from "react-router";
+import { Notice } from "../../components/Notice";
 import { SpeechNotice } from "../../components/SpeechNotice";
 import { useSpeech } from "../../hooks/useSpeech";
 import { useLocale } from "../../i18n/LocaleContext";
@@ -15,6 +17,11 @@ import {
 import { lessonPath, routePaths } from "../../routing/routes";
 import { courseModules } from "../data/course";
 import { getCourseCopy } from "../i18n/catalog";
+import {
+  isLegacyModuleRedirectState,
+  LEGACY_MODULE_REDIRECT_STATE,
+  resolveLessonRoute,
+} from "../routing/lessonRouteResolution";
 import { useProgress } from "../progress/ProgressContext";
 import { LessonBlock } from "./LessonBlock";
 import { LessonSidebar } from "./LessonSidebar";
@@ -24,24 +31,29 @@ const orderedLessons = courseModules.flatMap((courseModule) =>
 );
 
 export function LessonPage() {
-  // The `:moduleId` segment is cosmetic only (see routePaths.ts): a lesson
-  // is looked up by its own stable id across every module so old bookmarked
-  // URLs still resolve even where the module id in the path has changed.
-  const { lessonId } = useParams<{ moduleId: string; lessonId: string }>();
+  // The URL's `:moduleId` segment must name either the lesson's real
+  // module or a recognized legacy alias for it (see
+  // routing/lessonRouteResolution.ts): a lesson is never accepted by its
+  // `lessonId` alone, so a mismatched module (e.g. an unrelated module
+  // paired with someone else's lesson) resolves invalid instead of
+  // silently rendering the wrong module's lesson.
+  const { moduleId, lessonId } = useParams<{
+    moduleId: string;
+    lessonId: string;
+  }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const { locale } = useLocale();
   const copy = getCourseCopy(locale);
   const { supported, japaneseVoiceAvailable, playbackFailed } = useSpeech();
   const { progress, markVisited } = useProgress();
-  const entry = orderedLessons.find((item) => item.lesson.id === lessonId);
-  const courseModule = entry?.courseModule;
-  const lesson = entry?.lesson;
+  const resolution = resolveLessonRoute(moduleId, lessonId, courseModules);
 
   useEffect(() => {
-    if (lesson) markVisited(lesson.id);
-  }, [lesson, markVisited]);
+    if (resolution.kind === "match") markVisited(resolution.lesson.id);
+  }, [resolution, markVisited]);
 
-  if (!courseModule || !lesson) {
+  if (resolution.kind === "invalid") {
     return (
       <Navigate
         replace
@@ -50,6 +62,19 @@ export function LessonPage() {
       />
     );
   }
+
+  if (resolution.kind === "redirect") {
+    return (
+      <Navigate
+        replace
+        to={lessonPath(resolution.courseModule.id, resolution.lesson.id)}
+        state={LEGACY_MODULE_REDIRECT_STATE}
+      />
+    );
+  }
+
+  const { courseModule, lesson } = resolution;
+  const showLegacyModuleNotice = isLegacyModuleRedirectState(location.state);
 
   const currentIndex = orderedLessons.findIndex(
     (item) => item.lesson.id === lesson.id,
@@ -78,6 +103,21 @@ export function LessonPage() {
           <h1>{lessonCopy.title}</h1>
           <p>{objective}</p>
         </header>
+
+        {showLegacyModuleNotice ? (
+          <Notice
+            tone="info"
+            title={copy.lesson.legacyModuleNoticeTitle}
+            body={copy.lesson.legacyModuleNoticeBody}
+            dismissLabel={copy.home.dismiss}
+            onDismiss={() =>
+              navigate(
+                { pathname: location.pathname, search: location.search },
+                { replace: true, state: null },
+              )
+            }
+          />
+        ) : null}
 
         <SpeechNotice
           supported={supported}

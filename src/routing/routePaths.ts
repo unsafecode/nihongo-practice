@@ -15,10 +15,12 @@ export const routePaths = {
 } as const;
 
 /**
- * Builds a lesson URL. The `moduleId` segment is cosmetic: LessonPage
- * resolves the lesson by `lessonId` alone (lesson IDs are preserved across
- * the Task 3 module migration), so old bookmarked URLs whose module id no
- * longer exists (e.g. former `travel-patterns`/`traps`) keep resolving.
+ * Builds a lesson URL. `moduleId` is validated by
+ * `course/routing/lessonRouteResolution.ts`: LessonPage requires it to name
+ * either the lesson's real, current module, or one of the two module ids
+ * renamed during the Task 3 migration (former `travel-patterns`/`traps`),
+ * which are recognized as legacy aliases and redirected to their current
+ * module. Any other module/lesson pairing is treated as an invalid route.
  */
 export function lessonPath(moduleId: string, lessonId: string): string {
   return `/percorso/${encodeURIComponent(moduleId)}/${encodeURIComponent(lessonId)}`;

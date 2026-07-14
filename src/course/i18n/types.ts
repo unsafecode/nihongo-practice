@@ -44,6 +44,8 @@ export interface CourseCopy {
     next: string;
     listen: string;
     playing: string;
+    legacyModuleNoticeTitle: string;
+    legacyModuleNoticeBody: string;
   };
   practice: {
     eyebrow: string;

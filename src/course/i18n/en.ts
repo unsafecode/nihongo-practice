@@ -25,6 +25,9 @@ const enUi = {
     next: "Next lesson",
     listen: "Listen",
     playing: "Playing…",
+    legacyModuleNoticeTitle: "Updated module link",
+    legacyModuleNoticeBody:
+      "This lesson now lives in a different module. You have been taken to its current place.",
   },
   practice: {
     eyebrow: "Free practice",

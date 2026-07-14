@@ -25,6 +25,9 @@ const itUi = {
     next: "Lezione successiva",
     listen: "Ascolta",
     playing: "In riproduzione…",
+    legacyModuleNoticeTitle: "Link del modulo aggiornato",
+    legacyModuleNoticeBody:
+      "Questa lezione ora si trova in un altro modulo. Sei stato portato alla sua posizione attuale.",
   },
   practice: {
     eyebrow: "Pratica libera",
