@@ -47,3 +47,12 @@
   --header-height: 4.75rem;
   --sticky-offset: calc(var(--header-height) + var(--space-3));
 }
+
+/* Shared lesson-section scroll-anchor offset contract. Every stable lesson
+   section anchor (see src/routing/lessonSections.ts) carries this class so
+   scrolling to it — via RouteScrollManager or native anchor navigation —
+   lands below the shared sticky header instead of underneath it. Uses the
+   same --sticky-offset token as the rest of the shell; no magic offsets. */
+.lesson-section-anchor {
+  scroll-margin-top: var(--sticky-offset);
+}
