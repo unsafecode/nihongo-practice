@@ -164,6 +164,8 @@ summary {
 .modenav__item {
   border-radius: 999px;
   padding: 0.55rem 0.85rem;
+  min-width: var(--action-target-min);
+  min-height: var(--action-target-min);
   color: var(--muted);
   text-decoration: none;
   font-size: 0.82rem;
@@ -279,6 +281,8 @@ summary {
   font-size: 0.9rem;
   color: var(--ink-soft);
   padding: 7px 14px;
+  min-width: var(--action-target-min);
+  min-height: var(--action-target-min);
   border-radius: 999px;
   cursor: pointer;
   display: flex;
@@ -582,7 +586,7 @@ summary {
 
 /* ---------- App shell settings ---------- */
 .localetoggle { display: inline-flex; gap: 0.2rem; border: 1px solid var(--line); border-radius: 0.75rem; padding: 0.2rem; background: var(--paper); }
-.localetoggle button { border: 0; border-radius: 0.55rem; padding: 0.45rem 0.65rem; background: transparent; color: var(--muted); font-weight: 800; }
+.localetoggle button { border: 0; border-radius: 0.55rem; padding: 0.45rem 0.65rem; min-width: var(--action-target-min); min-height: var(--action-target-min); background: transparent; color: var(--muted); font-weight: 800; }
 .localetoggle button.is-active { background: white; color: var(--ink); }
 .reference-toggle { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--muted); font-size: 0.76rem; font-weight: 700; }
 .card__reference { margin: -0.35rem 0 0.75rem; color: var(--muted); font-size: 0.75rem; }
@@ -739,7 +743,7 @@ summary {
 .action--destructive:active { background: color-mix(in srgb, var(--danger) 70%, black); }
 
 .action--inline {
-  min-width: 0;
+  min-width: var(--action-target-min);
   padding: 0 var(--space-2);
   border-radius: var(--radius-sm);
   background: transparent;

@@ -37,3 +37,53 @@ describe("form control typography", () => {
     );
   });
 });
+
+describe("44 × 44 tap-target enforcement", () => {
+  it("action--inline must not suppress the 44px min-width tap target", () => {
+    const rule = findRule(readStyles(), ".action--inline");
+    expect(rule).toBeDefined();
+    expect(rule).not.toMatch(/min-width\s*:\s*0/);
+  });
+
+  it("action--inline must explicitly preserve 44px min-width via the shared token", () => {
+    const rule = findRule(readStyles(), ".action--inline");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/min-width\s*:\s*var\(--action-target-min\)/);
+  });
+
+  it("modenav__item meets 44px minimum width", () => {
+    const rule = findRule(readStyles(), ".modenav__item");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/min-width\s*:\s*var\(--action-target-min\)/);
+  });
+
+  it("modenav__item meets 44px minimum height", () => {
+    const rule = findRule(readStyles(), ".modenav__item");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/min-height\s*:\s*var\(--action-target-min\)/);
+  });
+
+  it("scripttoggle button meets 44px minimum width", () => {
+    const rule = findRule(readStyles(), ".scripttoggle button");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/min-width\s*:\s*var\(--action-target-min\)/);
+  });
+
+  it("scripttoggle button meets 44px minimum height", () => {
+    const rule = findRule(readStyles(), ".scripttoggle button");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/min-height\s*:\s*var\(--action-target-min\)/);
+  });
+
+  it("localetoggle button meets 44px minimum width", () => {
+    const rule = findRule(readStyles(), ".localetoggle button");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/min-width\s*:\s*var\(--action-target-min\)/);
+  });
+
+  it("localetoggle button meets 44px minimum height", () => {
+    const rule = findRule(readStyles(), ".localetoggle button");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/min-height\s*:\s*var\(--action-target-min\)/);
+  });
+});
