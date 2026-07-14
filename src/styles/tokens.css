@@ -56,3 +56,21 @@
 .lesson-section-anchor {
   scroll-margin-top: var(--sticky-offset);
 }
+
+/* Mobile-only anchor override: below 720px the desktop `.lesson-rail`
+   hides and `.lesson-rail-mobile` (see src/course/course.css) becomes a
+   second sticky layer pinned at the same --sticky-offset, directly under
+   the header. A bare --sticky-offset scroll-margin only clears the header
+   and lands the section heading underneath that rail. This adds the
+   rail's own height — its --action-target-min tap target plus its
+   top/bottom padding, both drawn from the shared spacing scale — plus a
+   breathing-room gap, so the anchor clears the rail's bottom edge instead
+   of a bespoke 64/188px pixel guess. */
+@media (max-width: 720px) {
+  .lesson-section-anchor {
+    scroll-margin-top: calc(
+      var(--sticky-offset) + var(--action-target-min) + var(--space-3) +
+        var(--space-3) + var(--space-2)
+    );
+  }
+}
