@@ -217,6 +217,28 @@ describe("markLessonVisited", () => {
     const progress = markLessonVisited(emptyProgress(), "sounds-core");
     expect(Object.keys(progress)).not.toContain("completedLessonIds");
   });
+
+  it("is idempotent: marking the same already-current lesson again returns the exact same object with an unchanged updatedAt", () => {
+    // Regression for the LessonPage infinite-loop bug: the effect that marks
+    // a lesson visited runs again any time markVisited is invoked (fresh
+    // resolution object, remount, etc). If the lesson is already visited and
+    // already `lastVisitedLessonId`, this must be a true no-op - the exact
+    // same object reference, not just equal fields - so that a memoized
+    // ProgressContext value does not rerender/re-persist on repeat calls.
+    const first = markLessonVisited(emptyProgress(), "sounds-core");
+    const second = markLessonVisited(first, "sounds-core");
+    expect(second).toBe(first);
+    expect(second.updatedAt).toBe(first.updatedAt);
+  });
+
+  it("still updates lastVisitedLessonId (and returns a new object) when re-visiting a lesson that was visited but is no longer the last-visited one", () => {
+    const afterFirst = markLessonVisited(emptyProgress(), "sounds-core");
+    const afterSecond = markLessonVisited(afterFirst, "sounds-special");
+    const afterReturn = markLessonVisited(afterSecond, "sounds-core");
+    expect(afterReturn).not.toBe(afterSecond);
+    expect(afterReturn.lastVisitedLessonId).toBe("sounds-core");
+    expect(afterReturn.visitedLessonIds).toEqual(["sounds-core", "sounds-special"]);
+  });
 });
 
 describe("knownVisitedLessonIds", () => {

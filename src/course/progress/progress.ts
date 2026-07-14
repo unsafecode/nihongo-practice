@@ -126,11 +126,24 @@ export function parseProgress(raw: string | null): {
  * Marks a lesson visited: adds it to `visitedLessonIds` (idempotent) and
  * records it as the last visited lesson, in one action. This is the only
  * mutation Task 3 exposes - there is no complete/uncomplete toggle.
+ *
+ * Fully idempotent by reference: if `lessonId` is already in
+ * `visitedLessonIds` *and* already `lastVisitedLessonId`, this returns the
+ * exact same `progress` object (no new object, no `updatedAt` bump). This
+ * is a defensive contract - callers (notably `LessonPage`'s visited-marking
+ * effect) may invoke this repeatedly for the same lesson across renders,
+ * and a no-op re-mark must not produce a fresh object/timestamp that would
+ * cascade into unnecessary context rerenders and storage writes.
  */
 export function markLessonVisited(
   progress: CourseProgressV2,
   lessonId: string,
 ): CourseProgressV2 {
+  const alreadyCurrent =
+    progress.lastVisitedLessonId === lessonId &&
+    progress.visitedLessonIds.includes(lessonId);
+  if (alreadyCurrent) return progress;
+
   const visited = new Set(progress.visitedLessonIds);
   visited.add(lessonId);
   return {

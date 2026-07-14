@@ -48,10 +48,16 @@ export function LessonPage() {
   const { supported, japaneseVoiceAvailable, playbackFailed } = useSpeech();
   const { progress, markVisited } = useProgress();
   const resolution = resolveLessonRoute(moduleId, lessonId, courseModules);
+  // A stable primitive derived from `resolution`, used (instead of the
+  // `resolution` object itself, which is a fresh reference every render) as
+  // the effect dependency below: it only actually changes when the matched
+  // lesson changes, so the effect - and the markVisited call it makes -
+  // does not re-run every render even though `resolution` always does.
+  const matchedLessonId = resolution.kind === "match" ? resolution.lesson.id : null;
 
   useEffect(() => {
-    if (resolution.kind === "match") markVisited(resolution.lesson.id);
-  }, [resolution, markVisited]);
+    if (matchedLessonId !== null) markVisited(matchedLessonId);
+  }, [matchedLessonId, markVisited]);
 
   if (resolution.kind === "invalid") {
     return (
