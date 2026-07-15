@@ -917,7 +917,7 @@ fi
 
 matches=$(
   git grep -IlE \
-    '(github_pat_|gh[pousr]_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|DefaultEndpointsProtocol=|AccountKey=)' \
+    '(github[_]pat_|gh[pousr]_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|DefaultEndpointsProtocol[=]|AccountKey[=])' \
     -- . ':!package-lock.json' || true
 )
 test -z "$matches"
@@ -943,7 +943,7 @@ Expected:
 
 - no whitespace errors;
 - the full corrective tip remains an ancestor;
-- log shows the replayed design/plan plus three focused hardening commits;
+- log shows the replayed design/plan plus three focused hardening commits and one verification reliability fix;
 - worktree has no tracked or untracked changes;
 - ignored generated artifacts may remain locally but are not committed.
 
