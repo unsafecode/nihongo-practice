@@ -194,9 +194,15 @@ function generateTileOrdering(
 ): ExercisePrompt {
   const target = resolver.example(definition.targetExampleId);
   const baseTiles = target.segments.map((segment) => makeTile(target.id, segment));
+  if (baseTiles.length === 0) resolver.fault("absent-target", target.id);
+
+  const occupiedRenderedText = new Set(baseTiles.map((tile) => tile.jp));
   const distractorTiles = (definition.distractorRefs ?? []).map((ref) => {
     const resolved = resolver.resolveRef(ref, target.id);
-    return makeTile(resolved.exampleId, resolved.segment);
+    const tile = makeTile(resolved.exampleId, resolved.segment);
+    if (occupiedRenderedText.has(tile.jp)) resolver.fault("duplicate-segment", tile.id);
+    occupiedRenderedText.add(tile.jp);
+    return tile;
   });
   const allTiles = [...baseTiles, ...distractorTiles];
 

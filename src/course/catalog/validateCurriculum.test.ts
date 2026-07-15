@@ -793,6 +793,76 @@ describe("validateCurriculum exercise definitions (Slice C Task 1)", () => {
     );
   });
 
+  it("reports a segment-less tile-ordering target as a missing exercise reference", () => {
+    const result = validateCurriculum(
+      input({
+        examples: [exampleWithSegments("example-1", [])],
+        exercises: [
+          {
+            id: "exercise-1",
+            targetExampleId: "example-1",
+            assessedConceptIds: ["topic-wa"],
+            assessedLexemeIds: [],
+            definition: {
+              id: "exercise-1",
+              kind: "tile-ordering",
+              promptCopyId: "copy.tile",
+              targetExampleId: "example-1",
+              distractorRefs: [],
+              assessedConceptIds: ["topic-wa"],
+              assessedLexemeIds: [],
+            },
+          },
+        ],
+      }),
+      localValidation,
+    );
+
+    expect(result.errors).toContainEqual({
+      code: "missing-exercise-reference",
+      id: "exercise-1",
+      referenceId: "example-1",
+    });
+  });
+
+  it("reports a rendered tile-text collision from a distractor", () => {
+    const result = validateCurriculum(
+      input({
+        examples: [
+          choiceExample,
+          exampleWithSegments("particle-bank", [
+            segment("w1", "ほん", "word"),
+            segment("p1", "は", "particle"),
+          ]),
+        ],
+        exercises: [
+          {
+            id: "exercise-1",
+            targetExampleId: "example-1",
+            assessedConceptIds: ["topic-wa"],
+            assessedLexemeIds: [],
+            definition: {
+              id: "exercise-1",
+              kind: "tile-ordering",
+              promptCopyId: "copy.tile",
+              targetExampleId: "example-1",
+              distractorRefs: [{ exampleId: "particle-bank", segmentId: "p1" }],
+              assessedConceptIds: ["topic-wa"],
+              assessedLexemeIds: [],
+            },
+          },
+        ],
+      }),
+      localValidation,
+    );
+
+    expect(result.errors).toContainEqual({
+      code: "duplicate-exercise-segment",
+      id: "exercise-1",
+      referenceId: "particle-bank#p1",
+    });
+  });
+
   it("enforces the 3-5 exercises-per-lesson gate only when explicitly requested", () => {
     const twoExercises = input({
       examples: [choiceExample],

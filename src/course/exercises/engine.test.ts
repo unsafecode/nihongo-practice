@@ -316,6 +316,77 @@ describe("generateExercise", () => {
     expect(result.error.code).toBe("duplicate-segment");
   });
 
+  it("rejects a distractor whose rendered text duplicates a target tile", () => {
+    const duplicated: TileOrderingExerciseDefinition = {
+      ...tileOrdering,
+      id: "ex-tile-duplicate-rendered",
+      distractorRefs: [{ exampleId: "p-wa2", segmentId: "p1" }],
+    };
+    const result = generateExercise(duplicated, catalogs);
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        code: "duplicate-segment",
+        definitionId: "ex-tile-duplicate-rendered",
+        referenceId: "p-wa2#p1",
+      },
+    });
+  });
+
+  it("preserves repeated rendered text when the target needs multiple base tiles", () => {
+    const repeatedTarget = example(
+      "repeated-particle",
+      [
+        ["わたし", "word"],
+        ["は", "particle"],
+        ["きみ", "word"],
+        ["は", "particle"],
+      ],
+      [],
+      [],
+    );
+    const definition: TileOrderingExerciseDefinition = {
+      ...tileOrdering,
+      id: "ex-tile-repeated-base",
+      targetExampleId: "repeated-particle",
+      assessedLexemeIds: [],
+    };
+    const result = generateExercise(definition, {
+      ...catalogs,
+      examples: [...catalogs.examples, repeatedTarget],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok || result.prompt.kind !== "tile-ordering") return;
+    expect(result.prompt.tiles.filter((tile) => tile.jp === "は")).toHaveLength(2);
+    expect(result.prompt.correctTileIds).toEqual([
+      "repeated-particle#w1",
+      "repeated-particle#p1",
+      "repeated-particle#w2",
+      "repeated-particle#p2",
+    ]);
+  });
+
+  it("returns an absent-target error for a segment-less tile-ordering target", () => {
+    const definition: TileOrderingExerciseDefinition = {
+      ...tileOrdering,
+      id: "ex-tile-empty-target",
+      targetExampleId: "empty-target",
+      assessedLexemeIds: [],
+    };
+    const result = generateExercise(definition, {
+      ...catalogs,
+      examples: [...catalogs.examples, example("empty-target", [], [], [])],
+    });
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        code: "absent-target",
+        definitionId: "ex-tile-empty-target",
+        referenceId: "empty-target",
+      },
+    });
+  });
+
   it("rejects an impossible choice set (fewer than two options)", () => {
     const result = generateExercise({ ...choice, distractorRefs: [] }, catalogs);
     expect(result.ok).toBe(false);
