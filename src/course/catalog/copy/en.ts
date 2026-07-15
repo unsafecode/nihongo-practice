@@ -718,6 +718,21 @@ const exampleTranslations: Record<string, string> = {
   "descriptions-3-r6": "This camera is expensive.",
 };
 
+// Locale-independent instruction copy for the deterministic exercises (Slice C
+// plan Task 2). The intent text of a construction exercise reuses the target
+// example's own translation, so no meaning string is duplicated here.
+const exercisePrompts: Record<string, string> = {
+  "exercise.prompt.order": "Arrange the tiles into the correct sentence.",
+  "exercise.prompt.particle": "Choose the particle that completes the sentence.",
+  "exercise.prompt.ending": "Choose the correct predicate ending.",
+  "exercise.prompt.complete": "Type the missing part of the sentence.",
+  "exercise.prompt.construct": "Write this sentence in Japanese.",
+  "exercise.prompt.transform.past": "Rewrite the sentence in the past tense.",
+  "exercise.prompt.transform.negative": "Rewrite the sentence in the negative.",
+  "exercise.prompt.transform.past-negative":
+    "Rewrite the sentence in the negative past.",
+};
+
 function build(): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [id, copy] of Object.entries(modules)) {
@@ -731,6 +746,9 @@ function build(): Record<string, string> {
   }
   for (const example of curriculumExamples) {
     out[`example.${example.id}.translation`] = exampleTranslations[example.id];
+  }
+  for (const [id, text] of Object.entries(exercisePrompts)) {
+    out[id] = text;
   }
   return out;
 }

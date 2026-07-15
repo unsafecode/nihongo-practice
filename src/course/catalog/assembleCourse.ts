@@ -509,7 +509,14 @@ function buildLocaleCopy(
 export function assembleCourse(
   catalogs: AssembledCurriculumCatalogs = assembledCurriculum,
 ): AssembledCourse {
-  const result = validateCurriculum(catalogs, { enforceReleaseTargets: true });
+  // The exercise-budget gate is on at the release boundary now that Slice C
+  // Task 2 has authored the 3-5 shared exercises per lesson: assembly fails
+  // closed if any lesson falls outside the budget or an exercise stops
+  // resolving to shared example data (design spec §5.2, §10.1, §17.1).
+  const result = validateCurriculum(catalogs, {
+    enforceReleaseTargets: true,
+    enforceExerciseTargets: true,
+  });
   if (!result.valid) {
     throw new CourseAssemblyError(result.errors.map((error) => error.code));
   }
