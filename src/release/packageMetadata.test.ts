@@ -8,6 +8,7 @@ const root = path.resolve(__dirname, '../..');
 
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf-8'));
 const license = fs.readFileSync(path.join(root, 'LICENSE'), 'utf-8');
+const packageLock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf-8'));
 
 describe('package.json metadata', () => {
   it('has name nihongo-practice', () => {
@@ -49,6 +50,24 @@ describe('package.json metadata', () => {
 
   it('depends on react-router ^7.18.1', () => {
     expect(pkg.dependencies['react-router']).toBe('^7.18.1');
+  });
+});
+
+describe('package-lock.json public registry integrity', () => {
+  const packages = packageLock.packages ?? {};
+  const nonRootEntries = Object.entries(packages as Record<string, { resolved?: string; integrity?: string }>).filter(
+    ([entryPath]) => entryPath !== ''
+  );
+  const entriesWithResolved = nonRootEntries.filter(([, entry]) => typeof entry.resolved === 'string');
+
+  it('has at least one package entry with a resolved field to check', () => {
+    expect(entriesWithResolved.length).toBeGreaterThan(0);
+  });
+
+  it.each(entriesWithResolved)('%s resolves to registry.npmjs.org over sha512 integrity', (entryPath, entry) => {
+    const resolvedUrl = new URL(entry.resolved as string);
+    expect(resolvedUrl.hostname, `package "${entryPath}" resolved host`).toBe('registry.npmjs.org');
+    expect(entry.integrity, `package "${entryPath}" integrity`).toMatch(/^sha512-/);
   });
 });
 
