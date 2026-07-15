@@ -479,7 +479,11 @@ function addOrderAndScriptErrors(
 
     for (const id of assisted) {
       const lexeme = lexemeById.get(id);
-      if (lexeme?.script === "katakana" && lexeme.reading.length > 0) {
+      if (
+        lesson.introducedLexemeIds.includes(id) &&
+        lexeme?.script === "katakana" &&
+        lexeme.reading.length > 0
+      ) {
         exposedKatakana.add(id);
       }
     }

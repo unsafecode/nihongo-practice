@@ -344,6 +344,51 @@ describe("validateCurriculum", () => {
     );
   });
 
+  it("only records assisted katakana exposure when the lesson introduces it", () => {
+    const result = validateCurriculum(
+      input({
+        lexemes: [
+          {
+            id: "iku",
+            japanese: "ホテル",
+            reading: "ほてる",
+            category: "noun",
+            script: "katakana",
+          },
+        ],
+        lessons: [
+          lesson({
+            introducedLexemeIds: [],
+            practicedLexemeIds: [],
+            assessedLexemeIds: [],
+            assistedKatakanaLexemeIds: ["iku"],
+          }),
+          lesson({
+            id: "lesson-2",
+            order: 2,
+            introducedLexemeIds: ["iku"],
+            practicedLexemeIds: [],
+            assessedLexemeIds: [],
+            assistedKatakanaLexemeIds: [],
+          }),
+        ],
+      }),
+      localValidation,
+    );
+
+    expect(
+      result.errors.filter(
+        (error) => error.code === "missing-assisted-katakana-exposure",
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        code: "missing-assisted-katakana-exposure",
+        id: "iku",
+        lessonId: "lesson-2",
+      }),
+    ]);
+  });
+
   it("rejects mismatched IT and EN copy keys", () => {
     const result = validateCurriculum(
       input({
