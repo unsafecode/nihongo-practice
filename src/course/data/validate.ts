@@ -334,9 +334,11 @@ function setsEqual(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
  * unknown or duplicated changed-segment id, marking a segment that is
  * unchanged between the two endpoints, any mismatch between the declared
  * changed gears and the glyphs actually carried by the declared segments,
- * and — via two-way set equality against the full introduced-text set — a
- * comparison that under-declares its delta by omitting a genuinely
- * introduced segment from `changedSegmentIds`.
+ * and — via occurrence/segment-id-based completeness against the full set of
+ * introduced segment ids (not a distinct-introduced-text set, which would
+ * collapse two distinct new segments sharing identical text into one
+ * member) — a comparison that under-declares its delta by omitting a
+ * genuinely introduced segment occurrence from `changedSegmentIds`.
  */
 export function validateComparison(
   comparison: TransformComparisonData,
@@ -377,17 +379,39 @@ export function validateComparison(
   changed.segments.forEach((segment, index) => {
     changedById.set(segmentId(segment, index), segment);
   });
-  const baseTrimmed = new Set(
-    base.segments.map((segment) => segment.jp.trim()),
-  );
-  const introduced = new Set(
-    changed.segments
-      .map((segment) => segment.jp.trim())
-      .filter((jp) => !baseTrimmed.has(jp)),
-  );
+
+  // Occurrence-based (not distinct-text-based) introduced-segment detection:
+  // walk base's trimmed texts into a multiset of remaining counts, then walk
+  // changed's segments in order, consuming one matching base occurrence per
+  // changed segment when available. Any changed segment whose text has no
+  // remaining base occurrence to consume is a genuinely introduced segment,
+  // identified by its own id. This correctly distinguishes two distinct
+  // introduced ids that happen to share identical text (each is its own
+  // unmatched occurrence) from an added *second* occurrence of text that
+  // already existed once in base (the first occurrence still consumes the
+  // base match; only the added one is introduced).
+  const remainingBaseCounts = new Map<string, number>();
+  for (const segment of base.segments) {
+    const trimmed = segment.jp.trim();
+    remainingBaseCounts.set(trimmed, (remainingBaseCounts.get(trimmed) ?? 0) + 1);
+  }
+  const introducedSegmentIds = new Set<string>();
+  changed.segments.forEach((segment, index) => {
+    const trimmed = segment.jp.trim();
+    const remaining = remainingBaseCounts.get(trimmed) ?? 0;
+    if (remaining > 0) {
+      remainingBaseCounts.set(trimmed, remaining - 1);
+      return;
+    }
+    introducedSegmentIds.add(segmentId(segment, index));
+  });
 
   const seenSegmentIds = new Set<string>();
+  // Text-keyed set purely for changedGearIds consistency: gear labels are
+  // intentionally unique values, so collapsing declared introduced segments
+  // to their text here is correct and unrelated to completeness below.
   const declaredGears = new Set<string>();
+  const matchedIntroducedIds = new Set<string>();
   for (const declaredId of changedSegmentIds) {
     if (seenSegmentIds.has(declaredId)) {
       errors.push(`comparison-duplicate-segment:${id}:${declaredId}`);
@@ -399,26 +423,26 @@ export function validateComparison(
       errors.push(`comparison-unknown-segment:${id}:${declaredId}`);
       continue;
     }
-    const trimmed = segment.jp.trim();
-    if (!introduced.has(trimmed)) {
+    if (!introducedSegmentIds.has(declaredId)) {
       errors.push(`comparison-segment-not-changed:${id}:${declaredId}`);
       continue;
     }
-    declaredGears.add(trimmed);
+    declaredGears.add(segment.jp.trim());
+    matchedIntroducedIds.add(declaredId);
   }
 
   if (!setsEqual(new Set(changedGearIds), declaredGears)) {
     errors.push(`comparison-gear-segment-mismatch:${id}`);
   }
 
-  // Two-way completeness (mirrors validateTransformationCore's symmetric-diff
-  // check): declaredGears is always a subset of introduced (only segments
-  // that resolve to a genuinely-introduced text are added above), so a size
-  // mismatch means some introduced text was never declared — an honest but
-  // under-declared delta. One stable code regardless of how many texts are
-  // missing, so pre-existing unknown/duplicate/not-changed errors above don't
-  // also spam this check.
-  if (declaredGears.size !== introduced.size) {
+  // Completeness is occurrence/segment-id based: matchedIntroducedIds is
+  // always a subset of introducedSegmentIds (only declared ids that resolve
+  // to a genuinely introduced occurrence are added above), so a size
+  // mismatch means some introduced occurrence was never declared — an
+  // honest but under-declared delta. One stable code regardless of how many
+  // occurrences are missing, so pre-existing unknown/duplicate/not-changed
+  // errors above don't also spam this check.
+  if (matchedIntroducedIds.size !== introducedSegmentIds.size) {
     errors.push(`comparison-incomplete-delta:${id}`);
   }
 

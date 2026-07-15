@@ -174,6 +174,58 @@ describe("validateComparison", () => {
     );
   });
 
+  it("rejects a comparison that under-declares a repeated introduced segment (two distinct new ids sharing the same text, only one declared)", () => {
+    // "changed" introduces the same new text (だ) twice under two distinct
+    // segment ids (1 and 2). A distinct-text Set collapses both occurrences
+    // into a single member "だ", so declaring only id "1" would appear
+    // complete once its text matches. Each introduced *occurrence* must be
+    // accounted for by its own id — declaring only one of the two leaves a
+    // genuinely new segment (id "2") unaccounted for.
+    const examples: Record<string, StaticExample> = {
+      "t-base": example("t-base", [seg("ねこ", "word", "0")]),
+      "t-changed": example("t-changed", [
+        seg("ねこ", "word", "0"),
+        seg("だ", "ending", "1"),
+        seg("だ", "ending", "2"),
+      ]),
+    };
+    const comparison: TransformComparisonData = {
+      id: "cmp",
+      baseExampleId: "t-base",
+      changedExampleId: "t-changed",
+      contrastDimension: "ending",
+      changedGearIds: ["だ"],
+      changedSegmentIds: ["1"],
+    };
+    expect(validateComparison(comparison, examples)).toContain(
+      "comparison-incomplete-delta:cmp",
+    );
+  });
+
+  it("accepts declaring only the added occurrence when base already had one instance of that text", () => {
+    // base has a single ねこ; changed repeats it (ねこねこ). The first
+    // occurrence (id "0") still matches the base occurrence one-for-one and
+    // is not introduced; only the second occurrence (id "1") is genuinely
+    // new. Declaring exactly that added occurrence is a complete, honest
+    // delta and must not be flagged incomplete.
+    const examples: Record<string, StaticExample> = {
+      "t-base": example("t-base", [seg("ねこ", "word", "0")]),
+      "t-changed": example("t-changed", [
+        seg("ねこ", "word", "0"),
+        seg("ねこ", "word", "1"),
+      ]),
+    };
+    const comparison: TransformComparisonData = {
+      id: "cmp",
+      baseExampleId: "t-base",
+      changedExampleId: "t-changed",
+      contrastDimension: "word-order",
+      changedGearIds: ["ねこ"],
+      changedSegmentIds: ["1"],
+    };
+    expect(validateComparison(comparison, examples)).toEqual([]);
+  });
+
   it("rejects an unsegmented endpoint (delta cannot be located)", () => {
     const examples: Record<string, StaticExample> = {
       "plain-a": { id: "plain-a", jp: "あ", romaji: "a" },
