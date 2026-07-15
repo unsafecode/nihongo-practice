@@ -143,7 +143,7 @@ summary {
   flex-shrink: 0;
 }
 
-.header__logo { color: var(--accent); font-size: 1.35rem; font-weight: 900; }
+.header__logo { color: var(--accent); font-size: 1.35rem; font-weight: 900; white-space: nowrap; flex-shrink: 0; }
 .header__text { display: grid; }
 .header__title { color: var(--ink); font-weight: 900; }
 .header__subtitle { color: var(--muted); font-size: 0.72rem; }
@@ -194,9 +194,12 @@ summary {
     grid-template-rows: auto auto;
     align-items: start;
     min-height: 0;
-    max-height: var(--header-mobile-max);
-    padding: var(--space-2) clamp(12px, 4vw, 24px);
-    gap: var(--space-2);
+    /* Cap the border-box one CSS pixel below the token so the sticky header's
+       own 1px bottom border keeps the *rendered* closed header within the
+       --header-mobile-max budget (design spec §8.4). */
+    max-height: calc(var(--header-mobile-max) - 1px);
+    padding: var(--space-1) clamp(12px, 4vw, 24px);
+    gap: var(--space-1);
   }
   .header__brand { min-width: 3rem; }
   .modenav {
@@ -725,11 +728,11 @@ summary {
 }
 
 .action--primary {
-  background: var(--accent);
+  background: var(--accent-dark);
   color: var(--surface);
 }
-.action--primary:hover { background: var(--accent-dark); }
-.action--primary:active { background: color-mix(in srgb, var(--accent-dark) 85%, black); }
+.action--primary:hover { background: color-mix(in srgb, var(--accent-dark) 88%, black); }
+.action--primary:active { background: color-mix(in srgb, var(--accent-dark) 76%, black); }
 
 .action--secondary {
   background: var(--surface);

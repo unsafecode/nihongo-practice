@@ -1,6 +1,13 @@
 node_modules
 dist
 dist-ssr
+
+# Playwright transient output (reviewed snapshot baselines under
+# tests/e2e/**/*-snapshots/ are committed and intentionally NOT ignored).
+test-results
+playwright-report
+blob-report
+.playwright
 *.tsbuildinfo
 *.local
 .DS_Store
