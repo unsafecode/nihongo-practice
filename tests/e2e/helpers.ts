@@ -224,36 +224,102 @@ export async function auditTouchTargets(page: Page): Promise<TargetOffender[]> {
 }
 
 /**
- * Returns visible actionable `<button>`/`<a href>` elements that are *not*
- * part of the shared design system — i.e. that neither carry nor descend from
- * a recognized Action/semantic control class. A non-empty result means a
- * naked, browser-default control leaked onto the screen.
+ * Returns visible actionable `<button>`/`<a href>` elements whose *own rendered
+ * appearance* is indistinguishable from a browser-default control.
+ *
+ * Rather than trusting an allowlisted class or a `closest()` ancestor chain
+ * (which a pure layout container such as `.course-hero__actions` would wave
+ * through), this measures each control's computed-style signature and compares
+ * it — deterministically, in the live Chromium context and under the same
+ * global stylesheet — against a temporary, classless reference `<button>` and
+ * `<a href>`. A control that matches the naked reference on *every* signature
+ * field is reported even if it carries an allowlisted class; a control that
+ * differs on any field (e.g. an intentionally transparent inline/rail action
+ * whose padding, weight, decoration, border, or min-size is its own) is not.
+ *
+ * The reference nodes are inserted, measured, and removed within this call, so
+ * the audit is side-effect free.
  */
 export async function auditNakedActions(page: Page): Promise<string[]> {
   return page.evaluate(() => {
-    const STYLED = [
-      ".action",
-      ".modenav__item",
-      ".pill",
-      ".kana",
-      ".kana-groupnav__link",
-      ".reference-toggle",
-      ".localetoggle",
-      ".scripttoggle",
-      ".module-card__lesson-link",
-      ".module-card__disclosure",
-      ".module-card__tag",
-      ".lesson-rail__step",
-      ".lesson-rail-mobile__step",
-      ".lesson-tool__action",
-      ".guided-return",
-      ".syllabary__return",
-      ".course-hero__actions",
-      ".pill",
-      ".opt",
-      ".listen",
-      ".btn",
-    ].join(",");
+    // The deliberate computed-style signature: a control's self-evident visual
+    // "chrome". Two controls that agree on all of these are visually the same
+    // to a user, so an app control that agrees with the naked reference is,
+    // by definition, naked.
+    const SIGNATURE_PROPS = [
+      "backgroundColor",
+      "backgroundImage",
+      "borderTopWidth",
+      "borderRightWidth",
+      "borderBottomWidth",
+      "borderLeftWidth",
+      "borderTopStyle",
+      "borderRightStyle",
+      "borderBottomStyle",
+      "borderLeftStyle",
+      "borderTopColor",
+      "borderRightColor",
+      "borderBottomColor",
+      "borderLeftColor",
+      "borderTopLeftRadius",
+      "borderTopRightRadius",
+      "borderBottomRightRadius",
+      "borderBottomLeftRadius",
+      "paddingTop",
+      "paddingRight",
+      "paddingBottom",
+      "paddingLeft",
+      "boxShadow",
+      "textDecorationLine",
+      "color",
+      "fontWeight",
+      "fontFamily",
+      "minWidth",
+      "minHeight",
+      "cursor",
+    ] as const;
+
+    type Signature = Record<string, string>;
+
+    const signatureOf = (el: Element): Signature => {
+      const style = getComputedStyle(el);
+      const sig: Signature = {};
+      for (const prop of SIGNATURE_PROPS) {
+        let value = style.getPropertyValue(
+          // camelCase → kebab-case for getPropertyValue.
+          prop.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`),
+        );
+        // `min-width`/`min-height: auto` resolves to `auto` for a flex/grid
+        // item but to `0px` for a block-level control. That divergence is a
+        // pure layout-context artifact, not a styling signal — both mean "no
+        // explicit minimum", unlike a real action's declared 44px target. Fold
+        // the two spellings together so context never masks a naked control.
+        if (
+          (prop === "minWidth" || prop === "minHeight") &&
+          value === "auto"
+        ) {
+          value = "0px";
+        }
+        sig[prop] = value;
+      }
+      return sig;
+    };
+
+    // Build the naked references under the same global stylesheet. They are
+    // classless, so they receive only the browser default plus any truly
+    // global bare-element rules (e.g. `button { font: inherit }`) — never a
+    // container-scoped or component rule. Appending to <body> keeps them clear
+    // of descendant selectors that intentionally style specific controls.
+    const refButton = document.createElement("button");
+    refButton.type = "button";
+    const refAnchor = document.createElement("a");
+    refAnchor.setAttribute("href", "#");
+    document.body.append(refButton, refAnchor);
+    const referenceButton = signatureOf(refButton);
+    const referenceAnchor = signatureOf(refAnchor);
+    refButton.remove();
+    refAnchor.remove();
+
     const naked: string[] = [];
     const elements = Array.from(
       document.querySelectorAll<HTMLElement>("button, a[href]"),
@@ -266,10 +332,33 @@ export async function auditNakedActions(page: Page): Promise<string[]> {
           ? el.checkVisibility({ opacityProperty: true, visibilityProperty: true })
           : true;
       if (!visible) continue;
-      if (el.closest(STYLED)) continue;
-      const cls = el.getAttribute("class") ?? "";
-      const text = (el.textContent ?? "").trim().slice(0, 40);
-      naked.push(`${el.tagName.toLowerCase()}.${cls} "${text}"`);
+
+      const reference =
+        el.tagName === "BUTTON" ? referenceButton : referenceAnchor;
+      const sig = signatureOf(el);
+      const differing = SIGNATURE_PROPS.filter(
+        (prop) => sig[prop] !== reference[prop],
+      );
+      // Indistinguishable from the naked reference on every signature field.
+      if (differing.length === 0) {
+        const cls = el.getAttribute("class") ?? "";
+        const text = (el.textContent ?? "").trim().slice(0, 40);
+        const refKind = el.tagName === "BUTTON" ? "<button>" : "<a href>";
+        const evidence = [
+          `background=${sig.backgroundColor}`,
+          `border=${sig.borderTopWidth} ${sig.borderTopStyle} ${sig.borderTopColor}`,
+          `radius=${sig.borderTopLeftRadius}`,
+          `padding=${sig.paddingTop} ${sig.paddingRight} ${sig.paddingBottom} ${sig.paddingLeft}`,
+          `shadow=${sig.boxShadow}`,
+          `decoration=${sig.textDecorationLine}`,
+          `weight=${sig.fontWeight}`,
+          `minSize=${sig.minWidth}x${sig.minHeight}`,
+          `cursor=${sig.cursor}`,
+        ].join(", ");
+        naked.push(
+          `${el.tagName.toLowerCase()}.${cls} "${text}" — indistinguishable from the naked ${refKind} reference (${evidence})`,
+        );
+      }
     }
     return naked;
   });

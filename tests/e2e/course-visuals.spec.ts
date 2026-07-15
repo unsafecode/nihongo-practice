@@ -146,6 +146,74 @@ for (const screen of SCREENS) {
   });
 }
 
+test.describe("naked-action audit is proven by computed style, not selectors", () => {
+  // Regression guard for the Task 8 escape hatch: `.course-hero__actions` is a
+  // pure layout container, so a `closest()`/allowlist audit waves through any
+  // classless control nested inside it. The audit must instead measure each
+  // control's *own* rendered appearance and still catch a browser-default
+  // button/anchor even when its ancestor carries an allowlisted class.
+  test("a truly naked button and anchor injected into an allowlisted container are reported", async ({ page }) => {
+    await setupPageObservers(page);
+    await gotoReady(page, routeUrls.home);
+
+    // The pristine, real screen must be clean first — otherwise a passing
+    // assertion below could be masking a genuine offender.
+    const pristine = await auditNakedActions(page);
+    expect(
+      pristine,
+      `pristine course home must have no naked actions: ${JSON.stringify(pristine, null, 2)}`,
+    ).toEqual([]);
+
+    // Inject genuinely naked (classless, unstyled) controls INSIDE the
+    // allowlisted `.course-hero__actions` container. Their only styling is the
+    // browser default plus the global `button { font: inherit }` reset.
+    const host = await page.evaluate(() => {
+      const container = document.querySelector(".course-hero__actions");
+      if (!container) throw new Error(".course-hero__actions not found on course home");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "NAKED_BUTTON_PROBE";
+      button.setAttribute("data-naked-probe", "button");
+      const anchor = document.createElement("a");
+      anchor.setAttribute("href", "#/naked-probe");
+      anchor.textContent = "NAKED_ANCHOR_PROBE";
+      anchor.setAttribute("data-naked-probe", "anchor");
+      container.append(button, anchor);
+      return {
+        tag: container.tagName.toLowerCase(),
+        cls: container.getAttribute("class") ?? "",
+        childCount: container.querySelectorAll("[data-naked-probe]").length,
+      };
+    });
+    // Confirm the injection landed inside the styled/allowlisted container.
+    expect(host.tag, "host is a plain layout container").toBe("div");
+    expect(host.cls, "host carries the allowlisted class").toContain("course-hero__actions");
+    expect(host.childCount, "both probes injected").toBe(2);
+
+    const naked = await auditNakedActions(page);
+    expect(
+      naked.some((entry) => entry.includes("NAKED_BUTTON_PROBE")),
+      `naked <button> nested in .course-hero__actions must be reported. Got: ${JSON.stringify(naked, null, 2)}`,
+    ).toBe(true);
+    expect(
+      naked.some((entry) => entry.includes("NAKED_ANCHOR_PROBE")),
+      `naked <a href> nested in .course-hero__actions must be reported. Got: ${JSON.stringify(naked, null, 2)}`,
+    ).toBe(true);
+
+    // The audit must leave no trace: probes are the only remaining <button>/<a>
+    // additions and the audit itself must not inject or leak reference nodes.
+    const residue = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("body *")).filter(
+        (el) =>
+          (el.tagName === "BUTTON" || el.tagName === "A") &&
+          !el.hasAttribute("data-naked-probe") &&
+          (el.textContent ?? "").includes("PROBE"),
+      ).length,
+    );
+    expect(residue, "audit left no reference-node residue in the DOM").toBe(0);
+  });
+});
+
 test.describe("desktop header composition", () => {
   test.skip(({ viewport }) => !!viewport && isMobile(viewport.width), "desktop only");
 
