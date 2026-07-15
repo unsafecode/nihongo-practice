@@ -1,4 +1,5 @@
 import type { StaticExample } from "./types";
+import { personasById } from "./personas";
 
 function segmentedExample(
   id: string,
@@ -31,11 +32,19 @@ const list: StaticExample[] = [
   segmentedExample("topic-copula", [
     { jp: "わたし", romaji: "watashi ", kind: "word" },
     { jp: "は ", romaji: "wa ", kind: "particle" },
-    { jp: "りっち", romaji: "Ricchi ", kind: "word" },
+    {
+      jp: personasById.yuki.japaneseName,
+      romaji: `${personasById.yuki.latinName} `,
+      kind: "word",
+    },
     { jp: "です", romaji: "desu", kind: "ending" },
   ]),
   segmentedExample("omitted-subject", [
-    { jp: "りっち", romaji: "Ricchi ", kind: "word" },
+    {
+      jp: personasById.yuki.japaneseName,
+      romaji: `${personasById.yuki.latinName} `,
+      kind: "word",
+    },
     { jp: "です", romaji: "desu", kind: "ending" },
   ]),
   // Module 2 (topic/copula) minimal pair. `these` segments carry NO trailing

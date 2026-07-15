@@ -244,7 +244,7 @@ const enBlocks: CourseCopy["blocks"] = {
   },
   "sentence-omission-comparison": {
     title: "With and without a topic",
-    body: "わたしは can drop when context is clear: りっちです remains.",
+    body: "わたしは can drop when context is clear: ゆきです remains.",
   },
   "sentence-omission-explore": {
     title: "Remove the explicit topic",
@@ -470,8 +470,8 @@ const enExamples: CourseCopy["examples"] = {
   "small-tsu": { translation: "school" },
   "long-vowel": { translation: "today" },
   "sentence-order": { translation: "Today, I'm eating ramen." },
-  "topic-copula": { translation: "I am Ricchi." },
-  "omitted-subject": { translation: "I'm Ricchi." },
+  "topic-copula": { translation: "I am Yuki." },
+  "omitted-subject": { translation: "I'm Yuki." },
   "this-water": { translation: "This is water." },
   "it-is-water": { translation: "It's water." },
   "this-is-water": { translation: "This is water." },

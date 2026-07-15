@@ -245,7 +245,7 @@ const itBlocks: CourseCopy["blocks"] = {
   },
   "sentence-omission-comparison": {
     title: "Con e senza tema",
-    body: "わたしは può cadere quando il contesto è chiaro: resta りっちです.",
+    body: "わたしは può cadere quando il contesto è chiaro: resta ゆきです.",
   },
   "sentence-omission-explore": {
     title: "Togli il tema esplicito",
@@ -471,8 +471,8 @@ const itExamples: CourseCopy["examples"] = {
   "small-tsu": { translation: "scuola" },
   "long-vowel": { translation: "oggi" },
   "sentence-order": { translation: "Oggi mangio il ramen." },
-  "topic-copula": { translation: "Sono Ricchi." },
-  "omitted-subject": { translation: "Sono Ricchi." },
+  "topic-copula": { translation: "Sono Yuki." },
+  "omitted-subject": { translation: "Sono Yuki." },
   "this-water": { translation: "Questa è acqua." },
   "it-is-water": { translation: "È acqua." },
   "this-is-water": { translation: "Questa è acqua." },
