@@ -404,20 +404,38 @@ function sequenceEquals(
   return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
+function renderedTileKey(tile: ExerciseTile): string {
+  return JSON.stringify([tile.jp, tile.reading ?? ""]);
+}
+
 function evaluateTileOrdering(
   prompt: Extract<ExercisePrompt, { kind: "tile-ordering" }>,
   tileIds: readonly string[],
 ): ExerciseEvaluation {
-  const validIds = new Set(prompt.tiles.map((tile) => tile.id));
+  const tilesById = new Map(prompt.tiles.map((tile) => [tile.id, tile]));
   if (tileIds.length === 0) return invalid("empty-tile-order");
   const used = new Set<string>();
   for (const id of tileIds) {
-    if (!validIds.has(id)) return invalid("unknown-tile");
+    if (!tilesById.has(id)) return invalid("unknown-tile");
     if (used.has(id)) return invalid("duplicate-tile");
     used.add(id);
   }
   const accepted = [prompt.correctTileIds, ...prompt.acceptedTileOrders];
-  return accepted.some((order) => sequenceEquals(order, tileIds))
+  if (!accepted.some((order) => order.length === tileIds.length)) {
+    return invalid("tile-count-mismatch");
+  }
+
+  const candidateRendered = tileIds.map((id) => {
+    const tile = tilesById.get(id);
+    return tile === undefined ? "" : renderedTileKey(tile);
+  });
+  return accepted.some((order) => {
+    const rendered = order.map((id) => {
+      const tile = tilesById.get(id);
+      return tile === undefined ? "" : renderedTileKey(tile);
+    });
+    return sequenceEquals(rendered, candidateRendered);
+  })
     ? { status: "accepted" }
     : retry(prompt);
 }

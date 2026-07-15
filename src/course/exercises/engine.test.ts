@@ -175,6 +175,36 @@ function generateOk(definition: ExerciseDefinition) {
   return result.prompt;
 }
 
+function generateRepeatedParticlePrompt() {
+  const definition: TileOrderingExerciseDefinition = {
+    ...tileOrdering,
+    id: "ex-tile-repeated-evaluation",
+    targetExampleId: "repeated-particle",
+    assessedLexemeIds: [],
+  };
+  const result = generateExercise(definition, {
+    ...catalogs,
+    examples: [
+      ...catalogs.examples,
+      example(
+        "repeated-particle",
+        [
+          ["わたし", "word"],
+          ["は", "particle"],
+          ["きみ", "word"],
+          ["は", "particle"],
+        ],
+        [],
+        [],
+      ),
+    ],
+  });
+  if (!result.ok || result.prompt.kind !== "tile-ordering") {
+    throw new Error("expected repeated particle tile prompt");
+  }
+  return result.prompt;
+}
+
 describe("normalizeAnswer", () => {
   it("applies NFKC and collapses whitespace", () => {
     // Half-width katakana + full-width space normalize under NFKC.
@@ -469,6 +499,36 @@ describe("evaluateExercise", () => {
     expect(
       evaluateExercise(prompt, { kind: "tile-ordering", tileIds: variantOrder }),
     ).toEqual({ status: "accepted" });
+  });
+
+  it("accepts swapping distinct IDs for repeated rendered canonical tiles", () => {
+    const prompt = generateRepeatedParticlePrompt();
+    expect(
+      evaluateExercise(prompt, {
+        kind: "tile-ordering",
+        tileIds: ["repeated-particle#w1", "repeated-particle#p2", "repeated-particle#w2", "repeated-particle#p1"],
+      }),
+    ).toEqual({ status: "accepted" });
+  });
+
+  it("retries when different rendered canonical tiles are swapped", () => {
+    const prompt = generateRepeatedParticlePrompt();
+    expect(
+      evaluateExercise(prompt, {
+        kind: "tile-ordering",
+        tileIds: ["repeated-particle#w1", "repeated-particle#w2", "repeated-particle#p1", "repeated-particle#p2"],
+      }).status,
+    ).toBe("retry");
+  });
+
+  it("rejects reusing one tile ID even when an equivalent tile is available", () => {
+    const prompt = generateRepeatedParticlePrompt();
+    expect(
+      evaluateExercise(prompt, {
+        kind: "tile-ordering",
+        tileIds: ["repeated-particle#w1", "repeated-particle#p1", "repeated-particle#w2", "repeated-particle#p1"],
+      }),
+    ).toEqual({ status: "invalid-input", reason: "duplicate-tile" });
   });
 
   it("accepts the correct choice option and retries a wrong one, preserving the particle distinction", () => {
