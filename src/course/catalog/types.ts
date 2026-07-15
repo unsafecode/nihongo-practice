@@ -169,6 +169,7 @@ export type CurriculumValidationErrorCode =
   | "invalid-phase-order"
   | "lesson-duration-out-of-range"
   | "assessment-before-introduction"
+  | "practice-before-introduction"
   | "introduced-target-not-reused"
   | "capstone-introduces-content"
   | "required-kanji-output"

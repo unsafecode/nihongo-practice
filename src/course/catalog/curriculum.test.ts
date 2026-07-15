@@ -4,6 +4,7 @@ import {
   curriculumCopy,
   curriculumLessons,
   curriculumModules,
+  derivePracticedIdsByLesson,
   lessonPlans,
   orderedCurriculumLessons,
 } from "./curriculum";
@@ -222,6 +223,146 @@ describe("introduction and assessment invariants (spec §6.4)", () => {
   });
 });
 
+describe("practiced ids derive from canonical (module order, lesson order), not source-array position (regression finding 2)", () => {
+  // A tiny two-module fixture. `canonicalOrder` is the true teaching order
+  // (module order, then lesson order); the plans arrays below are fed to the
+  // helper in several different physical array orders to prove the derived
+  // practiced sets never depend on that array position.
+  const moduleOrderById = new Map<string, number>([
+    ["mod-a", 1],
+    ["mod-b", 2],
+  ]);
+  const examplesById = new Map<
+    string,
+    { conceptIds: readonly string[]; lexemeIds: readonly string[] }
+  >([
+    ["ex-intro-a", { conceptIds: [], lexemeIds: [] }],
+    ["ex-reuse-topic", { conceptIds: ["topic-wa"], lexemeIds: ["iku"] }],
+    ["ex-reuse-later", { conceptIds: ["later-concept"], lexemeIds: ["later-verb"] }],
+  ]);
+
+  type Fixture = Parameters<typeof derivePracticedIdsByLesson>[0][number];
+
+  const planA1: Fixture = {
+    id: "a-1",
+    moduleId: "mod-a",
+    order: 1,
+    exampleIds: ["ex-intro-a"],
+    introducedConceptIds: ["topic-wa"],
+    introducedLexemeIds: ["iku"],
+  };
+  const planA2: Fixture = {
+    id: "a-2",
+    moduleId: "mod-a",
+    order: 2,
+    exampleIds: ["ex-reuse-topic"],
+    introducedConceptIds: [],
+    introducedLexemeIds: [],
+  };
+  const planB1: Fixture = {
+    id: "b-1",
+    moduleId: "mod-b",
+    order: 1,
+    exampleIds: ["ex-reuse-later"],
+    introducedConceptIds: ["later-concept"],
+    introducedLexemeIds: ["later-verb"],
+  };
+
+  it("derives identical practiced sets no matter how the plans array is ordered", () => {
+    const canonicalOrder = [planA1, planA2, planB1];
+    const reversed = [planB1, planA2, planA1];
+    const shuffled = [planA2, planB1, planA1];
+
+    const fromCanonical = derivePracticedIdsByLesson(
+      canonicalOrder,
+      moduleOrderById,
+      examplesById,
+    );
+    const fromReversed = derivePracticedIdsByLesson(
+      reversed,
+      moduleOrderById,
+      examplesById,
+    );
+    const fromShuffled = derivePracticedIdsByLesson(
+      shuffled,
+      moduleOrderById,
+      examplesById,
+    );
+
+    for (const plan of canonicalOrder) {
+      expect(fromReversed.get(plan.id)).toEqual(fromCanonical.get(plan.id));
+      expect(fromShuffled.get(plan.id)).toEqual(fromCanonical.get(plan.id));
+    }
+
+    // a-2 practices topic-wa/iku because module-a lesson 1 introduced them
+    // earlier in canonical (module, order) terms — true regardless of the
+    // plans array's own iteration order.
+    expect(fromCanonical.get("a-2")).toEqual({
+      concepts: ["topic-wa"],
+      lexemes: ["iku"],
+    });
+    // b-1 does NOT practice later-concept/later-verb from its own example —
+    // it introduces them itself this lesson, so same-lesson doesn't count.
+    expect(fromCanonical.get("b-1")).toEqual({ concepts: [], lexemes: [] });
+  });
+
+  it("filters an explicit review id that has not been canonically introduced yet", () => {
+    const planWithPrematureReview: Fixture = {
+      ...planA2,
+      exampleIds: [],
+      reviewConceptIds: ["topic-wa", "later-concept"],
+      reviewLexemeIds: ["iku", "later-verb"],
+    };
+    const result = derivePracticedIdsByLesson(
+      [planA1, planWithPrematureReview, planB1],
+      moduleOrderById,
+      examplesById,
+    );
+    // topic-wa/iku were introduced earlier (a-1) so the review claim is honored;
+    // later-concept/later-verb are introduced later (b-1) so the review claim
+    // is rejected even though it was explicitly authored.
+    expect(result.get("a-2")).toEqual({
+      concepts: ["topic-wa"],
+      lexemes: ["iku"],
+    });
+  });
+
+  it("wires the real curriculum through the same canonical helper (no drift between production and the pure deriver)", () => {
+    const moduleOrders = new Map(
+      curriculumFoundation.modules.map((module) => [module.id, module.order]),
+    );
+    const rederived = derivePracticedIdsByLesson(
+      lessonPlans.map((plan) => ({
+        id: plan.id,
+        moduleId: plan.moduleId,
+        order: plan.order,
+        exampleIds: [
+          plan.baseExampleId,
+          plan.changedExampleId,
+          plan.guidedExampleId,
+          ...plan.extraExampleIds,
+        ],
+        introducedConceptIds: plan.introducedConceptIds,
+        introducedLexemeIds: plan.introducedLexemeIds,
+        reviewConceptIds: plan.reviewConceptIds,
+        reviewLexemeIds: plan.reviewLexemeIds,
+      })),
+      moduleOrders,
+      curriculumExamplesById,
+    );
+    for (const lesson of curriculumLessons) {
+      const derived = rederived.get(lesson.id);
+      expect(derived).toBeDefined();
+      expect([...(derived?.concepts ?? [])].sort()).toEqual(
+        [...lesson.practicedConceptIds].sort(),
+      );
+      expect([...(derived?.lexemes ?? [])].sort()).toEqual(
+        [...lesson.practicedLexemeIds].sort(),
+      );
+    }
+  });
+});
+
 describe("genuine verb reuse (spec §6.1, §6.3)", () => {
   const result = validateCurriculum(assembledCurriculum, {
     enforceReleaseTargets: true,
@@ -395,6 +536,82 @@ describe("shared examples and speech prompts (spec §5.3, §9.1)", () => {
       for (const segmentId of prompt.criticalSegmentIds ?? []) {
         expect(segmentIds.has(segmentId)).toBe(true);
       }
+    }
+  });
+});
+
+describe("mechanically-checkable concept tags never claim an absent marker (regression: false concept tags)", () => {
+  // Nouns that can plausibly be a companion "with" (never a mere list item)
+  // when joined by と — curated, not inferred, so the check stays safe against
+  // the many legitimate noun-and-noun listing uses of と in this catalog.
+  const ANIMATE_COMPANION_LEXEME_IDS = new Set([
+    "student",
+    "teacher",
+    "friend",
+    "family",
+    "father",
+    "mother",
+    "child",
+    "son",
+    "daughter",
+    "husband",
+    "wife",
+    "grandfather",
+    "grandmother",
+    "person",
+  ]);
+
+  function hasParticle(
+    example: (typeof curriculumExamples)[number],
+    jp: string,
+  ): boolean {
+    return example.segments.some(
+      (segment) => segment.kind === "particle" && segment.jp === jp,
+    );
+  }
+
+  it("only tags object-o when a segment actually carries を", () => {
+    for (const example of curriculumExamples) {
+      if (!example.conceptIds.includes("object-o")) continue;
+      expect(hasParticle(example, "を")).toBe(true);
+    }
+  });
+
+  it("only tags question-ka when a segment actually carries か", () => {
+    for (const example of curriculumExamples) {
+      if (!example.conceptIds.includes("question-ka")) continue;
+      expect(hasParticle(example, "か")).toBe(true);
+    }
+  });
+
+  it("only tags subject-ga when a segment actually carries が", () => {
+    for (const example of curriculumExamples) {
+      if (!example.conceptIds.includes("subject-ga")) continue;
+      expect(hasParticle(example, "が")).toBe(true);
+    }
+  });
+
+  it("only tags companion-to when と joins a real animate companion, not a noun list", () => {
+    for (const example of curriculumExamples) {
+      if (!example.conceptIds.includes("companion-to")) continue;
+      expect(hasParticle(example, "と")).toBe(true);
+      expect(
+        example.lexemeIds.some((id) => ANIMATE_COMPANION_LEXEME_IDS.has(id)),
+      ).toBe(true);
+    }
+  });
+
+  it("no longer mistags the four flagged examples (places-2-say, places-3-r1, shopping-3-r6, existence-needs-2-r5)", () => {
+    const corrected: readonly [id: string, forbidden: string][] = [
+      ["places-2-say", "companion-to"],
+      ["places-3-r1", "companion-to"],
+      ["shopping-3-r6", "object-o"],
+      ["existence-needs-2-r5", "object-o"],
+    ];
+    for (const [id, forbidden] of corrected) {
+      const example = curriculumExamplesById.get(id);
+      expect(example).toBeDefined();
+      expect(example?.conceptIds).not.toContain(forbidden);
     }
   });
 });

@@ -238,6 +238,74 @@ describe("validateCurriculum", () => {
     );
   });
 
+  it("rejects a concept or lexeme practiced before it is introduced (regression finding 2)", () => {
+    const result = validateCurriculum(
+      input({
+        lessons: [
+          lesson({
+            introducedConceptIds: [],
+            introducedLexemeIds: [],
+            practicedConceptIds: ["topic-wa"],
+            practicedLexemeIds: ["iku"],
+            assessedConceptIds: [],
+            assessedLexemeIds: [],
+          }),
+        ],
+      }),
+      localValidation,
+    );
+
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "practice-before-introduction",
+          id: "topic-wa",
+        }),
+        expect.objectContaining({
+          code: "practice-before-introduction",
+          id: "iku",
+        }),
+      ]),
+    );
+  });
+
+  it("does not flag a concept practiced by an earlier lesson than it is claimed in", () => {
+    const result = validateCurriculum(
+      input({
+        modules: [
+          {
+            id: "module-1",
+            phase: "orient",
+            order: 1,
+            prerequisiteIds: [],
+            coverage: coverage("module-1"),
+          },
+        ],
+        lessons: [
+          lesson({
+            practicedConceptIds: [],
+            practicedLexemeIds: [],
+          }),
+          lesson({
+            id: "lesson-2",
+            order: 2,
+            introducedConceptIds: [],
+            introducedLexemeIds: [],
+            practicedConceptIds: ["topic-wa"],
+            practicedLexemeIds: ["iku"],
+            assessedConceptIds: [],
+            assessedLexemeIds: [],
+          }),
+        ],
+      }),
+      localValidation,
+    );
+
+    expect(
+      result.errors.filter((error) => error.code === "practice-before-introduction"),
+    ).toHaveLength(0);
+  });
+
   it("reports exercise assessment-before-introduction once", () => {
     const result = validateCurriculum(
       input({

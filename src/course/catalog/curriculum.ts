@@ -1027,18 +1027,6 @@ function uniqueStrings(values: readonly string[]): string[] {
 
 const verbIdSet = new Set(ALL_VERB_IDS);
 
-// Global introduction index for every concept and lexeme, in lesson order.
-const conceptIntroIndex = new Map<ConceptId, number>();
-const lexemeIntroIndex = new Map<LexemeId, number>();
-PLANS.forEach((plan, index) => {
-  for (const conceptId of plan.introducedConceptIds) {
-    if (!conceptIntroIndex.has(conceptId)) conceptIntroIndex.set(conceptId, index);
-  }
-  for (const lexemeId of plan.introducedLexemeIds) {
-    if (!lexemeIntroIndex.has(lexemeId)) lexemeIntroIndex.set(lexemeId, index);
-  }
-});
-
 function exampleIdsFor(plan: LessonPlan): string[] {
   return uniqueStrings([
     plan.baseExampleId,
@@ -1048,46 +1036,136 @@ function exampleIdsFor(plan: LessonPlan): string[] {
   ]);
 }
 
-/**
- * A lesson practices exactly the earlier-introduced concepts and lexemes its
- * examples reuse, plus any explicit review set. Same-lesson introductions and
- * not-yet-introduced references never count, so practice is always genuine
- * retrieval of prior material (spec §5.1, §6.4).
- */
-function practicedFor(plan: LessonPlan, index: number): {
-  concepts: string[];
-  lexemes: string[];
-} {
-  const exampleIds = exampleIdsFor(plan);
-  const exampleConcepts: string[] = [];
-  const exampleLexemes: string[] = [];
-  for (const exampleId of exampleIds) {
-    const example = curriculumExamplesById.get(exampleId);
-    if (!example) continue;
-    exampleConcepts.push(...example.conceptIds);
-    exampleLexemes.push(...example.lexemeIds);
-  }
-  const concepts = uniqueStrings([
-    ...exampleConcepts.filter((id) => {
-      const introducedAt = conceptIntroIndex.get(id);
-      return introducedAt !== undefined && introducedAt < index;
-    }),
-    ...(plan.reviewConceptIds ?? []),
-  ]);
-  const lexemes = uniqueStrings([
-    ...exampleLexemes.filter((id) => {
-      const introducedAt = lexemeIntroIndex.get(id);
-      return introducedAt !== undefined && introducedAt < index;
-    }),
-    ...(plan.reviewLexemeIds ?? []),
-  ]);
-  return { concepts, lexemes };
+/** The subset of a lesson plan `derivePracticedIdsByLesson` needs. */
+export interface CanonicalPracticedIdsPlan {
+  readonly id: LessonId;
+  readonly moduleId: ModuleId;
+  readonly order: number;
+  readonly exampleIds: readonly string[];
+  readonly introducedConceptIds: readonly ConceptId[];
+  readonly introducedLexemeIds: readonly LexemeId[];
+  /** Extra concepts a synthesis/orientation lesson reviews beyond its examples. */
+  readonly reviewConceptIds?: readonly ConceptId[];
+  /** Extra lexemes a synthesis/orientation lesson reviews beyond its examples. */
+  readonly reviewLexemeIds?: readonly LexemeId[];
 }
+
+/** The concept/lexeme references `derivePracticedIdsByLesson` reads off an example. */
+export interface CanonicalPracticedIdsExample {
+  readonly conceptIds: readonly ConceptId[];
+  readonly lexemeIds: readonly LexemeId[];
+}
+
+export interface PracticedIds {
+  readonly concepts: readonly ConceptId[];
+  readonly lexemes: readonly LexemeId[];
+}
+
+/**
+ * Pure canonical-position deriver for `practicedConceptIds`/`practicedLexemeIds`
+ * (spec §5.1, §6.4). A lesson's canonical teaching position comes only from
+ * `(moduleOrderById.get(moduleId), order)` — never from `plans`' own array
+ * position — so reordering the `plans` array (e.g. moving a whole module's
+ * declarations around in the source file) leaves every lesson's derived
+ * practiced sets unchanged. A lesson practices exactly the concepts/lexemes
+ * its examples reuse from a *strictly earlier* canonical lesson, plus any
+ * explicit review id that was itself already introduced earlier; same-lesson
+ * or later-lesson ids never count as practiced, whether they arrive through
+ * an example reference or an explicit review list.
+ */
+export function derivePracticedIdsByLesson(
+  plans: readonly CanonicalPracticedIdsPlan[],
+  moduleOrderById: ReadonlyMap<ModuleId, number>,
+  examplesById: ReadonlyMap<string, CanonicalPracticedIdsExample>,
+): ReadonlyMap<LessonId, PracticedIds> {
+  const canonicalOrder = [...plans].sort(
+    (left, right) =>
+      (moduleOrderById.get(left.moduleId) ?? Number.MAX_SAFE_INTEGER) -
+        (moduleOrderById.get(right.moduleId) ?? Number.MAX_SAFE_INTEGER) ||
+      left.order - right.order,
+  );
+
+  const conceptIntroPosition = new Map<ConceptId, number>();
+  const lexemeIntroPosition = new Map<LexemeId, number>();
+  canonicalOrder.forEach((plan, position) => {
+    for (const id of plan.introducedConceptIds) {
+      if (!conceptIntroPosition.has(id)) conceptIntroPosition.set(id, position);
+    }
+    for (const id of plan.introducedLexemeIds) {
+      if (!lexemeIntroPosition.has(id)) lexemeIntroPosition.set(id, position);
+    }
+  });
+
+  function introducedBefore(
+    index: ReadonlyMap<string, number>,
+    id: string,
+    position: number,
+  ): boolean {
+    const introducedAt = index.get(id);
+    return introducedAt !== undefined && introducedAt < position;
+  }
+
+  const result = new Map<LessonId, PracticedIds>();
+  canonicalOrder.forEach((plan, position) => {
+    const exampleConcepts: ConceptId[] = [];
+    const exampleLexemes: LexemeId[] = [];
+    for (const exampleId of uniqueStrings(plan.exampleIds)) {
+      const example = examplesById.get(exampleId);
+      if (!example) continue;
+      exampleConcepts.push(...example.conceptIds);
+      exampleLexemes.push(...example.lexemeIds);
+    }
+    const concepts = uniqueStrings([
+      ...exampleConcepts.filter((id) =>
+        introducedBefore(conceptIntroPosition, id, position),
+      ),
+      ...(plan.reviewConceptIds ?? []).filter((id) =>
+        introducedBefore(conceptIntroPosition, id, position),
+      ),
+    ]);
+    const lexemes = uniqueStrings([
+      ...exampleLexemes.filter((id) =>
+        introducedBefore(lexemeIntroPosition, id, position),
+      ),
+      ...(plan.reviewLexemeIds ?? []).filter((id) =>
+        introducedBefore(lexemeIntroPosition, id, position),
+      ),
+    ]);
+    result.set(plan.id, {
+      concepts: Object.freeze(concepts),
+      lexemes: Object.freeze(lexemes),
+    });
+  });
+
+  return result;
+}
+
+const moduleOrderById: ReadonlyMap<ModuleId, number> = new Map(
+  curriculumFoundation.modules.map((module) => [module.id, module.order]),
+);
+
+const practicedIdsByLesson = derivePracticedIdsByLesson(
+  PLANS.map((plan) => ({
+    id: plan.id,
+    moduleId: plan.moduleId,
+    order: plan.order,
+    exampleIds: exampleIdsFor(plan),
+    introducedConceptIds: plan.introducedConceptIds,
+    introducedLexemeIds: plan.introducedLexemeIds,
+    reviewConceptIds: plan.reviewConceptIds,
+    reviewLexemeIds: plan.reviewLexemeIds,
+  })),
+  moduleOrderById,
+  curriculumExamplesById,
+);
 
 /** The assembled, order-stable lesson boundaries. */
 export const curriculumLessons: readonly CurriculumLessonEntry[] = Object.freeze(
-  PLANS.map((plan, index) => {
-    const practiced = practicedFor(plan, index);
+  PLANS.map((plan) => {
+    const practiced = practicedIdsByLesson.get(plan.id) ?? {
+      concepts: [],
+      lexemes: [],
+    };
     const exampleIds = exampleIdsFor(plan);
     return Object.freeze({
       id: plan.id,
@@ -1095,10 +1173,10 @@ export const curriculumLessons: readonly CurriculumLessonEntry[] = Object.freeze
       order: plan.order,
       estimatedMinutes: plan.estimatedMinutes,
       introducedConceptIds: Object.freeze([...plan.introducedConceptIds]),
-      practicedConceptIds: Object.freeze(practiced.concepts),
+      practicedConceptIds: Object.freeze([...practiced.concepts]),
       assessedConceptIds: Object.freeze([...plan.assessedConceptIds]),
       introducedLexemeIds: Object.freeze([...plan.introducedLexemeIds]),
-      practicedLexemeIds: Object.freeze(practiced.lexemes),
+      practicedLexemeIds: Object.freeze([...practiced.lexemes]),
       assessedLexemeIds: Object.freeze([...plan.assessedLexemeIds]),
       exampleIds: Object.freeze(exampleIds),
       speechPromptId: speechPromptIdForLesson(plan.id),

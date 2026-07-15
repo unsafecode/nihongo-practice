@@ -657,7 +657,9 @@ const list: readonly CurriculumExampleEntry[] = [
     "places-2-say",
     [w("ぎんこう"), p("と"), w("ゆうびんきょく"), p("に"), w("いき"), e("ます")],
     ["bank", "post-office", "go"],
-    ["destination-ni", "companion-to"],
+    // と here coordinates two inanimate places ("bank and post office"), not a
+    // companion — companion-to is only for a real accompanying person.
+    ["destination-ni"],
   ),
   example(
     "places-2-r1",
@@ -693,7 +695,9 @@ const list: readonly CurriculumExampleEntry[] = [
     "places-3-r1",
     [w("ちかてつ"), p("と"), k("バス", "ばす"), p("で"), w("いき"), e("ます")],
     ["subway", "bus", "go"],
-    ["location-de", "companion-to"],
+    // と coordinates two inanimate transport modes ("subway and bus"), not a
+    // companion — companion-to is only for a real accompanying person.
+    ["location-de"],
   ),
   example(
     "places-3-r2",
@@ -1252,7 +1256,9 @@ const list: readonly CurriculumExampleEntry[] = [
     "shopping-3-r6",
     [w("でんしゃ"), p("で"), w("たち"), e("ます"), stop(), w("いす"), p("に"), w("すわり"), e("ます")],
     ["train", "stand", "chair", "sit"],
-    ["location-de", "object-o"],
+    // No を anywhere in this pair (でんしゃで stand, いすに sit) — object-o
+    // was a false tag; に here is the same goal/target marker as destination-ni.
+    ["location-de", "destination-ni"],
   ),
   example(
     "shopping-3-r7",
@@ -1330,7 +1336,9 @@ const list: readonly CurriculumExampleEntry[] = [
     "existence-needs-2-r5",
     [w("そふ"), p("は"), w("いす"), p("に"), w("すわり"), e("ます")],
     ["grandfather", "chair", "sit"],
-    ["object-o", "polite-masu"],
+    // No を present — object-o was a false tag; に marks the sit target the
+    // same way destination-ni does elsewhere in this catalog.
+    ["destination-ni", "polite-masu"],
   ),
   example(
     "existence-needs-3-r7",

@@ -508,6 +508,30 @@ function addOrderAndScriptErrors(
         });
       }
     }
+    // A lesson can only claim to practice a concept/lexeme that has been
+    // introduced by this lesson or an earlier one (spec §6.4). Catches the
+    // same "practiced before introduced" corruption `practicedFor` (Slice B
+    // Task 3) guards against at authoring time — e.g. a canonical-order bug
+    // that let a later-introduced id slip into an earlier lesson's practiced
+    // set — as a defense-in-depth check on the assembled data itself.
+    for (const id of lesson.practicedConceptIds) {
+      if (!concepts.has(id)) {
+        errors.push({
+          code: "practice-before-introduction",
+          id,
+          lessonId: lesson.id,
+        });
+      }
+    }
+    for (const id of lesson.practicedLexemeIds) {
+      if (!lexemes.has(id)) {
+        errors.push({
+          code: "practice-before-introduction",
+          id,
+          lessonId: lesson.id,
+        });
+      }
+    }
 
     const laterLessons = lessons.slice(lessonIndex + 1);
     for (const id of lesson.introducedConceptIds) {
