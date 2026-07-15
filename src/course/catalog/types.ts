@@ -56,6 +56,11 @@ export interface CurriculumCatalogEntry {
 }
 
 export interface ExerciseCatalogEntry {
+  /**
+   * Legacy wrapper metadata retained while staged catalogs acquire authored
+   * definitions. Once `definition` exists, its runtime fields are authoritative
+   * and these values must match.
+   */
   readonly id: ExerciseDefinitionId;
   readonly targetExampleId: ExampleId;
   readonly assessedConceptIds: readonly ConceptId[];
@@ -195,6 +200,7 @@ export type CurriculumValidationErrorCode =
   | "missing-lesson-reference"
   | "missing-exercise-reference"
   | "duplicate-exercise-reference"
+  | "inconsistent-exercise-definition"
   | "duplicate-exercise-segment"
   | "copied-exercise-answer"
   | "implicit-exercise-variant"

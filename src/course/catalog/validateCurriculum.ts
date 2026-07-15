@@ -5,6 +5,7 @@ import type { ExerciseCatalogsInput } from "../exercises/types";
 import type {
   AssembledCurriculumCatalogs,
   ComputedCoverage,
+  ExerciseCatalogEntry,
   CurriculumLessonEntry,
   CurriculumModuleEntry,
   CurriculumValidationError,
@@ -41,6 +42,29 @@ function appendUnique<T>(target: T[], values: readonly T[]): void {
   for (const value of values) {
     if (!target.includes(value)) target.push(value);
   }
+}
+
+/**
+ * Runtime exercise fields are authoritative when an authored definition exists.
+ * Wrapper fields are a compatibility fallback for staged legacy entries that
+ * have not acquired a definition yet.
+ */
+function exerciseData(exercise: ExerciseCatalogEntry): {
+  readonly targetExampleId: string;
+  readonly assessedConceptIds: readonly string[];
+  readonly assessedLexemeIds: readonly string[];
+} {
+  return exercise.definition === undefined
+    ? {
+        targetExampleId: exercise.targetExampleId,
+        assessedConceptIds: exercise.assessedConceptIds,
+        assessedLexemeIds: exercise.assessedLexemeIds,
+      }
+    : {
+        targetExampleId: exercise.definition.targetExampleId,
+        assessedConceptIds: exercise.definition.assessedConceptIds,
+        assessedLexemeIds: exercise.definition.assessedLexemeIds,
+      };
 }
 
 function sortedModules(
@@ -104,6 +128,29 @@ function collectReferenceIds(input: AssembledCurriculumCatalogs) {
     appendUnique(exampleIds, [exercise.targetExampleId]);
     appendUnique(conceptIds, exercise.assessedConceptIds);
     appendUnique(lexemeIds, exercise.assessedLexemeIds);
+    if (exercise.definition) {
+      appendUnique(exampleIds, [exercise.definition.targetExampleId]);
+      appendUnique(conceptIds, exercise.definition.assessedConceptIds);
+      appendUnique(lexemeIds, exercise.definition.assessedLexemeIds);
+      if (exercise.definition.kind === "transformation") {
+        appendUnique(exampleIds, [exercise.definition.promptExampleId]);
+      }
+      if ("distractorRefs" in exercise.definition) {
+        appendUnique(
+          exampleIds,
+          (exercise.definition.distractorRefs ?? [])
+            .map((ref) => ref.exampleId)
+            .filter((id): id is string => id !== undefined),
+        );
+      }
+      appendUnique(
+        exampleIds,
+        (exercise.definition.acceptedVariants ?? [])
+          .flatMap((variant) => variant.segmentRefs)
+          .map((ref) => ref.exampleId)
+          .filter((id): id is string => id !== undefined),
+      );
+    }
   }
   for (const speechPrompt of input.speechPrompts) {
     appendUnique(exampleIds, [speechPrompt.targetExampleId]);
@@ -392,8 +439,9 @@ function computeCoverage(
   }
 
   for (const exercise of input.exercises) {
-    appendUnique(vocabularyIds, exercise.assessedLexemeIds);
-    for (const lexemeId of exercise.assessedLexemeIds) {
+    const { assessedLexemeIds } = exerciseData(exercise);
+    appendUnique(vocabularyIds, assessedLexemeIds);
+    for (const lexemeId of assessedLexemeIds) {
       if (lexemeCategories.get(lexemeId) !== "verb") continue;
       const authorshipKey = `exercise:${exercise.id}:${lexemeId}`;
       if (!countedAuthorship.has(authorshipKey)) {
@@ -401,10 +449,19 @@ function computeCoverage(
           (authoredExampleCounts[lexemeId] ?? 0) + 1;
         countedAuthorship.add(authorshipKey);
       }
-      const targetExample = examplesById.get(exercise.targetExampleId);
-      if (!targetExample) continue;
-      for (const lesson of lessons) {
-        if (!lesson.exampleIds.includes(targetExample.id)) continue;
+    }
+  }
+
+  const exercisesById = new Map(
+    input.exercises.map((exercise) => [exercise.id, exercise]),
+  );
+  for (const lesson of lessons) {
+    for (const exerciseId of lesson.exerciseIds ?? []) {
+      const exercise = exercisesById.get(exerciseId);
+      if (!exercise) continue;
+      const { assessedLexemeIds } = exerciseData(exercise);
+      for (const lexemeId of assessedLexemeIds) {
+        if (lexemeCategories.get(lexemeId) !== "verb") continue;
         const modulesForVerb = verbModules[lexemeId] ?? [];
         appendUnique(modulesForVerb, [lesson.moduleId]);
         verbModules[lexemeId] = modulesForVerb;
@@ -574,20 +631,25 @@ function addOrderAndScriptErrors(
     }
   }
 
-  for (const exercise of input.exercises) {
-    for (const [lessonIndex, lesson] of lessons.entries()) {
-      if (!lesson.exampleIds.includes(exercise.targetExampleId)) continue;
-      const availableConcepts = new Set(
-        lessons
-          .slice(0, lessonIndex + 1)
-          .flatMap((candidate) => candidate.introducedConceptIds),
-      );
-      const availableLexemes = new Set(
-        lessons
-          .slice(0, lessonIndex + 1)
-          .flatMap((candidate) => candidate.introducedLexemeIds),
-      );
-      for (const id of exercise.assessedConceptIds) {
+  const exercisesById = new Map(
+    input.exercises.map((exercise) => [exercise.id, exercise]),
+  );
+  for (const [lessonIndex, lesson] of lessons.entries()) {
+    const availableConcepts = new Set(
+      lessons
+        .slice(0, lessonIndex + 1)
+        .flatMap((candidate) => candidate.introducedConceptIds),
+    );
+    const availableLexemes = new Set(
+      lessons
+        .slice(0, lessonIndex + 1)
+        .flatMap((candidate) => candidate.introducedLexemeIds),
+    );
+    for (const exerciseId of lesson.exerciseIds ?? []) {
+      const exercise = exercisesById.get(exerciseId);
+      if (!exercise) continue;
+      const { assessedConceptIds, assessedLexemeIds } = exerciseData(exercise);
+      for (const id of assessedConceptIds) {
         if (!availableConcepts.has(id)) {
           errors.push({
             code: "assessment-before-introduction",
@@ -596,7 +658,7 @@ function addOrderAndScriptErrors(
           });
         }
       }
-      for (const id of exercise.assessedLexemeIds) {
+      for (const id of assessedLexemeIds) {
         if (!availableLexemes.has(id)) {
           errors.push({
             code: "assessment-before-introduction",
@@ -687,6 +749,43 @@ function addExerciseErrors(
   for (const exercise of input.exercises) {
     const definition = exercise.definition;
     if (!definition) continue;
+
+    if (exercise.id !== definition.id) {
+      errors.push({
+        code: "inconsistent-exercise-definition",
+        id: exercise.id,
+        referenceId: "id",
+        expected: exercise.id,
+        actual: definition.id,
+      });
+    }
+    if (exercise.targetExampleId !== definition.targetExampleId) {
+      errors.push({
+        code: "inconsistent-exercise-definition",
+        id: exercise.id,
+        referenceId: "targetExampleId",
+        expected: exercise.targetExampleId,
+        actual: definition.targetExampleId,
+      });
+    }
+    if (!sameIds(exercise.assessedConceptIds, definition.assessedConceptIds)) {
+      errors.push({
+        code: "inconsistent-exercise-definition",
+        id: exercise.id,
+        referenceId: "assessedConceptIds",
+        expected: exercise.assessedConceptIds.join(","),
+        actual: definition.assessedConceptIds.join(","),
+      });
+    }
+    if (!sameIds(exercise.assessedLexemeIds, definition.assessedLexemeIds)) {
+      errors.push({
+        code: "inconsistent-exercise-definition",
+        id: exercise.id,
+        referenceId: "assessedLexemeIds",
+        expected: exercise.assessedLexemeIds.join(","),
+        actual: definition.assessedLexemeIds.join(","),
+      });
+    }
 
     // No copied canonical answer literals: definitions are all-ID by design.
     if (containsJapanese(definition)) {

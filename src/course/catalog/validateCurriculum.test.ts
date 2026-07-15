@@ -324,6 +324,7 @@ describe("validateCurriculum", () => {
             introducedLexemeIds: [],
             assessedConceptIds: [],
             assessedLexemeIds: [],
+            exerciseIds: ["exercise-1"],
           }),
           lesson({
             id: "lesson-2",
@@ -661,6 +662,135 @@ const choiceExample = exampleWithSegments(
 );
 
 describe("validateCurriculum exercise definitions (Slice C Task 1)", () => {
+  it("uses runtime definition assessments for order safety instead of wrapper assessments", () => {
+    const result = validateCurriculum(
+      input({
+        concepts: [
+          { id: "topic-wa", prerequisiteIds: [], surfaceGears: ["は"] },
+          { id: "future-concept", prerequisiteIds: [], surfaceGears: [] },
+        ],
+        examples: [choiceExample],
+        exercises: [
+          {
+            id: "exercise-1",
+            targetExampleId: "example-1",
+            assessedConceptIds: ["topic-wa"],
+            assessedLexemeIds: ["iku"],
+            definition: {
+              id: "exercise-1",
+              kind: "constrained-construction",
+              promptCopyId: "copy.construct",
+              intentCopyId: "copy.intent",
+              targetExampleId: "example-1",
+              assessedConceptIds: ["future-concept"],
+              assessedLexemeIds: [],
+            },
+          },
+        ],
+        lessons: [lesson({ exerciseIds: ["exercise-1"] })],
+      }),
+      localValidation,
+    );
+
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: "assessment-before-introduction",
+        id: "future-concept",
+        lessonId: "lesson-1",
+      }),
+    );
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: "inconsistent-exercise-definition",
+        id: "exercise-1",
+        referenceId: "assessedConceptIds",
+      }),
+    );
+  });
+
+  it("uses lesson exercise ownership instead of target example membership for order safety", () => {
+    const result = validateCurriculum(
+      input({
+        concepts: [
+          { id: "topic-wa", prerequisiteIds: [], surfaceGears: ["は"] },
+          { id: "future-concept", prerequisiteIds: [], surfaceGears: [] },
+        ],
+        examples: [choiceExample],
+        exercises: [
+          {
+            id: "exercise-1",
+            targetExampleId: "example-1",
+            assessedConceptIds: ["future-concept"],
+            assessedLexemeIds: [],
+            definition: {
+              id: "exercise-1",
+              kind: "constrained-construction",
+              promptCopyId: "copy.construct",
+              intentCopyId: "copy.intent",
+              targetExampleId: "example-1",
+              assessedConceptIds: ["future-concept"],
+              assessedLexemeIds: [],
+            },
+          },
+        ],
+        lessons: [
+          lesson({
+            exampleIds: [],
+            exerciseIds: ["exercise-1"],
+          }),
+        ],
+      }),
+      localValidation,
+    );
+
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: "assessment-before-introduction",
+        id: "future-concept",
+        lessonId: "lesson-1",
+      }),
+    );
+  });
+
+  it("rejects disagreement between wrapper and runtime target data", () => {
+    const result = validateCurriculum(
+      input({
+        examples: [
+          choiceExample,
+          exampleWithSegments("other-example", [
+            segment("w1", "ほん", "word"),
+          ]),
+        ],
+        exercises: [
+          {
+            id: "exercise-1",
+            targetExampleId: "example-1",
+            assessedConceptIds: ["topic-wa"],
+            assessedLexemeIds: ["iku"],
+            definition: {
+              id: "exercise-1",
+              kind: "constrained-construction",
+              promptCopyId: "copy.construct",
+              intentCopyId: "copy.intent",
+              targetExampleId: "other-example",
+              assessedConceptIds: ["topic-wa"],
+              assessedLexemeIds: ["iku"],
+            },
+          },
+        ],
+        lessons: [lesson({ exerciseIds: ["exercise-1"] })],
+      }),
+      localValidation,
+    );
+
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: "inconsistent-exercise-definition",
+        id: "exercise-1",
+      }),
+    );
+  });
+
   it("reports a lesson reference to an unknown exercise definition", () => {
     const result = validateCurriculum(
       input({ lessons: [lesson({ exerciseIds: ["ghost-exercise"] })] }),
@@ -911,7 +1041,7 @@ describe("validateCurriculum exercise definitions (Slice C Task 1)", () => {
       id: `exercise-${n}`,
       targetExampleId: "example-1",
       assessedConceptIds: ["topic-wa"],
-      assessedLexemeIds: ["iku"],
+      assessedLexemeIds: [],
       definition: {
         id: `exercise-${n}`,
         kind: "choice" as const,
