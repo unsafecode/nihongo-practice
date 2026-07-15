@@ -5,7 +5,21 @@
  * v1 used "completed" language; v2 replaces it with "visited" semantics
  * throughout (Task 3 §B). v1 payloads already on disk are migrated
  * losslessly on read - see migrateV1ToV2.
+ *
+ * Slice C adds evidence-based practiced/consolidated transitions and the
+ * lightweight `Da ripassare` review queue (design spec §10.4, §11.1). Those
+ * mutations are pure and deterministic: every timestamp is supplied by the
+ * caller as `evidence.at`, and the review-queue primitives live in the sibling
+ * `reviewQueue` module. The load-bearing rule is that progress stores only
+ * semantic IDs and interaction evidence — never a duplicated answer string.
  */
+
+import {
+  lessonHasOpenReview,
+  resolveReviewEntry,
+  reviewKeyFor,
+  upsertReviewMistake,
+} from "./reviewQueue";
 
 export interface CourseProgressV1 {
   schemaVersion: 1;
@@ -308,6 +322,190 @@ export function visitedLessonIds(progress: CourseProgressV3): string[] {
   return Object.entries(progress.lessons)
     .filter(([, lesson]) => lesson.visitedAt !== null)
     .map(([lessonId]) => lessonId);
+}
+
+// ── Evidence-based practiced/consolidated transitions (spec §10.4, §11.1) ─────
+
+/**
+ * One valid exercise attempt's evidence. The caller (the lesson/review UI via
+ * `ProgressContext`) supplies the lesson's authored 3-5 required exercise IDs —
+ * the practiced/consolidated gate — the assessed target IDs for the review
+ * entry, and the transition timestamp, so these functions stay pure and
+ * deterministic. No answer string is ever carried here, only semantic IDs.
+ */
+export interface ExerciseEvidence {
+  readonly lessonId: string;
+  readonly exerciseDefinitionId: string;
+  /** The lesson's authored required exercise IDs (the evidence gate). */
+  readonly requiredExerciseIds: readonly string[];
+  readonly targetConceptIds: readonly string[];
+  readonly targetLexemeIds: readonly string[];
+  /** ISO timestamp written at the transition this evidence describes. */
+  readonly at: string;
+}
+
+/**
+ * Whether an accepted attempt happened inside a lesson or in review mode. Only a
+ * review-mode acceptance resolves an existing review entry (spec §10.4): a
+ * same-lesson correction never silently removes the item that keeps the lesson
+ * from consolidating.
+ */
+export type ReviewMode = "lesson" | "review";
+
+function sameIdList(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((id, index) => id === right[index]);
+}
+
+function sameLessonProgress(a: LessonProgressV3, b: LessonProgressV3): boolean {
+  return (
+    a.visitedAt === b.visitedAt &&
+    a.practicedAt === b.practicedAt &&
+    a.consolidatedAt === b.consolidatedAt &&
+    sameIdList(a.attemptedExerciseIds, b.attemptedExerciseIds) &&
+    sameIdList(a.acceptedExerciseIds, b.acceptedExerciseIds)
+  );
+}
+
+function coversAll(present: readonly string[], required: readonly string[]): boolean {
+  const set = new Set(present);
+  return required.every((id) => set.has(id));
+}
+
+/**
+ * Fold a valid attempt into a lesson's evidence: record the attempted exercise
+ * ID (idempotent, encounter order) and set `practicedAt` once every required
+ * exercise has at least one attempt (spec §11.1). Never touches accepted or
+ * consolidated evidence. Returns the same reference when the attempt changes
+ * nothing so callers can detect a no-op.
+ */
+function foldAttempt(
+  lesson: LessonProgressV3,
+  evidence: ExerciseEvidence,
+): LessonProgressV3 {
+  const attemptedExerciseIds = dedupeInEncounterOrder([
+    ...lesson.attemptedExerciseIds,
+    evidence.exerciseDefinitionId,
+  ]);
+  const attemptAdded =
+    attemptedExerciseIds.length !== lesson.attemptedExerciseIds.length;
+  const practicedAt =
+    lesson.practicedAt ??
+    (coversAll(attemptedExerciseIds, evidence.requiredExerciseIds)
+      ? evidence.at
+      : null);
+  if (!attemptAdded && practicedAt === lesson.practicedAt) return lesson;
+  return { ...lesson, attemptedExerciseIds, practicedAt };
+}
+
+function writeLesson(
+  progress: CourseProgressV3,
+  lessonId: string,
+  lesson: LessonProgressV3,
+  at: string,
+): CourseProgressV3 {
+  return {
+    ...progress,
+    lessons: { ...progress.lessons, [lessonId]: lesson },
+    updatedAt: at,
+  };
+}
+
+/**
+ * Record a valid exercise attempt, advancing `visited → practiced` only when the
+ * lesson's whole required set has been attempted (spec §11.1). A brand-new
+ * lesson is materialised as visited-at-`evidence.at` because practising a lesson
+ * means its route rendered. Fully idempotent by reference: a repeat attempt that
+ * changes no evidence returns the exact same object with no `updatedAt` churn.
+ * This never invents accepted or consolidated evidence or touches the queue.
+ */
+export function recordExerciseAttempt(
+  progress: CourseProgressV3,
+  evidence: ExerciseEvidence,
+): CourseProgressV3 {
+  const existing = progress.lessons[evidence.lessonId];
+  const lesson = foldAttempt(existing ?? lessonVisit(evidence.at), evidence);
+  if (existing !== undefined && lesson === existing) return progress;
+  return writeLesson(progress, evidence.lessonId, lesson, evidence.at);
+}
+
+/**
+ * Record a non-accepted valid attempt: it still counts toward `practiced`, but
+ * it also upserts a lightweight review entry (incrementing on repeats) and
+ * clears the lesson's `consolidatedAt` because a new relevant mistake has
+ * entered the queue (spec §11.2). Visited and practiced evidence is retained. A
+ * mistake is never a no-op — the queue entry always upserts.
+ */
+export function recordExerciseMistake(
+  progress: CourseProgressV3,
+  evidence: ExerciseEvidence,
+): CourseProgressV3 {
+  const existing = progress.lessons[evidence.lessonId];
+  const attempted = foldAttempt(existing ?? lessonVisit(evidence.at), evidence);
+  const lesson =
+    attempted.consolidatedAt === null
+      ? attempted
+      : { ...attempted, consolidatedAt: null };
+  const reviewQueue = upsertReviewMistake(progress.reviewQueue, {
+    lessonId: evidence.lessonId,
+    exerciseDefinitionId: evidence.exerciseDefinitionId,
+    targetConceptIds: evidence.targetConceptIds,
+    targetLexemeIds: evidence.targetLexemeIds,
+    at: evidence.at,
+  });
+  return {
+    ...progress,
+    lessons: { ...progress.lessons, [evidence.lessonId]: lesson },
+    reviewQueue,
+    updatedAt: evidence.at,
+  };
+}
+
+/**
+ * Record an accepted attempt: it counts toward `practiced`, records accepted
+ * evidence (idempotent, encounter order), and — in review mode only — resolves
+ * the matching review entry (spec §10.4). The lesson advances to
+ * `consolidated` only when it is practiced, every required exercise has an
+ * accepted result, and no active review entry remains for the lesson (spec
+ * §11.1). A no-op acceptance on an already-consolidated lesson returns the same
+ * reference with no `updatedAt` churn.
+ */
+export function recordExerciseAcceptance(
+  progress: CourseProgressV3,
+  evidence: ExerciseEvidence,
+  mode: ReviewMode = "lesson",
+): CourseProgressV3 {
+  const existing = progress.lessons[evidence.lessonId];
+  const attempted = foldAttempt(existing ?? lessonVisit(evidence.at), evidence);
+  const acceptedExerciseIds = dedupeInEncounterOrder([
+    ...attempted.acceptedExerciseIds,
+    evidence.exerciseDefinitionId,
+  ]);
+
+  const reviewKey = reviewKeyFor(evidence.lessonId, evidence.exerciseDefinitionId);
+  const reviewQueue =
+    mode === "review"
+      ? resolveReviewEntry(progress.reviewQueue, reviewKey)
+      : progress.reviewQueue;
+  const reviewResolved = reviewQueue.length !== progress.reviewQueue.length;
+
+  const gateMet =
+    attempted.practicedAt !== null &&
+    coversAll(acceptedExerciseIds, evidence.requiredExerciseIds) &&
+    !lessonHasOpenReview(reviewQueue, evidence.lessonId);
+  const consolidatedAt =
+    attempted.consolidatedAt ?? (gateMet ? evidence.at : null);
+
+  const lesson: LessonProgressV3 = { ...attempted, acceptedExerciseIds, consolidatedAt };
+
+  if (existing !== undefined && sameLessonProgress(existing, lesson) && !reviewResolved) {
+    return progress;
+  }
+  return {
+    ...progress,
+    lessons: { ...progress.lessons, [evidence.lessonId]: lesson },
+    reviewQueue,
+    updatedAt: evidence.at,
+  };
 }
 
 /** Filters stored visited ids down to ones the current course still recognizes. */

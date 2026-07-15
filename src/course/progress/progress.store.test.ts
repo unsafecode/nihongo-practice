@@ -47,4 +47,31 @@ describe("progress persistence results", () => {
     );
     expect(loadProgress(storage).loadStatus).toBe("migrated");
   });
+
+  it("reconciles an obsolete stored review entry into orphaned metadata on load", () => {
+    const storage = memoryStorage();
+    storage.setItem(
+      "nihongo.course.progress",
+      JSON.stringify({
+        ...emptyProgress(),
+        reviewQueue: [
+          {
+            reviewKey: "ghost-lesson:ghost-lesson-x1",
+            lessonId: "ghost-lesson",
+            exerciseDefinitionId: "ghost-lesson-x1",
+            targetConceptIds: [],
+            targetLexemeIds: [],
+            mistakeCount: 2,
+            lastMistakeAt: "2026-07-15T10:00:00.000Z",
+          },
+        ],
+      }),
+    );
+    const loaded = loadProgress(storage);
+    expect(loaded.loadStatus).toBe("current");
+    expect(loaded.progress.reviewQueue).toEqual([]);
+    expect(loaded.progress.orphanedReviewKeys).toEqual([
+      "ghost-lesson:ghost-lesson-x1",
+    ]);
+  });
 });

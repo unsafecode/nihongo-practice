@@ -35,6 +35,8 @@ function makeProgressValue(
     corrupted: false,
     persistenceAvailable: true,
     markVisited: () => {},
+    recordAttempt: () => {},
+    resolveReview: () => {},
     dismissCorruption: () => {},
     reset: () => {},
     ...overrides,
