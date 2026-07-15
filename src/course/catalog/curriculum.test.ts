@@ -469,3 +469,177 @@ describe("persona and alias hygiene (spec §8)", () => {
     );
   });
 });
+
+/**
+ * Slice B Task 3 review remediation. These three suites encode the review
+ * findings so a passing release validator cannot mask a bare-list introduction,
+ * a blanket "reviews everything" capstone claim, or an unfocused comparison.
+ * Reuse and teaching are re-derived from example concept/lexeme references, not
+ * from lesson review metadata (spec §6.1, §6.4, §5.3).
+ */
+
+/** The lexemes proven to be taught through a real predicate (nonempty concepts). */
+const practicallyTaughtLexemes = (() => {
+  const taught = new Set<string>();
+  for (const example of curriculumExamples) {
+    if (example.conceptIds.length === 0) continue;
+    for (const lexemeId of example.lexemeIds) taught.add(lexemeId);
+  }
+  return taught;
+})();
+
+describe("every introduced lexeme is practically taught (spec §6.1, review finding 1)", () => {
+  // Module 1 is the phonetic/loanword bridge: its greetings and assisted
+  // katakana are taught as sound units in the comparison/guided slots without a
+  // grammar gear (spec §5.2, §7), so they carry no concept and are exempt.
+  const bridgeLexemes = new Set(
+    lexemesByIntroModule[0].map((entry) => entry.id),
+  );
+
+  it("teaches every non-bridge introduced lexeme through a predicated example", () => {
+    const introduced = new Set<string>();
+    for (const lesson of curriculumLessons) {
+      for (const id of lesson.introducedLexemeIds) introduced.add(id);
+    }
+    const listOnly = [...introduced].filter(
+      (id) => !bridgeLexemes.has(id) && !practicallyTaughtLexemes.has(id),
+    );
+    expect(listOnly.sort()).toEqual([]);
+  });
+
+  it("gives the eleven review-flagged list-only lexemes a real taught concept", () => {
+    const flagged = [
+      "next-month",
+      "this-week",
+      "this-month",
+      "this-year",
+      "mother",
+      "older-sister",
+      "younger-sister",
+      "man",
+      "woman",
+      "price",
+      "clothes",
+    ];
+    for (const id of flagged) {
+      expect(practicallyTaughtLexemes.has(id)).toBe(true);
+    }
+  });
+});
+
+describe("practical gears earn later example reuse (spec §6.4, review finding 2)", () => {
+  const PRACTICAL_GEARS = [
+    "negative-masen",
+    "past-negative-masendeshita",
+    "comparison",
+    "adjective-past",
+    "request-kudasai",
+    "desire-tai",
+    "offer-mashouka",
+  ] as const;
+
+  function introductionIndex(conceptId: string): number {
+    return orderedCurriculumLessons.findIndex((lesson) =>
+      lesson.introducedConceptIds.includes(conceptId),
+    );
+  }
+
+  function hasLaterRealExample(conceptId: string, introIndex: number): boolean {
+    return orderedCurriculumLessons
+      .slice(introIndex + 1)
+      .some((lesson) =>
+        lesson.exampleIds.some((exampleId) =>
+          curriculumExamplesById.get(exampleId)?.conceptIds.includes(conceptId),
+        ),
+      );
+  }
+
+  it("reuses each practical gear in a later real example, not just review metadata", () => {
+    for (const gear of PRACTICAL_GEARS) {
+      const introIndex = introductionIndex(gear);
+      expect(introIndex).toBeGreaterThanOrEqual(0);
+      expect(hasLaterRealExample(gear, introIndex)).toBe(true);
+    }
+  });
+
+  it("does not blanket-claim every concept in the capstone orientation metadata", () => {
+    const orientation = lessonPlans.find(
+      (plan) => plan.id === "capstones-orientation",
+    );
+    expect(orientation).toBeDefined();
+    const reviewed = new Set(orientation?.reviewConceptIds ?? []);
+    // The blanket set claimed all 34 concepts; an honest review names only the
+    // structural gears it truly retrieves beyond its examples.
+    expect(reviewed.size).toBeLessThan(concepts.length);
+    for (const gear of PRACTICAL_GEARS) {
+      expect(reviewed.has(gear)).toBe(false);
+    }
+  });
+});
+
+describe("explicit comparisons declare a focused delta (spec §5.3, review finding 3)", () => {
+  const FOCUSED_LESSONS = [
+    "introductions-1",
+    "shopping-3",
+    "descriptions-3",
+  ] as const;
+
+  function planFor(id: string) {
+    const plan = lessonPlans.find((entry) => entry.id === id);
+    expect(plan).toBeDefined();
+    return plan!;
+  }
+
+  it("keeps each flagged base/changed pair a single focused contrast", () => {
+    for (const lessonId of FOCUSED_LESSONS) {
+      const plan = planFor(lessonId);
+      const base = curriculumExamplesById.get(plan.baseExampleId);
+      const changed = curriculumExamplesById.get(plan.changedExampleId);
+      expect(base).toBeDefined();
+      expect(changed).toBeDefined();
+      const baseLex = new Set(base?.lexemeIds ?? []);
+      const changedLex = new Set(changed?.lexemeIds ?? []);
+      const shared = [...baseLex].filter((id) => changedLex.has(id));
+      const onlyBase = [...baseLex].filter((id) => !changedLex.has(id));
+      const onlyChanged = [...changedLex].filter((id) => !baseLex.has(id));
+      // A focused comparison keeps a stable frame (a shared content word)…
+      expect(shared.length).toBeGreaterThanOrEqual(1);
+      // …and swaps a bounded delta (at most one content word on each side).
+      expect(onlyBase.length).toBeLessThanOrEqual(1);
+      expect(onlyChanged.length).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("aligns each pair with its declared delta and shared frame", () => {
+    // introductions-1: only the topic changes (I → you); the predicate stays.
+    const intro = planFor("introductions-1");
+    const introBase = curriculumExamplesById.get(intro.baseExampleId);
+    const introChanged = curriculumExamplesById.get(intro.changedExampleId);
+    expect(introBase?.lexemeIds).toContain("student");
+    expect(introChanged?.lexemeIds).toContain("student");
+    expect(introBase?.lexemeIds).toContain("i");
+    expect(introChanged?.lexemeIds).toContain("you");
+
+    // shopping-3: only the verb changes (open → close); the place stays.
+    const shop = planFor("shopping-3");
+    const shopBase = curriculumExamplesById.get(shop.baseExampleId);
+    const shopChanged = curriculumExamplesById.get(shop.changedExampleId);
+    expect(shopBase?.lexemeIds).toContain("open");
+    expect(shopChanged?.lexemeIds).toContain("close");
+    const shopShared = (shopBase?.lexemeIds ?? []).filter((id) =>
+      (shopChanged?.lexemeIds ?? []).includes(id),
+    );
+    expect(shopShared.length).toBeGreaterThanOrEqual(1);
+
+    // descriptions-3: both halves compare the same pair; only the adjective flips.
+    const desc = planFor("descriptions-3");
+    const descBase = curriculumExamplesById.get(desc.baseExampleId);
+    const descChanged = curriculumExamplesById.get(desc.changedExampleId);
+    expect(descBase?.conceptIds).toContain("comparison");
+    expect(descChanged?.conceptIds).toContain("comparison");
+    const descShared = (descBase?.lexemeIds ?? []).filter((id) =>
+      (descChanged?.lexemeIds ?? []).includes(id),
+    );
+    expect(descShared.length).toBeGreaterThanOrEqual(1);
+  });
+});

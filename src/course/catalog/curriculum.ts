@@ -57,9 +57,6 @@ interface LessonPlan {
   readonly reviewLexemeIds?: readonly LexemeId[];
 }
 
-const ALL_CONCEPT_IDS: readonly ConceptId[] = concepts.map(
-  (concept) => concept.id,
-);
 const ALL_VERB_IDS: readonly LexemeId[] = verbLexemes.map((verb) => verb.id);
 
 /** Convenience: a lesson whose `guided` example is also its `-say` target. */
@@ -720,7 +717,7 @@ const PLANS: readonly LessonPlan[] = [
     assistedKatakanaLexemeIds: [],
     baseExampleId: "descriptions-3-base",
     changedExampleId: "descriptions-3-changed",
-    extraExampleIds: ["descriptions-3-r1", "descriptions-3-r2", "descriptions-3-r3", "descriptions-3-r4", "descriptions-3-r5", "descriptions-3-r6"],
+    extraExampleIds: ["descriptions-3-r1", "descriptions-3-r2", "descriptions-3-r3", "descriptions-3-r4", "descriptions-3-r5", "descriptions-3-r6", "descriptions-3-r7"],
   }),
 
   // ── Module 10 · Shopping, quantities, and requests ─────────────────────────
@@ -884,7 +881,11 @@ const PLANS: readonly LessonPlan[] = [
   }),
 
   // ── Module 12 · Practical synthesis ────────────────────────────────────────
-  // Orientation reviews every prior gear before the three assessed capstones.
+  // Orientation retrieves prior gears through its examples; only the two purely
+  // structural gears (sentence order, topic omission) — which carry no surface
+  // glyph and so appear in no example's conceptIds — are named explicitly. Every
+  // other concept, including the seven practical gears, earns its later reuse
+  // from real capstone examples (spec §6.4), not a blanket review claim.
   lesson({
     id: "capstones-orientation",
     moduleId: "capstones",
@@ -899,8 +900,7 @@ const PLANS: readonly LessonPlan[] = [
     baseExampleId: "capstones-orientation-base",
     changedExampleId: "capstones-orientation-changed",
     extraExampleIds: [],
-    reviewConceptIds: ALL_CONCEPT_IDS,
-    reviewLexemeIds: ALL_VERB_IDS,
+    reviewConceptIds: ["sentence-order", "topic-omission"],
   }),
   lesson({
     id: "capstones-self-introduction",
@@ -936,6 +936,7 @@ const PLANS: readonly LessonPlan[] = [
     extraExampleIds: [
       "capstones-self-introduction-r1",
       "capstones-self-introduction-r2",
+      "capstones-self-introduction-r3",
     ],
   }),
   lesson({
@@ -974,6 +975,8 @@ const PLANS: readonly LessonPlan[] = [
       "capstones-everyday-outing-r1",
       "capstones-everyday-outing-r2",
       "capstones-everyday-outing-r3",
+      "capstones-everyday-outing-r4",
+      "capstones-everyday-outing-r5",
     ],
   }),
   lesson({
@@ -1013,6 +1016,7 @@ const PLANS: readonly LessonPlan[] = [
       "capstones-travel-day-r1",
       "capstones-travel-day-r2",
       "capstones-travel-day-r3",
+      "capstones-travel-day-r4",
     ],
   }),
 ];

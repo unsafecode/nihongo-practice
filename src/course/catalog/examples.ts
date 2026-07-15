@@ -135,8 +135,8 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "introductions-1-changed",
-    [w("あなた"), p("は"), w("せんせい"), e("です")],
-    ["you", "teacher"],
+    [w("あなた"), p("は"), w("がくせい"), e("です")],
+    ["you", "student"],
     ["topic-wa", "copula-desu"],
   ),
   example(
@@ -605,9 +605,9 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "past-negative-3-r1",
-    [w("らいげつ"), w("こんしゅう"), w("こんげつ"), w("ことし")],
-    ["next-month", "this-week", "this-month", "this-year"],
-    [],
+    [w("こんしゅう"), p("と"), w("こんげつ"), p("は"), w("やすみ"), e("です"), stop(), w("らいげつ"), w("にほん"), p("へ"), w("いき"), e("ます"), stop(), w("ことし"), w("ともだち"), p("と"), w("あい"), e("ます")],
+    ["this-week", "this-month", "day-off", "next-month", "japan", "go", "this-year", "friend", "meet"],
+    ["topic-wa", "copula-desu", "direction-e", "companion-to"],
   ),
   example(
     "past-negative-3-r2",
@@ -747,9 +747,9 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "people-1-r1",
-    [w("はは"), p("と"), w("あね"), p("と"), w("いもうと")],
-    ["mother", "older-sister", "younger-sister"],
-    [],
+    [w("はは"), p("と"), w("あね"), p("と"), w("いもうと"), p("は"), w("かぞく"), e("です")],
+    ["mother", "older-sister", "younger-sister", "family"],
+    ["topic-wa", "copula-desu"],
   ),
   example(
     "people-1-r2",
@@ -825,9 +825,9 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "people-3-r2",
-    [w("おとこ"), p("の"), w("ひと"), p("と"), w("おんな"), p("の"), w("ひと")],
-    ["man", "person", "woman"],
-    [],
+    [w("おとこ"), p("の"), w("ひと"), p("と"), w("おんな"), p("の"), w("ひと"), p("は"), w("せんせい"), e("です")],
+    ["man", "person", "woman", "teacher"],
+    ["topic-wa", "copula-desu"],
   ),
   example(
     "people-3-r3",
@@ -911,9 +911,9 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "descriptions-3-changed",
-    [w("きのう"), p("は"), w("さむかった"), e("です")],
-    ["yesterday", "cold"],
-    ["adjective-past"],
+    [w("でんしゃ"), p("より"), k("バス", "ばす"), p("が"), w("たかい"), e("です")],
+    ["train", "bus", "expensive"],
+    ["comparison", "subject-ga"],
   ),
   example(
     "descriptions-3-say",
@@ -938,6 +938,12 @@ const list: readonly CurriculumExampleEntry[] = [
     [w("かんたん"), p("な"), w("しごと"), p("は"), w("たのしかった"), e("です")],
     ["easy", "job", "fun"],
     ["na-adjective", "adjective-past"],
+  ),
+  example(
+    "descriptions-3-r7",
+    [w("きのう"), p("は"), w("さむかった"), e("です")],
+    ["yesterday", "cold"],
+    ["adjective-past"],
   ),
 
   // ── Module 10 · Shopping, quantities, and requests ─────────────────────────
@@ -1003,21 +1009,21 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "shopping-3-base",
-    [w("ともだち"), p("に"), w("ほん"), p("を"), w("かり"), e("ます")],
-    ["friend", "book", "borrow"],
-    ["person-ni", "object-o"],
+    [w("みせ"), p("を"), w("あけ"), e("ます")],
+    ["shop", "open"],
+    ["object-o", "polite-masu"],
   ),
   example(
     "shopping-3-changed",
-    [w("かばん"), p("を"), w("あけ"), e("ます")],
-    ["bag", "open"],
+    [w("みせ"), p("を"), w("しめ"), e("ます")],
+    ["shop", "close"],
     ["object-o", "polite-masu"],
   ),
   example(
     "shopping-3-say",
-    [w("みせ"), p("を"), w("しめ"), e("ます")],
-    ["shop", "close"],
-    ["object-o", "polite-masu"],
+    [w("ともだち"), p("に"), w("ほん"), p("を"), w("かり"), e("ます")],
+    ["friend", "book", "borrow"],
+    ["person-ni", "object-o"],
   ),
   example(
     "shopping-3-r1",
@@ -1027,9 +1033,9 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "shopping-3-r2",
-    [w("くつ"), p("と"), w("ふく"), p("の"), w("ねだん"), p("と"), w("おつり")],
-    ["shoes", "clothes", "price", "change-money"],
-    [],
+    [w("ふく"), p("の"), w("ねだん"), p("は"), w("たかい"), e("です")],
+    ["clothes", "price", "expensive"],
+    ["topic-wa", "i-adjective"],
   ),
   example(
     "shopping-3-r3",
@@ -1410,6 +1416,12 @@ const list: readonly CurriculumExampleEntry[] = [
     ["companion-to", "object-o"],
   ),
   example(
+    "capstones-self-introduction-r3",
+    [w("にほんご"), p("を"), w("べんきょうし"), e("たいです"), stop(), w("えいご"), p("は"), w("はなし"), e("ません")],
+    ["japanese-language", "study", "english-language", "speak"],
+    ["desire-tai", "negative-masen", "object-o", "topic-wa"],
+  ),
+  example(
     "capstones-everyday-outing-base",
     [k("バス", "ばす"), p("に"), w("のり"), e("ます"), stop(), w("まち"), p("へ"), w("いき"), e("ます")],
     ["bus", "board", "town", "go"],
@@ -1446,6 +1458,18 @@ const list: readonly CurriculumExampleEntry[] = [
     ["object-o", "person-ni"],
   ),
   example(
+    "capstones-everyday-outing-r4",
+    [w("でんしゃ"), p("は"), k("タクシー", "たくしー"), p("より"), w("やすい"), e("です"), stop(), w("えいが"), p("は"), w("たのしかった"), e("です")],
+    ["train", "taxi", "cheap", "movie", "fun"],
+    ["comparison", "adjective-past", "topic-wa"],
+  ),
+  example(
+    "capstones-everyday-outing-r5",
+    [w("しゃしん"), p("を"), w("とり"), e("ましょうか")],
+    ["photo", "take"],
+    ["offer-mashouka", "object-o"],
+  ),
+  example(
     "capstones-travel-day-base",
     [w("くうこう"), p("で"), w("ひこうき"), p("に"), w("のり"), e("ます"), stop(), w("えき"), p("で"), w("でんしゃ"), p("を"), w("おり"), e("ます")],
     ["airport", "airplane", "board", "station", "train", "alight"],
@@ -1480,6 +1504,12 @@ const list: readonly CurriculumExampleEntry[] = [
     [w("いえ"), p("へ"), w("かえり"), e("ます"), stop(), w("ともだち"), p("に"), k("メール", "めーる"), p("を"), w("かき"), e("ます")],
     ["house", "return", "friend", "email", "write"],
     ["direction-e", "person-ni"],
+  ),
+  example(
+    "capstones-travel-day-r4",
+    [w("きっぷ"), p("を"), e("ください"), stop(), w("みち"), p("が"), w("わかり"), e("ませんでした")],
+    ["ticket", "road", "understand"],
+    ["request-kudasai", "past-negative-masendeshita", "subject-ga"],
   ),
 ];
 
