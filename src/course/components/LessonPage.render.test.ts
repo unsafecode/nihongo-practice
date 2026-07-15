@@ -126,3 +126,19 @@ describe("LessonPage — explore section renders the lesson's own honest explora
     expect(html).not.toMatch(/class="guided-board"/);
   });
 });
+
+/**
+ * Module 1's assisted katakana first exposure, proven on the real published
+ * lesson page (design spec §7, §8.3; Slice B acceptance). "sounds-4" is
+ * Module 1's lesson that introduces コーヒー/ジュース; its comparison section
+ * must show the authentic katakana with the shared hiragana reading as a
+ * ruby annotation.
+ */
+const KATAKANA_FIRST_EXPOSURE_LESSON = "/percorso/sounds/sounds-4";
+
+describe("LessonPage — assisted katakana first exposure (design spec §7, §8.3)", () => {
+  it("shows Module 1's first コーヒー exposure with its ruby hiragana reading in the comparison section", () => {
+    const html = render(KATAKANA_FIRST_EXPOSURE_LESSON);
+    expect(html).toMatch(/<ruby[^>]*>コーヒー<rt[^>]*>こーひー<\/rt><\/ruby>/);
+  });
+});

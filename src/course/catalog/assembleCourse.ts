@@ -264,6 +264,22 @@ function chooseExplorationEndpoints(
   return { initial: base, target: guided, gears };
 }
 
+/**
+ * The course-map "verb" count for one module's coverage badge (spec §13.3):
+ * the union, deduplicated by lexeme id, of the verbs the module *introduces*
+ * and the verbs its lessons *practice*. A capstone-only module introduces no
+ * new verbs but still spirals many earlier verbs back into review, so the
+ * union — not `introducedVerbIds` alone — is the count that actually exposes
+ * that reuse on the course map instead of hiding it behind a zero.
+ */
+function practicedVerbLexemeCount(coverage: {
+  readonly introducedVerbIds: readonly string[];
+  readonly practicedVerbIds: readonly string[];
+}): number {
+  return new Set([...coverage.introducedVerbIds, ...coverage.practicedVerbIds])
+    .size;
+}
+
 // ── Module icons (spec §13.4) ─────────────────────────────────────────────────
 
 /** The Syllabary group the sounds/kana bridge lessons open (spec §5.2). */
@@ -534,7 +550,7 @@ export function assembleCourse(
           0,
         ),
         coverage: {
-          verbCount: coverage.introducedVerbIds.length,
+          verbCount: practicedVerbLexemeCount(coverage),
           vocabularyCount: coverage.introducedLexemeIds.length,
         },
         iconId,

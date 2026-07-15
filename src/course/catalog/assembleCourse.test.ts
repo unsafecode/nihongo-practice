@@ -63,22 +63,46 @@ describe("assembleCourse: structure", () => {
   });
 });
 
+/**
+ * The number of unique verb lexemes a module's course-map card should claim
+ * (design spec §13.3): the union of the verbs the module *introduces* and the
+ * verbs its lessons *practice* (spiral review of earlier verbs), deduplicated
+ * by lexeme id. A module that only reviews earlier verbs — no capstone module
+ * introduces a new one — must still show that reuse instead of reporting
+ * zero, which would hide the very spiral repetition the course map exists to
+ * expose.
+ */
+function practicedVerbLexemeCount(computed: {
+  readonly introducedVerbIds: readonly string[];
+  readonly practicedVerbIds: readonly string[];
+}): number {
+  return new Set([...computed.introducedVerbIds, ...computed.practicedVerbIds])
+    .size;
+}
+
 describe("assembleCourse: computed coverage metadata", () => {
-  it("sets verbCount to introduced verbs and vocabularyCount to introduced lexemes per module", () => {
+  it("sets verbCount to the union of introduced and practiced verb lexemes, and vocabularyCount to introduced lexemes, per module", () => {
     for (const module of courseModules) {
       const computed = releaseCoverage.moduleCoverage[module.id];
       expect(computed, module.id).toBeDefined();
-      expect(module.coverage.verbCount).toBe(computed.introducedVerbIds.length);
+      expect(module.coverage.verbCount, module.id).toBe(
+        practicedVerbLexemeCount(computed),
+      );
       expect(module.coverage.vocabularyCount).toBe(
         computed.introducedLexemeIds.length,
       );
     }
   });
 
-  it("reports the three capstones as introducing no new verbs or vocabulary", () => {
+  it("reports the capstones as introducing no new vocabulary but practicing a nonzero union of reused verbs (spiral reuse, review found 29)", () => {
     const capstones = courseModules.find((module) => module.id === "capstones");
-    expect(capstones?.coverage.verbCount).toBe(0);
+    const computed = releaseCoverage.moduleCoverage["capstones"];
     expect(capstones?.coverage.vocabularyCount).toBe(0);
+    expect(capstones?.coverage.verbCount).toBe(
+      practicedVerbLexemeCount(computed),
+    );
+    expect(capstones?.coverage.verbCount).toBeGreaterThan(0);
+    expect(capstones?.coverage.verbCount).toBe(29);
   });
 });
 

@@ -8,6 +8,7 @@ import type {
   TransformComparisonData,
 } from "../data/types";
 import { getCourseCopy } from "../i18n/catalog";
+import { JapaneseSegmentText } from "./JapaneseSegmentText";
 
 type ScriptField = "jp" | "romaji";
 
@@ -20,6 +21,11 @@ function segmentKey(segment: ExampleSegment, index: number): string {
  * declared changed segments in a `<mark>` so the highlight is a semantic text
  * cue on exactly the honest delta (design spec §6.3) and nothing else. The
  * base ("before") card passes an empty `marked` set, so it carries no marks.
+ * The `jp` field is rendered through the shared {@link JapaneseSegmentText}
+ * so a katakana loanword's first-exposure hiragana reading (spec §7, §8.3)
+ * shows as a ruby annotation exactly when the segment carries one; the
+ * `romaji` field is unaffected plain text, already derived from that same
+ * shared reading upstream in `assembleCourse`.
  */
 function ScriptLine({
   example,
@@ -35,13 +41,18 @@ function ScriptLine({
     <>
       {example.segments.map((segment, index) => {
         const key = segmentKey(segment, index);
-        const text = segment[field];
+        const content =
+          field === "jp" ? (
+            <JapaneseSegmentText jp={segment.jp} reading={segment.reading} />
+          ) : (
+            segment[field]
+          );
         return marked.has(key) ? (
           <mark className="lesson-comparison__delta-seg" key={`${key}-${index}`}>
-            {text}
+            {content}
           </mark>
         ) : (
-          <Fragment key={`${key}-${index}`}>{text}</Fragment>
+          <Fragment key={`${key}-${index}`}>{content}</Fragment>
         );
       })}
     </>

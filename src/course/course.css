@@ -610,6 +610,23 @@
   font-size: 0.95rem;
 }
 
+/*
+ * Assisted katakana first exposure (design spec §7, §8.3): the ruby base
+ * stays the authentic katakana word; `rt` carries its shared hiragana
+ * reading in a small, legible size above it. Shared by both the comparison
+ * cards and the guided board so the aid looks identical wherever it renders.
+ */
+.katakana-assist {
+  ruby-position: over;
+}
+
+.katakana-assist__reading {
+  color: inherit;
+  font-size: 0.5em;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
 .lesson-comparison__translation {
   margin: 0.8rem 0 0;
   font-size: 1rem;

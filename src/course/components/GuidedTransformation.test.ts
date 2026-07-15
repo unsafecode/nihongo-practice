@@ -109,3 +109,24 @@ describe("GuidedTransformation (lab endpoints reuse the engine)", () => {
     expect(html).toContain("from=%2Fpercorso%2Ftime%2Ftime-past%23explore");
   });
 });
+
+/**
+ * Assisted katakana first exposure on an authored guided board (design spec
+ * §7, §8.3). The `authored` fixture's target endpoint is
+ * "actions-1-changed", whose catalog segment carries レストラン with its
+ * shared hiragana reading れすとらん, so the guided board must render the
+ * same ruby annotation the comparison cards do — this is the same shared
+ * `JapaneseSegmentText` renderer, not a duplicated rule.
+ */
+describe("GuidedTransformation: assisted katakana exposure", () => {
+  it("shows レストラン with its ruby hiragana reading on the authored target endpoint", () => {
+    const html = render(authored);
+    expect(html).toMatch(/<ruby[^>]*>レストラン<rt[^>]*>れすとらん<\/rt><\/ruby>/);
+  });
+
+  it("does not invent aid for lab-engine endpoints, which carry no shared reading", () => {
+    const html = render(lab);
+    expect(html).not.toContain("<ruby");
+    expect(html).not.toContain("<rt");
+  });
+});
