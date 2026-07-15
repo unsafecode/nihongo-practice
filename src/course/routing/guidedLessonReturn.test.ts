@@ -12,17 +12,18 @@ import {
 /**
  * The guided-return layer must validate the *course* association of a lesson
  * `from`, not merely its `/percorso/<seg>/<seg>` shape. A canonical module
- * paired with a lesson it does not own (e.g. `sounds` + `traps-verbs`) is a
+ * paired with a lesson it does not own (e.g. `sounds` + `actions-1`) is a
  * crafted target that would otherwise be shown as a normal return Action and
- * then land on InvalidRoute.
+ * then land on InvalidRoute. A retired v2.1 lesson id (`sentence-order`) is
+ * canonicalized to its current lesson instead.
  */
 
-const soundsCore = "/percorso/sounds/sounds-core";
+const soundsFirst = "/percorso/sounds/sounds-1";
 
 describe("validateGuidedLessonReturn (pure course-association check)", () => {
   it("keeps a canonical match target unchanged", () => {
     const check = validateGuidedLessonReturn({
-      pathname: soundsCore,
+      pathname: soundsFirst,
       search: "",
       sectionId: "explore",
     });
@@ -31,7 +32,7 @@ describe("validateGuidedLessonReturn (pure course-association check)", () => {
 
   it("rejects a canonical module paired with a lesson it does not own", () => {
     const check = validateGuidedLessonReturn({
-      pathname: "/percorso/sounds/traps-verbs",
+      pathname: "/percorso/sounds/actions-1",
       search: "",
       sectionId: "explore",
     });
@@ -47,22 +48,39 @@ describe("validateGuidedLessonReturn (pure course-association check)", () => {
     expect(check).toEqual({ kind: "mismatch" });
   });
 
-  it("canonicalizes both split legacy `traps` chapter pairs", () => {
+  it("canonicalizes a retired v2.1 lesson return to its current module/lesson", () => {
     expect(
       validateGuidedLessonReturn({
-        pathname: "/percorso/traps/traps-particles",
+        pathname: "/percorso/sentence-map/sentence-order",
         search: "",
         sectionId: "explore",
       }),
     ).toEqual({
       kind: "canonical",
       target: {
-        pathname: "/percorso/questions-existence/traps-particles",
+        pathname: "/percorso/introductions/introductions-1",
         search: "",
         sectionId: "explore",
       },
     });
 
+    expect(
+      validateGuidedLessonReturn({
+        pathname: "/percorso/capstone/traps-verbs",
+        search: "",
+        sectionId: "explore",
+      }),
+    ).toEqual({
+      kind: "canonical",
+      target: {
+        pathname: "/percorso/capstones/capstones-travel-day",
+        search: "",
+        sectionId: "explore",
+      },
+    });
+  });
+
+  it("canonicalizes an even-older chapter url form of a retired lesson", () => {
     expect(
       validateGuidedLessonReturn({
         pathname: "/percorso/traps/traps-verbs",
@@ -72,64 +90,23 @@ describe("validateGuidedLessonReturn (pure course-association check)", () => {
     ).toEqual({
       kind: "canonical",
       target: {
-        pathname: "/percorso/capstone/traps-verbs",
+        pathname: "/percorso/capstones/capstones-travel-day",
         search: "",
         sectionId: "explore",
       },
     });
-  });
-
-  it("canonicalizes both legacy `travel-patterns` chapter pairs", () => {
-    expect(
-      validateGuidedLessonReturn({
-        pathname: "/percorso/travel-patterns/travel-questions",
-        search: "",
-        sectionId: "explore",
-      }),
-    ).toEqual({
-      kind: "canonical",
-      target: {
-        pathname: "/percorso/questions-existence/travel-questions",
-        search: "",
-        sectionId: "explore",
-      },
-    });
-
-    expect(
-      validateGuidedLessonReturn({
-        pathname: "/percorso/travel-patterns/travel-existence",
-        search: "",
-        sectionId: "explore",
-      }),
-    ).toEqual({
-      kind: "canonical",
-      target: {
-        pathname: "/percorso/questions-existence/travel-existence",
-        search: "",
-        sectionId: "explore",
-      },
-    });
-  });
-
-  it("rejects a legacy chapter paired with a lesson it never owned", () => {
-    const check = validateGuidedLessonReturn({
-      pathname: "/percorso/travel-patterns/traps-particles",
-      search: "",
-      sectionId: "explore",
-    });
-    expect(check).toEqual({ kind: "mismatch" });
   });
 
   it("preserves a pathname-only legacy return as return-to-top after canonicalization", () => {
     const check = validateGuidedLessonReturnWith(courseModules)({
-      pathname: "/percorso/traps/traps-verbs",
+      pathname: "/percorso/capstone/traps-verbs",
       search: "",
       sectionId: null,
     });
     expect(check).toEqual({
       kind: "canonical",
       target: {
-        pathname: "/percorso/capstone/traps-verbs",
+        pathname: "/percorso/capstones/capstones-travel-day",
         search: "",
         sectionId: null,
       },
@@ -140,7 +117,7 @@ describe("validateGuidedLessonReturn (pure course-association check)", () => {
 describe("parseGuidedReturnValue with course validation", () => {
   it("flags a canonical mismatch as invalid module-lesson-mismatch, never a link", () => {
     const parsed = parseGuidedReturnValue(
-      "/percorso/sounds/traps-verbs#explore",
+      "/percorso/sounds/actions-1#explore",
       validateGuidedLessonReturn,
     );
     expect(parsed).toEqual({
@@ -152,42 +129,42 @@ describe("parseGuidedReturnValue with course validation", () => {
 
   it("canonicalizes a legacy redirect return to the current module, preserving the anchor", () => {
     const parsed = parseGuidedReturnValue(
-      "/percorso/traps/traps-verbs#explore",
+      "/percorso/capstone/traps-verbs#explore",
       validateGuidedLessonReturn,
     );
     expect(parsed).toEqual({
       status: "valid",
       target: {
-        pathname: "/percorso/capstone/traps-verbs",
+        pathname: "/percorso/capstones/capstones-travel-day",
         search: "",
         sectionId: "explore",
       },
-      href: "/percorso/capstone/traps-verbs#explore",
+      href: "/percorso/capstones/capstones-travel-day#explore",
     });
   });
 
   it("keeps a canonical match valid and unchanged", () => {
     const parsed = parseGuidedReturnValue(
-      `${soundsCore}#explore`,
+      `${soundsFirst}#explore`,
       validateGuidedLessonReturn,
     );
     expect(parsed.status).toBe("valid");
     if (parsed.status === "valid") {
-      expect(parsed.href).toBe(`${soundsCore}#explore`);
+      expect(parsed.href).toBe(`${soundsFirst}#explore`);
     }
   });
 
   it("does not surface a second redirect: the canonical href is already the current module", () => {
     const parsed = readGuidedReturn(
       new URLSearchParams(
-        "from=%2Fpercorso%2Ftravel-patterns%2Ftravel-questions%23explore",
+        "from=%2Fpercorso%2Fquestions-existence%2Ftravel-questions%23explore",
       ),
       validateGuidedLessonReturn,
     );
     expect(parsed.status).toBe("valid");
     if (parsed.status === "valid") {
       expect(parsed.href).toBe(
-        "/percorso/questions-existence/travel-questions#explore",
+        "/percorso/essential-questions/essential-questions-1#explore",
       );
     }
   });

@@ -44,8 +44,8 @@ function render(path: string): string {
   );
 }
 
-const TOOL_LESSON = "/percorso/sounds/sounds-core";
-const TRANSFORMATION_LESSON = "/percorso/actions/actions-object";
+const TOOL_LESSON = "/percorso/sounds/sounds-1";
+const TRANSFORMATION_LESSON = "/percorso/actions/actions-1";
 
 describe("LessonPage — one semantic page, four ordered section landmarks", () => {
   it("renders a single lesson-layout main with exactly four section anchors", () => {

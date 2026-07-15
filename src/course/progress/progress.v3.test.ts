@@ -5,6 +5,8 @@ import {
   parseProgress,
   visitedLessonIds,
 } from "./progress";
+import { courseModules } from "../data/course";
+import { LEGACY_LESSON_ALIASES } from "../routing/lessonRouteResolution";
 
 const knownLessonIds = new Set(["sounds-core", "sounds-special"]);
 
@@ -90,5 +92,57 @@ describe("course progress schema v3", () => {
       corrupted: true,
       migrated: false,
     });
+  });
+});
+
+describe("course progress v3 — retired v2.1 lesson ids: orphan-safe, route-aliased", () => {
+  const realKnownLessonIds = new Set(
+    courseModules.flatMap((module) => module.lessons.map((lesson) => lesson.id)),
+  );
+
+  it("orphans a stored retired lesson id rather than counting it, while the route layer owns its alias", () => {
+    const retired = "sounds-core";
+    // A retired v2.1 lesson id is not a current lesson, so progress migration
+    // safely orphans it (never a crash, never a false current-lesson count).
+    expect(realKnownLessonIds.has(retired)).toBe(false);
+    const parsed = parseProgress(
+      JSON.stringify({
+        schemaVersion: 2,
+        visitedLessonIds: [retired, "genuinely-unknown-id"],
+        lastVisitedLessonId: retired,
+        updatedAt: "2026-07-15T10:00:00.000Z",
+      }),
+      realKnownLessonIds,
+    );
+    expect(parsed.migrated).toBe(true);
+    expect(parsed.progress.lessons).toEqual({});
+    expect(parsed.progress.orphanedLessonIds).toEqual([
+      retired,
+      "genuinely-unknown-id",
+    ]);
+    // The opaque last-visited id is preserved verbatim; the route/map layer —
+    // not progress — canonicalizes navigation via the explicit alias map.
+    expect(parsed.progress.lastVisitedLessonId).toBe(retired);
+    expect(
+      LEGACY_LESSON_ALIASES.some((alias) => alias.legacyLessonId === retired),
+    ).toBe(true);
+  });
+
+  it("keeps a truly unknown (non-aliased) id orphaned with no alias entry", () => {
+    const unknown = "not-a-real-or-legacy-lesson";
+    expect(
+      LEGACY_LESSON_ALIASES.some((alias) => alias.legacyLessonId === unknown),
+    ).toBe(false);
+    const parsed = parseProgress(
+      JSON.stringify({
+        schemaVersion: 2,
+        visitedLessonIds: [unknown],
+        lastVisitedLessonId: null,
+        updatedAt: "2026-07-15T10:00:00.000Z",
+      }),
+      realKnownLessonIds,
+    );
+    expect(parsed.progress.orphanedLessonIds).toEqual([unknown]);
+    expect(parsed.progress.lessons).toEqual({});
   });
 });

@@ -22,7 +22,7 @@ function render(url: string): string {
 }
 
 const syl = itPack.ui.syllabary;
-const exploreReturn = "from=%2Fpercorso%2Fsounds%2Fsounds-core%23explore";
+const exploreReturn = "from=%2Fpercorso%2Fsounds%2Fsounds-1%23explore";
 
 describe("Syllabary group deep links", () => {
   it("gives every group a stable landmark id and labelled heading", () => {
@@ -45,7 +45,7 @@ describe("Syllabary group deep links", () => {
     const html = render(`/pratica/sillabario?group=yoon&${exploreReturn}`);
     expect(html).toContain("is-targeted");
     expect(html).toContain(syl.targetAnnounce(syl.groups.yoon));
-    expect(html).toContain('href="/percorso/sounds/sounds-core#explore"');
+    expect(html).toContain('href="/percorso/sounds/sounds-1#explore"');
     expect(html).toContain(syl.backToLesson);
     expect(html).not.toContain(syl.invalidGroup);
     expect(html).not.toContain(syl.invalidReturn);
@@ -71,10 +71,10 @@ describe("Syllabary group deep links", () => {
 
   it("rejects a shape-valid cross-module return as a Notice, never a return Action", () => {
     const html = render(
-      "/pratica/sillabario?group=gojuon&from=%2Fpercorso%2Fsounds%2Ftraps-verbs%23explore",
+      "/pratica/sillabario?group=gojuon&from=%2Fpercorso%2Fsounds%2Factions-1%23explore",
     );
     expect(html).toContain(syl.invalidReturn);
-    expect(html).not.toContain('href="/percorso/sounds/traps-verbs#explore"');
+    expect(html).not.toContain('href="/percorso/sounds/actions-1#explore"');
     expect(html).not.toContain(syl.backToLesson);
     expect(html).toContain("is-targeted");
   });
@@ -83,7 +83,9 @@ describe("Syllabary group deep links", () => {
     const html = render(
       "/pratica/sillabario?group=gojuon&from=%2Fpercorso%2Ftraps%2Ftraps-verbs%23explore",
     );
-    expect(html).toContain('href="/percorso/capstone/traps-verbs#explore"');
+    expect(html).toContain(
+      'href="/percorso/capstones/capstones-travel-day#explore"',
+    );
     expect(html).toContain(syl.backToLesson);
     expect(html).not.toContain(syl.invalidReturn);
   });

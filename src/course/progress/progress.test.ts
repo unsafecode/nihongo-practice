@@ -302,8 +302,8 @@ describe("knownVisitedLessonIds", () => {
 });
 
 describe("visitedPercent", () => {
-  it("calculates percentage across 16 lessons", () => {
-    expect(visitedPercent(["a", "b", "c", "d"], 16)).toBe(25);
+  it("calculates percentage across 40 lessons", () => {
+    expect(visitedPercent(["a", "b", "c", "d", "e"], 40)).toBe(13);
   });
 
   it("returns 0 when there are no lessons to visit", () => {
@@ -364,35 +364,31 @@ describe("recommendContinuationLessonId (synthetic outline)", () => {
 
 describe("recommendContinuationLessonId (real course data)", () => {
   it("recommends the first lesson of the course from a clean slate", () => {
-    expect(recommendContinuationLessonId(courseModules, [], null)).toBe("sounds-core");
+    expect(recommendContinuationLessonId(courseModules, [], null)).toBe(
+      "sounds-1",
+    );
   });
 
-  it("recommends the moved-in traps-particles lesson once module 6 is fully visited and module 7's earlier lessons are done", () => {
-    const visited = [
-      "sounds-core", "sounds-special",
-      "sentence-order", "sentence-omission",
-      "actions-object", "actions-masu",
-      "time-past", "time-negative",
-      "places-action", "places-movement",
-      "people-particles", "people-desire",
-      "travel-questions", "travel-existence",
-    ];
-    expect(recommendContinuationLessonId(courseModules, visited, null))
-      .toBe("traps-particles");
+  it("recommends the first lesson of the next module once earlier modules are fully visited", () => {
+    // Visit every lesson in the first six modules; §7.3 rule 2 advances to the
+    // first unvisited lesson whose module prerequisites are all fully visited.
+    const visited = courseModules
+      .slice(0, 6)
+      .flatMap((module) => module.lessons.map((lesson) => lesson.id));
+    const nextModule = courseModules[6];
+    expect(recommendContinuationLessonId(courseModules, visited, null)).toBe(
+      nextModule.lessons[0].id,
+    );
   });
 
-  it("recommends the capstone lesson once modules 1-7 are fully visited", () => {
-    const visited = [
-      "sounds-core", "sounds-special",
-      "sentence-order", "sentence-omission",
-      "actions-object", "actions-masu",
-      "time-past", "time-negative",
-      "places-action", "places-movement",
-      "people-particles", "people-desire",
-      "travel-questions", "travel-existence", "traps-particles",
-    ];
-    expect(recommendContinuationLessonId(courseModules, visited, null))
-      .toBe("traps-verbs");
+  it("recommends the first capstone lesson once every earlier module is fully visited", () => {
+    const visited = courseModules
+      .slice(0, courseModules.length - 1)
+      .flatMap((module) => module.lessons.map((lesson) => lesson.id));
+    const capstones = courseModules[courseModules.length - 1];
+    expect(recommendContinuationLessonId(courseModules, visited, null)).toBe(
+      capstones.lessons[0].id,
+    );
   });
 });
 

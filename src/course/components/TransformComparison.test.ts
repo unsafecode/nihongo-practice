@@ -9,17 +9,17 @@ import type { TransformComparisonData } from "../data/types";
 import { TransformComparison } from "./TransformComparison";
 
 /**
- * A real ending minimal pair from the course data (たべる -> たべます): the
- * only genuine delta is the ます ending (changed example segment id "1"), so
- * the renderer must mark exactly that one segment and nothing else.
+ * A real ending minimal pair from the course data (します -> しません): the only
+ * genuine delta is the ません ending (changed example segment id "e1"), so the
+ * renderer must mark exactly that one segment and nothing else.
  */
 const comparison: TransformComparisonData = {
   id: "cmp-test",
-  baseExampleId: "eat-dict",
-  changedExampleId: "eat-masu",
+  baseExampleId: "past-negative-2-base",
+  changedExampleId: "past-negative-2-changed",
   contrastDimension: "ending",
-  changedGearIds: ["ます"],
-  changedSegmentIds: ["1"],
+  changedGearIds: ["ません"],
+  changedSegmentIds: ["e1"],
 };
 
 function render(data: TransformComparisonData): string {
@@ -54,15 +54,15 @@ describe("TransformComparison", () => {
   it("marks only the declared changed segment, not the unchanged stem", () => {
     const found = marks(render(comparison));
     expect(found).toHaveLength(1);
-    expect(found[0]).toContain("ます");
-    expect(found[0]).not.toContain("たべ");
+    expect(found[0]).toContain("ません");
+    expect(found[0]).not.toContain("しゅくだい");
   });
 
   it("names the changed gear and its localized contrast dimension on the delta strip", () => {
     const html = render(comparison);
     expect(html).toContain(itCopy.lesson.comparison.changed);
     expect(html).toContain(itCopy.lesson.comparison.dimensions.ending);
-    expect(html).toContain("ます");
+    expect(html).toContain("ません");
   });
 
   it("renders Japanese with an explicit ja language tag", () => {

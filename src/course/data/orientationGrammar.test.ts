@@ -5,11 +5,13 @@ import type { AuthoredSelection, Lesson } from "./types";
 
 /**
  * Prerequisite-honesty guard on the *shipped* course data (design spec
- * §2.7/§8.1, Task A/B): the orientation modules (1 = sounds, 2 = topic/copula)
- * may not silently use grammar the learner has not met yet. Object `を`, polite
- * `ます`, requests `ください`, past/negative `ました`/`ません`, and the later
- * particles `で`/`に`/`へ`/`か` are all introduced in module 3 or later, so no
- * example any module-1/2 lesson puts on screen may contain them.
+ * §2.7/§8.1, §5.2): the sounds bridge (Module 1) is the pre-grammar orientation
+ * module, so no example it puts on screen may contain a grammatical particle or
+ * ending. Object `を`, polite `ます`, requests `ください`, past/negative
+ * `ました`/`ません`, and the later particles `で`/`に`/`へ`/`か` are all
+ * introduced from Module 2 onward; the full assessment-before-introduction
+ * invariant across every module is proven on the shared catalogs by
+ * `validateCurriculum`.
  */
 const PREMATURE_GRAMMAR = [
   "を",
@@ -43,12 +45,9 @@ function referencedExampleIds(lesson: Lesson): string[] {
   return ids;
 }
 
-describe("orientation modules never use not-yet-taught grammar (real data)", () => {
+describe("the sounds bridge never uses not-yet-taught grammar (real data)", () => {
   const soundsLessons = courseModules
     .filter((courseModule) => courseModule.order === 1)
-    .flatMap((courseModule) => courseModule.lessons);
-  const topicLessons = courseModules
-    .filter((courseModule) => courseModule.order === 2)
     .flatMap((courseModule) => courseModule.lessons);
 
   it("keeps the sounds module to pure syllables — no grammatical particle/ending gears", () => {
@@ -66,8 +65,8 @@ describe("orientation modules never use not-yet-taught grammar (real data)", () 
     }
   });
 
-  it("keeps the topic/copula module free of module-3+ grammar", () => {
-    for (const lesson of topicLessons) {
+  it("keeps the sounds module free of any grammar gear a later module introduces", () => {
+    for (const lesson of soundsLessons) {
       for (const exampleId of referencedExampleIds(lesson)) {
         const example = examples[exampleId];
         expect(example, `${lesson.id} -> ${exampleId}`).toBeDefined();

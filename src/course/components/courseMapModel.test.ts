@@ -315,19 +315,29 @@ describe("buildCourseMapModel: defensive edge cases", () => {
 });
 
 describe("buildCourseMapModel: real course data", () => {
-  it("groups the real eight modules into the correct phases and recommends the first lesson when nothing is visited", () => {
+  it("groups the real twelve modules into the correct phases and recommends the first lesson when nothing is visited", () => {
     const model = buildCourseMapModel(courseModules, [], null);
     const byPhase = Object.fromEntries(
       model.phases.map((phase) => [phase.phaseId, phase.modules.map((e) => e.module.id)]),
     );
 
-    expect(byPhase.orient).toEqual(["sounds", "sentence-map"]);
-    expect(byPhase.build).toEqual(["actions", "time"]);
-    expect(byPhase.navigate).toEqual(["places", "people", "questions-existence"]);
-    expect(byPhase.synthesize).toEqual(["capstone"]);
+    expect(byPhase.orient).toEqual([
+      "sounds",
+      "introductions",
+      "essential-questions",
+    ]);
+    expect(byPhase.build).toEqual(["actions", "routines", "past-negative"]);
+    expect(byPhase.navigate).toEqual([
+      "places",
+      "people",
+      "descriptions",
+      "shopping",
+      "existence-needs",
+    ]);
+    expect(byPhase.synthesize).toEqual(["capstones"]);
 
     // Nothing visited yet: recommendation is the very first lesson overall.
-    expect(model.recommendedLessonId).toBe("sounds-core");
+    expect(model.recommendedLessonId).toBe("sounds-1");
     expect(model.recommendedModuleId).toBe("sounds");
     expect(model.currentModuleId).toBe("sounds");
   });
@@ -337,8 +347,8 @@ describe("buildCourseMapModel: real course data", () => {
     const model = buildCourseMapModel(courseModules, allLessonIds, null);
 
     expect(model.allVisited).toBe(true);
-    expect(model.recommendedLessonId).toBe("sounds-core");
+    expect(model.recommendedLessonId).toBe("sounds-1");
     expect(model.currentModuleId).toBe("sounds");
-    expect(model.currentLessonId).toBe("sounds-core");
+    expect(model.currentLessonId).toBe("sounds-1");
   });
 });

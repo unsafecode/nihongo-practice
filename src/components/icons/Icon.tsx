@@ -8,7 +8,11 @@ export type SemanticIconId =
   | "places"
   | "people"
   | "questions"
-  | "capstone";
+  | "capstone"
+  | "identity"
+  | "descriptions"
+  | "shopping"
+  | "existence";
 
 export const semanticIconIds: readonly SemanticIconId[] = [
   "sounds",
@@ -19,6 +23,10 @@ export const semanticIconIds: readonly SemanticIconId[] = [
   "people",
   "questions",
   "capstone",
+  "identity",
+  "descriptions",
+  "shopping",
+  "existence",
 ];
 
 export type IconSize = "small" | "medium" | "large";
@@ -39,7 +47,7 @@ const sizePx: Readonly<Record<IconSize, number>> = {
 
 /**
  * Original, hand-authored line glyphs (not sourced from any external icon
- * set) for the eight approved semantic concepts. Every glyph is built from
+ * set) for the twelve approved semantic concepts. Every glyph is built from
  * plain SVG primitives sharing the same 24x24 viewBox and 1.8 stroke width.
  */
 const iconBodies: Readonly<Record<SemanticIconId, ReactNode>> = {
@@ -98,6 +106,35 @@ const iconBodies: Readonly<Record<SemanticIconId, ReactNode>> = {
     <>
       <path d="M12 3.5 20 8l-8 4.5L4 8Z" />
       <path d="M6 10.2V16c0 1.7 2.7 3 6 3s6-1.3 6-3v-5.8" />
+    </>
+  ),
+  identity: (
+    <>
+      <rect x="4" y="5" width="16" height="14" rx="2" />
+      <circle cx="9" cy="11" r="2.1" />
+      <path d="M5.6 16.4c.5-1.6 1.9-2.4 3.4-2.4s2.9.8 3.4 2.4" />
+      <line x1="14" y1="9.5" x2="17.5" y2="9.5" />
+      <line x1="14" y1="13" x2="17.5" y2="13" />
+    </>
+  ),
+  descriptions: (
+    <>
+      <path d="M2.6 12S6 6.2 12 6.2 21.4 12 21.4 12 18 17.8 12 17.8 2.6 12 2.6 12Z" />
+      <circle cx="12" cy="12" r="2.4" />
+    </>
+  ),
+  shopping: (
+    <>
+      <path d="M6.2 8h11.6l-1 10.6a1.4 1.4 0 0 1-1.4 1.3H8.6a1.4 1.4 0 0 1-1.4-1.3Z" />
+      <path d="M9 8V6.6a3 3 0 0 1 6 0V8" />
+    </>
+  ),
+  existence: (
+    <>
+      <rect x="5" y="7.2" width="14" height="11.6" rx="1.2" />
+      <line x1="5" y1="11" x2="19" y2="11" />
+      <line x1="10" y1="7.2" x2="10" y2="11" />
+      <line x1="14" y1="7.2" x2="14" y2="11" />
     </>
   ),
 };

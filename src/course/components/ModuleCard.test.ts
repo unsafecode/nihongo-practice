@@ -16,14 +16,14 @@ import type { CourseModule } from "../data/types";
  * last-visited lesson is also the recommendation, so "current" and
  * "recommended" coincide on a single continuation module:
  * - "sounds": every lesson visited, neither current nor recommended.
- * - "actions": partially visited, and its "actions-object" lesson is the
- *   recognized lastVisitedLessonId -> both current and recommended.
- * - "sentence-map" and every later module: none of the three states apply.
+ * - "actions": partially visited, and its "actions-1" lesson is the recognized
+ *   lastVisitedLessonId -> both current and recommended.
+ * - "introductions" and every other module: none of the three states apply.
  */
 const model = buildCourseMapModel(
   courseModules,
-  ["sounds-core", "sounds-special", "actions-object"],
-  "actions-object",
+  ["sounds-1", "sounds-2", "sounds-3", "sounds-4", "sounds-5", "actions-1"],
+  "actions-1",
 );
 
 function entryFor(moduleId: string): ModuleMapEntry<CourseModule> {
@@ -72,7 +72,7 @@ describe("ModuleCard: core content", () => {
 
   it("renders the module-scoped visited lesson count", () => {
     const html = renderCard(entryFor("actions"), { initiallyExpanded: false });
-    expect(html).toContain(itCopy.home.lessonsProgress(1, 2));
+    expect(html).toContain(itCopy.home.lessonsProgress(1, 3));
   });
 
   it("renders truthful lesson, verb, and word coverage metadata", () => {
@@ -95,7 +95,7 @@ describe("ModuleCard: advisory prerequisites", () => {
   });
 
   it("shows the localized prerequisite module name for a module that has one", () => {
-    const html = renderCard(entryFor("sentence-map"), { initiallyExpanded: false });
+    const html = renderCard(entryFor("introductions"), { initiallyExpanded: false });
     expect(html).toContain(
       itCopy.courseMap.prerequisites([itCopy.modules.sounds.title]),
     );
@@ -145,7 +145,7 @@ describe("ModuleCard: explicit state text", () => {
   });
 
   it("shows no state tag block at all for a module that is neither visited, current, nor recommended", () => {
-    const html = renderCard(entryFor("time"), { initiallyExpanded: false });
+    const html = renderCard(entryFor("routines"), { initiallyExpanded: false });
     expect(html).not.toContain('class="module-card__tags"');
   });
 });
@@ -189,18 +189,18 @@ describe("ModuleCard: expandable lesson list disclosure", () => {
 describe("ModuleCard: lesson rows", () => {
   it("renders every lesson's localized title, objective, and estimated minutes", () => {
     const html = renderCard(entryFor("sounds"), { initiallyExpanded: true });
-    expect(html).toContain(itCopy.lessons["sounds-core"].title);
-    expect(html).toContain(itCopy.objectives["sounds-core"]);
-    expect(html).toContain(itCopy.courseMap.estimatedMinutes(10));
-    expect(html).toContain(itCopy.lessons["sounds-special"].title);
-    expect(html).toContain(itCopy.objectives["sounds-special"]);
-    expect(html).toContain(itCopy.courseMap.estimatedMinutes(8));
+    expect(html).toContain(itCopy.lessons["sounds-1"].title);
+    expect(html).toContain(itCopy.objectives["sounds-1"]);
+    expect(html).toContain(itCopy.courseMap.estimatedMinutes(6));
+    expect(html).toContain(itCopy.lessons["sounds-5"].title);
+    expect(html).toContain(itCopy.objectives["sounds-5"]);
+    expect(html).toContain(itCopy.courseMap.estimatedMinutes(7));
   });
 
   it("shows the visited-state text on every visited lesson row", () => {
     const html = renderCard(entryFor("sounds"), { initiallyExpanded: true });
     const rows = lessonRows(html);
-    expect(rows).toHaveLength(2);
+    expect(rows).toHaveLength(5);
     for (const row of rows) {
       expect(row).toContain(itCopy.courseMap.stateVisited);
     }
@@ -209,36 +209,36 @@ describe("ModuleCard: lesson rows", () => {
   it("marks exactly the recommended lesson's link with aria-current=\"step\"", () => {
     const html = renderCard(entryFor("actions"), { initiallyExpanded: true });
     const rows = lessonRows(html);
-    const recommendedRow = rows.find((row) => row.includes("actions-object"));
-    const otherRow = rows.find((row) => row.includes("actions-masu"));
+    const recommendedRow = rows.find((row) => row.includes("actions-1"));
+    const otherRow = rows.find((row) => row.includes("actions-2"));
     expect(recommendedRow).toContain('aria-current="step"');
     expect(otherRow).not.toContain('aria-current="step"');
   });
 
   it("links each lesson row to its lessonPath(moduleId, lessonId)", () => {
-    const html = renderCard(entryFor("sentence-map"), { initiallyExpanded: true });
-    expect(html).toContain('href="/percorso/sentence-map/sentence-order"');
-    expect(html).toContain('href="/percorso/sentence-map/sentence-omission"');
+    const html = renderCard(entryFor("introductions"), { initiallyExpanded: true });
+    expect(html).toContain('href="/percorso/introductions/introductions-1"');
+    expect(html).toContain('href="/percorso/introductions/introductions-2"');
   });
 });
 
 describe("ModuleCard: primary call to action", () => {
   it("uses the start label and links to the module's first lesson when nothing in it is visited", () => {
-    const html = renderCard(entryFor("time"), { initiallyExpanded: false });
+    const html = renderCard(entryFor("routines"), { initiallyExpanded: false });
     expect(html).toContain(itCopy.home.start);
-    expect(html).toContain('href="/percorso/time/time-past"');
+    expect(html).toContain('href="/percorso/routines/routines-1"');
   });
 
   it("uses the continue label and links to the first unvisited lesson when partially visited", () => {
     const html = renderCard(entryFor("actions"), { initiallyExpanded: false });
     expect(html).toContain(itCopy.home.continue);
-    expect(html).toContain('href="/percorso/actions/actions-masu"');
+    expect(html).toContain('href="/percorso/actions/actions-2"');
   });
 
   it("uses the review label and links to the module's first lesson when fully visited", () => {
     const html = renderCard(entryFor("sounds"), { initiallyExpanded: false });
     expect(html).toContain(itCopy.home.review);
-    expect(html).toContain('href="/percorso/sounds/sounds-core"');
+    expect(html).toContain('href="/percorso/sounds/sounds-1"');
   });
 });
 
