@@ -10,15 +10,15 @@ import { ModuleCard } from "./ModuleCard";
 import type { CourseModule } from "../data/types";
 
 /**
- * One shared, deliberately-divergent model exercised across many
- * assertions below (see courseMapModel.test.ts for the pure-model
- * behavior itself; this file only checks ModuleCard's rendering):
+ * One shared model exercised across many assertions below (see
+ * courseMapModel.test.ts for the pure-model behavior itself; this file only
+ * checks ModuleCard's rendering). Under design §7.3 the recognized
+ * last-visited lesson is also the recommendation, so "current" and
+ * "recommended" coincide on a single continuation module:
  * - "sounds": every lesson visited, neither current nor recommended.
- * - "sentence-map": nothing visited, first unvisited lesson overall
- *   ("sentence-order") lives here -> recommended, not current.
  * - "actions": partially visited, and its "actions-object" lesson is the
- *   recognized lastVisitedLessonId -> current, not recommended.
- * - every later module: none of the three states apply.
+ *   recognized lastVisitedLessonId -> both current and recommended.
+ * - "sentence-map" and every later module: none of the three states apply.
  */
 const model = buildCourseMapModel(
   courseModules,
@@ -114,19 +114,13 @@ function lessonRows(html: string): string[] {
 }
 
 describe("ModuleCard: explicit state text", () => {
-  it("shows the recommended-state text (and not current/visited) for the recommended-only module", () => {
-    const html = renderCard(entryFor("sentence-map"), { initiallyExpanded: true });
-    const tags = tagsBlock(html);
-    expect(tags).toContain(itCopy.courseMap.stateRecommended);
-    expect(tags).not.toContain(itCopy.courseMap.stateCurrent);
-    expect(tags).not.toContain(itCopy.courseMap.stateVisited);
-  });
-
-  it("shows the current-state text (and not recommended/visited) for the current-only module", () => {
-    const html = renderCard(entryFor("actions"), { initiallyExpanded: false });
+  it("shows both current and recommended state text (not visited) for the coinciding continuation module", () => {
+    const html = renderCard(entryFor("actions"), { initiallyExpanded: true });
     const tags = tagsBlock(html);
     expect(tags).toContain(itCopy.courseMap.stateCurrent);
-    expect(tags).not.toContain(itCopy.courseMap.stateRecommended);
+    expect(tags).toContain(itCopy.courseMap.stateRecommended);
+    // "actions" is only partially visited, so the module-level visited tag
+    // must not appear alongside current/recommended.
     expect(tags).not.toContain(itCopy.courseMap.stateVisited);
   });
 
@@ -201,10 +195,10 @@ describe("ModuleCard: lesson rows", () => {
   });
 
   it("marks exactly the recommended lesson's link with aria-current=\"step\"", () => {
-    const html = renderCard(entryFor("sentence-map"), { initiallyExpanded: true });
+    const html = renderCard(entryFor("actions"), { initiallyExpanded: true });
     const rows = lessonRows(html);
-    const recommendedRow = rows.find((row) => row.includes("sentence-order"));
-    const otherRow = rows.find((row) => row.includes("sentence-omission"));
+    const recommendedRow = rows.find((row) => row.includes("actions-object"));
+    const otherRow = rows.find((row) => row.includes("actions-masu"));
     expect(recommendedRow).toContain('aria-current="step"');
     expect(otherRow).not.toContain('aria-current="step"');
   });

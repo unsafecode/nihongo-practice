@@ -79,11 +79,13 @@ describe("buildCourseMapModel: phase grouping and order", () => {
   });
 });
 
-describe("buildCourseMapModel: first-unvisited recommendation ignores prerequisites", () => {
-  it("recommends the first unvisited lesson in course order even when its module's advisory prerequisite is itself unvisited", () => {
-    // m1 advisorily "prefers" m2 first, but m1 comes first in course order.
-    // A prerequisite-gated algorithm would skip m1 and recommend m2's
-    // lesson instead; the new contract must not do that.
+describe("buildCourseMapModel: recommendation follows §7.3 (prerequisite-aware, via recommendContinuationLessonId)", () => {
+  it("skips a module whose advisory prerequisite is still unvisited and recommends the prerequisite's lesson instead", () => {
+    // m1 depends on m2, and m2 comes later in array order. §7.3 rule 2 skips
+    // m1's unvisited lesson (its prerequisite m2 is not yet fully visited) and
+    // lands on m2's lesson, whose prerequisites are all met. This is the
+    // single source of truth (recommendContinuationLessonId), not a duplicated
+    // first-unvisited scan that would ignore prerequisites.
     const modules = [
       moduleFixture({ id: "m1", phase: "orient", prerequisiteIds: ["m2"], lessons: lessons(["m1-a"]) }),
       moduleFixture({ id: "m2", phase: "orient", lessons: lessons(["m2-a"]) }),
@@ -91,14 +93,14 @@ describe("buildCourseMapModel: first-unvisited recommendation ignores prerequisi
 
     const model = buildCourseMapModel(modules, [], null);
 
-    expect(model.recommendedLessonId).toBe("m1-a");
-    expect(model.recommendedModuleId).toBe("m1");
+    expect(model.recommendedLessonId).toBe("m2-a");
+    expect(model.recommendedModuleId).toBe("m2");
   });
 
-  it("recommends the first unvisited lesson across modules, in course order", () => {
+  it("recommends the first unvisited lesson whose prerequisites are met, in course order", () => {
     const modules = [
       moduleFixture({ id: "m1", phase: "orient", lessons: lessons(["a", "b"]) }),
-      moduleFixture({ id: "m2", phase: "build", lessons: lessons(["c"]) }),
+      moduleFixture({ id: "m2", phase: "build", prerequisiteIds: ["m1"], lessons: lessons(["c"]) }),
     ];
 
     const model = buildCourseMapModel(modules, ["a"], null);
@@ -131,26 +133,28 @@ describe("buildCourseMapModel: opaque legacy visited ids", () => {
   });
 });
 
-describe("buildCourseMapModel: current vs recommended", () => {
-  it("treats current and recommended as distinct modules when lastVisitedLessonId is not in the recommended module", () => {
+describe("buildCourseMapModel: current vs recommended (coincide on the §7.3 continuation)", () => {
+  it("resumes the recognized lastVisitedLessonId even when earlier lessons were skipped (§7.3 rule 1)", () => {
     const modules = [
       moduleFixture({ id: "m1", phase: "orient", lessons: lessons(["a", "b"]) }),
-      moduleFixture({ id: "m2", phase: "build", lessons: lessons(["c"]) }),
+      moduleFixture({ id: "m2", phase: "build", prerequisiteIds: ["m1"], lessons: lessons(["c"]) }),
     ];
-    // "a" and "c" visited (out of order), "b" skipped; last visited is "c".
+    // "a" and the later "c" visited (out of order), "b" skipped; last visited is "c".
     const model = buildCourseMapModel(modules, ["a", "c"], "c");
 
-    expect(model.recommendedLessonId).toBe("b");
-    expect(model.recommendedModuleId).toBe("m1");
+    // §7.3 rule 1: resume the valid last-visited lesson, not the earliest gap "b".
+    // current and recommended therefore coincide on the resumed lesson.
+    expect(model.recommendedLessonId).toBe("c");
+    expect(model.recommendedModuleId).toBe("m2");
     expect(model.currentLessonId).toBe("c");
     expect(model.currentModuleId).toBe("m2");
 
     const m1Entry = model.phases.flatMap((p) => p.modules).find((e) => e.module.id === "m1");
     const m2Entry = model.phases.flatMap((p) => p.modules).find((e) => e.module.id === "m2");
-    expect(m1Entry?.isRecommended).toBe(true);
-    expect(m1Entry?.isCurrent).toBe(false);
+    expect(m2Entry?.isRecommended).toBe(true);
     expect(m2Entry?.isCurrent).toBe(true);
-    expect(m2Entry?.isRecommended).toBe(false);
+    expect(m1Entry?.isRecommended).toBe(false);
+    expect(m1Entry?.isCurrent).toBe(false);
   });
 
   it("marks the same module both current and recommended when they coincide", () => {
@@ -179,15 +183,18 @@ describe("buildCourseMapModel: current vs recommended", () => {
 });
 
 describe("buildCourseMapModel: all-visited fallback", () => {
-  it("reports allVisited and no recommendation once every known lesson is visited", () => {
+  it("still reports allVisited as a count state, but recommends the valid last-visited lesson (not null) when everything is visited", () => {
     const modules = [
       moduleFixture({ id: "m1", phase: "orient", lessons: lessons(["a", "b"]) }),
     ];
     const model = buildCourseMapModel(modules, ["a", "b"], "a");
 
+    // allVisited stays a pure count state, but §7.3 keeps recommending the
+    // valid last-visited lesson (or the first lesson) rather than going null.
     expect(model.allVisited).toBe(true);
-    expect(model.recommendedLessonId).toBeNull();
-    expect(model.recommendedModuleId).toBeNull();
+    expect(model.recommendedLessonId).toBe("a");
+    expect(model.recommendedModuleId).toBe("m1");
+    expect(model.currentLessonId).toBe("a");
   });
 
   it("uses a recognized lastVisitedLessonId as current, even if it is not in the final module", () => {
@@ -202,19 +209,21 @@ describe("buildCourseMapModel: all-visited fallback", () => {
     expect(model.currentLessonId).toBe("a");
   });
 
-  it("falls back to the last module's first lesson when lastVisitedLessonId is null", () => {
+  it("falls back to the very first lesson (not a capstone) when all lessons are visited and lastVisitedLessonId is null", () => {
     const modules = [
       moduleFixture({ id: "m1", phase: "orient", lessons: lessons(["a"]) }),
       moduleFixture({ id: "m2", phase: "synthesize", lessons: lessons(["b", "c"]) }),
     ];
     const model = buildCourseMapModel(modules, ["a", "b", "c"], null);
 
+    // §7.3 rule 3 fallback is the first lesson in course order, never a capstone.
     expect(model.allVisited).toBe(true);
-    expect(model.currentModuleId).toBe("m2");
-    expect(model.currentLessonId).toBe("b");
+    expect(model.recommendedLessonId).toBe("a");
+    expect(model.currentModuleId).toBe("m1");
+    expect(model.currentLessonId).toBe("a");
   });
 
-  it("falls back to the last module's first lesson when lastVisitedLessonId is an unrecognized opaque id", () => {
+  it("falls back to the very first lesson when all lessons are visited and lastVisitedLessonId is an unrecognized opaque id", () => {
     const modules = [
       moduleFixture({ id: "m1", phase: "orient", lessons: lessons(["a"]) }),
       moduleFixture({ id: "m2", phase: "synthesize", lessons: lessons(["b", "c"]) }),
@@ -222,8 +231,9 @@ describe("buildCourseMapModel: all-visited fallback", () => {
     const model = buildCourseMapModel(modules, ["a", "b", "c"], "legacy-ghost-id");
 
     expect(model.allVisited).toBe(true);
-    expect(model.currentModuleId).toBe("m2");
-    expect(model.currentLessonId).toBe("b");
+    expect(model.recommendedLessonId).toBe("a");
+    expect(model.currentModuleId).toBe("m1");
+    expect(model.currentLessonId).toBe("a");
   });
 });
 
@@ -305,7 +315,7 @@ describe("buildCourseMapModel: defensive edge cases", () => {
 });
 
 describe("buildCourseMapModel: real course data", () => {
-  it("groups the real eight modules into the correct phases with no prerequisite check on recommendation", () => {
+  it("groups the real eight modules into the correct phases and recommends the first lesson when nothing is visited", () => {
     const model = buildCourseMapModel(courseModules, [], null);
     const byPhase = Object.fromEntries(
       model.phases.map((phase) => [phase.phaseId, phase.modules.map((e) => e.module.id)]),
@@ -322,12 +332,13 @@ describe("buildCourseMapModel: real course data", () => {
     expect(model.currentModuleId).toBe("sounds");
   });
 
-  it("recommends the capstone's first lesson once every real lesson is visited with no recognizable current lesson", () => {
+  it("falls back to the first lesson (not a capstone) once every real lesson is visited with no recognizable current lesson", () => {
     const allLessonIds = courseModules.flatMap((m) => m.lessons.map((l) => l.id));
     const model = buildCourseMapModel(courseModules, allLessonIds, null);
 
     expect(model.allVisited).toBe(true);
-    expect(model.currentModuleId).toBe("capstone");
-    expect(model.currentLessonId).toBe("traps-verbs");
+    expect(model.recommendedLessonId).toBe("sounds-core");
+    expect(model.currentModuleId).toBe("sounds");
+    expect(model.currentLessonId).toBe("sounds-core");
   });
 });

@@ -41,6 +41,9 @@ export interface CourseCopy {
     corruptProgress: string;
     dismiss: string;
     invalidRoute: (path: string) => string;
+    /** Notice shown when a valid lesson deep-link's section anchor is absent. */
+    missingAnchorTitle: string;
+    missingAnchorBody: string;
     lessonsProgress: (visited: number, total: number) => string;
     /** Secondary hero action linking to free practice. */
     explorePractice: string;

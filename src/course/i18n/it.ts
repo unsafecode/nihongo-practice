@@ -13,6 +13,9 @@ const itUi = {
     corruptProgress: "I progressi del percorso erano illeggibili e sono stati azzerati. Lingua e scrittura non sono cambiate.",
     dismiss: "Chiudi",
     invalidRoute: (path: string) => `La pagina “${path}” non esiste. Sei tornato al percorso.`,
+    missingAnchorTitle: "Sezione non trovata",
+    missingAnchorBody:
+      "Non è stato possibile raggiungere la sezione collegata della lezione, così sei rimasto all'inizio della lezione. Puoi scorrere per trovarla.",
     lessonsProgress: (visited: number, total: number) =>
       `${visited} di ${total} lezioni`,
     explorePractice: "Esplora la pratica libera",

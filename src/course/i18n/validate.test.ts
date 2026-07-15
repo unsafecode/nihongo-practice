@@ -75,6 +75,8 @@ describe.each([itCopy, enCopy])("course locale", (copy) => {
     expect(staticCopy.length).toBeGreaterThan(0);
     expect(staticCopy.every((value) => value.trim().length > 0)).toBe(true);
     expect(copy.home.invalidRoute("/missing").trim().length).toBeGreaterThan(0);
+    expect(copy.home.missingAnchorTitle.trim().length).toBeGreaterThan(0);
+    expect(copy.home.missingAnchorBody.trim().length).toBeGreaterThan(0);
     expect(copy.home.lessonsProgress(1, 16).trim().length).toBeGreaterThan(0);
     expect(copy.lesson.modulePosition(1, 8).trim().length).toBeGreaterThan(0);
     expect(copy.courseMap.prerequisites([]).trim().length).toBeGreaterThan(0);

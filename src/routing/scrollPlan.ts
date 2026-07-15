@@ -63,6 +63,22 @@ export function resolveScrollOutcome(
 }
 
 /**
+ * Reads the user's reduced-motion preference. This is the single shared
+ * probe behind every explicit `scrollIntoView`/`scrollTo` behavior choice
+ * (RouteScrollManager route scrolls and the Syllabary in-page group jumps),
+ * so the policy lives in exactly one place. SSR/Node-safe: returns `false`
+ * when `window`/`matchMedia` are unavailable, keeping callers testable
+ * without a DOM.
+ */
+export function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+/**
  * Reduced-motion users must never receive animated scrolling (design spec
  * §7.1 rule 5). `Element.scrollIntoView({ behavior: "smooth" })` ignores
  * the page's `scroll-behavior` CSS when a behavior is explicitly passed,

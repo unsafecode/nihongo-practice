@@ -13,6 +13,9 @@ const enUi = {
     corruptProgress: "Course progress could not be read and was reset. Language and script settings were not changed.",
     dismiss: "Dismiss",
     invalidRoute: (path: string) => `“${path}” does not exist. You are back at the course.`,
+    missingAnchorTitle: "Section not found",
+    missingAnchorBody:
+      "The linked lesson section could not be reached, so we kept you at the top of the lesson. You can scroll to find it.",
     lessonsProgress: (visited: number, total: number) =>
       `${visited} of ${total} lessons`,
     explorePractice: "Explore free practice",
@@ -383,7 +386,7 @@ const enBlocks: CourseCopy["blocks"] = {
     title: "In short",
     bullets: [
       "たいです = “I want to…”",
-      "いきましょう = suggestion (“let's go”)",
+      "いきましょう = proposal (“let's go”)",
       "いきましょうか = tentative offer (“shall we go? / would you like to go?”)",
     ],
   },

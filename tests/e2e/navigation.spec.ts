@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  assertNoRuntimeErrors,
   gotoReady,
   headerBottom,
   rectOf,
@@ -221,6 +222,21 @@ test.describe("guided Syllabary round-trip", () => {
     const groupRect = await rectOf(page, `#${targetId}`);
     expect(groupRect!.top, "focused group below the header").toBeGreaterThanOrEqual(hb - 2);
 
+    // Not focus alone: the targeted group's actual kana grid/notes content is
+    // rendered with a real box (design spec §A4 — visible content, not an
+    // empty focused shell).
+    const contentSelector = `#${targetId} :is(.kana-grid, .kana-notes)`;
+    await expect(
+      page.locator(contentSelector).first(),
+      "targeted group renders its kana grid/notes content",
+    ).toBeVisible();
+    const contentRect = await rectOf(page, contentSelector);
+    expect(contentRect!.height, "grid/notes content has real rendered height").toBeGreaterThan(0);
+    expect(
+      contentRect!.top,
+      "grid/notes content sits below the header, fully visible",
+    ).toBeGreaterThanOrEqual(hb - 2);
+
     const ret = page.locator(".syllabary__return");
     await expect(ret).toBeVisible();
     await expect(ret).toHaveClass(/action/);
@@ -240,6 +256,54 @@ test.describe("guided Syllabary round-trip", () => {
     );
     await expect(page.locator(".notice--warning").first()).toBeVisible();
     await expect(page.locator(".syllabary__return")).toHaveCount(0);
+  });
+});
+
+test.describe("Syllabary reduced-motion in-page navigation", () => {
+  test("group navigation scrolls with behavior auto (never smooth) under reduced motion", async ({
+    page,
+  }) => {
+    await setupPageObservers(page);
+    // gotoReady pins prefers-reduced-motion: reduce for the whole suite.
+    await gotoReady(page, routeUrls.syllabary);
+
+    // Observe the exact options the in-page group handler passes to
+    // scrollIntoView. Installed after load, before the click — clicking a
+    // group nav button is an in-page scroll (no navigation), so the patched
+    // prototype survives until we read it back.
+    await page.evaluate(() => {
+      const store = window as unknown as { __scrollBehaviors__: string[] };
+      store.__scrollBehaviors__ = [];
+      const original = Element.prototype.scrollIntoView;
+      Element.prototype.scrollIntoView = function patched(
+        this: Element,
+        arg?: boolean | ScrollIntoViewOptions,
+      ): void {
+        const behavior =
+          typeof arg === "object" && arg !== null ? arg.behavior ?? "" : "";
+        store.__scrollBehaviors__.push(String(behavior));
+        return original.call(this, arg as ScrollIntoViewOptions);
+      };
+    });
+
+    // Pick a later group so the jump is a genuine downward in-page scroll.
+    const groupLink = page.locator(".kana-groupnav__link").nth(2);
+    await expect(groupLink).toBeVisible();
+    await groupLink.click();
+
+    const behaviors = await page.evaluate(
+      () => (window as unknown as { __scrollBehaviors__: string[] }).__scrollBehaviors__,
+    );
+    expect(
+      behaviors.length,
+      "clicking a group nav button triggers an in-page scrollIntoView",
+    ).toBeGreaterThan(0);
+    for (const behavior of behaviors) {
+      expect(
+        behavior,
+        "reduced-motion in-page group scroll must be auto, not smooth",
+      ).toBe("auto");
+    }
   });
 });
 
@@ -287,5 +351,64 @@ test.describe("unknown route", () => {
     });
     await page.locator(".course-home").waitFor({ state: "visible" });
     await expect(page.locator(".notice--warning").first()).toBeVisible();
+  });
+});
+
+test.describe("route-scroll missing anchor", () => {
+  test("a valid lesson deep link whose section anchor vanishes shows a dismissible, non-overlapping warning", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+
+    // Make the requested section anchor unreachable through the very lookup
+    // the manager uses (getElementById), deterministically and before its
+    // post-paint rAF, by shadowing that one id at document_start. The real
+    // <section> node stays in the DOM (only the lookup is blinded), so the
+    // lesson body still renders and is measurable for the overlap check, and
+    // the manager takes its genuine "anchor-missing" branch instead of a
+    // silent no-op. A MutationObserver installed via addInitScript proved
+    // unreliable here (it can miss the initial commit), so this init hook
+    // removes the timing race entirely.
+    await page.addInitScript(() => {
+      const hiddenId = "lesson-section-explore";
+      const nativeGetById = Document.prototype.getElementById;
+      Document.prototype.getElementById = function patched(
+        this: Document,
+        elementId: string,
+      ): HTMLElement | null {
+        if (elementId === hiddenId) return null;
+        return nativeGetById.call(this, elementId);
+      };
+    });
+
+    await gotoReady(page, `${LESSON_URL}#explore`);
+
+    const notice = page.locator(".notice--warning").first();
+    await expect(notice, "missing-anchor warning notice is visible").toBeVisible();
+
+    // It must not visually collide with the header or the lesson body.
+    const hb = await headerBottom(page);
+    const noticeRect = await rectOf(page, ".notice--warning");
+    expect(
+      noticeRect!.top,
+      `notice top (${noticeRect!.top}) sits at/below the header bottom (${hb})`,
+    ).toBeGreaterThanOrEqual(hb - 2);
+
+    const lessonRect = await rectOf(page, ".lesson-layout");
+    expect(
+      noticeRect!.bottom,
+      `notice bottom (${noticeRect!.bottom}) must not overlap lesson content top (${lessonRect!.top})`,
+    ).toBeLessThanOrEqual(lessonRect!.top + 1);
+
+    // The lesson content itself is still present (id stripped, node intact).
+    expect(lessonRect!.height, "lesson content is rendered").toBeGreaterThan(0);
+
+    // It is dismissible.
+    const dismiss = notice.locator(".notice__dismiss");
+    await expect(dismiss).toBeVisible();
+    await dismiss.click();
+    await expect(page.locator(".notice--warning")).toHaveCount(0);
+
+    await assertNoRuntimeErrors(page, observers);
   });
 });

@@ -47,13 +47,16 @@ function dedupeInEncounterOrder(ids: string[]): string[] {
  * no longer recognized by the current course data - is copied into
  * `visitedLessonIds` (deduplicated, in encounter order). The opaque
  * `lastVisitedLessonId` and original `updatedAt` are preserved verbatim.
- * No id remapping is applied because Task 3 preserves every lesson id.
+ * A genuinely absent `lastVisitedLessonId` (from a very old v1 payload
+ * written before the field existed) normalizes to an explicit `null`, so
+ * the v2 result is always well-formed - never `undefined`. No id remapping
+ * is applied because Task 3 preserves every lesson id.
  */
 export function migrateV1ToV2(v1: CourseProgressV1): CourseProgressV2 {
   return {
     schemaVersion: 2,
     visitedLessonIds: dedupeInEncounterOrder(v1.completedLessonIds),
-    lastVisitedLessonId: v1.lastVisitedLessonId,
+    lastVisitedLessonId: v1.lastVisitedLessonId ?? null,
     updatedAt: v1.updatedAt,
   };
 }
@@ -173,9 +176,9 @@ export function visitedPercent(visited: string[], total: number): number {
  * stays easy to unit test with small synthetic fixtures.
  */
 export interface ModuleOutline {
-  id: string;
-  prerequisiteIds: string[];
-  lessons: { id: string }[];
+  readonly id: string;
+  readonly prerequisiteIds: readonly string[];
+  readonly lessons: readonly { readonly id: string }[];
 }
 
 /**
@@ -188,8 +191,8 @@ export interface ModuleOutline {
  * orders the suggestion. An unknown prerequisite module id never blocks.
  */
 export function recommendContinuationLessonId(
-  modules: ModuleOutline[],
-  visitedLessonIds: string[],
+  modules: readonly ModuleOutline[],
+  visitedLessonIds: readonly string[],
   lastVisitedLessonId: string | null,
 ): string | null {
   const orderedLessons = modules.flatMap((courseModule) => courseModule.lessons);

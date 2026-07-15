@@ -8,6 +8,7 @@ import { getCatalog } from "../i18n/catalog";
 import { useLocale } from "../i18n/LocaleContext";
 import { readGuidedReturn } from "../routing/guidedToolLink";
 import { validateGuidedLessonReturn } from "../course/routing/guidedLessonReturn";
+import { prefersReducedMotion, resolveScrollBehavior } from "../routing/scrollPlan";
 import { useScript } from "../settings/ScriptContext";
 import {
   SYLLABARY_GROUP_IDS,
@@ -58,7 +59,10 @@ export function Syllabary() {
     if (typeof document === "undefined") return;
     const element = document.getElementById(syllabaryGroupDomId(group));
     if (!element) return;
-    element.scrollIntoView({ behavior: "smooth", block: "start" });
+    element.scrollIntoView({
+      behavior: resolveScrollBehavior(prefersReducedMotion()),
+      block: "start",
+    });
     element.focus({ preventScroll: true });
   };
 

@@ -1,5 +1,8 @@
 import { PHASE_IDS, type PhaseId } from "../data/types";
-import { knownVisitedLessonIds } from "../progress/progress";
+import {
+  knownVisitedLessonIds,
+  recommendContinuationLessonId,
+} from "../progress/progress";
 
 /**
  * Minimal structural shape the course-map model needs from a lesson.
@@ -53,22 +56,24 @@ export interface CourseMapModel<M extends CourseMapModuleOutline> {
 
 /**
  * Pure, deterministic course-map view-model (design spec §4.2/§5.1-§5.4,
- * §6.2). Rules (Task 4 item 5):
+ * §6.2). The recommendation is the single source of truth defined in
+ * §7.3 — `recommendContinuationLessonId` — never a duplicated algorithm:
  *
- * - If any known lesson is unvisited, the recommendation is the first
- *   unvisited lesson in approved module/lesson order — regardless of a
- *   module's advisory `prerequisiteIds` (prerequisites are display-only).
- * - `lastVisitedLessonId` identifies the "current" context when it is a
- *   recognized (known) lesson id; the recommendation is unaffected by it.
- *   When the current module still contains the recommended lesson, that
- *   module is both current and recommended.
+ * - The recommended lesson is (1) the recognized `lastVisitedLessonId`
+ *   when it still maps to a known lesson; else (2) the first unvisited
+ *   lesson in course order whose module prerequisites are fully visited;
+ *   else (3) the very first lesson. It is only `null` when there are no
+ *   lessons at all.
+ * - "current" is the recognized `lastVisitedLessonId` when known, and
+ *   otherwise the recommendation. Because §7.3 rule 1 already resumes a
+ *   valid last-visited lesson, current and recommended coincide on the
+ *   same continuation module (spec §4.2 "the current/recommended module").
  * - Opaque/legacy visited ids (not present in the given modules) never
- *   affect counts or the recommendation.
- * - Once every known lesson is visited, there is no recommendation
- *   (`recommendedLessonId`/`recommendedModuleId` are `null`); "current"
- *   falls back to the recognized `lastVisitedLessonId`, or — if that is
- *   absent/unrecognized — to the final module's first lesson (a capstone
- *   fallback, not a hardcoded id).
+ *   affect counts, the recommendation, or "current".
+ * - `allVisited` remains a pure count state (every known lesson visited);
+ *   it does not blank the recommendation. Even when everything is visited
+ *   the recommendation is the valid last-visited lesson, or the first
+ *   lesson fallback.
  */
 export function buildCourseMapModel<M extends CourseMapModuleOutline>(
   modules: readonly M[],
@@ -91,7 +96,8 @@ export function buildCourseMapModel<M extends CourseMapModuleOutline>(
 
   const modulesById = new Map(modules.map((courseModule) => [courseModule.id, courseModule]));
 
-  function moduleIdForLesson(lessonId: string): string | null {
+  function moduleIdForLesson(lessonId: string | null): string | null {
+    if (lessonId === null) return null;
     for (const courseModule of modules) {
       if (courseModule.lessons.some((lessonItem) => lessonItem.id === lessonId)) {
         return courseModule.id;
@@ -100,26 +106,21 @@ export function buildCourseMapModel<M extends CourseMapModuleOutline>(
     return null;
   }
 
-  const recommendedLessonId = allVisited ? null : firstUnvisited.id;
-  const recommendedModuleId =
-    recommendedLessonId === null ? null : moduleIdForLesson(recommendedLessonId);
+  // Single source of truth (design spec §7.3): the map recommendation and the
+  // CourseHome CTA both derive from this, never a re-implemented scan.
+  const recommendedLessonId = recommendContinuationLessonId(
+    modules,
+    visitedLessonIds,
+    lastVisitedLessonId,
+  );
+  const recommendedModuleId = moduleIdForLesson(recommendedLessonId);
 
-  let currentLessonId: string | null;
-  let currentModuleId: string | null;
-  if (recognizedLastVisited !== null) {
-    currentLessonId = recognizedLastVisited;
-    currentModuleId = moduleIdForLesson(recognizedLastVisited);
-  } else if (!allVisited) {
-    currentLessonId = recommendedLessonId;
-    currentModuleId = recommendedModuleId;
-  } else {
-    // All visited, nothing recognized to anchor on: fall back to the
-    // final module's first lesson (the capstone, by course order).
-    const fallbackModule = modules[modules.length - 1] ?? null;
-    const fallbackLesson = fallbackModule?.lessons[0] ?? null;
-    currentModuleId = fallbackModule?.id ?? null;
-    currentLessonId = fallbackLesson?.id ?? null;
-  }
+  // "current" is the recognized last-visited context, otherwise the
+  // recommendation. Since §7.3 resumes a valid last-visited lesson these
+  // coincide, but the fallback keeps current well-defined when nothing is
+  // recognized (e.g. a fresh or fully-visited course with no last visit).
+  const currentLessonId = recognizedLastVisited ?? recommendedLessonId;
+  const currentModuleId = moduleIdForLesson(currentLessonId);
 
   const phases: CourseMapPhaseGroup<M>[] = PHASE_IDS.map((phaseId) => ({
     phaseId,

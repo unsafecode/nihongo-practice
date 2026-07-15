@@ -96,15 +96,26 @@ describe("CourseMap: initial expansion follows the recommendation", () => {
     expect(hiddenCount).toBe(7);
   });
 
-  it("moves the expanded module as the recommendation advances", () => {
+  it("moves the expanded module as the recommendation advances through met prerequisites", () => {
     const html = renderMap(
       ["sounds-core", "sounds-special", "sentence-order", "sentence-omission"],
-      "sentence-omission",
+      null,
     );
-    // Recommendation should now be the first lesson of "actions".
+    // With no recognized last-visited lesson, §7.3 rule 2 advances to the first
+    // unvisited lesson whose prerequisites are met: the first lesson of "actions".
     const hiddenCount = (html.match(/ hidden=""/g) ?? []).length;
     expect(hiddenCount).toBe(7);
     expect(html).toContain('id="module-lessons-actions" class="module-card__lessons">');
+  });
+
+  it("resumes and expands the module of a recognized last-visited lesson, even past earlier skipped lessons", () => {
+    // Only the very first lesson and a much later one are visited; the
+    // recognized last-visited lesson is the later "places-action".
+    const html = renderMap(["sounds-core", "places-action"], "places-action");
+    // §7.3 rule 1: resume "places", not an earlier unvisited module.
+    const hiddenCount = (html.match(/ hidden=""/g) ?? []).length;
+    expect(hiddenCount).toBe(7);
+    expect(html).toContain('id="module-lessons-places" class="module-card__lessons">');
   });
 });
 

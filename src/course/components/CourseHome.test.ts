@@ -65,6 +65,19 @@ function readCourseHomeSource(): string {
   return readFileSync(courseHomePath, "utf8");
 }
 
+/**
+ * Extracts the href of the primary hero CTA anchor specifically. The course
+ * map below renders every lesson link (collapsed rows are only `hidden`), so a
+ * document-wide `toContain(href)` cannot prove where the CTA points — scope to
+ * the `action--primary` anchor. Class/href attribute order is not assumed.
+ */
+function primaryActionHref(html: string): string | null {
+  const anchor = html.match(/<a[^>]*action--primary[^>]*>/);
+  if (!anchor) return null;
+  const href = anchor[0].match(/href="([^"]*)"/);
+  return href ? href[1] : null;
+}
+
 /** React's renderToStaticMarkup HTML-escapes &, <, >, ", and ' even inside
  * plain text nodes (not just attributes) — see CourseMap.test.ts for the
  * same precedent. Any copy string containing an apostrophe must be run
@@ -116,7 +129,7 @@ describe("CourseHome hero: primary and secondary actions (Task 1 Action primitiv
     expect(html).toMatch(/class="action action--primary[^"]*"[^>]*>Inizia</);
   });
 
-  it("labels the primary action continue and targets the first unvisited lesson once some are visited", () => {
+  it("labels the primary action continue and resumes the recognized last-visited lesson (even past skipped lessons)", () => {
     const html = renderHome(
       makeProgressValue({
         progress: {
@@ -126,12 +139,13 @@ describe("CourseHome hero: primary and secondary actions (Task 1 Action primitiv
         },
       }),
     );
-    const thirdLesson = allLessons[2];
-    expect(html).toContain(`href="${lessonPath(thirdLesson.moduleId, thirdLesson.id)}"`);
+    // §7.3 rule 1: resume the valid last-visited lesson, not the next gap.
+    const resumeLesson = allLessons[1];
+    expect(primaryActionHref(html)).toBe(lessonPath(resumeLesson.moduleId, resumeLesson.id));
     expect(html).toMatch(/class="action action--primary[^"]*"[^>]*>Continua</);
   });
 
-  it("labels the primary action review and falls back to the capstone once everything is visited", () => {
+  it("labels the primary action review and resumes the last-visited lesson once everything is visited", () => {
     const allIds = allLessons.map((lesson) => lesson.id);
     const html = renderHome(
       makeProgressValue({
@@ -142,8 +156,29 @@ describe("CourseHome hero: primary and secondary actions (Task 1 Action primitiv
         },
       }),
     );
-    expect(html).toContain(`href="${lessonPath(lastLesson.moduleId, lastLesson.id)}"`);
+    expect(primaryActionHref(html)).toBe(lessonPath(lastLesson.moduleId, lastLesson.id));
     expect(html).toMatch(/class="action action--primary[^"]*"[^>]*>Ripassa</);
+  });
+
+  it("resumes a recognized last-visited lesson that is later than earlier skipped lessons (§7.3 rule 1 CTA)", () => {
+    // Visit the first lesson and a much later one, skipping the lessons in
+    // between; the recognized last-visited lesson is the later one.
+    const resumeLesson = allLessons[3];
+    const html = renderHome(
+      makeProgressValue({
+        progress: {
+          ...emptyProgress(),
+          visitedLessonIds: [allLessons[0].id, resumeLesson.id],
+          lastVisitedLessonId: resumeLesson.id,
+        },
+      }),
+    );
+    // Must resume the later last-visited lesson, not the earliest gap (allLessons[1]).
+    expect(primaryActionHref(html)).toBe(lessonPath(resumeLesson.moduleId, resumeLesson.id));
+    expect(primaryActionHref(html)).not.toBe(
+      lessonPath(allLessons[1].moduleId, allLessons[1].id),
+    );
+    expect(html).toMatch(/class="action action--primary[^"]*"[^>]*>Continua</);
   });
 
   it("renders a secondary explore-practice action to the practice route", () => {

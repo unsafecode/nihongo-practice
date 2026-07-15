@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   planRouteScroll,
+  prefersReducedMotion,
   resolveScrollBehavior,
   resolveScrollOutcome,
 } from "./scrollPlan";
@@ -120,5 +121,50 @@ describe("resolveScrollBehavior", () => {
 
   it("disables smooth scrolling under a reduced-motion preference", () => {
     expect(resolveScrollBehavior(true)).toBe("auto");
+  });
+});
+
+describe("prefersReducedMotion (shared probe)", () => {
+  const originalWindow = (globalThis as { window?: unknown }).window;
+
+  function stubWindow(value: unknown): void {
+    (globalThis as { window?: unknown }).window = value;
+  }
+
+  function restoreWindow(): void {
+    if (originalWindow === undefined) {
+      delete (globalThis as { window?: unknown }).window;
+    } else {
+      (globalThis as { window?: unknown }).window = originalWindow;
+    }
+  }
+
+  it("is SSR/Node-safe: returns false when window is unavailable", () => {
+    stubWindow(undefined);
+    try {
+      expect(prefersReducedMotion()).toBe(false);
+    } finally {
+      restoreWindow();
+    }
+  });
+
+  it("returns true only when matchMedia reports the reduce preference matches", () => {
+    stubWindow({
+      matchMedia: (query: string) => ({ matches: query.includes("reduce") }),
+    });
+    try {
+      expect(prefersReducedMotion()).toBe(true);
+    } finally {
+      restoreWindow();
+    }
+  });
+
+  it("returns false when matchMedia reports the reduce preference does not match", () => {
+    stubWindow({ matchMedia: () => ({ matches: false }) });
+    try {
+      expect(prefersReducedMotion()).toBe(false);
+    } finally {
+      restoreWindow();
+    }
   });
 });

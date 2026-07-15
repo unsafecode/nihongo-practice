@@ -138,6 +138,32 @@ describe("parseProgress", () => {
     expect(parsed.progress.lastVisitedLessonId).toBe("sounds-special");
   });
 
+  it("normalizes a real v1 payload that omits lastVisitedLessonId to null without losing visited data", () => {
+    // A genuine on-disk v1 snapshot from before lastVisitedLessonId existed:
+    // the field is absent entirely (not null). Parsed through the real
+    // migration path (no casts), it must yield a well-formed v2 object with an
+    // explicit null last-visited, preserving every visited id and the stamp.
+    const parsed = parseProgress(
+      JSON.stringify({
+        schemaVersion: 1,
+        completedLessonIds: ["sounds-core", "sounds-special"],
+        updatedAt: "2026-07-13T10:00:00.000Z",
+      }),
+    );
+    expect(parsed.corrupted).toBe(false);
+    expect(parsed.progress.schemaVersion).toBe(2);
+    expect(parsed.progress.visitedLessonIds).toEqual([
+      "sounds-core",
+      "sounds-special",
+    ]);
+    expect(parsed.progress.updatedAt).toBe("2026-07-13T10:00:00.000Z");
+    // Must be an explicit null, never undefined.
+    expect(parsed.progress.lastVisitedLessonId).toBeNull();
+    expect(
+      Object.prototype.hasOwnProperty.call(parsed.progress, "lastVisitedLessonId"),
+    ).toBe(true);
+  });
+
   it("treats null storage content as an empty v2 progress", () => {
     expect(parseProgress(null)).toEqual({
       progress: emptyProgress(),

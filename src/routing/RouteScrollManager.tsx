@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useLocation } from "react-router";
 import {
   planRouteScroll,
+  prefersReducedMotion,
   resolveScrollBehavior,
   resolveScrollOutcome,
   type ScrollOutcome,
@@ -15,14 +16,6 @@ export interface RouteScrollManagerProps {
    * instead of treating a missing anchor as a silent success.
    */
   onScrollOutcome?: (outcome: ScrollOutcome) => void;
-}
-
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
 }
 
 /**

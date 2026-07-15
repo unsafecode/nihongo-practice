@@ -193,7 +193,8 @@ describe("Task 6 — invitations (Module 6)", () => {
     expect(itBullets).toMatch(/proposta|facciamo|andiamo/i);
     expect(itBullets).toMatch(/offerta|tentativ/i);
     const enBullets = recapBullets(enCopy, "people-desire-recap").join(" ");
-    expect(enBullets).toMatch(/suggestion|let's/i);
+    expect(enBullets).toMatch(/proposal/i);
+    expect(enBullets).not.toMatch(/suggestion/i);
     expect(enBullets).toMatch(/offer|tentative/i);
   });
 });
