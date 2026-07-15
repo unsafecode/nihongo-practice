@@ -25,6 +25,11 @@ Ogni lezione combina **regola · confronto · esplorazione guidata · riepilogo*
 
 Il progresso è espresso solo in **lezioni visitate**: nessun punteggio, nessuna padronanza, nessun completamento obbligatorio. Italiano/inglese e hiragana/rōmaji sono impostazioni indipendenti.
 
+La base tecnica della prossima estensione A0→A1 definisce 12 moduli in quattro
+fasi, cataloghi tipizzati condivisi e personaggi generici centralizzati. Il
+contenuto completo, gli esercizi e il riconoscimento vocale arriveranno in
+slice successive: questa versione eseguibile mantiene ancora il percorso v2.1.
+
 ## Pratica libera
 
 - **Laboratorio frasi** — costruisci frasi scegliendo verbo, forma, tempo e complementi; le particelle e le terminazioni sono evidenziate come "ingranaggi".
@@ -41,6 +46,10 @@ Nessun account, nessun backend. `localStorage` contiene soltanto:
 - `nihongo.course.progress`
 
 Se lo storage non è disponibile, l'app continua a funzionare per la sessione corrente.
+`nihongo.course.progress` usa uno schema v3 versionato e migra in modo
+idempotente i dati v1/v2. Lo schema distingue visite, pratica e consolidamento;
+l'interfaccia corrente registra soltanto le visite e non inventa evidenze per
+gli stati successivi.
 
 La v2.1 usa esclusivamente la sintesi vocale del browser o del sistema operativo. L'app non registra audio e non invia testo o audio a un backend dell'applicazione; l'eventuale elaborazione online di una voce dipende dal browser, dal sistema e dalla voce scelta.
 
