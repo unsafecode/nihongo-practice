@@ -1,5 +1,7 @@
 import { validateCatalogReferences } from "./validate";
 import { PHASE_IDS } from "../data/types";
+import { generateExercise } from "../exercises/engine";
+import type { ExerciseCatalogsInput } from "../exercises/types";
 import type {
   AssembledCurriculumCatalogs,
   ComputedCoverage,
@@ -21,6 +23,15 @@ const RELEASE_MIN_REUSED_VERBS = 35;
 const GENUINE_REUSE_MODULES = 3;
 const GENUINE_REUSE_LATER_MODULES = 2;
 const GENUINE_REUSE_EXAMPLES = 4;
+const LESSON_MIN_EXERCISES = 3;
+const LESSON_MAX_EXERCISES = 5;
+
+/**
+ * Any hiragana, katakana (full or half width), or CJK ideograph. Used to prove
+ * an exercise definition carries no copied Japanese answer literal: definitions
+ * must reference shared data by ID, so every string field is ASCII by design.
+ */
+const JAPANESE_CHARACTER = /[\u3040-\u30ff\u3400-\u9fff\uff66-\uff9f]/;
 
 function unique<T>(values: readonly T[]): T[] {
   return [...new Set(values)];
@@ -598,6 +609,145 @@ function addOrderAndScriptErrors(
   }
 }
 
+function containsJapanese(value: unknown): boolean {
+  if (typeof value === "string") return JAPANESE_CHARACTER.test(value);
+  if (Array.isArray(value)) return value.some(containsJapanese);
+  if (value && typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).some(containsJapanese);
+  }
+  return false;
+}
+
+/** Adapt the assembled catalogs into the shape the pure engine resolves against. */
+function toExerciseCatalogs(
+  input: AssembledCurriculumCatalogs,
+): ExerciseCatalogsInput {
+  return {
+    concepts: input.concepts.map((concept) => ({ id: concept.id })),
+    lexemes: input.lexemes.map((lexeme) => ({ id: lexeme.id })),
+    examples: input.examples.map((example) => ({
+      id: example.id,
+      jp: example.jp ?? "",
+      segments: example.segments ?? [],
+      lexemeIds: example.lexemeIds,
+      conceptIds: example.conceptIds,
+    })),
+  };
+}
+
+/**
+ * Exercise-boundary validation (design spec §9.3, §10.1-§10.3, Slice C plan
+ * Task 1). Lesson-level reference checks and every definition-level check are
+ * always on so a malformed authored exercise fails the build; only the 3-5
+ * per-lesson budget is gated behind `enforceExerciseTargets` so the current
+ * zero-exercise release stays valid until Task 2 authors the definitions.
+ */
+function addExerciseErrors(
+  input: AssembledCurriculumCatalogs,
+  lessons: readonly CurriculumLessonEntry[],
+  errors: CurriculumValidationError[],
+  enforceExerciseTargets: boolean,
+): void {
+  const definedExerciseIds = new Set(input.exercises.map((exercise) => exercise.id));
+
+  for (const lesson of lessons) {
+    const exerciseIds = lesson.exerciseIds ?? [];
+    const seen = new Set<string>();
+    for (const exerciseId of exerciseIds) {
+      if (!definedExerciseIds.has(exerciseId)) {
+        errors.push({
+          code: "missing-exercise-reference",
+          lessonId: lesson.id,
+          referenceId: exerciseId,
+        });
+      }
+      if (seen.has(exerciseId)) {
+        errors.push({
+          code: "duplicate-exercise-reference",
+          lessonId: lesson.id,
+          referenceId: exerciseId,
+        });
+      }
+      seen.add(exerciseId);
+    }
+    if (
+      enforceExerciseTargets &&
+      (exerciseIds.length < LESSON_MIN_EXERCISES ||
+        exerciseIds.length > LESSON_MAX_EXERCISES)
+    ) {
+      errors.push({
+        code: "invalid-exercise-count",
+        lessonId: lesson.id,
+        actual: exerciseIds.length,
+      });
+    }
+  }
+
+  const catalogs = toExerciseCatalogs(input);
+  for (const exercise of input.exercises) {
+    const definition = exercise.definition;
+    if (!definition) continue;
+
+    // No copied canonical answer literals: definitions are all-ID by design.
+    if (containsJapanese(definition)) {
+      errors.push({ code: "copied-exercise-answer", id: exercise.id });
+    }
+
+    // Explicit variants only: an empty reference list is an implicit variant.
+    for (const variant of definition.acceptedVariants ?? []) {
+      if (variant.segmentRefs.length === 0) {
+        errors.push({
+          code: "implicit-exercise-variant",
+          id: exercise.id,
+          referenceId: variant.id,
+        });
+      }
+    }
+
+    // Reuse the runtime engine as the single source of truth for structural
+    // resolution: missing references, duplicate segments, impossible choice
+    // sets, and unresolvable variants all fail the build here (spec §10.3).
+    const generated = generateExercise(definition, catalogs);
+    if (!generated.ok) {
+      const { code, referenceId } = generated.error;
+      switch (code) {
+        case "impossible-choice":
+          errors.push({ code: "impossible-exercise-choice", id: exercise.id });
+          break;
+        case "duplicate-segment":
+          errors.push({
+            code: "duplicate-exercise-segment",
+            id: exercise.id,
+            referenceId,
+          });
+          break;
+        case "invalid-variant":
+          // Implicit (empty-ref) variants are already reported above; only an
+          // unresolvable reference carries a referenceId to surface here.
+          if (referenceId !== undefined) {
+            errors.push({
+              code: "missing-exercise-reference",
+              id: exercise.id,
+              referenceId,
+            });
+          }
+          break;
+        case "missing-example":
+        case "missing-segment":
+        case "missing-concept":
+        case "missing-lexeme":
+        case "absent-target":
+          errors.push({
+            code: "missing-exercise-reference",
+            id: exercise.id,
+            referenceId,
+          });
+          break;
+      }
+    }
+  }
+}
+
 function addCoverageErrors(
   input: AssembledCurriculumCatalogs,
   coverage: ComputedCoverage,
@@ -703,6 +853,7 @@ export function validateCurriculum(
   addModuleAndLessonErrors(input, modules, lessons, errors);
   validateLocaleKeys(input, errors);
   addOrderAndScriptErrors(input, lessons, errors);
+  addExerciseErrors(input, lessons, errors, options.enforceExerciseTargets ?? false);
 
   const { coverage } = computeCoverage(input, modules, lessons);
   addCoverageErrors(

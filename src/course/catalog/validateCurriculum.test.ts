@@ -626,3 +626,259 @@ describe("validateCurriculum", () => {
     ]);
   });
 });
+
+const segment = (id: string, jp: string, kind: "word" | "particle" | "ending") => ({
+  id,
+  jp,
+  kind,
+});
+
+const exampleWithSegments = (
+  id: string,
+  segments: readonly { id: string; jp: string; kind: "word" | "particle" | "ending" }[],
+  lexemeIds: readonly string[] = [],
+  conceptIds: readonly string[] = [],
+) => ({
+  id,
+  jp: segments.map((s) => s.jp).join(""),
+  segments,
+  lexemeIds,
+  conceptIds,
+});
+
+// A shared choice-target example so exercise definitions can reference real
+// segment data instead of copying answer literals (spec §10.1, §10.2).
+const choiceExample = exampleWithSegments(
+  "example-1",
+  [
+    segment("w1", "わたし", "word"),
+    segment("p1", "は", "particle"),
+    segment("w2", "がくせい", "word"),
+    segment("e1", "です", "ending"),
+  ],
+  ["iku"],
+  ["topic-wa"],
+);
+
+describe("validateCurriculum exercise definitions (Slice C Task 1)", () => {
+  it("reports a lesson reference to an unknown exercise definition", () => {
+    const result = validateCurriculum(
+      input({ lessons: [lesson({ exerciseIds: ["ghost-exercise"] })] }),
+      localValidation,
+    );
+
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: "missing-exercise-reference",
+        lessonId: "lesson-1",
+        referenceId: "ghost-exercise",
+      }),
+    );
+  });
+
+  it("reports a duplicate exercise reference within one lesson", () => {
+    const result = validateCurriculum(
+      input({ lessons: [lesson({ exerciseIds: ["exercise-1", "exercise-1"] })] }),
+      localValidation,
+    );
+
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: "duplicate-exercise-reference",
+        lessonId: "lesson-1",
+        referenceId: "exercise-1",
+      }),
+    );
+  });
+
+  it("rejects a definition that copies a canonical Japanese answer literal", () => {
+    const result = validateCurriculum(
+      input({
+        examples: [choiceExample],
+        exercises: [
+          {
+            id: "exercise-1",
+            targetExampleId: "example-1",
+            assessedConceptIds: ["topic-wa"],
+            assessedLexemeIds: [],
+            definition: {
+              id: "exercise-1",
+              kind: "constrained-construction",
+              // A copied answer literal masquerading as a copy ID.
+              promptCopyId: "わたしはがくせいです",
+              intentCopyId: "copy.intent",
+              targetExampleId: "example-1",
+              assessedConceptIds: ["topic-wa"],
+              assessedLexemeIds: [],
+            },
+          },
+        ],
+      }),
+      localValidation,
+    );
+
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ code: "copied-exercise-answer", id: "exercise-1" }),
+    );
+  });
+
+  it("rejects an implicit accepted variant with no explicit shared references", () => {
+    const result = validateCurriculum(
+      input({
+        examples: [choiceExample],
+        exercises: [
+          {
+            id: "exercise-1",
+            targetExampleId: "example-1",
+            assessedConceptIds: ["topic-wa"],
+            assessedLexemeIds: [],
+            definition: {
+              id: "exercise-1",
+              kind: "constrained-construction",
+              promptCopyId: "copy.construct",
+              intentCopyId: "copy.intent",
+              targetExampleId: "example-1",
+              assessedConceptIds: ["topic-wa"],
+              assessedLexemeIds: [],
+              acceptedVariants: [
+                { id: "implicit", reason: "topic-omission", segmentRefs: [] },
+              ],
+            },
+          },
+        ],
+      }),
+      localValidation,
+    );
+
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: "implicit-exercise-variant",
+        id: "exercise-1",
+        referenceId: "implicit",
+      }),
+    );
+  });
+
+  it("rejects an impossible choice set through the shared engine", () => {
+    const result = validateCurriculum(
+      input({
+        examples: [choiceExample],
+        exercises: [
+          {
+            id: "exercise-1",
+            targetExampleId: "example-1",
+            assessedConceptIds: ["topic-wa"],
+            assessedLexemeIds: [],
+            definition: {
+              id: "exercise-1",
+              kind: "choice",
+              promptCopyId: "copy.choice",
+              targetExampleId: "example-1",
+              blankSegmentId: "p1",
+              distractorRefs: [],
+              assessedConceptIds: ["topic-wa"],
+              assessedLexemeIds: [],
+            },
+          },
+        ],
+      }),
+      localValidation,
+    );
+
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: "impossible-exercise-choice",
+        id: "exercise-1",
+      }),
+    );
+  });
+
+  it("enforces the 3-5 exercises-per-lesson gate only when explicitly requested", () => {
+    const twoExercises = input({
+      examples: [choiceExample],
+      exercises: [
+        { id: "exercise-1", targetExampleId: "example-1", assessedConceptIds: ["topic-wa"], assessedLexemeIds: ["iku"] },
+        { id: "exercise-2", targetExampleId: "example-1", assessedConceptIds: ["topic-wa"], assessedLexemeIds: ["iku"] },
+      ],
+      lessons: [lesson({ exerciseIds: ["exercise-1", "exercise-2"] })],
+    });
+
+    const enforced = validateCurriculum(twoExercises, {
+      enforceReleaseTargets: false,
+      enforceExerciseTargets: true,
+    });
+    expect(enforced.errors).toContainEqual(
+      expect.objectContaining({
+        code: "invalid-exercise-count",
+        lessonId: "lesson-1",
+        actual: 2,
+      }),
+    );
+
+    // Default/local validation must NOT flag exercise counts, so the existing
+    // zero-exercise Slice B release stays valid until Task 2 authors exercises.
+    const notEnforced = validateCurriculum(twoExercises, localValidation);
+    expect(
+      notEnforced.errors.filter((error) => error.code === "invalid-exercise-count"),
+    ).toHaveLength(0);
+  });
+
+  it("does not enforce exercise counts under enforceReleaseTargets alone", () => {
+    // Real Slice B lessons currently have zero exercises; the release gate must
+    // stay green until Task 2 turns on enforceExerciseTargets.
+    const result = validateCurriculum(
+      input({ lessons: [lesson({ exerciseIds: [] })] }),
+      { enforceReleaseTargets: true },
+    );
+
+    expect(
+      result.errors.filter((error) => error.code === "invalid-exercise-count"),
+    ).toHaveLength(0);
+  });
+
+  it("accepts a lesson with a valid, fully-resolved set of exercise references", () => {
+    const exercises = [1, 2, 3].map((n) => ({
+      id: `exercise-${n}`,
+      targetExampleId: "example-1",
+      assessedConceptIds: ["topic-wa"],
+      assessedLexemeIds: ["iku"],
+      definition: {
+        id: `exercise-${n}`,
+        kind: "choice" as const,
+        promptCopyId: `copy.choice.${n}`,
+        targetExampleId: "example-1",
+        blankSegmentId: "p1",
+        distractorRefs: [{ exampleId: "particle-bank", segmentId: "p1" }],
+        assessedConceptIds: ["topic-wa"],
+        assessedLexemeIds: [],
+      },
+    }));
+    const result = validateCurriculum(
+      input({
+        examples: [
+          choiceExample,
+          exampleWithSegments("particle-bank", [
+            segment("w1", "ほん", "word"),
+            segment("p1", "を", "particle"),
+          ]),
+        ],
+        exercises,
+        lessons: [lesson({ exerciseIds: ["exercise-1", "exercise-2", "exercise-3"] })],
+      }),
+      { enforceReleaseTargets: false, enforceExerciseTargets: true },
+    );
+
+    expect(
+      result.errors.filter((error) =>
+        [
+          "missing-exercise-reference",
+          "duplicate-exercise-reference",
+          "invalid-exercise-count",
+          "impossible-exercise-choice",
+          "copied-exercise-answer",
+          "implicit-exercise-variant",
+        ].includes(error.code),
+      ),
+    ).toEqual([]);
+  });
+});

@@ -1181,6 +1181,10 @@ export const curriculumLessons: readonly CurriculumLessonEntry[] = Object.freeze
       exampleIds: Object.freeze(exampleIds),
       speechPromptId: speechPromptIdForLesson(plan.id),
       capstone: plan.capstone,
+      // Slice C Task 2 authors the 3-5 shared exercise definitions per lesson and
+      // fills these IDs; kept explicit and empty now so the lesson shape is
+      // complete and the `enforceExerciseTargets` gate can be turned on then.
+      exerciseIds: Object.freeze<string[]>([]),
       assistedKatakanaLexemeIds: Object.freeze([
         ...plan.assistedKatakanaLexemeIds,
       ]),

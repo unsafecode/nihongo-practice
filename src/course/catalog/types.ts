@@ -1,6 +1,10 @@
 import type { LessonId, ModuleId, PhaseId } from "../data/types";
 import type { PersonaId } from "../data/personas";
 import type { CatalogReferenceErrorCode } from "./validate";
+import type {
+  ExerciseDefinition,
+  ExerciseExampleSegment,
+} from "../exercises/types";
 
 export type ConceptId = string;
 export type LexemeId = string;
@@ -27,6 +31,19 @@ export interface ExampleCatalogEntry {
   readonly id: ExampleId;
   readonly lexemeIds: readonly LexemeId[];
   readonly conceptIds: readonly ConceptId[];
+  /**
+   * Concatenated kana form, present on authored curriculum examples. Optional so
+   * lightweight validator fixtures need not restate it; the exercise engine and
+   * validator read it when resolving canonical answers (design spec §10.2).
+   */
+  readonly jp?: string;
+  /**
+   * Ordered kana segments with stable within-example IDs. Present on authored
+   * examples; optional here so non-exercise fixtures stay terse. This is the
+   * shared segment structure exercise definitions reference instead of copying
+   * answer literals (design spec §9.1, §10.1).
+   */
+  readonly segments?: readonly ExerciseExampleSegment[];
 }
 
 export interface CurriculumCatalogEntry {
@@ -43,6 +60,13 @@ export interface ExerciseCatalogEntry {
   readonly targetExampleId: ExampleId;
   readonly assessedConceptIds: readonly ConceptId[];
   readonly assessedLexemeIds: readonly LexemeId[];
+  /**
+   * The typed, deterministic definition the pure engine renders and evaluates
+   * (design spec §10.1, Slice C plan Task 1). Optional so Slice A/B fixtures and
+   * the not-yet-authored release catalog remain valid; when present the
+   * validator proves answers derive from shared data and never copy literals.
+   */
+  readonly definition?: ExerciseDefinition;
 }
 
 export interface SpeechPromptCatalogEntry {
@@ -83,6 +107,13 @@ export interface CurriculumLessonEntry {
   readonly exampleIds: readonly ExampleId[];
   readonly speechPromptId: SpeechPromptId;
   readonly capstone: boolean;
+  /**
+   * The 3-5 deterministic exercise definitions this lesson assesses (design spec
+   * §5.2, §10.1). Optional so Slice B lessons remain valid before Slice C Task 2
+   * authors the definitions; the `enforceExerciseTargets` validation gate proves
+   * the 3-5 budget once they exist.
+   */
+  readonly exerciseIds?: readonly ExerciseDefinitionId[];
   /**
    * Katakana IDs shown with their reading at their first exposure. This is
    * optional for non-katakana lessons and intentionally remains semantic data.
@@ -163,6 +194,12 @@ export type CurriculumValidationErrorCode =
   | "missing-module-reference"
   | "missing-lesson-reference"
   | "missing-exercise-reference"
+  | "duplicate-exercise-reference"
+  | "duplicate-exercise-segment"
+  | "copied-exercise-answer"
+  | "implicit-exercise-variant"
+  | "impossible-exercise-choice"
+  | "invalid-exercise-count"
   | "missing-speech-prompt-reference"
   | "prerequisite-not-earlier"
   | "prerequisite-cycle"
@@ -200,4 +237,11 @@ export interface CurriculumValidationResult {
 
 export interface CurriculumValidationOptions {
   readonly enforceReleaseTargets?: boolean;
+  /**
+   * Enforce the per-lesson 3-5 exercise budget (design spec §5.2, §17.1).
+   * Independent of `enforceReleaseTargets` and defaulting to `false` so the
+   * existing zero-exercise Slice B release stays valid; Slice C Task 2's release
+   * gate turns it on once every lesson references its authored definitions.
+   */
+  readonly enforceExerciseTargets?: boolean;
 }
