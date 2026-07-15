@@ -196,6 +196,93 @@ test.describe("guided Lab round-trip", () => {
   });
 });
 
+const PLACES_LESSON = { moduleId: "places", lessonId: "places-action" } as const;
+const PLACES_LESSON_URL = routeUrls.lesson(
+  PLACES_LESSON.moduleId,
+  PLACES_LESSON.lessonId,
+);
+
+test.describe("Lab preset reactivity while mounted", () => {
+  test("changing the hash to a different guided Lab deep link updates the board and return link without reload", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+
+    // Open the first guided Lab deep link (time-past: past tense, no place).
+    await gotoReady(page, LESSON_URL);
+    const firstLink = page.locator(".guided-board a.action--secondary");
+    await expect(firstLink).toBeVisible();
+    const firstHref = await firstLink.getAttribute("href");
+    expect(firstHref, "first guided Lab link carries a preset").toMatch(
+      /laboratorio\?[^"]*scenario=/,
+    );
+
+    await firstLink.click();
+    await page.locator(".lab-page").waitFor({ state: "visible" });
+    expect(page.url()).toContain("/pratica/laboratorio");
+    await expect(page.locator(".notice--warning")).toHaveCount(0);
+
+    // Confirm the first preset's board state: past-tense "eat", no place chip.
+    await expect(page.locator(".sentence__main")).toContainText("ました");
+    await expect(page.locator(".sentence__main")).not.toContainText("れすとらん");
+    const firstReturn = page.locator(".guided-return");
+    await expect(firstReturn).toBeVisible();
+    await expect(firstReturn).toHaveAttribute(
+      "href",
+      new RegExp(
+        `/percorso/${REPRESENTATIVE_LESSON.moduleId}/${REPRESENTATIVE_LESSON.lessonId}`,
+      ),
+    );
+
+    // Fetch the second guided Lab deep link (places-action: present tense +
+    // restaurant) from a separate page in the same context, so the mounted
+    // Lab page under test is never navigated/reloaded to get it.
+    const scratch = await page.context().newPage();
+    await gotoReady(scratch, PLACES_LESSON_URL);
+    const secondLink = scratch.locator(".guided-board a.action--secondary");
+    await expect(secondLink).toBeVisible();
+    const secondHref = await secondLink.getAttribute("href");
+    expect(secondHref, "second guided Lab link carries a preset").toMatch(
+      /laboratorio\?[^"]*scenario=/,
+    );
+    expect(secondHref, "the two deep links are different presets").not.toBe(
+      firstHref,
+    );
+    await scratch.close();
+
+    // Change window.location.hash in the SAME document to the second deep
+    // link — no page.goto/reload — exactly the case where Lab stayed mounted.
+    await page.evaluate((hash: string) => {
+      window.location.hash = hash.startsWith("#") ? hash.slice(1) : hash;
+    }, secondHref!);
+
+    // Wait for the app's route update to actually re-render the board.
+    await expect
+      .poll(() => page.locator(".sentence__main").textContent(), {
+        timeout: 2000,
+      })
+      .toContain("れすとらん");
+
+    // The old preset's state must be gone, the new preset's state present.
+    await expect(page.locator(".sentence__main")).not.toContainText("ました");
+    await expect(page.locator(".sentence__main")).toContainText("れすとらん");
+    await expect(page.locator(".notice--warning")).toHaveCount(0);
+
+    // The guided-return control must now point at the second deep link's
+    // originating lesson/section, not the stale first one.
+    const secondReturn = page.locator(".guided-return");
+    await expect(secondReturn).toBeVisible();
+    await expect(secondReturn).toHaveAttribute(
+      "href",
+      new RegExp(
+        `/percorso/${PLACES_LESSON.moduleId}/${PLACES_LESSON.lessonId}`,
+      ),
+    );
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+});
+
 test.describe("guided Syllabary round-trip", () => {
   test("sound lesson explore focuses the relevant group and returns to #explore", async ({ page }) => {
     await setupPageObservers(page);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { ActionLink } from "../../components/actions/Action";
 import { Notice } from "../../components/Notice";
@@ -43,16 +43,34 @@ export function Lab() {
   const { script } = useScript();
   const { supported, japaneseVoiceAvailable, speakingKey, playbackFailed, speak } = useSpeech();
   const [searchParams] = useSearchParams();
-  const [initialPreset] = useState(() => ({
-    attempted: hasLabPreset(searchParams),
-    parsed: parseLabPreset(searchParams),
-  }));
-  const [guidedReturn] = useState(() =>
-    readGuidedReturn(searchParams, validateGuidedLessonReturn),
+  // Reactively derived from the current route (Syllabary.tsx pattern) so a
+  // hash/query change while Lab stays mounted is picked up on every render,
+  // instead of being frozen at first mount via lazy useState.
+  const preset = useMemo(
+    () => ({
+      attempted: hasLabPreset(searchParams),
+      parsed: parseLabPreset(searchParams),
+    }),
+    [searchParams],
+  );
+  const guidedReturn = useMemo(
+    () => readGuidedReturn(searchParams, validateGuidedLessonReturn),
+    [searchParams],
   );
   const [selection, setSelection] = useState<LabSelection>(() =>
-    initialPreset.parsed?.selection ?? defaultSelection(scenarios[0].id),
+    preset.parsed?.selection ?? defaultSelection(scenarios[0].id),
   );
+
+  // Re-sync the selection from the route whenever the preset actually
+  // changes (a real route change, not an ordinary in-page edit — user edits
+  // via setForm/setTime/setOption/setScenario never touch searchParams, so
+  // this effect does not fire for them and their edits are preserved). A
+  // plain or invalid preset route falls back to the same default selection
+  // a fresh mount would use.
+  useEffect(() => {
+    setSelection(preset.parsed?.selection ?? defaultSelection(scenarios[0].id));
+  }, [preset]);
+
   const courseCopy = getCourseCopy(locale);
   const pack = getCatalog(locale);
   const vm = buildLabViewModel(selection, locale, referenceLocale);
@@ -90,7 +108,7 @@ export function Lab() {
         japaneseVoiceAvailable={japaneseVoiceAvailable}
         playbackFailed={playbackFailed}
       />
-      {initialPreset.attempted && !initialPreset.parsed ? (
+      {preset.attempted && !preset.parsed ? (
         <Notice
           tone="warning"
           title={courseCopy.practice.invalidPresetTitle}
