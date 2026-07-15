@@ -11,6 +11,27 @@ blob-report
 *.tsbuildinfo
 *.local
 .DS_Store
+
+# Local environment and authentication material.
+.env
+.env.*
+!.env.example
+!.env.*.example
+.npmrc
+.netrc
+.aws/
+.azure/
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+credentials.json
+secrets.json
+auth-cache*
+cookies*.txt
+
 .vscode/*
 !.vscode/extensions.json
 npm-debug.log*
