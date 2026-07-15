@@ -133,7 +133,36 @@ describe("resolveLessonRoute: legacy aliases", () => {
       if (result.kind !== "redirect") continue;
       expect(result.courseModule.id).toBe(alias.moduleId);
       expect(result.lesson.id).toBe(alias.lessonId);
+      expect(result.moduleChanged).toBe(
+        alias.legacyModuleId !== alias.moduleId,
+      );
     }
+  });
+
+  it("distinguishes a same-module rename from a cross-module redirect", () => {
+    const sameModule = resolveLessonRoute(
+      "sounds",
+      "sounds-core",
+      courseModules,
+    );
+    const crossModule = resolveLessonRoute(
+      "time",
+      "time-past",
+      courseModules,
+    );
+
+    expect(sameModule).toMatchObject({
+      kind: "redirect",
+      moduleChanged: false,
+      courseModule: { id: "sounds" },
+      lesson: { id: "sounds-1" },
+    });
+    expect(crossModule).toMatchObject({
+      kind: "redirect",
+      moduleChanged: true,
+      courseModule: { id: "past-negative" },
+      lesson: { id: "past-negative-1" },
+    });
   });
 
   it("redirects a legacy lesson to its canonical lesson even from a removed module id", () => {

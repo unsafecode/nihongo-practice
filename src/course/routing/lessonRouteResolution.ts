@@ -72,7 +72,12 @@ const legacyAliasByLessonId = new Map<string, LegacyLessonAlias>(
 
 export type LessonRouteResolution =
   | { kind: "match"; courseModule: CourseModule; lesson: Lesson }
-  | { kind: "redirect"; courseModule: CourseModule; lesson: Lesson }
+  | {
+      kind: "redirect";
+      courseModule: CourseModule;
+      lesson: Lesson;
+      moduleChanged: boolean;
+    }
   | { kind: "invalid" };
 
 const INVALID_RESOLUTION: LessonRouteResolution = { kind: "invalid" };
@@ -99,7 +104,8 @@ function findLessonEntry(
  * - `"match"`: `moduleId` is `lessonId`'s real current module.
  * - `"redirect"`: `lessonId` is a retired v2.1 lesson id; the caller should
  *   replace-redirect to `lessonPath(courseModule.id, lesson.id)` for the
- *   canonical current lesson the alias names.
+ *   canonical current lesson the alias names. `moduleChanged` distinguishes
+ *   aliases that moved to another module from same-module renames.
  * - `"invalid"`: unknown lesson, or a current lesson paired with the wrong
  *   module — the caller falls back to the invalid-route behavior.
  */
@@ -123,7 +129,11 @@ export function resolveLessonRoute(
   if (alias) {
     const target = findLessonEntry(alias.lessonId, modules);
     if (target && target.courseModule.id === alias.moduleId) {
-      return { kind: "redirect", ...target };
+      return {
+        kind: "redirect",
+        ...target,
+        moduleChanged: alias.legacyModuleId !== target.courseModule.id,
+      };
     }
   }
 

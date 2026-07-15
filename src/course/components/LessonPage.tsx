@@ -77,7 +77,11 @@ export function LessonPage() {
       <Navigate
         replace
         to={lessonPath(resolution.courseModule.id, resolution.lesson.id)}
-        state={LEGACY_MODULE_REDIRECT_STATE}
+        state={
+          resolution.moduleChanged
+            ? LEGACY_MODULE_REDIRECT_STATE
+            : undefined
+        }
       />
     );
   }

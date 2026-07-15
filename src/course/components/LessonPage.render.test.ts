@@ -44,6 +44,39 @@ function render(path: string): string {
   );
 }
 
+function renderWithLegacyNotice(path: string): string {
+  return renderToStaticMarkup(
+    createElement(
+      MemoryRouter,
+      {
+        initialEntries: [
+          { pathname: path, state: { legacyModuleRedirect: true } },
+        ],
+      },
+      createElement(
+        LocaleProvider,
+        null,
+        createElement(
+          ScriptProvider,
+          null,
+          createElement(
+            ProgressProvider,
+            null,
+            createElement(
+              Routes,
+              null,
+              createElement(Route, {
+                path: "/percorso/:moduleId/:lessonId",
+                element: createElement(LessonPage),
+              }),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 const TOOL_LESSON = "/percorso/sounds/sounds-1";
 const TRANSFORMATION_LESSON = "/percorso/actions/actions-1";
 
@@ -140,5 +173,21 @@ describe("LessonPage — assisted katakana first exposure (design spec §7, §8.
   it("shows Module 1's first コーヒー exposure with its ruby hiragana reading in the comparison section", () => {
     const html = render(KATAKANA_FIRST_EXPOSURE_LESSON);
     expect(html).toMatch(/<ruby[^>]*>コーヒー<rt[^>]*>こーひー<\/rt><\/ruby>/);
+  });
+});
+
+describe("LessonPage — legacy redirect notice", () => {
+  it("does not render different-module notice copy for the same-module target", () => {
+    const html = render("/percorso/sounds/sounds-1");
+    expect(html).not.toContain(itCopy.lesson.legacyModuleNoticeTitle);
+    expect(html).not.toContain(itCopy.lesson.legacyModuleNoticeBody);
+  });
+
+  it("renders the existing localized notice copy for a cross-module target", () => {
+    const html = renderWithLegacyNotice(
+      "/percorso/past-negative/past-negative-1",
+    );
+    expect(html).toContain(itCopy.lesson.legacyModuleNoticeTitle);
+    expect(html).toContain(itCopy.lesson.legacyModuleNoticeBody);
   });
 });
