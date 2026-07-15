@@ -380,7 +380,7 @@ export function generateExercise(
 }
 
 function invalid(reason: string): ExerciseEvaluation {
-  return { status: "invalid-definition", reason };
+  return { status: "invalid-input", reason };
 }
 
 function retry(prompt: ExercisePrompt): ExerciseEvaluation {
@@ -434,7 +434,7 @@ function evaluateText(
 
 /**
  * Score a typed candidate against a prompt: `accepted`, `retry` (with the
- * assessed target to review), or `invalid-definition` for structurally unusable
+ * assessed target to review), or `invalid-input` for structurally unusable
  * input (spec §10.3). Pure and deterministic; never fuzzy.
  */
 export function evaluateExercise(

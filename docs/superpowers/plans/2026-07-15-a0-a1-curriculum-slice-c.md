@@ -61,7 +61,7 @@ part of the definition.
 
 Evaluate tile sequence, selected option, transformed example, completion
 segments, and constrained construction against canonical shared example data.
-Return `accepted`, `retry`, or `invalid-definition`; never silently accept an
+Return `accepted`, `retry`, or `invalid-input`; never silently accept an
 unresolved target.
 
 - [ ] **Step 5: Extend curriculum validation**

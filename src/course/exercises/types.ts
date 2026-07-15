@@ -257,4 +257,4 @@ export type ExerciseEvaluation =
       readonly targetConceptIds: readonly ConceptId[];
       readonly targetLexemeIds: readonly LexemeId[];
     }
-  | { readonly status: "invalid-definition"; readonly reason: string };
+  | { readonly status: "invalid-input"; readonly reason: string };

@@ -285,6 +285,26 @@ describe("generateExercise", () => {
     });
   });
 
+  it("keeps generation failures as ExerciseGenerationError and unusable candidates as invalid-input", () => {
+    const brokenDefinition = { ...transformation, targetExampleId: "ghost-example" };
+    const generationResult = generateExercise(brokenDefinition, catalogs);
+    expect(generationResult).toEqual({
+      ok: false,
+      error: {
+        code: "missing-example",
+        definitionId: "ex-transform",
+        referenceId: "ghost-example",
+      },
+    });
+
+    const promptResult = generateExercise(transformation, catalogs);
+    expect(promptResult.ok).toBe(true);
+    if (!promptResult.ok) return;
+    expect(
+      evaluateExercise(promptResult.prompt, { kind: "transformation", text: "   " }).status,
+    ).toBe("invalid-input");
+  });
+
   it("rejects a duplicate tile identity as a structured engine error", () => {
     const duplicated: TileOrderingExerciseDefinition = {
       ...tileOrdering,
@@ -485,24 +505,24 @@ describe("evaluateExercise", () => {
     ).toBe("retry");
   });
 
-  it("reports invalid-definition for a candidate whose kind does not match the prompt", () => {
+  it("reports invalid-input for a candidate whose kind does not match the prompt", () => {
     const prompt = generateOk(choice);
     expect(
       evaluateExercise(prompt, { kind: "transformation", text: "は" }).status,
-    ).toBe("invalid-definition");
+    ).toBe("invalid-input");
   });
 
-  it("reports invalid-definition for structurally unusable input", () => {
+  it("reports invalid-input for structurally unusable input", () => {
     const prompt = generateOk(transformation);
     if (prompt.kind !== "transformation") throw new Error("wrong kind");
     expect(
       evaluateExercise(prompt, { kind: "transformation", text: "   " }).status,
-    ).toBe("invalid-definition");
+    ).toBe("invalid-input");
 
     const choicePrompt = generateOk(choice);
     expect(
       evaluateExercise(choicePrompt, { kind: "choice", optionId: "not-an-option" })
         .status,
-    ).toBe("invalid-definition");
+    ).toBe("invalid-input");
   });
 });
