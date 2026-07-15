@@ -939,11 +939,58 @@ git --no-pager log --oneline \
 git --no-pager status --short --branch
 ```
 
+Then run the executable review-register check. It uses `execFileSync` (never
+shell interpolation) to collect every commit subject introduced after the
+corrected-release commit `814c62d`, reads the public review register, and
+throws if any nonblank subject is not present there as an exact backticked
+subject:
+
+```bash
+node <<'NODE'
+const { execFileSync } = require('child_process');
+const { readFileSync } = require('fs');
+
+const subjectsRaw = execFileSync(
+  'git',
+  ['log', '--format=%s', '814c62d..HEAD'],
+  { encoding: 'utf8' },
+);
+const subjects = subjectsRaw
+  .split('\n')
+  .map((line) => line.trim())
+  .filter((line) => line.length > 0);
+
+const register = readFileSync(
+  'docs/superpowers/reviews/2026-07-15-public-release-review.md',
+  'utf8',
+);
+
+const missing = subjects.filter(
+  (subject) => !register.includes('`' + subject + '`'),
+);
+
+if (missing.length > 0) {
+  throw new Error(
+    `Commit subject(s) missing from review register: ${missing.join(', ')}`,
+  );
+}
+
+console.log(
+  `All ${subjects.length} post-814c62d subject(s) found in review register.`,
+);
+NODE
+```
+
 Expected:
 
 - no whitespace errors;
 - the full corrective tip remains an ancestor;
-- log shows only (a) the Task 1 replayed design/plan commits, (b) the Task 2–4 release-hardening commits, and (c) implementation or plan-documentation fixes created from Task 5 or final-review findings; every subject is traceable to this plan or a recorded review finding;
+- log shows the Task 1 replayed design/plan commits and the Task 2–4
+  release-hardening commits;
+- every commit subject introduced after `814c62d` appears in the public
+  review register at
+  `docs/superpowers/reviews/2026-07-15-public-release-review.md`;
+- the Node check exits 0;
 - worktree has no tracked or untracked changes;
 - ignored generated artifacts may remain locally but are not committed.
 
