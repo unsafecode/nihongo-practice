@@ -202,7 +202,13 @@ const CONCEPTS = [
 
 /** Immutable ordered concept catalog. */
 export const concepts: readonly ConceptCatalogEntry[] = Object.freeze(
-  CONCEPTS.map((concept) => Object.freeze({ ...concept })),
+  CONCEPTS.map((concept) =>
+    Object.freeze({
+      ...concept,
+      prerequisiteIds: Object.freeze([...concept.prerequisiteIds]),
+      surfaceGears: Object.freeze([...concept.surfaceGears]),
+    }),
+  ),
 );
 
 /** Stable index for prerequisite/reference lookups. */

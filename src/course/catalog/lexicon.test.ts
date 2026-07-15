@@ -241,6 +241,14 @@ describe("concept catalog (spec §5.1/§6.4)", () => {
     }
   });
 
+  it("freezes each concept and both nested arrays", () => {
+    for (const entry of concepts) {
+      expect(Object.isFrozen(entry)).toBe(true);
+      expect(Object.isFrozen(entry.prerequisiteIds)).toBe(true);
+      expect(Object.isFrozen(entry.surfaceGears)).toBe(true);
+    }
+  });
+
   it("declares surface gears free of kanji", () => {
     for (const entry of concepts) {
       expect(Array.isArray(entry.surfaceGears)).toBe(true);
@@ -263,6 +271,29 @@ describe("concept catalog (spec §5.1/§6.4)", () => {
       }
       seen.add(entry.id);
     }
+  });
+
+  it("rejects nested mutation so shared catalog state stays unchanged", () => {
+    const concept = conceptsById.get("demonstratives");
+    expect(concept).toBeDefined();
+    if (!concept) return;
+
+    const prerequisiteSnapshot = [...concept.prerequisiteIds];
+    const surfaceGearSnapshot = [...concept.surfaceGears];
+
+    expect(() => {
+      (concept.prerequisiteIds as string[]).push("sentence-order");
+    }).toThrow();
+    expect(() => {
+      (concept.surfaceGears as string[]).push("⚠️");
+    }).toThrow();
+
+    expect(conceptsById.get("demonstratives")?.prerequisiteIds).toEqual(
+      prerequisiteSnapshot,
+    );
+    expect(conceptsById.get("demonstratives")?.surfaceGears).toEqual(
+      surfaceGearSnapshot,
+    );
   });
 
   it("covers the grammar families required by Slice B Task 2", () => {
