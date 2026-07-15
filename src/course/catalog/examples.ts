@@ -533,8 +533,8 @@ const list: readonly CurriculumExampleEntry[] = [
   // ── Module 6 · Past and negative ───────────────────────────────────────────
   example(
     "past-negative-1-base",
-    [w("きのう"), w("ともだち"), p("と"), w("えいが"), p("を"), w("み"), e("ました")],
-    ["yesterday", "friend", "movie", "watch"],
+    [w("きょう"), w("ともだち"), p("と"), w("えいが"), p("を"), w("み"), e("ました")],
+    ["today", "friend", "movie", "watch"],
     ["past-mashita", "companion-to", "object-o"],
   ),
   example(

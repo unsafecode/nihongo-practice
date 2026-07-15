@@ -171,6 +171,52 @@ describe("exercise catalog shared-answer contract (spec §10.1, §10.2)", () => 
   });
 });
 
+describe("exercise transformation alignment (Slice C Task 2)", () => {
+  it("changes only the predicate ending from prompt to target", () => {
+    for (const entry of curriculumExercises) {
+      const definition = definitionOf(entry.id);
+      if (definition.kind !== "transformation") continue;
+
+      const source = catalogs.examples.find(
+        (example) => example.id === definition.promptExampleId,
+      );
+      const target = catalogs.examples.find(
+        (example) => example.id === definition.targetExampleId,
+      );
+      expect(source, `${entry.id} prompt example`).toBeDefined();
+      expect(target, `${entry.id} target example`).toBeDefined();
+      if (!source || !target) continue;
+
+      expect(source.segments, `${entry.id} segment count`).toHaveLength(
+        target.segments.length,
+      );
+      const changedSegments = target.segments.flatMap((segment, index) => {
+        const promptSegment = source.segments[index];
+        return promptSegment.jp === segment.jp ? [] : [[promptSegment, segment]];
+      });
+      expect(changedSegments.length, `${entry.id} changed segment count`).toBeGreaterThan(0);
+      expect(
+        changedSegments.every(
+          ([promptSegment, targetSegment]) =>
+            promptSegment.kind === "ending" && targetSegment.kind === "ending",
+        ),
+        `${entry.id} changed segments`,
+      ).toBe(true);
+
+      const prompt = generatedPrompt(definition);
+      expect(prompt.kind, entry.id).toBe("transformation");
+      if (prompt.kind !== "transformation") continue;
+      expect(
+        evaluateExercise(prompt, {
+          kind: "transformation",
+          text: prompt.canonicalAnswer,
+        }).status,
+        entry.id,
+      ).toBe("accepted");
+    }
+  });
+});
+
 describe("exercise catalog generation and evaluation (spec §10.3)", () => {
   it("generates a prompt for every definition", () => {
     for (const entry of curriculumExercises) {

@@ -547,7 +547,7 @@ const exampleTranslations: Record<string, string> = {
   "routines-3-r3": "I study Japanese for one hour.",
   "routines-3-r4": "I look at the clock.",
   "routines-3-r5": "I wake up at six oh five a.m.",
-  "past-negative-1-base": "Yesterday I watched a movie with a friend.",
+  "past-negative-1-base": "Today I watched a movie with a friend.",
   "past-negative-1-changed": "Today I watch a movie with a friend.",
   "past-negative-1-say": "Last week I did a test.",
   "past-negative-1-r1": "This morning I read the newspaper.",
