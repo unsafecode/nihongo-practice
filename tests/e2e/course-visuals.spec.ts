@@ -1,4 +1,5 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+import { PREVIEW_BASE_PATH, PREVIEW_ORIGIN } from "../../playwright.config";
 import {
   assertLocalOnlyNetwork,
   assertNoHorizontalOverflow,
@@ -20,6 +21,31 @@ const LESSON_URL = routeUrls.lesson(
   REPRESENTATIVE_LESSON.moduleId,
   REPRESENTATIVE_LESSON.lessonId,
 );
+
+/** The complete A0→A1 rebuild's 12 modules, in fixed phase order (design
+ * spec §5.2/§6.2): 3 "orient", 3 "build", 5 "navigate", 1 "synthesize". */
+const EXPECTED_PHASE_MODULE_COUNTS = [3, 3, 5, 1] as const;
+const TOTAL_MODULE_COUNT = 12;
+const TOTAL_LESSON_COUNT = 40;
+
+/** The Module 1 "katakana bridge" lesson (design spec §7): the first lesson
+ * that introduces authentic katakana loanwords with adjacent hiragana
+ * reading assistance, e.g. コーヒー / こーひー. */
+const KATAKANA_BRIDGE_LESSON_URL = routeUrls.lesson("sounds", "sounds-4");
+
+/** Clicks every currently-collapsed module disclosure so all 40 lesson rows
+ * become visible, letting a test prove the *complete* set of routes without
+ * assuming DOM presence implies user-visible reachability. */
+async function expandAllModules(page: Page): Promise<void> {
+  const disclosures = page.locator(".module-card__disclosure");
+  const count = await disclosures.count();
+  for (let index = 0; index < count; index += 1) {
+    const button = disclosures.nth(index);
+    if ((await button.getAttribute("aria-expanded")) === "false") {
+      await button.click();
+    }
+  }
+}
 
 const SCREENS = [
   { name: "course home", url: routeUrls.home },
@@ -506,5 +532,223 @@ test.describe("representative lesson visual system", () => {
     expect(main).toBeTruthy();
     expect(main!.width, `lesson-main width ${main!.width}`).toBeLessThanOrEqual(860 + 1);
     expect(main!.width, `lesson-main width ${main!.width}`).toBeGreaterThanOrEqual(600);
+  });
+});
+
+test.describe("live complete A0→A1 course composition (Slice B Task 5)", () => {
+  test("exposes exactly 12 module cards grouped into the four ordered phases", async ({ page }) => {
+    await setupPageObservers(page);
+    await gotoReady(page, routeUrls.home);
+
+    const phases = page.locator(".course-phase");
+    await expect(phases).toHaveCount(EXPECTED_PHASE_MODULE_COUNTS.length);
+
+    // Phase order is fixed (design spec §5.2): Orientati · Costruisci ·
+    // Naviga · Sintetizza, with 3/3/5/1 modules respectively.
+    const headings = await page.locator(".course-phase__heading").allTextContents();
+    expect(headings).toEqual(["Orientati", "Costruisci", "Naviga", "Sintetizza"]);
+
+    const perPhaseCounts: number[] = [];
+    for (let index = 0; index < EXPECTED_PHASE_MODULE_COUNTS.length; index += 1) {
+      perPhaseCounts.push(
+        await phases.nth(index).locator(".module-card").count(),
+      );
+    }
+    expect(perPhaseCounts).toEqual([...EXPECTED_PHASE_MODULE_COUNTS]);
+
+    const totalModules = await page.locator(".module-card").count();
+    expect(totalModules).toBe(TOTAL_MODULE_COUNT);
+  });
+
+  test("declares exactly 40 unique lesson links across every module", async ({ page }) => {
+    await setupPageObservers(page);
+    await gotoReady(page, routeUrls.home);
+    await expandAllModules(page);
+
+    const links = page.locator(".module-card__lesson-link");
+    await expect(links).toHaveCount(TOTAL_LESSON_COUNT);
+
+    const hrefs = await links.evaluateAll((elements) =>
+      elements.map((el) => el.getAttribute("href")),
+    );
+    expect(hrefs).toHaveLength(TOTAL_LESSON_COUNT);
+    expect(new Set(hrefs).size, "every lesson link href is unique").toBe(TOTAL_LESSON_COUNT);
+    expect(hrefs.every((href) => !!href), "every lesson link has an href").toBe(true);
+  });
+
+  test("only the recommended module's lessons render by default — no raw dumped rows on the rest", async ({ page }) => {
+    await setupPageObservers(page);
+    await gotoReady(page, routeUrls.home);
+
+    // Regression guard: `.module-card__lessons[hidden]` must actually render
+    // with zero height. A CSS specificity tie with the UA `[hidden]` default
+    // previously let every collapsed module's full lesson list render
+    // anyway, dumping all 40 rows on first paint instead of only the
+    // recommended module's (design spec §13.3).
+    const panelMetrics = await page.evaluate(() =>
+      Array.from(document.querySelectorAll<HTMLElement>(".module-card__lessons")).map(
+        (panel) => ({
+          hidden: panel.hasAttribute("hidden"),
+          height: panel.getBoundingClientRect().height,
+        }),
+      ),
+    );
+    expect(panelMetrics).toHaveLength(TOTAL_MODULE_COUNT);
+    const collapsed = panelMetrics.filter((entry) => entry.hidden);
+    const expanded = panelMetrics.filter((entry) => !entry.hidden);
+    expect(expanded, "exactly one module starts expanded").toHaveLength(1);
+    expect(collapsed, "every other module starts collapsed").toHaveLength(TOTAL_MODULE_COUNT - 1);
+    for (const entry of collapsed) {
+      expect(entry.height, "a collapsed module's lesson list renders no height").toBe(0);
+    }
+    expect(expanded[0].height, "the expanded module's lesson list has real height").toBeGreaterThan(0);
+  });
+
+  test("visible lesson rows are bounded/content-sized nested cards, never raw browser-default rows", async ({ page, viewport }) => {
+    await setupPageObservers(page);
+    await gotoReady(page, routeUrls.home);
+
+    // Collapsed cards are content-sized, not forced to a uniform/giant
+    // height matching the expanded module (design spec §13.3). The bound is
+    // generous enough to absorb mobile's narrower text wrapping while still
+    // being far below what a giant/equal-height forced card would measure.
+    const collapsedBound = viewport && isMobile(viewport.width) ? 620 : 320;
+    const cardHeights = await page.locator(".module-card").evaluateAll((cards) =>
+      cards.map((card) => card.getBoundingClientRect().height),
+    );
+    const [expandedHeight, ...collapsedHeights] = cardHeights;
+    for (const height of collapsedHeights) {
+      expect(
+        height,
+        "a collapsed module card must not match the expanded card's height",
+      ).toBeLessThan(expandedHeight);
+      // No giant empty card: a collapsed module (icon, title, outcome,
+      // prerequisites, coverage line, CTA) never needs anywhere near the
+      // vertical space an expanded lesson list occupies.
+      expect(height, "collapsed module card is content-sized, not a giant card").toBeLessThan(collapsedBound);
+    }
+
+    // The resting (non-hover) visible lesson rows in the expanded module are
+    // real bounded nested cards: a visible border, a visible non-transparent
+    // background, and a real >=44px target — never the raw, borderless,
+    // transparent-background appearance the defect statement (§13.1)
+    // describes.
+    const rows = await page.locator(".module-card__lesson-link").evaluateAll((elements) =>
+      elements
+        .filter((el) => (el as HTMLElement).offsetParent !== null)
+        .map((el) => {
+          const style = getComputedStyle(el);
+          const rect = el.getBoundingClientRect();
+          return {
+            borderWidths: [
+              style.borderTopWidth,
+              style.borderRightWidth,
+              style.borderBottomWidth,
+              style.borderLeftWidth,
+            ],
+            borderStyle: style.borderTopStyle,
+            background: style.backgroundColor,
+            width: rect.width,
+            height: rect.height,
+          };
+        }),
+    );
+    expect(rows.length, "the recommended module's rows are visible").toBeGreaterThan(0);
+    for (const row of rows) {
+      for (const width of row.borderWidths) {
+        expect(Number.parseFloat(width), "resting lesson row has a real border").toBeGreaterThanOrEqual(1);
+      }
+      expect(row.borderStyle, "resting lesson row border is not none").not.toBe("none");
+      expect(row.background, "resting lesson row background is not transparent").not.toBe(
+        "rgba(0, 0, 0, 0)",
+      );
+      expect(row.width, `lesson row width ${row.width}`).toBeGreaterThanOrEqual(44);
+      expect(row.height, `lesson row height ${row.height}`).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  test("keyboard Tab reaches a nested lesson row with a visible focus outline", async ({ page }) => {
+    await setupPageObservers(page);
+    await gotoReady(page, routeUrls.home);
+
+    let reachedLessonLink = false;
+    let outline: { width: number; style: string } | null = null;
+    for (let presses = 0; presses < 40 && !reachedLessonLink; presses += 1) {
+      await page.keyboard.press("Tab");
+      const info = await page.evaluate(() => {
+        const el = document.activeElement as HTMLElement | null;
+        if (!el) return null;
+        const style = getComputedStyle(el);
+        return {
+          isLessonLink: el.classList.contains("module-card__lesson-link"),
+          outlineWidth: Number.parseFloat(style.outlineWidth),
+          outlineStyle: style.outlineStyle,
+        };
+      });
+      if (info?.isLessonLink) {
+        reachedLessonLink = true;
+        outline = { width: info.outlineWidth, style: info.outlineStyle };
+      }
+    }
+    expect(reachedLessonLink, "Tab order reaches a nested lesson row").toBe(true);
+    expect(outline!.style, "focused lesson row outline style").not.toBe("none");
+    expect(outline!.width, "focused lesson row outline width").toBeGreaterThanOrEqual(2);
+  });
+
+  test("no horizontal overflow even with every module expanded", async ({ page }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, routeUrls.home);
+    await expandAllModules(page);
+    await assertNoHorizontalOverflow(page);
+    await assertNoRuntimeErrors(page, observers);
+  });
+
+  test("Module 1's katakana bridge lesson shows authentic コーヒー with adjacent ruby こーひー on first exposure", async ({ page }) => {
+    await setupPageObservers(page);
+    await gotoReady(page, KATAKANA_BRIDGE_LESSON_URL);
+
+    const rubies = await page.locator("ruby.katakana-assist").evaluateAll((elements) =>
+      elements.map((el) => ({
+        jp: el.childNodes[0]?.textContent ?? "",
+        reading: el.querySelector("rt")?.textContent ?? "",
+      })),
+    );
+    expect(rubies.length, "at least one assisted katakana exposure on this lesson").toBeGreaterThan(0);
+    const coffee = rubies.find((entry) => entry.jp === "コーヒー");
+    expect(coffee, `コーヒー must appear with an adjacent hiragana reading: ${JSON.stringify(rubies)}`).toBeTruthy();
+    expect(coffee!.reading, "コーヒー's adjacent reading is こーひー").toBe("こーひー");
+
+    // The ruby annotation is a real, visible <rt>, not a hidden/empty node.
+    const rt = page.locator("ruby.katakana-assist rt", { hasText: "こーひー" }).first();
+    await expect(rt).toBeVisible();
+  });
+
+  test("serves under the GitHub Pages base path: routes and static assets resolve under /nihongo-practice/", async ({ page }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, routeUrls.home);
+
+    expect(page.url(), "the app loads at the Pages base path").toBe(
+      `${PREVIEW_ORIGIN}${PREVIEW_BASE_PATH}#/percorso`,
+    );
+    const pathname = await page.evaluate(() => window.location.pathname);
+    expect(pathname, "document location is served under /nihongo-practice/").toBe(
+      PREVIEW_BASE_PATH,
+    );
+
+    const assetRequests = observers.requests.filter((url) =>
+      url.includes(`${PREVIEW_BASE_PATH}assets/`),
+    );
+    expect(
+      assetRequests.length,
+      `at least one static asset request resolves under ${PREVIEW_BASE_PATH}assets/: ${JSON.stringify(observers.requests)}`,
+    ).toBeGreaterThan(0);
+    assertLocalOnlyNetwork(observers);
+
+    // A representative deep hash link also resolves under the same base.
+    await gotoReady(page, KATAKANA_BRIDGE_LESSON_URL);
+    expect(page.url()).toBe(
+      `${PREVIEW_ORIGIN}${PREVIEW_BASE_PATH}#/percorso/sounds/sounds-4`,
+    );
+    await assertNoRuntimeErrors(page, observers);
   });
 });

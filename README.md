@@ -6,29 +6,32 @@ SPA statica: nessun account, nessun backend, nessuna analisi, nessun tracker, ne
 
 ---
 
-## Esperienza v2.1 corretta
+## Percorso completo A0→A1
 
-Il percorso è composto da **sette moduli guidati e un capstone**, ciascuno con una o più lezioni compatte.
+Il percorso guidato è il corso **A0→A1 completo**: **12 moduli in quattro fasi** (Orientati · Costruisci · Naviga · Sintetizza) per un totale di **40 lezioni** compatte da 6 a 10 minuti, che coprono **42 verbi** e **270 vocaboli contestuali**.
 
-I moduli coprono in sequenza:
+L'approccio è **hiragana-first con katakana assistita**: i prestiti in katakana (es. コーヒー) mostrano, alla prima esposizione, una lettura in hiragana affiancata (ruby), mai al posto della grafia autentica.
 
-1. **Suoni** — l'alfabeto sillabico e la lettura hiragana
-2. **Riconoscimento e struttura della frase** — ordine SOV, particelle, predicato finale
-3. **Ordinare e fare richieste** — forme cortesi al presente
-4. **Tempo e polarità** — passato, negativo, negativo passato
-5. **Movimento e luoghi** — particelle di luogo, verbi di spostamento
-6. **Persone, desideri e inviti** — たい, ましょう, contesti sociali
-7. **Domande ed esistenza** — か, あります/います
-8. **Capstone** — sintesi di una giornata da viaggio
+I 12 moduli, in ordine:
+
+1. **Suoni, hiragana e il ponte katakana** — l'alfabeto sillabico, la lettura hiragana e i primi prestiti in katakana
+2. **Presentarsi** — nome, provenienza, lingua, occupazione ed età
+3. **Domande essenziali** — chi, cosa, dove, quando, quale, come e quanto
+4. **Azioni e oggetti** — frasi d'azione cortesi con oggetti e compagni
+5. **Routine, orario e frequenza** — giornata, giorni della settimana, frequenza
+6. **Passato e negativo** — presente/passato, affermativo/negativo
+7. **Luoghi, movimento e trasporti** — particelle di luogo, verbi di spostamento
+8. **Persone, famiglia e relazioni** — relazioni di base, piani condivisi
+9. **Descrizioni, preferenze e meteo** — condizioni familiari, gusti e preferenze
+10. **Acquisti, quantità e richieste** — prezzi, quantità, richieste cortesi
+11. **Esistenza, posizione e bisogni** — あります/います, posizione, bisogni
+12. **Sintesi pratica** — tre prove finali circoscritte: una presentazione, un'uscita quotidiana e una giornata di viaggio
 
 Ogni lezione combina **regola · confronto · esplorazione guidata · riepilogo**.
 
-Il progresso è espresso solo in **lezioni visitate**: nessun punteggio, nessuna padronanza, nessun completamento obbligatorio. Italiano/inglese e hiragana/rōmaji sono impostazioni indipendenti.
+Il progresso è espresso solo in **lezioni visitate**: nessun punteggio, nessuna padronanza, nessun completamento obbligatorio. Italiano/inglese e hiragana/rōmaji sono impostazioni indipendenti e funzionano su tutto il percorso completo.
 
-La base tecnica della prossima estensione A0→A1 definisce 12 moduli in quattro
-fasi, cataloghi tipizzati condivisi e personaggi generici centralizzati. Il
-contenuto completo, gli esercizi e il riconoscimento vocale arriveranno in
-slice successive: questa versione eseguibile mantiene ancora il percorso v2.1.
+**Non ancora disponibili in questa versione:** gli esercizi deterministici e la coda "Da ripassare" (Slice C) e il riconoscimento vocale del parlato (Slice D). La sintesi vocale del browser (`speechSynthesis`), già presente, è **solo riproduzione audio dei modelli**: l'app non ascolta né valuta la pronuncia dell'utente.
 
 ## Pratica libera
 
@@ -51,7 +54,7 @@ idempotente i dati v1/v2. Lo schema distingue visite, pratica e consolidamento;
 l'interfaccia corrente registra soltanto le visite e non inventa evidenze per
 gli stati successivi.
 
-La v2.1 usa esclusivamente la sintesi vocale del browser o del sistema operativo. L'app non registra audio e non invia testo o audio a un backend dell'applicazione; l'eventuale elaborazione online di una voce dipende dal browser, dal sistema e dalla voce scelta.
+L'app usa esclusivamente la **sintesi vocale** del browser o del sistema operativo (`speechSynthesis`) per la riproduzione audio dei modelli — non è riconoscimento vocale. L'app non registra audio e non invia testo o audio a un backend dell'applicazione; l'eventuale elaborazione online di una voce dipende dal browser, dal sistema e dalla voce scelta.
 
 ## Sviluppo locale
 

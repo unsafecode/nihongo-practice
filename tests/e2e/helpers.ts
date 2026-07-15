@@ -24,13 +24,21 @@ export const routeUrls = {
 /**
  * The representative content-rich lesson used across the visual and
  * navigation suites: it exercises a real before/after comparison, the sticky
- * rail + context bar, a compact dark Lab-backed guided board, and a fully
+ * rail + context bar, a compact dark authored guided board (design spec
+ * §6.4 — the complete A0→A1 curriculum's guided boards are fully authored
+ * from curriculum examples, never backed by a live Lab selection, so no
+ * lesson offers an "open in the guided Lab" deep-link), and a fully
  * populated prev/map/next footer.
  */
 export const REPRESENTATIVE_LESSON = { moduleId: "time", lessonId: "time-past" } as const;
 
-/** A "sound" lesson whose explore links out to a specific Syllabary group. */
-export const SOUND_LESSON = { moduleId: "sounds", lessonId: "sounds-core" } as const;
+/** A "sound" lesson whose explore links out to a specific Syllabary group.
+ * Uses the current canonical lesson id directly (not a retired v2.1 alias):
+ * this fixture exists to exercise the Syllabary round-trip itself, and the
+ * guided tool's return target is always built from the canonical lesson
+ * (assembleCourse.ts), so testing through an unrelated legacy-redirect hop
+ * would only add incidental noise. */
+export const SOUND_LESSON = { moduleId: "sounds", lessonId: "sounds-1" } as const;
 export const SOUND_LESSON_GROUP = "gojuon";
 
 export interface PageObservers {

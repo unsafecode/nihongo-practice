@@ -135,51 +135,27 @@ test.describe("deterministic scroll reset", () => {
   });
 });
 
-test.describe("guided Lab round-trip", () => {
-  test("lesson explore opens a preset Lab and returns to the exact #explore anchor", async ({ page }) => {
-    await setupPageObservers(page);
+test.describe("guided board Lab reachability", () => {
+  // The complete A0→A1 curriculum's guided boards are fully authored from
+  // curriculum examples (assembleCourse.ts's chooseExplorationEndpoints),
+  // never backed by a live Lab selection — GuidedTransformation's `labLink`
+  // requires an actual `LabSelection` (see its `isLabSelection` guard),
+  // which this course never constructs, so no lesson offers an "open in the
+  // guided Lab" deep-link. This replaces the old v2.1 round-trip test (which
+  // exercised that now-removed deep-link) with a check that the board still
+  // renders honest before/after content and that this omission is
+  // deliberate, not a broken/dead link.
+  test("the guided board renders authored content with no Lab deep-link", async ({ page }) => {
+    const observers = await setupPageObservers(page);
     await gotoReady(page, LESSON_URL);
 
-    const labLink = page.locator(".guided-board a.action--secondary");
-    await expect(labLink).toBeVisible();
-    const labHref = await labLink.getAttribute("href");
-    expect(labHref, "guided Lab link carries a scenario preset and encoded return").toMatch(
-      /laboratorio\?[^"]*scenario=/,
-    );
-    expect(labHref).toMatch(/from=/);
+    const board = page.locator(".guided-board");
+    await expect(board).toBeVisible();
+    await expect(board.locator(".guided-board__states")).toBeVisible();
+    await expect(board.locator(".guided-board__gears")).toBeVisible();
+    await expect(board.locator("a.action--secondary")).toHaveCount(0);
 
-    await labLink.click();
-    await page.locator(".lab-page").waitFor({ state: "visible" });
-    expect(page.url()).toContain("/pratica/laboratorio");
-
-    // A styled return control is present (not a naked anchor) and no invalid notice.
-    const ret = page.locator(".guided-return");
-    await expect(ret).toBeVisible();
-    await expect(ret).toHaveClass(/action/);
-    await expect(page.locator(".notice--warning")).toHaveCount(0);
-
-    // Center the return in the viewport before clicking: Playwright's default
-    // auto-scroll can leave it flush under the sticky header, which would
-    // intercept the click. This does not relax any assertion.
-    await ret.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "auto" }));
-    await ret.click();
-    await page.locator(".lesson-layout").waitFor({ state: "visible" });
-    expect(page.url()).toContain(
-      `/percorso/${REPRESENTATIVE_LESSON.moduleId}/${REPRESENTATIVE_LESSON.lessonId}#explore`,
-    );
-
-    // The explore section is scrolled into view *below* the sticky header.
-    const hb = await headerBottom(page);
-    await expect
-      .poll(async () => {
-        const rect = await rectOf(page, "#lesson-section-explore");
-        return rect ? Math.round(rect.top) : null;
-      }, { timeout: 2000 })
-      .not.toBeNull();
-    const target = await rectOf(page, "#lesson-section-explore");
-    const viewportH = page.viewportSize()!.height;
-    expect(target!.top, "explore target not hidden under the sticky header").toBeGreaterThanOrEqual(hb - 2);
-    expect(target!.top, "explore target within the viewport").toBeLessThan(viewportH);
+    await assertNoRuntimeErrors(page, observers);
   });
 
   test("an invalid Lab preset and an invalid return are both visibly noticed", async ({ page }) => {
@@ -193,93 +169,6 @@ test.describe("guided Lab round-trip", () => {
     expect(await notices.count()).toBeGreaterThanOrEqual(1);
     // No valid styled return control should appear for an invalid return.
     await expect(page.locator(".guided-return")).toHaveCount(0);
-  });
-});
-
-const PLACES_LESSON = { moduleId: "places", lessonId: "places-action" } as const;
-const PLACES_LESSON_URL = routeUrls.lesson(
-  PLACES_LESSON.moduleId,
-  PLACES_LESSON.lessonId,
-);
-
-test.describe("Lab preset reactivity while mounted", () => {
-  test("changing the hash to a different guided Lab deep link updates the board and return link without reload", async ({
-    page,
-  }) => {
-    const observers = await setupPageObservers(page);
-
-    // Open the first guided Lab deep link (time-past: past tense, no place).
-    await gotoReady(page, LESSON_URL);
-    const firstLink = page.locator(".guided-board a.action--secondary");
-    await expect(firstLink).toBeVisible();
-    const firstHref = await firstLink.getAttribute("href");
-    expect(firstHref, "first guided Lab link carries a preset").toMatch(
-      /laboratorio\?[^"]*scenario=/,
-    );
-
-    await firstLink.click();
-    await page.locator(".lab-page").waitFor({ state: "visible" });
-    expect(page.url()).toContain("/pratica/laboratorio");
-    await expect(page.locator(".notice--warning")).toHaveCount(0);
-
-    // Confirm the first preset's board state: past-tense "eat", no place chip.
-    await expect(page.locator(".sentence__main")).toContainText("ました");
-    await expect(page.locator(".sentence__main")).not.toContainText("れすとらん");
-    const firstReturn = page.locator(".guided-return");
-    await expect(firstReturn).toBeVisible();
-    await expect(firstReturn).toHaveAttribute(
-      "href",
-      new RegExp(
-        `/percorso/${REPRESENTATIVE_LESSON.moduleId}/${REPRESENTATIVE_LESSON.lessonId}`,
-      ),
-    );
-
-    // Fetch the second guided Lab deep link (places-action: present tense +
-    // restaurant) from a separate page in the same context, so the mounted
-    // Lab page under test is never navigated/reloaded to get it.
-    const scratch = await page.context().newPage();
-    await gotoReady(scratch, PLACES_LESSON_URL);
-    const secondLink = scratch.locator(".guided-board a.action--secondary");
-    await expect(secondLink).toBeVisible();
-    const secondHref = await secondLink.getAttribute("href");
-    expect(secondHref, "second guided Lab link carries a preset").toMatch(
-      /laboratorio\?[^"]*scenario=/,
-    );
-    expect(secondHref, "the two deep links are different presets").not.toBe(
-      firstHref,
-    );
-    await scratch.close();
-
-    // Change window.location.hash in the SAME document to the second deep
-    // link — no page.goto/reload — exactly the case where Lab stayed mounted.
-    await page.evaluate((hash: string) => {
-      window.location.hash = hash.startsWith("#") ? hash.slice(1) : hash;
-    }, secondHref!);
-
-    // Wait for the app's route update to actually re-render the board.
-    await expect
-      .poll(() => page.locator(".sentence__main").textContent(), {
-        timeout: 2000,
-      })
-      .toContain("れすとらん");
-
-    // The old preset's state must be gone, the new preset's state present.
-    await expect(page.locator(".sentence__main")).not.toContainText("ました");
-    await expect(page.locator(".sentence__main")).toContainText("れすとらん");
-    await expect(page.locator(".notice--warning")).toHaveCount(0);
-
-    // The guided-return control must now point at the second deep link's
-    // originating lesson/section, not the stale first one.
-    const secondReturn = page.locator(".guided-return");
-    await expect(secondReturn).toBeVisible();
-    await expect(secondReturn).toHaveAttribute(
-      "href",
-      new RegExp(
-        `/percorso/${PLACES_LESSON.moduleId}/${PLACES_LESSON.lessonId}`,
-      ),
-    );
-
-    await assertNoRuntimeErrors(page, observers);
   });
 });
 
@@ -442,6 +331,13 @@ test.describe("unknown route", () => {
 });
 
 test.describe("route-scroll missing anchor", () => {
+  // Uses a direct canonical lesson id (not the shared REPRESENTATIVE_LESSON
+  // fixture, which is a retired v2.1 alias — see helpers.ts): a legacy-id
+  // redirect does not carry the request's `#explore` fragment, which would
+  // make this test exercise the unrelated redirect path instead of the
+  // missing-anchor behavior it actually targets.
+  const ANCHOR_TEST_LESSON_URL = routeUrls.lesson("past-negative", "past-negative-1");
+
   test("a valid lesson deep link whose section anchor vanishes shows a dismissible, non-overlapping warning", async ({
     page,
   }) => {
@@ -468,7 +364,7 @@ test.describe("route-scroll missing anchor", () => {
       };
     });
 
-    await gotoReady(page, `${LESSON_URL}#explore`);
+    await gotoReady(page, `${ANCHOR_TEST_LESSON_URL}#explore`);
 
     const notice = page.locator(".notice--warning").first();
     await expect(notice, "missing-anchor warning notice is visible").toBeVisible();
@@ -495,6 +391,154 @@ test.describe("route-scroll missing anchor", () => {
     await expect(dismiss).toBeVisible();
     await dismiss.click();
     await expect(page.locator(".notice--warning")).toHaveCount(0);
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+});
+
+test.describe("complete A0→A1 course routes (Slice B Task 5)", () => {
+  const REPRESENTATIVE_NEW_MODULE_ROUTES = [
+    { moduleId: "shopping", lessonId: "shopping-1", expectedHeading: "Quanti" },
+    { moduleId: "descriptions", lessonId: "descriptions-1", expectedHeading: "Grande e piccolo" },
+    { moduleId: "existence-needs", lessonId: "existence-needs-1", expectedHeading: "Cosa c'è e dove" },
+  ] as const;
+
+  const CAPSTONE_ROUTES = [
+    { lessonId: "capstones-orientation", expectedHeading: "Prima delle prove finali" },
+    { lessonId: "capstones-self-introduction", expectedHeading: "Prova finale: presentazione" },
+    { lessonId: "capstones-everyday-outing", expectedHeading: "Prova finale: un'uscita quotidiana" },
+    { lessonId: "capstones-travel-day", expectedHeading: "Prova finale: una giornata di viaggio" },
+  ] as const;
+
+  for (const route of REPRESENTATIVE_NEW_MODULE_ROUTES) {
+    test(`the "${route.moduleId}" module's first lesson is directly reachable`, async ({ page }) => {
+      const observers = await setupPageObservers(page);
+      await gotoReady(page, routeUrls.lesson(route.moduleId, route.lessonId));
+      await expect(page.locator(".lesson-layout")).toBeVisible();
+      await expect(page.locator("h1")).toHaveText(route.expectedHeading);
+      expect(page.url()).toContain(`/percorso/${route.moduleId}/${route.lessonId}`);
+      await assertNoRuntimeErrors(page, observers);
+    });
+  }
+
+  for (const capstone of CAPSTONE_ROUTES) {
+    test(`the capstones module's "${capstone.lessonId}" is directly reachable`, async ({ page }) => {
+      const observers = await setupPageObservers(page);
+      await gotoReady(page, routeUrls.lesson("capstones", capstone.lessonId));
+      await expect(page.locator(".lesson-layout")).toBeVisible();
+      await expect(page.locator("h1")).toHaveText(capstone.expectedHeading);
+      expect(page.url()).toContain(`/percorso/capstones/${capstone.lessonId}`);
+      await assertNoRuntimeErrors(page, observers);
+    });
+  }
+});
+
+test.describe("legacy v2.1 lesson id redirects (Slice B Task 5)", () => {
+  test("a same-module legacy lesson id redirects to its current lesson without a cross-module notice, landing at the top", async ({ page }) => {
+    const observers = await setupPageObservers(page);
+    // "sounds-core" was the published v2.1 id for the sounds module's first
+    // lesson; it is retired in favor of "sounds-1" but the module is
+    // unchanged (design spec §9.2/lessonRouteResolution.ts).
+    await gotoReady(page, routeUrls.lesson("sounds", "sounds-core"));
+
+    await expect(page.locator(".lesson-layout")).toBeVisible();
+    expect(page.url()).toBe(routeUrls.lesson("sounds", "sounds-1"));
+    await expect(page.locator(".notice--info")).toHaveCount(0);
+
+    // Deterministic scroll: a redirected legacy route is an ordinary route
+    // entry (no section anchor), so it lands at the very top every time.
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    await assertNoRuntimeErrors(page, observers);
+  });
+
+  test("a cross-module legacy lesson id redirects to its new module with a dismissible, visible notice, landing at the top", async ({ page }) => {
+    const observers = await setupPageObservers(page);
+    // "sentence-map/sentence-order" was retired and moved into the
+    // "introductions" module by the complete rebuild.
+    await gotoReady(page, routeUrls.lesson("sentence-map", "sentence-order"));
+
+    await expect(page.locator(".lesson-layout")).toBeVisible();
+    expect(page.url()).toBe(routeUrls.lesson("introductions", "introductions-1"));
+
+    const notice = page.locator(".notice--info");
+    await expect(notice).toBeVisible();
+    expect(await notice.count()).toBeGreaterThanOrEqual(1);
+
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+    const dismiss = notice.locator(".notice__dismiss");
+    await expect(dismiss).toBeVisible();
+    await dismiss.click();
+    await expect(page.locator(".notice--info")).toHaveCount(0);
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+});
+
+test.describe("locale and script settings on the complete course (Slice B Task 5)", () => {
+  // On mobile the settings controls exist twice — once inertly inside the
+  // CSS-hidden `.header__settings--desktop` row and once inside the drawer
+  // overlay once opened — so a bare `.localetoggle`/`.scripttoggle` locator
+  // is ambiguous there. This resolves the one *visible* settings container
+  // for the current viewport, opening the mobile drawer first when needed.
+  async function settingsContainer(
+    page: import("@playwright/test").Page,
+    viewport: { width: number; height: number } | null,
+  ) {
+    if (viewport && isMobile(viewport.width)) {
+      await page.locator(".header__settings-trigger").click();
+      const panel = page.locator(".settings-drawer__panel");
+      await expect(panel).toBeVisible();
+      return panel;
+    }
+    return page.locator(".header__settings--desktop");
+  }
+
+  test("IT/EN locale switching updates a representative new module's title on the live course map without breaking navigation", async ({ page, viewport }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, routeUrls.home);
+    const settings = await settingsContainer(page, viewport ?? null);
+
+    const shoppingHeading = page
+      .locator(".module-card__title")
+      .filter({ hasText: /Acquisti|Shopping/ });
+    await expect(shoppingHeading).toHaveText("Acquisti, quantità e richieste");
+
+    const lessonLinksBefore = await page.locator(".module-card__lesson-link").count();
+
+    await settings.locator(".localetoggle button", { hasText: "EN" }).click();
+    await expect(shoppingHeading).toHaveText("Shopping, quantities, and requests");
+    // Switching locale never drops/adds routes: the structure stays identical.
+    expect(await page.locator(".module-card__lesson-link").count()).toBe(lessonLinksBefore);
+
+    await settings.locator(".localetoggle button", { hasText: "IT" }).click();
+    await expect(shoppingHeading).toHaveText("Acquisti, quantità e richieste");
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+
+  test("hiragana/romaji script settings continue to work on Module 1's katakana bridge lesson", async ({ page, viewport }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, routeUrls.lesson("sounds", "sounds-4"));
+    const settings = await settingsContainer(page, viewport ?? null);
+
+    const mainLine = page.locator(".lesson-comparison__jp").first();
+    await expect(mainLine).toBeVisible();
+
+    // Default script is hiragana-primary: the main line shows the authentic
+    // Japanese (with its assisted-katakana ruby), not romaji.
+    await expect(page.locator(".lesson-comparison__jp.is-romaji")).toHaveCount(0);
+    await expect(page.locator("ruby.katakana-assist").first()).toBeVisible();
+
+    await settings.locator(".scripttoggle button", { hasText: "Rōmaji" }).click();
+    await expect(mainLine).toHaveClass(/is-romaji/);
+    await expect(mainLine).toContainText("koohii");
+    // Romaji is plain text: no ruby annotation while it is the main script.
+    await expect(page.locator(".lesson-comparison__jp ruby")).toHaveCount(0);
+
+    await settings.locator(".scripttoggle button", { hasText: "Hiragana" }).click();
+    await expect(page.locator(".lesson-comparison__jp.is-romaji")).toHaveCount(0);
+    await expect(mainLine.locator("ruby.katakana-assist")).toBeVisible();
 
     await assertNoRuntimeErrors(page, observers);
   });
