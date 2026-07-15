@@ -9,7 +9,11 @@ import { lessonPath, routePaths } from "../../routing/routes";
 import { courseModules } from "../data/course";
 import { en as enCopy } from "../i18n/en";
 import { it as itCopy } from "../i18n/it";
-import { emptyProgress } from "../progress/progress";
+import {
+  emptyProgress,
+  markLessonVisited,
+  type CourseProgressV3,
+} from "../progress/progress";
 import {
   ProgressContext,
   type ProgressContextValue,
@@ -35,6 +39,10 @@ function makeProgressValue(
     reset: () => {},
     ...overrides,
   };
+}
+
+function progressWithVisited(lessonIds: string[]): CourseProgressV3 {
+  return lessonIds.reduce(markLessonVisited, emptyProgress());
 }
 
 function renderHome(
@@ -111,11 +119,7 @@ describe("CourseHome hero: editoriale mnemonico", () => {
     const visited = [firstLesson.id, allLessons[1].id];
     const html = renderHome(
       makeProgressValue({
-        progress: {
-          ...emptyProgress(),
-          visitedLessonIds: visited,
-          lastVisitedLessonId: allLessons[1].id,
-        },
+        progress: progressWithVisited(visited),
       }),
     );
     expect(html).toContain(itCopy.home.lessonsProgress(visited.length, totalLessons));
@@ -132,11 +136,7 @@ describe("CourseHome hero: primary and secondary actions (Task 1 Action primitiv
   it("labels the primary action continue and resumes the recognized last-visited lesson (even past skipped lessons)", () => {
     const html = renderHome(
       makeProgressValue({
-        progress: {
-          ...emptyProgress(),
-          visitedLessonIds: [allLessons[0].id, allLessons[1].id],
-          lastVisitedLessonId: allLessons[1].id,
-        },
+        progress: progressWithVisited([allLessons[0].id, allLessons[1].id]),
       }),
     );
     // §7.3 rule 1: resume the valid last-visited lesson, not the next gap.
@@ -149,11 +149,7 @@ describe("CourseHome hero: primary and secondary actions (Task 1 Action primitiv
     const allIds = allLessons.map((lesson) => lesson.id);
     const html = renderHome(
       makeProgressValue({
-        progress: {
-          ...emptyProgress(),
-          visitedLessonIds: allIds,
-          lastVisitedLessonId: lastLesson.id,
-        },
+        progress: progressWithVisited(allIds),
       }),
     );
     expect(primaryActionHref(html)).toBe(lessonPath(lastLesson.moduleId, lastLesson.id));
@@ -166,11 +162,7 @@ describe("CourseHome hero: primary and secondary actions (Task 1 Action primitiv
     const resumeLesson = allLessons[3];
     const html = renderHome(
       makeProgressValue({
-        progress: {
-          ...emptyProgress(),
-          visitedLessonIds: [allLessons[0].id, resumeLesson.id],
-          lastVisitedLessonId: resumeLesson.id,
-        },
+        progress: progressWithVisited([allLessons[0].id, resumeLesson.id]),
       }),
     );
     // Must resume the later last-visited lesson, not the earliest gap (allLessons[1]).
@@ -257,11 +249,7 @@ describe("CourseHome: destructive, confirmed, localized reset", () => {
   it("enables reset once there is visited or last-visited progress", () => {
     const html = renderHome(
       makeProgressValue({
-        progress: {
-          ...emptyProgress(),
-          visitedLessonIds: [firstLesson.id],
-          lastVisitedLessonId: firstLesson.id,
-        },
+        progress: progressWithVisited([firstLesson.id]),
       }),
     );
     expect(html).toMatch(/class="action action--destructive[^"]*">Azzera i progressi</);

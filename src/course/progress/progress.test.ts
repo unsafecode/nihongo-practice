@@ -6,6 +6,7 @@ import {
   migrateV1ToV2,
   parseProgress,
   recommendContinuationLessonId,
+  visitedLessonIds,
   visitedPercent,
   type CourseProgressV1,
   type ModuleOutline,
@@ -55,11 +56,15 @@ function v1Fixture(overrides: Partial<CourseProgressV1> = {}): CourseProgressV1 
 }
 
 describe("emptyProgress", () => {
-  it("starts with the v2 visited schema and no visited lessons", () => {
+  it("starts with the v3 evidence schema and no lesson or review state", () => {
     expect(emptyProgress()).toEqual({
-      schemaVersion: 2,
-      visitedLessonIds: [],
+      schemaVersion: 3,
+      catalogVersion: "a0-a1-v1",
+      lessons: {},
       lastVisitedLessonId: null,
+      reviewQueue: [],
+      orphanedLessonIds: [],
+      orphanedReviewKeys: [],
       updatedAt: new Date(0).toISOString(),
     });
   });
@@ -109,39 +114,36 @@ describe("migrateV1ToV2", () => {
 });
 
 describe("parseProgress", () => {
-  it("accepts valid v2 progress directly without migrating", () => {
+  it("migrates valid v2 progress into v3", () => {
     const parsed = parseProgress(JSON.stringify({
       schemaVersion: 2,
       visitedLessonIds: ["sounds-core"],
       lastVisitedLessonId: "sounds-core",
       updatedAt: "2026-07-13T10:00:00.000Z",
     }));
-    expect(parsed).toEqual({
-      progress: {
-        schemaVersion: 2,
-        visitedLessonIds: ["sounds-core"],
-        lastVisitedLessonId: "sounds-core",
-        updatedAt: "2026-07-13T10:00:00.000Z",
-      },
-      corrupted: false,
-    });
+    expect(parsed.corrupted).toBe(false);
+    expect(parsed.migrated).toBe(true);
+    expect(parsed.progress.schemaVersion).toBe(3);
+    expect(visitedLessonIds(parsed.progress)).toEqual(["sounds-core"]);
+    expect(parsed.progress.lastVisitedLessonId).toBe("sounds-core");
   });
 
-  it("migrates a valid v1 payload into v2 on read", () => {
+  it("migrates a valid v1 payload into v3 on read", () => {
     const parsed = parseProgress(JSON.stringify(v1Fixture({
       completedLessonIds: ["sounds-core"],
       lastVisitedLessonId: "sounds-special",
     })));
     expect(parsed.corrupted).toBe(false);
-    expect(parsed.progress.schemaVersion).toBe(2);
-    expect(parsed.progress.visitedLessonIds).toEqual(["sounds-core"]);
+    expect(parsed.migrated).toBe(true);
+    expect(parsed.progress.schemaVersion).toBe(3);
+    expect(visitedLessonIds(parsed.progress)).toEqual(["sounds-core"]);
     expect(parsed.progress.lastVisitedLessonId).toBe("sounds-special");
   });
 
   it("normalizes a real v1 payload that omits lastVisitedLessonId to null without losing visited data", () => {
     // A genuine on-disk v1 snapshot from before lastVisitedLessonId existed:
     // the field is absent entirely (not null). Parsed through the real
-    // migration path (no casts), it must yield a well-formed v2 object with an
+    // migration path (no casts), it must yield a well-formed v3 object with an
     // explicit null last-visited, preserving every visited id and the stamp.
     const parsed = parseProgress(
       JSON.stringify({
@@ -151,8 +153,8 @@ describe("parseProgress", () => {
       }),
     );
     expect(parsed.corrupted).toBe(false);
-    expect(parsed.progress.schemaVersion).toBe(2);
-    expect(parsed.progress.visitedLessonIds).toEqual([
+    expect(parsed.progress.schemaVersion).toBe(3);
+    expect(visitedLessonIds(parsed.progress)).toEqual([
       "sounds-core",
       "sounds-special",
     ]);
@@ -164,10 +166,11 @@ describe("parseProgress", () => {
     ).toBe(true);
   });
 
-  it("treats null storage content as an empty v2 progress", () => {
+  it("treats null storage content as empty v3 progress", () => {
     expect(parseProgress(null)).toEqual({
       progress: emptyProgress(),
       corrupted: false,
+      migrated: false,
     });
   });
 
@@ -175,6 +178,7 @@ describe("parseProgress", () => {
     expect(parseProgress("{bad")).toEqual({
       progress: emptyProgress(),
       corrupted: true,
+      migrated: false,
     });
   });
 
@@ -185,7 +189,11 @@ describe("parseProgress", () => {
       lastVisitedLessonId: null,
       updatedAt: "2026-07-13T10:00:00.000Z",
     }));
-    expect(parsed).toEqual({ progress: emptyProgress(), corrupted: true });
+    expect(parsed).toEqual({
+      progress: emptyProgress(),
+      corrupted: true,
+      migrated: false,
+    });
   });
 
   it("treats a malformed v2 shape as corrupted", () => {
@@ -195,45 +203,57 @@ describe("parseProgress", () => {
       lastVisitedLessonId: null,
       updatedAt: "2026-07-13T10:00:00.000Z",
     }));
-    expect(parsed).toEqual({ progress: emptyProgress(), corrupted: true });
+    expect(parsed).toEqual({
+      progress: emptyProgress(),
+      corrupted: true,
+      migrated: false,
+    });
   });
 
   it("rejects a future/unknown schema version without throwing", () => {
     const parsed = parseProgress(JSON.stringify({
-      schemaVersion: 3,
+      schemaVersion: 4,
       visitedLessonIds: [],
       lastVisitedLessonId: null,
       updatedAt: "2026-07-13T10:00:00.000Z",
     }));
-    expect(parsed).toEqual({ progress: emptyProgress(), corrupted: true });
+    expect(parsed).toEqual({
+      progress: emptyProgress(),
+      corrupted: true,
+      migrated: false,
+    });
   });
 
   it("treats a payload with no schemaVersion field as corrupted", () => {
     const parsed = parseProgress(JSON.stringify({
       completedLessonIds: ["sounds-core"],
     }));
-    expect(parsed).toEqual({ progress: emptyProgress(), corrupted: true });
+    expect(parsed).toEqual({
+      progress: emptyProgress(),
+      corrupted: true,
+      migrated: false,
+    });
   });
 });
 
 describe("markLessonVisited", () => {
-  it("adds the lesson to visitedLessonIds and records it as last visited", () => {
+  it("adds lesson evidence and records it as last visited", () => {
     const next = markLessonVisited(emptyProgress(), "sounds-core");
-    expect(next.visitedLessonIds).toEqual(["sounds-core"]);
+    expect(visitedLessonIds(next)).toEqual(["sounds-core"]);
     expect(next.lastVisitedLessonId).toBe("sounds-core");
   });
 
   it("accumulates multiple visited lessons across calls", () => {
     const afterFirst = markLessonVisited(emptyProgress(), "sounds-core");
     const afterSecond = markLessonVisited(afterFirst, "sounds-special");
-    expect(afterSecond.visitedLessonIds).toEqual(["sounds-core", "sounds-special"]);
+    expect(visitedLessonIds(afterSecond)).toEqual(["sounds-core", "sounds-special"]);
     expect(afterSecond.lastVisitedLessonId).toBe("sounds-special");
   });
 
   it("does not duplicate a lesson visited more than once", () => {
     const afterFirst = markLessonVisited(emptyProgress(), "sounds-core");
     const afterAgain = markLessonVisited(afterFirst, "sounds-core");
-    expect(afterAgain.visitedLessonIds).toEqual(["sounds-core"]);
+    expect(visitedLessonIds(afterAgain)).toEqual(["sounds-core"]);
     expect(afterAgain.lastVisitedLessonId).toBe("sounds-core");
   });
 
@@ -263,7 +283,7 @@ describe("markLessonVisited", () => {
     const afterReturn = markLessonVisited(afterSecond, "sounds-core");
     expect(afterReturn).not.toBe(afterSecond);
     expect(afterReturn.lastVisitedLessonId).toBe("sounds-core");
-    expect(afterReturn.visitedLessonIds).toEqual(["sounds-core", "sounds-special"]);
+    expect(visitedLessonIds(afterReturn)).toEqual(["sounds-core", "sounds-special"]);
   });
 });
 
@@ -392,7 +412,7 @@ describe("progress storage lifecycle", () => {
     storage.setItem(STORAGE_KEY, JSON.stringify({ visitedLessonIds: ["sounds-core"] }));
     storage.setItem("nihongo.script", "hiragana");
 
-    expect(resetStoredProgress(storage)).toBe(true);
+    expect(resetStoredProgress(storage)).toEqual({ status: "removed" });
     expect(storage.getItem(STORAGE_KEY)).toBeNull();
     expect(storage.getItem("nihongo.script")).toBe("hiragana");
   });
@@ -405,11 +425,13 @@ describe("progress storage lifecycle", () => {
     const storage = memoryStorage();
     const progress = markLessonVisited(emptyProgress(), "sounds-core");
 
-    expect(persistProgress(storage, progress)).toBe(true);
+    expect(persistProgress(storage, progress)).toEqual({ status: "saved" });
     expect(loadProgress(storage)).toEqual({
       progress,
       corrupted: false,
       persistenceAvailable: true,
+      migrated: false,
+      loadStatus: "current",
     });
   });
 
@@ -417,7 +439,7 @@ describe("progress storage lifecycle", () => {
     const storage = blockedStorage();
     const progress = markLessonVisited(emptyProgress(), "sounds-core");
 
-    expect(persistProgress(storage, progress)).toBe(false);
+    expect(persistProgress(storage, progress)).toEqual({ status: "unavailable" });
   });
 
   it("reports read failure explicitly without throwing when storage is blocked", () => {
