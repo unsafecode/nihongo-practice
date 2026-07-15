@@ -179,7 +179,7 @@ function lesson(spec: LessonSpec): Lesson {
 }
 
 function courseModule(
-  base: Omit<CourseModule, "estimatedMinutes" | "outcomeCopyIds"> & {
+  base: Omit<CourseModule, "estimatedMinutes" | "outcomeCopyIds" | "coverage"> & {
     lessons: Lesson[];
   },
 ): CourseModule {
@@ -190,6 +190,10 @@ function courseModule(
       (sum, item) => sum + item.estimatedMinutes,
       0,
     ),
+    coverage: {
+      verbCount: 0,
+      vocabularyCount: 0,
+    },
   };
 }
 

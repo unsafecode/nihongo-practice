@@ -114,6 +114,8 @@ const enCourseMap: CourseCopy["courseMap"] = {
       ? "None — start here."
       : `Ideally after: ${moduleNames.join(", ")}.`,
   estimatedMinutes: (minutes: number) => `About ${minutes} min`,
+  coverageMetadata: (lessons, verbs, vocabularyItems) =>
+    `${lessons} lessons · ${verbs} verbs · ${vocabularyItems} words`,
   stateCurrent: "You are here",
   stateRecommended: "Recommended",
   stateVisited: "Visited",

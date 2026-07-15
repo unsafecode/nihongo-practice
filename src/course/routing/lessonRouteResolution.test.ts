@@ -63,6 +63,7 @@ function makeModule(id: string, lessons: Lesson[]): CourseModule {
     prerequisiteIds: [],
     outcomeCopyIds: [],
     estimatedMinutes: 1,
+    coverage: { verbCount: 0, vocabularyCount: 0 },
     iconId: "sounds",
     lessons,
   };

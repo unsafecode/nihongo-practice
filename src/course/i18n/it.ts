@@ -114,6 +114,8 @@ const itCourseMap: CourseCopy["courseMap"] = {
       ? "Nessuno: puoi iniziare da qui."
       : `Idealmente dopo: ${moduleNames.join(", ")}.`,
   estimatedMinutes: (minutes: number) => `Circa ${minutes} min`,
+  coverageMetadata: (lessons, verbs, vocabularyItems) =>
+    `${lessons} lezioni · ${verbs} verbi · ${vocabularyItems} parole`,
   stateCurrent: "Sei qui",
   stateRecommended: "Consigliato",
   stateVisited: "Visitato",

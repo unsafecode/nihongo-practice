@@ -111,6 +111,7 @@ function makeModule(overrides: Partial<CourseModule> = {}): CourseModule {
     prerequisiteIds: [],
     outcomeCopyIds: ["module-a"],
     estimatedMinutes: lessons.reduce((sum, l) => sum + l.estimatedMinutes, 0),
+    coverage: { verbCount: 0, vocabularyCount: 0 },
     iconId: semanticIconIds[0],
     lessons,
     ...overrides,

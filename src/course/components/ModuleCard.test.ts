@@ -74,6 +74,18 @@ describe("ModuleCard: core content", () => {
     const html = renderCard(entryFor("actions"), { initiallyExpanded: false });
     expect(html).toContain(itCopy.home.lessonsProgress(1, 2));
   });
+
+  it("renders truthful lesson, verb, and word coverage metadata", () => {
+    const module = entryFor("sounds").module;
+    const html = renderCard(entryFor("sounds"), { initiallyExpanded: false });
+    expect(html).toContain(
+      itCopy.courseMap.coverageMetadata(
+        module.lessons.length,
+        module.coverage.verbCount,
+        module.coverage.vocabularyCount,
+      ),
+    );
+  });
 });
 
 describe("ModuleCard: advisory prerequisites", () => {

@@ -127,6 +127,11 @@ export interface CourseCopy {
     prerequisites: (moduleNames: string[]) => string;
     /** Shared wording for a module's total or a lesson's own estimate. */
     estimatedMinutes: (minutes: number) => string;
+    coverageMetadata: (
+      lessons: number,
+      verbs: number,
+      vocabularyItems: number,
+    ) => string;
     stateCurrent: string;
     stateRecommended: string;
     stateVisited: string;
