@@ -17,6 +17,7 @@ const RELEASE_MAX_LESSONS = 42;
 const RELEASE_MIN_VOCABULARY = 250;
 const RELEASE_MAX_VOCABULARY = 300;
 const RELEASE_MIN_VERBS = 40;
+const RELEASE_MIN_REUSED_VERBS = 35;
 const GENUINE_REUSE_MODULES = 3;
 const GENUINE_REUSE_LATER_MODULES = 2;
 const GENUINE_REUSE_EXAMPLES = 4;
@@ -67,8 +68,11 @@ function duplicateIds(
 }
 
 function sameIds(left: readonly string[], right: readonly string[]): boolean {
+  const leftSet = new Set(left);
+  const rightSet = new Set(right);
   return (
-    left.length === right.length && left.every((id, index) => id === right[index])
+    leftSet.size === rightSet.size &&
+    [...leftSet].every((id) => rightSet.has(id))
   );
 }
 
@@ -322,7 +326,6 @@ function computeCoverage(
   lessons: readonly CurriculumLessonEntry[],
 ): {
   readonly coverage: ComputedCoverage;
-  readonly verbModules: Readonly<Record<LexemeId, readonly string[]>>;
 } {
   const lexemeCategories = new Map(
     input.lexemes.map((lexeme) => [lexeme.id, lexeme.category]),
@@ -435,7 +438,6 @@ function computeCoverage(
       laterReuseModules,
       authoredExampleCounts,
     },
-    verbModules,
   };
 }
 
@@ -531,37 +533,37 @@ function addOrderAndScriptErrors(
         });
       }
     }
+  }
 
-    for (const exercise of input.exercises) {
-      for (const [lessonIndex, lesson] of lessons.entries()) {
-        if (!lesson.exampleIds.includes(exercise.targetExampleId)) continue;
-        const availableConcepts = new Set(
-          lessons
-            .slice(0, lessonIndex + 1)
-            .flatMap((candidate) => candidate.introducedConceptIds),
-        );
-        const availableLexemes = new Set(
-          lessons
-            .slice(0, lessonIndex + 1)
-            .flatMap((candidate) => candidate.introducedLexemeIds),
-        );
-        for (const id of exercise.assessedConceptIds) {
-          if (!availableConcepts.has(id)) {
-            errors.push({
-              code: "assessment-before-introduction",
-              id,
-              lessonId: lesson.id,
-            });
-          }
+  for (const exercise of input.exercises) {
+    for (const [lessonIndex, lesson] of lessons.entries()) {
+      if (!lesson.exampleIds.includes(exercise.targetExampleId)) continue;
+      const availableConcepts = new Set(
+        lessons
+          .slice(0, lessonIndex + 1)
+          .flatMap((candidate) => candidate.introducedConceptIds),
+      );
+      const availableLexemes = new Set(
+        lessons
+          .slice(0, lessonIndex + 1)
+          .flatMap((candidate) => candidate.introducedLexemeIds),
+      );
+      for (const id of exercise.assessedConceptIds) {
+        if (!availableConcepts.has(id)) {
+          errors.push({
+            code: "assessment-before-introduction",
+            id,
+            lessonId: lesson.id,
+          });
         }
-        for (const id of exercise.assessedLexemeIds) {
-          if (!availableLexemes.has(id)) {
-            errors.push({
-              code: "assessment-before-introduction",
-              id,
-              lessonId: lesson.id,
-            });
-          }
+      }
+      for (const id of exercise.assessedLexemeIds) {
+        if (!availableLexemes.has(id)) {
+          errors.push({
+            code: "assessment-before-introduction",
+            id,
+            lessonId: lesson.id,
+          });
         }
       }
     }
@@ -571,7 +573,6 @@ function addOrderAndScriptErrors(
 function addCoverageErrors(
   input: AssembledCurriculumCatalogs,
   coverage: ComputedCoverage,
-  verbModules: Readonly<Record<LexemeId, readonly string[]>>,
   errors: CurriculumValidationError[],
   enforceReleaseTargets: boolean,
 ): void {
@@ -603,18 +604,14 @@ function addCoverageErrors(
     }
   }
 
-  for (const verbId of coverage.introducedVerbIds) {
-    if (!coverage.reusedVerbIds.includes(verbId)) {
-      errors.push({
-        code: "insufficient-verb-reuse",
-        id: verbId,
-        actual: `${verbModules[verbId]?.length ?? 0} modules`,
-        expected: `${GENUINE_REUSE_MODULES} modules and ${GENUINE_REUSE_EXAMPLES} examples`,
-      });
-    }
-  }
-
   if (!enforceReleaseTargets) return;
+  if (coverage.reusedVerbIds.length < RELEASE_MIN_REUSED_VERBS) {
+    errors.push({
+      code: "insufficient-verb-reuse",
+      actual: coverage.reusedVerbIds.length,
+      expected: RELEASE_MIN_REUSED_VERBS,
+    });
+  }
   const lessonCount = input.lessons.length;
   if (lessonCount < RELEASE_MIN_LESSONS || lessonCount > RELEASE_MAX_LESSONS) {
     errors.push({
@@ -679,11 +676,10 @@ export function validateCurriculum(
   validateLocaleKeys(input, errors);
   addOrderAndScriptErrors(input, lessons, errors);
 
-  const { coverage, verbModules } = computeCoverage(input, modules, lessons);
+  const { coverage } = computeCoverage(input, modules, lessons);
   addCoverageErrors(
     input,
     coverage,
-    verbModules,
     errors,
     options.enforceReleaseTargets ?? true,
   );

@@ -80,6 +80,85 @@ const input = (
 
 const localValidation = { enforceReleaseTargets: false };
 
+const aggregateReuseCatalog = (
+  genuinelyReusedVerbCount: number,
+): AssembledCurriculumCatalogs => {
+  const verbIds = Array.from({ length: 42 }, (_, index) => `verb-${index + 1}`);
+  const modules = [1, 2, 3].map((order) => ({
+    id: `module-${order}`,
+    phase: "orient" as const,
+    order,
+    prerequisiteIds: [],
+    coverage: {
+      moduleId: `module-${order}`,
+      lessonIds: [`lesson-${order}`],
+      introducedConceptIds: [],
+      introducedLexemeIds: order === 1 ? verbIds : [],
+      introducedVerbIds: order === 1 ? verbIds : [],
+      practicedVerbIds: order === 1 ? [] : verbIds,
+      assessedConceptIds: [],
+      assessedLexemeIds: [],
+      firstKatakanaExposureIds: [],
+    },
+  }));
+  const examples = verbIds.flatMap((verbId) =>
+    [1, 2, 3, 4].map((exampleNumber) => ({
+      id: `example-${verbId}-${exampleNumber}`,
+      lexemeIds: [verbId],
+      conceptIds: [],
+    })),
+  );
+  const lessons = [1, 2, 3, 4].map((order) => ({
+    id: `lesson-${order}`,
+    moduleId: `module-${Math.min(order, 3)}`,
+    order,
+    estimatedMinutes: 8,
+    introducedConceptIds: [],
+    practicedConceptIds: [],
+    assessedConceptIds: [],
+    introducedLexemeIds: order === 1 ? verbIds : [],
+    practicedLexemeIds:
+      order > 1
+        ? verbIds.filter(
+            (_, index) => index < genuinelyReusedVerbCount || order === 2,
+          )
+        : [],
+    assessedLexemeIds: [],
+    exampleIds: verbIds.flatMap((verbId, index) =>
+      order <= 2 || index < genuinelyReusedVerbCount
+        ? [`example-${verbId}-${order}`]
+        : [],
+    ),
+    speechPromptId: `speech-${order}`,
+    capstone: false,
+    assistedKatakanaLexemeIds: [],
+  }));
+
+  return {
+    concepts: [],
+    lexemes: verbIds.map((id) => ({
+      id,
+      japanese: id,
+      reading: id,
+      category: "verb" as const,
+      script: "hiragana" as const,
+    })),
+    examples,
+    exercises: [],
+    speechPrompts: lessons.map((entry) => ({
+      id: entry.speechPromptId,
+      targetExampleId: entry.exampleIds[0],
+    })),
+    personas: [],
+    modules,
+    lessons,
+    copy: {
+      it: Object.fromEntries(lessons.map((entry) => [entry.id, entry.id])),
+      en: Object.fromEntries(lessons.map((entry) => [entry.id, entry.id])),
+    },
+  };
+};
+
 describe("validateCurriculum", () => {
   it("reports duplicate IDs and missing references as structured errors", () => {
     const result = validateCurriculum(
@@ -157,6 +236,50 @@ describe("validateCurriculum", () => {
         }),
       ]),
     );
+  });
+
+  it("reports exercise assessment-before-introduction once", () => {
+    const result = validateCurriculum(
+      input({
+        modules: [
+          {
+            id: "module-1",
+            phase: "orient",
+            order: 1,
+            prerequisiteIds: [],
+            coverage: coverage("module-1"),
+          },
+        ],
+        lessons: [
+          lesson({
+            introducedConceptIds: [],
+            introducedLexemeIds: [],
+            assessedConceptIds: [],
+            assessedLexemeIds: [],
+          }),
+          lesson({
+            id: "lesson-2",
+            order: 2,
+            introducedConceptIds: [],
+            introducedLexemeIds: [],
+            practicedConceptIds: [],
+            assessedConceptIds: [],
+            practicedLexemeIds: [],
+            assessedLexemeIds: [],
+            exampleIds: [],
+          }),
+        ],
+      }),
+      localValidation,
+    );
+
+    expect(
+      result.errors.filter(
+        (error) =>
+          error.code === "assessment-before-introduction" &&
+          error.id === "topic-wa",
+      ),
+    ).toHaveLength(1);
   });
 
   it("rejects capstone introductions", () => {
@@ -258,22 +381,120 @@ describe("validateCurriculum", () => {
     );
   });
 
-  it("requires genuine verb reuse across later modules and authored examples", () => {
+  it("compares authored and computed coverage IDs as sets", () => {
+    const result = validateCurriculum(
+      input({
+        lexemes: [
+          {
+            id: "one",
+            japanese: "いち",
+            reading: "いち",
+            category: "noun",
+            script: "hiragana",
+          },
+          {
+            id: "two",
+            japanese: "に",
+            reading: "に",
+            category: "noun",
+            script: "hiragana",
+          },
+        ],
+        examples: [],
+        exercises: [],
+        lessons: [
+          lesson({
+            introducedConceptIds: [],
+            introducedLexemeIds: ["one"],
+            practicedConceptIds: [],
+            practicedLexemeIds: [],
+            assessedConceptIds: [],
+            assessedLexemeIds: [],
+            exampleIds: [],
+          }),
+          lesson({
+            id: "lesson-2",
+            order: 2,
+            introducedLexemeIds: ["two"],
+            introducedConceptIds: [],
+            practicedConceptIds: [],
+            practicedLexemeIds: [],
+            assessedConceptIds: [],
+            assessedLexemeIds: [],
+            exampleIds: [],
+          }),
+        ],
+        modules: [
+          {
+            id: "module-1",
+            phase: "orient",
+            order: 1,
+            prerequisiteIds: [],
+            coverage: {
+              ...coverage("module-1"),
+              lessonIds: ["lesson-2", "lesson-1"],
+              introducedConceptIds: [],
+              introducedLexemeIds: ["two", "one"],
+              introducedVerbIds: [],
+              practicedVerbIds: [],
+              assessedConceptIds: [],
+              assessedLexemeIds: [],
+            },
+          },
+        ],
+        copy: {
+          it: { "lesson-1": "Lezione", "lesson-2": "Lezione 2" },
+          en: { "lesson-1": "Lesson", "lesson-2": "Lesson 2" },
+        },
+      }),
+      localValidation,
+    );
+
+    expect(result.errors).not.toContainEqual(
+      expect.objectContaining({
+        code: "authored-computed-coverage-mismatch",
+        moduleId: "module-1",
+      }),
+    );
+  });
+
+  it("requires aggregate genuine verb reuse at release level", () => {
     const result = validateCurriculum(
       input({
         modules: [
           { id: "module-1", phase: "orient", order: 1, prerequisiteIds: [], coverage: coverage("module-1") },
         ],
       }),
-      localValidation,
     );
 
-    expect(result.errors).toContainEqual(
+    expect(result.errors).toContainEqual({
+      code: "insufficient-verb-reuse",
+      actual: 0,
+      expected: 35,
+    });
+  });
+
+  it("accepts the aggregate genuine-reuse target when 36 of 42 verbs qualify", () => {
+    const result = validateCurriculum(aggregateReuseCatalog(36));
+
+    expect(
+      result.errors.filter((error) => error.code === "insufficient-verb-reuse"),
+    ).toHaveLength(0);
+  });
+
+  it("reports one aggregate genuine-reuse error when only 34 verbs qualify", () => {
+    const result = validateCurriculum(aggregateReuseCatalog(34));
+    const errors = result.errors.filter(
+      (error) => error.code === "insufficient-verb-reuse",
+    );
+
+    expect(errors).toEqual([
       expect.objectContaining({
         code: "insufficient-verb-reuse",
-        id: "iku",
+        actual: 34,
+        expected: 35,
       }),
-    );
+    ]);
   });
 
   it("does not mutate input and computes stable coverage", () => {
