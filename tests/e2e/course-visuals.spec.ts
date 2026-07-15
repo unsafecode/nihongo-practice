@@ -89,23 +89,61 @@ for (const screen of SCREENS) {
       expect(evidence.bodyFamily).not.toMatch(/^Hiragino/);
     });
 
-    test(`${screen.name}: reduced-motion is honored (transitions collapsed)`, async ({ page }) => {
+    test(`${screen.name}: reduced-motion is honored (a real transition collapses under reduce)`, async ({ page }) => {
       await setupPageObservers(page);
       await gotoReady(page, screen.url);
-      const state = await page.evaluate(() => {
-        const probe = document.querySelector(".modenav__item") ?? document.body;
-        const duration = getComputedStyle(probe).transitionDuration;
-        const seconds = duration
-          .split(",")
-          .map((part) => Number.parseFloat(part))
-          .reduce((max, value) => Math.max(max, Number.isNaN(value) ? 0 : value), 0);
-        return {
-          reduced: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-          seconds,
-        };
-      });
-      expect(state.reduced, "context prefers-reduced-motion").toBe(true);
-      expect(state.seconds, "transition-duration under reduced motion").toBeLessThan(0.05);
+
+      // Probe a guaranteed-visible styled control that carries a *real*
+      // non-zero transition in its normal state. We prefer the `.action`
+      // primitive (transitions background/color/border/opacity at 0.15s); it is
+      // visible in-body on the course screens and as the header trigger on
+      // mobile. On desktop screens where no `.action` is rendered (e.g. the Lab
+      // with no guided return), the header `.scripttoggle button` carries the
+      // same 0.15s transition. Both are real transitions — the later
+      // `normalSeconds > 0` assertion guards against picking a tautological,
+      // transition-less element regardless of which candidate resolves.
+      const candidates = [".action", ".scripttoggle button"];
+      let probe = page.locator(candidates[0]).filter({ visible: true }).first();
+      for (const selector of candidates) {
+        const located = page.locator(selector).filter({ visible: true }).first();
+        if (await located.count()) {
+          probe = located;
+          break;
+        }
+      }
+      await expect(
+        probe,
+        "a visible control carrying a real transition exists on this screen",
+      ).toBeVisible();
+
+      const maxDurationSeconds = () =>
+        probe.evaluate((el) =>
+          getComputedStyle(el)
+            .transitionDuration.split(",")
+            .map((part) => Number.parseFloat(part))
+            .reduce((max, value) => Math.max(max, Number.isNaN(value) ? 0 : value), 0),
+        );
+
+      // Normal preference: the control genuinely animates.
+      await page.emulateMedia({ reducedMotion: "no-preference" });
+      const normalSeconds = await maxDurationSeconds();
+      expect(
+        normalSeconds,
+        "normal (no-preference) transition-duration must be non-zero",
+      ).toBeGreaterThan(0);
+
+      // Reduced preference: the *same* control's transition collapses. This
+      // fails if the app's `prefers-reduced-motion` CSS is ever removed.
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      const reducedSeconds = await maxDurationSeconds();
+      expect(
+        reducedSeconds,
+        "transition-duration under reduced motion",
+      ).toBeLessThan(0.05);
+      expect(
+        reducedSeconds,
+        `reduced (${reducedSeconds}s) must be materially smaller than normal (${normalSeconds}s)`,
+      ).toBeLessThan(normalSeconds);
     });
 
     test(`${screen.name}: decorative SVG icons are hidden, labelled icons expose a name`, async ({ page }) => {
@@ -211,6 +249,92 @@ test.describe("naked-action audit is proven by computed style, not selectors", (
       ).length,
     );
     expect(residue, "audit left no reference-node residue in the DOM").toBe(0);
+  });
+
+  // Regression guard for the "near-naked escape" the old fixed 30-field
+  // signature allowed: a browser-default control could dodge the audit merely
+  // by declaring `cursor: pointer` (an inherited/interaction hint, not visual
+  // chrome) or by nudging a single padding side by 1px. Both are still, to a
+  // user, indistinguishable from a naked control. Each probe is injected into
+  // the layout-only `.course-hero__actions` container (no allowlist rescue).
+  test("a near-naked button escaping only via cursor:pointer is still reported", async ({ page }) => {
+    await setupPageObservers(page);
+    await gotoReady(page, routeUrls.home);
+
+    const pristine = await auditNakedActions(page);
+    expect(
+      pristine,
+      `pristine course home must have no naked actions: ${JSON.stringify(pristine, null, 2)}`,
+    ).toEqual([]);
+
+    // A classless <button> whose ONLY departure from the browser default is a
+    // pointer cursor. Cursor is an interaction affordance, not own visual
+    // chrome, so this control must still be flagged as naked.
+    await page.evaluate(() => {
+      const container = document.querySelector(".course-hero__actions");
+      if (!container) throw new Error(".course-hero__actions not found on course home");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "CURSOR_ONLY_PROBE";
+      button.setAttribute("data-naked-probe", "cursor");
+      button.style.cursor = "pointer";
+      container.append(button);
+    });
+
+    const naked = await auditNakedActions(page);
+    expect(
+      naked.some((entry) => entry.includes("CURSOR_ONLY_PROBE")),
+      `a button styled only with cursor:pointer must be reported as naked. Got: ${JSON.stringify(naked, null, 2)}`,
+    ).toBe(true);
+  });
+
+  test("a near-naked button escaping only via a 1px padding nudge is still reported", async ({ page }) => {
+    await setupPageObservers(page);
+    await gotoReady(page, routeUrls.home);
+
+    const pristine = await auditNakedActions(page);
+    expect(
+      pristine,
+      `pristine course home must have no naked actions: ${JSON.stringify(pristine, null, 2)}`,
+    ).toEqual([]);
+
+    // A classless <button> whose ONLY departure from the browser default is a
+    // single padding side nudged by exactly 1px. A sub-pixel/1px nudge on one
+    // side is not meaningful chrome, so this control must still be flagged.
+    //
+    // Native <button>s only honour author padding when it is present *before*
+    // the element first resolves as a native-themed control; reading its
+    // computed style first would lock in the native theme and silently drop the
+    // padding. So the browser-default padding is measured from a throwaway
+    // reference button, and the probe's padding is set (base + 1px) before its
+    // own computed style is ever read. Nothing else is touched, so every other
+    // audited chrome field stays identical to a naked default button.
+    const nudge = await page.evaluate(() => {
+      const container = document.querySelector(".course-hero__actions");
+      if (!container) throw new Error(".course-hero__actions not found on course home");
+      const gauge = document.createElement("button");
+      gauge.type = "button";
+      document.body.append(gauge);
+      const base = Number.parseFloat(getComputedStyle(gauge).paddingLeft);
+      gauge.remove();
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "PADDING_NUDGE_PROBE";
+      button.setAttribute("data-naked-probe", "padding");
+      button.style.paddingLeft = `${base + 1}px`;
+      container.append(button);
+      return { base, applied: getComputedStyle(button).paddingLeft };
+    });
+    expect(
+      Number.parseFloat(nudge.applied),
+      `padding-left nudged to base(${nudge.base}) + 1px`,
+    ).toBeCloseTo(nudge.base + 1, 1);
+
+    const naked = await auditNakedActions(page);
+    expect(
+      naked.some((entry) => entry.includes("PADDING_NUDGE_PROBE")),
+      `a button whose only styling is a 1px single-side padding nudge must be reported as naked. Got: ${JSON.stringify(naked, null, 2)}`,
+    ).toBe(true);
   });
 });
 

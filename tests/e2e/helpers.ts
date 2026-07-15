@@ -229,24 +229,48 @@ export async function auditTouchTargets(page: Page): Promise<TargetOffender[]> {
  *
  * Rather than trusting an allowlisted class or a `closest()` ancestor chain
  * (which a pure layout container such as `.course-hero__actions` would wave
- * through), this measures each control's computed-style signature and compares
- * it — deterministically, in the live Chromium context and under the same
- * global stylesheet — against a temporary, classless reference `<button>` and
- * `<a href>`. A control that matches the naked reference on *every* signature
- * field is reported even if it carries an allowlisted class; a control that
- * differs on any field (e.g. an intentionally transparent inline/rail action
- * whose padding, weight, decoration, border, or min-size is its own) is not.
+ * through), this measures each control's *own meaningful visual chrome* and
+ * compares it — deterministically, in the live Chromium context and under the
+ * same global stylesheet — against a temporary, classless reference `<button>`
+ * and `<a href>`.
+ *
+ * The comparison is restricted to a control's *own computed visual chrome*:
+ * background (color + image), border widths/styles/colors, corner radii, box
+ * shadow, text-decoration line, min-width/min-height, and padding. Inherited or
+ * non-chrome interaction signals — cursor, font-family, font-weight, text color
+ * — are deliberately ignored: they do not distinguish a naked control from a
+ * styled one (a browser default already inherits the page font and can carry a
+ * pointer cursor), so treating them as "styling" is exactly the near-naked
+ * escape this audit closes.
+ *
+ * Core rule: a control is reported as naked when it agrees with the naked
+ * reference on *every* non-padding chrome field AND its padding is either
+ * identical or differs by at most a single <=1px nudge on one side (a 1px
+ * single-side nudge is not meaningful chrome — it renders as the naked
+ * default). Any other padding difference (a second side, or a >1px delta), or
+ * any non-padding chrome difference (its own background, border, radius,
+ * shadow, decoration, or a real 44px min target), means the control owns
+ * material chrome and it passes. A legitimately styled transparent inline/rail
+ * action therefore passes on its declared min target, padding, border, radius,
+ * or decoration, without any class allowlist.
  *
  * The reference nodes are inserted, measured, and removed within this call, so
  * the audit is side-effect free.
  */
 export async function auditNakedActions(page: Page): Promise<string[]> {
   return page.evaluate(() => {
-    // The deliberate computed-style signature: a control's self-evident visual
-    // "chrome". Two controls that agree on all of these are visually the same
-    // to a user, so an app control that agrees with the naked reference is,
-    // by definition, naked.
-    const SIGNATURE_PROPS = [
+    // A control's own meaningful visual chrome. Two controls that agree on all
+    // of these render identically to a user; an app control that agrees with
+    // the naked reference on all of them is, by definition, naked. Cursor,
+    // font family/weight, and text color are intentionally excluded — they are
+    // inherited/interaction signals, not the control's own chrome.
+    const PADDING_PROPS = [
+      "paddingTop",
+      "paddingRight",
+      "paddingBottom",
+      "paddingLeft",
+    ] as const;
+    const CHROME_PROPS = [
       "backgroundColor",
       "backgroundImage",
       "borderTopWidth",
@@ -265,26 +289,24 @@ export async function auditNakedActions(page: Page): Promise<string[]> {
       "borderTopRightRadius",
       "borderBottomRightRadius",
       "borderBottomLeftRadius",
-      "paddingTop",
-      "paddingRight",
-      "paddingBottom",
-      "paddingLeft",
       "boxShadow",
       "textDecorationLine",
-      "color",
-      "fontWeight",
-      "fontFamily",
       "minWidth",
       "minHeight",
-      "cursor",
+      ...PADDING_PROPS,
     ] as const;
+
+    const PADDING_SET = new Set<string>(PADDING_PROPS);
+    // A single padding side may drift from the naked default by up to this many
+    // CSS px and still be considered a "nudge" (not meaningful chrome).
+    const PADDING_NUDGE_EPSILON = 1;
 
     type Signature = Record<string, string>;
 
     const signatureOf = (el: Element): Signature => {
       const style = getComputedStyle(el);
       const sig: Signature = {};
-      for (const prop of SIGNATURE_PROPS) {
+      for (const prop of CHROME_PROPS) {
         let value = style.getPropertyValue(
           // camelCase → kebab-case for getPropertyValue.
           prop.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`),
@@ -320,6 +342,35 @@ export async function auditNakedActions(page: Page): Promise<string[]> {
     refButton.remove();
     refAnchor.remove();
 
+    // Decides whether `sig` is indistinguishable from the naked `reference`.
+    // Returns null when the control owns material chrome (passes), or an
+    // explanation string identifying why it is naked (identical, or a lone
+    // <=1px padding nudge).
+    const nakedReason = (
+      sig: Signature,
+      reference: Signature,
+    ): string | null => {
+      const differing = CHROME_PROPS.filter((prop) => sig[prop] !== reference[prop]);
+      const nonPadding = differing.filter((prop) => !PADDING_SET.has(prop));
+      // Any own non-padding chrome (background, border, radius, shadow,
+      // decoration, min target) makes the control materially styled.
+      if (nonPadding.length > 0) return null;
+      const paddingDiffs = differing.filter((prop) => PADDING_SET.has(prop));
+      if (paddingDiffs.length === 0) {
+        return "indistinguishable from the naked reference (identical chrome)";
+      }
+      // More than one padding side changed → deliberate padding styling.
+      if (paddingDiffs.length > 1) return null;
+      const prop = paddingDiffs[0];
+      const delta = Math.abs(
+        Number.parseFloat(sig[prop]) - Number.parseFloat(reference[prop]),
+      );
+      if (Number.isFinite(delta) && delta <= PADDING_NUDGE_EPSILON) {
+        return `only a <=${PADDING_NUDGE_EPSILON}px single-side padding nudge (${prop} ${reference[prop]}→${sig[prop]}) — equivalent to naked`;
+      }
+      return null;
+    };
+
     const naked: string[] = [];
     const elements = Array.from(
       document.querySelectorAll<HTMLElement>("button, a[href]"),
@@ -336,11 +387,8 @@ export async function auditNakedActions(page: Page): Promise<string[]> {
       const reference =
         el.tagName === "BUTTON" ? referenceButton : referenceAnchor;
       const sig = signatureOf(el);
-      const differing = SIGNATURE_PROPS.filter(
-        (prop) => sig[prop] !== reference[prop],
-      );
-      // Indistinguishable from the naked reference on every signature field.
-      if (differing.length === 0) {
+      const reason = nakedReason(sig, reference);
+      if (reason) {
         const cls = el.getAttribute("class") ?? "";
         const text = (el.textContent ?? "").trim().slice(0, 40);
         const refKind = el.tagName === "BUTTON" ? "<button>" : "<a href>";
@@ -351,12 +399,10 @@ export async function auditNakedActions(page: Page): Promise<string[]> {
           `padding=${sig.paddingTop} ${sig.paddingRight} ${sig.paddingBottom} ${sig.paddingLeft}`,
           `shadow=${sig.boxShadow}`,
           `decoration=${sig.textDecorationLine}`,
-          `weight=${sig.fontWeight}`,
           `minSize=${sig.minWidth}x${sig.minHeight}`,
-          `cursor=${sig.cursor}`,
         ].join(", ");
         naked.push(
-          `${el.tagName.toLowerCase()}.${cls} "${text}" — indistinguishable from the naked ${refKind} reference (${evidence})`,
+          `${el.tagName.toLowerCase()}.${cls} "${text}" — ${reason} vs the naked ${refKind} reference (${evidence})`,
         );
       }
     }
