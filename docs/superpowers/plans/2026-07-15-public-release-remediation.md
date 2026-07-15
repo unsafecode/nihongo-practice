@@ -943,7 +943,7 @@ Expected:
 
 - no whitespace errors;
 - the full corrective tip remains an ancestor;
-- log shows the replayed design/plan plus three focused hardening commits and one verification reliability fix;
+- log shows the replayed design/plan, all reviewed release-hardening and reliability-fix commits, and no unrelated commits;
 - worktree has no tracked or untracked changes;
 - ignored generated artifacts may remain locally but are not committed.
 
