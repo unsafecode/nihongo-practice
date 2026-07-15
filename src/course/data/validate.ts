@@ -317,6 +317,34 @@ function segmentId(segment: ExampleSegment, index: number): string {
   return segment.id ?? String(index);
 }
 
+/**
+ * Every occurrence-based check below (`changedById`, `introducedSegmentIds`,
+ * `matchedIntroducedIds`) is keyed by `segmentId(segment, index)` and stored
+ * in a Map/Set, so two segments that resolve to the same effective id within
+ * one endpoint silently collapse into one entry — whichever the Map/Set
+ * happens to keep. That collision is reachable from real authored data: `id`
+ * is optional (falls back to the segment's index), so an explicit id can
+ * collide with another segment's fallback index id, not just with another
+ * explicit id. Returns each colliding effective id once, in first-duplicate
+ * order, so callers can reject the ambiguity explicitly instead of letting
+ * it silently corrupt every id-keyed check that follows.
+ */
+function findDuplicateEffectiveSegmentIds(
+  segments: readonly ExampleSegment[],
+): string[] {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  segments.forEach((segment, index) => {
+    const effectiveId = segmentId(segment, index);
+    if (seen.has(effectiveId)) {
+      duplicates.add(effectiveId);
+    } else {
+      seen.add(effectiveId);
+    }
+  });
+  return [...duplicates];
+}
+
 function hasValidEstimate(minutes: number): boolean {
   return Number.isFinite(minutes) && minutes > 0;
 }
@@ -330,15 +358,18 @@ function setsEqual(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
  * the declared before/after delta is honest so the renderer can mark exactly
  * the changed segments and nothing else. Never throws; returns stable error
  * codes. Rejects: identical endpoints (same id or same text), a
- * missing/unsegmented endpoint, an empty gear or segment declaration, an
- * unknown or duplicated changed-segment id, marking a segment that is
- * unchanged between the two endpoints, any mismatch between the declared
- * changed gears and the glyphs actually carried by the declared segments,
- * and — via occurrence/segment-id-based completeness against the full set of
- * introduced segment ids (not a distinct-introduced-text set, which would
- * collapse two distinct new segments sharing identical text into one
- * member) — a comparison that under-declares its delta by omitting a
- * genuinely introduced segment occurrence from `changedSegmentIds`.
+ * missing/unsegmented endpoint, an empty gear or segment declaration, a
+ * duplicate effective segment id authored within either endpoint (which
+ * would otherwise collapse two distinct segments into one entry in every
+ * id-keyed check below), an unknown or duplicated changed-segment id,
+ * marking a segment that is unchanged between the two endpoints, any
+ * mismatch between the declared changed gears and the glyphs actually
+ * carried by the declared segments, and — via occurrence/segment-id-based
+ * completeness against the full set of introduced segment ids (not a
+ * distinct-introduced-text set, which would collapse two distinct new
+ * segments sharing identical text into one member) — a comparison that
+ * under-declares its delta by omitting a genuinely introduced segment
+ * occurrence from `changedSegmentIds`.
  */
 export function validateComparison(
   comparison: TransformComparisonData,
@@ -372,6 +403,24 @@ export function validateComparison(
 
   if (!base.segments || !changed.segments) {
     errors.push(`comparison-unsegmented:${id}`);
+    return errors;
+  }
+
+  // Reject duplicate effective segment ids within each endpoint before any
+  // id-keyed Map/Set is built below: a collision there would silently drop
+  // one of the colliding segments from every subsequent check, which could
+  // itself manufacture misleading completeness/gear errors that merely
+  // reflect the collision rather than a real authoring mistake. Base and
+  // changed are each their own id namespace, so they're checked separately.
+  const baseDuplicateIds = findDuplicateEffectiveSegmentIds(base.segments);
+  const changedDuplicateIds = findDuplicateEffectiveSegmentIds(changed.segments);
+  for (const dupId of baseDuplicateIds) {
+    errors.push(`comparison-duplicate-authored-segment-id:${id}:base:${dupId}`);
+  }
+  for (const dupId of changedDuplicateIds) {
+    errors.push(`comparison-duplicate-authored-segment-id:${id}:changed:${dupId}`);
+  }
+  if (baseDuplicateIds.length > 0 || changedDuplicateIds.length > 0) {
     return errors;
   }
 

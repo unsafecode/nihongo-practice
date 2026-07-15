@@ -226,6 +226,95 @@ describe("validateComparison", () => {
     expect(validateComparison(comparison, examples)).toEqual([]);
   });
 
+  it("rejects duplicate explicit segment ids within the changed endpoint (two distinct introduced segments sharing the same declared id)", () => {
+    // だ and ね are both genuinely new relative to base (which only has ねこ),
+    // but they were mistakenly authored with the same explicit id "1". A
+    // Map/Set keyed by segmentId collapses these two distinct occurrences
+    // into one entry, silently dropping one of them from every id-keyed
+    // check below (changedById, introducedSegmentIds, matchedIntroducedIds).
+    // That ambiguity must be rejected explicitly rather than silently
+    // resolved by "whichever one the Map happened to keep".
+    const examples: Record<string, StaticExample> = {
+      "t-base": example("t-base", [seg("ねこ", "word", "0")]),
+      "t-changed": example("t-changed", [
+        seg("ねこ", "word", "0"),
+        seg("だ", "ending", "1"),
+        seg("ね", "particle", "1"),
+      ]),
+    };
+    const comparison: TransformComparisonData = {
+      id: "cmp",
+      baseExampleId: "t-base",
+      changedExampleId: "t-changed",
+      contrastDimension: "ending",
+      changedGearIds: ["だ"],
+      changedSegmentIds: ["1"],
+    };
+    expect(validateComparison(comparison, examples)).toContain(
+      "comparison-duplicate-authored-segment-id:cmp:changed:1",
+    );
+  });
+
+  it("rejects a fallback index id colliding with another segment's explicit id in the same endpoint", () => {
+    // The first segment has no authored id, so segmentId falls back to its
+    // index, "0". The second segment explicitly declares id "0" too. Both
+    // are real ExampleSegment shapes `segmentedExample` can produce (id is
+    // optional), so this collision is reachable from real authored data, not
+    // just a contrived test double.
+    const examples: Record<string, StaticExample> = {
+      "t-base": example("t-base", [seg("ねこ", "word", "0")]),
+      "t-changed": {
+        id: "t-changed",
+        jp: "ねこだ",
+        romaji: "nekoda",
+        segments: [
+          { jp: "ねこ", romaji: "neko", kind: "word" },
+          { id: "0", jp: "だ", romaji: "da", kind: "ending" },
+        ],
+      },
+    };
+    const comparison: TransformComparisonData = {
+      id: "cmp",
+      baseExampleId: "t-base",
+      changedExampleId: "t-changed",
+      contrastDimension: "ending",
+      changedGearIds: ["だ"],
+      changedSegmentIds: ["0"],
+    };
+    expect(validateComparison(comparison, examples)).toContain(
+      "comparison-duplicate-authored-segment-id:cmp:changed:0",
+    );
+  });
+
+  it("rejects duplicate explicit segment ids within the base endpoint", () => {
+    // The duplicate lives entirely in base, which is never keyed by id for
+    // matching (base uses a text multiset), so this collision would
+    // otherwise go completely unnoticed even though the authored data is
+    // just as ambiguous as a duplicate in changed.
+    const examples: Record<string, StaticExample> = {
+      "t-base": example("t-base", [
+        seg("ねこ", "word", "0"),
+        seg("いぬ", "word", "0"),
+      ]),
+      "t-changed": example("t-changed", [
+        seg("ねこ", "word", "0"),
+        seg("いぬ", "word", "1"),
+        seg("だ", "ending", "2"),
+      ]),
+    };
+    const comparison: TransformComparisonData = {
+      id: "cmp",
+      baseExampleId: "t-base",
+      changedExampleId: "t-changed",
+      contrastDimension: "ending",
+      changedGearIds: ["だ"],
+      changedSegmentIds: ["2"],
+    };
+    expect(validateComparison(comparison, examples)).toContain(
+      "comparison-duplicate-authored-segment-id:cmp:base:0",
+    );
+  });
+
   it("rejects an unsegmented endpoint (delta cannot be located)", () => {
     const examples: Record<string, StaticExample> = {
       "plain-a": { id: "plain-a", jp: "あ", romaji: "a" },
