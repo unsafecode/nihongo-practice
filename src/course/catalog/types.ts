@@ -48,6 +48,14 @@ export interface ExerciseCatalogEntry {
 export interface SpeechPromptCatalogEntry {
   readonly id: SpeechPromptId;
   readonly targetExampleId: ExampleId;
+  /**
+   * The stable segment IDs of the target example a learner's spoken attempt is
+   * judged most critically on (design spec §12.3). Optional so lightweight
+   * validator fixtures need not enumerate segments; authored curriculum prompts
+   * always name at least one. This is semantic reference data only — it carries
+   * no recognition implementation (Slice D owns that).
+   */
+  readonly criticalSegmentIds?: readonly string[];
 }
 
 export interface PersonaCatalogEntry {
