@@ -148,6 +148,32 @@ describe("validateComparison", () => {
     expect(errors).toContain("comparison-gear-segment-mismatch:cmp");
   });
 
+  it("rejects a comparison that omits an introduced segment from changedSegmentIds (incomplete delta)", () => {
+    // "changed" introduces two genuinely new segments (だ, ね) vs base, but
+    // only "だ" is declared. The delta is honest-but-incomplete: it must be
+    // rejected even though every declared segment id is individually valid
+    // and changedGearIds stays internally consistent with that subset.
+    const examples: Record<string, StaticExample> = {
+      "t-base": example("t-base", [seg("ねこ", "word", "0")]),
+      "t-changed": example("t-changed", [
+        seg("ねこ", "word", "0"),
+        seg("だ", "ending", "1"),
+        seg("ね", "particle", "2"),
+      ]),
+    };
+    const comparison: TransformComparisonData = {
+      id: "cmp",
+      baseExampleId: "t-base",
+      changedExampleId: "t-changed",
+      contrastDimension: "ending",
+      changedGearIds: ["だ"],
+      changedSegmentIds: ["1"],
+    };
+    expect(validateComparison(comparison, examples)).toContain(
+      "comparison-incomplete-delta:cmp",
+    );
+  });
+
   it("rejects an unsegmented endpoint (delta cannot be located)", () => {
     const examples: Record<string, StaticExample> = {
       "plain-a": { id: "plain-a", jp: "あ", romaji: "a" },

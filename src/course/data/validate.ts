@@ -332,8 +332,11 @@ function setsEqual(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
  * codes. Rejects: identical endpoints (same id or same text), a
  * missing/unsegmented endpoint, an empty gear or segment declaration, an
  * unknown or duplicated changed-segment id, marking a segment that is
- * unchanged between the two endpoints, and any mismatch between the declared
- * changed gears and the glyphs actually carried by the declared segments.
+ * unchanged between the two endpoints, any mismatch between the declared
+ * changed gears and the glyphs actually carried by the declared segments,
+ * and — via two-way set equality against the full introduced-text set — a
+ * comparison that under-declares its delta by omitting a genuinely
+ * introduced segment from `changedSegmentIds`.
  */
 export function validateComparison(
   comparison: TransformComparisonData,
@@ -406,6 +409,17 @@ export function validateComparison(
 
   if (!setsEqual(new Set(changedGearIds), declaredGears)) {
     errors.push(`comparison-gear-segment-mismatch:${id}`);
+  }
+
+  // Two-way completeness (mirrors validateTransformationCore's symmetric-diff
+  // check): declaredGears is always a subset of introduced (only segments
+  // that resolve to a genuinely-introduced text are added above), so a size
+  // mismatch means some introduced text was never declared — an honest but
+  // under-declared delta. One stable code regardless of how many texts are
+  // missing, so pre-existing unknown/duplicate/not-changed errors above don't
+  // also spam this check.
+  if (declaredGears.size !== introduced.size) {
+    errors.push(`comparison-incomplete-delta:${id}`);
   }
 
   return errors;
