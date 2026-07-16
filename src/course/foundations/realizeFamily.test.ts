@@ -10,6 +10,7 @@ import {
 } from "./fixtures";
 import type {
   ConceptId,
+  LearningTargetSense,
   SemanticValue,
   SentenceFamily,
   SentenceVariant,
@@ -72,6 +73,14 @@ function lessonIdForFamily(familyId: string): string {
 
 const a1ConceptIds = conceptIdsForLesson("fixture-a1-personal-details");
 const a2ConceptIds = conceptIdsForLesson("fixture-a2-routine-plans");
+
+function expectSingleError(
+  errors: readonly { code: FamilyRealizationErrorCode }[],
+  code: FamilyRealizationErrorCode,
+) {
+  expect(errors.length).toBeGreaterThan(0);
+  expect(errors.every((error) => error.code === code)).toBe(true);
+}
 
 describe("realizeVariant", () => {
   describe("exact Japanese/romaji output", () => {
@@ -174,6 +183,75 @@ describe("realizeVariant", () => {
     });
   });
 
+  describe("fail-closed explicit subject", () => {
+    /**
+     * A synthetic family (never authored in fixtures.ts, where every real
+     * "subject" slot is `optional: false`) whose subject slot is marked
+     * optional — proving the realizer itself, not merely fixture discipline,
+     * fails closed when `discourse.subjectRealization` is `"explicit"` but no
+     * subject value resolves, instead of reaching the old unsafe
+     * `as SemanticValue` cast and throwing.
+     */
+    function optionalSubjectFamily(): SentenceFamily {
+      const base = fixtureFamily("fixture-a1-topic-copular");
+      return withFixtureOverride(base, {
+        id: "test-optional-subject-family",
+        slotSchema: base.slotSchema.map((slot) =>
+          slot.id === "subject" ? { ...slot, optional: true } : slot,
+        ),
+      });
+    }
+
+    it("returns a missing-slot Result error (and never throws) when the subject is explicit but no subject value resolves, even though the schema marks the slot optional", () => {
+      const family = optionalSubjectFamily();
+      const base = fixtureVariant("fixture-a1-yuki-student-meeting"); // explicit subject
+      const { subject: _omittedSubject, ...withoutSubject } = base.slotValues;
+      const variant: SentenceVariant = withFixtureOverride(base, {
+        id: "test-explicit-missing-subject",
+        sentenceFamilyId: family.id,
+        slotValues: withoutSubject,
+      });
+
+      let result: ReturnType<typeof realizeVariant> | undefined;
+      expect(() => {
+        result = realizeVariant(family, variant, catalogs, {
+          availableConceptIds: a1ConceptIds,
+        });
+      }).not.toThrow();
+
+      expect(result?.ok).toBe(false);
+      if (!result || result.ok) return;
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors.every((error) => error.code === "missing-slot")).toBe(true);
+      expect(result.errors[0]?.slotId).toBe("subject");
+    });
+
+    it("still realizes successfully (retaining the semantic subject value without emitting it) when the subject is omitted and the now-optional slot is populated", () => {
+      const family = optionalSubjectFamily();
+      const base = fixtureVariant("fixture-a1-teacher-omitted-class"); // omitted subject
+      const variant: SentenceVariant = withFixtureOverride(base, {
+        id: "test-omitted-optional-subject",
+        sentenceFamilyId: family.id,
+      });
+
+      const result = realizeVariant(family, variant, catalogs, {
+        availableConceptIds: a1ConceptIds,
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(
+        result.sentence.tokens.some((token) => token.jp === "は"),
+      ).toBe(false);
+      expect(
+        result.sentence.tokens.some((token) => token.source.referenceId.includes("/subject")),
+      ).toBe(false);
+      expect(result.sentence.semanticFingerprint).toContain(
+        variant.discourse.subjectReferentId as string,
+      );
+    });
+  });
+
   describe("A2 natural realizations", () => {
     it("realizes a natural A2 time-action sentence", () => {
       const family = fixtureFamily("fixture-a2-time-action");
@@ -228,6 +306,59 @@ describe("realizeVariant", () => {
       expect(romaji.ok).toBe(true);
       if (!romaji.ok) return;
       expect(romaji.text).toBe("tomodachi wa ranchi ni sasoimasu");
+    });
+  });
+
+  describe("object/theme case-frame licensing", () => {
+    it("fails closed with invalid-argument-structure when a governed-theme rule's sense lacks the theme argument role", () => {
+      const family = fixtureFamily("fixture-a1-object-action"); // objectRole: "governed-theme"
+      const base = fixtureVariant("fixture-a1-yuki-study-japanese");
+      const brokenSense: LearningTargetSense = withFixtureOverride(
+        catalogs.learningTargetSenses.find(
+          (sense) => sense.id === "fixture-a1-sense-study",
+        ) as LearningTargetSense,
+        { id: "test-sense-study-no-theme", argumentRoles: ["agent"] },
+      );
+      const brokenPredicateValue: SemanticValue = withFixtureOverride(
+        catalogs.semanticValues.find(
+          (value) => value.id === "fixture-a1-value-study",
+        ) as SemanticValue,
+        { id: "test-value-study-no-theme", senseId: brokenSense.id },
+      );
+      const brokenCatalogs: RealizeVariantCatalogs = {
+        ...catalogs,
+        learningTargetSenses: [...catalogs.learningTargetSenses, brokenSense],
+        semanticValues: [...catalogs.semanticValues, brokenPredicateValue],
+      };
+      const variant: SentenceVariant = withFixtureOverride(base, {
+        id: "test-governed-theme-mismatch",
+        slotValues: { ...base.slotValues, predicate: brokenPredicateValue.id },
+      });
+
+      const result = realizeVariant(family, variant, brokenCatalogs, {
+        availableConceptIds: a1ConceptIds,
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expectSingleError(result.errors, "invalid-argument-structure");
+      expect(result.errors[0]?.slotId).toBe("object");
+      expect(result.errors[0]?.referenceId).toBe("theme");
+    });
+
+    it("realizes successfully with a copular-complement object even though the copula sense declares no theme argument role", () => {
+      const family = fixtureFamily("fixture-a1-topic-copular"); // objectRole: "copular-complement"
+      const variant = fixtureVariant("fixture-a1-yuki-student-meeting");
+      const sense = catalogs.learningTargetSenses.find(
+        (candidate) => candidate.id === "fixture-a1-sense-be",
+      ) as LearningTargetSense;
+      expect(sense.argumentRoles).not.toContain("theme");
+
+      const result = realizeVariant(family, variant, catalogs, {
+        availableConceptIds: a1ConceptIds,
+      });
+
+      expect(result.ok).toBe(true);
     });
   });
 
@@ -452,15 +583,60 @@ describe("realizeVariant", () => {
     });
   });
 
-  describe("error codes", () => {
-    function expectSingleError(
-      errors: readonly { code: FamilyRealizationErrorCode }[],
-      code: FamilyRealizationErrorCode,
-    ) {
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.every((error) => error.code === code)).toBe(true);
-    }
+  describe("usedLexemeSenseIds", () => {
+    it("collects every resolved semantic value's senseId in slot-schema order, deduplicated by first occurrence, and still includes the predicate sense", () => {
+      const family = fixtureFamily("fixture-a1-object-action"); // schema order: subject, predicate, object
+      const base = fixtureVariant("fixture-a1-yuki-study-japanese");
+      const predicateSenseId = "fixture-a1-sense-study";
 
+      // A non-predicate (object) value that also carries a senseId — proves
+      // usedLexemeSenseIds is not hardcoded to "only the predicate slot".
+      const objectValueWithSense: SemanticValue = withFixtureOverride(
+        catalogs.semanticValues.find(
+          (value) => value.id === "fixture-a1-value-object-japanese",
+        ) as SemanticValue,
+        { id: "test-object-value-with-sense", senseId: "fixture-a2-sense-eat" },
+      );
+      // A subject (earlier-in-schema) value that duplicates the predicate's
+      // own senseId — proves dedup keeps the first schema-order occurrence
+      // rather than double-counting or dropping the predicate sense.
+      const subjectValueWithPredicateSense: SemanticValue = withFixtureOverride(
+        catalogs.semanticValues.find((value) => value.id === "fixture-value-yuki") as SemanticValue,
+        { id: "test-subject-value-with-predicate-sense", senseId: predicateSenseId },
+      );
+
+      const extendedCatalogs: RealizeVariantCatalogs = {
+        ...catalogs,
+        semanticValues: [
+          ...catalogs.semanticValues,
+          objectValueWithSense,
+          subjectValueWithPredicateSense,
+        ],
+      };
+      const variant: SentenceVariant = withFixtureOverride(base, {
+        id: "test-used-sense-ids",
+        slotValues: {
+          ...base.slotValues,
+          subject: subjectValueWithPredicateSense.id,
+          object: objectValueWithSense.id,
+        },
+      });
+
+      const result = realizeVariant(family, variant, extendedCatalogs, {
+        availableConceptIds: a1ConceptIds,
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sentence.predicateSenseId).toBe(predicateSenseId);
+      expect(result.sentence.usedLexemeSenseIds).toEqual([
+        predicateSenseId,
+        "fixture-a2-sense-eat",
+      ]);
+    });
+  });
+
+  describe("error codes", () => {
     it("fails closed with family-variant-mismatch when the variant belongs to a different family", () => {
       const family = fixtureFamily("fixture-a1-object-action");
       const mismatched = fixtureVariant("fixture-a1-yuki-live-rome"); // belongs to residence-action

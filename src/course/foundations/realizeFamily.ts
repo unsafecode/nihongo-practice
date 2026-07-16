@@ -108,6 +108,16 @@ interface RealizationRuleDefinition {
    * semantic value carries no lexical content of its own); "verb" families
    * emit the predicate-sense value's own token fragments before the ending. */
   readonly predicateKind: "copula" | "verb";
+  /**
+   * What the family's `object` slot (if any) means to the sense's own case
+   * frame (§16 case-frame extension). `"copular-complement"` is a plain
+   * predicate nominal — it never draws on `sense.argumentRoles`.
+   * `"governed-theme"` is a predicate-governed argument — the sense must
+   * declare `"theme"` in `argumentRoles`, checked generically from this
+   * field rather than from a family/sense/Japanese string switch. `null`
+   * means the rule has no `object` slot at all.
+   */
+  readonly objectRole: "copular-complement" | "governed-theme" | null;
   /** Non-subject, non-predicate slots, in the order their tokens/particles
    * are emitted (after subject/topic, before the predicate stem/ending). */
   readonly contentSlots: readonly ContentSlotRule[];
@@ -117,11 +127,13 @@ const REALIZATION_RULES: Readonly<Record<string, RealizationRuleDefinition>> = {
   "fixture-a1-rule-topic-copular": {
     id: "fixture-a1-rule-topic-copular",
     predicateKind: "copula",
+    objectRole: "copular-complement",
     contentSlots: [{ slotId: "object", particle: { kind: "none" } }],
   },
   "fixture-a1-rule-residence-action": {
     id: "fixture-a1-rule-residence-action",
     predicateKind: "verb",
+    objectRole: null,
     contentSlots: [
       { slotId: "location", particle: { kind: "from-sense-metadata", role: "location" } },
     ],
@@ -129,21 +141,25 @@ const REALIZATION_RULES: Readonly<Record<string, RealizationRuleDefinition>> = {
   "fixture-a1-rule-object-action": {
     id: "fixture-a1-rule-object-action",
     predicateKind: "verb",
+    objectRole: "governed-theme",
     contentSlots: [{ slotId: "object", particle: { kind: "fixed", particle: "o" } }],
   },
   "fixture-a2-rule-time-action": {
     id: "fixture-a2-rule-time-action",
     predicateKind: "verb",
+    objectRole: null,
     contentSlots: [{ slotId: "time", particle: { kind: "none" } }],
   },
   "fixture-a2-rule-sequence-action": {
     id: "fixture-a2-rule-sequence-action",
     predicateKind: "verb",
+    objectRole: null,
     contentSlots: [{ slotId: "time", particle: { kind: "none" } }],
   },
   "fixture-a2-rule-invitation-action": {
     id: "fixture-a2-rule-invitation-action",
     predicateKind: "verb",
+    objectRole: "governed-theme",
     contentSlots: [{ slotId: "object", particle: { kind: "fixed", particle: "ni" } }],
   },
 };
@@ -199,9 +215,11 @@ const PARTICLE_TEXT: Readonly<Record<SemanticParticleId, EndingForm>> = {
 };
 
 /** Governed argument roles: `agent`/`topic` are discourse-driven and never
- * appear here (see `argumentParticleByRole` in ./types). */
+ * appear here (see `argumentParticleByRole` in ./types). `theme` is deliberately
+ * excluded — object/theme case-frame licensing is validated generically from
+ * the realization rule's own `objectRole` metadata (see the "governed-theme"
+ * check below), not from this role->slot-kind mapping. */
 const GOVERNED_ARGUMENT_ROLES: readonly SemanticArgumentRole[] = [
-  "theme",
   "location",
   "time",
   "companion",
@@ -229,13 +247,13 @@ function slotByValueKind(
 /** Maps a governed (non-discourse) argument role to the semantic value kind
  * the family slot backing it must carry. `companion` has no slot mapping —
  * it is realized purely through `discourse.addresseeRoleId` — and is
- * handled separately by the caller before this is ever consulted. */
+ * handled separately by the caller before this is ever consulted. `theme`
+ * has no mapping here either: it is licensed through the rule's `objectRole`
+ * metadata instead (see the "governed-theme" check below). */
 function valueKindForGovernedRole(
   role: SemanticArgumentRole,
 ): SentenceSlotDefinition["valueKind"] | undefined {
   switch (role) {
-    case "theme":
-      return "object";
     case "location":
       return "location";
     case "time":
@@ -434,6 +452,19 @@ export function realizeVariant(
     }
     resolvedSlotValues.set(slotDef.id, value);
   }
+  // An explicit subject realization always needs a resolved subject value to
+  // render — fail closed here, even if the family schema marks the "subject"
+  // slot optional (or the family has no "subject" slot at all), rather than
+  // reaching the assembly stage with nothing to emit. Omitted subjects never
+  // render a value even when one is resolved, so they impose no such
+  // requirement (see step 15).
+  if (
+    variant.discourse.subjectRealization === "explicit" &&
+    !resolvedSlotValues.has("subject") &&
+    !slotErrors.some((error) => error.slotId === "subject")
+  ) {
+    slotErrors.push({ code: "missing-slot", slotId: "subject" });
+  }
   if (slotErrors.length > 0) {
     return fail(slotErrors);
   }
@@ -508,6 +539,20 @@ export function realizeVariant(
     });
   }
   if (rule) {
+    // Object/theme case-frame licensing (§16 case-frame extension), driven
+    // generically from the rule's own `objectRole` metadata — never from a
+    // family/sense/Japanese string switch. A "governed-theme" object slot is
+    // a predicate-governed argument, so the sense must declare `theme`; a
+    // "copular-complement" object never requires it; `null` means the rule
+    // has no object slot to license at all.
+    if (rule.objectRole === "governed-theme" && !sense.argumentRoles.includes("theme")) {
+      const objectSlot = slotByValueKind(family, "object");
+      frameErrors.push({
+        code: "invalid-argument-structure",
+        slotId: objectSlot?.id ?? "object",
+        referenceId: "theme",
+      });
+    }
     for (const contentSlot of rule.contentSlots) {
       if (contentSlot.particle.kind === "from-sense-metadata") {
         const declaredParticle = sense.argumentParticleByRole[contentSlot.particle.role];
@@ -555,9 +600,14 @@ export function realizeVariant(
   // 15. assemble tokens.
   const builder: TokenBuilder = { tokens: [] };
   if (variant.discourse.subjectRealization === "explicit") {
-    const subjectValue = resolvedSlotValues.get("subject") as SemanticValue;
-    pushSlotFragments(builder, variant.id, "subject", subjectValue);
-    pushParticle(builder, variant.id, "wa");
+    // Validated above (step 7): an explicit subject always has a resolved
+    // value here — no unsafe cast needed, and this never throws even if
+    // that invariant were ever violated.
+    const subjectValue = resolvedSlotValues.get("subject");
+    if (subjectValue) {
+      pushSlotFragments(builder, variant.id, "subject", subjectValue);
+      pushParticle(builder, variant.id, "wa");
+    }
   }
   for (const contentSlot of rule.contentSlots) {
     const value = resolvedSlotValues.get(contentSlot.slotId);
@@ -599,6 +649,20 @@ export function realizeVariant(
     `slots=${sortedSlotEntries}`,
   ].join("|");
 
+  // Every resolved semantic value's senseId, in deterministic family
+  // slot-schema order (the `Map` insertion order from step 7), deduplicated
+  // by first occurrence. Any slot kind may carry a senseId — this is not
+  // hardcoded to the predicate slot alone — and the predicate's own sense
+  // is included via its resolved value like any other slot.
+  const usedLexemeSenseIds: LexemeSenseId[] = [];
+  const seenSenseIds = new Set<LexemeSenseId>();
+  for (const value of resolvedSlotValues.values()) {
+    if (value.senseId && !seenSenseIds.has(value.senseId)) {
+      seenSenseIds.add(value.senseId);
+      usedLexemeSenseIds.push(value.senseId);
+    }
+  }
+
   const sentence: RealizedSentence = {
     familyId: family.id,
     variantId: variant.id,
@@ -611,7 +675,7 @@ export function realizeVariant(
     contextId: variant.contextId,
     pedagogicalUse: variant.pedagogicalUse,
     usedConceptIds: [...family.requiredConceptIds],
-    usedLexemeSenseIds: [sense.id],
+    usedLexemeSenseIds,
   };
 
   return { ok: true, sentence };
