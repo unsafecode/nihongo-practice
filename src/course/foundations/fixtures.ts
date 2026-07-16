@@ -201,10 +201,14 @@ const sentenceFamilies: readonly SentenceFamily[] = freeze([
     level: "a2",
     canDoIds: ["fixture-a2-can-do-routine-plans"],
     slotSchema: [
-      // Subject is optional at the slot-schema level: a naturally omitted
-      // subject (pro-drop) must not still emit a "subject" slot value — the
-      // referent stays recoverable from `discourse.subjectReferentId`.
-      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      // Subject is semantically required at the slot-schema level: every
+      // variant — explicit or naturally omitted (pro-drop) — carries a
+      // populated "subject" slot value, since the referent's semantic
+      // presence is not affected by whether the surface form realizes it.
+      // Only `discourse.subjectRealization` controls surface omission; the
+      // realizer, not this schema, decides whether to emit subject/topic
+      // tokens.
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
       { id: "time", axis: "time", valueKind: "time", optional: false },
     ],
@@ -217,9 +221,9 @@ const sentenceFamilies: readonly SentenceFamily[] = freeze([
     level: "a2",
     canDoIds: ["fixture-a2-can-do-routine-plans"],
     slotSchema: [
-      // See fixture-a2-time-action above: subject is optional so an omitted
-      // realization can drop the slot value entirely.
-      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      // See fixture-a2-time-action above: subject is semantically required
+      // regardless of surface realization.
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
       { id: "time", axis: "time", valueKind: "time", optional: false },
     ],
@@ -518,12 +522,14 @@ const a2TransferVariants: readonly SentenceVariant[] = [
     id: "fixture-a2-transfer-neighbor-meet-after-work",
     sentenceFamilyId: "fixture-a2-sequence-action",
     // Naturally omitted subject: the neighbor was already established as the
-    // conversational subject, so the sentence drops the subject phrase. The
-    // referent stays recoverable via `discourse.subjectReferentId` without a
-    // "subject" slot value (see fixture-a2-sequence-action's slot schema).
+    // conversational subject, so the surface form drops the subject phrase.
+    // The "subject" slot value is still populated with the neighbor referent
+    // (required per fixture-a2-sequence-action's slot schema) — only
+    // `discourse.subjectRealization` ("omitted") controls that the realizer
+    // must not emit subject/topic tokens for it.
     discourse: discourse("fixture-a2-referent-neighbor", "fixture-a2-role-neighbor", "omitted", "fixture-a2-transfer-neighbor-meet-after-work-scenario"),
     contextId: "fixture-a2-context-after-work",
-    slotValues: { predicate: "fixture-a2-value-meet", time: "fixture-a2-value-time-after-work" },
+    slotValues: { subject: "fixture-a2-value-neighbor-referent", predicate: "fixture-a2-value-meet", time: "fixture-a2-value-time-after-work" },
     form: AFFIRMATIVE_PRESENT_POLITE,
     pedagogicalUse: "transfer",
   },
@@ -531,11 +537,12 @@ const a2TransferVariants: readonly SentenceVariant[] = [
     id: "fixture-a2-transfer-colleague-go-tomorrow",
     sentenceFamilyId: "fixture-a2-time-action",
     // Naturally omitted subject (see fixture-a2-transfer-neighbor-meet-after-work
-    // above): the colleague referent stays recoverable via
-    // `discourse.subjectReferentId` without a "subject" slot value.
+    // above): the "subject" slot value stays populated with the colleague
+    // referent — only its surface realization is dropped, per
+    // `discourse.subjectRealization`.
     discourse: discourse("fixture-a2-referent-colleague", "fixture-a2-role-colleague", "omitted", "fixture-a2-transfer-colleague-go-tomorrow-scenario"),
     contextId: "fixture-a2-context-weekend-plan",
-    slotValues: { predicate: "fixture-a2-value-go", time: "fixture-a2-value-time-tomorrow" },
+    slotValues: { subject: "fixture-a2-value-colleague-referent", predicate: "fixture-a2-value-go", time: "fixture-a2-value-time-tomorrow" },
     form: AFFIRMATIVE_PRESENT_POLITE,
     pedagogicalUse: "transfer",
   },

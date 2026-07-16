@@ -451,20 +451,110 @@ describe("foundation catalogs", () => {
     });
 
     it("changes when the argument shape (populated slot set) differs", () => {
-      const withSubjectSlot = fixtureVariant(
-        "fixture-a2-friend-meet-after-work",
+      // Genuinely different argument shapes (time vs object), not an
+      // explicit/omitted pair — that distinction is covered separately below
+      // so it can't be conflated with subject-slot omission.
+      const timeShaped = fixtureVariant("fixture-a2-friend-meet-after-work");
+      const objectShaped = fixtureVariant("fixture-a2-friend-invite-lunch");
+
+      expect(Object.keys(timeShaped.slotValues).sort()).not.toEqual(
+        Object.keys(objectShaped.slotValues).sort(),
       );
-      const withoutSubjectSlot = fixtureVariant(
+      expect(structuralSignature(timeShaped)).not.toBe(
+        structuralSignature(objectShaped),
+      );
+    });
+
+    it("still differs explicit vs omitted even when the populated slot set is identical", () => {
+      // Canonical convention: an omitted-subject variant retains its
+      // "subject" slot value (the referent stays semantically populated —
+      // only surface realization is dropped). So this pair's argument
+      // shapes are identical; only `subjectRealization` distinguishes them
+      // structurally, and it must keep doing so.
+      const explicitVariant = fixtureVariant("fixture-a2-friend-meet-after-work");
+      const omittedVariant = fixtureVariant(
         "fixture-a2-transfer-neighbor-meet-after-work",
       );
 
-      expect(Object.keys(withSubjectSlot.slotValues).sort()).not.toEqual(
-        Object.keys(withoutSubjectSlot.slotValues).sort(),
+      expect(Object.keys(explicitVariant.slotValues).sort()).toEqual(
+        Object.keys(omittedVariant.slotValues).sort(),
       );
-      expect(structuralSignature(withSubjectSlot)).not.toBe(
-        structuralSignature(withoutSubjectSlot),
+      expect(structuralSignature(explicitVariant)).not.toBe(
+        structuralSignature(omittedVariant),
       );
     });
+  });
+
+  describe("omitted-subject semantic consistency", () => {
+    const semanticValuesById = byId(foundationCatalogs.semanticValues);
+
+    /**
+     * The semantic value canonically used to realize a subject referent,
+     * derived from the fixture set's own already-consistent variants (any
+     * referent used as an explicit/populated subject anywhere must always
+     * resolve to exactly one semantic value). This lets the invariant below
+     * check every variant — including omitted ones — without hard-coding a
+     * referent -> value naming assumption.
+     */
+    function canonicalSubjectValueId(referentId: string): string {
+      const valueIds = new Set(
+        foundationCatalogs.sentenceVariants
+          .filter(
+            (variant) =>
+              variant.discourse.subjectReferentId === referentId &&
+              variant.slotValues.subject !== undefined,
+          )
+          .map((variant) => variant.slotValues.subject),
+      );
+      expect(valueIds.size).toBe(1);
+      return [...valueIds][0] as string;
+    }
+
+    it("gives every variant with a subject referent a matching subject slot value, explicit or omitted", () => {
+      const withReferent = foundationCatalogs.sentenceVariants.filter(
+        (variant) => variant.discourse.subjectReferentId !== null,
+      );
+      expect(withReferent.length).toBeGreaterThan(0);
+
+      for (const variant of withReferent) {
+        const referentId = variant.discourse.subjectReferentId as string;
+        const expectedValueId = canonicalSubjectValueId(referentId);
+        expect(variant.slotValues.subject).toBe(expectedValueId);
+      }
+    });
+
+    it("retains the subject semantic value on every omitted-subject variant", () => {
+      const omittedVariants = foundationCatalogs.sentenceVariants.filter(
+        (variant) => variant.discourse.subjectRealization === "omitted",
+      );
+      expect(omittedVariants.length).toBeGreaterThan(0);
+
+      for (const variant of omittedVariants) {
+        expect(variant.discourse.subjectReferentId).not.toBeNull();
+        expect(variant.slotValues.subject).toBeDefined();
+        expect(
+          semanticValuesById.has(variant.slotValues.subject as string),
+        ).toBe(true);
+      }
+    });
+
+    it("marks the A2 time-action and sequence-action subject slot as semantically required", () => {
+      // Omission is a discourse-controlled surface choice, not evidence the
+      // semantic slot itself is optional — both A2 families that permit
+      // pro-drop still require a populated subject slot value.
+      const timeAction = fixtureFamily("fixture-a2-time-action");
+      const sequenceAction = fixtureFamily("fixture-a2-sequence-action");
+      const subjectSlotOf = (family: SentenceFamily) =>
+        family.slotSchema.find((slot) => slot.id === "subject");
+
+      expect(subjectSlotOf(timeAction)?.optional).toBe(false);
+      expect(subjectSlotOf(sequenceAction)?.optional).toBe(false);
+    });
+
+    // Note: rendering (whether the realizer actually emits subject/topic
+    // tokens) is out of scope here — that's gated on
+    // `discourse.subjectRealization` by the Task 2 realizer, not tested by
+    // this fixture-data invariant suite.
   });
 
   it("keeps transfer variant IDs absent from the model set and their tuples absent from model tuples", () => {
