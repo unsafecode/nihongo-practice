@@ -78,13 +78,29 @@ export interface SpeechPromptCatalogEntry {
   readonly id: SpeechPromptId;
   readonly targetExampleId: ExampleId;
   /**
-   * The stable segment IDs of the target example a learner's spoken attempt is
-   * judged most critically on (design spec §12.3). Optional so lightweight
-   * validator fixtures need not enumerate segments; authored curriculum prompts
-   * always name at least one. This is semantic reference data only — it carries
-   * no recognition implementation (Slice D owns that).
+   * Additional shared examples whose spoken form is an accepted orthographic
+   * transcript variant of the target (design spec §12.3). Each must be an
+   * example the owning lesson already declares; an explicit, reviewable list —
+   * never an implicit fuzzy match. Empty when the target admits no declared
+   * variant. This is semantic reference data only; the pure evaluator resolves
+   * it (`src/course/speech`), and the browser recognizer is Slice D Task 2.
    */
-  readonly criticalSegmentIds?: readonly string[];
+  readonly acceptedTranscriptVariantExampleIds: readonly ExampleId[];
+  /**
+   * The stable segment IDs of the target example that a spoken attempt is
+   * compared against, in target order. Comparison covers every target segment
+   * so the canonical answer reconstructs from shared data rather than a copied
+   * literal (design spec §12.3).
+   */
+  readonly comparisonSegmentIds: readonly string[];
+  /**
+   * The subset of `comparisonSegmentIds` a learner's attempt is judged most
+   * critically on: every particle, tense/polarity ending, quantity, and
+   * lesson-target word/gear (design spec §12.3). Because the shared segment kind
+   * union cannot identify quantity/gear, these are derived from lesson/example
+   * semantic data, not from kind alone.
+   */
+  readonly criticalSegmentIds: readonly string[];
 }
 
 export interface PersonaCatalogEntry {
@@ -207,6 +223,15 @@ export type CurriculumValidationErrorCode =
   | "impossible-exercise-choice"
   | "invalid-exercise-count"
   | "missing-speech-prompt-reference"
+  | "missing-speech-segment-reference"
+  | "duplicate-speech-segment-reference"
+  | "critical-segment-not-compared"
+  | "empty-speech-comparison"
+  | "invalid-speech-segment-order"
+  | "speech-target-not-say-example"
+  | "missing-speech-variant-reference"
+  | "duplicate-speech-variant-reference"
+  | "speech-variant-not-in-lesson"
   | "prerequisite-not-earlier"
   | "prerequisite-cycle"
   | "invalid-phase-order"
@@ -250,4 +275,14 @@ export interface CurriculumValidationOptions {
    * gate turns it on once every lesson references its authored definitions.
    */
   readonly enforceExerciseTargets?: boolean;
+  /**
+   * Enforce the completeness of authored speech prompts (design spec §12.3,
+   * §17.1): non-empty comparison covering every target segment in order, a
+   * target that is the owning lesson's spoken `-say` example, and critical
+   * coverage. Independent of the other gates and defaulting to `false` so
+   * lightweight validator fixtures need not author full prompts; the release
+   * boundary (`assembleCourse`) turns it on so the release catalog fails closed.
+   * Reference-integrity checks on any populated prompt are always on.
+   */
+  readonly enforceSpeechTargets?: boolean;
 }

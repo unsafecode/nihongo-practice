@@ -516,6 +516,7 @@ export function assembleCourse(
   const result = validateCurriculum(catalogs, {
     enforceReleaseTargets: true,
     enforceExerciseTargets: true,
+    enforceSpeechTargets: true,
   });
   if (!result.valid) {
     throw new CourseAssemblyError(result.errors.map((error) => error.code));

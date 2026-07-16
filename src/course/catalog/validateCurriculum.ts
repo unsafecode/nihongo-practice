@@ -847,6 +847,153 @@ function addExerciseErrors(
   }
 }
 
+const SPOKEN_SUFFIX = "-say";
+
+/**
+ * Speech-prompt boundary validation (design spec §12.3, §17.1, Slice D plan
+ * Task 1). Reference-integrity checks on any populated prompt are always on so a
+ * malformed authored prompt fails the build: comparison/critical/variant
+ * references must resolve, be duplicate-free, keep critical within comparison,
+ * declare variants the owning lesson already shows, and list comparison segments
+ * in target order. Completeness checks — non-empty comparison covering every
+ * target segment, and a target that is the owning lesson's spoken `-say` example
+ * — are gated behind `enforceSpeechTargets` so lightweight fixtures stay valid
+ * while the release catalog (`assembleCourse`) fails closed.
+ */
+function addSpeechErrors(
+  input: AssembledCurriculumCatalogs,
+  errors: CurriculumValidationError[],
+  enforceSpeechTargets: boolean,
+): void {
+  const examplesById = new Map(
+    input.examples.map((example) => [example.id, example]),
+  );
+  const lessonByPromptId = new Map(
+    input.lessons.map((lesson) => [lesson.speechPromptId, lesson]),
+  );
+
+  for (const prompt of input.speechPrompts) {
+    const target = examplesById.get(prompt.targetExampleId);
+    const targetSegmentIndex = new Map(
+      (target?.segments ?? []).map((segment, index) => [segment.id, index]),
+    );
+    const targetSegmentIds = (target?.segments ?? []).map(
+      (segment) => segment.id,
+    );
+    const comparison = prompt.comparisonSegmentIds;
+    const owningLesson = lessonByPromptId.get(prompt.id);
+    const lessonExampleIds = new Set(owningLesson?.exampleIds ?? []);
+
+    // Comparison references: existence, duplicates, and target ordering.
+    const seenComparison = new Set<string>();
+    let previousIndex = -1;
+    let orderBroken = false;
+    for (const segmentId of comparison) {
+      if (!targetSegmentIndex.has(segmentId)) {
+        errors.push({
+          code: "missing-speech-segment-reference",
+          id: prompt.id,
+          referenceId: segmentId,
+        });
+        continue;
+      }
+      if (seenComparison.has(segmentId)) {
+        errors.push({
+          code: "duplicate-speech-segment-reference",
+          id: prompt.id,
+          referenceId: segmentId,
+        });
+      }
+      seenComparison.add(segmentId);
+      const index = targetSegmentIndex.get(segmentId) ?? -1;
+      if (index <= previousIndex) orderBroken = true;
+      previousIndex = index;
+    }
+    if (orderBroken) {
+      errors.push({ code: "invalid-speech-segment-order", id: prompt.id });
+    }
+
+    // Critical references: duplicates and containment within comparison.
+    const comparisonSet = new Set(comparison);
+    const seenCritical = new Set<string>();
+    for (const segmentId of prompt.criticalSegmentIds) {
+      if (seenCritical.has(segmentId)) {
+        errors.push({
+          code: "duplicate-speech-segment-reference",
+          id: prompt.id,
+          referenceId: segmentId,
+        });
+      }
+      seenCritical.add(segmentId);
+      if (!comparisonSet.has(segmentId)) {
+        errors.push({
+          code: "critical-segment-not-compared",
+          id: prompt.id,
+          referenceId: segmentId,
+        });
+      }
+    }
+
+    // Variant references: existence, duplicates, and lesson ownership.
+    const seenVariant = new Set<string>();
+    for (const variantId of prompt.acceptedTranscriptVariantExampleIds) {
+      if (!examplesById.has(variantId)) {
+        errors.push({
+          code: "missing-speech-variant-reference",
+          id: prompt.id,
+          referenceId: variantId,
+        });
+      }
+      if (seenVariant.has(variantId)) {
+        errors.push({
+          code: "duplicate-speech-variant-reference",
+          id: prompt.id,
+          referenceId: variantId,
+        });
+      }
+      seenVariant.add(variantId);
+      if (
+        owningLesson !== undefined &&
+        examplesById.has(variantId) &&
+        !lessonExampleIds.has(variantId)
+      ) {
+        errors.push({
+          code: "speech-variant-not-in-lesson",
+          id: prompt.id,
+          referenceId: variantId,
+        });
+      }
+    }
+
+    if (!enforceSpeechTargets) continue;
+
+    // Release completeness: non-empty comparison covering every target segment
+    // in order, and a target that is the owning lesson's spoken example.
+    if (comparison.length === 0) {
+      errors.push({ code: "empty-speech-comparison", id: prompt.id });
+    } else {
+      const coversAllInOrder =
+        comparison.length === targetSegmentIds.length &&
+        comparison.every((segmentId, index) => segmentId === targetSegmentIds[index]);
+      if (!coversAllInOrder) {
+        errors.push({ code: "invalid-speech-segment-order", id: prompt.id });
+      }
+    }
+    if (owningLesson !== undefined) {
+      const sayExampleId = owningLesson.exampleIds.find((exampleId) =>
+        exampleId.endsWith(SPOKEN_SUFFIX),
+      );
+      if (prompt.targetExampleId !== sayExampleId) {
+        errors.push({
+          code: "speech-target-not-say-example",
+          id: prompt.id,
+          referenceId: prompt.targetExampleId,
+        });
+      }
+    }
+  }
+}
+
 function addCoverageErrors(
   input: AssembledCurriculumCatalogs,
   coverage: ComputedCoverage,
@@ -953,6 +1100,7 @@ export function validateCurriculum(
   validateLocaleKeys(input, errors);
   addOrderAndScriptErrors(input, lessons, errors);
   addExerciseErrors(input, lessons, errors, options.enforceExerciseTargets ?? false);
+  addSpeechErrors(input, errors, options.enforceSpeechTargets ?? false);
 
   const { coverage } = computeCoverage(input, modules, lessons);
   addCoverageErrors(

@@ -1,33 +1,63 @@
+import { genericPersonas } from "../data/personas";
+import { normalizeTranscript } from "../speech/normalizeTranscript";
 import { curriculumExamples } from "./examples";
+import type { CurriculumExampleSegment } from "./examples";
 import type { SpeechPromptCatalogEntry, SpeechPromptId } from "./types";
 
 /**
  * The curriculum speech-prompt catalog (design spec §5.3 spoken-attempt step,
- * §12.3 and Slice B plan Task 3 step 4). Exactly one prompt per lesson, each
- * targeting that lesson's spoken example (the `-say` example) and naming the
- * critical segments a learner's attempt is judged on.
+ * §12.3 and Slice D plan Task 1). Exactly one prompt per lesson, each targeting
+ * that lesson's spoken example (the `-say` example) and derived entirely from
+ * the shared example catalog so it can never drift from the sentence a lesson
+ * actually shows.
  *
- * This file owns references only: target example ID and critical segment IDs.
- * It carries no recognition implementation and stores no transcripts — Slice D
- * owns the recognizer. The prompt set is derived from the shared example
- * catalog so it can never drift from the sentences a lesson actually shows.
+ * This file owns references only: the target example ID, the ordered comparison
+ * segment IDs (covering every target segment), the critical segment IDs, and any
+ * accepted orthographic transcript-variant example IDs. It stores no transcript
+ * and carries no recognition implementation — the pure evaluator lives in
+ * `src/course/speech` and the browser recognizer is Slice D Task 2.
  */
 
 const SPOKEN_SUFFIX = "-say";
 
+/** Persona given names are example fillers, never a lesson's target vocabulary. */
+const PERSONA_NAMES: ReadonlySet<string> = new Set(
+  genericPersonas.map((persona) => persona.japaneseName),
+);
+
+/** A segment folds to empty comparable text iff it is punctuation only. */
+function hasComparableText(segment: CurriculumExampleSegment): boolean {
+  return normalizeTranscript(segment.jp).comparable.length > 0;
+}
+
 /**
- * The grammar-bearing segments of a spoken target: its particles and predicate
- * endings. These are the parts a beginner most easily drops or mispronounces,
- * so they are the sensible focus for a scored attempt. Single-word greetings
- * and loanwords (no particle/ending) fall back to the whole utterance.
+ * The comparison segments cover the target in order so the canonical answer
+ * reconstructs from shared data — never a copied literal (design spec §12.3).
+ */
+function comparisonSegmentIdsFor(
+  segments: readonly CurriculumExampleSegment[],
+): readonly string[] {
+  return segments.map((segment) => segment.id);
+}
+
+/**
+ * The critical segments a spoken attempt is judged most critically on. Every
+ * grammar-bearing particle and predicate ending is critical (from kind), and
+ * every content word that is not persona filler is critical too — that content
+ * set carries the lesson's target vocabulary, quantities, and gear, which the
+ * `word` kind alone cannot distinguish from a persona name. Punctuation-only
+ * segments (sentence breaks) are never critical.
  */
 function criticalSegmentIdsFor(
-  segments: { readonly id: string; readonly kind: string }[],
+  segments: readonly CurriculumExampleSegment[],
 ): readonly string[] {
-  const grammar = segments
-    .filter((segment) => segment.kind === "particle" || segment.kind === "ending")
+  return segments
+    .filter((segment) => {
+      if (!hasComparableText(segment)) return false;
+      if (segment.kind === "particle" || segment.kind === "ending") return true;
+      return !PERSONA_NAMES.has(segment.jp);
+    })
     .map((segment) => segment.id);
-  return grammar.length > 0 ? grammar : segments.map((segment) => segment.id);
 }
 
 /** The lesson ID a `-say` example belongs to (its ID without the suffix). */
@@ -50,8 +80,12 @@ export const speechPrompts: readonly SpeechPromptCatalogEntry[] = Object.freeze(
     Object.freeze({
       id: speechPromptIdForLesson(lessonIdForSpokenExample(example.id)),
       targetExampleId: example.id,
+      acceptedTranscriptVariantExampleIds: Object.freeze([]),
+      comparisonSegmentIds: Object.freeze(
+        comparisonSegmentIdsFor(example.segments),
+      ),
       criticalSegmentIds: Object.freeze(
-        criticalSegmentIdsFor([...example.segments]),
+        criticalSegmentIdsFor(example.segments),
       ),
     }),
   ),

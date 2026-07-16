@@ -131,6 +131,16 @@ describe("computed coverage equals the Slice A foundation (spec §6.2)", () => {
     expect(result.valid).toBe(true);
   });
 
+  it("validates clean with speech targets fully enforced (release gate)", () => {
+    const enforced = validateCurriculum(assembledCurriculum, {
+      enforceReleaseTargets: true,
+      enforceExerciseTargets: true,
+      enforceSpeechTargets: true,
+    });
+    expect(enforced.errors).toEqual([]);
+    expect(enforced.valid).toBe(true);
+  });
+
   it("matches every module lesson/verb/vocabulary budget", () => {
     for (const foundationModule of curriculumFoundation.modules) {
       const coverage = result.coverage.moduleCoverage[foundationModule.id];
@@ -516,7 +526,7 @@ describe("shared examples and speech prompts (spec §5.3, §9.1)", () => {
     }
   });
 
-  it("provides exactly one valid speech prompt per lesson", () => {
+  it("provides exactly one complete speech prompt per lesson", () => {
     expect(speechPrompts).toHaveLength(curriculumLessons.length);
     const promptIds = new Set(speechPrompts.map((prompt) => prompt.id));
     expect(promptIds.size).toBe(speechPrompts.length);
@@ -527,16 +537,78 @@ describe("shared examples and speech prompts (spec §5.3, §9.1)", () => {
       expect(prompt).toBeDefined();
       if (!prompt) continue;
       expect(lesson.exampleIds).toContain(prompt.targetExampleId);
+      // The prompt targets the lesson's spoken (`-say`) example only.
+      expect(prompt.targetExampleId).toBe(`${lesson.id}-say`);
       const example = curriculumExamplesById.get(prompt.targetExampleId);
       expect(example).toBeDefined();
-      const segmentIds = new Set(
-        (example?.segments ?? []).map((segment) => segment.id),
+      const orderedSegmentIds = (example?.segments ?? []).map(
+        (segment) => segment.id,
       );
-      expect(prompt.criticalSegmentIds?.length).toBeGreaterThan(0);
-      for (const segmentId of prompt.criticalSegmentIds ?? []) {
-        expect(segmentIds.has(segmentId)).toBe(true);
+      // Comparison covers every target segment in order (no copied literal).
+      expect(prompt.comparisonSegmentIds).toEqual(orderedSegmentIds);
+      // Critical is a non-empty subset of comparison.
+      const comparisonSet = new Set(prompt.comparisonSegmentIds);
+      expect(prompt.criticalSegmentIds.length).toBeGreaterThan(0);
+      for (const segmentId of prompt.criticalSegmentIds) {
+        expect(comparisonSet.has(segmentId)).toBe(true);
+      }
+      // Declared transcript variants are examples the lesson already shows.
+      for (const variantId of prompt.acceptedTranscriptVariantExampleIds) {
+        expect(lesson.exampleIds).toContain(variantId);
       }
     }
+  });
+
+  it("derives meaningful critical coverage from semantics, not segment kind alone", () => {
+    const personaNames = new Set<string>(
+      genericPersonas.map((persona) => persona.japaneseName),
+    );
+    for (const prompt of speechPrompts) {
+      const example = curriculumExamplesById.get(prompt.targetExampleId);
+      expect(example).toBeDefined();
+      if (!example) continue;
+      const criticalIds = new Set(prompt.criticalSegmentIds);
+      let contentWordCovered = false;
+      for (const segment of example.segments) {
+        const isPunctuationOnly = segment.jp === "。";
+        if (segment.kind === "particle" || segment.kind === "ending") {
+          // Every grammar-bearing particle and ending is critical.
+          expect(criticalIds.has(segment.id)).toBe(true);
+        } else if (isPunctuationOnly) {
+          // Sentence breaks are never critical.
+          expect(criticalIds.has(segment.id)).toBe(false);
+        } else if (personaNames.has(segment.jp)) {
+          // Persona filler names are excluded — semantic data, not kind.
+          expect(criticalIds.has(segment.id)).toBe(false);
+        } else {
+          // Lesson-target content words are critical.
+          expect(criticalIds.has(segment.id)).toBe(true);
+          contentWordCovered = true;
+        }
+      }
+      // Coverage always reaches beyond grammar to at least one content word.
+      expect(contentWordCovered).toBe(true);
+    }
+  });
+
+  it("excludes a persona filler name from critical coverage (semantic, not kind)", () => {
+    // introductions-1-say is わたしのなまえはゆきです — the persona name ゆき is a
+    // `word` segment that a kind-only rule would wrongly mark critical.
+    const prompt = speechPrompts.find(
+      (entry) => entry.id === "speech-introductions-1",
+    );
+    expect(prompt).toBeDefined();
+    const example = curriculumExamplesById.get("introductions-1-say");
+    const personaSegment = (example?.segments ?? []).find(
+      (segment) => segment.jp === "ゆき",
+    );
+    expect(personaSegment).toBeDefined();
+    expect(prompt?.criticalSegmentIds).not.toContain(personaSegment?.id);
+    // The grammar and non-persona content words remain critical.
+    const particle = (example?.segments ?? []).find(
+      (segment) => segment.jp === "は",
+    );
+    expect(prompt?.criticalSegmentIds).toContain(particle?.id);
   });
 });
 

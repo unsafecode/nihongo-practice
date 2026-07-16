@@ -62,7 +62,15 @@ const input = (
       assessedLexemeIds: ["iku"],
     },
   ],
-  speechPrompts: [{ id: "speech-1", targetExampleId: "example-1" }],
+  speechPrompts: [
+    {
+      id: "speech-1",
+      targetExampleId: "example-1",
+      acceptedTranscriptVariantExampleIds: [],
+      comparisonSegmentIds: [],
+      criticalSegmentIds: [],
+    },
+  ],
   personas: [],
   modules: [
     {
@@ -148,6 +156,9 @@ const aggregateReuseCatalog = (
     speechPrompts: lessons.map((entry) => ({
       id: entry.speechPromptId,
       targetExampleId: entry.exampleIds[0],
+      acceptedTranscriptVariantExampleIds: [],
+      comparisonSegmentIds: [],
+      criticalSegmentIds: [],
     })),
     personas: [],
     modules,
@@ -1080,5 +1091,223 @@ describe("validateCurriculum exercise definitions (Slice C Task 1)", () => {
         ].includes(error.code),
       ),
     ).toEqual([]);
+  });
+});
+
+// ── Speech prompt validation (design spec §12.3, Slice D plan Task 1) ─────────
+
+const sayExample = exampleWithSegments(
+  "lesson-1-say",
+  [
+    segment("w1", "みず", "word"),
+    segment("p1", "を", "particle"),
+    segment("w2", "のみ", "word"),
+    segment("e1", "ます", "ending"),
+  ],
+  ["iku"],
+  ["topic-wa"],
+);
+
+const otherExample = exampleWithSegments(
+  "other-say",
+  [segment("w1", "ほん", "word"), segment("e1", "です", "ending")],
+  ["iku"],
+  ["topic-wa"],
+);
+
+/**
+ * A catalog whose single lesson owns a segmented spoken (`-say`) example, so a
+ * speech prompt can reference real target segments. Callers override the prompt
+ * fields under test and pick the validation options (staged vs. always-on).
+ */
+const speechInput = (
+  promptOverrides: Record<string, unknown>,
+  extraExamples: readonly unknown[] = [],
+) =>
+  input({
+    examples: [
+      { id: "example-1", lexemeIds: ["iku"], conceptIds: ["topic-wa"] },
+      sayExample,
+      ...(extraExamples as never[]),
+    ],
+    lessons: [
+      lesson({
+        speechPromptId: "speech-lesson-1",
+        exampleIds: ["example-1", "lesson-1-say"],
+      }),
+    ],
+    speechPrompts: [
+      {
+        id: "speech-lesson-1",
+        targetExampleId: "lesson-1-say",
+        acceptedTranscriptVariantExampleIds: [],
+        comparisonSegmentIds: ["w1", "p1", "w2", "e1"],
+        criticalSegmentIds: ["p1", "e1"],
+        ...promptOverrides,
+      },
+    ],
+  } as never);
+
+const speechCodes = (
+  result: ReturnType<typeof validateCurriculum>,
+  code: string,
+) => result.errors.filter((error) => error.code === code);
+
+describe("validateCurriculum speech prompts (Slice D Task 1)", () => {
+  it("accepts a fully authored prompt under enforceSpeechTargets", () => {
+    const result = validateCurriculum(speechInput({}), {
+      enforceReleaseTargets: false,
+      enforceSpeechTargets: true,
+    });
+    const speechErrors = result.errors.filter(
+      (error) =>
+        error.code.includes("speech") || error.code.includes("segment"),
+    );
+    expect(speechErrors).toEqual([]);
+  });
+
+  it("rejects a comparison segment that is not in the target example", () => {
+    const result = validateCurriculum(
+      speechInput({ comparisonSegmentIds: ["w1", "p1", "w2", "e1", "ghost"] }),
+      localValidation,
+    );
+    expect(
+      speechCodes(result, "missing-speech-segment-reference"),
+    ).toContainEqual(
+      expect.objectContaining({
+        code: "missing-speech-segment-reference",
+        id: "speech-lesson-1",
+        referenceId: "ghost",
+      }),
+    );
+  });
+
+  it("rejects a duplicate comparison segment reference", () => {
+    const result = validateCurriculum(
+      speechInput({ comparisonSegmentIds: ["w1", "p1", "w2", "e1", "e1"] }),
+      localValidation,
+    );
+    expect(
+      speechCodes(result, "duplicate-speech-segment-reference"),
+    ).toContainEqual(
+      expect.objectContaining({ referenceId: "e1", id: "speech-lesson-1" }),
+    );
+  });
+
+  it("rejects a critical segment that is not among the comparison segments", () => {
+    const result = validateCurriculum(
+      speechInput({
+        comparisonSegmentIds: ["p1", "w2", "e1"],
+        criticalSegmentIds: ["p1", "w1"],
+      }),
+      localValidation,
+    );
+    expect(speechCodes(result, "critical-segment-not-compared")).toContainEqual(
+      expect.objectContaining({ referenceId: "w1", id: "speech-lesson-1" }),
+    );
+  });
+
+  it("rejects comparison segments that are out of target order", () => {
+    const result = validateCurriculum(
+      speechInput({ comparisonSegmentIds: ["p1", "w1", "w2", "e1"] }),
+      localValidation,
+    );
+    expect(speechCodes(result, "invalid-speech-segment-order")).not.toHaveLength(
+      0,
+    );
+  });
+
+  it("rejects a transcript variant example that does not exist", () => {
+    const result = validateCurriculum(
+      speechInput({ acceptedTranscriptVariantExampleIds: ["ghost-say"] }),
+      localValidation,
+    );
+    expect(
+      speechCodes(result, "missing-speech-variant-reference"),
+    ).toContainEqual(
+      expect.objectContaining({
+        referenceId: "ghost-say",
+        id: "speech-lesson-1",
+      }),
+    );
+  });
+
+  it("rejects a duplicate transcript variant reference", () => {
+    const result = validateCurriculum(
+      speechInput({
+        acceptedTranscriptVariantExampleIds: ["example-1", "example-1"],
+      }),
+      localValidation,
+    );
+    expect(
+      speechCodes(result, "duplicate-speech-variant-reference"),
+    ).toContainEqual(expect.objectContaining({ referenceId: "example-1" }));
+  });
+
+  it("rejects a transcript variant not declared by the owning lesson", () => {
+    const result = validateCurriculum(
+      speechInput({ acceptedTranscriptVariantExampleIds: ["other-say"] }, [
+        otherExample,
+      ]),
+      localValidation,
+    );
+    expect(speechCodes(result, "speech-variant-not-in-lesson")).toContainEqual(
+      expect.objectContaining({
+        referenceId: "other-say",
+        id: "speech-lesson-1",
+      }),
+    );
+    expect(
+      speechCodes(result, "missing-speech-variant-reference"),
+    ).toHaveLength(0);
+  });
+
+  it("rejects an empty comparison only under enforceSpeechTargets", () => {
+    const enforced = validateCurriculum(
+      speechInput({ comparisonSegmentIds: [], criticalSegmentIds: [] }),
+      { enforceReleaseTargets: false, enforceSpeechTargets: true },
+    );
+    expect(speechCodes(enforced, "empty-speech-comparison")).toContainEqual(
+      expect.objectContaining({ id: "speech-lesson-1" }),
+    );
+
+    const staged = validateCurriculum(
+      speechInput({ comparisonSegmentIds: [], criticalSegmentIds: [] }),
+      localValidation,
+    );
+    expect(speechCodes(staged, "empty-speech-comparison")).toHaveLength(0);
+  });
+
+  it("rejects a target that is not the owning lesson's -say example only under enforceSpeechTargets", () => {
+    const prompt = {
+      targetExampleId: "example-1",
+      comparisonSegmentIds: [],
+      criticalSegmentIds: [],
+    };
+    const enforced = validateCurriculum(speechInput(prompt), {
+      enforceReleaseTargets: false,
+      enforceSpeechTargets: true,
+    });
+    expect(
+      speechCodes(enforced, "speech-target-not-say-example"),
+    ).toContainEqual(expect.objectContaining({ id: "speech-lesson-1" }));
+
+    const staged = validateCurriculum(speechInput(prompt), localValidation);
+    expect(speechCodes(staged, "speech-target-not-say-example")).toHaveLength(
+      0,
+    );
+  });
+
+  it("requires the comparison to cover every target segment under enforceSpeechTargets", () => {
+    const result = validateCurriculum(
+      speechInput({
+        comparisonSegmentIds: ["w1", "p1", "w2"],
+        criticalSegmentIds: ["p1"],
+      }),
+      { enforceReleaseTargets: false, enforceSpeechTargets: true },
+    );
+    expect(speechCodes(result, "invalid-speech-segment-order")).not.toHaveLength(
+      0,
+    );
   });
 });
