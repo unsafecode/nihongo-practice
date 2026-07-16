@@ -1,5 +1,10 @@
 import type { SemanticIconId } from "../../components/icons/Icon";
 import type { LabSelection } from "../../content/types";
+import type {
+  RomajiBoundaryBefore,
+  RomajiTokenKind,
+  TokenSourceRef,
+} from "../../romaji/types";
 import type { LessonSectionId } from "../../routing/lessonSections";
 import type { SyllabaryGroupId } from "../../syllabary/groups";
 
@@ -105,7 +110,7 @@ export const CONCEPT_GEARS: Record<CourseConceptId, readonly string[]> = {
   "with-to": ["と"],
   "desire-tai": ["たいです", "たい"],
   "volitional-mashou": ["ましょう"],
-  "offer-mashouka": ["ましょうか"],
+  "offer-mashouka": ["ましょうか", "ましょう", "か"],
   "question-ka": ["か"],
   "subject-ga": ["が"],
   "existence-arimasu": ["あります", "あり"],
@@ -122,7 +127,10 @@ export interface ExampleSegment {
   id?: string;
   jp: string;
   romaji: string;
-  kind: "word" | "particle" | "ending";
+  kind: "word" | "particle" | "ending" | "punctuation";
+  tokenKind?: RomajiTokenKind;
+  boundaryBefore?: RomajiBoundaryBefore;
+  source?: TokenSourceRef;
   /**
    * Optional hiragana reading shown as ruby over a katakana loanword at its
    * first course exposure (design spec §8.3, Task C). Locale-independent: the

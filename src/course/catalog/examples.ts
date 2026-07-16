@@ -1,3 +1,4 @@
+import type { RomajiBoundaryBefore } from "../../romaji/types";
 import { personasById } from "../data/personas";
 import type {
   ConceptId,
@@ -24,11 +25,12 @@ import type {
  * prompt can name the exact critical segments without duplicating the string.
  */
 
-type SegmentKind = "word" | "particle" | "ending";
+type SegmentKind = "word" | "particle" | "ending" | "punctuation";
 
 interface RawSegment {
   readonly jp: string;
   readonly kind: SegmentKind;
+  readonly boundaryBefore?: RomajiBoundaryBefore;
   readonly reading?: string;
 }
 
@@ -50,8 +52,18 @@ export interface CurriculumExampleEntry extends ExampleCatalogEntry {
 const w = (jp: string): RawSegment => ({ jp, kind: "word" });
 /** A grammatical particle segment (は, を, に, か, …). */
 const p = (jp: string): RawSegment => ({ jp, kind: "particle" });
-/** A predicate ending segment (です, ます, ました, ください, …). */
-const e = (jp: string): RawSegment => ({ jp, kind: "ending" });
+/** A predicate ending segment (ます, ました, たい, ません, …) that stays attached. */
+const e = (jp: string): RawSegment => ({
+  jp,
+  kind: "ending",
+  boundaryBefore: "attach",
+});
+/** A standalone predicate ending (です, ください) that keeps a visible space. */
+const standalonePredicate = (jp: string): RawSegment => ({
+  jp,
+  kind: "ending",
+  boundaryBefore: "space",
+});
 /** A katakana loanword word carrying its hiragana reading for assistance. */
 const k = (jp: string, reading: string): RawSegment => ({
   jp,
@@ -59,7 +71,11 @@ const k = (jp: string, reading: string): RawSegment => ({
   reading,
 });
 /** A sentence break inside a multi-clause recombination example. */
-const stop = (): RawSegment => ({ jp: "。", kind: "word" });
+const stop = (): RawSegment => ({
+  jp: "。",
+  kind: "punctuation",
+  boundaryBefore: "attach",
+});
 
 const YUKI = personasById.yuki.japaneseName;
 const KEN = personasById.ken.japaneseName;
@@ -75,11 +91,13 @@ function example(
     word: 0,
     particle: 0,
     ending: 0,
+    punctuation: 0,
   };
   const abbrev: Record<SegmentKind, string> = {
     word: "w",
     particle: "p",
     ending: "e",
+    punctuation: "x",
   };
   const withIds = segments.map((segment) => {
     counters[segment.kind] += 1;
@@ -129,43 +147,43 @@ const list: readonly CurriculumExampleEntry[] = [
   // ── Module 2 · Introducing oneself ─────────────────────────────────────────
   example(
     "introductions-1-base",
-    [w("わたし"), p("は"), w("がくせい"), e("です")],
+    [w("わたし"), p("は"), w("がくせい"), standalonePredicate("です")],
     ["i", "student"],
     ["sentence-order", "topic-wa", "copula-desu"],
   ),
   example(
     "introductions-1-changed",
-    [w("あなた"), p("は"), w("がくせい"), e("です")],
+    [w("あなた"), p("は"), w("がくせい"), standalonePredicate("です")],
     ["you", "student"],
     ["topic-wa", "copula-desu"],
   ),
   example(
     "introductions-1-say",
-    [w("わたし"), p("の"), w("なまえ"), p("は"), w(YUKI), e("です")],
+    [w("わたし"), p("の"), w("なまえ"), p("は"), w(YUKI), standalonePredicate("です")],
     ["i", "name"],
     ["topic-wa", "copula-desu"],
   ),
   example(
     "introductions-1-r1",
-    [w("しゅっしん"), p("は"), w("にほん"), e("です")],
+    [w("しゅっしん"), p("は"), w("にほん"), standalonePredicate("です")],
     ["origin", "japan"],
     ["topic-wa", "copula-desu"],
   ),
   example(
     "introductions-1-r2",
-    [w(MINA), p("は"), w("にほんご"), p("の"), w("せんせい"), e("です")],
+    [w(MINA), p("は"), w("にほんご"), p("の"), w("せんせい"), standalonePredicate("です")],
     ["japanese-language", "teacher"],
     ["topic-wa", "copula-desu"],
   ),
   example(
     "introductions-2-base",
-    [w("しゅっしん"), p("は"), k("イタリア", "いたりあ"), e("です")],
+    [w("しゅっしん"), p("は"), k("イタリア", "いたりあ"), standalonePredicate("です")],
     ["origin", "italy"],
     ["topic-wa", "copula-desu"],
   ),
   example(
     "introductions-2-changed",
-    [w("しゅっしん"), p("は"), k("アメリカ", "あめりか"), e("です")],
+    [w("しゅっしん"), p("は"), k("アメリカ", "あめりか"), standalonePredicate("です")],
     ["origin", "america"],
     ["topic-wa", "copula-desu"],
   ),
@@ -177,25 +195,25 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "introductions-2-r1",
-    [w("いしゃ"), e("です")],
+    [w("いしゃ"), standalonePredicate("です")],
     ["doctor"],
     ["topic-omission", "copula-desu"],
   ),
   example(
     "introductions-2-r2",
-    [w(KEN), p("は"), w("かいしゃいん"), e("です")],
+    [w(KEN), p("は"), w("かいしゃいん"), standalonePredicate("です")],
     ["office-worker"],
     ["topic-wa", "copula-desu"],
   ),
   example(
     "introductions-2-r3",
-    [w("とし"), p("は"), w("にじゅうご"), w("さい"), e("です")],
+    [w("とし"), p("は"), w("にじゅうご"), w("さい"), standalonePredicate("です")],
     ["age", "years-old"],
     ["topic-wa", "copula-desu"],
   ),
   example(
     "introductions-2-r4",
-    [w("くに"), p("は"), w("にほん"), e("です")],
+    [w("くに"), p("は"), w("にほん"), standalonePredicate("です")],
     ["country", "japan"],
     ["topic-wa", "copula-desu"],
   ),
@@ -239,25 +257,25 @@ const list: readonly CurriculumExampleEntry[] = [
   // ── Module 3 · Essential questions ─────────────────────────────────────────
   example(
     "essential-questions-1-base",
-    [w("これ"), p("は"), k("コーヒー", "こーひー"), e("です")],
+    [w("これ"), p("は"), k("コーヒー", "こーひー"), standalonePredicate("です")],
     ["this", "coffee"],
     ["demonstratives", "copula-desu"],
   ),
   example(
     "essential-questions-1-changed",
-    [w("これ"), p("は"), k("コーヒー", "こーひー"), e("です"), p("か")],
+    [w("これ"), p("は"), k("コーヒー", "こーひー"), standalonePredicate("です"), p("か")],
     ["this", "coffee"],
     ["demonstratives", "question-ka"],
   ),
   example(
     "essential-questions-1-say",
-    [w("その"), k("カメラ", "かめら"), p("は"), w("にほん"), p("の"), e("です"), p("か")],
+    [w("その"), k("カメラ", "かめら"), p("は"), w("にほん"), p("の"), standalonePredicate("です"), p("か")],
     ["that-n", "camera", "japan"],
     ["demonstratives", "question-ka"],
   ),
   example(
     "essential-questions-1-r1",
-    [w("わたし"), p("の"), k("カメラ", "かめら"), p("は"), w("どれ"), e("です"), p("か")],
+    [w("わたし"), p("の"), k("カメラ", "かめら"), p("は"), w("どれ"), standalonePredicate("です"), p("か")],
     ["i", "camera", "which"],
     ["demonstratives", "question-ka"],
   ),
@@ -269,13 +287,13 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "essential-questions-2-base",
-    [k("レストラン", "れすとらん"), p("は"), w("どこ"), e("です"), p("か")],
+    [k("レストラン", "れすとらん"), p("は"), w("どこ"), standalonePredicate("です"), p("か")],
     ["restaurant", "where"],
     ["question-words", "question-ka"],
   ),
   example(
     "essential-questions-2-changed",
-    [k("レストラン", "れすとらん"), p("は"), w("ここ"), e("です")],
+    [k("レストラン", "れすとらん"), p("は"), w("ここ"), standalonePredicate("です")],
     ["restaurant", "here"],
     ["question-words", "copula-desu"],
   ),
@@ -287,7 +305,7 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "essential-questions-2-r1",
-    [w("そこ"), p("は"), k("レストラン", "れすとらん"), e("です")],
+    [w("そこ"), p("は"), k("レストラン", "れすとらん"), standalonePredicate("です")],
     ["there", "restaurant"],
     ["question-words", "copula-desu"],
   ),
@@ -299,7 +317,7 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "essential-questions-2-r3",
-    [w("あれ"), p("は"), w("なに"), e("です"), p("か"), stop(), w("だれ"), p("の"), e("です"), p("か")],
+    [w("あれ"), p("は"), w("なに"), standalonePredicate("です"), p("か"), stop(), w("だれ"), p("の"), standalonePredicate("です"), p("か")],
     ["that-yonder", "what", "who"],
     ["question-words", "question-ka"],
   ),
@@ -317,19 +335,19 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "essential-questions-3-say",
-    [w("この"), k("コーヒー", "こーひー"), p("は"), w("いくら"), e("です"), p("か")],
+    [w("この"), k("コーヒー", "こーひー"), p("は"), w("いくら"), standalonePredicate("です"), p("か")],
     ["this-n", "coffee", "how-much"],
     ["demonstratives", "question-words", "question-ka"],
   ),
   example(
     "essential-questions-3-r1",
-    [k("コーヒー", "こーひー"), p("は"), w("いくつ"), e("です"), p("か")],
+    [k("コーヒー", "こーひー"), p("は"), w("いくつ"), standalonePredicate("です"), p("か")],
     ["coffee", "how-many"],
     ["question-words", "question-ka"],
   ),
   example(
     "essential-questions-3-r2",
-    [w("にほんご"), p("は"), w("どう"), e("です"), p("か")],
+    [w("にほんご"), p("は"), w("どう"), standalonePredicate("です"), p("か")],
     ["japanese-language", "how"],
     ["question-words", "question-ka"],
   ),
@@ -605,7 +623,7 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "past-negative-3-r1",
-    [w("こんしゅう"), p("と"), w("こんげつ"), p("は"), w("やすみ"), e("です"), stop(), w("らいげつ"), w("にほん"), p("へ"), w("いき"), e("ます"), stop(), w("ことし"), w("ともだち"), p("と"), w("あい"), e("ます")],
+    [w("こんしゅう"), p("と"), w("こんげつ"), p("は"), w("やすみ"), standalonePredicate("です"), stop(), w("らいげつ"), w("にほん"), p("へ"), w("いき"), e("ます"), stop(), w("ことし"), w("ともだち"), p("と"), w("あい"), e("ます")],
     ["this-week", "this-month", "day-off", "next-month", "japan", "go", "this-year", "friend", "meet"],
     ["topic-wa", "copula-desu", "direction-e", "companion-to"],
   ),
@@ -719,7 +737,7 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "places-4-say",
-    [w("えき"), p("は"), w("どこ"), e("です"), p("か")],
+    [w("えき"), p("は"), w("どこ"), standalonePredicate("です"), p("か")],
     ["station", "where"],
     ["question-words", "question-ka"],
   ),
@@ -733,13 +751,13 @@ const list: readonly CurriculumExampleEntry[] = [
   // ── Module 8 · People, family, and relationships ───────────────────────────
   example(
     "people-1-base",
-    [w("これ"), p("は"), w("わたし"), p("の"), w("かぞく"), e("です")],
+    [w("これ"), p("は"), w("わたし"), p("の"), w("かぞく"), standalonePredicate("です")],
     ["this", "i", "family"],
     ["demonstratives", "copula-desu"],
   ),
   example(
     "people-1-changed",
-    [w("この"), w("ひと"), p("は"), w("わたし"), p("の"), w("ちち"), e("です")],
+    [w("この"), w("ひと"), p("は"), w("わたし"), p("の"), w("ちち"), standalonePredicate("です")],
     ["this-n", "person", "i", "father"],
     ["demonstratives", "copula-desu"],
   ),
@@ -751,13 +769,13 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "people-1-r1",
-    [w("はは"), p("と"), w("あね"), p("と"), w("いもうと"), p("は"), w("かぞく"), e("です")],
+    [w("はは"), p("と"), w("あね"), p("と"), w("いもうと"), p("は"), w("かぞく"), standalonePredicate("です")],
     ["mother", "older-sister", "younger-sister", "family"],
     ["topic-wa", "copula-desu"],
   ),
   example(
     "people-1-r2",
-    [w("あに"), p("と"), w("おとうと"), p("は"), w("がくせい"), e("です")],
+    [w("あに"), p("と"), w("おとうと"), p("は"), w("がくせい"), standalonePredicate("です")],
     ["older-brother", "younger-brother", "student"],
     ["topic-wa", "copula-desu"],
   ),
@@ -787,7 +805,7 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "people-2-r1",
-    [w("これ"), p("は"), w("そふ"), p("と"), w("そぼ"), e("です")],
+    [w("これ"), p("は"), w("そふ"), p("と"), w("そぼ"), standalonePredicate("です")],
     ["grandfather", "grandmother"],
     ["demonstratives", "copula-desu"],
   ),
@@ -811,7 +829,7 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "people-3-changed",
-    [w("かばん"), p("を"), w("もち"), e("ましょうか")],
+    [w("かばん"), p("を"), w("もち"), e("ましょう"), p("か")],
     ["bag", "carry"],
     ["offer-mashouka", "object-o"],
   ),
@@ -823,13 +841,13 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "people-3-r1",
-    [w("かれ"), p("と"), w("かのじょ"), p("は"), w("ともだち"), e("です")],
+    [w("かれ"), p("と"), w("かのじょ"), p("は"), w("ともだち"), standalonePredicate("です")],
     ["he", "she", "friend"],
     ["topic-wa", "copula-desu"],
   ),
   example(
     "people-3-r2",
-    [w("おとこ"), p("の"), w("ひと"), p("と"), w("おんな"), p("の"), w("ひと"), p("は"), w("せんせい"), e("です")],
+    [w("おとこ"), p("の"), w("ひと"), p("と"), w("おんな"), p("の"), w("ひと"), p("は"), w("せんせい"), standalonePredicate("です")],
     ["man", "person", "woman", "teacher"],
     ["topic-wa", "copula-desu"],
   ),
@@ -843,13 +861,13 @@ const list: readonly CurriculumExampleEntry[] = [
   // ── Module 9 · Descriptions, preferences, and weather ──────────────────────
   example(
     "descriptions-1-base",
-    [w("おおきい"), w("いえ"), e("です")],
+    [w("おおきい"), w("いえ"), standalonePredicate("です")],
     ["big", "house"],
     ["i-adjective", "copula-desu"],
   ),
   example(
     "descriptions-1-changed",
-    [w("ちいさい"), w("いえ"), e("です")],
+    [w("ちいさい"), w("いえ"), standalonePredicate("です")],
     ["small", "house"],
     ["i-adjective", "copula-desu"],
   ),
@@ -867,55 +885,55 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "descriptions-1-r2",
-    [w("この"), w("ほん"), p("は"), w("おもしろい"), e("です")],
+    [w("この"), w("ほん"), p("は"), w("おもしろい"), standalonePredicate("です")],
     ["this-n", "book", "interesting"],
     ["i-adjective", "copula-desu"],
   ),
   example(
     "descriptions-1-r3",
-    [w("むずかしい"), w("しごと"), p("は"), w("たのしい"), e("です")],
+    [w("むずかしい"), w("しごと"), p("は"), w("たのしい"), standalonePredicate("です")],
     ["difficult", "job", "fun"],
     ["i-adjective", "copula-desu"],
   ),
   example(
     "descriptions-2-base",
-    [w("にほんご"), p("が"), w("すき"), e("です")],
+    [w("にほんご"), p("が"), w("すき"), standalonePredicate("です")],
     ["japanese-language", "like"],
     ["subject-ga", "na-adjective"],
   ),
   example(
     "descriptions-2-changed",
-    [w("えいが"), p("が"), w("きらい"), e("です")],
+    [w("えいが"), p("が"), w("きらい"), standalonePredicate("です")],
     ["movie", "dislike"],
     ["subject-ga", "na-adjective"],
   ),
   example(
     "descriptions-2-say",
-    [w("おんがく"), p("が"), w("すき"), e("です"), stop(), w("にほんご"), p("が"), w("じょうず"), e("です")],
+    [w("おんがく"), p("が"), w("すき"), standalonePredicate("です"), stop(), w("にほんご"), p("が"), w("じょうず"), standalonePredicate("です")],
     ["music", "like", "japanese-language", "good-at"],
     ["subject-ga", "na-adjective"],
   ),
   example(
     "descriptions-2-r1",
-    [w("この"), w("たべもの"), p("は"), w("おいしい"), e("です")],
+    [w("この"), w("たべもの"), p("は"), w("おいしい"), standalonePredicate("です")],
     ["this-n", "food", "delicious"],
     ["i-adjective", "copula-desu"],
   ),
   example(
     "descriptions-2-r2",
-    [w("きょう"), p("の"), w("てんき"), p("は"), w("いい"), e("です")],
+    [w("きょう"), p("の"), w("てんき"), p("は"), w("いい"), standalonePredicate("です")],
     ["today", "weather", "good"],
     ["i-adjective", "copula-desu"],
   ),
   example(
     "descriptions-3-base",
-    [w("でんしゃ"), p("より"), k("バス", "ばす"), p("が"), w("やすい"), e("です")],
+    [w("でんしゃ"), p("より"), k("バス", "ばす"), p("が"), w("やすい"), standalonePredicate("です")],
     ["train", "bus", "cheap"],
     ["comparison", "subject-ga"],
   ),
   example(
     "descriptions-3-changed",
-    [w("でんしゃ"), p("より"), k("バス", "ばす"), p("が"), w("たかい"), e("です")],
+    [w("でんしゃ"), p("より"), k("バス", "ばす"), p("が"), w("たかい"), standalonePredicate("です")],
     ["train", "bus", "expensive"],
     ["comparison", "subject-ga"],
   ),
@@ -927,7 +945,7 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "descriptions-3-r1",
-    [w("てんき"), p("が"), w("あつい"), e("です"), w("あめ"), p("と"), w("くもり")],
+    [w("てんき"), p("が"), w("あつい"), standalonePredicate("です"), w("あめ"), p("と"), w("くもり")],
     ["weather", "hot", "rain", "cloudy"],
     ["i-adjective", "subject-ga"],
   ),
@@ -939,13 +957,13 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "descriptions-3-r3",
-    [w("かんたん"), p("な"), w("しごと"), p("は"), w("たのしかった"), e("です")],
+    [w("かんたん"), p("な"), w("しごと"), p("は"), w("たのしかった"), standalonePredicate("です")],
     ["easy", "job", "fun"],
     ["na-adjective", "adjective-past"],
   ),
   example(
     "descriptions-3-r7",
-    [w("きのう"), p("は"), w("さむかった"), e("です")],
+    [w("きのう"), p("は"), w("さむかった"), standalonePredicate("です")],
     ["yesterday", "cold"],
     ["adjective-past"],
   ),
@@ -965,7 +983,7 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "shopping-1-say",
-    [w("この"), k("シャツ", "しゃつ"), p("は"), w("いくら"), e("です"), p("か")],
+    [w("この"), k("シャツ", "しゃつ"), p("は"), w("いくら"), standalonePredicate("です"), p("か")],
     ["shirt", "how-much"],
     ["demonstratives", "question-words"],
   ),
@@ -983,25 +1001,25 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "shopping-2-base",
-    [w("みず"), p("を"), e("ください")],
+    [w("みず"), p("を"), standalonePredicate("ください")],
     ["water"],
     ["request-kudasai", "object-o"],
   ),
   example(
     "shopping-2-changed",
-    [k("コーヒー", "こーひー"), p("を"), w("のみ"), e("たいです")],
+    [k("コーヒー", "こーひー"), p("を"), w("のみ"), e("たい"), standalonePredicate("です")],
     ["coffee", "drink"],
     ["desire-tai", "object-o"],
   ),
   example(
     "shopping-2-say",
-    [w("くだもの"), p("を"), w("かい"), e("たいです")],
+    [w("くだもの"), p("を"), w("かい"), e("たい"), standalonePredicate("です")],
     ["fruit", "buy"],
     ["desire-tai", "object-o"],
   ),
   example(
     "shopping-2-r1",
-    [w("おちゃ"), p("を"), w("はんぶん"), e("ください")],
+    [w("おちゃ"), p("を"), w("はんぶん"), standalonePredicate("ください")],
     ["tea", "half-portion"],
     ["request-kudasai", "object-o"],
   ),
@@ -1037,7 +1055,7 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "shopping-3-r2",
-    [w("ふく"), p("の"), w("ねだん"), p("は"), w("たかい"), e("です")],
+    [w("ふく"), p("の"), w("ねだん"), p("は"), w("たかい"), standalonePredicate("です")],
     ["clothes", "price", "expensive"],
     ["topic-wa", "i-adjective"],
   ),
@@ -1123,7 +1141,7 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "existence-needs-3-changed",
-    [w("みず"), p("が"), w("ほしい"), e("です")],
+    [w("みず"), p("が"), w("ほしい"), standalonePredicate("です")],
     ["water"],
     ["needs", "subject-ga"],
   ),
@@ -1361,13 +1379,13 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "descriptions-2-r4",
-    [w("きょう"), p("は"), w("いそがしい"), e("です")],
+    [w("きょう"), p("は"), w("いそがしい"), standalonePredicate("です")],
     ["today", "busy"],
     ["i-adjective", "copula-desu"],
   ),
   example(
     "descriptions-3-r6",
-    [w("この"), k("カメラ", "かめら"), p("は"), w("たかい"), e("です")],
+    [w("この"), k("カメラ", "かめら"), p("は"), w("たかい"), standalonePredicate("です")],
     ["camera", "expensive"],
     ["demonstratives", "i-adjective"],
   ),
@@ -1377,13 +1395,13 @@ const list: readonly CurriculumExampleEntry[] = [
   // bounded scenarios and introduce nothing new (spec §5.2).
   example(
     "capstones-orientation-base",
-    [w("わたし"), p("は"), w("にほんご"), p("の"), w("がくせい"), e("です")],
+    [w("わたし"), p("は"), w("にほんご"), p("の"), w("がくせい"), standalonePredicate("です")],
     ["i", "japanese-language", "student"],
     ["topic-wa", "copula-desu"],
   ),
   example(
     "capstones-orientation-changed",
-    [w("わたし"), p("は"), w("にほんご"), p("の"), w("がくせい"), e("です"), p("か")],
+    [w("わたし"), p("は"), w("にほんご"), p("の"), w("がくせい"), standalonePredicate("です"), p("か")],
     ["i", "japanese-language", "student"],
     ["topic-wa", "question-ka"],
   ),
@@ -1395,13 +1413,13 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "capstones-self-introduction-base",
-    [w("はじめまして"), w(YUKI), e("です")],
+    [w("はじめまして"), w(YUKI), standalonePredicate("です")],
     ["nice-to-meet-you"],
     ["copula-desu"],
   ),
   example(
     "capstones-self-introduction-changed",
-    [w("しゅっしん"), p("は"), k("イタリア", "いたりあ"), e("です"), stop(), w("にほんご"), p("を"), w("はなし"), e("ます")],
+    [w("しゅっしん"), p("は"), k("イタリア", "いたりあ"), standalonePredicate("です"), stop(), w("にほんご"), p("を"), w("はなし"), e("ます")],
     ["origin", "italy", "japanese-language", "speak"],
     ["topic-wa", "object-o"],
   ),
@@ -1425,7 +1443,7 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "capstones-self-introduction-r3",
-    [w("にほんご"), p("を"), w("べんきょうし"), e("たいです"), stop(), w("えいご"), p("は"), w("はなし"), e("ません")],
+    [w("にほんご"), p("を"), w("べんきょうし"), e("たい"), standalonePredicate("です"), stop(), w("えいご"), p("は"), w("はなし"), e("ません")],
     ["japanese-language", "study", "english-language", "speak"],
     ["desire-tai", "negative-masen", "object-o", "topic-wa"],
   ),
@@ -1467,13 +1485,13 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "capstones-everyday-outing-r4",
-    [w("でんしゃ"), p("は"), k("タクシー", "たくしー"), p("より"), w("やすい"), e("です"), stop(), w("えいが"), p("は"), w("たのしかった"), e("です")],
+    [w("でんしゃ"), p("は"), k("タクシー", "たくしー"), p("より"), w("やすい"), standalonePredicate("です"), stop(), w("えいが"), p("は"), w("たのしかった"), standalonePredicate("です")],
     ["train", "taxi", "cheap", "movie", "fun"],
     ["comparison", "adjective-past", "topic-wa"],
   ),
   example(
     "capstones-everyday-outing-r5",
-    [w("しゃしん"), p("を"), w("とり"), e("ましょうか")],
+    [w("しゃしん"), p("を"), w("とり"), e("ましょう"), p("か")],
     ["photo", "take"],
     ["offer-mashouka", "object-o"],
   ),
@@ -1515,7 +1533,7 @@ const list: readonly CurriculumExampleEntry[] = [
   ),
   example(
     "capstones-travel-day-r4",
-    [w("きっぷ"), p("を"), e("ください"), stop(), w("みち"), p("が"), w("わかり"), e("ませんでした")],
+    [w("きっぷ"), p("を"), standalonePredicate("ください"), stop(), w("みち"), p("が"), w("わかり"), e("ませんでした")],
     ["ticket", "road", "understand"],
     ["request-kudasai", "past-negative-masendeshita", "subject-ga"],
   ),

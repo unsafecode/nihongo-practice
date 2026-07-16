@@ -591,6 +591,26 @@ describe("shared examples and speech prompts (spec §5.3, §9.1)", () => {
     }
   });
 
+  it("authors split predicate boundaries and punctuation as stable shared segments", () => {
+    expect(
+      curriculumExamplesById.get("shopping-2-say")?.segments.map(
+        (segment) => segment.jp,
+      ),
+    ).toEqual(["くだもの", "を", "かい", "たい", "です"]);
+    expect(
+      curriculumExamplesById.get("people-3-changed")?.segments.map(
+        (segment) => segment.jp,
+      ),
+    ).toEqual(["かばん", "を", "もち", "ましょう", "か"]);
+    expect(
+      curriculumExamplesById
+        .get("descriptions-2-say")
+        ?.segments.some(
+          (segment) => segment.kind === "punctuation" && segment.jp === "。",
+        ),
+    ).toBe(true);
+  });
+
   it("excludes a persona filler name from critical coverage (semantic, not kind)", () => {
     // introductions-1-say is わたしのなまえはゆきです — the persona name ゆき is a
     // `word` segment that a kind-only rule would wrongly mark critical.

@@ -38,7 +38,7 @@ export interface SpokenSegmentView {
   readonly romaji: string;
   /** Hiragana reading for an assisted katakana loanword (ruby), when present. */
   readonly reading?: string;
-  readonly kind: "word" | "particle" | "ending";
+  readonly kind: "word" | "particle" | "ending" | "punctuation";
   /** Whether this comparison segment is one of the prompt's critical segments. */
   readonly critical: boolean;
 }

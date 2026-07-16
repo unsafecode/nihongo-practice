@@ -2,6 +2,11 @@ import type { SemanticIconId } from "../../components/icons/Icon";
 import { lessonPath } from "../../routing/routePaths";
 import type { SyllabaryGroupId } from "../../syllabary/groups";
 import { DAKUTEN, GOJUON, YOON } from "../../syllabary/kana";
+import {
+  boundaryBefore,
+  formatRomaji,
+} from "../../romaji/formatRomaji";
+import type { AssembledToken, RomajiTokenKind } from "../../romaji/types";
 import type {
   BlockCopy,
   CourseCopy,
@@ -134,20 +139,52 @@ function segmentRomaji(segment: {
   return kanaToRomaji(segment.reading ?? segment.jp);
 }
 
+function semanticKind(
+  kind: CurriculumExampleEntry["segments"][number]["kind"],
+): RomajiTokenKind {
+  if (kind === "particle") return "particle";
+  if (kind === "ending") return "morpheme";
+  if (kind === "punctuation") return "punctuation";
+  return "lexical";
+}
+
 // ── Runtime example adapter (no duplicated Japanese) ──────────────────────────
 
 function toRuntimeExample(entry: CurriculumExampleEntry): StaticExample {
-  const segments: ExampleSegment[] = entry.segments.map((segment) => ({
-    id: segment.id,
-    jp: segment.jp,
-    romaji: segmentRomaji(segment),
+  const tokens: AssembledToken[] = entry.segments.map((segment, index) => {
+    const tokenKind = semanticKind(segment.kind);
+    return {
+      id: segment.id,
+      jp: segment.jp,
+      romaji: segmentRomaji(segment),
+      kind: tokenKind,
+      boundaryBefore: boundaryBefore(
+        tokenKind,
+        index,
+        segment.boundaryBefore,
+      ),
+      source: {
+        domain: "catalog",
+        referenceId: `${entry.id}#${segment.id}`,
+      },
+      ...(segment.reading ? { reading: segment.reading } : {}),
+    };
+  });
+  const segments: ExampleSegment[] = entry.segments.map((segment, index) => ({
+    ...tokens[index],
     kind: segment.kind,
-    ...(segment.reading ? { reading: segment.reading } : {}),
+    tokenKind: tokens[index].kind,
   }));
+  const formatted = formatRomaji(tokens);
+  if (!formatted.ok) {
+    throw new CourseAssemblyError(
+      formatted.errors.map((error) => `romaji:${entry.id}:${error.code}`),
+    );
+  }
   return {
     id: entry.id,
     jp: segments.map((segment) => segment.jp).join(""),
-    romaji: segments.map((segment) => segment.romaji).join(""),
+    romaji: formatted.text,
     segments,
   };
 }

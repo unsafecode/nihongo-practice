@@ -175,7 +175,7 @@ const CONCEPTS = [
   {
     id: "offer-mashouka",
     prerequisiteIds: ["polite-masu"],
-    surfaceGears: ["ましょうか"],
+    surfaceGears: ["ましょうか", "ましょう", "か"],
   },
   // — Existence, position, and needs —
   {

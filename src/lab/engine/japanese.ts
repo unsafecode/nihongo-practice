@@ -6,6 +6,8 @@ import type {
   SemanticRole,
   TimeOption,
 } from "../../content/types";
+import { boundaryBefore } from "../../romaji/formatRomaji";
+import type { AssembledToken } from "../../romaji/types";
 import { assembleJP, type Assembled, type Segment } from "./assemble";
 import { conjugate } from "./conjugate";
 
@@ -32,7 +34,22 @@ export interface JapaneseSentenceModel {
   scenario: Scenario;
   time: TimeOption;
   parts: JapaneseSentencePart[];
+  tokens: readonly AssembledToken[];
   sentence: Assembled;
+}
+
+function labSource(referenceId: string) {
+  return { domain: "lab" as const, referenceId };
+}
+
+function pushToken(
+  tokens: AssembledToken[],
+  token: Omit<AssembledToken, "boundaryBefore">,
+): void {
+  tokens.push({
+    ...token,
+    boundaryBefore: boundaryBefore(token.kind, tokens.length),
+  });
 }
 
 export function buildJapaneseSentence(
@@ -49,12 +66,20 @@ export function buildJapaneseSentence(
 
   const conjugation = conjugate(scenario.verb, selection.form);
   const parts: JapaneseSentencePart[] = [];
+  const tokens: AssembledToken[] = [];
   if (time.jp) {
     parts.push({
       id: "time",
       kind: "time",
       jp: time.jp,
       romaji: time.romaji,
+    });
+    pushToken(tokens, {
+      id: "time",
+      jp: time.jp,
+      romaji: time.romaji,
+      kind: "lexical",
+      source: labSource(`time:${time.id}`),
     });
   }
   for (const { slot, conceptId } of selected) {
@@ -66,6 +91,20 @@ export function buildJapaneseSentence(
       romaji: concept.romaji,
       semanticRole: slot.semanticRole,
       particle: { ...slot.particle, kind: "particle" },
+    });
+    pushToken(tokens, {
+      id: `${slot.id}-word`,
+      jp: concept.jp,
+      romaji: concept.romaji,
+      kind: "lexical",
+      source: labSource(`slot:${slot.id}:${conceptId}`),
+    });
+    pushToken(tokens, {
+      id: `${slot.id}-particle`,
+      jp: slot.particle.jp,
+      romaji: slot.particle.romaji,
+      kind: "particle",
+      source: labSource(`slot:${slot.id}:particle`),
     });
   }
   parts.push({
@@ -79,6 +118,20 @@ export function buildJapaneseSentence(
       kind: "ending",
     },
   });
+  pushToken(tokens, {
+    id: "verb-stem",
+    jp: conjugation.jp.slice(0, -conjugation.ending.length),
+    romaji: scenario.verb.stemRomaji,
+    kind: "lexical",
+    source: labSource(`verb:${scenario.id}:${selection.form}:stem`),
+  });
+  pushToken(tokens, {
+    id: "verb-suffix",
+    jp: conjugation.ending,
+    romaji: conjugation.endingRomaji,
+    kind: "morpheme",
+    source: labSource(`verb:${scenario.id}:${selection.form}:suffix`),
+  });
 
   const segments: Segment[] = parts.map((part) => ({
     kind: part.kind,
@@ -91,6 +144,7 @@ export function buildJapaneseSentence(
     scenario,
     time,
     parts,
-    sentence: assembleJP(segments),
+    tokens,
+    sentence: assembleJP(segments, tokens),
   };
 }

@@ -2,6 +2,8 @@ import { semanticIconIds } from "../../components/icons/Icon";
 import type { LabSelection } from "../../content/types";
 import { classifyNaturalness } from "../../lab/engine/naturalness";
 import { buildJapaneseSentence } from "../../lab/engine/japanese";
+import { formatRomaji } from "../../romaji/formatRomaji";
+import type { AssembledToken } from "../../romaji/types";
 import { LESSON_SECTION_IDS } from "../../routing/lessonSections";
 import { lessonPath } from "../../routing/routePaths";
 import { createRouteTarget } from "../../routing/routeTarget";
@@ -24,6 +26,18 @@ import type {
 export interface PrerequisiteNode {
   id: string;
   prerequisiteIds: string[];
+}
+
+function exampleTokens(segments: readonly ExampleSegment[]): AssembledToken[] {
+  return segments.map((segment) => ({
+    id: segment.id ?? "",
+    jp: segment.jp,
+    romaji: segment.romaji,
+    kind: segment.tokenKind ?? "lexical",
+    boundaryBefore: segment.boundaryBefore ?? "attach",
+    source: segment.source ?? { domain: "catalog", referenceId: "" },
+    ...(segment.reading ? { reading: segment.reading } : {}),
+  }));
 }
 
 /**
@@ -863,10 +877,8 @@ export function validateCourse(
     if (example.segments.map((segment) => segment.jp).join("") !== example.jp) {
       errors.push(`example jp segments:${example.id}`);
     }
-    if (
-      example.segments.map((segment) => segment.romaji).join("") !==
-      example.romaji
-    ) {
+    const formatted = formatRomaji(exampleTokens(example.segments));
+    if (!formatted.ok || formatted.text !== example.romaji) {
       errors.push(`example romaji segments:${example.id}`);
     }
   }

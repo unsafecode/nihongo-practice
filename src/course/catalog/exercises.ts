@@ -482,7 +482,7 @@ lesson("people-2", (a) => {
 });
 lesson("people-3", (a) => {
   a.order("base");
-  a.ending("base", "e1", ["masu", "mashouka"]); // ましょう vs ます/ましょうか
+  a.ending("base", "e1", ["masu", "mashita"]); // ましょう vs ます/ました
   a.particle("base", "p2", ["o", "e"]); // に vs を/へ
   a.construct("say");
 });

@@ -27,7 +27,7 @@ export type ExerciseKind =
   | "completion"
   | "constrained-construction";
 
-export type ExerciseSegmentKind = "word" | "particle" | "ending";
+export type ExerciseSegmentKind = "word" | "particle" | "ending" | "punctuation";
 
 /** A within-example segment, structurally compatible with the shared catalog. */
 export interface ExerciseExampleSegment {

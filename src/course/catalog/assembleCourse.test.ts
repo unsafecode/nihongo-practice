@@ -16,6 +16,8 @@ import {
   courseModules,
   CourseAssemblyError,
 } from "./assembleCourse";
+import { formatRomaji } from "../../romaji/formatRomaji";
+import type { AssembledToken } from "../../romaji/types";
 
 /**
  * Runtime assembly acceptance (design spec §5, §9, §13; Slice B plan Task 4).
@@ -29,6 +31,18 @@ import {
 const releaseCoverage = validateCurriculum(assembledCurriculum, {
   enforceReleaseTargets: true,
 }).coverage;
+
+function exampleTokens(segments: NonNullable<(typeof assembledExamples)[string]["segments"]>): AssembledToken[] {
+  return segments.map((segment) => ({
+    id: segment.id ?? "",
+    jp: segment.jp,
+    romaji: segment.romaji,
+    kind: segment.tokenKind ?? "lexical",
+    boundaryBefore: segment.boundaryBefore ?? "attach",
+    source: segment.source ?? { domain: "catalog", referenceId: "" },
+    ...(segment.reading ? { reading: segment.reading } : {}),
+  }));
+}
 
 describe("assembleCourse: structure", () => {
   it("publishes exactly 12 modules and 40 lessons", () => {
@@ -150,13 +164,32 @@ describe("assembleCourse: honest runtime course", () => {
     expect(validateCourse(courseModules, assembledExamples)).toEqual([]);
   });
 
-  it("derives each example's jp and romaji from its segments", () => {
+  it("formats catalog examples through semantic token boundaries", () => {
+    expect(assembledExamples["essential-questions-1-changed"].romaji).toBe(
+      "kore wa koohii desu ka",
+    );
+    expect(assembledExamples["actions-1-base"].romaji).toContain("tabemasu");
+    expect(assembledExamples["descriptions-2-say"].romaji).toContain(
+      "desu. nihongo",
+    );
+  });
+
+  it("derives each example's jp and romaji from its segments via the formatter", () => {
     for (const example of Object.values(assembledExamples)) {
       if (!example.segments) continue;
       expect(example.segments.map((s) => s.jp).join("")).toBe(example.jp);
-      expect(example.segments.map((s) => s.romaji).join("")).toBe(
-        example.romaji,
+      expect(example.segments.every((segment) => Boolean(segment.boundaryBefore)))
+        .toBe(true);
+      expect(example.segments.every((segment) => Boolean(segment.tokenKind))).toBe(
+        true,
       );
+      expect(
+        example.segments.every((segment) => Boolean(segment.source?.referenceId)),
+      ).toBe(true);
+      const formatted = formatRomaji(exampleTokens(example.segments));
+      expect(formatted).toMatchObject({ ok: true });
+      if (!formatted.ok) continue;
+      expect(formatted.text).toBe(example.romaji);
     }
   });
 });
