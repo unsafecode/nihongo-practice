@@ -222,6 +222,8 @@ export interface CourseCopy {
     segmentMatched: string;
     segmentMissing: string;
     criticalLabel: string;
+    /** Safe notice for a defensive unresolved segment record. */
+    segmentUnavailable: string;
   };
   /**
    * Home (design spec §10.4; Slice C plan Task 4 step 4). The title is the

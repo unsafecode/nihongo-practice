@@ -249,6 +249,24 @@ describe("SpokenAttemptView — ordered per-segment records for results", () => 
     });
     expect(html).toContain(enCopy.spokenAttempt.segmentMissing);
   });
+
+  it("does not expose an unresolved internal segment ID as Japanese", () => {
+    const rawSegmentId = "internal-segment-id";
+    const evaluation = evalFor(model.targetJp);
+    const html = renderView({
+      state: {
+        status: "matched",
+        attemptId: 1,
+        evaluation: {
+          ...evaluation,
+          segmentMatches: [{ segmentId: rawSegmentId, matched: false }],
+        },
+      },
+      consentAcknowledged: true,
+    });
+    expect(html).not.toContain(rawSegmentId);
+    expect(html).toContain("Segment unavailable");
+  });
 });
 
 // ── Transcript shown only in current state ────────────────────────────────────

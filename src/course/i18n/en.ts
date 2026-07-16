@@ -180,6 +180,7 @@ const enUi = {
     segmentMatched: "recognized",
     segmentMissing: "not recognized",
     criticalLabel: "key word",
+    segmentUnavailable: "Segment unavailable",
   },
 } satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt">;
 

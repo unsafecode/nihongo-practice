@@ -181,6 +181,7 @@ const itUi = {
     segmentMatched: "riconosciuta",
     segmentMissing: "non riconosciuta",
     criticalLabel: "parola chiave",
+    segmentUnavailable: "Segmento non disponibile",
   },
 } satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt">;
 

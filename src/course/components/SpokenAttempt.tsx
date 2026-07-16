@@ -1,10 +1,13 @@
-import type { ReactElement, ReactNode } from "react";
+import { useEffect, useRef, type ReactElement, type ReactNode } from "react";
 import { useLocale } from "../../i18n/LocaleContext";
 import { useScript, type Script } from "../../settings/ScriptContext";
 import { useSpeech } from "../../hooks/useSpeech";
 import { getCourseCopy } from "../i18n/catalog";
 import type { CourseCopy } from "../i18n/types";
-import type { SpeechRecognitionState } from "../speech/speechStateMachine";
+import {
+  initialSpeechState,
+  type SpeechRecognitionState,
+} from "../speech/speechStateMachine";
 import type { ResolvedSpeechPrompt, SegmentMatch } from "../speech/types";
 import { useSpeechRecognition } from "../speech/SpeechRecognitionContext";
 import { JapaneseSegmentText } from "./JapaneseSegmentText";
@@ -229,8 +232,11 @@ function SegmentRecords({
             <span className="spoken-attempt__segment-glyph" aria-hidden="true">
               {match.matched ? "✓" : "✗"}
             </span>
-            <span className="spoken-attempt__segment-jp" lang="ja">
-              {segment?.jp ?? match.segmentId}
+            <span
+              className="spoken-attempt__segment-jp"
+              lang={segment ? "ja" : undefined}
+            >
+              {segment?.jp ?? copy.segmentUnavailable}
             </span>
             <span className="spoken-attempt__segment-state">
               {match.matched ? copy.segmentMatched : copy.segmentMissing}
@@ -486,6 +492,21 @@ export function SpokenAttempt({
   const { script } = useScript();
   const speech = useSpeech();
   const recognition = useSpeechRecognition();
+  const previousLessonId = useRef(lessonId);
+  const lessonChanged = previousLessonId.current !== lessonId;
+
+  useEffect(() => {
+    const mountedLessonId = lessonId;
+    if (previousLessonId.current !== lessonId) {
+      previousLessonId.current = lessonId;
+      // A lesson transition owns a fresh attempt state, but consent remains a
+      // session-level acknowledgement in the persistent provider.
+      recognition.reset();
+    }
+    return () => {
+      if (previousLessonId.current === mountedLessonId) recognition.abort();
+    };
+  }, [lessonId, recognition.abort, recognition.reset]);
 
   const result = getSpokenAttemptModel(lessonId, locale);
   if (!result.ok) return null;
@@ -505,7 +526,9 @@ export function SpokenAttempt({
       model={model}
       copy={copy}
       script={script}
-      state={recognition.state}
+      // Hide the previous lesson's result during the render before the reset
+      // effect commits, avoiding a one-frame stale transcript/segment flash.
+      state={lessonChanged ? initialSpeechState : recognition.state}
       supported={recognition.supported}
       consentAcknowledged={recognition.consentAcknowledged}
       synthesisSupported={speech.supported}
