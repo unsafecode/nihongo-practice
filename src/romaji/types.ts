@@ -38,7 +38,6 @@ export type RomajiFormatErrorCode =
 export interface RomajiFormatError {
   readonly code: RomajiFormatErrorCode;
   readonly tokenId?: string;
-  readonly referenceId?: string;
 }
 
 export type RomajiFormatResult =

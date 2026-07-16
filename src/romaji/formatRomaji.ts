@@ -32,13 +32,11 @@ function validateTokens(tokens: readonly AssembledToken[]): RomajiFormatError[] 
 
   for (const [index, token] of tokens.entries()) {
     const tokenId = token.id || undefined;
-    const sourceId = token.source?.referenceId || undefined;
 
-    if (isEmpty(token.id) || isEmpty(token.jp) || isEmpty(sourceId)) {
+    if (isEmpty(token.id) || isEmpty(token.jp) || isEmpty(token.source?.referenceId)) {
       errors.push({
         code: "unresolved-token",
         ...(tokenId ? { tokenId } : {}),
-        ...(sourceId ? { referenceId: sourceId } : {}),
       });
     }
 
@@ -96,4 +94,3 @@ export function formatRomaji(tokens: readonly AssembledToken[]): RomajiFormatRes
 
   return { ok: true, text, runs };
 }
-
