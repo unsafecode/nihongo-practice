@@ -33,8 +33,44 @@ function frag(
   return { jp, romaji, kind, boundaryBefore: "attach" };
 }
 
-function freeze<T>(value: T): T {
+/**
+ * Cycle-safe recursive freeze for arrays/objects/records. Every fixture
+ * catalog/lesson/copy structure in this module is authored as nested plain
+ * data (arrays of objects, objects of arrays, arrays of arrays, ...); a
+ * shallow `Object.freeze` only locks the outermost container, leaving
+ * `slotValues`, `discourse`, `form`, `tokenFragments`, `slotSchema`,
+ * `practice`, `diversityConstraints`, and similar nested values mutable.
+ * `deepFreeze` walks the full structure and freezes it in place — no
+ * cloning, so references stay stable and types are preserved — while a
+ * `seen` set guards against infinite recursion on shared or cyclic
+ * references (freezing a value that's already frozen, or one already
+ * visited in this call, is a no-op).
+ */
+function deepFreeze<T>(value: T, seen: WeakSet<object> = new WeakSet()): T {
+  if (value === null || typeof value !== "object") {
+    return value;
+  }
+  const asObject = value as unknown as object;
+  if (seen.has(asObject) || Object.isFrozen(asObject)) {
+    return value;
+  }
+  seen.add(asObject);
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      deepFreeze(item, seen);
+    }
+  } else {
+    for (const key of Object.keys(value as object)) {
+      deepFreeze((value as Record<string, unknown>)[key], seen);
+    }
+  }
+
   return Object.freeze(value);
+}
+
+function freeze<T>(value: T): T {
+  return deepFreeze(value);
 }
 
 // ---------------------------------------------------------------------------
@@ -88,17 +124,23 @@ const referents: readonly Referent[] = freeze([
 // Learning target senses
 // ---------------------------------------------------------------------------
 
+// Every sense below either declares a particle for *every* non-agent
+// argument role in `argumentRoles` (a complete case frame) or leaves
+// `argumentParticleByRole` empty (no predicate-specific case marking is
+// authored yet). `live`/`work` are the motivating case: they share the
+// `fixture-a1-residence-action` family/rule id, so the family/rule alone
+// cannot distinguish に from で — the distinction lives here, on the sense.
 const learningTargetSenses: readonly LearningTargetSense[] = freeze([
-  { id: "fixture-a1-sense-be", lexemeId: "fixture-a1-lexeme-desu", learningUse: "productive", semanticFrameId: "fixture-frame-identity", predicate: "be", argumentRoles: ["topic"] },
-  { id: "fixture-a1-sense-live", lexemeId: "fixture-a1-lexeme-sumu", learningUse: "productive", semanticFrameId: "fixture-frame-residence", predicate: "live", argumentRoles: ["agent", "location"] },
-  { id: "fixture-a1-sense-study", lexemeId: "fixture-a1-lexeme-benkyousuru", learningUse: "productive", semanticFrameId: "fixture-frame-study", predicate: "study", argumentRoles: ["agent", "theme"] },
-  { id: "fixture-a1-sense-work", lexemeId: "fixture-a1-lexeme-hataraku", learningUse: "productive", semanticFrameId: "fixture-frame-work-location", predicate: "work", argumentRoles: ["agent", "location"] },
-  { id: "fixture-a2-sense-wake", lexemeId: "fixture-a2-lexeme-okiru", learningUse: "productive", semanticFrameId: "fixture-frame-wake", predicate: "wake", argumentRoles: ["agent", "time"] },
-  { id: "fixture-a2-sense-work", lexemeId: "fixture-a2-lexeme-hataraku", learningUse: "productive", semanticFrameId: "fixture-frame-work-routine", predicate: "work", argumentRoles: ["agent", "time"] },
-  { id: "fixture-a2-sense-meet", lexemeId: "fixture-a2-lexeme-au", learningUse: "productive", semanticFrameId: "fixture-frame-meet", predicate: "meet", argumentRoles: ["agent", "companion", "time"] },
-  { id: "fixture-a2-sense-eat", lexemeId: "fixture-a2-lexeme-taberu", learningUse: "productive", semanticFrameId: "fixture-frame-eat", predicate: "eat", argumentRoles: ["agent", "time"] },
-  { id: "fixture-a2-sense-go", lexemeId: "fixture-a2-lexeme-dekakeru", learningUse: "productive", semanticFrameId: "fixture-frame-go", predicate: "go", argumentRoles: ["agent", "time"] },
-  { id: "fixture-a2-sense-invite", lexemeId: "fixture-a2-lexeme-sasou", learningUse: "productive", semanticFrameId: "fixture-frame-invite", predicate: "invite", argumentRoles: ["agent", "theme", "companion"] },
+  { id: "fixture-a1-sense-be", lexemeId: "fixture-a1-lexeme-desu", learningUse: "productive", semanticFrameId: "fixture-frame-identity", predicate: "be", argumentRoles: ["topic"], argumentParticleByRole: {} },
+  { id: "fixture-a1-sense-live", lexemeId: "fixture-a1-lexeme-sumu", learningUse: "productive", semanticFrameId: "fixture-frame-residence", predicate: "live", argumentRoles: ["agent", "location"], argumentParticleByRole: { location: "ni" } },
+  { id: "fixture-a1-sense-study", lexemeId: "fixture-a1-lexeme-benkyousuru", learningUse: "productive", semanticFrameId: "fixture-frame-study", predicate: "study", argumentRoles: ["agent", "theme"], argumentParticleByRole: {} },
+  { id: "fixture-a1-sense-work", lexemeId: "fixture-a1-lexeme-hataraku", learningUse: "productive", semanticFrameId: "fixture-frame-work-location", predicate: "work", argumentRoles: ["agent", "location"], argumentParticleByRole: { location: "de" } },
+  { id: "fixture-a2-sense-wake", lexemeId: "fixture-a2-lexeme-okiru", learningUse: "productive", semanticFrameId: "fixture-frame-wake", predicate: "wake", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
+  { id: "fixture-a2-sense-work", lexemeId: "fixture-a2-lexeme-hataraku", learningUse: "productive", semanticFrameId: "fixture-frame-work-routine", predicate: "work", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
+  { id: "fixture-a2-sense-meet", lexemeId: "fixture-a2-lexeme-au", learningUse: "productive", semanticFrameId: "fixture-frame-meet", predicate: "meet", argumentRoles: ["agent", "companion", "time"], argumentParticleByRole: {} },
+  { id: "fixture-a2-sense-eat", lexemeId: "fixture-a2-lexeme-taberu", learningUse: "productive", semanticFrameId: "fixture-frame-eat", predicate: "eat", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
+  { id: "fixture-a2-sense-go", lexemeId: "fixture-a2-lexeme-dekakeru", learningUse: "productive", semanticFrameId: "fixture-frame-go", predicate: "go", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
+  { id: "fixture-a2-sense-invite", lexemeId: "fixture-a2-lexeme-sasou", learningUse: "productive", semanticFrameId: "fixture-frame-invite", predicate: "invite", argumentRoles: ["agent", "theme", "companion"], argumentParticleByRole: {} },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -170,6 +212,16 @@ const sentenceFamilies: readonly SentenceFamily[] = freeze([
     realizationRuleId: "fixture-a1-rule-topic-copular",
     requiredConceptIds: ["fixture-concept-topic-wa", "fixture-concept-copula-desu"],
   },
+  // `live` (location に) and `work` (location で) both use this family and
+  // its `fixture-a1-rule-residence-action` realization rule. The family/
+  // rule id is kept stable on purpose — no fixture churn — because the
+  // particle distinction is not the family's job: `fixture-a1-rule-
+  // residence-action` reads the location particle from the governing
+  // predicate sense's own `argumentParticleByRole["location"]` case frame
+  // (see `fixture-a1-sense-live`/`fixture-a1-sense-work` in
+  // `learningTargetSenses`), so one generic rule realizes both
+  // 「ローマにすみます」 and 「かいしゃではたらきます」 without a
+  // string/sense special case anywhere in this family or its variants.
   {
     id: "fixture-a1-residence-action",
     level: "a1",
@@ -246,11 +298,11 @@ const sentenceFamilies: readonly SentenceFamily[] = freeze([
   },
 ]);
 
-const AFFIRMATIVE_PRESENT_POLITE = {
+const AFFIRMATIVE_PRESENT_POLITE = freeze({
   polarity: "affirmative",
   tense: "present",
   formality: "polite",
-} as const;
+} as const);
 
 /** Convenience builder for the A1/A2 discourse frame convention used across
  * this fixture set: the subject describes themselves (`speakerRoleId` ===
@@ -961,8 +1013,11 @@ export function fixtureVariant(id: string): SentenceVariant {
 
 /**
  * Small immutable-override helper for later "invalid fixture" test cases:
- * returns a frozen shallow copy of `base` with `overrides` applied, never
- * mutating `base` itself. Intentionally not a broad cloning framework.
+ * returns a newly deep-frozen shallow copy of `base` with `overrides`
+ * applied, never mutating `base` itself. The shallow copy means unshadowed
+ * nested values keep their (already deep-frozen) shared references, while
+ * anything from `overrides` — or the copy as a whole — is deep-frozen here.
+ * Intentionally not a broad cloning framework.
  */
 export function withFixtureOverride<T extends object>(base: T, overrides: Partial<T>): T {
   return freeze({ ...base, ...overrides });

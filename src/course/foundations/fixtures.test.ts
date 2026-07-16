@@ -22,6 +22,7 @@ import {
   foundationVariantById,
   transferVariantIds,
   verbUseRecords,
+  withFixtureOverride,
 } from "./fixtures";
 
 /** Japanese (kana/kanji) code point ranges — used to prove no JP literal leaks. */
@@ -677,5 +678,173 @@ describe("foundation catalogs", () => {
     expect(() => {
       (foundationLessons as unknown as unknown[]).push({});
     }).toThrow();
+  });
+
+  describe("deep immutability", () => {
+    it("deep-freezes a representative sentence variant's nested records", () => {
+      const variant = fixtureVariant("fixture-a1-yuki-live-rome");
+
+      expect(Object.isFrozen(variant)).toBe(true);
+      expect(Object.isFrozen(variant.slotValues)).toBe(true);
+      expect(Object.isFrozen(variant.discourse)).toBe(true);
+      expect(Object.isFrozen(variant.form)).toBe(true);
+
+      expect(() => {
+        (variant.slotValues as Record<string, string>).predicate = "tampered";
+      }).toThrow();
+      expect(() => {
+        (variant.discourse as { subjectRealization: string }).subjectRealization =
+          "tampered";
+      }).toThrow();
+      expect(() => {
+        (variant.form as { tense: string }).tense = "past";
+      }).toThrow();
+
+      expect(variant.slotValues.predicate).toBe("fixture-a1-value-live");
+      expect(variant.discourse.subjectRealization).toBe("explicit");
+      expect(variant.form.tense).toBe("present");
+    });
+
+    it("deep-freezes a sentence family's slot schema entries", () => {
+      const family = fixtureFamily("fixture-a1-residence-action");
+
+      expect(Object.isFrozen(family)).toBe(true);
+      expect(Object.isFrozen(family.slotSchema)).toBe(true);
+      expect(Object.isFrozen(family.slotSchema[0])).toBe(true);
+      expect(Object.isFrozen(family.permittedAxes)).toBe(true);
+
+      expect(() => {
+        (family.slotSchema[0] as { optional: boolean }).optional = true;
+      }).toThrow();
+      expect(family.slotSchema[0].optional).toBe(false);
+    });
+
+    it("deep-freezes a semantic value's token fragments", () => {
+      const value = foundationCatalogs.semanticValues.find(
+        (candidate) => candidate.id === "fixture-a1-value-live",
+      ) as SemanticValue;
+
+      expect(Object.isFrozen(value)).toBe(true);
+      expect(Object.isFrozen(value.tokenFragments)).toBe(true);
+      expect(Object.isFrozen(value.tokenFragments[0])).toBe(true);
+
+      expect(() => {
+        (value.tokenFragments[0] as { jp: string }).jp = "tampered";
+      }).toThrow();
+      expect(value.tokenFragments[0].jp).toBe("すみ");
+    });
+
+    it("deep-freezes lesson practice round candidates and diversity constraints", () => {
+      const lesson = foundationLessons.find(
+        (candidate) => candidate.id === "fixture-a1-personal-details",
+      ) as FoundationLessonDefinition;
+
+      expect(Object.isFrozen(lesson.practice)).toBe(true);
+      expect(Object.isFrozen(lesson.practice.roundOne)).toBe(true);
+      expect(Object.isFrozen(lesson.practice.roundOne.candidateVariantIds)).toBe(
+        true,
+      );
+      expect(Object.isFrozen(lesson.diversityConstraints)).toBe(true);
+      expect(Object.isFrozen(lesson.diversityConstraints.modelCountRange)).toBe(
+        true,
+      );
+
+      expect(() => {
+        (
+          lesson.practice.roundOne.candidateVariantIds as unknown as unknown[]
+        ).push("tampered");
+      }).toThrow();
+      expect(() => {
+        (
+          lesson.diversityConstraints.modelCountRange as unknown as number[]
+        )[0] = 999;
+      }).toThrow();
+    });
+
+    it("deep-freezes the bilingual copy record maps", () => {
+      expect(Object.isFrozen(foundationCopy)).toBe(true);
+      expect(Object.isFrozen(foundationCopy.en)).toBe(true);
+      expect(Object.isFrozen(foundationCopy.it)).toBe(true);
+
+      expect(() => {
+        (foundationCopy.en as Record<string, string>)[
+          "fixture-a1-level-alignment"
+        ] = "tampered";
+      }).toThrow();
+    });
+
+    it("withFixtureOverride returns a newly deep-frozen view without mutating the original", () => {
+      const originalFamily = fixtureFamily("fixture-a1-residence-action");
+      const originalPermittedAxes = originalFamily.permittedAxes;
+
+      const overridden = withFixtureOverride(originalFamily, {
+        permittedAxes: [...originalFamily.permittedAxes, "time"],
+      });
+
+      expect(overridden).not.toBe(originalFamily);
+      expect(Object.isFrozen(overridden)).toBe(true);
+      expect(Object.isFrozen(overridden.permittedAxes)).toBe(true);
+      expect(overridden.permittedAxes).toContain("time");
+
+      // The original must be untouched — same reference, same contents.
+      expect(fixtureFamily("fixture-a1-residence-action")).toBe(originalFamily);
+      expect(originalFamily.permittedAxes).toBe(originalPermittedAxes);
+      expect(originalFamily.permittedAxes).not.toContain("time");
+
+      expect(() => {
+        (overridden.permittedAxes as unknown as unknown[]).push("context");
+      }).toThrow();
+    });
+  });
+
+  describe("natural location case frame", () => {
+    it("gives every sense either no particle requirements or full coverage of its non-agent argument roles", () => {
+      for (const sense of foundationCatalogs.learningTargetSenses) {
+        const governedRoles = sense.argumentRoles
+          .filter((role) => role !== "agent")
+          .slice()
+          .sort();
+        const particleRoles = Object.keys(sense.argumentParticleByRole).sort();
+
+        expect(
+          particleRoles.length === 0 ||
+            JSON.stringify(particleRoles) === JSON.stringify(governedRoles),
+        ).toBe(true);
+      }
+    });
+
+    it("assigns location に to live and location で to work in the shared residence-action family", () => {
+      const liveSense = foundationCatalogs.learningTargetSenses.find(
+        (sense) => sense.id === "fixture-a1-sense-live",
+      );
+      const workSense = foundationCatalogs.learningTargetSenses.find(
+        (sense) => sense.id === "fixture-a1-sense-work",
+      );
+
+      expect(liveSense?.argumentParticleByRole).toEqual({ location: "ni" });
+      expect(workSense?.argumentParticleByRole).toEqual({ location: "de" });
+    });
+
+    it("lets same-family senses carry different case frames purely through sense metadata", () => {
+      const liveVariant = fixtureVariant("fixture-a1-yuki-live-rome");
+      const workVariant = fixtureVariant("fixture-a1-omitted-work-company");
+      expect(liveVariant.sentenceFamilyId).toBe("fixture-a1-residence-action");
+      expect(workVariant.sentenceFamilyId).toBe("fixture-a1-residence-action");
+
+      const liveSense = foundationCatalogs.learningTargetSenses.find(
+        (sense) => sense.id === "fixture-a1-sense-live",
+      );
+      const workSense = foundationCatalogs.learningTargetSenses.find(
+        (sense) => sense.id === "fixture-a1-sense-work",
+      );
+
+      // Same family/rule id, but the case frame differs by sense metadata —
+      // never by a hard-coded string/sense special case on the variants.
+      expect(liveSense?.argumentParticleByRole.location).toBe("ni");
+      expect(workSense?.argumentParticleByRole.location).toBe("de");
+      expect(liveSense?.argumentParticleByRole.location).not.toBe(
+        workSense?.argumentParticleByRole.location,
+      );
+    });
   });
 });

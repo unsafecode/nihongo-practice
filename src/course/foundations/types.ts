@@ -175,6 +175,28 @@ export type SemanticArgumentRole =
   | "goal";
 
 /**
+ * The closed set of case particles a predicate sense's frame may assign to
+ * a governed argument role (§16 case-frame extension). Deliberately closed
+ * rather than a bare `string`, so a new particle requires an explicit type
+ * update instead of silently typo-ing past validation.
+ */
+export type SemanticParticleId = "wa" | "o" | "ni" | "de" | "to";
+
+/**
+ * Per-role case-particle requirements a predicate sense's frame declares
+ * (§16 case-frame extension). Only argument roles the *predicate itself*
+ * case-marks belong here: `"agent"` is never a key, because subject/topic
+ * marking is chosen by the `DiscourseFrame` (speaker/topic conventions),
+ * not by the predicate's own frame. A sense either declares a particle for
+ * every one of its non-agent argument roles, or leaves the record empty
+ * when no predicate-specific case marking is needed yet — there is no
+ * partial declaration.
+ */
+export type ArgumentParticleByRole = Readonly<
+  Partial<Record<SemanticArgumentRole, SemanticParticleId>>
+>;
+
+/**
  * A taught sense of a lexeme (§9.3). Two lexeme IDs with identical orthography
  * are different senses only when their semantic frames differ — this record
  * is the unit the productive/receptive recurrence rules are tracked against.
@@ -186,6 +208,14 @@ export interface LearningTargetSense {
   readonly semanticFrameId: SemanticFrameId;
   readonly predicate: PredicateId;
   readonly argumentRoles: readonly SemanticArgumentRole[];
+  /**
+   * The predicate sense's own case frame (§16 extension). Sentence families
+   * whose senses govern case differently — e.g. `live` (location `ni`) and
+   * `work` (location `de`) sharing the `fixture-a1-residence-action`
+   * family/rule — read case marking from here, so one family/rule id can
+   * realize multiple particle patterns without a string/sense special case.
+   */
+  readonly argumentParticleByRole: ArgumentParticleByRole;
 }
 
 /** What kind of sentence-building unit a semantic value fills a slot with (§10.1). */
