@@ -913,3 +913,213 @@ test.describe("Slice C — truthful lesson evidence states (no colour-only meani
     await assertNoRuntimeErrors(page, observers);
   });
 });
+
+/**
+ * Semantic romaji boundaries across every composed learner-facing surface
+ * (Phase 0 Task 5; master spec §13.3, §21). `RomajiSequence` is the single
+ * shared renderer that turns assembled tokens into readable, humane romaji —
+ * a space between words, an attached suffix exactly where the semantic
+ * model says so, never a component-local join. Unit tests already cover
+ * synthetic boundary positions in isolation; these tests inspect the real
+ * built markup for the actual published catalog, on both configured
+ * viewports, to prove the renderer's boundaries survive all the way to the
+ * DOM a learner actually sees.
+ */
+const ESSENTIAL_QUESTIONS_URL = routeUrls.lesson(
+  "essential-questions",
+  "essential-questions-1",
+);
+const ACTIONS_LESSON_URL = routeUrls.lesson("actions", "actions-1");
+
+/**
+ * Opens the one currently *visible* settings surface for the given viewport
+ * and switches the script toggle, explicitly closing the mobile drawer
+ * afterward (it does not auto-close, and `#root` stays `inert` while it is
+ * open). This is distinct from the `settingsContainer`/`openSettings`
+ * helpers defined earlier in this file: neither of those closes the drawer,
+ * because neither needs to interact with the page again afterward — this
+ * block does (placing tiles, reading marks underneath), so it needs its own.
+ */
+async function switchScript(
+  page: import("@playwright/test").Page,
+  viewport: { width: number; height: number } | null,
+  script: "Hiragana" | "Rōmaji",
+): Promise<void> {
+  if (viewport && isMobile(viewport.width)) {
+    await page.locator(".header__settings-trigger").click();
+    const panel = page.locator(".settings-drawer__panel");
+    await expect(panel).toBeVisible();
+    await panel.locator(".scripttoggle button", { hasText: script }).click();
+    await page.keyboard.press("Escape");
+    await expect(panel).toBeHidden();
+    return;
+  }
+  await page
+    .locator(".header__settings--desktop .scripttoggle button", { hasText: script })
+    .click();
+}
+
+test.describe("semantic romaji boundaries (Phase 0 Task 5)", () => {
+  test("TransformComparison renders one readable romaji line with a clean, whitespace-safe delta mark", async ({
+    page,
+    viewport,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, ESSENTIAL_QUESTIONS_URL);
+    await switchScript(page, viewport ?? null, "Rōmaji");
+
+    const afterLine = page.locator(
+      ".lesson-comparison__card--after .lesson-comparison__jp.is-romaji",
+    );
+    await expect(afterLine).toHaveText("kore wa koohii desu ka");
+    // The exact-text assertion above already forbids this, but Task 5 calls
+    // out the run-on failure mode by name, so assert it explicitly too.
+    await expect(afterLine).not.toContainText("korewakoohiidesuka");
+
+    const deltaMark = afterLine.locator(".lesson-comparison__delta-seg");
+    await expect(deltaMark).toHaveCount(1);
+    const deltaText = await deltaMark.innerText();
+    expect(deltaText).toBe("ka");
+    expect(deltaText).toBe(deltaText.trim());
+
+    await assertNoHorizontalOverflow(page);
+    await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
+  });
+
+  test("GuidedTransformation attaches the polite verb ending without a stray internal space", async ({
+    page,
+    viewport,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, ACTIONS_LESSON_URL);
+    await switchScript(page, viewport ?? null, "Rōmaji");
+
+    const board = page.locator(".guided-board__jp.is-romaji").first();
+    await expect(board).toContainText("tabemasu");
+    const boardText = await board.innerText();
+    expect(boardText).not.toContain("tabe masu");
+
+    await assertNoHorizontalOverflow(page);
+    await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
+  });
+
+  test("GuidedTransformation highlight marks never carry leading or trailing whitespace, at beginning, middle, and end positions", async ({
+    page,
+    viewport,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, ESSENTIAL_QUESTIONS_URL);
+    await switchScript(page, viewport ?? null, "Rōmaji");
+
+    const marks = page.locator(".guided-board__jp.is-romaji mark");
+    const markTexts = await marks.allTextContents();
+    expect(markTexts.length).toBeGreaterThan(0);
+    for (const text of markTexts) {
+      expect(text.length).toBeGreaterThan(0);
+      expect(text).toBe(text.trim());
+    }
+    // Real catalog content for this lesson highlights a sentence-initial
+    // demonstrative (attach boundary), an interior noun (space both sides),
+    // and the sentence-final question particle — beginning/middle/end.
+    expect(markTexts).toContain("kore");
+    expect(markTexts).toContain("koohii");
+    expect(markTexts).toContain("ka");
+
+    await assertNoHorizontalOverflow(page);
+    await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
+  });
+
+  test("lesson exercises render readable spaced romaji for a choice sentence, a construction source line, and a placed tile answer", async ({
+    page,
+    viewport,
+  }) => {
+    const observers = await setupPageObservers(page);
+
+    await gotoReady(page, EXERCISE_LESSON_URL);
+    await switchScript(page, viewport ?? null, "Rōmaji");
+
+    const choiceSentence = choiceCard(page).locator(
+      ".lesson-exercise__sentence:not(.lesson-exercise__sentence--secondary)",
+    );
+    await expect(choiceSentence).toHaveText("watashi ____ gakusei desu");
+
+    const bank = tileCard(page);
+    for (const glyph of INTRO_TILE_ORDER) {
+      await bank
+        .locator(".lesson-exercise__bank button", { hasText: glyph })
+        .first()
+        .click();
+    }
+    const placed = bank.locator(".lesson-exercise__answer .lesson-exercise__placed");
+    await expect(placed).toHaveCount(INTRO_TILE_ORDER.length);
+    // The first placed tile has nothing to its left, so it must never carry
+    // a leading isolated-whitespace run separator.
+    await expect(placed.first().locator(".lesson-exercise__run-separator")).toHaveCount(0);
+    const separators = await placed
+      .locator(".lesson-exercise__run-separator")
+      .allTextContents();
+    expect(separators).toEqual([" ", " ", " "]);
+    const placedGlyphs = await placed
+      .locator(".lesson-exercise__glyph-primary")
+      .allTextContents();
+    expect(placedGlyphs.join(" ")).toBe("watashi wa gakusei desu");
+
+    await gotoReady(page, TRANSFORM_LESSON_URL);
+    await switchScript(page, viewport ?? null, "Rōmaji");
+    const sourceRomaji = page.locator(".lesson-exercise__source-romaji");
+    await expect(sourceRomaji).toHaveText("kyou tomodachi to eiga o mimasu");
+
+    await assertNoHorizontalOverflow(page);
+    await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
+  });
+
+  test("SpokenAttempt assembles the full readable target sentence from its primary romaji glyphs", async ({
+    page,
+    viewport,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, EXERCISE_LESSON_URL);
+    await switchScript(page, viewport ?? null, "Rōmaji");
+
+    // The primary/secondary glyph pair for each token is stacked with no
+    // separating character in raw textContent, so the full sentence is
+    // reassembled from the individually-readable primary glyphs, never a
+    // substring check against the interleaved container text.
+    const primaries = page.locator(
+      ".spoken-attempt__sentence .spoken-attempt__glyph-primary",
+    );
+    await expect(primaries).toHaveCount(6);
+    const glyphs = await primaries.allTextContents();
+    for (const glyph of glyphs) {
+      expect(glyph.length).toBeGreaterThan(0);
+      expect(glyph).toBe(glyph.trim());
+    }
+    expect(glyphs.join(" ")).toBe("watashi no namae wa yuki desu");
+
+    await assertNoHorizontalOverflow(page);
+    await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
+  });
+
+  test("the Lab board's default scenario attaches the polite verb ending without splitting tabemasu", async ({
+    page,
+    viewport,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, routeUrls.lab);
+    await switchScript(page, viewport ?? null, "Rōmaji");
+
+    const boardSentence = page.locator(".board .sentence__main");
+    await expect(boardSentence).toContainText(/ o tabemasu\b/);
+    const sentenceText = await boardSentence.innerText();
+    expect(sentenceText).not.toContain("tabe masu");
+
+    await assertNoHorizontalOverflow(page);
+    await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
+  });
+});
