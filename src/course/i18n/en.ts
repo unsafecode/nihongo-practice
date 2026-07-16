@@ -183,7 +183,30 @@ const enUi = {
     criticalLabel: "key word",
     segmentUnavailable: "Segment unavailable",
   },
-} satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt">;
+  foundation: {
+    matrixTitle: "Sentence matrix",
+    matrixIntro:
+      "See how the same pattern works across people and settings. Reveal the rest whenever you like.",
+    showAll: "Show all examples",
+    showFewer: "Show fewer examples",
+    speakerLabel: "Speaker",
+    contextLabel: "Setting",
+    omittedSubject: "Subject left unsaid",
+    guidedTitle: "Guided construction",
+    initialLabel: "Start from",
+    targetLabel: "Build toward",
+    activeAxesLabel: "What changes",
+    roundOneTitle: "Practice round 1",
+    roundOneIntro: "Recognize and build the patterns you just saw.",
+    roundTwoTitle: "Practice round 2",
+    roundTwoIntro:
+      "Put the pieces together in new combinations you have not practiced yet.",
+    transferLabel: "New combination",
+    unavailableTitle: "This lesson could not be prepared",
+    unavailableBody:
+      "Some of this lesson's content could not be built right now. Nothing was shown so you never practice against a broken example.",
+  },
+} satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation">;
 
 const enCourseMap: CourseCopy["courseMap"] = {
   heading: "The course phases",

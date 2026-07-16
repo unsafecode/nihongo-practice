@@ -1028,6 +1028,17 @@ export function withFixtureOverride<T extends object>(base: T, overrides: Partia
 // Bilingual fixture copy
 // ---------------------------------------------------------------------------
 
+/**
+ * Stable convention mapping a semantic variant ID to the locale-owned copy ID
+ * that holds its natural translation. Variants stay semantic IDs only (no
+ * Japanese answer literals); the natural EN/IT rendering of a variant's meaning
+ * lives in {@link foundationCopy} under this ID. Used by the foundation view
+ * model (Phase 1 Task 5) to attach a translation label to each realized row.
+ */
+export function variantTranslationCopyId(variantId: string): string {
+  return `${variantId}-translation`;
+}
+
 const copyEntries: readonly (readonly [string, string, string])[] = [
   // Can-do descriptors (exact aligned copy)
   [
@@ -1265,6 +1276,152 @@ const copyEntries: readonly (readonly [string, string, string])[] = [
     "fixture-a2-recur2-go-scenario",
     "Later, a colleague mentions going out tomorrow too.",
     "Più avanti, un collega menziona che uscirà anche domani.",
+  ],
+
+  // ------------------------------------------------------------------
+  // Variant translation copy (locale-owned natural meaning). Keyed by
+  // variantTranslationCopyId(variantId). These are natural EN/IT
+  // renderings of each variant's meaning — never Japanese literals and
+  // never canonical answers. Omitted-subject variants read naturally in
+  // each language (English keeps an explicit pronoun; Italian pro-drops).
+  // ------------------------------------------------------------------
+
+  // A1 models
+  [
+    "fixture-a1-yuki-student-meeting-translation",
+    "Yuki is a student.",
+    "Yuki è una studentessa.",
+  ],
+  [
+    "fixture-a1-ken-doctor-meeting-translation",
+    "Ken is a doctor.",
+    "Ken è un medico.",
+  ],
+  [
+    "fixture-a1-teacher-omitted-class-translation",
+    "I'm the teacher.",
+    "Sono l'insegnante.",
+  ],
+  [
+    "fixture-a1-yuki-live-rome-translation",
+    "Yuki lives in Rome.",
+    "Yuki vive a Roma.",
+  ],
+  [
+    "fixture-a1-classmate-live-milan-translation",
+    "My classmate lives in Milan.",
+    "Il mio compagno di classe vive a Milano.",
+  ],
+  [
+    "fixture-a1-yuki-study-japanese-translation",
+    "Yuki studies Japanese.",
+    "Yuki studia giapponese.",
+  ],
+  [
+    "fixture-a1-classmate-study-english-translation",
+    "My classmate studies English.",
+    "Il mio compagno di classe studia inglese.",
+  ],
+  [
+    "fixture-a1-omitted-work-company-translation",
+    "I work at a company.",
+    "Lavoro in un'azienda.",
+  ],
+
+  // A1 transfers
+  [
+    "fixture-a1-transfer-ken-study-japanese-translation",
+    "Ken studies Japanese.",
+    "Ken studia giapponese.",
+  ],
+  [
+    "fixture-a1-transfer-yuki-work-company-translation",
+    "Yuki works at a company.",
+    "Yuki lavora in un'azienda.",
+  ],
+  [
+    "fixture-a1-transfer-classmate-live-rome-translation",
+    "My classmate lives in Rome.",
+    "Il mio compagno di classe vive a Roma.",
+  ],
+  [
+    "fixture-a1-transfer-omitted-study-english-translation",
+    "I study English.",
+    "Studio inglese.",
+  ],
+  [
+    "fixture-a1-transfer-teacher-do-work-translation",
+    "The teacher works at a company.",
+    "L'insegnante lavora in un'azienda.",
+  ],
+
+  // A2 models
+  [
+    "fixture-a2-yuki-wake-weekday-translation",
+    "Yuki wakes up every morning.",
+    "Yuki si sveglia ogni mattina.",
+  ],
+  [
+    "fixture-a2-colleague-work-morning-translation",
+    "My colleague works in the morning.",
+    "Il mio collega lavora la mattina.",
+  ],
+  [
+    "fixture-a2-friend-meet-after-work-translation",
+    "My friend meets up after work.",
+    "Il mio amico si vede con qualcuno dopo il lavoro.",
+  ],
+  [
+    "fixture-a2-omitted-eat-after-work-translation",
+    "I eat after work.",
+    "Mangio dopo il lavoro.",
+  ],
+  [
+    "fixture-a2-neighbor-go-weekend-translation",
+    "My neighbor goes out on the weekend.",
+    "Il mio vicino esce nel weekend.",
+  ],
+  [
+    "fixture-a2-traveler-go-tomorrow-translation",
+    "The traveler is going tomorrow.",
+    "Il viaggiatore parte domani.",
+  ],
+  [
+    "fixture-a2-friend-invite-lunch-translation",
+    "My friend invites me to lunch.",
+    "Il mio amico mi invita a pranzo.",
+  ],
+  [
+    "fixture-a2-colleague-invite-weekend-translation",
+    "My colleague invites me to a movie.",
+    "Il mio collega mi invita al cinema.",
+  ],
+
+  // A2 transfers
+  [
+    "fixture-a2-transfer-neighbor-meet-after-work-translation",
+    "My neighbor meets up after work.",
+    "Il mio vicino si vede con qualcuno dopo il lavoro.",
+  ],
+  [
+    "fixture-a2-transfer-colleague-go-tomorrow-translation",
+    "My colleague is going tomorrow.",
+    "Il mio collega parte domani.",
+  ],
+  [
+    "fixture-a2-transfer-friend-eat-weekend-translation",
+    "My friend eats out on the weekend.",
+    "Il mio amico mangia fuori nel weekend.",
+  ],
+  [
+    "fixture-a2-transfer-omitted-invite-lunch-translation",
+    "I invite someone to lunch.",
+    "Invito qualcuno a pranzo.",
+  ],
+  [
+    "fixture-a2-transfer-traveler-work-morning-translation",
+    "The traveler works in the morning.",
+    "Il viaggiatore lavora la mattina.",
   ],
 ];
 

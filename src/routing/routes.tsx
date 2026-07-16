@@ -7,6 +7,7 @@ import { Syllabary } from "../syllabary/Syllabary";
 import { CourseHome } from "../course/components/CourseHome";
 import { LessonPage } from "../course/components/LessonPage";
 import { PracticeHome } from "../course/components/PracticeHome";
+import { FoundationFixturePage } from "../course/foundations/FoundationFixturePage";
 import { getCourseCopy } from "../course/i18n/catalog";
 import { useLocale } from "../i18n/LocaleContext";
 import { RouteScrollManager } from "./RouteScrollManager";
@@ -14,6 +15,27 @@ import type { ScrollOutcome } from "./scrollPlan";
 import { lessonPath, routePaths } from "./routePaths";
 
 export { lessonPath, routePaths };
+
+/**
+ * The literal path of the compile-time-gated Phase 1 foundation fixture
+ * harness. It is deliberately not part of {@link routePaths} — the harness is
+ * never a public location, is never linked from navigation, and only exists in
+ * a build explicitly opted in via `VITE_FOUNDATION_FIXTURES`.
+ */
+const FOUNDATION_FIXTURE_PATH = "/__fixtures__/foundation/:fixtureId";
+
+/**
+ * Whether the foundation fixture harness route should be registered, given a
+ * build-time environment flag value. Enabled only for the exact string
+ * `"true"` — never for `"1"`, `"TRUE"`, an empty string, or `undefined` — so a
+ * normal or GitHub Pages build without the explicit opt-in never ships the
+ * harness route. Pure so it can be unit-tested without a router.
+ */
+export function foundationFixturesEnabledFor(
+  value: string | undefined,
+): boolean {
+  return value === "true";
+}
 
 function InvalidRoute() {
   const location = useLocation();
@@ -83,6 +105,12 @@ export function AppRoutes() {
         <Route path={routePaths.lab} element={<Lab />} />
         <Route path={routePaths.syllabary} element={<Syllabary />} />
         <Route path={routePaths.phrasebook} element={<Phrasebook />} />
+        {import.meta.env.VITE_FOUNDATION_FIXTURES === "true" ? (
+          <Route
+            path={FOUNDATION_FIXTURE_PATH}
+            element={<FoundationFixturePage />}
+          />
+        ) : null}
         <Route path="*" element={<InvalidRoute />} />
       </Routes>
     </>

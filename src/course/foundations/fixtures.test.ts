@@ -24,6 +24,7 @@ import {
   foundationVariantById,
   transferVariantIds,
   verbUseRecords,
+  variantTranslationCopyId,
   withFixtureOverride,
 } from "./fixtures";
 
@@ -372,6 +373,33 @@ describe("foundation catalogs", () => {
   it("passes validateRuntimeAliases cleanly", () => {
     expect(validateRuntimeAliases(foundationCatalogs)).toEqual([]);
     expect(validateRuntimeAliases(foundationCopy)).toEqual([]);
+  });
+
+  it("provides natural EN/IT translation copy for every model and transfer variant", () => {
+    const harnessVariantIds = new Set<string>();
+    for (const lesson of foundationLessons) {
+      for (const id of lesson.modelVariantIds) harnessVariantIds.add(id);
+      for (const id of transferVariantIds[lesson.id] ?? []) {
+        harnessVariantIds.add(id);
+      }
+    }
+    expect(harnessVariantIds.size).toBeGreaterThan(0);
+
+    for (const variantId of harnessVariantIds) {
+      const copyId = variantTranslationCopyId(variantId);
+      expect(copyId).toContain(variantId);
+      const en = foundationCopy.en[copyId];
+      const it = foundationCopy.it[copyId];
+      expect(en, `EN translation for ${variantId}`).toBeTruthy();
+      expect(it, `IT translation for ${variantId}`).toBeTruthy();
+      expect(en.trim().length).toBeGreaterThan(0);
+      expect(it.trim().length).toBeGreaterThan(0);
+      // A translation is natural target-language copy, never a Japanese literal.
+      expect(JAPANESE_PATTERN.test(en)).toBe(false);
+      expect(JAPANESE_PATTERN.test(it)).toBe(false);
+      // The two locales must differ from each other where the languages do.
+      expect(en).not.toBe("");
+    }
   });
 
   for (const lesson of foundationLessons) {

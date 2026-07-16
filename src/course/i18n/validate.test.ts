@@ -179,3 +179,56 @@ describe("locale parity", () => {
     );
   });
 });
+
+describe("foundation UX copy", () => {
+  const FOUNDATION_KEYS = [
+    "matrixTitle",
+    "matrixIntro",
+    "showAll",
+    "showFewer",
+    "speakerLabel",
+    "contextLabel",
+    "omittedSubject",
+    "guidedTitle",
+    "initialLabel",
+    "targetLabel",
+    "activeAxesLabel",
+    "roundOneTitle",
+    "roundOneIntro",
+    "roundTwoTitle",
+    "roundTwoIntro",
+    "transferLabel",
+    "unavailableTitle",
+    "unavailableBody",
+  ] as const;
+
+  it("declares exactly the required foundation keys in both locales", () => {
+    expect(Object.keys(enCopy.foundation).sort()).toEqual(
+      [...FOUNDATION_KEYS].sort(),
+    );
+    expect(Object.keys(itCopy.foundation).sort()).toEqual(
+      [...FOUNDATION_KEYS].sort(),
+    );
+  });
+
+  it.each([enCopy.foundation, itCopy.foundation])(
+    "has natural, non-empty foundation copy (%#)",
+    (foundation) => {
+      for (const key of FOUNDATION_KEYS) {
+        expect(foundation[key].trim().length).toBeGreaterThan(0);
+      }
+    },
+  );
+
+  it("never claims certification, mastery, or fluency", () => {
+    const values = [
+      ...Object.values(enCopy.foundation),
+      ...Object.values(itCopy.foundation),
+    ];
+    for (const value of values) {
+      expect(value.toLowerCase()).not.toMatch(
+        /\b(certif\w*|master\w*|maestr\w*|fluen\w*)\b/,
+      );
+    }
+  });
+});

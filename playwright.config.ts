@@ -91,6 +91,6 @@ export default defineConfig({
     reuseExistingServer: false,
     stdout: "ignore",
     stderr: "pipe",
-    env: { GITHUB_PAGES: "true" },
+    env: { GITHUB_PAGES: "true", VITE_FOUNDATION_FIXTURES: "true" },
   },
 });

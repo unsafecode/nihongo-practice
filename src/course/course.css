@@ -1,3 +1,5 @@
+@import "./foundations/foundation.css";
+
 .course-home {
   max-width: 76rem;
   margin: 0 auto;

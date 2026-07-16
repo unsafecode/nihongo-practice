@@ -232,6 +232,52 @@ export interface CourseCopy {
    * Italian `Da ripassare`; English uses a plain beginner label. Empty, orphan,
    * and storage-unavailable states each have their own explicit string.
    */
+  /**
+   * Localized chrome for the compact sentence matrix, same-family guided
+   * construction, and two-round practice UX (design spec §10.3, §11, §12;
+   * Phase 1 Task 5). These are surrounding UI labels only — every Japanese
+   * sentence, its romaji, and the natural translation come from realized
+   * tokens and locale-owned variant translation copy, never from here. No
+   * string claims certification, mastery, or fluency (§3.1).
+   */
+  foundation: {
+    /** Heading for the scenario/person sentence matrix section. */
+    matrixTitle: string;
+    /** Short introduction shown under the matrix heading. */
+    matrixIntro: string;
+    /** Disclosure label revealing every model row. */
+    showAll: string;
+    /** Disclosure label collapsing back to the curated subset. */
+    showFewer: string;
+    /** Label for a row's speaker/role. */
+    speakerLabel: string;
+    /** Label for a row's scenario/context. */
+    contextLabel: string;
+    /** Label marking a naturally omitted (pro-dropped) subject. */
+    omittedSubject: string;
+    /** Heading for the same-family guided construction section. */
+    guidedTitle: string;
+    /** Label for the guided construction's starting sentence. */
+    initialLabel: string;
+    /** Label for the guided construction's target sentence. */
+    targetLabel: string;
+    /** Label introducing the list of active variation axes. */
+    activeAxesLabel: string;
+    /** Heading for practice round one (guided/controlled). */
+    roundOneTitle: string;
+    /** Introduction/purpose text for round one. */
+    roundOneIntro: string;
+    /** Heading for practice round two (transfer). */
+    roundTwoTitle: string;
+    /** Introduction/purpose text for round two. */
+    roundTwoIntro: string;
+    /** Label marking a transfer target. */
+    transferLabel: string;
+    /** Title of the localized content-unavailable notice. */
+    unavailableTitle: string;
+    /** Body of the localized content-unavailable notice. */
+    unavailableBody: string;
+  };
   review: {
     title: string;
     lead: string;

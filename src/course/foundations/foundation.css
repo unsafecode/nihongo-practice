@@ -1,0 +1,263 @@
+/**
+ * Styles for the compile-time-gated Phase 1 foundation fixture harness
+ * (design spec §10.3, §11, §12, §19): the compact sentence matrix, the
+ * same-family guided-construction board, and the two practice rounds. The
+ * harness reuses the shared `.action`/`--action-target-min` primitives and
+ * the same accessibility posture as the lesson surface: nothing depends on a
+ * horizontal-only scroll, every state is carried by text and shape rather
+ * than colour alone, focus is always visible, and motion respects the
+ * reduced-motion preference.
+ */
+
+.foundation-page {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 4vw, 3.5rem) 1.25rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 4vw, 2.75rem);
+  min-width: 0;
+}
+
+.foundation-page__header {
+  min-width: 0;
+}
+
+.foundation-page__can-do {
+  margin: 0.5rem 0 0;
+  color: var(--course-muted);
+  overflow-wrap: anywhere;
+}
+
+/* --- Sentence matrix ---------------------------------------------------- */
+
+.foundation-matrix {
+  min-width: 0;
+}
+
+.foundation-matrix__title {
+  margin: 0 0 0.35rem;
+}
+
+.foundation-matrix__intro {
+  margin: 0 0 1rem;
+  color: var(--course-muted);
+  overflow-wrap: anywhere;
+}
+
+.foundation-matrix__rows {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.foundation-matrix__row {
+  min-width: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--course-border, rgba(41, 44, 50, 0.16));
+  border-radius: 0.75rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.foundation-matrix__sentence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  min-width: 0;
+}
+
+.foundation-matrix__jp {
+  font-size: 1.15rem;
+  overflow-wrap: anywhere;
+}
+
+.foundation-matrix__romaji {
+  color: var(--course-muted);
+  overflow-wrap: anywhere;
+}
+
+.foundation-matrix__translation {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.foundation-matrix__meta {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+}
+
+.foundation-matrix__meta-pair {
+  display: flex;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.foundation-matrix__meta dt {
+  font-weight: 700;
+  color: var(--course-muted);
+}
+
+.foundation-matrix__meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.foundation-matrix__omitted {
+  margin: 0;
+  font-style: italic;
+  color: var(--course-muted);
+}
+
+.foundation-matrix__toggle {
+  min-height: var(--action-target-min);
+  min-width: var(--action-target-min);
+}
+
+/* --- Guided construction ------------------------------------------------ */
+
+.foundation-guided {
+  min-width: 0;
+}
+
+.foundation-guided__title {
+  margin: 0 0 0.75rem;
+}
+
+.foundation-guided__pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.foundation-guided__row {
+  min-width: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--course-border, rgba(41, 44, 50, 0.16));
+  border-radius: 0.75rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.foundation-guided__label {
+  margin: 0;
+  font-weight: 700;
+  color: var(--course-muted);
+}
+
+.foundation-guided__jp {
+  font-size: 1.15rem;
+  overflow-wrap: anywhere;
+}
+
+.foundation-guided__romaji,
+.foundation-guided__translation {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.foundation-guided__changed {
+  background: transparent;
+  color: inherit;
+  font-weight: 800;
+  border-bottom: 0.18em solid currentColor;
+  padding-bottom: 0.05em;
+}
+
+.foundation-guided__axes {
+  margin-top: 1rem;
+}
+
+.foundation-guided__axes-label {
+  margin: 0 0 0.35rem;
+  font-weight: 700;
+}
+
+.foundation-guided__axes-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+/* --- Practice rounds ---------------------------------------------------- */
+
+.foundation-rounds {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 4vw, 2.5rem);
+  min-width: 0;
+}
+
+.foundation-round {
+  min-width: 0;
+}
+
+.foundation-round__title {
+  margin: 0 0 0.35rem;
+}
+
+.foundation-round__intro {
+  margin: 0 0 1rem;
+  color: var(--course-muted);
+  overflow-wrap: anywhere;
+}
+
+.foundation-round__cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.foundation-round__card {
+  min-width: 0;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--course-border, rgba(41, 44, 50, 0.16));
+  border-radius: 0.85rem;
+}
+
+.foundation-round__badge {
+  display: inline-block;
+  margin: 0 0 0.6rem;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+}
+
+.foundation-matrix__toggle:focus-visible,
+.foundation-round__card :focus-visible {
+  outline: 3px solid var(--course-focus, #2f6fed);
+  outline-offset: 2px;
+}
+
+@media (max-width: 700px) {
+  .foundation-guided__pair {
+    grid-template-columns: 1fr;
+  }
+
+  .foundation-matrix__rows,
+  .foundation-round__cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .foundation-matrix__toggle {
+    transition: none;
+  }
+}

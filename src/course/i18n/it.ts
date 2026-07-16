@@ -185,7 +185,30 @@ const itUi = {
     criticalLabel: "parola chiave",
     segmentUnavailable: "Segmento non disponibile",
   },
-} satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt">;
+  foundation: {
+    matrixTitle: "Matrice delle frasi",
+    matrixIntro:
+      "Osserva come lo stesso schema funziona con persone e situazioni diverse. Mostra il resto quando vuoi.",
+    showAll: "Mostra tutti gli esempi",
+    showFewer: "Mostra meno esempi",
+    speakerLabel: "Chi parla",
+    contextLabel: "Situazione",
+    omittedSubject: "Soggetto sottinteso",
+    guidedTitle: "Costruzione guidata",
+    initialLabel: "Parti da",
+    targetLabel: "Arriva a",
+    activeAxesLabel: "Cosa cambia",
+    roundOneTitle: "Esercizi round 1",
+    roundOneIntro: "Riconosci e costruisci gli schemi appena visti.",
+    roundTwoTitle: "Esercizi round 2",
+    roundTwoIntro:
+      "Combina gli elementi in modi nuovi che non hai ancora esercitato.",
+    transferLabel: "Nuova combinazione",
+    unavailableTitle: "Non è stato possibile preparare questa lezione",
+    unavailableBody:
+      "Alcuni contenuti di questa lezione non si sono potuti costruire ora. Non è stato mostrato nulla, così non ti eserciti mai su un esempio incompleto.",
+  },
+} satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation">;
 
 const itCourseMap: CourseCopy["courseMap"] = {
   heading: "Le fasi del percorso",
