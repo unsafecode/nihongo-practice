@@ -3,6 +3,8 @@ import { it as itCopy } from "./it";
 import { en as enCopy } from "./en";
 import type { CourseCopy } from "./types";
 import { examples } from "../data/examples";
+import { formatRomaji } from "../../romaji/formatRomaji";
+import { exampleSegmentToAssembledToken } from "../data/romajiTokens";
 
 /**
  * Shipped-content quality suite (design spec §7, §8.3, §13). These tests inspect
@@ -77,9 +79,24 @@ describe("shipped Japanese examples — continuous kana (spec §8.3)", () => {
     for (const example of Object.values(examples)) {
       if (!example.segments) continue;
       expect(example.segments.map((s) => s.jp).join("")).toBe(example.jp);
-      expect(example.segments.map((s) => s.romaji).join("")).toBe(
-        example.romaji,
-      );
+      const tokens = example.segments.map((segment) => {
+        const token = exampleSegmentToAssembledToken(segment);
+        if (!token) {
+          throw new Error(
+            `invalid segment metadata for ${example.id}:${segment.id ?? "(no id)"}`,
+          );
+        }
+        return token;
+      });
+      const formatted = formatRomaji(tokens);
+      if (!formatted.ok) {
+        throw new Error(
+          `invalid romaji token metadata for ${example.id}: ${formatted.errors
+            .map((error) => error.code)
+            .join(", ")}`,
+        );
+      }
+      expect(formatted.text).toBe(example.romaji);
     }
   });
 });
