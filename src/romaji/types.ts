@@ -7,7 +7,7 @@ export type RomajiTokenKind =
   | "punctuation";
 
 export interface TokenSourceRef {
-  readonly domain: "catalog" | "lab" | "exercise" | "speech" | "test";
+  readonly domain: "catalog" | "lab" | "exercise" | "speech" | "test" | "family";
   readonly referenceId: string;
 }
 

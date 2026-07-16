@@ -119,6 +119,42 @@ describe("formatRomaji", () => {
     });
   });
 
+  it("formats family-sourced tokens with the same semantic spacing as any other domain", () => {
+    const familySequence = formatRomaji([
+      token("t19", "ゆき", "yuki", "lexical", "attach", source("family", "fixture-a1-value-yuki")),
+      token("t20", "は", "wa", "particle", "space", source("family", "fixture-a1-slot-subject")),
+      token("t21", "がくせい", "gakusei", "lexical", "space", source("family", "fixture-a1-value-student")),
+      token("t22", "です", "desu", "morpheme", "space", source("family", "fixture-a1-value-be")),
+      token("t23", "。", ".", "punctuation", "attach", source("family", "fixture-a1-punctuation")),
+    ]);
+
+    const catalogSequence = formatRomaji([
+      token("t19b", "ゆき", "yuki", "lexical", "attach", source("catalog", "t19b")),
+      token("t20b", "は", "wa", "particle", "space", source("catalog", "t20b")),
+      token("t21b", "がくせい", "gakusei", "lexical", "space", source("catalog", "t21b")),
+      token("t22b", "です", "desu", "morpheme", "space", source("catalog", "t22b")),
+      token("t23b", "。", ".", "punctuation", "attach", source("catalog", "t23b")),
+    ]);
+
+    expect(familySequence).toEqual({
+      ok: true,
+      text: "yuki wa gakusei desu.",
+      runs: [
+        { tokenId: "t19", separatorBefore: "", text: "yuki" },
+        { tokenId: "t20", separatorBefore: " ", text: "wa" },
+        { tokenId: "t21", separatorBefore: " ", text: "gakusei" },
+        { tokenId: "t22", separatorBefore: " ", text: "desu" },
+        { tokenId: "t23", separatorBefore: "", text: "." },
+      ],
+    });
+
+    // The domain a token was sourced from (family vs. catalog) must never
+    // change the assembled spacing — only kind/boundaryBefore may.
+    expect(familySequence.ok && catalogSequence.ok
+      ? familySequence.text === catalogSequence.text
+      : false).toBe(true);
+  });
+
   it("reports boundary and reference validation errors in token order", () => {
     expect(
       formatRomaji([
