@@ -132,6 +132,10 @@ const enUi = {
       n === 1
         ? "1 saved review item is from an older version and is set aside."
         : `${n} saved review items are from an older version and are set aside.`,
+    unresolvable: (n: number) =>
+      n === 1
+        ? "1 authored review item cannot currently be shown because its exercise is no longer available."
+        : `${n} authored review items cannot currently be shown because their exercises are no longer available.`,
     unavailable:
       "Your browser is not saving progress in this session, so this list will reset when you close the app.",
   },

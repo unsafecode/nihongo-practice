@@ -128,6 +128,18 @@ describe("ExerciseView — all five controls render", () => {
     expect(html).toContain(enCopy.exercises.moveTileForward(firstTile.jp));
   });
 
+  it("gives every tile action a stable unique id for deterministic focus", () => {
+    const prompt = tileEx.prompt;
+    if (prompt.kind !== "tile-ordering") throw new Error("kind");
+    let state = initExerciseState(prompt);
+    for (const id of prompt.correctTileIds) state = placeTile(state, id);
+    const html = renderView(tileEx, state);
+    const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
+    const tileActionIds = ids.filter((id) => id.includes("-tile-"));
+    expect(tileActionIds.length).toBe(prompt.tiles.length * 3);
+    expect(new Set(tileActionIds).size).toBe(tileActionIds.length);
+  });
+
   it("choice: a labelled group of radio options", () => {
     const html = renderView(choiceEx);
     expect(html).toContain("<fieldset");

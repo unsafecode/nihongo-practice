@@ -132,6 +132,10 @@ const itUi = {
       n === 1
         ? "1 elemento salvato da ripassare è di una versione precedente ed è stato messo da parte."
         : `${n} elementi salvati da ripassare sono di una versione precedente e sono stati messi da parte.`,
+    unresolvable: (n: number) =>
+      n === 1
+        ? "1 elemento di ripasso creato dal corso non può essere mostrato ora perché il suo esercizio non è più disponibile."
+        : `${n} elementi di ripasso creati dal corso non possono essere mostrati ora perché i loro esercizi non sono più disponibili.`,
     unavailable:
       "Il browser non sta salvando i progressi in questa sessione, quindi questa lista si azzererà alla chiusura dell'app.",
   },

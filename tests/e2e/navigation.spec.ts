@@ -602,13 +602,34 @@ test.describe("Slice C — deterministic exercises", () => {
     const card = tileCard(page);
     await expect(card).toHaveCount(1);
 
-    // Add each tile in the lesson's own sentence order using the keyboard only.
-    for (const glyph of INTRO_TILE_ORDER) {
+    // Start the keyboard flow once; focus must follow the next bank tile after
+    // each Add, so no later step is allowed to re-focus externally.
+    const firstAdd = card
+      .locator(".lesson-exercise__bank button", { hasText: INTRO_TILE_ORDER[0] })
+      .first();
+    await firstAdd.focus();
+    for (const [index, glyph] of INTRO_TILE_ORDER.entries()) {
       const addButton = card
         .locator(".lesson-exercise__bank button", { hasText: glyph })
         .first();
-      await addButton.focus();
+      if (index > 0) {
+        await expect(page.locator(":focus")).toHaveAttribute(
+          "id",
+          `${await addButton.getAttribute("id")}`,
+        );
+      }
       await page.keyboard.press("Enter");
+      if (index < INTRO_TILE_ORDER.length - 1) {
+        const nextAdd = card
+          .locator(".lesson-exercise__bank button", {
+            hasText: INTRO_TILE_ORDER[index + 1],
+          })
+          .first();
+        await expect(page.locator(":focus")).toHaveAttribute(
+          "id",
+          `${await nextAdd.getAttribute("id")}`,
+        );
+      }
     }
 
     // The answer now holds all four tiles; none remain in the bank.
@@ -624,6 +645,48 @@ test.describe("Slice C — deterministic exercises", () => {
     await expect(feedback).toContainText("Corretto");
     // The result lives in a polite live region that does not steal focus.
     await expect(feedback).toHaveAttribute("aria-live", "polite");
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+
+  test("keyboard tile moves follow the moved tile at sequence boundaries", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, EXERCISE_LESSON_URL);
+
+    const card = tileCard(page);
+    const firstAdd = card.locator(".lesson-exercise__bank button").first();
+    await firstAdd.focus();
+    for (let index = 0; index < INTRO_TILE_ORDER.length; index += 1) {
+      await page.keyboard.press("Enter");
+    }
+    await expect(card.locator(".lesson-exercise__placed")).toHaveCount(4);
+
+    const secondLast = card.locator(".lesson-exercise__placed").nth(2);
+    const movedTile = secondLast.locator(".lesson-exercise__move-forward");
+    await movedTile.focus();
+    await page.keyboard.press("Enter");
+
+    const movedTileBack = card
+      .locator(".lesson-exercise__placed")
+      .nth(3)
+      .locator(".lesson-exercise__move-back");
+    await expect(movedTileBack).toBeEnabled();
+    await expect(page.locator(":focus")).toHaveAttribute(
+      "id",
+      `${await movedTileBack.getAttribute("id")}`,
+    );
+
+    await page.keyboard.press("Enter");
+    await expect(page.locator(":focus")).toHaveAttribute(
+      "id",
+      `${await card
+        .locator(".lesson-exercise__placed")
+        .nth(2)
+        .locator(".lesson-exercise__move-forward")
+        .getAttribute("id")}`,
+    );
 
     await assertNoRuntimeErrors(page, observers);
   });

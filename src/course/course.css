@@ -1340,7 +1340,8 @@
 .review-queue__announce:empty { display: none; }
 
 .review-queue__unavailable,
-.review-queue__orphaned {
+.review-queue__orphaned,
+.review-queue__unresolvable {
   margin: 0;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);

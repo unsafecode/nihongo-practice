@@ -1,4 +1,12 @@
-import type { ReactElement, ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  type MouseEvent as ReactMouseEvent,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import type { Script } from "../../settings/ScriptContext";
 import type { CourseCopy } from "../i18n/types";
 import { JapaneseSegmentText } from "./JapaneseSegmentText";
@@ -28,6 +36,29 @@ import type {
  */
 
 type ExercisePromptCopy = CourseCopy["exercises"];
+
+type TileAction = "add" | "back" | "forward" | "remove";
+
+interface TileFocusManager {
+  readonly ref: (
+    tileId: string,
+    action: TileAction,
+  ) => (element: HTMLButtonElement | null) => void;
+  readonly request: (
+    targetTileId: string,
+    targetAction: TileAction,
+    event: ReactMouseEvent<HTMLButtonElement>,
+  ) => void;
+}
+
+function shouldManageTileFocus(
+  event: ReactMouseEvent<HTMLButtonElement>,
+): boolean {
+  return (
+    event.detail === 0 ||
+    (typeof document !== "undefined" && event.currentTarget === document.activeElement)
+  );
+}
 
 export interface ExerciseViewHandlers {
   readonly onPlaceTile: (tileId: string) => void;
@@ -154,6 +185,7 @@ function TileOrderingBody({
   copy,
   instructionId,
   romajiForTile,
+  focus,
   handlers,
 }: {
   readonly prompt: Extract<ExercisePrompt, { kind: "tile-ordering" }>;
@@ -162,6 +194,7 @@ function TileOrderingBody({
   readonly copy: ExercisePromptCopy;
   readonly instructionId: string;
   readonly romajiForTile: (tileId: string) => string | undefined;
+  readonly focus: TileFocusManager;
   readonly handlers: ExerciseViewHandlers;
 }): ReactElement {
   const tilesById = new Map(prompt.tiles.map((tile) => [tile.id, tile]));
@@ -199,27 +232,42 @@ function TileOrderingBody({
                 <span className="lesson-exercise__tile-actions">
                   <button
                     type="button"
-                    className="action action--icon lesson-exercise__tile-btn"
+                    className="action action--icon lesson-exercise__tile-btn lesson-exercise__move-back"
+                    id={`${instructionId}-tile-${tileId}-move-back`}
+                    ref={focus.ref(tileId, "back")}
                     aria-label={copy.moveTileBack(label)}
                     disabled={position === 0}
-                    onClick={() => handlers.onMoveTile(tileId, "back")}
+                    onClick={(event) => {
+                      focus.request(tileId, "forward", event);
+                      handlers.onMoveTile(tileId, "back");
+                    }}
                   >
                     <span aria-hidden="true">←</span>
                   </button>
                   <button
                     type="button"
-                    className="action action--icon lesson-exercise__tile-btn"
+                    className="action action--icon lesson-exercise__tile-btn lesson-exercise__move-forward"
+                    id={`${instructionId}-tile-${tileId}-move-forward`}
+                    ref={focus.ref(tileId, "forward")}
                     aria-label={copy.moveTileForward(label)}
                     disabled={position === placed.length - 1}
-                    onClick={() => handlers.onMoveTile(tileId, "forward")}
+                    onClick={(event) => {
+                      focus.request(tileId, "back", event);
+                      handlers.onMoveTile(tileId, "forward");
+                    }}
                   >
                     <span aria-hidden="true">→</span>
                   </button>
                   <button
                     type="button"
                     className="action action--icon lesson-exercise__tile-btn"
+                    id={`${instructionId}-tile-${tileId}-remove`}
+                    ref={focus.ref(tileId, "remove")}
                     aria-label={copy.removeTile(label)}
-                    onClick={() => handlers.onUnplaceTile(tileId)}
+                    onClick={(event) => {
+                      focus.request(tileId, "add", event);
+                      handlers.onUnplaceTile(tileId);
+                    }}
                   >
                     <span aria-hidden="true">×</span>
                   </button>
@@ -239,8 +287,25 @@ function TileOrderingBody({
             <button
               type="button"
               className="action action--secondary lesson-exercise__tile"
+              id={`${instructionId}-tile-${tile.id}-add`}
+              ref={focus.ref(tile.id, "add")}
               aria-label={copy.addTile(tileLabelText(tile))}
-              onClick={() => handlers.onPlaceTile(tile.id)}
+              onClick={(event) => {
+                const nextBankTile = prompt.correctTileIds
+                  .map((candidateId) => prompt.tiles.find((candidate) => candidate.id === candidateId))
+                  .find(
+                    (candidate) =>
+                      candidate !== undefined &&
+                      candidate.id !== tile.id &&
+                      !placedSet.has(candidate.id),
+                  );
+                focus.request(
+                  nextBankTile?.id ?? tile.id,
+                  nextBankTile ? "add" : "remove",
+                  event,
+                );
+                handlers.onPlaceTile(tile.id);
+              }}
             >
               <GlyphPair
                 jp={tile.jp}
@@ -457,6 +522,58 @@ export function ExerciseView(props: ExerciseViewProps): ReactElement {
   const feedbackId = `${idBase}-feedback`;
   const feedback = feedbackContent(state, copy);
   const accepted = state.status === "accepted";
+  const tileButtonRefs = useRef(new Map<string, HTMLButtonElement>());
+  const tileFocusRequest = useRef<{
+    readonly tileId: string;
+    readonly action: TileAction;
+    readonly shouldFocus: boolean;
+  } | null>(null);
+  const tileRefCallbacks = useMemo(() => {
+    const callbacks = new Map<
+      string,
+      (element: HTMLButtonElement | null) => void
+    >();
+    if (prompt.kind === "tile-ordering") {
+      for (const tile of prompt.tiles) {
+        for (const action of ["add", "back", "forward", "remove"] as const) {
+          const key = `${tile.id}:${action}`;
+          callbacks.set(key, (element) => {
+            if (element) tileButtonRefs.current.set(key, element);
+            else tileButtonRefs.current.delete(key);
+          });
+        }
+      }
+    }
+    return callbacks;
+  }, [prompt]);
+  const focus = useMemo<TileFocusManager>(
+    () => ({
+      ref: (tileId, action) =>
+        tileRefCallbacks.get(`${tileId}:${action}`) ?? (() => undefined),
+      request: (tileId, action, event) => {
+        tileFocusRequest.current = {
+          tileId,
+          action,
+          shouldFocus: shouldManageTileFocus(event),
+        };
+      },
+    }),
+    [tileRefCallbacks],
+  );
+  const useClientLayoutEffect =
+    typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+  useClientLayoutEffect(() => {
+    const request = tileFocusRequest.current;
+    if (!request) return;
+    tileFocusRequest.current = null;
+    if (!request.shouldFocus) return;
+
+    const target = tileButtonRefs.current.get(
+      `${request.tileId}:${request.action}`,
+    );
+    if (target && !target.disabled) target.focus();
+  }, [state.placedTileIds]);
 
   return (
     <li className="lesson-exercise" aria-labelledby={headingId}>
@@ -485,6 +602,7 @@ export function ExerciseView(props: ExerciseViewProps): ReactElement {
             copy={copy}
             instructionId={instructionId}
             romajiForTile={romajiForTile}
+            focus={focus}
             handlers={handlers}
           />
         ) : null}

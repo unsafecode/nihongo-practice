@@ -159,6 +159,26 @@ describe("ReviewQueue — orphan and storage states (spec §10.4, §16)", () => 
     // Apostrophe-free substring (renderToStaticMarkup HTML-escapes ').
     expect(html).toContain("non sta salvando i progressi");
   });
+
+  it("counts authored active entries whose exercises are no longer resolvable", () => {
+    const progress: CourseProgressV3 = {
+      ...emptyProgress(),
+      reviewQueue: [
+        {
+          reviewKey: "introductions-1:introductions-1-ghost",
+          lessonId: "introductions-1",
+          exerciseDefinitionId: "introductions-1-ghost",
+          targetConceptIds: [],
+          targetLexemeIds: [],
+          mistakeCount: 1,
+          lastMistakeAt: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+    };
+    const html = render(contextValue(progress));
+    expect(html).toContain(itCopy.review.unresolvable(1));
+    expect(html).not.toContain(itCopy.review.empty);
+  });
 });
 
 describe("ReviewQueue — locale parity", () => {
@@ -167,5 +187,7 @@ describe("ReviewQueue — locale parity", () => {
     // and differ so the surface is fully localized in both.
     expect(enCopy.review.title).not.toBe(itCopy.review.title);
     expect(enCopy.review.empty).not.toBe(itCopy.review.empty);
+    expect(enCopy.review.unresolvable(2)).toContain("2 authored review items");
+    expect(itCopy.review.unresolvable(2)).toContain("2 elementi di ripasso");
   });
 });

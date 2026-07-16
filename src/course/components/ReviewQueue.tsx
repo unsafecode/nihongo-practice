@@ -81,9 +81,9 @@ export function ReviewQueue(): ReactElement {
         <p className="review-queue__unavailable">{reviewCopy.unavailable}</p>
       ) : null}
 
-      {view.items.length === 0 ? (
+      {view.items.length === 0 && view.unresolvableKeys.length === 0 ? (
         <p className="review-queue__empty">{reviewCopy.empty}</p>
-      ) : (
+      ) : view.items.length > 0 ? (
         <ul className="review-queue__list">
           {view.items.map((item) => {
             const open = openKey === item.reviewKey;
@@ -142,11 +142,16 @@ export function ReviewQueue(): ReactElement {
             );
           })}
         </ul>
-      )}
+      ) : null}
 
       {view.orphanedKeys.length > 0 ? (
         <p className="review-queue__orphaned">
           {reviewCopy.orphaned(view.orphanedKeys.length)}
+        </p>
+      ) : null}
+      {view.unresolvableKeys.length > 0 ? (
+        <p className="review-queue__unresolvable">
+          {reviewCopy.unresolvable(view.unresolvableKeys.length)}
         </p>
       ) : null}
     </section>

@@ -177,6 +177,8 @@ export interface CourseCopy {
     /** Announced (polite live region) when a review-mode acceptance resolves. */
     resolved: string;
     orphaned: (n: number) => string;
+    /** Notice for authored active entries that no longer resolve to an exercise. */
+    unresolvable: (n: number) => string;
     unavailable: string;
   };
   /**
