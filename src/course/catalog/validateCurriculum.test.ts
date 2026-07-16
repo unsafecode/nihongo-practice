@@ -1310,4 +1310,43 @@ describe("validateCurriculum speech prompts (Slice D Task 1)", () => {
       0,
     );
   });
+
+  it("requires non-empty critical coverage under enforceSpeechTargets", () => {
+    const enforced = validateCurriculum(
+      speechInput({ criticalSegmentIds: [] }),
+      { enforceReleaseTargets: false, enforceSpeechTargets: true },
+    );
+    expect(
+      speechCodes(enforced, "empty-speech-critical-coverage"),
+    ).toContainEqual(expect.objectContaining({ id: "speech-lesson-1" }));
+
+    const staged = validateCurriculum(
+      speechInput({ criticalSegmentIds: [] }),
+      localValidation,
+    );
+    expect(
+      speechCodes(staged, "empty-speech-critical-coverage"),
+    ).toHaveLength(0);
+  });
+
+  it("requires every target particle and ending in critical coverage under enforceSpeechTargets", () => {
+    const result = validateCurriculum(
+      speechInput({ criticalSegmentIds: ["w1", "w2"] }),
+      { enforceReleaseTargets: false, enforceSpeechTargets: true },
+    );
+    expect(
+      speechCodes(result, "missing-critical-speech-segment"),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "speech-lesson-1",
+          referenceId: "p1",
+        }),
+        expect.objectContaining({
+          id: "speech-lesson-1",
+          referenceId: "e1",
+        }),
+      ]),
+    );
+  });
 });

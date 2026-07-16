@@ -855,10 +855,11 @@ const SPOKEN_SUFFIX = "-say";
  * malformed authored prompt fails the build: comparison/critical/variant
  * references must resolve, be duplicate-free, keep critical within comparison,
  * declare variants the owning lesson already shows, and list comparison segments
- * in target order. Completeness checks — non-empty comparison covering every
- * target segment, and a target that is the owning lesson's spoken `-say` example
- * — are gated behind `enforceSpeechTargets` so lightweight fixtures stay valid
- * while the release catalog (`assembleCourse`) fails closed.
+ * in target order. Completeness checks — non-empty comparison and critical
+ * coverage covering every target particle/ending, comparison covering every
+ * target segment, and a target that is the owning lesson's spoken `-say`
+ * example — are gated behind `enforceSpeechTargets` so lightweight fixtures stay
+ * valid while the release catalog (`assembleCourse`) fails closed.
  */
 function addSpeechErrors(
   input: AssembledCurriculumCatalogs,
@@ -966,6 +967,25 @@ function addSpeechErrors(
     }
 
     if (!enforceSpeechTargets) continue;
+
+    // Release completeness: non-empty critical coverage must include every
+    // grammar-bearing target segment.
+    if (prompt.criticalSegmentIds.length === 0) {
+      errors.push({ code: "empty-speech-critical-coverage", id: prompt.id });
+    }
+    const criticalSet = new Set(prompt.criticalSegmentIds);
+    for (const segment of target?.segments ?? []) {
+      if (
+        (segment.kind === "particle" || segment.kind === "ending") &&
+        !criticalSet.has(segment.id)
+      ) {
+        errors.push({
+          code: "missing-critical-speech-segment",
+          id: prompt.id,
+          referenceId: segment.id,
+        });
+      }
+    }
 
     // Release completeness: non-empty comparison covering every target segment
     // in order, and a target that is the owning lesson's spoken example.

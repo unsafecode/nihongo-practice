@@ -227,6 +227,8 @@ export type CurriculumValidationErrorCode =
   | "duplicate-speech-segment-reference"
   | "critical-segment-not-compared"
   | "empty-speech-comparison"
+  | "empty-speech-critical-coverage"
+  | "missing-critical-speech-segment"
   | "invalid-speech-segment-order"
   | "speech-target-not-say-example"
   | "missing-speech-variant-reference"
