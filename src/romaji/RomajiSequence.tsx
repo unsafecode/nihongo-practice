@@ -13,7 +13,7 @@ export interface RomajiSequenceProps {
 }
 
 function alertNode(errorText: string) {
-  return <p role="alert">{errorText}</p>;
+  return <span role="alert">{errorText}</span>;
 }
 
 export function RomajiSequence({

@@ -44,6 +44,26 @@ function renderSequence(
   );
 }
 
+function renderSequenceInsideSpan(
+  tokens: readonly AssembledToken[],
+  options: Parameters<typeof renderSequence>[1] = {},
+): string {
+  return renderToStaticMarkup(
+    createElement(
+      "span",
+      null,
+      createElement(RomajiSequence, {
+        tokens,
+        highlightedTokenIds: options.highlightedTokenIds,
+        highlightClassName: options.highlightClassName,
+        errorText:
+          options.errorText ?? "This Japanese example could not be displayed.",
+        renderToken: options.renderToken,
+      }),
+    ),
+  );
+}
+
 function markContents(html: string): string[] {
   return [...html.matchAll(/<mark[^>]*>([\s\S]*?)<\/mark>/g)].map(
     (match) => match[1],
@@ -181,12 +201,23 @@ describe("RomajiSequence", () => {
       ],
       { errorText: "Localized content error." },
     );
+    const wrappedHtml = renderSequenceInsideSpan(
+      [
+        token("bad", "は", "wa", "particle", "space"),
+        token("w2", "コーヒー", "koohii", "lexical", "space"),
+      ],
+      { errorText: "Localized content error." },
+    );
 
-    expect(html).toContain('role="alert"');
+    expect(html).toContain('<span role="alert">');
+    expect(html).not.toContain("<p role=\"alert\">");
     expect(html).toContain("Localized content error.");
     expect(html).not.toContain("wa");
     expect(html).not.toContain("koohii");
     expect(html).not.toContain("<mark");
+    expect(wrappedHtml).toBe(
+      '<span><span role="alert">Localized content error.</span></span>',
+    );
   });
 
   it("shows only the localized alert when any token has empty romaji", () => {
@@ -202,11 +233,27 @@ describe("RomajiSequence", () => {
           createElement("span", { "data-jp": sequenceToken.jp }, sequenceToken.jp),
       },
     );
+    const wrappedHtml = renderSequenceInsideSpan(
+      [
+        token("w1", "これ", "kore", "lexical", "attach"),
+        token("bad", "です", "", "morpheme", "attach"),
+      ],
+      {
+        errorText: "Localized content error.",
+        highlightedTokenIds: ["w1"],
+        renderToken: (sequenceToken) =>
+          createElement("span", { "data-jp": sequenceToken.jp }, sequenceToken.jp),
+      },
+    );
 
-    expect(html).toContain('role="alert"');
+    expect(html).toContain('<span role="alert">');
+    expect(html).not.toContain("<p role=\"alert\">");
     expect(html).toContain("Localized content error.");
     expect(html).not.toContain("kore");
     expect(html).not.toContain("これ");
     expect(html).not.toContain("<mark");
+    expect(wrappedHtml).toBe(
+      '<span><span role="alert">Localized content error.</span></span>',
+    );
   });
 });
