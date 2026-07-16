@@ -20,6 +20,7 @@ import {
   type SelectVariantsRoundConstraints,
   type SelectVariantsRoundInput,
   selectVariants,
+  selectVariantsWithBacktrackLimit,
 } from "./selectVariants";
 
 // ---------------------------------------------------------------------------
@@ -176,6 +177,30 @@ function constraints(overrides: Partial<SelectVariantsRoundConstraints> = {}): S
 
 function idsOf(candidates: readonly PracticeCandidate[]): readonly string[] {
   return candidates.map((candidate) => candidate.variant.id);
+}
+
+/** Tokens with no `particle`/`morpheme` kind at all — i.e. no blankable token
+ * exists, so `completion`/`choice` must be ineligible for a sentence built
+ * from these. */
+function noBlankableTokens(id: string): RealizedSentence["tokens"] {
+  return [
+    {
+      id: `${id}::a`,
+      jp: `${id}-a`,
+      romaji: `${id}-a`,
+      kind: "lexical",
+      boundaryBefore: "attach",
+      source: { domain: "test", referenceId: `${id}::a` },
+    },
+    {
+      id: `${id}::b`,
+      jp: `${id}-b`,
+      romaji: `${id}-b`,
+      kind: "lexical",
+      boundaryBefore: "space",
+      source: { domain: "test", referenceId: `${id}::b` },
+    },
+  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -1003,6 +1028,153 @@ describe("exercise kind assignment", () => {
     if (!result.ok) return;
     const kindsUsed = new Set(result.targets.map((target) => target.exerciseKind));
     expect(kindsUsed.size).toBeGreaterThan(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// No impossible kind success — selection must never accept a target whose
+// assigned kind `eligibleKindsFor` would reject, and must say so precisely
+// (rather than force an arbitrary kind, or misreport as
+// missing-controlled-transfer) when no assignment is possible at all.
+// ---------------------------------------------------------------------------
+
+describe("no impossible kind success", () => {
+  it("returns no-eligible-kind (round reference) when round.exerciseKinds is empty", () => {
+    const candidates = [makeCandidate({ id: "empty-kinds-1" })];
+    const result = selectVariants({
+      catalogVersion: "v1",
+      lessonId: "lesson-1",
+      round: round({
+        id: "round-empty-kinds",
+        candidateVariantIds: idsOf(candidates),
+        targetCount: 1,
+        exerciseKinds: [],
+      }),
+      seed: "seed",
+      candidates,
+      modelSemanticFingerprints: [],
+      alreadySelected: [],
+      constraints: constraints(),
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors).toEqual([{ code: "no-eligible-kind", referenceId: "round-empty-kinds" }]);
+  });
+
+  it("returns no-eligible-kind when every candidate has no eligible kind for the round's exerciseKinds", () => {
+    const idA = "nk-a";
+    const idB = "nk-b";
+    const candidates = [idA, idB].map((id) =>
+      makeCandidate({ id, familyId: `family-${id}`, predicateSenseId: `sense-${id}`, tokens: noBlankableTokens(id) }),
+    );
+    const result = selectVariants({
+      catalogVersion: "v1",
+      lessonId: "lesson-1",
+      round: round({
+        id: "round-no-kind",
+        candidateVariantIds: idsOf(candidates),
+        targetCount: 1,
+        exerciseKinds: ["completion"],
+      }),
+      seed: "seed",
+      candidates,
+      modelSemanticFingerprints: [],
+      alreadySelected: [],
+      constraints: constraints(),
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].code).toBe("no-eligible-kind");
+    expect(result.errors[0].referenceId).toMatch(/^round-no-kind::(nk-a|nk-b)$/);
+  });
+
+  it("selects the alternate candidate when the top-ranked candidate has no blankable token but an alternate does (completion-only round)", () => {
+    const catalogVersion = "v1";
+    const lessonId = "lesson-1";
+    const roundId = "round-completion-only";
+    const seed = "completion-seed";
+    const idX = "comp-x";
+    const idY = "comp-y";
+    const rankX = fnv1a32(`${catalogVersion}|${lessonId}|${roundId}|${seed}|${idX}`);
+    const rankY = fnv1a32(`${catalogVersion}|${lessonId}|${roundId}|${seed}|${idY}`);
+    // Whichever of the two ranks lower is tried first by the deterministic
+    // backtracking search — give *that one* no blankable token, so a naive
+    // "accept the first diversity-valid set" implementation would be forced
+    // to either fabricate a kind for it or wrongly reject the whole round.
+    const [topRankedId, alternateId] = rankX <= rankY ? [idX, idY] : [idY, idX];
+
+    const candidates = [
+      makeCandidate({
+        id: topRankedId,
+        familyId: "family-comp",
+        predicateSenseId: "sense-comp",
+        tokens: noBlankableTokens(topRankedId),
+      }),
+      makeCandidate({ id: alternateId, familyId: "family-comp", predicateSenseId: "sense-comp" }),
+    ];
+
+    const result = selectVariants({
+      catalogVersion,
+      lessonId,
+      round: round({
+        id: roundId,
+        candidateVariantIds: idsOf(candidates),
+        targetCount: 1,
+        exerciseKinds: ["completion"],
+      }),
+      seed,
+      candidates,
+      modelSemanticFingerprints: [],
+      alreadySelected: [],
+      constraints: constraints(),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.targets).toHaveLength(1);
+    expect(result.targets[0].variantId).toBe(alternateId);
+    expect(result.targets[0].exerciseKind).toBe("completion");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Search budget honesty — an exhausted backtracking budget must never be
+// reported as a genuine constraint infeasibility.
+// ---------------------------------------------------------------------------
+
+describe("search budget honesty", () => {
+  it("returns search-budget-exhausted (not constraint-unsatisfied) when an otherwise-feasible search is cut off by a low call budget", () => {
+    const pool = Array.from({ length: 12 }, (_, index) =>
+      makeCandidate({
+        id: `budget-${index}`,
+        familyId: `family-${index % 4}`,
+        predicateSenseId: `sense-${index % 3}`,
+        speakerRoleId: `role-${index % 3}`,
+        contextId: `ctx-${index % 2}`,
+      }),
+    );
+    const input = {
+      catalogVersion: "v1",
+      lessonId: "lesson-1",
+      round: round({ id: "round-1", candidateVariantIds: idsOf(pool), targetCount: 6 }),
+      seed: "syn-seed",
+      candidates: pool,
+      modelSemanticFingerprints: [],
+      alreadySelected: [],
+      constraints: constraints({ minFamilies: 3, minPredicates: 3, minRoles: 3, minContexts: 2 }),
+    };
+
+    // Sanity check: this pool is genuinely feasible under the public default
+    // budget — the low-budget result below must differ only in *how* it
+    // fails, not because the pool itself is infeasible.
+    const withDefaultBudget = selectVariants(input);
+    expect(withDefaultBudget.ok).toBe(true);
+
+    const withLowBudget = selectVariantsWithBacktrackLimit(input, 3);
+    expect(withLowBudget.ok).toBe(false);
+    if (withLowBudget.ok) return;
+    expect(withLowBudget.errors).toEqual([{ code: "search-budget-exhausted" }]);
   });
 });
 

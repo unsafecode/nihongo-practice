@@ -8,6 +8,7 @@ import {
   buildFamilyExerciseDefinition,
   evaluateFamilyExercise,
   generateFamilyExercise,
+  missingRealizedContextSentences,
   realizedExerciseExample,
   type FamilyPracticeContext,
 } from "./practiceEngine";
@@ -142,6 +143,48 @@ function makeTarget(
     exerciseKind: "tile-ordering",
     ...overrides,
   };
+}
+
+/** Wraps an already-built `RealizedSentence` into a `PracticeCandidate` for
+ * feeding `selectVariants` directly (bypassing `realizeVariant`, same
+ * convention as `selectVariants.test.ts`). */
+function toCandidate(sentence: RealizedSentence, form: Form = DEFAULT_FORM): PracticeCandidate {
+  return {
+    variant: {
+      id: sentence.variantId,
+      sentenceFamilyId: sentence.familyId,
+      discourse: sentence.discourse,
+      contextId: sentence.contextId,
+      slotValues: {},
+      form,
+      pedagogicalUse: sentence.pedagogicalUse,
+    },
+    sentence,
+  };
+}
+
+/** Tokens with no `particle`/`morpheme` kind at all — no blankable token
+ * exists, so `completion` must be ineligible for a sentence built from
+ * these (see `selectVariants.test.ts`'s identical helper). */
+function noBlankableTokens(id: string): RealizedSentence["tokens"] {
+  return [
+    {
+      id: `${id}::a`,
+      jp: `${id}-a`,
+      romaji: `${id}-a`,
+      kind: "lexical",
+      boundaryBefore: "attach",
+      source: { domain: "test", referenceId: `${id}::a` },
+    },
+    {
+      id: `${id}::b`,
+      jp: `${id}-b`,
+      romaji: `${id}-b`,
+      kind: "lexical",
+      boundaryBefore: "space",
+      source: { domain: "test", referenceId: `${id}::b` },
+    },
+  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -687,5 +730,131 @@ describe("practice engine error codes", () => {
     if (result.ok) return;
     expect(result.error.code).toBe("generation-failed");
     expect(result.error.underlyingCode).toBe("absent-target");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cross-round transformation source contract — `FamilyPracticeContext.
+// realizedSentences` must carry every selected target's own sentence *plus*
+// every `sourceVariantId` a `transformation` target points to, even when
+// that source was selected/realized in an earlier round (or is a taught
+// model, never itself "selected" at all). Never fabricate a source or
+// silently downgrade the assigned kind when it's absent — that must fail.
+// ---------------------------------------------------------------------------
+
+describe("cross-round transformation source contract", () => {
+  const priorRoundSource = makeSentence({
+    id: "prior-round-source",
+    familyId: "family-cross",
+    predicateSenseId: "sense-cross",
+    form: { polarity: "affirmative", tense: "present", formality: "polite" },
+  });
+  const round2Target = makeSentence({
+    id: "round-2-target",
+    familyId: "family-cross",
+    predicateSenseId: "sense-cross",
+    form: { polarity: "negative", tense: "present", formality: "polite" },
+  });
+  const selectedTarget = makeTarget(round2Target, {
+    targetId: "round-2::round-2-target",
+    roundId: "round-2",
+    exerciseKind: "transformation",
+    sourceVariantId: "prior-round-source",
+  });
+
+  it("returns missing-transformation-source when the prior-round source sentence is absent from context.realizedSentences", () => {
+    const context: FamilyPracticeContext = { seed: "seed", realizedSentences: [round2Target] };
+    const result = generateFamilyExercise(selectedTarget, round2Target, context);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("missing-transformation-source");
+    expect(result.error.referenceId).toBe("prior-round-source");
+  });
+
+  it("succeeds when the prior-round source sentence is included in context.realizedSentences", () => {
+    const context: FamilyPracticeContext = { seed: "seed", realizedSentences: [round2Target, priorRoundSource] };
+    const result = generateFamilyExercise(selectedTarget, round2Target, context);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.prompt.kind).toBe("transformation");
+  });
+
+  describe("missingRealizedContextSentences", () => {
+    it("reports the prior-round source id when it is absent", () => {
+      const context: FamilyPracticeContext = { seed: "seed", realizedSentences: [round2Target] };
+      expect(missingRealizedContextSentences([selectedTarget], context)).toEqual(["prior-round-source"]);
+    });
+
+    it("reports nothing once the prior-round source is included", () => {
+      const context: FamilyPracticeContext = { seed: "seed", realizedSentences: [round2Target, priorRoundSource] };
+      expect(missingRealizedContextSentences([selectedTarget], context)).toEqual([]);
+    });
+
+    it("also reports a missing target sentence itself, not only missing sources", () => {
+      const context: FamilyPracticeContext = { seed: "seed", realizedSentences: [] };
+      expect(missingRealizedContextSentences([selectedTarget], context)).toEqual(
+        expect.arrayContaining(["round-2-target", "prior-round-source"]),
+      );
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// No downstream generation-failed for selector-accepted targets — anything
+// `selectVariants` returns `ok: true` for must actually generate.
+// ---------------------------------------------------------------------------
+
+describe("no downstream generation-failed for selector-accepted targets", () => {
+  it("every target selectVariants accepts from a completion-only pool (some candidates with no blankable token) generates successfully", () => {
+    const blankable = ["blank-1", "blank-2", "blank-3"].map((id) =>
+      toCandidate(makeSentence({ id, familyId: `family-${id}`, predicateSenseId: `sense-${id}` })),
+    );
+    const noBlank = ["no-blank-1", "no-blank-2"].map((id) =>
+      toCandidate(makeSentence({ id, familyId: `family-${id}`, predicateSenseId: `sense-${id}`, tokens: noBlankableTokens(id) })),
+    );
+    const pool: readonly PracticeCandidate[] = [...blankable, ...noBlank];
+
+    const result = selectVariants({
+      catalogVersion: "v1",
+      lessonId: "lesson-1",
+      round: {
+        id: "round-completion-only",
+        purpose: "guided-controlled",
+        candidateVariantIds: pool.map((candidate) => candidate.variant.id),
+        exerciseKinds: ["completion"],
+        targetCount: 3,
+      },
+      seed: "gen-check-seed",
+      candidates: pool,
+      modelSemanticFingerprints: [],
+      alreadySelected: [],
+      constraints: {
+        minFamilies: 1,
+        minPredicates: 1,
+        minRoles: 1,
+        minContexts: 1,
+        minUniqueVisibleTargets: 1,
+        maxVisibleReuse: 3,
+        minTransferTargets: 0,
+        requireControlledConstruction: false,
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const realizedSentences = pool.map((candidate) => candidate.sentence);
+    const context: FamilyPracticeContext = { seed: "gen-check-seed", realizedSentences };
+    const sentenceByVariantId = new Map(realizedSentences.map((sentence) => [sentence.variantId, sentence]));
+
+    for (const target of result.targets) {
+      // The fix under test: selectVariants must never have accepted one of
+      // the no-blankable-token candidates for a completion-only round.
+      expect(target.variantId.startsWith("no-blank-")).toBe(false);
+      const sentence = sentenceByVariantId.get(target.variantId);
+      expect(sentence).toBeDefined();
+      const generated = generateFamilyExercise(target, sentence!, context);
+      expect(generated.ok, `target ${target.variantId} failed: ${JSON.stringify(!generated.ok && generated.error)}`).toBe(true);
+    }
   });
 });

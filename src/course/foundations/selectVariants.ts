@@ -24,6 +24,21 @@ import type {
  * candidate id). Exercise kinds are assigned only *after* a valid target set
  * has been selected — a candidate is never treated as if it already "were" a
  * kind.
+ *
+ * Kind assignment is itself part of the *terminal* acceptance test of the
+ * bounded backtracking search: a diversity-valid target set is never returned
+ * `ok: true` unless every one of its members can also be assigned a kind that
+ * `eligibleKindsFor` actually allows. When kind assignment fails for one
+ * diversity-valid combination, the search keeps looking for another — it
+ * never forces an ineligible kind onto a candidate, and never gives up after
+ * the first assignment failure while an alternate combination remains
+ * unexplored. If every reachable combination is exhausted without a workable
+ * assignment, the search reports the specific `no-eligible-kind` /
+ * `missing-controlled-transfer` failure it last observed, rather than a
+ * generic/misleading `constraint-unsatisfied`. Separately, the bounded search
+ * itself distinguishes an exhausted call budget (`search-budget-exhausted`)
+ * from a genuine, provable infeasibility (`constraint-unsatisfied`) — the two
+ * are never conflated.
  */
 
 // ---------------------------------------------------------------------------
@@ -297,7 +312,9 @@ export type SelectVariantsErrorCode =
   | "insufficient-candidates"
   | "constraint-unsatisfied"
   | "missing-controlled-transfer"
-  | "model-duplicate-transfer";
+  | "model-duplicate-transfer"
+  | "no-eligible-kind"
+  | "search-budget-exhausted";
 
 export interface SelectVariantsError {
   readonly code: SelectVariantsErrorCode;
@@ -444,12 +461,30 @@ function baselineCountsFrom(alreadySelected: readonly SelectedPracticeTarget[]):
 
 const BACKTRACK_CALL_LIMIT = 200_000;
 
+/** Terminal outcome of the bounded backtracking search. `"found"` carries the
+ * fully kind-assigned targets. `"exhausted"` means every reachable candidate
+ * combination was tried within budget and none produced both a
+ * diversity-valid *and* kind-assignable set — `lastKindError`, when present,
+ * is the most recent kind-assignment failure observed for a diversity-valid
+ * combination (proof that diversity itself was reachable, so the failure is
+ * about kind eligibility, not diversity). `"budget-exceeded"` means the
+ * search was cut off by `backtrackCallLimit` before it could determine
+ * feasibility either way — callers must never treat this the same as a
+ * proven infeasibility. */
+type BacktrackOutcome =
+  | { readonly status: "found"; readonly targets: readonly SelectedPracticeTarget[] }
+  | { readonly status: "exhausted"; readonly lastKindError?: SelectVariantsError }
+  | { readonly status: "budget-exceeded" };
+
 function backtrackSelect(
   ranked: readonly RankedCandidate[],
-  targetCount: number,
+  round: SelectVariantsRoundInput,
   baseline: BaselineCounts,
   constraints: SelectVariantsRoundConstraints,
-): readonly RankedCandidate[] | null {
+  alreadySelected: readonly SelectedPracticeTarget[],
+  backtrackCallLimit: number,
+): BacktrackOutcome {
+  const targetCount = round.targetCount;
   const families = new Map(baseline.families);
   const predicates = new Map(baseline.predicates);
   const roles = new Map(baseline.roles);
@@ -458,6 +493,8 @@ function backtrackSelect(
   const chosen: RankedCandidate[] = [];
   const n = ranked.length;
   let calls = 0;
+  let budgetExceeded = false;
+  let lastKindError: SelectVariantsError | undefined;
 
   function satisfiesFinal(): boolean {
     if (distinctCount(families) < constraints.minFamilies) return false;
@@ -470,11 +507,30 @@ function backtrackSelect(
     return true;
   }
 
-  function dfs(index: number): readonly RankedCandidate[] | null {
+  // Terminal acceptance requires *both* diversity satisfaction *and* a
+  // successful kind assignment for this exact combination — never just the
+  // former. When kind assignment fails, the failure is recorded and the
+  // search continues (backtracks) rather than accepting an impossible kind
+  // or giving up on the whole round while other combinations remain
+  // unexplored.
+  function tryAcceptTerminal(): readonly SelectedPracticeTarget[] | null {
+    if (!satisfiesFinal()) return null;
+    const assignment = assignExerciseKinds(chosen, round, constraints, alreadySelected);
+    if (!assignment.ok) {
+      lastKindError = assignment.error;
+      return null;
+    }
+    return assignment.targets;
+  }
+
+  function dfs(index: number): readonly SelectedPracticeTarget[] | null {
     calls += 1;
-    if (calls > BACKTRACK_CALL_LIMIT) return null;
+    if (calls > backtrackCallLimit) {
+      budgetExceeded = true;
+      return null;
+    }
     if (chosen.length === targetCount) {
-      return satisfiesFinal() ? [...chosen] : null;
+      return tryAcceptTerminal();
     }
     if (index >= n) return null;
     if (n - index < targetCount - chosen.length) return null;
@@ -505,7 +561,10 @@ function backtrackSelect(
     return dfs(index + 1);
   }
 
-  return dfs(0);
+  const found = dfs(0);
+  if (found) return { status: "found", targets: found };
+  if (budgetExceeded) return { status: "budget-exceeded" };
+  return { status: "exhausted", lastKindError };
 }
 
 function diagnoseInfeasibility(
@@ -655,15 +714,30 @@ function assignExerciseKinds(
     for (const entry of ordered) {
       if (assigned.has(entry)) continue;
       const kinds = eligibility.get(entry)!;
-      if (kinds.length === 0) return { ok: false, error: { code: "missing-controlled-transfer" } };
+      // A genuine "no kind at all" for one of the remaining candidates is a
+      // distinct, more precise fault than missing-controlled-transfer (which
+      // is reserved for the controlled-construction/second-transfer-kind
+      // requirements above) — report it as such, never fold it into that
+      // taxonomy, and never force an assignment eligibleKindsFor rejected.
+      if (kinds.length === 0) {
+        return {
+          ok: false,
+          error: { code: "no-eligible-kind", referenceId: `${round.id}::${entry.candidate.variant.id}` },
+        };
+      }
       assigned.set(entry, kinds.includes("constrained-construction") ? "constrained-construction" : kinds[0]);
     }
   } else {
-    ordered.forEach((entry, index) => {
+    for (const [index, entry] of ordered.entries()) {
       const kinds = eligibility.get(entry)!;
       if (kinds.length === 0) {
-        assigned.set(entry, round.exerciseKinds[0]);
-        return;
+        // Never force an ineligible kind onto a candidate that has none —
+        // report precisely which (round, candidate) has no eligible kind so
+        // the backtracking search can try a different combination instead.
+        return {
+          ok: false,
+          error: { code: "no-eligible-kind", referenceId: `${round.id}::${entry.candidate.variant.id}` },
+        };
       }
       const preferredIndex = index % round.exerciseKinds.length;
       let chosenKind: ExerciseKind | undefined;
@@ -675,7 +749,7 @@ function assignExerciseKinds(
         }
       }
       assigned.set(entry, chosenKind ?? kinds[0]);
-    });
+    }
   }
 
   const targets: SelectedPracticeTarget[] = ordered.map((entry) => {
@@ -708,9 +782,38 @@ function assignExerciseKinds(
 // selectVariants
 // ---------------------------------------------------------------------------
 
+/** Selects one round's practice targets deterministically (see module doc
+ * comment). Uses the public default bounded-search budget
+ * (`BACKTRACK_CALL_LIMIT`) — production code must always call this, never
+ * `selectVariantsWithBacktrackLimit`. */
 export function selectVariants(input: SelectVariantsInput): SelectVariantsResult {
+  return selectVariantsInternal(input, BACKTRACK_CALL_LIMIT);
+}
+
+/**
+ * Test-only entry point: identical to `selectVariants`, but takes an
+ * explicit backtracking call budget instead of the public
+ * `BACKTRACK_CALL_LIMIT` default. Exists solely so `search-budget-exhausted`
+ * is deterministically testable (a real feasible-but-large pool, cut off
+ * early) without any ambient/global mutable state. Production code must
+ * never call this — always call `selectVariants`.
+ */
+export function selectVariantsWithBacktrackLimit(
+  input: SelectVariantsInput,
+  backtrackCallLimit: number,
+): SelectVariantsResult {
+  return selectVariantsInternal(input, backtrackCallLimit);
+}
+
+function selectVariantsInternal(input: SelectVariantsInput, backtrackCallLimit: number): SelectVariantsResult {
   const { catalogVersion, lessonId, round, seed, candidates, modelSemanticFingerprints, alreadySelected, constraints } =
     input;
+
+  // A round with no exercise kinds at all can never assign one — fail fast,
+  // precisely, and before any candidate resolution/search work.
+  if (round.exerciseKinds.length === 0) {
+    return { ok: false, errors: [{ code: "no-eligible-kind", referenceId: round.id }] };
+  }
 
   const resolution = resolveCandidates(round, candidates);
   if (!resolution.ok) return { ok: false, errors: resolution.errors };
@@ -737,13 +840,22 @@ export function selectVariants(input: SelectVariantsInput): SelectVariantsResult
   const ranked = rankCandidates(catalogVersion, lessonId, round.id, seed, eligible);
   const baseline = baselineCountsFrom(alreadySelected);
 
-  const chosen = backtrackSelect(ranked, round.targetCount, baseline, constraints);
-  if (!chosen) {
-    return { ok: false, errors: [diagnoseInfeasibility(ranked, round.targetCount, baseline, constraints)] };
+  const outcome = backtrackSelect(ranked, round, baseline, constraints, alreadySelected, backtrackCallLimit);
+  switch (outcome.status) {
+    case "found":
+      return { ok: true, targets: outcome.targets };
+    case "budget-exceeded":
+      // Never run the (expensive, diversity-only) infeasibility diagnosis
+      // after a budget cutoff — an exhausted call budget proves nothing
+      // about actual feasibility, and reporting it as constraint-unsatisfied
+      // would be dishonest.
+      return { ok: false, errors: [{ code: "search-budget-exhausted" }] };
+    case "exhausted":
+      // A captured kind-assignment failure is concrete proof that at least
+      // one diversity-valid combination existed but couldn't be assigned
+      // kinds — that is the actionable failure, not a diversity diagnosis.
+      if (outcome.lastKindError) return { ok: false, errors: [outcome.lastKindError] };
+      return { ok: false, errors: [diagnoseInfeasibility(ranked, round.targetCount, baseline, constraints)] };
   }
-
-  const assignment = assignExerciseKinds(chosen, round, constraints, alreadySelected);
-  if (!assignment.ok) return { ok: false, errors: [assignment.error] };
-
-  return { ok: true, targets: assignment.targets };
 }
+

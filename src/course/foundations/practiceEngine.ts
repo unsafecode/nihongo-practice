@@ -68,6 +68,29 @@ export function realizedExerciseExample(sentence: RealizedSentence): ExerciseExa
 
 export interface FamilyPracticeContext {
   readonly seed: string;
+  /**
+   * Every `RealizedSentence` `generateFamilyExercise` may need for this
+   * practice session. This must include, at minimum:
+   *
+   * 1. The realized sentence for *every* `SelectedPracticeTarget` that will
+   *    be passed to `generateFamilyExercise` in this context.
+   * 2. The realized sentence for *every* `sourceVariantId` referenced by a
+   *    `transformation`-kind target among those — **including** a source
+   *    realized/selected in an earlier practice round, or a taught "model"
+   *    sentence that was never itself a `SelectedPracticeTarget` at all.
+   *    `selectVariants` deliberately allows a transformation source to come
+   *    from `alreadySelected` (a prior round) or from the pool of model
+   *    candidates it was ranked against — the caller assembling this context
+   *    is responsible for carrying that same sentence forward.
+   *
+   * `generateFamilyExercise` enforces this at runtime and will never
+   * fabricate a missing source or silently downgrade a `transformation`
+   * target to a different kind: an absent source's target fails with
+   * `missing-transformation-source`, always naming the specific
+   * `sourceVariantId` that could not be found. Use
+   * `missingRealizedContextSentences` to preflight-check a context before
+   * generating, when useful.
+   */
   readonly realizedSentences: readonly RealizedSentence[];
 }
 
@@ -91,6 +114,32 @@ export interface FoundationPracticeError {
 export type FamilyExerciseResult =
   | { readonly ok: true; readonly prompt: ExercisePrompt }
   | { readonly ok: false; readonly error: FoundationPracticeError };
+
+/**
+ * Preflight helper (optional — `generateFamilyExercise` already enforces the
+ * same contract per call): returns every variant id that `targets` requires
+ * from `context.realizedSentences` but that is absent — each target's own
+ * `variantId`, plus every `transformation` target's `sourceVariantId`
+ * (including one selected/realized in a prior round). An empty result means
+ * `context` is complete for every target in `targets`. Never mutates
+ * `context` or fabricates a substitute — it only reports what's missing so a
+ * caller can fail fast before generation, with the same honesty
+ * `generateFamilyExercise` itself guarantees.
+ */
+export function missingRealizedContextSentences(
+  targets: readonly SelectedPracticeTarget[],
+  context: FamilyPracticeContext,
+): readonly string[] {
+  const present = new Set(context.realizedSentences.map((sentence) => sentence.variantId));
+  const missing = new Set<string>();
+  for (const target of targets) {
+    if (!present.has(target.variantId)) missing.add(target.variantId);
+    if (target.sourceVariantId !== undefined && !present.has(target.sourceVariantId)) {
+      missing.add(target.sourceVariantId);
+    }
+  }
+  return [...missing];
+}
 
 // ---------------------------------------------------------------------------
 // Catalog assembly
