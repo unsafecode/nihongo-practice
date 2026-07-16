@@ -27,7 +27,6 @@ import {
   type PracticeCandidate,
   type SelectedPracticeTarget,
   type SelectVariantsError,
-  type SelectVariantsResult,
   type SelectVariantsRoundConstraints,
 } from "./selectVariants";
 import {
@@ -64,7 +63,6 @@ import {
 // ---------------------------------------------------------------------------
 // Error contract
 // ---------------------------------------------------------------------------
-
 export type ValidationErrorCode =
   // stage 1 — integrity / reference / copy / alias
   | "duplicate-entity-id"
@@ -87,6 +85,7 @@ export type ValidationErrorCode =
   | "realization-failed"
   // stage 3 — model diversity
   | "invalid-model-count"
+  | "insufficient-family-diversity"
   | "insufficient-predicate-diversity"
   | "insufficient-role-diversity"
   | "insufficient-context-diversity"
@@ -204,14 +203,17 @@ interface LessonAnalysis {
   readonly lesson: FoundationLessonDefinition;
   readonly realizeCatalogs: RealizeVariantCatalogs;
   readonly modelSentences: readonly RealizedSentence[];
+  /** Realized round-one (guided/controlled) practice candidates — may include
+   * dedicated controlled-practice variants that are neither taught models nor
+   * round-two transfer candidates. Retained separately so the single live
+   * selection/generation path can build its context from the full pool. */
+  readonly roundOneCandidateSentences: readonly RealizedSentence[];
   readonly transferSentences: readonly RealizedSentence[];
   readonly modelFingerprints: readonly string[];
   readonly introducedConceptIds: ReadonlySet<string>;
   readonly introducedSenseIds: ReadonlySet<string>;
   readonly introducedValueIds: ReadonlySet<string>;
   readonly introducedForms: ReadonlySet<string>;
-  readonly roundOneTargets: readonly SelectedPracticeTarget[];
-  readonly roundTwoTargets: readonly SelectedPracticeTarget[];
   readonly realizationErrors: readonly ValidationError[];
   /** True when every model + candidate realized successfully. */
   readonly realized: boolean;
@@ -244,8 +246,6 @@ function resolveDiversitySelectionConstraints(
 function analyzeLesson(
   lesson: FoundationLessonDefinition,
   ctx: CatalogIndex,
-  catalogVersion: string,
-  seed: string,
 ): LessonAnalysis {
   const realizeCatalogs: RealizeVariantCatalogs = {
     contexts: ctx.catalogs.contexts,
@@ -264,7 +264,13 @@ function analyzeLesson(
   const availableConceptIds = [...available];
 
   const realizationErrors: ValidationError[] = [];
+  // Memoize per variant id so a variant that appears in more than one pool
+  // (e.g. a taught model reused as a round-one candidate) realizes exactly
+  // once and records its realization failure exactly once.
+  const realizedCache = new Map<string, RealizedSentence | null>();
   const realize = (variantId: string): RealizedSentence | undefined => {
+    const cached = realizedCache.get(variantId);
+    if (cached !== undefined) return cached ?? undefined;
     const variant = ctx.variantById.get(variantId);
     if (!variant) {
       realizationErrors.push({
@@ -274,6 +280,7 @@ function analyzeLesson(
         id: lesson.id,
         referenceId: variantId,
       });
+      realizedCache.set(variantId, null);
       return undefined;
     }
     const family = ctx.familyById.get(variant.sentenceFamilyId);
@@ -285,6 +292,7 @@ function analyzeLesson(
         id: variantId,
         referenceId: variant.sentenceFamilyId,
       });
+      realizedCache.set(variantId, null);
       return undefined;
     }
     const result = realizeVariant(family, variant, realizeCatalogs, { availableConceptIds });
@@ -299,26 +307,25 @@ function analyzeLesson(
           underlyingCode: error.code,
         });
       }
+      realizedCache.set(variantId, null);
       return undefined;
     }
+    realizedCache.set(variantId, result.sentence);
     return result.sentence;
   };
 
-  const modelSentences: RealizedSentence[] = [];
-  for (const id of lesson.modelVariantIds) {
-    const sentence = realize(id);
-    if (sentence) modelSentences.push(sentence);
-  }
-  const roundOneCandidateSentences: RealizedSentence[] = [];
-  for (const id of lesson.practice.roundOne.candidateVariantIds) {
-    const sentence = realize(id);
-    if (sentence) roundOneCandidateSentences.push(sentence);
-  }
-  const transferSentences: RealizedSentence[] = [];
-  for (const id of lesson.practice.roundTwo.candidateVariantIds) {
-    const sentence = realize(id);
-    if (sentence) transferSentences.push(sentence);
-  }
+  const realizePool = (ids: readonly string[]): RealizedSentence[] => {
+    const sentences: RealizedSentence[] = [];
+    for (const id of ids) {
+      const sentence = realize(id);
+      if (sentence) sentences.push(sentence);
+    }
+    return sentences;
+  };
+
+  const modelSentences = realizePool(lesson.modelVariantIds);
+  const roundOneCandidateSentences = realizePool(lesson.practice.roundOne.candidateVariantIds);
+  const transferSentences = realizePool(lesson.practice.roundTwo.candidateVariantIds);
 
   const realized = realizationErrors.length === 0;
 
@@ -338,81 +345,20 @@ function analyzeLesson(
     introducedForms.add(formKey(variant.form));
   }
 
-  let roundOneTargets: readonly SelectedPracticeTarget[] = [];
-  let roundTwoTargets: readonly SelectedPracticeTarget[] = [];
-
-  if (realized) {
-    const sentenceById = new Map<string, RealizedSentence>();
-    for (const sentence of [...roundOneCandidateSentences, ...transferSentences]) {
-      sentenceById.set(sentence.variantId, sentence);
-    }
-    const round1Candidates: PracticeCandidate[] = lesson.practice.roundOne.candidateVariantIds
-      .map((id) => {
-        const variant = ctx.variantById.get(id);
-        const sentence = sentenceById.get(id);
-        return variant && sentence ? { variant, sentence } : undefined;
-      })
-      .filter((candidate): candidate is PracticeCandidate => candidate !== undefined);
-    const round2Candidates: PracticeCandidate[] = lesson.practice.roundTwo.candidateVariantIds
-      .map((id) => {
-        const variant = ctx.variantById.get(id);
-        const sentence = sentenceById.get(id);
-        return variant && sentence ? { variant, sentence } : undefined;
-      })
-      .filter((candidate): candidate is PracticeCandidate => candidate !== undefined);
-
-    const lessonSeed = seed;
-    const r1: SelectVariantsResult = selectVariants({
-      catalogVersion,
-      lessonId: lesson.id,
-      round: lesson.practice.roundOne,
-      seed: lessonSeed,
-      candidates: round1Candidates,
-      modelSemanticFingerprints: modelFingerprints,
-      alreadySelected: [],
-      constraints: resolveDiversitySelectionConstraints(lesson, "one"),
-    });
-    if (r1.ok) {
-      roundOneTargets = r1.targets;
-      const r2: SelectVariantsResult = selectVariants({
-        catalogVersion,
-        lessonId: lesson.id,
-        round: lesson.practice.roundTwo,
-        seed: lessonSeed,
-        candidates: round2Candidates,
-        modelSemanticFingerprints: modelFingerprints,
-        alreadySelected: r1.targets,
-        constraints: resolveDiversitySelectionConstraints(lesson, "two"),
-      });
-      if (r2.ok) roundTwoTargets = r2.targets;
-      else roundTwoTargets = failSelection(r2.errors);
-    } else {
-      roundOneTargets = failSelection(r1.errors);
-    }
-  }
-
   return {
     lesson,
     realizeCatalogs,
     modelSentences,
+    roundOneCandidateSentences,
     transferSentences,
     modelFingerprints,
     introducedConceptIds,
     introducedSenseIds,
     introducedValueIds,
     introducedForms,
-    roundOneTargets,
-    roundTwoTargets,
     realizationErrors,
     realized,
   };
-}
-
-/** Marker: selection failures are surfaced separately (see `selectionErrors`
- * on the analysis map); this keeps the target arrays empty when selection
- * failed so downstream diversity math sees no phantom targets. */
-function failSelection(_errors: readonly SelectVariantsError[]): readonly SelectedPracticeTarget[] {
-  return [];
 }
 
 // ---------------------------------------------------------------------------
@@ -773,6 +719,19 @@ function checkModelDiversity(analysis: LessonAnalysis, errors: ValidationError[]
     });
   }
 
+  const families = sortedUnique(models.map((sentence) => sentence.familyId));
+  if (families.length < d.minFamilies) {
+    errors.push({
+      code: "insufficient-family-diversity",
+      stage: STAGE.modelDiversity,
+      lessonId: lesson.id,
+      id: lesson.id,
+      dimension: "family",
+      expected: d.minFamilies,
+      actual: families.length,
+    });
+  }
+
   const predicates = sortedUnique(models.map((sentence) => sentence.predicateSenseId));
   if (predicates.length < d.minPredicates) {
     errors.push({ code: "insufficient-predicate-diversity", stage: STAGE.modelDiversity, lessonId: lesson.id, id: lesson.id, dimension: "predicate", expected: d.minPredicates, actual: predicates.length });
@@ -827,11 +786,16 @@ function runSelectionForErrors(
   catalogVersion: string,
   seed: string,
   errors: ValidationError[],
+  select: SelectVariantsFn,
 ): { readonly r1: readonly SelectedPracticeTarget[]; readonly r2: readonly SelectedPracticeTarget[]; readonly ok: boolean } {
   const lesson = analysis.lesson;
   const sentenceById = new Map<string, RealizedSentence>();
-  for (const sentence of [...analysis.modelSentences, ...analysis.transferSentences]) {
-    sentenceById.set(sentence.variantId, sentence);
+  for (const sentence of [
+    ...analysis.modelSentences,
+    ...analysis.roundOneCandidateSentences,
+    ...analysis.transferSentences,
+  ]) {
+    if (!sentenceById.has(sentence.variantId)) sentenceById.set(sentence.variantId, sentence);
   }
   const buildCandidates = (ids: readonly string[]): PracticeCandidate[] =>
     ids
@@ -842,7 +806,7 @@ function runSelectionForErrors(
       })
       .filter((candidate): candidate is PracticeCandidate => candidate !== undefined);
 
-  const r1 = selectVariants({
+  const r1 = select({
     catalogVersion,
     lessonId: lesson.id,
     round: lesson.practice.roundOne,
@@ -856,7 +820,7 @@ function runSelectionForErrors(
     for (const error of r1.errors) errors.push(mapSelectionError(error, lesson, lesson.practice.roundOne.id));
     return { r1: [], r2: [], ok: false };
   }
-  const r2 = selectVariants({
+  const r2 = select({
     catalogVersion,
     lessonId: lesson.id,
     round: lesson.practice.roundTwo,
@@ -888,11 +852,12 @@ function checkSelectionAndExercises(
   catalogVersion: string,
   seed: string,
   errors: ValidationError[],
+  deps: ValidateFoundationsDeps,
 ): SelectionSummary {
   const lesson = analysis.lesson;
   const d = lesson.diversityConstraints;
 
-  const { r1, r2, ok } = runSelectionForErrors(analysis, ctx, catalogVersion, seed, errors);
+  const { r1, r2, ok } = runSelectionForErrors(analysis, ctx, catalogVersion, seed, errors, deps.selectVariants);
   const selected = [...r1, ...r2];
 
   // Duplicate semantic target among model realizations (§9.1): a hidden
@@ -943,7 +908,7 @@ function checkSelectionAndExercises(
     }
 
     // Generate every selected exercise using the fully realized context.
-    generateExercises(analysis, selected, errors);
+    generateExercises(analysis, selected, errors, deps.generateExercise);
   }
 
   return { exerciseCount, visibleTargetCounts, uniqueVisibleTargetCount, maximumVisibleReuse, transferTargetIds, ok };
@@ -953,9 +918,14 @@ function generateExercises(
   analysis: LessonAnalysis,
   selected: readonly SelectedPracticeTarget[],
   errors: ValidationError[],
+  generateExercise: GenerateFamilyExerciseFn,
 ): void {
   const sentenceById = new Map<string, RealizedSentence>();
-  for (const sentence of [...analysis.modelSentences, ...analysis.transferSentences]) {
+  for (const sentence of [
+    ...analysis.modelSentences,
+    ...analysis.roundOneCandidateSentences,
+    ...analysis.transferSentences,
+  ]) {
     if (!sentenceById.has(sentence.variantId)) sentenceById.set(sentence.variantId, sentence);
   }
   const context: FamilyPracticeContext = {
@@ -968,7 +938,7 @@ function generateExercises(
       errors.push({ code: "practice-generation-failed", stage: STAGE.selection, lessonId: analysis.lesson.id, id: target.variantId, referenceId: target.variantId, underlyingCode: "missing-realized-target" });
       continue;
     }
-    const result = generateFamilyExercise(target, sentence, context);
+    const result = generateExercise(target, sentence, context);
     if (!result.ok) {
       errors.push({ code: "practice-generation-failed", stage: STAGE.selection, lessonId: analysis.lesson.id, id: target.variantId, referenceId: result.error.referenceId, underlyingCode: result.error.underlyingCode ?? result.error.code });
     }
@@ -1055,8 +1025,14 @@ function analyzeVerbRecord(
     // correctness-bearing comprehension exercise; no productive recurrence
     // credit is granted.
     const inputContexts = sortedUnique(introVariants.map((variant) => variant.contextId));
-    if (introVariants.length < 2 || inputContexts.length < 2) {
-      recordErrors.push({ code: "receptive-use-insufficient-input", stage: STAGE.learningUse, id: record.id, referenceId: record.senseId, expected: 2, actual: introVariants.length });
+    // Split the diagnostic so reports name the *actual* deficiency: too few
+    // input instances (input-count) vs enough inputs but too few distinct
+    // contexts (context). Input count is the more fundamental deficiency, so it
+    // is reported first and exclusively.
+    if (introVariants.length < 2) {
+      recordErrors.push({ code: "receptive-use-insufficient-input", stage: STAGE.learningUse, id: record.id, referenceId: record.senseId, dimension: "input-count", expected: 2, actual: introVariants.length });
+    } else if (inputContexts.length < 2) {
+      recordErrors.push({ code: "receptive-use-insufficient-input", stage: STAGE.learningUse, id: record.id, referenceId: record.senseId, dimension: "context", expected: 2, actual: inputContexts.length });
     }
     const exerciseKindOk = CORRECTNESS_BEARING_KINDS.has(record.introductionExercise.exerciseKind);
     const targetIsInput = record.introductionVariantIds.includes(record.introductionExercise.targetVariantId);
@@ -1105,15 +1081,59 @@ function analyzeVerbRecord(
   return { row };
 }
 
-function checkConflatedSenses(ctx: CatalogIndex, errors: ValidationError[]): void {
-  const byPair = new Map<string, string>();
+/**
+ * Pure conservative rule for whether two same-orthography senses (senses that
+ * share a `lexemeId`) are contextually distinguishable, or conflated.
+ *
+ * Returns the *conflation dimension* when the pair is NOT safely distinct:
+ *  - `"frame"`   — the two senses share a `semanticFrameId`, so nothing in the
+ *                  authored data distinguishes them semantically.
+ *  - `"context"` — frames differ, but the realized practice contexts fail the
+ *                  distinctness bar: either set is empty, or the two sets are
+ *                  not *mutually exclusive* (each sense must contribute at least
+ *                  one context the other never uses). This conservative rule
+ *                  also rejects identical sets and subset relationships.
+ * Returns `null` when the pair is legitimately distinct (different frame AND
+ * each sense owns at least one exclusive nonempty practice context).
+ */
+export function senseConflationDimension(
+  a: { readonly semanticFrameId: string; readonly contexts: ReadonlySet<string> },
+  b: { readonly semanticFrameId: string; readonly contexts: ReadonlySet<string> },
+): "frame" | "context" | null {
+  if (a.semanticFrameId === b.semanticFrameId) return "frame";
+  if (a.contexts.size === 0 || b.contexts.size === 0) return "context";
+  const aExclusive = [...a.contexts].some((context) => !b.contexts.has(context));
+  const bExclusive = [...b.contexts].some((context) => !a.contexts.has(context));
+  if (!aExclusive || !bExclusive) return "context";
+  return null;
+}
+
+function checkConflatedSenses(
+  ctx: CatalogIndex,
+  senseContexts: ReadonlyMap<string, ReadonlySet<string>>,
+  errors: ValidationError[],
+): void {
+  const byLexeme = new Map<string, LearningTargetSense[]>();
   for (const sense of ctx.catalogs.learningTargetSenses) {
-    const pair = `${sense.lexemeId}|${sense.semanticFrameId}`;
-    const prior = byPair.get(pair);
-    if (prior !== undefined && prior !== sense.id) {
-      errors.push({ code: "conflated-sense-context", stage: STAGE.learningUse, id: sense.id, referenceId: prior, dimension: sense.lexemeId });
-    } else {
-      byPair.set(pair, sense.id);
+    const group = byLexeme.get(sense.lexemeId);
+    if (group) group.push(sense);
+    else byLexeme.set(sense.lexemeId, [sense]);
+  }
+  const EMPTY: ReadonlySet<string> = new Set<string>();
+  for (const group of byLexeme.values()) {
+    if (group.length < 2) continue;
+    for (let i = 0; i < group.length; i += 1) {
+      for (let j = i + 1; j < group.length; j += 1) {
+        const earlier = group[i];
+        const later = group[j];
+        const dimension = senseConflationDimension(
+          { semanticFrameId: earlier.semanticFrameId, contexts: senseContexts.get(earlier.id) ?? EMPTY },
+          { semanticFrameId: later.semanticFrameId, contexts: senseContexts.get(later.id) ?? EMPTY },
+        );
+        if (dimension !== null) {
+          errors.push({ code: "conflated-sense-context", stage: STAGE.learningUse, id: later.id, referenceId: earlier.id, dimension });
+        }
+      }
     }
   }
 }
@@ -1299,7 +1319,36 @@ function dedupeErrors(errors: readonly ValidationError[]): readonly ValidationEr
 // Entry point
 // ---------------------------------------------------------------------------
 
+/** The production selector, injectable so behavioral tests can observe or force
+ * selection outcomes without an ambient mutable mock. */
+export type SelectVariantsFn = typeof selectVariants;
+/** The production exercise generator, injectable for the same reason. */
+export type GenerateFamilyExerciseFn = typeof generateFamilyExercise;
+
+/**
+ * The two impure boundaries the validator drives per lesson: variant selection
+ * and exercise generation. Production wires the real functions via
+ * {@link validateFoundations}; tests pass their own to observe calls or force a
+ * `Result` error, keeping the validator itself pure and free of broad catches.
+ */
+export interface ValidateFoundationsDeps {
+  readonly selectVariants: SelectVariantsFn;
+  readonly generateExercise: GenerateFamilyExerciseFn;
+}
+
+const DEFAULT_DEPS: ValidateFoundationsDeps = {
+  selectVariants,
+  generateExercise: generateFamilyExercise,
+};
+
 export function validateFoundations(input: ValidateFoundationsInput): ValidateFoundationsResult {
+  return validateFoundationsWithDeps(input, DEFAULT_DEPS);
+}
+
+export function validateFoundationsWithDeps(
+  input: ValidateFoundationsInput,
+  deps: ValidateFoundationsDeps,
+): ValidateFoundationsResult {
   const ctx = indexCatalogs(input.catalogs);
 
   // --- Stage 1: integrity (gating) ---
@@ -1321,8 +1370,7 @@ export function validateFoundations(input: ValidateFoundationsInput): ValidateFo
   if (!gateStage1) {
     // --- Stage 2: realization (gating) ---
     for (const lesson of input.catalogs.lessons) {
-      const seed = input.seedByLesson?.[lesson.id] ?? input.seed;
-      const analysis = analyzeLesson(lesson, ctx, input.catalogVersion, seed);
+      const analysis = analyzeLesson(lesson, ctx);
       analyses.set(lesson.id, analysis);
       for (const error of analysis.realizationErrors) stageRest.push(error);
     }
@@ -1336,7 +1384,7 @@ export function validateFoundations(input: ValidateFoundationsInput): ValidateFo
         const seed = input.seedByLesson?.[lesson.id] ?? input.seed;
         const lessonErrors: ValidationError[] = [];
         checkModelDiversity(analysis, lessonErrors);
-        const selection = checkSelectionAndExercises(analysis, ctx, input.catalogVersion, seed, lessonErrors);
+        const selection = checkSelectionAndExercises(analysis, ctx, input.catalogVersion, seed, lessonErrors, deps);
         checkTransfers(analysis, ctx, lessonErrors);
         selectionSummaries.set(lesson.id, selection);
         lessonErrorMap.set(lesson.id, lessonErrors);
@@ -1348,7 +1396,8 @@ export function validateFoundations(input: ValidateFoundationsInput): ValidateFo
         const { row } = analyzeVerbRecord(record, ctx, stageRest);
         verbRows.push(row);
       }
-      checkConflatedSenses(ctx, stageRest);
+      const senseContexts = collectSensePracticeContexts(analyses);
+      checkConflatedSenses(ctx, senseContexts, stageRest);
 
       // --- Stage 7: Can-dos ---
       const transferByCanDo = computeTransferByCanDo(ctx);
@@ -1364,6 +1413,36 @@ export function validateFoundations(input: ValidateFoundationsInput): ValidateFo
   const sortedErrors = [...allErrors].sort((a, b) => compareErrors(a, b, ctx));
 
   return { valid: sortedErrors.length === 0, errors: sortedErrors, reports };
+}
+
+/**
+ * Derive each sense's realized practice-context set from the fully realized
+ * model + round-one + round-two sentences across every lesson: a sense's
+ * contexts are the `contextId`s of every realized sentence whose
+ * `usedLexemeSenseIds` includes it. Used by the same-orthography conflation
+ * check to decide whether two senses sharing a lexeme are contextually distinct.
+ */
+function collectSensePracticeContexts(
+  analyses: ReadonlyMap<string, LessonAnalysis>,
+): ReadonlyMap<string, ReadonlySet<string>> {
+  const map = new Map<string, Set<string>>();
+  for (const analysis of analyses.values()) {
+    for (const sentence of [
+      ...analysis.modelSentences,
+      ...analysis.roundOneCandidateSentences,
+      ...analysis.transferSentences,
+    ]) {
+      for (const senseId of sentence.usedLexemeSenseIds) {
+        let set = map.get(senseId);
+        if (!set) {
+          set = new Set<string>();
+          map.set(senseId, set);
+        }
+        set.add(sentence.contextId);
+      }
+    }
+  }
+  return map;
 }
 
 function computeTransferByCanDo(ctx: CatalogIndex): ReadonlyMap<string, boolean> {

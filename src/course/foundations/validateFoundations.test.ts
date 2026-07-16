@@ -10,11 +10,16 @@ import type {
 } from "./types";
 import {
   validateFoundations,
+  validateFoundationsWithDeps,
+  senseConflationDimension,
   type ValidateFoundationsInput,
   type ValidationError,
   type ValidationErrorCode,
   type ValidateFoundationsResult,
+  type ValidateFoundationsDeps,
 } from "./validateFoundations";
+import { selectVariants } from "./selectVariants";
+import { generateFamilyExercise, type FamilyExerciseResult } from "./practiceEngine";
 
 // ---------------------------------------------------------------------------
 // Fixtures + harness
@@ -631,5 +636,310 @@ describe("validateFoundations — deterministic error ordering", () => {
     });
     const lessonIds = run(cats).errors.map((e: ValidationError) => e.lessonId);
     expect(lessonIds).toEqual([A1, A2]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Finding 1 + 4 — dedicated round-one candidates flow through the single live
+// selection/generation path (models + round1 + round2, dedup by variant id)
+// ---------------------------------------------------------------------------
+
+/** Runs the validator while capturing which variant ids the *production*
+ * generation path actually generated an exercise for, plus how many times the
+ * selector was invoked per (lesson, round). Uses the real production deps for
+ * everything else. */
+function runCapturing(
+  cats: FoundationCatalogs = foundationCatalogs,
+): {
+  readonly result: ValidateFoundationsResult;
+  readonly generatedVariantIds: readonly string[];
+  readonly selectorCalls: ReadonlyArray<{ readonly lessonId: string; readonly roundId: string }>;
+} {
+  const generatedVariantIds: string[] = [];
+  const selectorCalls: { lessonId: string; roundId: string }[] = [];
+  const deps: ValidateFoundationsDeps = {
+    selectVariants: (input) => {
+      selectorCalls.push({ lessonId: input.lessonId, roundId: input.round.id });
+      return selectVariants(input);
+    },
+    generateExercise: (target, sentence, context) => {
+      generatedVariantIds.push(target.variantId);
+      return generateFamilyExercise(target, sentence, context);
+    },
+  };
+  const result = validateFoundationsWithDeps(
+    { catalogs: cats, foundationCopy, catalogVersion: CATALOG_VERSION, seed: SEED },
+    deps,
+  );
+  return { result, generatedVariantIds, selectorCalls };
+}
+
+describe("validateFoundations — dedicated round-one candidates (single live path)", () => {
+  it("selects and generates a controlled-practice-only round-one variant that is neither a model nor a round-two candidate", () => {
+    const model = variant("fixture-a1-yuki-student-meeting");
+    // A dedicated controlled-practice clone: outside modelVariantIds and outside
+    // round two, present only as a round-one candidate.
+    const practiceOnly: SentenceVariant = {
+      ...model,
+      id: "fixture-a1-yuki-student-practice",
+      pedagogicalUse: "controlled-practice",
+    };
+    const practice = lessonPractice(A1);
+    const cats = withCatalog({
+      sentenceVariants: [...foundationCatalogs.sentenceVariants, practiceOnly],
+      lessons: foundationCatalogs.lessons.map((l) =>
+        l.id === A1
+          ? {
+              ...l,
+              practice: {
+                ...practice,
+                roundOne: {
+                  ...practice.roundOne,
+                  // Force selection of all five candidates (targetCount === 5),
+                  // one of which is the dedicated practice-only clone.
+                  candidateVariantIds: [
+                    practiceOnly.id,
+                    "fixture-a1-ken-doctor-meeting",
+                    "fixture-a1-teacher-omitted-class",
+                    "fixture-a1-yuki-live-rome",
+                    "fixture-a1-classmate-live-milan",
+                  ],
+                },
+              },
+            }
+          : l,
+      ),
+    });
+    const { result, generatedVariantIds } = runCapturing(cats);
+    expect(result.valid).toBe(true);
+    // The dedicated round-one candidate flowed through the single live path:
+    // it was selected AND generated using a context that includes it.
+    expect(generatedVariantIds).toContain("fixture-a1-yuki-student-practice");
+  });
+
+  it("builds the generation context as the deduped union of models + round1 + round2 candidates", () => {
+    const { result, generatedVariantIds } = runCapturing();
+    expect(result.valid).toBe(true);
+    // Twenty exercises generated (5 per round, 2 rounds, 2 lessons), each
+    // variant id distinct: the union context never double-generates a variant
+    // shared across the model / round-one / round-two pools.
+    expect(generatedVariantIds).toHaveLength(20);
+    expect(new Set(generatedVariantIds).size).toBe(generatedVariantIds.length);
+  });
+
+  it("invokes the production selector exactly once per round per lesson (no duplicate selection pass)", () => {
+    const { selectorCalls } = runCapturing();
+    // Two lessons, two rounds each — never more (the dead duplicate pass is gone).
+    expect(selectorCalls).toHaveLength(4);
+    const keys = selectorCalls.map((c) => `${c.lessonId}|${c.roundId}`).sort();
+    expect(keys).toEqual([
+      "fixture-a1-personal-details|fixture-a1-personal-details-round-1",
+      "fixture-a1-personal-details|fixture-a1-personal-details-round-2",
+      "fixture-a2-routine-plans|fixture-a2-routine-plans-round-1",
+      "fixture-a2-routine-plans|fixture-a2-routine-plans-round-2",
+    ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Finding 6 — injectable generator boundary (behavioral wrapper test)
+// ---------------------------------------------------------------------------
+
+describe("validateFoundations — practice-generation-failed (injected generator)", () => {
+  it("surfaces a forced generator Result error as practice-generation-failed and blocks report success", () => {
+    const deps: ValidateFoundationsDeps = {
+      selectVariants,
+      generateExercise: (target): FamilyExerciseResult => ({
+        ok: false,
+        error: { code: "generation-failed", referenceId: target.variantId, underlyingCode: "missing-example" },
+      }),
+    };
+    const result = validateFoundationsWithDeps(
+      { catalogs: foundationCatalogs, foundationCopy, catalogVersion: CATALOG_VERSION, seed: SEED },
+      deps,
+    );
+    expect(result.valid).toBe(false);
+    const genErrors = result.errors.filter((e) => e.code === "practice-generation-failed");
+    expect(genErrors.length).toBeGreaterThan(0);
+    // The wrapper preserves the underlying generator code and reference, never
+    // re-deriving them.
+    expect(genErrors.every((e) => e.underlyingCode === "missing-example")).toBe(true);
+    expect(genErrors.every((e) => e.referenceId !== undefined)).toBe(true);
+    // No lesson may report success when its exercises could not be generated.
+    expect(result.reports.byLesson[A1].complete).toBe(false);
+    expect(result.reports.byLesson[A2].complete).toBe(false);
+  });
+
+  it("uses generateFamilyExercise as the production default (no injected deps needed)", () => {
+    // The default production path still succeeds end-to-end.
+    expect(run().valid).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Finding 3 — model family diversity is enforced in stage 3
+// ---------------------------------------------------------------------------
+
+describe("validateFoundations — stage 3 family diversity", () => {
+  it("insufficient-family-diversity when models collapse to a single family (dimension family)", () => {
+    const result = run(withDiversity(A1, { minFamilies: 4 }));
+    expectSoleCode(result, "insufficient-family-diversity");
+    const err = result.errors.find((e) => e.code === "insufficient-family-diversity")!;
+    expect(err.dimension).toBe("family");
+    expect(err.expected).toBe(4);
+    expect(err.actual).toBe(3);
+  });
+
+  it("attributes the family-diversity error to the offending lesson row", () => {
+    const a1 = run(withDiversity(A1, { minFamilies: 4 })).reports.byLesson[A1];
+    expect(a1.validationErrorCodes).toContain("insufficient-family-diversity");
+    expect(a1.complete).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Finding 2 — same-orthography sense contextual distinction
+// ---------------------------------------------------------------------------
+
+describe("senseConflationDimension (pure rule)", () => {
+  it("same semantic frame is a frame conflation", () => {
+    expect(
+      senseConflationDimension(
+        { semanticFrameId: "f1", contexts: new Set(["c1"]) },
+        { semanticFrameId: "f1", contexts: new Set(["c2"]) },
+      ),
+    ).toBe("frame");
+  });
+
+  it("different frame but identical context set is a context conflation", () => {
+    expect(
+      senseConflationDimension(
+        { semanticFrameId: "f1", contexts: new Set(["c1"]) },
+        { semanticFrameId: "f2", contexts: new Set(["c1"]) },
+      ),
+    ).toBe("context");
+  });
+
+  it("an empty practice-context set is a context conflation", () => {
+    expect(
+      senseConflationDimension(
+        { semanticFrameId: "f1", contexts: new Set<string>() },
+        { semanticFrameId: "f2", contexts: new Set(["c1"]) },
+      ),
+    ).toBe("context");
+  });
+
+  it("distinct frames with mutually-exclusive nonempty contexts is valid", () => {
+    expect(
+      senseConflationDimension(
+        { semanticFrameId: "f1", contexts: new Set(["c1", "c2"]) },
+        { semanticFrameId: "f2", contexts: new Set(["c3", "c4"]) },
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("validateFoundations — contextual sense distinction", () => {
+  it("conflated-sense-context for two senses sharing lexeme + frame", () => {
+    const sense: LearningTargetSense = {
+      id: "synthetic-conflated-frame",
+      lexemeId: "fixture-a1-lexeme-desu",
+      learningUse: "productive",
+      semanticFrameId: "fixture-frame-identity",
+      predicate: "be",
+      argumentRoles: ["topic"],
+      argumentParticleByRole: {},
+    };
+    const cats = withCatalog({ learningTargetSenses: [...foundationCatalogs.learningTargetSenses, sense] });
+    const result = run(cats);
+    expectSoleCode(result, "conflated-sense-context");
+    expect(result.errors[0].dimension).toBe("frame");
+  });
+
+  it("conflated-sense-context when a paired sense has an empty practice-context set", () => {
+    // Distinct frame from `fixture-a1-sense-be`, but never realized by any
+    // variant, so its practice-context set is empty.
+    const sense: LearningTargetSense = {
+      id: "synthetic-conflated-empty",
+      lexemeId: "fixture-a1-lexeme-desu",
+      learningUse: "productive",
+      semanticFrameId: "fixture-frame-residence",
+      predicate: "be",
+      argumentRoles: ["topic"],
+      argumentParticleByRole: {},
+    };
+    const cats = withCatalog({ learningTargetSenses: [...foundationCatalogs.learningTargetSenses, sense] });
+    const result = run(cats);
+    expectSoleCode(result, "conflated-sense-context");
+    expect(result.errors[0].dimension).toBe("context");
+  });
+
+  it("valid distinct-frame / distinct-context pair sharing a lexeme is accepted", () => {
+    // Give `work` the same lexeme as `live`; their frames differ
+    // (work-location vs residence) and their realized practice contexts are
+    // mutually exclusive (work => workplace; live => first-meeting/class), so
+    // the pair is a legitimate same-orthography sense split.
+    const cats = withCatalog({
+      learningTargetSenses: replaceById(foundationCatalogs.learningTargetSenses, "fixture-a1-sense-work", {
+        lexemeId: "fixture-a1-lexeme-sumu",
+      }),
+    });
+    expect(run(cats).valid).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Finding 5 — receptive diagnostics distinguish input-count from context
+// ---------------------------------------------------------------------------
+
+describe("validateFoundations — receptive diagnostics dimension", () => {
+  it("reports dimension input-count when fewer than two input instances exist", () => {
+    const record: VerbUseRecord = {
+      id: "synthetic-receptive-onecount",
+      senseId: "fixture-a1-sense-be",
+      learningUse: "receptive",
+      introductionLessonId: A1,
+      introductionVariantIds: ["fixture-a1-yuki-student-meeting"],
+      introductionExercise: {
+        lessonId: A1,
+        roundId: "fixture-a1-personal-details-round-1",
+        exerciseKind: "choice",
+        targetVariantId: "fixture-a1-yuki-student-meeting",
+      },
+      laterUses: [],
+    };
+    const cats = withCatalog({ verbUseRecords: [...foundationCatalogs.verbUseRecords, record] });
+    const result = run(cats);
+    expectSoleCode(result, "receptive-use-insufficient-input");
+    expect(result.errors[0].dimension).toBe("input-count");
+    expect(result.errors[0].actual).toBe(1);
+  });
+
+  it("reports dimension context (expected 2, actual 1) when three inputs share a single context", () => {
+    const record: VerbUseRecord = {
+      id: "synthetic-receptive-onecontext",
+      senseId: "fixture-a1-sense-be",
+      learningUse: "receptive",
+      introductionLessonId: A1,
+      // Three copular inputs that all share the "first-meeting" context.
+      introductionVariantIds: [
+        "fixture-a1-yuki-student-meeting",
+        "fixture-a1-ken-doctor-meeting",
+        "fixture-a1-yuki-live-rome",
+      ],
+      introductionExercise: {
+        lessonId: A1,
+        roundId: "fixture-a1-personal-details-round-1",
+        exerciseKind: "choice",
+        targetVariantId: "fixture-a1-yuki-student-meeting",
+      },
+      laterUses: [],
+    };
+    const cats = withCatalog({ verbUseRecords: [...foundationCatalogs.verbUseRecords, record] });
+    const result = run(cats);
+    expectSoleCode(result, "receptive-use-insufficient-input");
+    expect(result.errors[0].dimension).toBe("context");
+    expect(result.errors[0].expected).toBe(2);
+    expect(result.errors[0].actual).toBe(1);
   });
 });
