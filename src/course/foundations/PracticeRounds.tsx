@@ -6,6 +6,7 @@ import type { AssembledToken } from "../../romaji/types";
 import { useScript } from "../../settings/ScriptContext";
 import type { CourseCopy } from "../i18n/types";
 import { ExerciseView } from "../components/ExerciseView";
+import type { ExerciseItemData } from "../components/ExerciseView";
 import {
   clearAnswer,
   initExerciseState,
@@ -64,6 +65,9 @@ interface FoundationExerciseCardProps {
   readonly tokensForExample: PracticeRoundsProps["tokensForExample"];
   readonly errorText: string;
   readonly idBase: string;
+  readonly itemClassName: string;
+  readonly itemData: ExerciseItemData;
+  readonly badge: ReactElement | null;
   readonly onAttempt?: PracticeRoundsProps["onAttempt"];
 }
 
@@ -72,7 +76,10 @@ interface FoundationExerciseCardProps {
  * It reuses the exact same reducer and evaluation engine the lesson uses — it
  * never duplicates a control or reconstructs an answer — but resolves its
  * instruction/intent copy from the view model (the harness's foundation prompt
- * copy ids live outside the production curriculum copy).
+ * copy ids live outside the production curriculum copy). The card's own root
+ * `<li>` is the direct list child: the round class, opaque review metadata, and
+ * the transfer badge ride on {@link ExerciseView}'s presentation contract, so
+ * no wrapper element is cloned around it.
  */
 function FoundationExerciseCard({
   target,
@@ -84,6 +91,9 @@ function FoundationExerciseCard({
   tokensForExample,
   errorText,
   idBase,
+  itemClassName,
+  itemData,
+  badge,
   onAttempt,
 }: FoundationExerciseCardProps): ReactElement {
   const { prompt } = target;
@@ -104,6 +114,9 @@ function FoundationExerciseCard({
       tokenForTile={tokenForTile}
       tokensForExample={tokensForExample}
       errorText={errorText}
+      itemClassName={itemClassName}
+      itemData={itemData}
+      headerSupplement={badge}
       handlers={{
         onPlaceTile: (tileId) => setState((s) => placeTile(s, tileId)),
         onUnplaceTile: (tileId) => setState((s) => unplaceTile(s, tileId)),
@@ -181,29 +194,30 @@ export function PracticeRounds({
             </h3>
             <p className="foundation-round__intro">{labels.intro}</p>
             <ol className="foundation-round__cards">
-              {round.targets.map((target, cardIndex) => (
-                <li
-                  key={target.targetId}
-                  className="foundation-round__card"
-                  data-target-id={target.targetId}
-                  data-variant-id={target.variantId}
-                  data-family-id={target.familyId}
-                  data-context-id={target.contextId}
-                  data-speaker-role-id={target.speakerRoleId}
-                  data-exercise-kind={target.exerciseKind}
-                  data-practice-purpose={target.practicePurpose}
-                  data-pedagogical-use={target.pedagogicalUse}
-                  data-semantic-fingerprint={target.semanticFingerprint}
-                  data-visible-target-key={opaqueTargetKey(
+              {round.targets.map((target, cardIndex) => {
+                const itemData: ExerciseItemData = {
+                  "target-id": target.targetId,
+                  "variant-id": target.variantId,
+                  "family-id": target.familyId,
+                  "context-id": target.contextId,
+                  "speaker-role-id": target.speakerRoleId,
+                  "exercise-kind": target.exerciseKind,
+                  "practice-purpose": target.practicePurpose,
+                  "pedagogical-use": target.pedagogicalUse,
+                  "semantic-fingerprint": target.semanticFingerprint,
+                  "visible-target-key": opaqueTargetKey(
                     target.visibleTargetKey,
-                  )}
-                >
-                  {target.practicePurpose === "transfer" ? (
+                  ),
+                };
+                const badge =
+                  target.practicePurpose === "transfer" ? (
                     <p className="foundation-round__badge">
                       {copy.transferLabel}
                     </p>
-                  ) : null}
+                  ) : null;
+                return (
                   <FoundationExerciseCard
+                    key={target.targetId}
                     target={target}
                     index={cardIndex}
                     total={total}
@@ -213,10 +227,13 @@ export function PracticeRounds({
                     tokensForExample={tokensForExample}
                     errorText={errorText}
                     idBase={`${idBase}-${target.targetId}`}
+                    itemClassName="foundation-round__card"
+                    itemData={itemData}
+                    badge={badge}
                     onAttempt={onAttempt}
                   />
-                </li>
-              ))}
+                );
+              })}
             </ol>
           </section>
         );

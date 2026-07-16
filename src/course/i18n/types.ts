@@ -228,11 +228,6 @@ export interface CourseCopy {
     segmentUnavailable: string;
   };
   /**
-   * Home (design spec §10.4; Slice C plan Task 4 step 4). The title is the
-   * Italian `Da ripassare`; English uses a plain beginner label. Empty, orphan,
-   * and storage-unavailable states each have their own explicit string.
-   */
-  /**
    * Localized chrome for the compact sentence matrix, same-family guided
    * construction, and two-round practice UX (design spec §10.3, §11, §12;
    * Phase 1 Task 5). These are surrounding UI labels only — every Japanese
@@ -278,6 +273,11 @@ export interface CourseCopy {
     /** Body of the localized content-unavailable notice. */
     unavailableBody: string;
   };
+  /**
+   * Home (design spec §10.4; Slice C plan Task 4 step 4). The title is the
+   * Italian `Da ripassare`; English uses a plain beginner label. Empty, orphan,
+   * and storage-unavailable states each have their own explicit string.
+   */
   review: {
     title: string;
     lead: string;

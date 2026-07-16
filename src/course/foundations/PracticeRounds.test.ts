@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
@@ -131,6 +132,80 @@ describe("PracticeRounds structure", () => {
     }
     expect(html).not.toMatch(/data-answer/);
     expect(html).not.toMatch(/data-canonical/);
+  });
+});
+
+function parse(html: string): Document {
+  return new DOMParser().parseFromString(
+    `<!DOCTYPE html><body>${html}</body>`,
+    "text/html",
+  );
+}
+
+describe("PracticeRounds list semantics (Phase 1 Task 5, finding 1)", () => {
+  it("keeps every card list child as one semantic .lesson-exercise.foundation-round__card <li> with no nested li", () => {
+    const doc = parse(render(model()));
+
+    const lists = [...doc.querySelectorAll("ol.foundation-round__cards")];
+    expect(lists.length).toBe(2);
+
+    const cards: Element[] = [];
+    for (const list of lists) {
+      for (const child of [...list.children]) {
+        expect(child.tagName).toBe("LI");
+        expect(child.classList.contains("lesson-exercise")).toBe(true);
+        expect(child.classList.contains("foundation-round__card")).toBe(true);
+        cards.push(child);
+      }
+    }
+
+    // Exactly the ten selected targets, one direct card <li> each.
+    expect(cards.length).toBe(10);
+
+    // No card wraps another exercise-root <li>: the outer wrapper is gone.
+    for (const card of cards) {
+      expect(card.querySelector("li.lesson-exercise")).toBeNull();
+    }
+
+    // The only lesson-exercise roots in the tree are the ten direct card children.
+    expect(doc.querySelectorAll("li.lesson-exercise").length).toBe(10);
+    expect(
+      doc.querySelectorAll("ol.foundation-round__cards > li.lesson-exercise")
+        .length,
+    ).toBe(10);
+  });
+
+  it("attaches review metadata and the transfer badge to the card root/header, not a wrapper", () => {
+    const vm = model();
+    const doc = parse(render(vm));
+
+    const allTargets = [...vm.rounds[0].targets, ...vm.rounds[1].targets];
+    for (const target of allTargets) {
+      const card = doc.querySelector(
+        `li.lesson-exercise.foundation-round__card[data-target-id="${target.targetId}"]`,
+      );
+      expect(card, `card for ${target.targetId}`).not.toBeNull();
+      expect(card?.getAttribute("data-family-id")).toBe(target.familyId);
+      expect(card?.getAttribute("data-semantic-fingerprint")).toBe(
+        target.semanticFingerprint,
+      );
+      expect(card?.getAttribute("data-visible-target-key")).toBe(
+        opaqueTargetKey(target.visibleTargetKey),
+      );
+    }
+
+    const transferCount = vm.rounds[1].targets.filter(
+      (t) => t.practicePurpose === "transfer",
+    ).length;
+    const badges = [...doc.querySelectorAll(".foundation-round__badge")];
+    expect(badges.length).toBe(transferCount);
+    for (const badge of badges) {
+      // The badge lives in the exercise card's own header, on the card root.
+      expect(badge.closest(".lesson-exercise__head")).not.toBeNull();
+      expect(
+        badge.closest("li.lesson-exercise.foundation-round__card"),
+      ).not.toBeNull();
+    }
   });
 });
 

@@ -258,6 +258,65 @@ describe("ExerciseView — feedback states are text, never colour alone (spec §
   });
 });
 
+describe("ExerciseView — optional presentation contract (Phase 1 Task 5)", () => {
+  it("preserves the production root/header markup when the optional props are absent", () => {
+    const html = renderView(tileEx);
+    // Root card class is exactly the production class; nothing is appended.
+    expect(html).toContain(
+      '<li class="lesson-exercise" aria-labelledby="ex-1-heading">',
+    );
+    // The header holds only the position heading — no supplemental node.
+    expect(html).toContain(
+      '<div class="lesson-exercise__head"><h4 id="ex-1-heading" class="lesson-exercise__title">',
+    );
+    // No host review metadata attributes are emitted on the root.
+    expect(html).not.toMatch(/<li class="lesson-exercise"[^>]*\sdata-/);
+    expect(html).not.toContain("foundation-round__card");
+  });
+
+  it("appends the host item class, closed-set review data, and a header supplement when provided", () => {
+    const html = renderToStaticMarkup(
+      createElement(ExerciseView, {
+        prompt: tileEx.prompt,
+        targetExampleId: tileEx.targetExampleId,
+        state: initExerciseState(tileEx.prompt),
+        index: 1,
+        total: 4,
+        script: "hiragana",
+        copy: enCopy.exercises,
+        instruction: "INSTRUCTION-TEXT",
+        intentText: null,
+        idBase: "ex-1",
+        tokenForTile: segmentToken,
+        tokensForExample: exampleTokens,
+        errorText: enCopy.lesson.contentFormattingError,
+        handlers: NOOP,
+        itemClassName: "foundation-round__card",
+        itemData: {
+          "target-id": "t-1",
+          "semantic-fingerprint": "fp-1",
+          "visible-target-key": "kabc",
+        },
+        headerSupplement: createElement(
+          "p",
+          { className: "foundation-round__badge" },
+          "Transfer",
+        ),
+      }),
+    );
+    expect(html).toContain(
+      '<li class="lesson-exercise foundation-round__card"',
+    );
+    expect(html).toContain('data-target-id="t-1"');
+    expect(html).toContain('data-semantic-fingerprint="fp-1"');
+    expect(html).toContain('data-visible-target-key="kabc"');
+    // The supplement renders inside the card header, after the heading.
+    expect(html).toMatch(
+      /class="lesson-exercise__head">.*lesson-exercise__title[^<]*<\/h4><p class="foundation-round__badge">Transfer<\/p><\/div>/,
+    );
+  });
+});
+
 // ── LessonExercises integration ───────────────────────────────────────────────
 
 function renderLessonExercises(lessonId: string): string {

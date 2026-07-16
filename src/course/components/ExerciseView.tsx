@@ -5,6 +5,7 @@ import {
   useRef,
   type MouseEvent as ReactMouseEvent,
   type ReactElement,
+  type ReactNode,
 } from "react";
 import type { Script } from "../../settings/ScriptContext";
 import { formatRomaji } from "../../romaji/formatRomaji";
@@ -107,7 +108,50 @@ export interface ExerciseViewProps {
   /** The exact localized `contentFormattingError` text for the shared renderer. */
   readonly errorText: string;
   readonly handlers: ExerciseViewHandlers;
+  /**
+   * Optional extra class(es) a host surface appends to the card's root `<li>`
+   * (e.g. a practice-round card modifier). Absent in the production lesson, so
+   * the root class stays exactly `lesson-exercise`.
+   */
+  readonly itemClassName?: string;
+  /**
+   * Optional review-only metadata a host surface attaches to the root `<li>`
+   * as `data-*` attributes. The key set is a closed union of opaque
+   * identifiers/fingerprints — never answer text — so a host can neither inject
+   * arbitrary attributes nor leak a canonical answer through the DOM.
+   */
+  readonly itemData?: ExerciseItemData;
+  /**
+   * Optional node a host surface renders inside `.lesson-exercise__head` after
+   * the position heading (e.g. a transfer badge). Absent in the production
+   * lesson, so the header markup is unchanged.
+   */
+  readonly headerSupplement?: ReactNode;
 }
+
+/**
+ * The closed set of review-only `data-*` attribute suffixes a host surface may
+ * attach to an exercise card's root. Every value is an opaque id, an
+ * enumerated tag, or a non-reversible fingerprint — an answer string is never
+ * among them — which keeps {@link ExerciseView} from accepting arbitrary or
+ * dangerous props while still letting a review harness label its cards.
+ */
+export type ExerciseItemDataKey =
+  | "target-id"
+  | "variant-id"
+  | "family-id"
+  | "context-id"
+  | "speaker-role-id"
+  | "exercise-kind"
+  | "practice-purpose"
+  | "pedagogical-use"
+  | "semantic-fingerprint"
+  | "visible-target-key";
+
+/** A data-key-safe record of the closed {@link ExerciseItemDataKey} set. */
+export type ExerciseItemData = Readonly<
+  Partial<Record<ExerciseItemDataKey, string>>
+>;
 
 /**
  * A deliberately invalid sentinel forcing `RomajiSequence`'s (and
@@ -662,6 +706,9 @@ export function ExerciseView(props: ExerciseViewProps): ReactElement {
     tokensForExample,
     errorText,
     handlers,
+    itemClassName,
+    itemData,
+    headerSupplement,
   } = props;
 
   const headingId = `${idBase}-heading`;
@@ -722,12 +769,27 @@ export function ExerciseView(props: ExerciseViewProps): ReactElement {
     if (target && !target.disabled) target.focus();
   }, [state.placedTileIds]);
 
+  const rootClassName = itemClassName
+    ? `lesson-exercise ${itemClassName}`
+    : "lesson-exercise";
+  const itemDataAttributes: Record<string, string> = {};
+  if (itemData) {
+    for (const [key, value] of Object.entries(itemData)) {
+      if (value !== undefined) itemDataAttributes[`data-${key}`] = value;
+    }
+  }
+
   return (
-    <li className="lesson-exercise" aria-labelledby={headingId}>
+    <li
+      className={rootClassName}
+      aria-labelledby={headingId}
+      {...itemDataAttributes}
+    >
       <div className="lesson-exercise__head">
         <h4 id={headingId} className="lesson-exercise__title">
           {copy.position(index, total)}
         </h4>
+        {headerSupplement}
       </div>
 
       <p id={instructionId} className="lesson-exercise__instruction">
