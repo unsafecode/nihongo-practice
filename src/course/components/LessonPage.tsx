@@ -24,6 +24,7 @@ import { useProgress } from "../progress/ProgressContext";
 import { GuidedToolLink } from "./GuidedToolLink";
 import { GuidedJourney } from "./GuidedJourney";
 import { GuidedTransformation } from "./GuidedTransformation";
+import { LessonExercises } from "./LessonExercises";
 import { LessonRail } from "./LessonRail";
 import { TransformComparison } from "./TransformComparison";
 import { useActiveSection } from "./useActiveSection";
@@ -133,10 +134,13 @@ export function LessonPage() {
       case "explore": {
         if (section.exploration.kind === "tool") {
           return (
-            <GuidedToolLink
-              exploration={section.exploration.data}
-              copyId={section.copyId}
-            />
+            <>
+              <GuidedToolLink
+                exploration={section.exploration.data}
+                copyId={section.copyId}
+              />
+              <LessonExercises lessonId={lesson.id} />
+            </>
           );
         }
         const content = copy.blocks[section.copyId];
@@ -151,6 +155,7 @@ export function LessonPage() {
             ) : (
               <GuidedTransformation data={section.exploration.data} />
             )}
+            <LessonExercises lessonId={lesson.id} />
           </>
         );
       }

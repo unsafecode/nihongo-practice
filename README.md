@@ -27,14 +27,15 @@ I 12 moduli, in ordine:
 11. **Esistenza, posizione e bisogni** — あります/います, posizione, bisogni
 12. **Sintesi pratica** — tre prove finali circoscritte: una presentazione, un'uscita quotidiana e una giornata di viaggio
 
-Ogni lezione combina **regola · confronto · esplorazione guidata · riepilogo**.
+Ogni lezione combina **regola · confronto · esplorazione guidata · esercizi · riepilogo**. Ogni lezione include da **3 a 5 esercizi deterministici** — riordino di tessere, scelta di particella o desinenza, trasformazione di tempo/polarità, completamento e costruzione guidata da un'intenzione in italiano o inglese. Gli esercizi sono generati da dati condivisi (concetti, lessico ed esempi): nessuna risposta canonica è duplicata nel codice e ogni esercizio resta completamente utilizzabile anche senza voce.
 
-Il progresso è espresso solo in **lezioni visitate**: nessun punteggio, nessuna padronanza, nessun completamento obbligatorio. Italiano/inglese e hiragana/rōmaji sono impostazioni indipendenti e funzionano su tutto il percorso completo.
+Il progresso locale distingue tre livelli di evidenza — **lezioni visitate**, **esercitate** e **consolidate** — senza punteggi, padronanza né completamento obbligatorio: aprire una lezione la segna solo come visitata. Gli esercizi sbagliati alimentano la coda leggera **«Da ripassare»** nella pratica libera; un ripasso corretto in modalità ripasso risolve la voce, mentre una correzione immediata nella stessa lezione non la rimuove. Non ci sono intervalli, scadenze o punteggi nascosti. Italiano/inglese e hiragana/rōmaji sono impostazioni indipendenti e funzionano su tutto il percorso completo.
 
-**Non ancora disponibili in questa versione:** gli esercizi deterministici e la coda "Da ripassare" (Slice C) e il riconoscimento vocale del parlato (Slice D). La sintesi vocale del browser (`speechSynthesis`), già presente, è **solo riproduzione audio dei modelli**: l'app non ascolta né valuta la pronuncia dell'utente.
+**Non ancora disponibili in questa versione:** il **riconoscimento vocale** del parlato (Slice D). Gli esercizi deterministici e la coda «Da ripassare» (Slice C) sono ora integrati. La sintesi vocale del browser (`speechSynthesis`), già presente, è **solo riproduzione audio dei modelli**: l'app non ascolta né valuta la pronuncia dell'utente.
 
 ## Pratica libera
 
+- **Da ripassare** — la coda leggera degli esercizi sbagliati: ogni voce rimanda alla sua lezione e può essere ripassata sul posto; un ripasso corretto la risolve.
 - **Laboratorio frasi** — costruisci frasi scegliendo verbo, forma, tempo e complementi; le particelle e le terminazioni sono evidenziate come "ingranaggi".
 - **Sillabario** — tavola hiragana interattiva (gojūon, dakuten/handakuten, yōon) con sintesi audio per ogni sillaba.
 - **Frasario** — frasi pratiche da viaggio con testo e audio, organizzate per categoria.

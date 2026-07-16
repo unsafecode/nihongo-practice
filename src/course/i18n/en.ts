@@ -88,7 +88,54 @@ const enUi = {
     invalidReturn: "This return link is invalid; use the navigation to go back to the lesson.",
     invalidReturnTitle: "Invalid return",
   },
-} satisfies Pick<CourseCopy, "home" | "lesson" | "practice">;
+  exercises: {
+    heading: "Practice",
+    intro: "Try these short exercises. They use only what this lesson has shown you.",
+    position: (index: number, total: number) => `Exercise ${index} of ${total}`,
+    submit: "Check",
+    clear: "Clear",
+    accepted: "Correct",
+    retry: "Not yet — try again.",
+    invalid: "Enter an answer before checking.",
+    answerLabel: "Your answer, in Japanese",
+    answerPlaceholder: "Type in Japanese…",
+    sourceLabel: "Starting sentence",
+    intentLabel: "Meaning",
+    optionsLabel: "Choose one",
+    bankLabel: "Available tiles",
+    answerAreaLabel: "Your sentence",
+    answerEmpty: "Add tiles to build your sentence.",
+    addTile: (tile: string) => `Add ${tile}`,
+    removeTile: (tile: string) => `Remove ${tile}`,
+    moveTileBack: (tile: string) => `Move ${tile} earlier`,
+    moveTileForward: (tile: string) => `Move ${tile} later`,
+    blank: "____",
+    statusLabel: "Lesson status",
+    statusVisited: "Opened",
+    statusPracticed: "Practiced",
+    statusConsolidated: "Consolidated",
+    unavailableTitle: "Exercises unavailable",
+    unavailableBody:
+      "This lesson's exercises could not be prepared. You can still read the lesson and use the rest of the course.",
+  },
+  review: {
+    title: "To review",
+    lead: "Exercises you missed come back here so you can practice them again.",
+    empty: "Nothing to review yet. Missed exercises will appear here.",
+    count: (n: number) => (n === 1 ? "1 to review" : `${n} to review`),
+    fromLesson: (lessonTitle: string) => `From: ${lessonTitle}`,
+    mistakes: (n: number) => (n === 1 ? "1 miss" : `${n} misses`),
+    practice: "Review now",
+    openLesson: "Open lesson",
+    resolved: "Reviewed — removed from your list.",
+    orphaned: (n: number) =>
+      n === 1
+        ? "1 saved review item is from an older version and is set aside."
+        : `${n} saved review items are from an older version and are set aside.`,
+    unavailable:
+      "Your browser is not saving progress in this session, so this list will reset when you close the app.",
+  },
+} satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review">;
 
 const enCourseMap: CourseCopy["courseMap"] = {
   heading: "The course phases",

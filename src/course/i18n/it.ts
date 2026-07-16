@@ -88,7 +88,54 @@ const itUi = {
     invalidReturn: "Il collegamento di ritorno non è valido: usa la navigazione per tornare alla lezione.",
     invalidReturnTitle: "Ritorno non valido",
   },
-} satisfies Pick<CourseCopy, "home" | "lesson" | "practice">;
+  exercises: {
+    heading: "Esercizi",
+    intro: "Prova questi brevi esercizi. Usano solo ciò che questa lezione ti ha mostrato.",
+    position: (index: number, total: number) => `Esercizio ${index} di ${total}`,
+    submit: "Controlla",
+    clear: "Ripulisci",
+    accepted: "Corretto",
+    retry: "Non ancora: riprova.",
+    invalid: "Inserisci una risposta prima di controllare.",
+    answerLabel: "La tua risposta, in giapponese",
+    answerPlaceholder: "Scrivi in giapponese…",
+    sourceLabel: "Frase di partenza",
+    intentLabel: "Significato",
+    optionsLabel: "Scegli una",
+    bankLabel: "Tessere disponibili",
+    answerAreaLabel: "La tua frase",
+    answerEmpty: "Aggiungi le tessere per comporre la frase.",
+    addTile: (tile: string) => `Aggiungi ${tile}`,
+    removeTile: (tile: string) => `Rimuovi ${tile}`,
+    moveTileBack: (tile: string) => `Sposta ${tile} prima`,
+    moveTileForward: (tile: string) => `Sposta ${tile} dopo`,
+    blank: "____",
+    statusLabel: "Stato della lezione",
+    statusVisited: "Aperta",
+    statusPracticed: "Esercitata",
+    statusConsolidated: "Consolidata",
+    unavailableTitle: "Esercizi non disponibili",
+    unavailableBody:
+      "Non è stato possibile preparare gli esercizi di questa lezione. Puoi comunque leggere la lezione e usare il resto del percorso.",
+  },
+  review: {
+    title: "Da ripassare",
+    lead: "Gli esercizi sbagliati tornano qui così puoi rifarli.",
+    empty: "Non c'è niente da ripassare. Gli esercizi sbagliati compariranno qui.",
+    count: (n: number) => (n === 1 ? "1 da ripassare" : `${n} da ripassare`),
+    fromLesson: (lessonTitle: string) => `Da: ${lessonTitle}`,
+    mistakes: (n: number) => (n === 1 ? "1 errore" : `${n} errori`),
+    practice: "Ripassa ora",
+    openLesson: "Apri la lezione",
+    resolved: "Ripassato: rimosso dalla tua lista.",
+    orphaned: (n: number) =>
+      n === 1
+        ? "1 elemento salvato da ripassare è di una versione precedente ed è stato messo da parte."
+        : `${n} elementi salvati da ripassare sono di una versione precedente e sono stati messi da parte.`,
+    unavailable:
+      "Il browser non sta salvando i progressi in questa sessione, quindi questa lista si azzererà alla chiusura dell'app.",
+  },
+} satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review">;
 
 const itCourseMap: CourseCopy["courseMap"] = {
   heading: "Le fasi del percorso",

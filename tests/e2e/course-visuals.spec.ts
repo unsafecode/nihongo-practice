@@ -752,3 +752,103 @@ test.describe("live complete A0→A1 course composition (Slice B Task 5)", () =>
     await assertNoRuntimeErrors(page, observers);
   });
 });
+
+/**
+ * Slice C — the deterministic in-lesson exercises and the `Da ripassare` review
+ * surface (design spec §10, §14; Slice C plan Task 4). Runs under both the
+ * desktop-1440 and mobile-390 projects, so every audit below (44px targets, no
+ * horizontal overflow, no naked browser-default controls) is proven at both
+ * approved reference widths.
+ */
+const EXERCISE_LESSON_URL = routeUrls.lesson("introductions", "introductions-1");
+
+/** A valid v3 progress record carrying one active `Da ripassare` entry. */
+const REVIEW_SEED = JSON.stringify({
+  schemaVersion: 3,
+  catalogVersion: "a0-a1-v1",
+  lessons: {},
+  lastVisitedLessonId: "introductions-1",
+  reviewQueue: [
+    {
+      reviewKey: "introductions-1:introductions-1-particle-base",
+      lessonId: "introductions-1",
+      exerciseDefinitionId: "introductions-1-particle-base",
+      targetConceptIds: [],
+      targetLexemeIds: [],
+      mistakeCount: 1,
+      lastMistakeAt: "2026-01-01T00:00:00.000Z",
+    },
+  ],
+  orphanedLessonIds: [],
+  orphanedReviewKeys: [],
+  updatedAt: "2026-01-01T00:00:00.000Z",
+});
+
+test.describe("Slice C exercise + review surfaces", () => {
+  test("the exercise-rich lesson renders every in-page control type within the audits", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, EXERCISE_LESSON_URL);
+
+    await expect(page.locator(".lesson-exercise")).toHaveCount(4);
+    await expect(page.locator(".lesson-exercise__bank")).toHaveCount(1);
+    await expect(page.locator(".lesson-exercise__radio").first()).toBeVisible();
+    await expect(page.locator(".lesson-exercise__input").first()).toBeVisible();
+    await expect(page.locator(".lesson-exercise__intent")).toHaveCount(1);
+    // Every exercise announces its result in a polite live region.
+    await expect(page.locator('.lesson-exercise__feedback[aria-live="polite"]')).toHaveCount(4);
+
+    await assertNoHorizontalOverflow(page);
+    expect(await auditTouchTargets(page)).toEqual([]);
+    expect(await auditNakedActions(page)).toEqual([]);
+    await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
+  });
+
+  test("the Da ripassare surface renders a queued entry within the audits", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await page.addInitScript((seed: string) => {
+      localStorage.setItem("nihongo.course.progress", seed);
+    }, REVIEW_SEED);
+
+    await gotoReady(page, routeUrls.practice);
+
+    await expect(page.locator("#review-queue-heading")).toBeVisible();
+    await expect(page.locator(".review-queue__item")).toHaveCount(1);
+    await expect(page.locator(".review-queue__count")).toContainText("1");
+    await expect(
+      page.locator(".review-queue__item a[href*='introductions-1']"),
+    ).toBeVisible();
+
+    // Scope the 44px audit to the review-queue surface itself (Slice C owns
+    // this region; the surrounding Practice Home cards are out of scope here).
+    const smallReviewTargets = await page.evaluate(() => {
+      const MIN = 44;
+      const EPSILON = 0.5;
+      const root = document.querySelector(".review-queue");
+      if (!root) return ["no .review-queue"];
+      const controls = Array.from(
+        root.querySelectorAll<HTMLElement>(
+          "button, a[href], input:not([type=radio]):not([type=checkbox])",
+        ),
+      );
+      return controls
+        .filter((el) => {
+          const r = el.getBoundingClientRect();
+          return (
+            (r.width > 0 || r.height > 0) &&
+            (r.width < MIN - EPSILON || r.height < MIN - EPSILON)
+          );
+        })
+        .map((el) => `${el.tagName.toLowerCase()} "${(el.textContent ?? "").trim().slice(0, 30)}"`);
+    });
+    expect(smallReviewTargets, JSON.stringify(smallReviewTargets)).toEqual([]);
+
+    await assertNoHorizontalOverflow(page);
+    await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
+  });
+});

@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 import {
+  assertLocalOnlyNetwork,
+  assertNoHorizontalOverflow,
   assertNoRuntimeErrors,
+  auditTouchTargets,
   gotoReady,
   headerBottom,
   rectOf,
@@ -539,6 +542,249 @@ test.describe("locale and script settings on the complete course (Slice B Task 5
     await settings.locator(".scripttoggle button", { hasText: "Hiragana" }).click();
     await expect(page.locator(".lesson-comparison__jp.is-romaji")).toHaveCount(0);
     await expect(mainLine.locator("ruby.katakana-assist")).toBeVisible();
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+});
+
+/**
+ * Slice C — deterministic in-lesson exercises and the `Da ripassare` review
+ * queue (design spec §10, §11.1, §14; Slice C plan Task 4). These drive the
+ * real published catalog through a built preview: no answer literal is planted
+ * in the test beyond the sentence the lesson itself teaches, and every mistake,
+ * review, and resolution goes through the live progress store.
+ */
+const EXERCISE_LESSON_URL = routeUrls.lesson("introductions", "introductions-1");
+const TRANSFORM_LESSON_URL = routeUrls.lesson("past-negative", "past-negative-1");
+
+/** The introductions-1 base sentence the lesson teaches: わたし は がくせい です. */
+const INTRO_TILE_ORDER = ["わたし", "は", "がくせい", "です"] as const;
+
+function tileCard(page: import("@playwright/test").Page) {
+  return page.locator(".lesson-exercise", {
+    has: page.locator(".lesson-exercise__bank"),
+  });
+}
+
+function choiceCard(page: import("@playwright/test").Page) {
+  return page.locator(".lesson-exercise", {
+    has: page.locator(".lesson-exercise__radio"),
+  });
+}
+
+test.describe("Slice C — deterministic exercises", () => {
+  test("all five exercise kinds are reachable across two representative lessons", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+
+    await gotoReady(page, EXERCISE_LESSON_URL);
+    // introductions-1 covers tile ordering, choice, completion, construction.
+    await expect(page.locator(".lesson-exercise__bank")).toHaveCount(1);
+    await expect(page.locator(".lesson-exercise__radio").first()).toBeVisible();
+    await expect(page.locator(".lesson-exercise__input").first()).toBeVisible();
+    await expect(page.locator(".lesson-exercise__intent")).toHaveCount(1);
+
+    await gotoReady(page, TRANSFORM_LESSON_URL);
+    // past-negative-1 adds the tense transformation kind.
+    await expect(page.locator(".lesson-exercise__source")).toHaveCount(1);
+
+    await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
+  });
+
+  test("keyboard tile ordering builds and accepts the sentence with no pointer drag", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, EXERCISE_LESSON_URL);
+
+    const card = tileCard(page);
+    await expect(card).toHaveCount(1);
+
+    // Add each tile in the lesson's own sentence order using the keyboard only.
+    for (const glyph of INTRO_TILE_ORDER) {
+      const addButton = card
+        .locator(".lesson-exercise__bank button", { hasText: glyph })
+        .first();
+      await addButton.focus();
+      await page.keyboard.press("Enter");
+    }
+
+    // The answer now holds all four tiles; none remain in the bank.
+    await expect(card.locator(".lesson-exercise__placed")).toHaveCount(4);
+    await expect(card.locator(".lesson-exercise__bank button")).toHaveCount(0);
+
+    const submit = card.locator("button[type=submit]");
+    await submit.focus();
+    await page.keyboard.press("Enter");
+
+    const feedback = card.locator(".lesson-exercise__feedback");
+    await expect(feedback).toHaveClass(/lesson-exercise__feedback--accepted/);
+    await expect(feedback).toContainText("Corretto");
+    // The result lives in a polite live region that does not steal focus.
+    await expect(feedback).toHaveAttribute("aria-live", "polite");
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+
+  test("a wrong choice shows a text retry state (not colour alone) and enqueues review", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, EXERCISE_LESSON_URL);
+
+    const card = choiceCard(page);
+    // The distractor particle for this lesson is の (introductions-1-say#p1).
+    await card.locator('input[type=radio][value="introductions-1-say#p1"]').check();
+    await card.locator("button[type=submit]").click();
+
+    const feedback = card.locator(".lesson-exercise__feedback");
+    await expect(feedback).toHaveClass(/lesson-exercise__feedback--retry/);
+    // State is conveyed by text, never colour alone.
+    await expect(feedback).toContainText("Non ancora");
+
+    // The mistake reached the Da ripassare queue on Practice Home.
+    await gotoReady(page, routeUrls.practice);
+    await expect(page.locator(".review-queue__count")).toContainText("1");
+    await expect(page.locator(".review-queue__item")).toHaveCount(1);
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+
+  test("every exercise control meets the 44px target on the exercise-rich lesson", async ({
+    page,
+  }) => {
+    await setupPageObservers(page);
+    await gotoReady(page, EXERCISE_LESSON_URL);
+    const offenders = await auditTouchTargets(page);
+    expect(offenders, JSON.stringify(offenders)).toEqual([]);
+    await assertNoHorizontalOverflow(page);
+  });
+
+  test("exercises honour IT/EN locale and hiragana/romaji script settings", async ({
+    page,
+    viewport,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, EXERCISE_LESSON_URL);
+
+    const instruction = page
+      .locator(".lesson-exercise .lesson-exercise__instruction")
+      .first();
+    // Default locale is Italian (textContent assertions do not need visibility,
+    // so the mobile settings overlay never has to be dismissed between steps).
+    await expect(instruction).toContainText("Riordina");
+
+    const openSettings = async () => {
+      if (viewport && isMobile(viewport.width)) {
+        await page.locator(".header__settings-trigger").click();
+        const panel = page.locator(".settings-drawer__panel");
+        await expect(panel).toBeVisible();
+        return panel;
+      }
+      return page.locator(".header__settings--desktop");
+    };
+
+    const settings = await openSettings();
+    await settings.locator(".localetoggle button", { hasText: "EN" }).click();
+    await expect(instruction).toContainText("Arrange the tiles");
+
+    // Romaji script setting flips a tile's primary glyph to romaji.
+    await settings.locator(".scripttoggle button", { hasText: "Rōmaji" }).click();
+    const firstTilePrimary = page
+      .locator(".lesson-exercise__bank .lesson-exercise__glyph-primary")
+      .first();
+    await expect(firstTilePrimary).toHaveText(/[a-z]/);
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+});
+
+test.describe("Slice C — Da ripassare review resolution semantics", () => {
+  test("reviewing a queued mistake correctly resolves it; an in-lesson correction does not", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+
+    // 1) Make a wrong choice, then immediately correct it inside the lesson.
+    await gotoReady(page, EXERCISE_LESSON_URL);
+    const card = choiceCard(page);
+    await card.locator('input[type=radio][value="introductions-1-say#p1"]').check();
+    await card.locator("button[type=submit]").click();
+    await expect(card.locator(".lesson-exercise__feedback--retry")).toBeVisible();
+    // Correct it in lesson mode — this must NOT silently resolve the review.
+    await card.locator('input[type=radio][value="introductions-1-base#p1"]').check();
+    await card.locator("button[type=submit]").click();
+    await expect(card.locator(".lesson-exercise__feedback--accepted")).toBeVisible();
+
+    await gotoReady(page, routeUrls.practice);
+    // The review entry persists despite the same-lesson correction (spec §10.4).
+    await expect(page.locator(".review-queue__item")).toHaveCount(1);
+
+    // 2) Now resolve it in review mode: open, answer correctly, it disappears.
+    await page
+      .locator(".review-queue__item button", { hasText: "Ripassa ora" })
+      .first()
+      .click();
+    await page
+      .locator('.review-queue__practice input[type=radio][value="introductions-1-base#p1"]')
+      .check();
+    await page.locator(".review-queue__practice button[type=submit]").click();
+
+    await expect(page.locator(".review-queue__item")).toHaveCount(0);
+    await expect(page.locator(".review-queue__empty")).toBeVisible();
+    await expect(page.locator(".review-queue__announce")).toContainText("Ripassato");
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+});
+
+test.describe("Slice C — truthful lesson evidence states (no colour-only meaning)", () => {
+  /** A valid v3 progress record with introductions-1 fully consolidated. */
+  const CONSOLIDATED_SEED = {
+    schemaVersion: 3,
+    catalogVersion: "a0-a1-v1",
+    lessons: {
+      "introductions-1": {
+        visitedAt: "2026-01-01T00:00:00.000Z",
+        practicedAt: "2026-01-01T00:00:00.000Z",
+        consolidatedAt: "2026-01-01T00:00:00.000Z",
+        attemptedExerciseIds: [
+          "introductions-1-order-base",
+          "introductions-1-particle-base",
+          "introductions-1-complete-base",
+          "introductions-1-construct-say",
+        ],
+        acceptedExerciseIds: [
+          "introductions-1-order-base",
+          "introductions-1-particle-base",
+          "introductions-1-complete-base",
+          "introductions-1-construct-say",
+        ],
+      },
+    },
+    lastVisitedLessonId: "introductions-1",
+    reviewQueue: [],
+    orphanedLessonIds: [],
+    orphanedReviewKeys: [],
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  };
+
+  test("a consolidated lesson shows a text 'Consolidata' state, not merely a colour", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+    // Seed AFTER the observers' storage-clearing init script so this wins.
+    await page.addInitScript((seed: string) => {
+      localStorage.setItem("nihongo.course.progress", seed);
+    }, JSON.stringify(CONSOLIDATED_SEED));
+
+    await gotoReady(page, EXERCISE_LESSON_URL);
+    const status = page.locator('.lesson-exercises__status[data-state="consolidated"]');
+    await expect(status).toBeVisible();
+    // The meaning is carried by a text label, never colour alone (spec §14).
+    await expect(status).toContainText("Consolidata");
 
     await assertNoRuntimeErrors(page, observers);
   });

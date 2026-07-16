@@ -114,6 +114,72 @@ export interface CourseCopy {
     invalidReturnTitle: string;
   };
   /**
+   * Localized chrome for the deterministic in-lesson practice exercises (design
+   * spec §10.1-§10.3, §14; Slice C plan Task 4). Instruction and intent strings
+   * themselves live in the shared curriculum copy catalog and are resolved by
+   * copy id — this section owns only the surrounding UI labels, feedback states,
+   * and accessible names. Feedback is always conveyed by text (never colour
+   * alone), and control names describe their action for keyboard/touch parity.
+   */
+  exercises: {
+    heading: string;
+    intro: string;
+    /** Accessible name for each exercise card, e.g. "Exercise 1 of 4". */
+    position: (index: number, total: number) => string;
+    submit: string;
+    clear: string;
+    /** Result labels — text, never colour alone (spec §14). */
+    accepted: string;
+    retry: string;
+    invalid: string;
+    /** Text input chrome for the three typed kinds. */
+    answerLabel: string;
+    answerPlaceholder: string;
+    /** Transformation source-sentence and construction intent labels. */
+    sourceLabel: string;
+    intentLabel: string;
+    /** Choice control group label (paired with the resolved instruction). */
+    optionsLabel: string;
+    /** Tile-ordering regions and per-tile action names. */
+    bankLabel: string;
+    answerAreaLabel: string;
+    answerEmpty: string;
+    addTile: (tile: string) => string;
+    removeTile: (tile: string) => string;
+    moveTileBack: (tile: string) => string;
+    moveTileForward: (tile: string) => string;
+    /** In-sentence blank marker for completion/choice prompts. */
+    blank: string;
+    /** Truthful lesson interaction-evidence states (spec §11.1). */
+    statusLabel: string;
+    statusVisited: string;
+    statusPracticed: string;
+    statusConsolidated: string;
+    /** Notice shown when a lesson's exercises cannot be generated (spec §16). */
+    unavailableTitle: string;
+    unavailableBody: string;
+  };
+  /**
+   * Localized copy for the lightweight `Da ripassare` review queue on Practice
+   * Home (design spec §10.4; Slice C plan Task 4 step 4). The title is the
+   * Italian `Da ripassare`; English uses a plain beginner label. Empty, orphan,
+   * and storage-unavailable states each have their own explicit string.
+   */
+  review: {
+    title: string;
+    lead: string;
+    empty: string;
+    count: (n: number) => string;
+    fromLesson: (lessonTitle: string) => string;
+    mistakes: (n: number) => string;
+    practice: string;
+    openLesson: string;
+    /** Announced (polite live region) when a review-mode acceptance resolves. */
+    resolved: string;
+    orphaned: (n: number) => string;
+    unavailable: string;
+  };
+  /**
    * Copy for the phase-based course map (§4.1-4.4/§5.1-5.4/§6.2): phase
    * bands, per-module prerequisite/estimate/state text, and the
    * revisit/capstone state shown once every known lesson is visited.

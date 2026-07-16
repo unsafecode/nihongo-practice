@@ -2,6 +2,8 @@ import { Link } from "react-router";
 import { useLocale } from "../../i18n/LocaleContext";
 import { routePaths } from "../../routing/routes";
 import { getCourseCopy } from "../i18n/catalog";
+import { ReviewQueue } from "./ReviewQueue";
+import "../course.css";
 
 export function PracticeHome() {
   const { locale } = useLocale();
@@ -13,6 +15,7 @@ export function PracticeHome() {
         <h1>{copy.title}</h1>
         <p>{copy.lead}</p>
       </header>
+      <ReviewQueue />
       <div className="practice-grid">
         <article>
           <span aria-hidden="true">組</span>
