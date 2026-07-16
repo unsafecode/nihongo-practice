@@ -159,11 +159,25 @@ const fakeResolved: ResolvedSpeechPrompt = {
   criticalSegmentIds: ["p1"],
 };
 
+function testSource(referenceId: string) {
+  return { domain: "test" as const, referenceId };
+}
+
 const fakeExample: StaticExample = {
   id: "x-say",
   jp: "みず",
   romaji: "mizu",
-  segments: [{ id: "p1", jp: "みず", romaji: "mizu", kind: "particle" }],
+  segments: [
+    {
+      id: "p1",
+      jp: "みず",
+      romaji: "mizu",
+      kind: "particle",
+      tokenKind: "particle",
+      boundaryBefore: "attach",
+      source: testSource("x-say#p1"),
+    },
+  ],
 };
 
 function okDeps(): SpokenAttemptModelDeps {
@@ -183,6 +197,55 @@ describe("buildSpokenAttemptModel — structured errors, never a partial success
     if (!result.ok) return;
     expect(result.model.targetJp).toBe("みず");
     expect(result.model.segments[0].critical).toBe(true);
+  });
+
+  it("formats target romaji from segment metadata instead of concatenating segment strings", () => {
+    const result = buildSpokenAttemptModel("x", {
+      speechPrompt: () => ({
+        ...fakeEntry,
+        comparisonSegmentIds: ["w1", "w2"],
+        criticalSegmentIds: ["w1", "w2"],
+      }),
+      resolvePrompt: () => ({
+        ...fakeResolved,
+        segments: [
+          { id: "w1", comparable: "はじめまして" },
+          { id: "w2", comparable: "よろしく" },
+        ],
+        criticalSegmentIds: ["w1", "w2"],
+      }),
+      targetExample: () => ({
+        id: "x-say",
+        jp: "はじめましてよろしく",
+        romaji: "hajimemashite yoroshiku",
+        segments: [
+          {
+            id: "w1",
+            jp: "はじめまして",
+            romaji: "hajimemashite",
+            kind: "word",
+            tokenKind: "lexical",
+            boundaryBefore: "attach",
+            source: testSource("x-say#w1"),
+          },
+          {
+            id: "w2",
+            jp: "よろしく",
+            romaji: "yoroshiku",
+            kind: "word",
+            tokenKind: "lexical",
+            boundaryBefore: "space",
+            source: testSource("x-say#w2"),
+          },
+        ],
+      }),
+      lessonTitle: () => "Greeting",
+      exampleCopy: () => ({ translation: "Nice to meet you" }),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.model.targetRomaji).toBe("hajimemashite yoroshiku");
   });
 
   it("reports missing-speech-prompt when the lesson has no prompt", () => {
@@ -225,7 +288,17 @@ describe("buildSpokenAttemptModel — structured errors, never a partial success
         id: "x-say",
         jp: "みず",
         romaji: "mizu",
-        segments: [{ id: "other", jp: "みず", romaji: "mizu", kind: "word" }],
+        segments: [
+          {
+            id: "other",
+            jp: "みず",
+            romaji: "mizu",
+            kind: "word",
+            tokenKind: "lexical",
+            boundaryBefore: "attach",
+            source: testSource("x-say#other"),
+          },
+        ],
       }),
     });
     expect(result.ok).toBe(false);

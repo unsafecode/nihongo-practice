@@ -71,6 +71,15 @@ function generatedPrompt(definition: ExerciseDefinition): ExercisePrompt {
   return result.prompt;
 }
 
+function resolveSegmentSurface(definition: ExerciseDefinition, reference: { exampleId?: string; segmentId: string }) {
+  const exampleId = reference.exampleId ?? definition.targetExampleId;
+  const example = catalogs.examples.find((entry) => entry.id === exampleId);
+  if (!example) throw new Error(`missing example ${exampleId}`);
+  const segment = example.segments.find((entry) => entry.id === reference.segmentId);
+  if (!segment) throw new Error(`missing segment ${exampleId}#${reference.segmentId}`);
+  return segment.jp;
+}
+
 function canonicalCandidate(prompt: ExercisePrompt): ExerciseCandidate {
   switch (prompt.kind) {
     case "tile-ordering":
@@ -214,6 +223,31 @@ describe("exercise transformation alignment (Slice C Task 2)", () => {
         entry.id,
       ).toBe("accepted");
     }
+  });
+});
+
+describe("exercise distractor semantics", () => {
+  it("keeps the shopping-2 request-ending distractors aligned to real single-segment endings", () => {
+    const definition = definitionOf("shopping-2-ending-base");
+    expect(definition.kind).toBe("choice");
+    if (definition.kind !== "choice") return;
+
+    expect(definition.distractorRefs.map((ref) => resolveSegmentSurface(definition, ref))).toEqual([
+      "ます",
+      "です",
+    ]);
+
+    const prompt = generatedPrompt(definition);
+    expect(prompt.kind).toBe("choice");
+    if (prompt.kind !== "choice") return;
+
+    expect(prompt.options.map((option) => option.jp)).toEqual(["ください", "です", "ます"]);
+    expect(new Set(prompt.options.map((option) => option.id)).size).toBe(
+      prompt.options.length,
+    );
+    expect(new Set(prompt.options.map((option) => option.jp)).size).toBe(
+      prompt.options.length,
+    );
   });
 });
 

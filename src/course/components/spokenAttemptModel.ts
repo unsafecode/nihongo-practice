@@ -1,10 +1,12 @@
 import type { Locale } from "../../i18n/LocaleContext";
+import { formatRomaji } from "../../romaji/formatRomaji";
+import type { AssembledToken } from "../../romaji/types";
 import { assembledExamples } from "../catalog/assembleCourse";
 import { curriculumExamples } from "../catalog/examples";
 import { speechPromptByLessonId } from "../catalog/speechPrompts";
 import type { SpeechPromptCatalogEntry } from "../catalog/types";
 import { courseModules } from "../data/course";
-import type { StaticExample } from "../data/types";
+import type { ExampleSegment, StaticExample } from "../data/types";
 import { getCourseCopy } from "../i18n/catalog";
 import type { ExampleCopy } from "../i18n/types";
 import {
@@ -115,6 +117,25 @@ function fail(
   return { ok: false, error: { code, lessonId, referenceId } };
 }
 
+function segmentToken(segment: ExampleSegment): AssembledToken | null {
+  if (
+    !segment.tokenKind ||
+    !segment.boundaryBefore ||
+    !segment.source?.referenceId
+  ) {
+    return null;
+  }
+  return {
+    id: segment.id ?? "",
+    jp: segment.jp,
+    romaji: segment.romaji,
+    kind: segment.tokenKind,
+    boundaryBefore: segment.boundaryBefore,
+    source: segment.source,
+    ...(segment.reading ? { reading: segment.reading } : {}),
+  };
+}
+
 /**
  * Build the model for a lesson from injected dependencies. It resolves the
  * prompt, maps every ordered comparison segment onto its shared runtime segment
@@ -151,11 +172,17 @@ export function buildSpokenAttemptModel(
   const critical = new Set(resolved.criticalSegmentIds);
 
   const segments: SpokenSegmentView[] = [];
+  const targetTokens: AssembledToken[] = [];
   for (const segment of resolved.segments) {
     const runtime = segmentById.get(segment.id);
     if (!runtime) {
       return fail("missing-comparison-segment", lessonId, segment.id);
     }
+    const token = segmentToken(runtime);
+    if (!token) {
+      return fail("unresolved-prompt", lessonId, resolved.targetExampleId);
+    }
+    targetTokens.push(token);
     segments.push({
       id: segment.id,
       jp: runtime.jp,
@@ -172,6 +199,11 @@ export function buildSpokenAttemptModel(
   const copy = deps.exampleCopy(resolved.targetExampleId);
   if (!copy) {
     return fail("missing-meaning-copy", lessonId, resolved.targetExampleId);
+  }
+
+  const formattedTarget = formatRomaji(targetTokens);
+  if (!formattedTarget.ok) {
+    return fail("unresolved-prompt", lessonId, resolved.targetExampleId);
   }
 
   const variants: SpokenVariantView[] = [];
@@ -195,7 +227,7 @@ export function buildSpokenAttemptModel(
       prompt: resolved,
       segments,
       targetJp: segments.map((segment) => segment.jp).join(""),
-      targetRomaji: segments.map((segment) => segment.romaji).join(""),
+      targetRomaji: formattedTarget.text,
       lessonTitle,
       meaning: copy.translation,
       ...(copy.note ? { note: copy.note } : {}),

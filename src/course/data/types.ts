@@ -128,9 +128,9 @@ export interface ExampleSegment {
   jp: string;
   romaji: string;
   kind: "word" | "particle" | "ending" | "punctuation";
-  tokenKind?: RomajiTokenKind;
-  boundaryBefore?: RomajiBoundaryBefore;
-  source?: TokenSourceRef;
+  tokenKind: RomajiTokenKind;
+  boundaryBefore: RomajiBoundaryBefore;
+  source: TokenSourceRef;
   /**
    * Optional hiragana reading shown as ruby over a katakana loanword at its
    * first course exposure (design spec §8.3, Task C). Locale-independent: the

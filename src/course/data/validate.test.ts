@@ -13,6 +13,34 @@ import type {
 } from "./types";
 import { findPrerequisiteCycle, validateCourse } from "./validate";
 
+function testSource(referenceId: string) {
+  return { domain: "test" as const, referenceId };
+}
+
+function wordSegment(id: string, jp: string, romaji: string) {
+  return {
+    id,
+    jp,
+    romaji,
+    kind: "word" as const,
+    tokenKind: "lexical" as const,
+    boundaryBefore: "attach" as const,
+    source: testSource(`segment:${id}`),
+  };
+}
+
+function endingSegment(id: string, jp: string, romaji: string) {
+  return {
+    id,
+    jp,
+    romaji,
+    kind: "ending" as const,
+    tokenKind: "morpheme" as const,
+    boundaryBefore: "attach" as const,
+    source: testSource(`segment:${id}`),
+  };
+}
+
 /**
  * Two segmented fixture examples forming a genuine before/after minimal pair
  * (ねこ → ねこだ) so `validSections` can declare an honest single-delta
@@ -26,16 +54,13 @@ function fixtureExamples(): Record<string, StaticExample> {
       id: "fx-base",
       jp: "ねこ",
       romaji: "neko",
-      segments: [{ id: "0", jp: "ねこ", romaji: "neko", kind: "word" }],
+      segments: [wordSegment("0", "ねこ", "neko")],
     },
     "fx-changed": {
       id: "fx-changed",
       jp: "ねこだ",
       romaji: "nekoda",
-      segments: [
-        { id: "0", jp: "ねこ", romaji: "neko", kind: "word" },
-        { id: "1", jp: "だ", romaji: "da", kind: "ending" },
-      ],
+      segments: [wordSegment("0", "ねこ", "neko"), endingSegment("1", "だ", "da")],
     },
   };
 }
@@ -193,6 +218,48 @@ describe("findPrerequisiteCycle", () => {
 describe("validateCourse (synthetic fixtures)", () => {
   it("passes for a minimal valid two-module fixture", () => {
     expect(validateCourse(twoValidModules(), fixtureExamples())).toEqual([]);
+  });
+
+  it("rejects examples missing token metadata instead of synthesizing fallbacks", () => {
+    const missingTokenKind = fixtureExamples();
+    missingTokenKind["fx-base"] = {
+      id: "fx-base",
+      jp: "ねこ",
+      romaji: "neko",
+      segments: [
+        {
+          id: "0",
+          jp: "ねこ",
+          romaji: "neko",
+          kind: "word",
+          boundaryBefore: "attach",
+          source: testSource("segment:0"),
+        },
+      ],
+    } as StaticExample;
+    expect(validateCourse(twoValidModules(), missingTokenKind)).toContain(
+      "example romaji segments:fx-base",
+    );
+
+    const missingBoundary = fixtureExamples();
+    missingBoundary["fx-base"] = {
+      id: "fx-base",
+      jp: "ねこ",
+      romaji: "neko",
+      segments: [
+        {
+          id: "0",
+          jp: "ねこ",
+          romaji: "neko",
+          kind: "word",
+          tokenKind: "lexical",
+          source: testSource("segment:0"),
+        },
+      ],
+    } as StaticExample;
+    expect(validateCourse(twoValidModules(), missingBoundary)).toContain(
+      "example romaji segments:fx-base",
+    );
   });
 
   it("flags a duplicate module id", () => {

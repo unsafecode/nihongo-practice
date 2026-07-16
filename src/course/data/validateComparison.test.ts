@@ -6,8 +6,26 @@ import type {
   TransformComparisonData,
 } from "./types";
 
+function tokenKind(kind: ExampleSegment["kind"]) {
+  return kind === "particle"
+    ? "particle"
+    : kind === "ending"
+      ? "morpheme"
+      : kind === "punctuation"
+        ? "punctuation"
+        : "lexical";
+}
+
 function seg(jp: string, kind: ExampleSegment["kind"], id: string): ExampleSegment {
-  return { id, jp, romaji: jp, kind };
+  return {
+    id,
+    jp,
+    romaji: jp,
+    kind,
+    tokenKind: tokenKind(kind),
+    boundaryBefore: "attach",
+    source: { domain: "test", referenceId: `segment:${id}` },
+  };
 }
 
 function example(id: string, segments: ExampleSegment[]): StaticExample {
@@ -268,8 +286,23 @@ describe("validateComparison", () => {
         jp: "ねこだ",
         romaji: "nekoda",
         segments: [
-          { jp: "ねこ", romaji: "neko", kind: "word" },
-          { id: "0", jp: "だ", romaji: "da", kind: "ending" },
+          {
+            jp: "ねこ",
+            romaji: "neko",
+            kind: "word",
+            tokenKind: "lexical",
+            boundaryBefore: "attach",
+            source: { domain: "test", referenceId: "segment:fallback-0" },
+          },
+          {
+            id: "0",
+            jp: "だ",
+            romaji: "da",
+            kind: "ending",
+            tokenKind: "morpheme",
+            boundaryBefore: "attach",
+            source: { domain: "test", referenceId: "segment:0" },
+          },
         ],
       },
     };

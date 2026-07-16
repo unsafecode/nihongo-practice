@@ -37,9 +37,9 @@ function exampleTokens(segments: NonNullable<(typeof assembledExamples)[string][
     id: segment.id ?? "",
     jp: segment.jp,
     romaji: segment.romaji,
-    kind: segment.tokenKind ?? "lexical",
-    boundaryBefore: segment.boundaryBefore ?? "attach",
-    source: segment.source ?? { domain: "catalog", referenceId: "" },
+    kind: segment.tokenKind,
+    boundaryBefore: segment.boundaryBefore,
+    source: segment.source,
     ...(segment.reading ? { reading: segment.reading } : {}),
   }));
 }

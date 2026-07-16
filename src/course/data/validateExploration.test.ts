@@ -10,8 +10,26 @@ import type {
   StaticExample,
 } from "./types";
 
+function tokenKind(kind: ExampleSegment["kind"]) {
+  return kind === "particle"
+    ? "particle"
+    : kind === "ending"
+      ? "morpheme"
+      : kind === "punctuation"
+        ? "punctuation"
+        : "lexical";
+}
+
 function seg(jp: string, kind: ExampleSegment["kind"], id: string): ExampleSegment {
-  return { id, jp, romaji: jp, kind };
+  return {
+    id,
+    jp,
+    romaji: jp,
+    kind,
+    tokenKind: tokenKind(kind),
+    boundaryBefore: "attach",
+    source: { domain: "test", referenceId: `segment:${id}` },
+  };
 }
 
 function example(id: string, segments: ExampleSegment[]): StaticExample {

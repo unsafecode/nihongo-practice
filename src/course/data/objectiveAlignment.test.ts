@@ -19,7 +19,22 @@ import type {
  * never certify an honest exploration.
  */
 function seg(jp: string, kind: ExampleSegment["kind"], id: string): ExampleSegment {
-  return { id, jp, romaji: jp, kind };
+  return {
+    id,
+    jp,
+    romaji: jp,
+    kind,
+    tokenKind:
+      kind === "particle"
+        ? "particle"
+        : kind === "ending"
+          ? "morpheme"
+          : kind === "punctuation"
+            ? "punctuation"
+            : "lexical",
+    boundaryBefore: "attach",
+    source: { domain: "test", referenceId: `segment:${id}` },
+  };
 }
 
 function example(id: string, segments: ExampleSegment[]): StaticExample {

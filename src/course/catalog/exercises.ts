@@ -122,7 +122,7 @@ const ENDING_SOURCE: Readonly<Record<string, SegmentRef>> = {
   masen: { exampleId: "past-negative-2-changed", segmentId: "e1" }, // ません
   mashou: { exampleId: "people-3-base", segmentId: "e1" }, // ましょう
   mashouka: { exampleId: "people-3-changed", segmentId: "e1" }, // ましょうか
-  taidesu: { exampleId: "shopping-2-changed", segmentId: "e1" }, // たいです
+  tai: { exampleId: "shopping-2-changed", segmentId: "e1" }, // たい
   kudasai: { exampleId: "shopping-2-base", segmentId: "e1" }, // ください
 };
 
@@ -516,7 +516,7 @@ lesson("shopping-1", (a) => {
 });
 lesson("shopping-2", (a) => {
   a.order("base");
-  a.ending("base", "e1", ["masu", "taidesu"]); // ください vs ます/たいです
+  a.ending("base", "e1", ["masu", "desu"]); // ください vs ます/です
   a.particle("changed", "p1", ["ga", "ni"]); // を vs が/に
   a.construct("say");
 });

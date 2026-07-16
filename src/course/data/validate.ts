@@ -33,9 +33,9 @@ function exampleTokens(segments: readonly ExampleSegment[]): AssembledToken[] {
     id: segment.id ?? "",
     jp: segment.jp,
     romaji: segment.romaji,
-    kind: segment.tokenKind ?? "lexical",
-    boundaryBefore: segment.boundaryBefore ?? "attach",
-    source: segment.source ?? { domain: "catalog", referenceId: "" },
+    kind: segment.tokenKind,
+    boundaryBefore: segment.boundaryBefore,
+    source: segment.source,
     ...(segment.reading ? { reading: segment.reading } : {}),
   }));
 }
@@ -876,6 +876,17 @@ export function validateCourse(
     if (!example.segments) continue;
     if (example.segments.map((segment) => segment.jp).join("") !== example.jp) {
       errors.push(`example jp segments:${example.id}`);
+    }
+    if (
+      example.segments.some(
+        (segment) =>
+          !segment.tokenKind ||
+          !segment.boundaryBefore ||
+          !segment.source?.referenceId,
+      )
+    ) {
+      errors.push(`example romaji segments:${example.id}`);
+      continue;
     }
     const formatted = formatRomaji(exampleTokens(example.segments));
     if (!formatted.ok || formatted.text !== example.romaji) {
