@@ -537,7 +537,7 @@ describe("selectVariants error codes", () => {
     expect(result.errors).toEqual([{ code: "insufficient-candidates" }]);
   });
 
-  it("returns model-duplicate-transfer when a transfer candidate's fingerprint matches a taught model", () => {
+  it("filters model-use candidates out of mixed transfer pools before duplicate checks", () => {
     const shared = fingerprintFor({
       familyId: "fam",
       speakerRoleId: "role",
@@ -545,23 +545,59 @@ describe("selectVariants error codes", () => {
       contextId: "ctx",
       form: DEFAULT_FORM,
     });
-    const transferCandidate = makeCandidate({ id: "transfer-dupe", pedagogicalUse: "transfer" });
-    const overridden: PracticeCandidate = {
-      ...transferCandidate,
-      sentence: { ...transferCandidate.sentence, semanticFingerprint: shared },
-    };
+    const modelCandidate = makeCandidate({ id: "model-dupe" });
+    const transferCandidate = makeCandidate({ id: "transfer-ok", pedagogicalUse: "transfer" });
+    const candidates: PracticeCandidate[] = [
+      { ...modelCandidate, sentence: { ...modelCandidate.sentence, semanticFingerprint: shared } },
+      transferCandidate,
+    ];
     const result = selectVariants({
       catalogVersion: "v1",
       lessonId: "lesson-1",
       round: round({
         id: "round-2",
         purpose: "transfer",
-        candidateVariantIds: ["transfer-dupe"],
+        candidateVariantIds: ["model-dupe", "transfer-ok"],
         targetCount: 1,
         exerciseKinds: ["completion"],
       }),
       seed: "seed",
-      candidates: [overridden],
+      candidates,
+      modelSemanticFingerprints: [shared],
+      alreadySelected: [],
+      constraints: constraints(),
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.targets.map((target) => target.variantId)).toEqual(["transfer-ok"]);
+  });
+
+  it("returns model-duplicate-transfer only for actual transfer-eligible candidates in a mixed pool", () => {
+    const shared = fingerprintFor({
+      familyId: "fam",
+      speakerRoleId: "role",
+      predicateSenseId: "sense",
+      contextId: "ctx",
+      form: DEFAULT_FORM,
+    });
+    const modelCandidate = makeCandidate({ id: "model-dupe" });
+    const transferCandidate = makeCandidate({ id: "transfer-dupe", pedagogicalUse: "transfer" });
+    const candidates: PracticeCandidate[] = [
+      { ...modelCandidate, sentence: { ...modelCandidate.sentence, semanticFingerprint: shared } },
+      { ...transferCandidate, sentence: { ...transferCandidate.sentence, semanticFingerprint: shared } },
+    ];
+    const result = selectVariants({
+      catalogVersion: "v1",
+      lessonId: "lesson-1",
+      round: round({
+        id: "round-2",
+        purpose: "transfer",
+        candidateVariantIds: ["model-dupe", "transfer-dupe"],
+        targetCount: 1,
+        exerciseKinds: ["completion"],
+      }),
+      seed: "seed",
+      candidates,
       modelSemanticFingerprints: [shared],
       alreadySelected: [],
       constraints: constraints(),

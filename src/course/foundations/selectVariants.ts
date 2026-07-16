@@ -819,19 +819,19 @@ function selectVariantsInternal(input: SelectVariantsInput, backtrackCallLimit: 
   if (!resolution.ok) return { ok: false, errors: resolution.errors };
   const resolved = resolution.resolved;
 
+  const eligible =
+    round.purpose === "transfer" ? resolved.filter((candidate) => candidate.sentence.pedagogicalUse === "transfer") : resolved;
+
   if (round.purpose === "transfer") {
     const modelFingerprints = new Set(modelSemanticFingerprints);
     const duplicateErrors: SelectVariantsError[] = [];
-    for (const candidate of resolved) {
+    for (const candidate of eligible) {
       if (modelFingerprints.has(candidate.sentence.semanticFingerprint)) {
         duplicateErrors.push({ code: "model-duplicate-transfer", referenceId: candidate.variant.id });
       }
     }
     if (duplicateErrors.length > 0) return { ok: false, errors: duplicateErrors };
   }
-
-  const eligible =
-    round.purpose === "transfer" ? resolved.filter((candidate) => candidate.sentence.pedagogicalUse === "transfer") : resolved;
 
   if (eligible.length < round.targetCount) {
     return { ok: false, errors: [{ code: "insufficient-candidates" }] };
@@ -858,4 +858,3 @@ function selectVariantsInternal(input: SelectVariantsInput, backtrackCallLimit: 
       return { ok: false, errors: [diagnoseInfeasibility(ranked, round.targetCount, baseline, constraints)] };
   }
 }
-
