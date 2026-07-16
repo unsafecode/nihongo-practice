@@ -151,7 +151,7 @@ const enUi = {
     consentTitle: "Before you use the microphone",
     consentBody:
       "Speaking is optional. The app stores no audio and does not save the recognized text. Your browser, operating system, or its speech voice may process the audio to turn it into text. If you do not allow the microphone, every other exercise still works.",
-    consentAcknowledge: "I understand — enable the microphone",
+    consentAcknowledge: "I understand, continue",
     consentDismiss: "Not now",
     micStart: "Speak now",
     micStop: "Stop",

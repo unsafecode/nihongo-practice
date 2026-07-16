@@ -934,7 +934,7 @@ test.describe("speech block reviewed baselines (Slice D Task 4)", () => {
     // Consent, then a matched attempt via the injected fake.
     await block.getByRole("button", { name: "Try speaking", exact: true }).click();
     await block
-      .getByRole("button", { name: "I understand — enable the microphone", exact: true })
+      .getByRole("button", { name: "I understand, continue", exact: true })
       .click();
     await queueSpeechOutcome(page, { kind: "transcript", transcript: SPEECH_VISUAL_TARGET });
     await block.getByRole("button", { name: "Speak now", exact: true }).click();

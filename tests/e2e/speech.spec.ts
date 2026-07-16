@@ -64,7 +64,7 @@ const COPY: Record<Locale, Record<string, string>> = {
     listen: "Ascolta il modello",
     tryButton: "Prova a parlare",
     consentTitle: "Prima di usare il microfono",
-    consentAcknowledge: "Ho capito, attiva il microfono",
+    consentAcknowledge: "Ho capito, continua",
     consentDismiss: "Non ora",
     micStart: "Parla ora",
     micStop: "Interrompi",
@@ -94,7 +94,7 @@ const COPY: Record<Locale, Record<string, string>> = {
     listen: "Play the model",
     tryButton: "Try speaking",
     consentTitle: "Before you use the microphone",
-    consentAcknowledge: "I understand — enable the microphone",
+    consentAcknowledge: "I understand, continue",
     consentDismiss: "Not now",
     micStart: "Speak now",
     micStop: "Stop",
@@ -212,6 +212,44 @@ function assertNoScoreClaims(text: string): void {
 }
 
 test.describe("consent precedes the microphone", () => {
+  test("acknowledgement labels stay neutral in both locales while the mic action stays separate", async ({
+    page,
+    viewport,
+  }) => {
+    const { observers, block } = await bootSpeech(page);
+
+    await button(block, COPY.it.tryButton).click();
+    const italianAcknowledge = button(block, COPY.it.consentAcknowledge);
+    await expect(italianAcknowledge).toBeVisible();
+    expect((await italianAcknowledge.innerText()).toLowerCase()).not.toMatch(
+      /\b(attiva|avvia|inizia|usa|microfono)\b/,
+    );
+    await expect(button(block, COPY.it.micStart)).toHaveCount(0);
+    await button(block, COPY.it.consentDismiss).click();
+
+    const settings = await settingsContainer(page, viewport ?? null);
+    await settings.locator(".localetoggle button", { hasText: "EN" }).click();
+    if (viewport && isMobile(viewport.width)) {
+      await page.keyboard.press("Escape");
+    }
+
+    await gotoReady(page, SPEECH_LESSON_URL);
+    await button(block, COPY.en.tryButton).click();
+    const englishAcknowledge = button(block, COPY.en.consentAcknowledge);
+    await expect(englishAcknowledge).toBeVisible();
+    expect((await englishAcknowledge.innerText()).toLowerCase()).not.toMatch(
+      /\b(activate|enable|start|use|microphone)\b/,
+    );
+    await expect(button(block, COPY.en.micStart)).toHaveCount(0);
+    await englishAcknowledge.click();
+    await expect(button(block, COPY.en.micStart)).toBeVisible();
+
+    await expect(button(block, COPY.en.micStart)).toHaveText(COPY.en.micStart);
+
+    await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
+  });
+
   test("acknowledging the privacy notice makes no recognize call; a separate mic click calls recognize once with ja-JP", async ({
     page,
   }) => {
