@@ -41,7 +41,13 @@ function byKey<T, K extends string>(
   return new Map(items.map((item) => [key(item), item] as const));
 }
 
-/** Full-slot tuple signature used only by this test to prove structural facts. */
+/**
+ * Full-slot semantic tuple signature. This intentionally includes
+ * subject/context/slot-*value* IDs and is used **only** by the transfer
+ * unseen-tuple test below, which must prove a transfer target's full
+ * semantic combination (who + where/when + concrete lexical choices) never
+ * duplicates a model's — a person or scenario swap *should* count there.
+ */
 function tupleSignature(variant: SentenceVariant): string {
   return JSON.stringify({
     family: variant.sentenceFamilyId,
@@ -51,6 +57,24 @@ function tupleSignature(variant: SentenceVariant): string {
     slotValues: variant.slotValues,
     polarity: variant.form.polarity,
     tense: variant.form.tense,
+  });
+}
+
+/**
+ * True *structural* signature (master spec §9.3): person-role diversity is
+ * separate from structural diversity, so a subject/context/value swap alone
+ * must never count as a distinct realization. Only pedagogically load-bearing
+ * shape survives: the sentence family, whether the subject is realized or
+ * naturally omitted, the form axis (tense/polarity), and the argument shape
+ * (the *set* of populated slot names — not their concrete semantic values).
+ */
+function structuralSignature(variant: SentenceVariant): string {
+  return JSON.stringify({
+    family: variant.sentenceFamilyId,
+    subjectRealization: variant.discourse.subjectRealization,
+    tense: variant.form.tense,
+    polarity: variant.form.polarity,
+    argumentShape: Object.keys(variant.slotValues).sort(),
   });
 }
 
@@ -399,6 +423,50 @@ describe("foundation catalogs", () => {
     });
   }
 
+  describe("structural signature", () => {
+    it("is unchanged by a subject-referent, context, or slot-value-only swap", () => {
+      // Same family, same explicit realization, same tense/polarity, same
+      // argument shape ({object, predicate, subject}) — only the subject
+      // referent (yuki vs classmate), context, and object slot *value*
+      // (japanese vs english) differ. None of those are structural.
+      const yuki = fixtureVariant("fixture-a1-yuki-study-japanese");
+      const classmate = fixtureVariant("fixture-a1-classmate-study-english");
+
+      expect(yuki.discourse.subjectReferentId).not.toBe(
+        classmate.discourse.subjectReferentId,
+      );
+      expect(yuki.slotValues.object).not.toBe(classmate.slotValues.object);
+      expect(structuralSignature(yuki)).toBe(structuralSignature(classmate));
+    });
+
+    it("changes when subject realization flips from explicit to omitted", () => {
+      const explicitVariant = fixtureVariant(
+        "fixture-a1-transfer-yuki-work-company",
+      );
+      const omittedVariant = fixtureVariant("fixture-a1-omitted-work-company");
+
+      expect(structuralSignature(explicitVariant)).not.toBe(
+        structuralSignature(omittedVariant),
+      );
+    });
+
+    it("changes when the argument shape (populated slot set) differs", () => {
+      const withSubjectSlot = fixtureVariant(
+        "fixture-a2-friend-meet-after-work",
+      );
+      const withoutSubjectSlot = fixtureVariant(
+        "fixture-a2-transfer-neighbor-meet-after-work",
+      );
+
+      expect(Object.keys(withSubjectSlot.slotValues).sort()).not.toEqual(
+        Object.keys(withoutSubjectSlot.slotValues).sort(),
+      );
+      expect(structuralSignature(withSubjectSlot)).not.toBe(
+        structuralSignature(withoutSubjectSlot),
+      );
+    });
+  });
+
   it("keeps transfer variant IDs absent from the model set and their tuples absent from model tuples", () => {
     for (const lesson of foundationLessons) {
       const transferIds = transferVariantIds[lesson.id];
@@ -428,10 +496,13 @@ describe("foundation catalogs", () => {
     for (const verbUse of verbUseRecords) {
       // Rule 1: at least 2 structurally distinct realizations within the
       // introduction lesson itself (model or transfer targets both count).
+      // Structural distinctness excludes semantic substitutions (subject
+      // referent, context, concrete slot values) — a person swap alone must
+      // not satisfy this rule; see `structuralSignature`.
       expect(verbUse.introductionVariantIds.length).toBeGreaterThanOrEqual(2);
       const introSignatures = new Set(
         verbUse.introductionVariantIds.map((id) =>
-          tupleSignature(fixtureVariant(id)),
+          structuralSignature(fixtureVariant(id)),
         ),
       );
       expect(introSignatures.size).toBeGreaterThanOrEqual(2);
@@ -481,7 +552,7 @@ describe("foundation catalogs", () => {
       const allSignatures = new Set([
         ...introSignatures,
         ...verbUse.laterUses.map((laterUse) =>
-          tupleSignature(fixtureVariant(laterUse.variantId)),
+          structuralSignature(fixtureVariant(laterUse.variantId)),
         ),
       ]);
       expect(allSignatures.size).toBeGreaterThanOrEqual(2);

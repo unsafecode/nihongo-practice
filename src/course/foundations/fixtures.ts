@@ -201,7 +201,10 @@ const sentenceFamilies: readonly SentenceFamily[] = freeze([
     level: "a2",
     canDoIds: ["fixture-a2-can-do-routine-plans"],
     slotSchema: [
-      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+      // Subject is optional at the slot-schema level: a naturally omitted
+      // subject (pro-drop) must not still emit a "subject" slot value — the
+      // referent stays recoverable from `discourse.subjectReferentId`.
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
       { id: "time", axis: "time", valueKind: "time", optional: false },
     ],
@@ -214,7 +217,9 @@ const sentenceFamilies: readonly SentenceFamily[] = freeze([
     level: "a2",
     canDoIds: ["fixture-a2-can-do-routine-plans"],
     slotSchema: [
-      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+      // See fixture-a2-time-action above: subject is optional so an omitted
+      // realization can drop the slot value entirely.
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
       { id: "time", axis: "time", valueKind: "time", optional: false },
     ],
@@ -512,18 +517,25 @@ const a2TransferVariants: readonly SentenceVariant[] = [
   {
     id: "fixture-a2-transfer-neighbor-meet-after-work",
     sentenceFamilyId: "fixture-a2-sequence-action",
-    discourse: discourse("fixture-a2-referent-neighbor", "fixture-a2-role-neighbor", "explicit", "fixture-a2-transfer-neighbor-meet-after-work-scenario"),
+    // Naturally omitted subject: the neighbor was already established as the
+    // conversational subject, so the sentence drops the subject phrase. The
+    // referent stays recoverable via `discourse.subjectReferentId` without a
+    // "subject" slot value (see fixture-a2-sequence-action's slot schema).
+    discourse: discourse("fixture-a2-referent-neighbor", "fixture-a2-role-neighbor", "omitted", "fixture-a2-transfer-neighbor-meet-after-work-scenario"),
     contextId: "fixture-a2-context-after-work",
-    slotValues: { subject: "fixture-a2-value-neighbor-referent", predicate: "fixture-a2-value-meet", time: "fixture-a2-value-time-after-work" },
+    slotValues: { predicate: "fixture-a2-value-meet", time: "fixture-a2-value-time-after-work" },
     form: AFFIRMATIVE_PRESENT_POLITE,
     pedagogicalUse: "transfer",
   },
   {
     id: "fixture-a2-transfer-colleague-go-tomorrow",
     sentenceFamilyId: "fixture-a2-time-action",
-    discourse: discourse("fixture-a2-referent-colleague", "fixture-a2-role-colleague", "explicit", "fixture-a2-transfer-colleague-go-tomorrow-scenario"),
+    // Naturally omitted subject (see fixture-a2-transfer-neighbor-meet-after-work
+    // above): the colleague referent stays recoverable via
+    // `discourse.subjectReferentId` without a "subject" slot value.
+    discourse: discourse("fixture-a2-referent-colleague", "fixture-a2-role-colleague", "omitted", "fixture-a2-transfer-colleague-go-tomorrow-scenario"),
     contextId: "fixture-a2-context-weekend-plan",
-    slotValues: { subject: "fixture-a2-value-colleague-referent", predicate: "fixture-a2-value-go", time: "fixture-a2-value-time-tomorrow" },
+    slotValues: { predicate: "fixture-a2-value-go", time: "fixture-a2-value-time-tomorrow" },
     form: AFFIRMATIVE_PRESENT_POLITE,
     pedagogicalUse: "transfer",
   },
@@ -818,7 +830,9 @@ export const verbUseRecords: readonly VerbUseRecord[] = freeze([
     senseId: "fixture-a1-sense-study",
     learningUse: "productive",
     introductionLessonId: "fixture-a1-personal-details",
-    introductionVariantIds: ["fixture-a1-yuki-study-japanese", "fixture-a1-classmate-study-english"],
+    // Two structurally distinct realizations: explicit subject vs the
+    // naturally omitted subject (pro-drop), same family/tense/polarity.
+    introductionVariantIds: ["fixture-a1-yuki-study-japanese", "fixture-a1-transfer-omitted-study-english"],
     introductionExercise: {
       lessonId: "fixture-a1-personal-details",
       roundId: "fixture-a1-personal-details-round-1",
@@ -852,6 +866,9 @@ export const verbUseRecords: readonly VerbUseRecord[] = freeze([
     senseId: "fixture-a2-sense-meet",
     learningUse: "productive",
     introductionLessonId: "fixture-a2-routine-plans",
+    // Two structurally distinct realizations: explicit subject vs the
+    // naturally omitted subject (pro-drop) transfer target, same
+    // family/tense/polarity.
     introductionVariantIds: ["fixture-a2-friend-meet-after-work", "fixture-a2-transfer-neighbor-meet-after-work"],
     introductionExercise: {
       lessonId: "fixture-a2-routine-plans",
@@ -869,7 +886,10 @@ export const verbUseRecords: readonly VerbUseRecord[] = freeze([
     senseId: "fixture-a2-sense-go",
     learningUse: "productive",
     introductionLessonId: "fixture-a2-routine-plans",
-    introductionVariantIds: ["fixture-a2-neighbor-go-weekend", "fixture-a2-traveler-go-tomorrow"],
+    // Two structurally distinct realizations: explicit subject vs the
+    // naturally omitted subject (pro-drop) transfer target, same
+    // family/tense/polarity.
+    introductionVariantIds: ["fixture-a2-neighbor-go-weekend", "fixture-a2-transfer-colleague-go-tomorrow"],
     introductionExercise: {
       lessonId: "fixture-a2-routine-plans",
       roundId: "fixture-a2-routine-plans-round-1",
