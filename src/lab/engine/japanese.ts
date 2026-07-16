@@ -65,6 +65,12 @@ export function buildJapaneseSentence(
     );
 
   const conjugation = conjugate(scenario.verb, selection.form);
+  if (conjugation.ending.length === 0) {
+    throw new Error(
+      `empty conjugation ending for ${scenario.id}:${selection.form}`,
+    );
+  }
+  const stemJp = conjugation.jp.slice(0, -conjugation.ending.length);
   const parts: JapaneseSentencePart[] = [];
   const tokens: AssembledToken[] = [];
   if (time.jp) {
@@ -110,7 +116,7 @@ export function buildJapaneseSentence(
   parts.push({
     id: "verb",
     kind: "verb",
-    jp: conjugation.jp.slice(0, -conjugation.ending.length),
+    jp: stemJp,
     romaji: scenario.verb.stemRomaji,
     suffix: {
       jp: conjugation.ending,
@@ -120,7 +126,7 @@ export function buildJapaneseSentence(
   });
   pushToken(tokens, {
     id: "verb-stem",
-    jp: conjugation.jp.slice(0, -conjugation.ending.length),
+    jp: stemJp,
     romaji: scenario.verb.stemRomaji,
     kind: "lexical",
     source: labSource(`verb:${scenario.id}:${selection.form}:stem`),

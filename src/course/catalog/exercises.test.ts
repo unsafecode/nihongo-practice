@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { curriculumExercises, exerciseIdsByLesson } from "./exercises";
+import {
+  curriculumExercises,
+  endingDistractorRefs,
+  exerciseIdsByLesson,
+} from "./exercises";
 import {
   assembledCurriculum,
   curriculumCopy,
   curriculumLessons,
   orderedCurriculumLessons,
 } from "./curriculum";
+import { curriculumExamplesById } from "./examples";
 import { validateCurriculum } from "./validateCurriculum";
 import { evaluateExercise, generateExercise } from "../exercises/engine";
 import type {
@@ -14,6 +19,7 @@ import type {
   ExerciseDefinition,
   ExerciseKind,
   ExercisePrompt,
+  SegmentRef,
 } from "../exercises/types";
 import type { ExerciseCatalogEntry } from "./types";
 
@@ -77,6 +83,19 @@ function resolveSegmentSurface(definition: ExerciseDefinition, reference: { exam
   if (!example) throw new Error(`missing example ${exampleId}`);
   const segment = example.segments.find((entry) => entry.id === reference.segmentId);
   if (!segment) throw new Error(`missing segment ${exampleId}#${reference.segmentId}`);
+  return segment.jp;
+}
+
+function resolveBankSurface(reference: SegmentRef) {
+  if (!reference.exampleId) {
+    throw new Error(`missing example for segment ${reference.segmentId}`);
+  }
+  const example = curriculumExamplesById.get(reference.exampleId);
+  if (!example) throw new Error(`missing example ${reference.exampleId}`);
+  const segment = example.segments.find((entry) => entry.id === reference.segmentId);
+  if (!segment) {
+    throw new Error(`missing segment ${reference.exampleId}#${reference.segmentId}`);
+  }
   return segment.jp;
 }
 
@@ -227,6 +246,25 @@ describe("exercise transformation alignment (Slice C Task 2)", () => {
 });
 
 describe("exercise distractor semantics", () => {
+  it("keeps ending-bank semantic keys aligned to the resolved ending surface", () => {
+    expect(
+      Object.fromEntries(
+        Object.entries(endingDistractorRefs).map(([key, reference]) => [
+          key,
+          resolveBankSurface(reference),
+        ]),
+      ),
+    ).toEqual({
+      desu: "です",
+      masu: "ます",
+      mashita: "ました",
+      masen: "ません",
+      mashou: "ましょう",
+      tai: "たい",
+      kudasai: "ください",
+    });
+  });
+
   it("keeps the shopping-2 request-ending distractors aligned to real single-segment endings", () => {
     const definition = definitionOf("shopping-2-ending-base");
     expect(definition.kind).toBe("choice");

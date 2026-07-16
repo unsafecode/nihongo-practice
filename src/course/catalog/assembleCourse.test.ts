@@ -18,6 +18,7 @@ import {
 } from "./assembleCourse";
 import { formatRomaji } from "../../romaji/formatRomaji";
 import type { AssembledToken } from "../../romaji/types";
+import { exampleSegmentToAssembledToken } from "../data/romajiTokens";
 
 /**
  * Runtime assembly acceptance (design spec §5, §9, §13; Slice B plan Task 4).
@@ -33,15 +34,13 @@ const releaseCoverage = validateCurriculum(assembledCurriculum, {
 }).coverage;
 
 function exampleTokens(segments: NonNullable<(typeof assembledExamples)[string]["segments"]>): AssembledToken[] {
-  return segments.map((segment) => ({
-    id: segment.id ?? "",
-    jp: segment.jp,
-    romaji: segment.romaji,
-    kind: segment.tokenKind,
-    boundaryBefore: segment.boundaryBefore,
-    source: segment.source,
-    ...(segment.reading ? { reading: segment.reading } : {}),
-  }));
+  return segments.map((segment) => {
+    const token = exampleSegmentToAssembledToken(segment);
+    if (!token) {
+      throw new Error(`missing token metadata for ${segment.id ?? "(no id)"}`);
+    }
+    return token;
+  });
 }
 
 describe("assembleCourse: structure", () => {

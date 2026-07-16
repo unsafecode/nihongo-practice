@@ -6,7 +6,8 @@ import { curriculumExamples } from "../catalog/examples";
 import { speechPromptByLessonId } from "../catalog/speechPrompts";
 import type { SpeechPromptCatalogEntry } from "../catalog/types";
 import { courseModules } from "../data/course";
-import type { ExampleSegment, StaticExample } from "../data/types";
+import { exampleSegmentToAssembledToken } from "../data/romajiTokens";
+import type { StaticExample } from "../data/types";
 import { getCourseCopy } from "../i18n/catalog";
 import type { ExampleCopy } from "../i18n/types";
 import {
@@ -117,25 +118,6 @@ function fail(
   return { ok: false, error: { code, lessonId, referenceId } };
 }
 
-function segmentToken(segment: ExampleSegment): AssembledToken | null {
-  if (
-    !segment.tokenKind ||
-    !segment.boundaryBefore ||
-    !segment.source?.referenceId
-  ) {
-    return null;
-  }
-  return {
-    id: segment.id ?? "",
-    jp: segment.jp,
-    romaji: segment.romaji,
-    kind: segment.tokenKind,
-    boundaryBefore: segment.boundaryBefore,
-    source: segment.source,
-    ...(segment.reading ? { reading: segment.reading } : {}),
-  };
-}
-
 /**
  * Build the model for a lesson from injected dependencies. It resolves the
  * prompt, maps every ordered comparison segment onto its shared runtime segment
@@ -178,7 +160,7 @@ export function buildSpokenAttemptModel(
     if (!runtime) {
       return fail("missing-comparison-segment", lessonId, segment.id);
     }
-    const token = segmentToken(runtime);
+    const token = exampleSegmentToAssembledToken(runtime);
     if (!token) {
       return fail("unresolved-prompt", lessonId, resolved.targetExampleId);
     }

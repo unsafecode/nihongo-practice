@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { lessonPath } from "../../routing/routePaths";
 import { courseModules } from "./course";
 import { examples } from "./examples";
+import { legacySegmentKindToTokenKind } from "./romajiTokens";
 import { validateExploration } from "./validate";
 import type {
   ExampleSegment,
@@ -24,14 +25,7 @@ function seg(jp: string, kind: ExampleSegment["kind"], id: string): ExampleSegme
     jp,
     romaji: jp,
     kind,
-    tokenKind:
-      kind === "particle"
-        ? "particle"
-        : kind === "ending"
-          ? "morpheme"
-          : kind === "punctuation"
-            ? "punctuation"
-            : "lexical",
+    tokenKind: legacySegmentKindToTokenKind(kind),
     boundaryBefore: "attach",
     source: { domain: "test", referenceId: `segment:${id}` },
   };

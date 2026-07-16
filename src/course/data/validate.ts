@@ -7,6 +7,7 @@ import type { AssembledToken } from "../../romaji/types";
 import { LESSON_SECTION_IDS } from "../../routing/lessonSections";
 import { lessonPath } from "../../routing/routePaths";
 import { createRouteTarget } from "../../routing/routeTarget";
+import { exampleSegmentToAssembledToken } from "./romajiTokens";
 import { PHASE_IDS, COURSE_CONCEPT_IDS, CONCEPT_GEARS } from "./types";
 import { loanwords } from "./loanwords";
 import type { Loanword } from "./loanwords";
@@ -29,15 +30,15 @@ export interface PrerequisiteNode {
 }
 
 function exampleTokens(segments: readonly ExampleSegment[]): AssembledToken[] {
-  return segments.map((segment) => ({
-    id: segment.id ?? "",
-    jp: segment.jp,
-    romaji: segment.romaji,
-    kind: segment.tokenKind,
-    boundaryBefore: segment.boundaryBefore,
-    source: segment.source,
-    ...(segment.reading ? { reading: segment.reading } : {}),
-  }));
+  const tokens: AssembledToken[] = [];
+  for (const segment of segments) {
+    const token = exampleSegmentToAssembledToken(segment);
+    if (!token) {
+      return [];
+    }
+    tokens.push(token);
+  }
+  return tokens;
 }
 
 /**
@@ -877,18 +878,12 @@ export function validateCourse(
     if (example.segments.map((segment) => segment.jp).join("") !== example.jp) {
       errors.push(`example jp segments:${example.id}`);
     }
-    if (
-      example.segments.some(
-        (segment) =>
-          !segment.tokenKind ||
-          !segment.boundaryBefore ||
-          !segment.source?.referenceId,
-      )
-    ) {
+    const tokens = exampleTokens(example.segments);
+    if (tokens.length !== example.segments.length) {
       errors.push(`example romaji segments:${example.id}`);
       continue;
     }
-    const formatted = formatRomaji(exampleTokens(example.segments));
+    const formatted = formatRomaji(tokens);
     if (!formatted.ok || formatted.text !== example.romaji) {
       errors.push(`example romaji segments:${example.id}`);
     }

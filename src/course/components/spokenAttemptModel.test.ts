@@ -271,6 +271,31 @@ describe("buildSpokenAttemptModel — structured errors, never a partial success
     expect(result.error.code).toBe("unresolved-prompt");
   });
 
+  it("reports unresolved-prompt when a compared segment cannot form an assembled token", () => {
+    const result = buildSpokenAttemptModel("x", {
+      ...okDeps(),
+      targetExample: () => ({
+        id: "x-say",
+        jp: "みず",
+        romaji: "mizu",
+        segments: [
+          {
+            id: "p1",
+            jp: "みず",
+            romaji: "mizu",
+            kind: "word",
+            tokenKind: "lexical",
+            boundaryBefore: "attach",
+            source: { domain: "test", referenceId: "" },
+          },
+        ],
+      }),
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("unresolved-prompt");
+  });
+
   it("reports missing-target-example when the runtime example is absent", () => {
     const result = buildSpokenAttemptModel("x", {
       ...okDeps(),

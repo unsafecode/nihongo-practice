@@ -3,6 +3,7 @@ import { courseModules } from "./course";
 import { examples } from "./examples";
 import { loanwords } from "./loanwords";
 import type { Loanword } from "./loanwords";
+import { legacySegmentKindToTokenKind } from "./romajiTokens";
 import type { ExampleSegment } from "./types";
 import type { StaticExample } from "./types";
 import { referencedExampleOrder, validateLoanwordExposure, validateLoanwordUsage } from "./validate";
@@ -21,16 +22,6 @@ const TEST_LOANWORDS: Record<string, Loanword> = {
 
 type RawSegment = Omit<ExampleSegment, "tokenKind" | "boundaryBefore" | "source">;
 
-function tokenKind(kind: ExampleSegment["kind"]): ExampleSegment["tokenKind"] {
-  return kind === "particle"
-    ? "particle"
-    : kind === "ending"
-      ? "morpheme"
-      : kind === "punctuation"
-        ? "punctuation"
-        : "lexical";
-}
-
 function ex(
   id: string,
   segments: readonly RawSegment[],
@@ -38,7 +29,7 @@ function ex(
   const withIds = segments.map((segment, index) => ({
     ...segment,
     id: segment.id ?? String(index),
-    tokenKind: tokenKind(segment.kind),
+    tokenKind: legacySegmentKindToTokenKind(segment.kind),
     boundaryBefore: "attach" as const,
     source: { domain: "test" as const, referenceId: `segment:${id}:${segment.id ?? index}` },
   }));

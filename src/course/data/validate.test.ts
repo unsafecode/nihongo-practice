@@ -260,6 +260,26 @@ describe("validateCourse (synthetic fixtures)", () => {
     expect(validateCourse(twoValidModules(), missingBoundary)).toContain(
       "example romaji segments:fx-base",
     );
+
+    const missingId = fixtureExamples();
+    missingId["fx-base"] = {
+      id: "fx-base",
+      jp: "ねこ",
+      romaji: "neko",
+      segments: [
+        {
+          jp: "ねこ",
+          romaji: "neko",
+          kind: "word",
+          tokenKind: "lexical",
+          boundaryBefore: "attach",
+          source: testSource("segment:0"),
+        },
+      ],
+    } as StaticExample;
+    expect(validateCourse(twoValidModules(), missingId)).toContain(
+      "example romaji segments:fx-base",
+    );
   });
 
   it("flags a duplicate module id", () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { lessonPath } from "../../routing/routePaths";
 import { validateExploration } from "./validate";
+import { legacySegmentKindToTokenKind } from "./romajiTokens";
 import type {
   ExampleSegment,
   GuidedExploration,
@@ -10,23 +11,13 @@ import type {
   StaticExample,
 } from "./types";
 
-function tokenKind(kind: ExampleSegment["kind"]) {
-  return kind === "particle"
-    ? "particle"
-    : kind === "ending"
-      ? "morpheme"
-      : kind === "punctuation"
-        ? "punctuation"
-        : "lexical";
-}
-
 function seg(jp: string, kind: ExampleSegment["kind"], id: string): ExampleSegment {
   return {
     id,
     jp,
     romaji: jp,
     kind,
-    tokenKind: tokenKind(kind),
+    tokenKind: legacySegmentKindToTokenKind(kind),
     boundaryBefore: "attach",
     source: { domain: "test", referenceId: `segment:${id}` },
   };

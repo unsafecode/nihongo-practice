@@ -6,7 +6,7 @@ import {
   boundaryBefore,
   formatRomaji,
 } from "../../romaji/formatRomaji";
-import type { AssembledToken, RomajiTokenKind } from "../../romaji/types";
+import type { AssembledToken } from "../../romaji/types";
 import type {
   BlockCopy,
   CourseCopy,
@@ -22,6 +22,7 @@ import type {
   LessonSections,
   StaticExample,
 } from "../data/types";
+import { legacySegmentKindToTokenKind } from "../data/romajiTokens";
 import { assembledCurriculum } from "./curriculum";
 import { lessonPlans } from "./curriculum";
 import { curriculumExamples } from "./examples";
@@ -139,20 +140,11 @@ function segmentRomaji(segment: {
   return kanaToRomaji(segment.reading ?? segment.jp);
 }
 
-function semanticKind(
-  kind: CurriculumExampleEntry["segments"][number]["kind"],
-): RomajiTokenKind {
-  if (kind === "particle") return "particle";
-  if (kind === "ending") return "morpheme";
-  if (kind === "punctuation") return "punctuation";
-  return "lexical";
-}
-
 // ── Runtime example adapter (no duplicated Japanese) ──────────────────────────
 
 function toRuntimeExample(entry: CurriculumExampleEntry): StaticExample {
   const tokens: AssembledToken[] = entry.segments.map((segment, index) => {
-    const tokenKind = semanticKind(segment.kind);
+    const tokenKind = legacySegmentKindToTokenKind(segment.kind);
     return {
       id: segment.id,
       jp: segment.jp,

@@ -115,13 +115,12 @@ const PARTICLE_SOURCE: Readonly<Record<string, SegmentRef>> = {
   na: { exampleId: "descriptions-1-say", segmentId: "p1" }, // な
 };
 
-const ENDING_SOURCE: Readonly<Record<string, SegmentRef>> = {
+export const endingDistractorRefs: Readonly<Record<string, SegmentRef>> = {
   desu: { exampleId: "introductions-1-base", segmentId: "e1" }, // です
   masu: { exampleId: "introductions-3-base", segmentId: "e1" }, // ます
   mashita: { exampleId: "past-negative-1-base", segmentId: "e1" }, // ました
   masen: { exampleId: "past-negative-2-changed", segmentId: "e1" }, // ません
   mashou: { exampleId: "people-3-base", segmentId: "e1" }, // ましょう
-  mashouka: { exampleId: "people-3-changed", segmentId: "e1" }, // ましょうか
   tai: { exampleId: "shopping-2-changed", segmentId: "e1" }, // たい
   kudasai: { exampleId: "shopping-2-base", segmentId: "e1" }, // ください
 };
@@ -236,7 +235,14 @@ class Author {
   }
 
   ending(role: string, blankSegmentId: string, glyphs: readonly string[]): this {
-    return this.choice("ending", PROMPT.ending, ENDING_SOURCE, role, blankSegmentId, glyphs);
+    return this.choice(
+      "ending",
+      PROMPT.ending,
+      endingDistractorRefs,
+      role,
+      blankSegmentId,
+      glyphs,
+    );
   }
 
   complete(role: string, blankSegmentIds: readonly string[]): this {
