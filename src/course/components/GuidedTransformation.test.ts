@@ -61,6 +61,53 @@ function render(data: GuidedTransformationData): string {
   );
 }
 
+/**
+ * A minimal in-memory `Storage` so {@link renderWithScript} can force the
+ * settings provider's initial script without touching real browser storage.
+ */
+function memoryStorage(initial: Record<string, string>): Storage {
+  const values = new Map(Object.entries(initial));
+  return {
+    get length() {
+      return values.size;
+    },
+    clear: () => values.clear(),
+    getItem: (key) => values.get(key) ?? null,
+    key: (index) => [...values.keys()][index] ?? null,
+    removeItem: (key) => {
+      values.delete(key);
+    },
+    setItem: (key, value) => {
+      values.set(key, value);
+    },
+  };
+}
+
+/**
+ * Forces `ScriptProvider`'s initial script for the duration of the render
+ * (the settings provider reads a fake `window.localStorage` once,
+ * synchronously, on mount). This test environment runs under Node (no real
+ * `window`), and only the `mainField` script (default "hiragana") ever
+ * carries the guided board's gear marks — so proving the romaji
+ * `RomajiSequence` integration marks its highlighted token correctly
+ * requires rendering with script "romaji" at least once.
+ */
+function renderWithScript(
+  data: GuidedTransformationData,
+  script: "hiragana" | "romaji",
+): string {
+  const globalWithWindow = globalThis as { window?: unknown };
+  const original = globalWithWindow.window;
+  globalWithWindow.window = {
+    localStorage: memoryStorage({ "nihongo.script": script }),
+  };
+  try {
+    return render(data);
+  } finally {
+    globalWithWindow.window = original;
+  }
+}
+
 function marks(html: string): string[] {
   return [...html.matchAll(/<mark[^>]*>([\s\S]*?)<\/mark>/g)].map((m) => m[1]);
 }
@@ -128,5 +175,83 @@ describe("GuidedTransformation: assisted katakana exposure", () => {
     const html = render(lab);
     expect(html).not.toContain("<ruby");
     expect(html).not.toContain("<rt");
+  });
+});
+
+/**
+ * Semantic romaji rendering (Phase 0 Task 4, master spec §13.2-13.3): the
+ * romaji line must render the endpoint's real `AssembledToken`s through the
+ * shared `RomajiSequence`, never a local fragment join — so the guided
+ * action verb attaches its polite ending ("tabemasu", never "tabe masu")
+ * and every gear mark keeps its separator outside the `<mark>`.
+ */
+describe("GuidedTransformation: semantic romaji rendering", () => {
+  it("renders the target endpoint's full romaji sentence as one readable sequence, verb attached", () => {
+    // "actions-1-changed" is the real catalog sentence レストランでごはんをたべます
+    // — the reading line (romaji, default script "hiragana") must read it
+    // back exactly, with the verb stem and its polite ending attached.
+    const html = render(authored);
+    expect(html).toContain("resutoran de gohan o tabemasu");
+    expect(html).not.toContain("tabe masu");
+  });
+
+  it("marks the first highlighted gear token with the separator outside the mark", () => {
+    const html = renderWithScript(
+      { ...authored, changedGearIds: ["レストラン"] },
+      "romaji",
+    );
+    expect(html).toContain(
+      '<mark class="guided-board__gear">resutoran</mark> de gohan o tabemasu',
+    );
+  });
+
+  it("marks a middle highlighted gear token with separators on both sides outside the mark", () => {
+    const html = renderWithScript(
+      { ...authored, changedGearIds: ["ごはん"] },
+      "romaji",
+    );
+    expect(html).toContain(
+      'resutoran de <mark class="guided-board__gear">gohan</mark> o tabemasu',
+    );
+  });
+
+  it("marks the last highlighted gear token attached, with no injected space", () => {
+    const html = renderWithScript(
+      { ...authored, changedGearIds: ["ます"] },
+      "romaji",
+    );
+    expect(html).toContain(
+      'resutoran de gohan o tabe<mark class="guided-board__gear">masu</mark>',
+    );
+  });
+
+  it("keeps mixed highlighted and unhighlighted runs readable, each separator outside its mark", () => {
+    const html = renderWithScript(
+      { ...authored, changedGearIds: ["で", "たべ"] },
+      "romaji",
+    );
+    expect(html).toContain(
+      'resutoran <mark class="guided-board__gear">de</mark> gohan o ' +
+        '<mark class="guided-board__gear">tabe</mark>masu',
+    );
+  });
+
+  it("never wraps leading or trailing whitespace inside a highlighted romaji gear", () => {
+    for (const changedGearIds of [
+      ["レストラン"],
+      ["ごはん"],
+      ["ます"],
+      ["で", "たべ"],
+    ]) {
+      const html = renderWithScript({ ...authored, changedGearIds }, "romaji");
+      for (const content of marks(html)) {
+        expect(content).not.toMatch(/^\s|\s$/);
+      }
+    }
+  });
+
+  it("renders the Lab-engine target endpoint's romaji sentence readable too", () => {
+    const html = render(lab);
+    expect(html).toContain("kyō rāmen o tabemashita");
   });
 });

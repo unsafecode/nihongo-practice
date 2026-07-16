@@ -5,9 +5,11 @@ import {
   useRef,
   type MouseEvent as ReactMouseEvent,
   type ReactElement,
-  type ReactNode,
 } from "react";
 import type { Script } from "../../settings/ScriptContext";
+import { formatRomaji } from "../../romaji/formatRomaji";
+import { RomajiSequence } from "../../romaji/RomajiSequence";
+import type { AssembledToken } from "../../romaji/types";
 import type { CourseCopy } from "../i18n/types";
 import { JapaneseSegmentText } from "./JapaneseSegmentText";
 import type { ExerciseUiState } from "./exerciseState";
@@ -33,6 +35,18 @@ import type {
  * the result is announced in a polite live region that never steals focus; tile
  * ordering has a full non-drag keyboard/touch path (add from the bank, move, and
  * remove buttons); and every state is conveyed by text, never colour alone.
+ *
+ * Romaji rendering (romaji boundaries plan Task 4, master spec §13.2-13.3):
+ * every learner-facing romaji surface here — the in-sentence choice/completion
+ * context, the transformation source, and every tile/option glyph — renders a
+ * real {@link AssembledToken} sequence through the shared {@link RomajiSequence}
+ * renderer. A tile/option is always a *single* isolated token (its own boundary
+ * force-attached, per requirement 8); the ordered placed answer additionally
+ * derives its inter-tile separators once from the whole placed sequence, and
+ * emits each as a sibling *outside* the tile's glyph/control wrapper — never a
+ * local join, never a CSS-gap-only fix, never a Japanese/concatenated fallback
+ * when a token cannot be resolved (the shared renderer's own localized error
+ * path fires instead).
  */
 
 type ExercisePromptCopy = CourseCopy["exercises"];
@@ -84,23 +98,66 @@ export interface ExerciseViewProps {
   readonly intentText: string | null;
   /** A stable id prefix for this card's heading/instruction/feedback ids. */
   readonly idBase: string;
-  readonly romajiForTile: (tileId: string) => string | undefined;
-  readonly romajiForExample: (exampleId: string) => string | undefined;
+  /** Resolves a tile/option id to its real assembled token, or undefined. */
+  readonly tokenForTile: (tileId: string) => AssembledToken | undefined;
+  /** Resolves an example id to its whole ordered token sequence, or undefined. */
+  readonly tokensForExample: (
+    exampleId: string,
+  ) => readonly AssembledToken[] | undefined;
+  /** The exact localized `contentFormattingError` text for the shared renderer. */
+  readonly errorText: string;
   readonly handlers: ExerciseViewHandlers;
 }
 
-/** One glyph rendered script-primary with the other script beneath it (spec §7). */
+/**
+ * A deliberately invalid sentinel forcing `RomajiSequence`'s (and
+ * `formatRomaji`'s) localized error path — never a silent Japanese/
+ * concatenated fallback — when a tile/option/example token cannot be
+ * resolved.
+ */
+const INVALID_TOKEN: AssembledToken = {
+  id: "",
+  jp: "",
+  romaji: "",
+  kind: "lexical",
+  boundaryBefore: "attach",
+  source: { domain: "exercise", referenceId: "" },
+};
+
+/** Force-attaches the first token of an isolated subset (a tile, an option, a
+ * sentence run) so `formatRomaji`'s first-boundary validation never rejects a
+ * subset purely because its first token originally sat mid-sentence. */
+function isolateTokens(
+  tokens: readonly AssembledToken[],
+): readonly AssembledToken[] {
+  if (tokens.length === 0) return tokens;
+  const [first, ...rest] = tokens;
+  return [{ ...first, boundaryBefore: "attach" }, ...rest];
+}
+
+/** One glyph rendered script-primary with the other script beneath it (spec
+ * §7) — a single isolated token's romaji, through the shared renderer, so an
+ * unresolved token surfaces the localized error rather than a raw jp
+ * fallback. */
 function GlyphPair({
-  jp,
-  reading,
-  romaji,
+  token,
   script,
+  errorText,
 }: {
-  readonly jp: string;
-  readonly reading?: string;
-  readonly romaji?: string;
+  readonly token: AssembledToken | undefined;
   readonly script: Script;
+  readonly errorText: string;
 }): ReactElement {
+  const tokens = isolateTokens([token ?? INVALID_TOKEN]);
+  const formatted = formatRomaji(tokens);
+  if (!formatted.ok) {
+    return (
+      <span className="lesson-exercise__glyph" role="alert">
+        {errorText}
+      </span>
+    );
+  }
+  const resolved = tokens[0];
   const primaryIsJp = script === "hiragana";
   return (
     <span className="lesson-exercise__glyph">
@@ -108,17 +165,19 @@ function GlyphPair({
         className="lesson-exercise__glyph-primary"
         lang={primaryIsJp ? "ja" : undefined}
       >
-        {primaryIsJp ? <JapaneseSegmentText jp={jp} reading={reading} /> : (romaji ?? jp)}
+        {primaryIsJp ? (
+          <JapaneseSegmentText jp={resolved.jp} reading={resolved.reading} />
+        ) : (
+          resolved.romaji
+        )}
       </span>
-      {romaji ? (
-        <span
-          className="lesson-exercise__glyph-secondary"
-          lang={primaryIsJp ? undefined : "ja"}
-          aria-hidden="true"
-        >
-          {primaryIsJp ? romaji : jp}
-        </span>
-      ) : null}
+      <span
+        className="lesson-exercise__glyph-secondary"
+        lang={primaryIsJp ? undefined : "ja"}
+        aria-hidden="true"
+      >
+        {primaryIsJp ? resolved.romaji : resolved.jp}
+      </span>
     </span>
   );
 }
@@ -133,45 +192,73 @@ function SentenceLine({
   segments,
   script,
   targetExampleId,
-  romajiForTile,
+  tokenForTile,
+  errorText,
   copy,
   secondary,
 }: {
   readonly segments: readonly ExercisePromptSegment[];
   readonly script: Script;
   readonly targetExampleId: string;
-  readonly romajiForTile: (tileId: string) => string | undefined;
+  readonly tokenForTile: (tileId: string) => AssembledToken | undefined;
+  readonly errorText: string;
   readonly copy: ExercisePromptCopy;
   readonly secondary: boolean;
 }): ReactElement {
   const primaryIsJp = script === "hiragana";
   const showJp = secondary ? !primaryIsJp : primaryIsJp;
-  return (
-    <p
-      className={
-        secondary
-          ? "lesson-exercise__sentence lesson-exercise__sentence--secondary"
-          : "lesson-exercise__sentence"
-      }
-      lang={showJp ? "ja" : undefined}
-      aria-hidden={secondary ? "true" : undefined}
-    >
-      {segments.map((segment) => {
-        if (segment.isBlank) {
-          return (
+  const className = secondary
+    ? "lesson-exercise__sentence lesson-exercise__sentence--secondary"
+    : "lesson-exercise__sentence";
+
+  // Japanese never carries inter-word separators (unchanged): a blank still
+  // renders the localized slot placeholder, every other segment its own
+  // JapaneseSegmentText, with no join between them.
+  if (showJp) {
+    return (
+      <p className={className} lang="ja" aria-hidden={secondary ? "true" : undefined}>
+        {segments.map((segment) =>
+          segment.isBlank ? (
             <span key={segment.id} className="lesson-exercise__slot">
               {copy.blank}
             </span>
-          );
+          ) : (
+            <span key={segment.id}>
+              <JapaneseSegmentText jp={segment.jp} reading={segment.reading} />
+            </span>
+          ),
+        )}
+      </p>
+    );
+  }
+
+  // Romaji: the whole segment list — blanks included — renders through one
+  // shared RomajiSequence call, so every run separator (including around a
+  // blank) is the shared renderer's own, never a local join. A blank is a
+  // real catalog segment (its boundary is honest), just rendered as the
+  // localized placeholder instead of its own romaji.
+  const blankIds = new Set(
+    segments.filter((segment) => segment.isBlank).map((segment) => segment.id),
+  );
+  const tokens = isolateTokens(
+    segments.map(
+      (segment) =>
+        tokenForTile(`${targetExampleId}#${segment.id}`) ?? INVALID_TOKEN,
+    ),
+  );
+  return (
+    <p className={className} aria-hidden={secondary ? "true" : undefined}>
+      <RomajiSequence
+        tokens={tokens}
+        errorText={errorText}
+        renderToken={(token) =>
+          blankIds.has(token.id) ? (
+            <span className="lesson-exercise__slot">{copy.blank}</span>
+          ) : (
+            token.romaji
+          )
         }
-        const romaji = romajiForTile(`${targetExampleId}#${segment.id}`);
-        const content: ReactNode = showJp ? (
-          <JapaneseSegmentText jp={segment.jp} reading={segment.reading} />
-        ) : (
-          romaji ?? segment.jp
-        );
-        return <span key={segment.id}>{content}</span>;
-      })}
+      />
     </p>
   );
 }
@@ -184,7 +271,8 @@ function TileOrderingBody({
   script,
   copy,
   instructionId,
-  romajiForTile,
+  tokenForTile,
+  errorText,
   focus,
   handlers,
 }: {
@@ -193,7 +281,8 @@ function TileOrderingBody({
   readonly script: Script;
   readonly copy: ExercisePromptCopy;
   readonly instructionId: string;
-  readonly romajiForTile: (tileId: string) => string | undefined;
+  readonly tokenForTile: (tileId: string) => AssembledToken | undefined;
+  readonly errorText: string;
   readonly focus: TileFocusManager;
   readonly handlers: ExerciseViewHandlers;
 }): ReactElement {
@@ -203,6 +292,26 @@ function TileOrderingBody({
   const bank = prompt.tiles.filter((tile) => !placedSet.has(tile.id));
   const answerLabelId = `${instructionId}-answer`;
   const bankLabelId = `${instructionId}-bank`;
+
+  // The ordered placed answer's inter-tile separators, derived once from the
+  // whole placed token sequence (never per-tile CSS gap alone) — requirement
+  // 8. Each tile still renders as its own single isolated glyph; the
+  // separator is emitted as a sibling outside that glyph/control wrapper.
+  const placedTokens = placed.map((tileId) => tokenForTile(tileId) ?? INVALID_TOKEN);
+  const placedFormatted =
+    placedTokens.length > 0 ? formatRomaji(isolateTokens(placedTokens)) : null;
+  // formatRomaji's runs are positional (one per input token, in order) and
+  // keyed by the token's own id, which may differ from — or collide across —
+  // tile ids. Pair placed tile ids with their run by position, not by a
+  // tokenId lookup.
+  const placedSeparators = new Map(
+    placedFormatted?.ok
+      ? placed.map(
+          (tileId, position) =>
+            [tileId, placedFormatted.runs[position]?.separatorBefore ?? ""] as const,
+        )
+      : [],
+  );
 
   return (
     <div className="lesson-exercise__tiles">
@@ -221,13 +330,18 @@ function TileOrderingBody({
             const tile = tilesById.get(tileId);
             if (!tile) return null;
             const label = tileLabelText(tile);
+            const separator = placedSeparators.get(tileId) ?? "";
             return (
               <li key={tileId} className="lesson-exercise__placed">
+                {separator ? (
+                  <span className="lesson-exercise__run-separator" aria-hidden="true">
+                    {separator}
+                  </span>
+                ) : null}
                 <GlyphPair
-                  jp={tile.jp}
-                  reading={tile.reading}
-                  romaji={romajiForTile(tile.id)}
+                  token={tokenForTile(tileId)}
                   script={script}
+                  errorText={errorText}
                 />
                 <span className="lesson-exercise__tile-actions">
                   <button
@@ -303,10 +417,9 @@ function TileOrderingBody({
               }}
             >
               <GlyphPair
-                jp={tile.jp}
-                reading={tile.reading}
-                romaji={romajiForTile(tile.id)}
+                token={tokenForTile(tile.id)}
                 script={script}
+                errorText={errorText}
               />
             </button>
           </li>
@@ -324,7 +437,8 @@ function ChoiceBody({
   idBase,
   instructionId,
   targetExampleId,
-  romajiForTile,
+  tokenForTile,
+  errorText,
   handlers,
 }: {
   readonly prompt: Extract<ExercisePrompt, { kind: "choice" }>;
@@ -334,7 +448,8 @@ function ChoiceBody({
   readonly idBase: string;
   readonly instructionId: string;
   readonly targetExampleId: string;
-  readonly romajiForTile: (tileId: string) => string | undefined;
+  readonly tokenForTile: (tileId: string) => AssembledToken | undefined;
+  readonly errorText: string;
   readonly handlers: ExerciseViewHandlers;
 }): ReactElement {
   return (
@@ -343,7 +458,8 @@ function ChoiceBody({
         segments={prompt.sentenceSegments}
         script={script}
         targetExampleId={targetExampleId}
-        romajiForTile={romajiForTile}
+        tokenForTile={tokenForTile}
+        errorText={errorText}
         copy={copy}
         secondary={false}
       />
@@ -351,7 +467,8 @@ function ChoiceBody({
         segments={prompt.sentenceSegments}
         script={script}
         targetExampleId={targetExampleId}
-        romajiForTile={romajiForTile}
+        tokenForTile={tokenForTile}
+        errorText={errorText}
         copy={copy}
         secondary
       />
@@ -371,10 +488,9 @@ function ChoiceBody({
                 onChange={() => handlers.onSelectOption(option.id)}
               />
               <GlyphPair
-                jp={option.jp}
-                reading={option.reading}
-                romaji={romajiForTile(option.id)}
+                token={tokenForTile(option.id)}
                 script={script}
+                errorText={errorText}
               />
             </label>
           );
@@ -393,8 +509,9 @@ function TextBody({
   instructionId,
   intentText,
   targetExampleId,
-  romajiForTile,
-  romajiForExample,
+  tokenForTile,
+  tokensForExample,
+  errorText,
   handlers,
 }: {
   readonly prompt: Extract<
@@ -408,8 +525,11 @@ function TextBody({
   readonly instructionId: string;
   readonly intentText: string | null;
   readonly targetExampleId: string;
-  readonly romajiForTile: (tileId: string) => string | undefined;
-  readonly romajiForExample: (exampleId: string) => string | undefined;
+  readonly tokenForTile: (tileId: string) => AssembledToken | undefined;
+  readonly tokensForExample: (
+    exampleId: string,
+  ) => readonly AssembledToken[] | undefined;
+  readonly errorText: string;
   readonly handlers: ExerciseViewHandlers;
 }): ReactElement {
   const inputId = `${idBase}-input`;
@@ -421,7 +541,8 @@ function TextBody({
             segments={prompt.sentenceSegments}
             script={script}
             targetExampleId={targetExampleId}
-            romajiForTile={romajiForTile}
+            tokenForTile={tokenForTile}
+            errorText={errorText}
             copy={copy}
             secondary={false}
           />
@@ -429,7 +550,8 @@ function TextBody({
             segments={prompt.sentenceSegments}
             script={script}
             targetExampleId={targetExampleId}
-            romajiForTile={romajiForTile}
+            tokenForTile={tokenForTile}
+            errorText={errorText}
             copy={copy}
             secondary
           />
@@ -442,11 +564,14 @@ function TextBody({
           <span className="lesson-exercise__source-jp" lang="ja">
             {prompt.promptJp}
           </span>
-          {romajiForExample(prompt.promptExampleId) ? (
-            <span className="lesson-exercise__source-romaji" aria-hidden="true">
-              {romajiForExample(prompt.promptExampleId)}
-            </span>
-          ) : null}
+          <span className="lesson-exercise__source-romaji" aria-hidden="true">
+            <RomajiSequence
+              tokens={isolateTokens(
+                tokensForExample(prompt.promptExampleId) ?? [INVALID_TOKEN],
+              )}
+              errorText={errorText}
+            />
+          </span>
         </p>
       ) : null}
 
@@ -507,8 +632,9 @@ export function ExerciseView(props: ExerciseViewProps): ReactElement {
     intentText,
     idBase,
     targetExampleId,
-    romajiForTile,
-    romajiForExample,
+    tokenForTile,
+    tokensForExample,
+    errorText,
     handlers,
   } = props;
 
@@ -596,7 +722,8 @@ export function ExerciseView(props: ExerciseViewProps): ReactElement {
             script={script}
             copy={copy}
             instructionId={instructionId}
-            romajiForTile={romajiForTile}
+            tokenForTile={tokenForTile}
+            errorText={errorText}
             focus={focus}
             handlers={handlers}
           />
@@ -611,7 +738,8 @@ export function ExerciseView(props: ExerciseViewProps): ReactElement {
             idBase={idBase}
             instructionId={instructionId}
             targetExampleId={targetExampleId}
-            romajiForTile={romajiForTile}
+            tokenForTile={tokenForTile}
+            errorText={errorText}
             handlers={handlers}
           />
         ) : null}
@@ -628,8 +756,9 @@ export function ExerciseView(props: ExerciseViewProps): ReactElement {
             instructionId={instructionId}
             intentText={intentText}
             targetExampleId={targetExampleId}
-            romajiForTile={romajiForTile}
-            romajiForExample={romajiForExample}
+            tokenForTile={tokenForTile}
+            tokensForExample={tokensForExample}
+            errorText={errorText}
             handlers={handlers}
           />
         ) : null}

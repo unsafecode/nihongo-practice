@@ -4,8 +4,11 @@ import type { LabSelection } from "../../content/types";
 import { useLocale } from "../../i18n/LocaleContext";
 import { buildJapaneseSentence } from "../../lab/engine/japanese";
 import { buildLabDeepLink } from "../../lab/presets";
+import { RomajiSequence } from "../../romaji/RomajiSequence";
+import type { AssembledToken } from "../../romaji/types";
 import { useScript } from "../../settings/ScriptContext";
 import { examples } from "../data/examples";
+import { exampleSegmentToAssembledToken } from "../data/romajiTokens";
 import type {
   AuthoredSelection,
   GuidedTransformationData,
@@ -15,92 +18,87 @@ import { JapaneseSegmentText } from "./JapaneseSegmentText";
 
 type ScriptField = "jp" | "romaji";
 
-interface EndpointToken {
-  readonly jp: string;
-  readonly romaji: string;
-  readonly gear: boolean;
-  /**
-   * The shared hiragana reading for a katakana loanword's assisted first
-   * exposure (spec §7, §8.3), carried through only for authored endpoints —
-   * Lab-engine endpoints have no such reading to invent one from.
-   */
-  readonly reading?: string;
-}
-
 function isLabSelection(
   selection: LabSelection | AuthoredSelection,
 ): selection is LabSelection {
   return !("exampleId" in selection);
 }
 
+/** A deliberately invalid sentinel forcing `RomajiSequence`'s error path
+ * (never a silent fallback) when an authored endpoint's segments cannot
+ * resolve to real assembled tokens. */
+const INVALID_TOKEN: AssembledToken = {
+  id: "",
+  jp: "",
+  romaji: "",
+  kind: "lexical",
+  boundaryBefore: "attach",
+  source: { domain: "catalog", referenceId: "" },
+};
+
 /**
- * Derives the visible endpoint tokens. Lab endpoints go through the existing
- * Japanese engine (`buildJapaneseSentence`) so no grammar logic is duplicated
- * here; authored endpoints render their curated static segments. A token is
- * flagged `gear` only when its trimmed glyph is one of the declared changed
- * gears, so each endpoint highlights exactly its side of the honest delta that
- * `validateExploration` has proven.
+ * Derives the visible endpoint's real assembled tokens. Lab endpoints reuse
+ * the existing Japanese engine's own `AssembledToken[]`
+ * (`buildJapaneseSentence(...).tokens`) so no grammar or boundary logic is
+ * duplicated here; authored endpoints map their curated static segments
+ * through the same shared `exampleSegmentToAssembledToken` every other
+ * learner surface uses (master spec §13.2-13.3).
  */
 function endpointTokens(
   selection: LabSelection | AuthoredSelection,
-  changedGears: ReadonlySet<string>,
-): EndpointToken[] {
+): readonly AssembledToken[] {
   if (isLabSelection(selection)) {
-    const model = buildJapaneseSentence(selection);
-    const tokens: EndpointToken[] = [];
-    for (const part of model.parts) {
-      tokens.push({ jp: part.jp, romaji: part.romaji, gear: false });
-      const gear = part.particle ?? part.suffix;
-      if (gear) {
-        tokens.push({
-          jp: gear.jp,
-          romaji: gear.romaji,
-          gear: changedGears.has(gear.jp.trim()),
-        });
-      }
-    }
-    return tokens;
+    return buildJapaneseSentence(selection).tokens;
   }
   const example = examples[selection.exampleId];
-  return (example.segments ?? []).map((segment) => ({
-    jp: segment.jp,
-    romaji: segment.romaji,
-    gear: changedGears.has(segment.jp.trim()),
-    ...(segment.reading ? { reading: segment.reading } : {}),
-  }));
+  const segments = example.segments ?? [];
+  if (segments.length === 0) return [INVALID_TOKEN];
+  return segments.map(
+    (segment) => exampleSegmentToAssembledToken(segment) ?? INVALID_TOKEN,
+  );
 }
 
 /**
- * Renders one endpoint's tokens for a script field. The `jp` field renders
- * through the shared {@link JapaneseSegmentText} so an authored token's
- * katakana-loanword first-exposure hiragana reading (spec §7, §8.3) shows as
- * a ruby annotation exactly when the token carries one; `romaji` stays plain
- * text, already derived from that same shared reading upstream.
+ * The token ids whose trimmed Japanese glyph is one of the declared changed
+ * gears, so each endpoint highlights exactly its side of the honest delta
+ * that `validateExploration` has proven — independent of whether the
+ * endpoint is Lab-engine or authored.
  */
-function EndpointLine({
+function highlightedIdsFor(
+  tokens: readonly AssembledToken[],
+  changedGears: ReadonlySet<string>,
+): readonly string[] {
+  return tokens
+    .filter((token) => changedGears.has(token.jp.trim()))
+    .map((token) => token.id);
+}
+
+/**
+ * Renders one endpoint's Japanese line: every token through the shared
+ * {@link JapaneseSegmentText} (so a katakana loanword's first-exposure
+ * hiragana reading, spec §7 §8.3, still shows as ruby exactly when the token
+ * carries one), with no inter-token separator — Japanese never spaces
+ * between words — and the declared changed tokens wrapped in `<mark>`.
+ */
+function EndpointJpLine({
   tokens,
-  field,
-  mark,
+  highlighted,
 }: {
-  tokens: EndpointToken[];
-  field: ScriptField;
-  mark: boolean;
+  tokens: readonly AssembledToken[];
+  highlighted: ReadonlySet<string>;
 }) {
   return (
     <>
-      {tokens.map((token, index) => {
-        const content =
-          field === "jp" ? (
-            <JapaneseSegmentText jp={token.jp} reading={token.reading} />
-          ) : (
-            token[field]
-          );
-        return mark && token.gear ? (
-          <mark className="guided-board__gear" key={index}>
+      {tokens.map((token) => {
+        const content = (
+          <JapaneseSegmentText jp={token.jp} reading={token.reading} />
+        );
+        return highlighted.has(token.id) ? (
+          <mark className="guided-board__gear" key={token.id}>
             {content}
           </mark>
         ) : (
-          <Fragment key={index}>{content}</Fragment>
+          <Fragment key={token.id}>{content}</Fragment>
         );
       })}
     </>
@@ -110,13 +108,19 @@ function EndpointLine({
 function Endpoint({
   label,
   tokens,
+  highlightedTokenIds,
+  errorText,
 }: {
   label: string;
-  tokens: EndpointToken[];
+  tokens: readonly AssembledToken[];
+  highlightedTokenIds: readonly string[];
+  errorText: string;
 }) {
   const { script } = useScript();
   const mainField: ScriptField = script === "hiragana" ? "jp" : "romaji";
   const subField: ScriptField = script === "hiragana" ? "romaji" : "jp";
+  const highlighted = new Set(highlightedTokenIds);
+
   return (
     <div className="guided-board__state">
       <p className="guided-board__state-label">{label}</p>
@@ -126,13 +130,26 @@ function Endpoint({
         }`}
         lang={mainField === "jp" ? "ja" : undefined}
       >
-        <EndpointLine tokens={tokens} field={mainField} mark />
+        {mainField === "jp" ? (
+          <EndpointJpLine tokens={tokens} highlighted={highlighted} />
+        ) : (
+          <RomajiSequence
+            tokens={tokens}
+            highlightedTokenIds={highlightedTokenIds}
+            highlightClassName="guided-board__gear"
+            errorText={errorText}
+          />
+        )}
       </p>
       <p
         className="guided-board__reading"
         lang={subField === "jp" ? "ja" : undefined}
       >
-        <EndpointLine tokens={tokens} field={subField} mark={false} />
+        {subField === "jp" ? (
+          <EndpointJpLine tokens={tokens} highlighted={new Set()} />
+        ) : (
+          <RomajiSequence tokens={tokens} errorText={errorText} />
+        )}
       </p>
     </div>
   );
@@ -156,9 +173,12 @@ export function GuidedTransformation({
   const { locale } = useLocale();
   const copy = getCourseCopy(locale);
   const guided = copy.lesson.guided;
+  const errorText = copy.lesson.contentFormattingError;
   const changedGears = new Set(data.changedGearIds);
-  const initialTokens = endpointTokens(data.initialSelection, changedGears);
-  const targetTokens = endpointTokens(data.targetSelection, changedGears);
+  const initialTokens = endpointTokens(data.initialSelection);
+  const targetTokens = endpointTokens(data.targetSelection);
+  const initialHighlighted = highlightedIdsFor(initialTokens, changedGears);
+  const targetHighlighted = highlightedIdsFor(targetTokens, changedGears);
 
   const labLink = (() => {
     if (
@@ -183,11 +203,21 @@ export function GuidedTransformation({
   return (
     <div className="guided-board">
       <div className="guided-board__states">
-        <Endpoint label={guided.initial} tokens={initialTokens} />
+        <Endpoint
+          label={guided.initial}
+          tokens={initialTokens}
+          highlightedTokenIds={initialHighlighted}
+          errorText={errorText}
+        />
         <div className="guided-board__arrow" aria-hidden="true">
           ↓
         </div>
-        <Endpoint label={guided.target} tokens={targetTokens} />
+        <Endpoint
+          label={guided.target}
+          tokens={targetTokens}
+          highlightedTokenIds={targetHighlighted}
+          errorText={errorText}
+        />
       </div>
       <div className="guided-board__changed">
         <p className="guided-board__changed-label">{guided.changed}</p>

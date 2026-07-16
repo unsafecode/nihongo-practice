@@ -58,6 +58,7 @@ interface ViewOptions {
   readonly speakingKey?: string | null;
   readonly viewModel?: SpokenAttemptModel;
   readonly copy?: typeof enCopy.spokenAttempt;
+  readonly errorText?: string;
 }
 
 function renderView(options: ViewOptions): string {
@@ -72,9 +73,33 @@ function renderView(options: ViewOptions): string {
       synthesisSupported: options.synthesisSupported ?? true,
       speakingKey: options.speakingKey ?? null,
       idBase: "sa-1",
+      errorText: options.errorText ?? enCopy.lesson.contentFormattingError,
       handlers: NOOP,
     }),
   );
+}
+
+/** The target sentence region's inner HTML (tags stripped of the wrapping
+ * <p>), isolated for exact-text assertions. */
+function targetSentenceHtml(html: string): string {
+  return (
+    html.match(/<p class="spoken-attempt__sentence">([\s\S]*?)<\/p>/)?.[1] ?? ""
+  );
+}
+
+/** The text content of the target sentence's romaji secondary glyphs, joined
+ * in DOM order together with each token's own leading separator text — this
+ * is how the test verifies the visible target reads as one real semantic
+ * sentence (the shared renderer's own spacing), never a concatenation of
+ * unspaced fragments and never a hand-forced join in the test itself. */
+function targetRomajiReading(html: string): string {
+  const sentence = targetSentenceHtml(html);
+  const matches = [
+    ...sentence.matchAll(
+      /([^<]*)<span class="spoken-attempt__glyph">[\s\S]*?class="spoken-attempt__glyph-secondary"[^>]*>([^<]*)<\/span><\/span>/g,
+    ),
+  ];
+  return matches.map(([, separator, secondary]) => separator + secondary).join("");
 }
 
 function evalFor(transcript: string): TranscriptEvaluation {
@@ -135,6 +160,42 @@ describe("SpokenAttemptView — respects the script setting and ruby conventions
       viewModel: modelFor("sounds-4"),
     });
     expect(html).toMatch(/<ruby[^>]*>ミルク<rt[^>]*>みるく<\/rt><\/ruby>/);
+  });
+});
+
+// ── Semantic romaji target (romaji boundaries plan Task 4) ───────────────────
+//
+// The visible target sentence renders every segment's real AssembledToken
+// through the shared RomajiSequence renderer (master spec §13.2-13.3) — never
+// a per-segment concatenation with no separators between glyphs.
+
+describe("SpokenAttemptView — the visible target reads as one real semantic sequence", () => {
+  it("shows the exact readable romaji target for introductions-1, never a run-on concatenation", () => {
+    const html = renderView({ state: IDLE, viewModel: modelFor("introductions-1") });
+    expect(targetRomajiReading(html)).toBe("watashi no namae wa yuki desu");
+    expect(targetSentenceHtml(html)).not.toContain("watashino");
+    expect(targetSentenceHtml(html)).not.toContain("namaewa");
+  });
+
+  it("uses the model's own targetRomaji as the same sequence the target line renders", () => {
+    const spokenModel = modelFor("introductions-1");
+    const html = renderView({ state: IDLE, viewModel: spokenModel });
+    expect(targetRomajiReading(html)).toBe(spokenModel.targetRomaji);
+  });
+
+  it("shows the localized formatting error instead of a raw/concatenated fallback when a target token cannot be resolved", () => {
+    const base = modelFor("introductions-1");
+    const malformedModel: SpokenAttemptModel = {
+      ...base,
+      segments: base.segments.map((segment, index) =>
+        index === 1
+          ? { ...segment, token: { ...segment.token, romaji: "" } }
+          : segment,
+      ),
+    };
+    const html = renderView({ state: IDLE, viewModel: malformedModel });
+    expect(targetSentenceHtml(html)).toContain(enCopy.lesson.contentFormattingError);
+    expect(targetSentenceHtml(html)).toContain('role="alert"');
   });
 });
 

@@ -72,6 +72,26 @@ describe("getSpokenAttemptModel — every published lesson resolves", () => {
     }
   });
 
+  it("exposes the exact readable target romaji for introductions-1 (romaji boundaries plan Task 4)", () => {
+    const result = getSpokenAttemptModel("introductions-1", "en");
+    if (!result.ok) throw new Error("error");
+    expect(result.model.targetRomaji).toBe("watashi no namae wa yuki desu");
+  });
+
+  it("retains the complete AssembledToken metadata (boundaryBefore, source) each segment needs for the shared renderer", () => {
+    const result = getSpokenAttemptModel("introductions-1", "en");
+    if (!result.ok) throw new Error("error");
+    for (const segment of result.model.segments) {
+      expect(segment.token.id).toBe(segment.id);
+      expect(segment.token.jp).toBe(segment.jp);
+      expect(segment.token.romaji).toBe(segment.romaji);
+      expect(["attach", "space"]).toContain(segment.token.boundaryBefore);
+      expect(segment.token.source.referenceId.length).toBeGreaterThan(0);
+    }
+    // The sentence's first token is always attached (romaji boundaries plan §13.2).
+    expect(result.model.segments[0]?.token.boundaryBefore).toBe("attach");
+  });
+
   it("exposes the resolved prompt the recognizer evaluates against", () => {
     const result = getSpokenAttemptModel("introductions-1", "en");
     if (!result.ok) throw new Error("error");
@@ -287,6 +307,36 @@ describe("buildSpokenAttemptModel — structured errors, never a partial success
             tokenKind: "lexical",
             boundaryBefore: "attach",
             source: { domain: "test", referenceId: "" },
+          },
+        ],
+      }),
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("unresolved-prompt");
+  });
+
+  it("reports unresolved-prompt when a well-formed token still fails formatRomaji's own validation (empty romaji)", () => {
+    // Distinct from the case above: every field exampleSegmentToAssembledToken
+    // itself requires is present (id/tokenKind/boundaryBefore/source.referenceId),
+    // so a real AssembledToken IS formed — but its romaji is blank, which only
+    // the shared formatRomaji validator rejects. This proves the model surfaces
+    // that failure too, never silently emitting an empty/malformed romaji.
+    const result = buildSpokenAttemptModel("x", {
+      ...okDeps(),
+      targetExample: () => ({
+        id: "x-say",
+        jp: "みず",
+        romaji: "mizu",
+        segments: [
+          {
+            id: "p1",
+            jp: "みず",
+            romaji: "",
+            kind: "word",
+            tokenKind: "lexical",
+            boundaryBefore: "attach",
+            source: testSource("x-say#p1"),
           },
         ],
       }),

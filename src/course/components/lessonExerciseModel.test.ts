@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import { courseModules } from "../data/course";
 import { exerciseIdsByLesson } from "../catalog/exercises";
 import {
+  exampleTokens,
   exerciseInstructionCopy,
   getLessonExercises,
-  segmentRomaji,
+  segmentToken,
 } from "./lessonExerciseModel";
 
 /**
@@ -77,20 +78,50 @@ describe("getLessonExercises — deterministic prompt generation for every lesso
   });
 });
 
-describe("segmentRomaji — derived romaji for a tile/option id", () => {
-  it("resolves the romaji of a shared example segment by tile id", () => {
+describe("segmentToken — derived AssembledToken for a tile/option id", () => {
+  it("resolves the real assembled token (jp/romaji/kind/boundary) of a shared example segment by tile id", () => {
     const model = getLessonExercises("introductions-1")!;
     const tileExercise = model.exercises.find((e) => e.prompt.kind === "tile-ordering");
     expect(tileExercise).toBeDefined();
     if (tileExercise && tileExercise.prompt.kind === "tile-ordering") {
       for (const tile of tileExercise.prompt.tiles) {
-        expect(segmentRomaji(tile.id), `romaji for ${tile.id}`).toBeTruthy();
+        const token = segmentToken(tile.id);
+        expect(token, `token for ${tile.id}`).toBeDefined();
+        expect(token!.jp).toBe(tile.jp);
+        expect(token!.romaji.trim().length).toBeGreaterThan(0);
+        expect(token!.id.length).toBeGreaterThan(0);
+        expect(token!.source.referenceId.length).toBeGreaterThan(0);
       }
     }
   });
 
+  it("resolves the exact watashi/wa/gakusei/desu tokens for introductions-1-base's tiles", () => {
+    expect(segmentToken("introductions-1-base#w1")?.romaji).toBe("watashi");
+    expect(segmentToken("introductions-1-base#p1")?.romaji).toBe("wa");
+    expect(segmentToken("introductions-1-base#w2")?.romaji).toBe("gakusei");
+    expect(segmentToken("introductions-1-base#e1")?.romaji).toBe("desu");
+  });
+
   it("returns undefined for an unknown tile id", () => {
-    expect(segmentRomaji("nope#zz9")).toBeUndefined();
+    expect(segmentToken("nope#zz9")).toBeUndefined();
+  });
+});
+
+describe("exampleTokens — the full ordered token list for an example id", () => {
+  it("resolves introductions-1-base's tokens in segment order with correct boundaries", () => {
+    const tokens = exampleTokens("introductions-1-base");
+    expect(tokens).toBeDefined();
+    expect(tokens!.map((t) => t.romaji)).toEqual([
+      "watashi",
+      "wa",
+      "gakusei",
+      "desu",
+    ]);
+    expect(tokens![0]!.boundaryBefore).toBe("attach");
+  });
+
+  it("returns undefined for an unknown example id", () => {
+    expect(exampleTokens("nope-example")).toBeUndefined();
   });
 });
 

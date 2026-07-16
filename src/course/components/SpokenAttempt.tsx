@@ -11,10 +11,11 @@ import {
 import type { ResolvedSpeechPrompt, SegmentMatch } from "../speech/types";
 import { useSpeechRecognition } from "../speech/SpeechRecognitionContext";
 import { JapaneseSegmentText } from "./JapaneseSegmentText";
+import { RomajiSequence } from "../../romaji/RomajiSequence";
+import type { AssembledToken } from "../../romaji/types";
 import {
   getSpokenAttemptModel,
   type SpokenAttemptModel,
-  type SpokenSegmentView,
 } from "./spokenAttemptModel";
 
 /**
@@ -145,12 +146,12 @@ function liveAnnouncement(
   }
 }
 
-/** One target segment rendered script-primary with the other script beneath. */
+/** One target token rendered script-primary with the other script beneath. */
 function SegmentGlyph({
-  segment,
+  token,
   script,
 }: {
-  readonly segment: SpokenSegmentView;
+  readonly token: AssembledToken;
   readonly script: Script;
 }): ReactElement {
   const primaryIsJp = script === "hiragana";
@@ -161,9 +162,9 @@ function SegmentGlyph({
         lang={primaryIsJp ? "ja" : undefined}
       >
         {primaryIsJp ? (
-          <JapaneseSegmentText jp={segment.jp} reading={segment.reading} />
+          <JapaneseSegmentText jp={token.jp} reading={token.reading} />
         ) : (
-          segment.romaji
+          token.romaji
         )}
       </span>
       <span
@@ -171,7 +172,7 @@ function SegmentGlyph({
         lang={primaryIsJp ? undefined : "ja"}
         aria-hidden="true"
       >
-        {primaryIsJp ? segment.romaji : segment.jp}
+        {primaryIsJp ? token.romaji : token.jp}
       </span>
     </span>
   );
@@ -267,6 +268,10 @@ export interface SpokenAttemptViewProps {
   /** The currently-speaking playback key, if any (from useSpeech). */
   readonly speakingKey: string | null;
   readonly idBase: string;
+  /** Localized copy shown instead of a raw/concatenated fallback when a
+   * target token cannot be resolved into a real semantic romaji sequence
+   * (romaji boundaries plan Task 4; master spec §13.2-13.3). */
+  readonly errorText: string;
   readonly handlers: SpokenAttemptHandlers;
 }
 
@@ -287,6 +292,7 @@ export function SpokenAttemptView({
   synthesisSupported,
   speakingKey,
   idBase,
+  errorText,
   handlers,
 }: SpokenAttemptViewProps): ReactElement {
   const headingId = `${idBase}-heading`;
@@ -430,9 +436,13 @@ export function SpokenAttemptView({
       <div className="spoken-attempt__target">
         <p className="spoken-attempt__region-label">{copy.targetLabel}</p>
         <p className="spoken-attempt__sentence">
-          {model.segments.map((segment) => (
-            <SegmentGlyph key={segment.id} segment={segment} script={script} />
-          ))}
+          <RomajiSequence
+            tokens={model.segments.map((segment) => segment.token)}
+            errorText={errorText}
+            renderToken={(token) => (
+              <SegmentGlyph token={token} script={script} />
+            )}
+          />
         </p>
         <p className="spoken-attempt__meaning">
           <span className="spoken-attempt__meaning-label">
@@ -513,6 +523,7 @@ export function SpokenAttempt({
 
   const model = result.model;
   const copy = getCourseCopy(locale).spokenAttempt;
+  const errorText = getCourseCopy(locale).lesson.contentFormattingError;
   const idBase = `spoken-${lessonId}`;
   const handlers = createSpokenAttemptHandlers(
     recognition,
@@ -534,6 +545,7 @@ export function SpokenAttempt({
       synthesisSupported={speech.supported}
       speakingKey={speech.speakingKey}
       idBase={idBase}
+      errorText={errorText}
       handlers={handlers}
     />
   );

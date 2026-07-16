@@ -44,6 +44,14 @@ export interface SpokenSegmentView {
   readonly kind: "word" | "particle" | "ending" | "punctuation";
   /** Whether this comparison segment is one of the prompt's critical segments. */
   readonly critical: boolean;
+  /**
+   * The complete assembled token (boundaryBefore, source) this segment was
+   * resolved from — the metadata the shared {@link RomajiSequence} renderer
+   * needs to compose the visible target as one real semantic sequence
+   * (romaji boundaries plan Task 4, master spec §13.2-13.3), rather than a
+   * flat pre-joined string or a local per-segment concatenation.
+   */
+  readonly token: AssembledToken;
 }
 
 /** An accepted orthographic transcript variant, resolved for display. */
@@ -172,6 +180,7 @@ export function buildSpokenAttemptModel(
       ...(runtime.reading ? { reading: runtime.reading } : {}),
       kind: runtime.kind,
       critical: critical.has(segment.id),
+      token,
     });
   }
 

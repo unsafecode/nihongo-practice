@@ -74,3 +74,67 @@ describe("Lab guided context", () => {
     expect(html).not.toContain(itCopy.practice.invalidPreset);
   });
 });
+
+/**
+ * Semantic romaji rendering on the Lab board (Phase 0 Task 4, master spec
+ * §13.2-13.3): the full sentence must render the real assembled token list
+ * through the shared `RomajiSequence`, never a local join/hardcoded space —
+ * so the verb attaches its polite ending ("tabemasu", never "tabe masu"),
+ * and each isolated chip (its own lexical+particle or stem+morpheme token
+ * subset) reads correctly with no meaningless leading space. Particle and
+ * ending tokens keep their color-coded `<span>` wrapper (an existing,
+ * unrelated cue), so readability assertions strip tags first.
+ */
+function textOnly(html: string): string {
+  return html.replace(/<[^>]+>/g, "");
+}
+
+function chipSubs(html: string): string[] {
+  return [...html.matchAll(/<div class="chip__sub">([\s\S]*?)<\/div>/g)].map(
+    (m) => textOnly(m[1]),
+  );
+}
+
+describe("Lab board: semantic romaji rendering", () => {
+  const presPreset =
+    "scenario=eat&form=pres&time=today&slot.object=ramen&slot.place=";
+
+  it("renders the full sentence's romaji as one readable, correctly-attached sequence", () => {
+    const html = render(`/pratica/laboratorio?${presPreset}`);
+    const match = html.match(
+      /<div class="sentence__sub">([\s\S]*?)<\/div>/,
+    );
+    expect(match).not.toBeNull();
+    const sub = textOnly(match![1]);
+    expect(sub).toBe("kyō rāmen o tabemasu");
+    expect(sub).not.toContain("tabe masu");
+  });
+
+  it("keeps the Japanese full sentence unspaced, exactly as before", () => {
+    const html = render(`/pratica/laboratorio?${presPreset}`);
+    const match = html.match(
+      /<div class="sentence__main"[^>]*>([\s\S]*?)<\/div>/,
+    );
+    expect(match).not.toBeNull();
+    expect(textOnly(match![1])).toBe("きょうらーめんをたべます");
+  });
+
+  it("gives the verb chip its attached ending with no leading space", () => {
+    const html = render(`/pratica/laboratorio?${presPreset}`);
+    // Chip order is time, object, verb — the verb chip is last.
+    const verbSub = chipSubs(html).at(-1);
+    expect(verbSub).toBe("tabemasu");
+  });
+
+  it("gives the object chip's romaji its particle attached with a single interior space, no leading space", () => {
+    const html = render(`/pratica/laboratorio?${presPreset}`);
+    const objectSub = chipSubs(html).at(1);
+    expect(objectSub).toBe("rāmen o");
+  });
+
+  it("gives the isolated time chip's romaji with no leading space at all", () => {
+    const html = render(`/pratica/laboratorio?${presPreset}`);
+    const timeSub = chipSubs(html).at(0);
+    expect(timeSub).toBe("kyō");
+  });
+});

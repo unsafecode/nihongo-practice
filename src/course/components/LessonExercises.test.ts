@@ -4,10 +4,15 @@ import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "../../i18n/LocaleContext";
 import { ScriptProvider } from "../../settings/ScriptContext";
+import type { AssembledToken } from "../../romaji/types";
 import { ProgressProvider } from "../progress/ProgressContext";
 import { en as enCopy } from "../i18n/en";
 import { it as itCopy } from "../i18n/it";
-import { getLessonExercises } from "./lessonExerciseModel";
+import {
+  exampleTokens,
+  getLessonExercises,
+  segmentToken,
+} from "./lessonExerciseModel";
 import type { GeneratedExercise } from "./lessonExerciseModel";
 import { ExerciseView } from "./ExerciseView";
 import type { ExerciseViewHandlers } from "./ExerciseView";
@@ -20,6 +25,41 @@ import {
   submitExercise,
 } from "./exerciseState";
 import type { ExercisePrompt } from "../exercises/types";
+
+/** Strip HTML tags so assertions read the actual visible/announced text
+ * content in document order, independent of internal gear/mark wrappers. */
+function textOnly(html: string): string {
+  return html.replace(/<[^>]+>/g, "");
+}
+
+/**
+ * The placed-tile answer's romaji sequence read in document order: every run
+ * separator (rendered outside each tile's glyph/control wrapper) plus every
+ * tile's own isolated secondary-romaji glyph text, concatenated — proving the
+ * ordered placed answer reads as one real semantic sequence, not per-tile
+ * fragments with no boundary information.
+ */
+function placedRomajiSequence(html: string): string {
+  const answer = html.match(/<ol class="lesson-exercise__answer"[\s\S]*?<\/ol>/)?.[0] ?? "";
+  return [
+    ...answer.matchAll(
+      /class="lesson-exercise__(?:run-separator|glyph-secondary)"[^>]*>([^<]*)</g,
+    ),
+  ]
+    .map((match) => match[1])
+    .join("");
+}
+
+/** The glyph-secondary text immediately following a given button id — used to
+ * check an isolated bank tile's own romaji, independent of its neighbours. */
+function bankTileGlyphSecondary(html: string, buttonId: string): string {
+  const index = html.indexOf(`id="${buttonId}"`);
+  if (index === -1) throw new Error(`button not found: ${buttonId}`);
+  const after = html.slice(index);
+  const match = after.match(/class="lesson-exercise__glyph-secondary"[^>]*>([^<]*)</);
+  if (!match) throw new Error(`no secondary glyph after ${buttonId}`);
+  return match[1];
+}
 
 /**
  * Static accessible-markup contract for the in-lesson practice UI (Slice C plan
@@ -50,10 +90,19 @@ function exerciseOfKind(
   return found;
 }
 
+interface RenderViewOverrides {
+  readonly tokenForTile?: (tileId: string) => AssembledToken | undefined;
+  readonly tokensForExample?: (
+    exampleId: string,
+  ) => readonly AssembledToken[] | undefined;
+  readonly script?: "hiragana" | "romaji";
+}
+
 function renderView(
   exercise: GeneratedExercise,
   state = initExerciseState(exercise.prompt),
   intentText: string | null = null,
+  overrides: RenderViewOverrides = {},
 ): string {
   return renderToStaticMarkup(
     createElement(ExerciseView, {
@@ -62,13 +111,14 @@ function renderView(
       state,
       index: 1,
       total: 4,
-      script: "hiragana",
+      script: overrides.script ?? "hiragana",
       copy: enCopy.exercises,
       instruction: "INSTRUCTION-TEXT",
       intentText,
       idBase: "ex-1",
-      romajiForTile: () => "romaji",
-      romajiForExample: () => "romaji sentence",
+      tokenForTile: overrides.tokenForTile ?? segmentToken,
+      tokensForExample: overrides.tokensForExample ?? exampleTokens,
+      errorText: enCopy.lesson.contentFormattingError,
       handlers: NOOP,
     }),
   );
@@ -306,5 +356,72 @@ describe("choice option correctness is engine-derived, not markup-encoded", () =
     // A later filled attempt uses the input value, from the reducer text.
     const filled = setText(initExerciseState(completeEx.prompt), "テスト");
     expect(renderView(completeEx, filled)).toContain("テスト");
+  });
+});
+
+// ── Semantic romaji rendering (romaji boundaries plan Task 4) ────────────────
+//
+// Every learner-facing romaji surface in this file renders real runtime
+// AssembledTokens through the shared RomajiSequence renderer (master spec
+// §13.2-13.3) — never a hard-coded fragment callback, never a local
+// join/concatenation, never a silent fallback to Japanese when a token
+// cannot be resolved.
+
+describe("ExerciseView — semantic romaji rendering (romaji boundaries plan Task 4)", () => {
+  it("choice: the in-sentence romaji context is fully readable with real spaces around the blank", () => {
+    const html = renderView(choiceEx);
+    expect(textOnly(html)).toContain("watashi ____ gakusei desu");
+  });
+
+  it("completion: the in-sentence romaji context is fully readable with real spaces around the blank", () => {
+    const html = renderView(completeEx);
+    expect(textOnly(html)).toContain("watashi wa gakusei ____");
+  });
+
+  it("transformation: the source romaji is fully readable, never a run-on fragment like tomodachito", () => {
+    const html = renderView(transformEx);
+    expect(textOnly(html)).toContain("kyou tomodachi to eiga o mimasu");
+    expect(textOnly(html)).not.toContain("tomodachito");
+    expect(textOnly(html)).not.toContain("eigao");
+  });
+
+  it("tile ordering: the ordered placed answer emits real semantic separators in the visible sequence", () => {
+    const prompt = tileEx.prompt;
+    if (prompt.kind !== "tile-ordering") throw new Error("kind");
+    let state = initExerciseState(prompt);
+    for (const id of prompt.correctTileIds) state = placeTile(state, id);
+    const html = renderView(tileEx, state);
+    expect(placedRomajiSequence(html)).toBe("watashi wa gakusei desu");
+  });
+
+  it("tile ordering: an isolated bank tile's romaji has no leading whitespace, even mid-sentence", () => {
+    const prompt = tileEx.prompt;
+    if (prompt.kind !== "tile-ordering") throw new Error("kind");
+    const w2 = prompt.tiles.find((t) => t.id.endsWith("#w2"));
+    expect(w2).toBeDefined();
+    const html = renderView(tileEx); // untouched: every tile still sits in the bank.
+    const buttonId = `ex-1-instruction-tile-${w2!.id}-add`;
+    expect(bankTileGlyphSecondary(html, buttonId)).toBe("gakusei");
+  });
+
+  it("choice: no isolated option tile's romaji carries leading whitespace", () => {
+    const html = renderView(choiceEx);
+    const secondaries = [
+      ...html.matchAll(/class="lesson-exercise__glyph-secondary"[^>]*>([^<]*)</g),
+    ].map((match) => match[1]);
+    expect(secondaries.length).toBeGreaterThan(0);
+    for (const secondary of secondaries) {
+      expect(secondary).not.toMatch(/^\s/);
+    }
+  });
+
+  it("invalid token resolution shows the localized formatting error, never a raw/concatenated fallback", () => {
+    const html = renderView(transformEx, undefined, null, {
+      script: "romaji",
+      tokenForTile: () => undefined,
+      tokensForExample: () => undefined,
+    });
+    expect(html).toContain(enCopy.lesson.contentFormattingError);
+    expect(html).toContain('role="alert"');
   });
 });

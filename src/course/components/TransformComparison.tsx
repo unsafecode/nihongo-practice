@@ -1,7 +1,10 @@
 import { Fragment } from "react";
+import type { AssembledToken } from "../../romaji/types";
+import { RomajiSequence } from "../../romaji/RomajiSequence";
 import { useLocale } from "../../i18n/LocaleContext";
 import { useScript } from "../../settings/ScriptContext";
 import { examples } from "../data/examples";
+import { exampleSegmentToAssembledToken } from "../data/romajiTokens";
 import type {
   ExampleSegment,
   StaticExample,
@@ -16,37 +19,66 @@ function segmentKey(segment: ExampleSegment, index: number): string {
   return segment.id ?? String(index);
 }
 
+/** A deliberately invalid sentinel forcing `RomajiSequence`'s error path
+ * (never a silent fallback) when an example's segments cannot resolve to
+ * real assembled tokens. */
+const INVALID_TOKEN: AssembledToken = {
+  id: "",
+  jp: "",
+  romaji: "",
+  kind: "lexical",
+  boundaryBefore: "attach",
+  source: { domain: "catalog", referenceId: "" },
+};
+
+function exampleTokens(example: StaticExample): readonly AssembledToken[] {
+  const segments = example.segments ?? [];
+  if (segments.length === 0) return [INVALID_TOKEN];
+  return segments.map(
+    (segment) => exampleSegmentToAssembledToken(segment) ?? INVALID_TOKEN,
+  );
+}
+
 /**
- * Renders one example's main (script-primary) line, wrapping *only* the
- * declared changed segments in a `<mark>` so the highlight is a semantic text
- * cue on exactly the honest delta (design spec §6.3) and nothing else. The
- * base ("before") card passes an empty `marked` set, so it carries no marks.
- * The `jp` field is rendered through the shared {@link JapaneseSegmentText}
- * so a katakana loanword's first-exposure hiragana reading (spec §7, §8.3)
- * shows as a ruby annotation exactly when the segment carries one; the
- * `romaji` field is unaffected plain text, already derived from that same
- * shared reading upstream in `assembleCourse`.
+ * Renders one example's main (script-primary) line. The `jp` field keeps
+ * rendering each authored segment through the shared
+ * {@link JapaneseSegmentText}, wrapping *only* the declared changed segments
+ * in a `<mark>` so the highlight is a semantic text cue on exactly the
+ * honest delta (design spec §6.3) and nothing else (Japanese never carries
+ * inter-word separators). The `romaji` field renders the *entire* runtime
+ * segment token list through the shared {@link RomajiSequence} (master spec
+ * §13.2-13.3): highlighted token ids come straight from `marked`, and every
+ * run separator is emitted by the shared renderer — never a local join.
  */
 function ScriptLine({
   example,
   field,
   marked,
+  errorText,
 }: {
   example: StaticExample;
   field: ScriptField;
   marked: ReadonlySet<string>;
+  errorText: string;
 }) {
-  if (!example.segments) return <>{example[field]}</>;
+  if (field === "romaji") {
+    return (
+      <RomajiSequence
+        tokens={exampleTokens(example)}
+        highlightedTokenIds={[...marked]}
+        highlightClassName="lesson-comparison__delta-seg"
+        errorText={errorText}
+      />
+    );
+  }
+  if (!example.segments) return <>{example.jp}</>;
   return (
     <>
       {example.segments.map((segment, index) => {
         const key = segmentKey(segment, index);
-        const content =
-          field === "jp" ? (
-            <JapaneseSegmentText jp={segment.jp} reading={segment.reading} />
-          ) : (
-            segment[field]
-          );
+        const content = (
+          <JapaneseSegmentText jp={segment.jp} reading={segment.reading} />
+        );
         return marked.has(key) ? (
           <mark className="lesson-comparison__delta-seg" key={`${key}-${index}`}>
             {content}
@@ -75,6 +107,7 @@ function ComparisonCard({
   const example = examples[exampleId];
   const translation = getCourseCopy(locale).examples[exampleId];
   const reference = getCourseCopy(referenceLocale).examples[exampleId];
+  const errorText = getCourseCopy(locale).lesson.contentFormattingError;
   const mainField: ScriptField = script === "hiragana" ? "jp" : "romaji";
   const subField: ScriptField = script === "hiragana" ? "romaji" : "jp";
 
@@ -89,13 +122,23 @@ function ComparisonCard({
         }`}
         lang={mainField === "jp" ? "ja" : undefined}
       >
-        <ScriptLine example={example} field={mainField} marked={marked} />
+        <ScriptLine
+          example={example}
+          field={mainField}
+          marked={marked}
+          errorText={errorText}
+        />
       </p>
       <p
         className="lesson-comparison__reading"
         lang={subField === "jp" ? "ja" : undefined}
       >
-        <ScriptLine example={example} field={subField} marked={new Set()} />
+        <ScriptLine
+          example={example}
+          field={subField}
+          marked={new Set()}
+          errorText={errorText}
+        />
       </p>
       <p className="lesson-comparison__translation">{translation.translation}</p>
       {showReference ? (

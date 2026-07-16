@@ -5,9 +5,9 @@ import { useScript } from "../../settings/ScriptContext";
 import { getCourseCopy } from "../i18n/catalog";
 import type { GeneratedExercise } from "./lessonExerciseModel";
 import {
-  exampleRomaji,
+  exampleTokens,
   exerciseInstructionCopy,
-  segmentRomaji,
+  segmentToken,
 } from "./lessonExerciseModel";
 import {
   clearAnswer,
@@ -76,8 +76,9 @@ export function Exercise({
       instruction={instruction}
       intentText={intentText}
       idBase={idBase}
-      romajiForTile={segmentRomaji}
-      romajiForExample={exampleRomaji}
+      tokenForTile={segmentToken}
+      tokensForExample={exampleTokens}
+      errorText={getCourseCopy(locale).lesson.contentFormattingError}
       handlers={{
         onPlaceTile: (tileId) => setState((s) => placeTile(s, tileId)),
         onUnplaceTile: (tileId) => setState((s) => unplaceTile(s, tileId)),

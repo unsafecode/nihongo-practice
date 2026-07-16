@@ -1,13 +1,11 @@
-import {
-  Fragment,
-  type ReactNode,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import type { ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { LabSelection } from "../../content/types";
+import { getCourseCopy } from "../../course/i18n/catalog";
 import type { SpeakOptions } from "../../hooks/useSpeech";
-import type { Locale } from "../../i18n/LocaleContext";
+import { useLocale, type Locale } from "../../i18n/LocaleContext";
+import { RomajiSequence } from "../../romaji/RomajiSequence";
+import type { AssembledToken } from "../../romaji/types";
 import type { Script } from "../../settings/ScriptContext";
 import {
   buildJapaneseSentence,
@@ -30,34 +28,71 @@ interface Props {
 
 type ScriptField = "jp" | "romaji";
 
-function PartText({
-  part,
-  field,
-}: {
-  part: JapaneseSentencePart;
-  field: ScriptField;
-}) {
+/**
+ * A deliberately invalid sentinel forcing `RomajiSequence`'s localized error
+ * path (never a silent fallback/concatenation) if a Lab part's token cannot
+ * be located by id — this should not happen with real selections, but any
+ * gap must surface, not silently drop content.
+ */
+const INVALID_TOKEN: AssembledToken = {
+  id: "",
+  jp: "",
+  romaji: "",
+  kind: "lexical",
+  boundaryBefore: "attach",
+  source: { domain: "lab", referenceId: "" },
+};
+
+/**
+ * Renders a single gear (particle/ending) token with its existing
+ * color-coded `<span>` wrapper — the same visual cue in both scripts,
+ * driven by the token's own kind rather than a duplicated rule.
+ */
+function renderGearToken(token: AssembledToken): ReactNode {
+  if (token.kind === "particle") {
+    return <span className="particle">{token.romaji}</span>;
+  }
+  if (token.kind === "morpheme") {
+    return <span className="ending">{token.romaji}</span>;
+  }
+  return token.romaji;
+}
+
+/**
+ * The Japanese script never spaces words: renders the part's own text plus
+ * any particle/ending glyph, color-coded, with no separators — unchanged
+ * from the prior behavior.
+ */
+function JpPartText({ part }: { part: JapaneseSentencePart }) {
   const gear = part.particle ?? part.suffix;
   return (
     <>
-      {part[field]}
-      {gear ? (
-        <>
-          {field === "romaji" ? " " : null}
-          <span className={gear.kind}>{gear[field]}</span>
-        </>
-      ) : null}
+      {part.jp}
+      {gear ? <span className={gear.kind}>{gear.jp}</span> : null}
     </>
   );
 }
 
-function joinSpaced(nodes: ReactNode[]): ReactNode[] {
-  return nodes.map((node, index) => (
-    <Fragment key={index}>
-      {index > 0 ? " " : null}
-      {node}
-    </Fragment>
-  ));
+/**
+ * Extracts a Lab part's own token(s) from the full sentence token list by
+ * id, then re-isolates the first one so it always attaches — required by
+ * `formatRomaji`'s validation for any subset rendered on its own (a chip
+ * is never the full sentence, so its first token's original mid-sentence
+ * boundary would otherwise fail validation or inject a spurious space).
+ */
+function partTokens(
+  part: JapaneseSentencePart,
+  tokens: readonly AssembledToken[],
+): AssembledToken[] {
+  const byId = new Map(tokens.map((token) => [token.id, token] as const));
+  const ids =
+    part.kind === "time"
+      ? ["time"]
+      : part.kind === "verb"
+        ? ["verb-stem", "verb-suffix"]
+        : [`${part.id}-word`, `${part.id}-particle`];
+  const [first, ...rest] = ids.map((id) => byId.get(id) ?? INVALID_TOKEN);
+  return [{ ...first, boundaryBefore: "attach" }, ...rest];
 }
 
 export function Board({
@@ -70,6 +105,8 @@ export function Board({
   speakingKey,
   speak,
 }: Props) {
+  const { locale } = useLocale();
+  const errorText = getCourseCopy(locale).lesson.contentFormattingError;
   const japanese = buildJapaneseSentence(selection);
   const bump = useBump(JSON.stringify(selection));
   const mainField: ScriptField = script === "hiragana" ? "jp" : "romaji";
@@ -77,14 +114,22 @@ export function Board({
   const compatible = vm.naturalness !== "incompatible";
 
   const chips = japanese.parts.map((part) => {
+    const jp = <JpPartText part={part} />;
+    const romaji = (
+      <RomajiSequence
+        tokens={partTokens(part, japanese.tokens)}
+        errorText={errorText}
+        renderToken={renderGearToken}
+      />
+    );
     if (part.kind === "time") {
       return (
         <Chip
           key={part.id}
           kind="time"
           role={vm.ui.lab.when}
-          jp={<PartText part={part} field="jp" />}
-          romaji={<PartText part={part} field="romaji" />}
+          jp={jp}
+          romaji={romaji}
           script={script}
         />
       );
@@ -95,8 +140,8 @@ export function Board({
           key={part.id}
           kind="verb"
           role={vm.ui.lab.verb}
-          jp={<PartText part={part} field="jp" />}
-          romaji={<PartText part={part} field="romaji" />}
+          jp={jp}
+          romaji={romaji}
           script={script}
           bump={bump}
         />
@@ -112,23 +157,29 @@ export function Board({
         key={part.id}
         kind={ROLE_CHIP[part.semanticRole]}
         role={`${slot.copy.prompt} · ${part.particle?.jp ?? ""}`}
-        jp={<PartText part={part} field="jp" />}
-        romaji={<PartText part={part} field="romaji" />}
+        jp={jp}
+        romaji={romaji}
         script={script}
       />
     );
   });
 
-  const mainNodes = joinSpaced(
-    japanese.parts.map((part) => (
-      <PartText part={part} field={mainField} />
-    )),
+  const jpSentence = (
+    <>
+      {japanese.parts.map((part) => (
+        <JpPartText key={part.id} part={part} />
+      ))}
+    </>
   );
-  const subNodes = joinSpaced(
-    japanese.parts.map((part) => (
-      <PartText part={part} field={subField} />
-    )),
+  const romajiSentence = (
+    <RomajiSequence
+      tokens={japanese.tokens}
+      errorText={errorText}
+      renderToken={renderGearToken}
+    />
   );
+  const mainNode = mainField === "jp" ? jpSentence : romajiSentence;
+  const subNode = subField === "jp" ? jpSentence : romajiSentence;
 
   return (
     <div className="board">
@@ -151,13 +202,13 @@ export function Board({
           }`}
           lang={mainField === "jp" ? "ja" : undefined}
         >
-          {mainNodes}
+          {mainNode}
         </div>
         <div
           className={`sentence__sub${subField === "jp" ? " jp" : ""}`}
           lang={subField === "jp" ? "ja" : undefined}
         >
-          {subNodes}
+          {subNode}
         </div>
         <div
           className={`sentence__translation${
