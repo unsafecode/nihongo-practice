@@ -244,9 +244,83 @@ describe("controller unsupported, abort, and reset", () => {
     controller.reset();
     expect(controller.getSnapshot().state.status).toBe("idle");
   });
+
+  it("does not evaluate a processing attempt aborted by its subscriber", async () => {
+    const recognizer = new FakeRecognizer();
+    const evaluate = vi.fn(defaultTranscriptEvaluator.evaluate);
+    const controller = createSpeechRecognitionController({
+      recognizer,
+      evaluator: {
+        normalize: defaultTranscriptEvaluator.normalize,
+        evaluate,
+      },
+    });
+    controller.acknowledgeConsent();
+    const statuses: string[] = [];
+    controller.subscribe(() => {
+      const status = controller.getSnapshot().state.status;
+      statuses.push(status);
+      if (status === "processing") controller.abort();
+    });
+
+    controller.start({ prompt: orderPrompt });
+    recognizer.settleNext({ kind: "transcript", transcript: "みずをのみます" });
+    await flush();
+
+    expect(statuses).toEqual(["listening", "processing", "aborted"]);
+    expect(evaluate).not.toHaveBeenCalled();
+  });
+
+  it("does not evaluate a processing attempt reset by its subscriber", async () => {
+    const recognizer = new FakeRecognizer();
+    const evaluate = vi.fn(defaultTranscriptEvaluator.evaluate);
+    const controller = createSpeechRecognitionController({
+      recognizer,
+      evaluator: {
+        normalize: defaultTranscriptEvaluator.normalize,
+        evaluate,
+      },
+    });
+    controller.acknowledgeConsent();
+    const statuses: string[] = [];
+    controller.subscribe(() => {
+      const status = controller.getSnapshot().state.status;
+      statuses.push(status);
+      if (status === "processing") controller.reset();
+    });
+
+    controller.start({ prompt: orderPrompt });
+    recognizer.settleNext({ kind: "transcript", transcript: "みずをのみます" });
+    await flush();
+
+    expect(statuses).toEqual(["listening", "processing", "idle"]);
+    expect(evaluate).not.toHaveBeenCalled();
+  });
 });
 
 describe("controller subscription surface", () => {
+  it.each([
+    ["matched", "みずをのみます"],
+    ["close", "みずをのみま"],
+    ["retry", "そらをとびます"],
+  ] as const)(
+    "publishes listening, processing, then %s to subscribers",
+    async (terminalStatus, transcript) => {
+      const recognizer = new FakeRecognizer();
+      const controller = await acknowledgedController(recognizer);
+      const statuses: string[] = [];
+      controller.subscribe(() => {
+        statuses.push(controller.getSnapshot().state.status);
+      });
+
+      controller.start({ prompt: orderPrompt });
+      recognizer.settleNext({ kind: "transcript", transcript });
+      await flush();
+
+      expect(statuses).toEqual(["listening", "processing", terminalStatus]);
+    },
+  );
+
   it("notifies subscribers on change and returns a stable snapshot between changes", () => {
     const recognizer = new FakeRecognizer();
     const controller = controllerWith(recognizer);

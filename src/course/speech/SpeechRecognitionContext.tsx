@@ -142,10 +142,23 @@ export function createSpeechRecognitionController(
       attemptId,
       transcript: normalized,
     });
+    if (!transcriptChanged) return;
+    // Let subscribers (and React's external-store bridge) observe processing
+    // before evaluation can publish a terminal result.
+    emit();
+    await Promise.resolve();
+    // A subscriber may abort/reset or start a replacement attempt while the
+    // processing snapshot is visible. Never evaluate for that stale attempt.
+    if (
+      activeAttemptId !== attemptId ||
+      state.status !== "processing" ||
+      state.attemptId !== attemptId
+    ) {
+      return;
+    }
     const evaluation = evaluator.evaluate(normalized, input.prompt);
     activeAttemptId = null;
-    const evaluatedChanged = apply({ type: "evaluated", attemptId, evaluation });
-    if (transcriptChanged || evaluatedChanged) emit();
+    if (apply({ type: "evaluated", attemptId, evaluation })) emit();
   }
 
   function requestConsent(): void {
