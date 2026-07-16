@@ -77,6 +77,8 @@ export interface CourseCopy {
     railLabel: string;
     /** Accessible name for the mobile "jump to a section" control. */
     sectionMenuLabel: string;
+    /** Shared content-formatting fallback when a Japanese example cannot render. */
+    contentFormattingError: string;
     /** Before/after comparison labels and the delta-strip heading (§6.3). */
     comparison: {
       before: string;

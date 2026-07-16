@@ -46,6 +46,7 @@ const enUi = {
     },
     railLabel: "Lesson sections",
     sectionMenuLabel: "Jump to a section",
+    contentFormattingError: "This Japanese example could not be displayed.",
     comparison: {
       before: "Before",
       after: "After",

@@ -81,6 +81,7 @@ describe.each([itCopy, enCopy])("course locale", (copy) => {
     expect(copy.home.missingAnchorBody.trim().length).toBeGreaterThan(0);
     expect(copy.home.lessonsProgress(1, 16).trim().length).toBeGreaterThan(0);
     expect(copy.lesson.modulePosition(1, 8).trim().length).toBeGreaterThan(0);
+    expect(copy.lesson.contentFormattingError.trim().length).toBeGreaterThan(0);
     expect(copy.courseMap.prerequisites([]).trim().length).toBeGreaterThan(0);
     expect(
       copy.courseMap.prerequisites(["Suoni e hiragana"]).trim().length,
@@ -167,5 +168,14 @@ describe("locale parity", () => {
       const enKeys = Object.keys(enCopy[key]).sort();
       expect(itKeys).toEqual(enKeys);
     }
+  });
+
+  it("keeps the shared content-formatting error in both locales", () => {
+    expect(enCopy.lesson.contentFormattingError).toBe(
+      "This Japanese example could not be displayed.",
+    );
+    expect(itCopy.lesson.contentFormattingError).toBe(
+      "Non è stato possibile mostrare questo esempio in giapponese.",
+    );
   });
 });

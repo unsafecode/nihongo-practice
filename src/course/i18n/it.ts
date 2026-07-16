@@ -46,6 +46,8 @@ const itUi = {
     },
     railLabel: "Sezioni della lezione",
     sectionMenuLabel: "Vai a una sezione",
+    contentFormattingError:
+      "Non è stato possibile mostrare questo esempio in giapponese.",
     comparison: {
       before: "Prima",
       after: "Dopo",
