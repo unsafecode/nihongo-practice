@@ -593,7 +593,7 @@ test.describe("Slice C — deterministic exercises", () => {
     assertLocalOnlyNetwork(observers);
   });
 
-  test("keyboard tile ordering builds and accepts the sentence with no pointer drag", async ({
+  test("keyboard tile ordering keeps focus neutral after a wrong first selection", async ({
     page,
   }) => {
     const observers = await setupPageObservers(page);
@@ -602,39 +602,86 @@ test.describe("Slice C — deterministic exercises", () => {
     const card = tileCard(page);
     await expect(card).toHaveCount(1);
 
-    // Start the keyboard flow once; focus must follow the next bank tile after
-    // each Add, so no later step is allowed to re-focus externally.
-    const firstAdd = card
+    const canonicalFirst = card
       .locator(".lesson-exercise__bank button", { hasText: INTRO_TILE_ORDER[0] })
       .first();
+    const wrongFirst = card
+      .locator(".lesson-exercise__bank button", { hasText: INTRO_TILE_ORDER[1] })
+      .first();
+    const canonicalFirstId = await canonicalFirst.getAttribute("id");
+
+    // Choosing a wrong first tile must not reveal the canonical next answer.
+    await wrongFirst.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator(":focus")).not.toHaveAttribute("id", canonicalFirstId);
+
+    // Focus follows the first remaining button in the rendered bank order.
+    const nextRenderedBankTile = card.locator(".lesson-exercise__bank button").first();
+    await expect(page.locator(":focus")).toHaveAttribute(
+      "id",
+      `${await nextRenderedBankTile.getAttribute("id")}`,
+    );
+
+    // Removing the tile keeps the keyboard flow in the bank.
+    const placedWrongTile = card
+      .locator(".lesson-exercise__placed")
+      .filter({ hasText: INTRO_TILE_ORDER[1] })
+      .first();
+    const remove = placedWrongTile.locator(".lesson-exercise__tile-btn").last();
+    await remove.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator(":focus")).toHaveAttribute(
+      "id",
+      `${await card
+        .locator(".lesson-exercise__bank button", { hasText: INTRO_TILE_ORDER[1] })
+        .getAttribute("id")}`,
+    );
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+
+  test("keyboard tile ordering remains solvable through add, reorder, and submit", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, EXERCISE_LESSON_URL);
+
+    const card = tileCard(page);
+    const firstAdd = card.locator(".lesson-exercise__bank button").first();
     await firstAdd.focus();
-    for (const [index, glyph] of INTRO_TILE_ORDER.entries()) {
-      const addButton = card
-        .locator(".lesson-exercise__bank button", { hasText: glyph })
-        .first();
-      if (index > 0) {
-        await expect(page.locator(":focus")).toHaveAttribute(
-          "id",
-          `${await addButton.getAttribute("id")}`,
-        );
-      }
+    for (let index = 0; index < INTRO_TILE_ORDER.length; index += 1) {
       await page.keyboard.press("Enter");
-      if (index < INTRO_TILE_ORDER.length - 1) {
-        const nextAdd = card
-          .locator(".lesson-exercise__bank button", {
-            hasText: INTRO_TILE_ORDER[index + 1],
-          })
-          .first();
-        await expect(page.locator(":focus")).toHaveAttribute(
-          "id",
-          `${await nextAdd.getAttribute("id")}`,
-        );
-      }
     }
 
-    // The answer now holds all four tiles; none remain in the bank.
-    await expect(card.locator(".lesson-exercise__placed")).toHaveCount(4);
-    await expect(card.locator(".lesson-exercise__bank button")).toHaveCount(0);
+    // The final Add has no bank successor, so focus remains on its stable Remove.
+    const lastPlaced = card.locator(".lesson-exercise__placed").last();
+    await expect(page.locator(":focus")).toHaveAttribute(
+      "id",
+      `${await lastPlaced.locator(".lesson-exercise__tile-btn").last().getAttribute("id")}`,
+    );
+
+    // Use only keyboard actions to reorder the rendered-bank sequence into the
+    // taught sentence. Focus must follow the moved tile while it is repositioned.
+    for (let targetIndex = 0; targetIndex < INTRO_TILE_ORDER.length; targetIndex += 1) {
+      const glyph = INTRO_TILE_ORDER[targetIndex];
+      const tile = card.locator(".lesson-exercise__placed").filter({ hasText: glyph }).first();
+      let currentIndex = await tile.evaluate((element) => {
+        const placed = [...element.parentElement!.children];
+        return placed.indexOf(element);
+      });
+      while (currentIndex > targetIndex) {
+        const moveBack = tile.locator(".lesson-exercise__move-back");
+        await moveBack.focus();
+        await page.keyboard.press("Enter");
+        currentIndex -= 1;
+      }
+      while (currentIndex < targetIndex) {
+        const moveForward = tile.locator(".lesson-exercise__move-forward");
+        await moveForward.focus();
+        await page.keyboard.press("Enter");
+        currentIndex += 1;
+      }
+    }
 
     const submit = card.locator("button[type=submit]");
     await submit.focus();
@@ -643,7 +690,6 @@ test.describe("Slice C — deterministic exercises", () => {
     const feedback = card.locator(".lesson-exercise__feedback");
     await expect(feedback).toHaveClass(/lesson-exercise__feedback--accepted/);
     await expect(feedback).toContainText("Corretto");
-    // The result lives in a polite live region that does not steal focus.
     await expect(feedback).toHaveAttribute("aria-live", "polite");
 
     await assertNoRuntimeErrors(page, observers);

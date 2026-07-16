@@ -291,14 +291,9 @@ function TileOrderingBody({
               ref={focus.ref(tile.id, "add")}
               aria-label={copy.addTile(tileLabelText(tile))}
               onClick={(event) => {
-                const nextBankTile = prompt.correctTileIds
-                  .map((candidateId) => prompt.tiles.find((candidate) => candidate.id === candidateId))
-                  .find(
-                    (candidate) =>
-                      candidate !== undefined &&
-                      candidate.id !== tile.id &&
-                      !placedSet.has(candidate.id),
-                  );
+                const nextBankTile = bank.find(
+                  (candidate) => candidate.id !== tile.id,
+                );
                 focus.request(
                   nextBankTile?.id ?? tile.id,
                   nextBankTile ? "add" : "remove",
