@@ -5,8 +5,10 @@ import type {
   CanDo,
   FoundationLessonDefinition,
   LessonPositionRecord,
+  LearningTargetSense,
   PersonRole,
   Referent,
+  SemanticArgumentRole,
   SemanticValue,
   SentenceFamily,
   SentenceVariant,
@@ -77,6 +79,22 @@ function structuralSignature(variant: SentenceVariant): string {
     polarity: variant.form.polarity,
     argumentShape: Object.keys(variant.slotValues).sort(),
   });
+}
+
+/**
+ * Predicate case frames govern lexical particles only. `agent` and `topic`
+ * are discourse-driven, so they must never be required here.
+ */
+const GOVERNED_ARGUMENT_ROLES = new Set<SemanticArgumentRole>([
+  "theme",
+  "location",
+  "time",
+  "companion",
+  "goal",
+]);
+
+function requiresPredicateParticle(role: SemanticArgumentRole): boolean {
+  return GOVERNED_ARGUMENT_ROLES.has(role);
 }
 
 describe("foundation catalogs", () => {
@@ -798,10 +816,10 @@ describe("foundation catalogs", () => {
   });
 
   describe("natural location case frame", () => {
-    it("gives every sense either no particle requirements or full coverage of its non-agent argument roles", () => {
+    it("gives every sense either no particle requirements or full coverage of its governed argument roles", () => {
       for (const sense of foundationCatalogs.learningTargetSenses) {
         const governedRoles = sense.argumentRoles
-          .filter((role) => role !== "agent")
+          .filter(requiresPredicateParticle)
           .slice()
           .sort();
         const particleRoles = Object.keys(sense.argumentParticleByRole).sort();
@@ -811,6 +829,27 @@ describe("foundation catalogs", () => {
             JSON.stringify(particleRoles) === JSON.stringify(governedRoles),
         ).toBe(true);
       }
+    });
+
+    it("treats topic as discourse-driven, not predicate-governed, even beside a governed location role", () => {
+      const topicAndLocationSense: LearningTargetSense = {
+        id: "fixture-test-topic-location",
+        lexemeId: "fixture-test-lexeme",
+        learningUse: "productive",
+        semanticFrameId: "fixture-test-frame",
+        predicate: "live",
+        argumentRoles: ["topic", "location"],
+        argumentParticleByRole: { location: "ni" },
+      };
+
+      expect(requiresPredicateParticle("topic")).toBe(false);
+      expect(requiresPredicateParticle("location")).toBe(true);
+      expect(
+        topicAndLocationSense.argumentRoles.filter(requiresPredicateParticle).sort(),
+      ).toEqual(["location"]);
+      expect(Object.keys(topicAndLocationSense.argumentParticleByRole).sort()).toEqual(
+        ["location"],
+      );
     });
 
     it("assigns location に to live and location で to work in the shared residence-action family", () => {

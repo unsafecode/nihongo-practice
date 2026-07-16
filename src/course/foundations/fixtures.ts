@@ -124,10 +124,11 @@ const referents: readonly Referent[] = freeze([
 // Learning target senses
 // ---------------------------------------------------------------------------
 
-// Every sense below either declares a particle for *every* non-agent
+// Every sense below either declares a particle for *every* predicate-governed
 // argument role in `argumentRoles` (a complete case frame) or leaves
 // `argumentParticleByRole` empty (no predicate-specific case marking is
-// authored yet). `live`/`work` are the motivating case: they share the
+// authored yet). `agent` and `topic` are discourse-driven, so they are never
+// required here. `live`/`work` are the motivating case: they share the
 // `fixture-a1-residence-action` family/rule id, so the family/rule alone
 // cannot distinguish に from で — the distinction lives here, on the sense.
 const learningTargetSenses: readonly LearningTargetSense[] = freeze([

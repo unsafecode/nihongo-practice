@@ -184,13 +184,13 @@ export type SemanticParticleId = "wa" | "o" | "ni" | "de" | "to";
 
 /**
  * Per-role case-particle requirements a predicate sense's frame declares
- * (§16 case-frame extension). Only argument roles the *predicate itself*
- * case-marks belong here: `"agent"` is never a key, because subject/topic
- * marking is chosen by the `DiscourseFrame` (speaker/topic conventions),
- * not by the predicate's own frame. A sense either declares a particle for
- * every one of its non-agent argument roles, or leaves the record empty
- * when no predicate-specific case marking is needed yet — there is no
- * partial declaration.
+ * (§16 case-frame extension). Only predicate-governed argument roles belong
+ * here: `"agent"` and `"topic"` are never keys, because subject/topic marking
+ * is chosen by the `DiscourseFrame` (speaker/topic conventions), not by the
+ * predicate's own frame. A sense either declares a particle for every one of
+ * its governed argument roles, or leaves the record empty when no
+ * predicate-specific case marking is needed yet — there is no partial
+ * declaration.
  */
 export type ArgumentParticleByRole = Readonly<
   Partial<Record<SemanticArgumentRole, SemanticParticleId>>
