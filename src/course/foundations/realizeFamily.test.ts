@@ -360,6 +360,56 @@ describe("realizeVariant", () => {
 
       expect(result.ok).toBe(true);
     });
+
+    it("fails closed with invalid-argument-structure when a theme-governing sense is realized through a themeless (non-governed-theme) rule", () => {
+      // Forward direction of the same invariant as the test above: a sense
+      // that *requires* a governed theme (e.g. `study`) must never be
+      // silently realized by a family/rule whose `object` slot is not
+      // `governed-theme` — that would drop a required argument without ever
+      // surfacing an error. `fixture-a1-topic-copular`'s object slot is
+      // `copular-complement`, so pairing it with the theme-governing `study`
+      // sense must fail closed instead of silently realizing a copular
+      // sentence that drops `study`'s required theme.
+      const family = fixtureFamily("fixture-a1-topic-copular"); // objectRole: "copular-complement"
+      const base = fixtureVariant("fixture-a1-yuki-student-meeting");
+      const studySense = catalogs.learningTargetSenses.find(
+        (candidate) => candidate.id === "fixture-a1-sense-study",
+      ) as LearningTargetSense;
+      expect(studySense.argumentRoles).toContain("theme");
+      const studyValue = catalogs.semanticValues.find(
+        (value) => value.id === "fixture-a1-value-study",
+      ) as SemanticValue;
+
+      const variant: SentenceVariant = withFixtureOverride(base, {
+        id: "test-theme-in-themeless-rule",
+        slotValues: { ...base.slotValues, predicate: studyValue.id },
+      });
+
+      const result = realizeVariant(family, variant, catalogs, {
+        availableConceptIds: a1ConceptIds,
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expectSingleError(result.errors, "invalid-argument-structure");
+      expect(result.errors[0]?.slotId).toBe("object");
+      expect(result.errors[0]?.referenceId).toBe("theme");
+    });
+
+    it("realizes successfully when the same theme-governing sense is realized through its governed-theme rule", () => {
+      // Same `study` sense as above, this time correctly paired with
+      // `fixture-a1-object-action` (objectRole: "governed-theme", with an
+      // `object` slot) — proving the forward check only rejects the
+      // themeless pairing, not the sense itself.
+      const family = fixtureFamily("fixture-a1-object-action"); // objectRole: "governed-theme"
+      const variant = fixtureVariant("fixture-a1-yuki-study-japanese");
+
+      const result = realizeVariant(family, variant, catalogs, {
+        availableConceptIds: a1ConceptIds,
+      });
+
+      expect(result.ok).toBe(true);
+    });
   });
 
   describe("full fixture coverage", () => {
@@ -633,6 +683,69 @@ describe("realizeVariant", () => {
         predicateSenseId,
         "fixture-a2-sense-eat",
       ]);
+    });
+
+    it("fails closed with unknown-sense when a non-predicate subject value's sense id does not resolve, and never reaches usedLexemeSenseIds", () => {
+      // Generic slot-senseId validation is not hardcoded to the predicate
+      // slot: a subject value carrying an unresolvable senseId must fail
+      // closed exactly like an unresolvable predicate sense, before the
+      // realizer ever reaches assembly (so the bad id can never surface in
+      // a successful `usedLexemeSenseIds`).
+      const family = fixtureFamily("fixture-a1-object-action");
+      const base = fixtureVariant("fixture-a1-yuki-study-japanese");
+      const brokenSubjectValue: SemanticValue = withFixtureOverride(
+        catalogs.semanticValues.find(
+          (value) => value.id === "fixture-value-yuki",
+        ) as SemanticValue,
+        { id: "test-subject-unknown-sense", senseId: "no-such-sense-subject" },
+      );
+      const brokenCatalogs: RealizeVariantCatalogs = {
+        ...catalogs,
+        semanticValues: [...catalogs.semanticValues, brokenSubjectValue],
+      };
+      const variant: SentenceVariant = withFixtureOverride(base, {
+        id: "test-subject-unknown-sense-variant",
+        slotValues: { ...base.slotValues, subject: brokenSubjectValue.id },
+      });
+
+      const result = realizeVariant(family, variant, brokenCatalogs, {
+        availableConceptIds: a1ConceptIds,
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expectSingleError(result.errors, "unknown-sense");
+      expect(result.errors[0]?.slotId).toBe("subject");
+      expect(result.errors[0]?.referenceId).toBe("no-such-sense-subject");
+    });
+
+    it("fails closed with unknown-sense when a non-predicate object value's sense id does not resolve", () => {
+      const family = fixtureFamily("fixture-a1-object-action");
+      const base = fixtureVariant("fixture-a1-yuki-study-japanese");
+      const brokenObjectValue: SemanticValue = withFixtureOverride(
+        catalogs.semanticValues.find(
+          (value) => value.id === "fixture-a1-value-object-japanese",
+        ) as SemanticValue,
+        { id: "test-object-unknown-sense", senseId: "no-such-sense-object" },
+      );
+      const brokenCatalogs: RealizeVariantCatalogs = {
+        ...catalogs,
+        semanticValues: [...catalogs.semanticValues, brokenObjectValue],
+      };
+      const variant: SentenceVariant = withFixtureOverride(base, {
+        id: "test-object-unknown-sense-variant",
+        slotValues: { ...base.slotValues, object: brokenObjectValue.id },
+      });
+
+      const result = realizeVariant(family, variant, brokenCatalogs, {
+        availableConceptIds: a1ConceptIds,
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expectSingleError(result.errors, "unknown-sense");
+      expect(result.errors[0]?.slotId).toBe("object");
+      expect(result.errors[0]?.referenceId).toBe("no-such-sense-object");
     });
   });
 

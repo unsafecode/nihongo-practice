@@ -491,6 +491,28 @@ export function realizeVariant(
     }
   }
 
+  // 9b. every resolved slot value's senseId — predicate or non-predicate —
+  // must resolve in `learningTargetSenses`, in deterministic family
+  // slot-schema order (the `resolvedSlotValues` map was populated in that
+  // same order at step 7, so a `for...of` over it iterates schema order).
+  // Any slot kind may carry a senseId; this is not hardcoded to the
+  // predicate slot. An unresolvable non-predicate senseId (e.g. an
+  // object/location/time value pointing at a nonexistent sense) fails
+  // closed here as `unknown-sense`, exactly like an unresolvable predicate
+  // sense, and — because the realizer returns before ever reaching
+  // assembly — it can never surface in a successful `usedLexemeSenseIds`.
+  // Predicate-specific frame checks (step 11) run only after every slot's
+  // sense reference is confirmed known-good here.
+  const senseIdErrors: Omit<FamilyRealizationError, "familyId" | "variantId">[] = [];
+  for (const [slotId, value] of resolvedSlotValues) {
+    if (value.senseId && !findById(catalogs.learningTargetSenses, value.senseId)) {
+      senseIdErrors.push({ code: "unknown-sense", slotId, referenceId: value.senseId });
+    }
+  }
+  if (senseIdErrors.length > 0) {
+    return fail(senseIdErrors);
+  }
+
   // 10. resolve predicate sense.
   const predicateSlotDef = family.slotSchema.find((slot) => slot.id === "predicate");
   const predicateValue = predicateSlotDef ? resolvedSlotValues.get("predicate") : undefined;
@@ -546,6 +568,27 @@ export function realizeVariant(
     // "copular-complement" object never requires it; `null` means the rule
     // has no object slot to license at all.
     if (rule.objectRole === "governed-theme" && !sense.argumentRoles.includes("theme")) {
+      const objectSlot = slotByValueKind(family, "object");
+      frameErrors.push({
+        code: "invalid-argument-structure",
+        slotId: objectSlot?.id ?? "object",
+        referenceId: "theme",
+      });
+    }
+    // Forward direction of the same invariant: `argumentRoles` is the
+    // sense's *required* semantic frame, so a sense that declares `theme`
+    // must never be realized through a rule/family that would silently
+    // drop it — the selected rule must both be `"governed-theme"` and
+    // actually have an `object` slot to carry it. `be`'s `topic` role is
+    // deliberately not part of this check (`topic` is discourse-driven, not
+    // a governed argument, and `topic-copular`'s `object` slot rightly stays
+    // `copular-complement`); `companion` likewise stays discourse/addressee
+    // metadata rather than a slot unless a future rule declares one (see
+    // the `companion` skip above) and is never checked here either.
+    if (
+      sense.argumentRoles.includes("theme") &&
+      (rule.objectRole !== "governed-theme" || !slotByValueKind(family, "object"))
+    ) {
       const objectSlot = slotByValueKind(family, "object");
       frameErrors.push({
         code: "invalid-argument-structure",
