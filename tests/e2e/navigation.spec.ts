@@ -1100,6 +1100,13 @@ test.describe("semantic romaji boundaries (Phase 0 Task 5)", () => {
     }
     expect(glyphs.join(" ")).toBe("watashi no namae wa yuki desu");
 
+    const sentenceSeparators = await page.locator(".spoken-attempt__sentence").evaluate((el) =>
+      Array.from(el.childNodes)
+        .filter((node) => node.nodeType === Node.TEXT_NODE)
+        .map((node) => node.textContent),
+    );
+    expect(sentenceSeparators).toEqual([" ", " ", " ", " ", " "]);
+
     await assertNoHorizontalOverflow(page);
     await assertNoRuntimeErrors(page, observers);
     assertLocalOnlyNetwork(observers);
