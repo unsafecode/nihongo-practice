@@ -10,6 +10,8 @@ import {
   contrastRatio,
   gotoReady,
   headerBottom,
+  installSpeechFake,
+  queueSpeechOutcome,
   rectOf,
   REPRESENTATIVE_LESSON,
   resolveColors,
@@ -848,6 +850,107 @@ test.describe("Slice C exercise + review surfaces", () => {
     expect(smallReviewTargets, JSON.stringify(smallReviewTargets)).toEqual([]);
 
     await assertNoHorizontalOverflow(page);
+    await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
+  });
+});
+
+/**
+ * Slice D Task 4 — reviewed speech-block baselines. Two reviewed states of the
+ * optional spoken attempt, captured as element screenshots so the reviewer can
+ * judge hierarchy, target-Japanese legibility, privacy clarity, state clarity,
+ * focus/touch ergonomics, and dead space without the rest of the long lesson.
+ *
+ * The states are driven entirely through the injected fake recognizer (the same
+ * public contract production ships), never a microphone or real engine, so the
+ * strict no-external-network guard holds with no speech/vendor allowlist. Across
+ * the set both locales and both scripts appear: the consent state is captured in
+ * the default Italian + hiragana, and the matched result in English + rōmaji.
+ */
+const SPEECH_VISUAL_LESSON_URL = routeUrls.lesson("introductions", "introductions-1");
+const SPEECH_VISUAL_TARGET = "わたしのなまえはゆきです";
+
+/** During a focused component capture, drop the sticky app chrome to `static` so
+ * the header and the mobile section rail cannot float over the block's heading.
+ * This changes no document flow (sticky already occupies its flow position), so
+ * the block's own layout is untouched — it only removes the scroll overlay. */
+const NEUTRALIZE_STICKY_CHROME =
+  ".header, .lesson-rail-mobile, .catnav { position: static !important; }";
+
+function speechIsMobile(width: number): boolean {
+  return width < 700;
+}
+
+test.describe("speech block reviewed baselines (Slice D Task 4)", () => {
+  test("consent privacy notice — Italian, hiragana", async ({ page }) => {
+    const observers = await setupPageObservers(page);
+    await installSpeechFake(page);
+    await gotoReady(page, SPEECH_VISUAL_LESSON_URL);
+
+    const block = page.locator(".spoken-attempt");
+    await expect(block).toBeVisible();
+    // Reveal the explicit privacy disclosure that always precedes the mic.
+    await block.getByRole("button", { name: "Prova a parlare", exact: true }).click();
+    await expect(block.locator(".spoken-attempt__consent")).toBeVisible();
+    await block.scrollIntoViewIfNeeded();
+    await page.evaluate(
+      () => new Promise<void>((r) => requestAnimationFrame(() => r())),
+    );
+
+    await page.addStyleTag({ content: NEUTRALIZE_STICKY_CHROME });
+    await expect(block).toHaveScreenshot("lesson-speech-consent.png");
+
+    await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
+  });
+
+  test("matched result — English, rōmaji", async ({ page, viewport }) => {
+    const observers = await setupPageObservers(page);
+    await installSpeechFake(page);
+    await gotoReady(page, SPEECH_VISUAL_LESSON_URL);
+
+    const block = page.locator(".spoken-attempt");
+    await expect(block).toBeVisible();
+
+    // Switch to English + rōmaji through the one visible settings surface.
+    const mobile = viewport ? speechIsMobile(viewport.width) : false;
+    let settings;
+    if (mobile) {
+      await page.locator(".header__settings-trigger").click();
+      const panel = page.locator(".settings-drawer__panel");
+      await expect(panel).toBeVisible();
+      settings = panel;
+    } else {
+      settings = page.locator(".header__settings--desktop");
+    }
+    await settings.locator(".localetoggle button", { hasText: "EN" }).click();
+    await settings.locator(".scripttoggle button", { hasText: "Rōmaji" }).click();
+    if (mobile) {
+      // Close the drawer so it cannot overlay the element capture.
+      await page.keyboard.press("Escape");
+      await expect(page.locator(".settings-drawer__panel")).toBeHidden();
+    }
+
+    // Consent, then a matched attempt via the injected fake.
+    await block.getByRole("button", { name: "Try speaking", exact: true }).click();
+    await block
+      .getByRole("button", { name: "I understand — enable the microphone", exact: true })
+      .click();
+    await queueSpeechOutcome(page, { kind: "transcript", transcript: SPEECH_VISUAL_TARGET });
+    await block.getByRole("button", { name: "Speak now", exact: true }).click();
+
+    await expect(block.locator(".spoken-attempt__status-text")).toHaveText(
+      "Your browser recognized the sentence.",
+    );
+    await expect(block.locator(".spoken-attempt__segment--matched")).toHaveCount(6);
+    await block.scrollIntoViewIfNeeded();
+    await page.evaluate(
+      () => new Promise<void>((r) => requestAnimationFrame(() => r())),
+    );
+
+    await page.addStyleTag({ content: NEUTRALIZE_STICKY_CHROME });
+    await expect(block).toHaveScreenshot("lesson-speech-result.png");
+
     await assertNoRuntimeErrors(page, observers);
     assertLocalOnlyNetwork(observers);
   });
