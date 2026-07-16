@@ -595,6 +595,10 @@
   font-weight: 800;
   line-height: 1.3;
   white-space: normal;
+  /* Long multi-clause capstone sentences and their unbroken rōmaji
+     transliterations must wrap instead of forcing the single-column card
+     (and the page) wider than the mobile viewport. */
+  overflow-wrap: anywhere;
 }
 
 .lesson-comparison__jp.is-romaji {
@@ -613,6 +617,7 @@
   margin: 0.15rem 0 0;
   color: #c9c4bb;
   font-size: 0.95rem;
+  overflow-wrap: anywhere;
 }
 
 /*
@@ -854,6 +859,7 @@
   font-size: clamp(1.5rem, 9cqi, 2.1rem);
   font-weight: 800;
   line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .guided-board__jp.is-romaji {
@@ -872,6 +878,7 @@
   margin: 0.1rem 0 0;
   color: #c8cbd2;
   font-size: 0.9rem;
+  overflow-wrap: anywhere;
 }
 
 .guided-board__arrow {

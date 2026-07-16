@@ -434,6 +434,21 @@ test.describe("complete A0→A1 course routes (Slice B Task 5)", () => {
       await assertNoRuntimeErrors(page, observers);
     });
   }
+
+  // The capstone lessons carry the course's longest multi-clause sentences, so
+  // their comparison cards and guided boards receive the longest unbroken
+  // rōmaji readings. Those readings must wrap rather than force the page wider
+  // than the viewport (design spec §9.3 — no horizontal overflow at either
+  // reference width, especially the 390px mobile width).
+  for (const capstone of CAPSTONE_ROUTES) {
+    test(`the capstones module's "${capstone.lessonId}" never overflows horizontally`, async ({ page }) => {
+      const observers = await setupPageObservers(page);
+      await gotoReady(page, routeUrls.lesson("capstones", capstone.lessonId));
+      await expect(page.locator(".lesson-layout")).toBeVisible();
+      await assertNoHorizontalOverflow(page);
+      await assertNoRuntimeErrors(page, observers);
+    });
+  }
 });
 
 test.describe("legacy v2.1 lesson id redirects (Slice B Task 5)", () => {
