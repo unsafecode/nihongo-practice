@@ -131,6 +131,13 @@ export function ModuleCard({
 
         <p className="module-card__meta">
           <span>{copy.courseMap.estimatedMinutes(courseModule.estimatedMinutes)}</span>
+          <span>
+            {copy.courseMap.coverageMetadata(
+              courseModule.lessons.length,
+              courseModule.coverage.verbCount,
+              courseModule.coverage.vocabularyCount,
+            )}
+          </span>
           <span>{progressLabel}</span>
         </p>
 

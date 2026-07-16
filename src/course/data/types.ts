@@ -350,6 +350,11 @@ export interface CourseModule {
   /** Copy-catalog keys describing what the module's lessons add up to. */
   outcomeCopyIds: string[];
   estimatedMinutes: number;
+  /** Truthful authored coverage; Slice A uses zero until Slice B catalogs it. */
+  coverage: {
+    verbCount: number;
+    vocabularyCount: number;
+  };
   iconId: SemanticIconId;
   lessons: Lesson[];
 }

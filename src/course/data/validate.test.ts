@@ -111,6 +111,7 @@ function makeModule(overrides: Partial<CourseModule> = {}): CourseModule {
     prerequisiteIds: [],
     outcomeCopyIds: ["module-a"],
     estimatedMinutes: lessons.reduce((sum, l) => sum + l.estimatedMinutes, 0),
+    coverage: { verbCount: 0, vocabularyCount: 0 },
     iconId: semanticIconIds[0],
     lessons,
     ...overrides,
@@ -481,10 +482,10 @@ describe("validateCourse (synthetic fixtures)", () => {
 });
 
 describe("course data invariants (real data)", () => {
-  it("contains 8 modules and 16 lessons", () => {
-    expect(courseModules).toHaveLength(8);
+  it("contains 12 modules and 40 lessons", () => {
+    expect(courseModules).toHaveLength(12);
     expect(courseModules.flatMap((courseModule) => courseModule.lessons)).toHaveLength(
-      16,
+      40,
     );
   });
 
@@ -492,9 +493,9 @@ describe("course data invariants (real data)", () => {
     expect(validateCourse(courseModules, examples)).toEqual([]);
   });
 
-  it("orders modules 1 through 8", () => {
+  it("orders modules 1 through 12", () => {
     expect(courseModules.map((courseModule) => courseModule.order)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
     ]);
   });
 
@@ -502,8 +503,12 @@ describe("course data invariants (real data)", () => {
     expect(courseModules.map((courseModule) => courseModule.phase)).toEqual([
       "orient",
       "orient",
+      "orient",
       "build",
       "build",
+      "build",
+      "navigate",
+      "navigate",
       "navigate",
       "navigate",
       "navigate",
@@ -511,9 +516,9 @@ describe("course data invariants (real data)", () => {
     ]);
   });
 
-  it("uses variable module sizes, not a fixed two-lessons-per-module shape", () => {
+  it("uses the approved variable module lesson budget", () => {
     expect(courseModules.map((courseModule) => courseModule.lessons.length)).toEqual([
-      2, 2, 2, 2, 2, 2, 3, 1,
+      5, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 4,
     ]);
   });
 
@@ -549,51 +554,43 @@ describe("course data invariants (real data)", () => {
     }
   });
 
-  it("preserves all 16 existing lesson IDs", () => {
+  it("publishes exactly the approved 40 lesson IDs", () => {
     const lessonIds = courseModules
       .flatMap((courseModule) => courseModule.lessons)
       .map((lesson) => lesson.id)
       .sort();
     expect(lessonIds).toEqual(
       [
-        "actions-masu",
-        "actions-object",
-        "places-action",
-        "places-movement",
-        "people-desire",
-        "people-particles",
-        "sentence-omission",
-        "sentence-order",
-        "sounds-core",
-        "sounds-special",
-        "time-negative",
-        "time-past",
-        "traps-particles",
-        "traps-verbs",
-        "travel-existence",
-        "travel-questions",
+        "sounds-1", "sounds-2", "sounds-3", "sounds-4", "sounds-5",
+        "introductions-1", "introductions-2", "introductions-3",
+        "essential-questions-1", "essential-questions-2", "essential-questions-3",
+        "actions-1", "actions-2", "actions-3",
+        "routines-1", "routines-2", "routines-3",
+        "past-negative-1", "past-negative-2", "past-negative-3",
+        "places-1", "places-2", "places-3", "places-4",
+        "people-1", "people-2", "people-3",
+        "descriptions-1", "descriptions-2", "descriptions-3",
+        "shopping-1", "shopping-2", "shopping-3",
+        "existence-needs-1", "existence-needs-2", "existence-needs-3",
+        "capstones-orientation", "capstones-self-introduction",
+        "capstones-everyday-outing", "capstones-travel-day",
       ].sort(),
     );
   });
 
-  it("moves traps-particles into the questions/existence module and keeps traps-verbs as the sole capstone lesson", () => {
-    const trapsParticles = courseModules
-      .flatMap((courseModule) => courseModule.lessons)
-      .find((lesson) => lesson.id === "traps-particles");
-    const trapsVerbs = courseModules
-      .flatMap((courseModule) => courseModule.lessons)
-      .find((lesson) => lesson.id === "traps-verbs");
-    expect(trapsParticles).toBeDefined();
-    expect(trapsVerbs).toBeDefined();
-    const trapsParticlesModule = courseModules.find(
-      (courseModule) => courseModule.id === trapsParticles!.moduleId,
-    )!;
-    const trapsVerbsModule = courseModules.find(
-      (courseModule) => courseModule.id === trapsVerbs!.moduleId,
-    )!;
-    expect(trapsParticlesModule.order).toBe(7);
-    expect(trapsVerbsModule.order).toBe(8);
-    expect(trapsVerbsModule.lessons).toHaveLength(1);
+  it("makes module 12 the synthesis capstones module: one orientation plus three capstone lessons", () => {
+    const capstones = courseModules.find(
+      (courseModule) => courseModule.id === "capstones",
+    );
+    expect(capstones).toBeDefined();
+    expect(capstones!.order).toBe(12);
+    expect(capstones!.phase).toBe("synthesize");
+    expect(capstones!.lessons.map((lesson) => lesson.id)).toEqual([
+      "capstones-orientation",
+      "capstones-self-introduction",
+      "capstones-everyday-outing",
+      "capstones-travel-day",
+    ]);
   });
 
   it("gives every module a valid semantic icon id", () => {

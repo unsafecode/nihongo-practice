@@ -1,4 +1,5 @@
 import type { CourseCopy } from "./types";
+import { assembledCourseCopy } from "../catalog/assembleCourse";
 
 const itUi = {
   home: {
@@ -87,7 +88,102 @@ const itUi = {
     invalidReturn: "Il collegamento di ritorno non è valido: usa la navigazione per tornare alla lezione.",
     invalidReturnTitle: "Ritorno non valido",
   },
-} satisfies Pick<CourseCopy, "home" | "lesson" | "practice">;
+  exercises: {
+    heading: "Esercizi",
+    intro: "Prova questi brevi esercizi. Usano solo ciò che questa lezione ti ha mostrato.",
+    position: (index: number, total: number) => `Esercizio ${index} di ${total}`,
+    submit: "Controlla",
+    clear: "Ripulisci",
+    accepted: "Corretto",
+    retry: "Non ancora: riprova.",
+    invalid: "Inserisci una risposta prima di controllare.",
+    answerLabel: "La tua risposta, in giapponese",
+    answerPlaceholder: "Scrivi in giapponese…",
+    sourceLabel: "Frase di partenza",
+    intentLabel: "Significato",
+    optionsLabel: "Scegli una",
+    bankLabel: "Tessere disponibili",
+    answerAreaLabel: "La tua frase",
+    answerEmpty: "Aggiungi le tessere per comporre la frase.",
+    addTile: (tile: string) => `Aggiungi ${tile}`,
+    removeTile: (tile: string) => `Rimuovi ${tile}`,
+    moveTileBack: (tile: string) => `Sposta ${tile} prima`,
+    moveTileForward: (tile: string) => `Sposta ${tile} dopo`,
+    blank: "____",
+    statusLabel: "Stato della lezione",
+    statusVisited: "Aperta",
+    statusPracticed: "Esercitata",
+    statusConsolidated: "Consolidata",
+    unavailableTitle: "Esercizi non disponibili",
+    unavailableBody:
+      "Non è stato possibile preparare gli esercizi di questa lezione. Puoi comunque leggere la lezione e usare il resto del percorso.",
+  },
+  review: {
+    title: "Da ripassare",
+    lead: "Gli esercizi sbagliati tornano qui così puoi rifarli.",
+    empty: "Non c'è niente da ripassare. Gli esercizi sbagliati compariranno qui.",
+    count: (n: number) => (n === 1 ? "1 da ripassare" : `${n} da ripassare`),
+    fromLesson: (lessonTitle: string) => `Da: ${lessonTitle}`,
+    mistakes: (n: number) => (n === 1 ? "1 errore" : `${n} errori`),
+    practice: "Ripassa ora",
+    openLesson: "Apri la lezione",
+    resolved: "Ripassato: rimosso dalla tua lista.",
+    orphaned: (n: number) =>
+      n === 1
+        ? "1 elemento salvato da ripassare è di una versione precedente ed è stato messo da parte."
+        : `${n} elementi salvati da ripassare sono di una versione precedente e sono stati messi da parte.`,
+    unresolvable: (n: number) =>
+      n === 1
+        ? "1 elemento di ripasso creato dal corso non può essere mostrato ora perché il suo esercizio non è più disponibile."
+        : `${n} elementi di ripasso creati dal corso non possono essere mostrati ora perché i loro esercizi non sono più disponibili.`,
+    unavailable:
+      "Il browser non sta salvando i progressi in questa sessione, quindi questa lista si azzererà alla chiusura dell'app.",
+  },
+  spokenAttempt: {
+    heading: "Prova a dirla (facoltativo)",
+    intro:
+      "Questo passaggio è facoltativo. Ascolta il modello e ripeti la frase ad alta voce. Ogni lezione funziona del tutto anche senza.",
+    targetLabel: "Frase da dire",
+    meaningLabel: "Significato",
+    listen: "Ascolta il modello",
+    playing: "In riproduzione…",
+    tryButton: "Prova a parlare",
+    consentTitle: "Prima di usare il microfono",
+    consentBody:
+      "Parlare è facoltativo. L'app non salva alcun audio e non conserva il testo riconosciuto. Il browser, il sistema operativo o la sua voce possono elaborare l'audio per trasformarlo in testo. Se non attivi il microfono, tutti gli altri esercizi restano utilizzabili.",
+    consentAcknowledge: "Ho capito, attiva il microfono",
+    consentDismiss: "Non ora",
+    micStart: "Parla ora",
+    micStop: "Interrompi",
+    tryAgain: "Riprova",
+    statusRegionLabel: "Stato della prova parlata",
+    statusListening: "In ascolto…",
+    statusProcessing: "Controllo che cosa ha sentito il browser…",
+    resultMatched: "Il browser ha riconosciuto la frase.",
+    resultClose: "Il browser ha riconosciuto quasi tutta la frase.",
+    resultRetry: "Il browser non ha riconosciuto la frase. Riprova.",
+    errorUnsupported:
+      "Questo browser non trasforma la voce in testo. Puoi comunque ascoltare il modello e ripetere ad alta voce.",
+    errorDenied:
+      "Il microfono è bloccato. Puoi comunque ascoltare il modello e ripetere ad alta voce.",
+    errorNoSpeech:
+      "Il browser non ha sentito nulla. Riprova, oppure ascolta il modello e ripeti ad alta voce.",
+    errorAborted: "La registrazione si è interrotta.",
+    errorNetwork:
+      "Per trasformare la voce in testo serve una connessione e ora il servizio non è raggiungibile. Puoi comunque ascoltare il modello e ripetere ad alta voce.",
+    errorService:
+      "La trasformazione della voce in testo non è disponibile ora. Puoi comunque ascoltare il modello e ripetere ad alta voce.",
+    repeatTitle: "Ascolta e ripeti",
+    repeatBody:
+      "Ascolta il modello e ripeti la frase ad alta voce quando vuoi.",
+    heardLabel: "Il browser ha sentito:",
+    segmentsLabel: "Parola per parola",
+    segmentMatched: "riconosciuta",
+    segmentMissing: "non riconosciuta",
+    criticalLabel: "parola chiave",
+    segmentUnavailable: "Segmento non disponibile",
+  },
+} satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt">;
 
 const itCourseMap: CourseCopy["courseMap"] = {
   heading: "Le fasi del percorso",
@@ -114,6 +210,8 @@ const itCourseMap: CourseCopy["courseMap"] = {
       ? "Nessuno: puoi iniziare da qui."
       : `Idealmente dopo: ${moduleNames.join(", ")}.`,
   estimatedMinutes: (minutes: number) => `Circa ${minutes} min`,
+  coverageMetadata: (lessons, verbs, vocabularyItems) =>
+    `${lessons} lezioni · ${verbs} verbi · ${vocabularyItems} parole`,
   stateCurrent: "Sei qui",
   stateRecommended: "Consigliato",
   stateVisited: "Visitato",
@@ -124,421 +222,12 @@ const itCourseMap: CourseCopy["courseMap"] = {
     "Puoi rivedere qualunque lezione quando vuoi: non c'è un traguardo finale da raggiungere.",
 };
 
-const itModules: CourseCopy["modules"] = {
-  sounds: { title: "Suoni e hiragana" },
-  "sentence-map": { title: "La mappa della frase" },
-  actions: { title: "Azioni e oggetti" },
-  time: { title: "Quando succede?" },
-  places: { title: "Luoghi e movimento" },
-  people: { title: "Persone, desideri e inviti" },
-  "questions-existence": { title: "Domande ed esistenza" },
-  capstone: { title: "Sintesi: una giornata in viaggio" },
-};
-
-const itOutcomes: CourseCopy["outcomes"] = {
-  sounds: "Leggi e ascolta i segni che userai in tutto il percorso.",
-  "sentence-map": "Riconosci il tema con は e chiudi la frase con です.",
-  actions: "Collega l'oggetto al verbo con を e chiedi qualcosa con ください.",
-  time: "Cambia tempo e passa dall'affermativo al negativo senza perdere la struttura.",
-  places: "Distingui dove agisci con で e dove vai con に e へ.",
-  people: "Collega persone con と e に, esprimi desideri e fai proposte.",
-  "questions-existence":
-    "Fai domande con か e di' che qualcosa o qualcuno c'è con あります・います.",
-  capstone:
-    "Ricombina ordinare, muoverti, persone, desideri, domande ed esistenza in una giornata in viaggio.",
-};
-
-const itLessons: CourseCopy["lessons"] = {
-  "sounds-core": { title: "I cinque suoni di base" },
-  "sounds-special": { title: "Piccoli segni, grandi differenze" },
-  "sentence-order": { title: "Questo è… (これは…です)" },
-  "sentence-omission": { title: "Di chi stiamo parlando?" },
-  "actions-object": { title: "Che cosa riceve l'azione?" },
-  "actions-masu": { title: "Chiedere con ください" },
-  "time-past": { title: "Oggi o ieri?" },
-  "time-negative": { title: "Quando non succede" },
-  "places-action": { title: "Dove avviene?" },
-  "places-movement": { title: "Dove vai? に e へ" },
-  "people-particles": { title: "Con chi fai qualcosa?" },
-  "people-desire": { title: "Voglio… Facciamo…?" },
-  "travel-questions": { title: "Chiedere con cortesia" },
-  "travel-existence": { title: "C'è qualcosa o qualcuno?" },
-  "traps-particles": { title: "C'è? Chiedere con か" },
-  "traps-verbs": { title: "Una giornata in viaggio" },
-};
-
-const itObjectives: CourseCopy["objectives"] = {
-  "sounds-core": "Parti dalle vocali: restano riconoscibili in ogni riga.",
-  "sounds-special": "っ e le vocali lunghe cambiano ritmo e significato.",
-  "sentence-order": "これは introduce il tema con は; です chiude la frase nominale.",
-  "sentence-omission": "は introduce il tema; ciò che è ovvio può sparire.",
-  "actions-object": "を viene dopo l'oggetto diretto.",
-  "actions-masu": "ください trasforma la frase in una richiesta cortese.",
-  "time-past": "ます è non-passato; ました indica che l'azione è conclusa.",
-  "time-negative": "ません e ませんでした negano senza cambiare la base.",
-  "places-action": "で marca il luogo in cui si svolge l'azione.",
-  "places-movement":
-    "に segna la meta verso cui ti muovi; へ indica la stessa direzione.",
-  "people-particles": "に segna la persona che incontri; と segna con chi lo fai.",
-  "people-desire":
-    "たいです esprime un desiderio; ましょう propone («facciamo…»), ましょうか offre o chiede in modo tentativo («facciamo…? / vuoi che…?»).",
-  "travel-questions": "か alla fine trasforma un'affermazione in domanda cortese.",
-  "travel-existence": "あります si usa per cose; います per persone e animali.",
-  "traps-particles":
-    "Chiedi se una cosa (あります) o una persona (います) c'è terminando con か.",
-  "traps-verbs":
-    "Ricombina ordinare, muoverti, persone, desideri, domande ed esistenza in una giornata in viaggio.",
-};
-
-const itBlocks: CourseCopy["blocks"] = {
-  "sounds-core-rule": {
-    title: "Cinque vocali stabili",
-    body: "Ogni riga combina una consonante con a・i・u・e・o.",
-  },
-  "sounds-core-comparison": {
-    title: "Da vocale a sillaba",
-    body: "Metti una consonante davanti alla vocale: あ diventa か.",
-  },
-  "sounds-core-explore": {
-    title: "Esplora segni e suoni nel Sillabario",
-    body: "Percorri i 46 segni di base e ascolta come cambiano con dakuten e handakuten.",
-  },
-  "sounds-core-recap": {
-    title: "In sintesi",
-    bullets: ["Ogni segno ha un ritmo breve", "Il rōmaji è un aiuto temporaneo", "Ascolta e ripeti"],
-  },
-  "sounds-special-rule": {
-    title: "Il ritmo è scritto",
-    body: "っ crea una pausa e raddoppia; una vocale lunga dura due tempi.",
-  },
-  "sounds-special-comparison": {
-    title: "きて o きって?",
-    body: "Il piccolo っ inserisce una pausa che cambia la parola.",
-  },
-  "sounds-special-explore": {
-    title: "Cerca っ e i segni piccoli nel Sillabario",
-    body: "Apri le sezioni speciali e confronta segni normali e piccoli.",
-  },
-  "sounds-special-recap": {
-    title: "In sintesi",
-    bullets: ["っ non si pronuncia da solo", "Una vocale lunga dura due battiti", "ん è una mora autonoma"],
-  },
-  "sentence-order-rule": {
-    title: "Tema + は + です",
-    body: "これは segna il tema; です chiude la frase in modo cortese. Si scrive tutto unito: これはみずです.",
-  },
-  "sentence-order-comparison": {
-    title: "Aggiungi il tema",
-    body: "Da みずです a これはみずです: これは dice di che cosa parli.",
-  },
-  "sentence-order-explore": {
-    title: "Aggiungi これは davanti",
-    body: "Confronta la frase con e senza これは davanti.",
-  },
-  "sentence-order-recap": {
-    title: "In sintesi",
-    bullets: ["これは introduce il tema con は", "です rende cortese la frase nominale", "これはみずです si scrive senza spazi"],
-  },
-  "sentence-omission-rule": {
-    title: "Ciò che è ovvio può sparire",
-    body: "Se il contesto è chiaro, io, tu o lui/lei spesso non vengono detti.",
-  },
-  "sentence-omission-comparison": {
-    title: "Con e senza tema",
-    body: "わたしは può cadere quando il contesto è chiaro: resta りっちです.",
-  },
-  "sentence-omission-explore": {
-    title: "Togli il tema esplicito",
-    body: "Parti da わたしは…, poi osserva la frase senza tema.",
-  },
-  "sentence-omission-recap": {
-    title: "In sintesi",
-    bullets: ["は indica il tema", "です rende cortese la frase nominale", "Non aggiungere sempre わたし"],
-  },
-  "actions-object-rule": {
-    title: "Nome + を + verbo",
-    body: "を etichetta ciò su cui agisce il verbo.",
-  },
-  "actions-object-comparison": {
-    title: "Aggiungi l'oggetto",
-    body: "Da たべます a ラーメンをたべます: ラーメンを precede il verbo.",
-  },
-  "actions-object-explore": {
-    title: "Collega un oggetto al verbo",
-    body: "Parti da たべます e aggiungi ラーメンを davanti.",
-  },
-  "actions-object-recap": {
-    title: "In sintesi",
-    bullets: ["を segue l'oggetto", "を si pronuncia o", "Il verbo resta in fondo"],
-  },
-  "actions-masu-rule": {
-    title: "Oggetto + を + ください",
-    body: "ください chiede qualcosa con cortesia: ラーメンをください.",
-  },
-  "actions-masu-comparison": {
-    title: "Mangiare o ordinare?",
-    body: "Da ラーメンをたべます a ラーメンをください: ください fa la richiesta.",
-  },
-  "actions-masu-explore": {
-    title: "Trasforma in richiesta",
-    body: "Parti da みず e aggiungi をください per chiedere: みずをください.",
-  },
-  "actions-masu-recap": {
-    title: "In sintesi",
-    bullets: ["ください = richiesta cortese", "を marca ciò che chiedi", "Utile per ordinare in viaggio"],
-  },
-  "time-past-rule": {
-    title: "ます → ました",
-    body: "La base non cambia; ました indica azione conclusa.",
-  },
-  "time-past-comparison": {
-    title: "Non-passato o passato?",
-    body: "たべます diventa たべました quando l'azione è conclusa.",
-  },
-  "time-past-explore": {
-    title: "Trasforma il tempo sulla lavagna",
-    body: "Nel Laboratorio, passa da ます a ました e osserva la coda.",
-  },
-  "time-past-recap": {
-    title: "In sintesi",
-    bullets: ["ます è non-passato", "ました è passato", "Il futuro si deduce dal contesto e dalle parole di tempo"],
-  },
-  "time-negative-rule": {
-    title: "ません e ませんでした",
-    body: "La negazione vive nella desinenza.",
-  },
-  "time-negative-comparison": {
-    title: "Affermo o nego?",
-    body: "たべます diventa たべません senza toccare la base.",
-  },
-  "time-negative-explore": {
-    title: "Accendi e spegni l'azione",
-    body: "Nel Laboratorio, confronta affermativo e negativo.",
-  },
-  "time-negative-recap": {
-    title: "In sintesi",
-    bullets: ["ません nega il non-passato", "ませんでした nega il passato", "La base resta riconoscibile"],
-  },
-  "places-action-rule": {
-    title: "Luogo + で",
-    body: "で dice dove si svolge l'azione.",
-  },
-  "places-action-comparison": {
-    title: "Aggiungi il luogo",
-    body: "Da “mangio il ramen” a “mangio il ramen al ristorante”: レストランで.",
-  },
-  "places-action-explore": {
-    title: "Aggiungi e togli il luogo",
-    body: "Nel Laboratorio, inserisci un luogo con で e confronta.",
-  },
-  "places-action-recap": {
-    title: "In sintesi",
-    bullets: ["で = luogo dell'azione", "Non usare に per questa funzione", "Il luogo precede l'oggetto"],
-  },
-  "places-movement-rule": {
-    title: "La meta con に — e la sua gemella へ",
-    body: "に segna il luogo verso cui ti muovi: えきにいきます. へ (letto e) indica la stessa direzione: えきへいきます.",
-  },
-  "places-movement-comparison": {
-    title: "Aggiungi la meta",
-    body: "Da いきます a えきにいきます: えきに indica dove vai.",
-  },
-  "places-movement-explore": {
-    title: "Scambia に con へ",
-    body: "Da えきにいきます a えきへいきます: entrambe segnano dove vai; へ è la gemella direzionale di に (si scrive he, si legge e).",
-  },
-  "places-movement-recap": {
-    title: "In sintesi",
-    bullets: [
-      "に segna la meta del movimento: えきにいきます",
-      "へ indica la stessa direzione, si legge e: えきへいきます",
-      "いきます = vado",
-    ],
-  },
-  "people-particles-rule": {
-    title: "に per la persona, と per la compagnia",
-    body: "せんせいにあいます: に segna chi incontri. ともだちと…: と segna con chi.",
-  },
-  "people-particles-comparison": {
-    title: "Aggiungi la compagnia",
-    body: "Da せんせいにあいます a ともだちとせんせいにあいます: ともだちと dice con chi.",
-  },
-  "people-particles-explore": {
-    title: "Aggiungi ともだちと davanti",
-    body: "Parti da せんせいにあいます e aggiungi ともだちと per dire con chi.",
-  },
-  "people-particles-recap": {
-    title: "In sintesi",
-    bullets: ["に segna la persona che incontri", "と segna con chi fai qualcosa", "せんせいにあいます / ともだちとあいます"],
-  },
-  "people-desire-rule": {
-    title: "Base + たいです",
-    body: "たいです esprime il desiderio di fare qualcosa: たべたいです.",
-  },
-  "people-desire-comparison": {
-    title: "Mangio o voglio mangiare?",
-    body: "たべます diventa たべたいです per esprimere il desiderio.",
-  },
-  "people-desire-explore": {
-    title: "Cambia intenzione sulla lavagna",
-    body: "Nel Laboratorio, passa da “mangio” a “voglio mangiare”.",
-  },
-  "people-desire-recap": {
-    title: "In sintesi",
-    bullets: [
-      "たいです = «voglio…»",
-      "いきましょう = proposta («andiamo»)",
-      "いきましょうか = offerta tentativa («andiamo? / vuoi che andiamo?»)",
-    ],
-  },
-  "travel-questions-rule": {
-    title: "か chiude la domanda",
-    body: "か alla fine trasforma un'affermazione in domanda cortese.",
-  },
-  "travel-questions-comparison": {
-    title: "Manca solo か",
-    body: "えきはどこです diventa えきはどこですか aggiungendo か.",
-  },
-  "travel-questions-explore": {
-    title: "Aggiungi か in fondo",
-    body: "Confronta la frase con e senza か finale.",
-  },
-  "travel-questions-recap": {
-    title: "In sintesi",
-    bullets: ["か crea la domanda", "です か = domanda cortese", "Serve spesso in viaggio"],
-  },
-  "travel-existence-rule": {
-    title: "あります per cose; います per esseri animati",
-    body: "Entrambi significano “esserci”, ma la scelta dipende da ciò che esiste.",
-  },
-  "travel-existence-comparison": {
-    title: "Cosa o persona?",
-    body: "トイレがあります (cosa) diventa せんせいがいます (persona).",
-  },
-  "travel-existence-explore": {
-    title: "Scambia cosa e persona",
-    body: "Confronta “c'è un bagno” e “c'è un insegnante”.",
-  },
-  "travel-existence-recap": {
-    title: "In sintesi",
-    bullets: ["cose = あります", "persone/animali = います", "が marca ciò che esiste"],
-  },
-  "traps-particles-rule": {
-    title: "Chiedi se c'è con か",
-    body: "Termina una frase di esistenza con か per fare una domanda sì/no: トイレがありますか?",
-  },
-  "traps-particles-comparison": {
-    title: "Affermazione → domanda",
-    body: "トイレがあります diventa トイレがありますか: か trasforma l'esistenza in una domanda sì/no.",
-  },
-  "traps-particles-explore": {
-    title: "Una cosa o una persona?",
-    body: "Scambia la cosa con una persona: トイレがありますか ↔ せんせいがいますか (あります per le cose, います per le persone).",
-  },
-  "traps-particles-recap": {
-    title: "In sintesi",
-    bullets: [
-      "か alla fine fa una domanda sì/no",
-      "あります chiede di cose, います di persone",
-      "トイレがありますか / せんせいがいますか",
-    ],
-  },
-  "traps-verbs-rule": {
-    title: "Ricombina gli ingranaggi",
-    body: "Nessuna nuova grammatica: metti in fila tempo, compagnia, luogo, oggetto e il verbo del desiderio.",
-  },
-  "traps-verbs-comparison": {
-    title: "Ricombina gli ingranaggi",
-    body: "Da ラーメンをたべます a あしたともだちとレストランでラーメンをたべたいです: entrano in gioco あした (quando), と (con chi), で (dove) e たいです (il desiderio).",
-  },
-  "traps-verbs-explore": {
-    title: "Ripercorri la giornata",
-    body: "Rivivi la giornata scena per scena: ordina al ristorante, va' alla stazione, invita un amico e chiedi se qualcosa c'è.",
-  },
-  "traps-verbs-recap": {
-    title: "In sintesi",
-    bullets: [
-      "Una giornata riusa molti ingranaggi insieme",
-      "ordina → muoviti → invita → chiedi se c'è",
-      "Riusi ciò che sai, senza nuova grammatica",
-    ],
-  },
-};
-
-const itExamples: CourseCopy["examples"] = {
-  vowels: { translation: "a · i · u · e · o" },
-  "k-row": { translation: "ka · ki · ku · ke · ko" },
-  "small-tsu": { translation: "scuola" },
-  "long-vowel": { translation: "oggi" },
-  "sentence-order": { translation: "Oggi mangio il ramen." },
-  "topic-copula": { translation: "Sono Ricchi." },
-  "omitted-subject": { translation: "Sono Ricchi." },
-  "this-water": { translation: "Questa è acqua." },
-  "it-is-water": { translation: "È acqua." },
-  "this-is-water": { translation: "Questa è acqua." },
-  water: { translation: "Acqua." },
-  "order-ramen-eat": { translation: "Mangio il ramen." },
-  "order-ramen-please": { translation: "Un ramen, per favore." },
-  "go-bare": { translation: "Vado." },
-  "meet-teacher": { translation: "Incontro l'insegnante." },
-  "meet-with-friend": { translation: "Incontro l'insegnante con un amico." },
-  "travel-day": { translation: "Domani voglio mangiare il ramen al ristorante con un amico." },
-  "eat-ramen": { translation: "Mangio il ramen." },
-  "drink-water": { translation: "Bevo dell'acqua." },
-  "eat-sushi": { translation: "Mangio il sushi." },
-  "speak-english": { translation: "Parlo inglese." },
-  "today-eat": { translation: "Oggi mangio il ramen." },
-  "tomorrow-eat": { translation: "Domani mangerò il ramen." },
-  "yesterday-ate": { translation: "Ieri ho mangiato il ramen." },
-  "today-not-eat": { translation: "Oggi non mangio il ramen." },
-  "yesterday-not-eat": { translation: "Ieri non ho mangiato il ramen." },
-  "restaurant-eat": { translation: "Mangio il ramen al ristorante." },
-  "home-drink": { translation: "Bevo il tè a casa." },
-  "go-station": { translation: "Vado alla stazione." },
-  "go-by-train": { translation: "Vado in treno." },
-  "board-train": { translation: "Salgo sul treno." },
-  "meet-friend": { translation: "Incontro un amico." },
-  "wait-friend": { translation: "Aspetto un amico." },
-  "want-sushi": { translation: "Voglio mangiare il sushi." },
-  "lets-go": { translation: "Andiamo alla stazione." },
-  "where-station": { translation: "Dov'è la stazione?" },
-  "where-hotel": { translation: "Dov'è l'hotel?" },
-  "where-shop": { translation: "Dov'è il negozio?" },
-  "water-please": { translation: "Dell'acqua, per favore." },
-  "menu-please": { translation: "Il menù, per favore." },
-  "restroom-exists": { translation: "C'è un bagno." },
-  "teacher-exists": { translation: "C'è un insegnante." },
-  "restroom-exists-q": { translation: "C'è un bagno?" },
-  "teacher-exists-q": { translation: "C'è un insegnante?" },
-  "particle-wa": { translation: "Buongiorno." },
-  "particle-e": { translation: "Vado verso la stazione." },
-  "return-godan": { translation: "Torno a casa." },
-  "tomorrow-return": { translation: "Domani tornerò a casa." },
-  "vowel-a": { translation: "a" },
-  "syllable-ka": { translation: "ka" },
-  "kana-kite": { translation: "vieni" },
-  "kana-kitte": { translation: "francobollo" },
-  "eat-dict": { translation: "mangiare" },
-  "eat-masu": { translation: "Mangio." },
-  "today-ate": { translation: "Oggi ho mangiato il ramen." },
-  "station-copula": { translation: "La stazione, dov'è" },
-};
-
-const itJourneyScenes: CourseCopy["journeyScenes"] = {
-  "traps-verbs-journey-order": "1. Ordina al ristorante: chiedi il ramen con ください.",
-  "traps-verbs-journey-move": "2. Esci: di' dove vai con に.",
-  "traps-verbs-journey-invite": "3. Invita un amico con ましょう.",
-  "traps-verbs-journey-ask-exists": "4. Chiedi se qualcosa c'è con か.",
-};
 
 export const it = {
   ...itUi,
   courseMap: itCourseMap,
-  modules: itModules,
-  lessons: itLessons,
-  objectives: itObjectives,
-  outcomes: itOutcomes,
-  blocks: itBlocks,
-  examples: itExamples,
-  journeyScenes: itJourneyScenes,
+  // Module/lesson/objective/outcome/block/example copy is projected from the
+  // shared curriculum copy catalog (spec §9.1): Japanese never enters the
+  // locale files, and IT/EN key parity is guaranteed by a single source.
+  ...assembledCourseCopy.it,
 } satisfies CourseCopy;

@@ -248,7 +248,12 @@
   margin-top: var(--space-2);
 }
 
-.module-card__lessons {
+/* :not([hidden]) keeps this rule's specificity from tying with (and, by
+   source order, beating) the UA `[hidden] { display: none }` default —
+   without it every collapsed module's lesson list rendered anyway despite
+   `hidden`/`aria-expanded="false"`, showing all 40 lesson rows at once
+   instead of only the recommended module's (design spec §13.3). */
+.module-card__lessons:not([hidden]) {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -264,16 +269,17 @@
   justify-content: space-between;
   gap: var(--space-1) var(--space-4);
   min-height: var(--action-target-min);
-  border: 1px solid transparent;
+  border: 1px solid var(--course-line);
   border-radius: 0.65rem;
   padding: var(--space-2) var(--space-3);
+  background: var(--course-surface);
   color: inherit;
   text-decoration: none;
 }
 
 .module-card__lesson-link:hover {
-  border-color: var(--course-line);
-  background: var(--course-surface);
+  border-color: var(--course-teal);
+  background: var(--course-teal-soft);
 }
 
 .module-card__lesson-link:focus-visible {
@@ -589,6 +595,10 @@
   font-weight: 800;
   line-height: 1.3;
   white-space: normal;
+  /* Long multi-clause capstone sentences and their unbroken rōmaji
+     transliterations must wrap instead of forcing the single-column card
+     (and the page) wider than the mobile viewport. */
+  overflow-wrap: anywhere;
 }
 
 .lesson-comparison__jp.is-romaji {
@@ -607,6 +617,24 @@
   margin: 0.15rem 0 0;
   color: #c9c4bb;
   font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * Assisted katakana first exposure (design spec §7, §8.3): the ruby base
+ * stays the authentic katakana word; `rt` carries its shared hiragana
+ * reading in a small, legible size above it. Shared by both the comparison
+ * cards and the guided board so the aid looks identical wherever it renders.
+ */
+.katakana-assist {
+  ruby-position: over;
+}
+
+.katakana-assist__reading {
+  color: inherit;
+  font-size: 0.5em;
+  font-weight: 500;
+  opacity: 0.85;
 }
 
 .lesson-comparison__translation {
@@ -831,6 +859,7 @@
   font-size: clamp(1.5rem, 9cqi, 2.1rem);
   font-weight: 800;
   line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .guided-board__jp.is-romaji {
@@ -849,6 +878,7 @@
   margin: 0.1rem 0 0;
   color: #c8cbd2;
   font-size: 0.9rem;
+  overflow-wrap: anywhere;
 }
 
 .guided-board__arrow {
@@ -939,4 +969,676 @@
 
 @media (max-width: 680px) {
   .practice-grid { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   Deterministic in-lesson practice (Slice C, design spec §10, §14).
+   Nested inside the existing explore section — no new route anchor.
+   Every interactive control reuses the shared .action target sizing
+   (>=44px) and every state is conveyed by text + shape, never colour
+   alone.
+   ============================================================ */
+
+.lesson-exercises {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--course-line);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.lesson-exercises__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.lesson-exercises__heading {
+  margin: 0;
+  font-size: var(--text-4);
+}
+
+.lesson-exercises__intro {
+  margin: 0;
+  color: var(--course-muted);
+}
+
+.lesson-exercises__status {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--course-line);
+  border-radius: 999px;
+  background: var(--course-surface);
+  font-size: var(--text-1);
+  font-weight: 700;
+  color: var(--course-ink);
+}
+
+.lesson-exercises__status[data-state="practiced"] {
+  border-color: color-mix(in srgb, var(--gear-particle) 55%, var(--course-line));
+  background: color-mix(in srgb, var(--gear-particle) 16%, var(--course-surface));
+}
+
+.lesson-exercises__status[data-state="consolidated"] {
+  border-color: color-mix(in srgb, var(--course-teal) 55%, var(--course-line));
+  background: var(--course-teal-soft);
+}
+
+.lesson-exercises__status-label { color: var(--course-muted); font-weight: 700; }
+.lesson-exercises__status-glyph { font-size: var(--text-2); line-height: 1; }
+
+.lesson-exercises__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+  counter-reset: none;
+}
+
+.lesson-exercise {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.lesson-exercise__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.lesson-exercise__title {
+  margin: 0;
+  font-size: var(--text-2);
+  color: var(--course-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.lesson-exercise__instruction {
+  margin: 0;
+  font-weight: 700;
+  color: var(--course-ink);
+}
+
+.lesson-exercise__form { display: grid; gap: var(--space-4); }
+
+/* Shared script-primary/secondary glyph pair (spec §7). */
+.lesson-exercise__glyph {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+}
+.lesson-exercise__glyph-primary { font-size: var(--text-3); }
+.lesson-exercise__glyph-secondary {
+  font-size: var(--text-1);
+  color: var(--course-muted);
+}
+
+/* Tile ordering: answer stack + tap-to-add bank; full non-drag path. */
+.lesson-exercise__tiles { display: grid; gap: var(--space-2); }
+
+.lesson-exercise__region-label {
+  margin: 0;
+  font-size: var(--text-1);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--course-muted);
+}
+
+.lesson-exercise__answer {
+  list-style: none;
+  margin: 0 0 var(--space-2);
+  padding: var(--space-3);
+  min-height: var(--action-target-min);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  border: 1px dashed var(--course-line);
+  border-radius: var(--radius-sm);
+  background: var(--course-surface);
+}
+
+.lesson-exercise__answer-empty {
+  color: var(--course-muted);
+  font-size: var(--text-2);
+}
+
+.lesson-exercise__placed {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  border: 1px solid var(--course-line);
+  border-radius: 999px;
+  background: var(--card);
+}
+
+.lesson-exercise__tile-actions { display: inline-flex; gap: var(--space-1); }
+
+.lesson-exercise__tile-btn {
+  font-size: var(--text-3);
+  font-weight: 800;
+}
+
+.lesson-exercise__bank {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.lesson-exercise__tile { padding: var(--space-1) var(--space-4); }
+
+/* Choice: blanked sentence + radio group. */
+.lesson-exercise__choice-body,
+.lesson-exercise__text { display: grid; gap: var(--space-3); }
+
+.lesson-exercise__sentence {
+  margin: 0;
+  font-size: var(--text-3);
+  line-height: 1.6;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15em;
+  align-items: baseline;
+}
+
+.lesson-exercise__sentence--secondary {
+  font-size: var(--text-2);
+  color: var(--course-muted);
+}
+
+.lesson-exercise__slot {
+  min-width: 2.5em;
+  text-align: center;
+  border-bottom: 2px solid var(--course-coral);
+  color: var(--course-coral);
+  font-weight: 800;
+}
+
+.lesson-exercise__choice {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.lesson-exercise__legend {
+  padding: 0;
+  font-size: var(--text-1);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--course-muted);
+}
+
+.lesson-exercise__option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--action-target-min);
+  padding: var(--space-1) var(--space-4);
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius-sm);
+  background: var(--course-surface);
+  cursor: pointer;
+}
+
+.lesson-exercise__option:hover { border-color: var(--course-coral); }
+.lesson-exercise__option:focus-within {
+  outline: 3px solid var(--time);
+  outline-offset: 2px;
+}
+.lesson-exercise__radio { width: 20px; height: 20px; accent-color: var(--course-coral); }
+.lesson-exercise__radio:checked ~ .lesson-exercise__glyph { color: var(--accent-dark); }
+.lesson-exercise__option:has(.lesson-exercise__radio:checked) {
+  border-color: var(--course-coral);
+  background: var(--course-coral-soft);
+}
+
+/* Text kinds: source / intent context + Japanese input. */
+.lesson-exercise__source,
+.lesson-exercise__intent {
+  margin: 0;
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border-left: 3px solid var(--course-line);
+  background: var(--course-surface);
+  border-radius: var(--radius-sm);
+}
+
+.lesson-exercise__source-label,
+.lesson-exercise__intent-label {
+  font-size: var(--text-1);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--course-muted);
+}
+
+.lesson-exercise__source-jp { font-size: var(--text-3); }
+.lesson-exercise__source-romaji { color: var(--course-muted); font-size: var(--text-1); }
+.lesson-exercise__intent-text { font-size: var(--text-3); font-weight: 700; }
+
+.lesson-exercise__field { display: grid; gap: var(--space-2); }
+.lesson-exercise__field-label { font-weight: 700; }
+
+.lesson-exercise__input {
+  min-height: var(--action-target-min);
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-size: var(--text-3);
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius-sm);
+  background: var(--course-surface);
+  color: var(--course-ink);
+}
+
+.lesson-exercise__input:focus-visible {
+  outline: 3px solid var(--time);
+  outline-offset: 2px;
+  border-color: var(--course-coral);
+}
+
+.lesson-exercise__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+/* Feedback: text + shape glyph + a coloured chip; never colour alone. */
+.lesson-exercise__feedback {
+  margin: 0;
+  min-height: 1.5em;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.lesson-exercise__feedback:empty { min-height: 0; }
+
+.lesson-exercise__feedback-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6em;
+  height: 1.6em;
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.lesson-exercise__feedback--accepted {
+  color: var(--course-teal);
+}
+.lesson-exercise__feedback--accepted .lesson-exercise__feedback-glyph {
+  background: var(--course-teal-soft);
+}
+.lesson-exercise__feedback--retry {
+  color: color-mix(in srgb, var(--gear-particle) 70%, var(--course-ink));
+}
+.lesson-exercise__feedback--retry .lesson-exercise__feedback-glyph {
+  background: color-mix(in srgb, var(--gear-particle) 22%, var(--course-surface));
+}
+.lesson-exercise__feedback--invalid {
+  color: var(--danger);
+}
+.lesson-exercise__feedback--invalid .lesson-exercise__feedback-glyph {
+  background: color-mix(in srgb, var(--danger) 14%, var(--course-surface));
+}
+
+.lesson-exercise__feedback-text { font-weight: 700; }
+
+/* ============================================================
+   Da ripassare review queue (Slice C, design spec §10.4).
+   ============================================================ */
+
+.review-queue {
+  margin-top: 2rem;
+  padding: var(--space-5);
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius);
+  background: var(--course-surface);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.review-queue__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.review-queue__title { margin: 0; font-size: var(--text-4); }
+
+.review-queue__count {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  background: var(--course-coral-soft);
+  color: var(--accent-dark);
+  font-weight: 800;
+  font-size: var(--text-1);
+}
+
+.review-queue__lead { margin: 0; color: var(--course-muted); }
+.review-queue__announce { margin: 0; }
+.review-queue__announce:empty { display: none; }
+
+.review-queue__unavailable,
+.review-queue__orphaned,
+.review-queue__unresolvable {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--gear-particle) 16%, var(--course-surface));
+  color: var(--course-ink);
+  font-size: var(--text-1);
+}
+
+.review-queue__empty { margin: 0; color: var(--course-muted); }
+
+.review-queue__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.review-queue__item {
+  padding: var(--space-4);
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.review-queue__item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.review-queue__item-meta { display: grid; gap: var(--space-1); }
+.review-queue__from { margin: 0; font-weight: 800; }
+.review-queue__mistakes { margin: 0; color: var(--course-muted); font-size: var(--text-1); }
+
+.review-queue__item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.review-queue__practice {
+  border-top: 1px solid var(--course-line);
+  padding-top: var(--space-3);
+}
+
+@media (max-width: 680px) {
+  .lesson-exercise { padding: var(--space-4); }
+  .review-queue__item-head { align-items: flex-start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lesson-exercise__option,
+  .lesson-exercise__input { transition: none; }
+}
+
+/* ============================================================
+   OPTIONAL SPOKEN ATTEMPT (design spec §5.3, §12.1-§12.3)
+   Nested after the practice exercises inside the explore
+   section — never a new route anchor, never a lesson gate.
+   Every recognition state is conveyed by text plus a shape
+   glyph, never colour alone; controls reuse the shared >=44px
+   .action targets and their visible focus ring; nothing here
+   relies on motion, so it is reduced-motion safe by default.
+   ============================================================ */
+
+.spoken-attempt {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--course-line);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.spoken-attempt__heading {
+  margin: 0;
+  font-size: var(--text-4);
+}
+
+.spoken-attempt__intro {
+  margin: 0;
+  color: var(--course-muted);
+}
+
+.spoken-attempt__target {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.spoken-attempt__region-label {
+  margin: 0;
+  font-size: var(--text-1);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--course-muted);
+}
+
+.spoken-attempt__sentence {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  align-items: baseline;
+}
+
+/* Script-primary/secondary glyph pair, matching the exercise renderer. */
+.spoken-attempt__glyph {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+}
+.spoken-attempt__glyph-primary { font-size: var(--text-3); }
+.spoken-attempt__glyph-secondary {
+  font-size: var(--text-1);
+  color: var(--course-muted);
+}
+
+.spoken-attempt__meaning { margin: 0; }
+.spoken-attempt__meaning-label { color: var(--course-muted); font-weight: 700; }
+
+.spoken-attempt__controls {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.spoken-attempt__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.spoken-attempt__button {
+  min-width: var(--action-target-min);
+  min-height: var(--action-target-min);
+}
+
+.spoken-attempt__button:focus-visible {
+  outline: 3px solid var(--time);
+  outline-offset: 2px;
+}
+
+/* Consent notice: an app disclosure held in session memory only. */
+.spoken-attempt__consent {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--course-line);
+  border-left: 4px solid var(--course-coral);
+  border-radius: var(--radius-sm);
+  background: var(--course-surface);
+}
+.spoken-attempt__consent-title { margin: 0; font-size: var(--text-3); }
+.spoken-attempt__consent-body { margin: 0; color: var(--course-ink); }
+
+.spoken-attempt__mic { display: grid; gap: var(--space-3); }
+
+/* Recognized transcript — shown only in the current state, never saved. */
+.spoken-attempt__heard {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--course-surface);
+}
+.spoken-attempt__heard-label { color: var(--course-muted); font-weight: 700; }
+.spoken-attempt__heard-text { font-size: var(--text-3); }
+
+/* Ordered per-segment records: text + shape, never colour alone. */
+.spoken-attempt__segments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.spoken-attempt__segment {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+}
+.spoken-attempt__segment-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: 999px;
+  font-weight: 900;
+}
+.spoken-attempt__segment-jp { font-size: var(--text-3); }
+.spoken-attempt__segment-state {
+  font-size: var(--text-1);
+  font-weight: 700;
+  color: var(--course-muted);
+}
+.spoken-attempt__segment-critical {
+  font-size: var(--text-1);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--course-ink);
+  padding: 0.1rem var(--space-2);
+  border: 1px solid var(--course-line);
+  border-radius: 999px;
+  background: var(--course-surface);
+}
+.spoken-attempt__segment--matched {
+  border-color: color-mix(in srgb, var(--course-teal) 55%, var(--course-line));
+}
+.spoken-attempt__segment--matched .spoken-attempt__segment-glyph {
+  background: var(--course-teal-soft);
+  color: var(--course-teal);
+}
+.spoken-attempt__segment--missing {
+  border-color: color-mix(in srgb, var(--gear-particle) 55%, var(--course-line));
+}
+.spoken-attempt__segment--missing .spoken-attempt__segment-glyph {
+  background: color-mix(in srgb, var(--gear-particle) 22%, var(--course-surface));
+  color: color-mix(in srgb, var(--gear-particle) 70%, var(--course-ink));
+}
+
+/* Listen-and-repeat fallback + unsupported/error notice. */
+.spoken-attempt__fallback { display: grid; gap: var(--space-3); }
+.spoken-attempt__notice {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--course-surface);
+}
+.spoken-attempt__notice-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6em;
+  height: 1.6em;
+  border-radius: 999px;
+  font-weight: 900;
+  background: color-mix(in srgb, var(--gear-particle) 22%, var(--course-surface));
+}
+.spoken-attempt__repeat {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border-left: 3px solid var(--course-line);
+  border-radius: var(--radius-sm);
+  background: var(--course-surface);
+}
+.spoken-attempt__repeat-title { margin: 0; font-weight: 800; }
+.spoken-attempt__repeat-body { margin: 0; color: var(--course-muted); }
+
+/* Polite status live region: text + shape, never colour alone. */
+.spoken-attempt__status {
+  margin: 0;
+  min-height: 1.5em;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.spoken-attempt__status:empty { min-height: 0; }
+.spoken-attempt__status-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6em;
+  height: 1.6em;
+  border-radius: 999px;
+  font-weight: 900;
+  background: var(--course-surface);
+}
+.spoken-attempt__status-text { font-weight: 700; }
+
+@media (max-width: 680px) {
+  .spoken-attempt__actions { flex-direction: column; align-items: stretch; }
 }

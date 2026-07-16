@@ -11,6 +11,7 @@ import type {
   GuidedTransformationData,
 } from "../data/types";
 import { getCourseCopy } from "../i18n/catalog";
+import { JapaneseSegmentText } from "./JapaneseSegmentText";
 
 type ScriptField = "jp" | "romaji";
 
@@ -18,6 +19,12 @@ interface EndpointToken {
   readonly jp: string;
   readonly romaji: string;
   readonly gear: boolean;
+  /**
+   * The shared hiragana reading for a katakana loanword's assisted first
+   * exposure (spec §7, §8.3), carried through only for authored endpoints —
+   * Lab-engine endpoints have no such reading to invent one from.
+   */
+  readonly reading?: string;
 }
 
 function isLabSelection(
@@ -59,9 +66,17 @@ function endpointTokens(
     jp: segment.jp,
     romaji: segment.romaji,
     gear: changedGears.has(segment.jp.trim()),
+    ...(segment.reading ? { reading: segment.reading } : {}),
   }));
 }
 
+/**
+ * Renders one endpoint's tokens for a script field. The `jp` field renders
+ * through the shared {@link JapaneseSegmentText} so an authored token's
+ * katakana-loanword first-exposure hiragana reading (spec §7, §8.3) shows as
+ * a ruby annotation exactly when the token carries one; `romaji` stays plain
+ * text, already derived from that same shared reading upstream.
+ */
 function EndpointLine({
   tokens,
   field,
@@ -73,15 +88,21 @@ function EndpointLine({
 }) {
   return (
     <>
-      {tokens.map((token, index) =>
-        mark && token.gear ? (
+      {tokens.map((token, index) => {
+        const content =
+          field === "jp" ? (
+            <JapaneseSegmentText jp={token.jp} reading={token.reading} />
+          ) : (
+            token[field]
+          );
+        return mark && token.gear ? (
           <mark className="guided-board__gear" key={index}>
-            {token[field]}
+            {content}
           </mark>
         ) : (
-          <Fragment key={index}>{token[field]}</Fragment>
-        ),
-      )}
+          <Fragment key={index}>{content}</Fragment>
+        );
+      })}
     </>
   );
 }

@@ -6,6 +6,7 @@ import { LocaleProvider } from "../../i18n/LocaleContext";
 import { ScriptProvider } from "../../settings/ScriptContext";
 import { LESSON_SECTION_IDS } from "../../routing/lessonSections";
 import { ProgressProvider } from "../progress/ProgressContext";
+import { SpeechRecognitionProvider } from "../speech/SpeechRecognitionContext";
 import { it as itCopy } from "../i18n/it";
 import { LessonPage } from "./LessonPage";
 
@@ -18,24 +19,28 @@ import { LessonPage } from "./LessonPage";
 function render(path: string): string {
   return renderToStaticMarkup(
     createElement(
-      MemoryRouter,
-      { initialEntries: [path] },
+      SpeechRecognitionProvider,
+      null,
       createElement(
-        LocaleProvider,
-        null,
+        MemoryRouter,
+        { initialEntries: [path] },
         createElement(
-          ScriptProvider,
+          LocaleProvider,
           null,
           createElement(
-            ProgressProvider,
+            ScriptProvider,
             null,
             createElement(
-              Routes,
+              ProgressProvider,
               null,
-              createElement(Route, {
-                path: "/percorso/:moduleId/:lessonId",
-                element: createElement(LessonPage),
-              }),
+              createElement(
+                Routes,
+                null,
+                createElement(Route, {
+                  path: "/percorso/:moduleId/:lessonId",
+                  element: createElement(LessonPage),
+                }),
+              ),
             ),
           ),
         ),
@@ -44,8 +49,45 @@ function render(path: string): string {
   );
 }
 
-const TOOL_LESSON = "/percorso/sounds/sounds-core";
-const TRANSFORMATION_LESSON = "/percorso/actions/actions-object";
+function renderWithLegacyNotice(path: string): string {
+  return renderToStaticMarkup(
+    createElement(
+      SpeechRecognitionProvider,
+      null,
+      createElement(
+        MemoryRouter,
+        {
+          initialEntries: [
+            { pathname: path, state: { legacyModuleRedirect: true } },
+          ],
+        },
+        createElement(
+          LocaleProvider,
+          null,
+          createElement(
+            ScriptProvider,
+            null,
+            createElement(
+              ProgressProvider,
+              null,
+              createElement(
+                Routes,
+                null,
+                createElement(Route, {
+                  path: "/percorso/:moduleId/:lessonId",
+                  element: createElement(LessonPage),
+                }),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+const TOOL_LESSON = "/percorso/sounds/sounds-1";
+const TRANSFORMATION_LESSON = "/percorso/actions/actions-1";
 
 describe("LessonPage — one semantic page, four ordered section landmarks", () => {
   it("renders a single lesson-layout main with exactly four section anchors", () => {
@@ -124,5 +166,37 @@ describe("LessonPage — explore section renders the lesson's own honest explora
     const html = render(TOOL_LESSON);
     expect(html).toMatch(/class="lesson-tool"/);
     expect(html).not.toMatch(/class="guided-board"/);
+  });
+});
+
+/**
+ * Module 1's assisted katakana first exposure, proven on the real published
+ * lesson page (design spec §7, §8.3; Slice B acceptance). "sounds-4" is
+ * Module 1's lesson that introduces コーヒー/ジュース; its comparison section
+ * must show the authentic katakana with the shared hiragana reading as a
+ * ruby annotation.
+ */
+const KATAKANA_FIRST_EXPOSURE_LESSON = "/percorso/sounds/sounds-4";
+
+describe("LessonPage — assisted katakana first exposure (design spec §7, §8.3)", () => {
+  it("shows Module 1's first コーヒー exposure with its ruby hiragana reading in the comparison section", () => {
+    const html = render(KATAKANA_FIRST_EXPOSURE_LESSON);
+    expect(html).toMatch(/<ruby[^>]*>コーヒー<rt[^>]*>こーひー<\/rt><\/ruby>/);
+  });
+});
+
+describe("LessonPage — legacy redirect notice", () => {
+  it("does not render different-module notice copy for the same-module target", () => {
+    const html = render("/percorso/sounds/sounds-1");
+    expect(html).not.toContain(itCopy.lesson.legacyModuleNoticeTitle);
+    expect(html).not.toContain(itCopy.lesson.legacyModuleNoticeBody);
+  });
+
+  it("renders the existing localized notice copy for a cross-module target", () => {
+    const html = renderWithLegacyNotice(
+      "/percorso/past-negative/past-negative-1",
+    );
+    expect(html).toContain(itCopy.lesson.legacyModuleNoticeTitle);
+    expect(html).toContain(itCopy.lesson.legacyModuleNoticeBody);
   });
 });

@@ -23,13 +23,13 @@ function render(url: string): string {
 
 const validPreset =
   "scenario=eat&form=past&time=today&slot.object=ramen&slot.place=";
-const explore = "&from=%2Fpercorso%2Ftime%2Ftime-past%23explore";
+const explore = "&from=%2Fpercorso%2Factions%2Factions-1%23explore";
 
 describe("Lab guided context", () => {
   it("shows a styled return Action to the exact lesson explore section", () => {
     const html = render(`/pratica/laboratorio?${validPreset}${explore}`);
     expect(html).toContain('class="action');
-    expect(html).toContain('href="/percorso/time/time-past#explore"');
+    expect(html).toContain('href="/percorso/actions/actions-1#explore"');
     expect(html).toContain(itCopy.practice.backToLesson);
     expect(html).not.toContain(itCopy.practice.invalidPreset);
     expect(html).not.toContain(itCopy.practice.invalidReturn);
@@ -45,10 +45,10 @@ describe("Lab guided context", () => {
 
   it("rejects a shape-valid but cross-module return as a Notice, never a return Action", () => {
     const html = render(
-      `/pratica/laboratorio?${validPreset}&from=%2Fpercorso%2Fsounds%2Ftraps-verbs%23explore`,
+      `/pratica/laboratorio?${validPreset}&from=%2Fpercorso%2Fsounds%2Factions-1%23explore`,
     );
     expect(html).toContain(itCopy.practice.invalidReturn);
-    expect(html).not.toContain('href="/percorso/sounds/traps-verbs#explore"');
+    expect(html).not.toContain('href="/percorso/sounds/actions-1#explore"');
     expect(html).not.toContain(itCopy.practice.backToLesson);
     expect(html).not.toContain(itCopy.practice.invalidPreset);
   });
@@ -57,7 +57,9 @@ describe("Lab guided context", () => {
     const html = render(
       `/pratica/laboratorio?${validPreset}&from=%2Fpercorso%2Ftraps%2Ftraps-verbs%23explore`,
     );
-    expect(html).toContain('href="/percorso/capstone/traps-verbs#explore"');
+    expect(html).toContain(
+      'href="/percorso/capstones/capstones-travel-day#explore"',
+    );
     expect(html).toContain(itCopy.practice.backToLesson);
     expect(html).not.toContain(itCopy.practice.invalidReturn);
   });

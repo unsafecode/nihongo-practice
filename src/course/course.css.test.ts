@@ -93,6 +93,22 @@ describe("course map CSS contract: 44px interactive targets", () => {
     expect(rule).toMatch(/min-height:\s*var\(--action-target-min\)/);
   });
 
+  describe("course map CSS contract: visibly bounded expanded lesson rows", () => {
+    it("gives lesson rows a visible resting border and surface background", () => {
+      const rule = findRule(readCourseCss(), ".module-card__lesson-link");
+      expect(rule).toBeDefined();
+      expect(rule).toMatch(/border:\s*1px solid var\(--course-line\)/);
+      expect(rule).toMatch(/background:\s*var\(--course-surface\)/);
+      expect(rule).not.toMatch(/border:\s*1px solid transparent/);
+    });
+
+    it("keeps module cards content-sized without fixed or minimum heights", () => {
+      const rule = findRule(readCourseCss(), ".module-card");
+      expect(rule).toBeDefined();
+      expect(rule).not.toMatch(/(?:^|;)\s*(?:min-)?height\s*:/);
+    });
+  });
+
   it("does not shrink the module disclosure control below its inherited 44px action square", () => {
     const rule = findRule(readCourseCss(), ".module-card__disclosure");
     if (rule) {

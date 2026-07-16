@@ -24,13 +24,21 @@ export const routeUrls = {
 /**
  * The representative content-rich lesson used across the visual and
  * navigation suites: it exercises a real before/after comparison, the sticky
- * rail + context bar, a compact dark Lab-backed guided board, and a fully
+ * rail + context bar, a compact dark authored guided board (design spec
+ * §6.4 — the complete A0→A1 curriculum's guided boards are fully authored
+ * from curriculum examples, never backed by a live Lab selection, so no
+ * lesson offers an "open in the guided Lab" deep-link), and a fully
  * populated prev/map/next footer.
  */
 export const REPRESENTATIVE_LESSON = { moduleId: "time", lessonId: "time-past" } as const;
 
-/** A "sound" lesson whose explore links out to a specific Syllabary group. */
-export const SOUND_LESSON = { moduleId: "sounds", lessonId: "sounds-core" } as const;
+/** A "sound" lesson whose explore links out to a specific Syllabary group.
+ * Uses the current canonical lesson id directly (not a retired v2.1 alias):
+ * this fixture exists to exercise the Syllabary round-trip itself, and the
+ * guided tool's return target is always built from the canonical lesson
+ * (assembleCourse.ts), so testing through an unrelated legacy-redirect hop
+ * would only add incidental noise. */
+export const SOUND_LESSON = { moduleId: "sounds", lessonId: "sounds-1" } as const;
 export const SOUND_LESSON_GROUP = "gojuon";
 
 export interface PageObservers {
@@ -533,4 +541,234 @@ export async function resolveColors(
   }, selector);
   if (!result) throw new Error(`Element not found: ${selector}`);
   return result;
+}
+
+/* ------------------------------------------------------------------ *
+ * Stubbed speech recognition harness (Slice D plan Task 4).
+ *
+ * The functional speech acceptance suite must exercise the real app through
+ * its *public* recognizer boundary without a microphone, permission prompt,
+ * real Web Speech engine, or any network. This harness installs a fake that
+ * satisfies exactly the production `SpeechRecognizer` contract
+ * (`supported`/`recognize`/`abort`) on a window global *before app boot*; the
+ * app's composition root reads that global and hands it to the provider.
+ * Production never sets the global, so the real browser adapter still ships.
+ *
+ * The fake queues deterministic transcript/failure outcomes, can hold a request
+ * pending so an abort has something to cancel, and records every `recognize`
+ * call (with its language) and `abort` in page memory. It performs no I/O of its
+ * own, so `assertLocalOnlyNetwork` stays strict with no vendor/speech allowlist.
+ * ------------------------------------------------------------------ */
+
+/** The window key the app reads to resolve an injected recognizer. */
+export const SPEECH_RECOGNIZER_KEY = "__nihongoSpeechRecognizer__";
+/** The window key exposing the fake's control/query surface to the test. */
+export const SPEECH_FAKE_KEY = "__nihongoSpeechFake__";
+/** The window key holding the recorded live-region announcement sequence. */
+export const SPEECH_STATUS_LOG_KEY = "__nihongoSpeechStatusLog__";
+
+/** The mapped recognition failures the fake can settle (mirrors the app union). */
+export type SpeechFakeFailure =
+  | "unsupported"
+  | "denied"
+  | "no-speech"
+  | "aborted"
+  | "network-error"
+  | "service-error";
+
+/** One settled recognition outcome the fake can return, by contract. */
+export type SpeechFakeOutcome =
+  | { readonly kind: "transcript"; readonly transcript: string }
+  | { readonly kind: "failure"; readonly failure: SpeechFakeFailure };
+
+/** A recorded interaction snapshot read back from page memory. */
+export interface SpeechFakeStats {
+  /** Every `recognize` call in order, each carrying only its requested lang. */
+  readonly calls: readonly { readonly lang: string }[];
+  readonly recognizeCount: number;
+  readonly abortCount: number;
+  /** Whether a held request is still awaiting resolution. */
+  readonly pending: boolean;
+  /** How many queued outcomes remain unconsumed. */
+  readonly queued: number;
+}
+
+export interface SpeechFakeConfig {
+  /** Feature-detection result the fake reports; default `true`. */
+  readonly supported?: boolean;
+}
+
+/**
+ * Install the fake recognizer + announcement recorder before the app boots.
+ * Must be called before the first `goto`, after `setupPageObservers` so its
+ * storage-clearing init script does not run afterwards.
+ */
+export async function installSpeechFake(
+  page: Page,
+  config: SpeechFakeConfig = {},
+): Promise<void> {
+  await page.addInitScript(
+    (args: {
+      recognizerKey: string;
+      fakeKey: string;
+      statusLogKey: string;
+      supported: boolean;
+    }) => {
+      const win = window as unknown as Record<string, unknown>;
+      const outcomes: unknown[] = [];
+      const calls: { lang: string }[] = [];
+      let abortCount = 0;
+      let holdNext = false;
+      let pending: { resolve: (outcome: unknown) => void } | null = null;
+
+      // The public SpeechRecognizer surface — nothing vendor-specific leaks.
+      const recognizer = {
+        supported: args.supported,
+        recognize(request: { lang: string }) {
+          calls.push({ lang: request.lang });
+          if (holdNext) {
+            holdNext = false;
+            return new Promise((resolve) => {
+              pending = { resolve };
+            });
+          }
+          const next = outcomes.shift();
+          return Promise.resolve(
+            next ?? { kind: "failure", failure: "service-error" },
+          );
+        },
+        abort() {
+          abortCount += 1;
+          const held = pending;
+          pending = null;
+          // A held request settles as aborted; the controller's own stale-attempt
+          // fence discards it, so this never revives a cancelled attempt.
+          if (held) held.resolve({ kind: "failure", failure: "aborted" });
+        },
+      };
+      win[args.recognizerKey] = recognizer;
+
+      win[args.fakeKey] = {
+        queue(outcome: unknown) {
+          outcomes.push(outcome);
+        },
+        holdNext() {
+          holdNext = true;
+        },
+        resolvePending(outcome: unknown) {
+          const held = pending;
+          pending = null;
+          if (held) held.resolve(outcome);
+        },
+        stats(): SpeechFakeStats {
+          return {
+            calls: calls.map((call) => ({ lang: call.lang })),
+            recognizeCount: calls.length,
+            abortCount,
+            pending: pending !== null,
+            queued: outcomes.length,
+          };
+        },
+      };
+
+      // Record every distinct live-region announcement over time so transient
+      // states (listening, then processing) are observable from Node even when a
+      // later state supersedes them within the same task's microtasks.
+      const statusLog: string[] = [];
+      win[args.statusLogKey] = statusLog;
+      const push = (text: string | null): void => {
+        const clean = (text ?? "").replace(/\s+/g, " ").trim();
+        if (clean && statusLog[statusLog.length - 1] !== clean) {
+          statusLog.push(clean);
+        }
+      };
+      const readCurrent = (): string | null => {
+        const el = document.querySelector(".spoken-attempt__status-text");
+        return el ? el.textContent : "";
+      };
+      const observer = new MutationObserver((records) => {
+        for (const record of records) {
+          if (
+            record.type === "characterData" &&
+            typeof record.oldValue === "string"
+          ) {
+            const parent = (record.target as ChildNode).parentElement;
+            if (parent && parent.closest(".spoken-attempt__status")) {
+              push(record.oldValue);
+            }
+          }
+        }
+        push(readCurrent());
+      });
+      const start = (): void =>
+        observer.observe(document.documentElement, {
+          subtree: true,
+          childList: true,
+          characterData: true,
+          characterDataOldValue: true,
+        });
+      if (document.documentElement) start();
+      else document.addEventListener("DOMContentLoaded", start, { once: true });
+    },
+    {
+      recognizerKey: SPEECH_RECOGNIZER_KEY,
+      fakeKey: SPEECH_FAKE_KEY,
+      statusLogKey: SPEECH_STATUS_LOG_KEY,
+      supported: config.supported ?? true,
+    },
+  );
+}
+
+/** Queue one deterministic outcome the next unheld `recognize` will settle with. */
+export async function queueSpeechOutcome(
+  page: Page,
+  outcome: SpeechFakeOutcome,
+): Promise<void> {
+  await page.evaluate(
+    ({ key, value }) => {
+      (window as unknown as Record<string, { queue(o: unknown): void }>)[
+        key
+      ].queue(value);
+    },
+    { key: SPEECH_FAKE_KEY, value: outcome },
+  );
+}
+
+/** Make the next `recognize` stay pending until `resolvePendingRecognition`. */
+export async function holdNextRecognition(page: Page): Promise<void> {
+  await page.evaluate((key) => {
+    (window as unknown as Record<string, { holdNext(): void }>)[key].holdNext();
+  }, SPEECH_FAKE_KEY);
+}
+
+/** Settle a currently-held `recognize` request with the given outcome. */
+export async function resolvePendingRecognition(
+  page: Page,
+  outcome: SpeechFakeOutcome,
+): Promise<void> {
+  await page.evaluate(
+    ({ key, value }) => {
+      (
+        window as unknown as Record<string, { resolvePending(o: unknown): void }>
+      )[key].resolvePending(value);
+    },
+    { key: SPEECH_FAKE_KEY, value: outcome },
+  );
+}
+
+/** Read the recorded recognize/abort/language interactions from page memory. */
+export async function speechStats(page: Page): Promise<SpeechFakeStats> {
+  return page.evaluate((key) => {
+    return (
+      window as unknown as Record<string, { stats(): SpeechFakeStats }>
+    )[key].stats();
+  }, SPEECH_FAKE_KEY);
+}
+
+/** Read the recorded, de-duplicated live-region announcement sequence. */
+export async function speechStatusLog(page: Page): Promise<string[]> {
+  return page.evaluate((key) => {
+    const log = (window as unknown as Record<string, string[] | undefined>)[key];
+    return Array.isArray(log) ? log.slice() : [];
+  }, SPEECH_STATUS_LOG_KEY);
 }

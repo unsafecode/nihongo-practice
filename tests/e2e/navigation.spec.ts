@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 import {
+  assertLocalOnlyNetwork,
+  assertNoHorizontalOverflow,
   assertNoRuntimeErrors,
+  auditTouchTargets,
   gotoReady,
   headerBottom,
   rectOf,
@@ -135,51 +138,27 @@ test.describe("deterministic scroll reset", () => {
   });
 });
 
-test.describe("guided Lab round-trip", () => {
-  test("lesson explore opens a preset Lab and returns to the exact #explore anchor", async ({ page }) => {
-    await setupPageObservers(page);
+test.describe("guided board Lab reachability", () => {
+  // The complete A0→A1 curriculum's guided boards are fully authored from
+  // curriculum examples (assembleCourse.ts's chooseExplorationEndpoints),
+  // never backed by a live Lab selection — GuidedTransformation's `labLink`
+  // requires an actual `LabSelection` (see its `isLabSelection` guard),
+  // which this course never constructs, so no lesson offers an "open in the
+  // guided Lab" deep-link. This replaces the old v2.1 round-trip test (which
+  // exercised that now-removed deep-link) with a check that the board still
+  // renders honest before/after content and that this omission is
+  // deliberate, not a broken/dead link.
+  test("the guided board renders authored content with no Lab deep-link", async ({ page }) => {
+    const observers = await setupPageObservers(page);
     await gotoReady(page, LESSON_URL);
 
-    const labLink = page.locator(".guided-board a.action--secondary");
-    await expect(labLink).toBeVisible();
-    const labHref = await labLink.getAttribute("href");
-    expect(labHref, "guided Lab link carries a scenario preset and encoded return").toMatch(
-      /laboratorio\?[^"]*scenario=/,
-    );
-    expect(labHref).toMatch(/from=/);
+    const board = page.locator(".guided-board");
+    await expect(board).toBeVisible();
+    await expect(board.locator(".guided-board__states")).toBeVisible();
+    await expect(board.locator(".guided-board__gears")).toBeVisible();
+    await expect(board.locator("a.action--secondary")).toHaveCount(0);
 
-    await labLink.click();
-    await page.locator(".lab-page").waitFor({ state: "visible" });
-    expect(page.url()).toContain("/pratica/laboratorio");
-
-    // A styled return control is present (not a naked anchor) and no invalid notice.
-    const ret = page.locator(".guided-return");
-    await expect(ret).toBeVisible();
-    await expect(ret).toHaveClass(/action/);
-    await expect(page.locator(".notice--warning")).toHaveCount(0);
-
-    // Center the return in the viewport before clicking: Playwright's default
-    // auto-scroll can leave it flush under the sticky header, which would
-    // intercept the click. This does not relax any assertion.
-    await ret.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "auto" }));
-    await ret.click();
-    await page.locator(".lesson-layout").waitFor({ state: "visible" });
-    expect(page.url()).toContain(
-      `/percorso/${REPRESENTATIVE_LESSON.moduleId}/${REPRESENTATIVE_LESSON.lessonId}#explore`,
-    );
-
-    // The explore section is scrolled into view *below* the sticky header.
-    const hb = await headerBottom(page);
-    await expect
-      .poll(async () => {
-        const rect = await rectOf(page, "#lesson-section-explore");
-        return rect ? Math.round(rect.top) : null;
-      }, { timeout: 2000 })
-      .not.toBeNull();
-    const target = await rectOf(page, "#lesson-section-explore");
-    const viewportH = page.viewportSize()!.height;
-    expect(target!.top, "explore target not hidden under the sticky header").toBeGreaterThanOrEqual(hb - 2);
-    expect(target!.top, "explore target within the viewport").toBeLessThan(viewportH);
+    await assertNoRuntimeErrors(page, observers);
   });
 
   test("an invalid Lab preset and an invalid return are both visibly noticed", async ({ page }) => {
@@ -193,93 +172,6 @@ test.describe("guided Lab round-trip", () => {
     expect(await notices.count()).toBeGreaterThanOrEqual(1);
     // No valid styled return control should appear for an invalid return.
     await expect(page.locator(".guided-return")).toHaveCount(0);
-  });
-});
-
-const PLACES_LESSON = { moduleId: "places", lessonId: "places-action" } as const;
-const PLACES_LESSON_URL = routeUrls.lesson(
-  PLACES_LESSON.moduleId,
-  PLACES_LESSON.lessonId,
-);
-
-test.describe("Lab preset reactivity while mounted", () => {
-  test("changing the hash to a different guided Lab deep link updates the board and return link without reload", async ({
-    page,
-  }) => {
-    const observers = await setupPageObservers(page);
-
-    // Open the first guided Lab deep link (time-past: past tense, no place).
-    await gotoReady(page, LESSON_URL);
-    const firstLink = page.locator(".guided-board a.action--secondary");
-    await expect(firstLink).toBeVisible();
-    const firstHref = await firstLink.getAttribute("href");
-    expect(firstHref, "first guided Lab link carries a preset").toMatch(
-      /laboratorio\?[^"]*scenario=/,
-    );
-
-    await firstLink.click();
-    await page.locator(".lab-page").waitFor({ state: "visible" });
-    expect(page.url()).toContain("/pratica/laboratorio");
-    await expect(page.locator(".notice--warning")).toHaveCount(0);
-
-    // Confirm the first preset's board state: past-tense "eat", no place chip.
-    await expect(page.locator(".sentence__main")).toContainText("ました");
-    await expect(page.locator(".sentence__main")).not.toContainText("れすとらん");
-    const firstReturn = page.locator(".guided-return");
-    await expect(firstReturn).toBeVisible();
-    await expect(firstReturn).toHaveAttribute(
-      "href",
-      new RegExp(
-        `/percorso/${REPRESENTATIVE_LESSON.moduleId}/${REPRESENTATIVE_LESSON.lessonId}`,
-      ),
-    );
-
-    // Fetch the second guided Lab deep link (places-action: present tense +
-    // restaurant) from a separate page in the same context, so the mounted
-    // Lab page under test is never navigated/reloaded to get it.
-    const scratch = await page.context().newPage();
-    await gotoReady(scratch, PLACES_LESSON_URL);
-    const secondLink = scratch.locator(".guided-board a.action--secondary");
-    await expect(secondLink).toBeVisible();
-    const secondHref = await secondLink.getAttribute("href");
-    expect(secondHref, "second guided Lab link carries a preset").toMatch(
-      /laboratorio\?[^"]*scenario=/,
-    );
-    expect(secondHref, "the two deep links are different presets").not.toBe(
-      firstHref,
-    );
-    await scratch.close();
-
-    // Change window.location.hash in the SAME document to the second deep
-    // link — no page.goto/reload — exactly the case where Lab stayed mounted.
-    await page.evaluate((hash: string) => {
-      window.location.hash = hash.startsWith("#") ? hash.slice(1) : hash;
-    }, secondHref!);
-
-    // Wait for the app's route update to actually re-render the board.
-    await expect
-      .poll(() => page.locator(".sentence__main").textContent(), {
-        timeout: 2000,
-      })
-      .toContain("れすとらん");
-
-    // The old preset's state must be gone, the new preset's state present.
-    await expect(page.locator(".sentence__main")).not.toContainText("ました");
-    await expect(page.locator(".sentence__main")).toContainText("れすとらん");
-    await expect(page.locator(".notice--warning")).toHaveCount(0);
-
-    // The guided-return control must now point at the second deep link's
-    // originating lesson/section, not the stale first one.
-    const secondReturn = page.locator(".guided-return");
-    await expect(secondReturn).toBeVisible();
-    await expect(secondReturn).toHaveAttribute(
-      "href",
-      new RegExp(
-        `/percorso/${PLACES_LESSON.moduleId}/${PLACES_LESSON.lessonId}`,
-      ),
-    );
-
-    await assertNoRuntimeErrors(page, observers);
   });
 });
 
@@ -442,6 +334,13 @@ test.describe("unknown route", () => {
 });
 
 test.describe("route-scroll missing anchor", () => {
+  // Uses a direct canonical lesson id (not the shared REPRESENTATIVE_LESSON
+  // fixture, which is a retired v2.1 alias — see helpers.ts): a legacy-id
+  // redirect does not carry the request's `#explore` fragment, which would
+  // make this test exercise the unrelated redirect path instead of the
+  // missing-anchor behavior it actually targets.
+  const ANCHOR_TEST_LESSON_URL = routeUrls.lesson("past-negative", "past-negative-1");
+
   test("a valid lesson deep link whose section anchor vanishes shows a dismissible, non-overlapping warning", async ({
     page,
   }) => {
@@ -468,7 +367,7 @@ test.describe("route-scroll missing anchor", () => {
       };
     });
 
-    await gotoReady(page, `${LESSON_URL}#explore`);
+    await gotoReady(page, `${ANCHOR_TEST_LESSON_URL}#explore`);
 
     const notice = page.locator(".notice--warning").first();
     await expect(notice, "missing-anchor warning notice is visible").toBeVisible();
@@ -495,6 +394,521 @@ test.describe("route-scroll missing anchor", () => {
     await expect(dismiss).toBeVisible();
     await dismiss.click();
     await expect(page.locator(".notice--warning")).toHaveCount(0);
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+});
+
+test.describe("complete A0→A1 course routes (Slice B Task 5)", () => {
+  const REPRESENTATIVE_NEW_MODULE_ROUTES = [
+    { moduleId: "shopping", lessonId: "shopping-1", expectedHeading: "Quanti" },
+    { moduleId: "descriptions", lessonId: "descriptions-1", expectedHeading: "Grande e piccolo" },
+    { moduleId: "existence-needs", lessonId: "existence-needs-1", expectedHeading: "Cosa c'è e dove" },
+  ] as const;
+
+  const CAPSTONE_ROUTES = [
+    { lessonId: "capstones-orientation", expectedHeading: "Prima delle prove finali" },
+    { lessonId: "capstones-self-introduction", expectedHeading: "Prova finale: presentazione" },
+    { lessonId: "capstones-everyday-outing", expectedHeading: "Prova finale: un'uscita quotidiana" },
+    { lessonId: "capstones-travel-day", expectedHeading: "Prova finale: una giornata di viaggio" },
+  ] as const;
+
+  for (const route of REPRESENTATIVE_NEW_MODULE_ROUTES) {
+    test(`the "${route.moduleId}" module's first lesson is directly reachable`, async ({ page }) => {
+      const observers = await setupPageObservers(page);
+      await gotoReady(page, routeUrls.lesson(route.moduleId, route.lessonId));
+      await expect(page.locator(".lesson-layout")).toBeVisible();
+      await expect(page.locator("h1")).toHaveText(route.expectedHeading);
+      expect(page.url()).toContain(`/percorso/${route.moduleId}/${route.lessonId}`);
+      await assertNoRuntimeErrors(page, observers);
+    });
+  }
+
+  for (const capstone of CAPSTONE_ROUTES) {
+    test(`the capstones module's "${capstone.lessonId}" is directly reachable`, async ({ page }) => {
+      const observers = await setupPageObservers(page);
+      await gotoReady(page, routeUrls.lesson("capstones", capstone.lessonId));
+      await expect(page.locator(".lesson-layout")).toBeVisible();
+      await expect(page.locator("h1")).toHaveText(capstone.expectedHeading);
+      expect(page.url()).toContain(`/percorso/capstones/${capstone.lessonId}`);
+      await assertNoRuntimeErrors(page, observers);
+    });
+  }
+
+  // The capstone lessons carry the course's longest multi-clause sentences, so
+  // their comparison cards and guided boards receive the longest unbroken
+  // rōmaji readings. Those readings must wrap rather than force the page wider
+  // than the viewport (design spec §9.3 — no horizontal overflow at either
+  // reference width, especially the 390px mobile width).
+  for (const capstone of CAPSTONE_ROUTES) {
+    test(`the capstones module's "${capstone.lessonId}" never overflows horizontally`, async ({ page }) => {
+      const observers = await setupPageObservers(page);
+      await gotoReady(page, routeUrls.lesson("capstones", capstone.lessonId));
+      await expect(page.locator(".lesson-layout")).toBeVisible();
+      await assertNoHorizontalOverflow(page);
+      await assertNoRuntimeErrors(page, observers);
+    });
+  }
+});
+
+test.describe("legacy v2.1 lesson id redirects (Slice B Task 5)", () => {
+  test("a same-module legacy lesson id redirects to its current lesson without a cross-module notice, landing at the top", async ({ page }) => {
+    const observers = await setupPageObservers(page);
+    // "sounds-core" was the published v2.1 id for the sounds module's first
+    // lesson; it is retired in favor of "sounds-1" but the module is
+    // unchanged (design spec §9.2/lessonRouteResolution.ts).
+    await gotoReady(page, routeUrls.lesson("sounds", "sounds-core"));
+
+    await expect(page.locator(".lesson-layout")).toBeVisible();
+    expect(page.url()).toBe(routeUrls.lesson("sounds", "sounds-1"));
+    await expect(page.locator(".notice--info")).toHaveCount(0);
+
+    // Deterministic scroll: a redirected legacy route is an ordinary route
+    // entry (no section anchor), so it lands at the very top every time.
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    await assertNoRuntimeErrors(page, observers);
+  });
+
+  test("a cross-module legacy lesson id redirects to its new module with a dismissible, visible notice, landing at the top", async ({ page }) => {
+    const observers = await setupPageObservers(page);
+    // "sentence-map/sentence-order" was retired and moved into the
+    // "introductions" module by the complete rebuild.
+    await gotoReady(page, routeUrls.lesson("sentence-map", "sentence-order"));
+
+    await expect(page.locator(".lesson-layout")).toBeVisible();
+    expect(page.url()).toBe(routeUrls.lesson("introductions", "introductions-1"));
+
+    const notice = page.locator(".notice--info");
+    await expect(notice).toBeVisible();
+    expect(await notice.count()).toBeGreaterThanOrEqual(1);
+
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+    const dismiss = notice.locator(".notice__dismiss");
+    await expect(dismiss).toBeVisible();
+    await dismiss.click();
+    await expect(page.locator(".notice--info")).toHaveCount(0);
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+});
+
+test.describe("locale and script settings on the complete course (Slice B Task 5)", () => {
+  // On mobile the settings controls exist twice — once inertly inside the
+  // CSS-hidden `.header__settings--desktop` row and once inside the drawer
+  // overlay once opened — so a bare `.localetoggle`/`.scripttoggle` locator
+  // is ambiguous there. This resolves the one *visible* settings container
+  // for the current viewport, opening the mobile drawer first when needed.
+  async function settingsContainer(
+    page: import("@playwright/test").Page,
+    viewport: { width: number; height: number } | null,
+  ) {
+    if (viewport && isMobile(viewport.width)) {
+      await page.locator(".header__settings-trigger").click();
+      const panel = page.locator(".settings-drawer__panel");
+      await expect(panel).toBeVisible();
+      return panel;
+    }
+    return page.locator(".header__settings--desktop");
+  }
+
+  test("IT/EN locale switching updates a representative new module's title on the live course map without breaking navigation", async ({ page, viewport }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, routeUrls.home);
+    const settings = await settingsContainer(page, viewport ?? null);
+
+    const shoppingHeading = page
+      .locator(".module-card__title")
+      .filter({ hasText: /Acquisti|Shopping/ });
+    await expect(shoppingHeading).toHaveText("Acquisti, quantità e richieste");
+
+    const lessonLinksBefore = await page.locator(".module-card__lesson-link").count();
+
+    await settings.locator(".localetoggle button", { hasText: "EN" }).click();
+    await expect(shoppingHeading).toHaveText("Shopping, quantities, and requests");
+    // Switching locale never drops/adds routes: the structure stays identical.
+    expect(await page.locator(".module-card__lesson-link").count()).toBe(lessonLinksBefore);
+
+    await settings.locator(".localetoggle button", { hasText: "IT" }).click();
+    await expect(shoppingHeading).toHaveText("Acquisti, quantità e richieste");
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+
+  test("hiragana/romaji script settings continue to work on Module 1's katakana bridge lesson", async ({ page, viewport }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, routeUrls.lesson("sounds", "sounds-4"));
+    const settings = await settingsContainer(page, viewport ?? null);
+
+    const mainLine = page.locator(".lesson-comparison__jp").first();
+    await expect(mainLine).toBeVisible();
+
+    // Default script is hiragana-primary: the main line shows the authentic
+    // Japanese (with its assisted-katakana ruby), not romaji.
+    await expect(page.locator(".lesson-comparison__jp.is-romaji")).toHaveCount(0);
+    await expect(page.locator("ruby.katakana-assist").first()).toBeVisible();
+
+    await settings.locator(".scripttoggle button", { hasText: "Rōmaji" }).click();
+    await expect(mainLine).toHaveClass(/is-romaji/);
+    await expect(mainLine).toContainText("koohii");
+    // Romaji is plain text: no ruby annotation while it is the main script.
+    await expect(page.locator(".lesson-comparison__jp ruby")).toHaveCount(0);
+
+    await settings.locator(".scripttoggle button", { hasText: "Hiragana" }).click();
+    await expect(page.locator(".lesson-comparison__jp.is-romaji")).toHaveCount(0);
+    await expect(mainLine.locator("ruby.katakana-assist")).toBeVisible();
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+});
+
+/**
+ * Slice C — deterministic in-lesson exercises and the `Da ripassare` review
+ * queue (design spec §10, §11.1, §14; Slice C plan Task 4). These drive the
+ * real published catalog through a built preview: no answer literal is planted
+ * in the test beyond the sentence the lesson itself teaches, and every mistake,
+ * review, and resolution goes through the live progress store.
+ */
+const EXERCISE_LESSON_URL = routeUrls.lesson("introductions", "introductions-1");
+const TRANSFORM_LESSON_URL = routeUrls.lesson("past-negative", "past-negative-1");
+
+/** The introductions-1 base sentence the lesson teaches: わたし は がくせい です. */
+const INTRO_TILE_ORDER = ["わたし", "は", "がくせい", "です"] as const;
+
+function tileCard(page: import("@playwright/test").Page) {
+  return page.locator(".lesson-exercise", {
+    has: page.locator(".lesson-exercise__bank"),
+  });
+}
+
+function choiceCard(page: import("@playwright/test").Page) {
+  return page.locator(".lesson-exercise", {
+    has: page.locator(".lesson-exercise__radio"),
+  });
+}
+
+test.describe("Slice C — deterministic exercises", () => {
+  test("all five exercise kinds are reachable across two representative lessons", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+
+    await gotoReady(page, EXERCISE_LESSON_URL);
+    // introductions-1 covers tile ordering, choice, completion, construction.
+    await expect(page.locator(".lesson-exercise__bank")).toHaveCount(1);
+    await expect(page.locator(".lesson-exercise__radio").first()).toBeVisible();
+    await expect(page.locator(".lesson-exercise__input").first()).toBeVisible();
+    await expect(page.locator(".lesson-exercise__intent")).toHaveCount(1);
+
+    await gotoReady(page, TRANSFORM_LESSON_URL);
+    // past-negative-1 adds the tense transformation kind.
+    await expect(page.locator(".lesson-exercise__source")).toHaveCount(1);
+
+    await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
+  });
+
+  test("keyboard tile ordering keeps focus neutral after a wrong first selection", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, EXERCISE_LESSON_URL);
+
+    const card = tileCard(page);
+    await expect(card).toHaveCount(1);
+
+    const canonicalFirst = card
+      .locator(".lesson-exercise__bank button", { hasText: INTRO_TILE_ORDER[0] })
+      .first();
+    const wrongFirst = card
+      .locator(".lesson-exercise__bank button", { hasText: INTRO_TILE_ORDER[1] })
+      .first();
+    const canonicalFirstId = await canonicalFirst.getAttribute("id");
+
+    // Choosing a wrong first tile must not reveal the canonical next answer.
+    await wrongFirst.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator(":focus")).not.toHaveAttribute("id", canonicalFirstId);
+
+    // Focus follows the first remaining button in the rendered bank order.
+    const nextRenderedBankTile = card.locator(".lesson-exercise__bank button").first();
+    await expect(page.locator(":focus")).toHaveAttribute(
+      "id",
+      `${await nextRenderedBankTile.getAttribute("id")}`,
+    );
+
+    // Removing the tile keeps the keyboard flow in the bank.
+    const placedWrongTile = card
+      .locator(".lesson-exercise__placed")
+      .filter({ hasText: INTRO_TILE_ORDER[1] })
+      .first();
+    const remove = placedWrongTile.locator(".lesson-exercise__tile-btn").last();
+    await remove.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator(":focus")).toHaveAttribute(
+      "id",
+      `${await card
+        .locator(".lesson-exercise__bank button", { hasText: INTRO_TILE_ORDER[1] })
+        .getAttribute("id")}`,
+    );
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+
+  test("keyboard tile ordering remains solvable through add, reorder, and submit", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, EXERCISE_LESSON_URL);
+
+    const card = tileCard(page);
+    const firstAdd = card.locator(".lesson-exercise__bank button").first();
+    await firstAdd.focus();
+    for (let index = 0; index < INTRO_TILE_ORDER.length; index += 1) {
+      await page.keyboard.press("Enter");
+    }
+
+    // The final Add has no bank successor, so focus remains on its stable Remove.
+    const lastPlaced = card.locator(".lesson-exercise__placed").last();
+    await expect(page.locator(":focus")).toHaveAttribute(
+      "id",
+      `${await lastPlaced.locator(".lesson-exercise__tile-btn").last().getAttribute("id")}`,
+    );
+
+    // Use only keyboard actions to reorder the rendered-bank sequence into the
+    // taught sentence. Focus must follow the moved tile while it is repositioned.
+    for (let targetIndex = 0; targetIndex < INTRO_TILE_ORDER.length; targetIndex += 1) {
+      const glyph = INTRO_TILE_ORDER[targetIndex];
+      const tile = card.locator(".lesson-exercise__placed").filter({ hasText: glyph }).first();
+      let currentIndex = await tile.evaluate((element) => {
+        const placed = [...element.parentElement!.children];
+        return placed.indexOf(element);
+      });
+      while (currentIndex > targetIndex) {
+        const moveBack = tile.locator(".lesson-exercise__move-back");
+        await moveBack.focus();
+        await page.keyboard.press("Enter");
+        currentIndex -= 1;
+      }
+      while (currentIndex < targetIndex) {
+        const moveForward = tile.locator(".lesson-exercise__move-forward");
+        await moveForward.focus();
+        await page.keyboard.press("Enter");
+        currentIndex += 1;
+      }
+    }
+
+    const submit = card.locator("button[type=submit]");
+    await submit.focus();
+    await page.keyboard.press("Enter");
+
+    const feedback = card.locator(".lesson-exercise__feedback");
+    await expect(feedback).toHaveClass(/lesson-exercise__feedback--accepted/);
+    await expect(feedback).toContainText("Corretto");
+    await expect(feedback).toHaveAttribute("aria-live", "polite");
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+
+  test("keyboard tile moves follow the moved tile at sequence boundaries", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, EXERCISE_LESSON_URL);
+
+    const card = tileCard(page);
+    const firstAdd = card.locator(".lesson-exercise__bank button").first();
+    await firstAdd.focus();
+    for (let index = 0; index < INTRO_TILE_ORDER.length; index += 1) {
+      await page.keyboard.press("Enter");
+    }
+    await expect(card.locator(".lesson-exercise__placed")).toHaveCount(4);
+
+    const secondLast = card.locator(".lesson-exercise__placed").nth(2);
+    const movedTile = secondLast.locator(".lesson-exercise__move-forward");
+    await movedTile.focus();
+    await page.keyboard.press("Enter");
+
+    const movedTileBack = card
+      .locator(".lesson-exercise__placed")
+      .nth(3)
+      .locator(".lesson-exercise__move-back");
+    await expect(movedTileBack).toBeEnabled();
+    await expect(page.locator(":focus")).toHaveAttribute(
+      "id",
+      `${await movedTileBack.getAttribute("id")}`,
+    );
+
+    await page.keyboard.press("Enter");
+    await expect(page.locator(":focus")).toHaveAttribute(
+      "id",
+      `${await card
+        .locator(".lesson-exercise__placed")
+        .nth(2)
+        .locator(".lesson-exercise__move-forward")
+        .getAttribute("id")}`,
+    );
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+
+  test("a wrong choice shows a text retry state (not colour alone) and enqueues review", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, EXERCISE_LESSON_URL);
+
+    const card = choiceCard(page);
+    // The distractor particle for this lesson is の (introductions-1-say#p1).
+    await card.locator('input[type=radio][value="introductions-1-say#p1"]').check();
+    await card.locator("button[type=submit]").click();
+
+    const feedback = card.locator(".lesson-exercise__feedback");
+    await expect(feedback).toHaveClass(/lesson-exercise__feedback--retry/);
+    // State is conveyed by text, never colour alone.
+    await expect(feedback).toContainText("Non ancora");
+
+    // The mistake reached the Da ripassare queue on Practice Home.
+    await gotoReady(page, routeUrls.practice);
+    await expect(page.locator(".review-queue__count")).toContainText("1");
+    await expect(page.locator(".review-queue__item")).toHaveCount(1);
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+
+  test("every exercise control meets the 44px target on the exercise-rich lesson", async ({
+    page,
+  }) => {
+    await setupPageObservers(page);
+    await gotoReady(page, EXERCISE_LESSON_URL);
+    const offenders = await auditTouchTargets(page);
+    expect(offenders, JSON.stringify(offenders)).toEqual([]);
+    await assertNoHorizontalOverflow(page);
+  });
+
+  test("exercises honour IT/EN locale and hiragana/romaji script settings", async ({
+    page,
+    viewport,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, EXERCISE_LESSON_URL);
+
+    const instruction = page
+      .locator(".lesson-exercise .lesson-exercise__instruction")
+      .first();
+    // Default locale is Italian (textContent assertions do not need visibility,
+    // so the mobile settings overlay never has to be dismissed between steps).
+    await expect(instruction).toContainText("Riordina");
+
+    const openSettings = async () => {
+      if (viewport && isMobile(viewport.width)) {
+        await page.locator(".header__settings-trigger").click();
+        const panel = page.locator(".settings-drawer__panel");
+        await expect(panel).toBeVisible();
+        return panel;
+      }
+      return page.locator(".header__settings--desktop");
+    };
+
+    const settings = await openSettings();
+    await settings.locator(".localetoggle button", { hasText: "EN" }).click();
+    await expect(instruction).toContainText("Arrange the tiles");
+
+    // Romaji script setting flips a tile's primary glyph to romaji.
+    await settings.locator(".scripttoggle button", { hasText: "Rōmaji" }).click();
+    const firstTilePrimary = page
+      .locator(".lesson-exercise__bank .lesson-exercise__glyph-primary")
+      .first();
+    await expect(firstTilePrimary).toHaveText(/[a-z]/);
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+});
+
+test.describe("Slice C — Da ripassare review resolution semantics", () => {
+  test("reviewing a queued mistake correctly resolves it; an in-lesson correction does not", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+
+    // 1) Make a wrong choice, then immediately correct it inside the lesson.
+    await gotoReady(page, EXERCISE_LESSON_URL);
+    const card = choiceCard(page);
+    await card.locator('input[type=radio][value="introductions-1-say#p1"]').check();
+    await card.locator("button[type=submit]").click();
+    await expect(card.locator(".lesson-exercise__feedback--retry")).toBeVisible();
+    // Correct it in lesson mode — this must NOT silently resolve the review.
+    await card.locator('input[type=radio][value="introductions-1-base#p1"]').check();
+    await card.locator("button[type=submit]").click();
+    await expect(card.locator(".lesson-exercise__feedback--accepted")).toBeVisible();
+
+    await gotoReady(page, routeUrls.practice);
+    // The review entry persists despite the same-lesson correction (spec §10.4).
+    await expect(page.locator(".review-queue__item")).toHaveCount(1);
+
+    // 2) Now resolve it in review mode: open, answer correctly, it disappears.
+    await page
+      .locator(".review-queue__item button", { hasText: "Ripassa ora" })
+      .first()
+      .click();
+    await page
+      .locator('.review-queue__practice input[type=radio][value="introductions-1-base#p1"]')
+      .check();
+    await page.locator(".review-queue__practice button[type=submit]").click();
+
+    await expect(page.locator(".review-queue__item")).toHaveCount(0);
+    await expect(page.locator(".review-queue__empty")).toBeVisible();
+    await expect(page.locator(".review-queue__announce")).toContainText("Ripassato");
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+});
+
+test.describe("Slice C — truthful lesson evidence states (no colour-only meaning)", () => {
+  /** A valid v3 progress record with introductions-1 fully consolidated. */
+  const CONSOLIDATED_SEED = {
+    schemaVersion: 3,
+    catalogVersion: "a0-a1-v1",
+    lessons: {
+      "introductions-1": {
+        visitedAt: "2026-01-01T00:00:00.000Z",
+        practicedAt: "2026-01-01T00:00:00.000Z",
+        consolidatedAt: "2026-01-01T00:00:00.000Z",
+        attemptedExerciseIds: [
+          "introductions-1-order-base",
+          "introductions-1-particle-base",
+          "introductions-1-complete-base",
+          "introductions-1-construct-say",
+        ],
+        acceptedExerciseIds: [
+          "introductions-1-order-base",
+          "introductions-1-particle-base",
+          "introductions-1-complete-base",
+          "introductions-1-construct-say",
+        ],
+      },
+    },
+    lastVisitedLessonId: "introductions-1",
+    reviewQueue: [],
+    orphanedLessonIds: [],
+    orphanedReviewKeys: [],
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  };
+
+  test("a consolidated lesson shows a text 'Consolidata' state, not merely a colour", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+    // Seed AFTER the observers' storage-clearing init script so this wins.
+    await page.addInitScript((seed: string) => {
+      localStorage.setItem("nihongo.course.progress", seed);
+    }, JSON.stringify(CONSOLIDATED_SEED));
+
+    await gotoReady(page, EXERCISE_LESSON_URL);
+    const status = page.locator('.lesson-exercises__status[data-state="consolidated"]');
+    await expect(status).toBeVisible();
+    // The meaning is carried by a text label, never colour alone (spec §14).
+    await expect(status).toContainText("Consolidata");
 
     await assertNoRuntimeErrors(page, observers);
   });

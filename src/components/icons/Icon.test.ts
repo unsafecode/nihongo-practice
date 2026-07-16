@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { Icon, semanticIconIds } from "./Icon";
 
 describe("Icon", () => {
-  it("exposes exactly the eight approved semantic icon IDs", () => {
+  it("exposes exactly the twelve approved semantic icon IDs", () => {
     expect([...semanticIconIds].sort()).toEqual(
       [
         "sounds",
@@ -15,6 +15,10 @@ describe("Icon", () => {
         "people",
         "questions",
         "capstone",
+        "identity",
+        "descriptions",
+        "shopping",
+        "existence",
       ].sort(),
     );
   });

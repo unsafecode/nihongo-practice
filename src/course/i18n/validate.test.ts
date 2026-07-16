@@ -64,6 +64,8 @@ describe.each([itCopy, enCopy])("course locale", (copy) => {
       home: copy.home,
       lesson: copy.lesson,
       practice: copy.practice,
+      exercises: copy.exercises,
+      review: copy.review,
       courseMap: copy.courseMap,
       modules: copy.modules,
       lessons: copy.lessons,
@@ -86,6 +88,19 @@ describe.each([itCopy, enCopy])("course locale", (copy) => {
     expect(copy.courseMap.estimatedMinutes(12).trim().length).toBeGreaterThan(0);
     expect(copy.courseMap.expandLabel("X").trim().length).toBeGreaterThan(0);
     expect(copy.courseMap.collapseLabel("X").trim().length).toBeGreaterThan(0);
+    // Exercise + review dynamic copy is never blank (design spec §10.3-§10.4).
+    expect(copy.exercises.position(1, 4).trim().length).toBeGreaterThan(0);
+    expect(copy.exercises.addTile("は").trim().length).toBeGreaterThan(0);
+    expect(copy.exercises.removeTile("は").trim().length).toBeGreaterThan(0);
+    expect(copy.exercises.moveTileBack("は").trim().length).toBeGreaterThan(0);
+    expect(copy.exercises.moveTileForward("は").trim().length).toBeGreaterThan(0);
+    expect(copy.review.count(1).trim().length).toBeGreaterThan(0);
+    expect(copy.review.count(3).trim().length).toBeGreaterThan(0);
+    expect(copy.review.fromLesson("X").trim().length).toBeGreaterThan(0);
+    expect(copy.review.mistakes(1).trim().length).toBeGreaterThan(0);
+    expect(copy.review.mistakes(2).trim().length).toBeGreaterThan(0);
+    expect(copy.review.orphaned(1).trim().length).toBeGreaterThan(0);
+    expect(copy.review.orphaned(2).trim().length).toBeGreaterThan(0);
   });
 
   it("has no orphan localized keys beyond what course data references", () => {

@@ -10,13 +10,13 @@ import type { GuidedTransformationData } from "../data/types";
 import { GuidedTransformation } from "./GuidedTransformation";
 
 const authored: GuidedTransformationData = {
-  id: "exp-actions-object",
-  objectiveId: "actions-object",
-  initialSelection: { exampleId: "eat-masu", segmentIds: [] },
-  targetSelection: { exampleId: "eat-ramen", segmentIds: ["0", "1"] },
-  changedGearIds: ["ラーメン", "を"],
+  id: "exp-actions-1",
+  objectiveId: "actions-1",
+  initialSelection: { exampleId: "actions-1-base", segmentIds: [] },
+  targetSelection: { exampleId: "actions-1-changed", segmentIds: [] },
+  changedGearIds: ["レストラン", "で"],
   returnTarget: {
-    pathname: lessonPath("actions", "actions-object"),
+    pathname: lessonPath("actions", "actions-1"),
     sectionId: "explore",
   },
 };
@@ -76,13 +76,13 @@ describe("GuidedTransformation (authored endpoints)", () => {
   it("shows both endpoints derived from the authored examples", () => {
     const html = render(authored);
     expect(html).toContain("たべ");
-    expect(html).toContain("ラーメン");
+    expect(html).toContain("レストラン");
   });
 
   it("marks the introduced gears on the target endpoint only", () => {
     const found = marks(render(authored)).join("|");
-    expect(found).toContain("ラーメン");
-    expect(found).toContain("を");
+    expect(found).toContain("レストラン");
+    expect(found).toContain("で");
     // Both declared gears live in the target endpoint; the initial has none.
     expect(marks(render(authored))).toHaveLength(2);
   });
@@ -107,5 +107,26 @@ describe("GuidedTransformation (lab endpoints reuse the engine)", () => {
     expect(html).toContain('class="action');
     expect(html).toContain("scenario=eat");
     expect(html).toContain("from=%2Fpercorso%2Ftime%2Ftime-past%23explore");
+  });
+});
+
+/**
+ * Assisted katakana first exposure on an authored guided board (design spec
+ * §7, §8.3). The `authored` fixture's target endpoint is
+ * "actions-1-changed", whose catalog segment carries レストラン with its
+ * shared hiragana reading れすとらん, so the guided board must render the
+ * same ruby annotation the comparison cards do — this is the same shared
+ * `JapaneseSegmentText` renderer, not a duplicated rule.
+ */
+describe("GuidedTransformation: assisted katakana exposure", () => {
+  it("shows レストラン with its ruby hiragana reading on the authored target endpoint", () => {
+    const html = render(authored);
+    expect(html).toMatch(/<ruby[^>]*>レストラン<rt[^>]*>れすとらん<\/rt><\/ruby>/);
+  });
+
+  it("does not invent aid for lab-engine endpoints, which carry no shared reading", () => {
+    const html = render(lab);
+    expect(html).not.toContain("<ruby");
+    expect(html).not.toContain("<rt");
   });
 });

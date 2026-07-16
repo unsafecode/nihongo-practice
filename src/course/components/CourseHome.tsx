@@ -6,6 +6,7 @@ import { lessonPath, routePaths } from "../../routing/routes";
 import { courseModules } from "../data/course";
 import { getCourseCopy } from "../i18n/catalog";
 import { useProgress } from "../progress/ProgressContext";
+import { visitedLessonIds } from "../progress/progress";
 import { buildCourseMapModel } from "./courseMapModel";
 import { CourseMap } from "./CourseMap";
 import { RouteNotice } from "./RouteNotice";
@@ -26,10 +27,11 @@ export function CourseHome(): ReactElement {
   const copy = getCourseCopy(locale);
   const { progress, corrupted, persistenceAvailable, dismissCorruption, reset } =
     useProgress();
+  const visitedIds = visitedLessonIds(progress);
 
   const model = buildCourseMapModel(
     courseModules,
-    progress.visitedLessonIds,
+    visitedIds,
     progress.lastVisitedLessonId,
   );
 
@@ -47,7 +49,7 @@ export function CourseHome(): ReactElement {
       : copy.home.start;
 
   const canReset =
-    progress.visitedLessonIds.length > 0 || progress.lastVisitedLessonId !== null;
+    visitedIds.length > 0 || progress.lastVisitedLessonId !== null;
 
   const resetProgress = () => {
     if (window.confirm(copy.home.resetConfirm)) reset();

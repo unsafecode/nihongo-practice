@@ -10,12 +10,12 @@ import type { GuidedToolExploration } from "../data/types";
 import { GuidedToolLink } from "./GuidedToolLink";
 
 const exploration: GuidedToolExploration = {
-  id: "exp-sounds-core",
-  objectiveId: "sounds-core",
+  id: "exp-sounds-1",
+  objectiveId: "sounds-1",
   target: "syllabary",
   group: "gojuon",
   returnTarget: {
-    pathname: lessonPath("sounds", "sounds-core"),
+    pathname: lessonPath("sounds", "sounds-1"),
     sectionId: "explore",
   },
 };
@@ -33,12 +33,26 @@ function render(): string {
           null,
           createElement(GuidedToolLink, {
             exploration,
-            copyId: "sounds-core-explore",
+            copyId: "sounds-1-explore",
           }),
         ),
       ),
     ),
   );
+}
+
+/**
+ * React's renderToStaticMarkup HTML-escapes apostrophes (as `&#x27;`) even in
+ * plain text nodes, so copy containing an apostrophe must be escaped the same
+ * way before a `.toContain()` check against rendered HTML (see CourseMap.test).
+ */
+function escapeHtmlText(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
 }
 
 describe("GuidedToolLink", () => {
@@ -52,12 +66,14 @@ describe("GuidedToolLink", () => {
   it("targets the lesson's Syllabary group and carries the exact explore return", () => {
     const html = render();
     expect(html).toContain("group=gojuon");
-    expect(html).toContain("from=%2Fpercorso%2Fsounds%2Fsounds-core%23explore");
+    expect(html).toContain("from=%2Fpercorso%2Fsounds%2Fsounds-1%23explore");
   });
 
   it("describes what the link opens using the explore copy body", () => {
     const html = render();
-    expect(html).toContain(itCopy.blocks["sounds-core-explore"].body ?? "");
+    expect(html).toContain(
+      escapeHtmlText(itCopy.blocks["sounds-1-explore"].body ?? ""),
+    );
   });
 
   it("never claims an in-page before/after transformation", () => {

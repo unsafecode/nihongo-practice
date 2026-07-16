@@ -24,7 +24,9 @@ import { useProgress } from "../progress/ProgressContext";
 import { GuidedToolLink } from "./GuidedToolLink";
 import { GuidedJourney } from "./GuidedJourney";
 import { GuidedTransformation } from "./GuidedTransformation";
+import { LessonExercises } from "./LessonExercises";
 import { LessonRail } from "./LessonRail";
+import { SpokenAttempt } from "./SpokenAttempt";
 import { TransformComparison } from "./TransformComparison";
 import { useActiveSection } from "./useActiveSection";
 
@@ -77,7 +79,11 @@ export function LessonPage() {
       <Navigate
         replace
         to={lessonPath(resolution.courseModule.id, resolution.lesson.id)}
-        state={LEGACY_MODULE_REDIRECT_STATE}
+        state={
+          resolution.moduleChanged
+            ? LEGACY_MODULE_REDIRECT_STATE
+            : undefined
+        }
       />
     );
   }
@@ -127,26 +133,39 @@ export function LessonPage() {
         );
       }
       case "explore": {
-        if (section.exploration.kind === "tool") {
-          return (
+        // The practice exercises and the one optional spoken attempt render once
+        // here, after the kind-specific exploration and before the recap section,
+        // regardless of exploration kind (design spec §5.3, Slice D Task 3). The
+        // spoken attempt is optional: every lesson stays complete without it.
+        const exploration =
+          section.exploration.kind === "tool" ? (
             <GuidedToolLink
               exploration={section.exploration.data}
               copyId={section.copyId}
             />
+          ) : (
+            (() => {
+              const content = copy.blocks[section.copyId];
+              return (
+                <>
+                  <div className="lesson-section__intro">
+                    <h3>{content.title}</h3>
+                    {content.body ? <p>{content.body}</p> : null}
+                  </div>
+                  {section.exploration.kind === "journey" ? (
+                    <GuidedJourney data={section.exploration.data} />
+                  ) : (
+                    <GuidedTransformation data={section.exploration.data} />
+                  )}
+                </>
+              );
+            })()
           );
-        }
-        const content = copy.blocks[section.copyId];
         return (
           <>
-            <div className="lesson-section__intro">
-              <h3>{content.title}</h3>
-              {content.body ? <p>{content.body}</p> : null}
-            </div>
-            {section.exploration.kind === "journey" ? (
-              <GuidedJourney data={section.exploration.data} />
-            ) : (
-              <GuidedTransformation data={section.exploration.data} />
-            )}
+            {exploration}
+            <LessonExercises lessonId={lesson.id} />
+            <SpokenAttempt lessonId={lesson.id} />
           </>
         );
       }

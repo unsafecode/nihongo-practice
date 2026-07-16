@@ -6,27 +6,36 @@ SPA statica: nessun account, nessun backend, nessuna analisi, nessun tracker, ne
 
 ---
 
-## Esperienza v2.1 corretta
+## Percorso completo A0→A1
 
-Il percorso è composto da **sette moduli guidati e un capstone**, ciascuno con una o più lezioni compatte.
+Il percorso guidato è il corso **A0→A1 completo**: **12 moduli in quattro fasi** (Orientati · Costruisci · Naviga · Sintetizza) per un totale di **40 lezioni** compatte da 6 a 10 minuti, che coprono **42 verbi** e **270 vocaboli contestuali**.
 
-I moduli coprono in sequenza:
+L'approccio è **hiragana-first con katakana assistita**: i prestiti in katakana (es. コーヒー) mostrano, alla prima esposizione, una lettura in hiragana affiancata (ruby), mai al posto della grafia autentica.
 
-1. **Suoni** — l'alfabeto sillabico e la lettura hiragana
-2. **Riconoscimento e struttura della frase** — ordine SOV, particelle, predicato finale
-3. **Ordinare e fare richieste** — forme cortesi al presente
-4. **Tempo e polarità** — passato, negativo, negativo passato
-5. **Movimento e luoghi** — particelle di luogo, verbi di spostamento
-6. **Persone, desideri e inviti** — たい, ましょう, contesti sociali
-7. **Domande ed esistenza** — か, あります/います
-8. **Capstone** — sintesi di una giornata da viaggio
+I 12 moduli, in ordine:
 
-Ogni lezione combina **regola · confronto · esplorazione guidata · riepilogo**.
+1. **Suoni, hiragana e il ponte katakana** — l'alfabeto sillabico, la lettura hiragana e i primi prestiti in katakana
+2. **Presentarsi** — nome, provenienza, lingua, occupazione ed età
+3. **Domande essenziali** — chi, cosa, dove, quando, quale, come e quanto
+4. **Azioni e oggetti** — frasi d'azione cortesi con oggetti e compagni
+5. **Routine, orario e frequenza** — giornata, giorni della settimana, frequenza
+6. **Passato e negativo** — presente/passato, affermativo/negativo
+7. **Luoghi, movimento e trasporti** — particelle di luogo, verbi di spostamento
+8. **Persone, famiglia e relazioni** — relazioni di base, piani condivisi
+9. **Descrizioni, preferenze e meteo** — condizioni familiari, gusti e preferenze
+10. **Acquisti, quantità e richieste** — prezzi, quantità, richieste cortesi
+11. **Esistenza, posizione e bisogni** — あります/います, posizione, bisogni
+12. **Sintesi pratica** — tre prove finali circoscritte: una presentazione, un'uscita quotidiana e una giornata di viaggio
 
-Il progresso è espresso solo in **lezioni visitate**: nessun punteggio, nessuna padronanza, nessun completamento obbligatorio. Italiano/inglese e hiragana/rōmaji sono impostazioni indipendenti.
+Ogni lezione combina **regola · confronto · esplorazione guidata · esercizi · riepilogo**. Ogni lezione include da **3 a 5 esercizi deterministici** — riordino di tessere, scelta di particella o desinenza, trasformazione di tempo/polarità, completamento e costruzione guidata da un'intenzione in italiano o inglese. Gli esercizi sono generati da dati condivisi (concetti, lessico ed esempi): nessuna risposta canonica è duplicata nel codice e ogni esercizio resta completamente utilizzabile anche senza voce.
+
+Il progresso locale distingue tre livelli di evidenza — **lezioni visitate**, **esercitate** e **consolidate** — senza punteggi, padronanza né completamento obbligatorio: aprire una lezione la segna solo come visitata. Gli esercizi sbagliati alimentano la coda leggera **«Da ripassare»** nella pratica libera; un ripasso corretto in modalità ripasso risolve la voce, mentre una correzione immediata nella stessa lezione non la rimuove. Non ci sono intervalli, scadenze o punteggi nascosti. Italiano/inglese e hiragana/rōmaji sono impostazioni indipendenti e funzionano su tutto il percorso completo.
+
+**Prova parlata (facoltativa):** dopo gli esercizi, ogni lezione propone un passaggio di parlato **facoltativo** basato sul **riconoscimento vocale del browser** (Web Speech API), quando disponibile. Ti dice soltanto se il browser ha riconosciuto la frase (riconosciuta · quasi · riprova): non assegna voti e non valuta la pronuncia. L'app **non salva l'audio** e non conserva il testo riconosciuto; l'eventuale elaborazione dell'audio dipende dal browser, dal sistema operativo o dalla voce scelta. Prima del primo uso del microfono compare un avviso esplicito sulla privacy e il consenso resta in memoria solo per la sessione. Se il browser non supporta il riconoscimento o se neghi il microfono, la lezione resta completa: puoi comunque ascoltare il modello e ripetere ad alta voce. La sintesi vocale del browser (`speechSynthesis`) resta la sola riproduzione audio dei modelli.
 
 ## Pratica libera
 
+- **Da ripassare** — la coda leggera degli esercizi sbagliati: ogni voce rimanda alla sua lezione e può essere ripassata sul posto; un ripasso corretto la risolve.
 - **Laboratorio frasi** — costruisci frasi scegliendo verbo, forma, tempo e complementi; le particelle e le terminazioni sono evidenziate come "ingranaggi".
 - **Sillabario** — tavola hiragana interattiva (gojūon, dakuten/handakuten, yōon) con sintesi audio per ogni sillaba.
 - **Frasario** — frasi pratiche da viaggio con testo e audio, organizzate per categoria.
@@ -41,8 +50,21 @@ Nessun account, nessun backend. `localStorage` contiene soltanto:
 - `nihongo.course.progress`
 
 Se lo storage non è disponibile, l'app continua a funzionare per la sessione corrente.
+`nihongo.course.progress` usa uno schema v3 versionato e migra in modo
+idempotente i dati v1/v2. Lo schema distingue visite, pratica e consolidamento:
+aprire una lezione la segna come visitata, mentre gli esercizi corretti fanno
+avanzare gli stati **esercitata** e **consolidata**. La prova parlata è solo
+pratica e non registra alcuna evidenza di progresso.
 
-La v2.1 usa esclusivamente la sintesi vocale del browser o del sistema operativo. L'app non registra audio e non invia testo o audio a un backend dell'applicazione; l'eventuale elaborazione online di una voce dipende dal browser, dal sistema e dalla voce scelta.
+L'app usa la **sintesi vocale** del browser o del sistema operativo
+(`speechSynthesis`) per la riproduzione audio dei modelli. La **prova parlata
+facoltativa** usa il **riconoscimento vocale** del browser (Web Speech API) solo
+su richiesta esplicita, dopo un avviso sulla privacy: l'app non registra né salva
+audio, non conserva il testo riconosciuto e non invia audio o testo a un backend
+dell'applicazione. L'eventuale elaborazione dell'audio o della voce dipende dal
+browser, dal sistema operativo e dalla voce scelta. Sui browser che non
+supportano il riconoscimento la funzione resta assente e ogni lezione rimane
+comunque completa.
 
 ## Sviluppo locale
 
@@ -75,7 +97,7 @@ La suite completa comprende **Vitest** (unit/integrazione) e **Playwright** (des
 - **Vite** come bundler e dev server
 - **Vitest** per i test unit/integrazione
 - **Playwright** per i test end-to-end
-- **Web Speech API** (`speechSynthesis`) per la sintesi vocale
+- **Web Speech API** (`speechSynthesis` e, in modo facoltativo, `SpeechRecognition`) per sintesi e riconoscimento vocale
 - CSS scritto a mano + font **Manrope** self-hosted
 
 Routing statico hash; nessuna API esterna, nessun service worker, nessuna dipendenza esterna a runtime.
