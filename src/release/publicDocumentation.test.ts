@@ -20,10 +20,10 @@ describe('README.md public documentation', () => {
     expect(readme).toContain('hiragana-first con katakana assistita');
     expect(readme).toContain('Sintesi pratica');
     expect(readme).toContain('lezioni visitate');
-    expect(readme).toContain('Non ancora disponibili');
-    expect(readme).toContain('Slice C');
-    expect(readme).toContain('Slice D');
-    expect(readme).toContain('non è riconoscimento vocale');
+    expect(readme).toContain('riconoscimento vocale del browser');
+    expect(readme).toContain('Prova parlata');
+    expect(readme).toContain("non salva l'audio");
+    expect(readme).toContain('gli esercizi corretti fanno');
     expect(readme).toContain('npm run test:e2e');
     expect(readme).toContain('## Licenza');
     expect(readme).toContain('MIT');
@@ -36,6 +36,10 @@ describe('README.md public documentation', () => {
     expect(readme).not.toContain('sette moduli guidati e un capstone');
     expect(readme).not.toContain('prossima estensione A0→A1');
     expect(readme).not.toContain('questa versione eseguibile mantiene ancora il percorso v2.1');
+    // Stale Slice D "not yet available" framing must be gone (Slice D Task 3).
+    expect(readme).not.toContain('Non ancora disponibili');
+    expect(readme).not.toContain('non è riconoscimento vocale');
+    expect(readme).not.toContain('registra soltanto le visite');
   });
 });
 

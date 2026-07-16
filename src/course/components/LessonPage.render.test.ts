@@ -6,6 +6,7 @@ import { LocaleProvider } from "../../i18n/LocaleContext";
 import { ScriptProvider } from "../../settings/ScriptContext";
 import { LESSON_SECTION_IDS } from "../../routing/lessonSections";
 import { ProgressProvider } from "../progress/ProgressContext";
+import { SpeechRecognitionProvider } from "../speech/SpeechRecognitionContext";
 import { it as itCopy } from "../i18n/it";
 import { LessonPage } from "./LessonPage";
 
@@ -18,24 +19,28 @@ import { LessonPage } from "./LessonPage";
 function render(path: string): string {
   return renderToStaticMarkup(
     createElement(
-      MemoryRouter,
-      { initialEntries: [path] },
+      SpeechRecognitionProvider,
+      null,
       createElement(
-        LocaleProvider,
-        null,
+        MemoryRouter,
+        { initialEntries: [path] },
         createElement(
-          ScriptProvider,
+          LocaleProvider,
           null,
           createElement(
-            ProgressProvider,
+            ScriptProvider,
             null,
             createElement(
-              Routes,
+              ProgressProvider,
               null,
-              createElement(Route, {
-                path: "/percorso/:moduleId/:lessonId",
-                element: createElement(LessonPage),
-              }),
+              createElement(
+                Routes,
+                null,
+                createElement(Route, {
+                  path: "/percorso/:moduleId/:lessonId",
+                  element: createElement(LessonPage),
+                }),
+              ),
             ),
           ),
         ),
@@ -47,28 +52,32 @@ function render(path: string): string {
 function renderWithLegacyNotice(path: string): string {
   return renderToStaticMarkup(
     createElement(
-      MemoryRouter,
-      {
-        initialEntries: [
-          { pathname: path, state: { legacyModuleRedirect: true } },
-        ],
-      },
+      SpeechRecognitionProvider,
+      null,
       createElement(
-        LocaleProvider,
-        null,
+        MemoryRouter,
+        {
+          initialEntries: [
+            { pathname: path, state: { legacyModuleRedirect: true } },
+          ],
+        },
         createElement(
-          ScriptProvider,
+          LocaleProvider,
           null,
           createElement(
-            ProgressProvider,
+            ScriptProvider,
             null,
             createElement(
-              Routes,
+              ProgressProvider,
               null,
-              createElement(Route, {
-                path: "/percorso/:moduleId/:lessonId",
-                element: createElement(LessonPage),
-              }),
+              createElement(
+                Routes,
+                null,
+                createElement(Route, {
+                  path: "/percorso/:moduleId/:lessonId",
+                  element: createElement(LessonPage),
+                }),
+              ),
             ),
           ),
         ),

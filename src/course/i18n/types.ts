@@ -160,7 +160,70 @@ export interface CourseCopy {
     unavailableBody: string;
   };
   /**
-   * Localized copy for the lightweight `Da ripassare` review queue on Practice
+   * Localized copy for the optional in-lesson spoken attempt (design spec §5.3,
+   * §12.1-§12.3; Slice D plan Task 3). Nested after the practice exercises in
+   * the explore section — never a new route anchor, never a lesson gate. Every
+   * string is truthful: the copy states only whether the browser recognized the
+   * target sentence (matched / close / retry) or which mapped recognition state
+   * occurred. It makes NO pronunciation, accuracy, accent, fluency, phoneme,
+   * score, grade, or percentage claim in either locale, and never duplicates the
+   * Japanese target (that lives once in the shared example catalog). Consent is
+   * an app notice held in provider session memory only; its disclosure states
+   * that speaking is optional, that the app stores no audio, that the recognized
+   * text is not saved, that the browser/OS/voice may process the audio, and that
+   * denying the microphone leaves every other exercise usable.
+   */
+  spokenAttempt: {
+    heading: string;
+    /** Intro stressing the step is optional and score-free. */
+    intro: string;
+    /** Region label above the visible target sentence. */
+    targetLabel: string;
+    /** Label paired with the localized meaning of the target. */
+    meaningLabel: string;
+    /** Model playback control and its in-progress label. */
+    listen: string;
+    playing: string;
+    /** Pre-consent control that opens the privacy disclosure (never the mic). */
+    tryButton: string;
+    /** Consent notice title, body, and its two controls. */
+    consentTitle: string;
+    consentBody: string;
+    /** Acknowledge only records consent — it MUST NOT start the recognizer. */
+    consentAcknowledge: string;
+    consentDismiss: string;
+    /** The separate microphone controls shown only after consent. */
+    micStart: string;
+    micStop: string;
+    tryAgain: string;
+    /** Accessible name for the recognition status region. */
+    statusRegionLabel: string;
+    /** Active-attempt status text (text + shape, never colour alone). */
+    statusListening: string;
+    statusProcessing: string;
+    /** The three honest recognition outcomes. */
+    resultMatched: string;
+    resultClose: string;
+    resultRetry: string;
+    /** The mapped recognition failures, each distinct and localized. */
+    errorUnsupported: string;
+    errorDenied: string;
+    errorNoSpeech: string;
+    errorAborted: string;
+    errorNetwork: string;
+    errorService: string;
+    /** The always-available listen-and-repeat fallback (no scoring). */
+    repeatTitle: string;
+    repeatBody: string;
+    /** Label preceding the recognized transcript (shown only in-state). */
+    heardLabel: string;
+    /** Per-segment record labels — matched/unmatched and the critical marker. */
+    segmentsLabel: string;
+    segmentMatched: string;
+    segmentMissing: string;
+    criticalLabel: string;
+  };
+  /**
    * Home (design spec §10.4; Slice C plan Task 4 step 4). The title is the
    * Italian `Da ripassare`; English uses a plain beginner label. Empty, orphan,
    * and storage-unavailable states each have their own explicit string.

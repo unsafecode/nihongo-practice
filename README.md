@@ -31,7 +31,7 @@ Ogni lezione combina **regola · confronto · esplorazione guidata · esercizi �
 
 Il progresso locale distingue tre livelli di evidenza — **lezioni visitate**, **esercitate** e **consolidate** — senza punteggi, padronanza né completamento obbligatorio: aprire una lezione la segna solo come visitata. Gli esercizi sbagliati alimentano la coda leggera **«Da ripassare»** nella pratica libera; un ripasso corretto in modalità ripasso risolve la voce, mentre una correzione immediata nella stessa lezione non la rimuove. Non ci sono intervalli, scadenze o punteggi nascosti. Italiano/inglese e hiragana/rōmaji sono impostazioni indipendenti e funzionano su tutto il percorso completo.
 
-**Non ancora disponibili in questa versione:** il **riconoscimento vocale** del parlato (Slice D). Gli esercizi deterministici e la coda «Da ripassare» (Slice C) sono ora integrati. La sintesi vocale del browser (`speechSynthesis`), già presente, è **solo riproduzione audio dei modelli**: l'app non ascolta né valuta la pronuncia dell'utente.
+**Prova parlata (facoltativa):** dopo gli esercizi, ogni lezione propone un passaggio di parlato **facoltativo** basato sul **riconoscimento vocale del browser** (Web Speech API), quando disponibile. Ti dice soltanto se il browser ha riconosciuto la frase (riconosciuta · quasi · riprova): non assegna voti e non valuta la pronuncia. L'app **non salva l'audio** e non conserva il testo riconosciuto; l'eventuale elaborazione dell'audio dipende dal browser, dal sistema operativo o dalla voce scelta. Prima del primo uso del microfono compare un avviso esplicito sulla privacy e il consenso resta in memoria solo per la sessione. Se il browser non supporta il riconoscimento o se neghi il microfono, la lezione resta completa: puoi comunque ascoltare il modello e ripetere ad alta voce. La sintesi vocale del browser (`speechSynthesis`) resta la sola riproduzione audio dei modelli.
 
 ## Pratica libera
 
@@ -51,11 +51,20 @@ Nessun account, nessun backend. `localStorage` contiene soltanto:
 
 Se lo storage non è disponibile, l'app continua a funzionare per la sessione corrente.
 `nihongo.course.progress` usa uno schema v3 versionato e migra in modo
-idempotente i dati v1/v2. Lo schema distingue visite, pratica e consolidamento;
-l'interfaccia corrente registra soltanto le visite e non inventa evidenze per
-gli stati successivi.
+idempotente i dati v1/v2. Lo schema distingue visite, pratica e consolidamento:
+aprire una lezione la segna come visitata, mentre gli esercizi corretti fanno
+avanzare gli stati **esercitata** e **consolidata**. La prova parlata è solo
+pratica e non registra alcuna evidenza di progresso.
 
-L'app usa esclusivamente la **sintesi vocale** del browser o del sistema operativo (`speechSynthesis`) per la riproduzione audio dei modelli — non è riconoscimento vocale. L'app non registra audio e non invia testo o audio a un backend dell'applicazione; l'eventuale elaborazione online di una voce dipende dal browser, dal sistema e dalla voce scelta.
+L'app usa la **sintesi vocale** del browser o del sistema operativo
+(`speechSynthesis`) per la riproduzione audio dei modelli. La **prova parlata
+facoltativa** usa il **riconoscimento vocale** del browser (Web Speech API) solo
+su richiesta esplicita, dopo un avviso sulla privacy: l'app non registra né salva
+audio, non conserva il testo riconosciuto e non invia audio o testo a un backend
+dell'applicazione. L'eventuale elaborazione dell'audio o della voce dipende dal
+browser, dal sistema operativo e dalla voce scelta. Sui browser che non
+supportano il riconoscimento la funzione resta assente e ogni lezione rimane
+comunque completa.
 
 ## Sviluppo locale
 
@@ -88,7 +97,7 @@ La suite completa comprende **Vitest** (unit/integrazione) e **Playwright** (des
 - **Vite** come bundler e dev server
 - **Vitest** per i test unit/integrazione
 - **Playwright** per i test end-to-end
-- **Web Speech API** (`speechSynthesis`) per la sintesi vocale
+- **Web Speech API** (`speechSynthesis` e, in modo facoltativo, `SpeechRecognition`) per sintesi e riconoscimento vocale
 - CSS scritto a mano + font **Manrope** self-hosted
 
 Routing statico hash; nessuna API esterna, nessun service worker, nessuna dipendenza esterna a runtime.

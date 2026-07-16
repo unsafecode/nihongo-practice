@@ -139,7 +139,50 @@ const itUi = {
     unavailable:
       "Il browser non sta salvando i progressi in questa sessione, quindi questa lista si azzererà alla chiusura dell'app.",
   },
-} satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review">;
+  spokenAttempt: {
+    heading: "Prova a dirla (facoltativo)",
+    intro:
+      "Questo passaggio è facoltativo. Ascolta il modello e ripeti la frase ad alta voce. Ogni lezione funziona del tutto anche senza.",
+    targetLabel: "Frase da dire",
+    meaningLabel: "Significato",
+    listen: "Ascolta il modello",
+    playing: "In riproduzione…",
+    tryButton: "Prova a parlare",
+    consentTitle: "Prima di usare il microfono",
+    consentBody:
+      "Parlare è facoltativo. L'app non salva alcun audio e non conserva il testo riconosciuto. Il browser, il sistema operativo o la sua voce possono elaborare l'audio per trasformarlo in testo. Se non attivi il microfono, tutti gli altri esercizi restano utilizzabili.",
+    consentAcknowledge: "Ho capito, attiva il microfono",
+    consentDismiss: "Non ora",
+    micStart: "Parla ora",
+    micStop: "Interrompi",
+    tryAgain: "Riprova",
+    statusRegionLabel: "Stato della prova parlata",
+    statusListening: "In ascolto…",
+    statusProcessing: "Controllo che cosa ha sentito il browser…",
+    resultMatched: "Il browser ha riconosciuto la frase.",
+    resultClose: "Il browser ha riconosciuto quasi tutta la frase.",
+    resultRetry: "Il browser non ha riconosciuto la frase. Riprova.",
+    errorUnsupported:
+      "Questo browser non trasforma la voce in testo. Puoi comunque ascoltare il modello e ripetere ad alta voce.",
+    errorDenied:
+      "Il microfono è bloccato. Puoi comunque ascoltare il modello e ripetere ad alta voce.",
+    errorNoSpeech:
+      "Il browser non ha sentito nulla. Riprova, oppure ascolta il modello e ripeti ad alta voce.",
+    errorAborted: "La registrazione si è interrotta.",
+    errorNetwork:
+      "Per trasformare la voce in testo serve una connessione e ora il servizio non è raggiungibile. Puoi comunque ascoltare il modello e ripetere ad alta voce.",
+    errorService:
+      "La trasformazione della voce in testo non è disponibile ora. Puoi comunque ascoltare il modello e ripetere ad alta voce.",
+    repeatTitle: "Ascolta e ripeti",
+    repeatBody:
+      "Ascolta il modello e ripeti la frase ad alta voce quando vuoi.",
+    heardLabel: "Il browser ha sentito:",
+    segmentsLabel: "Parola per parola",
+    segmentMatched: "riconosciuta",
+    segmentMissing: "non riconosciuta",
+    criticalLabel: "parola chiave",
+  },
+} satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt">;
 
 const itCourseMap: CourseCopy["courseMap"] = {
   heading: "Le fasi del percorso",

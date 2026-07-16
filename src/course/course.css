@@ -1402,3 +1402,236 @@
   .lesson-exercise__option,
   .lesson-exercise__input { transition: none; }
 }
+
+/* ============================================================
+   OPTIONAL SPOKEN ATTEMPT (design spec §5.3, §12.1-§12.3)
+   Nested after the practice exercises inside the explore
+   section — never a new route anchor, never a lesson gate.
+   Every recognition state is conveyed by text plus a shape
+   glyph, never colour alone; controls reuse the shared >=44px
+   .action targets and their visible focus ring; nothing here
+   relies on motion, so it is reduced-motion safe by default.
+   ============================================================ */
+
+.spoken-attempt {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--course-line);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.spoken-attempt__heading {
+  margin: 0;
+  font-size: var(--text-4);
+}
+
+.spoken-attempt__intro {
+  margin: 0;
+  color: var(--course-muted);
+}
+
+.spoken-attempt__target {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.spoken-attempt__region-label {
+  margin: 0;
+  font-size: var(--text-1);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--course-muted);
+}
+
+.spoken-attempt__sentence {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  align-items: baseline;
+}
+
+/* Script-primary/secondary glyph pair, matching the exercise renderer. */
+.spoken-attempt__glyph {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+}
+.spoken-attempt__glyph-primary { font-size: var(--text-3); }
+.spoken-attempt__glyph-secondary {
+  font-size: var(--text-1);
+  color: var(--course-muted);
+}
+
+.spoken-attempt__meaning { margin: 0; }
+.spoken-attempt__meaning-label { color: var(--course-muted); font-weight: 700; }
+
+.spoken-attempt__controls {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.spoken-attempt__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.spoken-attempt__button {
+  min-width: var(--action-target-min);
+  min-height: var(--action-target-min);
+}
+
+.spoken-attempt__button:focus-visible {
+  outline: 3px solid var(--time);
+  outline-offset: 2px;
+}
+
+/* Consent notice: an app disclosure held in session memory only. */
+.spoken-attempt__consent {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--course-line);
+  border-left: 4px solid var(--course-coral);
+  border-radius: var(--radius-sm);
+  background: var(--course-surface);
+}
+.spoken-attempt__consent-title { margin: 0; font-size: var(--text-3); }
+.spoken-attempt__consent-body { margin: 0; color: var(--course-ink); }
+
+.spoken-attempt__mic { display: grid; gap: var(--space-3); }
+
+/* Recognized transcript — shown only in the current state, never saved. */
+.spoken-attempt__heard {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--course-surface);
+}
+.spoken-attempt__heard-label { color: var(--course-muted); font-weight: 700; }
+.spoken-attempt__heard-text { font-size: var(--text-3); }
+
+/* Ordered per-segment records: text + shape, never colour alone. */
+.spoken-attempt__segments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.spoken-attempt__segment {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+}
+.spoken-attempt__segment-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: 999px;
+  font-weight: 900;
+}
+.spoken-attempt__segment-jp { font-size: var(--text-3); }
+.spoken-attempt__segment-state {
+  font-size: var(--text-1);
+  font-weight: 700;
+  color: var(--course-muted);
+}
+.spoken-attempt__segment-critical {
+  font-size: var(--text-1);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--course-ink);
+  padding: 0.1rem var(--space-2);
+  border: 1px solid var(--course-line);
+  border-radius: 999px;
+  background: var(--course-surface);
+}
+.spoken-attempt__segment--matched {
+  border-color: color-mix(in srgb, var(--course-teal) 55%, var(--course-line));
+}
+.spoken-attempt__segment--matched .spoken-attempt__segment-glyph {
+  background: var(--course-teal-soft);
+  color: var(--course-teal);
+}
+.spoken-attempt__segment--missing {
+  border-color: color-mix(in srgb, var(--gear-particle) 55%, var(--course-line));
+}
+.spoken-attempt__segment--missing .spoken-attempt__segment-glyph {
+  background: color-mix(in srgb, var(--gear-particle) 22%, var(--course-surface));
+  color: color-mix(in srgb, var(--gear-particle) 70%, var(--course-ink));
+}
+
+/* Listen-and-repeat fallback + unsupported/error notice. */
+.spoken-attempt__fallback { display: grid; gap: var(--space-3); }
+.spoken-attempt__notice {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--course-surface);
+}
+.spoken-attempt__notice-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6em;
+  height: 1.6em;
+  border-radius: 999px;
+  font-weight: 900;
+  background: color-mix(in srgb, var(--gear-particle) 22%, var(--course-surface));
+}
+.spoken-attempt__repeat {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border-left: 3px solid var(--course-line);
+  border-radius: var(--radius-sm);
+  background: var(--course-surface);
+}
+.spoken-attempt__repeat-title { margin: 0; font-weight: 800; }
+.spoken-attempt__repeat-body { margin: 0; color: var(--course-muted); }
+
+/* Polite status live region: text + shape, never colour alone. */
+.spoken-attempt__status {
+  margin: 0;
+  min-height: 1.5em;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.spoken-attempt__status:empty { min-height: 0; }
+.spoken-attempt__status-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6em;
+  height: 1.6em;
+  border-radius: 999px;
+  font-weight: 900;
+  background: var(--course-surface);
+}
+.spoken-attempt__status-text { font-weight: 700; }
+
+@media (max-width: 680px) {
+  .spoken-attempt__actions { flex-direction: column; align-items: stretch; }
+}

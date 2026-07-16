@@ -139,7 +139,49 @@ const enUi = {
     unavailable:
       "Your browser is not saving progress in this session, so this list will reset when you close the app.",
   },
-} satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review">;
+  spokenAttempt: {
+    heading: "Try saying it (optional)",
+    intro:
+      "This step is optional. Listen to the model and say the sentence aloud. Every lesson works fully without it.",
+    targetLabel: "Sentence to say",
+    meaningLabel: "Meaning",
+    listen: "Play the model",
+    playing: "Playing…",
+    tryButton: "Try speaking",
+    consentTitle: "Before you use the microphone",
+    consentBody:
+      "Speaking is optional. The app stores no audio and does not save the recognized text. Your browser, operating system, or its speech voice may process the audio to turn it into text. If you do not allow the microphone, every other exercise still works.",
+    consentAcknowledge: "I understand — enable the microphone",
+    consentDismiss: "Not now",
+    micStart: "Speak now",
+    micStop: "Stop",
+    tryAgain: "Try again",
+    statusRegionLabel: "Spoken attempt status",
+    statusListening: "Listening…",
+    statusProcessing: "Checking what your browser heard…",
+    resultMatched: "Your browser recognized the sentence.",
+    resultClose: "Your browser recognized almost all of the sentence.",
+    resultRetry: "Your browser did not recognize the sentence. Try again.",
+    errorUnsupported:
+      "This browser cannot turn speech into text. You can still play the model and repeat it aloud.",
+    errorDenied:
+      "The microphone is blocked. You can still play the model and repeat it aloud.",
+    errorNoSpeech:
+      "Your browser did not hear anything. Try again, or play the model and repeat it aloud.",
+    errorAborted: "The recording stopped.",
+    errorNetwork:
+      "Turning speech into text needs a connection right now and the service is not reachable. You can still play the model and repeat it aloud.",
+    errorService:
+      "Turning speech into text is not available right now. You can still play the model and repeat it aloud.",
+    repeatTitle: "Listen and repeat",
+    repeatBody: "Play the model and say the sentence aloud whenever you like.",
+    heardLabel: "Your browser heard:",
+    segmentsLabel: "Word by word",
+    segmentMatched: "recognized",
+    segmentMissing: "not recognized",
+    criticalLabel: "key word",
+  },
+} satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt">;
 
 const enCourseMap: CourseCopy["courseMap"] = {
   heading: "The course phases",
