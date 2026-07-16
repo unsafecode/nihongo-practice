@@ -297,13 +297,27 @@ function TileOrderingBody({
   // whole placed token sequence (never per-tile CSS gap alone) — requirement
   // 8. Each tile still renders as its own single isolated glyph; the
   // separator is emitted as a sibling outside that glyph/control wrapper.
+  //
+  // formatRomaji's own duplicate-id check is keyed by each token's *raw* id —
+  // for a real catalog token that's the within-example segment counter
+  // (`w1`, `p1`, …), which restarts for every example and so is NOT globally
+  // unique. Two legitimately different placed tiles (e.g. a target tile and a
+  // distractor tile pulled from another example) can share that counter by
+  // pure coincidence. Rekey each token's id to its own globally stable,
+  // opaque tile id before validating the whole sequence — preserving every
+  // other field (jp/romaji/kind/boundary/source) untouched — so that
+  // coincidence never trips a spurious "duplicate-token-id" failure.
   const placedTokens = placed.map((tileId) => tokenForTile(tileId) ?? INVALID_TOKEN);
+  const placedTokensForFormatting = placedTokens.map((token, index) => ({
+    ...token,
+    id: placed[index],
+  }));
   const placedFormatted =
-    placedTokens.length > 0 ? formatRomaji(isolateTokens(placedTokens)) : null;
-  // formatRomaji's runs are positional (one per input token, in order) and
-  // keyed by the token's own id, which may differ from — or collide across —
-  // tile ids. Pair placed tile ids with their run by position, not by a
-  // tokenId lookup.
+    placedTokens.length > 0
+      ? formatRomaji(isolateTokens(placedTokensForFormatting))
+      : null;
+  // formatRomaji's runs are positional (one per input token, in order), so
+  // separators are paired with placed tile ids by position, not by id.
   const placedSeparators = new Map(
     placedFormatted?.ok
       ? placed.map(
@@ -312,6 +326,14 @@ function TileOrderingBody({
         )
       : [],
   );
+  // A genuinely malformed token (unresolved, blank romaji, an actual
+  // duplicate placement, …) still fails formatRomaji's validation even after
+  // the rekey above. Fail the whole placed answer closed to the one shared
+  // localized alert — the same fail-closed contract `RomajiSequence` already
+  // uses elsewhere on this page — never a partial run of resolved glyphs
+  // rendered beside a broken one, and never tiles silently glued together
+  // with no separator between them.
+  const placedInvalid = placedFormatted !== null && !placedFormatted.ok;
 
   return (
     <div className="lesson-exercise__tiles">
@@ -325,6 +347,10 @@ function TileOrderingBody({
       >
         {placed.length === 0 ? (
           <li className="lesson-exercise__answer-empty">{copy.answerEmpty}</li>
+        ) : placedInvalid ? (
+          <li className="lesson-exercise__answer-error" role="alert">
+            {errorText}
+          </li>
         ) : (
           placed.map((tileId, position) => {
             const tile = tilesById.get(tileId);

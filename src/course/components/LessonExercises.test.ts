@@ -394,6 +394,91 @@ describe("ExerciseView — semantic romaji rendering (romaji boundaries plan Tas
     expect(placedRomajiSequence(html)).toBe("watashi wa gakusei desu");
   });
 
+  it("tile ordering: two placed tiles from different examples never collide merely because their within-example segment ids repeat", () => {
+    // Real catalog segment ids (`w1`, `p1`, …) are only unique *within* one
+    // example — every example's counter restarts. Two legitimately distinct
+    // placed tiles, each carrying a real token whose raw `id` happens to be
+    // the same reused counter (as if drawn from two different examples' first
+    // "word" segment), must never be treated as a duplicate by the shared
+    // whole-sequence formatter: that would previously make the whole placed
+    // formatting fail and silently fall back to no separator between tiles
+    // (a run-on glyph sequence) while each tile still rendered fine on its
+    // own in isolation.
+    const prompt = tileEx.prompt;
+    if (prompt.kind !== "tile-ordering") throw new Error("kind");
+    const [firstTileId, secondTileId] = prompt.correctTileIds;
+    let state = initExerciseState(prompt);
+    state = placeTile(state, firstTileId);
+    state = placeTile(state, secondTileId);
+
+    const crossExampleTokens: Record<string, AssembledToken> = {
+      [firstTileId]: {
+        id: "w1", // same within-example counter as `secondTileId`'s token
+        jp: "アリス",
+        romaji: "arisu",
+        kind: "lexical",
+        boundaryBefore: "attach",
+        source: { domain: "exercise", referenceId: "cross-example-a#w1" },
+      },
+      [secondTileId]: {
+        id: "w1", // colliding raw id — a different example's own first word
+        jp: "ボブ",
+        romaji: "bobu",
+        kind: "lexical",
+        boundaryBefore: "space",
+        source: { domain: "exercise", referenceId: "cross-example-b#w1" },
+      },
+    };
+    const html = renderView(tileEx, state, null, {
+      tokenForTile: (tileId) => crossExampleTokens[tileId] ?? segmentToken(tileId),
+    });
+
+    // The whole-sequence formatter must not fail (no fail-closed alert)...
+    const answer = html.match(/<ol class="lesson-exercise__answer"[\s\S]*?<\/ol>/)?.[0] ?? "";
+    expect(answer).not.toContain('role="alert"');
+    expect(answer).not.toContain(enCopy.lesson.contentFormattingError);
+    // ...and the real inter-tile separator must still be present — never a
+    // run-on concatenation of the two tiles' romaji.
+    expect(placedRomajiSequence(html)).toBe("arisu bobu");
+    expect(textOnly(answer)).not.toContain("arisubobu");
+  });
+
+  it("tile ordering: a genuinely malformed placed token fails closed with the shared localized alert, never a partial romaji sequence", () => {
+    // Unlike the cross-example case above, this token is actually malformed
+    // (blank jp/romaji/source reference) — formatRomaji's own validation must
+    // still reject it. The fix must not silently render the other, validly
+    // resolved tiles' glyphs next to a broken one with no separator; it must
+    // fail the *whole* placed answer closed to the one shared localized
+    // alert, exactly like the shared RomajiSequence renderer already does
+    // elsewhere on this page.
+    const prompt = tileEx.prompt;
+    if (prompt.kind !== "tile-ordering") throw new Error("kind");
+    let state = initExerciseState(prompt);
+    for (const id of prompt.correctTileIds) state = placeTile(state, id);
+    const malformedTileId = prompt.correctTileIds[1];
+    const html = renderView(tileEx, state, null, {
+      tokenForTile: (tileId) =>
+        tileId === malformedTileId
+          ? {
+              id: tileId,
+              jp: "",
+              romaji: "",
+              kind: "particle",
+              boundaryBefore: "attach",
+              source: { domain: "exercise", referenceId: "" },
+            }
+          : segmentToken(tileId),
+    });
+    const answer = html.match(/<ol class="lesson-exercise__answer"[\s\S]*?<\/ol>/)?.[0] ?? "";
+    expect(answer).toContain('role="alert"');
+    expect(answer).toContain(enCopy.lesson.contentFormattingError);
+    // No partial romaji glyph sequence: none of the other, validly-resolved
+    // placed tiles' romaji leak into the answer region alongside the alert.
+    expect(answer).not.toContain("watashi");
+    expect(answer).not.toContain("gakusei");
+    expect(answer).not.toContain("desu");
+  });
+
   it("tile ordering: an isolated bank tile's romaji has no leading whitespace, even mid-sentence", () => {
     const prompt = tileEx.prompt;
     if (prompt.kind !== "tile-ordering") throw new Error("kind");

@@ -1117,6 +1117,11 @@
   font-size: var(--text-2);
 }
 
+.lesson-exercise__answer-error {
+  color: var(--danger);
+  font-size: var(--text-2);
+}
+
 .lesson-exercise__placed {
   display: inline-flex;
   align-items: center;

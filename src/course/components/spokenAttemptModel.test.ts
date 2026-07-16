@@ -291,7 +291,13 @@ describe("buildSpokenAttemptModel — structured errors, never a partial success
     expect(result.error.code).toBe("unresolved-prompt");
   });
 
-  it("reports unresolved-prompt when a compared segment cannot form an assembled token", () => {
+  it("reports invalid-romaji-sequence (naming the offending segment) when a compared segment cannot form an assembled token", () => {
+    // Distinct from a resolution failure (`unresolved-prompt`, reserved solely
+    // for `resolvePrompt` throwing): the prompt resolved fine, but this
+    // particular comparison segment cannot become a real AssembledToken. The
+    // model must surface its own dedicated romaji-metadata error code, naming
+    // exactly the offending `segment.id` — never the generic "the whole
+    // prompt didn't resolve" code.
     const result = buildSpokenAttemptModel("x", {
       ...okDeps(),
       targetExample: () => ({
@@ -313,15 +319,18 @@ describe("buildSpokenAttemptModel — structured errors, never a partial success
     });
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.error.code).toBe("unresolved-prompt");
+    expect(result.error.code).toBe("invalid-romaji-sequence");
+    expect(result.error.referenceId).toBe("p1");
   });
 
-  it("reports unresolved-prompt when a well-formed token still fails formatRomaji's own validation (empty romaji)", () => {
+  it("reports invalid-romaji-sequence (naming the deterministic offending token) when a well-formed token still fails formatRomaji's own validation (empty romaji)", () => {
     // Distinct from the case above: every field exampleSegmentToAssembledToken
     // itself requires is present (id/tokenKind/boundaryBefore/source.referenceId),
     // so a real AssembledToken IS formed — but its romaji is blank, which only
-    // the shared formatRomaji validator rejects. This proves the model surfaces
-    // that failure too, never silently emitting an empty/malformed romaji.
+    // the shared formatRomaji validator rejects. This is a whole-sequence
+    // formatting failure, not a resolution failure, so it must never surface
+    // as `unresolved-prompt` either; it names the deterministic first
+    // offending token id formatRomaji itself reports.
     const result = buildSpokenAttemptModel("x", {
       ...okDeps(),
       targetExample: () => ({
@@ -343,7 +352,8 @@ describe("buildSpokenAttemptModel — structured errors, never a partial success
     });
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.error.code).toBe("unresolved-prompt");
+    expect(result.error.code).toBe("invalid-romaji-sequence");
+    expect(result.error.referenceId).toBe("p1");
   });
 
   it("reports missing-target-example when the runtime example is absent", () => {

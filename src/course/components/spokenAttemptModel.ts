@@ -89,7 +89,8 @@ export type SpokenAttemptModelErrorCode =
   | "missing-target-example"
   | "missing-comparison-segment"
   | "missing-lesson-copy"
-  | "missing-meaning-copy";
+  | "missing-meaning-copy"
+  | "invalid-romaji-sequence";
 
 export interface SpokenAttemptModelError {
   readonly code: SpokenAttemptModelErrorCode;
@@ -170,7 +171,9 @@ export function buildSpokenAttemptModel(
     }
     const token = exampleSegmentToAssembledToken(runtime);
     if (!token) {
-      return fail("unresolved-prompt", lessonId, resolved.targetExampleId);
+      // A romaji-metadata failure for this one segment, distinct from a
+      // resolution failure — names the offending segment itself.
+      return fail("invalid-romaji-sequence", lessonId, segment.id);
     }
     targetTokens.push(token);
     segments.push({
@@ -194,7 +197,17 @@ export function buildSpokenAttemptModel(
 
   const formattedTarget = formatRomaji(targetTokens);
   if (!formattedTarget.ok) {
-    return fail("unresolved-prompt", lessonId, resolved.targetExampleId);
+    // A whole-sequence romaji-metadata failure — name the deterministic
+    // first offending token formatRomaji itself reports, falling back to the
+    // target example id only when no error carries a token id.
+    const firstOffendingTokenId = formattedTarget.errors.find(
+      (error) => error.tokenId !== undefined,
+    )?.tokenId;
+    return fail(
+      "invalid-romaji-sequence",
+      lessonId,
+      firstOffendingTokenId ?? resolved.targetExampleId,
+    );
   }
 
   const variants: SpokenVariantView[] = [];
