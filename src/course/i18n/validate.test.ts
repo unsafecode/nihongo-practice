@@ -130,6 +130,22 @@ describe.each([itCopy, enCopy])("course locale", (copy) => {
   });
 });
 
+describe("spoken-attempt consent copy", () => {
+  it.each([
+    [enCopy.spokenAttempt, "I understand, continue", "Speak now"],
+    [itCopy.spokenAttempt, "Ho capito, continua", "Parla ora"],
+  ] as const)(
+    "keeps acknowledgement separate from microphone permission (%s)",
+    (copy, acknowledgement, micStart) => {
+      expect(copy.consentAcknowledge).toBe(acknowledgement);
+      expect(copy.consentAcknowledge.toLowerCase()).not.toMatch(
+        /\b(activate|enable|start|use|microphone|attiva|avvia|inizia|usa|microfono)\b/,
+      );
+      expect(copy.micStart).toBe(micStart);
+    },
+  );
+});
+
 function orphanKeys(
   dictionary: Record<string, unknown>,
   knownIds: ReadonlySet<string>,

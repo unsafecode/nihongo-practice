@@ -151,7 +151,7 @@ const itUi = {
     consentTitle: "Prima di usare il microfono",
     consentBody:
       "Parlare è facoltativo. L'app non salva alcun audio e non conserva il testo riconosciuto. Il browser, il sistema operativo o la sua voce possono elaborare l'audio per trasformarlo in testo. Se non attivi il microfono, tutti gli altri esercizi restano utilizzabili.",
-    consentAcknowledge: "Ho capito, attiva il microfono",
+    consentAcknowledge: "Ho capito, continua",
     consentDismiss: "Non ora",
     micStart: "Parla ora",
     micStop: "Interrompi",

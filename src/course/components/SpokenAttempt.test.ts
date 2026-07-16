@@ -57,13 +57,14 @@ interface ViewOptions {
   readonly synthesisSupported?: boolean;
   readonly speakingKey?: string | null;
   readonly viewModel?: SpokenAttemptModel;
+  readonly copy?: typeof enCopy.spokenAttempt;
 }
 
 function renderView(options: ViewOptions): string {
   return renderToStaticMarkup(
     createElement(SpokenAttemptView, {
       model: options.viewModel ?? model,
-      copy: enCopy.spokenAttempt,
+      copy: options.copy ?? enCopy.spokenAttempt,
       script: options.script ?? "hiragana",
       state: options.state,
       supported: options.supported ?? true,
@@ -140,6 +141,35 @@ describe("SpokenAttemptView — respects the script setting and ruby conventions
 // ── Consent is separate from the microphone ───────────────────────────────────
 
 describe("SpokenAttemptView — consent notice is separate from the mic", () => {
+  it.each([
+    [enCopy.spokenAttempt, "I understand, continue", "Speak now"],
+    [itCopy.spokenAttempt, "Ho capito, continua", "Parla ora"],
+  ] as const)(
+    "uses a neutral acknowledgement and a separate microphone action (%s)",
+    (copy, acknowledgement, micStart) => {
+      expect(copy.consentAcknowledge).toBe(acknowledgement);
+      expect(copy.consentAcknowledge.toLowerCase()).not.toMatch(
+        /\b(activate|enable|start|use|microphone|attiva|avvia|inizia|usa|microfono)\b/,
+      );
+
+      const consentHtml = renderView({
+        state: { status: "requesting-consent" },
+        consentAcknowledged: false,
+        copy,
+      });
+      expect(consentHtml).toContain(acknowledgement);
+      expect(consentHtml).not.toContain(micStart);
+
+      const acknowledgedHtml = renderView({
+        state: IDLE,
+        consentAcknowledged: true,
+        copy,
+      });
+      expect(copy.micStart).toBe(micStart);
+      expect(acknowledgedHtml).toContain(micStart);
+    },
+  );
+
   it("before consent, offers a try-speaking control and no mic-start control", () => {
     const html = renderView({ state: IDLE, consentAcknowledged: false });
     expect(html).toContain(enCopy.spokenAttempt.tryButton);
