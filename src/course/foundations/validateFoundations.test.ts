@@ -795,6 +795,17 @@ describe("validateFoundations — stage 3 family diversity", () => {
     expect(a1.validationErrorCodes).toContain("insufficient-family-diversity");
     expect(a1.complete).toBe(false);
   });
+
+  it("scopes a lesson-level error to only the offending lesson's report row (per-lesson attribution reads solely from allErrors, not a separate per-lesson error store)", () => {
+    // Regression guard for the removal of the dead, write-only
+    // `lessonErrorMap`: report attribution has always filtered the flat
+    // `allErrors` list by `lessonId` (see `buildReports`), so a lesson-3
+    // stage error must show up on A1's row and must NOT leak onto A2's,
+    // which received no such mutation.
+    const result = run(withDiversity(A1, { minFamilies: 4 }));
+    expect(result.reports.byLesson[A1].validationErrorCodes).toContain("insufficient-family-diversity");
+    expect(result.reports.byLesson[A2].validationErrorCodes).not.toContain("insufficient-family-diversity");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -885,6 +896,233 @@ describe("validateFoundations — contextual sense distinction", () => {
       }),
     });
     expect(run(cats).valid).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Recurrence contexts (VerbUseRecord introductionVariantIds/laterUses) feed
+// same-orthography sense conflation, not only depth-lesson model/practice
+// pools — this is what lets a purely receptive timeline (never realized by
+// any lesson's model/practice pool) still contribute real practice contexts.
+// ---------------------------------------------------------------------------
+
+describe("validateFoundations — recurrence contexts feed sense conflation", () => {
+  // A productive record shaped exactly like the already-valid
+  // `fixture-a1-verb-use-work` fixture (two structurally distinct intro
+  // variants + two spaced later uses in a later module), so it independently
+  // satisfies every productive-recurrence check on its own. Every referenced
+  // variant is "workplace", so its only realized practice context is
+  // "workplace" — contributed entirely by the VerbUseRecord, since this
+  // sense is never realized by any lesson model/practice pool.
+  function workplaceOnlyProductiveRecord(id: string, senseId: string): VerbUseRecord {
+    return {
+      id,
+      senseId,
+      learningUse: "productive",
+      introductionLessonId: A1,
+      introductionVariantIds: ["fixture-a1-omitted-work-company", "fixture-a1-transfer-yuki-work-company"],
+      introductionExercise: {
+        lessonId: A1,
+        roundId: "fixture-a1-personal-details-round-2",
+        exerciseKind: "completion",
+        targetVariantId: "fixture-a1-transfer-yuki-work-company",
+      },
+      laterUses: [
+        { lessonId: "fixture-a1-lesson-recur-1", variantId: "fixture-a1-recur1-work" },
+        { lessonId: "fixture-a1-lesson-recur-2", variantId: "fixture-a1-recur2-work" },
+      ],
+    };
+  }
+
+  function productiveSense(id: string, lexemeId: string, semanticFrameId: string): LearningTargetSense {
+    return {
+      id,
+      lexemeId,
+      learningUse: "productive",
+      semanticFrameId,
+      predicate: "sample",
+      argumentRoles: ["topic"],
+      argumentParticleByRole: {},
+    };
+  }
+
+  function receptiveSense(id: string, lexemeId: string, semanticFrameId: string): LearningTargetSense {
+    return {
+      id,
+      lexemeId,
+      learningUse: "receptive",
+      semanticFrameId,
+      predicate: "sample",
+      argumentRoles: ["topic"],
+      argumentParticleByRole: {},
+    };
+  }
+
+  it("a receptive-only sense with exclusive verb-record contexts passes conflation against a different-frame productive sense sharing its lexeme", () => {
+    // Neither synthetic sense is realized by any lesson's model/practice
+    // pool (no semantic value or family/variant references either), so
+    // before this fix both practice-context sets would be empty and
+    // `senseConflationDimension` would flag every such pairing "context"
+    // regardless of the truth. Here the receptive sense's two distinct
+    // input contexts (first-meeting, language-class) come solely from its
+    // own VerbUseRecord and never overlap the productive sense's
+    // exclusively-workplace context.
+    const productive = productiveSense(
+      "synthetic-sense-recurrence-productive",
+      "synthetic-lexeme-recurrence-shared",
+      "synthetic-frame-recurrence-productive",
+    );
+    const receptive = receptiveSense(
+      "synthetic-sense-recurrence-receptive",
+      "synthetic-lexeme-recurrence-shared",
+      "synthetic-frame-recurrence-receptive",
+    );
+    const productiveRecord = workplaceOnlyProductiveRecord("synthetic-verb-use-recurrence-productive", productive.id);
+    const receptiveRecord: VerbUseRecord = {
+      id: "synthetic-verb-use-recurrence-receptive",
+      senseId: receptive.id,
+      learningUse: "receptive",
+      introductionLessonId: A1,
+      introductionVariantIds: ["fixture-a1-yuki-student-meeting", "fixture-a1-recur2-study"],
+      introductionExercise: {
+        lessonId: A1,
+        roundId: "fixture-a1-personal-details-round-1",
+        exerciseKind: "choice",
+        targetVariantId: "fixture-a1-yuki-student-meeting",
+      },
+      laterUses: [],
+    };
+    const cats = withCatalog({
+      learningTargetSenses: [...foundationCatalogs.learningTargetSenses, productive, receptive],
+      verbUseRecords: [...foundationCatalogs.verbUseRecords, productiveRecord, receptiveRecord],
+    });
+    const result = run(cats);
+    expect(result.errors.map((e) => e.code)).not.toContain("conflated-sense-context");
+    expect(result.valid).toBe(true);
+  });
+
+  it("a receptive-only sense whose verb-record contexts fully overlap a different-frame productive sense's fails conflation (dimension context)", () => {
+    // Same shape as the passing case above, but the receptive sense's two
+    // input contexts (workplace, language-class) are exactly the productive
+    // sense's realized context set — no exclusive context on either side —
+    // so the pair is correctly rejected as conflated on context, not frame.
+    const productive = productiveSense(
+      "synthetic-sense-overlap-productive",
+      "synthetic-lexeme-overlap-shared",
+      "synthetic-frame-overlap-productive",
+    );
+    const receptive = receptiveSense(
+      "synthetic-sense-overlap-receptive",
+      "synthetic-lexeme-overlap-shared",
+      "synthetic-frame-overlap-receptive",
+    );
+    const productiveRecord: VerbUseRecord = {
+      id: "synthetic-verb-use-overlap-productive",
+      senseId: productive.id,
+      learningUse: "productive",
+      introductionLessonId: A1,
+      introductionVariantIds: ["fixture-a1-omitted-work-company", "fixture-a1-transfer-omitted-study-english"],
+      introductionExercise: {
+        lessonId: A1,
+        roundId: "fixture-a1-personal-details-round-2",
+        exerciseKind: "completion",
+        targetVariantId: "fixture-a1-omitted-work-company",
+      },
+      laterUses: [
+        { lessonId: "fixture-a1-lesson-recur-1", variantId: "fixture-a1-recur1-work" },
+        { lessonId: "fixture-a1-lesson-recur-2", variantId: "fixture-a1-recur2-work" },
+      ],
+    };
+    const receptiveRecord: VerbUseRecord = {
+      id: "synthetic-verb-use-overlap-receptive",
+      senseId: receptive.id,
+      learningUse: "receptive",
+      introductionLessonId: A1,
+      introductionVariantIds: ["fixture-a1-omitted-work-company", "fixture-a1-recur2-study"],
+      introductionExercise: {
+        lessonId: A1,
+        roundId: "fixture-a1-personal-details-round-1",
+        exerciseKind: "choice",
+        targetVariantId: "fixture-a1-omitted-work-company",
+      },
+      laterUses: [],
+    };
+    const cats = withCatalog({
+      learningTargetSenses: [...foundationCatalogs.learningTargetSenses, productive, receptive],
+      verbUseRecords: [...foundationCatalogs.verbUseRecords, productiveRecord, receptiveRecord],
+    });
+    const result = run(cats);
+    expectSoleCode(result, "conflated-sense-context");
+    expect(result.errors[0].dimension).toBe("context");
+  });
+
+  it("recurrence-context merge is order-independent and dedups repeated contexts", () => {
+    // The productive record repeats the "workplace" context four times
+    // (both intro variants plus both later uses); the merge must collapse
+    // that to a single context regardless of array order for it to remain
+    // exclusive of the receptive sense's two contexts.
+    const productive = productiveSense(
+      "synthetic-sense-order-productive",
+      "synthetic-lexeme-order-shared",
+      "synthetic-frame-order-productive",
+    );
+    const receptive = receptiveSense(
+      "synthetic-sense-order-receptive",
+      "synthetic-lexeme-order-shared",
+      "synthetic-frame-order-receptive",
+    );
+    const productiveRecord = workplaceOnlyProductiveRecord("synthetic-verb-use-order-productive", productive.id);
+    const receptiveRecord: VerbUseRecord = {
+      id: "synthetic-verb-use-order-receptive",
+      senseId: receptive.id,
+      learningUse: "receptive",
+      introductionLessonId: A1,
+      introductionVariantIds: ["fixture-a1-yuki-student-meeting", "fixture-a1-recur2-study"],
+      introductionExercise: {
+        lessonId: A1,
+        roundId: "fixture-a1-personal-details-round-1",
+        exerciseKind: "choice",
+        targetVariantId: "fixture-a1-yuki-student-meeting",
+      },
+      laterUses: [],
+    };
+
+    const forward = withCatalog({
+      learningTargetSenses: [...foundationCatalogs.learningTargetSenses, productive, receptive],
+      verbUseRecords: [...foundationCatalogs.verbUseRecords, productiveRecord, receptiveRecord],
+    });
+    // Same entities, reversed insertion order on every affected array.
+    const reversed = withCatalog({
+      learningTargetSenses: [receptive, productive, ...foundationCatalogs.learningTargetSenses],
+      verbUseRecords: [receptiveRecord, productiveRecord, ...foundationCatalogs.verbUseRecords],
+    });
+
+    const forwardResult = run(forward);
+    const reversedResult = run(reversed);
+
+    expect(forwardResult.valid).toBe(true);
+    expect(forwardResult.errors.map((e) => e.code)).not.toContain("conflated-sense-context");
+    expect(reversedResult.errors).toEqual(forwardResult.errors);
+    expect(reversedResult.valid).toBe(true);
+  });
+
+  it("a verb-use record referencing a missing variant still fails validation, gated at stage 1 before recurrence contexts are merged", () => {
+    const bogusRecord: VerbUseRecord = {
+      id: "synthetic-verb-use-bogus-variant",
+      senseId: "fixture-a1-sense-be",
+      learningUse: "receptive",
+      introductionLessonId: A1,
+      introductionVariantIds: ["bogus-variant-id"],
+      introductionExercise: {
+        lessonId: A1,
+        roundId: "fixture-a1-personal-details-round-1",
+        exerciseKind: "choice",
+        targetVariantId: "bogus-variant-id",
+      },
+      laterUses: [],
+    };
+    const cats = withCatalog({ verbUseRecords: [...foundationCatalogs.verbUseRecords, bogusRecord] });
+    expectSoleCode(run(cats), "missing-variant-reference");
   });
 });
 

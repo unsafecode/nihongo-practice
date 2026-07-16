@@ -1360,7 +1360,6 @@ export function validateFoundationsWithDeps(
 
   const analyses = new Map<string, LessonAnalysis>();
   const selectionSummaries = new Map<string, SelectionSummary>();
-  const lessonErrorMap = new Map<string, ValidationError[]>();
   const verbRows: VerbUseReportRow[] = [];
 
   const gateStage1 = stage1.length > 0;
@@ -1387,7 +1386,6 @@ export function validateFoundationsWithDeps(
         const selection = checkSelectionAndExercises(analysis, ctx, input.catalogVersion, seed, lessonErrors, deps);
         checkTransfers(analysis, ctx, lessonErrors);
         selectionSummaries.set(lesson.id, selection);
-        lessonErrorMap.set(lesson.id, lessonErrors);
         for (const error of lessonErrors) stageRest.push(error);
       }
 
@@ -1396,7 +1394,7 @@ export function validateFoundationsWithDeps(
         const { row } = analyzeVerbRecord(record, ctx, stageRest);
         verbRows.push(row);
       }
-      const senseContexts = collectSensePracticeContexts(analyses);
+      const senseContexts = collectSensePracticeContexts(analyses, ctx);
       checkConflatedSenses(ctx, senseContexts, stageRest);
 
       // --- Stage 7: Can-dos ---
@@ -1417,15 +1415,38 @@ export function validateFoundationsWithDeps(
 
 /**
  * Derive each sense's realized practice-context set from the fully realized
- * model + round-one + round-two sentences across every lesson: a sense's
- * contexts are the `contextId`s of every realized sentence whose
- * `usedLexemeSenseIds` includes it. Used by the same-orthography conflation
- * check to decide whether two senses sharing a lexeme are contextually distinct.
+ * model + round-one + round-two sentences across every lesson, *plus* every
+ * context reachable through the sense's own `VerbUseRecord` recurrence
+ * timeline (`introductionVariantIds` and `laterUses`). A sense's contexts are
+ * therefore the union of:
+ *  - the `contextId`s of every realized sentence whose `usedLexemeSenseIds`
+ *    includes it (depth-lesson model/practice pools), and
+ *  - the `contextId`s of the variants referenced by any `VerbUseRecord` whose
+ *    `senseId` matches it, resolved against the sentence-variant catalog.
+ * The second source matters for receptive-only timelines (§9.3): a purely
+ * receptive sense may never appear in a lesson's model/practice pools at all,
+ * yet still have a legitimate, distinct set of practice contexts recorded on
+ * its `VerbUseRecord`. Missing/invalid variant references are skipped here —
+ * stage 1's reference check (`checkReferences`) already gates the pipeline
+ * before this runs, so a genuinely dangling reference never reaches this
+ * function as a silent success. Used by the same-orthography conflation
+ * check to decide whether two senses sharing a lexeme are contextually
+ * distinct.
  */
 function collectSensePracticeContexts(
   analyses: ReadonlyMap<string, LessonAnalysis>,
+  ctx: CatalogIndex,
 ): ReadonlyMap<string, ReadonlySet<string>> {
   const map = new Map<string, Set<string>>();
+  const addContext = (senseId: string, contextId: string): void => {
+    let set = map.get(senseId);
+    if (!set) {
+      set = new Set<string>();
+      map.set(senseId, set);
+    }
+    set.add(contextId);
+  };
+
   for (const analysis of analyses.values()) {
     for (const sentence of [
       ...analysis.modelSentences,
@@ -1433,15 +1454,20 @@ function collectSensePracticeContexts(
       ...analysis.transferSentences,
     ]) {
       for (const senseId of sentence.usedLexemeSenseIds) {
-        let set = map.get(senseId);
-        if (!set) {
-          set = new Set<string>();
-          map.set(senseId, set);
-        }
-        set.add(sentence.contextId);
+        addContext(senseId, sentence.contextId);
       }
     }
   }
+
+  for (const record of ctx.catalogs.verbUseRecords) {
+    const variantIds = [...record.introductionVariantIds, ...record.laterUses.map((use) => use.variantId)];
+    for (const variantId of variantIds) {
+      const variant = ctx.variantById.get(variantId);
+      if (!variant) continue; // Dangling reference: stage 1 already gates this catalog.
+      addContext(record.senseId, variant.contextId);
+    }
+  }
+
   return map;
 }
 
