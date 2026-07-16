@@ -418,15 +418,33 @@ export interface FoundationCatalogs {
 /**
  * A realizer's output for one variant (§10.2). The realizer itself
  * (`SentenceFamilyRealizer`) and its Result/error types belong to the task
- * that implements it; this is only the data shape later tasks produce and
- * consume.
+ * that implements it (Phase 1 Task 2, `realizeFamily.ts`); this is only the
+ * data shape that task produces and later tasks consume.
  */
 export interface RealizedSentence {
   readonly familyId: SentenceFamilyId;
   readonly variantId: SentenceVariantId;
   readonly tokens: readonly AssembledToken[];
   readonly canonicalJapanese: string;
+  /**
+   * The learner-visible answer key: normalized canonical Japanese only.
+   * Never derived from or mixed with discourse/context/form metadata, so two
+   * variants that happen to realize identical Japanese always share this key
+   * even when their hidden semantics (discourse, context, form) differ.
+   */
+  readonly visibleTargetKey: string;
+  /**
+   * A deterministic serialization of every semantic choice behind this
+   * realization (family, discourse role/addressee/referent/realization,
+   * predicate sense, context, form, and sorted slot key=value pairs) —
+   * independent of any object's JS insertion order. Used to detect
+   * accidental semantic duplication across authored variants.
+   */
   readonly semanticFingerprint: string;
+  readonly predicateSenseId: LexemeSenseId;
+  readonly discourse: DiscourseFrame;
+  readonly contextId: ContextId;
+  readonly pedagogicalUse: PedagogicalUse;
   readonly usedConceptIds: readonly ConceptId[];
   readonly usedLexemeSenseIds: readonly LexemeSenseId[];
 }
