@@ -1168,3 +1168,175 @@ describe("realizer generalization (stable rule ids, ga, interrogative)", () => {
     expect(romaji.text).toBe("nihongo ga wakarimasu");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Standalone predicate boundaries: the polite copula (です/でした/では
+// ありません/…) is a sequence of *space-bound* standalone predicate pieces,
+// never a hidden run-on morpheme attached to the preceding nominal. Verb
+// inflection (ます/…) keeps attaching to its stem. The shared formatter is the
+// single oracle for spacing in every assertion below.
+// ---------------------------------------------------------------------------
+
+describe("standalone predicate boundaries (polite copula vs. attached verb inflection)", () => {
+  const copularFamily = fixtureFamily("fixture-a1-topic-copular");
+  const base = fixtureVariant("fixture-a1-yuki-student-meeting");
+
+  const copulaVariant = (
+    idSuffix: string,
+    form: Partial<SentenceVariant["form"]>,
+  ): SentenceVariant =>
+    withFixtureOverride(base, {
+      id: `test-copula-${idSuffix}`,
+      form: { ...base.form, ...form },
+    });
+
+  const realizeCopula = (variant: SentenceVariant) => {
+    const result = realizeVariant(copularFamily, variant, catalogs, {
+      availableConceptIds: a1ConceptIds,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected copula realization to succeed");
+    const romaji = formatRomaji(result.sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("expected copula romaji to format");
+    return { sentence: result.sentence, romaji };
+  };
+
+  it("present affirmative です is a standalone space-bound predicate — `gakusei desu`", () => {
+    const { sentence, romaji } = realizeCopula(
+      copulaVariant("present-affirmative", {
+        tense: "present",
+        polarity: "affirmative",
+      }),
+    );
+    expect(sentence.canonicalJapanese).toBe("ゆきはがくせいです");
+    expect(romaji.text).toBe("yuki wa gakusei desu");
+    expect(sentence.tokens.map((t) => t.jp)).toEqual([
+      "ゆき",
+      "は",
+      "がくせい",
+      "です",
+    ]);
+    const desu = sentence.tokens[sentence.tokens.length - 1];
+    expect(desu.jp).toBe("です");
+    expect(desu.romaji).toBe("desu");
+    expect(desu.boundaryBefore).toBe("space");
+  });
+
+  it("past affirmative でした is a standalone space-bound predicate — `gakusei deshita`", () => {
+    const { sentence, romaji } = realizeCopula(
+      copulaVariant("past-affirmative", { tense: "past", polarity: "affirmative" }),
+    );
+    expect(sentence.canonicalJapanese).toBe("ゆきはがくせいでした");
+    expect(romaji.text).toBe("yuki wa gakusei deshita");
+    expect(sentence.tokens.map((t) => t.jp)).toEqual([
+      "ゆき",
+      "は",
+      "がくせい",
+      "でした",
+    ]);
+    expect(sentence.tokens[sentence.tokens.length - 1].boundaryBefore).toBe("space");
+  });
+
+  it("present negative tokenizes では + ありません as two space-bound pieces — `gakusei dewa arimasen`", () => {
+    const { sentence, romaji } = realizeCopula(
+      copulaVariant("present-negative", { tense: "present", polarity: "negative" }),
+    );
+    expect(sentence.canonicalJapanese).toBe("ゆきはがくせいではありません");
+    expect(romaji.text).toBe("yuki wa gakusei dewa arimasen");
+    expect(sentence.tokens.map((t) => t.jp)).toEqual([
+      "ゆき",
+      "は",
+      "がくせい",
+      "では",
+      "ありません",
+    ]);
+    const [dewa, arimasen] = sentence.tokens.slice(-2);
+    expect(dewa.romaji).toBe("dewa");
+    expect(dewa.boundaryBefore).toBe("space");
+    expect(arimasen.romaji).toBe("arimasen");
+    expect(arimasen.boundaryBefore).toBe("space");
+    // No hidden internal join: each morpheme is its own token, never a single
+    // "dewa arimasen" romaji cell.
+    expect(sentence.tokens.every((t) => !t.romaji.includes(" "))).toBe(true);
+  });
+
+  it("past negative tokenizes では + ありません + でした as three space-bound pieces — `gakusei dewa arimasen deshita`", () => {
+    const { sentence, romaji } = realizeCopula(
+      copulaVariant("past-negative", { tense: "past", polarity: "negative" }),
+    );
+    expect(sentence.canonicalJapanese).toBe("ゆきはがくせいではありませんでした");
+    expect(romaji.text).toBe("yuki wa gakusei dewa arimasen deshita");
+    expect(sentence.tokens.map((t) => t.jp)).toEqual([
+      "ゆき",
+      "は",
+      "がくせい",
+      "では",
+      "ありません",
+      "でした",
+    ]);
+    for (const piece of sentence.tokens.slice(-3)) {
+      expect(piece.boundaryBefore).toBe("space");
+    }
+    expect(sentence.tokens.every((t) => !t.romaji.includes(" "))).toBe(true);
+  });
+
+  it("gives every copula ending piece a unique, source-traceable token id", () => {
+    const { sentence } = realizeCopula(
+      copulaVariant("past-negative-ids", { tense: "past", polarity: "negative" }),
+    );
+    const ids = sentence.tokens.map((t) => t.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const token of sentence.tokens) {
+      expect(token.source.domain).toBe("family");
+      expect(token.source.referenceId.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("keeps か after です spaced for an interrogative copula — `gakusei desu ka`", () => {
+    const { sentence, romaji } = realizeCopula(
+      copulaVariant("question", {
+        tense: "present",
+        polarity: "affirmative",
+        interrogative: true,
+      }),
+    );
+    expect(sentence.canonicalJapanese).toBe("ゆきはがくせいですか");
+    expect(romaji.text).toBe("yuki wa gakusei desu ka");
+    expect(romaji.text).not.toMatch(/\wdesu/);
+  });
+
+  it("never emits a run-on `\\wdesu` for any polite copula form", () => {
+    for (const form of [
+      { tense: "present", polarity: "affirmative" },
+      { tense: "past", polarity: "affirmative" },
+      { tense: "present", polarity: "negative" },
+      { tense: "past", polarity: "negative" },
+    ] as const) {
+      const { romaji } = realizeCopula(
+        copulaVariant(`no-runon-${form.tense}-${form.polarity}`, form),
+      );
+      expect(romaji.text).not.toMatch(/\wdesu/);
+      expect(romaji.text).not.toMatch(/\wdeshita/);
+    }
+  });
+
+  it("keeps polite verb ます attached to its stem — `benkyoushimasu`, never `benkyoushi masu`", () => {
+    const family = fixtureFamily("fixture-a1-object-action");
+    const variant = fixtureVariant("fixture-a1-yuki-study-japanese");
+    const result = realizeVariant(family, variant, catalogs, {
+      availableConceptIds: a1ConceptIds,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const ending = result.sentence.tokens[result.sentence.tokens.length - 1];
+    expect(ending.romaji).toBe("masu");
+    expect(ending.kind).toBe("morpheme");
+    expect(ending.boundaryBefore).toBe("attach");
+    const romaji = formatRomaji(result.sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) return;
+    expect(romaji.text).toBe("yuki wa nihongo o benkyoushimasu");
+    expect(romaji.text).not.toContain("benkyoushi masu");
+  });
+});

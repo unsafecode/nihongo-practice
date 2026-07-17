@@ -1,6 +1,7 @@
 import { boundaryBefore, formatRomaji } from "../../romaji/formatRomaji";
 import type {
   AssembledToken,
+  RomajiBoundaryBefore,
   RomajiTokenKind,
   TokenSourceRef,
 } from "../../romaji/types";
@@ -258,11 +259,26 @@ const VERB_POLITE_ENDINGS: Readonly<Record<FormKey, EndingForm>> = {
   "past-negative": { jp: "ませんでした", romaji: "masen deshita" },
 };
 
-const COPULA_POLITE_ENDINGS: Readonly<Record<FormKey, EndingForm>> = {
-  "present-affirmative": { jp: "です", romaji: "desu" },
-  "present-negative": { jp: "ではありません", romaji: "dewa arimasen" },
-  "past-affirmative": { jp: "でした", romaji: "deshita" },
-  "past-negative": { jp: "ではありませんでした", romaji: "dewa arimasen deshita" },
+/**
+ * The polite copula is realized as a sequence of *standalone predicate*
+ * morphemes, each a space-bound word in rōmaji — never a single ending fused
+ * onto the preceding nominal (which produced the `gakuseidesu` run-on) and
+ * never a single token hiding an internal `"dewa arimasen"` join. Concatenating
+ * the `jp` of every segment reproduces the canonical spelling unchanged
+ * (`です` / `でした` / `ではありません` / `ではありませんでした`).
+ */
+const COPULA_POLITE_ENDINGS: Readonly<Record<FormKey, readonly EndingForm[]>> = {
+  "present-affirmative": [{ jp: "です", romaji: "desu" }],
+  "present-negative": [
+    { jp: "では", romaji: "dewa" },
+    { jp: "ありません", romaji: "arimasen" },
+  ],
+  "past-affirmative": [{ jp: "でした", romaji: "deshita" }],
+  "past-negative": [
+    { jp: "では", romaji: "dewa" },
+    { jp: "ありません", romaji: "arimasen" },
+    { jp: "でした", romaji: "deshita" },
+  ],
 };
 
 const PARTICLE_TEXT: Readonly<Record<SemanticParticleId, EndingForm>> = {
@@ -342,6 +358,7 @@ function pushToken(
   kind: RomajiTokenKind,
   source: TokenSourceRef,
   reading?: string,
+  boundaryOverride?: RomajiBoundaryBefore,
 ): void {
   const index = builder.tokens.length;
   const token: AssembledToken = {
@@ -349,7 +366,12 @@ function pushToken(
     jp,
     romaji,
     kind,
-    boundaryBefore: boundaryBefore(kind, index),
+    // The explicit boundary override lets a rule force a spacing decision the
+    // token kind alone would not produce (e.g. a space-bound standalone
+    // predicate morpheme). It is deliberately ignored for the first token so a
+    // sentence can never open with an illegal leading space (see
+    // `validateTokens`); index 0 always attaches.
+    boundaryBefore: boundaryBefore(kind, index, index === 0 ? undefined : boundaryOverride),
     source,
     ...(reading ? { reading } : {}),
   };
@@ -393,7 +415,13 @@ function pushParticle(
   );
 }
 
-function pushEnding(
+/**
+ * A verb's polite inflection (`ます`/`ません`/…) is a bound morpheme: it
+ * attaches to the preceding predicate stem with no space, so たべ+ます renders
+ * as `tabemasu`. Emitted as a single `morpheme` token whose default boundary
+ * (attach) is exactly right.
+ */
+function pushAttachedInflection(
   builder: TokenBuilder,
   variantId: SentenceVariantId,
   ending: EndingForm,
@@ -406,6 +434,33 @@ function pushEnding(
     ending.romaji,
     "morpheme",
     { domain: "family", referenceId: `${variantId}/rule/ending` },
+  );
+}
+
+/**
+ * A space-bound standalone predicate/copula morpheme: a grammatical word that
+ * stands on its own in rōmaji (a leading space before it), as opposed to a
+ * bound inflection that attaches to a stem. This is the reusable boundary
+ * facility later request rules (e.g. a `ください` politeness word) can call to
+ * emit their own space-separated morphemes. `idSuffix` keeps every emitted
+ * token id unique and source-traceable when a form contributes several pieces.
+ */
+function pushStandalonePredicate(
+  builder: TokenBuilder,
+  variantId: SentenceVariantId,
+  idSuffix: string,
+  piece: EndingForm,
+): void {
+  pushToken(
+    builder,
+    variantId,
+    idSuffix,
+    piece.jp,
+    piece.romaji,
+    "morpheme",
+    { domain: "family", referenceId: `${variantId}/rule/${idSuffix}` },
+    undefined,
+    "space",
   );
 }
 
@@ -689,7 +744,7 @@ export function realizeVariant(
     return fail([{ code: "unknown-realization-rule", referenceId: family.realizationRuleId }]);
   }
 
-  // 14. execute: resolve the grammatical form's ending table.
+  // 14. execute: resolve the grammatical form's ending.
   if (variant.form.formality !== "polite") {
     return fail([{ code: "invalid-conjugation", referenceId: variant.form.formality }]);
   }
@@ -697,8 +752,9 @@ export function realizeVariant(
   if (!key) {
     return fail([{ code: "invalid-conjugation", referenceId: variant.form.tense }]);
   }
-  const endingTable = rule.predicateKind === "copula" ? COPULA_POLITE_ENDINGS : VERB_POLITE_ENDINGS;
-  const ending = endingTable[key];
+  const isCopula = rule.predicateKind === "copula";
+  const verbEnding = VERB_POLITE_ENDINGS[key];
+  const copulaPieces = COPULA_POLITE_ENDINGS[key];
 
   // 15. assemble tokens.
   const builder: TokenBuilder = { tokens: [] };
@@ -728,7 +784,18 @@ export function realizeVariant(
   if (rule.predicateKind === "verb" && predicateValue) {
     pushSlotFragments(builder, variant.id, "predicate", predicateValue);
   }
-  pushEnding(builder, variant.id, ending);
+  if (isCopula) {
+    // The polite copula is a run of space-bound standalone predicate pieces
+    // (です / でした / では + ありません [+ でした]); each is its own
+    // traceable token so the shared formatter spaces them (`gakusei desu`),
+    // never a hidden run-on ending fused onto the nominal.
+    copulaPieces.forEach((piece, index) => {
+      pushStandalonePredicate(builder, variant.id, `rule::copula::${index}`, piece);
+    });
+  } else {
+    // Verb inflection is a bound morpheme that attaches to its stem.
+    pushAttachedInflection(builder, variant.id, verbEnding);
+  }
   // Sentence-final interrogative particle か (§13). Appended after the
   // predicate ending as a spaced particle; only added for interrogative forms
   // so every plain-statement realization is byte-identical to before.
