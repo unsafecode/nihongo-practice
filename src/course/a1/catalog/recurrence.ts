@@ -25,6 +25,9 @@ import { withA1LaterUses } from "./shared";
 import { module2VerbUseRecords } from "./module02Introductions";
 import { module4VerbUseRecords } from "./module04Actions";
 import { module5VerbUseRecords } from "./module05Routines";
+import { module9VerbUseRecords } from "./module09Descriptions";
+import { module10VerbUseRecords } from "./module10Shopping";
+import { module11VerbUseRecords } from "./module11ExistenceNeeds";
 
 /** senseId → the later, spaced reuses authored across Modules 5-8. */
 const LATER_USES_BY_SENSE: Readonly<
@@ -129,22 +132,66 @@ const LATER_USES_BY_SENSE: Readonly<
     { lessonId: "past-negative-3", variantId: "past-negative-3-m7" },
     { lessonId: "people-2", variantId: "people-2-m7" },
   ],
+  // --- Module 9 senses (descriptions) — reused across the capstones ---
+  "a1-sense-hot": [
+    { lessonId: "capstones-2", variantId: "capstones-2-m1" },
+    { lessonId: "capstones-4", variantId: "capstones-4-m5" },
+  ],
+  "a1-sense-cold": [
+    { lessonId: "capstones-2", variantId: "capstones-2-m2" },
+    { lessonId: "capstones-4", variantId: "capstones-4-m6" },
+  ],
+  "a1-sense-quiet": [
+    { lessonId: "capstones-2", variantId: "capstones-2-m3" },
+    { lessonId: "capstones-4", variantId: "capstones-4-m7" },
+  ],
+  "a1-sense-big": [
+    { lessonId: "capstones-2", variantId: "capstones-2-m4" },
+    { lessonId: "capstones-3", variantId: "capstones-3-m5" },
+  ],
+  "a1-sense-small": [
+    { lessonId: "capstones-2", variantId: "capstones-2-m5" },
+    { lessonId: "capstones-3", variantId: "capstones-3-m6" },
+  ],
+  "a1-sense-like": [
+    { lessonId: "capstones-1", variantId: "capstones-1-m5" },
+    { lessonId: "capstones-2", variantId: "capstones-2-m6" },
+  ],
+  "a1-sense-dislike": [
+    { lessonId: "capstones-2", variantId: "capstones-2-m7" },
+    { lessonId: "capstones-3", variantId: "capstones-3-m7" },
+  ],
+  // --- Module 10 senses (shopping) — reused across the capstones ---
+  "a1-sense-expensive": [
+    { lessonId: "capstones-1", variantId: "capstones-1-m3" },
+    { lessonId: "capstones-4", variantId: "capstones-4-m3" },
+  ],
+  "a1-sense-cheap": [
+    { lessonId: "capstones-1", variantId: "capstones-1-m4" },
+    { lessonId: "capstones-4", variantId: "capstones-4-m4" },
+  ],
+  "a1-sense-request": [
+    { lessonId: "capstones-1", variantId: "capstones-1-m1" },
+    { lessonId: "capstones-4", variantId: "capstones-4-m2" },
+  ],
+  // --- Module 11 senses (existence & needs) — reused across the capstones ---
+  "a1-sense-exist-inanimate": [
+    { lessonId: "capstones-1", variantId: "capstones-1-m7" },
+    { lessonId: "capstones-3", variantId: "capstones-3-m1" },
+  ],
+  "a1-sense-exist-animate": [
+    { lessonId: "capstones-3", variantId: "capstones-3-m2" },
+    { lessonId: "capstones-3", variantId: "capstones-3-m3" },
+  ],
+  "a1-sense-want": [
+    { lessonId: "capstones-1", variantId: "capstones-1-m6" },
+    { lessonId: "capstones-2", variantId: "capstones-2-m8" },
+  ],
 });
 
-/** The raw introduction records, in canonical module order. */
-const rawRecords: readonly VerbUseRecord[] = [
-  ...module2VerbUseRecords,
-  ...module4VerbUseRecords,
-  ...module5VerbUseRecords,
-];
-
-/**
- * Every introduced productive verb record, augmented with its authored later
- * uses. Non-mutating: each entry is a fresh frozen record; the source arrays
- * remain `laterUses: []`.
- */
-export const a1AugmentedVerbUseRecords: readonly VerbUseRecord[] = Object.freeze(
-  rawRecords.map((record) => {
+/** Attach each record's authored later uses (fails loudly if none exist). */
+function augment(records: readonly VerbUseRecord[]): readonly VerbUseRecord[] {
+  return records.map((record) => {
     const additions = LATER_USES_BY_SENSE[record.senseId];
     if (additions === undefined) {
       throw new Error(
@@ -152,5 +199,41 @@ export const a1AugmentedVerbUseRecords: readonly VerbUseRecord[] = Object.freeze
       );
     }
     return withA1LaterUses(record, additions);
-  }),
+  });
+}
+
+/** The raw Modules 2/4/5 introduction records (later uses land in Modules 4-8). */
+const deepModuleRawRecords: readonly VerbUseRecord[] = [
+  ...module2VerbUseRecords,
+  ...module4VerbUseRecords,
+  ...module5VerbUseRecords,
+];
+
+/** The raw Modules 9/10/11 introduction records (later uses land in capstones). */
+const descriptiveModuleRawRecords: readonly VerbUseRecord[] = [
+  ...module9VerbUseRecords,
+  ...module10VerbUseRecords,
+  ...module11VerbUseRecords,
+];
+
+/**
+ * The 24 Modules 2/4/5 productive verb records, augmented with their authored
+ * later, spaced reuses across Modules 4-8. This is the Task-3 recurrence view:
+ * it resolves entirely within the Modules 2-8 catalog, so the deep-authoring
+ * suite can assert it in isolation. Non-mutating — the source arrays remain
+ * `laterUses: []`.
+ */
+export const a1AugmentedVerbUseRecords: readonly VerbUseRecord[] = Object.freeze(
+  augment(deepModuleRawRecords),
 );
+
+/**
+ * The full A1 release recurrence view: the 24 deep-module records plus the 13
+ * Modules 9/10/11 senses whose spaced reuses are the four capstone syntheses.
+ * Consumers assembling the whole 48-lesson level (catalog / release validator)
+ * import this so every productive sense — early and late — resolves its timeline.
+ */
+export const a1ReleaseVerbUseRecords: readonly VerbUseRecord[] = Object.freeze([
+  ...a1AugmentedVerbUseRecords,
+  ...augment(descriptiveModuleRawRecords),
+]);

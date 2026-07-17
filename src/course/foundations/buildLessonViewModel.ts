@@ -225,6 +225,7 @@ const AXIS_LABELS: Readonly<
   object: { en: "What it is about", it: "Di cosa si tratta" },
   location: { en: "Place", it: "Luogo" },
   time: { en: "When", it: "Quando" },
+  quantity: { en: "How many", it: "Quante" },
   "polarity-tense-form": { en: "Form of the verb", it: "Forma del verbo" },
   context: { en: "Situation", it: "Situazione" },
 };

@@ -112,6 +112,13 @@ export const A1_CONCEPT_FREQUENCY = "a1-concept-frequency";
 export const A1_CONCEPT_DIRECTION_HE = "a1-concept-direction-he";
 export const A1_CONCEPT_SOURCE_LIMIT = "a1-concept-source-limit";
 export const A1_CONCEPT_TRANSPORT_DE = "a1-concept-transport-de";
+// --- Phase 2 Modules 9-11 constructions ---
+export const A1_CONCEPT_ADJECTIVE = "a1-concept-adjective";
+export const A1_CONCEPT_PREFERENCE = "a1-concept-preference-ga";
+export const A1_CONCEPT_COMPARISON = "a1-concept-comparison-yori";
+export const A1_CONCEPT_QUANTITY = "a1-concept-quantity";
+export const A1_CONCEPT_REQUEST = "a1-concept-request-kudasai";
+export const A1_CONCEPT_EXISTENCE = "a1-concept-existence-aru-iru";
 
 /** Every A1 concept id, used as the module test's available-concept universe. */
 export const A1_CONCEPT_IDS: readonly string[] = deepFreeze([
@@ -128,6 +135,12 @@ export const A1_CONCEPT_IDS: readonly string[] = deepFreeze([
   A1_CONCEPT_DIRECTION_HE,
   A1_CONCEPT_SOURCE_LIMIT,
   A1_CONCEPT_TRANSPORT_DE,
+  A1_CONCEPT_ADJECTIVE,
+  A1_CONCEPT_PREFERENCE,
+  A1_CONCEPT_COMPARISON,
+  A1_CONCEPT_QUANTITY,
+  A1_CONCEPT_REQUEST,
+  A1_CONCEPT_EXISTENCE,
 ]);
 
 // ---------------------------------------------------------------------------
@@ -144,6 +157,7 @@ export const a1Contexts: readonly Context[] = deepFreeze([
   { id: "a1-context-home", labelCopyId: "a1-context-home-label" },
   { id: "a1-context-town", labelCopyId: "a1-context-town-label" },
   { id: "a1-context-family", labelCopyId: "a1-context-family-label" },
+  { id: "a1-context-weather", labelCopyId: "a1-context-weather-label" },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -161,6 +175,7 @@ export const a1PersonRoles: readonly PersonRole[] = deepFreeze([
   { id: "a1-role-clerk", kind: "unnamed", labelCopyId: "a1-role-clerk-label" },
   { id: "a1-role-person", kind: "unnamed", labelCopyId: "a1-role-person-label" },
   { id: "a1-role-thing", kind: "unnamed", labelCopyId: "a1-role-thing-label" },
+  { id: "a1-role-creature", kind: "unnamed", labelCopyId: "a1-role-creature-label" },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -178,6 +193,7 @@ export const a1Referents: readonly Referent[] = deepFreeze([
   { id: "a1-referent-clerk", personRoleId: "a1-role-clerk", animacy: "animate", labelCopyId: "a1-referent-clerk-label" },
   { id: "a1-referent-person", personRoleId: "a1-role-person", animacy: "animate", labelCopyId: "a1-referent-person-label" },
   { id: "a1-referent-thing", personRoleId: "a1-role-thing", animacy: "inanimate", labelCopyId: "a1-referent-thing-label" },
+  { id: "a1-referent-creature", personRoleId: "a1-role-creature", animacy: "animate", labelCopyId: "a1-referent-creature-label" },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -222,6 +238,31 @@ export const a1LearningTargetSenses: readonly LearningTargetSense[] = deepFreeze
   { id: "a1-sense-study-routine", lexemeId: "a1-lexeme-benkyousuru", learningUse: "productive", semanticFrameId: "a1-frame-study-routine", predicate: "study", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
   { id: "a1-sense-eat-routine", lexemeId: "a1-lexeme-taberu", learningUse: "productive", semanticFrameId: "a1-frame-eat-routine", predicate: "eat", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
   { id: "a1-sense-read-routine", lexemeId: "a1-lexeme-yomu", learningUse: "productive", semanticFrameId: "a1-frame-read-routine", predicate: "read", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
+  // --- Module 9 description senses: predicate adjectives. Each carries its
+  // i-/na-class in `adjectiveClass` so the realizer chooses the morphology
+  // generically (い / くない / かった / くなかった for i-class; conjugating です
+  // for na-class). A plain description takes only the topic は subject, so the
+  // frame is `[topic]` with no governed argument. Like / dislike additionally
+  // govern a が-marked stimulus (`theme`).
+  { id: "a1-sense-hot", lexemeId: "a1-lexeme-atsui", learningUse: "productive", semanticFrameId: "a1-frame-hot", predicate: "hot", argumentRoles: ["topic"], argumentParticleByRole: {}, adjectiveClass: "i" },
+  { id: "a1-sense-cold", lexemeId: "a1-lexeme-samui", learningUse: "productive", semanticFrameId: "a1-frame-cold", predicate: "cold", argumentRoles: ["topic"], argumentParticleByRole: {}, adjectiveClass: "i" },
+  { id: "a1-sense-big", lexemeId: "a1-lexeme-ookii", learningUse: "productive", semanticFrameId: "a1-frame-big", predicate: "big", argumentRoles: ["topic"], argumentParticleByRole: {}, adjectiveClass: "i" },
+  { id: "a1-sense-small", lexemeId: "a1-lexeme-chiisai", learningUse: "productive", semanticFrameId: "a1-frame-small", predicate: "small", argumentRoles: ["topic"], argumentParticleByRole: {}, adjectiveClass: "i" },
+  { id: "a1-sense-quiet", lexemeId: "a1-lexeme-shizuka", learningUse: "productive", semanticFrameId: "a1-frame-quiet", predicate: "quiet", argumentRoles: ["topic"], argumentParticleByRole: {}, adjectiveClass: "na" },
+  { id: "a1-sense-like", lexemeId: "a1-lexeme-suki", learningUse: "productive", semanticFrameId: "a1-frame-like", predicate: "like", argumentRoles: ["topic", "theme"], argumentParticleByRole: {}, adjectiveClass: "na" },
+  { id: "a1-sense-dislike", lexemeId: "a1-lexeme-kirai", learningUse: "productive", semanticFrameId: "a1-frame-dislike", predicate: "dislike", argumentRoles: ["topic", "theme"], argumentParticleByRole: {}, adjectiveClass: "na" },
+  // --- Module 10 shopping senses: two price adjectives (i-class) and the polite
+  // request predicate ください (governs a を-marked theme, no verbal ending).
+  { id: "a1-sense-expensive", lexemeId: "a1-lexeme-takai", learningUse: "productive", semanticFrameId: "a1-frame-expensive", predicate: "expensive", argumentRoles: ["topic"], argumentParticleByRole: {}, adjectiveClass: "i" },
+  { id: "a1-sense-cheap", lexemeId: "a1-lexeme-yasui", learningUse: "productive", semanticFrameId: "a1-frame-cheap", predicate: "cheap", argumentRoles: ["topic"], argumentParticleByRole: {}, adjectiveClass: "i" },
+  { id: "a1-sense-request", lexemeId: "a1-lexeme-kudasai", learningUse: "productive", semanticFrameId: "a1-frame-request", predicate: "request", argumentRoles: ["theme"], argumentParticleByRole: {} },
+  // --- Module 11 existence/needs senses. あります pins an inanimate が-subject,
+  // います an animate one — enforced generically via `requiredSubjectAnimacy`,
+  // never a Japanese-string switch. ほしい (want, i-class) governs a が-marked
+  // wanted thing (`theme`).
+  { id: "a1-sense-exist-inanimate", lexemeId: "a1-lexeme-aru", learningUse: "productive", semanticFrameId: "a1-frame-exist-inanimate", predicate: "exist", argumentRoles: ["location"], argumentParticleByRole: {}, requiredSubjectAnimacy: "inanimate" },
+  { id: "a1-sense-exist-animate", lexemeId: "a1-lexeme-iru", learningUse: "productive", semanticFrameId: "a1-frame-exist-animate", predicate: "exist", argumentRoles: ["location"], argumentParticleByRole: {}, requiredSubjectAnimacy: "animate" },
+  { id: "a1-sense-want", lexemeId: "a1-lexeme-hoshii", learningUse: "productive", semanticFrameId: "a1-frame-want", predicate: "want", argumentRoles: ["topic", "theme"], argumentParticleByRole: {}, adjectiveClass: "i" },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -407,6 +448,71 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-freq-often", kind: "time", tokenFragments: [frag("よく", "yoku")] },
   { id: "a1-value-freq-sometimes", kind: "time", tokenFragments: [frag("ときどき", "tokidoki")] },
   { id: "a1-value-freq-always", kind: "time", tokenFragments: [frag("いつも", "itsumo")] },
+
+  // === Phase 2 Module 9 — description subjects & adjective stems ===========
+  // Inanimate description subjects (topic は).
+  { id: "a1-value-today", kind: "referent", animacy: "inanimate", tokenFragments: [frag("きょう", "kyou")] },
+  { id: "a1-value-heya", kind: "referent", animacy: "inanimate", tokenFragments: [frag("へや", "heya")] },
+  { id: "a1-value-machi", kind: "referent", animacy: "inanimate", tokenFragments: [frag("まち", "machi")] },
+  // Predicate adjective stems (the class-specific ending belongs to the rule).
+  // i-adjectives carry the bare stem (い / くない / … attach in the realizer);
+  // na-adjectives carry the full stem word (the copula です follows).
+  { id: "a1-value-hot", kind: "predicate-sense", senseId: "a1-sense-hot", tokenFragments: [frag("あつ", "atsu")] },
+  { id: "a1-value-cold", kind: "predicate-sense", senseId: "a1-sense-cold", tokenFragments: [frag("さむ", "samu")] },
+  { id: "a1-value-big", kind: "predicate-sense", senseId: "a1-sense-big", tokenFragments: [frag("おおき", "ooki")] },
+  { id: "a1-value-small", kind: "predicate-sense", senseId: "a1-sense-small", tokenFragments: [frag("ちいさ", "chiisa")] },
+  { id: "a1-value-quiet", kind: "predicate-sense", senseId: "a1-sense-quiet", tokenFragments: [frag("しずか", "shizuka")] },
+  { id: "a1-value-like", kind: "predicate-sense", senseId: "a1-sense-like", tokenFragments: [frag("すき", "suki")] },
+  { id: "a1-value-dislike", kind: "predicate-sense", senseId: "a1-sense-dislike", tokenFragments: [frag("きらい", "kirai")] },
+  // Comparison standards (より-marked; object-kind demonstratives).
+  { id: "a1-value-obj-kore", kind: "object", tokenFragments: [frag("これ", "kore")] },
+  { id: "a1-value-obj-sore", kind: "object", tokenFragments: [frag("それ", "sore")] },
+  { id: "a1-value-obj-are", kind: "object", tokenFragments: [frag("あれ", "are")] },
+
+  // === Phase 2 Module 10 — prices, quantities, request ====================
+  // Price copular complements (object-kind; "…えん" split so romaji spaces).
+  { id: "a1-value-price-100", kind: "object", tokenFragments: [frag("ひゃく", "hyaku"), frag("えん", "en")] },
+  { id: "a1-value-price-300", kind: "object", tokenFragments: [frag("さんびゃく", "sanbyaku"), frag("えん", "en")] },
+  { id: "a1-value-price-500", kind: "object", tokenFragments: [frag("ごひゃく", "gohyaku"), frag("えん", "en")] },
+  { id: "a1-value-price-1000", kind: "object", tokenFragments: [frag("せん", "sen"), frag("えん", "en")] },
+  // Price adjective stems (i-class).
+  { id: "a1-value-expensive", kind: "predicate-sense", senseId: "a1-sense-expensive", tokenFragments: [frag("たか", "taka")] },
+  { id: "a1-value-cheap", kind: "predicate-sense", senseId: "a1-sense-cheap", tokenFragments: [frag("やす", "yasu")] },
+  // Shopping objects (を theme, also preference/existence themes).
+  { id: "a1-value-obj-apple", kind: "object", tokenFragments: [frag("りんご", "ringo")] },
+  { id: "a1-value-obj-mikan", kind: "object", tokenFragments: [frag("みかん", "mikan")] },
+  { id: "a1-value-obj-ticket", kind: "object", tokenFragments: [frag("きっぷ", "kippu")] },
+  { id: "a1-value-obj-bag", kind: "object", tokenFragments: [frag("かばん", "kaban")] },
+  { id: "a1-value-obj-money", kind: "object", tokenFragments: [frag("おかね", "okane")] },
+  // Floating quantifiers (bare — no particle; quantity-kind).
+  { id: "a1-value-qty-1", kind: "quantity", tokenFragments: [frag("ひとつ", "hitotsu")] },
+  { id: "a1-value-qty-2", kind: "quantity", tokenFragments: [frag("ふたつ", "futatsu")] },
+  { id: "a1-value-qty-3", kind: "quantity", tokenFragments: [frag("みっつ", "mittsu")] },
+  { id: "a1-value-qty-4", kind: "quantity", tokenFragments: [frag("よっつ", "yottsu")] },
+  { id: "a1-value-qty-5", kind: "quantity", tokenFragments: [frag("いつつ", "itsutsu")] },
+  // Polite request word ください (standalone; emitted after the を-item).
+  { id: "a1-value-request", kind: "predicate-sense", senseId: "a1-sense-request", tokenFragments: [frag("ください", "kudasai")] },
+
+  // === Phase 2 Module 11 — existence entities, positions, want ============
+  // Existence subjects (が-marked). Inanimate → あります; animate → います.
+  { id: "a1-value-ex-book", kind: "referent", animacy: "inanimate", tokenFragments: [frag("ほん", "hon")] },
+  { id: "a1-value-ex-pen", kind: "referent", animacy: "inanimate", tokenFragments: [frag("ペン", "pen")] },
+  { id: "a1-value-ex-key", kind: "referent", animacy: "inanimate", tokenFragments: [frag("かぎ", "kagi")] },
+  { id: "a1-value-ex-money", kind: "referent", animacy: "inanimate", tokenFragments: [frag("おかね", "okane")] },
+  { id: "a1-value-ex-cat", kind: "referent", animacy: "animate", tokenFragments: [frag("ねこ", "neko")] },
+  { id: "a1-value-ex-dog", kind: "referent", animacy: "animate", tokenFragments: [frag("いぬ", "inu")] },
+  { id: "a1-value-ex-child", kind: "referent", animacy: "animate", tokenFragments: [frag("こども", "kodomo")] },
+  { id: "a1-value-ex-person", kind: "referent", animacy: "animate", tokenFragments: [frag("ひと", "hito")] },
+  // Position location nouns (に-marked; multi-fragment → spaced romaji).
+  { id: "a1-value-loc-on-desk", kind: "location", tokenFragments: [frag("つくえ", "tsukue"), frag("の", "no"), frag("うえ", "ue")] },
+  { id: "a1-value-loc-in-bag", kind: "location", tokenFragments: [frag("かばん", "kaban"), frag("の", "no"), frag("なか", "naka")] },
+  { id: "a1-value-loc-under-chair", kind: "location", tokenFragments: [frag("いす", "isu"), frag("の", "no"), frag("した", "shita")] },
+  { id: "a1-value-loc-near-station", kind: "location", tokenFragments: [frag("えき", "eki"), frag("の", "no"), frag("ちかく", "chikaku")] },
+  // Want adjective stem (i-class; ほし + い → ほしい).
+  { id: "a1-value-want", kind: "predicate-sense", senseId: "a1-sense-want", tokenFragments: [frag("ほし", "hoshi")] },
+  // Existence predicate stems (normal ます-stems: あり / い).
+  { id: "a1-value-exist-inanimate", kind: "predicate-sense", senseId: "a1-sense-exist-inanimate", tokenFragments: [frag("あり", "ari")] },
+  { id: "a1-value-exist-animate", kind: "predicate-sense", senseId: "a1-sense-exist-animate", tokenFragments: [frag("い", "i")] },
 ];
 
 export const a1SemanticValues: readonly SemanticValue[] = deepFreeze([
@@ -422,7 +528,7 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
   {
     id: "a1-family-topic-copular",
     level: "a1",
-    canDoIds: ["a1-can-do-identity"],
+    canDoIds: ["a1-can-do-identity", "a1-can-do-origins", "a1-can-do-people"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -448,7 +554,7 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
   {
     id: "a1-family-object-action",
     level: "a1",
-    canDoIds: ["a1-can-do-actions"],
+    canDoIds: ["a1-can-do-actions", "a1-can-do-questions"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -571,6 +677,102 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     realizationRuleId: "rule-transport-action",
     requiredConceptIds: [A1_CONCEPT_TRANSPORT_DE],
   },
+  {
+    // Module 9: adjectival description "X は <adj>です". No governed object; the
+    // described thing is the topic. i-/na-morphology comes from the sense's
+    // adjectiveClass, never this family.
+    id: "a1-family-description",
+    level: "a1",
+    canDoIds: ["a1-can-do-descriptions"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "polarity-tense-form", "context"],
+    realizationRuleId: "rule-description",
+    requiredConceptIds: [A1_CONCEPT_ADJECTIVE],
+  },
+  {
+    // Module 9: preference/desire "X は Y が <adj>です" — Y is a が-marked
+    // governed theme (すき/きらい/ほしい).
+    id: "a1-family-preference",
+    level: "a1",
+    canDoIds: ["a1-can-do-descriptions", "a1-can-do-scenario-3"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      { id: "object", axis: "object", valueKind: "object", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "object", "polarity-tense-form", "context"],
+    realizationRuleId: "rule-preference",
+    requiredConceptIds: [A1_CONCEPT_PREFERENCE],
+  },
+  {
+    // Module 9: comparison "X は Y より <adj>です" — Y is a より-marked standard
+    // (an adjunct, not a governed theme).
+    id: "a1-family-comparison",
+    level: "a1",
+    canDoIds: ["a1-can-do-descriptions", "a1-can-do-scenario-4"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      { id: "standard", axis: "object", valueKind: "object", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "object", "polarity-tense-form", "context"],
+    realizationRuleId: "rule-comparison",
+    requiredConceptIds: [A1_CONCEPT_COMPARISON],
+  },
+  {
+    // Module 10: verb + を object + bare floating quantifier
+    // ("りんごを みっつ かいます"). The quantity slot takes no particle.
+    id: "a1-family-quantified-action",
+    level: "a1",
+    canDoIds: ["a1-can-do-shopping", "a1-can-do-scenario-2"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      { id: "object", axis: "object", valueKind: "object", optional: false },
+      { id: "quantity", axis: "quantity", valueKind: "quantity", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "object", "quantity", "polarity-tense-form", "context"],
+    realizationRuleId: "rule-quantified-action",
+    requiredConceptIds: [A1_CONCEPT_QUANTITY],
+  },
+  {
+    // Module 10: polite request "Y を ください" — the item is a を-marked
+    // governed theme; the predicate value carries the standalone ください.
+    id: "a1-family-request",
+    level: "a1",
+    canDoIds: ["a1-can-do-shopping"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      { id: "object", axis: "object", valueKind: "object", optional: false },
+      // Optional bare floating quantifier ("りんごを みっつ ください"). Its
+      // presence/absence is a genuine second structure for the request sense.
+      { id: "quantity", axis: "quantity", valueKind: "quantity", optional: true },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "object", "quantity", "polarity-tense-form", "context"],
+    realizationRuleId: "rule-request",
+    requiredConceptIds: [A1_CONCEPT_REQUEST],
+  },
+  {
+    // Module 11: presentational existence "X が (place に) あります/います". The
+    // entity is the が-marked subject; the optional に-location gives position.
+    // あります vs います is chosen from requiredSubjectAnimacy, never a string
+    // switch.
+    id: "a1-family-existence",
+    level: "a1",
+    canDoIds: ["a1-can-do-existence", "a1-can-do-scenario-1"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      { id: "location", axis: "location", valueKind: "location", optional: true },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "location", "polarity-tense-form", "context"],
+    realizationRuleId: "rule-existence",
+    requiredConceptIds: [A1_CONCEPT_EXISTENCE],
+  },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -586,6 +788,15 @@ export const a1CanDos: readonly CanDo[] = deepFreeze([
   { id: "a1-can-do-daily-life", level: "a1", domain: "spoken-production", descriptorCopyId: "a1-can-do-daily-life-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
   { id: "a1-can-do-places", level: "a1", domain: "spoken-production", descriptorCopyId: "a1-can-do-places-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
   { id: "a1-can-do-people", level: "a1", domain: "interaction", descriptorCopyId: "a1-can-do-people-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
+  // Phase 2 module Can-dos.
+  { id: "a1-can-do-descriptions", level: "a1", domain: "spoken-production", descriptorCopyId: "a1-can-do-descriptions-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
+  { id: "a1-can-do-shopping", level: "a1", domain: "interaction", descriptorCopyId: "a1-can-do-shopping-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
+  { id: "a1-can-do-existence", level: "a1", domain: "spoken-production", descriptorCopyId: "a1-can-do-existence-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
+  // Phase 2 capstone scenario Can-dos (one per Module 12 synthesis lesson).
+  { id: "a1-can-do-scenario-1", level: "a1", domain: "interaction", descriptorCopyId: "a1-can-do-scenario-1-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
+  { id: "a1-can-do-scenario-2", level: "a1", domain: "interaction", descriptorCopyId: "a1-can-do-scenario-2-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
+  { id: "a1-can-do-scenario-3", level: "a1", domain: "interaction", descriptorCopyId: "a1-can-do-scenario-3-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
+  { id: "a1-can-do-scenario-4", level: "a1", domain: "interaction", descriptorCopyId: "a1-can-do-scenario-4-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -803,6 +1014,9 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-context-home-label": "At home",
     "a1-context-town-label": "Around town",
     "a1-context-family-label": "With family",
+    "a1-context-weather-label": "Talking about the weather",
+    "a1-role-creature-label": "An animal",
+    "a1-referent-creature-label": "The animal",
     "a1-can-do-sounds-descriptor": "I can hear and read the basic sounds of Japanese.",
     "a1-can-do-identity-descriptor": "I can say who I am and give a few personal details.",
     "a1-can-do-origins-descriptor": "I can say where I am from and what languages I use.",
@@ -811,6 +1025,13 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-can-do-daily-life-descriptor": "I can describe simple everyday activities.",
     "a1-can-do-places-descriptor": "I can say where I am going and how I get there.",
     "a1-can-do-people-descriptor": "I can talk about my family and the people around me.",
+    "a1-can-do-descriptions-descriptor": "I can describe things and say what I like using simple adjectives.",
+    "a1-can-do-shopping-descriptor": "I can ask prices, say how many I want, and make a simple purchase.",
+    "a1-can-do-existence-descriptor": "I can say what there is, where it is, and what I need.",
+    "a1-can-do-scenario-1-descriptor": "I can get through a short shopping exchange from start to finish.",
+    "a1-can-do-scenario-2-descriptor": "I can find my way and ask about places using what there is around me.",
+    "a1-can-do-scenario-3-descriptor": "I can talk through a simple day, saying what I do and how I feel about it.",
+    "a1-can-do-scenario-4-descriptor": "I can introduce myself and shift the topic to the people and things I like.",
     "a1-module-outcome-introductions": "You can introduce yourself and other people with a few key facts.",
     "a1-module-outcome-essential-questions": "You can ask and recognize the everyday questions that keep a conversation going.",
     "a1-module-outcome-actions": "You can say what you and others do with everyday things, places, and people.",
@@ -818,6 +1039,11 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-module-outcome-past-negative": "You can say what did and did not happen, in the past as well as the present.",
     "a1-module-outcome-places": "You can say where you go, where you come from, and how you travel there.",
     "a1-module-outcome-people": "You can talk about your family and the people you do things with.",
+    "a1-module-outcome-descriptions": "You can describe things, weather, and preferences with simple i- and na-adjectives.",
+    "a1-module-outcome-shopping": "You can handle prices, quantities, and polite requests to make a simple purchase.",
+    "a1-module-outcome-existence-needs": "You can say what exists, where it is, and what you need or want.",
+    "a1-module-outcome-capstones": "You can combine everything from this level to get through everyday scenarios.",
+    "a1-level-a1-alignment": "A first foundation in everyday Japanese, aligned with the JF Standard and CEFR A1 descriptors.",
   },
   it: {
     "a1-role-learner-label": "Io (chi impara)",
@@ -849,6 +1075,9 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-context-home-label": "A casa",
     "a1-context-town-label": "In città",
     "a1-context-family-label": "In famiglia",
+    "a1-context-weather-label": "Parlare del tempo",
+    "a1-role-creature-label": "Un animale",
+    "a1-referent-creature-label": "L'animale",
     "a1-can-do-sounds-descriptor": "So sentire e leggere i suoni di base del giapponese.",
     "a1-can-do-identity-descriptor": "So dire chi sono e dare alcuni dati personali.",
     "a1-can-do-origins-descriptor": "So dire da dove vengo e quali lingue uso.",
@@ -857,6 +1086,13 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-can-do-daily-life-descriptor": "So descrivere semplici attività quotidiane.",
     "a1-can-do-places-descriptor": "So dire dove vado e come ci arrivo.",
     "a1-can-do-people-descriptor": "So parlare della mia famiglia e delle persone intorno a me.",
+    "a1-can-do-descriptions-descriptor": "So descrivere le cose e dire cosa mi piace con aggettivi semplici.",
+    "a1-can-do-shopping-descriptor": "So chiedere i prezzi, dire quanti ne voglio e fare un semplice acquisto.",
+    "a1-can-do-existence-descriptor": "So dire cosa c'è, dove si trova e di cosa ho bisogno.",
+    "a1-can-do-scenario-1-descriptor": "So gestire un breve scambio in negozio dall'inizio alla fine.",
+    "a1-can-do-scenario-2-descriptor": "So orientarmi e chiedere dei luoghi usando ciò che c'è intorno a me.",
+    "a1-can-do-scenario-3-descriptor": "So raccontare una giornata semplice, dicendo cosa faccio e come mi sento.",
+    "a1-can-do-scenario-4-descriptor": "So presentarmi e spostare il discorso sulle persone e le cose che mi piacciono.",
     "a1-module-outcome-introductions": "Sai presentare te stesso e altre persone con alcuni dati chiave.",
     "a1-module-outcome-essential-questions": "Sai fare e riconoscere le domande quotidiane che tengono viva una conversazione.",
     "a1-module-outcome-actions": "Sai dire cosa fai tu e gli altri con le cose, i luoghi e le persone di ogni giorno.",
@@ -864,6 +1100,11 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-module-outcome-past-negative": "Sai dire cosa è successo e cosa non è successo, al passato come al presente.",
     "a1-module-outcome-places": "Sai dire dove vai, da dove vieni e come ci viaggi.",
     "a1-module-outcome-people": "Sai parlare della tua famiglia e delle persone con cui fai le cose.",
+    "a1-module-outcome-descriptions": "Sai descrivere cose, tempo e preferenze con semplici aggettivi in i e in na.",
+    "a1-module-outcome-shopping": "Sai gestire prezzi, quantità e richieste cortesi per fare un semplice acquisto.",
+    "a1-module-outcome-existence-needs": "Sai dire cosa esiste, dove si trova e cosa ti serve o desideri.",
+    "a1-module-outcome-capstones": "Sai combinare tutto questo livello per gestire scenari di tutti i giorni.",
+    "a1-level-a1-alignment": "Una prima base di giapponese quotidiano, allineata agli standard JF e ai descrittori CEFR A1.",
   },
 });
 
@@ -997,6 +1238,10 @@ export const A1_CONTEXT_SCENARIO: Readonly<Record<string, Bilingual>> = deepFree
     en: "You are talking about your family and the people around you.",
     it: "Parli della tua famiglia e delle persone intorno a te.",
   },
+  "a1-context-weather": {
+    en: "You are chatting about today's weather and how things feel.",
+    it: "Chiacchieri del tempo di oggi e di come ci si sente.",
+  },
 });
 
 function glossOrThrow(
@@ -1070,6 +1315,10 @@ export interface A1InstructionalLessonInput {
   readonly id: string;
   readonly moduleId: string;
   readonly order: 1 | 2 | 3 | 4;
+  /** Authoring contract. "instructional" (default) introduces new content;
+   * "synthesis" (Module 12 capstones) recombines already-taught content and
+   * MUST leave introducedConceptIds/introducedSenseIds empty. */
+  readonly contract?: "instructional" | "synthesis";
   readonly primaryCanDoId: string;
   readonly supportingCanDoIds: readonly string[];
   readonly introducedConceptIds: readonly string[];
@@ -1200,7 +1449,7 @@ export function buildA1InstructionalLesson(
     id: input.id,
     moduleId: input.moduleId,
     order: input.order,
-    contract: "instructional",
+    contract: input.contract ?? "instructional",
     primaryCanDoId: input.primaryCanDoId,
     supportingCanDoIds: input.supportingCanDoIds,
     modelVariantIds: modelIds,

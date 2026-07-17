@@ -15,6 +15,10 @@ import { module5Lessons } from "../catalog/module05Routines";
 import { module6Lessons } from "../catalog/module06TensePolarity";
 import { module7Lessons } from "../catalog/module07Places";
 import { module8Lessons } from "../catalog/module08People";
+import { module9Lessons } from "../catalog/module09Descriptions";
+import { module10Lessons } from "../catalog/module10Shopping";
+import { module11Lessons } from "../catalog/module11ExistenceNeeds";
+import { module12Lessons } from "../catalog/module12Capstones";
 
 function buildIt(): Record<string, string> {
   const out: Record<string, string> = { ...a1SharedCopy.it, ...module1Copy.it };
@@ -26,6 +30,10 @@ function buildIt(): Record<string, string> {
     module6Lessons,
     module7Lessons,
     module8Lessons,
+    module9Lessons,
+    module10Lessons,
+    module11Lessons,
+    module12Lessons,
   ]) {
     for (const lesson of lessons) {
       Object.assign(out, lesson.it);

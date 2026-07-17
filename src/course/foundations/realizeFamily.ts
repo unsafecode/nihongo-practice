@@ -107,8 +107,13 @@ interface RealizationRuleDefinition {
   readonly id: string;
   /** "copula" families emit no predicate-stem token (the `predicate`
    * semantic value carries no lexical content of its own); "verb" families
-   * emit the predicate-sense value's own token fragments before the ending. */
-  readonly predicateKind: "copula" | "verb";
+   * emit the predicate-sense value's own token fragments before the ending;
+   * "adjective" families emit the predicate stem then either an i-adjective
+   * inflection + invariant です (`sense.adjectiveClass === "i"`) or the
+   * conjugating polite-copula pieces (`"na"`); "request" families emit the
+   * predicate value's own standalone politeness word (ください) with no
+   * verbal/copular ending at all. */
+  readonly predicateKind: "copula" | "verb" | "adjective" | "request";
   /**
    * What the family's `object` slot (if any) means to the sense's own case
    * frame (§16 case-frame extension). `"copular-complement"` is a plain
@@ -122,6 +127,13 @@ interface RealizationRuleDefinition {
   /** Non-subject, non-predicate slots, in the order their tokens/particles
    * are emitted (after subject/topic, before the predicate stem/ending). */
   readonly contentSlots: readonly ContentSlotRule[];
+  /**
+   * Which particle marks the explicit grammatical subject (§ Phase 2 M11).
+   * Defaults to は (`"wa"`) — every fixture/M2-8 topic construction — but
+   * presentational existence marks the entity subject が (`"ga"`). Read
+   * generically at assembly time, never from a Japanese-string switch.
+   */
+  readonly subjectParticle?: SemanticParticleId;
 }
 
 /**
@@ -244,6 +256,68 @@ const REALIZATION_RULES: Readonly<Record<string, RealizationRuleDefinition>> = {
       { slotId: "location", particle: { kind: "fixed", particle: "ni" } },
     ],
   },
+  // --- Phase 2 Module 9-11 constructions ---
+  // Adjectival predicate "X は <adj>です" — the thing described is the topic は
+  // and takes no governed object. i-/na-class morphology is chosen from the
+  // sense's `adjectiveClass`, not from this rule.
+  "rule-description": {
+    id: "rule-description",
+    predicateKind: "adjective",
+    objectRole: null,
+    contentSlots: [],
+  },
+  // Adjectival preference/desire "X は Y が <adj>です" — the stimulus (liked
+  // thing / wanted thing) is a が-marked governed theme, so the sense declares
+  // `theme`. Covers すき/きらい (na) and ほしい (i) uniformly.
+  "rule-preference": {
+    id: "rule-preference",
+    predicateKind: "adjective",
+    objectRole: "governed-theme",
+    contentSlots: [{ slotId: "object", particle: { kind: "fixed", particle: "ga" } }],
+  },
+  // Adjectival comparison "X は Y より <adj>です" — Y is a より-marked standard
+  // (an adjunct, never a governed theme), so `objectRole` stays null.
+  "rule-comparison": {
+    id: "rule-comparison",
+    predicateKind: "adjective",
+    objectRole: null,
+    contentSlots: [{ slotId: "standard", particle: { kind: "fixed", particle: "yori" } }],
+  },
+  // Verb + を object + a bare floating quantifier ("りんごを みっつ かいます").
+  // The quantity slot carries a counter word and takes no particle.
+  "rule-quantified-action": {
+    id: "rule-quantified-action",
+    predicateKind: "verb",
+    objectRole: "governed-theme",
+    contentSlots: [
+      { slotId: "object", particle: { kind: "fixed", particle: "o" } },
+      { slotId: "quantity", particle: { kind: "none" } },
+    ],
+  },
+  // Polite request "Y を ください" — the requested item is a を-marked governed
+  // theme; the predicate value carries the standalone politeness word ください
+  // (no verbal/copular ending).
+  "rule-request": {
+    id: "rule-request",
+    predicateKind: "request",
+    objectRole: "governed-theme",
+    contentSlots: [
+      { slotId: "object", particle: { kind: "fixed", particle: "o" } },
+      { slotId: "quantity", particle: { kind: "none" } },
+    ],
+  },
+  // Presentational existence "X が (place に) あります/います" — the entity is
+  // the が-marked subject; an optional に-marked location gives its position.
+  // The verb (ある/いる) is a normal ます-stem, so `predicateKind` is "verb";
+  // only the subject particle (が) and the sense's `requiredSubjectAnimacy`
+  // distinguish it from a topic construction.
+  "rule-existence": {
+    id: "rule-existence",
+    predicateKind: "verb",
+    objectRole: null,
+    subjectParticle: "ga",
+    contentSlots: [{ slotId: "location", particle: { kind: "fixed", particle: "ni" } }],
+  },
 };
 
 /**
@@ -339,7 +413,26 @@ const PARTICLE_TEXT: Readonly<Record<SemanticParticleId, EndingForm>> = {
   // Source から and limit まで frame a departure/arrival span.
   kara: { jp: "から", romaji: "kara" },
   made: { jp: "まで", romaji: "made" },
+  // Comparison standard より ("A は B より おおきいです").
+  yori: { jp: "より", romaji: "yori" },
 };
+
+/**
+ * i-adjective polite conjugation (§ Phase 2 M9/M11). Each key gives the bound
+ * inflection that attaches to the adjective stem (あつ→あつ+い / あつ+くない /
+ * あつ+かった / あつ+くなかった); an invariant standalone です is appended after
+ * it by the assembler, so `atsui desu` / `atsukunai desu` / `atsukatta desu` /
+ * `atsukunakatta desu` render with the copula spaced off as its own word.
+ */
+const I_ADJECTIVE_ENDINGS: Readonly<Record<FormKey, EndingForm>> = {
+  "present-affirmative": { jp: "い", romaji: "i" },
+  "present-negative": { jp: "くない", romaji: "kunai" },
+  "past-affirmative": { jp: "かった", romaji: "katta" },
+  "past-negative": { jp: "くなかった", romaji: "kunakatta" },
+};
+
+/** The invariant polite copula word that follows an i-adjective (です). */
+const I_ADJECTIVE_COPULA: EndingForm = { jp: "です", romaji: "desu" };
 
 /** Governed argument roles: `agent`/`topic` are discourse-driven and never
  * appear here (see `argumentParticleByRole` in ./types). `theme` is deliberately
@@ -690,6 +783,23 @@ export function realizeVariant(
     ]);
   }
 
+  // 10b. existence-verb subject animacy (§ Phase 2 M11). A sense that pins the
+  // animacy of its が-marked subject (あります → inanimate, います → animate)
+  // can never be realized with a subject whose value carries the other
+  // animacy — enforced generically from `requiredSubjectAnimacy`, never a
+  // Japanese-string switch. Fails closed exactly like the topic-subject
+  // animacy check (step 9).
+  if (sense.requiredSubjectAnimacy) {
+    const existenceSubject = resolvedSlotValues.get("subject");
+    if (
+      existenceSubject &&
+      existenceSubject.animacy &&
+      existenceSubject.animacy !== sense.requiredSubjectAnimacy
+    ) {
+      return fail([{ code: "incompatible-animacy", slotId: "subject" }]);
+    }
+  }
+
   // 11. sense argument frame vs. family structure/case-frame requirements.
   const rule = resolveRule(family.realizationRuleId);
   const frameErrors: Omit<FamilyRealizationError, "familyId" | "variantId">[] = [];
@@ -804,6 +914,8 @@ export function realizeVariant(
     return fail([{ code: "invalid-conjugation", referenceId: variant.form.tense }]);
   }
   const isCopula = rule.predicateKind === "copula";
+  const isAdjective = rule.predicateKind === "adjective";
+  const isRequest = rule.predicateKind === "request";
   const verbEnding = VERB_POLITE_ENDINGS[key];
   const copulaPieces = COPULA_POLITE_ENDINGS[key];
 
@@ -816,7 +928,9 @@ export function realizeVariant(
     const subjectValue = resolvedSlotValues.get("subject");
     if (subjectValue) {
       pushSlotFragments(builder, variant.id, "subject", subjectValue);
-      pushParticle(builder, variant.id, "wa");
+      // The subject particle is は for every topic construction and が for
+      // presentational existence — read from the rule, never hardcoded.
+      pushParticle(builder, variant.id, rule.subjectParticle ?? "wa");
     }
   }
   for (const contentSlot of rule.contentSlots) {
@@ -832,7 +946,10 @@ export function realizeVariant(
       pushParticle(builder, variant.id, particleId);
     }
   }
-  if (rule.predicateKind === "verb" && predicateValue) {
+  // A verb or adjective family emits its predicate value's own stem fragments
+  // before the ending; a request emits its politeness word as a standalone
+  // word (below); a copula emits no stem.
+  if ((rule.predicateKind === "verb" || isAdjective) && predicateValue) {
     pushSlotFragments(builder, variant.id, "predicate", predicateValue);
   }
   if (isCopula) {
@@ -843,6 +960,31 @@ export function realizeVariant(
     copulaPieces.forEach((piece, index) => {
       pushStandalonePredicate(builder, variant.id, `rule::copula::${index}`, piece);
     });
+  } else if (isAdjective) {
+    if (sense.adjectiveClass === "i") {
+      // i-adjective: bound inflection on the stem (あつ+い) then an invariant
+      // standalone です spaced off as its own word (`atsui desu`).
+      pushAttachedInflection(builder, variant.id, I_ADJECTIVE_ENDINGS[key]);
+      pushStandalonePredicate(builder, variant.id, "rule::adj-copula", I_ADJECTIVE_COPULA);
+    } else {
+      // na-adjective: the conjugating polite copula follows the stem
+      // (しずか + です / しずか + では ありません).
+      copulaPieces.forEach((piece, index) => {
+        pushStandalonePredicate(builder, variant.id, `rule::copula::${index}`, piece);
+      });
+    }
+  } else if (isRequest) {
+    // Polite request: the predicate value carries the standalone politeness
+    // word ください, emitted as its own spaced word after the を-marked item;
+    // there is no verbal/copular ending.
+    if (predicateValue) {
+      predicateValue.tokenFragments.forEach((fragment, index) => {
+        pushStandalonePredicate(builder, variant.id, `rule::request::${index}`, {
+          jp: fragment.jp,
+          romaji: fragment.romaji,
+        });
+      });
+    }
   } else {
     // Verb inflection is a bound morpheme that attaches to its stem.
     pushAttachedInflection(builder, variant.id, verbEnding);

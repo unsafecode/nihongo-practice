@@ -51,6 +51,7 @@ export type VariationAxis =
   | "object"
   | "location"
   | "time"
+  | "quantity"
   | "polarity-tense-form"
   | "context";
 
@@ -189,7 +190,8 @@ export type SemanticParticleId =
   | "ga"
   | "he"
   | "kara"
-  | "made";
+  | "made"
+  | "yori";
 
 /**
  * Per-role case-particle requirements a predicate sense's frame declares
@@ -225,6 +227,22 @@ export interface LearningTargetSense {
    * realize multiple particle patterns without a string/sense special case.
    */
   readonly argumentParticleByRole: ArgumentParticleByRole;
+  /**
+   * For adjectival predicate senses (§ Phase 2 M9/M11), which morphological
+   * class conjugates the stem: `"i"` (あつ→あつい/あつくない/…) attaches an
+   * i-adjective inflection then an invariant standalone です; `"na"`
+   * (しずか→しずかです) attaches the conjugating polite copula pieces after the
+   * stem. Absent for verbal/copular senses. The realizer reads this generically
+   * — there is no per-adjective Japanese-string switch.
+   */
+  readonly adjectiveClass?: "i" | "na";
+  /**
+   * For existence predicate senses (§ Phase 2 M11), the animacy the が-marked
+   * subject must carry: あります requires `"inanimate"`, います `"animate"`.
+   * The realizer enforces this generically so an animate subject can never be
+   * realized with the inanimate existence verb (or vice versa).
+   */
+  readonly requiredSubjectAnimacy?: Animacy;
 }
 
 /** What kind of sentence-building unit a semantic value fills a slot with (§10.1). */
@@ -233,7 +251,8 @@ export type SemanticValueKind =
   | "predicate-sense"
   | "object"
   | "location"
-  | "time";
+  | "time"
+  | "quantity";
 
 /**
  * One authored Japanese/romaji fragment a semantic value contributes to
