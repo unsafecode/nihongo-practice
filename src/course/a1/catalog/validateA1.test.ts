@@ -23,6 +23,7 @@ import { a1Checkpoint } from "./checkpoint";
 import { a1ReleaseVerbUseRecords } from "./recurrence";
 import { module1ItemsByLesson, module1Lessons, type A1PhoneticItem } from "./module01Sounds";
 import { A1_MANIFEST_SPEC } from "../manifest";
+import { A1_RELEASE_ERROR_CODES, type A1ReleaseErrorCode } from "../types";
 
 type Clonable = <T>(value: T) => T;
 const clone: Clonable = (value) => structuredClone(value);
@@ -443,5 +444,73 @@ describe("validateA1 – deterministic error ordering", () => {
     })();
     expect(againAfterPop.errors).toEqual(result.errors);
     expect(again.valid).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Canonical release error vocabulary (Task 1 Step 3 / Task 4 integration)
+// ---------------------------------------------------------------------------
+
+describe("validateA1 – canonical release error vocabulary lives in types.ts", () => {
+  it("is a runtime-checkable list, and A1ValidationErrorCode is exactly that list", () => {
+    // Not a compile-only alias check: the emitted `A1ValidationErrorCode` union
+    // must be backed by the same runtime array types.ts exposes, so every code
+    // below is provably a member rather than an independently-declared literal.
+    expect(A1_RELEASE_ERROR_CODES.length).toBeGreaterThan(0);
+    expect(new Set(A1_RELEASE_ERROR_CODES).size).toBe(A1_RELEASE_ERROR_CODES.length);
+  });
+
+  it("emits an introduction-order violation (unknown-content) that is a member of the canonical vocabulary", () => {
+    const semantic = semanticClone();
+    const model = semantic.sentenceVariants.find(
+      (v) => v.pedagogicalUse === "model" && !v.id.startsWith("capstones-"),
+    );
+    expect(model).toBeDefined();
+    const slotKey = Object.keys(model!.slotValues)[0];
+    (model!.slotValues as Record<string, string>)[slotKey] = "a1-value-does-not-exist";
+    const result = validateA1({ semanticCatalogs: semantic });
+    expect(codesOf(result)).toContain("unknown-content");
+    for (const code of codesOf(result)) {
+      expect(A1_RELEASE_ERROR_CODES).toContain(code as A1ReleaseErrorCode);
+    }
+  });
+
+  it("emits an unresolved-route violation (unknown-lesson-id) that is a member of the canonical vocabulary", () => {
+    const full = fullClone();
+    const first = clone(full.lessonPositions[0]);
+    (full.lessonPositions as unknown as Record<string, unknown>[]).push({
+      ...first,
+      lessonId: "totally-unresolved-route",
+      position: 999,
+    });
+    const result = validateA1({ fullCatalogs: full });
+    expect(codesOf(result)).toContain("unknown-lesson-id");
+    for (const code of codesOf(result)) {
+      expect(A1_RELEASE_ERROR_CODES).toContain(code as A1ReleaseErrorCode);
+    }
+  });
+
+  it("emits an unresolved-copy violation (copy-parity) that is a member of the canonical vocabulary", () => {
+    const copy = copyClone();
+    copy.en["a1.copy.unresolved"] = "unresolved text";
+    const result = validateA1({ foundationCopy: copy });
+    expect(codesOf(result)).toContain("copy-parity");
+    for (const code of codesOf(result)) {
+      expect(A1_RELEASE_ERROR_CODES).toContain(code as A1ReleaseErrorCode);
+    }
+  });
+
+  it("emits full-release-count violations (module-count, lessons-per-module, route-count) that are members of the canonical vocabulary", () => {
+    const full = fullClone();
+    (full.modules as unknown as unknown[]).splice(1, 1);
+    (full.modules[1].lessonIds as unknown as string[]).push("descriptions-1");
+    (full.lessonPositions as unknown as unknown[]).pop();
+    const result = validateA1({ fullCatalogs: full });
+    expect(codesOf(result)).toContain("module-count");
+    expect(codesOf(result)).toContain("lessons-per-module");
+    expect(codesOf(result)).toContain("route-count");
+    for (const code of codesOf(result)) {
+      expect(A1_RELEASE_ERROR_CODES).toContain(code as A1ReleaseErrorCode);
+    }
   });
 });

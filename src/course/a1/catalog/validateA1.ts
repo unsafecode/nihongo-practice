@@ -29,6 +29,8 @@
 
 import type {
   A1ManifestSpec,
+  A1ReleaseErrorCode,
+  A1ReleaseValidationError,
 } from "../types";
 import {
   A1_MANIFEST_SPEC,
@@ -82,51 +84,13 @@ export const A1_EXPECTED_ROUTE_COUNT = 48 as const;
 // Error contract
 // ---------------------------------------------------------------------------
 
-export type A1ValidationErrorCode =
-  // structural shape
-  | "module-count"
-  | "lessons-per-module"
-  | "route-count"
-  | "unknown-lesson-id"
-  | "duplicate-lesson-id"
-  | "manifest-mismatch"
-  | "manifest-invalid"
-  | "capstone-structure"
-  // content ordering / closure
-  | "unknown-content"
-  | "capstone-introduces-new"
-  // recurrence
-  | "recurrence-incomplete"
-  // foundation gate (wrapped oracle) — blocking, per Phase 2 Task 4
-  | "foundation-invalid"
-  // Can-do / checkpoint
-  | "cando-not-sampled"
-  | "cando-no-transfer-evidence"
-  | "cando-primary-mismatch"
-  | "cando-supporting-overflow"
-  | "checkpoint-min-transfer"
-  // copy / aliases / claims
-  | "copy-parity"
-  | "copy-contains-japanese"
-  | "personal-alias-match"
-  | "checkpoint-claims-certification"
-  // phonetic contracts
-  | "phonetic-missing-items"
-  | "phonetic-dangling-contrast"
-  | "phonetic-duplicate-exercise"
-  | "phonetic-item-incomplete"
-  | "phonetic-lesson-mismatch";
-
-export interface A1ValidationError {
-  readonly code: A1ValidationErrorCode;
-  readonly id?: string;
-  readonly referenceId?: string;
-  readonly dimension?: string;
-  readonly expected?: string | number;
-  readonly actual?: string | number;
-  /** Preserved lower-layer code when this error surfaces a foundation finding. */
-  readonly underlyingCode?: string;
-}
+// The release error vocabulary is declared once, in `../types`
+// (`A1_RELEASE_ERROR_CODES` / `A1ReleaseErrorCode` / `A1ReleaseValidationError`),
+// so it can back both the manifest-spec/slice/authoring gates and this release
+// gate from a single source of truth. These names are re-exported unchanged
+// for backward compatibility with existing importers of `./validateA1`.
+export type A1ValidationErrorCode = A1ReleaseErrorCode;
+export type A1ValidationError = A1ReleaseValidationError;
 
 export interface ValidateA1Input {
   /** The full 48-lesson level view (12 modules, 15 Can-dos, all positions). */

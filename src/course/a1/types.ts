@@ -13,6 +13,17 @@
  * validation contracts here. No Japanese/romaji literal is ever authored in a
  * recipe: recipes carry semantic IDs only, and the single sanctioned place for
  * Japanese/romaji content is a `SemanticValue`'s token fragments.
+ *
+ * This file is also the single canonical home for every *structured* A1
+ * error/result vocabulary (Task 1 Step 3): the manifest-spec validator
+ * (`A1ManifestErrorCode`), the module-local slice assembler
+ * (`A1SliceErrorCode`), authoring-time gates (`A1AuthoringErrorCode`), and the
+ * whole-level release validator (`A1ReleaseErrorCode`, covering manifest
+ * agreement, the phonetic contract, capstone no-new-content, level-scope
+ * introduction order, route/copy id resolution, and the exact 12×4/48 release
+ * counts). Consumers such as `validateA1` re-export these names for backward
+ * compatibility, but never redeclare the underlying literal union — this
+ * keeps exactly one source of truth per failure vocabulary.
  */
 
 import type {
@@ -230,3 +241,67 @@ export type A1AuthoringErrorCode =
   | "practice-ref-reuse"
   | "empty-fragments"
   | "module-lesson-count";
+
+// ---------------------------------------------------------------------------
+// Whole-level release validation result vocabulary (Phase 2 Task 4)
+// ---------------------------------------------------------------------------
+
+/**
+ * The structured failure codes the whole-level `validateA1` release gate can
+ * report (plan §Task 1 Step 3 / Task 4): manifest agreement, the phonetic
+ * contract, capstone no-new-content, level-scope introduction order,
+ * route/copy id resolution, and the exact 12×4/48 release counts. This is a
+ * runtime-checkable `readonly` tuple, not merely a compile-time alias, so
+ * consumers (and tests) can prove membership rather than assert a type
+ * compiles. `validateA1` imports and re-exports this exact vocabulary as
+ * `A1ValidationErrorCode` — it never redeclares its own copy.
+ */
+export const A1_RELEASE_ERROR_CODES = [
+  // structural shape (exact 12 modules × 4 lessons = 48 routes)
+  "module-count",
+  "lessons-per-module",
+  "route-count",
+  // route id resolution
+  "unknown-lesson-id",
+  "duplicate-lesson-id",
+  "manifest-mismatch",
+  "manifest-invalid",
+  "capstone-structure",
+  // level-scope introduction order / content closure
+  "unknown-content",
+  "capstone-introduces-new",
+  // recurrence
+  "recurrence-incomplete",
+  // foundation gate (wrapped oracle) — blocking, per Phase 2 Task 4
+  "foundation-invalid",
+  // Can-do / checkpoint
+  "cando-not-sampled",
+  "cando-no-transfer-evidence",
+  "cando-primary-mismatch",
+  "cando-supporting-overflow",
+  "checkpoint-min-transfer",
+  // copy id resolution / aliases / claims
+  "copy-parity",
+  "copy-contains-japanese",
+  "personal-alias-match",
+  "checkpoint-claims-certification",
+  // phonetic contract
+  "phonetic-missing-items",
+  "phonetic-dangling-contrast",
+  "phonetic-duplicate-exercise",
+  "phonetic-item-incomplete",
+  "phonetic-lesson-mismatch",
+] as const;
+
+export type A1ReleaseErrorCode = (typeof A1_RELEASE_ERROR_CODES)[number];
+
+export interface A1ReleaseValidationError {
+  readonly code: A1ReleaseErrorCode;
+  readonly id?: string;
+  readonly referenceId?: string;
+  readonly dimension?: string;
+  readonly expected?: string | number;
+  readonly actual?: string | number;
+  /** Preserved lower-layer code when this error surfaces a foundation finding. */
+  readonly underlyingCode?: string;
+}
