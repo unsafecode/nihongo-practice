@@ -5,6 +5,7 @@ import type {
   CanDo,
   FoundationCatalogs,
   LearningTargetSense,
+  SemanticValue,
   SentenceVariant,
   VerbUseRecord,
 } from "./types";
@@ -474,6 +475,31 @@ describe("validateFoundations — stage 6 verb recurrence and sense mutations", 
     expectContainsCode(run(cats), "productive-verb-later-module");
   });
 
+  it("productive-verb-later-use-wrong-sense (quality-review I1: a cited later-use variant that resolves cleanly but realizes an UNRELATED sense must fail, not silently pass)", () => {
+    // `fixture-a1-recur1-work` is a perfectly valid, resolvable variant — it
+    // just realizes `fixture-a1-sense-work`, not this record's
+    // `fixture-a1-sense-study`. Before the I1 fix, `analyzeVerbRecord` only
+    // ever inspected `laterVariants` for structure-key diversity and never
+    // checked the realized sense against `record.senseId`, so this mutation
+    // used to pass validation cleanly (a false-negative on real data).
+    const cats = withVerb("fixture-a1-verb-use-study", {
+      laterUses: [
+        { lessonId: "fixture-a1-lesson-recur-1", variantId: "fixture-a1-recur1-work" },
+        { lessonId: "fixture-a1-lesson-recur-2", variantId: "fixture-a1-recur2-study" },
+      ],
+    });
+    const result = run(cats);
+    expectContainsCode(result, "productive-verb-later-use-wrong-sense");
+    const wrongSenseError = result.errors.find((e) => e.code === "productive-verb-later-use-wrong-sense");
+    expect(wrongSenseError).toMatchObject({
+      id: "fixture-a1-verb-use-study",
+      referenceId: "fixture-a1-recur1-work",
+      dimension: "sense",
+      expected: "fixture-a1-sense-study",
+      actual: "fixture-a1-sense-work",
+    });
+  });
+
   it("structure signatures count subject realization and ignore person identity", () => {
     // The valid study record introduces the same family/form with an explicit
     // and an omitted subject across two different people/contexts, yet the
@@ -914,7 +940,38 @@ describe("validateFoundations — recurrence contexts feed sense conflation", ()
   // variant is "workplace", so its only realized practice context is
   // "workplace" — contributed entirely by the VerbUseRecord, since this
   // sense is never realized by any lesson model/practice pool.
-  function workplaceOnlyProductiveRecord(id: string, senseId: string): VerbUseRecord {
+  //
+  // The later-use VARIANTS still must genuinely realize the synthetic sense
+  // (quality-review I1): cloning the real `fixture-a1-recur{1,2}-work`
+  // variants but swapping in a dedicated predicate-sense value keyed to the
+  // synthetic sense id keeps every position/module/context property those
+  // fixtures were chosen for, while making the later-use citation truthful.
+  function syntheticWorkplaceLaterUseFixtures(
+    senseId: string,
+    suffix: string,
+  ): { readonly semanticValue: SemanticValue; readonly variants: readonly [SentenceVariant, SentenceVariant] } {
+    const base1 = foundationCatalogs.sentenceVariants.find((v) => v.id === "fixture-a1-recur1-work")!;
+    const base2 = foundationCatalogs.sentenceVariants.find((v) => v.id === "fixture-a1-recur2-work")!;
+    const predicateValueId = `synthetic-value-${suffix}`;
+    return {
+      semanticValue: {
+        id: predicateValueId,
+        kind: "predicate-sense",
+        senseId,
+        tokenFragments: [{ jp: "はたらき", romaji: "hataraki", kind: "lexical", boundaryBefore: "attach" }],
+      },
+      variants: [
+        { ...base1, id: `synthetic-variant-${suffix}-1`, slotValues: { ...base1.slotValues, predicate: predicateValueId } },
+        { ...base2, id: `synthetic-variant-${suffix}-2`, slotValues: { ...base2.slotValues, predicate: predicateValueId } },
+      ],
+    };
+  }
+
+  function workplaceOnlyProductiveRecord(
+    id: string,
+    senseId: string,
+    laterUseVariantIds: readonly [string, string],
+  ): VerbUseRecord {
     return {
       id,
       senseId,
@@ -928,8 +985,8 @@ describe("validateFoundations — recurrence contexts feed sense conflation", ()
         targetVariantId: "fixture-a1-transfer-yuki-work-company",
       },
       laterUses: [
-        { lessonId: "fixture-a1-lesson-recur-1", variantId: "fixture-a1-recur1-work" },
-        { lessonId: "fixture-a1-lesson-recur-2", variantId: "fixture-a1-recur2-work" },
+        { lessonId: "fixture-a1-lesson-recur-1", variantId: laterUseVariantIds[0] },
+        { lessonId: "fixture-a1-lesson-recur-2", variantId: laterUseVariantIds[1] },
       ],
     };
   }
@@ -941,8 +998,13 @@ describe("validateFoundations — recurrence contexts feed sense conflation", ()
       learningUse: "productive",
       semanticFrameId,
       predicate: "sample",
-      argumentRoles: ["topic"],
-      argumentParticleByRole: {},
+      // Matches the argument shape of the real `fixture-a1-sense-work`
+      // (agent + location, で-marked) so a later-use variant realized
+      // through the `fixture-a1-residence-action` family — the family the
+      // cloned workplace fixtures below use — satisfies the family's
+      // "location" slot without a separate, unused case frame.
+      argumentRoles: ["agent", "location"],
+      argumentParticleByRole: { location: "de" },
     };
   }
 
@@ -959,14 +1021,15 @@ describe("validateFoundations — recurrence contexts feed sense conflation", ()
   }
 
   it("a receptive-only sense with exclusive verb-record contexts passes conflation against a different-frame productive sense sharing its lexeme", () => {
-    // Neither synthetic sense is realized by any lesson's model/practice
-    // pool (no semantic value or family/variant references either), so
-    // before this fix both practice-context sets would be empty and
+    // Neither synthetic sense is realized by any LESSON's model/practice
+    // pool, so before this fix both practice-context sets would be empty and
     // `senseConflationDimension` would flag every such pairing "context"
     // regardless of the truth. Here the receptive sense's two distinct
     // input contexts (first-meeting, language-class) come solely from its
     // own VerbUseRecord and never overlap the productive sense's
-    // exclusively-workplace context.
+    // exclusively-workplace context. The productive sense's later uses are
+    // dedicated synthetic variants (quality-review I1) so the citation is a
+    // genuine realization of the sense, not merely a resolvable one.
     const productive = productiveSense(
       "synthetic-sense-recurrence-productive",
       "synthetic-lexeme-recurrence-shared",
@@ -977,7 +1040,12 @@ describe("validateFoundations — recurrence contexts feed sense conflation", ()
       "synthetic-lexeme-recurrence-shared",
       "synthetic-frame-recurrence-receptive",
     );
-    const productiveRecord = workplaceOnlyProductiveRecord("synthetic-verb-use-recurrence-productive", productive.id);
+    const { semanticValue, variants } = syntheticWorkplaceLaterUseFixtures(productive.id, "recurrence-productive");
+    const productiveRecord = workplaceOnlyProductiveRecord(
+      "synthetic-verb-use-recurrence-productive",
+      productive.id,
+      [variants[0].id, variants[1].id],
+    );
     const receptiveRecord: VerbUseRecord = {
       id: "synthetic-verb-use-recurrence-receptive",
       senseId: receptive.id,
@@ -994,6 +1062,8 @@ describe("validateFoundations — recurrence contexts feed sense conflation", ()
     };
     const cats = withCatalog({
       learningTargetSenses: [...foundationCatalogs.learningTargetSenses, productive, receptive],
+      semanticValues: [...foundationCatalogs.semanticValues, semanticValue],
+      sentenceVariants: [...foundationCatalogs.sentenceVariants, ...variants],
       verbUseRecords: [...foundationCatalogs.verbUseRecords, productiveRecord, receptiveRecord],
     });
     const result = run(cats);
@@ -1016,6 +1086,7 @@ describe("validateFoundations — recurrence contexts feed sense conflation", ()
       "synthetic-lexeme-overlap-shared",
       "synthetic-frame-overlap-receptive",
     );
+    const { semanticValue, variants } = syntheticWorkplaceLaterUseFixtures(productive.id, "overlap-productive");
     const productiveRecord: VerbUseRecord = {
       id: "synthetic-verb-use-overlap-productive",
       senseId: productive.id,
@@ -1029,8 +1100,8 @@ describe("validateFoundations — recurrence contexts feed sense conflation", ()
         targetVariantId: "fixture-a1-omitted-work-company",
       },
       laterUses: [
-        { lessonId: "fixture-a1-lesson-recur-1", variantId: "fixture-a1-recur1-work" },
-        { lessonId: "fixture-a1-lesson-recur-2", variantId: "fixture-a1-recur2-work" },
+        { lessonId: "fixture-a1-lesson-recur-1", variantId: variants[0].id },
+        { lessonId: "fixture-a1-lesson-recur-2", variantId: variants[1].id },
       ],
     };
     const receptiveRecord: VerbUseRecord = {
@@ -1049,6 +1120,8 @@ describe("validateFoundations — recurrence contexts feed sense conflation", ()
     };
     const cats = withCatalog({
       learningTargetSenses: [...foundationCatalogs.learningTargetSenses, productive, receptive],
+      semanticValues: [...foundationCatalogs.semanticValues, semanticValue],
+      sentenceVariants: [...foundationCatalogs.sentenceVariants, ...variants],
       verbUseRecords: [...foundationCatalogs.verbUseRecords, productiveRecord, receptiveRecord],
     });
     const result = run(cats);
@@ -1071,7 +1144,12 @@ describe("validateFoundations — recurrence contexts feed sense conflation", ()
       "synthetic-lexeme-order-shared",
       "synthetic-frame-order-receptive",
     );
-    const productiveRecord = workplaceOnlyProductiveRecord("synthetic-verb-use-order-productive", productive.id);
+    const { semanticValue, variants } = syntheticWorkplaceLaterUseFixtures(productive.id, "order-productive");
+    const productiveRecord = workplaceOnlyProductiveRecord(
+      "synthetic-verb-use-order-productive",
+      productive.id,
+      [variants[0].id, variants[1].id],
+    );
     const receptiveRecord: VerbUseRecord = {
       id: "synthetic-verb-use-order-receptive",
       senseId: receptive.id,
@@ -1089,11 +1167,15 @@ describe("validateFoundations — recurrence contexts feed sense conflation", ()
 
     const forward = withCatalog({
       learningTargetSenses: [...foundationCatalogs.learningTargetSenses, productive, receptive],
+      semanticValues: [...foundationCatalogs.semanticValues, semanticValue],
+      sentenceVariants: [...foundationCatalogs.sentenceVariants, ...variants],
       verbUseRecords: [...foundationCatalogs.verbUseRecords, productiveRecord, receptiveRecord],
     });
     // Same entities, reversed insertion order on every affected array.
     const reversed = withCatalog({
       learningTargetSenses: [receptive, productive, ...foundationCatalogs.learningTargetSenses],
+      semanticValues: [semanticValue, ...foundationCatalogs.semanticValues],
+      sentenceVariants: [...variants, ...foundationCatalogs.sentenceVariants],
       verbUseRecords: [receptiveRecord, productiveRecord, ...foundationCatalogs.verbUseRecords],
     });
 

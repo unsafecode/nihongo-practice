@@ -134,58 +134,58 @@ const LATER_USES_BY_SENSE: Readonly<
   ],
   // --- Module 9 senses (descriptions) — reused across the capstones ---
   "a1-sense-hot": [
-    { lessonId: "capstones-2", variantId: "capstones-2-m1" },
     { lessonId: "capstones-4", variantId: "capstones-4-m5" },
+    { lessonId: "capstones-4", variantId: "capstones-4-t2" },
   ],
   "a1-sense-cold": [
-    { lessonId: "capstones-2", variantId: "capstones-2-m2" },
     { lessonId: "capstones-4", variantId: "capstones-4-m6" },
+    { lessonId: "capstones-4", variantId: "capstones-4-t1" },
   ],
   "a1-sense-quiet": [
-    { lessonId: "capstones-2", variantId: "capstones-2-m3" },
     { lessonId: "capstones-4", variantId: "capstones-4-m7" },
+    { lessonId: "capstones-4", variantId: "capstones-4-t4" },
   ],
   "a1-sense-big": [
-    { lessonId: "capstones-2", variantId: "capstones-2-m4" },
-    { lessonId: "capstones-3", variantId: "capstones-3-m5" },
+    { lessonId: "capstones-1", variantId: "capstones-1-m4" },
+    { lessonId: "capstones-1", variantId: "capstones-1-t1" },
   ],
   "a1-sense-small": [
-    { lessonId: "capstones-2", variantId: "capstones-2-m5" },
-    { lessonId: "capstones-3", variantId: "capstones-3-m6" },
+    { lessonId: "capstones-1", variantId: "capstones-1-m5" },
+    { lessonId: "capstones-1", variantId: "capstones-1-t3" },
   ],
   "a1-sense-like": [
-    { lessonId: "capstones-1", variantId: "capstones-1-m5" },
     { lessonId: "capstones-2", variantId: "capstones-2-m6" },
+    { lessonId: "capstones-2", variantId: "capstones-2-t4" },
   ],
   "a1-sense-dislike": [
-    { lessonId: "capstones-2", variantId: "capstones-2-m7" },
-    { lessonId: "capstones-3", variantId: "capstones-3-m7" },
+    { lessonId: "capstones-3", variantId: "capstones-3-m2" },
+    { lessonId: "capstones-3", variantId: "capstones-3-t1" },
   ],
   // --- Module 10 senses (shopping) — reused across the capstones ---
   "a1-sense-expensive": [
-    { lessonId: "capstones-1", variantId: "capstones-1-m3" },
-    { lessonId: "capstones-4", variantId: "capstones-4-m3" },
+    { lessonId: "capstones-2", variantId: "capstones-2-m2" },
+    { lessonId: "shopping-3", variantId: "shopping-3-m5" },
   ],
   "a1-sense-cheap": [
-    { lessonId: "capstones-1", variantId: "capstones-1-m4" },
-    { lessonId: "capstones-4", variantId: "capstones-4-m4" },
+    { lessonId: "capstones-2", variantId: "capstones-2-m3" },
+    { lessonId: "capstones-2", variantId: "capstones-2-t2" },
   ],
   "a1-sense-request": [
-    { lessonId: "capstones-1", variantId: "capstones-1-m1" },
-    { lessonId: "capstones-4", variantId: "capstones-4-m2" },
+    { lessonId: "capstones-2", variantId: "capstones-2-m8" },
+    { lessonId: "capstones-2", variantId: "capstones-2-m5" },
   ],
   // --- Module 11 senses (existence & needs) — reused across the capstones ---
   "a1-sense-exist-inanimate": [
-    { lessonId: "capstones-1", variantId: "capstones-1-m7" },
-    { lessonId: "capstones-3", variantId: "capstones-3-m1" },
+    { lessonId: "capstones-3", variantId: "capstones-3-m4" },
+    { lessonId: "capstones-3", variantId: "capstones-3-t2" },
   ],
   "a1-sense-exist-animate": [
-    { lessonId: "capstones-3", variantId: "capstones-3-m2" },
-    { lessonId: "capstones-3", variantId: "capstones-3-m3" },
+    { lessonId: "capstones-3", variantId: "capstones-3-m6" },
+    { lessonId: "capstones-3", variantId: "capstones-3-t3" },
   ],
   "a1-sense-want": [
-    { lessonId: "capstones-1", variantId: "capstones-1-m6" },
-    { lessonId: "capstones-2", variantId: "capstones-2-m8" },
+    { lessonId: "capstones-3", variantId: "capstones-3-m8" },
+    { lessonId: "capstones-3", variantId: "capstones-3-t4" },
   ],
 });
 

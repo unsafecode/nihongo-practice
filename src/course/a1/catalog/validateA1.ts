@@ -439,6 +439,7 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
   const THING_REFERENT = "a1-referent-thing";
   const LEARNER_ROLE = "a1-role-learner";
   const NAMED_PERSON_REFERENTS = new Set(["a1-referent-yuki", "a1-referent-ken", "a1-referent-mina"]);
+  const referentById = new Map(semantic.referents.map((referent) => [referent.id, referent]));
 
   const capstoneVariantsByLesson = new Map<string, SentenceVariant[]>(
     A1_CAPSTONE_LESSON_IDS.map((id) => [id, []]),
@@ -475,6 +476,22 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
       );
       if (reciprocal.length < 1) {
         push({ code: "capstone-scenario-incomplete", id: "capstones-1", dimension: "reciprocal-question" });
+      }
+      // A genuine reciprocal exchange gates *both* directions: someone else
+      // asks the learner about the learner (above), and the learner asks
+      // back about the other party. "About the other party" is asserted
+      // structurally — the subject referent's own person-role must equal
+      // the addressee's role — never by hardcoding a specific referent id,
+      // so any true "and you?" follow-up satisfies it (quality-review M1).
+      const reciprocalBack = all.filter(
+        (v) =>
+          v.form.interrogative === true &&
+          v.discourse.speakerRoleId === LEARNER_ROLE &&
+          v.discourse.addresseeRoleId !== LEARNER_ROLE &&
+          referentById.get(v.discourse.subjectReferentId ?? "")?.personRoleId === v.discourse.addresseeRoleId,
+      );
+      if (reciprocalBack.length < 1) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-1", dimension: "reciprocal-question-back" });
       }
     },
     "capstones-2": (all) => {
@@ -558,8 +575,15 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
   // capstones-4 must change its subject-referent topic exactly once across
   // its eight models — a genuine topic change (a single transition in *what
   // is being talked about*), never a vacuous "some Japanese changed" proxy.
+  // The check order is the lesson's own authored `modelVariantIds` (quality-
+  // review M3) rather than a hardcoded `capstones-4-m1..m8` id scheme: the
+  // authored order is the only source of truth for "what order the learner
+  // actually encounters these models in," and a hardcoded id array would
+  // silently diverge from it (or from a renamed/reordered id scheme) without
+  // ever being caught.
   {
-    const ids = Array.from({ length: 8 }, (_, i) => `capstones-4-m${i + 1}`);
+    const topicChangeLesson = semantic.lessons.find((lesson) => lesson.id === "capstones-4");
+    const ids = topicChangeLesson?.modelVariantIds ?? [];
     const referents = ids.map((id) => variantById.get(id)?.discourse.subjectReferentId ?? null);
     if (referents.some((r) => r === null)) {
       push({ code: "capstone-topic-change-count", id: "capstones-4", dimension: "missing-subject-referent" });

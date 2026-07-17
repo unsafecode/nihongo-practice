@@ -15,7 +15,9 @@
 import { describe, expect, it } from "vitest";
 
 import { a1VerbUseRecord } from "./shared";
-import { assertNoStaleLaterUseKeys } from "./recurrence";
+import { assertNoStaleLaterUseKeys, a1ReleaseVerbUseRecords } from "./recurrence";
+import { a1SemanticFoundationCatalogs } from "./catalog";
+import { realizeVariant, type RealizeVariantCatalogs } from "../../foundations/realizeFamily";
 
 function fakeRecord(senseId: string) {
   return a1VerbUseRecord({
@@ -74,5 +76,79 @@ describe("assertNoStaleLaterUseKeys", () => {
   it("does not throw for an empty map (no keys to be stale)", () => {
     const records = [fakeRecord("a1-sense-real")];
     expect(() => assertNoStaleLaterUseKeys({}, records)).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Later-use sense truthfulness (quality-review C1 regression, Task 4)
+//
+// A `laterUse` entry is only a genuine spaced reuse if the cited variant, once
+// REALIZED (not merely inspected as raw catalog metadata), actually produces
+// the claimed sense among its `usedLexemeSenseIds`. This independently
+// recomputes that fact for every record in the full release timeline —
+// including the 13 Module 9-11 senses whose reuses live in the four capstone
+// lessons — never trusting the authored citation at face value.
+// ---------------------------------------------------------------------------
+
+describe("a1ReleaseVerbUseRecords — later-use sense truthfulness (quality-review C1)", () => {
+  const catalogs = a1SemanticFoundationCatalogs;
+  const familyById = new Map(catalogs.sentenceFamilies.map((f) => [f.id, f]));
+  const variantById = new Map(catalogs.sentenceVariants.map((v) => [v.id, v]));
+  const concepts = new Set(catalogs.sentenceFamilies.flatMap((f) => f.requiredConceptIds));
+  const realizeCatalogs: RealizeVariantCatalogs = {
+    contexts: catalogs.contexts,
+    personRoles: catalogs.personRoles,
+    referents: catalogs.referents,
+    semanticValues: catalogs.semanticValues,
+    learningTargetSenses: catalogs.learningTargetSenses,
+  };
+
+  /** Independently realizes a cited variant by id and returns the senses it
+   * actually produces — never the senses the citation merely claims. */
+  function realizedSenseIdsFor(variantId: string): readonly string[] {
+    const variant = variantById.get(variantId);
+    if (!variant) throw new Error(`later-use cites unknown variant: ${variantId}`);
+    const family = familyById.get(variant.sentenceFamilyId);
+    if (!family) throw new Error(`later-use variant ${variantId} has unknown family: ${variant.sentenceFamilyId}`);
+    const result = realizeVariant(family, variant, realizeCatalogs, {
+      availableConceptIds: [...concepts],
+    });
+    if (!result.ok) {
+      throw new Error(`later-use variant ${variantId} failed to realize: ${JSON.stringify(result.errors)}`);
+    }
+    return result.sentence.usedLexemeSenseIds;
+  }
+
+  it("every laterUse variant genuinely realizes its record's senseId (RED before the capstone re-authoring)", () => {
+    const violations: string[] = [];
+    for (const record of a1ReleaseVerbUseRecords) {
+      if (record.learningUse === "receptive") continue;
+      for (const use of record.laterUses) {
+        const realizedSenseIds = realizedSenseIdsFor(use.variantId);
+        if (!realizedSenseIds.includes(record.senseId)) {
+          violations.push(
+            `${record.senseId} <- ${use.variantId} (realized: ${realizedSenseIds.join(", ") || "none"})`,
+          );
+        }
+      }
+    }
+    expect(violations).toEqual([]);
+  });
+
+  it("every productive record has at least two genuinely-reusing laterUses (not merely two citations)", () => {
+    // §9.3's "≥2 later uses" is a count over the AUTHORED array; that count is
+    // meaningless if the cited variants don't actually carry the sense. This
+    // recomputes the count from realized, sense-verified uses only, so an
+    // author cannot satisfy the recurrence bar by citing two unrelated
+    // variants that both happen to exist.
+    const thin: string[] = [];
+    for (const record of a1ReleaseVerbUseRecords) {
+      if (record.learningUse === "receptive") continue;
+      const genuineUses = record.laterUses.filter((use) =>
+        realizedSenseIdsFor(use.variantId).includes(record.senseId),
+      );
+      if (genuineUses.length < 2) thin.push(record.senseId);
+    }
+    expect(thin).toEqual([]);
   });
 });

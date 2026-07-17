@@ -47,22 +47,22 @@ const COP = "a1-family-topic-copular";
 const OBJ = "a1-family-object-action";
 const NOM = "a1-family-nominative-action";
 const LOCF = "a1-family-location-action";
-const DIR = "a1-family-direction-action";
 const TRANS = "a1-family-transport-action";
 const ROUTE = "a1-family-route-action";
 const SCHED = "a1-family-schedule-action";
-const ADV = "a1-family-adverbial-time-action";
 const PREF = "a1-family-preference";
 const QUANT = "a1-family-quantified-action";
 const REQ = "a1-family-request";
 const DESC = "a1-family-description";
+const EXIST = "a1-family-existence";
 
-// Referents reused from Modules 2, 7 and 9.
+// Referents reused from Modules 2, 7, 9 and 11.
 const SELF = "a1-referent-self";
 const THING = "a1-referent-thing";
+const CREATURE = "a1-referent-creature";
 const YUKI_REF = "a1-referent-yuki";
 const KEN_REF = "a1-referent-ken";
-const MINA_REF = "a1-referent-mina";
+const CLASSMATE_REF = "a1-referent-classmate";
 
 // Discourse roles reused from Module 3 (reciprocal question askers).
 const LEARNER = "a1-role-learner";
@@ -74,6 +74,7 @@ const YUKI_ROLE = "a1-role-yuki";
 const KEN_ROLE = "a1-role-ken";
 
 const WATASHI = "a1-value-watashi";
+const CLASSMATE_SUBJECT = "a1-value-classmate-subject";
 
 // Slot builders — identical shapes to the modules that introduced each
 // family; only the predicate/value ids passed in ever change.
@@ -95,6 +96,8 @@ const req = (object: string, quantity?: string): Record<string, string> =>
   quantity === undefined
     ? { subject: WATASHI, predicate: "a1-value-request", object }
     : { subject: WATASHI, predicate: "a1-value-request", object, quantity };
+const exist = (subject: string, predicate: string, location?: string): Record<string, string> =>
+  location === undefined ? { subject, predicate } : { subject, predicate, location };
 
 // ---------------------------------------------------------------------------
 // Lesson capstones-1 — self-introduction + reciprocal question (scenario-1)
@@ -110,21 +113,21 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
   introducedConceptIds: [],
   introducedSenseIds: [],
   models: [
-    { id: "capstones-1-m1", family: COP, context: "a1-context-first-meeting", subjectReferent: SELF, subjectRealization: "omitted", slots: cop(WATASHI, "a1-value-obj-student"), translation: a1Copular(WATASHI, "a1-value-obj-student") },
+    { id: "capstones-1-m1", family: COP, context: "a1-context-first-meeting", subjectReferent: CLASSMATE_REF, subjectRealization: "omitted", slots: cop(CLASSMATE_SUBJECT, "a1-value-obj-student"), translation: a1Copular(CLASSMATE_SUBJECT, "a1-value-obj-student") },
     { id: "capstones-1-m2", family: COP, context: "a1-context-first-meeting", subjectReferent: SELF, subjectRealization: "omitted", slots: cop(WATASHI, "a1-value-obj-italian-person"), translation: a1Copular(WATASHI, "a1-value-obj-italian-person") },
     { id: "capstones-1-m3", family: OBJ, context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", slots: study(WATASHI, "a1-value-obj-japanese"), translation: L("I study Japanese.", "Studio il giapponese.") },
-    { id: "capstones-1-m4", family: LOCF, context: "a1-context-workplace", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-work", "a1-value-loc-company"), translation: L("I work at the company.", "Lavoro in azienda.") },
-    { id: "capstones-1-m5", family: LOCF, context: "a1-context-first-meeting", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-live", "a1-value-loc-tokyo"), translation: L("I live in Tokyo.", "Vivo a Tokyo.") },
+    { id: "capstones-1-m4", family: DESC, context: "a1-context-home", subjectReferent: THING, subjectRealization: "explicit", speakerRole: YUKI_ROLE, slots: desc("a1-value-heya", "a1-value-big"), translation: L("The room is big.", "La stanza è grande.") },
+    { id: "capstones-1-m5", family: DESC, context: "a1-context-town", subjectReferent: THING, subjectRealization: "explicit", speakerRole: KEN_ROLE, slots: desc("a1-value-machi", "a1-value-small"), translation: L("The town is small.", "La città è piccola.") },
     { id: "capstones-1-m6", family: NOM, context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", slots: understand(WATASHI, "a1-value-obj-japanese"), translation: L("I understand Japanese.", "Capisco il giapponese.") },
     { id: "capstones-1-m7", family: OBJ, context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: CLASSMATE, addresseeRole: LEARNER, interrogative: true, slots: actQ(WATASHI, "a1-value-do", "a1-value-q-nani"), translation: L("What do you do?", "Cosa fai?") },
     { id: "capstones-1-m8", family: NOM, context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: TEACHER, addresseeRole: LEARNER, interrogative: true, slots: actQ(WATASHI, "a1-value-understand", "a1-value-q-nani"), translation: L("What do you understand?", "Cosa capisci?") },
   ],
   transfers: [
-    { id: "capstones-1-t1", family: OBJ, context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: CLASSMATE, addresseeRole: LEARNER, interrogative: true, slots: actQ(WATASHI, "a1-value-study", "a1-value-q-nani"), translation: L("What do you study?", "Cosa studi?") },
-    { id: "capstones-1-t2", family: LOCF, context: "a1-context-workplace", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-work", "a1-value-loc-tokyo"), translation: L("I work in Tokyo.", "Lavoro a Tokyo.") },
-    { id: "capstones-1-t3", family: COP, context: "a1-context-first-meeting", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: TEACHER, addresseeRole: LEARNER, interrogative: true, slots: ynQ(WATASHI, "a1-value-obj-student"), translation: L("Are you a student?", "Sei uno studente?") },
-    { id: "capstones-1-t4", family: COP, context: "a1-context-first-meeting", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: LEARNER, addresseeRole: CLASSMATE, interrogative: true, slots: ynQ(WATASHI, "a1-value-obj-italian-person"), translation: L("Are you Italian?", "Sei italiano?") },
-    { id: "capstones-1-t5", family: NOM, context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: LEARNER, addresseeRole: TEACHER, interrogative: true, slots: understand(WATASHI, "a1-value-obj-japanese"), translation: L("Do you understand Japanese?", "Capisci il giapponese?") },
+    { id: "capstones-1-t1", family: DESC, context: "a1-context-home", subjectReferent: THING, subjectRealization: "omitted", slots: desc("a1-value-heya", "a1-value-big"), translation: L("It's big.", "È grande.") },
+    { id: "capstones-1-t2", family: OBJ, context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: CLASSMATE, addresseeRole: LEARNER, interrogative: true, slots: actQ(WATASHI, "a1-value-study", "a1-value-q-nani"), translation: L("What do you study?", "Cosa studi?") },
+    { id: "capstones-1-t3", family: DESC, context: "a1-context-home", subjectReferent: THING, subjectRealization: "omitted", slots: desc("a1-value-heya", "a1-value-small"), translation: L("It's small.", "È piccola.") },
+    { id: "capstones-1-t4", family: COP, context: "a1-context-first-meeting", subjectReferent: CLASSMATE_REF, subjectRealization: "omitted", speakerRole: LEARNER, addresseeRole: CLASSMATE, interrogative: true, slots: ynQ(CLASSMATE_SUBJECT, "a1-value-obj-italian-person"), translation: L("Are you Italian?", "Sei italiano?") },
+    { id: "capstones-1-t5", family: NOM, context: "a1-context-classroom", subjectReferent: CLASSMATE_REF, subjectRealization: "omitted", speakerRole: LEARNER, addresseeRole: CLASSMATE, interrogative: true, slots: understand(CLASSMATE_SUBJECT, "a1-value-obj-japanese"), translation: L("Do you understand Japanese?", "Capisci il giapponese?") },
   ],
 });
 
@@ -143,19 +146,19 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
   introducedSenseIds: [],
   models: [
     { id: "capstones-2-m1", family: SCHED, context: "a1-context-home", subjectReferent: SELF, subjectRealization: "omitted", slots: timed(WATASHI, "a1-value-wake", "a1-value-time-7"), translation: L("I wake up at seven.", "Mi sveglio alle sette.") },
-    { id: "capstones-2-m2", family: SCHED, context: "a1-context-weekday-study", subjectReferent: YUKI_REF, subjectRealization: "explicit", slots: timed("a1-value-yuki", "a1-value-study-routine", "a1-value-day-monday"), translation: L("Yuki studies on Monday.", "Yuki studia il lunedì.") },
-    { id: "capstones-2-m3", family: ADV, context: "a1-context-mealtime-routine", subjectReferent: SELF, subjectRealization: "omitted", slots: timed(WATASHI, "a1-value-eat-routine", "a1-value-freq-everyday"), translation: L("I eat every day.", "Mangio ogni giorno.") },
+    { id: "capstones-2-m2", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: YUKI_ROLE, slots: desc("a1-value-ex-book", "a1-value-expensive"), translation: L("The book is expensive.", "Il libro è caro.") },
+    { id: "capstones-2-m3", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: CLERK, slots: desc("a1-value-ex-pen", "a1-value-cheap"), translation: L("The pen is cheap.", "La penna è economica.") },
     { id: "capstones-2-m4", family: LOCF, context: "a1-context-workplace", subjectReferent: KEN_REF, subjectRealization: "explicit", slots: loc("a1-value-ken", "a1-value-work", "a1-value-loc-restaurant"), translation: L("Ken works at the restaurant.", "Ken lavora al ristorante.") },
-    { id: "capstones-2-m5", family: LOCF, context: "a1-context-town", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-live", "a1-value-loc-tokyo"), translation: L("I live in Tokyo.", "Vivo a Tokyo.") },
+    { id: "capstones-2-m5", family: REQ, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: LEARNER, slots: req("a1-value-obj-ticket", "a1-value-qty-2"), translation: L("Two tickets, please.", "Due biglietti, per favore.") },
     { id: "capstones-2-m6", family: PREF, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "explicit", slots: pref(WATASHI, "a1-value-like", "a1-value-obj-coffee"), translation: L("I like coffee.", "Mi piace il caffè.") },
     { id: "capstones-2-m7", family: QUANT, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "explicit", slots: qa(WATASHI, "a1-value-buy", "a1-value-obj-apple", "a1-value-qty-3"), translation: L("I buy three apples.", "Compro tre mele.") },
     { id: "capstones-2-m8", family: REQ, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: LEARNER, slots: req("a1-value-obj-coffee"), translation: L("Coffee, please.", "Un caffè, per favore.") },
   ],
   transfers: [
     { id: "capstones-2-t1", family: SCHED, context: "a1-context-home", subjectReferent: KEN_REF, subjectRealization: "explicit", slots: timed("a1-value-ken", "a1-value-wake", "a1-value-time-7"), translation: L("Ken wakes up at seven.", "Ken si sveglia alle sette.") },
-    { id: "capstones-2-t2", family: ADV, context: "a1-context-mealtime-routine", subjectReferent: YUKI_REF, subjectRealization: "explicit", slots: timed("a1-value-yuki", "a1-value-eat-routine", "a1-value-freq-everyday"), translation: L("Yuki eats every day.", "Yuki mangia ogni giorno.") },
+    { id: "capstones-2-t2", family: DESC, context: "a1-context-cafe", subjectReferent: THING, subjectRealization: "omitted", slots: desc("a1-value-ex-pen", "a1-value-cheap"), translation: L("It's cheap.", "È economica.") },
     { id: "capstones-2-t3", family: LOCF, context: "a1-context-workplace", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-work", "a1-value-loc-restaurant"), translation: L("I work at the restaurant.", "Lavoro al ristorante.") },
-    { id: "capstones-2-t4", family: PREF, context: "a1-context-cafe", subjectReferent: YUKI_REF, subjectRealization: "explicit", slots: pref("a1-value-yuki", "a1-value-like", "a1-value-obj-coffee"), translation: L("Yuki likes coffee.", "A Yuki piace il caffè.") },
+    { id: "capstones-2-t4", family: PREF, context: "a1-context-cafe", subjectReferent: KEN_REF, subjectRealization: "explicit", slots: pref("a1-value-ken", "a1-value-like", "a1-value-obj-coffee"), translation: L("Ken likes coffee.", "A Ken piace il caffè.") },
     { id: "capstones-2-t5", family: QUANT, context: "a1-context-shop", subjectReferent: KEN_REF, subjectRealization: "explicit", slots: qa("a1-value-ken", "a1-value-buy", "a1-value-obj-apple", "a1-value-qty-3"), translation: L("Ken buys three apples.", "Ken compra tre mele.") },
   ],
 });
@@ -175,20 +178,20 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
   introducedSenseIds: [],
   models: [
     { id: "capstones-3-m1", family: LOCF, context: "a1-context-station", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-go", "a1-value-loc-station"), translation: L("I go to the station.", "Vado alla stazione.") },
-    { id: "capstones-3-m2", family: DIR, context: "a1-context-station", subjectReferent: YUKI_REF, subjectRealization: "explicit", slots: loc("a1-value-yuki", "a1-value-go", "a1-value-loc-station"), translation: L("Yuki goes toward the station.", "Yuki va verso la stazione.") },
+    { id: "capstones-3-m2", family: PREF, context: "a1-context-cafe", subjectReferent: YUKI_REF, subjectRealization: "explicit", slots: pref("a1-value-yuki", "a1-value-dislike", "a1-value-obj-water"), translation: L("Yuki dislikes water.", "A Yuki non piace l'acqua.") },
     { id: "capstones-3-m3", family: TRANS, context: "a1-context-station", subjectReferent: SELF, subjectRealization: "omitted", slots: via(WATASHI, "a1-value-go", "a1-value-transport-train", "a1-value-loc-station"), translation: L("I go to the station by train.", "Vado alla stazione in treno.") },
-    { id: "capstones-3-m4", family: TRANS, context: "a1-context-station", subjectReferent: KEN_REF, subjectRealization: "explicit", slots: via("a1-value-ken", "a1-value-come", "a1-value-transport-car", "a1-value-loc-station"), translation: L("Ken comes to the station by car.", "Ken viene alla stazione in auto.") },
+    { id: "capstones-3-m4", family: EXIST, context: "a1-context-station", subjectReferent: THING, subjectRealization: "explicit", speakerRole: KEN_ROLE, slots: exist("a1-value-ex-key", "a1-value-exist-inanimate", "a1-value-loc-near-station"), translation: L("There is a key near the station.", "C'è una chiave vicino alla stazione.") },
     { id: "capstones-3-m5", family: ROUTE, context: "a1-context-station", subjectReferent: SELF, subjectRealization: "omitted", slots: route(WATASHI, "a1-value-go", "a1-value-loc-tokyo", "a1-value-loc-osaka"), translation: L("I go from Tokyo to Osaka.", "Vado da Tokyo a Osaka.") },
-    { id: "capstones-3-m6", family: ROUTE, context: "a1-context-town", subjectReferent: MINA_REF, subjectRealization: "explicit", slots: route("a1-value-mina", "a1-value-go", "a1-value-loc-home", "a1-value-loc-company"), translation: L("Mina goes from home to the company.", "Mina va da casa all'azienda.") },
+    { id: "capstones-3-m6", family: EXIST, context: "a1-context-station", subjectReferent: CREATURE, subjectRealization: "explicit", speakerRole: CLERK, slots: exist("a1-value-ex-dog", "a1-value-exist-animate", "a1-value-loc-near-station"), translation: L("There is a dog near the station.", "C'è un cane vicino alla stazione.") },
     { id: "capstones-3-m7", family: COP, context: "a1-context-station", subjectReferent: THING, subjectRealization: "explicit", speakerRole: LEARNER, addresseeRole: PERSON, interrogative: true, slots: copQ("a1-value-eki-subject", "a1-value-q-doko"), translation: L("Where is the station?", "Dov'è la stazione?") },
     { id: "capstones-3-m8", family: PREF, context: "a1-context-station", subjectReferent: SELF, subjectRealization: "explicit", slots: pref(WATASHI, "a1-value-want", "a1-value-obj-ticket"), translation: L("I want a ticket.", "Voglio un biglietto.") },
   ],
   transfers: [
-    { id: "capstones-3-t1", family: LOCF, context: "a1-context-station", subjectReferent: KEN_REF, subjectRealization: "explicit", slots: loc("a1-value-ken", "a1-value-go", "a1-value-loc-station"), translation: L("Ken goes to the station.", "Ken va alla stazione.") },
-    { id: "capstones-3-t2", family: TRANS, context: "a1-context-station", subjectReferent: YUKI_REF, subjectRealization: "explicit", slots: via("a1-value-yuki", "a1-value-come", "a1-value-transport-train", "a1-value-loc-station"), translation: L("Yuki comes to the station by train.", "Yuki viene alla stazione in treno.") },
-    { id: "capstones-3-t3", family: ROUTE, context: "a1-context-town", subjectReferent: SELF, subjectRealization: "omitted", slots: route(WATASHI, "a1-value-come", "a1-value-loc-home", "a1-value-loc-company"), translation: L("I come from home to the company.", "Vengo da casa all'azienda.") },
+    { id: "capstones-3-t1", family: PREF, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "explicit", slots: pref(WATASHI, "a1-value-dislike", "a1-value-obj-water"), translation: L("I dislike water.", "Non mi piace l'acqua.") },
+    { id: "capstones-3-t2", family: EXIST, context: "a1-context-station", subjectReferent: THING, subjectRealization: "explicit", slots: exist("a1-value-ex-key", "a1-value-exist-inanimate"), translation: L("There is a key.", "C'è una chiave.") },
+    { id: "capstones-3-t3", family: EXIST, context: "a1-context-station", subjectReferent: CREATURE, subjectRealization: "explicit", slots: exist("a1-value-ex-dog", "a1-value-exist-animate"), translation: L("There is a dog.", "C'è un cane.") },
     { id: "capstones-3-t4", family: PREF, context: "a1-context-station", subjectReferent: YUKI_REF, subjectRealization: "explicit", slots: pref("a1-value-yuki", "a1-value-want", "a1-value-obj-ticket"), translation: L("Yuki wants a ticket.", "Yuki vuole un biglietto.") },
-    { id: "capstones-3-t5", family: ROUTE, context: "a1-context-station", subjectReferent: KEN_REF, subjectRealization: "explicit", slots: route("a1-value-ken", "a1-value-go", "a1-value-loc-tokyo", "a1-value-loc-osaka"), translation: L("Ken goes from Tokyo to Osaka.", "Ken va da Tokyo a Osaka.") },
+    { id: "capstones-3-t5", family: ROUTE, context: "a1-context-station", subjectReferent: YUKI_REF, subjectRealization: "explicit", slots: route("a1-value-yuki", "a1-value-go", "a1-value-loc-tokyo", "a1-value-loc-osaka"), translation: L("Yuki goes from Tokyo to Osaka.", "Yuki va da Tokyo a Osaka.") },
   ],
 });
 

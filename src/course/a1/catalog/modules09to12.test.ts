@@ -285,42 +285,42 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["capstones-1-m1", "がくせいです", "gakusei desu"],
   ["capstones-1-m2", "イタリアじんです", "itariajin desu"],
   ["capstones-1-m3", "にほんごをべんきょうします", "nihongo o benkyoushimasu"],
-  ["capstones-1-m4", "かいしゃではたらきます", "kaisha de hatarakimasu"],
-  ["capstones-1-m5", "とうきょうにすみます", "toukyou ni sumimasu"],
+  ["capstones-1-m4", "へやはおおきいです", "heya wa ookii desu"],
+  ["capstones-1-m5", "まちはちいさいです", "machi wa chiisai desu"],
   ["capstones-1-m6", "にほんごがわかります", "nihongo ga wakarimasu"],
   ["capstones-1-m7", "なにをしますか", "nani o shimasu ka"],
   ["capstones-1-m8", "なにがわかりますか", "nani ga wakarimasu ka"],
-  ["capstones-1-t1", "なにをべんきょうしますか", "nani o benkyoushimasu ka"],
-  ["capstones-1-t2", "とうきょうではたらきます", "toukyou de hatarakimasu"],
-  ["capstones-1-t3", "がくせいですか", "gakusei desu ka"],
+  ["capstones-1-t1", "おおきいです", "ookii desu"],
+  ["capstones-1-t2", "なにをべんきょうしますか", "nani o benkyoushimasu ka"],
+  ["capstones-1-t3", "ちいさいです", "chiisai desu"],
   ["capstones-1-t4", "イタリアじんですか", "itariajin desu ka"],
   ["capstones-1-t5", "にほんごがわかりますか", "nihongo ga wakarimasu ka"],
   ["capstones-2-m1", "しちじにおきます", "shichiji ni okimasu"],
-  ["capstones-2-m2", "ゆきはげつようびにべんきょうします", "yuki wa getsuyoubi ni benkyoushimasu"],
-  ["capstones-2-m3", "まいにちたべます", "mainichi tabemasu"],
+  ["capstones-2-m2", "ほんはたかいです", "hon wa takai desu"],
+  ["capstones-2-m3", "ペンはやすいです", "pen wa yasui desu"],
   ["capstones-2-m4", "けんはレストランではたらきます", "ken wa resutoran de hatarakimasu"],
-  ["capstones-2-m5", "とうきょうにすみます", "toukyou ni sumimasu"],
+  ["capstones-2-m5", "きっぷをふたつください", "kippu o futatsu kudasai"],
   ["capstones-2-m6", "わたしはコーヒーがすきです", "watashi wa koohii ga suki desu"],
   ["capstones-2-m7", "わたしはりんごをみっつかいます", "watashi wa ringo o mittsu kaimasu"],
   ["capstones-2-m8", "コーヒーをください", "koohii o kudasai"],
   ["capstones-2-t1", "けんはしちじにおきます", "ken wa shichiji ni okimasu"],
-  ["capstones-2-t2", "ゆきはまいにちたべます", "yuki wa mainichi tabemasu"],
+  ["capstones-2-t2", "やすいです", "yasui desu"],
   ["capstones-2-t3", "レストランではたらきます", "resutoran de hatarakimasu"],
-  ["capstones-2-t4", "ゆきはコーヒーがすきです", "yuki wa koohii ga suki desu"],
+  ["capstones-2-t4", "けんはコーヒーがすきです", "ken wa koohii ga suki desu"],
   ["capstones-2-t5", "けんはりんごをみっつかいます", "ken wa ringo o mittsu kaimasu"],
   ["capstones-3-m1", "えきにいきます", "eki ni ikimasu"],
-  ["capstones-3-m2", "ゆきはえきへいきます", "yuki wa eki e ikimasu"],
+  ["capstones-3-m2", "ゆきはみずがきらいです", "yuki wa mizu ga kirai desu"],
   ["capstones-3-m3", "でんしゃでえきにいきます", "densha de eki ni ikimasu"],
-  ["capstones-3-m4", "けんはくるまでえきにきます", "ken wa kuruma de eki ni kimasu"],
+  ["capstones-3-m4", "かぎがえきのちかくにあります", "kagi ga eki no chikaku ni arimasu"],
   ["capstones-3-m5", "とうきょうからおおさかまでいきます", "toukyou kara oosaka made ikimasu"],
-  ["capstones-3-m6", "みなはいえからかいしゃまでいきます", "mina wa ie kara kaisha made ikimasu"],
+  ["capstones-3-m6", "いぬがえきのちかくにいます", "inu ga eki no chikaku ni imasu"],
   ["capstones-3-m7", "えきはどこですか", "eki wa doko desu ka"],
   ["capstones-3-m8", "わたしはきっぷがほしいです", "watashi wa kippu ga hoshii desu"],
-  ["capstones-3-t1", "けんはえきにいきます", "ken wa eki ni ikimasu"],
-  ["capstones-3-t2", "ゆきはでんしゃでえきにきます", "yuki wa densha de eki ni kimasu"],
-  ["capstones-3-t3", "いえからかいしゃまできます", "ie kara kaisha made kimasu"],
+  ["capstones-3-t1", "わたしはみずがきらいです", "watashi wa mizu ga kirai desu"],
+  ["capstones-3-t2", "かぎがあります", "kagi ga arimasu"],
+  ["capstones-3-t3", "いぬがいます", "inu ga imasu"],
   ["capstones-3-t4", "ゆきはきっぷがほしいです", "yuki wa kippu ga hoshii desu"],
-  ["capstones-3-t5", "けんはとうきょうからおおさかまでいきます", "ken wa toukyou kara oosaka made ikimasu"],
+  ["capstones-3-t5", "ゆきはとうきょうからおおさかまでいきます", "yuki wa toukyou kara oosaka made ikimasu"],
   ["capstones-4-m1", "がくせいです", "gakusei desu"],
   ["capstones-4-m2", "イタリアじんです", "itariajin desu"],
   ["capstones-4-m3", "すしをたべます", "sushi o tabemasu"],
@@ -683,6 +683,41 @@ describe("A1 modules 9–12 · capstone required scenario coverage", () => {
         v.discourse.speakerRoleId !== LEARNER,
     );
     expect(reciprocal.length, "capstones-1 reciprocal questions").toBeGreaterThanOrEqual(1);
+  });
+
+  it("capstones-1 t4/t5 truthfully attribute the learner-asks-back subject to the addressee, not the learner (quality-review M2)", () => {
+    // t4 ("Are you Italian?") and t5 ("Do you understand Japanese?") are the
+    // learner asking *the classmate* about the classmate — the topic is the
+    // addressee, never the learner — so their discourse metadata must say so
+    // truthfully, even though the natural omitted-subject Japanese surface
+    // form never spells out the referent. (t5 targets the classmate rather
+    // than the teacher: the catalog has no pre-Module-12 "teacher-as-subject"
+    // value, so attributing it to the teacher would either violate the
+    // capstone no-new-content rule or leave the value/referent mismatched;
+    // reusing the classmate keeps the fix zero-new-content and, as a bonus,
+    // more natural — a learner asking their Japanese teacher whether *they*
+    // understand Japanese doesn't make sense, while asking a fellow
+    // classmate does.)
+    const t4 = allVariants.find((v) => v.id === "capstones-1-t4")!;
+    const t5 = allVariants.find((v) => v.id === "capstones-1-t5")!;
+    expect(t4.discourse.speakerRoleId).toBe(LEARNER);
+    expect(t4.discourse.addresseeRoleId).toBe("a1-role-classmate");
+    expect(t4.discourse.subjectReferentId, "t4 subject is the addressed classmate, not the learner").toBe(
+      "a1-referent-classmate",
+    );
+    expect(t4.slotValues.subject).toBe("a1-value-classmate-subject");
+
+    expect(t5.discourse.speakerRoleId).toBe(LEARNER);
+    expect(t5.discourse.addresseeRoleId).toBe("a1-role-classmate");
+    expect(t5.discourse.subjectReferentId, "t5 subject is the addressed classmate, not the learner").toBe(
+      "a1-referent-classmate",
+    );
+    expect(t5.slotValues.subject).toBe("a1-value-classmate-subject");
+
+    // The surface Japanese is unaffected: both stay natural omitted-subject
+    // questions (no literal "you"/name token appears either way).
+    expect(t4.discourse.subjectRealization).toBe("omitted");
+    expect(t5.discourse.subjectRealization).toBe("omitted");
   });
 
   it("capstones-2 synthesizes routine + time + person + place + preference + purchase/request", () => {

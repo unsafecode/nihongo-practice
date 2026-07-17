@@ -276,6 +276,42 @@ describe("validateA1 – capstone required-scenario coverage", () => {
     );
   });
 
+  it("capstone-scenario-incomplete: capstones-1 loses the learner-asks-back direction of its reciprocal question (quality-review M1)", () => {
+    // The gate must not only require *someone else* to ask the learner about
+    // themselves (already covered above); a genuine reciprocal exchange also
+    // requires the learner to ask *back* about the other party. Flipping
+    // every learner-initiated interrogative's speaker to the addressee
+    // removes the "asks back" direction while leaving the "other asks
+    // learner" direction (m7/m8/t1/t3) fully intact, isolating the new check.
+    const semantic = semanticClone();
+    for (const variant of semantic.sentenceVariants) {
+      if (
+        variant.id.startsWith("capstones-1-") &&
+        variant.form.interrogative &&
+        variant.discourse.speakerRoleId === "a1-role-learner"
+      ) {
+        (variant.discourse as { speakerRoleId: string }).speakerRoleId = variant.discourse.addresseeRoleId!;
+      }
+    }
+    const result = validateA1({ semanticCatalogs: semantic });
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: "capstone-scenario-incomplete",
+        id: "capstones-1",
+        dimension: "reciprocal-question-back",
+      }),
+    );
+    // The original direction must still be intact and NOT also flagged —
+    // this mutation only removes the reverse direction.
+    expect(result.errors).not.toContainEqual(
+      expect.objectContaining({
+        code: "capstone-scenario-incomplete",
+        id: "capstones-1",
+        dimension: "reciprocal-question",
+      }),
+    );
+  });
+
   it("capstone-scenario-incomplete: capstones-2 loses its place (location-action) coverage", () => {
     const semantic = semanticClone();
     for (const variant of semantic.sentenceVariants) {
@@ -363,24 +399,81 @@ describe("validateA1 – capstone required-scenario coverage", () => {
     );
   });
 
-  it("cando-no-transfer-evidence (capstone-scoped): a module's own transfer no longer counts as capstone evidence", () => {
-    // `a1-can-do-existence` is deliberately NOT evidenced by the existence
-    // family alone: none of the four required capstone scenarios need an
-    // "there is X" statement, so evidence instead comes from the preference
-    // family's want-sense transfer (capstones-3's immediate need). Strip that
-    // tag and confirm the *existence* family's own module-internal transfers
-    // (existence-needs-*, never a capstone lesson) do NOT resurrect evidence
-    // under the capstone-scoped Can-do evidence rule — proving the B4 fix.
+  it("capstone-topic-change-count derives its check order from lesson.modelVariantIds, not a hardcoded m1..m8 id scheme (quality-review M3)", () => {
+    // The gate must read the *authored* model order from
+    // `lesson.modelVariantIds` rather than assuming ids are literally named
+    // `capstones-4-m1` through `capstones-4-m8` in that exact sequence. Prove
+    // it by reordering `modelVariantIds` (interleaving the SELF-subject and
+    // THING-subject models) while leaving every variant's own id and content
+    // untouched. The interleaved authored order visits SELF -> THING -> SELF
+    // -> THING (three transitions), which must be flagged; a validator that
+    // still assumes the m1..m8 lexical order would keep seeing the original
+    // SELF,SELF,SELF,SELF,THING,THING,THING,THING sequence (one transition)
+    // and wrongly report no error.
     const semantic = semanticClone();
-    const preference = semantic.sentenceFamilies.find((f) => f.id === "a1-family-preference");
-    expect(preference, "a1-family-preference must exist").toBeDefined();
-    (preference as unknown as { canDoIds: string[] }).canDoIds = preference!.canDoIds.filter(
+    const lesson = semantic.lessons.find((l) => l.id === "capstones-4");
+    expect(lesson, "capstones-4 lesson must exist").toBeDefined();
+    const original = lesson!.modelVariantIds;
+    expect(original).toEqual([
+      "capstones-4-m1",
+      "capstones-4-m2",
+      "capstones-4-m3",
+      "capstones-4-m4",
+      "capstones-4-m5",
+      "capstones-4-m6",
+      "capstones-4-m7",
+      "capstones-4-m8",
+    ]);
+    const interleaved = [
+      "capstones-4-m1", // SELF
+      "capstones-4-m5", // THING
+      "capstones-4-m2", // SELF
+      "capstones-4-m6", // THING
+      "capstones-4-m3", // SELF
+      "capstones-4-m7", // THING
+      "capstones-4-m4", // SELF
+      "capstones-4-m8", // THING
+    ];
+    (lesson as unknown as { modelVariantIds: string[] }).modelVariantIds = interleaved;
+    const result = validateA1({ semanticCatalogs: semantic });
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ code: "capstone-topic-change-count", id: "capstones-4" }),
+    );
+  });
+
+  it("cando-no-transfer-evidence (capstone-scoped): a module's own transfer no longer counts as capstone evidence", () => {
+    // Quality-review M4: `a1-can-do-existence` must be evidenced *only* by the
+    // existence family's own genuine あります/います capstone transfer(s)
+    // (capstones-3-t2/t3), never by an arbitrary like/dislike/want variant
+    // from an unrelated preference-family transfer. Strip the existence
+    // family's own tag and confirm no other family resurrects evidence for
+    // it under the capstone-scoped Can-do evidence rule.
+    const semantic = semanticClone();
+    const existence = semantic.sentenceFamilies.find((f) => f.id === "a1-family-existence");
+    expect(existence, "a1-family-existence must exist").toBeDefined();
+    (existence as unknown as { canDoIds: string[] }).canDoIds = existence!.canDoIds.filter(
       (id) => id !== "a1-can-do-existence",
     );
     const result = validateA1({ semanticCatalogs: semantic });
     expect(result.errors).toContainEqual(
       expect.objectContaining({ code: "cando-no-transfer-evidence", id: "a1-can-do-existence" }),
     );
+  });
+
+  it("existence Can-do evidence is owned exclusively by the existence family, never an arbitrary preference-family want/like/dislike variant (quality-review M4)", () => {
+    // Direct authoring-contract regression: `a1-can-do-existence` must be
+    // tagged on `a1-family-existence` (whose capstone transfers are genuine
+    // あります/います statements) and NEVER on `a1-family-preference` (whose
+    // capstone transfers are want/like/dislike — a different Can-do entirely).
+    // This is the exact production mapping the M4 fix asserts in shared.ts.
+    const existence = a1SemanticFoundationCatalogs.sentenceFamilies.find(
+      (f) => f.id === "a1-family-existence",
+    );
+    const preference = a1SemanticFoundationCatalogs.sentenceFamilies.find(
+      (f) => f.id === "a1-family-preference",
+    );
+    expect(existence?.canDoIds).toContain("a1-can-do-existence");
+    expect(preference?.canDoIds).not.toContain("a1-can-do-existence");
   });
 });
 

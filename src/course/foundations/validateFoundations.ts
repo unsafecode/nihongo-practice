@@ -109,6 +109,7 @@ export type ValidationErrorCode =
   | "productive-verb-spaced-reuse"
   | "productive-verb-later-module"
   | "productive-verb-structure-reuse"
+  | "productive-verb-later-use-wrong-sense"
   | "receptive-use-insufficient-input"
   | "receptive-use-missing-comprehension"
   | "conflated-sense-context"
@@ -1077,9 +1078,39 @@ interface VerbAnalysis {
   readonly row: VerbUseReportRow;
 }
 
+/**
+ * Independently REALIZES a cited later-use variant (quality-review I1) —
+ * never trusts the citation's raw catalog metadata. Uses the whole-catalog
+ * concept universe as a permissive `availableConceptIds` set so this works
+ * for a variant hosted in ANY lesson, independent of which lesson introduced
+ * the record being checked. Returns `undefined` when the variant/family
+ * cannot be resolved or fails to realize at all (a distinct failure mode from
+ * "realizes, but the wrong sense").
+ */
+function realizeLaterUseVariant(
+  ctx: CatalogIndex,
+  concepts: ReadonlySet<string>,
+  variantId: string,
+): readonly string[] | undefined {
+  const variant = ctx.variantById.get(variantId);
+  if (!variant) return undefined;
+  const family = ctx.familyById.get(variant.sentenceFamilyId);
+  if (!family) return undefined;
+  const realizeCatalogs: RealizeVariantCatalogs = {
+    contexts: ctx.catalogs.contexts,
+    personRoles: ctx.catalogs.personRoles,
+    referents: ctx.catalogs.referents,
+    semanticValues: ctx.catalogs.semanticValues,
+    learningTargetSenses: ctx.catalogs.learningTargetSenses,
+  };
+  const result = realizeVariant(family, variant, realizeCatalogs, { availableConceptIds: [...concepts] });
+  return result.ok ? result.sentence.usedLexemeSenseIds : undefined;
+}
+
 function analyzeVerbRecord(
   record: VerbUseRecord,
   ctx: CatalogIndex,
+  concepts: ReadonlySet<string>,
   errors: ValidationError[],
 ): VerbAnalysis {
   const introPos = ctx.positionByLesson.get(record.introductionLessonId);
@@ -1141,6 +1172,26 @@ function analyzeVerbRecord(
     }
     if (allStructureKeys.length < 2) {
       recordErrors.push({ code: "productive-verb-structure-reuse", stage: STAGE.learningUse, id: record.id, referenceId: record.senseId, expected: 2, actual: allStructureKeys.length });
+    }
+    // Quality-review I1: a later-use citation is only genuine if the cited
+    // variant, once REALIZED, actually produces the claimed sense among its
+    // `usedLexemeSenseIds`. Structure-key diversity above is computed from
+    // raw catalog metadata and says nothing about which sense a variant
+    // realizes — an author could cite any resolvable variant from an
+    // unrelated family/predicate and every check above would still pass.
+    for (const use of record.laterUses) {
+      const realizedSenseIds = realizeLaterUseVariant(ctx, concepts, use.variantId);
+      if (realizedSenseIds === undefined || !realizedSenseIds.includes(record.senseId)) {
+        recordErrors.push({
+          code: "productive-verb-later-use-wrong-sense",
+          stage: STAGE.learningUse,
+          id: record.id,
+          referenceId: use.variantId,
+          dimension: "sense",
+          expected: record.senseId,
+          actual: realizedSenseIds === undefined ? "unresolved" : (realizedSenseIds.join(", ") || "none"),
+        });
+      }
     }
   }
 
@@ -1485,7 +1536,7 @@ export function validateFoundationsWithDeps(
 
       // --- Stage 6: verb recurrence + conflated senses ---
       for (const record of input.catalogs.verbUseRecords) {
-        const { row } = analyzeVerbRecord(record, ctx, stageRest);
+        const { row } = analyzeVerbRecord(record, ctx, concepts, stageRest);
         verbRows.push(row);
       }
       const senseContexts = collectSensePracticeContexts(analyses, ctx);
