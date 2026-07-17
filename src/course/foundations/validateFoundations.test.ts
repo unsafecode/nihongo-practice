@@ -1181,3 +1181,154 @@ describe("validateFoundations — receptive diagnostics dimension", () => {
     expect(result.errors[0].actual).toBe(1);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Phase 2 Task 4 — cumulative per-lesson availability gate
+// ---------------------------------------------------------------------------
+
+describe("validateFoundations — cumulative availability gate", () => {
+  const A1_ID = "fixture-a1-personal-details";
+  // The natural same-lesson availability for the A1 fixture lesson (its models).
+  const A1_VALUES = [
+    "fixture-value-yuki",
+    "fixture-a1-value-be",
+    "fixture-a1-value-object-student",
+    "fixture-a1-value-ken",
+    "fixture-a1-value-object-doctor",
+    "fixture-a1-value-teacher-referent",
+    "fixture-a1-value-object-teacher-role",
+    "fixture-a1-value-live",
+    "fixture-a1-value-location-rome",
+    "fixture-a1-value-classmate-referent",
+    "fixture-a1-value-location-milan",
+    "fixture-a1-value-study",
+    "fixture-a1-value-object-japanese",
+    "fixture-a1-value-object-english",
+    "fixture-a1-value-clerk-referent",
+    "fixture-a1-value-work",
+    "fixture-a1-value-location-company",
+  ];
+  const A1_SENSES = [
+    "fixture-a1-sense-be",
+    "fixture-a1-sense-live",
+    "fixture-a1-sense-study",
+    "fixture-a1-sense-work",
+  ];
+  const A1_CONCEPTS = [
+    "fixture-concept-topic-wa",
+    "fixture-concept-copula-desu",
+    "fixture-concept-location-particle",
+    "fixture-concept-object-particle-wo",
+  ];
+  const A1_FORMS = ["affirmative:present:polite"];
+
+  function fullMap(): Record<
+    string,
+    { conceptIds: string[]; senseIds: string[]; semanticValueIds: string[]; forms: string[] }
+  > {
+    return {
+      [A1_ID]: {
+        conceptIds: [...A1_CONCEPTS],
+        senseIds: [...A1_SENSES],
+        semanticValueIds: [...A1_VALUES],
+        forms: [...A1_FORMS],
+      },
+    };
+  }
+
+  function runMap(
+    map: ValidateFoundationsInput["availableContentByLesson"],
+  ): ValidateFoundationsResult {
+    return validateFoundations({
+      catalogs: foundationCatalogs,
+      foundationCopy,
+      catalogVersion: CATALOG_VERSION,
+      seed: SEED,
+      availableContentByLesson: map,
+    });
+  }
+
+  it("allows transfers whose content is in the provided availability (prior + same)", () => {
+    const result = runMap(fullMap());
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
+  it("flags a future VALUE the availability map omits", () => {
+    const map = fullMap();
+    map[A1_ID] = { ...map[A1_ID], semanticValueIds: A1_VALUES.filter((v) => v !== "fixture-a1-value-object-japanese") };
+    const result = runMap(map);
+    const value = result.errors.find(
+      (e) => e.code === "transfer-uses-unintroduced-content" && e.dimension === "value" && e.referenceId === "fixture-a1-value-object-japanese",
+    );
+    expect(value).toBeDefined();
+    expect(result.valid).toBe(false);
+  });
+
+  it("flags a future SENSE the availability map omits", () => {
+    const map = fullMap();
+    map[A1_ID] = { ...map[A1_ID], senseIds: A1_SENSES.filter((s) => s !== "fixture-a1-sense-study") };
+    const result = runMap(map);
+    const sense = result.errors.find(
+      (e) => e.code === "transfer-uses-unintroduced-content" && e.dimension === "sense" && e.referenceId === "fixture-a1-sense-study",
+    );
+    expect(sense).toBeDefined();
+  });
+
+  it("flags a future CONCEPT the availability map omits", () => {
+    const map = fullMap();
+    map[A1_ID] = { ...map[A1_ID], conceptIds: A1_CONCEPTS.filter((c) => c !== "fixture-concept-object-particle-wo") };
+    const result = runMap(map);
+    const concept = result.errors.find(
+      (e) => e.code === "transfer-uses-unintroduced-content" && e.dimension === "concept" && e.referenceId === "fixture-concept-object-particle-wo",
+    );
+    expect(concept).toBeDefined();
+  });
+
+  it("flags a future FORM the availability map omits", () => {
+    const map = fullMap();
+    map[A1_ID] = { ...map[A1_ID], forms: [] };
+    const result = runMap(map);
+    const form = result.errors.find(
+      (e) => e.code === "transfer-uses-unintroduced-content" && e.dimension === "form",
+    );
+    expect(form).toBeDefined();
+  });
+
+  it("preserves the transfer-unseen fingerprint check under the availability map", () => {
+    const model = variant("fixture-a1-yuki-study-japanese");
+    const cats = withVariant("fixture-a1-transfer-ken-study-japanese", {
+      discourse: model.discourse,
+      contextId: model.contextId,
+      slotValues: model.slotValues,
+      form: model.form,
+    });
+    const result = validateFoundations({
+      catalogs: cats,
+      foundationCopy,
+      catalogVersion: CATALOG_VERSION,
+      seed: SEED,
+      availableContentByLesson: fullMap(),
+    });
+    expect(result.errors.map((e) => e.code)).toContain("transfer-duplicates-model");
+  });
+
+  it("rejects an availability map that references an unknown value/sense/concept", () => {
+    const map = fullMap();
+    map[A1_ID] = {
+      conceptIds: [...A1_CONCEPTS, "__no-concept__"],
+      senseIds: [...A1_SENSES, "__no-sense__"],
+      semanticValueIds: [...A1_VALUES, "__no-value__"],
+      forms: A1_FORMS,
+    };
+    const result = runMap(map);
+    const refs = result.errors.filter((e) => e.code === "invalid-availability-reference");
+    expect(refs.map((e) => e.referenceId).sort()).toEqual(["__no-concept__", "__no-sense__", "__no-value__"]);
+    expect(result.valid).toBe(false);
+  });
+
+  it("falls back to same-lesson introduced sets when no map is provided", () => {
+    const result = runMap(undefined);
+    expect(result.valid).toBe(true);
+  });
+});

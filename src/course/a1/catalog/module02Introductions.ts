@@ -92,9 +92,9 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
   ],
   transfers: [
     { id: "introductions-1-t1", family: "a1-family-topic-copular", context: "a1-context-classroom", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: cop("a1-value-ken", "a1-value-obj-student"), translation: a1Copular("a1-value-ken", "a1-value-obj-student") },
-    { id: "introductions-1-t2", family: "a1-family-location-action", context: "a1-context-first-meeting", subjectReferent: "a1-referent-ken", subjectRealization: "omitted", slots: live("a1-value-ken", "a1-value-loc-kyoto"), translation: L("Ken lives in Kyoto.", "Ken vive a Kyoto.") },
+    { id: "introductions-1-t2", family: "a1-family-location-action", context: "a1-context-first-meeting", subjectReferent: "a1-referent-ken", subjectRealization: "omitted", slots: live("a1-value-ken", "a1-value-loc-tokyo"), translation: L("Ken lives in Tokyo.", "Ken vive a Tokyo.") },
     { id: "introductions-1-t3", family: "a1-family-object-action", context: "a1-context-classroom", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: study("a1-value-mina", "a1-value-obj-japanese"), translation: a1VerbObject("a1-value-mina", "a1-sense-study", "a1-value-obj-japanese") },
-    { id: "introductions-1-t4", family: "a1-family-topic-copular", context: "a1-context-classroom", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: cop("a1-value-mina", "a1-value-obj-teacher"), translation: a1Copular("a1-value-mina", "a1-value-obj-teacher") },
+    { id: "introductions-1-t4", family: "a1-family-topic-copular", context: "a1-context-classroom", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: cop("a1-value-mina", "a1-value-obj-doctor"), translation: a1Copular("a1-value-mina", "a1-value-obj-doctor") },
     { id: "introductions-1-t5", family: "a1-family-location-action", context: "a1-context-classroom", subjectReferent: "a1-referent-classmate", subjectRealization: "explicit", slots: live("a1-value-classmate-subject", "a1-value-loc-tokyo"), translation: L("The classmate lives in Tokyo.", "Il compagno di classe vive a Tokyo.") },
   ],
 });
@@ -126,7 +126,7 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
     { id: "introductions-2-m8", family: "a1-family-object-action", context: "a1-context-classroom", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: study("a1-value-ken", "a1-value-obj-japanese"), translation: a1VerbObject("a1-value-ken", "a1-sense-study", "a1-value-obj-japanese") },
   ],
   transfers: [
-    { id: "introductions-2-t1", family: "a1-family-location-action", context: "a1-context-workplace", subjectReferent: "a1-referent-mina", subjectRealization: "omitted", slots: work("a1-value-mina", "a1-value-loc-shop"), translation: L("Mina works at the shop.", "Mina lavora in negozio.") },
+    { id: "introductions-2-t1", family: "a1-family-location-action", context: "a1-context-workplace", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: work("a1-value-mina", "a1-value-loc-restaurant"), translation: L("Mina works at the restaurant.", "Mina lavora al ristorante.") },
     { id: "introductions-2-t2", family: "a1-family-nominative-action", context: "a1-context-classroom", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: understand("a1-value-ken", "a1-value-obj-english"), translation: L("Ken understands English.", "Ken capisce l'inglese.") },
     { id: "introductions-2-t3", family: "a1-family-nominative-action", context: "a1-context-classroom", subjectReferent: "a1-referent-mina", subjectRealization: "omitted", slots: understand("a1-value-mina", "a1-value-obj-japanese"), translation: L("Mina understands Japanese.", "Mina capisce il giapponese.") },
     { id: "introductions-2-t4", family: "a1-family-object-action", context: "a1-context-classroom", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: doAct("a1-value-mina", "a1-value-obj-homework"), translation: a1VerbObject("a1-value-mina", "a1-sense-do", "a1-value-obj-homework") },

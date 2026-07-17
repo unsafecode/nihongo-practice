@@ -64,17 +64,35 @@ describe("validateA1 – baseline release", () => {
     expect(b.valid).toBe(true);
   });
 
-  it("preserves the wrapped foundation diagnostics without letting them block release", () => {
+  it("gates release on foundation validity — no silent dropping of foundation errors", () => {
     const result = validateA1();
-    const codes = new Map<string, number>();
-    for (const error of result.foundationReport.errors) {
-      codes.set(error.code, (codes.get(error.code) ?? 0) + 1);
-    }
-    // Diagnostic, per-lesson foundation findings are surfaced but never gate.
-    expect(result.foundationReport.errors.length).toBe(28);
-    expect(codes.get("transfer-uses-unintroduced-content")).toBe(25);
-    expect(codes.get("conflated-sense-context")).toBe(3);
+    // After Phase 2 Task 4, the assembled level is internally consistent: the
+    // cumulative availability gate accepts legitimate prior-lesson reuse and the
+    // six real future-use transfers plus three routine conflations are fixed, so
+    // the wrapped foundation report is clean and gates the release.
+    expect(result.foundationReport.errors).toEqual([]);
+    expect(result.foundationReport.valid).toBe(true);
     expect(result.valid).toBe(true);
+  });
+
+  it("cannot report valid=true while the foundation report is invalid", () => {
+    // Drop a model from a real lesson: the foundation oracle fails model-count,
+    // and the release gate must surface it as blocking (no selective drop).
+    const semantic = semanticClone();
+    const lesson = semantic.lessons.find((l) => l.id === "introductions-1")!;
+    (lesson.modelVariantIds as unknown as string[]).pop();
+    const result = validateA1({ semanticCatalogs: semantic });
+    expect(result.foundationReport.valid).toBe(false);
+    expect(result.valid).toBe(false);
+    expect(codesOf(result)).toContain("foundation-invalid");
+  });
+
+  it("keeps the three same-orthography routine senses free of context conflation", () => {
+    const result = validateA1();
+    const conflations = result.foundationReport.errors.filter(
+      (error) => error.code === "conflated-sense-context",
+    );
+    expect(conflations).toEqual([]);
   });
 
   it("wraps validateFoundations at the fixed release version and seed", () => {
@@ -173,11 +191,12 @@ describe("validateA1 – content ordering & closure", () => {
     expect(codesOf(result)).toContain("unknown-content");
   });
 
-  it("intro-before-use: a transfer recombines a value taught by no model", () => {
+  it("foundation-invalid: a transfer recombines a value taught by no model", () => {
     const semantic = semanticClone();
     // A known-but-untaught value: append it to the catalog, then use it only in
     // a transfer. It is a valid value id (no unknown-content) yet never a model
-    // filler (intro-before-use).
+    // filler, so the canonical-order cumulative gate rejects it — surfaced as a
+    // blocking foundation error.
     const synthetic = { ...clone(semantic.semanticValues[0]), id: "a1-value-synthetic-transfer" };
     (semantic.semanticValues as unknown as unknown[]).push(synthetic);
     const transfer = semantic.sentenceVariants.find(
@@ -187,8 +206,9 @@ describe("validateA1 – content ordering & closure", () => {
     const slotKey = Object.keys(transfer!.slotValues)[0];
     (transfer!.slotValues as Record<string, string>)[slotKey] = "a1-value-synthetic-transfer";
     const result = validateA1({ semanticCatalogs: semantic });
-    expect(codesOf(result)).toContain("intro-before-use");
+    expect(codesOf(result)).toContain("foundation-invalid");
     expect(codesOf(result)).not.toContain("unknown-content");
+    expect(result.valid).toBe(false);
   });
 
   it("capstone baseline: introduced-content sets are empty", () => {
@@ -208,9 +228,8 @@ describe("validateA1 – content ordering & closure", () => {
     (capstoneModel!.slotValues as Record<string, string>)[slotKey] = "a1-value-synthetic-capstone";
     const result = validateA1({ semanticCatalogs: semantic });
     expect(codesOf(result)).toContain("capstone-introduces-new");
-    // The synthetic value is a model filler, so it must NOT masquerade as
-    // intro-before-use — the capstone gate is the correct owner.
-    expect(codesOf(result)).not.toContain("intro-before-use");
+    // Inventing fresh capstone content must block the release.
+    expect(result.valid).toBe(false);
   });
 });
 

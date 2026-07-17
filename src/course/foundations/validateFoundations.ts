@@ -101,6 +101,7 @@ export type ValidationErrorCode =
   // stage 5 — transfer tuple
   | "transfer-duplicates-model"
   | "transfer-uses-unintroduced-content"
+  | "invalid-availability-reference"
   // stage 6 — learning use / senses / verb recurrence
   | "productive-verb-introduction-structure"
   | "productive-verb-introduction-exercise"
@@ -146,6 +147,26 @@ export interface ValidateFoundationsInput {
   readonly seed: string;
   /** Optional per-lesson seed override; a lesson with no entry uses `seed`. */
   readonly seedByLesson?: Readonly<Record<string, string>>;
+  /**
+   * Optional caller-computed cumulative availability per lesson (Phase 2 Task 4).
+   * When an entry is present for a lesson, `checkTransfers` gates that lesson's
+   * transfers against these explicit sets (introduced content available up to
+   * and including the lesson) instead of the lesson's own same-lesson model
+   * content. Lessons with no entry fall back to same-lesson introduced sets,
+   * preserving the Phase-1 per-lesson closure behaviour for existing fixtures.
+   * `forms` are foundation form keys (`polarity:tense:formality`).
+   */
+  readonly availableContentByLesson?: Readonly<
+    Record<
+      string,
+      {
+        readonly conceptIds: readonly string[];
+        readonly senseIds: readonly string[];
+        readonly semanticValueIds: readonly string[];
+        readonly forms: readonly string[];
+      }
+    >
+  >;
 }
 
 export interface ValidateFoundationsResult {
@@ -949,9 +970,70 @@ function generateExercises(
 // Stage 5 — transfer tuple
 // ---------------------------------------------------------------------------
 
-function checkTransfers(analysis: LessonAnalysis, ctx: CatalogIndex, errors: ValidationError[]): void {
+/** Resolved cumulative availability for a single lesson (Phase 2 Task 4). */
+interface LessonAvailability {
+  readonly conceptIds: ReadonlySet<string>;
+  readonly senseIds: ReadonlySet<string>;
+  readonly valueIds: ReadonlySet<string>;
+  readonly forms: ReadonlySet<string>;
+}
+
+/** The universe of concept ids known to the catalog (union of every family's
+ * `requiredConceptIds`) — used to validate caller-supplied availability refs. */
+function conceptUniverse(ctx: CatalogIndex): ReadonlySet<string> {
+  const universe = new Set<string>();
+  for (const family of ctx.catalogs.sentenceFamilies) {
+    for (const id of family.requiredConceptIds) universe.add(id);
+  }
+  return universe;
+}
+
+/** Validates that a caller-supplied availability map references only entities
+ * that exist in the catalog, so a typo can never silently widen the gate. */
+function checkAvailabilityRefs(
+  lessonId: string,
+  availability: {
+    readonly conceptIds: readonly string[];
+    readonly senseIds: readonly string[];
+    readonly semanticValueIds: readonly string[];
+    readonly forms: readonly string[];
+  },
+  ctx: CatalogIndex,
+  concepts: ReadonlySet<string>,
+  errors: ValidationError[],
+): void {
+  for (const id of availability.conceptIds) {
+    if (!concepts.has(id)) {
+      errors.push({ code: "invalid-availability-reference", stage: STAGE.transfer, lessonId, id: lessonId, referenceId: id, dimension: "concept" });
+    }
+  }
+  for (const id of availability.senseIds) {
+    if (!ctx.senseById.has(id)) {
+      errors.push({ code: "invalid-availability-reference", stage: STAGE.transfer, lessonId, id: lessonId, referenceId: id, dimension: "sense" });
+    }
+  }
+  for (const id of availability.semanticValueIds) {
+    if (!ctx.valueById.has(id)) {
+      errors.push({ code: "invalid-availability-reference", stage: STAGE.transfer, lessonId, id: lessonId, referenceId: id, dimension: "value" });
+    }
+  }
+}
+
+function checkTransfers(
+  analysis: LessonAnalysis,
+  ctx: CatalogIndex,
+  errors: ValidationError[],
+  availability?: LessonAvailability,
+): void {
   const lesson = analysis.lesson;
   const modelFingerprints = new Set(analysis.modelFingerprints);
+  // When explicit cumulative availability is supplied for the lesson, gate the
+  // transfers against it (introduced content available up to and including this
+  // lesson). Otherwise fall back to same-lesson model content (Phase-1 closure).
+  const introducedConceptIds = availability ? availability.conceptIds : analysis.introducedConceptIds;
+  const introducedSenseIds = availability ? availability.senseIds : analysis.introducedSenseIds;
+  const introducedValueIds = availability ? availability.valueIds : analysis.introducedValueIds;
+  const introducedForms = availability ? availability.forms : analysis.introducedForms;
   for (const sentence of analysis.transferSentences) {
     const variant = ctx.variantById.get(sentence.variantId);
     if (!variant) continue;
@@ -959,21 +1041,21 @@ function checkTransfers(analysis: LessonAnalysis, ctx: CatalogIndex, errors: Val
       errors.push({ code: "transfer-duplicates-model", stage: STAGE.transfer, lessonId: lesson.id, id: sentence.variantId, referenceId: sentence.semanticFingerprint });
     }
     for (const conceptId of sentence.usedConceptIds) {
-      if (!analysis.introducedConceptIds.has(conceptId)) {
+      if (!introducedConceptIds.has(conceptId)) {
         errors.push({ code: "transfer-uses-unintroduced-content", stage: STAGE.transfer, lessonId: lesson.id, id: sentence.variantId, referenceId: conceptId, dimension: "concept" });
       }
     }
     for (const senseId of sentence.usedLexemeSenseIds) {
-      if (!analysis.introducedSenseIds.has(senseId)) {
+      if (!introducedSenseIds.has(senseId)) {
         errors.push({ code: "transfer-uses-unintroduced-content", stage: STAGE.transfer, lessonId: lesson.id, id: sentence.variantId, referenceId: senseId, dimension: "sense" });
       }
     }
     for (const value of Object.values(variant.slotValues)) {
-      if (!analysis.introducedValueIds.has(value)) {
+      if (!introducedValueIds.has(value)) {
         errors.push({ code: "transfer-uses-unintroduced-content", stage: STAGE.transfer, lessonId: lesson.id, id: sentence.variantId, referenceId: value, dimension: "value" });
       }
     }
-    if (!analysis.introducedForms.has(formKey(variant.form))) {
+    if (!introducedForms.has(formKey(variant.form))) {
       errors.push({ code: "transfer-uses-unintroduced-content", stage: STAGE.transfer, lessonId: lesson.id, id: sentence.variantId, referenceId: formKey(variant.form), dimension: "form" });
     }
   }
@@ -1378,13 +1460,25 @@ export function validateFoundationsWithDeps(
 
     if (!gateStage2) {
       // --- Stages 3-6 per lesson ---
+      const concepts = conceptUniverse(ctx);
       for (const lesson of input.catalogs.lessons) {
         const analysis = analyses.get(lesson.id)!;
         const seed = input.seedByLesson?.[lesson.id] ?? input.seed;
         const lessonErrors: ValidationError[] = [];
         checkModelDiversity(analysis, lessonErrors);
         const selection = checkSelectionAndExercises(analysis, ctx, input.catalogVersion, seed, lessonErrors, deps);
-        checkTransfers(analysis, ctx, lessonErrors);
+        const rawAvailability = input.availableContentByLesson?.[lesson.id];
+        let availability: LessonAvailability | undefined;
+        if (rawAvailability) {
+          checkAvailabilityRefs(lesson.id, rawAvailability, ctx, concepts, lessonErrors);
+          availability = {
+            conceptIds: new Set(rawAvailability.conceptIds),
+            senseIds: new Set(rawAvailability.senseIds),
+            valueIds: new Set(rawAvailability.semanticValueIds),
+            forms: new Set(rawAvailability.forms),
+          };
+        }
+        checkTransfers(analysis, ctx, lessonErrors, availability);
         selectionSummaries.set(lesson.id, selection);
         for (const error of lessonErrors) stageRest.push(error);
       }

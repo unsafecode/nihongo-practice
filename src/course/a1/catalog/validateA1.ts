@@ -94,10 +94,11 @@ export type A1ValidationErrorCode =
   | "capstone-structure"
   // content ordering / closure
   | "unknown-content"
-  | "intro-before-use"
   | "capstone-introduces-new"
   // recurrence
   | "recurrence-incomplete"
+  // foundation gate (wrapped oracle) — blocking, per Phase 2 Task 4
+  | "foundation-invalid"
   // Can-do / checkpoint
   | "cando-not-sampled"
   | "cando-no-transfer-evidence"
@@ -167,6 +168,13 @@ function formKey(form: SentenceVariant["form"]): string {
   return `${form.polarity}:${form.tense}:${form.formality}${mood}`;
 }
 
+/** Form key as the foundation oracle sees it (mood-insensitive): the cumulative
+ * availability map handed to `validateFoundations` must key forms exactly the
+ * way `checkTransfers` compares them, i.e. `polarity:tense:formality`. */
+function foundationFormKey(form: SentenceVariant["form"]): string {
+  return `${form.polarity}:${form.tense}:${form.formality}`;
+}
+
 /** Matches any CJK ideograph, hiragana, katakana or the chōonpu bar. */
 const JAPANESE_RE = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff66-\uff9f]/u;
 
@@ -194,12 +202,101 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
     errors.push(error);
   };
 
-  // --- Wrap the Phase-1 oracle (diagnostic; errors preserved) --------------
+  // --- Realization infrastructure over the semantic catalog ----------------
+  const familyById = new Map<string, SentenceFamily>(
+    semantic.sentenceFamilies.map((family) => [family.id, family]),
+  );
+  const variantById = new Map<string, SentenceVariant>(
+    semantic.sentenceVariants.map((variant) => [variant.id, variant]),
+  );
+  const realizeCatalogs = {
+    contexts: semantic.contexts,
+    personRoles: semantic.personRoles,
+    referents: semantic.referents,
+    semanticValues: semantic.semanticValues,
+    learningTargetSenses: semantic.learningTargetSenses,
+  };
+  const realizeCache = new Map<string, RealizedSentence | null>();
+  const realize = (variant: SentenceVariant): RealizedSentence | null => {
+    const cached = realizeCache.get(variant.id);
+    if (cached !== undefined) return cached;
+    const family = familyById.get(variant.sentenceFamilyId);
+    if (!family) {
+      realizeCache.set(variant.id, null);
+      return null;
+    }
+    const result = realizeVariant(family, variant, realizeCatalogs, {
+      availableConceptIds: [...family.requiredConceptIds],
+    });
+    const sentence = result.ok ? result.sentence : null;
+    realizeCache.set(variant.id, sentence);
+    return sentence;
+  };
+
+  // --- Canonical-order cumulative availability (Phase 2 Task 4) -------------
+  // For each lesson, compute the introduced content (values, senses, concepts,
+  // forms) drawn from *its own models plus every model of every lesson at an
+  // earlier canonical position*. A transfer may recombine anything modelled at
+  // or before its lesson; nothing modelled only later can leak backwards. This
+  // map is handed to the foundation oracle, whose per-lesson transfer gate uses
+  // it in place of the strict same-lesson closure.
+  const positionByLessonId = new Map(
+    semantic.lessonPositions.map((record) => [record.lessonId, record.position]),
+  );
+  interface ModelContent {
+    readonly values: Set<string>;
+    readonly senses: Set<string>;
+    readonly concepts: Set<string>;
+    readonly forms: Set<string>;
+  }
+  const perLessonModelContent = new Map<string, ModelContent>();
+  for (const lesson of semantic.lessons) {
+    const content: ModelContent = { values: new Set(), senses: new Set(), concepts: new Set(), forms: new Set() };
+    for (const variantId of lesson.modelVariantIds) {
+      const variant = variantById.get(variantId);
+      if (!variant) continue;
+      for (const value of Object.values(variant.slotValues)) content.values.add(value);
+      content.forms.add(foundationFormKey(variant.form));
+      const realized = realize(variant);
+      if (realized) {
+        for (const sense of realized.usedLexemeSenseIds) content.senses.add(sense);
+        for (const concept of realized.usedConceptIds) content.concepts.add(concept);
+      }
+    }
+    perLessonModelContent.set(lesson.id, content);
+  }
+  const orderedLessonIds = [...semantic.lessons]
+    .map((lesson) => lesson.id)
+    .sort((left, right) => (positionByLessonId.get(left) ?? 0) - (positionByLessonId.get(right) ?? 0));
+  const availableContentByLesson: Record<
+    string,
+    { conceptIds: string[]; senseIds: string[]; semanticValueIds: string[]; forms: string[] }
+  > = {};
+  const cumulative: ModelContent = { values: new Set(), senses: new Set(), concepts: new Set(), forms: new Set() };
+  for (const lessonId of orderedLessonIds) {
+    const content = perLessonModelContent.get(lessonId);
+    if (content) {
+      for (const value of content.values) cumulative.values.add(value);
+      for (const sense of content.senses) cumulative.senses.add(sense);
+      for (const concept of content.concepts) cumulative.concepts.add(concept);
+      for (const form of content.forms) cumulative.forms.add(form);
+    }
+    availableContentByLesson[lessonId] = {
+      conceptIds: [...cumulative.concepts],
+      senseIds: [...cumulative.senses],
+      semanticValueIds: [...cumulative.values],
+      forms: [...cumulative.forms],
+    };
+  }
+
+  // --- Wrap the Phase-1 oracle (gating; the cumulative availability map lets
+  // transfers recombine anything modelled at or before their lesson) ---------
   const foundationReport = validateFoundations({
     catalogs: semantic,
     foundationCopy: copy,
     catalogVersion: A1_RELEASE_CATALOG_VERSION,
     seed: A1_RELEASE_SEED,
+    availableContentByLesson,
   });
 
   // --- 1. Structural shape: 12 modules × 4 lessons = 48 routes -------------
@@ -284,54 +381,21 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
     push({ code: "capstone-structure", dimension: "count", actual: A1_CAPSTONE_LESSON_IDS.length });
   }
 
-  // --- Realization infrastructure over the semantic catalog ----------------
-  const familyById = new Map<string, SentenceFamily>(
-    semantic.sentenceFamilies.map((family) => [family.id, family]),
-  );
-  const realizeCatalogs = {
-    contexts: semantic.contexts,
-    personRoles: semantic.personRoles,
-    referents: semantic.referents,
-    semanticValues: semantic.semanticValues,
-    learningTargetSenses: semantic.learningTargetSenses,
-  };
-  const realizeCache = new Map<string, RealizedSentence | null>();
-  const realize = (variant: SentenceVariant): RealizedSentence | null => {
-    const cached = realizeCache.get(variant.id);
-    if (cached !== undefined) return cached;
-    const family = familyById.get(variant.sentenceFamilyId);
-    if (!family) {
-      realizeCache.set(variant.id, null);
-      return null;
-    }
-    const result = realizeVariant(family, variant, realizeCatalogs, {
-      availableConceptIds: [...family.requiredConceptIds],
-    });
-    const sentence = result.ok ? result.sentence : null;
-    realizeCache.set(variant.id, sentence);
-    return sentence;
-  };
-
   const semanticValueIds = new Set(semantic.semanticValues.map((value) => value.id));
   const contextIds = new Set(semantic.contexts.map((context) => context.id));
   const roleIds = new Set(semantic.personRoles.map((role) => role.id));
 
-  // --- 4. Unknown content + level-scope introduce-before-use ---------------
-  // A value is "taught" when it fills a slot in *some model* anywhere in the
-  // level. Every non-model variant may only recombine taught values (level
-  // scope): this passes generalizing transfers that reuse earlier content while
-  // still catching a transfer that invents a never-taught filler.
-  const taughtModelValueIds = new Set<string>();
-  for (const variant of semantic.sentenceVariants) {
-    if (variant.pedagogicalUse !== "model") continue;
-    for (const value of Object.values(variant.slotValues)) taughtModelValueIds.add(value);
-  }
+  // --- 4. Unknown content (values, contexts, roles must exist) -------------
+  // Level-scope introduce-before-use is no longer computed from an order-
+  // *insensitive* global model-value set. Ordering is enforced by the
+  // canonical-order cumulative availability map handed to the foundation
+  // oracle above, whose per-lesson transfer gate rejects any value/sense/
+  // concept/form used before it is modelled. Here we only reject content that
+  // is entirely unknown to the catalog.
   for (const variant of semantic.sentenceVariants) {
     for (const [slotId, value] of Object.entries(variant.slotValues)) {
       if (!semanticValueIds.has(value)) {
         push({ code: "unknown-content", id: variant.id, dimension: `value:${slotId}`, referenceId: value });
-      } else if (variant.pedagogicalUse !== "model" && !taughtModelValueIds.has(value)) {
-        push({ code: "intro-before-use", id: variant.id, dimension: "value", referenceId: value });
       }
     }
     if (!contextIds.has(variant.contextId)) {
@@ -386,12 +450,25 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
     }
   }
 
-  // --- 6. Productive / receptive recurrence completeness -------------------
+  // --- 6. Foundation gate: every foundation error blocks release -----------
+  // The wrapped oracle is authoritative. Recurrence findings are translated to
+  // the release-scoped `recurrence-incomplete` code (below); every *other*
+  // foundation error is surfaced verbatim as a blocking `foundation-invalid`
+  // so a release can never report valid while the foundation report is invalid.
   for (const error of foundationReport.errors) {
-    if (error.code.startsWith("productive-verb") || error.code.startsWith("receptive-")) {
+    const isRecurrence = error.code.startsWith("productive-verb") || error.code.startsWith("receptive-");
+    if (isRecurrence) {
       push({
         code: "recurrence-incomplete",
         id: error.id ?? error.lessonId,
+        underlyingCode: error.code,
+      });
+    } else {
+      push({
+        code: "foundation-invalid",
+        id: error.id ?? error.lessonId,
+        referenceId: error.referenceId,
+        dimension: error.dimension,
         underlyingCode: error.code,
       });
     }
@@ -532,7 +609,7 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
   });
 
   return {
-    valid: sorted.length === 0,
+    valid: sorted.length === 0 && foundationReport.valid,
     errors: sorted,
     foundationReport,
   };

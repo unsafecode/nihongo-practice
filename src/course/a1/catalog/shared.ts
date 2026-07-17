@@ -158,6 +158,12 @@ export const a1Contexts: readonly Context[] = deepFreeze([
   { id: "a1-context-town", labelCopyId: "a1-context-town-label" },
   { id: "a1-context-family", labelCopyId: "a1-context-family-label" },
   { id: "a1-context-weather", labelCopyId: "a1-context-weather-label" },
+  // Module 5 routine senses each own a dedicated, base-sense-free practice
+  // context so the same-orthography routine/base sense pairs stay contextually
+  // distinct (no conflation).
+  { id: "a1-context-weekday-study", labelCopyId: "a1-context-weekday-study-label" },
+  { id: "a1-context-mealtime-routine", labelCopyId: "a1-context-mealtime-routine-label" },
+  { id: "a1-context-evening-reading", labelCopyId: "a1-context-evening-reading-label" },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -1015,6 +1021,9 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-context-town-label": "Around town",
     "a1-context-family-label": "With family",
     "a1-context-weather-label": "Talking about the weather",
+    "a1-context-weekday-study-label": "Weekday study routine",
+    "a1-context-mealtime-routine-label": "Daily mealtime routine",
+    "a1-context-evening-reading-label": "Evening reading routine",
     "a1-role-creature-label": "An animal",
     "a1-referent-creature-label": "The animal",
     "a1-can-do-sounds-descriptor": "I can hear and read the basic sounds of Japanese.",
@@ -1076,6 +1085,9 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-context-town-label": "In città",
     "a1-context-family-label": "In famiglia",
     "a1-context-weather-label": "Parlare del tempo",
+    "a1-context-weekday-study-label": "Routine di studio infrasettimanale",
+    "a1-context-mealtime-routine-label": "Routine dei pasti quotidiani",
+    "a1-context-evening-reading-label": "Routine di lettura serale",
     "a1-role-creature-label": "Un animale",
     "a1-referent-creature-label": "L'animale",
     "a1-can-do-sounds-descriptor": "So sentire e leggere i suoni di base del giapponese.",
@@ -1241,6 +1253,18 @@ export const A1_CONTEXT_SCENARIO: Readonly<Record<string, Bilingual>> = deepFree
   "a1-context-weather": {
     en: "You are chatting about today's weather and how things feel.",
     it: "Chiacchieri del tempo di oggi e di come ci si sente.",
+  },
+  "a1-context-weekday-study": {
+    en: "You are describing which weekdays you regularly study on.",
+    it: "Descrivi in quali giorni della settimana studi di solito.",
+  },
+  "a1-context-mealtime-routine": {
+    en: "You are describing when you habitually eat during the day.",
+    it: "Descrivi quando mangi abitualmente durante la giornata.",
+  },
+  "a1-context-evening-reading": {
+    en: "You are describing your habit of reading in the evening.",
+    it: "Descrivi la tua abitudine di leggere la sera.",
   },
 });
 

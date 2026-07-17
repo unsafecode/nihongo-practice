@@ -39,13 +39,15 @@ describe("buildA1Reports – exact level metrics", () => {
       transferCount: 220,
       phoneticItemCount: 40,
       verbRecordCount: 37,
-      complete: false,
+      complete: true,
     });
   });
 
-  it("surfaces the release gate result (valid, no error codes)", () => {
+  it("surfaces the release gate result (valid, complete, no error codes)", () => {
     expect(reports.validation.valid).toBe(true);
+    expect(reports.validation.foundationComplete).toBe(true);
     expect(reports.validation.errorCodes).toEqual([]);
+    expect(reports.validation.foundationDiagnostics).toEqual([]);
   });
 
   it("classifies Can-dos as 11 module + 4 scenario", () => {
@@ -106,6 +108,7 @@ describe("a1ReportMarkdown – stable rendering", () => {
     for (const heading of [
       "# A1 release report",
       "Release valid: yes",
+      "Foundation complete: yes",
       "## Level",
       "## Modules",
       "## Lessons",

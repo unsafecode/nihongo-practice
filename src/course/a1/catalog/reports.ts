@@ -119,7 +119,9 @@ export interface A1CoverageReports {
   readonly aliases: readonly A1AliasReportRow[];
   readonly validation: {
     readonly valid: boolean;
+    readonly foundationComplete: boolean;
     readonly errorCodes: readonly string[];
+    readonly foundationDiagnostics: readonly string[];
   };
 }
 
@@ -290,7 +292,9 @@ export function buildA1Reports(result: ValidateA1Result = validateA1()): A1Cover
     aliases: aliasRows,
     validation: {
       valid: result.valid,
+      foundationComplete: result.foundationReport.valid,
       errorCodes: sortedUnique(result.errors.map((error) => error.code)),
+      foundationDiagnostics: sortedUnique(result.foundationReport.errors.map((error) => error.code)),
     },
   };
 }
@@ -320,8 +324,12 @@ export function a1ReportMarkdown(reports: A1CoverageReports = buildA1Reports()):
   lines.push("# A1 release report");
   lines.push("");
   lines.push(`Release valid: ${reports.validation.valid ? "yes" : "no"}`);
+  lines.push(`Foundation complete: ${reports.validation.foundationComplete ? "yes" : "no"}`);
   if (reports.validation.errorCodes.length > 0) {
     lines.push(`Error codes: ${reports.validation.errorCodes.join(", ")}`);
+  }
+  if (reports.validation.foundationDiagnostics.length > 0) {
+    lines.push(`Foundation diagnostics: ${reports.validation.foundationDiagnostics.join(", ")}`);
   }
   lines.push("");
 
