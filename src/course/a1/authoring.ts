@@ -315,9 +315,17 @@ export function defineA1SemanticValue(value: SemanticValue): SemanticValue {
 }
 
 /**
- * Expand an authoring tuple into a frozen `SentenceVariant`, defensively
- * copying slot values so later mutation of the source tuple cannot leak in.
- * Variants store semantic IDs only; a Japanese literal anywhere is rejected.
+ * Expand an authoring tuple into a frozen `SentenceVariant`. `slotValues` is
+ * shallow-copied into a new object before freezing, so later mutation of the
+ * *source tuple's* `slotValues` reference cannot leak into the returned
+ * variant. `discourse` and `form`, by contrast, are carried over *by
+ * reference* — the returned variant's `discourse`/`form` is the exact same
+ * object the tuple was authored with, not a copy. `deepFreeze` then walks and
+ * freezes that shared object in place, so if the same `discourse`/`form`
+ * object is reused across multiple tuples (a common authoring pattern), it
+ * becomes frozen for all of them the first time any variant referencing it is
+ * built. Variants store semantic IDs only; a Japanese literal anywhere is
+ * rejected.
  */
 export function variantFromTuple(tuple: A1VariantTuple): SentenceVariant {
   assertNoForbiddenContent(tuple, "variant");

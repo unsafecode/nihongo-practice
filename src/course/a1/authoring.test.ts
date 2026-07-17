@@ -452,10 +452,14 @@ function moduleRecipe(overrides: Partial<A1ModuleRecipe> = {}): A1ModuleRecipe {
 // ---------------------------------------------------------------------------
 
 describe("defineA1Lesson — happy path and immutability", () => {
-  it("returns a deeply frozen, non-destructive copy", () => {
+  it("freezes the same recipe object in place (not a copy)", () => {
     const recipe = instructionalRecipe();
     const defined = defineA1Lesson(recipe);
+    // deepFreeze mutates and returns the very same object — there is no
+    // clone. `recipe` itself is now deeply frozen too.
+    expect(defined).toBe(recipe);
     expect(Object.isFrozen(defined)).toBe(true);
+    expect(Object.isFrozen(recipe)).toBe(true);
     expect(Object.isFrozen(defined.modelVariantIds)).toBe(true);
     expect(Object.isFrozen(defined.practice.roundOne)).toBe(true);
     expect(() => {
@@ -812,9 +816,27 @@ describe("variantFromTuple — semantic ids only", () => {
     expect(variant.slotValues).toEqual(tuple.slotValues);
     expect(Object.isFrozen(variant)).toBe(true);
     expect(Object.isFrozen(variant.slotValues)).toBe(true);
-    // A defensive copy of slotValues — mutating the source does not leak in.
+    // slotValues is shallow-copied before freezing — mutating the source
+    // tuple's slotValues reference does not leak into the returned variant.
     (tuple.slotValues as Record<string, string>).topic = "mutated";
     expect(variant.slotValues.topic).toBe("a1-value-yuki");
+  });
+
+  it("carries discourse and form over by reference, then freezes them in place", () => {
+    const tuple = baseTuple();
+    const variant = variantFromTuple(tuple);
+    // Unlike slotValues, discourse/form are NOT copied: the variant's
+    // discourse/form is the exact same object the tuple was authored with.
+    expect(variant.discourse).toBe(tuple.discourse);
+    expect(variant.form).toBe(tuple.form);
+    // deepFreeze walks and freezes that shared object in place, so the
+    // source tuple's discourse/form (same reference) is now frozen too.
+    expect(Object.isFrozen(tuple.discourse)).toBe(true);
+    expect(Object.isFrozen(tuple.form)).toBe(true);
+    expect(() => {
+      (tuple.discourse as { subjectRealization: string }).subjectRealization =
+        "mutated";
+    }).toThrow();
   });
 
   it("rejects a Japanese literal in a slot value", () => {
