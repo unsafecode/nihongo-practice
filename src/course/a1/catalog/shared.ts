@@ -33,6 +33,7 @@ import type {
   SemanticValueTokenFragment,
   SentenceFamily,
   SentenceVariant,
+  VerbLaterUse,
   VerbUseRecord,
 } from "../../foundations/types";
 import { A1_CANONICAL_POSITIONS } from "../manifest";
@@ -67,6 +68,27 @@ export const A1_AFFIRMATIVE_PRESENT_POLITE_QUESTION: FormSelection = deepFreeze(
   interrogative: true,
 } as const);
 
+/** Past affirmative polite (ました / でした). */
+export const A1_AFFIRMATIVE_PAST_POLITE: FormSelection = deepFreeze({
+  polarity: "affirmative",
+  tense: "past",
+  formality: "polite",
+} as const);
+
+/** Present negative polite (ません / ではありません). */
+export const A1_NEGATIVE_PRESENT_POLITE: FormSelection = deepFreeze({
+  polarity: "negative",
+  tense: "present",
+  formality: "polite",
+} as const);
+
+/** Past negative polite (ませんでした / ではありませんでした). */
+export const A1_NEGATIVE_PAST_POLITE: FormSelection = deepFreeze({
+  polarity: "negative",
+  tense: "past",
+  formality: "polite",
+} as const);
+
 /** A bilingual (EN/IT) copy pair. Never carries Japanese. */
 export interface Bilingual {
   readonly en: string;
@@ -85,6 +107,11 @@ export const A1_CONCEPT_OBJECT_WO = "a1-concept-object-wo";
 export const A1_CONCEPT_NOMINATIVE_GA = "a1-concept-nominative-ga";
 export const A1_CONCEPT_RECIPIENT_NI = "a1-concept-recipient-ni";
 export const A1_CONCEPT_COMPANION_TO = "a1-concept-companion-to";
+export const A1_CONCEPT_TIME_SCHEDULE = "a1-concept-time-schedule";
+export const A1_CONCEPT_FREQUENCY = "a1-concept-frequency";
+export const A1_CONCEPT_DIRECTION_HE = "a1-concept-direction-he";
+export const A1_CONCEPT_SOURCE_LIMIT = "a1-concept-source-limit";
+export const A1_CONCEPT_TRANSPORT_DE = "a1-concept-transport-de";
 
 /** Every A1 concept id, used as the module test's available-concept universe. */
 export const A1_CONCEPT_IDS: readonly string[] = deepFreeze([
@@ -96,6 +123,11 @@ export const A1_CONCEPT_IDS: readonly string[] = deepFreeze([
   A1_CONCEPT_NOMINATIVE_GA,
   A1_CONCEPT_RECIPIENT_NI,
   A1_CONCEPT_COMPANION_TO,
+  A1_CONCEPT_TIME_SCHEDULE,
+  A1_CONCEPT_FREQUENCY,
+  A1_CONCEPT_DIRECTION_HE,
+  A1_CONCEPT_SOURCE_LIMIT,
+  A1_CONCEPT_TRANSPORT_DE,
 ]);
 
 // ---------------------------------------------------------------------------
@@ -109,6 +141,9 @@ export const a1Contexts: readonly Context[] = deepFreeze([
   { id: "a1-context-shop", labelCopyId: "a1-context-shop-label" },
   { id: "a1-context-station", labelCopyId: "a1-context-station-label" },
   { id: "a1-context-cafe", labelCopyId: "a1-context-cafe-label" },
+  { id: "a1-context-home", labelCopyId: "a1-context-home-label" },
+  { id: "a1-context-town", labelCopyId: "a1-context-town-label" },
+  { id: "a1-context-family", labelCopyId: "a1-context-family-label" },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -174,6 +209,19 @@ export const a1LearningTargetSenses: readonly LearningTargetSense[] = deepFreeze
   { id: "a1-sense-see", lexemeId: "a1-lexeme-miru", learningUse: "productive", semanticFrameId: "a1-frame-see", predicate: "see", argumentRoles: ["agent", "theme"], argumentParticleByRole: {} },
   { id: "a1-sense-listen", lexemeId: "a1-lexeme-kiku", learningUse: "productive", semanticFrameId: "a1-frame-listen", predicate: "listen", argumentRoles: ["agent", "theme"], argumentParticleByRole: {} },
   { id: "a1-sense-ask", lexemeId: "a1-lexeme-kiku", learningUse: "productive", semanticFrameId: "a1-frame-ask", predicate: "ask", argumentRoles: ["agent", "theme"], argumentParticleByRole: {} },
+  // --- Module 5 routine senses: [agent, time] frames. Same orthography as an
+  // action verb but a *distinct* time-anchored frame (the sanctioned
+  // listen/ask precedent), so they can appear in schedule/frequency families
+  // that carry a time slot (which the action senses, lacking a `time` role,
+  // structurally cannot). Particles come from the governing rule (bare or に),
+  // so `argumentParticleByRole` stays empty.
+  { id: "a1-sense-wake", lexemeId: "a1-lexeme-okiru", learningUse: "productive", semanticFrameId: "a1-frame-wake", predicate: "wake", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
+  { id: "a1-sense-sleep", lexemeId: "a1-lexeme-neru", learningUse: "productive", semanticFrameId: "a1-frame-sleep", predicate: "sleep", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
+  { id: "a1-sense-go-out", lexemeId: "a1-lexeme-dekakeru", learningUse: "productive", semanticFrameId: "a1-frame-go-out", predicate: "go-out", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
+  { id: "a1-sense-return", lexemeId: "a1-lexeme-kaeru", learningUse: "productive", semanticFrameId: "a1-frame-return", predicate: "return", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
+  { id: "a1-sense-study-routine", lexemeId: "a1-lexeme-benkyousuru", learningUse: "productive", semanticFrameId: "a1-frame-study-routine", predicate: "study", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
+  { id: "a1-sense-eat-routine", lexemeId: "a1-lexeme-taberu", learningUse: "productive", semanticFrameId: "a1-frame-eat-routine", predicate: "eat", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
+  { id: "a1-sense-read-routine", lexemeId: "a1-lexeme-yomu", learningUse: "productive", semanticFrameId: "a1-frame-read-routine", predicate: "read", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -232,6 +280,14 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-see", kind: "predicate-sense", senseId: "a1-sense-see", tokenFragments: [frag("み", "mi")] },
   { id: "a1-value-listen", kind: "predicate-sense", senseId: "a1-sense-listen", tokenFragments: [frag("きき", "kiki")] },
   { id: "a1-value-ask", kind: "predicate-sense", senseId: "a1-sense-ask", tokenFragments: [frag("きき", "kiki")] },
+  // Module 5 routine predicate stems (polite ます-stems).
+  { id: "a1-value-wake", kind: "predicate-sense", senseId: "a1-sense-wake", tokenFragments: [frag("おき", "oki")] },
+  { id: "a1-value-sleep", kind: "predicate-sense", senseId: "a1-sense-sleep", tokenFragments: [frag("ね", "ne")] },
+  { id: "a1-value-go-out", kind: "predicate-sense", senseId: "a1-sense-go-out", tokenFragments: [frag("でかけ", "dekake")] },
+  { id: "a1-value-return", kind: "predicate-sense", senseId: "a1-sense-return", tokenFragments: [frag("かえり", "kaeri")] },
+  { id: "a1-value-study-routine", kind: "predicate-sense", senseId: "a1-sense-study-routine", tokenFragments: [frag("べんきょうし", "benkyoushi")] },
+  { id: "a1-value-eat-routine", kind: "predicate-sense", senseId: "a1-sense-eat-routine", tokenFragments: [frag("たべ", "tabe")] },
+  { id: "a1-value-read-routine", kind: "predicate-sense", senseId: "a1-sense-read-routine", tokenFragments: [frag("よみ", "yomi")] },
 
   // --- object-kind (copular complements: occupations / nationalities) ---
   { id: "a1-value-obj-student", kind: "object", tokenFragments: [frag("がくせい", "gakusei")] },
@@ -276,6 +332,16 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-companion-classmate", kind: "object", tokenFragments: [frag("クラスメート", "kurasumeeto")] },
   { id: "a1-value-recipient-teacher", kind: "object", tokenFragments: [frag("せんせい", "sensei")] },
   { id: "a1-value-recipient-clerk", kind: "object", tokenFragments: [frag("てんいん", "ten'in")] },
+  // Module 8 recipient/companion people (person-target に / companion と).
+  { id: "a1-value-recipient-friend", kind: "object", tokenFragments: [frag("ともだち", "tomodachi")] },
+  { id: "a1-value-companion-teacher", kind: "object", tokenFragments: [frag("せんせい", "sensei")] },
+  // Module 7 means-of-transport nouns (で adjunct; object-kind, distinct from
+  // the action-place で of `work`).
+  { id: "a1-value-transport-train", kind: "object", tokenFragments: [frag("でんしゃ", "densha")] },
+  { id: "a1-value-transport-bus", kind: "object", tokenFragments: [frag("バス", "basu")] },
+  { id: "a1-value-transport-car", kind: "object", tokenFragments: [frag("くるま", "kuruma")] },
+  { id: "a1-value-transport-bicycle", kind: "object", tokenFragments: [frag("じてんしゃ", "jitensha")] },
+  { id: "a1-value-transport-subway", kind: "object", tokenFragments: [frag("ちかてつ", "chikatetsu")] },
 
   // --- location-kind (に/で per governing sense) ---
   { id: "a1-value-loc-tokyo", kind: "location", tokenFragments: [frag("とうきょう", "toukyou")] },
@@ -290,6 +356,57 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-loc-supermarket", kind: "location", tokenFragments: [frag("スーパー", "suupaa")] },
   { id: "a1-value-loc-cafe", kind: "location", tokenFragments: [frag("カフェ", "kafe")] },
   { id: "a1-value-loc-park", kind: "location", tokenFragments: [frag("こうえん", "kouen")] },
+  // Module 7 additional destinations / route endpoints.
+  { id: "a1-value-loc-home", kind: "location", tokenFragments: [frag("いえ", "ie")] },
+  { id: "a1-value-loc-airport", kind: "location", tokenFragments: [frag("くうこう", "kuukou")] },
+  { id: "a1-value-loc-bank", kind: "location", tokenFragments: [frag("ぎんこう", "ginkou")] },
+  { id: "a1-value-loc-hospital", kind: "location", tokenFragments: [frag("びょういん", "byouin")] },
+
+  // --- referent-kind kin subjects (Module 8) ---
+  // Own-family plain forms — used when the speaker talks about their OWN family
+  // to others (never honorific for one's own relatives).
+  { id: "a1-value-kin-mother", kind: "referent", animacy: "animate", tokenFragments: [frag("はは", "haha")] },
+  { id: "a1-value-kin-father", kind: "referent", animacy: "animate", tokenFragments: [frag("ちち", "chichi")] },
+  { id: "a1-value-kin-older-brother", kind: "referent", animacy: "animate", tokenFragments: [frag("あに", "ani")] },
+  { id: "a1-value-kin-older-sister", kind: "referent", animacy: "animate", tokenFragments: [frag("あね", "ane")] },
+  { id: "a1-value-kin-younger-brother", kind: "referent", animacy: "animate", tokenFragments: [frag("おとうと", "otouto")] },
+  { id: "a1-value-kin-younger-sister", kind: "referent", animacy: "animate", tokenFragments: [frag("いもうと", "imouto")] },
+  // Other-family honorific forms — used when referring to the LISTENER's (or a
+  // third party's) family respectfully.
+  { id: "a1-value-kin-mother-hon", kind: "referent", animacy: "animate", tokenFragments: [frag("おかあさん", "okaasan")] },
+  { id: "a1-value-kin-father-hon", kind: "referent", animacy: "animate", tokenFragments: [frag("おとうさん", "otousan")] },
+  { id: "a1-value-kin-older-brother-hon", kind: "referent", animacy: "animate", tokenFragments: [frag("おにいさん", "oniisan")] },
+  { id: "a1-value-kin-older-sister-hon", kind: "referent", animacy: "animate", tokenFragments: [frag("おねえさん", "oneesan")] },
+
+  // --- time-kind (schedule に clock/day times; bare sequence + frequency) ---
+  // Clock times (schedule rule fixes に).
+  { id: "a1-value-time-5", kind: "time", tokenFragments: [frag("ごじ", "goji")] },
+  { id: "a1-value-time-6", kind: "time", tokenFragments: [frag("ろくじ", "rokuji")] },
+  { id: "a1-value-time-7", kind: "time", tokenFragments: [frag("しちじ", "shichiji")] },
+  { id: "a1-value-time-8", kind: "time", tokenFragments: [frag("はちじ", "hachiji")] },
+  { id: "a1-value-time-9", kind: "time", tokenFragments: [frag("くじ", "kuji")] },
+  { id: "a1-value-time-10", kind: "time", tokenFragments: [frag("じゅうじ", "juuji")] },
+  { id: "a1-value-time-11", kind: "time", tokenFragments: [frag("じゅういちじ", "juuichiji")] },
+  // Days of the week (schedule rule fixes に).
+  { id: "a1-value-day-monday", kind: "time", tokenFragments: [frag("げつようび", "getsuyoubi")] },
+  { id: "a1-value-day-tuesday", kind: "time", tokenFragments: [frag("かようび", "kayoubi")] },
+  { id: "a1-value-day-wednesday", kind: "time", tokenFragments: [frag("すいようび", "suiyoubi")] },
+  { id: "a1-value-day-thursday", kind: "time", tokenFragments: [frag("もくようび", "mokuyoubi")] },
+  { id: "a1-value-day-friday", kind: "time", tokenFragments: [frag("きんようび", "kinyoubi")] },
+  { id: "a1-value-day-saturday", kind: "time", tokenFragments: [frag("どようび", "doyoubi")] },
+  { id: "a1-value-day-sunday", kind: "time", tokenFragments: [frag("にちようび", "nichiyoubi")] },
+  // Day-part sequence adverbs (bare — no particle).
+  { id: "a1-value-seq-morning", kind: "time", tokenFragments: [frag("あさ", "asa")] },
+  { id: "a1-value-seq-noon", kind: "time", tokenFragments: [frag("ひる", "hiru")] },
+  { id: "a1-value-seq-night", kind: "time", tokenFragments: [frag("よる", "yoru")] },
+  { id: "a1-value-seq-evening", kind: "time", tokenFragments: [frag("ばん", "ban")] },
+  // Frequency adverbs (bare — a case-marking particle here would be
+  // ungrammatical; the naturalness regression pins this).
+  { id: "a1-value-freq-everyday", kind: "time", tokenFragments: [frag("まいにち", "mainichi")] },
+  { id: "a1-value-freq-every-morning", kind: "time", tokenFragments: [frag("まいあさ", "maiasa")] },
+  { id: "a1-value-freq-often", kind: "time", tokenFragments: [frag("よく", "yoku")] },
+  { id: "a1-value-freq-sometimes", kind: "time", tokenFragments: [frag("ときどき", "tokidoki")] },
+  { id: "a1-value-freq-always", kind: "time", tokenFragments: [frag("いつも", "itsumo")] },
 ];
 
 export const a1SemanticValues: readonly SemanticValue[] = deepFreeze([
@@ -380,6 +497,80 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     realizationRuleId: "rule-companion-action",
     requiredConceptIds: [A1_CONCEPT_COMPANION_TO],
   },
+  {
+    // Module 5: verb + に-marked clock time / named day ("しちじにおきます").
+    id: "a1-family-schedule-action",
+    level: "a1",
+    canDoIds: ["a1-can-do-daily-life"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      { id: "time", axis: "time", valueKind: "time", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "time", "polarity-tense-form", "context"],
+    realizationRuleId: "rule-schedule-action",
+    requiredConceptIds: [A1_CONCEPT_TIME_SCHEDULE],
+  },
+  {
+    // Module 5: verb + bare time adverbial — day-part sequence (あさ) and
+    // frequency adverbs (まいにち, よく). No particle: a case marker here would
+    // be ungrammatical.
+    id: "a1-family-adverbial-time-action",
+    level: "a1",
+    canDoIds: ["a1-can-do-daily-life"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      { id: "time", axis: "time", valueKind: "time", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "time", "polarity-tense-form", "context"],
+    realizationRuleId: "rule-time-action",
+    requiredConceptIds: [A1_CONCEPT_FREQUENCY],
+  },
+  {
+    // Module 7: verb + へ-marked direction ("えきへいきます").
+    id: "a1-family-direction-action",
+    level: "a1",
+    canDoIds: ["a1-can-do-places"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      { id: "location", axis: "location", valueKind: "location", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "location", "polarity-tense-form", "context"],
+    realizationRuleId: "rule-direction-action",
+    requiredConceptIds: [A1_CONCEPT_DIRECTION_HE],
+  },
+  {
+    // Module 7: verb + から source + まで limit ("とうきょうからおおさかまでいきます").
+    id: "a1-family-route-action",
+    level: "a1",
+    canDoIds: ["a1-can-do-places"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      { id: "source", axis: "location", valueKind: "location", optional: false },
+      { id: "goal", axis: "location", valueKind: "location", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "location", "polarity-tense-form", "context"],
+    realizationRuleId: "rule-route-action",
+    requiredConceptIds: [A1_CONCEPT_SOURCE_LIMIT],
+  },
+  {
+    // Module 7: verb + で transport + に destination ("でんしゃでえきにいきます").
+    id: "a1-family-transport-action",
+    level: "a1",
+    canDoIds: ["a1-can-do-places"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      { id: "transport", axis: "object", valueKind: "object", optional: false },
+      { id: "location", axis: "location", valueKind: "location", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "object", "location", "polarity-tense-form", "context"],
+    realizationRuleId: "rule-transport-action",
+    requiredConceptIds: [A1_CONCEPT_TRANSPORT_DE],
+  },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -393,6 +584,8 @@ export const a1CanDos: readonly CanDo[] = deepFreeze([
   { id: "a1-can-do-questions", level: "a1", domain: "interaction", descriptorCopyId: "a1-can-do-questions-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
   { id: "a1-can-do-actions", level: "a1", domain: "spoken-production", descriptorCopyId: "a1-can-do-actions-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
   { id: "a1-can-do-daily-life", level: "a1", domain: "spoken-production", descriptorCopyId: "a1-can-do-daily-life-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
+  { id: "a1-can-do-places", level: "a1", domain: "spoken-production", descriptorCopyId: "a1-can-do-places-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
+  { id: "a1-can-do-people", level: "a1", domain: "interaction", descriptorCopyId: "a1-can-do-people-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -420,6 +613,10 @@ export interface A1VariantSpec {
   readonly subjectRealization: "explicit" | "omitted";
   readonly slots: Readonly<Record<string, string>>;
   readonly interrogative?: boolean;
+  /** Explicit polarity/tense/mood override. When set it wins over
+   * `interrogative`; used by Module 6 to realize past / negative / past-negative
+   * forms of already-introduced senses. */
+  readonly form?: FormSelection;
   readonly use: PedagogicalUse;
   readonly translation: Bilingual;
   readonly scenario: Bilingual;
@@ -451,9 +648,11 @@ export function a1Variant(spec: A1VariantSpec): A1BuiltVariant {
     },
     contextId: spec.context,
     slotValues: spec.slots,
-    form: spec.interrogative
-      ? A1_AFFIRMATIVE_PRESENT_POLITE_QUESTION
-      : A1_AFFIRMATIVE_PRESENT_POLITE,
+    form:
+      spec.form ??
+      (spec.interrogative
+        ? A1_AFFIRMATIVE_PRESENT_POLITE_QUESTION
+        : A1_AFFIRMATIVE_PRESENT_POLITE),
     pedagogicalUse: spec.use,
   });
   return {
@@ -601,15 +800,24 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-context-shop-label": "In a shop",
     "a1-context-station-label": "At the station",
     "a1-context-cafe-label": "In a cafe",
+    "a1-context-home-label": "At home",
+    "a1-context-town-label": "Around town",
+    "a1-context-family-label": "With family",
     "a1-can-do-sounds-descriptor": "I can hear and read the basic sounds of Japanese.",
     "a1-can-do-identity-descriptor": "I can say who I am and give a few personal details.",
     "a1-can-do-origins-descriptor": "I can say where I am from and what languages I use.",
     "a1-can-do-questions-descriptor": "I can ask simple questions about people and things.",
     "a1-can-do-actions-descriptor": "I can say what I do with everyday objects and places.",
     "a1-can-do-daily-life-descriptor": "I can describe simple everyday activities.",
+    "a1-can-do-places-descriptor": "I can say where I am going and how I get there.",
+    "a1-can-do-people-descriptor": "I can talk about my family and the people around me.",
     "a1-module-outcome-introductions": "You can introduce yourself and other people with a few key facts.",
     "a1-module-outcome-essential-questions": "You can ask and recognize the everyday questions that keep a conversation going.",
     "a1-module-outcome-actions": "You can say what you and others do with everyday things, places, and people.",
+    "a1-module-outcome-routines": "You can describe your daily routine using times, days, and how often you do things.",
+    "a1-module-outcome-past-negative": "You can say what did and did not happen, in the past as well as the present.",
+    "a1-module-outcome-places": "You can say where you go, where you come from, and how you travel there.",
+    "a1-module-outcome-people": "You can talk about your family and the people you do things with.",
   },
   it: {
     "a1-role-learner-label": "Io (chi impara)",
@@ -638,15 +846,24 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-context-shop-label": "In un negozio",
     "a1-context-station-label": "Alla stazione",
     "a1-context-cafe-label": "In un bar",
+    "a1-context-home-label": "A casa",
+    "a1-context-town-label": "In città",
+    "a1-context-family-label": "In famiglia",
     "a1-can-do-sounds-descriptor": "So sentire e leggere i suoni di base del giapponese.",
     "a1-can-do-identity-descriptor": "So dire chi sono e dare alcuni dati personali.",
     "a1-can-do-origins-descriptor": "So dire da dove vengo e quali lingue uso.",
     "a1-can-do-questions-descriptor": "So fare domande semplici su persone e cose.",
     "a1-can-do-actions-descriptor": "So dire cosa faccio con oggetti e luoghi di tutti i giorni.",
     "a1-can-do-daily-life-descriptor": "So descrivere semplici attività quotidiane.",
+    "a1-can-do-places-descriptor": "So dire dove vado e come ci arrivo.",
+    "a1-can-do-people-descriptor": "So parlare della mia famiglia e delle persone intorno a me.",
     "a1-module-outcome-introductions": "Sai presentare te stesso e altre persone con alcuni dati chiave.",
     "a1-module-outcome-essential-questions": "Sai fare e riconoscere le domande quotidiane che tengono viva una conversazione.",
     "a1-module-outcome-actions": "Sai dire cosa fai tu e gli altri con le cose, i luoghi e le persone di ogni giorno.",
+    "a1-module-outcome-routines": "Sai descrivere la tua giornata usando orari, giorni e con quale frequenza fai le cose.",
+    "a1-module-outcome-past-negative": "Sai dire cosa è successo e cosa non è successo, al passato come al presente.",
+    "a1-module-outcome-places": "Sai dire dove vai, da dove vieni e come ci viaggi.",
+    "a1-module-outcome-people": "Sai parlare della tua famiglia e delle persone con cui fai le cose.",
   },
 });
 
@@ -679,6 +896,18 @@ export const A1_SUBJECT_GLOSS: Readonly<Record<string, Bilingual>> = deepFreeze(
   "a1-value-paatii-subject": { en: "The party", it: "La festa" },
   "a1-value-mikan-subject": { en: "The tangerines", it: "I mandarini" },
   "a1-value-eki-subject": { en: "The station", it: "La stazione" },
+  // Module 8 own-family kin subjects (plain — never honorific for one's own).
+  "a1-value-kin-mother": { en: "My mother", it: "Mia madre" },
+  "a1-value-kin-father": { en: "My father", it: "Mio padre" },
+  "a1-value-kin-older-brother": { en: "My older brother", it: "Mio fratello maggiore" },
+  "a1-value-kin-older-sister": { en: "My older sister", it: "Mia sorella maggiore" },
+  "a1-value-kin-younger-brother": { en: "My younger brother", it: "Mio fratello minore" },
+  "a1-value-kin-younger-sister": { en: "My younger sister", it: "Mia sorella minore" },
+  // Module 8 other-family honorific kin subjects.
+  "a1-value-kin-mother-hon": { en: "Your mother", it: "Tua madre" },
+  "a1-value-kin-father-hon": { en: "Your father", it: "Tuo padre" },
+  "a1-value-kin-older-brother-hon": { en: "Your older brother", it: "Tuo fratello maggiore" },
+  "a1-value-kin-older-sister-hon": { en: "Your older sister", it: "Tua sorella maggiore" },
 });
 
 /** Copular-complement glosses (occupations, nationalities). */
@@ -756,6 +985,18 @@ export const A1_CONTEXT_SCENARIO: Readonly<Record<string, Bilingual>> = deepFree
     en: "You are ordering and chatting at a cafe.",
     it: "Ordini e chiacchieri al bar.",
   },
+  "a1-context-home": {
+    en: "You are describing your daily routine at home.",
+    it: "Descrivi la tua giornata a casa.",
+  },
+  "a1-context-town": {
+    en: "You are finding your way around town.",
+    it: "Ti muovi e ti orienti in città.",
+  },
+  "a1-context-family": {
+    en: "You are talking about your family and the people around you.",
+    it: "Parli della tua famiglia e delle persone intorno a te.",
+  },
 });
 
 function glossOrThrow(
@@ -817,6 +1058,9 @@ export interface A1LineSpec {
   readonly subjectRealization: "explicit" | "omitted";
   readonly slots: Readonly<Record<string, string>>;
   readonly interrogative?: boolean;
+  /** Explicit polarity/tense override (Module 6 past / negative / past-negative
+   * and copula tense/polarity). When set it wins over `interrogative`. */
+  readonly form?: FormSelection;
   readonly translation: Bilingual;
   readonly speakerRole?: string;
   readonly addresseeRole?: string | null;
@@ -893,6 +1137,7 @@ function lineVariant(spec: A1LineSpec, use: PedagogicalUse): A1BuiltVariant {
     subjectRealization: spec.subjectRealization,
     slots: spec.slots,
     interrogative: spec.interrogative,
+    form: spec.form,
     use,
     translation: spec.translation,
     scenario: a1Scenario(spec.context),
@@ -1009,5 +1254,23 @@ export function a1VerbUseRecord(input: {
       targetVariantId: input.exerciseTargetVariantId,
     },
     laterUses: [],
+  });
+}
+
+/**
+ * Immutably augment an already-authored verb-use record with later spaced
+ * reuses, WITHOUT rewriting the module-local source record. Modules 2–4 keep
+ * their frozen `laterUses: []` intro records exactly as authored; Module 5–8
+ * authoring calls this to produce a *new* frozen record whose `laterUses`
+ * point at the genuine later variants that reuse the sense. Passing an empty
+ * `additions` list is a no-op copy (still a fresh frozen record).
+ */
+export function withA1LaterUses(
+  record: VerbUseRecord,
+  additions: readonly VerbLaterUse[],
+): VerbUseRecord {
+  return deepFreeze({
+    ...record,
+    laterUses: [...record.laterUses, ...additions.map((u) => ({ ...u }))],
   });
 }

@@ -15,10 +15,22 @@ import { module1Copy } from "../catalog/module01Sounds";
 import { module2Lessons } from "../catalog/module02Introductions";
 import { module3Lessons } from "../catalog/module03Questions";
 import { module4Lessons } from "../catalog/module04Actions";
+import { module5Lessons } from "../catalog/module05Routines";
+import { module6Lessons } from "../catalog/module06TensePolarity";
+import { module7Lessons } from "../catalog/module07Places";
+import { module8Lessons } from "../catalog/module08People";
 
 function buildEn(): Record<string, string> {
   const out: Record<string, string> = { ...a1SharedCopy.en, ...module1Copy.en };
-  for (const lessons of [module2Lessons, module3Lessons, module4Lessons]) {
+  for (const lessons of [
+    module2Lessons,
+    module3Lessons,
+    module4Lessons,
+    module5Lessons,
+    module6Lessons,
+    module7Lessons,
+    module8Lessons,
+  ]) {
     for (const lesson of lessons) {
       Object.assign(out, lesson.en);
     }

@@ -198,6 +198,52 @@ const REALIZATION_RULES: Readonly<Record<string, RealizationRuleDefinition>> = {
     objectRole: null,
     contentSlots: [{ slotId: "time", particle: { kind: "none" } }],
   },
+  // Verb + a に-marked point-in-time adverbial (a clock time or a named day):
+  // "しちじにおきます", "げつようびにいきます". Structurally a time slot like
+  // `rule-time-action`, but the schedule reading fixes the に particle instead
+  // of leaving the adverbial bare, so a frequency adverb (bare) and a clock
+  // time (に) never collapse to the same surface.
+  "rule-schedule-action": {
+    id: "rule-schedule-action",
+    predicateKind: "verb",
+    objectRole: null,
+    contentSlots: [{ slotId: "time", particle: { kind: "fixed", particle: "ni" } }],
+  },
+  // Verb + a へ-marked direction ("えきへいきます"). へ marks the direction of
+  // motion; the goal noun fills the `location` slot exactly like the に
+  // destination rule, only the fixed particle differs.
+  "rule-direction-action": {
+    id: "rule-direction-action",
+    predicateKind: "verb",
+    objectRole: null,
+    contentSlots: [{ slotId: "location", particle: { kind: "fixed", particle: "he" } }],
+  },
+  // Verb + a から source and a まで limit spanning a departure→arrival route
+  // ("とうきょうからおおさかまでいきます"). Both endpoints are location-kind
+  // slots; the rule fixes each particle, so the sense supplies no case
+  // metadata of its own.
+  "rule-route-action": {
+    id: "rule-route-action",
+    predicateKind: "verb",
+    objectRole: null,
+    contentSlots: [
+      { slotId: "source", particle: { kind: "fixed", particle: "kara" } },
+      { slotId: "goal", particle: { kind: "fixed", particle: "made" } },
+    ],
+  },
+  // Verb + a で means-of-transport and a に destination
+  // ("でんしゃでえきにいきます"). The transport noun is a means adjunct on its
+  // own `transport` slot marked で — grammatically distinct from the action
+  // place で (`work` at a place) — and the destination keeps the に marking.
+  "rule-transport-action": {
+    id: "rule-transport-action",
+    predicateKind: "verb",
+    objectRole: null,
+    contentSlots: [
+      { slotId: "transport", particle: { kind: "fixed", particle: "de" } },
+      { slotId: "location", particle: { kind: "fixed", particle: "ni" } },
+    ],
+  },
 };
 
 /**
@@ -288,6 +334,11 @@ const PARTICLE_TEXT: Readonly<Record<SemanticParticleId, EndingForm>> = {
   ni: { jp: "に", romaji: "ni" },
   de: { jp: "で", romaji: "de" },
   to: { jp: "と", romaji: "to" },
+  // Direction へ is written with the へ kana but pronounced (and romanized) "e".
+  he: { jp: "へ", romaji: "e" },
+  // Source から and limit まで frame a departure/arrival span.
+  kara: { jp: "から", romaji: "kara" },
+  made: { jp: "まで", romaji: "made" },
 };
 
 /** Governed argument roles: `agent`/`topic` are discourse-driven and never

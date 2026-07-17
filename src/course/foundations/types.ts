@@ -180,7 +180,16 @@ export type SemanticArgumentRole =
  * rather than a bare `string`, so a new particle requires an explicit type
  * update instead of silently typo-ing past validation.
  */
-export type SemanticParticleId = "wa" | "o" | "ni" | "de" | "to" | "ga";
+export type SemanticParticleId =
+  | "wa"
+  | "o"
+  | "ni"
+  | "de"
+  | "to"
+  | "ga"
+  | "he"
+  | "kara"
+  | "made";
 
 /**
  * Per-role case-particle requirements a predicate sense's frame declares
