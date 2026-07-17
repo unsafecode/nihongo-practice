@@ -180,23 +180,21 @@ export function emptyProgressV4(): CourseProgressV4 {
 }
 
 /**
- * The explicit, reviewed set of v3 A1 lesson ids Phase 2 Task 5 recognises as
- * migration sources (a deliberate, hand-reviewed list — not derived from any
- * catalog at runtime, so a future rename can never silently change what this
- * migration does). This list is checked in tests (`progress.v4.test.ts`)
- * against the real, currently published `a0-a1-v1` catalog — both the leaf
- * authoring file (`../catalog/lessonPlans.ts`'s `lessonPlans`) and the
- * assembled runtime catalog (`../data/course.ts`'s `courseModules`) — so a
- * catalog id rename fails that test instead of quietly orphaning real
- * learner visits. It includes this v3 schema's own real named capstone ids
+ * All 40 real, currently-published `a0-a1-v1` v3 lesson ids, in their own
+ * authored order (design spec catalog). This is checked in tests
+ * (`progress.v4.test.ts`) against both the leaf authoring file
+ * (`../catalog/lessonPlans.ts`'s `lessonPlans`) and the assembled runtime
+ * catalog (`../data/course.ts`'s `courseModules`), so a catalog id rename
+ * fails that test instead of quietly changing what this migration does. It
+ * includes this v3 schema's own real named capstone ids
  * (`capstones-orientation`, `capstones-self-introduction`,
  * `capstones-everyday-outing`, `capstones-travel-day`) exactly as shipped;
  * the *numbered* `capstones-1..4` ids never existed in v3 — they are v4 A1
  * catalog ids (`../a1/catalog/module12Capstones.ts`) — and so cannot appear
- * here as sources. Any v3 lesson id *not* in this list is unknown under
- * `A1_V3_LESSON_ID_MAP` and becomes an A1 orphan on migration.
+ * here. This is the *complete* published set, not the safe migration-source
+ * subset — see `A1_V3_SAFE_SOURCE_LESSON_IDS` for that.
  */
-export const A1_V3_SOURCE_LESSON_IDS = [
+export const A1_V3_PUBLISHED_LESSON_IDS = [
   "sounds-1", "sounds-2", "sounds-3", "sounds-4", "sounds-5",
   "introductions-1", "introductions-2", "introductions-3",
   "essential-questions-1", "essential-questions-2", "essential-questions-3",
@@ -213,38 +211,62 @@ export const A1_V3_SOURCE_LESSON_IDS = [
 ] as const;
 
 /**
- * Maps every v3 source lesson id this migration recognises
- * (`A1_V3_SOURCE_LESSON_IDS`, 40 ids from the real published `a0-a1-v1`
- * catalog) onto its v4 destination lesson id. Most ids are unchanged.
- * `sounds-5` — a since-retired fifth sounds lesson — aliases onto
- * `sounds-4` so a learner who visited it keeps that evidence under the
- * lesson that absorbed its content. The four v3 *named* capstone ids alias
- * onto the v4 catalog's four *numbered* `capstones-1..4` ids, in the same
- * 1-4 order the named capstones were always authored in (`order: 1..4` on
- * `capstones-orientation`..`capstones-travel-day` in
- * `../catalog/lessonPlans.ts`): the v4 A1 catalog renamed, but did not
- * remove, that fourth capstone slot.
+ * The explicit, reviewed subset of `A1_V3_PUBLISHED_LESSON_IDS` (39 of the
+ * 40 published ids) Phase 2 Task 5 recognises as *safe* migration sources —
+ * ones with a genuine content equivalent in the v4 catalog. Derived by
+ * excluding exactly one published id, `capstones-orientation`: it is a
+ * `capstone: false` warm-up lesson (assessed concepts only — `topic-wa`,
+ * `copula-desu`, `object-o`, `polite-masu` — no capstone scenario content;
+ * see `../catalog/lessonPlans.ts`), and the v4 catalog's numbered
+ * `capstones-4` slot at the same ordinal position is a *different*, mixed
+ * identity/action/description/topic-change synthesis scenario
+ * (`../a1/catalog/module12Capstones.ts`), not a safe semantic twin of
+ * orientation. The other three named v3 capstones *do* have a safe v4 twin
+ * (verified by scenario content, not just ordinal position):
+ * `capstones-self-introduction` → `capstones-1` (self-introduction +
+ * reciprocal question), `capstones-everyday-outing` → `capstones-2` (daily
+ * routine, place, preference & purchase), `capstones-travel-day` →
+ * `capstones-3` (movement, transport, route question & need). Any v3 lesson
+ * id *not* in this list (including `capstones-orientation`) is unknown under
+ * `A1_V3_LESSON_ID_MAP` and becomes an A1 orphan on migration.
+ */
+export const A1_V3_SAFE_SOURCE_LESSON_IDS: readonly string[] =
+  A1_V3_PUBLISHED_LESSON_IDS.filter((id) => id !== "capstones-orientation");
+
+/**
+ * Maps every v3 source lesson id this migration recognises as safe
+ * (`A1_V3_SAFE_SOURCE_LESSON_IDS`, 39 ids) onto its v4 destination lesson
+ * id. Most ids are unchanged. `sounds-5` — a since-retired fifth sounds
+ * lesson — aliases onto `sounds-4` so a learner who visited it keeps that
+ * evidence under the lesson that absorbed its content. The three named v3
+ * capstones with a genuine v4 content twin alias onto their matching
+ * numbered scenario: `capstones-self-introduction` → `capstones-1`,
+ * `capstones-everyday-outing` → `capstones-2`, `capstones-travel-day` →
+ * `capstones-3`. `capstones-orientation` is deliberately *absent* from this
+ * map — it has no safe v4 twin (see `A1_V3_SAFE_SOURCE_LESSON_IDS`'s doc
+ * comment) — so it is treated as unknown and orphaned on migration, and
+ * `capstones-4` never receives a migrated visit from any v3 source.
  */
 export const A1_V3_LESSON_ID_MAP: Readonly<Record<string, string>> = {
-  ...Object.fromEntries(A1_V3_SOURCE_LESSON_IDS.map((id) => [id, id])),
+  ...Object.fromEntries(A1_V3_SAFE_SOURCE_LESSON_IDS.map((id) => [id, id])),
   "sounds-5": "sounds-4",
-  "capstones-orientation": "capstones-1",
-  "capstones-self-introduction": "capstones-2",
-  "capstones-everyday-outing": "capstones-3",
-  "capstones-travel-day": "capstones-4",
+  "capstones-self-introduction": "capstones-1",
+  "capstones-everyday-outing": "capstones-2",
+  "capstones-travel-day": "capstones-3",
 };
 
 /**
  * The canonical, de-duplicated v4 destination lesson ids `migrateV3ToV4`
  * iterates in order, so its output never depends on the source payload's key
  * ordering. Derived once, at module load, from `A1_V3_LESSON_ID_MAP`'s
- * values in `A1_V3_SOURCE_LESSON_IDS` order — never hand-maintained
- * separately from the map, so it cannot drift out of sync with it. Has 39
- * entries: 40 sources minus one, because `sounds-5` collapses onto the
+ * values in `A1_V3_SAFE_SOURCE_LESSON_IDS` order — never hand-maintained
+ * separately from the map, so it cannot drift out of sync with it. Has 38
+ * entries: 39 safe sources minus one, because `sounds-5` collapses onto the
  * already-listed `sounds-4` rather than adding a new destination.
+ * `capstones-4` is never among these: no safe v3 source maps to it.
  */
 export const A1_V4_DESTINATION_LESSON_IDS: readonly string[] = dedupeInEncounterOrder(
-  A1_V3_SOURCE_LESSON_IDS.map((sourceId) => A1_V3_LESSON_ID_MAP[sourceId]),
+  A1_V3_SAFE_SOURCE_LESSON_IDS.map((sourceId) => A1_V3_LESSON_ID_MAP[sourceId]),
 );
 
 /**
@@ -252,11 +274,11 @@ export const A1_V4_DESTINATION_LESSON_IDS: readonly string[] = dedupeInEncounter
  * imported this name before the Phase 2 Task 5 spec-review blocker fix. Its
  * value is exactly `A1_V4_DESTINATION_LESSON_IDS` — the *destination*-space
  * canonical order `migrateV3ToV4` iterates — never the v3 *source* ids (use
- * `A1_V3_SOURCE_LESSON_IDS` for those). The old name conflated the two,
- * which is exactly what caused the original blocker: it listed
- * `capstones-1..4` (v4 destination ids that never existed in v3) as if they
- * were v3 source ids to preserve, silently orphaning every real historical
- * capstone visit.
+ * `A1_V3_PUBLISHED_LESSON_IDS` or `A1_V3_SAFE_SOURCE_LESSON_IDS` for those).
+ * The old name conflated the two, which is exactly what caused the original
+ * blocker: it listed `capstones-1..4` (v4 destination ids that never existed
+ * in v3) as if they were v3 source ids to preserve, silently orphaning every
+ * real historical capstone visit.
  */
 export const A1_V3_PRESERVED_LESSON_IDS = A1_V4_DESTINATION_LESSON_IDS;
 

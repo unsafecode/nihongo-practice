@@ -211,11 +211,11 @@ const itUi = {
   progressMigration: {
     noticeTitle: "I tuoi progressi nel percorso sono stati ricostruiti",
     noticeBody:
-      "La struttura del percorso è cambiata. Le lezioni che avevi visitato risultano ancora visitate, ma i tentativi di pratica, gli elementi di ripasso e i risultati delle verifiche precedenti sono stati azzerati: gli esercizi sono cambiati, quindi dovrai completarli di nuovo.",
+      "La struttura del percorso è cambiata. Le lezioni che avevi visitato risultano ancora visitate dove esiste una lezione corrispondente, ma i tentativi di pratica, gli elementi di ripasso e i risultati delle verifiche precedenti sono stati azzerati: gli esercizi sono cambiati, quindi dovrai completarli di nuovo. Alcune vecchie lezioni non avevano una lezione corrispondente nella nuova struttura; quelle visite sono conservate solo come dati di recupero, non risultano visitate.",
     acknowledge: "Ho capito",
     helpTitle: "Informazioni sulla ricostruzione del percorso",
     helpBody:
-      "Una versione precedente di questo percorso teneva traccia dei progressi in modo diverso. Con l'aggiornamento sono state mantenute solo le lezioni che avevi visitato; i tentativi di pratica, gli elementi di ripasso salvati e i risultati delle verifiche precedenti sono stati cancellati perché non corrispondono più agli esercizi rinnovati.",
+      "Una versione precedente di questo percorso teneva traccia dei progressi in modo diverso. Con l'aggiornamento sono state mantenute le lezioni che avevi visitato dove esiste una corrispondenza sicura nella nuova struttura; i tentativi di pratica, gli elementi di ripasso salvati e i risultati delle verifiche precedenti sono stati cancellati perché non corrispondono più agli esercizi rinnovati. Un piccolo numero di vecchie lezioni non aveva una corrispondenza sicura ed è conservato solo come dati di recupero, non come lezione visitata equivalente.",
   },
 } satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
 

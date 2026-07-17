@@ -4,7 +4,8 @@ import { courseModules } from "../data/course";
 import {
   A1_V3_LESSON_ID_MAP,
   A1_V3_PRESERVED_LESSON_IDS,
-  A1_V3_SOURCE_LESSON_IDS,
+  A1_V3_PUBLISHED_LESSON_IDS,
+  A1_V3_SAFE_SOURCE_LESSON_IDS,
   A1_V4_DESTINATION_LESSON_IDS,
   acknowledgeMigrationNotice,
   clearAll,
@@ -53,7 +54,7 @@ function v3Fixture(overrides: Partial<CourseProgressV3> = {}): CourseProgressV3 
   };
 }
 
-describe("A1_V3_SOURCE_LESSON_IDS / A1_V3_LESSON_ID_MAP / A1_V4_DESTINATION_LESSON_IDS", () => {
+describe("A1_V3_PUBLISHED_LESSON_IDS / A1_V3_SAFE_SOURCE_LESSON_IDS / A1_V3_LESSON_ID_MAP / A1_V4_DESTINATION_LESSON_IDS", () => {
   it("matches the exact real published a0-a1-v1 catalog (src/course/catalog/lessonPlans.ts), so a future lesson-id rename in that catalog fails this test instead of silently orphaning real visits", () => {
     // This is the load-bearing regression guard for the Phase 2 Task 5
     // spec-review blocker: the migration's reviewed source-id list must be
@@ -61,23 +62,24 @@ describe("A1_V3_SOURCE_LESSON_IDS / A1_V3_LESSON_ID_MAP / A1_V4_DESTINATION_LESS
     // that happens to look plausible. `lessonPlans` is the real, currently
     // published a0-a1-v1 lesson catalog (imported from ../catalog/lessonPlans,
     // consumed by curriculum.ts/exercises.ts at runtime) — every one of its
-    // 40 ids, in its own authored order, must appear as a migration source.
-    expect(A1_V3_SOURCE_LESSON_IDS).toEqual(lessonPlans.map((plan) => plan.id));
-    expect(A1_V3_SOURCE_LESSON_IDS).toHaveLength(40);
+    // 40 ids, in its own authored order, must appear here, whether or not it
+    // is a *safe* migration source.
+    expect(A1_V3_PUBLISHED_LESSON_IDS).toEqual(lessonPlans.map((plan) => plan.id));
+    expect(A1_V3_PUBLISHED_LESSON_IDS).toHaveLength(40);
   });
 
-  it("matches the assembled runtime courseModules catalog too (src/course/data/course.ts, built from lessonPlans), confirming the map tracks what actually ships, not just the leaf authoring file", () => {
+  it("matches the assembled runtime courseModules catalog too (src/course/data/course.ts, built from lessonPlans), confirming the published list tracks what actually ships, not just the leaf authoring file", () => {
     const assembledLessonIds = courseModules.flatMap((courseModule) =>
       courseModule.lessons.map((lesson) => lesson.id),
     );
-    expect(new Set(A1_V3_SOURCE_LESSON_IDS)).toEqual(new Set(assembledLessonIds));
-    expect(A1_V3_SOURCE_LESSON_IDS).toHaveLength(assembledLessonIds.length);
+    expect(new Set(A1_V3_PUBLISHED_LESSON_IDS)).toEqual(new Set(assembledLessonIds));
+    expect(A1_V3_PUBLISHED_LESSON_IDS).toHaveLength(assembledLessonIds.length);
   });
 
-  it("includes the four real named v3 capstone ids as sources — not the impossible numbered capstones-1..4, which never existed in v3", () => {
+  it("includes all four real named v3 capstone ids among published ids — not the impossible numbered capstones-1..4, which never existed in v3", () => {
     // capstones-1..4 are v4 A1 catalog ids (src/course/a1/catalog/module12Capstones.ts).
     // They cannot be v3 sources: no shipped v3 payload could ever contain them.
-    expect(A1_V3_SOURCE_LESSON_IDS).toEqual(
+    expect(A1_V3_PUBLISHED_LESSON_IDS).toEqual(
       expect.arrayContaining([
         "capstones-orientation",
         "capstones-self-introduction",
@@ -85,31 +87,55 @@ describe("A1_V3_SOURCE_LESSON_IDS / A1_V3_LESSON_ID_MAP / A1_V4_DESTINATION_LESS
         "capstones-travel-day",
       ]),
     );
-    expect(A1_V3_SOURCE_LESSON_IDS).not.toEqual(
+    expect(A1_V3_PUBLISHED_LESSON_IDS).not.toEqual(
       expect.arrayContaining(["capstones-1", "capstones-2", "capstones-3", "capstones-4"]),
     );
   });
 
-  it("has exactly 40 map entries (one per reviewed v3 source id) reducing to 39 unique v4 destinations (sounds-5 collapses onto sounds-4)", () => {
-    expect(Object.keys(A1_V3_LESSON_ID_MAP)).toHaveLength(40);
-    expect(new Set(Object.keys(A1_V3_LESSON_ID_MAP))).toEqual(
-      new Set(A1_V3_SOURCE_LESSON_IDS),
+  it("recognises exactly 39 of the 40 published ids as safe migration sources: 35 unchanged ids + sounds-5 + the three semantic-twin named capstones", () => {
+    // capstones-orientation is deliberately excluded: it is a capstone:false
+    // warm-up (assessedConceptIds only, no capstone scenario content), and
+    // the numbered v4 slot at the same ordinal position, capstones-4, is a
+    // *different*, mixed identity/action/description/topic-change scenario
+    // (module12Capstones.ts) — not a safe semantic equivalent of orientation.
+    // So orientation has no safe v4 destination and must stay an A1 orphan.
+    expect(A1_V3_SAFE_SOURCE_LESSON_IDS).toHaveLength(39);
+    expect(A1_V3_SAFE_SOURCE_LESSON_IDS).not.toContain("capstones-orientation");
+    expect(A1_V3_SAFE_SOURCE_LESSON_IDS).toEqual(
+      expect.arrayContaining([
+        "sounds-5",
+        "capstones-self-introduction",
+        "capstones-everyday-outing",
+        "capstones-travel-day",
+      ]),
     );
-    expect(A1_V4_DESTINATION_LESSON_IDS).toHaveLength(39);
+
+    const unmappedPublishedIds = A1_V3_PUBLISHED_LESSON_IDS.filter(
+      (id) => !A1_V3_SAFE_SOURCE_LESSON_IDS.includes(id),
+    );
+    expect(unmappedPublishedIds).toEqual(["capstones-orientation"]);
+  });
+
+  it("has exactly 39 map entries (one per safely reviewed v3 source id) reducing to 38 unique v4 destinations (sounds-5 collapses onto sounds-4)", () => {
+    expect(Object.keys(A1_V3_LESSON_ID_MAP)).toHaveLength(39);
+    expect(new Set(Object.keys(A1_V3_LESSON_ID_MAP))).toEqual(
+      new Set(A1_V3_SAFE_SOURCE_LESSON_IDS),
+    );
+    expect(A1_V3_LESSON_ID_MAP["capstones-orientation"]).toBeUndefined();
+    expect(A1_V4_DESTINATION_LESSON_IDS).toHaveLength(38);
     expect(new Set(Object.values(A1_V3_LESSON_ID_MAP))).toEqual(
       new Set(A1_V4_DESTINATION_LESSON_IDS),
     );
   });
 
-  it("maps every source id that is unchanged between v3 and v4 to itself", () => {
+  it("maps every safe source id that is unchanged between v3 and v4 to itself", () => {
     const aliased = new Set([
       "sounds-5",
-      "capstones-orientation",
       "capstones-self-introduction",
       "capstones-everyday-outing",
       "capstones-travel-day",
     ]);
-    for (const id of A1_V3_SOURCE_LESSON_IDS) {
+    for (const id of A1_V3_SAFE_SOURCE_LESSON_IDS) {
       if (aliased.has(id)) continue;
       expect(A1_V3_LESSON_ID_MAP[id]).toBe(id);
     }
@@ -119,17 +145,22 @@ describe("A1_V3_SOURCE_LESSON_IDS / A1_V3_LESSON_ID_MAP / A1_V4_DESTINATION_LESS
     expect(A1_V3_LESSON_ID_MAP["sounds-5"]).toBe("sounds-4");
   });
 
-  it("aliases each real named v3 capstone onto its v4 numbered replacement, in the same 1-4 order the named capstones were authored (order fields in lessonPlans.ts)", () => {
-    expect(A1_V3_LESSON_ID_MAP["capstones-orientation"]).toBe("capstones-1");
-    expect(A1_V3_LESSON_ID_MAP["capstones-self-introduction"]).toBe("capstones-2");
-    expect(A1_V3_LESSON_ID_MAP["capstones-everyday-outing"]).toBe("capstones-3");
-    expect(A1_V3_LESSON_ID_MAP["capstones-travel-day"]).toBe("capstones-4");
+  it("aliases each of the three semantic-twin named v3 capstones onto its matching v4 numbered scenario — self-introduction→1, everyday-outing→2, travel-day→3 — never orientation, which has no safe twin", () => {
+    expect(A1_V3_LESSON_ID_MAP["capstones-self-introduction"]).toBe("capstones-1");
+    expect(A1_V3_LESSON_ID_MAP["capstones-everyday-outing"]).toBe("capstones-2");
+    expect(A1_V3_LESSON_ID_MAP["capstones-travel-day"]).toBe("capstones-3");
+    expect(A1_V3_LESSON_ID_MAP["capstones-orientation"]).toBeUndefined();
+  });
+
+  it("never routes any migrated visit onto capstones-4 — it is a mixed dialogue/topic-change scenario with no v3 source, not orientation's replacement", () => {
+    expect(A1_V4_DESTINATION_LESSON_IDS).not.toContain("capstones-4");
   });
 
   it("keeps A1_V3_PRESERVED_LESSON_IDS as a truthful backward-compatible alias for the v4 destination-space canonical order (not v3 source ids)", () => {
     expect(A1_V3_PRESERVED_LESSON_IDS).toBe(A1_V4_DESTINATION_LESSON_IDS);
     expect(A1_V3_PRESERVED_LESSON_IDS).toContain("capstones-1");
     expect(A1_V3_PRESERVED_LESSON_IDS).not.toContain("capstones-orientation");
+    expect(A1_V3_PRESERVED_LESSON_IDS).not.toContain("capstones-4");
   });
 });
 
@@ -177,12 +208,11 @@ describe("migrateV3ToV4 — deterministic visited-only migration", () => {
   });
 
   it.each([
-    ["capstones-orientation", "capstones-1"],
-    ["capstones-self-introduction", "capstones-2"],
-    ["capstones-everyday-outing", "capstones-3"],
-    ["capstones-travel-day", "capstones-4"],
+    ["capstones-self-introduction", "capstones-1"],
+    ["capstones-everyday-outing", "capstones-2"],
+    ["capstones-travel-day", "capstones-3"],
   ])(
-    "migrates the real named v3 capstone %s to its v4 destination %s, preserving visitedAt and not orphaning it",
+    "migrates the semantic-twin named v3 capstone %s to its matching v4 destination %s, preserving visitedAt and not orphaning it",
     (sourceId, destinationId) => {
       const v3 = v3Fixture({ lessons: { [sourceId]: v3Lesson({ visitedAt: T0 }) } });
       const v4 = migrateV3ToV4(v3);
@@ -200,7 +230,7 @@ describe("migrateV3ToV4 — deterministic visited-only migration", () => {
     },
   );
 
-  it("flags a named v3 capstone's v4 destination in resetEvidenceLessonIds when stronger evidence was lost, and preserves its earliest visitedAt", () => {
+  it("flags a named v3 capstone's v4 destination in resetEvidenceLessonIds when stronger evidence was lost, and preserves its earliest visitedAt (self-introduction reset-evidence → capstones-1)", () => {
     const v3 = v3Fixture({
       lessons: {
         "capstones-self-introduction": v3Lesson({
@@ -211,15 +241,49 @@ describe("migrateV3ToV4 — deterministic visited-only migration", () => {
       },
     });
     const v4 = migrateV3ToV4(v3);
-    expect(v4.levels.a1.lessons["capstones-2"].visitedAt).toBe(T0);
-    expect(v4.migrationNotice?.resetEvidenceLessonIds).toContain("capstones-2");
+    expect(v4.levels.a1.lessons["capstones-1"].visitedAt).toBe(T0);
+    expect(v4.migrationNotice?.resetEvidenceLessonIds).toContain("capstones-1");
   });
 
-  it("maps lastVisitedLessonId through a real named v3 capstone alias", () => {
+  it("maps lastVisitedLessonId through the travel-day semantic-twin alias onto capstones-3", () => {
     const v4 = migrateV3ToV4(
       v3Fixture({ lastVisitedLessonId: "capstones-travel-day" }),
     );
-    expect(v4.levels.a1.lastVisitedLessonId).toBe("capstones-4");
+    expect(v4.levels.a1.lastVisitedLessonId).toBe("capstones-3");
+  });
+
+  it("has no safe v4 twin for capstones-orientation (a capstone:false warm-up): it orphans instead of migrating, and never lands on capstones-4", () => {
+    const v3 = v3Fixture({
+      lessons: { "capstones-orientation": v3Lesson({ visitedAt: T0 }) },
+    });
+    const v4 = migrateV3ToV4(v3);
+    expect(v4.levels.a1.lessons["capstones-orientation"]).toBeUndefined();
+    expect(v4.levels.a1.lessons["capstones-4"]).toBeUndefined();
+    expect(v4.levels.a1.orphanedLessonIds).toEqual(["capstones-orientation"]);
+    expect(v4.migrationNotice?.preservedVisitedLessonIds).not.toContain("capstones-orientation");
+    expect(v4.migrationNotice?.preservedVisitedLessonIds).not.toContain("capstones-4");
+  });
+
+  it("preserves capstones-orientation's lastVisitedLessonId verbatim (unmapped, not aliased onto capstones-4 or any other id)", () => {
+    const v4 = migrateV3ToV4(
+      v3Fixture({ lastVisitedLessonId: "capstones-orientation" }),
+    );
+    expect(v4.levels.a1.lastVisitedLessonId).toBe("capstones-orientation");
+  });
+
+  it("never assigns capstones-4 any migrated visit, even when every named v3 capstone (including orientation) was visited", () => {
+    const v3 = v3Fixture({
+      lessons: {
+        "capstones-orientation": v3Lesson({ visitedAt: T0 }),
+        "capstones-self-introduction": v3Lesson({ visitedAt: T0 }),
+        "capstones-everyday-outing": v3Lesson({ visitedAt: T0 }),
+        "capstones-travel-day": v3Lesson({ visitedAt: T0 }),
+      },
+    });
+    const v4 = migrateV3ToV4(v3);
+    expect(v4.levels.a1.lessons["capstones-4"]).toBeUndefined();
+    expect(v4.migrationNotice?.preservedVisitedLessonIds).not.toContain("capstones-4");
+    expect(v4.levels.a1.orphanedLessonIds).toEqual(["capstones-orientation"]);
   });
 
   it("aliases sounds-5 onto sounds-4, keeping the earliest visit when sounds-4 was visited first", () => {

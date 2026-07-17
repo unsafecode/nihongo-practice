@@ -4,7 +4,8 @@ import { examples } from "../data/examples";
 import { lessonPlans } from "../catalog/lessonPlans";
 import {
   A1_V3_LESSON_ID_MAP,
-  A1_V3_SOURCE_LESSON_IDS,
+  A1_V3_PUBLISHED_LESSON_IDS,
+  A1_V3_SAFE_SOURCE_LESSON_IDS,
 } from "../progress/progress";
 import { it as itCopy } from "./it";
 import { en as enCopy } from "./en";
@@ -299,26 +300,51 @@ describe("progress migration copy (v3→v4, Phase 2 Task 5)", () => {
     );
   });
 
-  it("truthfully ties the 'visited lessons carry over' promise to every reviewed, actually-published a0-a1-v1 source lesson id — not a partial/convenient subset", () => {
+  it("truthfully ties the 'visited lessons carry over' promise to every reviewed, actually-published a0-a1-v1 source lesson id it claims to cover — never a silently narrower subset", () => {
     // The spec-review blocker this test guards against: the migration notice
     // promises visited lessons are preserved, but an earlier version of the
-    // reviewed map silently excluded the four real named v3 capstone lessons
-    // (capstones-orientation, capstones-self-introduction,
-    // capstones-everyday-outing, capstones-travel-day) — making the promise
-    // false for anyone who had actually visited a capstone. The reviewed
-    // source-id list must cover the entire real published catalog for the
-    // notice's promise to be truthful for every learner, not just some.
-    expect(new Set(A1_V3_SOURCE_LESSON_IDS)).toEqual(
+    // reviewed map used an order-only correspondence that silently shifted
+    // every capstone, including mapping capstones-orientation (a capstone:false
+    // warm-up with no safe v4 twin) onto capstones-1 as if it safely carried
+    // over. The three real semantic-twin capstones — self-introduction,
+    // everyday-outing, travel-day — do safely carry over and must be covered
+    // by the reviewed map. orientation does not: it has no safe v4 equivalent
+    // (the numbered capstones-4 slot is a different, mixed dialogue/topic-
+    // change scenario) and must stay excluded, so it is never falsely
+    // described as preserved.
+    expect(new Set(A1_V3_PUBLISHED_LESSON_IDS)).toEqual(
       new Set(lessonPlans.map((plan) => plan.id)),
     );
-    for (const namedCapstone of [
-      "capstones-orientation",
+    for (const semanticTwinCapstone of [
       "capstones-self-introduction",
       "capstones-everyday-outing",
       "capstones-travel-day",
     ]) {
-      expect(A1_V3_SOURCE_LESSON_IDS).toContain(namedCapstone);
-      expect(A1_V3_LESSON_ID_MAP[namedCapstone]).toBeDefined();
+      expect(A1_V3_SAFE_SOURCE_LESSON_IDS).toContain(semanticTwinCapstone);
+      expect(A1_V3_LESSON_ID_MAP[semanticTwinCapstone]).toBeDefined();
+    }
+  });
+
+  it("distinguishes all published legacy lesson ids from the reviewed, safely mapped subset — the only published-but-unmapped id is capstones-orientation", () => {
+    // capstones-orientation is real and published (it is one of the 40
+    // lessonPlans.ts ids), but it is deliberately not in the safely mapped
+    // subset: it has no safe v4 destination, so it must remain an A1 orphan
+    // rather than being falsely described by the notice as preserved.
+    const publishedButUnmapped = A1_V3_PUBLISHED_LESSON_IDS.filter(
+      (id) => !A1_V3_SAFE_SOURCE_LESSON_IDS.includes(id),
+    );
+    expect(publishedButUnmapped).toEqual(["capstones-orientation"]);
+  });
+
+  it("truthfully scopes the migration notice's preservation promise to safely matched lessons, describing unmatched legacy visits as retained recovery/orphan data instead of a preserved equivalent", () => {
+    const bodies = [
+      enCopy.progressMigration.noticeBody,
+      enCopy.progressMigration.helpBody,
+      itCopy.progressMigration.noticeBody,
+      itCopy.progressMigration.helpBody,
+    ];
+    for (const body of bodies) {
+      expect(body.toLowerCase()).toMatch(/recover|recuper/);
     }
   });
 });
