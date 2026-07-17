@@ -375,6 +375,95 @@ describe("CourseHome: Can-do evidence summary (design spec §8/§17, Phase 2 Tas
   });
 });
 
+/**
+ * M2/M3 (quality-review Phase 2 Task 6): the can-do-summary tier glyph must
+ * be unified with `LessonExercises.tsx`'s canonical scheme (visited=○,
+ * practiced=◐, demonstrated=●) and rendered as an explicit `aria-hidden`
+ * JSX span alongside the always-visible tier text — never injected only via
+ * a CSS `::before` pseudo-element, which a DOM-only render (like this test,
+ * and any assistive technology relying on the accessibility tree) cannot
+ * see at all.
+ */
+describe("CourseHome: Can-do evidence tier glyphs are explicit aria-hidden spans, unified with the lesson-exercises scheme (M2/M3)", () => {
+  function tierRowFor(html: string, canDoId: string): string {
+    const marker = `data-can-do-id="${canDoId}"`;
+    const start = html.indexOf(marker);
+    if (start === -1) throw new Error(`fixture assumption failed: no row for ${canDoId}`);
+    const liStart = html.lastIndexOf("<li", start);
+    const liEnd = html.indexOf("</li>", start) + "</li>".length;
+    return html.slice(liStart, liEnd);
+  }
+
+  it("renders the visited tier's glyph (○) as a real aria-hidden DOM span next to the visible tier text", () => {
+    const visited = a1CanDosAuthored[0];
+    const evidence: Record<string, CanDoEvidence> = {
+      [visited.id]: {
+        canDoId: visited.id,
+        visitedLessonIds: [visited.lessonIds[0]],
+        practicedLessonIds: [],
+        acceptedTransferExerciseIds: [],
+        checkpointAttemptIds: [],
+        lastUpdatedAt: "2024-01-01T00:00:00.000Z",
+      },
+    };
+    const html = renderHome(makeProgressValue({ canDoEvidence: evidence }));
+    const row = tierRowFor(html, visited.id);
+    expect(row).toMatch(
+      /<span class="can-do-summary__tier-glyph" aria-hidden="true">○<\/span>/,
+    );
+    expect(row).toContain(
+      `<span class="can-do-summary__tier-text">${itCopy.canDoSummary.tierVisited}</span>`,
+    );
+  });
+
+  it("renders the practiced tier's glyph (◐) as a real aria-hidden DOM span next to the visible tier text", () => {
+    const practiced = a1CanDosAuthored[0];
+    const evidence: Record<string, CanDoEvidence> = {
+      [practiced.id]: {
+        canDoId: practiced.id,
+        visitedLessonIds: [practiced.lessonIds[0]],
+        practicedLessonIds: [practiced.lessonIds[0]],
+        acceptedTransferExerciseIds: [],
+        checkpointAttemptIds: [],
+        lastUpdatedAt: "2024-01-01T00:00:00.000Z",
+      },
+    };
+    const html = renderHome(makeProgressValue({ canDoEvidence: evidence }));
+    const row = tierRowFor(html, practiced.id);
+    expect(row).toMatch(
+      /<span class="can-do-summary__tier-glyph" aria-hidden="true">◐<\/span>/,
+    );
+    expect(row).toContain(
+      `<span class="can-do-summary__tier-text">${itCopy.canDoSummary.tierPracticed}</span>`,
+    );
+  });
+
+  it("renders the demonstrated tier's glyph as ● (matching lesson-exercises' consolidated tier), not ✓ or ★, as a real aria-hidden DOM span", () => {
+    const demonstrated = a1CanDosAuthored[0];
+    const evidence: Record<string, CanDoEvidence> = {
+      [demonstrated.id]: {
+        canDoId: demonstrated.id,
+        visitedLessonIds: [demonstrated.lessonIds[0]],
+        practicedLessonIds: [demonstrated.lessonIds[0]],
+        acceptedTransferExerciseIds: ["some-exercise-id"],
+        checkpointAttemptIds: [],
+        lastUpdatedAt: "2024-01-01T00:00:00.000Z",
+      },
+    };
+    const html = renderHome(makeProgressValue({ canDoEvidence: evidence }));
+    const row = tierRowFor(html, demonstrated.id);
+    expect(row).toMatch(
+      /<span class="can-do-summary__tier-glyph" aria-hidden="true">●<\/span>/,
+    );
+    expect(row).not.toContain("✓");
+    expect(row).not.toContain("★");
+    expect(row).toContain(
+      `<span class="can-do-summary__tier-text">${itCopy.canDoSummary.tierDemonstrated}</span>`,
+    );
+  });
+});
+
+
 describe("CourseHome: A1 checkpoint attempt-state (design spec §8/§17, Phase 2 Task 6)", () => {
   it("shows the honest not-attempted body when there is no checkpoint attempt yet", () => {
     const html = renderHome(makeProgressValue());

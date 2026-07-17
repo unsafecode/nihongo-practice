@@ -1,12 +1,6 @@
 import { Suspense, lazy, useCallback, useState } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router";
-import { Phrasebook } from "../components/Phrasebook";
 import { Notice } from "../components/Notice";
-import { Lab } from "../lab/components/Lab";
-import { Syllabary } from "../syllabary/Syllabary";
-import { CourseHome } from "../course/components/CourseHome";
-import { LessonPage } from "../course/components/LessonPage";
-import { PracticeHome } from "../course/components/PracticeHome";
 import { getCourseCopy } from "../course/i18n/catalog";
 import { useLocale } from "../i18n/LocaleContext";
 import { RouteScrollManager } from "./RouteScrollManager";
@@ -64,6 +58,54 @@ const FoundationFixturePage =
  */
 export function FoundationFixtureLoading() {
   return <main className="foundation-page" aria-busy="true" />;
+}
+
+/**
+ * The six real navigation destinations, each lazily loaded into its own
+ * chunk (Phase 2 Task 6, finding I3). Unlike the compile-time-gated
+ * {@link FoundationFixturePage}, these always ship — they just load on
+ * demand behind the route the user actually visits, instead of every page's
+ * code sitting in one always-downloaded chunk regardless of which page is
+ * ever opened.
+ */
+const CourseHome = lazy(() =>
+  import("../course/components/CourseHome").then((module) => ({
+    default: module.CourseHome,
+  })),
+);
+const LessonPage = lazy(() =>
+  import("../course/components/LessonPage").then((module) => ({
+    default: module.LessonPage,
+  })),
+);
+const PracticeHome = lazy(() =>
+  import("../course/components/PracticeHome").then((module) => ({
+    default: module.PracticeHome,
+  })),
+);
+const Lab = lazy(() =>
+  import("../lab/components/Lab").then((module) => ({ default: module.Lab })),
+);
+const Syllabary = lazy(() =>
+  import("../syllabary/Syllabary").then((module) => ({
+    default: module.Syllabary,
+  })),
+);
+const Phrasebook = lazy(() =>
+  import("../components/Phrasebook").then((module) => ({
+    default: module.Phrasebook,
+  })),
+);
+
+/**
+ * Accessible, network-free loading shell shown while a route's chunk
+ * resolves. It is a real `main` landmark marked `aria-busy` — the same
+ * pattern as {@link FoundationFixtureLoading} — so assistive tech (and the
+ * E2E `gotoReady` landmark wait) always sees a page immediately, and the
+ * loaded route's own `main` replaces it once its chunk resolves.
+ */
+function RouteLoading() {
+  return <main aria-busy="true" />;
 }
 
 function InvalidRoute() {
@@ -128,12 +170,54 @@ export function AppRoutes() {
           path="/"
           element={<Navigate replace to={routePaths.course} />}
         />
-        <Route path={routePaths.course} element={<CourseHome />} />
-        <Route path={routePaths.lesson} element={<LessonPage />} />
-        <Route path={routePaths.practice} element={<PracticeHome />} />
-        <Route path={routePaths.lab} element={<Lab />} />
-        <Route path={routePaths.syllabary} element={<Syllabary />} />
-        <Route path={routePaths.phrasebook} element={<Phrasebook />} />
+        <Route
+          path={routePaths.course}
+          element={
+            <Suspense fallback={<RouteLoading />}>
+              <CourseHome />
+            </Suspense>
+          }
+        />
+        <Route
+          path={routePaths.lesson}
+          element={
+            <Suspense fallback={<RouteLoading />}>
+              <LessonPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path={routePaths.practice}
+          element={
+            <Suspense fallback={<RouteLoading />}>
+              <PracticeHome />
+            </Suspense>
+          }
+        />
+        <Route
+          path={routePaths.lab}
+          element={
+            <Suspense fallback={<RouteLoading />}>
+              <Lab />
+            </Suspense>
+          }
+        />
+        <Route
+          path={routePaths.syllabary}
+          element={
+            <Suspense fallback={<RouteLoading />}>
+              <Syllabary />
+            </Suspense>
+          }
+        />
+        <Route
+          path={routePaths.phrasebook}
+          element={
+            <Suspense fallback={<RouteLoading />}>
+              <Phrasebook />
+            </Suspense>
+          }
+        />
         {FoundationFixturePage ? (
           <Route
             path={FOUNDATION_FIXTURE_PATH}

@@ -735,12 +735,27 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
       push({ code: "phonetic-missing-items", id: lessonRecipe.id });
       continue;
     }
+    // The lesson's own ids, used to check `contrastWithId` the same way the
+    // lesson UI does: `PhoneticSection`'s comparison case only ever looks up
+    // a partner within this lesson's own item array (`contrastPartnerMap`
+    // in A1LessonPage.tsx never sees any other lesson's items), so a
+    // contrast that only resolves *globally* would render as an unresolved
+    // partner in the UI even though the id exists somewhere in the catalog.
+    const lessonItemIds = new Set(items.map((item) => item.id));
     for (const item of items) {
       if (!item.glyph || !item.kana || !item.roman || !item.exerciseRefId || !item.contrastWithId) {
         push({ code: "phonetic-item-incomplete", id: item.id, referenceId: lessonRecipe.id });
       }
-      if (!allPhoneticIds.has(item.contrastWithId)) {
-        push({ code: "phonetic-dangling-contrast", id: item.id, referenceId: item.contrastWithId });
+      if (!lessonItemIds.has(item.contrastWithId)) {
+        if (allPhoneticIds.has(item.contrastWithId)) {
+          push({
+            code: "phonetic-contrast-cross-lesson",
+            id: item.id,
+            referenceId: item.contrastWithId,
+          });
+        } else {
+          push({ code: "phonetic-dangling-contrast", id: item.id, referenceId: item.contrastWithId });
+        }
       }
       if ((allExerciseRefs.get(item.exerciseRefId) ?? 0) > 1) {
         push({ code: "phonetic-duplicate-exercise", id: item.id, referenceId: item.exerciseRefId });

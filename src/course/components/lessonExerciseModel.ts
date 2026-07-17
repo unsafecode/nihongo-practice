@@ -5,6 +5,7 @@ import { a1FoundationCatalogs } from "../a1/catalog/catalog";
 import { courseModules } from "../data/course";
 import type { ExercisePrompt } from "../exercises/types";
 import type { FoundationLessonViewModel } from "../foundations/buildLessonViewModel";
+import { buildPhoneticLessonModel, phoneticLessonIds } from "./phoneticExerciseModel";
 
 /**
  * The pure lesson-exercise model (Phase 2 Task 6; design spec §10.1-§10.2).
@@ -30,14 +31,17 @@ import type { FoundationLessonViewModel } from "../foundations/buildLessonViewMo
  * legacy curriculum copy catalog, which carries no entries for A1 prompt
  * copy ids.
  *
- * Only the 44 semantic lessons produce exercises: the four phonetic `sounds-*`
- * lessons carry no sentence variants (`a1FoundationCatalogs` excludes them,
- * see `a1/catalog/catalog.ts`) and resolve an honest empty model — never a
- * generation error, since the absence is by design, not a failure. A real
- * builder failure for a semantic lesson (a structural catalog defect) instead
- * surfaces as a `LessonExerciseModelError` entry rather than a silent empty
- * exercise list, so `lessonExerciseModel.test.ts` can prove every published
- * semantic lesson generates error-free prompts.
+ * Only the 44 semantic lessons produce sentence-engine exercises: the four
+ * phonetic `sounds-*` lessons instead resolve their own deterministic
+ * choice/tile-ordering exercises from `phoneticExerciseModel.ts`'s
+ * `buildPhoneticLessonModel` — hand-assembled directly from `module01Sounds`'s
+ * validated 10-item-per-lesson catalog, since the sentence engine has no
+ * predicate/role for an isolated phonetic item (`a1FoundationCatalogs`
+ * excludes them; see `a1/catalog/catalog.ts`). A real builder failure for
+ * either kind of lesson (a structural catalog defect) surfaces as a
+ * `LessonExerciseModelError` entry rather than a silent or partial exercise
+ * list, so `lessonExerciseModel.test.ts` can prove every published lesson —
+ * semantic and phonetic alike — generates error-free prompts.
  */
 
 export interface GeneratedExercise {
@@ -139,9 +143,9 @@ function buildSemanticModel(lessonId: string): LessonExercisesModel {
 }
 
 function buildModel(lessonId: string): LessonExercisesModel {
-  return semanticLessonIds.has(lessonId)
-    ? buildSemanticModel(lessonId)
-    : emptyModel(lessonId);
+  if (semanticLessonIds.has(lessonId)) return buildSemanticModel(lessonId);
+  if (phoneticLessonIds.has(lessonId)) return buildPhoneticLessonModel(lessonId).model;
+  return emptyModel(lessonId);
 }
 
 const allCourseLessonIds = courseModules.flatMap((courseModule) =>
@@ -216,6 +220,16 @@ for (const lessonId of semanticLessonIds) {
       const tokens = tokensForExample(exampleId);
       if (tokens) tokensByExampleId.set(exampleId, tokens);
     }
+  }
+}
+
+for (const lessonId of phoneticLessonIds) {
+  const model = getLessonExercises(lessonId);
+  if (!model || model.exercises.length === 0) continue;
+  const built = buildPhoneticLessonModel(lessonId);
+  for (const [tileId, token] of built.tokenByTileId) tokenByTileId.set(tileId, token);
+  for (const [exampleId, tokens] of built.tokensByExampleId) {
+    tokensByExampleId.set(exampleId, tokens);
   }
 }
 

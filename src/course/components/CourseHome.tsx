@@ -24,6 +24,23 @@ const canDoEvidenceTierCopyKey = {
 } as const;
 
 /**
+ * Can-do evidence-tier glyphs (M2/M3, quality-review Phase 2 Task 6),
+ * unified with `LessonExercises.tsx`'s own `STATE_GLYPH` and `ModuleCard`'s
+ * `LESSON_EVIDENCE_GLYPH` so the same shape always means the same evidence
+ * tier everywhere in the app. `not-started` intentionally carries no glyph
+ * (there is no evidence to depict yet). Rendered as an explicit
+ * `aria-hidden` JSX span next to the always-visible tier text — never
+ * injected only via a CSS `::before` pseudo-element, which assistive
+ * technology (and anything reading the DOM/accessibility tree rather than
+ * painted pixels) would never see at all.
+ */
+const CAN_DO_TIER_GLYPH: Partial<Record<keyof typeof canDoEvidenceTierCopyKey, string>> = {
+  visited: "○",
+  practiced: "◐",
+  demonstrated: "●",
+};
+
+/**
  * Course home (design spec §5.7/§6.1, extended for the A1 release by Phase 2
  * Task 6): a bounded "editoriale mnemonico" hero (title, eyebrow, lead,
  * A1/JF-CEFR alignment badge, fixed course shape, visited progress, primary
@@ -163,18 +180,34 @@ export function CourseHome(): ReactElement {
           )}
         </p>
         <ul className="can-do-summary__list">
-          {canDoSummary.items.map((item) => (
-            <li key={item.canDoId} className="can-do-summary__item">
-              <span className="can-do-summary__descriptor">
-                {copy.objectives[item.descriptorCopyId]}
-              </span>
-              <span
-                className={`can-do-summary__tier can-do-summary__tier--${item.tier}`}
+          {canDoSummary.items.map((item) => {
+            const glyph = CAN_DO_TIER_GLYPH[item.tier];
+            return (
+              <li
+                key={item.canDoId}
+                className="can-do-summary__item"
+                data-can-do-id={item.canDoId}
               >
-                {copy.canDoSummary[canDoEvidenceTierCopyKey[item.tier]]}
-              </span>
-            </li>
-          ))}
+                <span className="can-do-summary__descriptor">
+                  {copy.objectives[item.descriptorCopyId]}
+                </span>
+                <span
+                  className={`can-do-summary__tier can-do-summary__tier--${item.tier}`}
+                >
+                  {glyph ? (
+                    <>
+                      <span className="can-do-summary__tier-glyph" aria-hidden="true">
+                        {glyph}
+                      </span>{" "}
+                    </>
+                  ) : null}
+                  <span className="can-do-summary__tier-text">
+                    {copy.canDoSummary[canDoEvidenceTierCopyKey[item.tier]]}
+                  </span>
+                </span>
+              </li>
+            );
+          })}
         </ul>
       </section>
 

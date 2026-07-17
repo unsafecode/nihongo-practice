@@ -9,7 +9,8 @@ import { buildA1LessonViewModel } from "../a1/a1LessonViewModel";
 import { module1ItemsByLesson } from "../a1/catalog/module01Sounds";
 import { ProgressProvider } from "../progress/ProgressContext";
 import { SpeechRecognitionProvider } from "../speech/SpeechRecognitionContext";
-import { A1LessonSection, distinctLexicalTokens } from "./A1LessonPage";
+import { A1LessonSection, distinctLexicalTokens, PhoneticSection } from "./A1LessonPage";
+import { getCourseCopy } from "../i18n/catalog";
 
 /**
  * `A1LessonSection`'s focused contract (Phase 2 Task 6, master task point 2).
@@ -87,6 +88,14 @@ describe("A1LessonSection — semantic lesson (introductions-1)", () => {
     }
   });
 
+  it("recap: nests the variation/vocab subheadings one level under the section's own h2 (M1) — h3, never h4", () => {
+    const html = renderSection(SEMANTIC_LESSON, "recap");
+    expect(html).toContain(`<h3>${itCopy.lesson.recap.variationLabel}</h3>`);
+    expect(html).toContain(`<h3>${itCopy.lesson.recap.vocabLabel}</h3>`);
+    expect(html).not.toContain(`<h4>${itCopy.lesson.recap.variationLabel}</h4>`);
+    expect(html).not.toContain(`<h4>${itCopy.lesson.recap.vocabLabel}</h4>`);
+  });
+
   it("never states a pronunciation grade, score, or percentage in any anchor", () => {
     for (const sectionId of ["rule", "comparison", "explore", "recap"] as const) {
       const html = renderSection(SEMANTIC_LESSON, sectionId);
@@ -116,8 +125,34 @@ describe("A1LessonSection — phonetic lesson (sounds-1)", () => {
     }
   });
 
-  it("explore: renders the optional spoken attempt (no sentence exercises exist for phonetic lessons)", () => {
+  it("comparison: fails closed with a visible localized notice (never a silently dropped row) when a contrastWithId cannot be resolved within the lesson's own roster (I2 fix — defense-in-depth for validateA1's release gate)", () => {
+    const brokenItems = items.map((item, index) =>
+      index === 0 ? { ...item, contrastWithId: "no-such-item-in-this-lesson" } : item,
+    );
+    const html = renderToStaticMarkup(
+      createElement(PhoneticSection, {
+        lessonId: PHONETIC_LESSON,
+        sectionId: "comparison",
+        items: brokenItems,
+        script: "romaji",
+        copy: getCourseCopy("it"),
+      }),
+    );
+    // The row for the broken item must still exist (not silently vanished)
+    // and must surface the same localized formatting-error text the rest of
+    // the app uses for an unresolved token, not a blank void.
+    expect(html).toContain(`data-item-id="${brokenItems[0].id}"`);
+    expect(html).toContain(itCopy.lesson.contentFormattingError);
+    // Every *other* item, whose contrast still resolves, renders normally.
+    for (const item of items.slice(1)) {
+      expect(html).toContain(`data-contrast-with-id="${item.contrastWithId}"`);
+    }
+  });
+
+  it("explore: renders the 10 real phonetic exercises and the optional spoken attempt (I1)", () => {
     const html = renderSection(PHONETIC_LESSON, "explore");
+    expect(html).toContain(itCopy.exercises.heading);
+    expect((html.match(/class="lesson-exercise"/g) ?? []).length).toBe(10);
     expect(html).toContain("spoken-attempt");
   });
 
@@ -128,6 +163,14 @@ describe("A1LessonSection — phonetic lesson (sounds-1)", () => {
     for (const item of items) {
       expect(html).toContain(item.roman);
     }
+  });
+
+  it("recap: nests the variation/vocab subheadings one level under the section's own h2 (M1) — h3, never h4", () => {
+    const html = renderSection(PHONETIC_LESSON, "recap");
+    expect(html).toContain(`<h3>${itCopy.lesson.recap.variationLabel}</h3>`);
+    expect(html).toContain(`<h3>${itCopy.lesson.recap.vocabLabel}</h3>`);
+    expect(html).not.toContain(`<h4>${itCopy.lesson.recap.variationLabel}</h4>`);
+    expect(html).not.toContain(`<h4>${itCopy.lesson.recap.vocabLabel}</h4>`);
   });
 
   it("never states a pronunciation grade, score, or percentage in any anchor", () => {

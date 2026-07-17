@@ -332,14 +332,16 @@
   white-space: nowrap;
 }
 
-/* Redundant-text evidence tags (never color-only — see the label text
-   itself), still given a distinct shape glyph for quick scanning, matching
-   the module-level tag convention above (design spec §17, Phase 2 Task 6). */
-.module-card__lesson-state--practiced::before {
-  content: "◐ ";
-}
-.module-card__lesson-state--demonstrated::before {
-  content: "✓ ";
+/* Redundant-text evidence tags (never color-only — the label text itself is
+ * always present): each tier's distinct shape glyph is rendered as an
+ * explicit `aria-hidden` JSX span in ModuleCard.tsx (never injected here via
+ * `::before`, which the accessibility tree cannot see), unified with
+ * `LessonExercises.tsx`'s own visited/practiced/consolidated scheme (design
+ * spec §17, Phase 2 Task 6; M2/M3 quality-review fix). This is a distinct,
+ * per-lesson evidence axis from the module-level tag glyphs above (current/
+ * recommended/fully-visited), which are a separate concept and keep their
+ * own `::before` glyphs. */
+.module-card__lesson-state--demonstrated .module-card__lesson-state-glyph {
   color: var(--course-teal);
 }
 
@@ -421,18 +423,17 @@
   white-space: nowrap;
 }
 
-/* Distinct shape glyphs per tier (never color alone) mirroring the map's
-   own visited/practiced/demonstrated convention. */
-.can-do-summary__tier--visited::before {
-  content: "✓ ";
-}
-.can-do-summary__tier--practiced::before {
-  content: "◐ ";
-}
-.can-do-summary__tier--demonstrated::before {
-  content: "★ ";
+/* Distinct shape glyph per tier (never color alone), rendered as an
+ * explicit `aria-hidden` JSX span in CourseHome.tsx (never injected here via
+ * `::before`, which the accessibility tree cannot see) — unified with the
+ * same visited/practiced/demonstrated shapes used by ModuleCard's per-lesson
+ * evidence tags and LessonExercises' own visited/practiced/consolidated
+ * scheme (M2/M3 quality-review fix; previously this tier used a mismatched
+ * ✓/★ pair found nowhere else and falsely described as "mirroring" the map). */
+.can-do-summary__tier--demonstrated .can-do-summary__tier-glyph {
   color: var(--course-teal);
 }
+
 
 @media (max-width: 720px) {
   .can-do-summary__item {

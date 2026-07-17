@@ -235,7 +235,7 @@ function ItemGlyph({
   );
 }
 
-function PhoneticSection({
+export function PhoneticSection({
   lessonId,
   sectionId,
   items,
@@ -275,10 +275,6 @@ function PhoneticSection({
         <ul className="a1-phonetic-contrasts">
           {items.map((item) => {
             const partner = byId.get(item.contrastWithId);
-            // The validated release catalog guarantees every contrastWithId
-            // resolves within the same lesson's item array
-            // (`validateA1.ts`); this guard is defensive only.
-            if (!partner) return null;
             return (
               <li
                 key={item.id}
@@ -293,7 +289,22 @@ function PhoneticSection({
                   <ItemGlyph item={item} script={script} errorText={errorText} />
                 </div>
                 <div className="a1-phonetic-contrasts__row" data-role="contrast">
-                  <ItemGlyph item={partner} script={script} errorText={errorText} />
+                  {partner ? (
+                    // `validateA1.ts`'s release gate (phonetic-dangling-contrast /
+                    // the I2 phonetic-contrast-cross-lesson check) is what actually
+                    // keeps every contrastWithId resolvable within this same
+                    // lesson's own roster before the app ships. This branch is
+                    // defense-in-depth only — but "defensive" must still mean
+                    // fail-closed and visible, never a silently vanished row, so
+                    // an unresolved partner (which should never occur in a
+                    // validated release) renders the same localized formatting
+                    // error the rest of the app surfaces for a broken token.
+                    <ItemGlyph item={partner} script={script} errorText={errorText} />
+                  ) : (
+                    <p className="a1-phonetic-contrasts__error" role="status">
+                      {errorText}
+                    </p>
+                  )}
                 </div>
               </li>
             );
@@ -357,7 +368,7 @@ function RecapContent({
 
       {variationLabels.length > 0 ? (
         <div data-recap="variation">
-          <h4>{recapCopy.variationLabel}</h4>
+          <h3>{recapCopy.variationLabel}</h3>
           <ul>
             {variationLabels.map((label) => (
               <li key={label}>{label}</li>
@@ -367,7 +378,7 @@ function RecapContent({
       ) : null}
 
       <div data-recap="vocab">
-        <h4>{recapCopy.vocabLabel}</h4>
+        <h3>{recapCopy.vocabLabel}</h3>
         <ul className="a1-lesson-recap__vocab">
           {vocab.map((token) => (
             <li key={token.id}>

@@ -167,6 +167,22 @@ describe("ProgressContext V4 exposure (Phase 2 Task 6)", () => {
     });
   });
 
+  it("records practiced Can-do evidence once a phonetic lesson's 10 real exercises are all attempted (I1 progress/review integration)", async () => {
+    await withMountedProvider({}, async (get) => {
+      const model = getLessonExercises("sounds-1")!;
+      expect(model.exercises.length).toBe(10);
+
+      await acceptAllExercises(get, "sounds-1");
+
+      // v3-compat surface advances exactly like a semantic lesson.
+      expect(get().progress.lessons["sounds-1"]?.practicedAt).not.toBeNull();
+
+      const evidence = get().canDoEvidence["a1-can-do-sounds"];
+      expect(evidence).toBeDefined();
+      expect(evidence!.practicedLessonIds).toContain("sounds-1");
+    });
+  });
+
   it("records exactly one idempotent checkpoint attempt once all four capstone lessons are consolidated, sampling every taught Can-do honestly", async () => {
     await withMountedProvider({}, async (get) => {
       expect(A1_CHECKPOINT_SCENARIO_LESSON_IDS.length).toBe(4);

@@ -1,7 +1,7 @@
 import type { SemanticIconId } from "../../components/icons/Icon";
 import { a1CanDosAuthored } from "../a1/catalog/canDos";
-import { validateA1Release } from "../a1/catalog/validateA1";
 import { A1_MODULE_IDS, A1_MODULE_MANIFEST } from "../a1/manifest";
+import { assertA1CourseShape } from "./runtimeShapeAssertion";
 import type { CourseModule, Lesson } from "./types";
 
 /**
@@ -11,9 +11,22 @@ import type { CourseModule, Lesson } from "./types";
  * catalog: it is derived directly from the already-validated A1 release
  * catalog (Phase 2 Tasks 1-5) — the manifest for structure/order/
  * prerequisites/icon, and each lesson's authored Can-do descriptor for its
- * objective copy. `validateA1Release()` runs at import time and this module
- * throws with the full structured error list rather than exporting anything
- * partial, so a broken catalog can never silently reach the runtime.
+ * objective copy.
+ *
+ * The full content-cross-referencing release gate (`validateA1Release()`,
+ * 2500+ lines across `validateA1.ts`+`validateFoundations.ts`) is
+ * deliberately *not* imported here any more (Phase 2 Task 6, finding I3): it
+ * now runs as the `prebuild` npm script (`scripts/validateA1Release.ts`)
+ * before every `vite build`, and by the test suite (`validateA1.test.ts`) —
+ * never inside the shipped browser bundle, where nothing could ever act on
+ * its result anyway. What *does* still run here, at import time, is
+ * `assertA1CourseShape()` — a small, always-bundled structural sanity check
+ * (ids present/unique, counts positive, the release's known fixed module/
+ * lesson totals) that throws rather than exporting anything partial. The
+ * fail-closed guarantee is preserved, just split: full content validation
+ * moves earlier (build time), and a lightweight shape assertion stays here
+ * (runtime) as a last-resort guard against a corrupted assembly ever
+ * shipping silently.
  *
  * The deep lesson body (rule/comparison/explore/recap) is not modelled here
  * at all: `A1LessonPage` resolves it lesson-by-lesson from the foundation
@@ -22,16 +35,6 @@ import type { CourseModule, Lesson } from "./types";
  * stable routing/navigation/copy-id metadata every module/course-map/progress
  * consumer needs.
  */
-const releaseValidation = validateA1Release();
-if (!releaseValidation.valid) {
-  const codes = releaseValidation.errors
-    .map((error) => `${error.code}${error.id ? `:${error.id}` : ""}`)
-    .join(", ");
-  throw new Error(
-    `data/course: refusing to assemble courseModules from an invalid A1 release catalog. ` +
-      `validateA1Release() reported ${releaseValidation.errors.length} error(s): ${codes}`,
-  );
-}
 
 /**
  * Exactly one icon per module, in module order — a purely decorative 1:1
@@ -101,4 +104,7 @@ function buildModule(moduleId: string): CourseModule {
   };
 }
 
-export const courseModules: CourseModule[] = A1_MODULE_IDS.map(buildModule);
+const assembledModules: CourseModule[] = A1_MODULE_IDS.map(buildModule);
+assertA1CourseShape(assembledModules);
+
+export const courseModules: CourseModule[] = assembledModules;

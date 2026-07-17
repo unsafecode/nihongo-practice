@@ -634,6 +634,18 @@ describe("validateA1 – phonetic contracts", () => {
     expect(codesOf(result)).toContain("phonetic-dangling-contrast");
   });
 
+  it("phonetic-contrast-cross-lesson: an item contrasting with a real item from a *different* lesson is not silently accepted (I2 fix) — the UI only ever resolves a contrast partner within the same lesson's roster, so a globally-resolvable-but-cross-lesson id must be its own distinct, reported error, not conflated with a fully dangling one", () => {
+    const items = phoneticItemsClone();
+    const lessonAId = module1Lessons[0].id;
+    const lessonBId = module1Lessons[1].id;
+    const realItemFromAnotherLesson = items[lessonBId][0].id;
+    (items[lessonAId][0] as { contrastWithId: string }).contrastWithId = realItemFromAnotherLesson;
+    const result = validateA1({ phoneticItemsByLesson: items });
+    const codes = codesOf(result);
+    expect(codes).toContain("phonetic-contrast-cross-lesson");
+    expect(codes).not.toContain("phonetic-dangling-contrast");
+  });
+
   it("phonetic-duplicate-exercise: two items sharing an exercise ref", () => {
     const items = phoneticItemsClone();
     const lessonId = module1Lessons[0].id;

@@ -291,6 +291,7 @@ export const A1_RELEASE_ERROR_CODES = [
   // phonetic contract
   "phonetic-missing-items",
   "phonetic-dangling-contrast",
+  "phonetic-contrast-cross-lesson",
   "phonetic-duplicate-exercise",
   "phonetic-item-incomplete",
   "phonetic-lesson-mismatch",

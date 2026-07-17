@@ -8,6 +8,23 @@ import type { CourseModule } from "../data/types";
 import { getCourseCopy } from "../i18n/catalog";
 import type { ModuleMapEntry } from "./courseMapModel";
 
+/**
+ * Per-lesson evidence-tier glyphs (M2/M3, quality-review Phase 2 Task 6),
+ * unified with `LessonExercises.tsx`'s own `STATE_GLYPH` so the same shape
+ * always means the same evidence tier everywhere in the app: an open circle
+ * for "visited", a half-filled circle for "practiced", a filled circle for
+ * the strongest ("demonstrated" here / "consolidated" in-lesson) tier.
+ * Rendered as an explicit `aria-hidden` JSX span next to the always-visible
+ * text label — never injected only via a CSS `::before` pseudo-element,
+ * which assistive technology (and anything reading the DOM/accessibility
+ * tree rather than painted pixels) would never see at all.
+ */
+const LESSON_EVIDENCE_GLYPH = {
+  visited: "○",
+  practiced: "◐",
+  demonstrated: "●",
+} as const;
+
 export interface ModuleCardProps {
   entry: ModuleMapEntry<CourseModule>;
   /** Whether this card's lesson list starts expanded (§5.3/Task 4 item 4).
@@ -94,7 +111,7 @@ export function ModuleCard({
       </div>
       <div className="module-card__body">
         <div className="module-card__head">
-          <h4 className="module-card__title">{moduleCopy.title}</h4>
+          <h3 className="module-card__title">{moduleCopy.title}</h3>
           <ActionButton
             variant="icon"
             className="module-card__disclosure"
@@ -169,17 +186,32 @@ export function ModuleCard({
                   <span className="module-card__lesson-objective">{objective}</span>
                   <span className="module-card__lesson-meta">
                     {visited ? (
-                      <span className="module-card__lesson-state">
-                        {copy.courseMap.stateVisited}
+                      <span className="module-card__lesson-state module-card__lesson-state--visited">
+                        <span className="module-card__lesson-state-glyph" aria-hidden="true">
+                          {LESSON_EVIDENCE_GLYPH.visited}
+                        </span>{" "}
+                        <span className="module-card__lesson-state-text">
+                          {copy.courseMap.stateVisited}
+                        </span>
                       </span>
                     ) : null}
                     {demonstrated ? (
                       <span className="module-card__lesson-state module-card__lesson-state--demonstrated">
-                        {copy.courseMap.stateDemonstrated}
+                        <span className="module-card__lesson-state-glyph" aria-hidden="true">
+                          {LESSON_EVIDENCE_GLYPH.demonstrated}
+                        </span>{" "}
+                        <span className="module-card__lesson-state-text">
+                          {copy.courseMap.stateDemonstrated}
+                        </span>
                       </span>
                     ) : practiced ? (
                       <span className="module-card__lesson-state module-card__lesson-state--practiced">
-                        {copy.courseMap.statePracticed}
+                        <span className="module-card__lesson-state-glyph" aria-hidden="true">
+                          {LESSON_EVIDENCE_GLYPH.practiced}
+                        </span>{" "}
+                        <span className="module-card__lesson-state-text">
+                          {copy.courseMap.statePracticed}
+                        </span>
                       </span>
                     ) : null}
                     {recommended ? (

@@ -6,6 +6,7 @@
   "description": "Bilingual practical Japanese learning with hiragana, sentence building, and browser speech.",
   "scripts": {
     "dev": "vite",
+    "prebuild": "vite-node scripts/validateA1Release.ts",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
@@ -27,6 +28,7 @@
     "jsdom": "^29.1.1",
     "typescript": "^5.6.3",
     "vite": "^6.0.7",
+    "vite-node": "^3.2.4",
     "vitest": "^3.2.4"
   },
   "author": "Riccardo Chiodaroli",

@@ -490,6 +490,17 @@ describe("LessonExercises — renders a lesson's 3-5 exercises", () => {
   });
 });
 
+describe("LessonExercises — renders a phonetic lesson's 10 real exercises (I1)", () => {
+  it("renders one card per authored phonetic item, not an empty section", () => {
+    const html = renderLessonExercises("sounds-1");
+    const model = getLessonExercises("sounds-1")!;
+    expect(model.exercises.length).toBe(10);
+    expect(html).toContain(itCopy.exercises.heading);
+    expect((html.match(/class="lesson-exercise"/g) ?? []).length).toBe(10);
+    expect((html.match(/type="submit"/g) ?? []).length).toBe(10);
+  });
+});
+
 describe("LessonExercises — evidence-based lesson status (spec §11.1)", () => {
   it("reports the practiced state once every required exercise has an accepted attempt but not before", () => {
     const tileState = submitExercise(

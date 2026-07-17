@@ -73,6 +73,12 @@ describe("ModuleCard: core content", () => {
     const html = renderCard(entryFor("sounds"), { initiallyExpanded: false });
     expect(html.toLowerCase()).not.toMatch(/\bmin\b|verb|vocabolar|parole/);
   });
+
+  it("renders its title as an h3 (M1) — CourseMap wraps every card in its own h2, so h4 would skip a level", () => {
+    const html = renderCard(entryFor("sounds"), { initiallyExpanded: false });
+    expect(html).toContain(`<h3 class="module-card__title">${itCopy.modules.sounds.title}</h3>`);
+    expect(html).not.toContain(`<h4 class="module-card__title">`);
+  });
 });
 
 describe("ModuleCard: advisory prerequisites", () => {
@@ -257,6 +263,54 @@ describe("ModuleCard: per-lesson practiced/demonstrated evidence tags (design sp
     expect(visitedOnlyRow).toContain(itCopy.courseMap.stateVisited);
     expect(visitedOnlyRow).not.toContain(itCopy.courseMap.statePracticed);
     expect(visitedOnlyRow).not.toContain(itCopy.courseMap.stateDemonstrated);
+  });
+});
+
+/**
+ * M2/M3 (quality-review Phase 2 Task 6): per-lesson evidence glyphs must be
+ * unified with `LessonExercises.tsx`'s canonical scheme (visited=○,
+ * practiced=◐, demonstrated=●) and rendered as explicit `aria-hidden` JSX
+ * spans alongside the always-visible text label — never injected only via a
+ * CSS `::before` pseudo-element on the text span itself, which assistive
+ * tech and any DOM-only inspection (like this render test) cannot see.
+ */
+describe("ModuleCard: per-lesson evidence glyphs are explicit aria-hidden spans, unified with the lesson-exercises scheme (M2/M3)", () => {
+  it("renders the visited row's glyph (○) as a real aria-hidden DOM span next to the visible label", () => {
+    const html = renderCard(entryForWithEvidence("sounds"), { initiallyExpanded: true });
+    const rows = lessonRows(html);
+    const visitedOnlyRow = rows.find((row) => row.includes("sounds-3"))!;
+    expect(visitedOnlyRow).toMatch(
+      /<span class="module-card__lesson-state-glyph" aria-hidden="true">○<\/span>/,
+    );
+    expect(visitedOnlyRow).toContain(
+      `<span class="module-card__lesson-state-text">${itCopy.courseMap.stateVisited}</span>`,
+    );
+  });
+
+  it("renders the practiced row's glyph (◐) as a real aria-hidden DOM span next to the visible label", () => {
+    const html = renderCard(entryForWithEvidence("sounds"), { initiallyExpanded: true });
+    const rows = lessonRows(html);
+    const practicedOnlyRow = rows.find((row) => row.includes("sounds-1"))!;
+    expect(practicedOnlyRow).toMatch(
+      /<span class="module-card__lesson-state-glyph" aria-hidden="true">◐<\/span>/,
+    );
+    expect(practicedOnlyRow).toContain(
+      `<span class="module-card__lesson-state-text">${itCopy.courseMap.statePracticed}</span>`,
+    );
+  });
+
+  it("renders the demonstrated row's glyph as ● (matching lesson-exercises' consolidated tier), not ✓ or ★, as a real aria-hidden DOM span", () => {
+    const html = renderCard(entryForWithEvidence("sounds"), { initiallyExpanded: true });
+    const rows = lessonRows(html);
+    const demonstratedRow = rows.find((row) => row.includes("sounds-2"))!;
+    expect(demonstratedRow).toMatch(
+      /<span class="module-card__lesson-state-glyph" aria-hidden="true">●<\/span>/,
+    );
+    expect(demonstratedRow).not.toContain("✓");
+    expect(demonstratedRow).not.toContain("★");
+    expect(demonstratedRow).toContain(
+      `<span class="module-card__lesson-state-text">${itCopy.courseMap.stateDemonstrated}</span>`,
+    );
   });
 });
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { courseModules } from "../data/course";
 import { a1FoundationCatalogs } from "../a1/catalog/catalog";
 import { buildA1LessonViewModel } from "../a1/a1LessonViewModel";
+import { module1ItemsByLesson } from "../a1/catalog/module01Sounds";
 import {
   exampleTokens,
   getLessonExercises,
@@ -11,10 +12,11 @@ import {
 /**
  * The pure lesson-exercise model (Phase 2 Task 6; design spec §10.1). It
  * resolves the A1 release's 44 semantic lessons' authored practice targets
- * into deterministic engine prompts and exposes the derived romaji +
- * per-locale instruction/intent copy the UI needs — never reconstructing a
- * canonical answer in the component layer, and never fabricating sentence
- * exercises for the four phonetic lessons.
+ * into deterministic engine prompts, and separately resolves each of the
+ * four phonetic (`sounds-*`) lessons' 10 authored `A1PhoneticItem`s into
+ * deterministic choice/tile-ordering prompts (I1) — exposing the derived
+ * romaji + per-locale instruction/intent copy the UI needs without ever
+ * reconstructing a canonical answer in the component layer.
  */
 
 const allLessonIds = courseModules.flatMap((m) => m.lessons.map((l) => l.id));
@@ -48,13 +50,36 @@ describe("getLessonExercises — deterministic prompt generation for every seman
     }
   });
 
-  it("resolves an honest empty model (no exercises, no errors) for every phonetic lesson", () => {
+  it("generates exactly 10 error-free runtime exercises for every phonetic (sounds-*) lesson (I1)", () => {
     expect(phoneticLessonIds.length).toBe(4);
     for (const lessonId of phoneticLessonIds) {
       const model = getLessonExercises(lessonId);
       expect(model, `model for ${lessonId}`).toBeDefined();
-      expect(model!.exercises).toEqual([]);
-      expect(model!.errors).toEqual([]);
+      expect(model!.errors, `errors for ${lessonId}`).toEqual([]);
+      expect(model!.exercises.length, `count for ${lessonId}`).toBe(10);
+    }
+  });
+
+  it("names at least 5 unique visible targets per phonetic lesson, one exercise per authored item, from the module01Sounds catalog", () => {
+    for (const lessonId of phoneticLessonIds) {
+      const items = module1ItemsByLesson[lessonId]!;
+      const model = getLessonExercises(lessonId)!;
+      expect(model.exercises.map((e) => e.definitionId).sort()).toEqual(
+        items.map((i) => i.exerciseRefId).sort(),
+      );
+      const targets = new Set(model.exercises.map((e) => e.prompt.assessedConceptIds[0]));
+      expect(targets.size).toBeGreaterThanOrEqual(5);
+    }
+  });
+
+  it("gives every phonetic exercise the guided-controlled practicePurpose and a null intent, never fabricated", () => {
+    for (const lessonId of phoneticLessonIds) {
+      const model = getLessonExercises(lessonId)!;
+      for (const exercise of model.exercises) {
+        expect(exercise.practicePurpose).toBe("guided-controlled");
+        expect(exercise.intentText.en).toBeNull();
+        expect(exercise.intentText.it).toBeNull();
+      }
     }
   });
 
@@ -192,6 +217,29 @@ describe("segmentToken — derived AssembledToken for a tile/option id", () => {
     }
   });
 
+  it("resolves every generated phonetic exercise's tile/option ids across every sounds-* lesson (I1)", () => {
+    for (const lessonId of phoneticLessonIds) {
+      for (const exercise of getLessonExercises(lessonId)!.exercises) {
+        const { prompt, targetExampleId } = exercise;
+        if (prompt.kind === "tile-ordering") {
+          for (const tile of prompt.tiles) {
+            expect(segmentToken(tile.id), `${lessonId} ${tile.id}`).toBeDefined();
+          }
+        } else if (prompt.kind === "choice") {
+          for (const option of prompt.options) {
+            expect(segmentToken(option.id), `${lessonId} ${option.id}`).toBeDefined();
+          }
+          for (const segment of prompt.sentenceSegments) {
+            expect(
+              segmentToken(`${targetExampleId}#${segment.id}`),
+              `${lessonId} ${targetExampleId}#${segment.id}`,
+            ).toBeDefined();
+          }
+        }
+      }
+    }
+  });
+
   it("returns undefined for an unknown tile id", () => {
     expect(segmentToken("nope#zz9")).toBeUndefined();
   });
@@ -206,6 +254,20 @@ describe("exampleTokens — the full ordered token list for an example id", () =
     expect(tokens!.length).toBeGreaterThan(0);
     for (const token of tokens!) {
       expect(token.romaji.trim().length).toBeGreaterThan(0);
+    }
+  });
+
+  it("resolves every phonetic lesson's exercise target tokens, keyed by the item's own id (I1)", () => {
+    for (const lessonId of phoneticLessonIds) {
+      const items = module1ItemsByLesson[lessonId]!;
+      for (const item of items) {
+        const tokens = exampleTokens(item.id);
+        expect(tokens, `${lessonId} ${item.id}`).toBeDefined();
+        expect(tokens!.length).toBeGreaterThan(0);
+        for (const token of tokens!) {
+          expect(token.romaji.trim().length).toBeGreaterThan(0);
+        }
+      }
     }
   });
 
