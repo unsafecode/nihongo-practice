@@ -324,10 +324,15 @@ export interface CourseCopy {
   /**
    * Copy for the one-time v3→v4 progress migration notice and its
    * always-available explanation (design spec §17, Phase 2 Task 5). Truthful
-   * only: it states that visited lessons were kept and that practice/
-   * checkpoint evidence was reset because the exercises were redesigned. It
-   * never claims certification, mastery, or that anything was "passed" —
-   * alignment-only language throughout (§3.1).
+   * only: it is static, locale-level text shown for every v1/v2/v3
+   * migration, so it must never assert a reset or an orphan as a guaranteed
+   * fact (many of those migrations reset nothing and orphan nothing). It
+   * states only always-true, conditionally-scoped facts — safely matching
+   * lesson visits carry over, redesigned practice/checkpoint evidence may
+   * need to be repeated, and any unmatched old records are retained as
+   * recovery data — never that evidence loss or orphaning definitely
+   * occurred. It never claims certification, mastery, or that anything was
+   * "passed" — alignment-only language throughout (§3.1).
    */
   progressMigration: {
     /** Title of the dismissible notice shown until the learner acknowledges it. */

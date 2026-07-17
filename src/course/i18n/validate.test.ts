@@ -347,4 +347,44 @@ describe("progress migration copy (v3→v4, Phase 2 Task 5)", () => {
       expect(body.toLowerCase()).toMatch(/recover|recuper/);
     }
   });
+
+  it("never asserts that a reset, evidence loss, or unmatched-lesson orphaning definitely happened — only ever describes them as conditional, scoped to whichever lessons/evidence actually apply (Phase 2 Task 5 quality-review Important fix)", () => {
+    // This notice/help copy is static, locale-level text shown for *every*
+    // v1/v2/v3→v4 migration — including a v1/v2 migration (which never had
+    // any practice/checkpoint evidence to reset in the first place) and any
+    // v3 migration with zero orphaned lessons and zero reset-evidence
+    // lessons (see progress.v4.test.ts for those conditions). Phrasing these
+    // as definite past occurrences ("were reset", "had no matching lesson")
+    // is simply false whenever nothing was actually reset or orphaned; the
+    // copy must only ever describe them as things that may apply, not
+    // things that did apply.
+    const definiteOccurrencePatterns: readonly RegExp[] = [
+      /\bwere reset\b/i,
+      /\bwas reset\b/i,
+      /\bwere cleared\b/i,
+      /\bwere erased\b/i,
+      /\bhad no matching\b/i,
+      /\bhad no safe match\b/i,
+      /\ba few older\b/i,
+      /\bsome older lessons\b/i,
+      /\ba small number of older lessons\b/i,
+      /\bfurono azzerat\w*\b/i,
+      /\bsono stat[ei] azzerat\w*\b/i,
+      /\bsono stat[ei] cancellat\w*\b/i,
+      /\balcune vecchie lezioni\b/i,
+      /\bun piccolo numero di vecchie lezioni\b/i,
+      /\bnon (aveva|avevano) una (lezione corrispondente|corrispondenza sicura)\b/i,
+    ];
+    const bodies = [
+      enCopy.progressMigration.noticeBody,
+      enCopy.progressMigration.helpBody,
+      itCopy.progressMigration.noticeBody,
+      itCopy.progressMigration.helpBody,
+    ];
+    for (const body of bodies) {
+      for (const pattern of definiteOccurrencePatterns) {
+        expect(body).not.toMatch(pattern);
+      }
+    }
+  });
 });

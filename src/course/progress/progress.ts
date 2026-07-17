@@ -222,7 +222,9 @@ export const A1_V3_PUBLISHED_LESSON_IDS = [
  * identity/action/description/topic-change synthesis scenario
  * (`../a1/catalog/module12Capstones.ts`), not a safe semantic twin of
  * orientation. The other three named v3 capstones *do* have a safe v4 twin
- * (verified by scenario content, not just ordinal position):
+ * (reviewed by scenario content, not just ordinal position — this is a
+ * manual editorial judgment call, not an automated content-equivalence
+ * test):
  * `capstones-self-introduction` → `capstones-1` (self-introduction +
  * reciprocal question), `capstones-everyday-outing` → `capstones-2` (daily
  * routine, place, preference & purchase), `capstones-travel-day` →
@@ -269,19 +271,6 @@ export const A1_V4_DESTINATION_LESSON_IDS: readonly string[] = dedupeInEncounter
   A1_V3_SAFE_SOURCE_LESSON_IDS.map((sourceId) => A1_V3_LESSON_ID_MAP[sourceId]),
 );
 
-/**
- * @deprecated Kept only for backward compatibility with any code that
- * imported this name before the Phase 2 Task 5 spec-review blocker fix. Its
- * value is exactly `A1_V4_DESTINATION_LESSON_IDS` — the *destination*-space
- * canonical order `migrateV3ToV4` iterates — never the v3 *source* ids (use
- * `A1_V3_PUBLISHED_LESSON_IDS` or `A1_V3_SAFE_SOURCE_LESSON_IDS` for those).
- * The old name conflated the two, which is exactly what caused the original
- * blocker: it listed `capstones-1..4` (v4 destination ids that never existed
- * in v3) as if they were v3 source ids to preserve, silently orphaning every
- * real historical capstone visit.
- */
-export const A1_V3_PRESERVED_LESSON_IDS = A1_V4_DESTINATION_LESSON_IDS;
-
 function hasStrongerEvidence(lesson: LessonProgressV3): boolean {
   return (
     lesson.practicedAt !== null ||
@@ -319,23 +308,42 @@ export function migrateV3ToV4(v3: CourseProgressV3): CourseProgressV4 {
   const lessons: Record<string, LessonProgress> = {};
   const preservedVisitedLessonIds: string[] = [];
   const resetEvidenceLessonIds: string[] = [];
+  // Mapped source ids whose stronger evidence would otherwise vanish with no
+  // accounting at all: `visitedAt: null` on every contributing source for a
+  // destination (so no visit ever transfers, and the destination gets no
+  // `lessons[destinationId]` entry) while at least one of them still has
+  // real practiced/consolidated/attempted/accepted evidence. Recorded below
+  // as orphan recovery data, same as a genuinely unmapped source id (Phase 2
+  // Task 5 quality-review minor #6) — never silently dropped.
+  const noVisitEvidenceSourceIds: string[] = [];
 
   for (const destinationId of A1_V4_DESTINATION_LESSON_IDS) {
     const sourceIds = sourceIdsByDestination.get(destinationId) ?? [destinationId];
     let earliestVisitedAt: string | null = null;
     let lostStrongerEvidence = false;
+    const evidenceOnlySourceIds: string[] = [];
     for (const sourceId of sourceIds) {
       const source = v3.lessons[sourceId];
       if (!source) continue;
       const visitedAt = source.visitedAt;
+      const strongerEvidence = hasStrongerEvidence(source);
       if (visitedAt !== null) {
         if (earliestVisitedAt === null || visitedAt < earliestVisitedAt) {
           earliestVisitedAt = visitedAt;
         }
+      } else if (strongerEvidence) {
+        evidenceOnlySourceIds.push(sourceId);
       }
-      if (hasStrongerEvidence(source)) lostStrongerEvidence = true;
+      if (strongerEvidence) lostStrongerEvidence = true;
     }
-    if (earliestVisitedAt === null) continue;
+    if (earliestVisitedAt === null) {
+      // No contributing source for this destination ever recorded a visit,
+      // so nothing safely transfers here (see the `continue` below). Any
+      // source that nonetheless carries real evidence is retained as
+      // recovery data rather than discarded without any accounting.
+      noVisitEvidenceSourceIds.push(...evidenceOnlySourceIds);
+      continue;
+    }
     lessons[destinationId] = {
       visitedAt: earliestVisitedAt,
       practicedAt: null,
@@ -354,6 +362,7 @@ export function migrateV3ToV4(v3: CourseProgressV3): CourseProgressV4 {
   const orphanedLessonIds = dedupeInEncounterOrder([
     ...v3.orphanedLessonIds,
     ...unmappedSourceLessonIds,
+    ...noVisitEvidenceSourceIds,
   ]);
 
   const lastVisitedLessonId =
@@ -453,7 +462,14 @@ function isValidV4Shape(value: Partial<CourseProgressV4>): value is CourseProgre
     Object.keys(value.levels).length === 2 &&
     isLevelProgress(value.levels.a1) &&
     isLevelProgress(value.levels.a2) &&
-    isProgressMigrationNotice(value.migrationNotice ?? null) &&
+    // No `?? null` fallback here: a truly valid V4 payload must explicitly
+    // carry `migrationNotice` as `null` or a valid record.
+    // `isProgressMigrationNotice` already rejects `undefined` (an omitted
+    // field) on its own — `typeof undefined !== "object"` and
+    // `undefined !== null` both fail — so an omitted field is correctly
+    // treated as corrupt/invalid rather than silently defaulted and passed
+    // through with `migrationNotice` actually `undefined` at runtime.
+    isProgressMigrationNotice(value.migrationNotice) &&
     typeof value.updatedAt === "string"
   );
 }

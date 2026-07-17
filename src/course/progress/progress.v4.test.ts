@@ -3,7 +3,6 @@ import { lessonPlans } from "../catalog/lessonPlans";
 import { courseModules } from "../data/course";
 import {
   A1_V3_LESSON_ID_MAP,
-  A1_V3_PRESERVED_LESSON_IDS,
   A1_V3_PUBLISHED_LESSON_IDS,
   A1_V3_SAFE_SOURCE_LESSON_IDS,
   A1_V4_DESTINATION_LESSON_IDS,
@@ -155,13 +154,6 @@ describe("A1_V3_PUBLISHED_LESSON_IDS / A1_V3_SAFE_SOURCE_LESSON_IDS / A1_V3_LESS
   it("never routes any migrated visit onto capstones-4 — it is a mixed dialogue/topic-change scenario with no v3 source, not orientation's replacement", () => {
     expect(A1_V4_DESTINATION_LESSON_IDS).not.toContain("capstones-4");
   });
-
-  it("keeps A1_V3_PRESERVED_LESSON_IDS as a truthful backward-compatible alias for the v4 destination-space canonical order (not v3 source ids)", () => {
-    expect(A1_V3_PRESERVED_LESSON_IDS).toBe(A1_V4_DESTINATION_LESSON_IDS);
-    expect(A1_V3_PRESERVED_LESSON_IDS).toContain("capstones-1");
-    expect(A1_V3_PRESERVED_LESSON_IDS).not.toContain("capstones-orientation");
-    expect(A1_V3_PRESERVED_LESSON_IDS).not.toContain("capstones-4");
-  });
 });
 
 describe("migrateV3ToV4 — deterministic visited-only migration", () => {
@@ -205,6 +197,60 @@ describe("migrateV3ToV4 — deterministic visited-only migration", () => {
     const v4 = migrateV3ToV4(v3);
     expect(v4.levels.a1.lessons["some-genuinely-unknown-id"]).toBeUndefined();
     expect(v4.levels.a1.orphanedLessonIds).toContain("some-genuinely-unknown-id");
+  });
+
+  it("orphans a mapped source lesson that carries real practiced/attempted evidence but never a recorded visit, instead of silently discarding it (Phase 2 Task 5 quality-review minor #6)", () => {
+    // "sounds-1" is a safe, mapped source (A1_V3_LESSON_ID_MAP) that maps to
+    // itself, but here it never actually has a visit — only stronger
+    // evidence (practicedAt, attemptedExerciseIds) with `visitedAt: null`.
+    // Nothing safely transfers to the destination (no visit ever happened),
+    // so no `lessons["sounds-1"]` entry is created — but this source's real
+    // evidence must not vanish with zero accounting, matching an unmapped
+    // source id's orphan/recovery-data treatment.
+    const v3 = v3Fixture({
+      lessons: {
+        "sounds-1": v3Lesson({
+          visitedAt: null,
+          practicedAt: T1,
+          attemptedExerciseIds: ["sounds-1-x1"],
+        }),
+      },
+    });
+    const v4 = migrateV3ToV4(v3);
+    expect(v4.levels.a1.lessons["sounds-1"]).toBeUndefined();
+    expect(v4.migrationNotice?.preservedVisitedLessonIds).not.toContain("sounds-1");
+    expect(v4.migrationNotice?.resetEvidenceLessonIds).not.toContain("sounds-1");
+    expect(v4.levels.a1.orphanedLessonIds).toContain("sounds-1");
+  });
+
+  it("does not orphan a mapped source lesson that has neither a visit nor any other evidence — a truly empty record is nothing to recover", () => {
+    const v3 = v3Fixture({
+      lessons: { "sounds-1": v3Lesson() },
+    });
+    const v4 = migrateV3ToV4(v3);
+    expect(v4.levels.a1.lessons["sounds-1"]).toBeUndefined();
+    expect(v4.levels.a1.orphanedLessonIds).not.toContain("sounds-1");
+  });
+
+  it("orphans only the specific alias source with stray evidence when its sibling alias source has a genuine visit (sounds-5 evidence-only, sounds-4 visited)", () => {
+    const v3 = v3Fixture({
+      lessons: {
+        "sounds-4": v3Lesson({ visitedAt: T0 }),
+        "sounds-5": v3Lesson({
+          visitedAt: null,
+          consolidatedAt: T1,
+          acceptedExerciseIds: ["sounds-5-x1"],
+        }),
+      },
+    });
+    const v4 = migrateV3ToV4(v3);
+    // sounds-4 still safely receives its own real visit...
+    expect(v4.levels.a1.lessons["sounds-4"].visitedAt).toBe(T0);
+    // ...and since a visit *did* land on the shared destination, sounds-5's
+    // stronger evidence is correctly accounted for via resetEvidenceLessonIds
+    // (the existing, already-correct branch) rather than orphaned twice.
+    expect(v4.migrationNotice?.resetEvidenceLessonIds).toContain("sounds-4");
+    expect(v4.levels.a1.orphanedLessonIds).not.toContain("sounds-5");
   });
 
   it.each([
@@ -475,6 +521,57 @@ describe("parseProgress → CourseProgressV4", () => {
     expect(parsed.progress.levels.a1.lessons["sounds-1"].visitedAt).toBe(T0);
   });
 
+  describe("migration notice conditions across v1/v2/v3 (Phase 2 Task 5 quality-review Important fix)", () => {
+    // Grounds *why* the static notice/help copy must never assert a reset or
+    // an orphan as a guaranteed fact: every one of these real, valid
+    // migration inputs produces a shown notice (`migrated: true`) with an
+    // empty `resetEvidenceLessonIds` and an empty `orphanedLessonIds` — the
+    // copy is shown to these users too, and nothing was actually reset or
+    // orphaned for them.
+    it("shows a migration notice with no reset/orphan evidence for a v1 payload (v1 never had practice/checkpoint evidence to lose)", () => {
+      const parsed = parseProgress(
+        JSON.stringify({
+          schemaVersion: 1,
+          completedLessonIds: ["sounds-1"],
+          lastVisitedLessonId: "sounds-1",
+          updatedAt: T0,
+        }),
+        new Set(["sounds-1"]),
+      );
+      expect(parsed.migrated).toBe(true);
+      expect(parsed.progress.migrationNotice).not.toBeNull();
+      expect(parsed.progress.migrationNotice?.resetEvidenceLessonIds).toEqual([]);
+      expect(parsed.progress.levels.a1.orphanedLessonIds).toEqual([]);
+    });
+
+    it("shows a migration notice with no reset/orphan evidence for a v2 payload (v2 never had practice/checkpoint evidence to lose)", () => {
+      const parsed = parseProgress(
+        JSON.stringify({
+          schemaVersion: 2,
+          visitedLessonIds: ["sounds-1"],
+          lastVisitedLessonId: "sounds-1",
+          updatedAt: T0,
+        }),
+        new Set(["sounds-1"]),
+      );
+      expect(parsed.migrated).toBe(true);
+      expect(parsed.progress.migrationNotice).not.toBeNull();
+      expect(parsed.progress.migrationNotice?.resetEvidenceLessonIds).toEqual([]);
+      expect(parsed.progress.levels.a1.orphanedLessonIds).toEqual([]);
+    });
+
+    it("shows a migration notice with no reset/orphan evidence for a visited-only v3 payload (nothing to reset, nothing unmapped to orphan)", () => {
+      const v3 = v3Fixture({
+        lessons: { "sounds-1": v3Lesson({ visitedAt: T0 }) },
+      });
+      const parsed = parseProgress(JSON.stringify(v3));
+      expect(parsed.migrated).toBe(true);
+      expect(parsed.progress.migrationNotice).not.toBeNull();
+      expect(parsed.progress.migrationNotice?.resetEvidenceLessonIds).toEqual([]);
+      expect(parsed.progress.levels.a1.orphanedLessonIds).toEqual([]);
+    });
+  });
+
   it("rejects malformed JSON as corrupted", () => {
     expect(parseProgress("{bad")).toEqual({
       progress: emptyProgressV4(),
@@ -498,6 +595,28 @@ describe("parseProgress → CourseProgressV4", () => {
       corrupted: true,
       migrated: false,
     });
+  });
+
+  it("rejects a v4 payload with migrationNotice entirely omitted as corrupted, never passing it through with migrationNotice silently undefined (Phase 2 Task 5 quality-review minor #2)", () => {
+    // A truly valid V4 payload must explicitly carry `migrationNotice` as
+    // either `null` or a valid record. A payload missing the field entirely
+    // is corrupt/invalid — it must never be treated as valid-and-passed-
+    // through, because that would return a `CourseProgressV4` whose
+    // `migrationNotice` is `undefined`, violating the `| null` type contract.
+    const { migrationNotice: _omitted, ...withoutMigrationNotice } = emptyProgressV4();
+    const parsed = parseProgress(JSON.stringify(withoutMigrationNotice));
+    expect(parsed.corrupted).toBe(true);
+    expect(parsed.migrated).toBe(false);
+    expect(parsed.progress).toEqual(emptyProgressV4());
+    expect(parsed.progress.migrationNotice).not.toBeUndefined();
+  });
+
+  it("still accepts a valid v4 payload whose migrationNotice is explicitly null", () => {
+    const progress = { ...emptyProgressV4(), migrationNotice: null };
+    const parsed = parseProgress(JSON.stringify(progress));
+    expect(parsed.corrupted).toBe(false);
+    expect(parsed.migrated).toBe(false);
+    expect(parsed.progress).toEqual(progress);
   });
 
   it("rejects an invalid timestamp type in v4 as corrupted", () => {

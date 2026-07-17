@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -12,6 +13,7 @@ import {
   readSetting,
   removeSetting,
   writeSetting,
+  type StoredValue,
 } from "../../settings/storage";
 import {
   type CourseProgressV3,
@@ -147,7 +149,24 @@ interface InitialProgress {
   loadStatus: "empty" | "current" | "migrated" | "corrupted" | "unavailable";
 }
 
-export function loadProgress(storage: Storage | null): InitialProgress {
+interface PreparedProgress {
+  progress: CourseProgressV4;
+  corrupted: boolean;
+  migrated: boolean;
+  stored: StoredValue;
+}
+
+/**
+ * The read/parse/reconcile portion of `loadProgress`, with zero side
+ * effects — no `setItem`, no `removeItem`. Safe to call during React render,
+ * including from a lazy `useState` initializer (Phase 2 Task 5
+ * quality-review minor #5): unlike `loadProgress`, this never writes the
+ * corrupted-cleanup removal or the migrated write-back to storage itself.
+ * `loadProgress` wraps this with those side effects for direct callers, and
+ * `ProgressProvider` instead defers them into a mount effect (see the
+ * `didCommitInitialSideEffectRef` guard below).
+ */
+export function prepareProgress(storage: Storage | null): PreparedProgress {
   const stored = readSetting(storage, STORAGE_KEY);
   const parsed = parseProgress(stored.value, knownLessonIds);
   const a1 = parsed.progress.levels.a1;
@@ -170,7 +189,13 @@ export function loadProgress(storage: Storage | null): InitialProgress {
       }
     : parsed.progress;
 
-  if (parsed.corrupted) {
+  return { progress, corrupted: parsed.corrupted, migrated: parsed.migrated, stored };
+}
+
+export function loadProgress(storage: Storage | null): InitialProgress {
+  const { progress, corrupted, migrated, stored } = prepareProgress(storage);
+
+  if (corrupted) {
     const cleanupAvailable = removeSetting(storage, STORAGE_KEY);
     return {
       progress,
@@ -181,7 +206,7 @@ export function loadProgress(storage: Storage | null): InitialProgress {
     };
   }
 
-  if (parsed.migrated) {
+  if (migrated) {
     // A v1/v2/v3 payload only ever gets deterministically migrated once: the
     // migrated v4 is written straight back so every subsequent load sees
     // schemaVersion 4 directly and passes it through by reference (never
@@ -243,16 +268,37 @@ export const ProgressContext = createContext<ProgressContextValue | undefined>(
 
 export function ProgressProvider({ children }: { children: ReactNode }) {
   const storage = useMemo(() => browserStorage(), []);
-  const [initial] = useState(() => loadProgress(storage));
+  // Render-pure: `prepareProgress` never writes to storage, so it is safe to
+  // call from this lazy `useState` initializer (Phase 2 Task 5
+  // quality-review minor #5). The corrupted-cleanup removal and the
+  // migrated write-back are deferred to the mount effect below instead of
+  // running here during render.
+  const [initial] = useState(() => prepareProgress(storage));
   const [progressV4, setProgressV4] = useState(initial.progress);
   const [corrupted, setCorrupted] = useState(initial.corrupted);
   const [persistenceAvailable, setPersistenceAvailable] = useState(
-    initial.persistenceAvailable,
+    initial.stored.available,
   );
+  // Guards the one-time initial-mount side effects (corrupted cleanup,
+  // migrated write-back) so they run exactly once, deferred from render into
+  // this effect, without re-running on every later `progressV4` change —
+  // ongoing persistence below still runs on every change as before.
+  const didCommitInitialSideEffectRef = useRef(false);
 
   useEffect(() => {
+    if (!didCommitInitialSideEffectRef.current) {
+      didCommitInitialSideEffectRef.current = true;
+      // Deferred from render (minor #5): removing a corrupted stored value
+      // is the same cleanup `loadProgress` performs for direct callers, just
+      // moved out of the lazy state initializer and into this effect.
+      if (initial.corrupted) removeSetting(storage, STORAGE_KEY);
+    }
+    // Whether this is the initial mount (current/empty, migrated, or
+    // corrupted-then-recreated) or a later change, exactly one
+    // `persistProgress` call commits `progressV4` here — never a second,
+    // duplicate write-back for the same migrated payload (minor #4).
     setPersistenceAvailable(persistProgress(storage, progressV4).status === "saved");
-  }, [progressV4, storage]);
+  }, [progressV4, storage, initial]);
 
   const progress = useMemo(
     () => levelToV3Compat(progressV4.levels.a1, progressV4.updatedAt),
