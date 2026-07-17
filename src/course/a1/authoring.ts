@@ -86,9 +86,15 @@ const FORBIDDEN_FIELD_NAMES: ReadonlySet<string> = new Set([
   "visibleTargetKey",
 ]);
 
-/** Hiragana, katakana (incl. halfwidth), and CJK ideographs. */
+/**
+ * Hiragana, katakana (incl. halfwidth), CJK ideographs, CJK compatibility
+ * ideographs, CJK symbols/punctuation (incl. the iteration mark 々 and
+ * ideographic punctuation like 。 and 、), and fullwidth ASCII (fullwidth
+ * romaji/digits/punctuation, which can otherwise smuggle Japanese-rendered
+ * text past a naive ASCII check).
+ */
 const JAPANESE_PATTERN =
-  /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff66-\uff9f]/;
+  /[\u3000-\u303f\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff01-\uff60\uff66-\uff9f]/;
 
 /**
  * Recursively assert that a value carries neither a forbidden answer/canonical
@@ -290,9 +296,14 @@ export function variantFromTuple(tuple: A1VariantTuple): SentenceVariant {
 /**
  * Assemble a *partial* A1 slice (one or more modules with their lessons) for
  * module-local authoring in later tasks, without pretending the full 48-lesson
- * release is valid. It checks only that: every lesson a module references is
- * present, every provided lesson's contract matches its canonical manifest
- * contract, and no lesson ID is provided twice.
+ * release is valid. A partial slice may cover any subset of the canonical
+ * modules/lessons, but within that subset it must be internally consistent:
+ * no lesson or module ID is provided twice (never silently overwritten), every
+ * lesson a module references is present, every provided lesson is referenced
+ * by exactly one provided module (no orphans), every provided lesson ID is a
+ * canonical A1 lesson (validated against the manifest *before* comparing
+ * contracts), and every provided lesson's contract matches its canonical
+ * manifest contract.
  */
 export function assembleA1Slice(input: A1SliceInput): A1SliceResult {
   const errors: A1SliceError[] = [];
@@ -312,8 +323,21 @@ export function assembleA1Slice(input: A1SliceInput): A1SliceResult {
 
   const moduleById: Record<ModuleId, A1ModuleRecipe> = {};
   for (const module of input.modules) {
+    if (Object.prototype.hasOwnProperty.call(moduleById, module.id)) {
+      errors.push({
+        code: "duplicate-module-id",
+        message: `Module "${module.id}" is provided more than once.`,
+        detail: module.id,
+      });
+      continue;
+    }
     moduleById[module.id] = module;
+  }
+
+  const referencedLessonIds = new Set<LessonId>();
+  for (const module of Object.values(moduleById)) {
     for (const lessonId of module.lessonIds) {
+      referencedLessonIds.add(lessonId);
       if (!Object.prototype.hasOwnProperty.call(lessonById, lessonId)) {
         errors.push({
           code: "missing-lesson",
@@ -324,12 +348,32 @@ export function assembleA1Slice(input: A1SliceInput): A1SliceResult {
     }
   }
 
-  for (const lesson of input.lessons) {
-    const expected = A1_LESSON_MANIFEST[lesson.id]?.contract;
-    if (expected && lesson.contract !== expected) {
+  for (const lesson of Object.values(lessonById)) {
+    if (!referencedLessonIds.has(lesson.id)) {
+      errors.push({
+        code: "orphan-lesson-id",
+        message: `Lesson "${lesson.id}" is provided but no provided module references it.`,
+        detail: lesson.id,
+      });
+    }
+
+    // Validate the lesson id against the canonical manifest *before* ever
+    // comparing contracts: an unrecognized id has no manifest contract to
+    // compare against, so it must not also be reported as a mismatch.
+    const manifestEntry = A1_LESSON_MANIFEST[lesson.id];
+    if (!manifestEntry) {
+      errors.push({
+        code: "unknown-lesson-id",
+        message: `Lesson "${lesson.id}" is not a canonical A1 lesson id.`,
+        detail: lesson.id,
+      });
+      continue;
+    }
+
+    if (lesson.contract !== manifestEntry.contract) {
       errors.push({
         code: "contract-mismatch",
-        message: `Lesson "${lesson.id}" contract "${lesson.contract}" does not match manifest contract "${expected}".`,
+        message: `Lesson "${lesson.id}" contract "${lesson.contract}" does not match manifest contract "${manifestEntry.contract}".`,
         detail: lesson.id,
       });
     }

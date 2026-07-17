@@ -191,7 +191,10 @@ export type A1ManifestValidationResult =
 export type A1SliceErrorCode =
   | "missing-lesson"
   | "contract-mismatch"
-  | "duplicate-lesson-id";
+  | "duplicate-lesson-id"
+  | "duplicate-module-id"
+  | "unknown-lesson-id"
+  | "orphan-lesson-id";
 
 export interface A1SliceError {
   readonly code: A1SliceErrorCode;

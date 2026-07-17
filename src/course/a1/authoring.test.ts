@@ -639,6 +639,62 @@ describe("defineA1PhoneticLesson — gates and thresholds", () => {
   });
 });
 
+describe("assertNoForbiddenContent — expanded Japanese/fullwidth scan", () => {
+  it("rejects the ideographic iteration mark 々 (U+3005)", () => {
+    try {
+      defineA1PhoneticLesson(phoneticRecipe({ outcomeCopyId: "時々" }));
+      throw new Error("expected throw");
+    } catch (error) {
+      expect((error as AuthoringError).code).toBe("japanese-literal");
+    }
+  });
+
+  it("rejects ideographic punctuation in U+3000-303F (e.g. 。)", () => {
+    try {
+      defineA1PhoneticLesson(phoneticRecipe({ outcomeCopyId: "done。" }));
+      throw new Error("expected throw");
+    } catch (error) {
+      expect((error as AuthoringError).code).toBe("japanese-literal");
+    }
+  });
+
+  it("rejects fullwidth romaji in U+FF01-FF60 (e.g. fullwidth Ａ)", () => {
+    try {
+      defineA1PhoneticLesson(phoneticRecipe({ outcomeCopyId: "Ａ" }));
+      throw new Error("expected throw");
+    } catch (error) {
+      expect((error as AuthoringError).code).toBe("japanese-literal");
+    }
+  });
+
+  it("rejects a CJK compatibility ideograph in U+F900-FAFF (e.g. 豈)", () => {
+    try {
+      defineA1PhoneticLesson(phoneticRecipe({ outcomeCopyId: "豈" }));
+      throw new Error("expected throw");
+    } catch (error) {
+      expect((error as AuthoringError).code).toBe("japanese-literal");
+    }
+  });
+
+  it("still allows legitimate Japanese through the semantic-value helper", () => {
+    const value: SemanticValue = {
+      id: "a1-value-iteration-example",
+      kind: "object",
+      tokenFragments: [
+        {
+          jp: "時々",
+          romaji: "tokidoki",
+          kind: "lexical",
+          boundaryBefore: "attach",
+        },
+      ],
+    };
+    const defined = defineA1SemanticValue(value);
+    expect(defined.tokenFragments[0].jp).toBe("時々");
+    expect(Object.isFrozen(defined)).toBe(true);
+  });
+});
+
 describe("defineA1Module — gates", () => {
   it("freezes a valid module recipe", () => {
     const defined = defineA1Module(moduleRecipe());
@@ -866,5 +922,76 @@ describe("assembleA1Slice — module-local validity", () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.errors.map((e) => e.code)).toContain("duplicate-lesson-id");
+  });
+
+  it("rejects a lesson id that is not a canonical A1 lesson", () => {
+    const lessons = [
+      ...fullModuleLessons("introductions", "instructional").slice(0, 3),
+      defineA1Lesson(
+        instructionalRecipe({
+          id: "introductions-5",
+          moduleId: "introductions",
+          order: 4,
+        }),
+      ),
+    ];
+    const module = defineA1Module(
+      moduleRecipe({
+        id: "introductions",
+        lessonIds: [
+          "introductions-1",
+          "introductions-2",
+          "introductions-3",
+          "introductions-5",
+        ],
+      }),
+    );
+    const result = assembleA1Slice({ modules: [module], lessons });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors.map((e) => e.code)).toContain("unknown-lesson-id");
+    // An unknown lesson id has no manifest contract to compare against, so it
+    // must not also be reported as a contract mismatch.
+    expect(result.errors.map((e) => e.code)).not.toContain(
+      "contract-mismatch",
+    );
+  });
+
+  it("rejects a provided lesson that no provided module references", () => {
+    const moduleId = "introductions";
+    const lessons = fullModuleLessons(moduleId, "instructional");
+    const module = defineA1Module(
+      moduleRecipe({ id: moduleId, lessonIds: lessons.map((l) => l.id) }),
+    );
+    const orphan = defineA1Lesson(
+      instructionalRecipe({
+        id: "essential-questions-1",
+        moduleId: "essential-questions",
+      }),
+    );
+    const result = assembleA1Slice({
+      modules: [module],
+      lessons: [...lessons, orphan],
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors.map((e) => e.code)).toContain("orphan-lesson-id");
+  });
+
+  it("rejects a duplicate module id without silently overwriting the first module", () => {
+    const lessons = fullModuleLessons("introductions", "instructional");
+    const first = defineA1Module(
+      moduleRecipe({ id: "introductions", lessonIds: lessons.map((l) => l.id) }),
+    );
+    const second = defineA1Module(
+      moduleRecipe({ id: "introductions", lessonIds: lessons.map((l) => l.id) }),
+    );
+    const result = assembleA1Slice({
+      modules: [first, second],
+      lessons,
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors.map((e) => e.code)).toContain("duplicate-module-id");
   });
 });
