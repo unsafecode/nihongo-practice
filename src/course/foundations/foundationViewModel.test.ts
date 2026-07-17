@@ -1,20 +1,78 @@
 import { describe, expect, it } from "vitest";
 
+import type { Locale } from "../../i18n/LocaleContext";
 import { buildFoundationLessonViewModel } from "./foundationViewModel";
 import {
+  buildLessonViewModel,
+  type FoundationCopy,
+  type FoundationLessonViewModel,
+  type FoundationLessonViewModelResult,
+} from "./buildLessonViewModel";
+import {
   FOUNDATION_FIXTURE_LESSON_IDS,
+  foundationCatalogs,
+  foundationCopy,
   foundationLessons,
 } from "./fixtures";
+import type { FoundationCatalogs } from "./types";
 
 const SEED = "phase1-foundation-preview-v1";
+const CATALOG_VERSION = "phase1-foundation-fixture-v1";
 
 /** The two authored fixture lessons, exercised as a matrix over locales. */
 const LESSON_IDS = FOUNDATION_FIXTURE_LESSON_IDS;
+const LOCALES: readonly Locale[] = ["en", "it"];
+const SEEDS: readonly string[] = [SEED, "phase1-foundation-preview-alt-seed"];
 
 function lessonById(id: string) {
   const lesson = foundationLessons.find((l) => l.id === id);
   if (!lesson) throw new Error(`missing lesson ${id}`);
   return lesson;
+}
+
+/**
+ * A structural, order-preserving projection of a view model that drops the two
+ * live resolver closures (`tokensForExample`, `tokenForTile`) so two
+ * independent builds can be compared with `toEqual` — every semantic field
+ * (matrix rows, guided delta, selected targets, prompts, localized copy) is
+ * retained.
+ */
+function serializable(model: FoundationLessonViewModel): unknown {
+  const { tokensForExample: _t, tokenForTile: _f, ...rest } = model;
+  return rest;
+}
+
+function modelOf(result: FoundationLessonViewModelResult): FoundationLessonViewModel {
+  if (!result.ok) throw new Error(`expected ok, got ${result.error.code}`);
+  return result.model;
+}
+
+/** Reverses every catalog array in place-free fashion — same members, new order. */
+function reorderedCatalogs(catalogs: FoundationCatalogs): FoundationCatalogs {
+  const rev = <T>(items: readonly T[]): readonly T[] => [...items].reverse();
+  return {
+    levels: rev(catalogs.levels),
+    modules: rev(catalogs.modules),
+    checkpoints: rev(catalogs.checkpoints),
+    canDos: rev(catalogs.canDos),
+    contexts: rev(catalogs.contexts),
+    personRoles: rev(catalogs.personRoles),
+    referents: rev(catalogs.referents),
+    learningTargetSenses: rev(catalogs.learningTargetSenses),
+    semanticValues: rev(catalogs.semanticValues),
+    sentenceFamilies: rev(catalogs.sentenceFamilies),
+    sentenceVariants: rev(catalogs.sentenceVariants),
+    lessons: rev(catalogs.lessons),
+    lessonPositions: rev(catalogs.lessonPositions),
+    verbUseRecords: rev(catalogs.verbUseRecords),
+  };
+}
+
+/** Rebuilds the copy with every locale's key order reversed — same entries. */
+function reorderedCopy(copy: FoundationCopy): FoundationCopy {
+  const revKeys = (record: Readonly<Record<string, string>>): Record<string, string> =>
+    Object.fromEntries(Object.entries(record).reverse());
+  return { en: revKeys(copy.en), it: revKeys(copy.it) };
 }
 
 describe("buildFoundationLessonViewModel", () => {
@@ -187,6 +245,175 @@ describe("buildFoundationLessonViewModel", () => {
           );
         }
       }
+    }
+  });
+});
+
+describe("buildFoundationLessonViewModel wraps the generic builder (parity)", () => {
+  const combos = LESSON_IDS.flatMap((lessonId) =>
+    LOCALES.flatMap((locale) => SEEDS.map((seed) => ({ lessonId, locale, seed }))),
+  );
+
+  it.each(combos)(
+    "wrapper output deep-equals the generic builder for $lessonId/$locale/$seed",
+    ({ lessonId, locale, seed }) => {
+      const wrapped = buildFoundationLessonViewModel(lessonId, locale, seed);
+      const generic = buildLessonViewModel({
+        catalogs: foundationCatalogs,
+        copy: foundationCopy,
+        lessonId,
+        locale,
+        catalogVersion: CATALOG_VERSION,
+        seed,
+      });
+      expect(wrapped.ok).toBe(true);
+      expect(generic.ok).toBe(true);
+      expect(serializable(modelOf(wrapped))).toEqual(
+        serializable(modelOf(generic)),
+      );
+    },
+  );
+
+  it.each(combos)(
+    "wrapper token resolvers match the generic builder for $lessonId/$locale/$seed",
+    ({ lessonId, locale, seed }) => {
+      const wrapped = modelOf(buildFoundationLessonViewModel(lessonId, locale, seed));
+      const generic = modelOf(
+        buildLessonViewModel({
+          catalogs: foundationCatalogs,
+          copy: foundationCopy,
+          lessonId,
+          locale,
+          catalogVersion: CATALOG_VERSION,
+          seed,
+        }),
+      );
+      for (const round of wrapped.rounds) {
+        for (const target of round.targets) {
+          expect(wrapped.tokensForExample(target.targetExampleId)).toEqual(
+            generic.tokensForExample(target.targetExampleId),
+          );
+        }
+      }
+    },
+  );
+});
+
+describe("buildLessonViewModel is catalog/copy-order independent", () => {
+  it.each(LESSON_IDS)(
+    "selects identical targets and matrix order under reordered catalogs/copy for %s",
+    (lessonId) => {
+      const canonical = modelOf(
+        buildLessonViewModel({
+          catalogs: foundationCatalogs,
+          copy: foundationCopy,
+          lessonId,
+          locale: "en",
+          catalogVersion: CATALOG_VERSION,
+          seed: SEED,
+        }),
+      );
+      const reordered = modelOf(
+        buildLessonViewModel({
+          catalogs: reorderedCatalogs(foundationCatalogs),
+          copy: reorderedCopy(foundationCopy),
+          lessonId,
+          locale: "en",
+          catalogVersion: CATALOG_VERSION,
+          seed: SEED,
+        }),
+      );
+      // The whole semantic projection is identical — selection, ordering, and
+      // localized copy do not depend on catalog array or copy key order.
+      expect(serializable(reordered)).toEqual(serializable(canonical));
+    },
+  );
+});
+
+describe("buildLessonViewModel returns typed failures, never partial or thrown", () => {
+  it("reports an unknown lesson id", () => {
+    const result = buildLessonViewModel({
+      catalogs: foundationCatalogs,
+      copy: foundationCopy,
+      lessonId: "no-such-lesson",
+      locale: "en",
+      catalogVersion: CATALOG_VERSION,
+      seed: SEED,
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("unknown-lesson");
+  });
+
+  it("reports a realization failure when a referenced variant is absent", () => {
+    const lessonId = LESSON_IDS[0];
+    const droppedVariantId = lessonById(lessonId).modelVariantIds[0];
+    const catalogs: FoundationCatalogs = {
+      ...foundationCatalogs,
+      sentenceVariants: foundationCatalogs.sentenceVariants.filter(
+        (v) => v.id !== droppedVariantId,
+      ),
+    };
+    const result = buildLessonViewModel({
+      catalogs,
+      copy: foundationCopy,
+      lessonId,
+      locale: "en",
+      catalogVersion: CATALOG_VERSION,
+      seed: SEED,
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("realization-failed");
+  });
+
+  it("reports a selection failure when a round's diversity contract cannot be met", () => {
+    const lessonId = LESSON_IDS[0];
+    const lesson = lessonById(lessonId);
+    const impossible = {
+      ...lesson,
+      diversityConstraints: {
+        ...lesson.diversityConstraints,
+        // More unique visible targets than the round can ever produce.
+        minUniqueTargets: 999,
+      },
+    };
+    const catalogs: FoundationCatalogs = {
+      ...foundationCatalogs,
+      lessons: foundationCatalogs.lessons.map((l) =>
+        l.id === lessonId ? impossible : l,
+      ),
+    };
+    const result = buildLessonViewModel({
+      catalogs,
+      copy: foundationCopy,
+      lessonId,
+      locale: "en",
+      catalogVersion: CATALOG_VERSION,
+      seed: SEED,
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("selection-failed");
+  });
+
+  it("resolves missing copy to empty strings without throwing or partial output", () => {
+    const emptyCopy: FoundationCopy = { en: {}, it: {} };
+    const result = buildLessonViewModel({
+      catalogs: foundationCatalogs,
+      copy: emptyCopy,
+      lessonId: LESSON_IDS[0],
+      locale: "en",
+      catalogVersion: CATALOG_VERSION,
+      seed: SEED,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.model.canDoDescriptor).toBe("");
+    for (const row of result.model.matrix.rows) {
+      expect(row.translation).toBe("");
+      // Structure (tokens/order) is intact even with no copy.
+      expect(row.tokens.length).toBeGreaterThan(0);
     }
   });
 });

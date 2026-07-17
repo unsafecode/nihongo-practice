@@ -16,6 +16,7 @@ import type {
   SentenceVariant,
   VerbUseRecord,
 } from "./types";
+import { deepFreeze } from "./deepFreeze";
 
 /**
  * Phase 1 Task 1 fixture data: representative A1/A2 sentence-foundation
@@ -34,41 +35,12 @@ function frag(
 }
 
 /**
- * Cycle-safe recursive freeze for arrays/objects/records. Every fixture
- * catalog/lesson/copy structure in this module is authored as nested plain
- * data (arrays of objects, objects of arrays, arrays of arrays, ...); a
- * shallow `Object.freeze` only locks the outermost container, leaving
- * `slotValues`, `discourse`, `form`, `tokenFragments`, `slotSchema`,
- * `practice`, `diversityConstraints`, and similar nested values mutable.
- * `deepFreeze` walks the full structure and freezes it in place — no
- * cloning, so references stay stable and types are preserved — while a
- * `seen` set guards against infinite recursion on shared or cyclic
- * references (freezing a value that's already frozen, or one already
- * visited in this call, is a no-op).
+ * Every fixture catalog/lesson/copy structure in this module is authored as
+ * nested plain data (arrays of objects, objects of arrays, arrays of arrays,
+ * ...) that must be frozen in place. The cycle-safe recursive freeze now lives
+ * in the shared `./deepFreeze` utility so the A1 release authoring layer reuses
+ * the exact same immutability guarantee instead of duplicating it.
  */
-function deepFreeze<T>(value: T, seen: WeakSet<object> = new WeakSet()): T {
-  if (value === null || typeof value !== "object") {
-    return value;
-  }
-  const asObject = value as unknown as object;
-  if (seen.has(asObject) || Object.isFrozen(asObject)) {
-    return value;
-  }
-  seen.add(asObject);
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      deepFreeze(item, seen);
-    }
-  } else {
-    for (const key of Object.keys(value as object)) {
-      deepFreeze((value as Record<string, unknown>)[key], seen);
-    }
-  }
-
-  return Object.freeze(value);
-}
-
 function freeze<T>(value: T): T {
   return deepFreeze(value);
 }
