@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { courseModules } from "../data/course";
 import { examples } from "../data/examples";
+import { lessonPlans } from "../catalog/lessonPlans";
+import {
+  A1_V3_LESSON_ID_MAP,
+  A1_V3_SOURCE_LESSON_IDS,
+} from "../progress/progress";
 import { it as itCopy } from "./it";
 import { en as enCopy } from "./en";
 import type { CourseCopy } from "./types";
@@ -292,5 +297,28 @@ describe("progress migration copy (v3→v4, Phase 2 Task 5)", () => {
     expect(itCopy.progressMigration.helpBody).not.toBe(
       itCopy.progressMigration.noticeBody,
     );
+  });
+
+  it("truthfully ties the 'visited lessons carry over' promise to every reviewed, actually-published a0-a1-v1 source lesson id — not a partial/convenient subset", () => {
+    // The spec-review blocker this test guards against: the migration notice
+    // promises visited lessons are preserved, but an earlier version of the
+    // reviewed map silently excluded the four real named v3 capstone lessons
+    // (capstones-orientation, capstones-self-introduction,
+    // capstones-everyday-outing, capstones-travel-day) — making the promise
+    // false for anyone who had actually visited a capstone. The reviewed
+    // source-id list must cover the entire real published catalog for the
+    // notice's promise to be truthful for every learner, not just some.
+    expect(new Set(A1_V3_SOURCE_LESSON_IDS)).toEqual(
+      new Set(lessonPlans.map((plan) => plan.id)),
+    );
+    for (const namedCapstone of [
+      "capstones-orientation",
+      "capstones-self-introduction",
+      "capstones-everyday-outing",
+      "capstones-travel-day",
+    ]) {
+      expect(A1_V3_SOURCE_LESSON_IDS).toContain(namedCapstone);
+      expect(A1_V3_LESSON_ID_MAP[namedCapstone]).toBeDefined();
+    }
   });
 });

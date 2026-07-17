@@ -180,16 +180,24 @@ export function emptyProgressV4(): CourseProgressV4 {
 }
 
 /**
- * The explicit, reviewed subset of v3 A1 lesson ids Phase 2 Task 5 preserves
- * (a deliberate, hand-reviewed list — not every v3 id, and not derived from
- * any catalog at runtime). Every other v3 lesson id — including this v3
- * schema's own named capstone ids (`capstones-orientation`, etc.), which
- * predate the numbered `capstones-1..4` naming used here — is an unknown id
- * under this map and becomes an A1 orphan on migration; that is intentional,
- * not a bug.
+ * The explicit, reviewed set of v3 A1 lesson ids Phase 2 Task 5 recognises as
+ * migration sources (a deliberate, hand-reviewed list — not derived from any
+ * catalog at runtime, so a future rename can never silently change what this
+ * migration does). This list is checked in tests (`progress.v4.test.ts`)
+ * against the real, currently published `a0-a1-v1` catalog — both the leaf
+ * authoring file (`../catalog/lessonPlans.ts`'s `lessonPlans`) and the
+ * assembled runtime catalog (`../data/course.ts`'s `courseModules`) — so a
+ * catalog id rename fails that test instead of quietly orphaning real
+ * learner visits. It includes this v3 schema's own real named capstone ids
+ * (`capstones-orientation`, `capstones-self-introduction`,
+ * `capstones-everyday-outing`, `capstones-travel-day`) exactly as shipped;
+ * the *numbered* `capstones-1..4` ids never existed in v3 — they are v4 A1
+ * catalog ids (`../a1/catalog/module12Capstones.ts`) — and so cannot appear
+ * here as sources. Any v3 lesson id *not* in this list is unknown under
+ * `A1_V3_LESSON_ID_MAP` and becomes an A1 orphan on migration.
  */
-export const A1_V3_PRESERVED_LESSON_IDS = [
-  "sounds-1", "sounds-2", "sounds-3", "sounds-4",
+export const A1_V3_SOURCE_LESSON_IDS = [
+  "sounds-1", "sounds-2", "sounds-3", "sounds-4", "sounds-5",
   "introductions-1", "introductions-2", "introductions-3",
   "essential-questions-1", "essential-questions-2", "essential-questions-3",
   "actions-1", "actions-2", "actions-3",
@@ -200,19 +208,57 @@ export const A1_V3_PRESERVED_LESSON_IDS = [
   "descriptions-1", "descriptions-2", "descriptions-3",
   "shopping-1", "shopping-2", "shopping-3",
   "existence-needs-1", "existence-needs-2", "existence-needs-3",
-  "capstones-1", "capstones-2", "capstones-3", "capstones-4",
+  "capstones-orientation", "capstones-self-introduction",
+  "capstones-everyday-outing", "capstones-travel-day",
 ] as const;
 
 /**
- * Maps every v3 source lesson id this migration recognises to its v4
- * destination id. Every preserved id maps to itself; `sounds-5` — a since
- * retired fifth sounds lesson — aliases onto `sounds-4` so a learner who
- * visited it keeps that evidence under the lesson that absorbed its content.
+ * Maps every v3 source lesson id this migration recognises
+ * (`A1_V3_SOURCE_LESSON_IDS`, 40 ids from the real published `a0-a1-v1`
+ * catalog) onto its v4 destination lesson id. Most ids are unchanged.
+ * `sounds-5` — a since-retired fifth sounds lesson — aliases onto
+ * `sounds-4` so a learner who visited it keeps that evidence under the
+ * lesson that absorbed its content. The four v3 *named* capstone ids alias
+ * onto the v4 catalog's four *numbered* `capstones-1..4` ids, in the same
+ * 1-4 order the named capstones were always authored in (`order: 1..4` on
+ * `capstones-orientation`..`capstones-travel-day` in
+ * `../catalog/lessonPlans.ts`): the v4 A1 catalog renamed, but did not
+ * remove, that fourth capstone slot.
  */
 export const A1_V3_LESSON_ID_MAP: Readonly<Record<string, string>> = {
-  ...Object.fromEntries(A1_V3_PRESERVED_LESSON_IDS.map((id) => [id, id])),
+  ...Object.fromEntries(A1_V3_SOURCE_LESSON_IDS.map((id) => [id, id])),
   "sounds-5": "sounds-4",
+  "capstones-orientation": "capstones-1",
+  "capstones-self-introduction": "capstones-2",
+  "capstones-everyday-outing": "capstones-3",
+  "capstones-travel-day": "capstones-4",
 };
+
+/**
+ * The canonical, de-duplicated v4 destination lesson ids `migrateV3ToV4`
+ * iterates in order, so its output never depends on the source payload's key
+ * ordering. Derived once, at module load, from `A1_V3_LESSON_ID_MAP`'s
+ * values in `A1_V3_SOURCE_LESSON_IDS` order — never hand-maintained
+ * separately from the map, so it cannot drift out of sync with it. Has 39
+ * entries: 40 sources minus one, because `sounds-5` collapses onto the
+ * already-listed `sounds-4` rather than adding a new destination.
+ */
+export const A1_V4_DESTINATION_LESSON_IDS: readonly string[] = dedupeInEncounterOrder(
+  A1_V3_SOURCE_LESSON_IDS.map((sourceId) => A1_V3_LESSON_ID_MAP[sourceId]),
+);
+
+/**
+ * @deprecated Kept only for backward compatibility with any code that
+ * imported this name before the Phase 2 Task 5 spec-review blocker fix. Its
+ * value is exactly `A1_V4_DESTINATION_LESSON_IDS` — the *destination*-space
+ * canonical order `migrateV3ToV4` iterates — never the v3 *source* ids (use
+ * `A1_V3_SOURCE_LESSON_IDS` for those). The old name conflated the two,
+ * which is exactly what caused the original blocker: it listed
+ * `capstones-1..4` (v4 destination ids that never existed in v3) as if they
+ * were v3 source ids to preserve, silently orphaning every real historical
+ * capstone visit.
+ */
+export const A1_V3_PRESERVED_LESSON_IDS = A1_V4_DESTINATION_LESSON_IDS;
 
 function hasStrongerEvidence(lesson: LessonProgressV3): boolean {
   return (
@@ -227,12 +273,13 @@ function hasStrongerEvidence(lesson: LessonProgressV3): boolean {
  * Deterministically migrates a v3 payload into v4 (design spec §17, Phase 2
  * Task 5 steps 2-3). Visited-only: only `visitedAt` transfers for the
  * reviewed `A1_V3_LESSON_ID_MAP`, dropping every other kind of evidence.
- * Iterates the map's destinations in canonical (not payload-encounter) order
- * so the result never depends on the source JSON's key ordering. When more
- * than one source id maps to the same destination (`sounds-4`/`sounds-5`),
- * the earliest non-null `visitedAt` wins (ISO-8601 strings sort
- * lexicographically), and the destination is flagged in
- * `resetEvidenceLessonIds` if *any* contributing source id had
+ * Iterates `A1_V4_DESTINATION_LESSON_IDS` — the map's destinations in
+ * canonical (not payload-encounter) order — so the result never depends on
+ * the source JSON's key ordering. When more than one source id maps to the
+ * same destination (`sounds-4`/`sounds-5`, or a named v3 capstone id and its
+ * numbered v4 destination), the earliest non-null `visitedAt` wins
+ * (ISO-8601 strings sort lexicographically), and the destination is flagged
+ * in `resetEvidenceLessonIds` if *any* contributing source id had
  * practiced/consolidated/attempted/accepted evidence that this migration
  * discards. The review queue is cleared entirely — the new catalog's review
  * keys share nothing with the old ones. A2 is always completely empty. Never
@@ -251,7 +298,7 @@ export function migrateV3ToV4(v3: CourseProgressV3): CourseProgressV4 {
   const preservedVisitedLessonIds: string[] = [];
   const resetEvidenceLessonIds: string[] = [];
 
-  for (const destinationId of A1_V3_PRESERVED_LESSON_IDS) {
+  for (const destinationId of A1_V4_DESTINATION_LESSON_IDS) {
     const sourceIds = sourceIdsByDestination.get(destinationId) ?? [destinationId];
     let earliestVisitedAt: string | null = null;
     let lostStrongerEvidence = false;
