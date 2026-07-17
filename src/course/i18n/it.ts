@@ -208,7 +208,16 @@ const itUi = {
     unavailableBody:
       "Alcuni contenuti di questa lezione non si sono potuti costruire ora. Non è stato mostrato nulla, così non ti eserciti mai su un esempio incompleto.",
   },
-} satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation">;
+  progressMigration: {
+    noticeTitle: "I tuoi progressi nel percorso sono stati ricostruiti",
+    noticeBody:
+      "La struttura del percorso è cambiata. Le lezioni che avevi visitato risultano ancora visitate, ma i tentativi di pratica, gli elementi di ripasso e i risultati delle verifiche precedenti sono stati azzerati: gli esercizi sono cambiati, quindi dovrai completarli di nuovo.",
+    acknowledge: "Ho capito",
+    helpTitle: "Informazioni sulla ricostruzione del percorso",
+    helpBody:
+      "Una versione precedente di questo percorso teneva traccia dei progressi in modo diverso. Con l'aggiornamento sono state mantenute solo le lezioni che avevi visitato; i tentativi di pratica, gli elementi di ripasso salvati e i risultati delle verifiche precedenti sono stati cancellati perché non corrispondono più agli esercizi rinnovati.",
+  },
+} satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
 
 const itCourseMap: CourseCopy["courseMap"] = {
   heading: "Le fasi del percorso",

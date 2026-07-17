@@ -15,14 +15,16 @@ import {
 } from "../../settings/storage";
 import {
   type CourseProgressV3,
+  type CourseProgressV4,
   type ExerciseEvidence,
-  emptyProgress,
+  type LevelProgress,
+  emptyProgressV4,
   markLessonVisited,
   parseProgress,
   recordExerciseAcceptance,
   recordExerciseMistake,
 } from "./progress";
-import { reconcileReviewQueue, reviewKeyFor } from "./reviewQueue";
+import { reconcileReviewQueueEntries, reviewKeyFor } from "./reviewQueue";
 import { exerciseIdsByLesson } from "../catalog/exercises";
 import { courseModules } from "../data/course";
 
@@ -87,6 +89,45 @@ function evidenceFor(
   };
 }
 
+/**
+ * Bridges v4's level-aware storage onto the still-v3-shaped public
+ * `ProgressContextValue.progress` field. The app's existing components
+ * (`CourseHome`, `LessonPage`, etc.) all target the A1 catalog today and were
+ * built entirely against `CourseProgressV3`; rather than touch every
+ * consumer for Phase 2 Task 5, `progressV4.levels.a1` is projected through
+ * this bridge so those components keep working unchanged while progress is
+ * actually stored level-aware underneath (spec §17). `canDos` and
+ * `checkpointAttempts` have no v3 analogue and are intentionally dropped in
+ * this direction — nothing v3-shaped ever reads them.
+ */
+function levelToV3Compat(level: LevelProgress, updatedAt: string): CourseProgressV3 {
+  return {
+    schemaVersion: 3,
+    catalogVersion: "a0-a1-v1",
+    lessons: { ...level.lessons },
+    lastVisitedLessonId: level.lastVisitedLessonId,
+    reviewQueue: [...level.reviewQueue],
+    orphanedLessonIds: [...level.orphanedLessonIds],
+    orphanedReviewKeys: [...level.orphanedReviewKeys],
+    updatedAt,
+  };
+}
+
+/** The inverse of `levelToV3Compat`: folds a v3-shaped mutation result back
+ * into a `LevelProgress`, preserving whatever v4-only evidence (`canDos`,
+ * `checkpointAttempts`) the level already carried — the v3 mutators never
+ * see or touch those fields, so they must never be discarded here. */
+function v3CompatToLevel(v3: CourseProgressV3, previous: LevelProgress): LevelProgress {
+  return {
+    ...previous,
+    lessons: v3.lessons,
+    lastVisitedLessonId: v3.lastVisitedLessonId,
+    reviewQueue: v3.reviewQueue,
+    orphanedLessonIds: v3.orphanedLessonIds,
+    orphanedReviewKeys: v3.orphanedReviewKeys,
+  };
+}
+
 export interface ProgressContextValue {
   progress: CourseProgressV3;
   corrupted: boolean;
@@ -99,7 +140,7 @@ export interface ProgressContextValue {
 }
 
 interface InitialProgress {
-  progress: CourseProgressV3;
+  progress: CourseProgressV4;
   corrupted: boolean;
   migrated: boolean;
   persistenceAvailable: boolean;
@@ -109,23 +150,63 @@ interface InitialProgress {
 export function loadProgress(storage: Storage | null): InitialProgress {
   const stored = readSetting(storage, STORAGE_KEY);
   const parsed = parseProgress(stored.value, knownLessonIds);
-  const cleanupAvailable = parsed.corrupted
-    ? removeSetting(storage, STORAGE_KEY)
-    : stored.available;
+  const a1 = parsed.progress.levels.a1;
+  const reconciled = reconcileReviewQueueEntries(
+    a1.reviewQueue,
+    a1.orphanedReviewKeys,
+    knownReviewKeys,
+  );
+  const progress: CourseProgressV4 = reconciled.changed
+    ? {
+        ...parsed.progress,
+        levels: {
+          ...parsed.progress.levels,
+          a1: {
+            ...a1,
+            reviewQueue: reconciled.reviewQueue,
+            orphanedReviewKeys: reconciled.orphanedReviewKeys,
+          },
+        },
+      }
+    : parsed.progress;
+
+  if (parsed.corrupted) {
+    const cleanupAvailable = removeSetting(storage, STORAGE_KEY);
+    return {
+      progress,
+      corrupted: true,
+      migrated: false,
+      persistenceAvailable: stored.available && cleanupAvailable,
+      loadStatus: !stored.available ? "unavailable" : "corrupted",
+    };
+  }
+
+  if (parsed.migrated) {
+    // A v1/v2/v3 payload only ever gets deterministically migrated once: the
+    // migrated v4 is written straight back so every subsequent load sees
+    // schemaVersion 4 directly and passes it through by reference (never
+    // re-running the migration, never re-stamping its notice or
+    // timestamps). If the write fails, the migrated v4 is still returned
+    // for use in memory this session, persistence is reported unavailable,
+    // and the raw v3 (or older) bytes already on disk are left completely
+    // untouched — `writeSetting` either fully replaces the stored value or
+    // throws without touching it, never a partial write.
+    const writeResult = persistProgress(storage, progress);
+    return {
+      progress,
+      corrupted: false,
+      migrated: true,
+      persistenceAvailable: stored.available && writeResult.status === "saved",
+      loadStatus: !stored.available ? "unavailable" : "migrated",
+    };
+  }
+
   return {
-    progress: reconcileReviewQueue(parsed.progress, knownReviewKeys),
-    corrupted: parsed.corrupted,
-    migrated: parsed.migrated,
-    persistenceAvailable: stored.available && cleanupAvailable,
-    loadStatus: !stored.available
-      ? "unavailable"
-      : parsed.corrupted
-        ? "corrupted"
-        : parsed.migrated
-          ? "migrated"
-          : stored.value === null
-            ? "empty"
-            : "current",
+    progress,
+    corrupted: false,
+    migrated: false,
+    persistenceAvailable: stored.available,
+    loadStatus: !stored.available ? "unavailable" : stored.value === null ? "empty" : "current",
   };
 }
 
@@ -141,7 +222,7 @@ export type ProgressPersistenceResult =
  */
 export function persistProgress(
   storage: Storage | null,
-  progress: CourseProgressV3,
+  progress: CourseProgressV4,
 ): ProgressPersistenceResult {
   return writeSetting(storage, STORAGE_KEY, JSON.stringify(progress))
     ? { status: "saved" }
@@ -163,18 +244,32 @@ export const ProgressContext = createContext<ProgressContextValue | undefined>(
 export function ProgressProvider({ children }: { children: ReactNode }) {
   const storage = useMemo(() => browserStorage(), []);
   const [initial] = useState(() => loadProgress(storage));
-  const [progress, setProgress] = useState(initial.progress);
+  const [progressV4, setProgressV4] = useState(initial.progress);
   const [corrupted, setCorrupted] = useState(initial.corrupted);
   const [persistenceAvailable, setPersistenceAvailable] = useState(
     initial.persistenceAvailable,
   );
 
   useEffect(() => {
-    setPersistenceAvailable(persistProgress(storage, progress).status === "saved");
-  }, [progress, storage]);
+    setPersistenceAvailable(persistProgress(storage, progressV4).status === "saved");
+  }, [progressV4, storage]);
+
+  const progress = useMemo(
+    () => levelToV3Compat(progressV4.levels.a1, progressV4.updatedAt),
+    [progressV4],
+  );
 
   const markVisited = useCallback((lessonId: string) => {
-    setProgress((current) => markLessonVisited(current, lessonId));
+    setProgressV4((current) => {
+      const v3 = levelToV3Compat(current.levels.a1, current.updatedAt);
+      const nextV3 = markLessonVisited(v3, lessonId);
+      if (nextV3 === v3) return current;
+      return {
+        ...current,
+        levels: { ...current.levels, a1: v3CompatToLevel(nextV3, current.levels.a1) },
+        updatedAt: nextV3.updatedAt,
+      };
+    });
   }, []);
 
   const recordAttempt = useCallback((input: ExerciseAttemptInput) => {
@@ -186,11 +281,19 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       input.targetLexemeIds,
       at,
     );
-    setProgress((current) =>
-      input.outcome === "accepted"
-        ? recordExerciseAcceptance(current, evidence, "lesson")
-        : recordExerciseMistake(current, evidence),
-    );
+    setProgressV4((current) => {
+      const v3 = levelToV3Compat(current.levels.a1, current.updatedAt);
+      const nextV3 =
+        input.outcome === "accepted"
+          ? recordExerciseAcceptance(v3, evidence, "lesson")
+          : recordExerciseMistake(v3, evidence);
+      if (nextV3 === v3) return current;
+      return {
+        ...current,
+        levels: { ...current.levels, a1: v3CompatToLevel(nextV3, current.levels.a1) },
+        updatedAt: nextV3.updatedAt,
+      };
+    });
   }, []);
 
   const resolveReview = useCallback((input: ReviewResolutionInput) => {
@@ -202,7 +305,16 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       input.targetLexemeIds,
       at,
     );
-    setProgress((current) => recordExerciseAcceptance(current, evidence, "review"));
+    setProgressV4((current) => {
+      const v3 = levelToV3Compat(current.levels.a1, current.updatedAt);
+      const nextV3 = recordExerciseAcceptance(v3, evidence, "review");
+      if (nextV3 === v3) return current;
+      return {
+        ...current,
+        levels: { ...current.levels, a1: v3CompatToLevel(nextV3, current.levels.a1) },
+        updatedAt: nextV3.updatedAt,
+      };
+    });
   }, []);
 
   const dismissCorruption = useCallback(() => {
@@ -213,7 +325,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
     setCorrupted(false);
     const result = resetStoredProgress(storage);
     setPersistenceAvailable(result.status === "removed");
-    if (result.status === "removed") setProgress(emptyProgress());
+    if (result.status === "removed") setProgressV4(emptyProgressV4());
   }, [storage]);
 
   const value = useMemo<ProgressContextValue>(

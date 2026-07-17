@@ -206,7 +206,16 @@ const enUi = {
     unavailableBody:
       "Some of this lesson's content could not be built right now. Nothing was shown so you never practice against a broken example.",
   },
-} satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation">;
+  progressMigration: {
+    noticeTitle: "Your course progress was rebuilt",
+    noticeBody:
+      "The course structure changed. Lessons you had visited are still marked as visited, but practice attempts, review items, and checkpoint results from before were reset — the exercises changed, so you will need to complete them again.",
+    acknowledge: "Got it",
+    helpTitle: "About the course rebuild",
+    helpBody:
+      "An earlier version of this course tracked progress differently. When it updated, only the lessons you had visited carried over; practice attempts, saved review items, and checkpoint results from before the update were cleared because they no longer match the redesigned exercises.",
+  },
+} satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
 
 const enCourseMap: CourseCopy["courseMap"] = {
   heading: "The course phases",

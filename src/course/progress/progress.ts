@@ -64,8 +64,333 @@ export interface CourseProgressV3 {
   updatedAt: string;
 }
 
+// ── V4: level-aware progress (A1/A2), visited-only migration ──────────────
+//
+// Phase 2 Task 5 replaces the single-level v3 schema with a level-aware v4
+// schema (design spec §17). v3 predates the A1/A2 split entirely, so there is
+// no lossless "same shape, more fields" migration path: v3→v4 is a
+// deliberate, one-way, visited-only migration. Only `visitedAt` transfers for
+// a small explicit, reviewed map of v3 A1 lesson ids (`A1_V3_LESSON_ID_MAP`)
+// — every other kind of evidence (practiced/consolidated timestamps,
+// attempted/accepted exercise ids, review-queue entries, Can-do evidence,
+// checkpoint attempts) is deliberately reset to zero, because the A1/A2
+// catalog's exercises are new authored content the learner has never
+// actually attempted. A2 always starts completely empty: no v3 concept of a
+// second level ever existed to migrate from.
+//
+// This is a pure, deterministic, idempotent, side-effect-free migration:
+// given the same v3 input it always produces the same v4 output (by value),
+// it never mutates its input, and it never calls `Date` — every timestamp in
+// the result is either the source's own `updatedAt` or `null`.
+
+export type CourseLevelId = "a1" | "a2";
+export type LessonId = string;
+export type CanDoId = string;
+export type CheckpointId = string;
+export type ExerciseDefinitionId = string;
+export type CheckpointAttemptId = string;
+
+/** Alias kept for v4 naming parity with the design spec; identical shape to v3. */
+export type LessonProgress = LessonProgressV3;
+
+/**
+ * Observed evidence for one Can-do statement (design spec §8). Only ever
+ * records what actually happened — visited/practiced lessons, accepted
+ * transfer exercises, and checkpoint attempts that sampled it — never a
+ * pass/fail verdict or a mastery/certification claim.
+ */
+export interface CanDoEvidence {
+  readonly canDoId: CanDoId;
+  readonly visitedLessonIds: readonly LessonId[];
+  readonly practicedLessonIds: readonly LessonId[];
+  readonly acceptedTransferExerciseIds: readonly ExerciseDefinitionId[];
+  readonly checkpointAttemptIds: readonly CheckpointAttemptId[];
+  readonly lastUpdatedAt: string;
+}
+
+/**
+ * One completed checkpoint attempt. The design spec (§17) references
+ * `CheckpointAttemptId` but never defines this interface's shape; this is
+ * modeled after `A1CheckpointDefinition`'s scenario/sampled-Can-do/minimum-
+ * accepted-transfer-targets fields. Records only observational evidence —
+ * which exercises were accepted and which Can-dos were sampled — never a
+ * pass/fail verdict, matching `CanDoEvidence`'s truthful-copy constraint.
+ */
+export interface CheckpointAttempt {
+  readonly id: CheckpointAttemptId;
+  readonly checkpointId: CheckpointId;
+  readonly attemptedAt: string;
+  readonly acceptedExerciseIds: readonly ExerciseDefinitionId[];
+  readonly sampledCanDoIds: readonly CanDoId[];
+}
+
+/** One level's (A1 or A2) complete, independent progress (design spec §17). */
+export interface LevelProgress {
+  readonly lessons: Readonly<Record<LessonId, LessonProgress>>;
+  readonly canDos: Readonly<Record<CanDoId, CanDoEvidence>>;
+  readonly checkpointAttempts: readonly CheckpointAttempt[];
+  readonly lastVisitedLessonId: LessonId | null;
+  readonly reviewQueue: readonly ReviewQueueEntry[];
+  readonly orphanedLessonIds: readonly string[];
+  readonly orphanedReviewKeys: readonly string[];
+}
+
+/**
+ * Records that a v3→v4 migration happened and exactly what it did, so the UI
+ * can show a truthful, dismissible one-time notice (design spec §17, Phase 2
+ * Task 5 step 5). `acknowledgedAt` starts `null` and is set once the learner
+ * dismisses the notice — acknowledging never deletes this record, so the
+ * "what changed" explanation can stay available in progress help.
+ */
+export interface ProgressMigrationNotice {
+  readonly fromSchemaVersion: 3;
+  readonly preservedVisitedLessonIds: readonly LessonId[];
+  readonly resetEvidenceLessonIds: readonly LessonId[];
+  readonly acknowledgedAt: string | null;
+}
+
+export interface CourseProgressV4 {
+  readonly schemaVersion: 4;
+  readonly catalogVersion: "a1-a2-v1";
+  readonly levels: Readonly<Record<CourseLevelId, LevelProgress>>;
+  readonly migrationNotice: ProgressMigrationNotice | null;
+  readonly updatedAt: string;
+}
+
+export function emptyLevelProgress(): LevelProgress {
+  return {
+    lessons: {},
+    canDos: {},
+    checkpointAttempts: [],
+    lastVisitedLessonId: null,
+    reviewQueue: [],
+    orphanedLessonIds: [],
+    orphanedReviewKeys: [],
+  };
+}
+
+export function emptyProgressV4(): CourseProgressV4 {
+  return {
+    schemaVersion: 4,
+    catalogVersion: "a1-a2-v1",
+    levels: { a1: emptyLevelProgress(), a2: emptyLevelProgress() },
+    migrationNotice: null,
+    updatedAt: new Date(0).toISOString(),
+  };
+}
+
+/**
+ * The explicit, reviewed subset of v3 A1 lesson ids Phase 2 Task 5 preserves
+ * (a deliberate, hand-reviewed list — not every v3 id, and not derived from
+ * any catalog at runtime). Every other v3 lesson id — including this v3
+ * schema's own named capstone ids (`capstones-orientation`, etc.), which
+ * predate the numbered `capstones-1..4` naming used here — is an unknown id
+ * under this map and becomes an A1 orphan on migration; that is intentional,
+ * not a bug.
+ */
+export const A1_V3_PRESERVED_LESSON_IDS = [
+  "sounds-1", "sounds-2", "sounds-3", "sounds-4",
+  "introductions-1", "introductions-2", "introductions-3",
+  "essential-questions-1", "essential-questions-2", "essential-questions-3",
+  "actions-1", "actions-2", "actions-3",
+  "routines-1", "routines-2", "routines-3",
+  "past-negative-1", "past-negative-2", "past-negative-3",
+  "places-1", "places-2", "places-3", "places-4",
+  "people-1", "people-2", "people-3",
+  "descriptions-1", "descriptions-2", "descriptions-3",
+  "shopping-1", "shopping-2", "shopping-3",
+  "existence-needs-1", "existence-needs-2", "existence-needs-3",
+  "capstones-1", "capstones-2", "capstones-3", "capstones-4",
+] as const;
+
+/**
+ * Maps every v3 source lesson id this migration recognises to its v4
+ * destination id. Every preserved id maps to itself; `sounds-5` — a since
+ * retired fifth sounds lesson — aliases onto `sounds-4` so a learner who
+ * visited it keeps that evidence under the lesson that absorbed its content.
+ */
+export const A1_V3_LESSON_ID_MAP: Readonly<Record<string, string>> = {
+  ...Object.fromEntries(A1_V3_PRESERVED_LESSON_IDS.map((id) => [id, id])),
+  "sounds-5": "sounds-4",
+};
+
+function hasStrongerEvidence(lesson: LessonProgressV3): boolean {
+  return (
+    lesson.practicedAt !== null ||
+    lesson.consolidatedAt !== null ||
+    lesson.attemptedExerciseIds.length > 0 ||
+    lesson.acceptedExerciseIds.length > 0
+  );
+}
+
+/**
+ * Deterministically migrates a v3 payload into v4 (design spec §17, Phase 2
+ * Task 5 steps 2-3). Visited-only: only `visitedAt` transfers for the
+ * reviewed `A1_V3_LESSON_ID_MAP`, dropping every other kind of evidence.
+ * Iterates the map's destinations in canonical (not payload-encounter) order
+ * so the result never depends on the source JSON's key ordering. When more
+ * than one source id maps to the same destination (`sounds-4`/`sounds-5`),
+ * the earliest non-null `visitedAt` wins (ISO-8601 strings sort
+ * lexicographically), and the destination is flagged in
+ * `resetEvidenceLessonIds` if *any* contributing source id had
+ * practiced/consolidated/attempted/accepted evidence that this migration
+ * discards. The review queue is cleared entirely — the new catalog's review
+ * keys share nothing with the old ones. A2 is always completely empty. Never
+ * calls `Date` — every timestamp comes from the source payload. Pure: never
+ * mutates `v3`.
+ */
+export function migrateV3ToV4(v3: CourseProgressV3): CourseProgressV4 {
+  const sourceIdsByDestination = new Map<string, string[]>();
+  for (const [sourceId, destinationId] of Object.entries(A1_V3_LESSON_ID_MAP)) {
+    const sources = sourceIdsByDestination.get(destinationId) ?? [];
+    sources.push(sourceId);
+    sourceIdsByDestination.set(destinationId, sources);
+  }
+
+  const lessons: Record<string, LessonProgress> = {};
+  const preservedVisitedLessonIds: string[] = [];
+  const resetEvidenceLessonIds: string[] = [];
+
+  for (const destinationId of A1_V3_PRESERVED_LESSON_IDS) {
+    const sourceIds = sourceIdsByDestination.get(destinationId) ?? [destinationId];
+    let earliestVisitedAt: string | null = null;
+    let lostStrongerEvidence = false;
+    for (const sourceId of sourceIds) {
+      const source = v3.lessons[sourceId];
+      if (!source) continue;
+      const visitedAt = source.visitedAt;
+      if (visitedAt !== null) {
+        if (earliestVisitedAt === null || visitedAt < earliestVisitedAt) {
+          earliestVisitedAt = visitedAt;
+        }
+      }
+      if (hasStrongerEvidence(source)) lostStrongerEvidence = true;
+    }
+    if (earliestVisitedAt === null) continue;
+    lessons[destinationId] = {
+      visitedAt: earliestVisitedAt,
+      practicedAt: null,
+      consolidatedAt: null,
+      attemptedExerciseIds: [],
+      acceptedExerciseIds: [],
+    };
+    preservedVisitedLessonIds.push(destinationId);
+    if (lostStrongerEvidence) resetEvidenceLessonIds.push(destinationId);
+  }
+
+  const mappedSourceIds = new Set(Object.keys(A1_V3_LESSON_ID_MAP));
+  const unmappedSourceLessonIds = Object.keys(v3.lessons).filter(
+    (lessonId) => !mappedSourceIds.has(lessonId),
+  );
+  const orphanedLessonIds = dedupeInEncounterOrder([
+    ...v3.orphanedLessonIds,
+    ...unmappedSourceLessonIds,
+  ]);
+
+  const lastVisitedLessonId =
+    v3.lastVisitedLessonId === null
+      ? null
+      : (A1_V3_LESSON_ID_MAP[v3.lastVisitedLessonId] ?? v3.lastVisitedLessonId);
+
+  const a1: LevelProgress = {
+    lessons,
+    canDos: {},
+    checkpointAttempts: [],
+    lastVisitedLessonId,
+    reviewQueue: [],
+    orphanedLessonIds,
+    orphanedReviewKeys: [],
+  };
+
+  return {
+    schemaVersion: 4,
+    catalogVersion: "a1-a2-v1",
+    levels: { a1, a2: emptyLevelProgress() },
+    migrationNotice: {
+      fromSchemaVersion: 3,
+      preservedVisitedLessonIds,
+      resetEvidenceLessonIds,
+      acknowledgedAt: null,
+    },
+    updatedAt: v3.updatedAt,
+  };
+}
+
+function isCanDoEvidence(value: unknown): value is CanDoEvidence {
+  if (!value || typeof value !== "object") return false;
+  const evidence = value as Partial<CanDoEvidence>;
+  return (
+    typeof evidence.canDoId === "string" &&
+    isStringArray(evidence.visitedLessonIds) &&
+    isStringArray(evidence.practicedLessonIds) &&
+    isStringArray(evidence.acceptedTransferExerciseIds) &&
+    isStringArray(evidence.checkpointAttemptIds) &&
+    typeof evidence.lastUpdatedAt === "string"
+  );
+}
+
+function isCheckpointAttempt(value: unknown): value is CheckpointAttempt {
+  if (!value || typeof value !== "object") return false;
+  const attempt = value as Partial<CheckpointAttempt>;
+  return (
+    typeof attempt.id === "string" &&
+    typeof attempt.checkpointId === "string" &&
+    typeof attempt.attemptedAt === "string" &&
+    isStringArray(attempt.acceptedExerciseIds) &&
+    isStringArray(attempt.sampledCanDoIds)
+  );
+}
+
+function isLevelProgress(value: unknown): value is LevelProgress {
+  if (!value || typeof value !== "object") return false;
+  const level = value as Partial<LevelProgress>;
+  return (
+    !!level.lessons &&
+    typeof level.lessons === "object" &&
+    Object.values(level.lessons).every(isLessonProgressV3) &&
+    !!level.canDos &&
+    typeof level.canDos === "object" &&
+    Object.values(level.canDos).every(isCanDoEvidence) &&
+    Array.isArray(level.checkpointAttempts) &&
+    level.checkpointAttempts.every(isCheckpointAttempt) &&
+    isOptionalString(level.lastVisitedLessonId ?? null) &&
+    Array.isArray(level.reviewQueue) &&
+    level.reviewQueue.every(isReviewQueueEntry) &&
+    isStringArray(level.orphanedLessonIds) &&
+    isStringArray(level.orphanedReviewKeys)
+  );
+}
+
+function isProgressMigrationNotice(
+  value: unknown,
+): value is ProgressMigrationNotice | null {
+  if (value === null) return true;
+  if (typeof value !== "object") return false;
+  const notice = value as Partial<ProgressMigrationNotice>;
+  return (
+    notice.fromSchemaVersion === 3 &&
+    isStringArray(notice.preservedVisitedLessonIds) &&
+    isStringArray(notice.resetEvidenceLessonIds) &&
+    isOptionalString(notice.acknowledgedAt ?? null)
+  );
+}
+
+function isValidV4Shape(value: Partial<CourseProgressV4>): value is CourseProgressV4 {
+  return (
+    value.schemaVersion === 4 &&
+    value.catalogVersion === "a1-a2-v1" &&
+    !!value.levels &&
+    typeof value.levels === "object" &&
+    Object.keys(value.levels).length === 2 &&
+    isLevelProgress(value.levels.a1) &&
+    isLevelProgress(value.levels.a2) &&
+    isProgressMigrationNotice(value.migrationNotice ?? null) &&
+    typeof value.updatedAt === "string"
+  );
+}
+
 export interface ProgressParseResult {
-  progress: CourseProgressV3;
+  progress: CourseProgressV4;
   corrupted: boolean;
   migrated: boolean;
 }
@@ -220,13 +545,15 @@ export function migrateV2ToV3(
 }
 
 /**
- * Parses raw stored text into current-schema (v2) progress.
+ * Parses raw stored text into current-schema (v4) progress.
  * Explicit, non-throwing behavior for every payload shape:
- * - `null` (nothing stored yet) -> empty v2 progress, not corrupted.
- * - valid v2 -> passed through unchanged.
- * - valid v1 -> migrated to v2 via migrateV1ToV2.
- * - malformed JSON, malformed v1/v2 shape, missing schemaVersion, or a
- *   future/unknown schemaVersion -> empty v2 progress, corrupted: true.
+ * - `null` (nothing stored yet) -> empty v4 progress, not corrupted.
+ * - valid v4 -> passed through unchanged, by direct reference (no migration).
+ * - valid v3 -> migrated to v4 via migrateV3ToV4 (visited-only, Phase 2 Task 5).
+ * - valid v2 -> migrated to v3 via migrateV2ToV3, then to v4.
+ * - valid v1 -> migrated to v2 via migrateV1ToV2, then to v3, then to v4.
+ * - malformed JSON, malformed v1/v2/v3/v4 shape, missing schemaVersion, or a
+ *   future/unknown schemaVersion -> empty v4 progress, corrupted: true.
  * No genuine unversioned (pre-schemaVersion) payload has ever shipped from
  * this codebase, so an absent schemaVersion is treated as corrupted rather
  * than guessed at.
@@ -236,47 +563,54 @@ export function parseProgress(
   knownLessonIds?: ReadonlySet<string>,
 ): ProgressParseResult {
   if (raw === null) {
-    return { progress: emptyProgress(), corrupted: false, migrated: false };
+    return { progress: emptyProgressV4(), corrupted: false, migrated: false };
   }
   try {
     const value = JSON.parse(raw) as { schemaVersion?: unknown };
+    if (value.schemaVersion === 4) {
+      const candidate = value as Partial<CourseProgressV4>;
+      return isValidV4Shape(candidate)
+        ? { progress: candidate, corrupted: false, migrated: false }
+        : { progress: emptyProgressV4(), corrupted: true, migrated: false };
+    }
     if (value.schemaVersion === 3) {
       const candidate = value as Partial<CourseProgressV3>;
       return isValidV3Shape(candidate)
-        ? { progress: candidate, corrupted: false, migrated: false }
-        : { progress: emptyProgress(), corrupted: true, migrated: false };
+        ? { progress: migrateV3ToV4(candidate), corrupted: false, migrated: true }
+        : { progress: emptyProgressV4(), corrupted: true, migrated: false };
     }
     if (value.schemaVersion === 2) {
       const candidate = value as Partial<CourseProgressV2>;
       return isValidV2Shape(candidate)
         ? {
-            progress: migrateV2ToV3(
-              candidate,
-              knownLessonIds ?? new Set(candidate.visitedLessonIds),
+            progress: migrateV3ToV4(
+              migrateV2ToV3(
+                candidate,
+                knownLessonIds ?? new Set(candidate.visitedLessonIds),
+              ),
             ),
             corrupted: false,
             migrated: true,
           }
-        : { progress: emptyProgress(), corrupted: true, migrated: false };
+        : { progress: emptyProgressV4(), corrupted: true, migrated: false };
     }
     if (value.schemaVersion === 1) {
       const candidate = value as Partial<CourseProgressV1>;
       if (!isValidV1Shape(candidate)) {
-        return { progress: emptyProgress(), corrupted: true, migrated: false };
+        return { progress: emptyProgressV4(), corrupted: true, migrated: false };
       }
       const v2 = migrateV1ToV2(candidate);
       return {
-        progress: migrateV2ToV3(
-          v2,
-          knownLessonIds ?? new Set(v2.visitedLessonIds),
+        progress: migrateV3ToV4(
+          migrateV2ToV3(v2, knownLessonIds ?? new Set(v2.visitedLessonIds)),
         ),
         corrupted: false,
         migrated: true,
       };
     }
-    return { progress: emptyProgress(), corrupted: true, migrated: false };
+    return { progress: emptyProgressV4(), corrupted: true, migrated: false };
   } catch {
-    return { progress: emptyProgress(), corrupted: true, migrated: false };
+    return { progress: emptyProgressV4(), corrupted: true, migrated: false };
   }
 }
 
@@ -573,4 +907,204 @@ export function recommendContinuationLessonId(
   }
 
   return orderedLessons[0].id;
+}
+
+// ── V4 level-scoped mutators: Can-do evidence, checkpoint attempts, clearing ──
+//
+// These are new pure, exported functions operating directly on `LevelProgress`
+// / `CourseProgressV4` (Phase 2 Task 5 step 4). They are deliberately not yet
+// wired into `ProgressContext`'s public `useProgress()` hook interface — no
+// current UI surfaces Can-do/checkpoint evidence or level clearing, so wiring
+// them up is left to the task that introduces that UI (rewiring the app onto
+// the new A1/A2 catalog). They are fully covered here so the storage contract
+// they must satisfy (idempotence, no mutation, level isolation, never
+// touching locale/script settings) is locked in ahead of that UI work.
+
+/** Visited lesson ids within one level — the v4 analogue of `visitedLessonIds`. */
+export function visitedLessonIdsForLevel(level: LevelProgress): string[] {
+  return Object.entries(level.lessons)
+    .filter(([, lesson]) => lesson.visitedAt !== null)
+    .map(([lessonId]) => lessonId);
+}
+
+/**
+ * What to add to one Can-do's accumulated evidence in a single call. Every
+ * field besides `canDoId`/`at` is optional — callers supply only the
+ * evidence this particular interaction produced.
+ */
+export interface CanDoEvidenceInput {
+  readonly canDoId: CanDoId;
+  readonly visitedLessonId?: LessonId;
+  readonly practicedLessonId?: LessonId;
+  readonly acceptedTransferExerciseId?: ExerciseDefinitionId;
+  readonly checkpointAttemptId?: CheckpointAttemptId;
+  readonly at: string;
+}
+
+/**
+ * Records observed Can-do evidence (design spec §8): accumulates whichever
+ * ids are supplied (idempotent, encounter order) and stamps `lastUpdatedAt`.
+ * Never records a pass/fail verdict — only which lessons/exercises/attempts
+ * produced evidence. Returns the same `level` reference when nothing new was
+ * recorded, matching the existing V3 mutators' no-op contract.
+ */
+export function recordCanDoEvidence(
+  level: LevelProgress,
+  input: CanDoEvidenceInput,
+): LevelProgress {
+  const existing = level.canDos[input.canDoId];
+  const visitedLessonIds = input.visitedLessonId
+    ? dedupeInEncounterOrder([
+        ...(existing?.visitedLessonIds ?? []),
+        input.visitedLessonId,
+      ])
+    : (existing?.visitedLessonIds ?? []);
+  const practicedLessonIds = input.practicedLessonId
+    ? dedupeInEncounterOrder([
+        ...(existing?.practicedLessonIds ?? []),
+        input.practicedLessonId,
+      ])
+    : (existing?.practicedLessonIds ?? []);
+  const acceptedTransferExerciseIds = input.acceptedTransferExerciseId
+    ? dedupeInEncounterOrder([
+        ...(existing?.acceptedTransferExerciseIds ?? []),
+        input.acceptedTransferExerciseId,
+      ])
+    : (existing?.acceptedTransferExerciseIds ?? []);
+  const checkpointAttemptIds = input.checkpointAttemptId
+    ? dedupeInEncounterOrder([
+        ...(existing?.checkpointAttemptIds ?? []),
+        input.checkpointAttemptId,
+      ])
+    : (existing?.checkpointAttemptIds ?? []);
+
+  const unchanged =
+    existing !== undefined &&
+    sameIdList(existing.visitedLessonIds, visitedLessonIds) &&
+    sameIdList(existing.practicedLessonIds, practicedLessonIds) &&
+    sameIdList(
+      existing.acceptedTransferExerciseIds,
+      acceptedTransferExerciseIds,
+    ) &&
+    sameIdList(existing.checkpointAttemptIds, checkpointAttemptIds);
+  if (unchanged) return level;
+
+  const next: CanDoEvidence = {
+    canDoId: input.canDoId,
+    visitedLessonIds,
+    practicedLessonIds,
+    acceptedTransferExerciseIds,
+    checkpointAttemptIds,
+    lastUpdatedAt: input.at,
+  };
+  return { ...level, canDos: { ...level.canDos, [input.canDoId]: next } };
+}
+
+/**
+ * Records one completed checkpoint attempt, idempotent by `attempt.id`: an
+ * attempt id is only ever recorded once. Never a pass/fail verdict — only
+ * which exercises were accepted and which Can-dos this attempt sampled.
+ */
+export function recordCheckpointAttempt(
+  level: LevelProgress,
+  attempt: CheckpointAttempt,
+): LevelProgress {
+  if (level.checkpointAttempts.some((existing) => existing.id === attempt.id)) {
+    return level;
+  }
+  return { ...level, checkpointAttempts: [...level.checkpointAttempts, attempt] };
+}
+
+function levelIsEmpty(level: LevelProgress): boolean {
+  return (
+    Object.keys(level.lessons).length === 0 &&
+    Object.keys(level.canDos).length === 0 &&
+    level.checkpointAttempts.length === 0 &&
+    level.lastVisitedLessonId === null &&
+    level.reviewQueue.length === 0 &&
+    level.orphanedLessonIds.length === 0 &&
+    level.orphanedReviewKeys.length === 0
+  );
+}
+
+/**
+ * Resets one level back to empty while leaving the other level and the
+ * migration notice untouched — A1/A2 evidence never contaminates each other,
+ * even when clearing. Purely an in-memory transform: never touches storage,
+ * so it can never clear locale/script settings by construction. Returns the
+ * same reference when the level is already empty.
+ */
+export function clearLevel(
+  progress: CourseProgressV4,
+  level: CourseLevelId,
+  at: string,
+): CourseProgressV4 {
+  if (levelIsEmpty(progress.levels[level])) return progress;
+  return {
+    ...progress,
+    levels: { ...progress.levels, [level]: emptyLevelProgress() },
+    updatedAt: at,
+  };
+}
+
+/**
+ * Resets both levels back to empty, equivalent to `emptyProgressV4()`
+ * stamped with `at`. Purely an in-memory transform: never touches storage,
+ * so it can never clear locale/script settings by construction.
+ */
+export function clearAll(at: string): CourseProgressV4 {
+  return { ...emptyProgressV4(), updatedAt: at };
+}
+
+/**
+ * Acknowledges the pending migration notice by stamping `acknowledgedAt` —
+ * never deletes the notice record, so its "what changed" explanation stays
+ * available in progress help even after acknowledgement (Phase 2 Task 5 step
+ * 4). A no-op (same reference) when there is no notice, or it is already
+ * acknowledged.
+ */
+export function acknowledgeMigrationNotice(
+  progress: CourseProgressV4,
+  at: string,
+): CourseProgressV4 {
+  const notice = progress.migrationNotice;
+  if (!notice || notice.acknowledgedAt !== null) return progress;
+  return { ...progress, migrationNotice: { ...notice, acknowledgedAt: at } };
+}
+
+export interface LevelProgressSummary {
+  readonly level: CourseLevelId;
+  readonly visitedLessonCount: number;
+  readonly totalLessonCount: number;
+  readonly visitedPercent: number;
+  readonly recommendedContinuationLessonId: LessonId | null;
+}
+
+/**
+ * An independent progress summary for one level, computed only from that
+ * level's own lessons — A1 and A2 evidence never cross-contaminate a
+ * summary, even when both are computed from the same `modules` outline.
+ */
+export function summarizeLevel(
+  progress: CourseProgressV4,
+  level: CourseLevelId,
+  modules: readonly ModuleOutline[],
+): LevelProgressSummary {
+  const levelProgress = progress.levels[level];
+  const visited = visitedLessonIdsForLevel(levelProgress);
+  const totalLessonCount = modules.reduce(
+    (sum, courseModule) => sum + courseModule.lessons.length,
+    0,
+  );
+  return {
+    level,
+    visitedLessonCount: visited.length,
+    totalLessonCount,
+    visitedPercent: visitedPercent(visited, totalLessonCount),
+    recommendedContinuationLessonId: recommendContinuationLessonId(
+      modules,
+      visited,
+      levelProgress.lastVisitedLessonId,
+    ),
+  };
 }

@@ -106,6 +106,55 @@ export function lessonHasOpenReview(
 }
 
 /**
+ * Reconciles a bare review queue + orphan list against the catalog's current
+ * review keys (spec §10.4, §11.3) — the container-agnostic core of
+ * `reconcileReviewQueue`, reused directly for `LevelProgress` (v4) as well as
+ * `CourseProgressV3`. Any entry whose lesson/exercise the catalog no longer
+ * recognises is removed from the active queue and preserved in
+ * `orphanedReviewKeys` — obsolete metadata is never silently dropped, and it
+ * stays excluded from the active queue until an explicit catalog alias
+ * resolves it. Pre-existing orphan keys are retained in order, newly orphaned
+ * keys are appended in queue order, deduplicated. `changed` is `false` (and
+ * the returned arrays are the same references) when nothing needed
+ * reconciling, so callers can avoid needless churn.
+ */
+export function reconcileReviewQueueEntries(
+  reviewQueue: readonly ReviewQueueEntry[],
+  orphanedReviewKeys: readonly string[],
+  knownReviewKeys: ReadonlySet<string>,
+): {
+  reviewQueue: ReviewQueueEntry[];
+  orphanedReviewKeys: string[];
+  changed: boolean;
+} {
+  const active: ReviewQueueEntry[] = [];
+  const newlyOrphaned: string[] = [];
+  for (const entry of reviewQueue) {
+    if (knownReviewKeys.has(entry.reviewKey)) {
+      active.push(entry);
+    } else {
+      newlyOrphaned.push(entry.reviewKey);
+    }
+  }
+  if (newlyOrphaned.length === 0) {
+    return {
+      reviewQueue: active,
+      orphanedReviewKeys: [...orphanedReviewKeys],
+      changed: false,
+    };
+  }
+
+  const merged: string[] = [];
+  const seen = new Set<string>();
+  for (const key of [...orphanedReviewKeys, ...newlyOrphaned]) {
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(key);
+  }
+  return { reviewQueue: active, orphanedReviewKeys: merged, changed: true };
+}
+
+/**
  * Reconcile the queue against the catalog's current review keys (spec §10.4,
  * §11.3): any entry whose lesson/exercise the catalog no longer recognises is
  * removed from the active queue and preserved in `orphanedReviewKeys` — obsolete
@@ -119,23 +168,15 @@ export function reconcileReviewQueue(
   progress: CourseProgressV3,
   knownReviewKeys: ReadonlySet<string>,
 ): CourseProgressV3 {
-  const active: ReviewQueueEntry[] = [];
-  const newlyOrphaned: string[] = [];
-  for (const entry of progress.reviewQueue) {
-    if (knownReviewKeys.has(entry.reviewKey)) {
-      active.push(entry);
-    } else {
-      newlyOrphaned.push(entry.reviewKey);
-    }
-  }
-  if (newlyOrphaned.length === 0) return progress;
-
-  const orphanedReviewKeys: string[] = [];
-  const seen = new Set<string>();
-  for (const key of [...progress.orphanedReviewKeys, ...newlyOrphaned]) {
-    if (seen.has(key)) continue;
-    seen.add(key);
-    orphanedReviewKeys.push(key);
-  }
-  return { ...progress, reviewQueue: active, orphanedReviewKeys };
+  const result = reconcileReviewQueueEntries(
+    progress.reviewQueue,
+    progress.orphanedReviewKeys,
+    knownReviewKeys,
+  );
+  if (!result.changed) return progress;
+  return {
+    ...progress,
+    reviewQueue: result.reviewQueue,
+    orphanedReviewKeys: result.orphanedReviewKeys,
+  };
 }

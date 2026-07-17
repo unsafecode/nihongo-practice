@@ -232,3 +232,65 @@ describe("foundation UX copy", () => {
     }
   });
 });
+
+describe("progress migration copy (v3→v4, Phase 2 Task 5)", () => {
+  const PROGRESS_MIGRATION_KEYS = [
+    "noticeTitle",
+    "noticeBody",
+    "acknowledge",
+    "helpTitle",
+    "helpBody",
+  ] as const;
+
+  it("declares exactly the required progress migration keys in both locales", () => {
+    expect(Object.keys(enCopy.progressMigration).sort()).toEqual(
+      [...PROGRESS_MIGRATION_KEYS].sort(),
+    );
+    expect(Object.keys(itCopy.progressMigration).sort()).toEqual(
+      [...PROGRESS_MIGRATION_KEYS].sort(),
+    );
+  });
+
+  it.each([enCopy.progressMigration, itCopy.progressMigration])(
+    "has natural, non-empty progress migration copy (%#)",
+    (progressMigration) => {
+      for (const key of PROGRESS_MIGRATION_KEYS) {
+        expect(progressMigration[key].trim().length).toBeGreaterThan(0);
+      }
+    },
+  );
+
+  it("never claims certification, mastery, fluency, or that anything was passed", () => {
+    const values = [
+      ...Object.values(enCopy.progressMigration),
+      ...Object.values(itCopy.progressMigration),
+    ];
+    for (const value of values) {
+      expect(value.toLowerCase()).not.toMatch(
+        /\b(certif\w*|master\w*|maestr\w*|fluen\w*|passed|superat\w*)\b/,
+      );
+    }
+  });
+
+  it("truthfully states that visited lessons were kept, in both locales", () => {
+    // The core promise of the migration notice: visits carry over even
+    // though redesigned practice/checkpoint evidence must be redone.
+    expect(enCopy.progressMigration.noticeBody.toLowerCase()).toMatch(
+      /\bvisited\b/,
+    );
+    expect(itCopy.progressMigration.noticeBody.toLowerCase()).toMatch(
+      /\bvisitat\w*\b/,
+    );
+  });
+
+  it("keeps the explanation available in progress help independent of the notice", () => {
+    // helpTitle/helpBody must exist and be distinct from the notice copy —
+    // acknowledging the notice must not remove this explanation (spec §17).
+    expect(enCopy.progressMigration.helpBody).not.toBe(
+      enCopy.progressMigration.noticeBody,
+    );
+    expect(itCopy.progressMigration.helpBody).not.toBe(
+      itCopy.progressMigration.noticeBody,
+    );
+  });
+});

@@ -321,6 +321,26 @@ export interface CourseCopy {
     revisitTitle: string;
     revisitBody: string;
   };
+  /**
+   * Copy for the one-time v3→v4 progress migration notice and its
+   * always-available explanation (design spec §17, Phase 2 Task 5). Truthful
+   * only: it states that visited lessons were kept and that practice/
+   * checkpoint evidence was reset because the exercises were redesigned. It
+   * never claims certification, mastery, or that anything was "passed" —
+   * alignment-only language throughout (§3.1).
+   */
+  progressMigration: {
+    /** Title of the dismissible notice shown until the learner acknowledges it. */
+    noticeTitle: string;
+    /** Body explaining what was kept (visits) and what must be redone. */
+    noticeBody: string;
+    /** Action that records acknowledgement without deleting the migration record. */
+    acknowledge: string;
+    /** Heading for the explanation kept in progress help, regardless of acknowledgement. */
+    helpTitle: string;
+    /** Always-available explanation of the migration, shown in progress help. */
+    helpBody: string;
+  };
   /** Keyed by CourseModule.id. */
   modules: Record<ModuleId, ModuleCopy>;
   /** Keyed by Lesson.titleCopyId. */
