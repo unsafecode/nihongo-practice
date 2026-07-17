@@ -1026,3 +1026,145 @@ describe("realizeVariant", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// §16 realizer generalization: stable rule ids + aliases, `ga` particle,
+// interrogative か. These prove the Phase 1 realizer now serves the deep A1
+// release catalog without any fixture regression (covered separately by the
+// full foundations suite staying green).
+// ---------------------------------------------------------------------------
+
+describe("realizer generalization (stable rule ids, ga, interrogative)", () => {
+  it("resolves a stable rule id identically to its fixture alias", () => {
+    const base = fixtureFamily("fixture-a1-topic-copular");
+    const aliasResult = realizeVariant(
+      base,
+      fixtureVariant("fixture-a1-yuki-student-meeting"),
+      catalogs,
+      { availableConceptIds: a1ConceptIds },
+    );
+    const stableFamily: SentenceFamily = withFixtureOverride(base, {
+      realizationRuleId: "rule-topic-copular",
+    });
+    const stableResult = realizeVariant(
+      stableFamily,
+      fixtureVariant("fixture-a1-yuki-student-meeting"),
+      catalogs,
+      { availableConceptIds: a1ConceptIds },
+    );
+
+    expect(aliasResult.ok).toBe(true);
+    expect(stableResult.ok).toBe(true);
+    if (!aliasResult.ok || !stableResult.ok) return;
+    expect(stableResult.sentence.canonicalJapanese).toBe(
+      aliasResult.sentence.canonicalJapanese,
+    );
+    expect(stableResult.sentence.tokens.map((t) => t.jp)).toEqual(
+      aliasResult.sentence.tokens.map((t) => t.jp),
+    );
+  });
+
+  it("appends か and a mood segment for an interrogative form; the statement carries neither", () => {
+    const family = fixtureFamily("fixture-a1-topic-copular");
+    const statement = fixtureVariant("fixture-a1-yuki-student-meeting");
+    const question: SentenceVariant = withFixtureOverride(statement, {
+      id: "test-yuki-student-question",
+      form: { ...statement.form, interrogative: true },
+    });
+
+    const statementResult = realizeVariant(family, statement, catalogs, {
+      availableConceptIds: a1ConceptIds,
+    });
+    const questionResult = realizeVariant(family, question, catalogs, {
+      availableConceptIds: a1ConceptIds,
+    });
+
+    expect(statementResult.ok).toBe(true);
+    expect(questionResult.ok).toBe(true);
+    if (!statementResult.ok || !questionResult.ok) return;
+
+    expect(statementResult.sentence.canonicalJapanese.endsWith("か")).toBe(false);
+    expect(statementResult.sentence.semanticFingerprint).not.toContain("mood=");
+
+    expect(questionResult.sentence.canonicalJapanese).toBe(
+      `${statementResult.sentence.canonicalJapanese}か`,
+    );
+    expect(questionResult.sentence.semanticFingerprint).toContain(
+      "mood=interrogative",
+    );
+    const romaji = formatRomaji(questionResult.sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) return;
+    expect(romaji.text.endsWith(" ka")).toBe(true);
+  });
+
+  it("realizes a nominative (が) theme verb — 日本語がわかります", () => {
+    const understandSense: LearningTargetSense = {
+      id: "test-sense-understand",
+      lexemeId: "test-lexeme-wakaru",
+      learningUse: "productive",
+      semanticFrameId: "test-frame-understand",
+      predicate: "understand" as LearningTargetSense["predicate"],
+      argumentRoles: ["theme"],
+      argumentParticleByRole: {},
+    };
+    const themeValue: SemanticValue = {
+      id: "test-value-japanese-ga",
+      kind: "object",
+      tokenFragments: [
+        { jp: "にほんご", romaji: "nihongo", kind: "lexical", boundaryBefore: "attach" },
+      ],
+    };
+    const predicateValue: SemanticValue = {
+      id: "test-value-understand",
+      kind: "predicate-sense",
+      senseId: "test-sense-understand",
+      tokenFragments: [
+        { jp: "わかり", romaji: "wakari", kind: "lexical", boundaryBefore: "attach" },
+      ],
+    };
+    const family: SentenceFamily = {
+      id: "test-nominative-action" as SentenceFamily["id"],
+      level: "a1",
+      canDoIds: [],
+      slotSchema: [
+        { id: "object", axis: "object", valueKind: "object", optional: false },
+        { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      ],
+      permittedAxes: ["object", "predicate-verb"],
+      realizationRuleId: "rule-nominative-action",
+      requiredConceptIds: [],
+    };
+    const variant: SentenceVariant = {
+      id: "test-understand-japanese",
+      sentenceFamilyId: family.id,
+      discourse: {
+        speakerRoleId: "fixture-role-learner",
+        addresseeRoleId: null,
+        subjectReferentId: null,
+        subjectRealization: "omitted",
+        scenarioNoteCopyId: "test-scenario",
+      },
+      contextId: "fixture-a1-context-language-class",
+      slotValues: { object: themeValue.id, predicate: predicateValue.id },
+      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      pedagogicalUse: "model",
+    };
+    const localCatalogs: RealizeVariantCatalogs = {
+      ...catalogs,
+      semanticValues: [...catalogs.semanticValues, themeValue, predicateValue],
+      learningTargetSenses: [...catalogs.learningTargetSenses, understandSense],
+    };
+
+    const result = realizeVariant(family, variant, localCatalogs, {
+      availableConceptIds: [],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.sentence.canonicalJapanese).toBe("にほんごがわかります");
+    const romaji = formatRomaji(result.sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) return;
+    expect(romaji.text).toBe("nihongo ga wakarimasu");
+  });
+});

@@ -123,46 +123,105 @@ interface RealizationRuleDefinition {
   readonly contentSlots: readonly ContentSlotRule[];
 }
 
+/**
+ * Realization rules, keyed by *stable semantic rule id* (§16). Each id names a
+ * grammatical construction — not a fixture — so both the Phase 1 fixture
+ * harness and the deep A1 release catalog reference the same definition. The
+ * fixture families still carry their original `fixture-*-rule-*` ids; those
+ * resolve to the identical definition through `RULE_ALIASES` below, so this
+ * rename is a pure generalization with no behavioral change for any fixture.
+ */
 const REALIZATION_RULES: Readonly<Record<string, RealizationRuleDefinition>> = {
-  "fixture-a1-rule-topic-copular": {
-    id: "fixture-a1-rule-topic-copular",
+  // Copula "X は Y です" — Y is a plain predicate nominal (never draws on the
+  // sense's own case frame). Also carries every copular question ("X は なん
+  // ですか", "だれ ですか", ...) when the variant's form is interrogative.
+  "rule-topic-copular": {
+    id: "rule-topic-copular",
     predicateKind: "copula",
     objectRole: "copular-complement",
     contentSlots: [{ slotId: "object", particle: { kind: "none" } }],
   },
-  "fixture-a1-rule-residence-action": {
-    id: "fixture-a1-rule-residence-action",
+  // Verb + a に/で location argument whose particle is read from the sense's
+  // own case frame (`live` → に, `work`/`go`/`come` → に/で per sense).
+  "rule-location-action": {
+    id: "rule-location-action",
     predicateKind: "verb",
     objectRole: null,
     contentSlots: [
       { slotId: "location", particle: { kind: "from-sense-metadata", role: "location" } },
     ],
   },
-  "fixture-a1-rule-object-action": {
-    id: "fixture-a1-rule-object-action",
+  // Verb + a direct object marked を (a predicate-governed theme).
+  "rule-object-action": {
+    id: "rule-object-action",
     predicateKind: "verb",
     objectRole: "governed-theme",
     contentSlots: [{ slotId: "object", particle: { kind: "fixed", particle: "o" } }],
   },
-  "fixture-a2-rule-time-action": {
-    id: "fixture-a2-rule-time-action",
+  // Verb + a nominative theme marked が (e.g. 日本語がわかります). Structurally a
+  // predicate-governed theme like the を rule, but with が case marking.
+  "rule-nominative-action": {
+    id: "rule-nominative-action",
     predicateKind: "verb",
-    objectRole: null,
-    contentSlots: [{ slotId: "time", particle: { kind: "none" } }],
+    objectRole: "governed-theme",
+    contentSlots: [{ slotId: "object", particle: { kind: "fixed", particle: "ga" } }],
   },
-  "fixture-a2-rule-sequence-action": {
-    id: "fixture-a2-rule-sequence-action",
-    predicateKind: "verb",
-    objectRole: null,
-    contentSlots: [{ slotId: "time", particle: { kind: "none" } }],
-  },
-  "fixture-a2-rule-invitation-action": {
-    id: "fixture-a2-rule-invitation-action",
+  // Verb + a に-marked recipient/target theme (e.g. invite/ask someone).
+  "rule-recipient-action": {
+    id: "rule-recipient-action",
     predicateKind: "verb",
     objectRole: "governed-theme",
     contentSlots: [{ slotId: "object", particle: { kind: "fixed", particle: "ni" } }],
   },
+  // Verb + a と-marked companion. The companion noun fills a dedicated
+  // `companion` slot; `companion` is a discourse-optional governed role, so no
+  // theme licensing applies (objectRole null).
+  "rule-companion-action": {
+    id: "rule-companion-action",
+    predicateKind: "verb",
+    objectRole: null,
+    contentSlots: [{ slotId: "companion", particle: { kind: "fixed", particle: "to" } }],
+  },
+  // Verb + a bare time adverbial (no particle).
+  "rule-time-action": {
+    id: "rule-time-action",
+    predicateKind: "verb",
+    objectRole: null,
+    contentSlots: [{ slotId: "time", particle: { kind: "none" } }],
+  },
+  // Identical shape to `rule-time-action`; kept distinct so the two fixture
+  // families that historically referenced separate rule ids map 1:1.
+  "rule-sequence-action": {
+    id: "rule-sequence-action",
+    predicateKind: "verb",
+    objectRole: null,
+    contentSlots: [{ slotId: "time", particle: { kind: "none" } }],
+  },
 };
+
+/**
+ * Backwards-compatible aliases: the original fixture rule ids resolve to the
+ * stable semantic rule they always denoted. Adding an alias here can only make
+ * a previously-unknown id resolvable — it never changes an existing
+ * definition — so no fixture realization can regress.
+ */
+const RULE_ALIASES: Readonly<Record<string, string>> = {
+  "fixture-a1-rule-topic-copular": "rule-topic-copular",
+  "fixture-a1-rule-residence-action": "rule-location-action",
+  "fixture-a1-rule-object-action": "rule-object-action",
+  "fixture-a2-rule-time-action": "rule-time-action",
+  "fixture-a2-rule-sequence-action": "rule-sequence-action",
+  "fixture-a2-rule-invitation-action": "rule-recipient-action",
+};
+
+/** Resolve a family's `realizationRuleId` to its definition, honoring the
+ * stable id first and the fixture alias second. */
+function resolveRule(id: string): RealizationRuleDefinition | undefined {
+  const direct = REALIZATION_RULES[id];
+  if (direct) return direct;
+  const canonical = RULE_ALIASES[id];
+  return canonical ? REALIZATION_RULES[canonical] : undefined;
+}
 
 // ---------------------------------------------------------------------------
 // Conjugation tables (polite present/past x affirmative/negative only)
@@ -208,6 +267,7 @@ const COPULA_POLITE_ENDINGS: Readonly<Record<FormKey, EndingForm>> = {
 
 const PARTICLE_TEXT: Readonly<Record<SemanticParticleId, EndingForm>> = {
   wa: { jp: "は", romaji: "wa" },
+  ga: { jp: "が", romaji: "ga" },
   o: { jp: "を", romaji: "o" },
   ni: { jp: "に", romaji: "ni" },
   de: { jp: "で", romaji: "de" },
@@ -525,7 +585,7 @@ export function realizeVariant(
   }
 
   // 11. sense argument frame vs. family structure/case-frame requirements.
-  const rule = REALIZATION_RULES[family.realizationRuleId];
+  const rule = resolveRule(family.realizationRuleId);
   const frameErrors: Omit<FamilyRealizationError, "familyId" | "variantId">[] = [];
   const governedRoles = sense.argumentRoles.filter((role) =>
     GOVERNED_ARGUMENT_ROLES.includes(role),
@@ -669,6 +729,20 @@ export function realizeVariant(
     pushSlotFragments(builder, variant.id, "predicate", predicateValue);
   }
   pushEnding(builder, variant.id, ending);
+  // Sentence-final interrogative particle か (§13). Appended after the
+  // predicate ending as a spaced particle; only added for interrogative forms
+  // so every plain-statement realization is byte-identical to before.
+  if (variant.form.interrogative === true) {
+    pushToken(
+      builder,
+      variant.id,
+      "rule::interrogative",
+      "か",
+      "ka",
+      "particle",
+      { domain: "family", referenceId: `${variant.id}/rule/interrogative` },
+    );
+  }
 
   const romajiResult = formatRomaji(builder.tokens);
   if (!romajiResult.ok) {
@@ -680,7 +754,7 @@ export function realizeVariant(
     .sort()
     .map((key2) => `${key2}=${variant.slotValues[key2]}`)
     .join(",");
-  const semanticFingerprint = [
+  const fingerprintSegments = [
     `family=${family.id}`,
     `speaker=${variant.discourse.speakerRoleId}`,
     `addressee=${variant.discourse.addresseeRoleId ?? "none"}`,
@@ -690,7 +764,14 @@ export function realizeVariant(
     `context=${variant.contextId}`,
     `form=${variant.form.polarity}:${variant.form.tense}:${variant.form.formality}`,
     `slots=${sortedSlotEntries}`,
-  ].join("|");
+  ];
+  // Mood is only recorded for questions, so statement fingerprints are
+  // unchanged. A question and its matching statement therefore differ by
+  // exactly this segment — the intended semantic distinction.
+  if (variant.form.interrogative === true) {
+    fingerprintSegments.push(`mood=interrogative`);
+  }
+  const semanticFingerprint = fingerprintSegments.join("|");
 
   // Every resolved semantic value's senseId, in deterministic family
   // slot-schema order (the `Map` insertion order from step 7), deduplicated

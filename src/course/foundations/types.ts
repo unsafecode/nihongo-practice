@@ -180,7 +180,7 @@ export type SemanticArgumentRole =
  * rather than a bare `string`, so a new particle requires an explicit type
  * update instead of silently typo-ing past validation.
  */
-export type SemanticParticleId = "wa" | "o" | "ni" | "de" | "to";
+export type SemanticParticleId = "wa" | "o" | "ni" | "de" | "to" | "ga";
 
 /**
  * Per-role case-particle requirements a predicate sense's frame declares
@@ -273,6 +273,17 @@ export interface FormSelection {
   readonly polarity: Polarity;
   readonly tense: Tense;
   readonly formality: Formality;
+  /**
+   * When true, the sentence is realized as a polite yes/no or content
+   * question: the realizer appends the sentence-final interrogative particle
+   * か after the predicate ending and marks the semantic fingerprint with a
+   * distinct `mood=interrogative` segment. Omitted/undefined means a plain
+   * statement — the fingerprint carries no mood segment at all, so every
+   * existing statement variant keeps a byte-identical fingerprint. Question
+   * word order is authored entirely through slot values (e.g. a なに/どこ
+   * complement); this flag only governs the sentence-final particle + mood.
+   */
+  readonly interrogative?: boolean;
 }
 
 /** Speaker/addressee/subject/scenario metadata every example carries (§9.2, §10.1). */
