@@ -13,6 +13,7 @@ import { SentenceMatrix } from "./SentenceMatrix";
 import { FamilyGuidedConstruction } from "./FamilyGuidedConstruction";
 import { PracticeRounds } from "./PracticeRounds";
 import "../course.css";
+import "./foundation.css";
 
 /** The fixed preview seed for the deterministic Phase 1 foundation harness. */
 export const FOUNDATION_PREVIEW_SEED = "phase1-foundation-preview-v1";

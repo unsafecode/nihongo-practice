@@ -34,10 +34,21 @@ function findMediaBlock(css: string, mediaQuery: string): string {
   throw new Error(`unterminated ${mediaQuery}`);
 }
 
-describe("course.css imports the foundation harness styles", () => {
-  it("declares the @import before any rule", () => {
+const fixturePagePath = fileURLToPath(
+  new URL("./FoundationFixturePage.tsx", import.meta.url),
+);
+
+describe("foundation harness styles ship only with the gated fixture chunk", () => {
+  it("course.css never globally imports the foundation harness styles", () => {
     const css = readFileSync(courseCssPath, "utf8");
-    expect(css).toMatch(/^@import "\.\/foundations\/foundation\.css";/);
+    expect(css).not.toMatch(
+      /@import\s+["']\.\/foundations\/foundation\.css["']/,
+    );
+  });
+
+  it("FoundationFixturePage imports foundation.css so it follows the dynamic chunk", () => {
+    const source = readFileSync(fixturePagePath, "utf8");
+    expect(source).toMatch(/import\s+["']\.\/foundation\.css["']/);
   });
 });
 

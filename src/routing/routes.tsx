@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { Suspense, lazy, useCallback, useState } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router";
 import { Phrasebook } from "../components/Phrasebook";
 import { Notice } from "../components/Notice";
@@ -7,7 +7,6 @@ import { Syllabary } from "../syllabary/Syllabary";
 import { CourseHome } from "../course/components/CourseHome";
 import { LessonPage } from "../course/components/LessonPage";
 import { PracticeHome } from "../course/components/PracticeHome";
-import { FoundationFixturePage } from "../course/foundations/FoundationFixturePage";
 import { getCourseCopy } from "../course/i18n/catalog";
 import { useLocale } from "../i18n/LocaleContext";
 import { RouteScrollManager } from "./RouteScrollManager";
@@ -35,6 +34,36 @@ export function foundationFixturesEnabledFor(
   value: string | undefined,
 ): boolean {
   return value === "true";
+}
+
+/**
+ * The lazily-loaded foundation fixture harness page — created only when the
+ * build was opted in via `VITE_FOUNDATION_FIXTURES=true`. Vite statically
+ * replaces `import.meta.env.VITE_FOUNDATION_FIXTURES` at build time, so in a
+ * normal (or GitHub Pages) release this whole ternary folds to `null` and
+ * Rollup tree-shakes the `import()` away: no fixture chunk, no fixture module
+ * graph (IDs/UI), and — because the page owns `foundation.css` — no fixture
+ * CSS is emitted. When the flag is on, the dynamic import splits the harness
+ * into its own chunk that loads on demand behind the route below.
+ */
+const FoundationFixturePage =
+  import.meta.env.VITE_FOUNDATION_FIXTURES === "true"
+    ? lazy(() =>
+        import("../course/foundations/FoundationFixturePage").then(
+          (module) => ({ default: module.FoundationFixturePage }),
+        ),
+      )
+    : null;
+
+/**
+ * Accessible, network-free loading shell shown while the gated fixture chunk
+ * resolves. It is a real `main` landmark marked `aria-busy` so assistive tech
+ * (and the E2E `gotoReady` landmark wait) sees a page immediately, then the
+ * actual fixture `main` replaces it once the chunk loads. It never issues a
+ * request or touches a backend.
+ */
+export function FoundationFixtureLoading() {
+  return <main className="foundation-page" aria-busy="true" />;
 }
 
 function InvalidRoute() {
@@ -105,10 +134,14 @@ export function AppRoutes() {
         <Route path={routePaths.lab} element={<Lab />} />
         <Route path={routePaths.syllabary} element={<Syllabary />} />
         <Route path={routePaths.phrasebook} element={<Phrasebook />} />
-        {import.meta.env.VITE_FOUNDATION_FIXTURES === "true" ? (
+        {FoundationFixturePage ? (
           <Route
             path={FOUNDATION_FIXTURE_PATH}
-            element={<FoundationFixturePage />}
+            element={
+              <Suspense fallback={<FoundationFixtureLoading />}>
+                <FoundationFixturePage />
+              </Suspense>
+            }
           />
         ) : null}
         <Route path="*" element={<InvalidRoute />} />
