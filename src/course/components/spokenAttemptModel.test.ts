@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { courseModules } from "../data/course";
 import { assembledExamples } from "../catalog/assembleCourse";
 import { speechPromptByLessonId } from "../catalog/speechPrompts";
+import { courseModules } from "../data/course";
 import { defaultTranscriptEvaluator } from "../speech/SpeechRecognitionContext";
 import type { ResolvedSpeechPrompt } from "../speech/types";
 import type { StaticExample } from "../data/types";
@@ -17,13 +17,28 @@ import {
  * shared target example, ordered comparison/critical segments, derived
  * Japanese + romaji, and localized lesson/example copy into a complete model or
  * a structured error. It never duplicates a Japanese target string into copy.
+ *
+ * This legacy model is bound to the pre-A1 curriculum's own speech-prompt
+ * catalog (`speechPromptByLessonId`) — a fixed 40-lesson id space. The live,
+ * A1-derived `courseModules` (Phase 2 Task 6) intentionally drops 5 of those
+ * legacy ids: `sounds-5` (consolidated into `sounds-4`) and the four named
+ * capstones (`capstones-orientation`/`self-introduction`/`everyday-outing`/
+ * `travel-day`, renumbered `capstones-1..4`). So this suite iterates the
+ * intersection — every legacy lesson id that is still live in the real course
+ * — proving the legacy model correctly resolves everything it still applies
+ * to, rather than asserting the false claim that it covers every live A1
+ * route (that live coverage is `A1SpokenAttempt`'s job).
  */
-
-const allLessons = courseModules.flatMap((module) => module.lessons);
+const liveLessonIds = new Set(
+  courseModules.flatMap((module) => module.lessons.map((lesson) => lesson.id)),
+);
+const allLessons = [...speechPromptByLessonId.keys()]
+  .filter((id) => liveLessonIds.has(id))
+  .map((id) => ({ id }));
 
 describe("getSpokenAttemptModel — every published lesson resolves", () => {
-  it("covers all 40 lessons in both locales without error", () => {
-    expect(allLessons.length).toBe(40);
+  it("covers all 35 still-live legacy lessons in both locales without error", () => {
+    expect(allLessons.length).toBe(35);
     for (const lesson of allLessons) {
       for (const locale of ["it", "en"] as const) {
         const result = getSpokenAttemptModel(lesson.id, locale);
@@ -139,7 +154,7 @@ describe("getSpokenAttemptModel — katakana segments keep their assisted readin
 });
 
 describe("getSpokenAttemptModel — matched attempts yield coherent segment records", () => {
-  it("recognizes every canonical segment when the exact target is spoken (all 40)", () => {
+  it("recognizes every canonical segment when the exact target is spoken (all 35 live)", () => {
     for (const lesson of allLessons) {
       const result = getSpokenAttemptModel(lesson.id, "en");
       if (!result.ok) throw new Error("error");

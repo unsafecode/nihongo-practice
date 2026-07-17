@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { emptyProgress, recordExerciseMistake } from "../progress/progress";
 import type { CourseProgressV3, ExerciseEvidence } from "../progress/progress";
-import { exerciseIdsByLesson } from "../catalog/exercises";
+import { getLessonExercises } from "./lessonExerciseModel";
 import { buildReviewQueueView } from "./reviewQueueModel";
 
 /**
@@ -12,6 +12,17 @@ import { buildReviewQueueView } from "./reviewQueueModel";
  * without ever reconstructing an answer in the component layer.
  */
 
+function requiredExerciseIds(lessonId: string): readonly string[] {
+  return getLessonExercises(lessonId)?.exercises.map((e) => e.definitionId) ?? [];
+}
+
+/** A real choice-kind exercise definition id from introductions-1's own A1 practice set. */
+const introductionsChoiceId = getLessonExercises("introductions-1")!.exercises.find(
+  (e) => e.prompt.kind === "choice",
+)!.definitionId;
+/** A real exercise definition id from past-negative-1's own A1 practice set. */
+const pastNegativeExerciseId = getLessonExercises("past-negative-1")!.exercises[0]!.definitionId;
+
 function evidence(
   lessonId: string,
   exerciseDefinitionId: string,
@@ -20,7 +31,7 @@ function evidence(
   return {
     lessonId,
     exerciseDefinitionId,
-    requiredExerciseIds: exerciseIdsByLesson.get(lessonId) ?? [exerciseDefinitionId],
+    requiredExerciseIds: requiredExerciseIds(lessonId),
     targetConceptIds: ["topic-wa"],
     targetLexemeIds: [],
     at,
@@ -47,13 +58,13 @@ describe("buildReviewQueueView — empty and populated", () => {
 
   it("resolves each stored mistake to a lesson, module, and engine prompt", () => {
     const view = buildReviewQueueView(
-      withMistakes(["introductions-1", "introductions-1-particle-base", "2026-01-01T00:00:00.000Z"]),
+      withMistakes(["introductions-1", introductionsChoiceId, "2026-01-01T00:00:00.000Z"]),
     );
     expect(view.items).toHaveLength(1);
     const [item] = view.items;
     expect(item.lessonId).toBe("introductions-1");
     expect(item.moduleId).toBe("introductions");
-    expect(item.exerciseDefinitionId).toBe("introductions-1-particle-base");
+    expect(item.exerciseDefinitionId).toBe(introductionsChoiceId);
     expect(item.prompt.kind).toBe("choice");
     expect(item.mistakeCount).toBe(1);
   });
@@ -61,21 +72,21 @@ describe("buildReviewQueueView — empty and populated", () => {
   it("orders items most-recent-first with stable review-key tie-breaking", () => {
     const view = buildReviewQueueView(
       withMistakes(
-        ["introductions-1", "introductions-1-particle-base", "2026-01-01T00:00:00.000Z"],
-        ["past-negative-1", "past-negative-1-transform-base", "2026-01-02T00:00:00.000Z"],
+        ["introductions-1", introductionsChoiceId, "2026-01-01T00:00:00.000Z"],
+        ["past-negative-1", pastNegativeExerciseId, "2026-01-02T00:00:00.000Z"],
       ),
     );
     expect(view.items.map((i) => i.exerciseDefinitionId)).toEqual([
-      "past-negative-1-transform-base",
-      "introductions-1-particle-base",
+      pastNegativeExerciseId,
+      introductionsChoiceId,
     ]);
   });
 
   it("de-duplicates repeated mistakes on the same exercise into one item with an incremented count", () => {
     const view = buildReviewQueueView(
       withMistakes(
-        ["introductions-1", "introductions-1-particle-base", "2026-01-01T00:00:00.000Z"],
-        ["introductions-1", "introductions-1-particle-base", "2026-01-03T00:00:00.000Z"],
+        ["introductions-1", introductionsChoiceId, "2026-01-01T00:00:00.000Z"],
+        ["introductions-1", introductionsChoiceId, "2026-01-03T00:00:00.000Z"],
       ),
     );
     expect(view.items).toHaveLength(1);
@@ -120,8 +131,8 @@ describe("buildReviewQueueView — orphan and unresolvable buckets", () => {
 describe("buildReviewQueueView — determinism", () => {
   it("produces structurally identical output for identical input", () => {
     const progress = withMistakes(
-      ["introductions-1", "introductions-1-particle-base", "2026-01-01T00:00:00.000Z"],
-      ["past-negative-1", "past-negative-1-transform-base", "2026-01-02T00:00:00.000Z"],
+      ["introductions-1", introductionsChoiceId, "2026-01-01T00:00:00.000Z"],
+      ["past-negative-1", pastNegativeExerciseId, "2026-01-02T00:00:00.000Z"],
     );
     expect(JSON.stringify(buildReviewQueueView(progress))).toEqual(
       JSON.stringify(buildReviewQueueView(progress)),

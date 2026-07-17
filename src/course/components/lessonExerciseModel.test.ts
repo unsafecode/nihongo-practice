@@ -1,56 +1,102 @@
 import { describe, expect, it } from "vitest";
 import { courseModules } from "../data/course";
-import { exerciseIdsByLesson } from "../catalog/exercises";
+import { a1FoundationCatalogs } from "../a1/catalog/catalog";
+import { buildA1LessonViewModel } from "../a1/a1LessonViewModel";
 import {
   exampleTokens,
-  exerciseInstructionCopy,
   getLessonExercises,
   segmentToken,
 } from "./lessonExerciseModel";
 
 /**
- * The pure lesson-exercise model (Slice C plan Task 4, design spec §10.1). It
- * resolves a lesson's authored exercise definitions into deterministic engine
- * prompts and exposes the derived romaji + localized instruction copy the UI
- * needs — never reconstructing a canonical answer in the component layer.
+ * The pure lesson-exercise model (Phase 2 Task 6; design spec §10.1). It
+ * resolves the A1 release's 44 semantic lessons' authored practice targets
+ * into deterministic engine prompts and exposes the derived romaji +
+ * per-locale instruction/intent copy the UI needs — never reconstructing a
+ * canonical answer in the component layer, and never fabricating sentence
+ * exercises for the four phonetic lessons.
  */
 
 const allLessonIds = courseModules.flatMap((m) => m.lessons.map((l) => l.id));
+const semanticLessonIds = new Set(
+  a1FoundationCatalogs.lessons.map((lesson) => lesson.id),
+);
+const phoneticLessonIds = allLessonIds.filter(
+  (id) => !semanticLessonIds.has(id),
+);
 
-describe("getLessonExercises — deterministic prompt generation for every lesson", () => {
-  it("generates 3-5 prompts with no generation errors for every published lesson", () => {
-    for (const lessonId of allLessonIds) {
+describe("getLessonExercises — deterministic prompt generation for every semantic lesson", () => {
+  it("generates the two-round practice set with no errors for every semantic lesson", () => {
+    for (const lessonId of semanticLessonIds) {
       const model = getLessonExercises(lessonId);
       expect(model, `model for ${lessonId}`).toBeDefined();
       expect(model!.errors, `errors for ${lessonId}`).toEqual([]);
-      expect(model!.exercises.length, `count for ${lessonId}`).toBeGreaterThanOrEqual(3);
-      expect(model!.exercises.length).toBeLessThanOrEqual(5);
+      expect(model!.exercises.length, `count for ${lessonId}`).toBeGreaterThan(0);
     }
   });
 
-  it("preserves the authored exercise order and definition ids for a lesson", () => {
-    const model = getLessonExercises("introductions-1");
-    expect(model!.exercises.map((e) => e.definitionId)).toEqual([
-      ...(exerciseIdsByLesson.get("introductions-1") ?? []),
-    ]);
+  it("matches the exact round-1 + round-2 target count from the release builder for a sample of lessons", () => {
+    for (const lessonId of ["introductions-1", "past-negative-2", "capstones-4"]) {
+      const built = buildA1LessonViewModel(lessonId, "en");
+      if (!built.ok) throw new Error(`expected ok for ${lessonId}`);
+      const expectedCount = built.model.rounds.reduce(
+        (total, round) => total + round.targets.length,
+        0,
+      );
+      const model = getLessonExercises(lessonId)!;
+      expect(model.exercises.length, lessonId).toBe(expectedCount);
+    }
   });
 
-  it("covers all five exercise kinds across the course", () => {
+  it("resolves an honest empty model (no exercises, no errors) for every phonetic lesson", () => {
+    expect(phoneticLessonIds.length).toBe(4);
+    for (const lessonId of phoneticLessonIds) {
+      const model = getLessonExercises(lessonId);
+      expect(model, `model for ${lessonId}`).toBeDefined();
+      expect(model!.exercises).toEqual([]);
+      expect(model!.errors).toEqual([]);
+    }
+  });
+
+  it("carries the round's real practicePurpose (guided-controlled round 1, transfer round 2), never fabricated", () => {
+    const lessonId = "introductions-1";
+    const built = buildA1LessonViewModel(lessonId, "en");
+    if (!built.ok) throw new Error(`expected ok for ${lessonId}`);
+    const purposeByTargetId = new Map(
+      built.model.rounds.flatMap((round) =>
+        round.targets.map((target) => [target.targetId, round.purpose] as const),
+      ),
+    );
+    const model = getLessonExercises(lessonId)!;
+    expect(model.exercises.length).toBeGreaterThan(0);
+    for (const exercise of model.exercises) {
+      expect(exercise.practicePurpose).toBe(purposeByTargetId.get(exercise.definitionId));
+    }
+    expect(model.exercises.some((e) => e.practicePurpose === "guided-controlled")).toBe(true);
+    expect(model.exercises.some((e) => e.practicePurpose === "transfer")).toBe(true);
+  });
+
+  it("preserves the release builder's authored target order and ids for a lesson", () => {
+    const built = buildA1LessonViewModel("introductions-1", "en");
+    if (!built.ok) throw new Error("expected ok");
+    const expectedIds = built.model.rounds.flatMap((round) =>
+      round.targets.map((target) => target.targetId),
+    );
+    const model = getLessonExercises("introductions-1")!;
+    expect(model.exercises.map((e) => e.definitionId)).toEqual(expectedIds);
+  });
+
+  it("covers multiple exercise kinds across the course (tile-ordering, choice, completion, constrained-construction)", () => {
     const kinds = new Set<string>();
-    for (const lessonId of allLessonIds) {
+    for (const lessonId of semanticLessonIds) {
       for (const exercise of getLessonExercises(lessonId)!.exercises) {
         kinds.add(exercise.prompt.kind);
       }
     }
-    expect([...kinds].sort()).toEqual(
-      [
-        "choice",
-        "completion",
-        "constrained-construction",
-        "tile-ordering",
-        "transformation",
-      ].sort(),
-    );
+    expect(kinds.has("tile-ordering")).toBe(true);
+    expect(kinds.has("choice")).toBe(true);
+    expect(kinds.has("completion")).toBe(true);
+    expect(kinds.has("constrained-construction")).toBe(true);
   });
 
   it("is deterministic: two builds of the same lesson are structurally equal", () => {
@@ -59,7 +105,7 @@ describe("getLessonExercises — deterministic prompt generation for every lesso
     expect(JSON.stringify(a)).toEqual(JSON.stringify(b));
   });
 
-  it("returns undefined for an unknown lesson id", () => {
+  it("returns undefined for an unknown lesson id (not one of the 48 published lessons)", () => {
     expect(getLessonExercises("not-a-real-lesson")).toBeUndefined();
   });
 
@@ -73,6 +119,27 @@ describe("getLessonExercises — deterministic prompt generation for every lesso
       expect(tile.prompt.correctTileIds.length).toBeGreaterThan(0);
       for (const id of tile.prompt.correctTileIds) {
         expect(tile.prompt.tiles.some((t) => t.id === id)).toBe(true);
+      }
+    }
+  });
+
+  it("gives every exercise a non-empty localized instruction in both locales", () => {
+    const model = getLessonExercises("introductions-1")!;
+    for (const exercise of model.exercises) {
+      expect(exercise.instruction.en.trim().length, exercise.definitionId).toBeGreaterThan(0);
+      expect(exercise.instruction.it.trim().length, exercise.definitionId).toBeGreaterThan(0);
+    }
+  });
+
+  it("gives a constrained-construction exercise a non-null localized intent in both locales, and every other kind null", () => {
+    const model = getLessonExercises("introductions-1")!;
+    for (const exercise of model.exercises) {
+      if (exercise.prompt.kind === "constrained-construction") {
+        expect(exercise.intentText.en?.trim().length, exercise.definitionId).toBeGreaterThan(0);
+        expect(exercise.intentText.it?.trim().length, exercise.definitionId).toBeGreaterThan(0);
+      } else {
+        expect(exercise.intentText.en).toBeNull();
+        expect(exercise.intentText.it).toBeNull();
       }
     }
   });
@@ -95,11 +162,34 @@ describe("segmentToken — derived AssembledToken for a tile/option id", () => {
     }
   });
 
-  it("resolves the exact watashi/wa/gakusei/desu tokens for introductions-1-base's tiles", () => {
-    expect(segmentToken("introductions-1-base#w1")?.romaji).toBe("watashi");
-    expect(segmentToken("introductions-1-base#p1")?.romaji).toBe("wa");
-    expect(segmentToken("introductions-1-base#w2")?.romaji).toBe("gakusei");
-    expect(segmentToken("introductions-1-base#e1")?.romaji).toBe("desu");
+  it("resolves every generated exercise's tile/option ids across every semantic lesson", () => {
+    for (const lessonId of semanticLessonIds) {
+      for (const exercise of getLessonExercises(lessonId)!.exercises) {
+        const { prompt, targetExampleId } = exercise;
+        if (prompt.kind === "tile-ordering") {
+          for (const tile of prompt.tiles) {
+            expect(segmentToken(tile.id), `${lessonId} ${tile.id}`).toBeDefined();
+          }
+        } else if (prompt.kind === "choice") {
+          for (const option of prompt.options) {
+            expect(segmentToken(option.id), `${lessonId} ${option.id}`).toBeDefined();
+          }
+          for (const segment of prompt.sentenceSegments) {
+            expect(
+              segmentToken(`${targetExampleId}#${segment.id}`),
+              `${lessonId} ${targetExampleId}#${segment.id}`,
+            ).toBeDefined();
+          }
+        } else if (prompt.kind === "completion") {
+          for (const segment of prompt.sentenceSegments) {
+            expect(
+              segmentToken(`${targetExampleId}#${segment.id}`),
+              `${lessonId} ${targetExampleId}#${segment.id}`,
+            ).toBeDefined();
+          }
+        }
+      }
+    }
   });
 
   it("returns undefined for an unknown tile id", () => {
@@ -108,47 +198,18 @@ describe("segmentToken — derived AssembledToken for a tile/option id", () => {
 });
 
 describe("exampleTokens — the full ordered token list for an example id", () => {
-  it("resolves introductions-1-base's tokens in segment order with correct boundaries", () => {
-    const tokens = exampleTokens("introductions-1-base");
+  it("resolves a real semantic lesson's target example's tokens in segment order", () => {
+    const model = getLessonExercises("introductions-1")!;
+    const exercise = model.exercises[0]!;
+    const tokens = exampleTokens(exercise.targetExampleId);
     expect(tokens).toBeDefined();
-    expect(tokens!.map((t) => t.romaji)).toEqual([
-      "watashi",
-      "wa",
-      "gakusei",
-      "desu",
-    ]);
-    expect(tokens![0]!.boundaryBefore).toBe("attach");
+    expect(tokens!.length).toBeGreaterThan(0);
+    for (const token of tokens!) {
+      expect(token.romaji.trim().length).toBeGreaterThan(0);
+    }
   });
 
   it("returns undefined for an unknown example id", () => {
     expect(exampleTokens("nope-example")).toBeUndefined();
-  });
-});
-
-describe("exerciseInstructionCopy — localized instruction/intent resolution", () => {
-  it("resolves the localized instruction for a prompt copy id in both locales", () => {
-    const model = getLessonExercises("introductions-1")!;
-    for (const exercise of model.exercises) {
-      const en = exerciseInstructionCopy("en", exercise.prompt.promptCopyId);
-      const it = exerciseInstructionCopy("it", exercise.prompt.promptCopyId);
-      expect(en?.trim()).toBeTruthy();
-      expect(it?.trim()).toBeTruthy();
-    }
-  });
-
-  it("resolves a constrained-construction intent (an example translation) per locale", () => {
-    const model = getLessonExercises("introductions-1")!;
-    const construct = model.exercises.find(
-      (e) => e.prompt.kind === "constrained-construction",
-    );
-    expect(construct).toBeDefined();
-    if (construct && construct.prompt.kind === "constrained-construction") {
-      expect(exerciseInstructionCopy("en", construct.prompt.intentCopyId)?.trim()).toBeTruthy();
-      expect(exerciseInstructionCopy("it", construct.prompt.intentCopyId)?.trim()).toBeTruthy();
-    }
-  });
-
-  it("returns undefined for an unknown copy id", () => {
-    expect(exerciseInstructionCopy("en", "exercise.prompt.nope")).toBeUndefined();
   });
 });

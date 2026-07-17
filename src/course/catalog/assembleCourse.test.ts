@@ -4,11 +4,6 @@ import { assembledCurriculum } from "./curriculum";
 import { validateCurriculum } from "./validateCurriculum";
 import { validateCourse } from "../data/validate";
 import { LESSON_SECTION_IDS } from "../../routing/lessonSections";
-import { lessonPath } from "../../routing/routePaths";
-import {
-  LEGACY_LESSON_ALIASES,
-  resolveLessonRoute,
-} from "../routing/lessonRouteResolution";
 import {
   assembleCourse,
   assembledCourse,
@@ -98,10 +93,10 @@ describe("assembleCourse: computed coverage metadata", () => {
     for (const module of courseModules) {
       const computed = releaseCoverage.moduleCoverage[module.id];
       expect(computed, module.id).toBeDefined();
-      expect(module.coverage.verbCount, module.id).toBe(
+      expect(module.coverage!.verbCount, module.id).toBe(
         practicedVerbLexemeCount(computed),
       );
-      expect(module.coverage.vocabularyCount).toBe(
+      expect(module.coverage!.vocabularyCount).toBe(
         computed.introducedLexemeIds.length,
       );
     }
@@ -110,12 +105,12 @@ describe("assembleCourse: computed coverage metadata", () => {
   it("reports the capstones as introducing no new vocabulary but practicing a nonzero union of reused verbs (spiral reuse, review found 29)", () => {
     const capstones = courseModules.find((module) => module.id === "capstones");
     const computed = releaseCoverage.moduleCoverage["capstones"];
-    expect(capstones?.coverage.vocabularyCount).toBe(0);
-    expect(capstones?.coverage.verbCount).toBe(
+    expect(capstones?.coverage!.vocabularyCount).toBe(0);
+    expect(capstones?.coverage!.verbCount).toBe(
       practicedVerbLexemeCount(computed),
     );
-    expect(capstones?.coverage.verbCount).toBeGreaterThan(0);
-    expect(capstones?.coverage.verbCount).toBe(29);
+    expect(capstones?.coverage!.verbCount).toBeGreaterThan(0);
+    expect(capstones?.coverage!.verbCount).toBe(29);
   });
 });
 
@@ -123,7 +118,7 @@ describe("assembleCourse: stable lesson sections", () => {
   it("gives every lesson the four stable route sections in order", () => {
     for (const module of courseModules) {
       for (const lesson of module.lessons) {
-        expect(lesson.sections.map((section) => section.id)).toEqual([
+        expect(lesson.sections!.map((section) => section.id)).toEqual([
           ...LESSON_SECTION_IDS,
         ]);
       }
@@ -133,7 +128,7 @@ describe("assembleCourse: stable lesson sections", () => {
   it("resolves every referenced comparison and exploration example to a runtime example", () => {
     for (const module of courseModules) {
       for (const lesson of module.lessons) {
-        const [, comparison, explore] = lesson.sections;
+        const [, comparison, explore] = lesson.sections!;
         for (const exampleId of [
           comparison.comparison.baseExampleId,
           comparison.comparison.changedExampleId,
@@ -193,77 +188,19 @@ describe("assembleCourse: honest runtime course", () => {
   });
 });
 
-describe("assembleCourse: route resolution", () => {
-  it("resolves all 40 current lesson routes to a match", () => {
-    let resolved = 0;
-    for (const module of courseModules) {
-      for (const lesson of module.lessons) {
-        const resolution = resolveLessonRoute(
-          module.id,
-          lesson.id,
-          courseModules,
-        );
-        expect(resolution.kind, lessonPath(module.id, lesson.id)).toBe("match");
-        resolved += 1;
-      }
-    }
-    expect(resolved).toBe(40);
-  });
-
-  it("preserves every previously published v2.1 lesson id via an explicit legacy alias", () => {
-    const currentLessonIds = new Set(
-      courseModules.flatMap((module) => module.lessons.map((l) => l.id)),
-    );
-    const removedV2Lessons = [
-      "sounds-core",
-      "sounds-special",
-      "sentence-order",
-      "sentence-omission",
-      "actions-object",
-      "actions-masu",
-      "time-past",
-      "time-negative",
-      "places-action",
-      "places-movement",
-      "people-particles",
-      "people-desire",
-      "travel-questions",
-      "travel-existence",
-      "traps-particles",
-      "traps-verbs",
-    ];
-    const aliasedLegacyLessonIds = new Set(
-      LEGACY_LESSON_ALIASES.map((alias) => alias.legacyLessonId),
-    );
-    for (const legacyLessonId of removedV2Lessons) {
-      expect(currentLessonIds.has(legacyLessonId), legacyLessonId).toBe(false);
-      expect(aliasedLegacyLessonIds.has(legacyLessonId), legacyLessonId).toBe(
-        true,
-      );
-    }
-  });
-
-  it("redirects each legacy v2 module+lesson url to its canonical current lesson", () => {
-    for (const alias of LEGACY_LESSON_ALIASES) {
-      const resolution = resolveLessonRoute(
-        alias.legacyModuleId,
-        alias.legacyLessonId,
-        courseModules,
-      );
-      expect(resolution.kind, alias.legacyLessonId).toBe("redirect");
-      if (resolution.kind !== "redirect") continue;
-      expect(resolution.courseModule.id).toBe(alias.moduleId);
-      expect(resolution.lesson.id).toBe(alias.lessonId);
-      // The canonical target must itself be a real current lesson.
-      expect(
-        courseModules
-          .find((module) => module.id === alias.moduleId)
-          ?.lessons.some((lesson) => lesson.id === alias.lessonId),
-        alias.lessonId,
-      ).toBe(true);
-    }
-  });
-});
+// The former "assembleCourse: route resolution" describe block lived here,
+// asserting `resolveLessonRoute`/`LEGACY_LESSON_ALIASES` against this legacy
+// pipeline's own `courseModules`. Phase 2 Task 6 switched every production
+// route consumer (`LessonPage.tsx`, `guidedLessonReturn.ts`) to resolve
+// against the live A1 catalog (`../data/course.ts`) instead, and re-pointed
+// `LEGACY_LESSON_ALIASES`'s targets (e.g. the retired `traps-verbs` alias) at
+// that catalog's current ids (`capstones-3`, not this legacy pipeline's
+// `capstones-travel-day`) — so testing route resolution against this
+// pipeline's own `courseModules` no longer reflects what the app actually
+// does. `../routing/lessonRouteResolution.test.ts` (imports the live
+// `courseModules`) is the up-to-date, comprehensive equivalent: see its
+// "LEGACY_LESSON_ALIASES" and "resolveLessonRoute: legacy aliases" describe
+// blocks for the same coverage against the catalog that actually ships.
 
 describe("assembleCourse: fail-closed validation", () => {
   it("throws a deterministic assembly error with structured codes when the catalog is invalid", () => {

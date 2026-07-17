@@ -144,14 +144,11 @@ describe("validateConceptOrder — real course data (design spec §2.6/§6.5)", 
     expect(validateConceptOrder(courseModules)).toEqual([]);
   });
 
-  it("declares concepts on every lesson and introduces nothing new in the capstone", () => {
+  it("carries no concept ids on the live A1 lessons (concept-order tracking is retired for the current release; the pure validator above still proves the invariant holds vacuously)", () => {
     for (const courseModule of courseModules) {
       for (const lesson of courseModule.lessons) {
-        expect(Array.isArray(lesson.introducedConceptIds)).toBe(true);
-        expect(Array.isArray(lesson.requiredConceptIds)).toBe(true);
-        if (courseModule.phase === "synthesize") {
-          expect(lesson.introducedConceptIds).toEqual([]);
-        }
+        expect(lesson.introducedConceptIds).toBeUndefined();
+        expect(lesson.requiredConceptIds).toBeUndefined();
       }
     }
   });

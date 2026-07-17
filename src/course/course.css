@@ -39,6 +39,26 @@
   line-height: 1.6;
 }
 
+/* A1/JF-CEFR alignment badge and fixed course shape (Phase 2 Task 6, design
+   spec §17): plain redundant text, never a certification/mastery claim and
+   never the sole carrier of any state (there is no state here to color). */
+.course-hero__badge {
+  display: inline-flex;
+  margin: 0 0.6rem 0.6rem 0;
+  border: 1px solid var(--course-line);
+  border-radius: 999px;
+  padding: 0.2rem var(--space-3);
+  color: var(--course-ink);
+  font-size: var(--text-1);
+  font-weight: 800;
+}
+
+.course-hero__shape {
+  margin: 0 0 0.6rem;
+  color: var(--course-muted);
+  font-size: var(--text-1);
+}
+
 .course-hero__actions {
   display: flex;
   flex-wrap: wrap;
@@ -312,6 +332,17 @@
   white-space: nowrap;
 }
 
+/* Redundant-text evidence tags (never color-only — see the label text
+   itself), still given a distinct shape glyph for quick scanning, matching
+   the module-level tag convention above (design spec §17, Phase 2 Task 6). */
+.module-card__lesson-state--practiced::before {
+  content: "◐ ";
+}
+.module-card__lesson-state--demonstrated::before {
+  content: "✓ ";
+  color: var(--course-teal);
+}
+
 @media (max-width: 720px) {
   .module-card {
     flex-direction: column;
@@ -322,6 +353,89 @@
   }
 
   .module-card__lesson-link {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ---------- Can-do evidence summary / A1 checkpoint / migration help
+   (Phase 2 Task 6, design spec §8/§17) ----------
+   Both sections are plain, always-visible text blocks below the map — no
+   fabricated visuals, no color-only state, and every string is redundant
+   text a screen reader announces as-is. */
+.can-do-summary,
+.checkpoint-state,
+.progress-migration-help {
+  margin-top: var(--space-7);
+  max-width: 100%;
+}
+
+.can-do-summary__heading,
+.checkpoint-state__heading,
+.progress-migration-help__heading {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-4);
+}
+
+.can-do-summary__count,
+.checkpoint-state__body,
+.progress-migration-help__body {
+  max-width: 42rem;
+  margin: 0 0 var(--space-4);
+  color: var(--course-muted);
+  line-height: 1.55;
+}
+
+.can-do-summary__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.can-do-summary__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  border: 1px solid var(--course-line);
+  border-radius: 0.65rem;
+  padding: var(--space-2) var(--space-3);
+  background: var(--course-surface);
+}
+
+.can-do-summary__descriptor {
+  flex: 1 1 20rem;
+  min-width: 0;
+  color: var(--course-ink);
+}
+
+.can-do-summary__tier {
+  flex-shrink: 0;
+  color: var(--course-muted);
+  font-size: var(--text-1);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* Distinct shape glyphs per tier (never color alone) mirroring the map's
+   own visited/practiced/demonstrated convention. */
+.can-do-summary__tier--visited::before {
+  content: "✓ ";
+}
+.can-do-summary__tier--practiced::before {
+  content: "◐ ";
+}
+.can-do-summary__tier--demonstrated::before {
+  content: "★ ";
+  color: var(--course-teal);
+}
+
+@media (max-width: 720px) {
+  .can-do-summary__item {
     flex-direction: column;
     align-items: flex-start;
   }

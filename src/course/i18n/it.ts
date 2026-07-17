@@ -1,5 +1,12 @@
 import type { CourseCopy } from "./types";
 import { assembledCourseCopy } from "../catalog/assembleCourse";
+import {
+  a1RuntimeLessonCopy,
+  a1RuntimeModuleCopy,
+  a1RuntimeObjectiveCopy,
+  a1RuntimeOutcomeCopy,
+  a1RuntimePhoneticCopy,
+} from "../a1/runtimeCopy";
 
 const itUi = {
   home: {
@@ -25,7 +32,27 @@ const itUi = {
     persistenceWarningTitle: "I progressi non verranno salvati",
     persistenceWarningBody:
       "Il browser non permette di salvare i progressi del percorso in questa sessione. Puoi continuare a usare l'app, ma alla chiusura le lezioni visitate non verranno ricordate.",
+    levelBadge: "A1, allineato al Can-do JF/CEFR",
+    courseShape: (moduleCount: number, lessonCount: number) =>
+      `${moduleCount} moduli, ${lessonCount} lezioni`,
   },
+  canDoSummary: {
+    heading: "Cosa sai già fare",
+    demonstratedCount: (demonstrated: number, total: number) =>
+      `${demonstrated} di ${total} Can-do hanno prove accettate`,
+    tierNotStarted: "Non iniziato",
+    tierVisited: "Visitato",
+    tierPracticed: "Esercitato",
+    tierDemonstrated: "Dimostrato",
+  },
+  checkpoint: {
+    heading: "Verifica A1",
+    notAttemptedBody:
+      "Non hai ancora affrontato gli scenari della verifica A1. Non è obbligatoria e nel frattempo nulla resta bloccato.",
+    attemptedBody: (acceptedExerciseCount: number, sampledCanDoCount: number) =>
+      `Hai affrontato gli scenari della verifica A1, con ${acceptedExerciseCount} esercizi accettati su ${sampledCanDoCount} Can-do campionati. Questo registra solo cosa hai fatto — non è un punteggio, e non significa aver finito il livello A1.`,
+  },
+
   lesson: {
     back: "Tutti i moduli",
     modulePosition: (current: number, total: number) =>
@@ -38,6 +65,9 @@ const itUi = {
     legacyModuleNoticeTitle: "Link del modulo aggiornato",
     legacyModuleNoticeBody:
       "Questa lezione ora si trova in un altro modulo. Sei stato portato alla sua posizione attuale.",
+    legacyLessonConsolidatedNoticeTitle: "Questa lezione si trova qui",
+    legacyLessonConsolidatedNoticeBody:
+      "La vecchia lezione sounds-5 è confluita in questa, che ora copre anche i suoi contenuti in katakana.",
     sections: {
       rule: "Regola",
       comparison: "Confronto",
@@ -71,6 +101,14 @@ const itUi = {
       changed: "Ingranaggi che cambiano",
       openSyllabary: "Apri il Sillabario",
       journeyLabel: "Una giornata in viaggio, scena per scena",
+    },
+    recap: {
+      canDoLabel: "Can-do",
+      variationLabel: "Cosa è cambiato",
+      vocabLabel: "Parole di questa lezione",
+      nextRetrievalTitle: "Tornerà nel ripasso",
+      nextRetrievalBody:
+        "Tutto ciò che non hai indovinato qui tornerà nella coda di ripasso, così potrai riprovare.",
     },
   },
   practice: {
@@ -217,38 +255,19 @@ const itUi = {
     helpBody:
       "Una versione precedente di questo percorso teneva traccia dei progressi in modo diverso. Quando la struttura è cambiata, ogni visita a una lezione che corrisponde in modo sicuro alla nuova struttura viene mantenuta automaticamente. I tentativi di pratica, gli elementi di ripasso salvati e i risultati delle verifiche legati agli esercizi rinnovati potrebbero dover essere completati di nuovo, perché non corrispondono più esattamente ai nuovi esercizi. Ogni vecchia visita senza una corrispondenza sicura nella nuova struttura è conservata come dati di recupero, senza essere considerata una lezione visitata equivalente.",
   },
-} satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
+} satisfies Pick<CourseCopy, "home" | "canDoSummary" | "checkpoint" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
 
 const itCourseMap: CourseCopy["courseMap"] = {
-  heading: "Le fasi del percorso",
-  phases: {
-    orient: {
-      title: "Orientati",
-      purpose: "Suoni e struttura di base della frase.",
-    },
-    build: {
-      title: "Costruisci",
-      purpose: "Aggiungi azioni, oggetti e riferimenti di tempo.",
-    },
-    navigate: {
-      title: "Naviga",
-      purpose: "Muoviti tra luoghi, persone e richieste quotidiane.",
-    },
-    synthesize: {
-      title: "Sintetizza",
-      purpose: "Metti insieme tutto in una lezione conclusiva.",
-    },
-  },
+  heading: "Il percorso",
   prerequisites: (moduleNames: string[]) =>
     moduleNames.length === 0
       ? "Nessuno: puoi iniziare da qui."
       : `Idealmente dopo: ${moduleNames.join(", ")}.`,
-  estimatedMinutes: (minutes: number) => `Circa ${minutes} min`,
-  coverageMetadata: (lessons, verbs, vocabularyItems) =>
-    `${lessons} lezioni · ${verbs} verbi · ${vocabularyItems} parole`,
   stateCurrent: "Sei qui",
   stateRecommended: "Consigliato",
   stateVisited: "Visitato",
+  statePracticed: "Esercitato",
+  stateDemonstrated: "Dimostrato",
   expandLabel: (moduleTitle: string) => `Espandi le lezioni di ${moduleTitle}`,
   collapseLabel: (moduleTitle: string) => `Comprimi le lezioni di ${moduleTitle}`,
   revisitTitle: "Hai visitato tutte le lezioni",
@@ -260,8 +279,23 @@ const itCourseMap: CourseCopy["courseMap"] = {
 export const it = {
   ...itUi,
   courseMap: itCourseMap,
-  // Module/lesson/objective/outcome/block/example copy is projected from the
-  // shared curriculum copy catalog (spec §9.1): Japanese never enters the
-  // locale files, and IT/EN key parity is guaranteed by a single source.
-  ...assembledCourseCopy.it,
+  // Module/lesson titles and Can-do objective/module-outcome copy are
+  // resolved from the validated A1 release catalog's own copy ids (Phase 2
+  // Task 6) — never from the legacy, disjoint curriculum catalog. `blocks`
+  // and `examples`, however, are keyed by fine-grained ids (per-example
+  // translations, `${legacyLessonId}-rule/-comparison/-explore/-recap`
+  // section copy) that never collide with the A1 module/lesson/objective/
+  // outcome namespace, and the shared example catalog (`data/examples.ts`)
+  // is the same one the legacy `assembleCourse` pipeline produces this copy
+  // from — so they're kept from the legacy course copy, still genuinely used
+  // by the legacy `spokenAttemptModel`/`TransformComparison`/`GuidedToolLink`
+  // consumers. `journeyScenes` has no shipped content in either pipeline.
+  modules: a1RuntimeModuleCopy("it"),
+  lessons: a1RuntimeLessonCopy("it"),
+  objectives: a1RuntimeObjectiveCopy("it"),
+  outcomes: a1RuntimeOutcomeCopy("it"),
+  blocks: assembledCourseCopy.it.blocks,
+  examples: assembledCourseCopy.it.examples,
+  journeyScenes: {} as CourseCopy["journeyScenes"],
+  phonetics: a1RuntimePhoneticCopy("it"),
 } satisfies CourseCopy;

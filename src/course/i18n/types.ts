@@ -1,5 +1,5 @@
 import type { LessonSectionId } from "../../routing/lessonSections";
-import type { ContrastDimension, ModuleId, PhaseId } from "../data/types";
+import type { ContrastDimension, ModuleId } from "../data/types";
 
 export interface BlockCopy {
   eyebrow?: string;
@@ -20,12 +20,6 @@ export interface ModuleCopy {
 
 export interface LessonCopy {
   title: string;
-}
-
-/** A single curriculum phase's localized name and concise purpose (§4.2/§6.2). */
-export interface PhaseCopy {
-  title: string;
-  purpose: string;
 }
 
 export interface CourseCopy {
@@ -54,6 +48,38 @@ export interface CourseCopy {
     /** Notice shown when `persistenceAvailable === false` for progress. */
     persistenceWarningTitle: string;
     persistenceWarningBody: string;
+    /**
+     * Hero alignment badge (Phase 2 Task 6, design spec §3.1/§5): states the
+     * level and its JF/CEFR alignment claim, never a certification claim.
+     */
+    levelBadge: string;
+    /** Exact "12 modules, 48 lessons" structural statement — a fixed course
+     * shape, never a completion/progress claim (that is `lessonsProgress`). */
+    courseShape: (moduleCount: number, lessonCount: number) => string;
+  };
+  /**
+   * The Course Home Can-do evidence summary (design spec §8/§17, Phase 2
+   * Task 6): one line per authored Can-do, each showing only its recorded
+   * evidence tier — never a pass/fail or mastery verdict.
+   */
+  canDoSummary: {
+    heading: string;
+    demonstratedCount: (demonstrated: number, total: number) => string;
+    tierNotStarted: string;
+    tierVisited: string;
+    tierPracticed: string;
+    tierDemonstrated: string;
+  };
+  /**
+   * The Course Home checkpoint attempt-state section (design spec §8/§17,
+   * Phase 2 Task 6): reports only whether the bounded A1 checkpoint scenario
+   * has been attempted and what evidence that attempt produced — never a
+   * pass/fail, certified, completed, mastered, or "passed A1" claim.
+   */
+  checkpoint: {
+    heading: string;
+    notAttemptedBody: string;
+    attemptedBody: (acceptedExerciseCount: number, sampledCanDoCount: number) => string;
   };
   lesson: {
     back: string;
@@ -66,6 +92,9 @@ export interface CourseCopy {
     playing: string;
     legacyModuleNoticeTitle: string;
     legacyModuleNoticeBody: string;
+    /** Notice shown when a retired lesson's content merged into another lesson (e.g. sounds-5 → sounds-4), not merely renamed. */
+    legacyLessonConsolidatedNoticeTitle: string;
+    legacyLessonConsolidatedNoticeBody: string;
     /**
      * The four section landmark names (design spec §4.3). Used verbatim as the
      * lesson rail's step labels, the mobile context bar's section name, and
@@ -96,6 +125,21 @@ export interface CourseCopy {
       openSyllabary: string;
       /** Accessible name for the multi-scene capstone journey list (§6.6). */
       journeyLabel: string;
+    };
+    /**
+     * The A1 deep-lesson recap anchor's four fixed labels (Phase 2 Task 6):
+     * the restated Can-do, the restated variation/contrast summary, the
+     * vocabulary/item recap, and the honest note that anything missed
+     * returns to the review queue. No string here claims certification,
+     * mastery, or completion of A1 (§3.1) — only what this one lesson
+     * covered and what happens next.
+     */
+    recap: {
+      canDoLabel: string;
+      variationLabel: string;
+      vocabLabel: string;
+      nextRetrievalTitle: string;
+      nextRetrievalBody: string;
     };
   };
   practice: {
@@ -295,27 +339,27 @@ export interface CourseCopy {
     unavailable: string;
   };
   /**
-   * Copy for the phase-based course map (§4.1-4.4/§5.1-5.4/§6.2): phase
-   * bands, per-module prerequisite/estimate/state text, and the
-   * revisit/capstone state shown once every known lesson is visited.
+   * Copy for the flat, single-path course map (A1 release, Phase 2 Task 6):
+   * per-module prerequisite/state text and the revisit/capstone state shown
+   * once every known lesson is visited. The A1 release has no phase-band
+   * concept and no fabricated per-module time estimate or verb/vocabulary
+   * coverage count, so this copy never claims either.
    */
   courseMap: {
     heading: string;
-    /** Keyed by PhaseId; a closed union, so `satisfies CourseCopy` already
-     * enforces all four phases are present at compile time. */
-    phases: Record<PhaseId, PhaseCopy>;
     /** Localized module names, or the localized "none/start here" text. */
     prerequisites: (moduleNames: string[]) => string;
-    /** Shared wording for a module's total or a lesson's own estimate. */
-    estimatedMinutes: (minutes: number) => string;
-    coverageMetadata: (
-      lessons: number,
-      verbs: number,
-      vocabularyItems: number,
-    ) => string;
     stateCurrent: string;
     stateRecommended: string;
     stateVisited: string;
+    /** Redundant text for a lesson whose required exercises have all been
+     * attempted at least once (never shown alongside stateDemonstrated —
+     * design spec §17, Phase 2 Task 6: the higher evidence tier wins). */
+    statePracticed: string;
+    /** Redundant text for a lesson whose required exercises have all been
+     * accepted at least once — the "demonstrated" evidence tier. Never a
+     * pass/fail verdict, only an observed-evidence label. */
+    stateDemonstrated: string;
     expandLabel: (moduleTitle: string) => string;
     collapseLabel: (moduleTitle: string) => string;
     revisitTitle: string;
@@ -362,4 +406,14 @@ export interface CourseCopy {
    * scenes are internal to one exploration rather than a lesson-level block.
    */
   journeyScenes: Record<string, string>;
+  /**
+   * Localized descriptive text for the A1 phonetic item catalog (Phase 2
+   * Task 6), keyed by `A1PhoneticItem.hintCopyId` and by each phonetic
+   * lesson's `a1-phonetic-outcome-<lessonId>` copy id. Kept separate from
+   * `blocks`/`objectives` because the phonetic catalog is not lesson-section
+   * or Can-do content — it is the one-mora/one-glyph description shown
+   * alongside a phonetic lesson's rule/comparison/explore/recap content and
+   * its spoken listen/repeat equivalent.
+   */
+  phonetics: Record<string, string>;
 }

@@ -6,13 +6,17 @@ import { MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
 import { LocaleProvider } from "../../i18n/LocaleContext";
 import { lessonPath, routePaths } from "../../routing/routes";
+import { a1CanDosAuthored } from "../a1/catalog/canDos";
 import { courseModules } from "../data/course";
 import { en as enCopy } from "../i18n/en";
 import { it as itCopy } from "../i18n/it";
 import {
   emptyProgress,
   markLessonVisited,
+  type CanDoEvidence,
+  type CheckpointAttempt,
   type CourseProgressV3,
+  type ProgressMigrationNotice,
 } from "../progress/progress";
 import {
   ProgressContext,
@@ -39,6 +43,17 @@ function makeProgressValue(
     resolveReview: () => {},
     dismissCorruption: () => {},
     reset: () => {},
+    migrationNotice: null,
+    acknowledgeMigrationNotice: () => {},
+    levelSummary: {
+      level: "a1",
+      visitedLessonCount: 0,
+      totalLessonCount: totalLessons,
+      visitedPercent: 0,
+      recommendedContinuationLessonId: firstLesson?.id ?? null,
+    },
+    canDoEvidence: {},
+    checkpointAttempts: [],
     ...overrides,
   };
 }
@@ -126,6 +141,14 @@ describe("CourseHome hero: editoriale mnemonico", () => {
     );
     expect(html).toContain(itCopy.home.lessonsProgress(visited.length, totalLessons));
   });
+
+  it("shows the A1/JF-CEFR alignment badge and the exact fixed course shape (12 modules, 48 lessons)", () => {
+    const html = renderHome(makeProgressValue());
+    expect(html).toContain(itCopy.home.levelBadge);
+    expect(courseModules.length).toBe(12);
+    expect(totalLessons).toBe(48);
+    expect(html).toContain(itCopy.home.courseShape(courseModules.length, totalLessons));
+  });
 });
 
 describe("CourseHome hero: primary and secondary actions (Task 1 Action primitives)", () => {
@@ -184,15 +207,14 @@ describe("CourseHome hero: primary and secondary actions (Task 1 Action primitiv
   });
 });
 
-describe("CourseHome: renders the phase-based CourseMap, never the old chapter grid", () => {
-  it("renders the course map heading and every phase title", () => {
+describe("CourseHome: renders the flat, single-path CourseMap, never the old chapter grid", () => {
+  it("renders the course map heading and every real module title", () => {
     const html = renderHome(makeProgressValue());
     expect(html).toContain(`class="course-map"`);
     expect(html).toContain(itCopy.courseMap.heading);
-    expect(html).toContain(itCopy.courseMap.phases.orient.title);
-    expect(html).toContain(itCopy.courseMap.phases.build.title);
-    expect(html).toContain(itCopy.courseMap.phases.navigate.title);
-    expect(html).toContain(itCopy.courseMap.phases.synthesize.title);
+    expect(html).toContain(itCopy.modules.sounds.title);
+    expect(html).toContain(itCopy.modules.introductions.title);
+    expect(html).toContain(itCopy.modules.capstones.title);
   });
 
   it("never renders the obsolete chapter-grid/chapter-card classes", () => {
@@ -274,5 +296,135 @@ describe("CourseHome: destructive, confirmed, localized reset", () => {
     expect(source).toMatch(
       /if \(window\.confirm\(copy\.home\.resetConfirm\)\) reset\(\);/,
     );
+  });
+});
+
+const sampleMigrationNotice: ProgressMigrationNotice = {
+  fromSchemaVersion: 3,
+  preservedVisitedLessonIds: ["sounds-1", "sounds-2"],
+  resetEvidenceLessonIds: ["introductions-1"],
+  acknowledgedAt: null,
+};
+
+describe("CourseHome: v3→v4 migration notice (design spec §17, Phase 2 Task 6)", () => {
+  it("omits the migration notice entirely when there is nothing to migrate", () => {
+    const html = renderHome(makeProgressValue());
+    expect(html).not.toContain(itCopy.progressMigration.noticeTitle);
+  });
+
+  it("shows the dismissible migration notice, its truthful copy, and an acknowledge action while unacknowledged", () => {
+    const html = renderHome(
+      makeProgressValue({ migrationNotice: sampleMigrationNotice }),
+    );
+    expect(html).toContain(itCopy.progressMigration.noticeTitle);
+    expect(html).toContain(escapeHtmlText(itCopy.progressMigration.noticeBody));
+    expect(html).toContain(itCopy.progressMigration.acknowledge);
+  });
+
+  it("always keeps the migration help explanation available, even once acknowledged", () => {
+    const acknowledged: ProgressMigrationNotice = {
+      ...sampleMigrationNotice,
+      acknowledgedAt: "2024-01-01T00:00:00.000Z",
+    };
+    const html = renderHome(makeProgressValue({ migrationNotice: acknowledged }));
+    expect(html).toContain(itCopy.progressMigration.helpTitle);
+    expect(html).toContain(escapeHtmlText(itCopy.progressMigration.helpBody));
+    // The dismissible top notice's own acknowledge action is gone once
+    // acknowledged, but the always-available help explanation remains.
+    expect(html).not.toContain(itCopy.progressMigration.acknowledge);
+  });
+
+  it("wires the acknowledge action to acknowledgeMigrationNotice, never deleting the record (source contract)", () => {
+    const source = readCourseHomeSource();
+    expect(source).toMatch(/onDismiss=\{acknowledgeMigrationNotice\}/);
+  });
+});
+
+describe("CourseHome: Can-do evidence summary (design spec §8/§17, Phase 2 Task 6)", () => {
+  it("lists every authored Can-do's descriptor text with an honest 'not started' tier by default", () => {
+    const html = renderHome(makeProgressValue());
+    expect(html).toContain(itCopy.canDoSummary.heading);
+    expect(html).toContain(
+      itCopy.canDoSummary.demonstratedCount(0, a1CanDosAuthored.length),
+    );
+    for (const canDo of a1CanDosAuthored) {
+      expect(html).toContain(escapeHtmlText(itCopy.objectives[canDo.descriptorCopyId]));
+    }
+    expect(html).toContain(itCopy.canDoSummary.tierNotStarted);
+  });
+
+  it("reflects a demonstrated Can-do's evidence tier and demonstrated count from real canDoEvidence", () => {
+    const demonstrated = a1CanDosAuthored[0];
+    const evidence: Record<string, CanDoEvidence> = {
+      [demonstrated.id]: {
+        canDoId: demonstrated.id,
+        visitedLessonIds: [demonstrated.lessonIds[0]],
+        practicedLessonIds: [demonstrated.lessonIds[0]],
+        acceptedTransferExerciseIds: ["some-exercise-id"],
+        checkpointAttemptIds: [],
+        lastUpdatedAt: "2024-01-01T00:00:00.000Z",
+      },
+    };
+    const html = renderHome(
+      makeProgressValue({ canDoEvidence: evidence }),
+    );
+    expect(html).toContain(itCopy.canDoSummary.tierDemonstrated);
+    expect(html).toContain(
+      itCopy.canDoSummary.demonstratedCount(1, a1CanDosAuthored.length),
+    );
+  });
+});
+
+describe("CourseHome: A1 checkpoint attempt-state (design spec §8/§17, Phase 2 Task 6)", () => {
+  it("shows the honest not-attempted body when there is no checkpoint attempt yet", () => {
+    const html = renderHome(makeProgressValue());
+    expect(html).toContain(itCopy.checkpoint.heading);
+    expect(html).toContain(itCopy.checkpoint.notAttemptedBody);
+  });
+
+  it("shows the observational attempted body with real accepted/sampled counts, never a pass/fail score", () => {
+    const attempt: CheckpointAttempt = {
+      id: "a1-checkpoint-attempt-1",
+      checkpointId: "a1-checkpoint",
+      attemptedAt: "2024-01-01T00:00:00.000Z",
+      acceptedExerciseIds: ["ex-1", "ex-2", "ex-3"],
+      sampledCanDoIds: ["a1-can-do-sounds", "a1-can-do-identity"],
+    };
+    const html = renderHome(
+      makeProgressValue({ checkpointAttempts: [attempt] }),
+    );
+    expect(html).toContain(
+      itCopy.checkpoint.attemptedBody(
+        attempt.acceptedExerciseIds.length,
+        attempt.sampledCanDoIds.length,
+      ),
+    );
+    expect(html).not.toContain(itCopy.checkpoint.notAttemptedBody);
+  });
+});
+
+describe("CourseHome: never claims certification, mastery, or A1 completion anywhere (design spec §3.1)", () => {
+  const forbidden = /certif|mastered|\bpassed a1\b|completed a1|completa (l'|l’)?a1/i;
+
+  it("never uses forbidden proficiency-claim language in the fresh-state render (either locale's copy)", () => {
+    const html = renderHome(
+      makeProgressValue({
+        migrationNotice: sampleMigrationNotice,
+        checkpointAttempts: [
+          {
+            id: "a1-checkpoint-attempt-1",
+            checkpointId: "a1-checkpoint",
+            attemptedAt: "2024-01-01T00:00:00.000Z",
+            acceptedExerciseIds: ["ex-1"],
+            sampledCanDoIds: ["a1-can-do-sounds"],
+          },
+        ],
+      }),
+    );
+    expect(html).not.toMatch(forbidden);
+    expect(JSON.stringify(enCopy.home)).not.toMatch(forbidden);
+    expect(JSON.stringify(enCopy.checkpoint)).not.toMatch(forbidden);
+    expect(JSON.stringify(enCopy.canDoSummary)).not.toMatch(forbidden);
+    expect(JSON.stringify(enCopy.progressMigration)).not.toMatch(forbidden);
   });
 });

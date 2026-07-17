@@ -13,7 +13,7 @@ import {
   recordExerciseMistake,
 } from "../progress/progress";
 import type { CourseProgressV3, ExerciseEvidence } from "../progress/progress";
-import { exerciseIdsByLesson } from "../catalog/exercises";
+import { getLessonExercises } from "./lessonExerciseModel";
 import { en as enCopy } from "../i18n/en";
 import { it as itCopy } from "../i18n/it";
 import { lessonPath } from "../../routing/routes";
@@ -28,6 +28,10 @@ import { ReviewQueue } from "./ReviewQueue";
  * stable ordering.
  */
 
+/** A real exercise definition id from a lesson's own A1 practice set. */
+const introductionsExerciseId = getLessonExercises("introductions-1")!.exercises[0]!.definitionId;
+const pastNegativeExerciseId = getLessonExercises("past-negative-1")!.exercises[0]!.definitionId;
+
 function evidence(
   lessonId: string,
   exerciseDefinitionId: string,
@@ -36,7 +40,10 @@ function evidence(
   return {
     lessonId,
     exerciseDefinitionId,
-    requiredExerciseIds: exerciseIdsByLesson.get(lessonId) ?? [exerciseDefinitionId],
+    requiredExerciseIds:
+      getLessonExercises(lessonId)?.exercises.map((e) => e.definitionId) ?? [
+        exerciseDefinitionId,
+      ],
     targetConceptIds: [],
     targetLexemeIds: [],
     at,
@@ -66,6 +73,17 @@ function contextValue(
     resolveReview: vi.fn(),
     dismissCorruption: vi.fn(),
     reset: vi.fn(),
+    migrationNotice: null,
+    acknowledgeMigrationNotice: vi.fn(),
+    levelSummary: {
+      level: "a1",
+      visitedLessonCount: 0,
+      totalLessonCount: 48,
+      visitedPercent: 0,
+      recommendedContinuationLessonId: null,
+    },
+    canDoEvidence: {},
+    checkpointAttempts: [],
     ...overrides,
   };
 }
@@ -107,8 +125,8 @@ describe("ReviewQueue — heading and empty state", () => {
 
 describe("ReviewQueue — populated state", () => {
   const populated = withMistakes(
-    ["introductions-1", "introductions-1-particle-base", "2026-01-01T00:00:00.000Z"],
-    ["past-negative-1", "past-negative-1-transform-base", "2026-01-02T00:00:00.000Z"],
+    ["introductions-1", introductionsExerciseId, "2026-01-01T00:00:00.000Z"],
+    ["past-negative-1", pastNegativeExerciseId, "2026-01-02T00:00:00.000Z"],
   );
 
   it("shows the queue count", () => {
@@ -134,8 +152,8 @@ describe("ReviewQueue — populated state", () => {
 
   it("shows a per-entry mistake count", () => {
     const twice = withMistakes(
-      ["introductions-1", "introductions-1-particle-base", "2026-01-01T00:00:00.000Z"],
-      ["introductions-1", "introductions-1-particle-base", "2026-01-03T00:00:00.000Z"],
+      ["introductions-1", introductionsExerciseId, "2026-01-01T00:00:00.000Z"],
+      ["introductions-1", introductionsExerciseId, "2026-01-03T00:00:00.000Z"],
     );
     const html = render(contextValue(twice));
     expect(html).toContain(itCopy.review.mistakes(2));

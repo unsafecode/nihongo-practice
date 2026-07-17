@@ -59,24 +59,10 @@ function lessonsInFirstModules(count: number): string[] {
     .flatMap((module) => module.lessons.map((lesson) => lesson.id));
 }
 
-describe("CourseMap: phase grouping and order", () => {
+describe("CourseMap: flat module order", () => {
   it("renders as a single vertical path, not a card grid", () => {
     const html = renderMap([], null);
     expect(html).toContain('class="course-map"');
-  });
-
-  it("renders the four phase headings and purposes in orient, build, navigate, synthesize order", () => {
-    const html = renderMap([], null);
-    const phaseOrder = ["orient", "build", "navigate", "synthesize"] as const;
-    const indices = phaseOrder.map((phaseId) => {
-      const heading = itCopy.courseMap.phases[phaseId].title;
-      expect(html).toContain(heading);
-      expect(html).toContain(itCopy.courseMap.phases[phaseId].purpose);
-      return html.indexOf(heading);
-    });
-    for (let i = 1; i < indices.length; i += 1) {
-      expect(indices[i]).toBeGreaterThan(indices[i - 1]);
-    }
   });
 
   it("renders every module title in approved course order", () => {
@@ -131,7 +117,7 @@ describe("CourseMap: initial expansion follows the recommendation", () => {
 describe("CourseMap: all-visited fallback", () => {
   it("shows a localized revisit notice and expands the recognized current module when everything is visited", () => {
     const allLessonIds = courseModules.flatMap((module) => module.lessons.map((lesson) => lesson.id));
-    const html = renderMap(allLessonIds, "capstones-travel-day");
+    const html = renderMap(allLessonIds, "capstones-4");
     expect(html).toContain(escapeHtmlText(itCopy.courseMap.revisitTitle));
     expect(html).toContain(escapeHtmlText(itCopy.courseMap.revisitBody));
     expect(html).toContain('id="module-lessons-capstones" class="module-card__lessons">');

@@ -21,11 +21,13 @@ export interface ModuleCardProps {
 }
 
 /**
- * A single module's place on the phase path (design spec §5.1-5.4). Shows
- * the module's icon/title/outcome/prerequisites/estimate/visited count and
+ * A single module's place on the course map (Phase 2 Task 6). Shows the
+ * module's icon/title/outcome/prerequisites/visited count and
  * current/recommended/visited state as redundant text (never color alone),
  * plus an expandable, accessible lesson list. Never locks or blocks
- * navigation — every lesson link is always reachable.
+ * navigation — every lesson link is always reachable. The A1 release
+ * catalog tracks no per-module time estimate or verb/vocabulary coverage
+ * count, so this card never fabricates one (unlike the legacy curriculum).
  */
 export function ModuleCard({
   entry,
@@ -43,6 +45,8 @@ export function ModuleCard({
     isFullyVisited,
     isCurrent,
     isRecommended,
+    practicedLessonIds,
+    demonstratedLessonIds,
   } = entry;
 
   // Derived, not synced via effect: recomputes from the latest prop every
@@ -130,14 +134,6 @@ export function ModuleCard({
         </p>
 
         <p className="module-card__meta">
-          <span>{copy.courseMap.estimatedMinutes(courseModule.estimatedMinutes)}</span>
-          <span>
-            {copy.courseMap.coverageMetadata(
-              courseModule.lessons.length,
-              courseModule.coverage.verbCount,
-              courseModule.coverage.vocabularyCount,
-            )}
-          </span>
           <span>{progressLabel}</span>
         </p>
 
@@ -157,6 +153,8 @@ export function ModuleCard({
               .map((id) => copy.objectives[id])
               .join(" ");
             const visited = visitedLessonIds.has(lesson.id);
+            const practiced = practicedLessonIds.has(lesson.id);
+            const demonstrated = demonstratedLessonIds.has(lesson.id);
             const recommended = lesson.id === recommendedLessonId;
             return (
               <li key={lesson.id}>
@@ -170,10 +168,18 @@ export function ModuleCard({
                   </span>
                   <span className="module-card__lesson-objective">{objective}</span>
                   <span className="module-card__lesson-meta">
-                    {copy.courseMap.estimatedMinutes(lesson.estimatedMinutes)}
                     {visited ? (
                       <span className="module-card__lesson-state">
                         {copy.courseMap.stateVisited}
+                      </span>
+                    ) : null}
+                    {demonstrated ? (
+                      <span className="module-card__lesson-state module-card__lesson-state--demonstrated">
+                        {copy.courseMap.stateDemonstrated}
+                      </span>
+                    ) : practiced ? (
+                      <span className="module-card__lesson-state module-card__lesson-state--practiced">
+                        {copy.courseMap.statePracticed}
                       </span>
                     ) : null}
                     {recommended ? (

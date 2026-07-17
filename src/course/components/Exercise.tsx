@@ -4,11 +4,7 @@ import { useLocale } from "../../i18n/LocaleContext";
 import { useScript } from "../../settings/ScriptContext";
 import { getCourseCopy } from "../i18n/catalog";
 import type { GeneratedExercise } from "./lessonExerciseModel";
-import {
-  exampleTokens,
-  exerciseInstructionCopy,
-  segmentToken,
-} from "./lessonExerciseModel";
+import { exampleTokens, segmentToken } from "./lessonExerciseModel";
 import {
   clearAnswer,
   initExerciseState,
@@ -58,11 +54,8 @@ export function Exercise({
 
   const [state, setState] = useState(() => initExerciseState(prompt));
 
-  const instruction = exerciseInstructionCopy(locale, prompt.promptCopyId) ?? "";
-  const intentText =
-    prompt.kind === "constrained-construction"
-      ? exerciseInstructionCopy(locale, prompt.intentCopyId) ?? null
-      : null;
+  const instruction = exercise.instruction[locale];
+  const intentText = exercise.intentText[locale];
 
   return (
     <ExerciseView

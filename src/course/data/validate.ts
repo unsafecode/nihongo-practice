@@ -88,15 +88,21 @@ const CONCEPT_ID_SET = new Set<string>(COURSE_CONCEPT_IDS);
 /** The minimal lesson identity `validateConceptOrder` needs. */
 export interface ConceptLesson {
   readonly id: string;
-  readonly introducedConceptIds: readonly CourseConceptId[];
-  readonly requiredConceptIds: readonly CourseConceptId[];
+  /**
+   * Absent (not empty-array-fabricated) for a lesson that carries no
+   * legacy concept-gear contract at all — the A1 release catalog's lessons
+   * never set these; their level-scope content-order invariant is proven
+   * separately by `validateA1Release()` (Phase 2 Task 6).
+   */
+  readonly introducedConceptIds?: readonly CourseConceptId[];
+  readonly requiredConceptIds?: readonly CourseConceptId[];
 }
 
 /** The minimal module identity `validateConceptOrder` needs. */
 export interface ConceptModule {
   readonly id: string;
   readonly order: number;
-  readonly phase: PhaseId;
+  readonly phase?: PhaseId;
   readonly lessons: readonly ConceptLesson[];
 }
 
@@ -124,7 +130,7 @@ export function validateConceptOrder(modules: readonly ConceptModule[]): string[
     for (const lesson of courseModule.lessons) {
       const pos = position++;
       lessonPositions.push({ lesson, position: pos });
-      for (const conceptId of lesson.introducedConceptIds) {
+      for (const conceptId of lesson.introducedConceptIds ?? []) {
         if (!CONCEPT_ID_SET.has(conceptId)) {
           errors.push(`concept-unknown:${lesson.id}:${conceptId}`);
           continue;
@@ -136,7 +142,7 @@ export function validateConceptOrder(modules: readonly ConceptModule[]): string[
         introducedAt.set(conceptId, pos);
       }
       if (courseModule.phase === "synthesize") {
-        for (const conceptId of lesson.introducedConceptIds) {
+        for (const conceptId of lesson.introducedConceptIds ?? []) {
           errors.push(`concept-capstone-introduces:${lesson.id}:${conceptId}`);
         }
       }
@@ -146,7 +152,7 @@ export function validateConceptOrder(modules: readonly ConceptModule[]): string[
   // Second pass: every required concept must be known and introduced no later
   // than the lesson that requires it.
   for (const { lesson, position: pos } of lessonPositions) {
-    for (const conceptId of lesson.requiredConceptIds) {
+    for (const conceptId of lesson.requiredConceptIds ?? []) {
       if (!CONCEPT_ID_SET.has(conceptId)) {
         errors.push(`concept-unknown:${lesson.id}:${conceptId}`);
         continue;
@@ -193,7 +199,7 @@ export function referencedExampleOrder(
       // validateCourse as `invalid sections`, so here we simply skip any
       // section that does not carry the typed field we expect rather than
       // assume the tuple shape and crash.
-      for (const section of lesson.sections) {
+      for (const section of lesson.sections ?? []) {
         if (section.id === "comparison" && "comparison" in section) {
           push(section.comparison.baseExampleId);
           push(section.comparison.changedExampleId);
@@ -360,8 +366,8 @@ function findDuplicateEffectiveSegmentIds(
   return [...duplicates];
 }
 
-function hasValidEstimate(minutes: number): boolean {
-  return Number.isFinite(minutes) && minutes > 0;
+function hasValidEstimate(minutes: number | undefined): boolean {
+  return typeof minutes === "number" && Number.isFinite(minutes) && minutes > 0;
 }
 
 function setsEqual(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
@@ -764,7 +770,7 @@ export function validateCourse(
     }
     moduleIds.add(courseModule.id);
 
-    if (!PHASE_ID_SET.has(courseModule.phase)) {
+    if (!courseModule.phase || !PHASE_ID_SET.has(courseModule.phase)) {
       errors.push(`invalid phase:${courseModule.id}:${courseModule.phase}`);
     }
 
@@ -797,7 +803,7 @@ export function validateCourse(
 
     let lessonEstimateTotal = 0;
     courseModule.lessons.forEach((lesson, lessonIndex) => {
-      lessonEstimateTotal += lesson.estimatedMinutes;
+      lessonEstimateTotal += lesson.estimatedMinutes ?? 0;
 
       if (lesson.moduleId !== courseModule.id) {
         errors.push(`wrong module:${lesson.id}`);
@@ -815,7 +821,7 @@ export function validateCourse(
         errors.push(`invalid lesson estimate:${lesson.id}`);
       }
 
-      const sectionIds = lesson.sections.map((section) => section.id);
+      const sectionIds = (lesson.sections ?? []).map((section) => section.id);
       const sectionsValid =
         sectionIds.length === LESSON_SECTION_IDS.length &&
         sectionIds.every((id, index) => id === LESSON_SECTION_IDS[index]);
@@ -827,7 +833,7 @@ export function validateCourse(
       // trusted, so a deliberately malformed-order fixture reports
       // `invalid sections` without crashing on a missing typed field.
       if (sectionsValid) {
-        const [, comparisonSection, exploreSection] = lesson.sections;
+        const [, comparisonSection, exploreSection] = lesson.sections!;
         errors.push(
           ...validateComparison(comparisonSection.comparison, examples),
         );

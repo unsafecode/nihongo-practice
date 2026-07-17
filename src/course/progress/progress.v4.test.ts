@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { lessonPlans } from "../catalog/lessonPlans";
-import { courseModules } from "../data/course";
+import { courseModules as legacyAssembledCourseModules } from "../catalog/assembleCourse";
 import {
   A1_V3_LESSON_ID_MAP,
   A1_V3_PUBLISHED_LESSON_IDS,
@@ -67,8 +67,8 @@ describe("A1_V3_PUBLISHED_LESSON_IDS / A1_V3_SAFE_SOURCE_LESSON_IDS / A1_V3_LESS
     expect(A1_V3_PUBLISHED_LESSON_IDS).toHaveLength(40);
   });
 
-  it("matches the assembled runtime courseModules catalog too (src/course/data/course.ts, built from lessonPlans), confirming the published list tracks what actually ships, not just the leaf authoring file", () => {
-    const assembledLessonIds = courseModules.flatMap((courseModule) =>
+  it("matches the legacy assembled courseModules catalog too (src/course/catalog/assembleCourse.ts, built from lessonPlans), confirming the published v3 list tracks what the v3 schema actually shipped, not just the leaf authoring file — Phase 2 Task 6 switched src/course/data/course.ts's courseModules to the validated v4 A1 release catalog, so that export is no longer the v3-equivalent comparison target here", () => {
+    const assembledLessonIds = legacyAssembledCourseModules.flatMap((courseModule) =>
       courseModule.lessons.map((lesson) => lesson.id),
     );
     expect(new Set(A1_V3_PUBLISHED_LESSON_IDS)).toEqual(new Set(assembledLessonIds));

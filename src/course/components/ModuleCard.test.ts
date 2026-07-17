@@ -15,21 +15,20 @@ import type { CourseModule } from "../data/types";
  * checks ModuleCard's rendering). Under design §7.3 the recognized
  * last-visited lesson is also the recommendation, so "current" and
  * "recommended" coincide on a single continuation module:
- * - "sounds": every lesson visited, neither current nor recommended.
- * - "actions": partially visited, and its "actions-1" lesson is the recognized
- *   lastVisitedLessonId -> both current and recommended.
+ * - "sounds": every lesson visited (all four A1 phonetic lessons), neither
+ *   current nor recommended.
+ * - "actions": partially visited, and its "actions-1" lesson is the
+ *   recognized lastVisitedLessonId -> both current and recommended.
  * - "introductions" and every other module: none of the three states apply.
  */
 const model = buildCourseMapModel(
   courseModules,
-  ["sounds-1", "sounds-2", "sounds-3", "sounds-4", "sounds-5", "actions-1"],
+  ["sounds-1", "sounds-2", "sounds-3", "sounds-4", "actions-1"],
   "actions-1",
 );
 
 function entryFor(moduleId: string): ModuleMapEntry<CourseModule> {
-  const entry = model.phases
-    .flatMap((phase) => phase.modules)
-    .find((item) => item.module.id === moduleId);
+  const entry = model.modules.find((item) => item.module.id === moduleId);
   if (!entry) throw new Error(`Missing fixture entry for ${moduleId}`);
   return entry;
 }
@@ -62,29 +61,17 @@ describe("ModuleCard: core content", () => {
     const html = renderCard(entryFor("sounds"), { initiallyExpanded: false });
     expect(html).toContain("<svg");
     expect(html).toContain(itCopy.modules.sounds.title);
-    expect(html).toContain(itCopy.outcomes.sounds);
-  });
-
-  it("renders the module's total estimated minutes", () => {
-    const html = renderCard(entryFor("sounds"), { initiallyExpanded: false });
-    expect(html).toContain(itCopy.courseMap.estimatedMinutes(entryFor("sounds").module.estimatedMinutes));
+    expect(html).toContain(itCopy.outcomes["a1-module-outcome-sounds"]);
   });
 
   it("renders the module-scoped visited lesson count", () => {
     const html = renderCard(entryFor("actions"), { initiallyExpanded: false });
-    expect(html).toContain(itCopy.home.lessonsProgress(1, 3));
+    expect(html).toContain(itCopy.home.lessonsProgress(1, 4));
   });
 
-  it("renders truthful lesson, verb, and word coverage metadata", () => {
-    const module = entryFor("sounds").module;
+  it("never fabricates a time estimate or verb/vocabulary coverage count (the A1 catalog has none)", () => {
     const html = renderCard(entryFor("sounds"), { initiallyExpanded: false });
-    expect(html).toContain(
-      itCopy.courseMap.coverageMetadata(
-        module.lessons.length,
-        module.coverage.verbCount,
-        module.coverage.vocabularyCount,
-      ),
-    );
+    expect(html.toLowerCase()).not.toMatch(/\bmin\b|verb|vocabolar|parole/);
   });
 });
 
@@ -187,20 +174,18 @@ describe("ModuleCard: expandable lesson list disclosure", () => {
 });
 
 describe("ModuleCard: lesson rows", () => {
-  it("renders every lesson's localized title, objective, and estimated minutes", () => {
+  it("renders every lesson's localized title and objective, with no fabricated time estimate", () => {
     const html = renderCard(entryFor("sounds"), { initiallyExpanded: true });
     expect(html).toContain(itCopy.lessons["sounds-1"].title);
-    expect(html).toContain(itCopy.objectives["sounds-1"]);
-    expect(html).toContain(itCopy.courseMap.estimatedMinutes(6));
-    expect(html).toContain(itCopy.lessons["sounds-5"].title);
-    expect(html).toContain(itCopy.objectives["sounds-5"]);
-    expect(html).toContain(itCopy.courseMap.estimatedMinutes(7));
+    expect(html).toContain(itCopy.objectives["a1-can-do-sounds-descriptor"]);
+    expect(html).toContain(itCopy.lessons["sounds-4"].title);
+    expect(html.toLowerCase()).not.toMatch(/\bmin\b/);
   });
 
   it("shows the visited-state text on every visited lesson row", () => {
     const html = renderCard(entryFor("sounds"), { initiallyExpanded: true });
     const rows = lessonRows(html);
-    expect(rows).toHaveLength(5);
+    expect(rows).toHaveLength(4);
     for (const row of rows) {
       expect(row).toContain(itCopy.courseMap.stateVisited);
     }
@@ -219,6 +204,59 @@ describe("ModuleCard: lesson rows", () => {
     const html = renderCard(entryFor("introductions"), { initiallyExpanded: true });
     expect(html).toContain('href="/percorso/introductions/introductions-1"');
     expect(html).toContain('href="/percorso/introductions/introductions-2"');
+  });
+});
+
+/**
+ * A second fixture model built with real `lessonEvidence` (design spec §17,
+ * Phase 2 Task 6): "sounds-1" is practiced only (attempted, not yet
+ * accepted), "sounds-2" is demonstrated (accepted), and the rest of
+ * "sounds" carries no practiced/demonstrated evidence at all — only its
+ * pre-existing visited status from the outer `visitedLessonIds` list.
+ */
+const modelWithEvidence = buildCourseMapModel(
+  courseModules,
+  ["sounds-1", "sounds-2", "sounds-3", "sounds-4", "actions-1"],
+  "actions-1",
+  {
+    "sounds-1": { practicedAt: "2024-01-01T00:00:00.000Z", consolidatedAt: null },
+    "sounds-2": {
+      practicedAt: "2024-01-01T00:00:00.000Z",
+      consolidatedAt: "2024-01-02T00:00:00.000Z",
+    },
+  },
+);
+
+function entryForWithEvidence(moduleId: string): ModuleMapEntry<CourseModule> {
+  const entry = modelWithEvidence.modules.find((item) => item.module.id === moduleId);
+  if (!entry) throw new Error(`Missing fixture entry for ${moduleId}`);
+  return entry;
+}
+
+describe("ModuleCard: per-lesson practiced/demonstrated evidence tags (design spec §17, Phase 2 Task 6)", () => {
+  it("shows only the practiced tag (not demonstrated) for a lesson that was attempted but not yet accepted", () => {
+    const html = renderCard(entryForWithEvidence("sounds"), { initiallyExpanded: true });
+    const rows = lessonRows(html);
+    const practicedOnlyRow = rows.find((row) => row.includes("sounds-1"));
+    expect(practicedOnlyRow).toContain(itCopy.courseMap.statePracticed);
+    expect(practicedOnlyRow).not.toContain(itCopy.courseMap.stateDemonstrated);
+  });
+
+  it("shows the demonstrated tag (the higher tier wins, not also practiced) for an accepted lesson", () => {
+    const html = renderCard(entryForWithEvidence("sounds"), { initiallyExpanded: true });
+    const rows = lessonRows(html);
+    const demonstratedRow = rows.find((row) => row.includes("sounds-2"));
+    expect(demonstratedRow).toContain(itCopy.courseMap.stateDemonstrated);
+    expect(demonstratedRow).not.toContain(itCopy.courseMap.statePracticed);
+  });
+
+  it("shows neither the practiced nor the demonstrated tag for a visited-only lesson with no such evidence", () => {
+    const html = renderCard(entryForWithEvidence("sounds"), { initiallyExpanded: true });
+    const rows = lessonRows(html);
+    const visitedOnlyRow = rows.find((row) => row.includes("sounds-3"));
+    expect(visitedOnlyRow).toContain(itCopy.courseMap.stateVisited);
+    expect(visitedOnlyRow).not.toContain(itCopy.courseMap.statePracticed);
+    expect(visitedOnlyRow).not.toContain(itCopy.courseMap.stateDemonstrated);
   });
 });
 

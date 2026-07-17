@@ -252,10 +252,61 @@ const OUTCOMES: Record<string, Bilingual> = {
   ),
 };
 
+/**
+ * The localized copy id for an item's `contrastFeature` (Phase 2 Task 6). The
+ * feature itself is a plain catalog string (`validateA1.ts` only checks the
+ * *pair* it names resolves, never an exhaustive feature enum), so this is the
+ * one place a runtime consumer maps it to a stable, discoverable copy id
+ * rather than displaying the internal kebab-case identifier verbatim.
+ */
+export function a1ContrastFeatureCopyId(contrastFeature: string): string {
+  return `a1-phonetic-contrast-${contrastFeature}`;
+}
+
+/**
+ * The localized copy id for a phonetic lesson's outcome sentence (mirrors
+ * the `outcomeCopyId: \`a1-phonetic-outcome-${id}\`` recipe convention above)
+ * so `A1LessonPage.tsx`'s recap does not need to hand-build the string.
+ */
+export function a1PhoneticOutcomeCopyId(lessonId: string): string {
+  return `a1-phonetic-outcome-${lessonId}`;
+}
+
+/**
+ * Every `contrastFeature` value the four phonetic lessons' items actually
+ * declare, with an honest short linguistic label — never a claim about how
+ * well the learner distinguishes the pair, only what dimension it isolates.
+ */
+const CONTRAST_FEATURE_LABELS: Record<string, Bilingual> = {
+  "vowel-quality": L("Vowel quality", "Qualità vocalica"),
+  "consonant-onset": L("Consonant onset", "Attacco consonantico"),
+  voicing: L("Voicing (dakuten)", "Sonorizzazione (dakuten)"),
+  handakuten: L("Half-voicing (handakuten)", "Semi-sonorizzazione (handakuten)"),
+  palatalization: L("Palatalized glide (yōon)", "Semivocale palatalizzata (yōon)"),
+  "glide-vowel": L("Glide + vowel", "Semivocale + vocale"),
+  gemination: L("Gemination (small tsu)", "Geminazione (piccolo tsu)"),
+  "vowel-length": L("Vowel length", "Lunghezza vocalica"),
+  "chouonpu-length": L("Long-vowel mark (chōonpu)", "Segno di vocale lunga (chōonpu)"),
+  "consonant-place": L("Consonant place", "Punto di articolazione"),
+  "small-kana-combo": L("Small-kana combination", "Combinazione con kana piccolo"),
+  "katakana-word": L("Katakana loanword", "Prestito in katakana"),
+};
+
+const CONTRAST_FEATURE_COPY: Record<string, Bilingual> = Object.fromEntries(
+  Object.entries(CONTRAST_FEATURE_LABELS).map(([feature, label]) => [
+    a1ContrastFeatureCopyId(feature),
+    label,
+  ]),
+);
+
 export const module1Copy: { readonly en: Record<string, string>; readonly it: Record<string, string> } = (() => {
   const en: Record<string, string> = {};
   const it: Record<string, string> = {};
-  for (const [key, b] of Object.entries({ ...OUTCOMES, ...HINTS })) {
+  for (const [key, b] of Object.entries({
+    ...OUTCOMES,
+    ...HINTS,
+    ...CONTRAST_FEATURE_COPY,
+  })) {
     en[key] = b.en;
     it[key] = b.it;
   }

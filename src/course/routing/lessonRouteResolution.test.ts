@@ -3,7 +3,9 @@ import { lessonPath } from "../../routing/routePaths";
 import { courseModules } from "../data/course";
 import type { CourseModule, Lesson, LessonSections } from "../data/types";
 import {
+  isLegacyConsolidatedRedirectState,
   isLegacyModuleRedirectState,
+  LEGACY_CONSOLIDATED_REDIRECT_STATE,
   LEGACY_LESSON_ALIASES,
   LEGACY_MODULE_REDIRECT_STATE,
   resolveLessonRoute,
@@ -165,13 +167,37 @@ describe("resolveLessonRoute: legacy aliases", () => {
     });
   });
 
+  it("redirects the retired sounds-5 lesson to sounds-4 and flags it as a content consolidation, not a rename", () => {
+    const result = resolveLessonRoute("sounds", "sounds-5", courseModules);
+    expect(result).toMatchObject({
+      kind: "redirect",
+      moduleChanged: false,
+      consolidated: true,
+      courseModule: { id: "sounds" },
+      lesson: { id: "sounds-4" },
+    });
+  });
+
+  it("marks every other legacy alias as a non-consolidated redirect", () => {
+    for (const alias of LEGACY_LESSON_ALIASES) {
+      if (alias.legacyLessonId === "sounds-5") continue;
+      const result = resolveLessonRoute(
+        alias.legacyModuleId,
+        alias.legacyLessonId,
+        courseModules,
+      );
+      if (result.kind !== "redirect") throw new Error("expected redirect");
+      expect(result.consolidated, alias.legacyLessonId).toBe(false);
+    }
+  });
+
   it("redirects a legacy lesson to its canonical lesson even from a removed module id", () => {
     // The old capstone module id is gone; the retired lesson still resolves.
     const result = resolveLessonRoute("capstone", "traps-verbs", courseModules);
     expect(result.kind).toBe("redirect");
     if (result.kind !== "redirect") throw new Error("expected redirect");
     expect(result.courseModule.id).toBe("capstones");
-    expect(result.lesson.id).toBe("capstones-travel-day");
+    expect(result.lesson.id).toBe("capstones-3");
   });
 
   it("redirects an even-older chapter url form of a retired lesson", () => {
@@ -256,5 +282,23 @@ describe("resolveLessonRoute: canonical redirect target/state contract", () => {
     expect(isLegacyModuleRedirectState({ legacyModuleRedirect: false })).toBe(
       false,
     );
+  });
+
+  it("exposes a distinct one-time consolidation notice state marker, not conflated with the legacy-module marker", () => {
+    expect(
+      isLegacyConsolidatedRedirectState(LEGACY_CONSOLIDATED_REDIRECT_STATE),
+    ).toBe(true);
+    expect(isLegacyConsolidatedRedirectState(LEGACY_MODULE_REDIRECT_STATE)).toBe(
+      false,
+    );
+    expect(
+      isLegacyModuleRedirectState(LEGACY_CONSOLIDATED_REDIRECT_STATE),
+    ).toBe(false);
+    expect(isLegacyConsolidatedRedirectState(null)).toBe(false);
+    expect(isLegacyConsolidatedRedirectState(undefined)).toBe(false);
+    expect(isLegacyConsolidatedRedirectState({})).toBe(false);
+    expect(
+      isLegacyConsolidatedRedirectState({ legacyLessonConsolidated: false }),
+    ).toBe(false);
   });
 });

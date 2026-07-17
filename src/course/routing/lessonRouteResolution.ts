@@ -39,6 +39,16 @@ export interface LegacyLessonAlias {
   readonly legacyLessonId: string;
   readonly moduleId: ModuleId;
   readonly lessonId: string;
+  /**
+   * True when the destination lesson absorbed the retired lesson's content
+   * rather than merely being renamed (Phase 2 Task 6): today this is only
+   * `sounds-5`, whose katakana breadth `sounds-4` now covers (see
+   * `catalog/module01Sounds.ts`'s doc comment). The redirect still lands on a
+   * real current lesson either way, but the caller shows a distinct,
+   * informational "content moved here" notice for a consolidation instead of
+   * the generic legacy-module notice, since no module actually changed.
+   */
+  readonly consolidated?: boolean;
 }
 
 /**
@@ -50,6 +60,10 @@ export interface LegacyLessonAlias {
 export const LEGACY_LESSON_ALIASES: readonly LegacyLessonAlias[] = [
   { legacyModuleId: "sounds", legacyLessonId: "sounds-core", moduleId: "sounds", lessonId: "sounds-1" },
   { legacyModuleId: "sounds", legacyLessonId: "sounds-special", moduleId: "sounds", lessonId: "sounds-2" },
+  // The A1 release retired the fifth sounds lesson and consolidated its
+  // katakana breadth into `sounds-4` (see `catalog/module01Sounds.ts`) rather
+  // than renaming it — a genuine content merge, not a like-for-like rename.
+  { legacyModuleId: "sounds", legacyLessonId: "sounds-5", moduleId: "sounds", lessonId: "sounds-4", consolidated: true },
   { legacyModuleId: "sentence-map", legacyLessonId: "sentence-order", moduleId: "introductions", lessonId: "introductions-1" },
   { legacyModuleId: "sentence-map", legacyLessonId: "sentence-omission", moduleId: "introductions", lessonId: "introductions-2" },
   { legacyModuleId: "actions", legacyLessonId: "actions-object", moduleId: "actions", lessonId: "actions-1" },
@@ -63,7 +77,11 @@ export const LEGACY_LESSON_ALIASES: readonly LegacyLessonAlias[] = [
   { legacyModuleId: "questions-existence", legacyLessonId: "travel-questions", moduleId: "essential-questions", lessonId: "essential-questions-1" },
   { legacyModuleId: "questions-existence", legacyLessonId: "travel-existence", moduleId: "existence-needs", lessonId: "existence-needs-1" },
   { legacyModuleId: "questions-existence", legacyLessonId: "traps-particles", moduleId: "existence-needs", lessonId: "existence-needs-2" },
-  { legacyModuleId: "capstone", legacyLessonId: "traps-verbs", moduleId: "capstones", lessonId: "capstones-travel-day" },
+  // Phase 2 Task 6 renumbered the named v3 capstones to `capstones-1..4`
+  // (see progress.ts's `A1_V3_LESSON_ID_MAP` doc comment); this legacy v2.1
+  // alias's destination follows that rename so the redirect still lands on
+  // a real current lesson instead of a retired id.
+  { legacyModuleId: "capstone", legacyLessonId: "traps-verbs", moduleId: "capstones", lessonId: "capstones-3" },
 ];
 
 const legacyAliasByLessonId = new Map<string, LegacyLessonAlias>(
@@ -77,6 +95,8 @@ export type LessonRouteResolution =
       courseModule: CourseModule;
       lesson: Lesson;
       moduleChanged: boolean;
+      /** True when the alias is a content consolidation (see `LegacyLessonAlias.consolidated`). */
+      consolidated: boolean;
     }
   | { kind: "invalid" };
 
@@ -133,6 +153,7 @@ export function resolveLessonRoute(
         kind: "redirect",
         ...target,
         moduleChanged: alias.legacyModuleId !== target.courseModule.id,
+        consolidated: alias.consolidated ?? false,
       };
     }
   }
@@ -160,5 +181,36 @@ export function isLegacyModuleRedirectState(
     "legacyModuleRedirect" in state &&
     (state as { legacyModuleRedirect?: unknown }).legacyModuleRedirect ===
       true
+  );
+}
+
+/**
+ * Router `location.state` shape carried on a one-time content-consolidation
+ * redirect (`sounds-5` → `sounds-4`). Distinct from
+ * {@link LegacyModuleRedirectState}: the module never changed here, so the
+ * generic "updated module link" notice would be misleading — the learner
+ * needs to know the old lesson's content now lives inside this one, not that
+ * a link moved.
+ */
+export interface LegacyConsolidatedRedirectState {
+  legacyLessonConsolidated: true;
+}
+
+/** Shared state value the consolidation redirect navigation attaches; never persisted. */
+export const LEGACY_CONSOLIDATED_REDIRECT_STATE: LegacyConsolidatedRedirectState =
+  {
+    legacyLessonConsolidated: true,
+  };
+
+/** Narrows an arbitrary `location.state` value to the consolidation marker. */
+export function isLegacyConsolidatedRedirectState(
+  state: unknown,
+): state is LegacyConsolidatedRedirectState {
+  return (
+    typeof state === "object" &&
+    state !== null &&
+    "legacyLessonConsolidated" in state &&
+    (state as { legacyLessonConsolidated?: unknown })
+      .legacyLessonConsolidated === true
   );
 }

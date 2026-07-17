@@ -1,42 +1,43 @@
 import type { Locale } from "../../i18n/LocaleContext";
 import type { AssembledToken } from "../../romaji/types";
-import { assembledExamples } from "../catalog/assembleCourse";
-import { assembledCurriculum } from "../catalog/curriculum";
-import { curriculumExamples } from "../catalog/examples";
-import { curriculumExercises, exerciseIdsByLesson } from "../catalog/exercises";
-import { exampleSegmentToAssembledToken } from "../data/romajiTokens";
-import type { ExerciseCatalogsInput } from "../exercises/types";
-import { generateExercise } from "../exercises/engine";
-import type {
-  ExerciseGenerationError,
-  ExercisePrompt,
-} from "../exercises/types";
+import { buildA1LessonViewModel } from "../a1/a1LessonViewModel";
+import { a1FoundationCatalogs } from "../a1/catalog/catalog";
+import { courseModules } from "../data/course";
+import type { ExercisePrompt } from "../exercises/types";
+import type { FoundationLessonViewModel } from "../foundations/buildLessonViewModel";
 
 /**
- * The pure lesson-exercise model (Slice C plan Task 4 step 3, design spec
- * §10.1-§10.2; romaji boundaries plan Task 4 step 7). It resolves a lesson's
- * authored exercise definitions into the deterministic engine prompts the UI
- * renders, and exposes the derived lookups a component needs without ever
- * reconstructing a canonical answer:
+ * The pure lesson-exercise model (Phase 2 Task 6; design spec §10.1-§10.2).
+ * It resolves each of the A1 release's 44 semantic lessons' two practice
+ * rounds into the deterministic engine prompts the UI renders, and exposes
+ * the derived lookups a component needs without ever reconstructing a
+ * canonical answer:
  *
  *   - {@link segmentToken} — the real {@link AssembledToken} (jp/romaji/kind/
- *     boundary) `assembleCourse` already derived for a tile/option's shared
- *     example segment, so a tile renders through the shared semantic romaji
- *     renderer from the same source as every other on-page romaji, never a
- *     hard-coded fragment;
+ *     boundary) the A1 release builder already derived for a tile/option's
+ *     shared example segment, so a tile renders through the shared semantic
+ *     romaji renderer from the same source as every other on-page romaji,
+ *     never a hard-coded fragment;
  *   - {@link exampleTokens} — the whole ordered token list for an example, for
  *     a transformation source or in-sentence context to render as one real
- *     runtime sequence;
- *   - {@link exerciseInstructionCopy} — the localized instruction/intent string
- *     for a prompt/intent copy id, resolved from the shared curriculum copy
- *     catalog that already carries `exercise.prompt.*` and
- *     `example.<id>.translation` keys with exact IT/EN parity.
+ *     runtime sequence.
  *
- * Generation is pure and deterministic, so every lesson's prompts are computed
- * once at module load. A structural catalog error surfaces as an entry in the
- * model's `errors` list (design spec §10.3, §16) rather than a silent empty
- * exercise; the release catalog resolves cleanly, and `lessonExerciseModel.test`
- * proves every published lesson generates 3-5 error-free prompts.
+ * Every exercise's localized instruction and (for constrained-construction)
+ * intent text are precomputed once, per locale, directly on the
+ * {@link GeneratedExercise} itself — sourced from `buildA1LessonViewModel`'s
+ * own locale-resolved `FoundationRoundTarget.instruction`/`.intentText`
+ * (a fixed kind→locale→string map internal to the builder), not from the
+ * legacy curriculum copy catalog, which carries no entries for A1 prompt
+ * copy ids.
+ *
+ * Only the 44 semantic lessons produce exercises: the four phonetic `sounds-*`
+ * lessons carry no sentence variants (`a1FoundationCatalogs` excludes them,
+ * see `a1/catalog/catalog.ts`) and resolve an honest empty model — never a
+ * generation error, since the absence is by design, not a failure. A real
+ * builder failure for a semantic lesson (a structural catalog defect) instead
+ * surfaces as a `LessonExerciseModelError` entry rather than a silent empty
+ * exercise list, so `lessonExerciseModel.test.ts` can prove every published
+ * semantic lesson generates error-free prompts.
  */
 
 export interface GeneratedExercise {
@@ -44,53 +45,111 @@ export interface GeneratedExercise {
   /** The shared example the exercise targets, for deriving in-sentence romaji. */
   readonly targetExampleId: string;
   readonly prompt: ExercisePrompt;
+  /** Localized instruction for the exercise's kind, by locale (exact IT/EN parity). */
+  readonly instruction: Readonly<Record<Locale, string>>;
+  /** Localized constrained-construction intent/scenario note, or null, by locale. */
+  readonly intentText: Readonly<Record<Locale, string | null>>;
+  /**
+   * The release builder's own round purpose for this target — round 1's
+   * `"guided-controlled"` or round 2's `"transfer"` (never re-derived from
+   * the target/round index here, so it always agrees with
+   * `FoundationRoundModel.purpose`). `ProgressContext` reads this to record
+   * Can-do transfer evidence only for a genuine transfer-round acceptance.
+   */
+  readonly practicePurpose: "guided-controlled" | "transfer";
+}
+
+export interface LessonExerciseModelError {
+  readonly code: string;
+  readonly lessonId: string;
+  readonly detail?: string;
 }
 
 export interface LessonExercisesModel {
   readonly lessonId: string;
   readonly exercises: readonly GeneratedExercise[];
-  readonly errors: readonly ExerciseGenerationError[];
+  readonly errors: readonly LessonExerciseModelError[];
 }
 
-const catalogs: ExerciseCatalogsInput = {
-  concepts: assembledCurriculum.concepts,
-  lexemes: assembledCurriculum.lexemes,
-  examples: curriculumExamples,
-};
+const LOCALES: readonly Locale[] = ["en", "it"];
 
-const definitionsById = new Map(
-  curriculumExercises.map((entry) => [entry.id, entry]),
+/** The lesson ids that carry sentence-engine content (the 44 semantic lessons). */
+const semanticLessonIds = new Set(
+  a1FoundationCatalogs.lessons.map((lesson) => lesson.id),
 );
 
-function buildModel(lessonId: string): LessonExercisesModel {
-  const ids = exerciseIdsByLesson.get(lessonId) ?? [];
-  const exercises: GeneratedExercise[] = [];
-  const errors: ExerciseGenerationError[] = [];
-  for (const id of ids) {
-    const entry = definitionsById.get(id);
-    if (!entry?.definition) {
-      errors.push({ code: "absent-target", definitionId: id });
-      continue;
-    }
-    const result = generateExercise(entry.definition, catalogs);
-    if (result.ok) {
-      exercises.push({
-        definitionId: id,
-        targetExampleId: entry.targetExampleId,
-        prompt: result.prompt,
-      });
-    } else {
-      errors.push(result.error);
-    }
-  }
-  return { lessonId, exercises, errors };
+function emptyModel(lessonId: string): LessonExercisesModel {
+  return { lessonId, exercises: [], errors: [] };
 }
 
+function errorModel(
+  lessonId: string,
+  code: string,
+  detail?: string,
+): LessonExercisesModel {
+  return { lessonId, exercises: [], errors: [{ code, lessonId, detail }] };
+}
+
+function buildSemanticModel(lessonId: string): LessonExercisesModel {
+  const byLocale = new Map<Locale, FoundationLessonViewModel>();
+  for (const locale of LOCALES) {
+    const result = buildA1LessonViewModel(lessonId, locale);
+    if (!result.ok) {
+      return errorModel(lessonId, result.error.code, result.error.detail);
+    }
+    byLocale.set(locale, result.model);
+  }
+  const en = byLocale.get("en")!;
+  const other = LOCALES.filter((locale) => locale !== "en");
+
+  const exercises: GeneratedExercise[] = [];
+  for (let roundIndex = 0; roundIndex < en.rounds.length; roundIndex++) {
+    const enRound = en.rounds[roundIndex]!;
+    const enTargets = enRound.targets;
+    for (let targetIndex = 0; targetIndex < enTargets.length; targetIndex++) {
+      const enTarget = enTargets[targetIndex]!;
+      const instruction: Record<Locale, string> = { en: enTarget.instruction, it: enTarget.instruction };
+      const intentText: Record<Locale, string | null> = {
+        en: enTarget.intentText,
+        it: enTarget.intentText,
+      };
+      for (const locale of other) {
+        const localeTarget = byLocale.get(locale)!.rounds[roundIndex]!.targets[targetIndex];
+        if (!localeTarget || localeTarget.targetId !== enTarget.targetId) {
+          return errorModel(
+            lessonId,
+            "locale-mismatch",
+            `${locale} round ${roundIndex} target ${targetIndex} did not match en's ${enTarget.targetId}`,
+          );
+        }
+        instruction[locale] = localeTarget.instruction;
+        intentText[locale] = localeTarget.intentText;
+      }
+      exercises.push({
+        definitionId: enTarget.targetId,
+        targetExampleId: enTarget.targetExampleId,
+        prompt: enTarget.prompt,
+        instruction,
+        intentText,
+        practicePurpose: enRound.purpose,
+      });
+    }
+  }
+  return { lessonId, exercises, errors: [] };
+}
+
+function buildModel(lessonId: string): LessonExercisesModel {
+  return semanticLessonIds.has(lessonId)
+    ? buildSemanticModel(lessonId)
+    : emptyModel(lessonId);
+}
+
+const allCourseLessonIds = courseModules.flatMap((courseModule) =>
+  courseModule.lessons.map((lesson) => lesson.id),
+);
+
 const modelsByLesson = new Map<string, LessonExercisesModel>(
-  [...exerciseIdsByLesson.keys()].map((lessonId) => [
-    lessonId,
-    buildModel(lessonId),
-  ]),
+  allCourseLessonIds.map((lessonId) => [lessonId, buildModel(lessonId)]),
 );
 
 /** The deterministic exercise model for a lesson, or undefined when unknown. */
@@ -100,31 +159,63 @@ export function getLessonExercises(
   return modelsByLesson.get(lessonId);
 }
 
-// ── Derived tokens (romaji boundaries plan Task 4 step 7): a tile id is
-// `${exampleId}#${segmentId}`. Each is the real `AssembledToken` — same shape
-// every other learner-facing romaji surface renders through `RomajiSequence`
-// — never a plain fragment string a component would have to re-join itself. ─
+// ── Derived tokens: a tile id is `${exampleId}#${segmentId}` (the same
+// convention the shared engine already uses everywhere else). Built once per
+// semantic lesson from that lesson's own `buildA1LessonViewModel` closures —
+// each is the real `AssembledToken` every other learner-facing romaji surface
+// renders through `RomajiSequence`, never a plain fragment string a component
+// would have to re-join itself. ─────────────────────────────────────────────
 const tokenByTileId = new Map<string, AssembledToken>();
 const tokensByExampleId = new Map<string, readonly AssembledToken[]>();
-for (const [exampleId, example] of Object.entries(assembledExamples)) {
-  const segments = example.segments ?? [];
-  const tokens: (AssembledToken | null)[] = segments.map((segment) =>
-    exampleSegmentToAssembledToken(segment),
-  );
-  for (const [index, segment] of segments.entries()) {
-    const token = tokens[index];
-    if (token && segment.id !== undefined) {
-      tokenByTileId.set(`${exampleId}#${segment.id}`, token);
-    }
+
+function tileIdsForPrompt(
+  prompt: ExercisePrompt,
+  targetExampleId: string,
+): readonly string[] {
+  switch (prompt.kind) {
+    case "tile-ordering":
+      return prompt.tiles.map((tile) => tile.id);
+    case "choice":
+      return [
+        ...prompt.options.map((option) => option.id),
+        ...prompt.sentenceSegments.map(
+          (segment) => `${targetExampleId}#${segment.id}`,
+        ),
+      ];
+    case "completion":
+      return prompt.sentenceSegments.map(
+        (segment) => `${targetExampleId}#${segment.id}`,
+      );
+    case "constrained-construction":
+    case "transformation":
+      return [];
   }
-  // Only expose the whole-example sequence when every segment resolved to a
-  // real token — a partial list would silently drop an unresolved segment
-  // rather than surfacing the caller's localized formatting error.
-  if (
-    segments.length > 0 &&
-    tokens.every((token): token is AssembledToken => token !== null)
-  ) {
-    tokensByExampleId.set(exampleId, tokens);
+}
+
+function exampleIdsForPrompt(
+  prompt: ExercisePrompt,
+  targetExampleId: string,
+): readonly string[] {
+  return prompt.kind === "transformation"
+    ? [targetExampleId, prompt.promptExampleId]
+    : [targetExampleId];
+}
+
+for (const lessonId of semanticLessonIds) {
+  const model = getLessonExercises(lessonId);
+  if (!model || model.exercises.length === 0) continue;
+  const built = buildA1LessonViewModel(lessonId, "en");
+  if (!built.ok) continue; // Already recorded as a model error above.
+  const { tokenForTile, tokensForExample } = built.model;
+  for (const exercise of model.exercises) {
+    for (const tileId of tileIdsForPrompt(exercise.prompt, exercise.targetExampleId)) {
+      const token = tokenForTile(tileId);
+      if (token) tokenByTileId.set(tileId, token);
+    }
+    for (const exampleId of exampleIdsForPrompt(exercise.prompt, exercise.targetExampleId)) {
+      const tokens = tokensForExample(exampleId);
+      if (tokens) tokensByExampleId.set(exampleId, tokens);
+    }
   }
 }
 
@@ -138,19 +229,4 @@ export function exampleTokens(
   exampleId: string,
 ): readonly AssembledToken[] | undefined {
   return tokensByExampleId.get(exampleId);
-}
-
-// ── Localized instruction/intent copy resolution (exact IT/EN parity). ────────
-/**
- * Resolve a locale-independent copy id — a `promptCopyId` such as
- * `exercise.prompt.order`, or a constrained-construction `intentCopyId` such as
- * `example.<id>.translation` — into its localized string, from the shared
- * curriculum copy catalog. Returns undefined for an unknown id so the caller can
- * surface a missing-copy error (design spec §16) rather than render blank.
- */
-export function exerciseInstructionCopy(
-  locale: Locale,
-  copyId: string,
-): string | undefined {
-  return assembledCurriculum.copy[locale][copyId];
 }

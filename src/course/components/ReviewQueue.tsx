@@ -129,6 +129,9 @@ export function ReviewQueue(): ReactElement {
                           definitionId: item.exerciseDefinitionId,
                           targetExampleId: item.targetExampleId,
                           prompt: item.prompt,
+                          instruction: item.instruction,
+                          intentText: item.intentText,
+                          practicePurpose: item.practicePurpose,
                         }}
                         index={1}
                         total={1}

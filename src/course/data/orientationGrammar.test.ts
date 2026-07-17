@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { courseModules } from "./course";
+import { courseModules as legacyCourseModules } from "../catalog/assembleCourse";
 import { examples } from "./examples";
 import type { AuthoredSelection, Lesson } from "./types";
 
@@ -29,7 +29,10 @@ const PREMATURE_GRAMMAR = [
 
 function referencedExampleIds(lesson: Lesson): string[] {
   const ids: string[] = [];
-  const [, comparison, explore] = lesson.sections;
+  // These fixtures read the legacy, fully-populated `assembleCourse` lesson
+  // set (with sections), not the live A1 release's sections-less
+  // `courseModules` (`./course`) — see the module-level comment above.
+  const [, comparison, explore] = lesson.sections!;
   ids.push(comparison.comparison.baseExampleId);
   ids.push(comparison.comparison.changedExampleId);
   if (explore.exploration.kind === "transformation") {
@@ -46,7 +49,7 @@ function referencedExampleIds(lesson: Lesson): string[] {
 }
 
 describe("the sounds bridge never uses not-yet-taught grammar (real data)", () => {
-  const soundsLessons = courseModules
+  const soundsLessons = legacyCourseModules
     .filter((courseModule) => courseModule.order === 1)
     .flatMap((courseModule) => courseModule.lessons);
 

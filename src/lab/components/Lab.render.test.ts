@@ -58,7 +58,7 @@ describe("Lab guided context", () => {
       `/pratica/laboratorio?${validPreset}&from=%2Fpercorso%2Ftraps%2Ftraps-verbs%23explore`,
     );
     expect(html).toContain(
-      'href="/percorso/capstones/capstones-travel-day#explore"',
+      'href="/percorso/capstones/capstones-3#explore"',
     );
     expect(html).toContain(itCopy.practice.backToLesson);
     expect(html).not.toContain(itCopy.practice.invalidReturn);

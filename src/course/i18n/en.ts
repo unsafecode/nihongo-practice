@@ -1,5 +1,12 @@
 import type { CourseCopy } from "./types";
 import { assembledCourseCopy } from "../catalog/assembleCourse";
+import {
+  a1RuntimeLessonCopy,
+  a1RuntimeModuleCopy,
+  a1RuntimeObjectiveCopy,
+  a1RuntimeOutcomeCopy,
+  a1RuntimePhoneticCopy,
+} from "../a1/runtimeCopy";
 
 const enUi = {
   home: {
@@ -25,6 +32,25 @@ const enUi = {
     persistenceWarningTitle: "Progress will not be saved",
     persistenceWarningBody:
       "Your browser does not allow saving course progress in this session. You can keep using the app, but visited lessons will not be remembered after you close it.",
+    levelBadge: "A1, aligned with JF/CEFR Can-do",
+    courseShape: (moduleCount: number, lessonCount: number) =>
+      `${moduleCount} modules, ${lessonCount} lessons`,
+  },
+  canDoSummary: {
+    heading: "What you can do so far",
+    demonstratedCount: (demonstrated: number, total: number) =>
+      `${demonstrated} of ${total} Can-do statements have accepted evidence`,
+    tierNotStarted: "Not started",
+    tierVisited: "Visited",
+    tierPracticed: "Practiced",
+    tierDemonstrated: "Demonstrated",
+  },
+  checkpoint: {
+    heading: "A1 checkpoint",
+    notAttemptedBody:
+      "You have not yet worked through the A1 checkpoint scenarios. It is not required, and nothing is locked while you wait.",
+    attemptedBody: (acceptedExerciseCount: number, sampledCanDoCount: number) =>
+      `You have worked through the A1 checkpoint scenarios, accepting ${acceptedExerciseCount} exercises across ${sampledCanDoCount} sampled Can-do statements. This only records what you did — it is not a score, and it does not mean you have finished the A1 level.`,
   },
   lesson: {
     back: "All modules",
@@ -38,6 +64,9 @@ const enUi = {
     legacyModuleNoticeTitle: "Updated module link",
     legacyModuleNoticeBody:
       "This lesson now lives in a different module. You have been taken to its current place.",
+    legacyLessonConsolidatedNoticeTitle: "This lesson moved here",
+    legacyLessonConsolidatedNoticeBody:
+      "The old sounds-5 lesson was merged into this one, which now covers its katakana content too.",
     sections: {
       rule: "Rule",
       comparison: "Compare",
@@ -70,6 +99,14 @@ const enUi = {
       changed: "Gears that change",
       openSyllabary: "Open the Syllabary",
       journeyLabel: "A day of travel, scene by scene",
+    },
+    recap: {
+      canDoLabel: "Can-do",
+      variationLabel: "What varied",
+      vocabLabel: "Words in this lesson",
+      nextRetrievalTitle: "Coming back for review",
+      nextRetrievalBody:
+        "Anything you did not get right here will reappear in your review queue so you can try it again.",
     },
   },
   practice: {
@@ -215,38 +252,19 @@ const enUi = {
     helpBody:
       "An earlier version of this course tracked progress differently. When the structure changed, any lesson visit that safely matches the new structure carries over automatically. Practice attempts, saved review items, and checkpoint results tied to exercises that were redesigned may need to be completed again, since they no longer match the new exercises exactly. Any older visit without a safe match in the new structure is retained as recovery data rather than shown as an equivalent visited lesson.",
   },
-} satisfies Pick<CourseCopy, "home" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
+} satisfies Pick<CourseCopy, "home" | "canDoSummary" | "checkpoint" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
 
 const enCourseMap: CourseCopy["courseMap"] = {
-  heading: "The course phases",
-  phases: {
-    orient: {
-      title: "Orient",
-      purpose: "Sounds and the basic sentence structure.",
-    },
-    build: {
-      title: "Build",
-      purpose: "Add actions, objects, and time references.",
-    },
-    navigate: {
-      title: "Navigate",
-      purpose: "Move between places, people, and everyday requests.",
-    },
-    synthesize: {
-      title: "Synthesize",
-      purpose: "Bring it all together in a closing lesson.",
-    },
-  },
+  heading: "The course",
   prerequisites: (moduleNames: string[]) =>
     moduleNames.length === 0
       ? "None — start here."
       : `Ideally after: ${moduleNames.join(", ")}.`,
-  estimatedMinutes: (minutes: number) => `About ${minutes} min`,
-  coverageMetadata: (lessons, verbs, vocabularyItems) =>
-    `${lessons} lessons · ${verbs} verbs · ${vocabularyItems} words`,
   stateCurrent: "You are here",
   stateRecommended: "Recommended",
   stateVisited: "Visited",
+  statePracticed: "Practiced",
+  stateDemonstrated: "Demonstrated",
   expandLabel: (moduleTitle: string) => `Expand lessons for ${moduleTitle}`,
   collapseLabel: (moduleTitle: string) => `Collapse lessons for ${moduleTitle}`,
   revisitTitle: "You've visited every lesson",
@@ -258,7 +276,23 @@ const enCourseMap: CourseCopy["courseMap"] = {
 export const en = {
   ...enUi,
   courseMap: enCourseMap,
-  // Projected from the shared curriculum copy catalog (spec §9.1); key set is
-  // identical to the Italian catalog because both come from one source.
-  ...assembledCourseCopy.en,
+  // Module/lesson titles and Can-do objective/module-outcome copy are
+  // resolved from the validated A1 release catalog's own copy ids (Phase 2
+  // Task 6) — never from the legacy, disjoint curriculum catalog. `blocks`
+  // and `examples`, however, are keyed by fine-grained ids (per-example
+  // translations, `${legacyLessonId}-rule/-comparison/-explore/-recap`
+  // section copy) that never collide with the A1 module/lesson/objective/
+  // outcome namespace, and the shared example catalog (`data/examples.ts`)
+  // is the same one the legacy `assembleCourse` pipeline produces this copy
+  // from — so they're kept from the legacy course copy, still genuinely used
+  // by the legacy `spokenAttemptModel`/`TransformComparison`/`GuidedToolLink`
+  // consumers. `journeyScenes` has no shipped content in either pipeline.
+  modules: a1RuntimeModuleCopy("en"),
+  lessons: a1RuntimeLessonCopy("en"),
+  objectives: a1RuntimeObjectiveCopy("en"),
+  outcomes: a1RuntimeOutcomeCopy("en"),
+  blocks: assembledCourseCopy.en.blocks,
+  examples: assembledCourseCopy.en.examples,
+  journeyScenes: {} as CourseCopy["journeyScenes"],
+  phonetics: a1RuntimePhoneticCopy("en"),
 } satisfies CourseCopy;

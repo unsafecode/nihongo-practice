@@ -73,7 +73,7 @@ describe("validateGuidedLessonReturn (pure course-association check)", () => {
     ).toEqual({
       kind: "canonical",
       target: {
-        pathname: "/percorso/capstones/capstones-travel-day",
+        pathname: "/percorso/capstones/capstones-3",
         search: "",
         sectionId: "explore",
       },
@@ -90,7 +90,7 @@ describe("validateGuidedLessonReturn (pure course-association check)", () => {
     ).toEqual({
       kind: "canonical",
       target: {
-        pathname: "/percorso/capstones/capstones-travel-day",
+        pathname: "/percorso/capstones/capstones-3",
         search: "",
         sectionId: "explore",
       },
@@ -106,7 +106,7 @@ describe("validateGuidedLessonReturn (pure course-association check)", () => {
     expect(check).toEqual({
       kind: "canonical",
       target: {
-        pathname: "/percorso/capstones/capstones-travel-day",
+        pathname: "/percorso/capstones/capstones-3",
         search: "",
         sectionId: null,
       },
@@ -135,11 +135,11 @@ describe("parseGuidedReturnValue with course validation", () => {
     expect(parsed).toEqual({
       status: "valid",
       target: {
-        pathname: "/percorso/capstones/capstones-travel-day",
+        pathname: "/percorso/capstones/capstones-3",
         search: "",
         sectionId: "explore",
       },
-      href: "/percorso/capstones/capstones-travel-day#explore",
+      href: "/percorso/capstones/capstones-3#explore",
     });
   });
 

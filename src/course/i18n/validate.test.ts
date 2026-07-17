@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { courseModules } from "../data/course";
+import { courseModules as legacyCourseModules } from "../catalog/assembleCourse";
 import { examples } from "../data/examples";
 import { lessonPlans } from "../catalog/lessonPlans";
 import {
@@ -21,7 +22,7 @@ function collectStaticStrings(value: unknown): string[] {
 }
 
 describe.each([itCopy, enCopy])("course locale", (copy) => {
-  it("covers every module, lesson, block and example", () => {
+  it("covers every module, lesson, objective, and outcome copy id the A1 catalog references", () => {
     for (const courseModule of courseModules) {
       expect(copy.modules[courseModule.id]).toBeTruthy();
       for (const outcomeId of courseModule.outcomeCopyIds) {
@@ -31,35 +32,6 @@ describe.each([itCopy, enCopy])("course locale", (copy) => {
         expect(copy.lessons[lesson.titleCopyId]).toBeTruthy();
         for (const objectiveId of lesson.objectiveCopyIds) {
           expect(copy.objectives[objectiveId]).toBeTruthy();
-        }
-        for (const section of lesson.sections) {
-          const sectionCopy = copy.blocks[section.copyId];
-          expect(sectionCopy).toBeTruthy();
-          if (section.id === "recap") {
-            expect(sectionCopy.bullets?.length).toBeGreaterThan(0);
-          }
-          if (section.id === "comparison") {
-            for (const exampleId of [
-              section.comparison.baseExampleId,
-              section.comparison.changedExampleId,
-            ]) {
-              expect(examples[exampleId]).toBeTruthy();
-              expect(copy.examples[exampleId]).toBeTruthy();
-            }
-          }
-          if (
-            section.id === "explore" &&
-            section.exploration.kind === "transformation"
-          ) {
-            const { initialSelection, targetSelection } =
-              section.exploration.data;
-            for (const selection of [initialSelection, targetSelection]) {
-              if ("exampleId" in selection) {
-                expect(examples[selection.exampleId]).toBeTruthy();
-                expect(copy.examples[selection.exampleId]).toBeTruthy();
-              }
-            }
-          }
         }
       }
     }
@@ -92,7 +64,6 @@ describe.each([itCopy, enCopy])("course locale", (copy) => {
     expect(
       copy.courseMap.prerequisites(["Suoni e hiragana"]).trim().length,
     ).toBeGreaterThan(0);
-    expect(copy.courseMap.estimatedMinutes(12).trim().length).toBeGreaterThan(0);
     expect(copy.courseMap.expandLabel("X").trim().length).toBeGreaterThan(0);
     expect(copy.courseMap.collapseLabel("X").trim().length).toBeGreaterThan(0);
     // Exercise + review dynamic copy is never blank (design spec §10.3-§10.4).
@@ -121,9 +92,15 @@ describe.each([itCopy, enCopy])("course locale", (copy) => {
     const knownOutcomeIds = new Set(
       courseModules.flatMap((m) => m.outcomeCopyIds),
     );
+    // `copy.blocks`/`copy.examples` are sourced from the legacy
+    // `assembleCourse` pipeline (see i18n/en.ts, i18n/it.ts), not from the
+    // live A1 `courseModules` — the live A1 lessons carry no `sections` at
+    // all (the rule/comparison/explore/recap body lives in `A1LessonPage`'s
+    // generic release view model instead). So their known-id sets are
+    // derived from the legacy, fully-populated `courseModules` export.
     const knownBlockCopyIds = new Set(
-      courseModules.flatMap((m) =>
-        m.lessons.flatMap((l) => l.sections.map((s) => s.copyId)),
+      legacyCourseModules.flatMap((m) =>
+        m.lessons.flatMap((l) => l.sections!.map((s) => s.copyId)),
       ),
     );
     const knownExampleIds = new Set(Object.keys(examples));

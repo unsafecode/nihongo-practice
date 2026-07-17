@@ -13,21 +13,17 @@ import {
 } from "../../routing/lessonSections";
 import { lessonPath, routePaths } from "../../routing/routes";
 import { courseModules } from "../data/course";
-import type { LessonSection } from "../data/types";
 import { getCourseCopy } from "../i18n/catalog";
 import {
+  isLegacyConsolidatedRedirectState,
   isLegacyModuleRedirectState,
+  LEGACY_CONSOLIDATED_REDIRECT_STATE,
   LEGACY_MODULE_REDIRECT_STATE,
   resolveLessonRoute,
 } from "../routing/lessonRouteResolution";
 import { useProgress } from "../progress/ProgressContext";
-import { GuidedToolLink } from "./GuidedToolLink";
-import { GuidedJourney } from "./GuidedJourney";
-import { GuidedTransformation } from "./GuidedTransformation";
-import { LessonExercises } from "./LessonExercises";
+import { A1LessonSection } from "./A1LessonPage";
 import { LessonRail } from "./LessonRail";
-import { SpokenAttempt } from "./SpokenAttempt";
-import { TransformComparison } from "./TransformComparison";
 import { useActiveSection } from "./useActiveSection";
 
 const orderedLessons = courseModules.flatMap((courseModule) =>
@@ -80,9 +76,11 @@ export function LessonPage() {
         replace
         to={lessonPath(resolution.courseModule.id, resolution.lesson.id)}
         state={
-          resolution.moduleChanged
-            ? LEGACY_MODULE_REDIRECT_STATE
-            : undefined
+          resolution.consolidated
+            ? LEGACY_CONSOLIDATED_REDIRECT_STATE
+            : resolution.moduleChanged
+              ? LEGACY_MODULE_REDIRECT_STATE
+              : undefined
         }
       />
     );
@@ -90,6 +88,9 @@ export function LessonPage() {
 
   const { courseModule, lesson } = resolution;
   const showLegacyModuleNotice = isLegacyModuleRedirectState(location.state);
+  const showConsolidatedNotice = isLegacyConsolidatedRedirectState(
+    location.state,
+  );
 
   const currentIndex = orderedLessons.findIndex(
     (item) => item.lesson.id === lesson.id,
@@ -101,87 +102,9 @@ export function LessonPage() {
     .map((id) => copy.objectives[id])
     .join(" ");
 
-  const renderSectionBody = (section: LessonSection) => {
-    switch (section.id) {
-      case "rule": {
-        const content = copy.blocks[section.copyId];
-        return (
-          <div className="lesson-rule">
-            <span className="lesson-rule__gear" lang="ja" aria-hidden="true">
-              {section.gear}
-            </span>
-            <div className="lesson-rule__body">
-              {content.eyebrow ? (
-                <p className="course-eyebrow">{content.eyebrow}</p>
-              ) : null}
-              <h3>{content.title}</h3>
-              {content.body ? <p>{content.body}</p> : null}
-            </div>
-          </div>
-        );
-      }
-      case "comparison": {
-        const content = copy.blocks[section.copyId];
-        return (
-          <>
-            <div className="lesson-section__intro">
-              <h3>{content.title}</h3>
-              {content.body ? <p>{content.body}</p> : null}
-            </div>
-            <TransformComparison comparison={section.comparison} />
-          </>
-        );
-      }
-      case "explore": {
-        // The practice exercises and the one optional spoken attempt render once
-        // here, after the kind-specific exploration and before the recap section,
-        // regardless of exploration kind (design spec §5.3, Slice D Task 3). The
-        // spoken attempt is optional: every lesson stays complete without it.
-        const exploration =
-          section.exploration.kind === "tool" ? (
-            <GuidedToolLink
-              exploration={section.exploration.data}
-              copyId={section.copyId}
-            />
-          ) : (
-            (() => {
-              const content = copy.blocks[section.copyId];
-              return (
-                <>
-                  <div className="lesson-section__intro">
-                    <h3>{content.title}</h3>
-                    {content.body ? <p>{content.body}</p> : null}
-                  </div>
-                  {section.exploration.kind === "journey" ? (
-                    <GuidedJourney data={section.exploration.data} />
-                  ) : (
-                    <GuidedTransformation data={section.exploration.data} />
-                  )}
-                </>
-              );
-            })()
-          );
-        return (
-          <>
-            {exploration}
-            <LessonExercises lessonId={lesson.id} />
-            <SpokenAttempt lessonId={lesson.id} />
-          </>
-        );
-      }
-      case "recap": {
-        const content = copy.blocks[section.copyId];
-        return (
-          <div className="lesson-recap">
-            <h3>{content.title}</h3>
-            <ul>
-              {content.bullets?.map((bullet) => <li key={bullet}>{bullet}</li>)}
-            </ul>
-          </div>
-        );
-      }
-    }
-  };
+  const renderSectionBody = (sectionId: (typeof LESSON_SECTION_IDS)[number]) => (
+    <A1LessonSection lessonId={lesson.id} sectionId={sectionId} />
+  );
 
   return (
     <main className="lesson-layout">
@@ -220,6 +143,21 @@ export function LessonPage() {
           />
         ) : null}
 
+        {showConsolidatedNotice ? (
+          <Notice
+            tone="info"
+            title={copy.lesson.legacyLessonConsolidatedNoticeTitle}
+            body={copy.lesson.legacyLessonConsolidatedNoticeBody}
+            dismissLabel={copy.home.dismiss}
+            onDismiss={() =>
+              navigate(
+                { pathname: location.pathname, search: location.search },
+                { replace: true, state: null },
+              )
+            }
+          />
+        ) : null}
+
         <SpeechNotice
           supported={supported}
           japaneseVoiceAvailable={japaneseVoiceAvailable}
@@ -227,19 +165,19 @@ export function LessonPage() {
         />
 
         <div className="lesson-sections">
-          {lesson.sections.map((section) => {
-            const headingId = `${lessonSectionAnchorId(section.id)}-heading`;
+          {LESSON_SECTION_IDS.map((sectionId) => {
+            const headingId = `${lessonSectionAnchorId(sectionId)}-heading`;
             return (
               <section
-                key={section.id}
-                id={lessonSectionAnchorId(section.id)}
+                key={sectionId}
+                id={lessonSectionAnchorId(sectionId)}
                 className={`lesson-section ${LESSON_SECTION_ANCHOR_CLASS}`}
                 aria-labelledby={headingId}
               >
                 <h2 id={headingId} className="lesson-section__landmark">
-                  {copy.lesson.sections[section.id]}
+                  {copy.lesson.sections[sectionId]}
                 </h2>
-                {renderSectionBody(section)}
+                {renderSectionBody(sectionId)}
               </section>
             );
           })}

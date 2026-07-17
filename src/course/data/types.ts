@@ -336,30 +336,52 @@ export interface Lesson {
   /**
    * The course concepts this lesson is the first to introduce (design spec
    * §2.6/§6.5, Task A). A synthesize-phase capstone introduces none. Ordering
-   * is proven by `validateConceptOrder`.
+   * is proven by `validateConceptOrder`. Only the legacy phase-graded
+   * curriculum authors this; the A1 release catalog has its own separately
+   * validated manifest/recipe contract and never sets it (design spec §6,
+   * Phase 2 Task 6).
    */
-  introducedConceptIds: readonly CourseConceptId[];
+  introducedConceptIds?: readonly CourseConceptId[];
   /**
    * The course concepts this lesson assumes already known. Every one must be
    * introduced by an earlier lesson, an earlier lesson of the same module, or
-   * this same lesson before it is used (`validateConceptOrder`).
+   * this same lesson before it is used (`validateConceptOrder`). Optional for
+   * the same reason as `introducedConceptIds`.
    */
-  requiredConceptIds: readonly CourseConceptId[];
-  estimatedMinutes: number;
-  sections: LessonSections;
+  requiredConceptIds?: readonly CourseConceptId[];
+  estimatedMinutes?: number;
+  /**
+   * The legacy four-block Rule/Comparison/Exploration/Recap content. Only the
+   * legacy phase-graded curriculum authors this; the A1 release catalog
+   * renders its own deep lesson experience (`A1LessonPage`) directly from the
+   * validated foundation view model instead of this shape (design spec §6,
+   * §12, Phase 2 Task 6). Absent (not fabricated placeholder content) on
+   * every A1 lesson.
+   */
+  sections?: LessonSections;
 }
 
 export interface CourseModule {
   id: ModuleId;
-  phase: PhaseId;
+  /**
+   * The legacy four-phase grouping (design spec §4.2). Only the legacy
+   * phase-graded curriculum sets this; the A1 release catalog has no phase
+   * concept and leaves it unset rather than inventing one (Phase 2 Task 6).
+   */
+  phase?: PhaseId;
   order: number;
   /** Earlier modules this one advisorily builds on; never enforced/blocking. */
   prerequisiteIds: ModuleId[];
   /** Copy-catalog keys describing what the module's lessons add up to. */
   outcomeCopyIds: string[];
-  estimatedMinutes: number;
-  /** Truthful authored coverage; Slice A uses zero until Slice B catalogs it. */
-  coverage: {
+  estimatedMinutes?: number;
+  /**
+   * Truthful authored verb/vocabulary coverage from the legacy curriculum's
+   * own lexeme-introduction tracking. The A1 release catalog tracks coverage
+   * differently (Can-do context coverage, §8) and never sets this rather than
+   * fabricating comparable verb/vocabulary counts (Phase 2 Task 6).
+   */
+  coverage?: {
     verbCount: number;
     vocabularyCount: number;
   };

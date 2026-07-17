@@ -84,7 +84,7 @@ describe("Syllabary group deep links", () => {
       "/pratica/sillabario?group=gojuon&from=%2Fpercorso%2Ftraps%2Ftraps-verbs%23explore",
     );
     expect(html).toContain(
-      'href="/percorso/capstones/capstones-travel-day#explore"',
+      'href="/percorso/capstones/capstones-3#explore"',
     );
     expect(html).toContain(syl.backToLesson);
     expect(html).not.toContain(syl.invalidReturn);

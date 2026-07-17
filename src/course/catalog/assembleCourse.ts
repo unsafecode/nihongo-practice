@@ -583,7 +583,7 @@ export function assembleCourse(
         prerequisiteIds: [...foundation.prerequisiteIds],
         outcomeCopyIds: [foundation.id],
         estimatedMinutes: lessons.reduce(
-          (sum, lesson) => sum + lesson.estimatedMinutes,
+          (sum, lesson) => sum + (lesson.estimatedMinutes ?? 0),
           0,
         ),
         coverage: {

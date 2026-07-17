@@ -37,7 +37,36 @@ const tileEx = exerciseOfKind("introductions-1", "tile-ordering");
 const choiceEx = exerciseOfKind("introductions-1", "choice");
 const completeEx = exerciseOfKind("introductions-1", "completion");
 const constructEx = exerciseOfKind("introductions-1", "constrained-construction");
-const transformEx = exerciseOfKind("past-negative-1", "transformation");
+
+/**
+ * The A1 release's round-target authoring (`a1LessonBuilders.ts`) only ever
+ * emits `tile-ordering`/`choice`/`completion`/`constrained-construction`
+ * exercises (see `A1_ROUND_ONE_KINDS`/`A1_ROUND_TWO_KINDS`), so no published
+ * lesson resolves a `transformation`-kind exercise through
+ * `getLessonExercises` anymore. `ExercisePrompt`'s `transformation` kind
+ * (and this reducer's handling of it, `exerciseState.ts` line ~151) is still
+ * part of the shared engine's type surface, so it is exercised here directly
+ * against a synthetic, hand-built prompt rather than a real lesson's data.
+ */
+const transformEx: GeneratedExercise = {
+  definitionId: "test-transformation-fixture",
+  targetExampleId: "test-transformation-fixture-target",
+  instruction: { en: "", it: "" },
+  intentText: { en: null, it: null },
+  practicePurpose: "guided-controlled",
+  prompt: {
+    kind: "transformation",
+    definitionId: "test-transformation-fixture",
+    promptCopyId: "test-transformation-fixture",
+    assessedConceptIds: [],
+    assessedLexemeIds: [],
+    promptExampleId: "test-transformation-fixture-prompt",
+    promptJp: "がくせいです",
+    canonicalAnswer: "がくせいじゃないです",
+    acceptedAnswers: ["がくせいじゃないです"],
+    permitKatakanaToHiragana: false,
+  },
+};
 
 describe("initExerciseState", () => {
   it("starts idle with an empty answer and zero attempts", () => {

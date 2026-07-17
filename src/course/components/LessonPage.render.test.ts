@@ -154,34 +154,38 @@ describe("LessonPage — one semantic page, four ordered section landmarks", () 
   });
 });
 
-describe("LessonPage — explore section renders the lesson's own honest exploration", () => {
-  it("renders an in-engine guided board for a transformation lesson", () => {
+describe("LessonPage — explore section renders practice + the optional spoken attempt", () => {
+  it("renders the practice exercises heading and the optional spoken attempt for a semantic lesson", () => {
     const html = render(TRANSFORMATION_LESSON);
-    expect(html).toMatch(/class="guided-board"/);
-    expect(html).toMatch(/class="lesson-comparison"/);
-    expect(html).not.toMatch(/class="lesson-tool"/);
+    expect(html).toContain(itCopy.exercises.heading);
+    expect(html).toContain("spoken-attempt");
   });
 
-  it("renders an honest guided-tool link (no faked board) for a kana lesson", () => {
+  it("renders only the optional spoken attempt for a phonetic lesson (no sentence-level exercises exist)", () => {
     const html = render(TOOL_LESSON);
-    expect(html).toMatch(/class="lesson-tool"/);
-    expect(html).not.toMatch(/class="guided-board"/);
+    expect(html).toContain("spoken-attempt");
+    expect(html).not.toContain('class="lesson-exercise"');
   });
 });
 
 /**
- * Module 1's assisted katakana first exposure, proven on the real published
- * lesson page (design spec §7, §8.3; Slice B acceptance). "sounds-4" is
- * Module 1's lesson that introduces コーヒー/ジュース; its comparison section
- * must show the authentic katakana with the shared hiragana reading as a
- * ruby annotation.
+ * Module 1's real katakana roster and its own authored minimal-pair contrasts
+ * (Phase 2 Task 6). The legacy curriculum's single ruby-annotated コーヒー
+ * sentence no longer exists in the A1 release — every phonetic item's `kana`
+ * equals its `glyph` (no distinct hiragana reading is authored), so this
+ * proves the real comparison content the validated catalog actually carries:
+ * コーヒー's authored chōonpu-length contrast with テレビ.
  */
-const KATAKANA_FIRST_EXPOSURE_LESSON = "/percorso/sounds/sounds-4";
+const KATAKANA_LESSON = "/percorso/sounds/sounds-4";
 
-describe("LessonPage — assisted katakana first exposure (design spec §7, §8.3)", () => {
-  it("shows Module 1's first コーヒー exposure with its ruby hiragana reading in the comparison section", () => {
-    const html = render(KATAKANA_FIRST_EXPOSURE_LESSON);
-    expect(html).toMatch(/<ruby[^>]*>コーヒー<rt[^>]*>こーひー<\/rt><\/ruby>/);
+describe("LessonPage — phonetic lesson comparison section (sounds-4)", () => {
+  it("shows コーヒー's authored contrast partner and feature label", () => {
+    const html = render(KATAKANA_LESSON);
+    expect(html).toContain("koohii");
+    expect(html).toContain("terebi");
+    expect(html).toContain('data-item-id="snd4-koohii"');
+    expect(html).toContain('data-contrast-with-id="snd4-terebi"');
+    expect(html).toContain(itCopy.phonetics["a1-phonetic-contrast-chouonpu-length"]);
   });
 });
 

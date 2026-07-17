@@ -11,9 +11,10 @@ export interface CourseMapProps {
 }
 
 /**
- * The phase-based course map (design spec §4.2/§5.1-§5.4): a single
- * vertical path of four ordered phase bands (orient, build, navigate,
- * synthesize), each holding its modules as `ModuleCard`s. Exactly the
+ * The course map (Phase 2 Task 6, design spec §6/§17): a single ordered
+ * path of the twelve A1 modules, each holding its lessons as a `ModuleCard`.
+ * The A1 release has no phase concept, so — unlike the legacy phase-banded
+ * map — this is one flat, accessible list in course order. Exactly the
  * recommended module (or, once every lesson is visited, the recognized
  * current/capstone module) starts expanded; nothing here locks or blocks
  * navigation to any lesson.
@@ -35,32 +36,16 @@ export function CourseMap({ model }: CourseMapProps): ReactElement {
         />
       ) : null}
 
-      {model.phases.map((phaseGroup) => {
-        const phaseCopy = copy.courseMap.phases[phaseGroup.phaseId];
-        const headingId = `course-phase-${phaseGroup.phaseId}-heading`;
-        return (
-          <section
-            key={phaseGroup.phaseId}
-            className="course-phase"
-            aria-labelledby={headingId}
-          >
-            <h3 id={headingId} className="course-phase__heading">
-              {phaseCopy.title}
-            </h3>
-            <p className="course-phase__purpose">{phaseCopy.purpose}</p>
-            <div className="course-phase__modules">
-              {phaseGroup.modules.map((entry) => (
-                <ModuleCard
-                  key={entry.module.id}
-                  entry={entry}
-                  initiallyExpanded={entry.module.id === expandedModuleId}
-                  recommendedLessonId={model.recommendedLessonId}
-                />
-              ))}
-            </div>
-          </section>
-        );
-      })}
+      <div className="course-map__modules">
+        {model.modules.map((entry) => (
+          <ModuleCard
+            key={entry.module.id}
+            entry={entry}
+            initiallyExpanded={entry.module.id === expandedModuleId}
+            recommendedLessonId={model.recommendedLessonId}
+          />
+        ))}
+      </div>
     </section>
   );
 }

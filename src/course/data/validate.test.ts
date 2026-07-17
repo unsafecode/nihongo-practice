@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { semanticIconIds } from "../../components/icons/Icon";
 import { lessonPath } from "../../routing/routePaths";
-import { LESSON_SECTION_IDS } from "../../routing/lessonSections";
 import { courseModules } from "./course";
+import { courseModules as legacyCourseModules } from "../catalog/assembleCourse";
 import { examples } from "./examples";
 import type {
   CourseModule,
@@ -135,7 +135,7 @@ function makeModule(overrides: Partial<CourseModule> = {}): CourseModule {
     order: 1,
     prerequisiteIds: [],
     outcomeCopyIds: ["module-a"],
-    estimatedMinutes: lessons.reduce((sum, l) => sum + l.estimatedMinutes, 0),
+    estimatedMinutes: lessons.reduce((sum, l) => sum + l.estimatedMinutes!, 0),
     coverage: { verbCount: 0, vocabularyCount: 0 },
     iconId: semanticIconIds[0],
     lessons,
@@ -438,7 +438,7 @@ describe("validateCourse (synthetic fixtures)", () => {
 
   it("flags a module estimate that does not equal the sum of its lessons", () => {
     const moduleA = makeModule({ id: "module-a", order: 1 });
-    moduleA.estimatedMinutes = moduleA.estimatedMinutes + 100;
+    moduleA.estimatedMinutes = moduleA.estimatedMinutes! + 100;
     expect(validateCourse([moduleA], {})).toContain(
       "module estimate mismatch:module-a",
     );
@@ -512,7 +512,7 @@ describe("validateCourse (synthetic fixtures)", () => {
     const broken = asLesson({
       ...base,
       sections: [
-        base.sections[0],
+        base.sections![0],
         {
           id: "comparison",
           copyId: "lesson-a-comparison",
@@ -525,8 +525,8 @@ describe("validateCourse (synthetic fixtures)", () => {
             changedSegmentIds: ["1"],
           },
         },
-        base.sections[2],
-        base.sections[3],
+        base.sections![2],
+        base.sections![3],
       ],
     });
     const moduleA = makeModule({ lessons: [broken] });
@@ -540,8 +540,8 @@ describe("validateCourse (synthetic fixtures)", () => {
     const broken = asLesson({
       ...base,
       sections: [
-        base.sections[0],
-        base.sections[1],
+        base.sections![0],
+        base.sections![1],
         {
           id: "explore",
           copyId: "lesson-a-explore",
@@ -558,7 +558,7 @@ describe("validateCourse (synthetic fixtures)", () => {
             },
           },
         },
-        base.sections[3],
+        base.sections![3],
       ],
     });
     const moduleA = makeModule({ lessons: [broken] });
@@ -569,15 +569,15 @@ describe("validateCourse (synthetic fixtures)", () => {
 });
 
 describe("course data invariants (real data)", () => {
-  it("contains 12 modules and 40 lessons", () => {
+  it("contains 12 modules and 48 lessons (the validated A1 release)", () => {
     expect(courseModules).toHaveLength(12);
     expect(courseModules.flatMap((courseModule) => courseModule.lessons)).toHaveLength(
-      40,
+      48,
     );
   });
 
-  it("has unique IDs and valid references", () => {
-    expect(validateCourse(courseModules, examples)).toEqual([]);
+  it("has unique IDs and valid references (checked via the legacy full-shape validator against the legacy-full catalog; the live A1 courseModules has its own dedicated validateA1Release pipeline, proven in data/course.test.ts, since validateCourse's phase/estimate/sections checks do not apply to the sections-less A1 release)", () => {
+    expect(validateCourse(legacyCourseModules, examples)).toEqual([]);
   });
 
   it("orders modules 1 through 12", () => {
@@ -586,26 +586,9 @@ describe("course data invariants (real data)", () => {
     ]);
   });
 
-  it("assigns the four phases in the approved orient/build/navigate/synthesize sequence", () => {
-    expect(courseModules.map((courseModule) => courseModule.phase)).toEqual([
-      "orient",
-      "orient",
-      "orient",
-      "build",
-      "build",
-      "build",
-      "navigate",
-      "navigate",
-      "navigate",
-      "navigate",
-      "navigate",
-      "synthesize",
-    ]);
-  });
-
-  it("uses the approved variable module lesson budget", () => {
+  it("gives every module exactly four lessons (the approved A1 uniform budget)", () => {
     expect(courseModules.map((courseModule) => courseModule.lessons.length)).toEqual([
-      5, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 4,
+      4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
     ]);
   });
 
@@ -631,52 +614,40 @@ describe("course data invariants (real data)", () => {
     ).toBeNull();
   });
 
-  it("gives every lesson exactly four sections in rule/comparison/explore/recap order", () => {
-    for (const courseModule of courseModules) {
-      for (const lesson of courseModule.lessons) {
-        expect(lesson.sections.map((section) => section.id)).toEqual(
-          LESSON_SECTION_IDS,
-        );
-      }
-    }
-  });
-
-  it("publishes exactly the approved 40 lesson IDs", () => {
+  it("publishes exactly the approved 48 lesson IDs, including the consolidated sounds-4 (no sounds-5) and renumbered capstones-1..4", () => {
     const lessonIds = courseModules
       .flatMap((courseModule) => courseModule.lessons)
       .map((lesson) => lesson.id)
       .sort();
     expect(lessonIds).toEqual(
       [
-        "sounds-1", "sounds-2", "sounds-3", "sounds-4", "sounds-5",
-        "introductions-1", "introductions-2", "introductions-3",
-        "essential-questions-1", "essential-questions-2", "essential-questions-3",
-        "actions-1", "actions-2", "actions-3",
-        "routines-1", "routines-2", "routines-3",
-        "past-negative-1", "past-negative-2", "past-negative-3",
+        "sounds-1", "sounds-2", "sounds-3", "sounds-4",
+        "introductions-1", "introductions-2", "introductions-3", "introductions-4",
+        "essential-questions-1", "essential-questions-2", "essential-questions-3", "essential-questions-4",
+        "actions-1", "actions-2", "actions-3", "actions-4",
+        "routines-1", "routines-2", "routines-3", "routines-4",
+        "past-negative-1", "past-negative-2", "past-negative-3", "past-negative-4",
         "places-1", "places-2", "places-3", "places-4",
-        "people-1", "people-2", "people-3",
-        "descriptions-1", "descriptions-2", "descriptions-3",
-        "shopping-1", "shopping-2", "shopping-3",
-        "existence-needs-1", "existence-needs-2", "existence-needs-3",
-        "capstones-orientation", "capstones-self-introduction",
-        "capstones-everyday-outing", "capstones-travel-day",
+        "people-1", "people-2", "people-3", "people-4",
+        "descriptions-1", "descriptions-2", "descriptions-3", "descriptions-4",
+        "shopping-1", "shopping-2", "shopping-3", "shopping-4",
+        "existence-needs-1", "existence-needs-2", "existence-needs-3", "existence-needs-4",
+        "capstones-1", "capstones-2", "capstones-3", "capstones-4",
       ].sort(),
     );
   });
 
-  it("makes module 12 the synthesis capstones module: one orientation plus three capstone lessons", () => {
+  it("makes module 12 the capstones module: four renumbered capstone lessons", () => {
     const capstones = courseModules.find(
       (courseModule) => courseModule.id === "capstones",
     );
     expect(capstones).toBeDefined();
     expect(capstones!.order).toBe(12);
-    expect(capstones!.phase).toBe("synthesize");
     expect(capstones!.lessons.map((lesson) => lesson.id)).toEqual([
-      "capstones-orientation",
-      "capstones-self-introduction",
-      "capstones-everyday-outing",
-      "capstones-travel-day",
+      "capstones-1",
+      "capstones-2",
+      "capstones-3",
+      "capstones-4",
     ]);
   });
 
@@ -685,14 +656,5 @@ describe("course data invariants (real data)", () => {
       expect(semanticIconIds).toContain(courseModule.iconId);
     }
   });
-
-  it("makes every module's estimate equal the sum of its lessons' estimates", () => {
-    for (const courseModule of courseModules) {
-      const total = courseModule.lessons.reduce(
-        (sum, lesson) => sum + lesson.estimatedMinutes,
-        0,
-      );
-      expect(courseModule.estimatedMinutes).toBe(total);
-    }
-  });
 });
+

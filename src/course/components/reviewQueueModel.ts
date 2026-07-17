@@ -1,4 +1,5 @@
 import { courseModules } from "../data/course";
+import type { Locale } from "../../i18n/LocaleContext";
 import type { CourseProgressV3 } from "../progress/progress";
 import { orderedReviewQueue } from "../progress/reviewQueue";
 import type { GeneratedExercise } from "./lessonExerciseModel";
@@ -33,6 +34,12 @@ export interface ReviewQueueItem {
   /** The shared target example, for deriving in-sentence romaji in review mode. */
   readonly targetExampleId: string;
   readonly prompt: ExercisePrompt;
+  /** Localized instruction for the exercise's kind, by locale. */
+  readonly instruction: Readonly<Record<Locale, string>>;
+  /** Localized constrained-construction intent/scenario note, or null, by locale. */
+  readonly intentText: Readonly<Record<Locale, string | null>>;
+  /** The exercise's original round purpose, for `Exercise`'s prop contract. */
+  readonly practicePurpose: "guided-controlled" | "transfer";
   readonly mistakeCount: number;
   readonly targetConceptIds: readonly string[];
   readonly targetLexemeIds: readonly string[];
@@ -79,6 +86,9 @@ export function buildReviewQueueView(
       exerciseDefinitionId: entry.exerciseDefinitionId,
       targetExampleId: exercise.targetExampleId,
       prompt: exercise.prompt,
+      instruction: exercise.instruction,
+      intentText: exercise.intentText,
+      practicePurpose: exercise.practicePurpose,
       mistakeCount: entry.mistakeCount,
       targetConceptIds: entry.targetConceptIds,
       targetLexemeIds: entry.targetLexemeIds,

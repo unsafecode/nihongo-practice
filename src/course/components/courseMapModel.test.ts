@@ -8,9 +8,13 @@ import { courseModules } from "../data/course";
  * every scenario below stays small and easy to read. `buildCourseMapModel`
  * is generic, so the real `CourseModule[]` (see the "real course data"
  * describe block) satisfies the same input type with no cast.
+ *
+ * The A1 release (Phase 2 Task 6) has no phase-band concept — its twelve
+ * modules are one linear path — so `CourseMapModel` exposes a flat, ordered
+ * `modules` array rather than phase groups.
  */
 function moduleFixture(
-  overrides: Partial<CourseMapModuleOutline> & Pick<CourseMapModuleOutline, "id" | "phase">,
+  overrides: Partial<CourseMapModuleOutline> & Pick<CourseMapModuleOutline, "id">,
 ): CourseMapModuleOutline {
   return {
     prerequisiteIds: [],
@@ -23,59 +27,35 @@ function lessons(ids: string[]): { id: string }[] {
   return ids.map((id) => ({ id }));
 }
 
-describe("buildCourseMapModel: phase grouping and order", () => {
-  it("groups modules into all four phases, always in orient/build/navigate/synthesize order", () => {
-    // Deliberately interleaved input order, out of phase order, to prove
-    // grouping is a real regrouping rather than trusting contiguous input.
+describe("buildCourseMapModel: flat module order", () => {
+  it("keeps every module in the given array order (not alphabetical/id order)", () => {
     const modules = [
-      moduleFixture({ id: "m-synth", phase: "synthesize", lessons: lessons(["s1"]) }),
-      moduleFixture({ id: "m-orient-b", phase: "orient", lessons: lessons(["ob1"]) }),
-      moduleFixture({ id: "m-build", phase: "build", lessons: lessons(["b1"]) }),
-      moduleFixture({ id: "m-orient-a", phase: "orient", lessons: lessons(["oa1"]) }),
-      moduleFixture({ id: "m-navigate", phase: "navigate", lessons: lessons(["n1"]) }),
+      moduleFixture({ id: "m-b", lessons: lessons(["b1"]) }),
+      moduleFixture({ id: "m-a", lessons: lessons(["a1"]) }),
+      moduleFixture({ id: "m-c", lessons: lessons(["c1"]) }),
     ];
 
     const model = buildCourseMapModel(modules, [], null);
 
-    expect(model.phases.map((phase) => phase.phaseId)).toEqual([
-      "orient",
-      "build",
-      "navigate",
-      "synthesize",
+    expect(model.modules.map((entry) => entry.module.id)).toEqual([
+      "m-b",
+      "m-a",
+      "m-c",
     ]);
   });
 
-  it("keeps each phase's modules in the given array order (not alphabetical/id order)", () => {
+  it("omits no module: every input module appears in the flat list exactly once", () => {
     const modules = [
-      moduleFixture({ id: "m-orient-b", phase: "orient", lessons: lessons(["ob1"]) }),
-      moduleFixture({ id: "m-orient-a", phase: "orient", lessons: lessons(["oa1"]) }),
+      moduleFixture({ id: "m1", lessons: lessons(["a"]) }),
+      moduleFixture({ id: "m2", lessons: lessons(["b"]) }),
+      moduleFixture({ id: "m3", lessons: lessons(["c"]) }),
+      moduleFixture({ id: "m4", lessons: lessons(["d"]) }),
     ];
 
     const model = buildCourseMapModel(modules, [], null);
-    const orientPhase = model.phases.find((phase) => phase.phaseId === "orient");
+    const allModuleIds = model.modules.map((entry) => entry.module.id);
 
-    expect(orientPhase?.modules.map((entry) => entry.module.id)).toEqual([
-      "m-orient-b",
-      "m-orient-a",
-    ]);
-  });
-
-  it("omits no module: every input module appears in exactly one phase group", () => {
-    const modules = [
-      moduleFixture({ id: "m-orient", phase: "orient", lessons: lessons(["o1"]) }),
-      moduleFixture({ id: "m-build", phase: "build", lessons: lessons(["b1"]) }),
-      moduleFixture({ id: "m-navigate", phase: "navigate", lessons: lessons(["n1"]) }),
-      moduleFixture({ id: "m-synth", phase: "synthesize", lessons: lessons(["s1"]) }),
-    ];
-
-    const model = buildCourseMapModel(modules, [], null);
-    const allModuleIds = model.phases.flatMap((phase) =>
-      phase.modules.map((entry) => entry.module.id),
-    );
-
-    expect(allModuleIds.sort()).toEqual(
-      ["m-build", "m-navigate", "m-orient", "m-synth"].sort(),
-    );
+    expect(allModuleIds.sort()).toEqual(["m1", "m2", "m3", "m4"]);
   });
 });
 
@@ -87,8 +67,8 @@ describe("buildCourseMapModel: recommendation follows §7.3 (prerequisite-aware,
     // single source of truth (recommendContinuationLessonId), not a duplicated
     // first-unvisited scan that would ignore prerequisites.
     const modules = [
-      moduleFixture({ id: "m1", phase: "orient", prerequisiteIds: ["m2"], lessons: lessons(["m1-a"]) }),
-      moduleFixture({ id: "m2", phase: "orient", lessons: lessons(["m2-a"]) }),
+      moduleFixture({ id: "m1", prerequisiteIds: ["m2"], lessons: lessons(["m1-a"]) }),
+      moduleFixture({ id: "m2", lessons: lessons(["m2-a"]) }),
     ];
 
     const model = buildCourseMapModel(modules, [], null);
@@ -99,8 +79,8 @@ describe("buildCourseMapModel: recommendation follows §7.3 (prerequisite-aware,
 
   it("recommends the first unvisited lesson whose prerequisites are met, in course order", () => {
     const modules = [
-      moduleFixture({ id: "m1", phase: "orient", lessons: lessons(["a", "b"]) }),
-      moduleFixture({ id: "m2", phase: "build", prerequisiteIds: ["m1"], lessons: lessons(["c"]) }),
+      moduleFixture({ id: "m1", lessons: lessons(["a", "b"]) }),
+      moduleFixture({ id: "m2", prerequisiteIds: ["m1"], lessons: lessons(["c"]) }),
     ];
 
     const model = buildCourseMapModel(modules, ["a"], null);
@@ -113,7 +93,7 @@ describe("buildCourseMapModel: recommendation follows §7.3 (prerequisite-aware,
 describe("buildCourseMapModel: opaque legacy visited ids", () => {
   it("does not count an unrecognized legacy id toward visited counts", () => {
     const modules = [
-      moduleFixture({ id: "m1", phase: "orient", lessons: lessons(["a", "b"]) }),
+      moduleFixture({ id: "m1", lessons: lessons(["a", "b"]) }),
     ];
 
     const model = buildCourseMapModel(modules, ["a", "legacy-ghost-id"], null);
@@ -124,7 +104,7 @@ describe("buildCourseMapModel: opaque legacy visited ids", () => {
 
   it("does not let an unrecognized legacy id affect the recommendation", () => {
     const modules = [
-      moduleFixture({ id: "m1", phase: "orient", lessons: lessons(["a", "b"]) }),
+      moduleFixture({ id: "m1", lessons: lessons(["a", "b"]) }),
     ];
 
     const model = buildCourseMapModel(modules, ["legacy-ghost-id"], null);
@@ -136,8 +116,8 @@ describe("buildCourseMapModel: opaque legacy visited ids", () => {
 describe("buildCourseMapModel: current vs recommended (coincide on the §7.3 continuation)", () => {
   it("resumes the recognized lastVisitedLessonId even when earlier lessons were skipped (§7.3 rule 1)", () => {
     const modules = [
-      moduleFixture({ id: "m1", phase: "orient", lessons: lessons(["a", "b"]) }),
-      moduleFixture({ id: "m2", phase: "build", prerequisiteIds: ["m1"], lessons: lessons(["c"]) }),
+      moduleFixture({ id: "m1", lessons: lessons(["a", "b"]) }),
+      moduleFixture({ id: "m2", prerequisiteIds: ["m1"], lessons: lessons(["c"]) }),
     ];
     // "a" and the later "c" visited (out of order), "b" skipped; last visited is "c".
     const model = buildCourseMapModel(modules, ["a", "c"], "c");
@@ -149,8 +129,8 @@ describe("buildCourseMapModel: current vs recommended (coincide on the §7.3 con
     expect(model.currentLessonId).toBe("c");
     expect(model.currentModuleId).toBe("m2");
 
-    const m1Entry = model.phases.flatMap((p) => p.modules).find((e) => e.module.id === "m1");
-    const m2Entry = model.phases.flatMap((p) => p.modules).find((e) => e.module.id === "m2");
+    const m1Entry = model.modules.find((e) => e.module.id === "m1");
+    const m2Entry = model.modules.find((e) => e.module.id === "m2");
     expect(m2Entry?.isRecommended).toBe(true);
     expect(m2Entry?.isCurrent).toBe(true);
     expect(m1Entry?.isRecommended).toBe(false);
@@ -159,21 +139,21 @@ describe("buildCourseMapModel: current vs recommended (coincide on the §7.3 con
 
   it("marks the same module both current and recommended when they coincide", () => {
     const modules = [
-      moduleFixture({ id: "m1", phase: "orient", lessons: lessons(["a", "b"]) }),
+      moduleFixture({ id: "m1", lessons: lessons(["a", "b"]) }),
     ];
     const model = buildCourseMapModel(modules, ["a"], "a");
 
     expect(model.recommendedModuleId).toBe("m1");
     expect(model.currentModuleId).toBe("m1");
 
-    const entry = model.phases.flatMap((p) => p.modules)[0];
+    const entry = model.modules[0];
     expect(entry.isCurrent).toBe(true);
     expect(entry.isRecommended).toBe(true);
   });
 
   it("falls back to the recommendation as current when lastVisitedLessonId is null", () => {
     const modules = [
-      moduleFixture({ id: "m1", phase: "orient", lessons: lessons(["a"]) }),
+      moduleFixture({ id: "m1", lessons: lessons(["a"]) }),
     ];
     const model = buildCourseMapModel(modules, [], null);
 
@@ -185,7 +165,7 @@ describe("buildCourseMapModel: current vs recommended (coincide on the §7.3 con
 describe("buildCourseMapModel: all-visited fallback", () => {
   it("still reports allVisited as a count state, but recommends the valid last-visited lesson (not null) when everything is visited", () => {
     const modules = [
-      moduleFixture({ id: "m1", phase: "orient", lessons: lessons(["a", "b"]) }),
+      moduleFixture({ id: "m1", lessons: lessons(["a", "b"]) }),
     ];
     const model = buildCourseMapModel(modules, ["a", "b"], "a");
 
@@ -199,8 +179,8 @@ describe("buildCourseMapModel: all-visited fallback", () => {
 
   it("uses a recognized lastVisitedLessonId as current, even if it is not in the final module", () => {
     const modules = [
-      moduleFixture({ id: "m1", phase: "orient", lessons: lessons(["a"]) }),
-      moduleFixture({ id: "m2", phase: "synthesize", lessons: lessons(["b"]) }),
+      moduleFixture({ id: "m1", lessons: lessons(["a"]) }),
+      moduleFixture({ id: "m2", lessons: lessons(["b"]) }),
     ];
     const model = buildCourseMapModel(modules, ["a", "b"], "a");
 
@@ -209,14 +189,14 @@ describe("buildCourseMapModel: all-visited fallback", () => {
     expect(model.currentLessonId).toBe("a");
   });
 
-  it("falls back to the very first lesson (not a capstone) when all lessons are visited and lastVisitedLessonId is null", () => {
+  it("falls back to the very first lesson (not the last module) when all lessons are visited and lastVisitedLessonId is null", () => {
     const modules = [
-      moduleFixture({ id: "m1", phase: "orient", lessons: lessons(["a"]) }),
-      moduleFixture({ id: "m2", phase: "synthesize", lessons: lessons(["b", "c"]) }),
+      moduleFixture({ id: "m1", lessons: lessons(["a"]) }),
+      moduleFixture({ id: "m2", lessons: lessons(["b", "c"]) }),
     ];
     const model = buildCourseMapModel(modules, ["a", "b", "c"], null);
 
-    // §7.3 rule 3 fallback is the first lesson in course order, never a capstone.
+    // §7.3 rule 3 fallback is the first lesson in course order, never the last module.
     expect(model.allVisited).toBe(true);
     expect(model.recommendedLessonId).toBe("a");
     expect(model.currentModuleId).toBe("m1");
@@ -225,8 +205,8 @@ describe("buildCourseMapModel: all-visited fallback", () => {
 
   it("falls back to the very first lesson when all lessons are visited and lastVisitedLessonId is an unrecognized opaque id", () => {
     const modules = [
-      moduleFixture({ id: "m1", phase: "orient", lessons: lessons(["a"]) }),
-      moduleFixture({ id: "m2", phase: "synthesize", lessons: lessons(["b", "c"]) }),
+      moduleFixture({ id: "m1", lessons: lessons(["a"]) }),
+      moduleFixture({ id: "m2", lessons: lessons(["b", "c"]) }),
     ];
     const model = buildCourseMapModel(modules, ["a", "b", "c"], "legacy-ghost-id");
 
@@ -240,61 +220,121 @@ describe("buildCourseMapModel: all-visited fallback", () => {
 describe("buildCourseMapModel: counts", () => {
   it("exposes plain visited/total counts per module and overall", () => {
     const modules = [
-      moduleFixture({ id: "m1", phase: "orient", lessons: lessons(["a", "b", "c"]) }),
-      moduleFixture({ id: "m2", phase: "build", lessons: lessons(["d"]) }),
+      moduleFixture({ id: "m1", lessons: lessons(["a", "b", "c"]) }),
+      moduleFixture({ id: "m2", lessons: lessons(["d"]) }),
     ];
     const model = buildCourseMapModel(modules, ["a", "d"], "d");
 
     expect(model.visitedLessonCount).toBe(2);
     expect(model.totalLessonCount).toBe(4);
 
-    const m1Entry = model.phases.flatMap((p) => p.modules).find((e) => e.module.id === "m1");
+    const m1Entry = model.modules.find((e) => e.module.id === "m1");
     expect(m1Entry?.visitedCount).toBe(1);
     expect(m1Entry?.totalCount).toBe(3);
     expect(m1Entry?.isFullyVisited).toBe(false);
 
-    const m2Entry = model.phases.flatMap((p) => p.modules).find((e) => e.module.id === "m2");
+    const m2Entry = model.modules.find((e) => e.module.id === "m2");
     expect(m2Entry?.visitedCount).toBe(1);
     expect(m2Entry?.totalCount).toBe(1);
     expect(m2Entry?.isFullyVisited).toBe(true);
   });
 
   it("never reports a module with zero lessons as fully visited", () => {
-    const modules = [moduleFixture({ id: "m1", phase: "orient", lessons: [] })];
+    const modules = [moduleFixture({ id: "m1", lessons: [] })];
     const model = buildCourseMapModel(modules, [], null);
 
-    const entry = model.phases.flatMap((p) => p.modules)[0];
+    const entry = model.modules[0];
     expect(entry.isFullyVisited).toBe(false);
+  });
+});
+
+describe("buildCourseMapModel: practiced/demonstrated evidence tiers (design spec §17, Phase 2 Task 6)", () => {
+  it("defaults every lesson/module/overall practiced and demonstrated count to zero when no evidence is given", () => {
+    const modules = [moduleFixture({ id: "m1", lessons: lessons(["a", "b"]) })];
+    const model = buildCourseMapModel(modules, ["a"], "a");
+
+    expect(model.practicedLessonCount).toBe(0);
+    expect(model.demonstratedLessonCount).toBe(0);
+    const entry = model.modules[0];
+    expect(entry.practicedCount).toBe(0);
+    expect(entry.demonstratedCount).toBe(0);
+    expect(entry.practicedLessonIds.size).toBe(0);
+    expect(entry.demonstratedLessonIds.size).toBe(0);
+  });
+
+  it("counts a lesson as practiced only once its practicedAt evidence is non-null", () => {
+    const modules = [moduleFixture({ id: "m1", lessons: lessons(["a", "b"]) })];
+    const model = buildCourseMapModel(modules, ["a", "b"], "b", {
+      a: { practicedAt: "2024-01-01T00:00:00.000Z", consolidatedAt: null },
+    });
+
+    const entry = model.modules[0];
+    expect(entry.practicedLessonIds.has("a")).toBe(true);
+    expect(entry.practicedLessonIds.has("b")).toBe(false);
+    expect(entry.practicedCount).toBe(1);
+    expect(model.practicedLessonCount).toBe(1);
+  });
+
+  it("counts a lesson as demonstrated only once its consolidatedAt evidence is non-null, independent of practiced", () => {
+    const modules = [moduleFixture({ id: "m1", lessons: lessons(["a", "b"]) })];
+    const model = buildCourseMapModel(modules, ["a", "b"], "b", {
+      a: {
+        practicedAt: "2024-01-01T00:00:00.000Z",
+        consolidatedAt: "2024-01-02T00:00:00.000Z",
+      },
+    });
+
+    const entry = model.modules[0];
+    expect(entry.demonstratedLessonIds.has("a")).toBe(true);
+    expect(entry.demonstratedLessonIds.has("b")).toBe(false);
+    expect(entry.demonstratedCount).toBe(1);
+    expect(model.demonstratedLessonCount).toBe(1);
+    // Demonstrated evidence never implies less than the practiced evidence
+    // reported alongside it — both tiers stay independently truthful.
+    expect(entry.practicedLessonIds.has("a")).toBe(true);
+  });
+
+  it("ignores evidence for an unrecognized/opaque lesson id", () => {
+    const modules = [moduleFixture({ id: "m1", lessons: lessons(["a"]) })];
+    const model = buildCourseMapModel(modules, ["a"], "a", {
+      "legacy-orphan": {
+        practicedAt: "2024-01-01T00:00:00.000Z",
+        consolidatedAt: "2024-01-01T00:00:00.000Z",
+      },
+    });
+
+    expect(model.practicedLessonCount).toBe(0);
+    expect(model.demonstratedLessonCount).toBe(0);
   });
 });
 
 describe("buildCourseMapModel: prerequisite data", () => {
   it("resolves advisory prerequisite ids to their module objects", () => {
     const modules = [
-      moduleFixture({ id: "m1", phase: "orient", lessons: lessons(["a"]) }),
-      moduleFixture({ id: "m2", phase: "build", prerequisiteIds: ["m1"], lessons: lessons(["b"]) }),
+      moduleFixture({ id: "m1", lessons: lessons(["a"]) }),
+      moduleFixture({ id: "m2", prerequisiteIds: ["m1"], lessons: lessons(["b"]) }),
     ];
     const model = buildCourseMapModel(modules, [], null);
 
-    const m2Entry = model.phases.flatMap((p) => p.modules).find((e) => e.module.id === "m2");
+    const m2Entry = model.modules.find((e) => e.module.id === "m2");
     expect(m2Entry?.prerequisiteModules.map((m) => m.id)).toEqual(["m1"]);
   });
 
   it("exposes an empty prerequisite list for a module with no prerequisites (none/start here)", () => {
-    const modules = [moduleFixture({ id: "m1", phase: "orient", lessons: lessons(["a"]) })];
+    const modules = [moduleFixture({ id: "m1", lessons: lessons(["a"]) })];
     const model = buildCourseMapModel(modules, [], null);
 
-    const entry = model.phases.flatMap((p) => p.modules)[0];
+    const entry = model.modules[0];
     expect(entry.prerequisiteModules).toEqual([]);
   });
 
   it("silently drops an unknown prerequisite id instead of crashing", () => {
     const modules = [
-      moduleFixture({ id: "m1", phase: "orient", prerequisiteIds: ["ghost-module"], lessons: lessons(["a"]) }),
+      moduleFixture({ id: "m1", prerequisiteIds: ["ghost-module"], lessons: lessons(["a"]) }),
     ];
     const model = buildCourseMapModel(modules, [], null);
 
-    const entry = model.phases.flatMap((p) => p.modules)[0];
+    const entry = model.modules[0];
     expect(entry.prerequisiteModules).toEqual([]);
   });
 });
@@ -303,7 +343,7 @@ describe("buildCourseMapModel: defensive edge cases", () => {
   it("handles an empty module list without crashing", () => {
     const model = buildCourseMapModel([], [], null);
 
-    expect(model.phases.every((phase) => phase.modules.length === 0)).toBe(true);
+    expect(model.modules).toEqual([]);
     expect(model.allVisited).toBe(true);
     expect(model.currentModuleId).toBeNull();
     expect(model.currentLessonId).toBeNull();
@@ -315,26 +355,23 @@ describe("buildCourseMapModel: defensive edge cases", () => {
 });
 
 describe("buildCourseMapModel: real course data", () => {
-  it("groups the real twelve modules into the correct phases and recommends the first lesson when nothing is visited", () => {
+  it("keeps the real twelve modules in their canonical order and recommends the first lesson when nothing is visited", () => {
     const model = buildCourseMapModel(courseModules, [], null);
-    const byPhase = Object.fromEntries(
-      model.phases.map((phase) => [phase.phaseId, phase.modules.map((e) => e.module.id)]),
-    );
 
-    expect(byPhase.orient).toEqual([
+    expect(model.modules.map((e) => e.module.id)).toEqual([
       "sounds",
       "introductions",
       "essential-questions",
-    ]);
-    expect(byPhase.build).toEqual(["actions", "routines", "past-negative"]);
-    expect(byPhase.navigate).toEqual([
+      "actions",
+      "routines",
+      "past-negative",
       "places",
       "people",
       "descriptions",
       "shopping",
       "existence-needs",
+      "capstones",
     ]);
-    expect(byPhase.synthesize).toEqual(["capstones"]);
 
     // Nothing visited yet: recommendation is the very first lesson overall.
     expect(model.recommendedLessonId).toBe("sounds-1");
@@ -342,7 +379,7 @@ describe("buildCourseMapModel: real course data", () => {
     expect(model.currentModuleId).toBe("sounds");
   });
 
-  it("falls back to the first lesson (not a capstone) once every real lesson is visited with no recognizable current lesson", () => {
+  it("falls back to the first lesson (not the last module) once every real lesson is visited with no recognizable current lesson", () => {
     const allLessonIds = courseModules.flatMap((m) => m.lessons.map((l) => l.id));
     const model = buildCourseMapModel(courseModules, allLessonIds, null);
 

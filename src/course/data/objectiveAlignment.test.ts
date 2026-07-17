@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { lessonPath } from "../../routing/routePaths";
-import { courseModules } from "./course";
+import { courseModules as legacyCourseModules } from "../catalog/assembleCourse";
 import { examples } from "./examples";
 import { legacySegmentKindToTokenKind } from "./romajiTokens";
 import { validateExploration } from "./validate";
@@ -109,10 +109,20 @@ describe("validateExploration — objective gear alignment (synthetic)", () => {
   });
 });
 
+/**
+ * These fixtures deliberately read the legacy, fully-populated
+ * `assembleCourse` lesson set (with its per-section guided explorations)
+ * rather than the live A1 release's `courseModules` (`./course`), because the
+ * live A1 lesson definitions carry no `sections` at all — the deep lesson
+ * experience is now driven by the generic release view model instead. This
+ * describe block still proves `validateExploration` accepts genuinely honest,
+ * previously-shipped guided transformations; it is a pure-function property
+ * test, independent of which lessons are live in the current runtime.
+ */
 function realExploration(lessonId: string) {
-  for (const courseModule of courseModules) {
+  for (const courseModule of legacyCourseModules) {
     const lesson = courseModule.lessons.find((entry) => entry.id === lessonId);
-    if (lesson) {
+    if (lesson && lesson.sections) {
       return { lesson, exploration: lesson.sections[2].exploration };
     }
   }
