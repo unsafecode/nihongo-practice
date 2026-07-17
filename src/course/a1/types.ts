@@ -225,5 +225,8 @@ export type A1AuthoringErrorCode =
   | "japanese-literal"
   | "forbidden-field"
   | "contrastive-count"
+  | "practice-ref-count"
+  | "practice-ref-unique"
+  | "practice-ref-reuse"
   | "empty-fragments"
   | "module-lesson-count";

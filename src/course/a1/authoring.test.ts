@@ -21,6 +21,10 @@ import {
   A1_INSTRUCTIONAL_MODEL_COUNT,
   A1_PHONETIC_CONTRASTIVE_MAX,
   A1_PHONETIC_CONTRASTIVE_MIN,
+  A1_PHONETIC_PRACTICE_MAX,
+  A1_PHONETIC_PRACTICE_MAX_REUSE,
+  A1_PHONETIC_PRACTICE_MIN,
+  A1_PHONETIC_PRACTICE_MIN_UNIQUE,
   A1_ROUND_TARGET_COUNT,
   assembleA1Slice,
   AuthoringError,
@@ -617,16 +621,68 @@ describe("defineA1PhoneticLesson — gates and thresholds", () => {
     }
   });
 
-  it("rejects duplicate practice target refs", () => {
-    const dup = phoneticRecipe();
-    const refs = [...dup.practiceTargetRefs];
-    refs[2] = refs[0];
+  it("exposes the practice-ref thresholds (8-12, ≥5 unique, ≤2 reuse)", () => {
+    expect(A1_PHONETIC_PRACTICE_MIN).toBe(8);
+    expect(A1_PHONETIC_PRACTICE_MAX).toBe(12);
+    expect(A1_PHONETIC_PRACTICE_MIN_UNIQUE).toBe(5);
+    expect(A1_PHONETIC_PRACTICE_MAX_REUSE).toBe(2);
+  });
+
+  it("rejects fewer than eight practice target refs", () => {
+    const few = phoneticRecipe({
+      practiceTargetRefs: Array.from({ length: 7 }, (_, i) => `t-${i}`),
+    });
+    try {
+      defineA1PhoneticLesson(few);
+      throw new Error("expected throw");
+    } catch (error) {
+      expect((error as AuthoringError).code).toBe("practice-ref-count");
+    }
+  });
+
+  it("rejects more than twelve practice target refs", () => {
+    const many = phoneticRecipe({
+      practiceTargetRefs: Array.from({ length: 13 }, (_, i) => `t-${i}`),
+    });
+    try {
+      defineA1PhoneticLesson(many);
+      throw new Error("expected throw");
+    } catch (error) {
+      expect((error as AuthoringError).code).toBe("practice-ref-count");
+    }
+  });
+
+  it("rejects fewer than five unique practice target refs", () => {
+    // Eight refs, four distinct glyphs each used twice: count and reuse are
+    // both legal, only the unique-shortfall gate should fire.
+    const refs = ["a", "a", "b", "b", "c", "c", "d", "d"];
     try {
       defineA1PhoneticLesson(phoneticRecipe({ practiceTargetRefs: refs }));
       throw new Error("expected throw");
     } catch (error) {
-      expect((error as AuthoringError).code).toBe("duplicate-target-ref");
+      expect((error as AuthoringError).code).toBe("practice-ref-unique");
     }
+  });
+
+  it("rejects a practice target ref reused more than twice", () => {
+    // Eight refs with six distinct glyphs (≥5 unique) but one used three times.
+    const refs = ["a", "a", "a", "b", "c", "d", "e", "f"];
+    try {
+      defineA1PhoneticLesson(phoneticRecipe({ practiceTargetRefs: refs }));
+      throw new Error("expected throw");
+    } catch (error) {
+      expect((error as AuthoringError).code).toBe("practice-ref-reuse");
+    }
+  });
+
+  it("accepts practice target refs reused up to twice (no blanket uniqueness)", () => {
+    // Ten refs, eight distinct, two used twice: within all three thresholds.
+    const refs = ["a", "a", "b", "b", "c", "d", "e", "f", "g", "h"];
+    const defined = defineA1PhoneticLesson(
+      phoneticRecipe({ practiceTargetRefs: refs }),
+    );
+    expect(Object.isFrozen(defined)).toBe(true);
+    expect(defined.practiceTargetRefs).toEqual(refs);
   });
 
   it("rejects Japanese literals in a phonetic recipe", () => {

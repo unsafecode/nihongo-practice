@@ -47,6 +47,17 @@ export const A1_ROUND_TARGET_COUNT = 5;
 export const A1_PHONETIC_CONTRASTIVE_MIN = 8;
 export const A1_PHONETIC_CONTRASTIVE_MAX = 12;
 
+/**
+ * A phonetic lesson declares between 8 and 12 practice target references
+ * (inclusive) — one per practice exercise. At least five must be distinct so a
+ * drill is never four items padded by repeats, and no single target may be
+ * reused more than twice, so spaced repetition never collapses onto one glyph.
+ */
+export const A1_PHONETIC_PRACTICE_MIN = 8;
+export const A1_PHONETIC_PRACTICE_MAX = 12;
+export const A1_PHONETIC_PRACTICE_MIN_UNIQUE = 5;
+export const A1_PHONETIC_PRACTICE_MAX_REUSE = 2;
+
 // ---------------------------------------------------------------------------
 // Structured authoring error
 // ---------------------------------------------------------------------------
@@ -205,8 +216,11 @@ export function defineA1Lesson(recipe: A1LessonRecipe): A1LessonRecipe {
 
 /**
  * Validate and deep-freeze a phonetic lesson recipe. Enforces the 8-12
- * contrastive-item threshold, unique contrastive items, and unique practice
- * target references — with no predicate/role fiction.
+ * contrastive-item threshold and unique contrastive items, then the practice
+ * target-ref contract: 8-12 refs, at least five distinct, and each reused at
+ * most twice. There is deliberately *no* blanket uniqueness on the practice
+ * refs — that would forbid the allowed up-to-twice spaced reuse. No
+ * predicate/role fiction is invented for a kana drill.
  */
 export function defineA1PhoneticLesson(
   recipe: A1PhoneticLessonRecipe,
@@ -225,11 +239,41 @@ export function defineA1PhoneticLesson(
     );
   }
   assertUniqueIds(recipe.contrastiveItemIds, "duplicate-id", "contrastive item");
-  assertUniqueIds(
-    recipe.practiceTargetRefs,
-    "duplicate-target-ref",
-    "practice target ref",
-  );
+
+  const refs = recipe.practiceTargetRefs;
+  if (
+    refs.length < A1_PHONETIC_PRACTICE_MIN ||
+    refs.length > A1_PHONETIC_PRACTICE_MAX
+  ) {
+    throw new AuthoringError(
+      "practice-ref-count",
+      `Phonetic lesson "${recipe.id}" must have ${A1_PHONETIC_PRACTICE_MIN}-${A1_PHONETIC_PRACTICE_MAX} practice target refs, has ${refs.length}.`,
+      recipe.id,
+    );
+  }
+
+  const refCounts = new Map<string, number>();
+  for (const ref of refs) {
+    refCounts.set(ref, (refCounts.get(ref) ?? 0) + 1);
+  }
+
+  if (refCounts.size < A1_PHONETIC_PRACTICE_MIN_UNIQUE) {
+    throw new AuthoringError(
+      "practice-ref-unique",
+      `Phonetic lesson "${recipe.id}" must have at least ${A1_PHONETIC_PRACTICE_MIN_UNIQUE} unique practice target refs, has ${refCounts.size}.`,
+      recipe.id,
+    );
+  }
+
+  for (const [ref, uses] of refCounts) {
+    if (uses > A1_PHONETIC_PRACTICE_MAX_REUSE) {
+      throw new AuthoringError(
+        "practice-ref-reuse",
+        `Practice target ref "${ref}" in phonetic lesson "${recipe.id}" is reused ${uses} times (max ${A1_PHONETIC_PRACTICE_MAX_REUSE}).`,
+        ref,
+      );
+    }
+  }
 
   return deepFreeze(recipe);
 }
