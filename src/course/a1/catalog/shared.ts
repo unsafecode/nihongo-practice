@@ -375,11 +375,26 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-q-dore", kind: "object", tokenFragments: [frag("どれ", "dore")] },
   { id: "a1-value-q-dono-hon", kind: "object", tokenFragments: [frag("どの", "dono"), frag("ほん", "hon")] },
   // companion / recipient nouns (object-kind; と/に owned by the rule)
+  //
+  // `a1-value-companion-friend` / `a1-value-recipient-friend` (both ともだち)
+  // and `a1-value-recipient-teacher` / `a1-value-companion-teacher` (both
+  // せんせい) are deliberately duplicated semantic ids, not a copy/paste
+  // artifact: each candidate-pool distractor generator (companion-role
+  // exercises draw from the `a1-value-companion-*` id family, recipient-role
+  // exercises from `a1-value-recipient-*`) is namespaced by *role*, not by
+  // surface form. Collapsing the pair onto one shared id would let a
+  // companion exercise accidentally offer a recipient-only value (or vice
+  // versa) as a plausible distractor, since the generator can only exclude a
+  // value's *own* id family, not its Japanese surface text. Keep both ids;
+  // only add a shared value if a future exercise legitimately draws
+  // candidates from both roles at once.
   { id: "a1-value-companion-friend", kind: "object", tokenFragments: [frag("ともだち", "tomodachi")] },
   { id: "a1-value-companion-classmate", kind: "object", tokenFragments: [frag("クラスメート", "kurasumeeto")] },
   { id: "a1-value-recipient-teacher", kind: "object", tokenFragments: [frag("せんせい", "sensei")] },
   { id: "a1-value-recipient-clerk", kind: "object", tokenFragments: [frag("てんいん", "ten'in")] },
   // Module 8 recipient/companion people (person-target に / companion と).
+  // See the role-namespacing note above — same deliberate duplication, same
+  // reason (companion vs. recipient candidate pools must never cross).
   { id: "a1-value-recipient-friend", kind: "object", tokenFragments: [frag("ともだち", "tomodachi")] },
   { id: "a1-value-companion-teacher", kind: "object", tokenFragments: [frag("せんせい", "sensei")] },
   // Module 7 means-of-transport nouns (で adjunct; object-kind, distinct from
@@ -422,8 +437,6 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   // third party's) family respectfully.
   { id: "a1-value-kin-mother-hon", kind: "referent", animacy: "animate", tokenFragments: [frag("おかあさん", "okaasan")] },
   { id: "a1-value-kin-father-hon", kind: "referent", animacy: "animate", tokenFragments: [frag("おとうさん", "otousan")] },
-  { id: "a1-value-kin-older-brother-hon", kind: "referent", animacy: "animate", tokenFragments: [frag("おにいさん", "oniisan")] },
-  { id: "a1-value-kin-older-sister-hon", kind: "referent", animacy: "animate", tokenFragments: [frag("おねえさん", "oneesan")] },
 
   // --- time-kind (schedule に clock/day times; bare sequence + frequency) ---
   // Clock times (schedule rule fixes に).
@@ -830,9 +843,11 @@ export interface A1VariantSpec {
   readonly subjectRealization: "explicit" | "omitted";
   readonly slots: Readonly<Record<string, string>>;
   readonly interrogative?: boolean;
-  /** Explicit polarity/tense/mood override. When set it wins over
-   * `interrogative`; used by Module 6 to realize past / negative / past-negative
-   * forms of already-introduced senses. */
+  /** Explicit polarity/tense/mood override; used by Module 6 to realize
+   * past / negative / past-negative forms of already-introduced senses.
+   * Mutually exclusive with `interrogative: true` — {@link a1Variant} throws
+   * if both are supplied, rather than silently letting `form` win and
+   * dropping the requested question mood. */
   readonly form?: FormSelection;
   readonly use: PedagogicalUse;
   readonly translation: Bilingual;
@@ -853,6 +868,19 @@ export interface A1BuiltVariant {
  * intent text against it.
  */
 export function a1Variant(spec: A1VariantSpec): A1BuiltVariant {
+  // Fail closed on mutually exclusive inputs: an explicit `form` used to
+  // silently win over `interrogative: true`, dropping the caller's requested
+  // question mood with no signal. `interrogative: false` (or omitted) beside
+  // a `form` is unambiguous — the form alone governs — so only the true/true
+  // combination is rejected.
+  if (spec.form !== undefined && spec.interrogative === true) {
+    throw new Error(
+      `a1Variant "${spec.id}": mutually exclusive inputs — an explicit ` +
+        "`form` and `interrogative: true` were both provided. Set the " +
+        "form's own `interrogative` flag instead of also passing " +
+        "`interrogative: true` at the spec level.",
+    );
+  }
   const variant = variantFromTuple({
     id: spec.id,
     familyId: spec.family,
@@ -1159,8 +1187,6 @@ export const A1_SUBJECT_GLOSS: Readonly<Record<string, Bilingual>> = deepFreeze(
   // Module 8 other-family honorific kin subjects.
   "a1-value-kin-mother-hon": { en: "Your mother", it: "Tua madre" },
   "a1-value-kin-father-hon": { en: "Your father", it: "Tuo padre" },
-  "a1-value-kin-older-brother-hon": { en: "Your older brother", it: "Tuo fratello maggiore" },
-  "a1-value-kin-older-sister-hon": { en: "Your older sister", it: "Tua sorella maggiore" },
 });
 
 /** Copular-complement glosses (occupations, nationalities). */
@@ -1328,7 +1354,8 @@ export interface A1LineSpec {
   readonly slots: Readonly<Record<string, string>>;
   readonly interrogative?: boolean;
   /** Explicit polarity/tense override (Module 6 past / negative / past-negative
-   * and copula tense/polarity). When set it wins over `interrogative`. */
+   * and copula tense/polarity). Mutually exclusive with `interrogative: true`
+   * — {@link lineVariant} (via {@link a1Variant}) throws if both are set. */
   readonly form?: FormSelection;
   readonly translation: Bilingual;
   readonly speakerRole?: string;

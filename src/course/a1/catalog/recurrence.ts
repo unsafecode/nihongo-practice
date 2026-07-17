@@ -202,6 +202,32 @@ function augment(records: readonly VerbUseRecord[]): readonly VerbUseRecord[] {
   });
 }
 
+/**
+ * The forward direction of the map/record correspondence: every key in
+ * `laterUsesBySense` must name a sense some record actually introduces.
+ * `augment` above already fails closed when a record has NO map entry (a
+ * missing key); without this check the reverse case — a map key with no
+ * matching record (a typo'd sense id, or a stale entry left behind after a
+ * sense was removed/renamed) — was silently ignored, since nothing ever
+ * iterated `Object.keys(laterUsesBySense)` looking for orphans. Exported
+ * (pure, dependency-injected) so this contract is unit-testable directly
+ * against synthetic maps/records, not only through the full frozen catalog.
+ */
+export function assertNoStaleLaterUseKeys(
+  laterUsesBySense: Readonly<Record<string, readonly VerbLaterUse[]>>,
+  records: readonly VerbUseRecord[],
+): void {
+  const introducedSenseIds = new Set(records.map((record) => record.senseId));
+  const staleKeys = Object.keys(laterUsesBySense)
+    .filter((senseId) => !introducedSenseIds.has(senseId))
+    .sort();
+  if (staleKeys.length > 0) {
+    throw new Error(
+      `A1 recurrence: stale later-use map key(s) with no introduced record: ${staleKeys.join(", ")}`,
+    );
+  }
+}
+
 /** The raw Modules 2/4/5 introduction records (later uses land in Modules 4-8). */
 const deepModuleRawRecords: readonly VerbUseRecord[] = [
   ...module2VerbUseRecords,
@@ -215,6 +241,15 @@ const descriptiveModuleRawRecords: readonly VerbUseRecord[] = [
   ...module10VerbUseRecords,
   ...module11VerbUseRecords,
 ];
+
+// `LATER_USES_BY_SENSE` is a single map shared by both raw-record groups
+// above, so the stale-key check runs once, at module load, over their
+// union — never per-group, which would wrongly flag every Module 9/10/11 key
+// while validating only the Modules 2/4/5 group (and vice versa).
+assertNoStaleLaterUseKeys(LATER_USES_BY_SENSE, [
+  ...deepModuleRawRecords,
+  ...descriptiveModuleRawRecords,
+]);
 
 /**
  * The 24 Modules 2/4/5 productive verb records, augmented with their authored

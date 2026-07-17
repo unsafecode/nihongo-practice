@@ -1340,3 +1340,397 @@ describe("standalone predicate boundaries (polite copula vs. attached verb infle
     expect(romaji.text).not.toContain("benkyoushi masu");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Quality-review Minor M4: `rule-schedule-action`, `rule-direction-action`,
+// `rule-route-action`, and `rule-transport-action` (Task 3 realizer rules)
+// previously had zero test coverage — neither a fixture family nor a direct
+// unit test ever exercised them, so a production regression in any of the
+// four could ship silently. Each rule gets one positive test (exact
+// canonicalJapanese + romaji, proving the fixed particle(s) and content-slot
+// order the rule's own code comment documents) and one negative test (a
+// sense whose `argumentRoles` omit the governed role the family's slot
+// shape requires, proving §11's frame check — not merely "some error" —
+// actually fires for these four rules specifically). Fully self-contained
+// local families/senses/values (the same pattern as "realizer
+// generalization" > "realizes a nominative (が) theme verb" above) — no
+// `fixtures.ts` changes, so no other suite's counts are touched.
+// ---------------------------------------------------------------------------
+
+describe("Task 3 realizer rules: schedule/direction/route/transport (M4)", () => {
+  const wakeSense: LearningTargetSense = {
+    id: "test-sense-wake-m4",
+    lexemeId: "test-lexeme-okiru-m4",
+    learningUse: "productive",
+    semanticFrameId: "test-frame-wake-m4",
+    predicate: "wake" as LearningTargetSense["predicate"],
+    argumentRoles: ["time"],
+    argumentParticleByRole: {},
+  };
+  const wakeSenseNoTime: LearningTargetSense = {
+    ...wakeSense,
+    id: "test-sense-wake-m4-no-time",
+    argumentRoles: [],
+  };
+  const goSense: LearningTargetSense = {
+    id: "test-sense-go-m4",
+    lexemeId: "test-lexeme-iku-m4",
+    learningUse: "productive",
+    semanticFrameId: "test-frame-go-m4",
+    predicate: "go" as LearningTargetSense["predicate"],
+    argumentRoles: ["location"],
+    argumentParticleByRole: {},
+  };
+  const goSenseNoLocation: LearningTargetSense = {
+    ...goSense,
+    id: "test-sense-go-m4-no-location",
+    argumentRoles: [],
+  };
+
+  const timeValue: SemanticValue = {
+    id: "test-value-time-7-m4",
+    kind: "time",
+    tokenFragments: [
+      { jp: "しちじ", romaji: "shichiji", kind: "lexical", boundaryBefore: "attach" },
+    ],
+  };
+  const wakeValue: SemanticValue = {
+    id: "test-value-wake-m4",
+    kind: "predicate-sense",
+    senseId: wakeSense.id,
+    tokenFragments: [{ jp: "おき", romaji: "oki", kind: "lexical", boundaryBefore: "attach" }],
+  };
+  const wakeValueNoTime: SemanticValue = {
+    ...wakeValue,
+    id: "test-value-wake-m4-no-time",
+    senseId: wakeSenseNoTime.id,
+  };
+  const stationValue: SemanticValue = {
+    id: "test-value-station-m4",
+    kind: "location",
+    tokenFragments: [{ jp: "えき", romaji: "eki", kind: "lexical", boundaryBefore: "attach" }],
+  };
+  const tokyoValue: SemanticValue = {
+    id: "test-value-tokyo-m4",
+    kind: "location",
+    tokenFragments: [
+      { jp: "とうきょう", romaji: "toukyou", kind: "lexical", boundaryBefore: "attach" },
+    ],
+  };
+  const osakaValue: SemanticValue = {
+    id: "test-value-osaka-m4",
+    kind: "location",
+    tokenFragments: [
+      { jp: "おおさか", romaji: "oosaka", kind: "lexical", boundaryBefore: "attach" },
+    ],
+  };
+  const trainValue: SemanticValue = {
+    id: "test-value-train-m4",
+    kind: "object",
+    tokenFragments: [{ jp: "でんしゃ", romaji: "densha", kind: "lexical", boundaryBefore: "attach" }],
+  };
+  const goValue: SemanticValue = {
+    id: "test-value-go-m4",
+    kind: "predicate-sense",
+    senseId: goSense.id,
+    tokenFragments: [{ jp: "いき", romaji: "iki", kind: "lexical", boundaryBefore: "attach" }],
+  };
+  const goValueNoLocation: SemanticValue = {
+    ...goValue,
+    id: "test-value-go-m4-no-location",
+    senseId: goSenseNoLocation.id,
+  };
+
+  const baseDiscourse = {
+    speakerRoleId: "fixture-role-learner",
+    addresseeRoleId: null,
+    subjectReferentId: null,
+    subjectRealization: "omitted" as const,
+    scenarioNoteCopyId: "test-scenario-m4",
+  };
+
+  function localCatalogsWith(
+    extraValues: readonly SemanticValue[],
+    extraSenses: readonly LearningTargetSense[],
+  ): RealizeVariantCatalogs {
+    return {
+      ...catalogs,
+      semanticValues: [...catalogs.semanticValues, ...extraValues],
+      learningTargetSenses: [...catalogs.learningTargetSenses, ...extraSenses],
+    };
+  }
+
+  // ---- rule-schedule-action: verb + に-marked clock time -----------------
+
+  const scheduleFamily: SentenceFamily = {
+    id: "test-family-schedule-m4" as SentenceFamily["id"],
+    level: "a1",
+    canDoIds: [],
+    slotSchema: [
+      { id: "time", axis: "time", valueKind: "time", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["time", "predicate-verb"],
+    realizationRuleId: "rule-schedule-action",
+    requiredConceptIds: [],
+  };
+
+  it("rule-schedule-action: realizes しちじにおきます / shichiji ni okimasu", () => {
+    const variant: SentenceVariant = {
+      id: "test-variant-schedule-m4",
+      sentenceFamilyId: scheduleFamily.id,
+      discourse: baseDiscourse,
+      contextId: "fixture-a1-context-language-class",
+      slotValues: { time: timeValue.id, predicate: wakeValue.id },
+      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      pedagogicalUse: "model",
+    };
+    const result = realizeVariant(
+      scheduleFamily,
+      variant,
+      localCatalogsWith([timeValue, wakeValue], [wakeSense]),
+      { availableConceptIds: [] },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.sentence.canonicalJapanese).toBe("しちじにおきます");
+    const romaji = formatRomaji(result.sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) return;
+    expect(romaji.text).toBe("shichiji ni okimasu");
+  });
+
+  it("rule-schedule-action: rejects a sense whose argumentRoles omit `time`", () => {
+    const variant: SentenceVariant = {
+      id: "test-variant-schedule-m4-invalid",
+      sentenceFamilyId: scheduleFamily.id,
+      discourse: baseDiscourse,
+      contextId: "fixture-a1-context-language-class",
+      slotValues: { time: timeValue.id, predicate: wakeValueNoTime.id },
+      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      pedagogicalUse: "model",
+    };
+    const result = realizeVariant(
+      scheduleFamily,
+      variant,
+      localCatalogsWith([timeValue, wakeValueNoTime], [wakeSenseNoTime]),
+      { availableConceptIds: [] },
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: "invalid-argument-structure",
+        slotId: "time",
+        referenceId: "time",
+      }),
+    );
+  });
+
+  // ---- rule-direction-action: verb + へ-marked direction ------------------
+
+  const directionFamily: SentenceFamily = {
+    id: "test-family-direction-m4" as SentenceFamily["id"],
+    level: "a1",
+    canDoIds: [],
+    slotSchema: [
+      { id: "location", axis: "location", valueKind: "location", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["location", "predicate-verb"],
+    realizationRuleId: "rule-direction-action",
+    requiredConceptIds: [],
+  };
+
+  it("rule-direction-action: realizes えきへいきます / eki e ikimasu", () => {
+    const variant: SentenceVariant = {
+      id: "test-variant-direction-m4",
+      sentenceFamilyId: directionFamily.id,
+      discourse: baseDiscourse,
+      contextId: "fixture-a1-context-language-class",
+      slotValues: { location: stationValue.id, predicate: goValue.id },
+      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      pedagogicalUse: "model",
+    };
+    const result = realizeVariant(
+      directionFamily,
+      variant,
+      localCatalogsWith([stationValue, goValue], [goSense]),
+      { availableConceptIds: [] },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.sentence.canonicalJapanese).toBe("えきへいきます");
+    const romaji = formatRomaji(result.sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) return;
+    expect(romaji.text).toBe("eki e ikimasu");
+  });
+
+  it("rule-direction-action: rejects a sense whose argumentRoles omit `location`", () => {
+    const variant: SentenceVariant = {
+      id: "test-variant-direction-m4-invalid",
+      sentenceFamilyId: directionFamily.id,
+      discourse: baseDiscourse,
+      contextId: "fixture-a1-context-language-class",
+      slotValues: { location: stationValue.id, predicate: goValueNoLocation.id },
+      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      pedagogicalUse: "model",
+    };
+    const result = realizeVariant(
+      directionFamily,
+      variant,
+      localCatalogsWith([stationValue, goValueNoLocation], [goSenseNoLocation]),
+      { availableConceptIds: [] },
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: "invalid-argument-structure",
+        slotId: "location",
+        referenceId: "location",
+      }),
+    );
+  });
+
+  // ---- rule-route-action: verb + から source + まで goal ------------------
+
+  const routeFamily: SentenceFamily = {
+    id: "test-family-route-m4" as SentenceFamily["id"],
+    level: "a1",
+    canDoIds: [],
+    slotSchema: [
+      { id: "source", axis: "location", valueKind: "location", optional: false },
+      { id: "goal", axis: "location", valueKind: "location", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["location", "predicate-verb"],
+    realizationRuleId: "rule-route-action",
+    requiredConceptIds: [],
+  };
+
+  it("rule-route-action: realizes とうきょうからおおさかまでいきます / toukyou kara oosaka made ikimasu", () => {
+    const variant: SentenceVariant = {
+      id: "test-variant-route-m4",
+      sentenceFamilyId: routeFamily.id,
+      discourse: baseDiscourse,
+      contextId: "fixture-a1-context-language-class",
+      slotValues: { source: tokyoValue.id, goal: osakaValue.id, predicate: goValue.id },
+      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      pedagogicalUse: "model",
+    };
+    const result = realizeVariant(
+      routeFamily,
+      variant,
+      localCatalogsWith([tokyoValue, osakaValue, goValue], [goSense]),
+      { availableConceptIds: [] },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.sentence.canonicalJapanese).toBe("とうきょうからおおさかまでいきます");
+    const romaji = formatRomaji(result.sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) return;
+    expect(romaji.text).toBe("toukyou kara oosaka made ikimasu");
+  });
+
+  it("rule-route-action: rejects a sense whose argumentRoles omit `location` (source/goal both location-kind)", () => {
+    const variant: SentenceVariant = {
+      id: "test-variant-route-m4-invalid",
+      sentenceFamilyId: routeFamily.id,
+      discourse: baseDiscourse,
+      contextId: "fixture-a1-context-language-class",
+      slotValues: {
+        source: tokyoValue.id,
+        goal: osakaValue.id,
+        predicate: goValueNoLocation.id,
+      },
+      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      pedagogicalUse: "model",
+    };
+    const result = realizeVariant(
+      routeFamily,
+      variant,
+      localCatalogsWith([tokyoValue, osakaValue, goValueNoLocation], [goSenseNoLocation]),
+      { availableConceptIds: [] },
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ code: "invalid-argument-structure", referenceId: "location" }),
+    );
+  });
+
+  // ---- rule-transport-action: verb + で means + に destination ------------
+
+  const transportFamily: SentenceFamily = {
+    id: "test-family-transport-m4" as SentenceFamily["id"],
+    level: "a1",
+    canDoIds: [],
+    slotSchema: [
+      { id: "transport", axis: "object", valueKind: "object", optional: false },
+      { id: "location", axis: "location", valueKind: "location", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["object", "location", "predicate-verb"],
+    realizationRuleId: "rule-transport-action",
+    requiredConceptIds: [],
+  };
+
+  it("rule-transport-action: realizes でんしゃでえきにいきます / densha de eki ni ikimasu", () => {
+    const variant: SentenceVariant = {
+      id: "test-variant-transport-m4",
+      sentenceFamilyId: transportFamily.id,
+      discourse: baseDiscourse,
+      contextId: "fixture-a1-context-language-class",
+      slotValues: { transport: trainValue.id, location: stationValue.id, predicate: goValue.id },
+      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      pedagogicalUse: "model",
+    };
+    const result = realizeVariant(
+      transportFamily,
+      variant,
+      localCatalogsWith([trainValue, stationValue, goValue], [goSense]),
+      { availableConceptIds: [] },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.sentence.canonicalJapanese).toBe("でんしゃでえきにいきます");
+    const romaji = formatRomaji(result.sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) return;
+    expect(romaji.text).toBe("densha de eki ni ikimasu");
+  });
+
+  it("rule-transport-action: rejects a sense whose argumentRoles omit `location`", () => {
+    const variant: SentenceVariant = {
+      id: "test-variant-transport-m4-invalid",
+      sentenceFamilyId: transportFamily.id,
+      discourse: baseDiscourse,
+      contextId: "fixture-a1-context-language-class",
+      slotValues: {
+        transport: trainValue.id,
+        location: stationValue.id,
+        predicate: goValueNoLocation.id,
+      },
+      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      pedagogicalUse: "model",
+    };
+    const result = realizeVariant(
+      transportFamily,
+      variant,
+      localCatalogsWith([trainValue, stationValue, goValueNoLocation], [goSenseNoLocation]),
+      { availableConceptIds: [] },
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: "invalid-argument-structure",
+        slotId: "location",
+        referenceId: "location",
+      }),
+    );
+  });
+});
