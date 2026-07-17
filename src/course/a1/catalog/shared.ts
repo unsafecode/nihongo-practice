@@ -547,7 +547,7 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
   {
     id: "a1-family-topic-copular",
     level: "a1",
-    canDoIds: ["a1-can-do-identity", "a1-can-do-origins", "a1-can-do-people"],
+    canDoIds: ["a1-can-do-identity", "a1-can-do-origins", "a1-can-do-people", "a1-can-do-scenario-1"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -702,7 +702,7 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     // adjectiveClass, never this family.
     id: "a1-family-description",
     level: "a1",
-    canDoIds: ["a1-can-do-descriptions"],
+    canDoIds: ["a1-can-do-descriptions", "a1-can-do-scenario-4"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -716,7 +716,7 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     // governed theme (すき/きらい/ほしい).
     id: "a1-family-preference",
     level: "a1",
-    canDoIds: ["a1-can-do-descriptions", "a1-can-do-scenario-3"],
+    canDoIds: ["a1-can-do-descriptions", "a1-can-do-scenario-3", "a1-can-do-existence"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -731,7 +731,7 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     // (an adjunct, not a governed theme).
     id: "a1-family-comparison",
     level: "a1",
-    canDoIds: ["a1-can-do-descriptions", "a1-can-do-scenario-4"],
+    canDoIds: ["a1-can-do-descriptions"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -782,7 +782,7 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     // switch.
     id: "a1-family-existence",
     level: "a1",
-    canDoIds: ["a1-can-do-existence", "a1-can-do-scenario-1"],
+    canDoIds: ["a1-can-do-existence"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -1065,10 +1065,10 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-can-do-descriptions-descriptor": "I can describe things and say what I like using simple adjectives.",
     "a1-can-do-shopping-descriptor": "I can ask prices, say how many I want, and make a simple purchase.",
     "a1-can-do-existence-descriptor": "I can say what there is, where it is, and what I need.",
-    "a1-can-do-scenario-1-descriptor": "I can get through a short shopping exchange from start to finish.",
-    "a1-can-do-scenario-2-descriptor": "I can find my way and ask about places using what there is around me.",
-    "a1-can-do-scenario-3-descriptor": "I can talk through a simple day, saying what I do and how I feel about it.",
-    "a1-can-do-scenario-4-descriptor": "I can introduce myself and shift the topic to the people and things I like.",
+    "a1-can-do-scenario-1-descriptor": "I can introduce myself and both ask and answer simple personal questions.",
+    "a1-can-do-scenario-2-descriptor": "I can talk through a typical day — my routine, a place, what I like, and what I want to buy.",
+    "a1-can-do-scenario-3-descriptor": "I can get around, asking where a place is and saying how I'll get there and what I need.",
+    "a1-can-do-scenario-4-descriptor": "I can say who I am and what I do, describe things around me, and ask for clarification when I change topic.",
     "a1-module-outcome-introductions": "You can introduce yourself and other people with a few key facts.",
     "a1-module-outcome-essential-questions": "You can ask and recognize the everyday questions that keep a conversation going.",
     "a1-module-outcome-actions": "You can say what you and others do with everyday things, places, and people.",
@@ -1129,10 +1129,10 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-can-do-descriptions-descriptor": "So descrivere le cose e dire cosa mi piace con aggettivi semplici.",
     "a1-can-do-shopping-descriptor": "So chiedere i prezzi, dire quanti ne voglio e fare un semplice acquisto.",
     "a1-can-do-existence-descriptor": "So dire cosa c'è, dove si trova e di cosa ho bisogno.",
-    "a1-can-do-scenario-1-descriptor": "So gestire un breve scambio in negozio dall'inizio alla fine.",
-    "a1-can-do-scenario-2-descriptor": "So orientarmi e chiedere dei luoghi usando ciò che c'è intorno a me.",
-    "a1-can-do-scenario-3-descriptor": "So raccontare una giornata semplice, dicendo cosa faccio e come mi sento.",
-    "a1-can-do-scenario-4-descriptor": "So presentarmi e spostare il discorso sulle persone e le cose che mi piacciono.",
+    "a1-can-do-scenario-1-descriptor": "So presentarmi e sia fare sia rispondere a semplici domande personali.",
+    "a1-can-do-scenario-2-descriptor": "So raccontare una giornata tipica: la mia routine, un luogo, cosa mi piace e cosa voglio comprare.",
+    "a1-can-do-scenario-3-descriptor": "So muovermi, chiedendo dove si trova un luogo e dicendo come ci arrivo e di cosa ho bisogno.",
+    "a1-can-do-scenario-4-descriptor": "So dire chi sono e cosa faccio, descrivere le cose intorno a me e chiedere chiarimenti quando cambio argomento.",
     "a1-module-outcome-introductions": "Sai presentare te stesso e altre persone con alcuni dati chiave.",
     "a1-module-outcome-essential-questions": "Sai fare e riconoscere le domande quotidiane che tengono viva una conversazione.",
     "a1-module-outcome-actions": "Sai dire cosa fai tu e gli altri con le cose, i luoghi e le persone di ogni giorno.",

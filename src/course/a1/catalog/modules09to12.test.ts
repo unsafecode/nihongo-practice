@@ -282,58 +282,58 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["existence-needs-4-t3", "かぎがつくえのうえにあります", "kagi ga tsukue no ue ni arimasu"],
   ["existence-needs-4-t4", "いぬがいすのしたにいます", "inu ga isu no shita ni imasu"],
   ["existence-needs-4-t5", "こどもがえきのちかくにいます", "kodomo ga eki no chikaku ni imasu"],
-  ["capstones-1-m1", "みずをください", "mizu o kudasai"],
-  ["capstones-1-m2", "りんごをみっつください", "ringo o mittsu kudasai"],
-  ["capstones-1-m3", "ほんはたかいです", "hon wa takai desu"],
-  ["capstones-1-m4", "ペンはやすいです", "pen wa yasui desu"],
-  ["capstones-1-m5", "わたしはコーヒーがすきです", "watashi wa koohii ga suki desu"],
-  ["capstones-1-m6", "わたしはおかねがほしいです", "watashi wa okane ga hoshii desu"],
-  ["capstones-1-m7", "ほんがあります", "hon ga arimasu"],
-  ["capstones-1-m8", "わたしはみかんをふたつかいます", "watashi wa mikan o futatsu kaimasu"],
-  ["capstones-1-t1", "コーヒーをください", "koohii o kudasai"],
-  ["capstones-1-t2", "ほんはやすいです", "hon wa yasui desu"],
-  ["capstones-1-t3", "わたしはみかんがすきです", "watashi wa mikan ga suki desu"],
-  ["capstones-1-t4", "ペンがあります", "pen ga arimasu"],
-  ["capstones-1-t5", "わたしはりんごをふたつかいます", "watashi wa ringo o futatsu kaimasu"],
-  ["capstones-2-m1", "きょうはあついです", "kyou wa atsui desu"],
-  ["capstones-2-m2", "きょうはさむいです", "kyou wa samui desu"],
-  ["capstones-2-m3", "まちはしずかです", "machi wa shizuka desu"],
-  ["capstones-2-m4", "へやはおおきいです", "heya wa ookii desu"],
-  ["capstones-2-m5", "へやはちいさいです", "heya wa chiisai desu"],
+  ["capstones-1-m1", "がくせいです", "gakusei desu"],
+  ["capstones-1-m2", "イタリアじんです", "itariajin desu"],
+  ["capstones-1-m3", "にほんごをべんきょうします", "nihongo o benkyoushimasu"],
+  ["capstones-1-m4", "かいしゃではたらきます", "kaisha de hatarakimasu"],
+  ["capstones-1-m5", "とうきょうにすみます", "toukyou ni sumimasu"],
+  ["capstones-1-m6", "にほんごがわかります", "nihongo ga wakarimasu"],
+  ["capstones-1-m7", "なにをしますか", "nani o shimasu ka"],
+  ["capstones-1-m8", "なにがわかりますか", "nani ga wakarimasu ka"],
+  ["capstones-1-t1", "なにをべんきょうしますか", "nani o benkyoushimasu ka"],
+  ["capstones-1-t2", "とうきょうではたらきます", "toukyou de hatarakimasu"],
+  ["capstones-1-t3", "がくせいですか", "gakusei desu ka"],
+  ["capstones-1-t4", "イタリアじんですか", "itariajin desu ka"],
+  ["capstones-1-t5", "にほんごがわかりますか", "nihongo ga wakarimasu ka"],
+  ["capstones-2-m1", "しちじにおきます", "shichiji ni okimasu"],
+  ["capstones-2-m2", "ゆきはげつようびにべんきょうします", "yuki wa getsuyoubi ni benkyoushimasu"],
+  ["capstones-2-m3", "まいにちたべます", "mainichi tabemasu"],
+  ["capstones-2-m4", "けんはレストランではたらきます", "ken wa resutoran de hatarakimasu"],
+  ["capstones-2-m5", "とうきょうにすみます", "toukyou ni sumimasu"],
   ["capstones-2-m6", "わたしはコーヒーがすきです", "watashi wa koohii ga suki desu"],
-  ["capstones-2-m7", "わたしはみずがきらいです", "watashi wa mizu ga kirai desu"],
-  ["capstones-2-m8", "わたしはみずがほしいです", "watashi wa mizu ga hoshii desu"],
-  ["capstones-2-t1", "まちはおおきいです", "machi wa ookii desu"],
-  ["capstones-2-t2", "へやはしずかです", "heya wa shizuka desu"],
-  ["capstones-2-t3", "わたしはみずがすきです", "watashi wa mizu ga suki desu"],
-  ["capstones-2-t4", "わたしはコーヒーがきらいです", "watashi wa koohii ga kirai desu"],
-  ["capstones-2-t5", "わたしはコーヒーがほしいです", "watashi wa koohii ga hoshii desu"],
-  ["capstones-3-m1", "ほんがつくえのうえにあります", "hon ga tsukue no ue ni arimasu"],
-  ["capstones-3-m2", "ねこがいます", "neko ga imasu"],
-  ["capstones-3-m3", "いぬがえきのちかくにいます", "inu ga eki no chikaku ni imasu"],
-  ["capstones-3-m4", "わたしはおかねがほしいです", "watashi wa okane ga hoshii desu"],
-  ["capstones-3-m5", "へやはおおきいです", "heya wa ookii desu"],
-  ["capstones-3-m6", "へやはちいさいです", "heya wa chiisai desu"],
-  ["capstones-3-m7", "わたしはみずがきらいです", "watashi wa mizu ga kirai desu"],
-  ["capstones-3-m8", "かぎがかばんのなかにあります", "kagi ga kaban no naka ni arimasu"],
-  ["capstones-3-t1", "ほんがかばんのなかにあります", "hon ga kaban no naka ni arimasu"],
-  ["capstones-3-t2", "ねこがつくえのうえにいます", "neko ga tsukue no ue ni imasu"],
-  ["capstones-3-t3", "わたしはみずがほしいです", "watashi wa mizu ga hoshii desu"],
-  ["capstones-3-t4", "わたしはおかねがきらいです", "watashi wa okane ga kirai desu"],
-  ["capstones-3-t5", "かぎがつくえのうえにあります", "kagi ga tsukue no ue ni arimasu"],
-  ["capstones-4-m1", "わたしはすしがすきです", "watashi wa sushi ga suki desu"],
-  ["capstones-4-m2", "コーヒーをください", "koohii o kudasai"],
-  ["capstones-4-m3", "ほんはたかいです", "hon wa takai desu"],
-  ["capstones-4-m4", "ペンはやすいです", "pen wa yasui desu"],
+  ["capstones-2-m7", "わたしはりんごをみっつかいます", "watashi wa ringo o mittsu kaimasu"],
+  ["capstones-2-m8", "コーヒーをください", "koohii o kudasai"],
+  ["capstones-2-t1", "けんはしちじにおきます", "ken wa shichiji ni okimasu"],
+  ["capstones-2-t2", "ゆきはまいにちたべます", "yuki wa mainichi tabemasu"],
+  ["capstones-2-t3", "レストランではたらきます", "resutoran de hatarakimasu"],
+  ["capstones-2-t4", "ゆきはコーヒーがすきです", "yuki wa koohii ga suki desu"],
+  ["capstones-2-t5", "けんはりんごをみっつかいます", "ken wa ringo o mittsu kaimasu"],
+  ["capstones-3-m1", "えきにいきます", "eki ni ikimasu"],
+  ["capstones-3-m2", "ゆきはえきへいきます", "yuki wa eki e ikimasu"],
+  ["capstones-3-m3", "でんしゃでえきにいきます", "densha de eki ni ikimasu"],
+  ["capstones-3-m4", "けんはくるまでえきにきます", "ken wa kuruma de eki ni kimasu"],
+  ["capstones-3-m5", "とうきょうからおおさかまでいきます", "toukyou kara oosaka made ikimasu"],
+  ["capstones-3-m6", "みなはいえからかいしゃまでいきます", "mina wa ie kara kaisha made ikimasu"],
+  ["capstones-3-m7", "えきはどこですか", "eki wa doko desu ka"],
+  ["capstones-3-m8", "わたしはきっぷがほしいです", "watashi wa kippu ga hoshii desu"],
+  ["capstones-3-t1", "けんはえきにいきます", "ken wa eki ni ikimasu"],
+  ["capstones-3-t2", "ゆきはでんしゃでえきにきます", "yuki wa densha de eki ni kimasu"],
+  ["capstones-3-t3", "いえからかいしゃまできます", "ie kara kaisha made kimasu"],
+  ["capstones-3-t4", "ゆきはきっぷがほしいです", "yuki wa kippu ga hoshii desu"],
+  ["capstones-3-t5", "けんはとうきょうからおおさかまでいきます", "ken wa toukyou kara oosaka made ikimasu"],
+  ["capstones-4-m1", "がくせいです", "gakusei desu"],
+  ["capstones-4-m2", "イタリアじんです", "itariajin desu"],
+  ["capstones-4-m3", "すしをたべます", "sushi o tabemasu"],
+  ["capstones-4-m4", "にほんごをべんきょうします", "nihongo o benkyoushimasu"],
   ["capstones-4-m5", "きょうはあついです", "kyou wa atsui desu"],
-  ["capstones-4-m6", "きょうはさむいです", "kyou wa samui desu"],
+  ["capstones-4-m6", "へやはさむいです", "heya wa samui desu"],
   ["capstones-4-m7", "まちはしずかです", "machi wa shizuka desu"],
-  ["capstones-4-m8", "わたしはきっぷがほしいです", "watashi wa kippu ga hoshii desu"],
-  ["capstones-4-t1", "わたしはコーヒーがすきです", "watashi wa koohii ga suki desu"],
-  ["capstones-4-t2", "すしをください", "sushi o kudasai"],
-  ["capstones-4-t3", "ペンはたかいです", "pen wa takai desu"],
-  ["capstones-4-t4", "ほんはやすいです", "hon wa yasui desu"],
-  ["capstones-4-t5", "わたしはすしがほしいです", "watashi wa sushi ga hoshii desu"],
+  ["capstones-4-m8", "これはなんですか", "kore wa nan desu ka"],
+  ["capstones-4-t1", "きょうはさむいです", "kyou wa samui desu"],
+  ["capstones-4-t2", "へやはあついです", "heya wa atsui desu"],
+  ["capstones-4-t3", "まちはさむいです", "machi wa samui desu"],
+  ["capstones-4-t4", "きょうはしずかです", "kyou wa shizuka desu"],
+  ["capstones-4-t5", "へやはしずかです", "heya wa shizuka desu"],
 ];
 
 describe("A1 modules 9–12 · exact realized-sentence table", () => {
@@ -437,10 +437,10 @@ describe("A1 modules 9–12 · counters, prices & polite requests", () => {
   });
 
   it("attaches native counters directly and spaces を ください as a standalone request", () => {
-    expect(jpOf("capstones-1-m1")).toBe("みずをください");
-    expect(romajiFor("capstones-1-m1")).toBe("mizu o kudasai");
-    expect(jpOf("capstones-1-m2")).toBe("りんごをみっつください");
-    expect(romajiFor("capstones-1-m2")).toBe("ringo o mittsu kudasai");
+    expect(jpOf("shopping-3-m1")).toBe("みずをください");
+    expect(romajiFor("shopping-3-m1")).toBe("mizu o kudasai");
+    expect(jpOf("shopping-3-m2")).toBe("りんごをみっつください");
+    expect(romajiFor("shopping-3-m2")).toBe("ringo o mittsu kudasai");
   });
 
   it("marks the requested/bought item with を, never が/は", () => {
@@ -472,10 +472,10 @@ describe("A1 modules 9–12 · existence, position & needs", () => {
   });
 
   it("marks the desired object of ほしい/すき with が, and the experiencer with は", () => {
-    expect(jpOf("capstones-1-m5")).toBe("わたしはコーヒーがすきです");
-    expect(romajiFor("capstones-1-m5")).toBe("watashi wa koohii ga suki desu");
-    expect(jpOf("capstones-1-m6")).toBe("わたしはおかねがほしいです");
-    expect(romajiFor("capstones-1-m6")).toBe("watashi wa okane ga hoshii desu");
+    expect(jpOf("existence-needs-3-m5")).toBe("わたしはコーヒーがすきです");
+    expect(romajiFor("existence-needs-3-m5")).toBe("watashi wa koohii ga suki desu");
+    expect(jpOf("existence-needs-3-m1")).toBe("わたしはおかねがほしいです");
+    expect(romajiFor("existence-needs-3-m1")).toBe("watashi wa okane ga hoshii desu");
   });
 
   it("marks the existing subject with が, never を", () => {
@@ -611,15 +611,137 @@ describe("A1 modules 9–12 · capstone no-new-content synthesis", () => {
     expect(introduced, `capstones introduced new content: ${introduced.join(", ")}`).toEqual([]);
   });
 
-  it("capstone-4 performs a topic change with only prior content", () => {
-    // The scenario reuses the topic-は already taught earlier; asserting it is
-    // realized proves the change of subject is A1-safe.
-    const capstone4 = allVariants.filter((v) => v.id.startsWith("capstones-4-m"));
-    expect(capstone4.length).toBe(8);
-    for (const v of capstone4) {
-      const s = realize(v);
-      expect(s.canonicalJapanese.length, v.id).toBeGreaterThan(0);
+  it("capstone-4 changes subject-referent topic exactly once across its 8 models", () => {
+    // A genuine topic change is a single transition in *what is being talked
+    // about* across the ordered models — not merely "some Japanese was
+    // realized" (which every variant trivially satisfies). We read the
+    // authored subject-referent sequence directly off discourse metadata and
+    // count referent transitions between consecutive models.
+    const ids = Array.from({ length: 8 }, (_, i) => `capstones-4-m${i + 1}`);
+    const referents = ids.map((id) => (variantById.get(id) as SentenceVariant).discourse.subjectReferentId);
+    expect(referents.every((r) => r !== null), "capstones-4 models all have a subject referent").toBe(true);
+    let transitions = 0;
+    for (let i = 1; i < referents.length; i += 1) {
+      if (referents[i] !== referents[i - 1]) transitions += 1;
     }
+    expect(transitions, `capstones-4 referent sequence: ${referents.join(" -> ")}`).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 6b. Each capstone must synthesize its *required whole-level scenario* —
+// the real spec-review fix (B1/B2): wrong scenarios (a shopping remix, a
+// home/weather remix, a finding-things-at-home remix, a café topic change
+// drawing only on Modules 9-11) must not satisfy these checks. Coverage is
+// asserted on stable semantic metadata (family ids, referents, slot values,
+// interrogative mood, discourse roles) — never on localized prose — so the
+// checks cannot be satisfied by superficially plausible but wrong content.
+// ---------------------------------------------------------------------------
+
+describe("A1 modules 9–12 · capstone required scenario coverage", () => {
+  const idsFor = (lessonId: string, use: "model" | "transfer") =>
+    allVariants.filter((v) => v.id.startsWith(`${lessonId}-${use === "model" ? "m" : "t"}`));
+  const familiesOf = (variants: readonly SentenceVariant[]) =>
+    new Set(variants.map((v) => v.sentenceFamilyId));
+
+  const COP = "a1-family-topic-copular";
+  const OBJ = "a1-family-object-action";
+  const NOM = "a1-family-nominative-action";
+  const LOCF = "a1-family-location-action";
+  const DIR = "a1-family-direction-action";
+  const TRANS = "a1-family-transport-action";
+  const ROUTE = "a1-family-route-action";
+  const SCHED = "a1-family-schedule-action";
+  const ADV = "a1-family-adverbial-time-action";
+  const PREF = "a1-family-preference";
+  const QUANT = "a1-family-quantified-action";
+  const REQ = "a1-family-request";
+  const DESC = "a1-family-description";
+  const SELF = "a1-referent-self";
+  const THING = "a1-referent-thing";
+  const LEARNER = "a1-role-learner";
+
+  it("capstones-1 synthesizes self-introduction plus a reciprocal question", () => {
+    const models = idsFor("capstones-1", "model");
+    const transfers = idsFor("capstones-1", "transfer");
+    const all = [...models, ...transfers];
+    const families = familiesOf(models);
+    // Self-introduction: identity (copular) and at least one further
+    // predicated fact about the learner (object/nominative-action).
+    expect(families.has(COP), "capstones-1 uses topic-copular (identity)").toBe(true);
+    expect(families.has(OBJ) || families.has(NOM), "capstones-1 predicates a fact about self").toBe(true);
+    const selfModels = models.filter((v) => v.discourse.subjectReferentId === SELF);
+    expect(selfModels.length, "capstones-1 self-referent models").toBeGreaterThanOrEqual(4);
+    // Reciprocal question: someone other than the learner asks the learner an
+    // interrogative *about the learner themself* (self-referent), the exact
+    // pattern a real self-introduction exchange requires and B2 found absent.
+    const reciprocal = all.filter(
+      (v) =>
+        v.form.interrogative === true &&
+        v.discourse.subjectReferentId === SELF &&
+        v.discourse.addresseeRoleId === LEARNER &&
+        v.discourse.speakerRoleId !== LEARNER,
+    );
+    expect(reciprocal.length, "capstones-1 reciprocal questions").toBeGreaterThanOrEqual(1);
+  });
+
+  it("capstones-2 synthesizes routine + time + person + place + preference + purchase/request", () => {
+    const models = idsFor("capstones-2", "model");
+    const transfers = idsFor("capstones-2", "transfer");
+    const all = [...models, ...transfers];
+    const families = familiesOf(all);
+    expect(families.has(SCHED) || families.has(ADV), "capstones-2 uses a routine/time family").toBe(true);
+    expect(families.has(LOCF), "capstones-2 uses a place family").toBe(true);
+    expect(families.has(PREF), "capstones-2 uses a preference family").toBe(true);
+    expect(families.has(REQ) || families.has(QUANT), "capstones-2 uses a purchase/request family").toBe(true);
+    const namedPersonModels = models.filter((v) =>
+      ["a1-referent-yuki", "a1-referent-ken", "a1-referent-mina"].includes(v.discourse.subjectReferentId ?? ""),
+    );
+    expect(namedPersonModels.length, "capstones-2 named-person subjects").toBeGreaterThanOrEqual(1);
+  });
+
+  it("capstones-3 synthesizes movement + transport + a route question + an immediate need", () => {
+    const models = idsFor("capstones-3", "model");
+    const transfers = idsFor("capstones-3", "transfer");
+    const all = [...models, ...transfers];
+    const families = familiesOf(all);
+    expect(families.has(LOCF) || families.has(DIR), "capstones-3 uses a movement family").toBe(true);
+    expect(families.has(TRANS), "capstones-3 uses the transport family").toBe(true);
+    expect(families.has(ROUTE), "capstones-3 uses the route family").toBe(true);
+    expect(families.has(PREF), "capstones-3 uses preference for an immediate need").toBe(true);
+    // Route/location question: a COP interrogative about a THING (a place),
+    // asking どこ — "Where is X?" — the exact pattern B2 found absent.
+    const routeQuestions = all.filter(
+      (v) =>
+        v.sentenceFamilyId === COP &&
+        v.form.interrogative === true &&
+        v.discourse.subjectReferentId === THING &&
+        Object.values(v.slotValues).includes("a1-value-q-doko"),
+    );
+    expect(routeQuestions.length, "capstones-3 route/location questions").toBeGreaterThanOrEqual(1);
+    // The immediate need is a want-sense preference variant (…がほしいです).
+    const wantModels = all.filter((v) => v.sentenceFamilyId === PREF && Object.values(v.slotValues).includes("a1-value-want"));
+    expect(wantModels.length, "capstones-3 immediate-need (want) variants").toBeGreaterThanOrEqual(1);
+  });
+
+  it("capstones-4 synthesizes identity + action + description + a clarification question", () => {
+    const models = idsFor("capstones-4", "model");
+    const transfers = idsFor("capstones-4", "transfer");
+    const all = [...models, ...transfers];
+    const families = familiesOf(all);
+    expect(families.has(COP), "capstones-4 uses topic-copular (identity)").toBe(true);
+    expect(families.has(OBJ), "capstones-4 uses object-action (an action)").toBe(true);
+    expect(families.has(DESC), "capstones-4 uses description").toBe(true);
+    // Clarification question: a COP interrogative about a THING, asking なん —
+    // "What is this/that?" — the exact pattern B2 found absent.
+    const clarification = all.filter(
+      (v) =>
+        v.sentenceFamilyId === COP &&
+        v.form.interrogative === true &&
+        v.discourse.subjectReferentId === THING &&
+        Object.values(v.slotValues).includes("a1-value-q-nan"),
+    );
+    expect(clarification.length, "capstones-4 clarification questions").toBeGreaterThanOrEqual(1);
   });
 });
 

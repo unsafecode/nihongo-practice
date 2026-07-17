@@ -235,6 +235,156 @@ describe("validateA1 – content ordering & closure", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Capstone required-scenario coverage (Phase 2 Task 4 spec-review fix)
+// ---------------------------------------------------------------------------
+
+describe("validateA1 – capstone required-scenario coverage", () => {
+  it("baseline: every capstone exercises its required scenario, and the topic changes exactly once", () => {
+    const result = validateA1();
+    expect(result.errors.filter((e) => e.code === "capstone-scenario-incomplete")).toEqual([]);
+    expect(result.errors.filter((e) => e.code === "capstone-topic-change-count")).toEqual([]);
+  });
+
+  it("capstone-scenario-incomplete: capstones-1 loses its identity (topic-copular) coverage", () => {
+    const semantic = semanticClone();
+    for (const variant of semantic.sentenceVariants) {
+      if (variant.id.startsWith("capstones-1-") && variant.sentenceFamilyId === "a1-family-topic-copular") {
+        (variant as { sentenceFamilyId: string }).sentenceFamilyId = "a1-family-object-action";
+      }
+    }
+    const result = validateA1({ semanticCatalogs: semantic });
+    expect(codesOf(result)).toContain("capstone-scenario-incomplete");
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ code: "capstone-scenario-incomplete", id: "capstones-1", dimension: "identity" }),
+    );
+  });
+
+  it("capstone-scenario-incomplete: capstones-1 loses its reciprocal question", () => {
+    const semantic = semanticClone();
+    for (const variant of semantic.sentenceVariants) {
+      if (variant.id.startsWith("capstones-1-") && variant.form.interrogative) {
+        (variant.discourse as { speakerRoleId: string }).speakerRoleId = "a1-role-learner";
+      }
+    }
+    const result = validateA1({ semanticCatalogs: semantic });
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: "capstone-scenario-incomplete",
+        id: "capstones-1",
+        dimension: "reciprocal-question",
+      }),
+    );
+  });
+
+  it("capstone-scenario-incomplete: capstones-2 loses its place (location-action) coverage", () => {
+    const semantic = semanticClone();
+    for (const variant of semantic.sentenceVariants) {
+      if (variant.id.startsWith("capstones-2-") && variant.sentenceFamilyId === "a1-family-location-action") {
+        (variant as { sentenceFamilyId: string }).sentenceFamilyId = "a1-family-schedule-action";
+      }
+    }
+    const result = validateA1({ semanticCatalogs: semantic });
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ code: "capstone-scenario-incomplete", id: "capstones-2", dimension: "place" }),
+    );
+  });
+
+  it("capstone-scenario-incomplete: capstones-3 loses its route question", () => {
+    const semantic = semanticClone();
+    for (const variant of semantic.sentenceVariants) {
+      if (
+        variant.id.startsWith("capstones-3-") &&
+        variant.sentenceFamilyId === "a1-family-topic-copular" &&
+        variant.form.interrogative &&
+        Object.values(variant.slotValues).includes("a1-value-q-doko")
+      ) {
+        (variant.form as { interrogative: boolean }).interrogative = false;
+      }
+    }
+    const result = validateA1({ semanticCatalogs: semantic });
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: "capstone-scenario-incomplete",
+        id: "capstones-3",
+        dimension: "route-question",
+      }),
+    );
+  });
+
+  it("capstone-scenario-incomplete: capstones-3 loses its immediate need (want) coverage", () => {
+    const semantic = semanticClone();
+    for (const variant of semantic.sentenceVariants) {
+      if (variant.id.startsWith("capstones-3-") && variant.sentenceFamilyId === "a1-family-preference") {
+        for (const key of Object.keys(variant.slotValues)) {
+          if ((variant.slotValues as Record<string, string>)[key] === "a1-value-want") {
+            (variant.slotValues as Record<string, string>)[key] = "a1-value-like";
+          }
+        }
+      }
+    }
+    const result = validateA1({ semanticCatalogs: semantic });
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ code: "capstone-scenario-incomplete", id: "capstones-3", dimension: "want-need" }),
+    );
+  });
+
+  it("capstone-scenario-incomplete: capstones-4 loses its clarification question", () => {
+    const semantic = semanticClone();
+    for (const variant of semantic.sentenceVariants) {
+      if (
+        variant.id.startsWith("capstones-4-") &&
+        variant.sentenceFamilyId === "a1-family-topic-copular" &&
+        variant.form.interrogative &&
+        Object.values(variant.slotValues).includes("a1-value-q-nan")
+      ) {
+        (variant.form as { interrogative: boolean }).interrogative = false;
+      }
+    }
+    const result = validateA1({ semanticCatalogs: semantic });
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: "capstone-scenario-incomplete",
+        id: "capstones-4",
+        dimension: "clarification-question",
+      }),
+    );
+  });
+
+  it("capstone-topic-change-count: capstones-4 gains a second subject-referent transition", () => {
+    const semantic = semanticClone();
+    const m3 = semantic.sentenceVariants.find((v) => v.id === "capstones-4-m3");
+    expect(m3, "capstones-4-m3 must exist").toBeDefined();
+    const currentReferent = m3!.discourse.subjectReferentId;
+    const otherReferent = currentReferent === "a1-referent-self" ? "a1-referent-thing" : "a1-referent-self";
+    (m3!.discourse as { subjectReferentId: string }).subjectReferentId = otherReferent;
+    const result = validateA1({ semanticCatalogs: semantic });
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ code: "capstone-topic-change-count", id: "capstones-4" }),
+    );
+  });
+
+  it("cando-no-transfer-evidence (capstone-scoped): a module's own transfer no longer counts as capstone evidence", () => {
+    // `a1-can-do-existence` is deliberately NOT evidenced by the existence
+    // family alone: none of the four required capstone scenarios need an
+    // "there is X" statement, so evidence instead comes from the preference
+    // family's want-sense transfer (capstones-3's immediate need). Strip that
+    // tag and confirm the *existence* family's own module-internal transfers
+    // (existence-needs-*, never a capstone lesson) do NOT resurrect evidence
+    // under the capstone-scoped Can-do evidence rule — proving the B4 fix.
+    const semantic = semanticClone();
+    const preference = semantic.sentenceFamilies.find((f) => f.id === "a1-family-preference");
+    expect(preference, "a1-family-preference must exist").toBeDefined();
+    (preference as unknown as { canDoIds: string[] }).canDoIds = preference!.canDoIds.filter(
+      (id) => id !== "a1-can-do-existence",
+    );
+    const result = validateA1({ semanticCatalogs: semantic });
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ code: "cando-no-transfer-evidence", id: "a1-can-do-existence" }),
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Recurrence
 // ---------------------------------------------------------------------------
 

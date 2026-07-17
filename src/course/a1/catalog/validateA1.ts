@@ -414,6 +414,166 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
     }
   }
 
+  // --- 5b. Capstone required-scenario coverage (Phase 2 Task 4 spec fix) ---
+  // No-new-content alone cannot tell a whole-level synthesis apart from a
+  // wrong-but-plausible remix of Modules 9-11 (the B1/B2 findings). Each
+  // capstone must additionally exercise its required family/referent/
+  // interrogative combination. Coverage is asserted on stable semantic
+  // metadata — family ids, referents, slot values, interrogative mood,
+  // discourse roles — never on localized prose, so it cannot be satisfied by
+  // superficially plausible but wrong content.
+  const COP_FAMILY = "a1-family-topic-copular";
+  const OBJ_FAMILY = "a1-family-object-action";
+  const NOM_FAMILY = "a1-family-nominative-action";
+  const LOCF_FAMILY = "a1-family-location-action";
+  const DIR_FAMILY = "a1-family-direction-action";
+  const TRANS_FAMILY = "a1-family-transport-action";
+  const ROUTE_FAMILY = "a1-family-route-action";
+  const SCHED_FAMILY = "a1-family-schedule-action";
+  const ADV_FAMILY = "a1-family-adverbial-time-action";
+  const PREF_FAMILY = "a1-family-preference";
+  const QUANT_FAMILY = "a1-family-quantified-action";
+  const REQ_FAMILY = "a1-family-request";
+  const DESC_FAMILY = "a1-family-description";
+  const SELF_REFERENT = "a1-referent-self";
+  const THING_REFERENT = "a1-referent-thing";
+  const LEARNER_ROLE = "a1-role-learner";
+  const NAMED_PERSON_REFERENTS = new Set(["a1-referent-yuki", "a1-referent-ken", "a1-referent-mina"]);
+
+  const capstoneVariantsByLesson = new Map<string, SentenceVariant[]>(
+    A1_CAPSTONE_LESSON_IDS.map((id) => [id, []]),
+  );
+  for (const variant of capstoneVariants) {
+    const owner = A1_CAPSTONE_LESSON_IDS.find((id) => variant.id.startsWith(`${id}-`));
+    if (owner) capstoneVariantsByLesson.get(owner)!.push(variant);
+  }
+  const familiesOf = (variants: readonly SentenceVariant[]): Set<string> =>
+    new Set(variants.map((v) => v.sentenceFamilyId));
+  const modelsOf = (variants: readonly SentenceVariant[]): SentenceVariant[] =>
+    variants.filter((v) => /-m\d+$/.test(v.id));
+
+  const scenarioCoverageChecks: Readonly<Record<string, (all: readonly SentenceVariant[]) => void>> = {
+    "capstones-1": (all) => {
+      const models = modelsOf(all);
+      const modelFamilies = familiesOf(models);
+      if (!modelFamilies.has(COP_FAMILY)) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-1", dimension: "identity" });
+      }
+      if (!modelFamilies.has(OBJ_FAMILY) && !modelFamilies.has(NOM_FAMILY)) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-1", dimension: "self-predicate" });
+      }
+      const selfModels = models.filter((v) => v.discourse.subjectReferentId === SELF_REFERENT);
+      if (selfModels.length < 4) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-1", dimension: "self-referent-count", actual: selfModels.length, expected: 4 });
+      }
+      const reciprocal = all.filter(
+        (v) =>
+          v.form.interrogative === true &&
+          v.discourse.subjectReferentId === SELF_REFERENT &&
+          v.discourse.addresseeRoleId === LEARNER_ROLE &&
+          v.discourse.speakerRoleId !== LEARNER_ROLE,
+      );
+      if (reciprocal.length < 1) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-1", dimension: "reciprocal-question" });
+      }
+    },
+    "capstones-2": (all) => {
+      const models = modelsOf(all);
+      const families = familiesOf(all);
+      if (!families.has(SCHED_FAMILY) && !families.has(ADV_FAMILY)) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-2", dimension: "routine-time" });
+      }
+      if (!families.has(LOCF_FAMILY)) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-2", dimension: "place" });
+      }
+      if (!families.has(PREF_FAMILY)) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-2", dimension: "preference" });
+      }
+      if (!families.has(REQ_FAMILY) && !families.has(QUANT_FAMILY)) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-2", dimension: "purchase-request" });
+      }
+      const namedPersonModels = models.filter((v) => NAMED_PERSON_REFERENTS.has(v.discourse.subjectReferentId ?? ""));
+      if (namedPersonModels.length < 1) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-2", dimension: "person" });
+      }
+    },
+    "capstones-3": (all) => {
+      const families = familiesOf(all);
+      if (!families.has(LOCF_FAMILY) && !families.has(DIR_FAMILY)) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-3", dimension: "movement" });
+      }
+      if (!families.has(TRANS_FAMILY)) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-3", dimension: "transport" });
+      }
+      if (!families.has(ROUTE_FAMILY)) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-3", dimension: "route" });
+      }
+      if (!families.has(PREF_FAMILY)) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-3", dimension: "immediate-need" });
+      }
+      const routeQuestions = all.filter(
+        (v) =>
+          v.sentenceFamilyId === COP_FAMILY &&
+          v.form.interrogative === true &&
+          v.discourse.subjectReferentId === THING_REFERENT &&
+          Object.values(v.slotValues).includes("a1-value-q-doko"),
+      );
+      if (routeQuestions.length < 1) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-3", dimension: "route-question" });
+      }
+      const wantVariants = all.filter(
+        (v) => v.sentenceFamilyId === PREF_FAMILY && Object.values(v.slotValues).includes("a1-value-want"),
+      );
+      if (wantVariants.length < 1) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-3", dimension: "want-need" });
+      }
+    },
+    "capstones-4": (all) => {
+      const families = familiesOf(all);
+      if (!families.has(COP_FAMILY)) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-4", dimension: "identity" });
+      }
+      if (!families.has(OBJ_FAMILY)) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-4", dimension: "action" });
+      }
+      if (!families.has(DESC_FAMILY)) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-4", dimension: "description" });
+      }
+      const clarification = all.filter(
+        (v) =>
+          v.sentenceFamilyId === COP_FAMILY &&
+          v.form.interrogative === true &&
+          v.discourse.subjectReferentId === THING_REFERENT &&
+          Object.values(v.slotValues).includes("a1-value-q-nan"),
+      );
+      if (clarification.length < 1) {
+        push({ code: "capstone-scenario-incomplete", id: "capstones-4", dimension: "clarification-question" });
+      }
+    },
+  };
+  for (const lessonId of A1_CAPSTONE_LESSON_IDS) {
+    scenarioCoverageChecks[lessonId]?.(capstoneVariantsByLesson.get(lessonId) ?? []);
+  }
+
+  // capstones-4 must change its subject-referent topic exactly once across
+  // its eight models — a genuine topic change (a single transition in *what
+  // is being talked about*), never a vacuous "some Japanese changed" proxy.
+  {
+    const ids = Array.from({ length: 8 }, (_, i) => `capstones-4-m${i + 1}`);
+    const referents = ids.map((id) => variantById.get(id)?.discourse.subjectReferentId ?? null);
+    if (referents.some((r) => r === null)) {
+      push({ code: "capstone-topic-change-count", id: "capstones-4", dimension: "missing-subject-referent" });
+    } else {
+      let transitions = 0;
+      for (let i = 1; i < referents.length; i += 1) {
+        if (referents[i] !== referents[i - 1]) transitions += 1;
+      }
+      if (transitions !== 1) {
+        push({ code: "capstone-topic-change-count", id: "capstones-4", actual: transitions, expected: 1 });
+      }
+    }
+  }
+
   // --- 6. Foundation gate: every foundation error blocks release -----------
   // The wrapped oracle is authoritative. Recurrence findings are translated to
   // the release-scoped `recurrence-incomplete` code (below); every *other*
@@ -467,11 +627,21 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
   if (!sampledCanDos.has("a1-can-do-sounds")) {
     push({ code: "cando-not-sampled", id: "a1-can-do-sounds", referenceId: "sounds" });
   }
-  // Transfer evidence: every non-phonetic Can-do needs a transfer variant whose
-  // family lists it.
+  // Transfer evidence: every non-phonetic Can-do needs a transfer variant,
+  // from one of the four capstone scenario lessons, whose family lists it.
+  // Evidence is scoped to the capstones (not every module's own internal
+  // transfers) because that is where the checkpoint actually draws its
+  // evidence from — see `checkpoint.ts`'s "never inferred from lesson
+  // visits" contract. A module's own transfers no longer count.
+  const capstoneTransferVariantIds = new Set<string>();
+  for (const lesson of full.lessons) {
+    if (!A1_CAPSTONE_LESSON_IDS.includes(lesson.id)) continue;
+    for (const id of lesson.practice.roundTwo.candidateVariantIds) capstoneTransferVariantIds.add(id);
+  }
   const canDoTransferEvidence = new Set<string>();
   for (const variant of semantic.sentenceVariants) {
     if (variant.pedagogicalUse !== "transfer") continue;
+    if (!capstoneTransferVariantIds.has(variant.id)) continue;
     const family = familyById.get(variant.sentenceFamilyId);
     if (!family) continue;
     for (const canDoId of family.canDoIds) canDoTransferEvidence.add(canDoId);

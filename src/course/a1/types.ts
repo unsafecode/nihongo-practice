@@ -270,6 +270,9 @@ export const A1_RELEASE_ERROR_CODES = [
   // level-scope introduction order / content closure
   "unknown-content",
   "capstone-introduces-new",
+  // capstone required-scenario synthesis (Phase 2 Task 4 spec-review fix)
+  "capstone-scenario-incomplete",
+  "capstone-topic-change-count",
   // recurrence
   "recurrence-incomplete",
   // foundation gate (wrapped oracle) — blocking, per Phase 2 Task 4
