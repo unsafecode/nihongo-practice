@@ -61,12 +61,9 @@ interface ItemSeed {
   readonly hint: Bilingual;
 }
 
-const HINTS: Record<string, Bilingual> = {};
-
 function seed(items: readonly ItemSeed[]): readonly A1PhoneticItem[] {
-  return items.map((s) => {
-    HINTS[`${s.id}-hint`] = s.hint;
-    return Object.freeze({
+  return items.map((s) =>
+    Object.freeze({
       id: s.id,
       glyph: s.glyph,
       kana: s.kana,
@@ -76,8 +73,19 @@ function seed(items: readonly ItemSeed[]): readonly A1PhoneticItem[] {
       exerciseRefId: `${s.id}-ex`,
       exerciseKind: s.kind,
       hintCopyId: `${s.id}-hint`,
-    });
-  });
+    }),
+  );
+}
+
+/** Assembles the `hintCopyId -> Bilingual` map from item seeds — the explicit
+ * counterpart to `seed`'s id/glyph/kana assembly, kept as a separate pure step
+ * so `seed` never reaches out to module-level state as a side effect. */
+function collectHints(items: readonly ItemSeed[]): Record<string, Bilingual> {
+  const hints: Record<string, Bilingual> = {};
+  for (const s of items) {
+    hints[`${s.id}-hint`] = s.hint;
+  }
+  return hints;
 }
 
 const L = (en: string, it: string): Bilingual => ({ en, it });
@@ -86,7 +94,7 @@ const L = (en: string, it: string): Bilingual => ({ en, it });
 // sounds-1 — core mora & the five vowels
 // ---------------------------------------------------------------------------
 
-const sounds1Items = seed([
+const sounds1Seeds: readonly ItemSeed[] = [
   { id: "snd1-a", glyph: "あ", kana: "あ", roman: "a", contrastWithId: "snd1-i", contrastFeature: "vowel-quality", kind: "minimal-pair-listening", hint: L("The open vowel /a/.", "La vocale aperta /a/.") },
   { id: "snd1-i", glyph: "い", kana: "い", roman: "i", contrastWithId: "snd1-a", contrastFeature: "vowel-quality", kind: "minimal-pair-listening", hint: L("The front vowel /i/.", "La vocale anteriore /i/.") },
   { id: "snd1-u", glyph: "う", kana: "う", roman: "u", contrastWithId: "snd1-o", contrastFeature: "vowel-quality", kind: "minimal-pair-listening", hint: L("The unrounded /u/.", "La /u/ non arrotondata.") },
@@ -97,13 +105,14 @@ const sounds1Items = seed([
   { id: "snd1-sa", glyph: "さ", kana: "さ", roman: "sa", contrastWithId: "snd1-ka", contrastFeature: "consonant-place", kind: "reading-choice", hint: L("s-row: consonant + /a/.", "Riga s: consonante + /a/.") },
   { id: "snd1-su", glyph: "す", kana: "す", roman: "su", contrastWithId: "snd1-u", contrastFeature: "consonant-onset", kind: "reading-choice", hint: L("s-row: consonant + /u/.", "Riga s: consonante + /u/.") },
   { id: "snd1-se", glyph: "せ", kana: "せ", roman: "se", contrastWithId: "snd1-e", contrastFeature: "consonant-onset", kind: "reading-choice", hint: L("s-row: consonant + /e/.", "Riga s: consonante + /e/.") },
-]);
+];
+const sounds1Items = seed(sounds1Seeds);
 
 // ---------------------------------------------------------------------------
 // sounds-2 — gojūon, dakuten & yōon
 // ---------------------------------------------------------------------------
 
-const sounds2Items = seed([
+const sounds2Seeds: readonly ItemSeed[] = [
   { id: "snd2-ka", glyph: "か", kana: "か", roman: "ka", contrastWithId: "snd2-ga", contrastFeature: "voicing", kind: "minimal-pair-listening", hint: L("Voiceless ka.", "Ka sorda.") },
   { id: "snd2-ga", glyph: "が", kana: "が", roman: "ga", contrastWithId: "snd2-ka", contrastFeature: "voicing", kind: "minimal-pair-listening", hint: L("Dakuten voices ka to ga.", "Il dakuten sonorizza ka in ga.") },
   { id: "snd2-ki", glyph: "き", kana: "き", roman: "ki", contrastWithId: "snd2-gi", contrastFeature: "voicing", kind: "minimal-pair-listening", hint: L("Voiceless ki.", "Ki sorda.") },
@@ -114,13 +123,14 @@ const sounds2Items = seed([
   { id: "snd2-kyu", glyph: "きゅ", kana: "きゅ", roman: "kyu", contrastWithId: "snd2-kya", contrastFeature: "glide-vowel", kind: "reading-choice", hint: L("Yōon ki + small yu makes kyu.", "Yōon ki + yu piccola formano kyu.") },
   { id: "snd2-kyo", glyph: "きょ", kana: "きょ", roman: "kyo", contrastWithId: "snd2-kya", contrastFeature: "glide-vowel", kind: "reading-choice", hint: L("Yōon ki + small yo makes kyo.", "Yōon ki + yo piccola formano kyo.") },
   { id: "snd2-sha", glyph: "しゃ", kana: "しゃ", roman: "sha", contrastWithId: "snd2-sa", contrastFeature: "palatalization", kind: "reading-choice", hint: L("Yōon shi + small ya makes sha.", "Yōon shi + ya piccola formano sha.") },
-]);
+];
+const sounds2Items = seed(sounds2Seeds);
 
 // ---------------------------------------------------------------------------
 // sounds-3 — small っ (gemination) & long vowels
 // ---------------------------------------------------------------------------
 
-const sounds3Items = seed([
+const sounds3Seeds: readonly ItemSeed[] = [
   { id: "snd3-kite", glyph: "きて", kana: "きて", roman: "kite", contrastWithId: "snd3-kitte", contrastFeature: "gemination", kind: "minimal-pair-listening", hint: L("No sokuon: ki-te.", "Senza sokuon: ki-te.") },
   { id: "snd3-kitte", glyph: "きって", kana: "きって", roman: "kitte", contrastWithId: "snd3-kite", contrastFeature: "gemination", kind: "minimal-pair-listening", hint: L("The small tsu (sokuon) doubles the stop: kit-te.", "Il piccolo tsu (sokuon) raddoppia l'occlusiva: kit-te.") },
   { id: "snd3-obasan", glyph: "おばさん", kana: "おばさん", roman: "obasan", contrastWithId: "snd3-obaasan", contrastFeature: "vowel-length", kind: "minimal-pair-listening", hint: L("Short a: obasan (aunt).", "a breve: obasan (zia).") },
@@ -131,13 +141,14 @@ const sounds3Items = seed([
   { id: "snd3-ee", glyph: "ええ", kana: "ええ", roman: "ee", contrastWithId: "snd3-e", contrastFeature: "vowel-length", kind: "minimal-pair-listening", hint: L("Long ee (casual yes).", "ee lunga (sì informale).") },
   { id: "snd3-to", glyph: "と", kana: "と", roman: "to", contrastWithId: "snd3-tou", contrastFeature: "vowel-length", kind: "mora-tiling", hint: L("Single mora to.", "Una sola mora to.") },
   { id: "snd3-tou", glyph: "とう", kana: "とう", roman: "tou", contrastWithId: "snd3-to", contrastFeature: "vowel-length", kind: "mora-tiling", hint: L("Long o written as ou: tou.", "o lunga scritta ou: tou.") },
-]);
+];
+const sounds3Items = seed(sounds3Seeds);
 
 // ---------------------------------------------------------------------------
 // sounds-4 — high-frequency katakana (consolidates retired sounds-5 breadth)
 // ---------------------------------------------------------------------------
 
-const sounds4Items = seed([
+const sounds4Seeds: readonly ItemSeed[] = [
   { id: "snd4-koohii", glyph: "コーヒー", kana: "コーヒー", roman: "koohii", contrastWithId: "snd4-terebi", contrastFeature: "chouonpu-length", kind: "mora-tiling", hint: L("The chōonpu bar marks long vowels: koohii.", "Il chōonpu (barra) segna le vocali lunghe: koohii.") },
   { id: "snd4-terebi", glyph: "テレビ", kana: "テレビ", roman: "terebi", contrastWithId: "snd4-koohii", contrastFeature: "katakana-word", kind: "reading-choice", hint: L("Loanword: terebi (TV).", "Prestito: terebi (TV).") },
   { id: "snd4-pan", glyph: "パン", kana: "パン", roman: "pan", contrastWithId: "snd4-raamen", contrastFeature: "handakuten", kind: "reading-choice", hint: L("Handakuten pa-row: pan (bread).", "Riga pa con handakuten: pan (pane).") },
@@ -148,7 +159,17 @@ const sounds4Items = seed([
   { id: "snd4-amerika", glyph: "アメリカ", kana: "アメリカ", roman: "amerika", contrastWithId: "snd4-itaria", contrastFeature: "katakana-word", kind: "reading-choice", hint: L("Country name: amerika.", "Nome di paese: amerika.") },
   { id: "snd4-itaria", glyph: "イタリア", kana: "イタリア", roman: "itaria", contrastWithId: "snd4-amerika", contrastFeature: "katakana-word", kind: "reading-choice", hint: L("Country name: itaria.", "Nome di paese: itaria.") },
   { id: "snd4-kurasumeeto", glyph: "クラスメート", kana: "クラスメート", roman: "kurasumeeto", contrastWithId: "snd4-suupaa", contrastFeature: "chouonpu-length", kind: "mora-tiling", hint: L("Chōonpu in the meeto part: kurasumeeto.", "Chōonpu nella parte meeto: kurasumeeto.") },
-]);
+];
+const sounds4Items = seed(sounds4Seeds);
+
+// Hints are assembled explicitly from the same seed arrays used to build the
+// items above — an ordinary derived value, not a side effect of `seed`.
+const HINTS: Record<string, Bilingual> = {
+  ...collectHints(sounds1Seeds),
+  ...collectHints(sounds2Seeds),
+  ...collectHints(sounds3Seeds),
+  ...collectHints(sounds4Seeds),
+};
 
 export const module1PhoneticItems: readonly A1PhoneticItem[] = Object.freeze([
   ...sounds1Items,

@@ -29,6 +29,7 @@ import {
   a1LearningTargetSenses,
   assembleA1FoundationCatalogs,
   a1StructureKey,
+  a1TranslationCopyId,
 } from "./shared";
 import { module2Lessons, module2Recipe, module2VerbUseRecords } from "./module02Introductions";
 import { module3Lessons, module3Recipe } from "./module03Questions";
@@ -451,6 +452,46 @@ describe("A1 modules 2–4 · lesson metrics", () => {
 });
 
 // ---------------------------------------------------------------------------
+// 2.5. Explicit-subject prompts must not be ambiguous across distinct
+// Japanese referents (e.g. あの人 "that person over there" vs その人 "that
+// person" must never share one undifferentiated English/Italian gloss).
+//
+// Scoped to pairs where BOTH rows realize their subject explicitly (i.e. the
+// referent is actually pronounced in the Japanese), so intentional
+// topic-omission structure pairs — where a model line drops the topic and a
+// paired transfer spells it out, both naming the very same person — are never
+// mistaken for referent ambiguity.
+// ---------------------------------------------------------------------------
+
+describe("A1 modules 2–4 · demonstrative/referent prompts are unambiguous", () => {
+  it.each(instructionalBuilt.map((b) => [b.recipe.id, b] as const))(
+    "%s never maps one explicit-subject gloss to two different Japanese targets",
+    (lessonId, built) => {
+      for (const locale of ["en", "it"] as const) {
+        const copy = locale === "en" ? built.en : built.it;
+        const glossToTargets = new Map<string, Map<string, string>>();
+        for (const variant of built.variants) {
+          if (variant.discourse.subjectRealization !== "explicit") continue;
+          const gloss = copy[a1TranslationCopyId(variant.id)];
+          expect(gloss, `${variant.id} ${locale} gloss`).toBeTruthy();
+          const jp = realize(variant).visibleTargetKey;
+          const targets = glossToTargets.get(gloss) ?? new Map<string, string>();
+          targets.set(jp, variant.id);
+          glossToTargets.set(gloss, targets);
+        }
+        for (const [gloss, targets] of glossToTargets) {
+          expect(
+            targets.size,
+            `${lessonId} (${locale}) gloss "${gloss}" maps to distinct Japanese targets: ` +
+              `${[...targets.entries()].map(([jp, id]) => `${id}=${jp}`).join(", ")}`,
+          ).toBe(1);
+        }
+      }
+    },
+  );
+});
+
+// ---------------------------------------------------------------------------
 // 3. Productive verbs: ≥2 structurally-distinct intro variants each.
 // ---------------------------------------------------------------------------
 
@@ -466,8 +507,8 @@ describe("A1 productive verbs · structural intro diversity", () => {
       "a1-sense-ask", "a1-sense-buy", "a1-sense-see", "a1-sense-listen",
       "a1-sense-write",
     ]) {
-      // Only assert those that are actually declared as productive records.
-      if (senseIds.has(s)) expect(senseIds.has(s)).toBe(true);
+      // Every listed productive sense must actually be declared.
+      expect(senseIds.has(s), s).toBe(true);
     }
     expect(records.length).toBeGreaterThanOrEqual(11);
   });
@@ -521,7 +562,7 @@ describe("A1 module 1 · phonetic contract", () => {
           expect(field.length).toBeGreaterThan(0);
         }
         expect(["minimal-pair-listening", "mora-tiling", "reading-choice"]).toContain(item.exerciseKind);
-        expect(/^[a-z0-9''-]+$/.test(item.roman)).toBe(true);
+        expect(/^[a-z0-9'-]+$/.test(item.roman)).toBe(true);
       }
     }
   });
