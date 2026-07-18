@@ -1,33 +1,25 @@
-import { useEffect, useRef, type ReactElement, type ReactNode } from "react";
-import { useLocale } from "../../i18n/LocaleContext";
-import { useScript, type Script } from "../../settings/ScriptContext";
-import { useSpeech } from "../../hooks/useSpeech";
-import { getCourseCopy } from "../i18n/catalog";
+import type { ReactElement, ReactNode } from "react";
+import type { Script } from "../../settings/ScriptContext";
 import type { CourseCopy } from "../i18n/types";
-import {
-  initialSpeechState,
-  type SpeechRecognitionState,
-} from "../speech/speechStateMachine";
+import type { SpeechRecognitionState } from "../speech/speechStateMachine";
 import type { ResolvedSpeechPrompt, SegmentMatch } from "../speech/types";
-import { useSpeechRecognition } from "../speech/SpeechRecognitionContext";
 import { JapaneseSegmentText } from "./JapaneseSegmentText";
 import { RomajiSequence } from "../../romaji/RomajiSequence";
 import type { AssembledToken } from "../../romaji/types";
-import {
-  getSpokenAttemptModel,
-  type SpokenAttemptModel,
-} from "./spokenAttemptModel";
+import type { SpokenAttemptModel } from "./spokenAttemptModel";
 
 /**
- * The optional in-lesson spoken attempt (Slice D plan Task 3; design spec §5.3,
- * §12.1-§12.3). Nested after the practice exercises inside the explore section —
- * never a new route anchor, never a lesson gate: every lesson stays complete
- * without speaking.
+ * The optional in-lesson spoken attempt's shared presentational view and pure
+ * handler wiring (Slice D plan Task 3; design spec §5.3, §12.1-§12.3), reused
+ * unmodified by the live {@link A1SpokenAttempt} container in
+ * `./A1SpokenAttempt.tsx`. Nested after the practice exercises inside the
+ * explore section — never a new route anchor, never a lesson gate: every
+ * lesson stays complete without speaking.
  *
  * What it does and does NOT do, by contract:
- *   - It reuses the existing {@link useSpeech} synthesis for honest model
- *     playback and the existing lesson-level {@link SpeechNotice} for degraded
- *     audio; it adds no second audio notice.
+ *   - It reuses the existing `useSpeech` synthesis for honest model playback
+ *     and the existing lesson-level {@link SpeechNotice} for degraded audio;
+ *     it adds no second audio notice.
  *   - Before the first microphone use it shows an explicit, localized privacy
  *     disclosure. The acknowledge control only records app-notice consent (held
  *     in provider session memory) — it never calls the recognizer. A separate
@@ -484,69 +476,5 @@ export function SpokenAttemptView({
         ) : null}
       </p>
     </div>
-  );
-}
-
-/**
- * The lesson-embedded container. It resolves the localized model, wires the
- * existing recognition context and synthesis, and renders the pure view. When
- * the model cannot resolve (a defensive branch the release catalog never hits),
- * it renders nothing so the rest of the lesson stays complete.
- */
-export function SpokenAttempt({
-  lessonId,
-}: {
-  readonly lessonId: string;
-}): ReactElement | null {
-  const { locale } = useLocale();
-  const { script } = useScript();
-  const speech = useSpeech();
-  const recognition = useSpeechRecognition();
-  const previousLessonId = useRef(lessonId);
-  const lessonChanged = previousLessonId.current !== lessonId;
-
-  useEffect(() => {
-    const mountedLessonId = lessonId;
-    if (previousLessonId.current !== lessonId) {
-      previousLessonId.current = lessonId;
-      // A lesson transition owns a fresh attempt state, but consent remains a
-      // session-level acknowledgement in the persistent provider.
-      recognition.reset();
-    }
-    return () => {
-      if (previousLessonId.current === mountedLessonId) recognition.abort();
-    };
-  }, [lessonId, recognition.abort, recognition.reset]);
-
-  const result = getSpokenAttemptModel(lessonId, locale);
-  if (!result.ok) return null;
-
-  const model = result.model;
-  const copy = getCourseCopy(locale).spokenAttempt;
-  const errorText = getCourseCopy(locale).lesson.contentFormattingError;
-  const idBase = `spoken-${lessonId}`;
-  const handlers = createSpokenAttemptHandlers(
-    recognition,
-    speech,
-    model,
-    `${idBase}-model`,
-  );
-
-  return (
-    <SpokenAttemptView
-      model={model}
-      copy={copy}
-      script={script}
-      // Hide the previous lesson's result during the render before the reset
-      // effect commits, avoiding a one-frame stale transcript/segment flash.
-      state={lessonChanged ? initialSpeechState : recognition.state}
-      supported={recognition.supported}
-      consentAcknowledged={recognition.consentAcknowledged}
-      synthesisSupported={speech.supported}
-      speakingKey={speech.speakingKey}
-      idBase={idBase}
-      errorText={errorText}
-      handlers={handlers}
-    />
   );
 }

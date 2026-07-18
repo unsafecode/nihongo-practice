@@ -17,19 +17,21 @@ import type {
   RecognitionOutcome,
   TranscriptEvaluator,
 } from "../speech/types";
-import { SpokenAttempt } from "./SpokenAttempt";
-import {
-  getSpokenAttemptModel,
-  type SpokenAttemptModel,
-} from "./spokenAttemptModel";
+import { getA1SpokenAttemptModel } from "./a1SpokenAttemptModel";
+import { A1SpokenAttempt } from "./A1SpokenAttempt";
+import type { SpokenAttemptModel } from "./spokenAttemptModel";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
 
 /**
- * Client-side regression coverage for the lesson lifecycle. This deliberately
- * keeps one provider mounted while only the lesson consumer rerenders, matching
- * the route transition that exposed the state leak.
+ * Client-side regression coverage for the lesson lifecycle, on the live A1
+ * container (Phase 2 Task 6 replaced the legacy `SpokenAttempt` container with
+ * `A1SpokenAttempt`; this suite was ported onto it so the regression it guards
+ * — a lesson-transition state leak — stays covered on the code path users
+ * actually hit). This deliberately keeps one provider mounted while only the
+ * lesson consumer rerenders, matching the route transition that exposed the
+ * state leak.
  */
 class LateOutcomeRecognizer implements SpeechRecognizer {
   readonly supported = true;
@@ -52,7 +54,7 @@ class LateOutcomeRecognizer implements SpeechRecognizer {
 }
 
 function modelFor(lessonId: string): SpokenAttemptModel {
-  const result = getSpokenAttemptModel(lessonId, "en");
+  const result = getA1SpokenAttemptModel(lessonId, "en");
   if (!result.ok) throw new Error(`no model for ${lessonId}`);
   return result.model;
 }
@@ -110,7 +112,7 @@ async function renderClientAttempt(
           createElement(
             ScriptProvider,
             null,
-            createElement(SpokenAttempt, { lessonId }),
+            createElement(A1SpokenAttempt, { lessonId }),
           ),
         ),
       ),
@@ -168,7 +170,7 @@ function expectIdleAttempt(
   expect(container.textContent).toContain(lessonB.targetJp);
 }
 
-describe("SpokenAttempt client lifecycle across lessons", () => {
+describe("A1SpokenAttempt client lifecycle across lessons", () => {
   it.each(["matched", "close", "retry"] as const)(
     "resets A's %s transcript and segment records before B renders",
     async (status) => {
@@ -283,7 +285,7 @@ describe("SpokenAttempt client lifecycle across lessons", () => {
               createElement(
                 ScriptProvider,
                 null,
-                createElement(SpokenAttempt, { lessonId: "sounds-1" }),
+                createElement(A1SpokenAttempt, { lessonId: "sounds-1" }),
               ),
             ),
           ),

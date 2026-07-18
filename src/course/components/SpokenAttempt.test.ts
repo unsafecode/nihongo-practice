@@ -12,10 +12,9 @@ import type { TranscriptEvaluation } from "../speech/types";
 import { en as enCopy } from "../i18n/en";
 import { it as itCopy } from "../i18n/it";
 import type { Script } from "../../settings/ScriptContext";
-import { getSpokenAttemptModel } from "./spokenAttemptModel";
+import { getA1SpokenAttemptModel } from "./a1SpokenAttemptModel";
 import type { SpokenAttemptModel } from "./spokenAttemptModel";
 import {
-  SpokenAttempt,
   SpokenAttemptView,
   createSpokenAttemptHandlers,
   type SpokenAttemptHandlers,
@@ -29,12 +28,65 @@ import { LessonPage } from "./LessonPage";
  * recognition state without a microphone; the async lifecycle itself is proven
  * by the pure controller/state-machine tests. Copy is truthful: it says only
  * whether the browser recognized the target, never a pronunciation claim.
+ *
+ * Model fixtures are resolved through the live `getA1SpokenAttemptModel`
+ * (Phase 2 Task 6's A1-native builder) rather than the removed legacy,
+ * catalog-bound builder — the shared `SpokenAttemptModel` shape this view
+ * renders is identical either way.
  */
 
 function modelFor(lessonId: string): SpokenAttemptModel {
-  const result = getSpokenAttemptModel(lessonId, "en");
+  const result = getA1SpokenAttemptModel(lessonId, "en");
   if (!result.ok) throw new Error(`no model for ${lessonId}`);
   return result.model;
+}
+
+/** A synthetic katakana-loanword model, hand-built so this view-level ruby
+ * rendering contract stays covered even though no live A1 lesson currently
+ * carries a phonetic item with a distinct hiragana reading (module01Sounds'
+ * `kana` always equals `glyph` there). */
+function katakanaModel(): SpokenAttemptModel {
+  const base = modelFor("introductions-1");
+  const token = {
+    id: "katakana-demo",
+    jp: "ミルク",
+    romaji: "miruku",
+    kind: "lexical" as const,
+    boundaryBefore: "attach" as const,
+    source: { domain: "test" as const, referenceId: "katakana-demo" },
+    reading: "みるく",
+  };
+  return {
+    ...base,
+    segments: [
+      {
+        id: token.id,
+        jp: token.jp,
+        romaji: token.romaji,
+        reading: token.reading,
+        kind: "word",
+        critical: false,
+        token,
+      },
+    ],
+    targetJp: token.jp,
+  };
+}
+
+/** A model with one segment flagged critical, hand-built so this view-level
+ * critical-word labelling contract stays covered even though the live A1
+ * builder does not yet author any per-segment `critical` concept (see
+ * `a1SpokenAttemptModel.ts`, `segmentsFromTokens`) — it always sets `critical:
+ * false`. Segment ids/content are otherwise identical to the base model so an
+ * evaluation built from the base model's `prompt` still matches by id. */
+function criticalModel(): SpokenAttemptModel {
+  const base = modelFor("introductions-1");
+  return {
+    ...base,
+    segments: base.segments.map((segment, index) =>
+      index === 0 ? { ...segment, critical: true } : segment,
+    ),
+  };
 }
 
 const model = modelFor("introductions-1");
@@ -124,7 +176,7 @@ describe("SpokenAttemptView — target, meaning, and a polite live region", () =
   it("shows the visible Japanese target and its localized meaning", () => {
     const html = renderView({ state: IDLE });
     expect(html).toContain('lang="ja"');
-    expect(html).toContain("watashi"); // derived romaji, shown alongside
+    expect(html).toContain("ken"); // derived romaji, shown alongside
     expect(html).toContain(model.meaning);
   });
 
@@ -144,20 +196,20 @@ describe("SpokenAttemptView — respects the script setting and ruby conventions
     const html = renderView({ state: IDLE, script: "hiragana" });
     // Japanese primary carries lang=ja; romaji is present as the secondary line.
     expect(html).toContain('lang="ja"');
-    expect(html).toContain("watashi");
+    expect(html).toContain("ken");
   });
 
   it("renders romaji primary and Japanese secondary under the romaji setting", () => {
     const html = renderView({ state: IDLE, script: "romaji" });
-    expect(html).toContain("watashi");
+    expect(html).toContain("ken");
     expect(html).toContain('lang="ja"');
   });
 
-  it("shows a katakana loanword with its hiragana ruby reading (sounds-4)", () => {
+  it("shows a katakana loanword with its hiragana ruby reading", () => {
     const html = renderView({
       state: IDLE,
       script: "hiragana",
-      viewModel: modelFor("sounds-4"),
+      viewModel: katakanaModel(),
     });
     expect(html).toMatch(/<ruby[^>]*>ミルク<rt[^>]*>みるく<\/rt><\/ruby>/);
   });
@@ -172,9 +224,9 @@ describe("SpokenAttemptView — respects the script setting and ruby conventions
 describe("SpokenAttemptView — the visible target reads as one real semantic sequence", () => {
   it("shows the exact readable romaji target for introductions-1, never a run-on concatenation", () => {
     const html = renderView({ state: IDLE, viewModel: modelFor("introductions-1") });
-    expect(targetRomajiReading(html)).toBe("watashi no namae wa yuki desu");
-    expect(targetSentenceHtml(html)).not.toContain("watashino");
-    expect(targetSentenceHtml(html)).not.toContain("namaewa");
+    expect(targetRomajiReading(html)).toBe("ken wa isha desu");
+    expect(targetSentenceHtml(html)).not.toContain("kenwa");
+    expect(targetSentenceHtml(html)).not.toContain("ishadesu");
   });
 
   it("uses the model's own targetRomaji as the same sequence the target line renders", () => {
@@ -325,6 +377,7 @@ describe("SpokenAttemptView — ordered per-segment records for results", () => 
     const html = renderView({
       state: { status: "matched", attemptId: 1, evaluation: evalFor(model.targetJp) },
       consentAcknowledged: true,
+      viewModel: criticalModel(),
     });
     // A matched attempt marks every segment recognized (coherent records).
     expect(html).toContain(enCopy.spokenAttempt.segmentMatched);
@@ -621,28 +674,5 @@ describe("SpokenAttempt — integrated once per lesson, after exercises, before 
       /class="lesson-section lesson-section-anchor"/g,
     );
     expect(sections).toHaveLength(4);
-  });
-});
-
-// ── Container smoke test ──────────────────────────────────────────────────────
-
-describe("SpokenAttempt container", () => {
-  it("renders within the app providers without throwing", () => {
-    const html = renderToStaticMarkup(
-      createElement(
-        SpeechRecognitionProvider,
-        null,
-        createElement(
-          LocaleProvider,
-          null,
-          createElement(
-            ScriptProvider,
-            null,
-            createElement(SpokenAttempt, { lessonId: "introductions-1" }),
-          ),
-        ),
-      ),
-    );
-    expect(html).toContain("spoken-attempt");
   });
 });

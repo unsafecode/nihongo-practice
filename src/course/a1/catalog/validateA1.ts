@@ -62,7 +62,7 @@ import {
   a1AllLessonPositions,
   a1FoundationCopy,
 } from "./catalog";
-import { a1CanDosAuthored, A1_SOUND_LESSON_IDS } from "./canDos";
+import { a1CanDosAuthored } from "./canDos";
 import { a1Checkpoint, A1_CHECKPOINT_MIN_TRANSFER_TARGETS } from "./checkpoint";
 import { a1ReleaseVerbUseRecords } from "./recurrence";
 import { module1ItemsByLesson, module1Lessons, type A1PhoneticItem } from "./module01Sounds";
@@ -655,9 +655,6 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
   }
   // The sounds primary is taught only in the phonetic module (positions, not
   // authored lessons), so assert it is sampled directly.
-  for (const soundLessonId of A1_SOUND_LESSON_IDS) {
-    void soundLessonId;
-  }
   if (!sampledCanDos.has("a1-can-do-sounds")) {
     push({ code: "cando-not-sampled", id: "a1-can-do-sounds", referenceId: "sounds" });
   }
