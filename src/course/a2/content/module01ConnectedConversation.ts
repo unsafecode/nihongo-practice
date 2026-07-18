@@ -102,7 +102,20 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
     connectorLine("connected-conversation-2-m3", "a2-value-connector-isogashii-demo-ganbaru", "a2-context-workplace", L("Work is busy. But, it's fun.", "Il lavoro è impegnativo. Ma è divertente."), "a2-role-colleague"),
     connectorLine("connected-conversation-2-m4", "a2-value-connector-benkyou-sorekara-neru", "a2-context-conversation", L("I study Japanese. Then, I go to sleep.", "Studio giapponese. Poi vado a dormire."), "a2-role-learner"),
     connectorLine("connected-conversation-2-m5", "a2-value-connector-samui-demo-genki", "a2-context-cafe", L("Today it's cold. But, I'm doing well.", "Oggi fa freddo. Ma sto bene."), "a2-role-friend"),
-    connectorLine("connected-conversation-2-m6", "a2-value-connector-test-demo-ganbatta", "a2-context-conversation", L("The test was hard. But, I did my best.", "Il test era difficile. Ma ho fatto del mio meglio."), "a2-role-emi", "a2-referent-self", A2_AFFIRMATIVE_PAST_POLITE),
+    // Task 4 final spec-fix ("no double-topic"): this model used to recombine
+    // an explicit watashi (watashi-wa) with test-demo-ganbatta's own baked
+    // topic (tesuto-wa), producing an unnatural double topic
+    // (watashi-wa tesuto-wa...). It is also the one and only place in the
+    // whole M1-M4 release that introduces watashi (a2-value-watashi) as
+    // taught, modeled content — every other watashi-marked line anywhere in
+    // M1-M4 is a *transfer*, so simply omitting the subject here (like
+    // m7/m8) would make every one of those transfers illegally reference
+    // never-introduced content. It now keeps the explicit watashi but
+    // recombines it with the already-registered, previously-unwired
+    // (latent) topic-free tsukareta-demo-ureshii value instead — still
+    // introduces watashi via a real model, now without colliding with any
+    // predicate's own baked topic.
+    connectorLine("connected-conversation-2-m6", "a2-value-connector-tsukareta-demo-ureshii", "a2-context-conversation", L("I got tired. But, I was happy.", "Mi sono stancato/a. Ma ero contento/a."), "a2-role-emi", "a2-referent-self", A2_AFFIRMATIVE_PAST_POLITE),
     connectorLine("connected-conversation-2-m7", "a2-value-connector-ame-sorekara-hare", "a2-context-among-friends", L("It was raining in the morning. Then, it cleared up.", "Al mattino pioveva. Poi si è schiarito."), "a2-role-sora", null, A2_AFFIRMATIVE_PAST_POLITE),
     connectorLine("connected-conversation-2-m8", "a2-value-connector-shigoto-sorekara-kaeru", "a2-context-workplace", L("Work finished. Then, I went home.", "Il lavoro è finito. Poi sono tornato a casa."), "a2-role-teacher", null, A2_AFFIRMATIVE_PAST_POLITE),
   ],
@@ -113,11 +126,25 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
     // this lesson's own already-modeled connector predicate, so the visible
     // Japanese is genuinely new even though nothing "unmodeled" is used.
     // Meaning/copy is unchanged: the EN/IT already say "I" throughout.
-    connectorLine("connected-conversation-2-t1", "a2-value-connector-ame-demo-dekakeru", "a2-context-among-friends", L("Today it's raining. But, I'm going out.", "Oggi piove. Ma esco lo stesso."), "a2-role-friend", "a2-referent-self"),
+    // Task 4 final spec-fix ("no double-topic"): a fresh spec re-review
+    // found that t1/t3/t5 originally recombined watashi with m1's/m3's/m5's
+    // own values — but ame-demo-dekakeru/isogashii-demo-ganbaru/
+    // samui-demo-genki each already bake their own topic (kyou-wa/
+    // shigoto-wa/kyou-wa), so adding an explicit watashi-wa in front
+    // produced an unnatural double topic (watashi-wa kyou-wa...). t1 now
+    // recombines watashi with m8's topic-free shigoto-sorekara-kaeru (ga,
+    // never wa) — the same "make the implicit I explicit" idea, just
+    // paired with a predicate that has no topic of its own to collide
+    // with. t3/t5 recombine m2's/m4's own topic-free values (already used
+    // by t2/t4 with watashi) with a *different*, named referent instead
+    // (sora/emi) — still a genuinely natural, novel third-person
+    // statement, and still distinct from t2/t4's watashi-marked
+    // realizations of those same values.
+    connectorLine("connected-conversation-2-t1", "a2-value-connector-shigoto-sorekara-kaeru", "a2-context-among-friends", L("Work finished. Then, I went home.", "Il lavoro è finito. Poi sono tornato a casa."), "a2-role-friend", "a2-referent-self", A2_AFFIRMATIVE_PAST_POLITE),
     connectorLine("connected-conversation-2-t2", "a2-value-connector-shukudai-sorekara-terebi", "a2-context-conversation", L("I do my homework. Then, I watch TV.", "Faccio i compiti. Poi guardo la TV."), "a2-role-learner", "a2-referent-self"),
-    connectorLine("connected-conversation-2-t3", "a2-value-connector-isogashii-demo-ganbaru", "a2-context-conversation", L("Work is busy. But, it's fun.", "Il lavoro è impegnativo. Ma è divertente."), "a2-role-colleague", "a2-referent-self"),
+    connectorLine("connected-conversation-2-t3", "a2-value-connector-shukudai-sorekara-terebi", "a2-context-conversation", L("Sora does homework. Then, he watches TV.", "Sora fa i compiti. Poi guarda la TV."), "a2-role-colleague", "a2-referent-sora"),
     connectorLine("connected-conversation-2-t4", "a2-value-connector-benkyou-sorekara-neru", "a2-context-cafe", L("I study Japanese. Then, I go to sleep.", "Studio giapponese. Poi vado a dormire."), "a2-role-sora", "a2-referent-self"),
-    connectorLine("connected-conversation-2-t5", "a2-value-connector-samui-demo-genki", "a2-context-workplace", L("Today it's cold. But, I'm doing well.", "Oggi fa freddo. Ma sto bene."), "a2-role-emi", "a2-referent-self"),
+    connectorLine("connected-conversation-2-t5", "a2-value-connector-benkyou-sorekara-neru", "a2-context-workplace", L("Emi studies Japanese. Then, she goes to sleep.", "Emi studia giapponese. Poi va a dormire."), "a2-role-emi", "a2-referent-emi"),
   ],
 });
 
@@ -133,13 +160,14 @@ function clarifyLine(
   speakerRole?: string,
   subjectReferent: string | null = null,
   form?: FormSelection,
+  subjectRealization?: "explicit" | "vocative",
 ): A2LineSpec {
   return {
     id,
     family: "a2-family-clarify-repeat",
     context,
     subjectReferent,
-    subjectRealization: subjectReferent === null ? "omitted" : "explicit",
+    subjectRealization: subjectReferent === null ? "omitted" : subjectRealization ?? "explicit",
     slots: subjectReferent === null ? { predicate } : { subject: subjectReferentValueId(subjectReferent), predicate },
     translation,
     speakerRole,
@@ -171,11 +199,23 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     // wakarimasen/wakarimashita (already personal "I" statements) recombine
     // with watashi (introduced in cc2) — both reuse only already-modeled
     // content while making the visible Japanese genuinely new.
-    clarifyLine("connected-conversation-3-t1", "a2-value-clarify-mouichido", "a2-context-workplace", L("Sora, sorry, one more time, please.", "Sora, scusa, un'altra volta, per favore."), "a2-role-sora", "a2-referent-sora"),
-    clarifyLine("connected-conversation-3-t2", "a2-value-clarify-yukkuri", "a2-context-conversation", L("Emi, a little more slowly, please.", "Emi, un po' più lentamente, per favore."), "a2-role-learner", "a2-referent-emi"),
+    // Task 4 final spec-fix ("natural vocative" + "no unnatural common-noun
+    // address"): t1/t2 mechanically prepended an explicit topic-marked
+    // subject (sora-wa/emi-wa) even though the copy already reads as
+    // vocative direct address — corrected to the genuinely compositional
+    // "vocative" subjectRealization (sora-san,/emi-san,, never wa). t5's
+    // addressee was worse: tomodachi ("friend") is a common noun, and
+    // nobody addresses a friend as literally "friend" in Japanese — no
+    // vocative fix applies here. It now recombines self (watashi, already
+    // introduced in cc2) with the already-modeled (cc3-m6) topic-free
+    // a2-value-clarify-kikoemasen, the exact same "make the
+    // already-implicit I explicit" pattern t3/t4 already use, and no
+    // longer duplicates m5's imi-wa question rendering.
+    clarifyLine("connected-conversation-3-t1", "a2-value-clarify-mouichido", "a2-context-workplace", L("Sora, sorry, one more time, please.", "Sora, scusa, un'altra volta, per favore."), "a2-role-sora", "a2-referent-sora", undefined, "vocative"),
+    clarifyLine("connected-conversation-3-t2", "a2-value-clarify-yukkuri", "a2-context-conversation", L("Emi, a little more slowly, please.", "Emi, un po' più lentamente, per favore."), "a2-role-learner", "a2-referent-emi", undefined, "vocative"),
     clarifyLine("connected-conversation-3-t3", "a2-value-clarify-wakarimasen", "a2-context-among-friends", L("Sorry, I don't understand.", "Scusa, non capisco."), "a2-role-colleague", "a2-referent-self", A2_NEGATIVE_PRESENT_POLITE),
     clarifyLine("connected-conversation-3-t4", "a2-value-clarify-wakarimashita", "a2-context-cafe", L("I understood.", "Ho capito."), "a2-role-emi", "a2-referent-self", A2_AFFIRMATIVE_PAST_POLITE),
-    clarifyLine("connected-conversation-3-t5", "a2-value-clarify-imikotoba", "a2-context-conversation", L("What does that word mean, my friend?", "Cosa significa quella parola, amico mio?"), "a2-role-teacher", "a2-referent-friend"),
+    clarifyLine("connected-conversation-3-t5", "a2-value-clarify-kikoemasen", "a2-context-conversation", L("Sorry, I couldn't hear.", "Scusa, non ho sentito."), "a2-role-teacher", "a2-referent-self", A2_NEGATIVE_PAST_POLITE),
   ],
 });
 

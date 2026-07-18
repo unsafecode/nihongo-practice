@@ -251,6 +251,144 @@ describe("A2 Module 1 — exact realized Japanese/rōmaji spot checks", () => {
   });
 });
 
+// Task 4 final spec-fix ("keep M1-M4 transfer Japanese natural"): a fresh
+// spec re-review found two distinct defects among M1's transfers:
+//
+// 1. cc3-t1/t2 mechanically prepended an explicit topic-marked subject
+//    (そらは/えみは) before an already-complete request utterance
+//    (もういちどおねがいします/ゆっくりおねがいします), even though the copy
+//    already reads as vocative direct address ("Sora, sorry, ..."). They now
+//    use the new "vocative" subjectRealization (そらさん、/えみさん、, never
+//    は). cc3-t5 had a worse version of the same defect: it addressed a
+//    *common noun* referent (ともだち, "friend") as if it were a name, which
+//    nobody does in natural Japanese (you address a friend by name, never
+//    literally as "friend") — so vocative isn't the fix here either. It now
+//    recombines self (わたし, explicit) with the already-modeled (cc3-m6)
+//    a2-value-clarify-kikoemasen, following the exact same "make the already
+//    implicit I explicit" pattern already used by cc3-t3/t4, and no longer
+//    duplicates m5's plain いみは-question rendering.
+// 2. cc2-t1/t3/t5 recombined self (わたしは) with a connector value whose own
+//    baked content already opens with its own topic (きょうは/しごとは),
+//    producing an unnatural double topic (わたしは きょうは...). Each now
+//    recombines with a different, already-modeled (this lesson) connector
+//    value that carries no baked topic of its own — t1 with m8's
+//    shigoto-sorekara-kaeru (topic-free: が, not は), t3/t5 with m2's/m4's
+//    shukudai-sorekara-terebi/benkyou-sorekara-neru (topic-free), the latter
+//    two recombined with a *named* referent instead of self (self already
+//    covered by t2/t4) so every transfer stays genuinely distinct.
+describe("A2 Module 1 — Task4 final spec-fix (natural vocative + no double-topic transfers)", () => {
+  function findVariant(lessonIndex: number, id: string): SentenceVariant {
+    const variant = module1Lessons[lessonIndex].variants.find((v) => v.id === id);
+    expect(variant, id).toBeDefined();
+    return variant as SentenceVariant;
+  }
+
+  function translationFor(lessonIndex: number, id: string): { en: string; it: string } {
+    const built = module1Lessons[lessonIndex];
+    return {
+      en: built.en[`${id}-translation`],
+      it: built.it[`${id}-translation`],
+    };
+  }
+
+  it("cc3-t1 (clarify-mouichido, sora) realizes as a genuine vocative そらさん、, never そらは", () => {
+    const variant = findVariant(2, "connected-conversation-3-t1");
+    expect(variant.discourse.subjectRealization).toBe("vocative");
+    const sentence = realize(variant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("そらさん、すみません、もういちどおねがいします");
+    expect(romaji.text).toBe("sora san, sumimasen, mou ichido onegaishimasu");
+    expect(sentence.canonicalJapanese).not.toContain("そらは");
+  });
+
+  it("cc3-t2 (clarify-yukkuri, emi) realizes as a genuine vocative えみさん、, never えみは", () => {
+    const variant = findVariant(2, "connected-conversation-3-t2");
+    expect(variant.discourse.subjectRealization).toBe("vocative");
+    const sentence = realize(variant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("えみさん、もうすこしゆっくりおねがいします");
+    expect(romaji.text).toBe("emi san, mou sukoshi yukkuri onegaishimasu");
+    expect(sentence.canonicalJapanese).not.toContain("えみは");
+  });
+
+  it("cc3-t5 no longer addresses a common noun (ともだち) as a name — it recombines self with the already-modeled (cc3-m6) a2-value-clarify-kikoemasen instead, distinct from m5's imikotoba question", () => {
+    const variant = findVariant(2, "connected-conversation-3-t5");
+    expect(variant.discourse.subjectRealization).toBe("explicit");
+    expect(variant.discourse.subjectReferentId).toBe("a2-referent-self");
+    expect(variant.slotValues.predicate).toBe("a2-value-clarify-kikoemasen");
+    const sentence = realize(variant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("わたしはすみません、きこえませんでした");
+    expect(romaji.text).toBe("watashi wa sumimasen, kikoemasen deshita");
+    expect(sentence.canonicalJapanese).not.toContain("ともだち");
+    const { en, it } = translationFor(2, "connected-conversation-3-t5");
+    expect(en).toBe("Sorry, I couldn't hear.");
+    expect(it).toBe("Scusa, non ho sentito.");
+  });
+
+  it("cc2-t1 no longer double-topics わたしは...きょうは... — it recombines self with the already-modeled (cc2-m8) topic-free a2-value-connector-shigoto-sorekara-kaeru instead", () => {
+    const variant = findVariant(1, "connected-conversation-2-t1");
+    expect(variant.discourse.subjectRealization).toBe("explicit");
+    expect(variant.slotValues.predicate).toBe("a2-value-connector-shigoto-sorekara-kaeru");
+    const sentence = realize(variant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("わたしはしごとがおわりました。それから、いえにかえりました。");
+    expect(romaji.text).toBe("watashi wa shigoto ga owarimashita. sorekara, ie ni kaerimashita.");
+    expect((sentence.canonicalJapanese.match(/は/g) ?? []).length).toBe(1);
+    const { en, it } = translationFor(1, "connected-conversation-2-t1");
+    expect(en).toBe("Work finished. Then, I went home.");
+    expect(it).toBe("Il lavoro è finito. Poi sono tornato a casa.");
+  });
+
+  it("cc2-t3 no longer double-topics わたしは...しごとは... — it recombines a named referent (sora) with the already-modeled (cc2-m2) topic-free a2-value-connector-shukudai-sorekara-terebi instead, distinct from t2's watashi-marked use of the same value", () => {
+    const variant = findVariant(1, "connected-conversation-2-t3");
+    expect(variant.discourse.subjectRealization).toBe("explicit");
+    expect(variant.discourse.subjectReferentId).toBe("a2-referent-sora");
+    expect(variant.slotValues.predicate).toBe("a2-value-connector-shukudai-sorekara-terebi");
+    const sentence = realize(variant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("そらはしゅくだいをします。それから、テレビをみます");
+    expect(romaji.text).toBe("sora wa shukudai o shimasu. sorekara, terebi o mimasu");
+    expect((sentence.canonicalJapanese.match(/は/g) ?? []).length).toBe(1);
+    const t2 = findVariant(1, "connected-conversation-2-t2");
+    const t2Sentence = realize(t2);
+    expect(sentence.canonicalJapanese).not.toBe(t2Sentence.canonicalJapanese);
+    const { en, it } = translationFor(1, "connected-conversation-2-t3");
+    expect(en).toBe("Sora does homework. Then, he watches TV.");
+    expect(it).toBe("Sora fa i compiti. Poi guarda la TV.");
+  });
+
+  it("cc2-t5 no longer double-topics わたしは...きょうは... — it recombines a named referent (emi) with the already-modeled (cc2-m4) topic-free a2-value-connector-benkyou-sorekara-neru instead, distinct from t4's watashi-marked use of the same value", () => {
+    const variant = findVariant(1, "connected-conversation-2-t5");
+    expect(variant.discourse.subjectRealization).toBe("explicit");
+    expect(variant.discourse.subjectReferentId).toBe("a2-referent-emi");
+    expect(variant.slotValues.predicate).toBe("a2-value-connector-benkyou-sorekara-neru");
+    const sentence = realize(variant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("えみはにほんごをべんきょうします。それから、ねます");
+    expect(romaji.text).toBe("emi wa nihongo o benkyoushimasu. sorekara, nemasu");
+    expect((sentence.canonicalJapanese.match(/は/g) ?? []).length).toBe(1);
+    const t4 = findVariant(1, "connected-conversation-2-t4");
+    const t4Sentence = realize(t4);
+    expect(sentence.canonicalJapanese).not.toBe(t4Sentence.canonicalJapanese);
+    const { en, it } = translationFor(1, "connected-conversation-2-t5");
+    expect(en).toBe("Emi studies Japanese. Then, she goes to sleep.");
+    expect(it).toBe("Emi studia giapponese. Poi va a dormire.");
+  });
+});
+
 describe("A2 Module 1 — bilingual copy coverage", () => {
   it("every model+transfer variant has an EN and IT translation entry", () => {
     for (const built of module1Lessons) {

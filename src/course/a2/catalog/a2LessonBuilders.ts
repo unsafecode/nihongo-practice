@@ -161,7 +161,10 @@ export interface A2VariantSpec {
   readonly speakerRole: string;
   readonly addresseeRole: string | null;
   readonly subjectReferent: string | null;
-  readonly subjectRealization: "explicit" | "omitted";
+  /** "vocative" (Task 4 final spec-fix "natural vocative") renders the
+   * subject referent as a direct-address vocative (name + さん + 、) instead
+   * of a topic-marked subject — see `DiscourseFrame.subjectRealization`. */
+  readonly subjectRealization: "explicit" | "omitted" | "vocative";
   readonly slots: Readonly<Record<string, string>>;
   readonly interrogative?: boolean;
   /** Explicit polarity/tense/mood override. Mutually exclusive with
@@ -392,7 +395,10 @@ export interface A2LineSpec {
   readonly family: string;
   readonly context: string;
   readonly subjectReferent: string | null;
-  readonly subjectRealization: "explicit" | "omitted";
+  /** "vocative" (Task 4 final spec-fix "natural vocative") renders the
+   * subject referent as a direct-address vocative (name + さん + 、) instead
+   * of a topic-marked subject — see `DiscourseFrame.subjectRealization`. */
+  readonly subjectRealization: "explicit" | "omitted" | "vocative";
   readonly slots: Readonly<Record<string, string>>;
   readonly interrogative?: boolean;
   readonly form?: FormSelection;

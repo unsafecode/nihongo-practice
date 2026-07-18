@@ -328,12 +328,24 @@ export interface FormSelection {
   readonly interrogative?: boolean;
 }
 
-/** Speaker/addressee/subject/scenario metadata every example carries (§9.2, §10.1). */
+/**
+ * Speaker/addressee/subject/scenario metadata every example carries (§9.2,
+ * §10.1). `subjectRealization` chooses how `subjectReferentId`'s own
+ * semantic value (when the family's schema resolves one) surfaces:
+ * `"explicit"` topic-marks it (は, or a rule's own `subjectParticle`);
+ * `"omitted"` renders no subject token at all (grammatically-implicit
+ * Japanese); `"vocative"` (Task 4 final spec-fix "natural vocative") renders
+ * it as a direct-address vocative instead — the referent's own tokens
+ * followed by さん and 、, never は — for utterances that already address
+ * someone directly (an invitation, a request, a question) rather than make a
+ * topic-marked statement about them. Never meaningful for a self-referent
+ * (there is no vocative address to oneself).
+ */
 export interface DiscourseFrame {
   readonly speakerRoleId: PersonRoleId;
   readonly addresseeRoleId: PersonRoleId | null;
   readonly subjectReferentId: ReferentId | null;
-  readonly subjectRealization: "explicit" | "omitted";
+  readonly subjectRealization: "explicit" | "omitted" | "vocative";
   readonly scenarioNoteCopyId: CopyId;
 }
 

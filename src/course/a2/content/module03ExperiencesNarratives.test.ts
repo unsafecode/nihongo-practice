@@ -337,6 +337,43 @@ describe("A2 Module 3 — JP/copy fidelity (C1 spec-fix: distinct facts for dist
   });
 });
 
+// Task 4 final spec-fix ("keep M1-M4 transfer Japanese natural"): a fresh
+// spec re-review found en1-m10's Italian copy used the wrong auxiliary verb
+// — "è già scalato" (essere) — for scalare, a transitive verb ("to climb
+// [something]") that always takes avere in the passato prossimo, exactly
+// like en1-t1/t5's own already-correct "ha già scalato" for the same
+// scalare fact (a generic mountain / Mt. Fuji). The EN meaning is untouched
+// ("My friend has climbed Mt. Fuji before.") — only the Italian auxiliary is
+// corrected to match it and to agree with its own sibling variants.
+describe("A2 Module 3 — Task4 final spec-fix (Italian auxiliary verb: scalare takes avere, never essere)", () => {
+  it("experiences-narratives-1-m10 (nobotta-fuji, friend) uses the correct avere auxiliary — 'Il mio amico ha già scalato il Monte Fuji.', never essere", () => {
+    const en1 = module3Lessons[0];
+    const m10 = en1.variants.find((v) => v.id === "experiences-narratives-1-m10");
+    expect(m10, "experiences-narratives-1-m10").toBeDefined();
+    const it = en1.it["experiences-narratives-1-m10-translation"];
+    const en = en1.en["experiences-narratives-1-m10-translation"];
+    expect(it).toBe("Il mio amico ha già scalato il Monte Fuji.");
+    expect(it).not.toContain("è già scalato");
+    // EN meaning stays aligned — unchanged by the Italian auxiliary fix.
+    expect(en).toBe("My friend has climbed Mt. Fuji before.");
+  });
+
+  it("every nobotta (climb) experience variant's Italian copy uses avere, never essere, for scalare — m10 now matches its own sibling variants t1/t5", () => {
+    const en1 = module3Lessons[0];
+    const NOBOTTA_VARIANT_IDS = [
+      "experiences-narratives-1-m5",
+      "experiences-narratives-1-m10",
+      "experiences-narratives-1-t1",
+      "experiences-narratives-1-t5",
+    ];
+    for (const id of NOBOTTA_VARIANT_IDS) {
+      const it = en1.it[`${id}-translation`];
+      expect(it, id).toContain("ha già scalato");
+      expect(it, id).not.toContain("è già scalato");
+    }
+  });
+});
+
 describe("A2 Module 3 — exact realized Japanese/rōmaji spot checks", () => {
   it("realizes every module-3 instructional variant through the shared formatter with no errors", () => {
     for (const built of module3Lessons) {

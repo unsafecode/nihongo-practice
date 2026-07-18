@@ -137,7 +137,7 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
     // natto, which the later en3/en4 lessons introduce) they must be modeled
     // here, never only transferred, to ever be legally available at all.
     experienceLine("experiences-narratives-1-m9", "a2-referent-teacher", "a2-value-exp-matta-tomodachi", "a2-context-among-friends", L("The teacher has waited for a friend before.", "L'insegnante ha già aspettato un amico.")),
-    experienceLine("experiences-narratives-1-m10", "a2-referent-friend", "a2-value-exp-nobotta-fuji", "a2-context-outing", L("My friend has climbed Mt. Fuji before.", "Il mio amico è già scalato il Monte Fuji.")),
+    experienceLine("experiences-narratives-1-m10", "a2-referent-friend", "a2-value-exp-nobotta-fuji", "a2-context-outing", L("My friend has climbed Mt. Fuji before.", "Il mio amico ha già scalato il Monte Fuji.")),
   ],
   transfers: [
     experienceLine("experiences-narratives-1-t1", "a2-referent-sora", "a2-value-exp-nobotta-yama", "a2-context-outing", L("Sora has climbed a mountain before.", "Sora ha già scalato una montagna.")),

@@ -20,6 +20,7 @@ import type {
   CourseLevel,
   FoundationModule,
   SentenceFamily,
+  SentenceVariant,
 } from "../../foundations/types";
 import {
   assembleA2FoundationCatalogs,
@@ -261,6 +262,222 @@ describe("A2 M1-M4 aggregate — Task4 editorial regression (malformed conjugati
   });
 });
 
+// Task 4 final spec-fix ("keep M1-M4 transfer Japanese natural"): a fresh
+// spec re-review found two further, distinct classes of unnatural transfer
+// Japanese the malformed-conjugation guard above can never catch (every
+// token involved is individually well-formed — the defect is a discourse
+// choice, not a conjugation error):
+//
+// 1. "Vocative mistakes": a *named individual* (Sora/Emi) marked as an
+//    explicit topic-marked subject (そらは/えみは) on a family whose own
+//    content is already a complete direct-address speech act — an
+//    invitation, a response to one, an arrange-meeting proposal, or a
+//    clarification request. Natural Japanese addresses that person with a
+//    vocative (そらさん、) instead of topicalizing them. Scope is
+//    deliberately closed and narrow to avoid false positives: only these
+//    four direct-address families, only the two named-individual referents
+//    — never the self-referent (there is no vocative address to oneself)
+//    and never cc1's real subject-predicate-object families, where marking
+//    a third party explicit is a genuinely natural statement *about* them
+//    (e.g. "そらはどうりょうとはなします", "Sora talks with a colleague"), not a
+//    vocative mistake at all.
+// 2. "Double topic": an explicit subject recombined with a predicate value
+//    whose own baked content already opens with its own topic marker
+//    (きょうは/しごとは/...), producing an unnatural stacked topic
+//    (わたしは きょうは...).
+//
+// Both are checked mechanically from the variant's own discourse/slot data
+// and the referenced semantic value's own token-fragment shape — never a
+// per-lesson id allowlist — so any future M1-M4 authoring mistake of either
+// shape is caught here too, not just the ones this review found. A third,
+// narrower copy-editorial check guards the specific mismatch that made the
+// pi3-t3/t4 vocative mistake easy to miss: EN/IT copy using a
+// "Name: ..." speaker-label convention that no Japanese construction here
+// (vocative or plain) ever actually realizes.
+describe("A2 M1-M4 aggregate — Task4 final spec-fix editorial audit (vocative mistakes, double-topic, speaker-label copy)", () => {
+  const famById = new Map<string, SentenceFamily>(a2SentenceFamilies.map((f) => [f.id, f]));
+  const valueById = new Map(a2SemanticValues.map((value) => [value.id, value]));
+
+  // Families whose own content is already a complete, self-contained
+  // direct-address utterance — the only families where marking a named
+  // individual explicit (instead of vocative) is ever a mistake.
+  const DIRECT_ADDRESS_FAMILY_IDS: ReadonlySet<string> = new Set([
+    "a2-family-invite",
+    "a2-family-respond-invite",
+    "a2-family-arrange-meeting",
+    "a2-family-clarify-repeat",
+  ]);
+  // The only two named-individual referents this release ever authors as a
+  // subject. Never the self-referent, never a common-noun referent
+  // (friend/colleague/teacher) — those raise a different concern (see the
+  // colon-copy check below) and are never flagged as a vocative mistake by
+  // this detector.
+  const NAMED_INDIVIDUAL_REFERENT_IDS: ReadonlySet<string> = new Set(["a2-referent-sora", "a2-referent-emi"]);
+
+  function isVocativeMistake(variant: SentenceVariant, family: SentenceFamily): boolean {
+    return (
+      DIRECT_ADDRESS_FAMILY_IDS.has(family.id) &&
+      variant.discourse.subjectRealization === "explicit" &&
+      variant.discourse.subjectReferentId !== null &&
+      NAMED_INDIVIDUAL_REFERENT_IDS.has(variant.discourse.subjectReferentId)
+    );
+  }
+
+  // A predicate value's own baked content already opens with a topic
+  // marker — either a single fused lexical fragment ending in は (e.g.
+  // "しごとは") or a split lexical+は-particle pair (e.g. "きょう" + は). Only
+  // the first one or two fragments are inspected, never the whole value, so
+  // a later, unrelated word that merely happens to start with は (e.g.
+  // はやく, "quickly") is never mistaken for a second topic marker.
+  function predicateOpensWithBakedTopic(predicateValueId: string | undefined): boolean {
+    if (!predicateValueId) return false;
+    const value = valueById.get(predicateValueId);
+    if (!value) return false;
+    const [first, second] = value.tokenFragments;
+    if (!first || first.kind !== "lexical") return false;
+    if (first.jp.endsWith("は")) return true;
+    return second?.kind === "particle" && second.jp === "は";
+  }
+
+  // Families whose own content is a flat, single-clause-chain personal
+  // statement (a plan, an intention, a でも/それから-linked pair of clauses)
+  // — the only families where an explicit subject genuinely competes with
+  // the predicate's own baked topic for the same flat-clause "topic" slot.
+  // Deliberately excludes M4's opinion/reason families
+  // (a2-family-opinion-toomou, -reason-kara, -reason-node,
+  // -agree-disagree): those legitimately nest a *matrix*-clause topic (the
+  // opinion holder, これは いい と "思います") in front of an *embedded*-clause
+  // topic (what's being evaluated) — a well-formed double-subject/topic
+  // construction across a clause boundary (like 象は鼻が長い), not the flat,
+  // same-clause double topic this check targets. Out of Task 4's M1/M2
+  // scope in any case.
+  const DOUBLE_TOPIC_RISK_FAMILY_IDS: ReadonlySet<string> = new Set([
+    "a2-family-connector-utterance",
+    "a2-family-plan-yotei",
+    "a2-family-plan-tsumori",
+  ]);
+
+  function isDoubleTopic(variant: SentenceVariant): boolean {
+    return (
+      DOUBLE_TOPIC_RISK_FAMILY_IDS.has(variant.sentenceFamilyId) &&
+      variant.discourse.subjectRealization === "explicit" &&
+      predicateOpensWithBakedTopic(variant.slotValues.predicate)
+    );
+  }
+
+  it("self-test: the vocative-mistake detector flags a synthetic そらは-marked invite and never flags a real cc1 third-party statement (そらは on a plain subject-predicate family is genuinely natural)", () => {
+    const inviteFamily = famById.get("a2-family-invite");
+    expect(inviteFamily, "a2-family-invite").toBeDefined();
+    const badVariant: SentenceVariant = {
+      id: "test-vocative-mistake-probe",
+      sentenceFamilyId: "a2-family-invite",
+      discourse: {
+        speakerRoleId: "a2-role-learner",
+        addresseeRoleId: null,
+        subjectReferentId: "a2-referent-sora",
+        subjectRealization: "explicit",
+        scenarioNoteCopyId: "test-scenario",
+      },
+      contextId: "a2-context-plans",
+      slotValues: { subject: "a2-value-sora", predicate: "a2-value-invite-eiga" },
+      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      pedagogicalUse: "transfer",
+    };
+    expect(isVocativeMistake(badVariant, inviteFamily as SentenceFamily)).toBe(true);
+
+    const cc1 = allBuiltLessons.find((built) => built.recipe.id === "connected-conversation-1");
+    const talkCompanionVariant = cc1?.variants.find((v) => v.id === "connected-conversation-1-t1");
+    expect(talkCompanionVariant, "connected-conversation-1-t1").toBeDefined();
+    const talkCompanionFamily = famById.get((talkCompanionVariant as SentenceVariant).sentenceFamilyId);
+    expect(talkCompanionFamily, "a2-family-talk-companion").toBeDefined();
+    expect(
+      isVocativeMistake(talkCompanionVariant as SentenceVariant, talkCompanionFamily as SentenceFamily),
+    ).toBe(false);
+  });
+
+  it("self-test: the double-topic detector flags a synthetic わたしは + きょうは-opening connector and never flags the real (fixed) cc2-t1 が-marked pairing", () => {
+    const syntheticBadVariant: SentenceVariant = {
+      id: "test-double-topic-probe",
+      sentenceFamilyId: "a2-family-connector-utterance",
+      discourse: {
+        speakerRoleId: "a2-role-learner",
+        addresseeRoleId: null,
+        subjectReferentId: "a2-referent-self",
+        subjectRealization: "explicit",
+        scenarioNoteCopyId: "test-scenario",
+      },
+      contextId: "a2-context-plans",
+      slotValues: { subject: "a2-value-watashi", predicate: "a2-value-connector-ame-demo-dekakeru" },
+      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      pedagogicalUse: "transfer",
+    };
+    expect(isDoubleTopic(syntheticBadVariant)).toBe(true);
+
+    const cc2 = allBuiltLessons.find((built) => built.recipe.id === "connected-conversation-2");
+    const t1 = cc2?.variants.find((v) => v.id === "connected-conversation-2-t1");
+    expect(t1, "connected-conversation-2-t1").toBeDefined();
+    expect(isDoubleTopic(t1 as SentenceVariant)).toBe(false);
+  });
+
+  it("self-test: the double-topic detector never flags M4's real reasons-opinions-3-t1 (これは いい と思います), a well-formed matrix-topic + embedded-clause-topic construction, not a flat double topic, and out of Task 4's M1/M2 scope in any case", () => {
+    const module4 = allBuiltLessons.find((built) => built.recipe.id === "reasons-opinions-3");
+    const t1 = module4?.variants.find((v) => v.id === "reasons-opinions-3-t1");
+    expect(t1, "reasons-opinions-3-t1").toBeDefined();
+    // Confirms the fixture actually exercises the family/shape this test
+    // means to probe (predicateOpensWithBakedTopic would say yes) — the
+    // family scope, not the topic shape, is what excludes it.
+    expect((t1 as SentenceVariant).sentenceFamilyId).toBe("a2-family-opinion-toomou");
+    expect((t1 as SentenceVariant).discourse.subjectRealization).toBe("explicit");
+    expect(isDoubleTopic(t1 as SentenceVariant)).toBe(false);
+  });
+
+  it("flags zero vocative mistakes across every currently authored M1-M4 model+transfer", () => {
+    const violations: string[] = [];
+    for (const built of allBuiltLessons) {
+      for (const variant of built.variants) {
+        const family = famById.get(variant.sentenceFamilyId);
+        if (!family) continue;
+        if (isVocativeMistake(variant, family)) {
+          violations.push(
+            `${variant.id}: explicit subject "${variant.discourse.subjectReferentId}" on direct-address family "${family.id}" — should be vocative, not explicit`,
+          );
+        }
+      }
+    }
+    expect(violations, `${violations.length} vocative mistake(s):\n${violations.join("\n")}`).toEqual([]);
+  });
+
+  it("flags zero double-topic transfers across every currently authored M1-M4 model+transfer", () => {
+    const violations: string[] = [];
+    for (const built of allBuiltLessons) {
+      for (const variant of built.variants) {
+        if (isDoubleTopic(variant)) {
+          violations.push(
+            `${variant.id}: explicit subject recombined with predicate "${variant.slotValues.predicate}", whose own content already opens with a baked topic marker`,
+          );
+        }
+      }
+    }
+    expect(violations, `${violations.length} double-topic transfer(s):\n${violations.join("\n")}`).toEqual([]);
+  });
+
+  it('never uses the "Name: ..." colon speaker-label copy convention in any EN/IT copy — a speaker label is never realized in the Japanese itself, so it can only ever mismatch whatever construction (vocative or plain) the sentence actually uses', () => {
+    const SPEAKER_LABEL_PATTERN = /^[A-ZÀ-Ý][\p{L}]*:\s/u;
+    const violations: string[] = [];
+    for (const built of allBuiltLessons) {
+      for (const [copyId, value] of Object.entries(built.en)) {
+        if (SPEAKER_LABEL_PATTERN.test(value)) violations.push(`en/${copyId}: "${value}"`);
+      }
+      for (const [copyId, value] of Object.entries(built.it)) {
+        if (SPEAKER_LABEL_PATTERN.test(value)) violations.push(`it/${copyId}: "${value}"`);
+      }
+    }
+    expect(violations, `${violations.length} speaker-label colon copy violation(s):\n${violations.join("\n")}`).toEqual(
+      [],
+    );
+  });
+});
+
 // I2 spec-fix ("true transfer failure"): round-two transfers used to realize
 // byte-identical Japanese to a round-one model, differing only in hidden
 // discourse metadata (speaker/context) that never reaches the learner. A
@@ -403,11 +620,17 @@ describe("A2 M1-M4 aggregate — M4 spec-fix (honest invariant FormSelection met
     // --- a2-family-reason-kara: mostly present/future から-clauses, but this
     // one's own final clause (つかれました) is genuinely past ---
     "a2-value-kara-isogashii-tsukareta": { polarity: "affirmative", tense: "past", formality: "polite" },
-    // --- a2-family-connector-utterance: mostly present, but these three's
+    // --- a2-family-connector-utterance: mostly present, but these four's
     // own final clause is genuinely past ---
     "a2-value-connector-test-demo-ganbatta": { polarity: "affirmative", tense: "past", formality: "polite" },
     "a2-value-connector-ame-sorekara-hare": { polarity: "affirmative", tense: "past", formality: "polite" },
     "a2-value-connector-shigoto-sorekara-kaeru": { polarity: "affirmative", tense: "past", formality: "polite" },
+    // Task 4 final spec-fix: now wired in (cc2-m6, recombined with an
+    // explicit watashi to keep introducing a2-value-watashi via a real
+    // model without colliding with a baked topic — see
+    // module01ConnectedConversation.ts) — its own final clause
+    // (うれしかったです) is genuinely past, same rationale as the three above.
+    "a2-value-connector-tsukareta-demo-ureshii": { polarity: "affirmative", tense: "past", formality: "polite" },
     // --- a2-family-clarify-repeat: わかりません/わかりました/きこえませんでした
     // are genuine negative-present / past / past-negative statements ---
     "a2-value-clarify-wakarimasen": { polarity: "negative", tense: "present", formality: "polite" },

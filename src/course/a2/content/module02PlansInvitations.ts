@@ -29,13 +29,14 @@ function bareLine(
   translation: { en: string; it: string },
   speakerRole?: string,
   subjectReferent: string | null = null,
+  subjectRealization?: "explicit" | "vocative",
 ): A2LineSpec {
   return {
     id,
     family,
     context,
     subjectReferent,
-    subjectRealization: subjectReferent === null ? "omitted" : "explicit",
+    subjectRealization: subjectReferent === null ? "omitted" : subjectRealization ?? "explicit",
     slots: subjectReferent === null ? { predicate } : { subject: subjectReferentValueId(subjectReferent), predicate },
     translation,
     speakerRole,
@@ -156,10 +157,18 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     // modeled named addressee (introduced in cc1) — read naturally as
     // addressing that person directly ("Sora, shall we...?"); the plan-yotei
     // transfer recombines with watashi (introduced in cc2).
-    bareLine("plans-invitations-3-t1", "a2-family-invite", "a2-value-invite-eiga", "a2-context-workplace", L("Sora, shall we watch a movie together?", "Sora, guardiamo un film insieme?"), "a2-role-teacher", "a2-referent-sora"),
-    bareLine("plans-invitations-3-t2", "a2-family-invite", "a2-value-invite-shokuji", "a2-context-plans", L("Emi, won't you eat together with me?", "Emi, non mangi con me?"), "a2-role-learner", "a2-referent-emi"),
-    bareLine("plans-invitations-3-t3", "a2-family-respond-invite", "a2-value-respond-accept", "a2-context-among-friends", L("Sora: sounds good. Let's go.", "Sora: va bene. Andiamo."), "a2-role-colleague", "a2-referent-sora"),
-    bareLine("plans-invitations-3-t4", "a2-family-respond-invite", "a2-value-respond-decline", "a2-context-workplace", L("Emi: sorry, that day isn't very convenient.", "Emi: scusa, quel giorno non mi è molto comodo."), "a2-role-emi", "a2-referent-emi"),
+    // Task 4 final spec-fix ("natural vocative"): a fresh spec re-review
+    // found that "addressing that person directly" was still mechanically
+    // realized as an explicit topic-marked subject (sora-wa/emi-wa) —
+    // reading as topicalizing the addressee, not as the vocative direct
+    // address the copy already promises ("Sora, shall we...?", and for
+    // t3/t4 the speaker-label colon convention, corrected below to real
+    // vocative address). All four now use the genuinely compositional
+    // "vocative" subjectRealization (sora-san,/emi-san,, never wa).
+    bareLine("plans-invitations-3-t1", "a2-family-invite", "a2-value-invite-eiga", "a2-context-workplace", L("Sora, shall we watch a movie together?", "Sora, guardiamo un film insieme?"), "a2-role-teacher", "a2-referent-sora", "vocative"),
+    bareLine("plans-invitations-3-t2", "a2-family-invite", "a2-value-invite-shokuji", "a2-context-plans", L("Emi, won't you eat together with me?", "Emi, non mangi con me?"), "a2-role-learner", "a2-referent-emi", "vocative"),
+    bareLine("plans-invitations-3-t3", "a2-family-respond-invite", "a2-value-respond-accept", "a2-context-among-friends", L("Sora, sounds good. Let's go.", "Sora, va bene. Andiamo."), "a2-role-colleague", "a2-referent-sora", "vocative"),
+    bareLine("plans-invitations-3-t4", "a2-family-respond-invite", "a2-value-respond-decline", "a2-context-workplace", L("Emi, sorry, that day isn't very convenient.", "Emi, scusa, quel giorno non mi è molto comodo."), "a2-role-emi", "a2-referent-emi", "vocative"),
     bareLine("plans-invitations-3-t5", "a2-family-plan-yotei", "a2-value-yotei-taberu-ashita", "a2-context-among-friends", L("Tomorrow I plan to eat a meal with a friend.", "Domani ho intenzione di mangiare con un amico."), "a2-role-colleague", "a2-referent-self"),
   ],
 });
@@ -192,11 +201,22 @@ const lesson4: A2BuiltLesson = buildA2InstructionalLesson({
     // I2 spec-fix: arrange-meeting transfers recombine with an already-
     // modeled named addressee; plan-yotei/plan-tsumori transfers recombine
     // with watashi — same rationale as pi1-pi3.
-    bareLine("plans-invitations-4-t1", "a2-family-arrange-meeting", "a2-value-arrange-eki", "a2-context-workplace", L("Sora, let's meet at the station at 5.", "Sora, incontriamoci alla stazione alle 5."), "a2-role-teacher", "a2-referent-sora"),
-    bareLine("plans-invitations-4-t2", "a2-family-arrange-meeting", "a2-value-arrange-cafe", "a2-context-workplace", L("Emi, let's meet at the cafe at 3pm on Saturday.", "Emi, incontriamoci al bar alle 15 di sabato."), "a2-role-sora", "a2-referent-emi"),
+    // Task 4 final spec-fix ("natural vocative" + "no double-topic"): the
+    // arrange-meeting addressee transfers (t1/t2/t5) had the same
+    // sora-wa/emi-wa defect as pi3's — now genuinely compositional
+    // "vocative" address (sora-san,/emi-san,, never wa). t4 had a
+    // different, unrelated defect: a2-value-tsumori-kaeru-hayaku's own
+    // baked content already opens with kyou-wa, so recombining it with an
+    // explicit watashi-wa produced an unnatural double topic
+    // (watashi-wa kyou-wa...). It now recombines self with the
+    // already-modeled (pi2) a2-value-tsumori-yomu-hon, which carries no
+    // baked topic of its own, so the result stays a single, natural topic
+    // while remaining a genuinely novel visible target for this lesson.
+    bareLine("plans-invitations-4-t1", "a2-family-arrange-meeting", "a2-value-arrange-eki", "a2-context-workplace", L("Sora, let's meet at the station at 5.", "Sora, incontriamoci alla stazione alle 5."), "a2-role-teacher", "a2-referent-sora", "vocative"),
+    bareLine("plans-invitations-4-t2", "a2-family-arrange-meeting", "a2-value-arrange-cafe", "a2-context-workplace", L("Emi, let's meet at the cafe at 3pm on Saturday.", "Emi, incontriamoci al bar alle 15 di sabato."), "a2-role-sora", "a2-referent-emi", "vocative"),
     bareLine("plans-invitations-4-t3", "a2-family-plan-yotei", "a2-value-yotei-oyogu-shuumatsu", "a2-context-cafe", L("This weekend I plan to swim in the sea.", "Questo weekend ho intenzione di nuotare nel mare."), "a2-role-friend", "a2-referent-self"),
-    bareLine("plans-invitations-4-t4", "a2-family-plan-tsumori", "a2-value-tsumori-kaeru-hayaku", "a2-context-plans", L("Today I intend to go home early.", "Oggi intendo tornare a casa presto."), "a2-role-sora", "a2-referent-self"),
-    bareLine("plans-invitations-4-t5", "a2-family-arrange-meeting", "a2-value-arrange-time-check", "a2-context-workplace", L("Sora, what time shall we meet?", "Sora, a che ora ci incontriamo?"), "a2-role-colleague", "a2-referent-sora"),
+    bareLine("plans-invitations-4-t4", "a2-family-plan-tsumori", "a2-value-tsumori-yomu-hon", "a2-context-plans", L("This weekend I intend to read a book.", "Questo weekend intendo leggere un libro."), "a2-role-sora", "a2-referent-self"),
+    bareLine("plans-invitations-4-t5", "a2-family-arrange-meeting", "a2-value-arrange-time-check", "a2-context-workplace", L("Sora, what time shall we meet?", "Sora, a che ora ci incontriamo?"), "a2-role-colleague", "a2-referent-sora", "vocative"),
   ],
 });
 

@@ -234,17 +234,25 @@ describe("A2 Module 2 — exact realized Japanese/rōmaji spot checks", () => {
   // Japanese. It now recombines the same predicate with an already-modeled
   // named addressee (emi), proving the ます-stem fix (たべませんか, never
   // たべるませんか) still holds for this new, genuinely novel combination.
-  it("realizes plans-invitations-3-t2 (invite-shokuji, emi recombined as addressee) to the exact たべませんか ます-stem, distinct from m3", () => {
+  // Task 4 final spec-fix ("natural vocative"): a fresh spec re-review found
+  // that the addressee used to be realized as an explicit topic-marked
+  // subject (えみは...), which reads as topicalizing Emi rather than
+  // addressing her directly, even though the copy already reads as a
+  // vocative ("Emi, won't you eat..."). It now uses the new "vocative"
+  // subjectRealization — えみさん、(never えみは) — matching the copy.
+  it("realizes plans-invitations-3-t2 (invite-shokuji, emi recombined as a genuine vocative addressee) to the exact えみさん、+ たべませんか ます-stem, distinct from m3", () => {
     const pi3 = module2Lessons[2];
     const t2 = pi3.variants.find((v) => v.id === "plans-invitations-3-t2");
     expect(t2).toBeDefined();
+    expect((t2 as SentenceVariant).discourse.subjectRealization).toBe("vocative");
     const sentence = realize(t2 as SentenceVariant);
     const romaji = formatRomaji(sentence.tokens);
     expect(romaji.ok).toBe(true);
     if (!romaji.ok) throw new Error("unreachable");
-    expect(sentence.canonicalJapanese).toBe("えみはいっしょにしょくじをたべませんか");
-    expect(romaji.text).toBe("emi wa issho ni shokuji o tabemasen ka");
+    expect(sentence.canonicalJapanese).toBe("えみさん、いっしょにしょくじをたべませんか");
+    expect(romaji.text).toBe("emi san, issho ni shokuji o tabemasen ka");
     expect(sentence.canonicalJapanese).not.toContain("たべるませんか");
+    expect(sentence.canonicalJapanese).not.toContain("えみは");
     expect(sentence.canonicalJapanese).not.toBe("いっしょにしょくじをたべませんか");
   });
 
@@ -259,6 +267,142 @@ describe("A2 Module 2 — exact realized Japanese/rōmaji spot checks", () => {
     expect(sentence.canonicalJapanese).toBe("こんばんいっしょにしょくじをたべませんか");
     expect(romaji.text).toBe("konban issho ni shokuji o tabemasen ka");
     expect(sentence.canonicalJapanese).not.toContain("たべるませんか");
+  });
+});
+
+// Task 4 final spec-fix ("keep M1-M4 transfer Japanese natural"): a fresh
+// spec re-review found that pi3/pi4's remaining named-addressee transfers
+// (pi3-t1, pi3-t3/t4, pi4-t1/t2/t5) all had the same defect as pi3-t2 above
+// — mechanically prepending explicit topic-marked そらは/えみは before an
+// already-complete invitation/response/arrange-meeting utterance, even
+// though every one of these already carries vocative-styled copy (a
+// leading "Sora,"/"Emi," or, for pi3-t3/t4, a speaker-label "Sora:"/"Emi:"
+// that a real transcript would never render as は either). Each now uses
+// the new "vocative" subjectRealization (そらさん、/えみさん、, never は);
+// pi3-t3/t4's copy is corrected from the speaker-label colon convention to
+// genuine vocative address to match. pi4-t4 separately had an unrelated
+// defect: recombining self (わたし) with a2-value-tsumori-kaeru-hayaku,
+// whose own baked content already opens with きょうは — adding わたしは in
+// front produced an unnatural どういう topic (わたしは きょうは...). It now
+// recombines self with a2-value-tsumori-yomu-hon (already modeled, in pi2,
+// and carrying no baked topic of its own), which is still a genuinely novel
+// visible target for pi4 and stays a single, natural topic.
+describe("A2 Module 2 — Task4 final spec-fix (natural vocative + no double-topic transfers)", () => {
+  function findVariant(lessonIndex: number, id: string): SentenceVariant {
+    const variant = module2Lessons[lessonIndex].variants.find((v) => v.id === id);
+    expect(variant, id).toBeDefined();
+    return variant as SentenceVariant;
+  }
+
+  function translationFor(lessonIndex: number, id: string): { en: string; it: string } {
+    const built = module2Lessons[lessonIndex];
+    return {
+      en: built.en[`${id}-translation`],
+      it: built.it[`${id}-translation`],
+    };
+  }
+
+  it("pi3-t1 (invite-eiga, sora) realizes as a genuine vocative そらさん、, never そらは, matching its already-vocative copy", () => {
+    const variant = findVariant(2, "plans-invitations-3-t1");
+    expect(variant.discourse.subjectRealization).toBe("vocative");
+    const sentence = realize(variant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("そらさん、いっしょにえいがをみましょうか");
+    expect(romaji.text).toBe("sora san, issho ni eiga o mimashou ka");
+    expect(sentence.canonicalJapanese).not.toContain("そらは");
+    const { en, it } = translationFor(2, "plans-invitations-3-t1");
+    expect(en).toBe("Sora, shall we watch a movie together?");
+    expect(it).toBe("Sora, guardiamo un film insieme?");
+  });
+
+  it("pi3-t3 (respond-accept, sora) realizes as a genuine vocative そらさん、, never a そらは speaker-label topic, and its copy drops the colon speaker-label for real vocative address", () => {
+    const variant = findVariant(2, "plans-invitations-3-t3");
+    expect(variant.discourse.subjectRealization).toBe("vocative");
+    const sentence = realize(variant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("そらさん、いいですね。いきましょう。");
+    expect(romaji.text).toBe("sora san, ii desu ne. ikimashou.");
+    expect(sentence.canonicalJapanese).not.toContain("そらは");
+    const { en, it } = translationFor(2, "plans-invitations-3-t3");
+    expect(en).toBe("Sora, sounds good. Let's go.");
+    expect(it).toBe("Sora, va bene. Andiamo.");
+    expect(en).not.toMatch(/^Sora:/);
+    expect(it).not.toMatch(/^Sora:/);
+  });
+
+  it("pi3-t4 (respond-decline, emi) realizes as a genuine vocative えみさん、, never a えみは speaker-label topic, and its copy drops the colon speaker-label for real vocative address", () => {
+    const variant = findVariant(2, "plans-invitations-3-t4");
+    expect(variant.discourse.subjectRealization).toBe("vocative");
+    const sentence = realize(variant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("えみさん、すみません、そのひはちょっとつごうがわるいです");
+    expect(romaji.text).toBe("emi san, sumimasen, sono hi wa chotto tsugou ga warui desu");
+    expect(sentence.canonicalJapanese).not.toContain("えみは");
+    const { en, it } = translationFor(2, "plans-invitations-3-t4");
+    expect(en).toBe("Emi, sorry, that day isn't very convenient.");
+    expect(it).toBe("Emi, scusa, quel giorno non mi è molto comodo.");
+    expect(en).not.toMatch(/^Emi:/);
+    expect(it).not.toMatch(/^Emi:/);
+  });
+
+  it("pi4-t1 (arrange-eki, sora) realizes as a genuine vocative そらさん、, never そらは", () => {
+    const variant = findVariant(3, "plans-invitations-4-t1");
+    expect(variant.discourse.subjectRealization).toBe("vocative");
+    const sentence = realize(variant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("そらさん、ごじにえきであいましょう");
+    expect(romaji.text).toBe("sora san, goji ni eki de aimashou");
+    expect(sentence.canonicalJapanese).not.toContain("そらは");
+  });
+
+  it("pi4-t2 (arrange-cafe, emi) realizes as a genuine vocative えみさん、, never えみは", () => {
+    const variant = findVariant(3, "plans-invitations-4-t2");
+    expect(variant.discourse.subjectRealization).toBe("vocative");
+    const sentence = realize(variant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("えみさん、どようびのごごさんじにカフェであいましょう");
+    expect(romaji.text).toBe("emi san, doyoubi no gogo sanji ni kafe de aimashou");
+    expect(sentence.canonicalJapanese).not.toContain("えみは");
+  });
+
+  it("pi4-t5 (arrange-time-check, sora) realizes as a genuine vocative そらさん、 with exactly one sentence-final か, never そらは or a doubled か", () => {
+    const variant = findVariant(3, "plans-invitations-4-t5");
+    expect(variant.discourse.subjectRealization).toBe("vocative");
+    const sentence = realize(variant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("そらさん、なんじにあいましょうか");
+    expect(romaji.text).toBe("sora san, nanji ni aimashou ka");
+    expect(sentence.canonicalJapanese).not.toContain("そらは");
+    expect((sentence.canonicalJapanese.match(/か/g) ?? []).length).toBe(1);
+  });
+
+  it("pi4-t4 (plan-tsumori) no longer double-topics わたしは...きょうは... — it recombines self with the already-modeled (pi2) topic-free a2-value-tsumori-yomu-hon instead", () => {
+    const variant = findVariant(3, "plans-invitations-4-t4");
+    expect(variant.discourse.subjectRealization).toBe("explicit");
+    expect(variant.slotValues.predicate).toBe("a2-value-tsumori-yomu-hon");
+    const sentence = realize(variant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("わたしはしゅうまつほんをよむつもりです");
+    expect(romaji.text).toBe("watashi wa shuumatsu hon o yomu tsumori desu");
+    // Never a double topic: exactly one は in the whole sentence.
+    expect((sentence.canonicalJapanese.match(/は/g) ?? []).length).toBe(1);
+    const { en, it } = translationFor(3, "plans-invitations-4-t4");
+    expect(en).toBe("This weekend I intend to read a book.");
+    expect(it).toBe("Questo weekend intendo leggere un libro.");
   });
 });
 

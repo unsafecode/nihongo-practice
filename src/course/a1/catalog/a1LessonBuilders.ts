@@ -121,7 +121,12 @@ export interface A1VariantSpec {
   readonly speakerRole: string;
   readonly addresseeRole: string | null;
   readonly subjectReferent: string | null;
-  readonly subjectRealization: "explicit" | "omitted";
+  /** A1 content only ever authors "explicit"/"omitted" — "vocative" (Task 4
+   * final spec-fix "natural vocative", A2-only) is accepted here purely for
+   * structural compatibility with the shared kit's `KitResolvedVariantSpec`
+   * (see `DiscourseFrame.subjectRealization`); `a1Variant` never receives it
+   * from any real A1 line. */
+  readonly subjectRealization: "explicit" | "omitted" | "vocative";
   readonly slots: Readonly<Record<string, string>>;
   readonly interrogative?: boolean;
   /** Explicit polarity/tense/mood override; used by Module 6 to realize

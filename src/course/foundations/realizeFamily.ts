@@ -445,6 +445,20 @@ const PARTICLE_TEXT: Readonly<Record<SemanticParticleId, EndingForm>> = {
 };
 
 /**
+ * The fixed, universal polite vocative-address honorific さん (Task 4 final
+ * spec-fix "natural vocative"): fixed grammar-level content, exactly like
+ * the polite copula/particle tables above — never a modeled semantic value
+ * or per-referent lesson content, so a vocative subject reuses only the
+ * referent's own already-modeled name tokens.
+ */
+const VOCATIVE_HONORIFIC: EndingForm = { jp: "さん", romaji: "san" };
+
+/** The comma that always separates a vocative address from the utterance it
+ * introduces (「そらさん、いいですね。」), immediately following さん with no
+ * space of its own — exactly like every other authored comma. */
+const VOCATIVE_COMMA: EndingForm = { jp: "、", romaji: "," };
+
+/**
  * i-adjective polite conjugation (§ Phase 2 M9/M11). Each key gives the bound
  * inflection that attaches to the adjective stem (あつ→あつ+い / あつ+くない /
  * あつ+かった / あつ+くなかった); an invariant standalone です is appended after
@@ -583,6 +597,37 @@ function pushParticle(
     text.romaji,
     "particle",
     { domain: "family", referenceId: `${variantId}/rule/${name}` },
+  );
+}
+
+/**
+ * Appends the fixed さん honorific (a standalone word — the generic
+ * kind/position boundary rule already gives it a leading space here,
+ * exactly like any other lexical word that is not the sentence's first
+ * token) then the 、 that always follows a vocative address (an attached
+ * punctuation token, like every other authored comma). Called only after
+ * the vocative subject's own referent tokens have already been pushed (see
+ * the "vocative" branch below), so さん never renders as the sentence's
+ * first token.
+ */
+function pushVocativeAddress(builder: TokenBuilder, variantId: SentenceVariantId): void {
+  pushToken(
+    builder,
+    variantId,
+    "rule::vocative::honorific",
+    VOCATIVE_HONORIFIC.jp,
+    VOCATIVE_HONORIFIC.romaji,
+    "lexical",
+    { domain: "family", referenceId: `${variantId}/rule/vocative` },
+  );
+  pushToken(
+    builder,
+    variantId,
+    "rule::vocative::comma",
+    VOCATIVE_COMMA.jp,
+    VOCATIVE_COMMA.romaji,
+    "punctuation",
+    { domain: "family", referenceId: `${variantId}/rule/vocative` },
   );
 }
 
@@ -738,14 +783,15 @@ export function realizeVariant(
     }
     resolvedSlotValues.set(slotDef.id, value);
   }
-  // An explicit subject realization always needs a resolved subject value to
-  // render — fail closed here, even if the family schema marks the "subject"
-  // slot optional (or the family has no "subject" slot at all), rather than
-  // reaching the assembly stage with nothing to emit. Omitted subjects never
-  // render a value even when one is resolved, so they impose no such
-  // requirement (see step 15).
+  // An explicit or vocative subject realization always needs a resolved
+  // subject value to render — fail closed here, even if the family schema
+  // marks the "subject" slot optional (or the family has no "subject" slot
+  // at all), rather than reaching the assembly stage with nothing to emit.
+  // Omitted subjects never render a value even when one is resolved, so
+  // they impose no such requirement (see step 15).
   if (
-    variant.discourse.subjectRealization === "explicit" &&
+    (variant.discourse.subjectRealization === "explicit" ||
+      variant.discourse.subjectRealization === "vocative") &&
     !resolvedSlotValues.has("subject") &&
     !slotErrors.some((error) => error.slotId === "subject")
   ) {
@@ -965,6 +1011,18 @@ export function realizeVariant(
       // The subject particle is は for every topic construction and が for
       // presentational existence — read from the rule, never hardcoded.
       pushParticle(builder, variant.id, rule.subjectParticle ?? "wa");
+    }
+  } else if (variant.discourse.subjectRealization === "vocative") {
+    // Task 4 final spec-fix ("natural vocative"): a direct-address vocative
+    // (referent's own tokens + さん + 、) instead of a topic-marked subject —
+    // never は, regardless of the rule's own `subjectParticle`, because a
+    // vocative address is not the grammatical topic/subject of the
+    // sentence that follows it. Validated above (step 7) exactly like
+    // "explicit": a vocative subject always has a resolved value here.
+    const subjectValue = resolvedSlotValues.get("subject");
+    if (subjectValue) {
+      pushSlotFragments(builder, variant.id, "subject", subjectValue);
+      pushVocativeAddress(builder, variant.id);
     }
   }
   for (const contentSlot of rule.contentSlots) {

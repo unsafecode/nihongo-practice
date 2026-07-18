@@ -1985,3 +1985,214 @@ describe("realizer generalization: the additive \"invariant\" predicateKind (Pha
     );
   });
 });
+
+// Task 4 final spec-fix ("keep M1-M4 transfer Japanese natural"): a fresh
+// spec re-review found that mechanically prepending an explicit subject +
+// は before an already-complete baked utterance (an invitation, a request,
+// a question) reads as topic-marking the addressee ("そらは..."), not as
+// natural direct address ("そらさん、...") — and, separately, that doing the
+// same to a predicate value that already bakes its own topic (きょうは...)
+// produces an unnatural double topic (わたしは きょうは...). `"vocative"` is
+// the new, additive third `subjectRealization` mode fixing the first
+// failure mode: it renders the resolved subject value's own tokens followed
+// by さん (space-bound, exactly like every other standalone grammatical
+// word) and 、 (attached, like every other authored comma), never は, ahead
+// of the family's own content — a genuinely compositional rule, reusing
+// already-modeled referent content, never a per-value baked vocative
+// string.
+describe("realizer generalization: the additive \"vocative\" subjectRealization (Task 4 final spec-fix)", () => {
+  const vocativeBaseDiscourse = {
+    speakerRoleId: "fixture-role-learner",
+    addresseeRoleId: null,
+    subjectReferentId: "fixture-referent-yuki",
+    subjectRealization: "vocative" as const,
+    scenarioNoteCopyId: "test-scenario-vocative",
+  };
+
+  function localCatalogsWith(
+    extraValues: readonly SemanticValue[],
+    extraSenses: readonly LearningTargetSense[],
+  ): RealizeVariantCatalogs {
+    return {
+      ...catalogs,
+      semanticValues: [...catalogs.semanticValues, ...extraValues],
+      learningTargetSenses: [...catalogs.learningTargetSenses, ...extraSenses],
+    };
+  }
+
+  const bareSense: LearningTargetSense = {
+    id: "test-sense-vocative-bare",
+    lexemeId: "test-lexeme-vocative-bare",
+    learningUse: "productive",
+    semanticFrameId: "test-frame-vocative-bare",
+    predicate: "invariant-vocative-bare" as LearningTargetSense["predicate"],
+    argumentRoles: [],
+    argumentParticleByRole: {},
+  };
+
+  // A whole baked invitation utterance (mirrors A2's real
+  // `a2-value-invite-eiga`): no baked topic of its own, so a vocative
+  // prefix would be the only subject marking in the sentence.
+  const bakedInviteValue: SemanticValue = {
+    id: "test-value-vocative-invite",
+    kind: "predicate-sense",
+    senseId: bareSense.id,
+    tokenFragments: [
+      { jp: "いっしょに", romaji: "issho ni", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "えいがを", romaji: "eiga o", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "み", romaji: "mi", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "ましょう", romaji: "mashou", kind: "morpheme", boundaryBefore: "attach" },
+      { jp: "か", romaji: "ka", kind: "particle", boundaryBefore: "attach" },
+    ],
+  };
+
+  const vocativeFamily: SentenceFamily = {
+    id: "test-family-vocative-invite" as SentenceFamily["id"],
+    level: "a2",
+    canDoIds: [],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [],
+  };
+
+  function vocativeVariant(overrides: Partial<SentenceVariant> = {}): SentenceVariant {
+    return {
+      id: "test-variant-vocative-invite",
+      sentenceFamilyId: vocativeFamily.id,
+      discourse: vocativeBaseDiscourse,
+      contextId: "fixture-a1-context-language-class",
+      slotValues: { subject: "fixture-value-yuki", predicate: bakedInviteValue.id },
+      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      pedagogicalUse: "transfer",
+      ...overrides,
+    };
+  }
+
+  it("renders the vocative subject as name + さん + 、 ahead of the baked utterance, never は", () => {
+    const result = realizeVariant(
+      vocativeFamily,
+      vocativeVariant(),
+      localCatalogsWith([bakedInviteValue], [bareSense]),
+      { availableConceptIds: [] },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.sentence.canonicalJapanese).toBe("ゆきさん、いっしょにえいがをみましょうか");
+    expect(result.sentence.tokens.some((token) => token.jp === "は")).toBe(false);
+    const romaji = formatRomaji(result.sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) return;
+    expect(romaji.text).toBe("yuki san, issho ni eiga o mimashou ka");
+  });
+
+  it("emits さん as a standalone space-bound word and 、 as an attached punctuation token (never fused as ゆきさん as one token, never a leading space before 、)", () => {
+    const result = realizeVariant(
+      vocativeFamily,
+      vocativeVariant(),
+      localCatalogsWith([bakedInviteValue], [bareSense]),
+      { availableConceptIds: [] },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.sentence.tokens.slice(0, 3).map((token) => token.jp)).toEqual(["ゆき", "さん", "、"]);
+    const [nameToken, sanToken, commaToken] = result.sentence.tokens;
+    expect(nameToken.boundaryBefore).toBe("attach"); // first token in the sentence
+    expect(sanToken.boundaryBefore).toBe("space");
+    expect(sanToken.kind).toBe("lexical");
+    expect(commaToken.boundaryBefore).toBe("attach");
+    expect(commaToken.kind).toBe("punctuation");
+  });
+
+  it("never emits は anywhere for a vocative subject even when the predicate itself is a plain declarative (not just an invitation)", () => {
+    const declarativeValue: SemanticValue = {
+      id: "test-value-vocative-declarative",
+      kind: "predicate-sense",
+      senseId: bareSense.id,
+      tokenFragments: [
+        { jp: "いいですね", romaji: "ii desu ne", kind: "lexical", boundaryBefore: "attach" },
+        { jp: "。", romaji: ".", kind: "punctuation", boundaryBefore: "attach" },
+        { jp: "いき", romaji: "iki", kind: "lexical", boundaryBefore: "attach" },
+        { jp: "ましょう", romaji: "mashou", kind: "morpheme", boundaryBefore: "attach" },
+        { jp: "。", romaji: ".", kind: "punctuation", boundaryBefore: "attach" },
+      ],
+    };
+    const result = realizeVariant(
+      vocativeFamily,
+      vocativeVariant({ slotValues: { subject: "fixture-value-yuki", predicate: declarativeValue.id } }),
+      localCatalogsWith([declarativeValue], [bareSense]),
+      { availableConceptIds: [] },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.sentence.canonicalJapanese).toBe("ゆきさん、いいですね。いきましょう。");
+    expect(result.sentence.tokens.some((token) => token.jp === "は")).toBe(false);
+  });
+
+  it("fails closed (missing-slot, never throws) when the subject is vocative but no subject value resolves, exactly like the explicit-subject fail-closed contract", () => {
+    let result: ReturnType<typeof realizeVariant> | undefined;
+    expect(() => {
+      result = realizeVariant(
+        vocativeFamily,
+        vocativeVariant({ slotValues: { predicate: bakedInviteValue.id } }),
+        localCatalogsWith([bakedInviteValue], [bareSense]),
+        { availableConceptIds: [] },
+      );
+    }).not.toThrow();
+    expect(result?.ok).toBe(false);
+    if (!result || result.ok) return;
+    expect(result.errors.length).toBeGreaterThan(0);
+    expect(result.errors.every((error) => error.code === "missing-slot")).toBe(true);
+    expect(result.errors[0]?.slotId).toBe("subject");
+  });
+
+  it("keeps a distinct semantic fingerprint from the equivalent explicit-subject realization of the same referent/predicate (vocative and topic-marked are genuinely different discourse choices)", () => {
+    const vocativeResult = realizeVariant(
+      vocativeFamily,
+      vocativeVariant(),
+      localCatalogsWith([bakedInviteValue], [bareSense]),
+      { availableConceptIds: [] },
+    );
+    const explicitResult = realizeVariant(
+      vocativeFamily,
+      vocativeVariant({ discourse: { ...vocativeBaseDiscourse, subjectRealization: "explicit" } }),
+      localCatalogsWith([bakedInviteValue], [bareSense]),
+      { availableConceptIds: [] },
+    );
+    expect(vocativeResult.ok).toBe(true);
+    expect(explicitResult.ok).toBe(true);
+    if (!vocativeResult.ok || !explicitResult.ok) return;
+    expect(vocativeResult.sentence.semanticFingerprint).not.toBe(explicitResult.sentence.semanticFingerprint);
+    // And the explicit form must still show the pre-existing は-topic
+    // behavior unchanged (no regression to the existing "explicit" mode).
+    expect(explicitResult.sentence.canonicalJapanese).toBe("ゆきはいっしょにえいがをみましょうか");
+  });
+
+  it("appends the sentence-final か for an interrogative vocative variant exactly like every other subject realization (mood is orthogonal to vocative)", () => {
+    const questionValue: SemanticValue = {
+      id: "test-value-vocative-question",
+      kind: "predicate-sense",
+      senseId: bareSense.id,
+      tokenFragments: [
+        { jp: "なんじに", romaji: "nanji ni", kind: "lexical", boundaryBefore: "attach" },
+        { jp: "あい", romaji: "ai", kind: "lexical", boundaryBefore: "attach" },
+        { jp: "ましょう", romaji: "mashou", kind: "morpheme", boundaryBefore: "attach" },
+      ],
+    };
+    const result = realizeVariant(
+      vocativeFamily,
+      vocativeVariant({
+        slotValues: { subject: "fixture-value-yuki", predicate: questionValue.id },
+        form: { polarity: "affirmative", tense: "present", formality: "polite", interrogative: true },
+      }),
+      localCatalogsWith([questionValue], [bareSense]),
+      { availableConceptIds: [] },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.sentence.canonicalJapanese).toBe("ゆきさん、なんじにあいましょうか");
+  });
+});

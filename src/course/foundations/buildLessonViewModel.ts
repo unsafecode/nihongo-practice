@@ -80,7 +80,7 @@ export interface FoundationLocalizedRow {
   readonly familyId: string;
   readonly contextId: string;
   readonly speakerRoleId: string;
-  readonly subjectRealization: "explicit" | "omitted";
+  readonly subjectRealization: "explicit" | "omitted" | "vocative";
   readonly semanticFingerprint: string;
   readonly predicateSenseId: string;
   readonly pedagogicalUse: string;
