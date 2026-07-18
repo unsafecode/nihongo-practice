@@ -167,6 +167,24 @@ describe("A2 kanji catalog", () => {
     expect(tomaruExposure.lexemeSenseId).not.toBe(hakuExposure.lexemeSenseId);
   });
 
+  it("teaches 泊 as 泊まります／tomarimasu ('to stay'), lexemeSenseId a2-sense-tomaru-stay — distinct from 止's a2-sense-tomaru-stop ('to stop') — with its と/to reading intact", () => {
+    const tome = A2_KANJI_ENTRIES.find((e) => e.glyph === "止")!;
+    const haku = A2_KANJI_ENTRIES.find((e) => e.glyph === "泊")!;
+    const tomeExposure = A2_KANJI_EXPOSURES.find((e) => e.kanjiId === tome.id)!;
+    const hakuExposure = A2_KANJI_EXPOSURES.find((e) => e.kanjiId === haku.id)!;
+
+    // The taught lexeme for 泊 is the verb 泊まります (tomarimasu, "to stay" /
+    // "to lodge"), not the unrelated noun 宿泊 — the sense slug must reflect
+    // the actual verb being taught, and must stay distinct from 止's "to
+    // stop" sense despite both glyphs sharing the と/to reading and "tomaru"
+    // stem.
+    expect(hakuExposure.lexemeSenseId).toBe("a2-sense-tomaru-stay");
+    expect(tomeExposure.lexemeSenseId).toBe("a2-sense-tomaru-stop");
+
+    const hakuReading = A2_KANJI_READINGS.find((r) => r.kanjiId === haku.id);
+    expect(hakuReading).toMatchObject({ kana: "と", romaji: "to" });
+  });
+
   it("assesses practical-texts' second cohort (料/金/開/閉) at a2-synthesis-4, not the naive next-module-1", () => {
     for (const glyph of ["料", "金", "開", "閉"]) {
       const entry = A2_KANJI_ENTRIES.find((e) => e.glyph === glyph)!;

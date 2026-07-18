@@ -27,11 +27,15 @@ import type { KanjiActivityMode, KanjiExposure } from "../a2/kanji/kanjiTypes";
  *   shared `ActionButton`, whose `.action`/`.action--inline` classes already
  *   guarantee the `--action-target-min` (44px) touch target — see
  *   `src/styles.css`), carrying `aria-expanded` and a `.kanji-reveal` class
- *   hook. Once revealed, the `<rt>` is deliberately *not* aria-hidden (it is
- *   now the only visible reading), so the `<ruby>` gets an explicit
- *   `aria-label` pinned to just the glyph — otherwise the browser's default
- *   ruby accessible-name computation would concatenate base+rt into a
- *   duplicated "glyph+reading" string.
+ *   hook. The toggle's *only* accessible name is the caller-supplied,
+ *   localized `revealShowLabel`/`revealHideLabel` copy (there is no English
+ *   fallback string baked into this component — every caller, including
+ *   every test, must supply real copy) so the control is never silently
+ *   English-only for a non-English learner. Once revealed, the `<rt>` is
+ *   deliberately *not* aria-hidden (it is now the only visible reading), so
+ *   the `<ruby>` gets an explicit `aria-label` pinned to just the glyph —
+ *   otherwise the browser's default ruby accessible-name computation would
+ *   concatenate base+rt into a duplicated "glyph+reading" string.
  * - `assessed` (furigana "hidden", romaji "not-shown"): a bare glyph, no
  *   `<ruby>`/`<rt>` element at all, and no romaji hint, unconditionally —
  *   plus a visible explanation caption sourced from the caller-supplied
@@ -50,10 +54,21 @@ export interface KanjiRubyTextProps {
   readonly mode?: KanjiActivityMode;
   /** Localized copy for key `a2-kanji-why-visible`, shown at the assessed stage. */
   readonly assessedExplanation: string;
+  /**
+   * Localized copy for key `a2-kanji-reveal-show`: the reveal toggle's
+   * accessible name (`aria-label`) while the reading is still hidden. There
+   * is no hardcoded English fallback — every caller must supply real,
+   * localized copy so the control's only accessible name is never silently
+   * English-only for a non-English learner.
+   */
+  readonly revealShowLabel: string;
+  /**
+   * Localized copy for key `a2-kanji-reveal-hide`: the reveal toggle's
+   * accessible name (`aria-label`) once the learner has revealed the
+   * reading. Same no-hardcoded-fallback guarantee as {@link revealShowLabel}.
+   */
+  readonly revealHideLabel: string;
 }
-
-const REVEAL_SHOW_LABEL = "Show reading";
-const REVEAL_HIDE_LABEL = "Hide reading";
 
 export function KanjiRubyText({
   glyph,
@@ -63,6 +78,8 @@ export function KanjiRubyText({
   script,
   mode = "read",
   assessedExplanation,
+  revealShowLabel,
+  revealHideLabel,
 }: KanjiRubyTextProps): ReactElement {
   const support = a2KanjiAssistancePolicy.supportFor(exposure, mode);
 
@@ -86,6 +103,8 @@ export function KanjiRubyText({
         reading={reading}
         romaji={romaji}
         showRomajiHint={showRomajiHint}
+        revealShowLabel={revealShowLabel}
+        revealHideLabel={revealHideLabel}
       />
     );
   }
@@ -108,11 +127,15 @@ function RevealableKanjiRuby({
   reading,
   romaji,
   showRomajiHint,
+  revealShowLabel,
+  revealHideLabel,
 }: {
   readonly glyph: string;
   readonly reading: string;
   readonly romaji?: string;
   readonly showRomajiHint: boolean;
+  readonly revealShowLabel: string;
+  readonly revealHideLabel: string;
 }): ReactElement {
   const [revealed, setRevealed] = useState(false);
 
@@ -131,7 +154,7 @@ function RevealableKanjiRuby({
         variant="inline"
         className="kanji-reveal"
         aria-expanded={revealed}
-        aria-label={revealed ? REVEAL_HIDE_LABEL : REVEAL_SHOW_LABEL}
+        aria-label={revealed ? revealHideLabel : revealShowLabel}
         onClick={() => setRevealed((value) => !value)}
       >
         <span aria-hidden="true">{revealed ? "\u2212" : "+"}</span>

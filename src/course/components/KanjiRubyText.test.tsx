@@ -40,6 +40,8 @@ function baseProps(overrides: Partial<KanjiRubyTextProps> = {}): KanjiRubyTextPr
     exposure: exposureAt("first-supported"),
     script: "hiragana" as Script,
     assessedExplanation: "Kanji you're assessed on show no reading support.",
+    revealShowLabel: "Reveal the reading",
+    revealHideLabel: "Conceal the reading",
     ...overrides,
   };
 }
@@ -140,6 +142,34 @@ describe("KanjiRubyText — revealable (furigana hidden behind a learner toggle)
   it("still allows the permitted romaji hint under romaji script at the revealable stage", () => {
     const { container } = mount(baseProps({ exposure: exposureAt("revealable"), script: "romaji" }));
     expect(container.textContent).toContain("hana");
+  });
+
+  it("uses the exact caller-supplied EN revealShowLabel/revealHideLabel as the toggle's accessible name, proving no hardcoded fallback string", () => {
+    const { container } = mount(
+      baseProps({
+        exposure: exposureAt("revealable"),
+        revealShowLabel: "Reveal the reading",
+        revealHideLabel: "Conceal the reading",
+      }),
+    );
+    const button = container.querySelector("button.kanji-reveal") as HTMLButtonElement;
+    expect(button.getAttribute("aria-label")).toBe("Reveal the reading");
+    act(() => button.click());
+    expect(button.getAttribute("aria-label")).toBe("Conceal the reading");
+  });
+
+  it("uses the exact caller-supplied IT revealShowLabel/revealHideLabel as the toggle's accessible name, proving the label is localized rather than a fixed English string", () => {
+    const { container } = mount(
+      baseProps({
+        exposure: exposureAt("revealable"),
+        revealShowLabel: "Mostra la lettura",
+        revealHideLabel: "Nascondi la lettura",
+      }),
+    );
+    const button = container.querySelector("button.kanji-reveal") as HTMLButtonElement;
+    expect(button.getAttribute("aria-label")).toBe("Mostra la lettura");
+    act(() => button.click());
+    expect(button.getAttribute("aria-label")).toBe("Nascondi la lettura");
   });
 });
 
