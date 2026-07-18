@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ReactElement } from "react";
 import { useLocale } from "../../i18n/LocaleContext";
 import { useScript } from "../../settings/ScriptContext";
+import { opaqueTargetKey } from "../foundations/opaqueTargetKey";
 import { getCourseCopy } from "../i18n/catalog";
 import type { GeneratedExercise } from "./lessonExerciseModel";
 import { exampleTokens, segmentToken } from "./lessonExerciseModel";
@@ -16,6 +17,7 @@ import {
   unplaceTile,
 } from "./exerciseState";
 import { ExerciseView } from "./ExerciseView";
+import type { ExerciseItemData } from "./ExerciseView";
 import type { AttemptOutcome } from "./exerciseState";
 
 /**
@@ -56,6 +58,15 @@ export function Exercise({
 
   const instruction = exercise.instruction[locale];
   const intentText = exercise.intentText[locale];
+  // The only DOM-visible trace of the exercise's real target: an opaque,
+  // non-reversible hash (never the raw Japanese `visibleTargetKey`) so an
+  // e2e semantic-diversity audit can genuinely tell two `.lesson-exercise`
+  // cards' targets apart, or the same target reused, on both the lesson
+  // practice list and the `Da ripassare` review surface (both render
+  // through this shared container).
+  const itemData: ExerciseItemData = {
+    "visible-target-key": opaqueTargetKey(exercise.visibleTargetKey),
+  };
 
   return (
     <ExerciseView
@@ -72,6 +83,7 @@ export function Exercise({
       tokenForTile={segmentToken}
       tokensForExample={exampleTokens}
       errorText={getCourseCopy(locale).lesson.contentFormattingError}
+      itemData={itemData}
       handlers={{
         onPlaceTile: (tileId) => setState((s) => placeTile(s, tileId)),
         onUnplaceTile: (tileId) => setState((s) => unplaceTile(s, tileId)),

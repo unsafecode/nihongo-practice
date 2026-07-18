@@ -61,6 +61,19 @@ export interface GeneratedExercise {
    * Can-do transfer evidence only for a genuine transfer-round acceptance.
    */
   readonly practicePurpose: "guided-controlled" | "transfer";
+  /**
+   * The exercise's real visible-answer key: the semantic engine's own
+   * `FoundationRoundTarget.visibleTargetKey` (the realized canonical
+   * Japanese sentence) for the 44 semantic lessons, or a phonetic item's own
+   * displayed `glyph` for the four `sounds-*` lessons — never a re-derived
+   * id. `Exercise.tsx` only ever emits this through {@link opaqueTargetKey}
+   * (never the raw string) as `.lesson-exercise`'s `data-visible-target-key`,
+   * so an e2e semantic-diversity audit can tell two exercises' real targets
+   * apart, or the same target reused, without ever reading raw Japanese
+   * (`authoring.ts`'s `FORBIDDEN_FIELD_NAMES` bans this field name from ever
+   * reaching a recipe, let alone the DOM, in un-hashed form).
+   */
+  readonly visibleTargetKey: string;
 }
 
 export interface LessonExerciseModelError {
@@ -136,6 +149,10 @@ function buildSemanticModel(lessonId: string): LessonExercisesModel {
         instruction,
         intentText,
         practicePurpose: enRound.purpose,
+        // Locale-invariant (derived from the realized Japanese target, not
+        // any locale's narration), so it is safe to read from the `en`
+        // build alone rather than re-validating it per locale above.
+        visibleTargetKey: enTarget.visibleTargetKey,
       });
     }
   }

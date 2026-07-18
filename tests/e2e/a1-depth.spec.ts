@@ -1,5 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
+import { A1_PHONETIC_PRACTICE_MAX_REUSE, A1_PHONETIC_PRACTICE_MIN_UNIQUE } from "../../src/course/a1/authoring";
+import { checkVisibleTargetDiversity } from "../../src/course/foundations/visibleTargetDiversity";
 import {
+  assertLocalOnlyNetwork,
   assertNoHorizontalOverflow,
   assertNoRuntimeErrors,
   auditTouchTargets,
@@ -27,8 +30,10 @@ import {
  * that a real learner's stored browser data goes through exactly once.
  *
  * Every assertion here reads only stable, non-secret DOM metadata: opaque
- * author-time ids embedded in `aria-labelledby` (never the canonical
- * Japanese answer text a lesson teaches, which `authoring.ts`'s
+ * author-time ids embedded in `aria-labelledby` (used only for the round
+ * split — never as a stand-in for real content diversity), the opaque
+ * `data-visible-target-key` hash each `.lesson-exercise` carries (never the
+ * canonical Japanese answer text a lesson teaches, which `authoring.ts`'s
  * `FORBIDDEN_FIELD_NAMES` bans from ever reaching a DOM attribute), fixed
  * class names, and `data-*` hooks the components already expose. No visual
  * OCR, no real network/microphone.
@@ -70,37 +75,47 @@ function isMobile(width: number): boolean {
 }
 
 /**
- * Classifies one `.lesson-exercise`'s `aria-labelledby` id into its round
- * (semantic only) and its opaque target/item key, generically for either
- * lesson shape:
+ * Extracts one `.lesson-exercise`'s round from its `aria-labelledby` id,
+ * generically for either lesson shape:
  *  - semantic: `ex-{lessonId}-round-{n}::{lessonId}-{suffix}-heading`
  *  - phonetic: `ex-{itemId}-ex-heading` (no round, no `::`)
+ *
+ * This id is only ever used for the round split below — never as a stand-in
+ * for the exercise's real visible target (see `readVisibleTargetKeys`,
+ * which reads the dedicated `data-visible-target-key` attribute instead;
+ * Phase 2 Task 7, M3).
  */
-function classifyExercise(
-  labelledby: string,
-  lessonId: string,
-): { readonly round: number | null; readonly key: string } {
+function classifyExerciseRound(labelledby: string): number | null {
   const splitAt = labelledby.indexOf("::");
-  if (splitAt === -1) {
-    const key = labelledby.replace(/^ex-/, "").replace(/-ex-heading$/, "");
-    return { round: null, key };
-  }
+  if (splitAt === -1) return null;
   const before = labelledby.slice(0, splitAt);
   const roundMatch = /-round-(\d+)$/.exec(before);
-  const round = roundMatch ? Number(roundMatch[1]) : null;
-  const after = labelledby.slice(splitAt + 2).replace(/-heading$/, "");
-  const key = after.startsWith(`${lessonId}-`) ? after.slice(lessonId.length + 1) : after;
-  return { round, key };
+  return roundMatch ? Number(roundMatch[1]) : null;
 }
 
-async function readExerciseKeys(
-  page: Page,
-  lessonId: string,
-): Promise<{ readonly round: number | null; readonly key: string }[]> {
+async function readExerciseRounds(page: Page): Promise<(number | null)[]> {
   const labels = await page
     .locator(".lesson-exercise")
     .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("aria-labelledby") ?? ""));
-  return labels.map((label) => classifyExercise(label, lessonId));
+  return labels.map((label) => classifyExerciseRound(label));
+}
+
+/**
+ * Reads every `.lesson-exercise`'s `data-visible-target-key` — the opaque,
+ * non-reversible hash (`opaqueTargetKey`) of the exercise's real realized
+ * target (`GeneratedExercise.visibleTargetKey`: the canonical Japanese
+ * sentence for a semantic exercise, or the item's own displayed glyph for a
+ * phonetic one). This is genuine DOM-metadata evidence of what the learner
+ * is actually shown, unlike an exercise/variant id (unique by construction,
+ * so counting *those* would always pass regardless of real content
+ * diversity — the tautology this replaces; Phase 2 Task 7, M3). The raw
+ * Japanese itself is never emitted — `authoring.ts`'s `FORBIDDEN_FIELD_NAMES`
+ * bans `visibleTargetKey` from ever reaching a DOM attribute unhashed.
+ */
+async function readVisibleTargetKeys(page: Page): Promise<string[]> {
+  return page
+    .locator(".lesson-exercise")
+    .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-visible-target-key") ?? ""));
 }
 
 /** Fails if the lesson route rendered a content-generation-error notice
@@ -144,8 +159,8 @@ test.describe("48-route density and contract acceptance", () => {
       expect(exerciseCount, "exercise count").toBeGreaterThanOrEqual(8);
       expect(exerciseCount, "exercise count").toBeLessThanOrEqual(12);
 
-      const keys = await readExerciseKeys(page, lesson.lessonId);
-      expect(keys, "every exercise resolves a round+key").toHaveLength(exerciseCount);
+      const rounds = await readExerciseRounds(page);
+      expect(rounds, "every exercise resolves").toHaveLength(exerciseCount);
 
       if (!lesson.phonetic) {
         // Semantic lessons: exactly 10 exercises, an exact 5+5 round split
@@ -154,33 +169,39 @@ test.describe("48-route density and contract acceptance", () => {
         // `PracticeRounds` prose UI is fixture-only, never in the
         // production lesson render).
         expect(exerciseCount, "semantic exercise count").toBe(10);
-        const roundOne = keys.filter((k) => k.round === 1);
-        const roundTwo = keys.filter((k) => k.round === 2);
+        const roundOne = rounds.filter((r) => r === 1);
+        const roundTwo = rounds.filter((r) => r === 2);
         expect(roundOne, "round 1 size").toHaveLength(5);
         expect(roundTwo, "round 2 size").toHaveLength(5);
       }
 
-      // >=5 unique target keys, each reused at most twice — the DOM-safe
-      // proxy for the authoring-time `visibleTargetKey` diversity gate
-      // (the canonical Japanese sentence itself, which is deliberately
-      // never emitted as DOM metadata — see `authoring.ts`'s
-      // `FORBIDDEN_FIELD_NAMES`). Semantic rounds are constructed with
-      // unique variant ids by `assertRoundShape`, so this always holds by
-      // construction there; phonetic lessons declare it directly
-      // ("phonetic uses explicit contract" per `A1_PHONETIC_PRACTICE_MIN_UNIQUE`
-      // / `_MAX_REUSE`).
-      const counts = new Map<string, number>();
-      for (const { key } of keys) counts.set(key, (counts.get(key) ?? 0) + 1);
-      expect(counts.size, "unique target/item keys").toBeGreaterThanOrEqual(5);
-      for (const [key, count] of counts) {
-        expect(count, `reuse of target/item key "${key}"`).toBeLessThanOrEqual(2);
+      // >=5 unique real visible targets, each reused at most twice — read
+      // straight from each card's own `data-visible-target-key` (Phase 2
+      // Task 7, M3), never derived from an exercise/variant id. Every value
+      // must also be the opaque `k…` hash form, proving no raw Japanese
+      // ever reaches this attribute.
+      const visibleTargetKeys = await readVisibleTargetKeys(page);
+      expect(visibleTargetKeys, "every exercise carries a visible-target key").toHaveLength(
+        exerciseCount,
+      );
+      for (const key of visibleTargetKeys) {
+        expect(key, "visible-target key must be the opaque hash form").toMatch(/^k[0-9a-z]+$/);
       }
+      const diversity = checkVisibleTargetDiversity(
+        visibleTargetKeys,
+        A1_PHONETIC_PRACTICE_MAX_REUSE,
+      );
+      expect(diversity.uniqueCount, "unique visible-target keys").toBeGreaterThanOrEqual(
+        A1_PHONETIC_PRACTICE_MIN_UNIQUE,
+      );
+      expect(diversity.overusedKeys, "visible-target keys reused more than twice").toEqual([]);
 
       const canDo = page.locator(".a1-lesson-recap__can-do");
       await expect(canDo).toBeVisible();
       await expect(canDo).toContainText("Can-do:");
 
       await assertNoRuntimeErrors(page, observers);
+      assertLocalOnlyNetwork(observers);
     });
   }
 });
@@ -208,6 +229,7 @@ test.describe("representative desktop + mobile deep interaction", () => {
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
 
     await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
   });
 
   test("the matrix disclosure is operable by keyboard and by pointer alike", async ({ page }) => {
@@ -230,6 +252,7 @@ test.describe("representative desktop + mobile deep interaction", () => {
     expect(offenders, JSON.stringify(offenders)).toEqual([]);
 
     await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
   });
 
   test("locale and script toggles change the rail label and hide the hiragana row without breaking the lesson", async ({
@@ -259,6 +282,7 @@ test.describe("representative desktop + mobile deep interaction", () => {
 
     await assertNoContentErrorNotice(page);
     await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
   });
 
   test("an unsupported speech engine falls back gracefully without blocking the lesson", async ({
@@ -278,6 +302,7 @@ test.describe("representative desktop + mobile deep interaction", () => {
 
     await assertNoContentErrorNotice(page);
     await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
   });
 
   test("reloading mid-lesson keeps the visited-evidence state and renders identically", async ({
@@ -296,6 +321,7 @@ test.describe("representative desktop + mobile deep interaction", () => {
     await expect(page.locator(".a1-lesson-recap__can-do")).toBeVisible();
     await assertNoContentErrorNotice(page);
     await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
   });
 
   test("a lesson-rail anchor link scrolls its section into view without stealing focus", async ({
@@ -342,6 +368,7 @@ test.describe("representative desktop + mobile deep interaction", () => {
 
     await assertNoHorizontalOverflow(page);
     await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
   });
 });
 
@@ -467,6 +494,7 @@ test.describe("capstones and checkpoint", () => {
       await expect(page.locator(".a1-lesson-recap__can-do")).toBeVisible();
     }
     await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
   });
 
   test("a checkpoint attempt is recorded only from a real accepted acceptance, never from a mere visit or reload, and Home reflects only genuine evidence", async ({
@@ -550,6 +578,7 @@ test.describe("capstones and checkpoint", () => {
     );
 
     await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
   });
 });
 
@@ -651,6 +680,7 @@ test.describe("V3 -> V4 migration, live", () => {
     await expect(lessonRow.locator(".module-card__lesson-state--practiced")).toHaveCount(0);
 
     await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
   });
 
   test("the retired sounds-5 lesson aliases onto sounds-4, keeping the earliest visitedAt", async ({
@@ -680,6 +710,7 @@ test.describe("V3 -> V4 migration, live", () => {
     expect(progress.migrationNotice.resetEvidenceLessonIds).toContain("sounds-4");
 
     await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
   });
 
   test("the three named capstone scenarios map onto their numbered v4 destinations", async ({
@@ -708,6 +739,7 @@ test.describe("V3 -> V4 migration, live", () => {
     );
 
     await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
   });
 
   test("the unsafe capstones-orientation source has no v4 twin and is retained as an orphan", async ({
@@ -732,6 +764,7 @@ test.describe("V3 -> V4 migration, live", () => {
     expect(progress.levels.a1.orphanedLessonIds).toContain("capstones-orientation");
 
     await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
   });
 
   test("an unknown lesson id is retained as an orphan and any review-queue entries are unconditionally cleared", async ({
@@ -777,6 +810,7 @@ test.describe("V3 -> V4 migration, live", () => {
     expect(progress.levels.a1.orphanedReviewKeys).toEqual([]);
 
     await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
   });
 
   test("last-visited carries through the id map, and A2 is always completely empty after migration", async ({
@@ -807,6 +841,7 @@ test.describe("V3 -> V4 migration, live", () => {
     });
 
     await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
   });
 
   test("a failed storage write during migration surfaces truthfully without corrupting the in-memory result", async ({
@@ -821,19 +856,21 @@ test.describe("V3 -> V4 migration, live", () => {
         },
       }),
     );
-    // Break persistence before the app boots (migration writes the
-    // migrated v4 straight back on load): `getItem` stays real so the
-    // migration itself still reads the seeded v3 payload; only `setItem`
-    // throws, matching a real quota-exceeded/private-browsing failure.
+    // Break persistence before the app boots (migration writes the migrated
+    // v4 straight back on load). Registration order matters here:
+    // `seedV3` above already called `page.addInitScript` to write the seed
+    // with the real `setItem`, and Playwright always runs a page's
+    // `addInitScript` callbacks in the order they were registered for every
+    // navigation — so this second, later-registered init script is
+    // guaranteed to install its override only *after* the seed write has
+    // already landed, never before it. `getItem` stays real so the
+    // migration itself still reads the seeded v3 payload; only `setItem` is
+    // replaced, and unconditionally throws on every call from here on,
+    // matching a real quota-exceeded/private-browsing failure.
     await page.addInitScript(() => {
-      const proto = Object.getPrototypeOf(window.localStorage) as Storage;
-      const originalSetItem = proto.setItem.bind(window.localStorage);
-      let allowed = 0;
       Object.defineProperty(window.localStorage, "setItem", {
         configurable: true,
-        value: (key: string, value: string) => {
-          allowed += 1;
-          if (allowed <= 0) return originalSetItem(key, value);
+        value: () => {
           throw new DOMException("simulated storage failure", "QuotaExceededError");
         },
       });
@@ -862,6 +899,7 @@ test.describe("V3 -> V4 migration, live", () => {
     ).toBeVisible();
 
     await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
   });
 
   test("an already-valid V4 payload is passed through unchanged and reloads idempotently", async ({
@@ -921,5 +959,36 @@ test.describe("V3 -> V4 migration, live", () => {
     await expect(page.locator(".notice--info").filter({ hasText: "ricostruiti" })).toHaveCount(0);
 
     await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
+  });
+});
+
+test.describe("network guard sanity", () => {
+  // Proves the `assertLocalOnlyNetwork(observers)` calls added above (Phase
+  // 2 Task 7, M2) are a real, load-bearing check and not a no-op: it
+  // manufactures one genuine, observable external request and asserts the
+  // helper actually fails. Without this, a future refactor could silently
+  // turn every call above into dead code (e.g. an accidental copy of the
+  // wrong observers object) and no test would ever notice.
+  test("assertLocalOnlyNetwork fails when a synthetic external request occurs", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, routeUrls.home);
+
+    // "invalid" is a reserved TLD (RFC 2606) guaranteed to never resolve —
+    // the request still fires as a real outgoing network request (and is
+    // captured by `setupPageObservers`'s `request` listener) before DNS
+    // failure ever happens, so this needs no real external endpoint and
+    // cannot flake against a live host.
+    const synthetic = "https://example.invalid/synthetic-external-probe";
+    const requestSeen = page.waitForRequest(synthetic).catch(() => null);
+    await page.evaluate((url: string) => {
+      fetch(url).catch(() => undefined);
+    }, synthetic);
+    await requestSeen;
+
+    expect(observers.externalRequests).toContain(synthetic);
+    expect(() => assertLocalOnlyNetwork(observers)).toThrow();
   });
 });

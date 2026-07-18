@@ -132,6 +132,7 @@ if (!legacyTransformResult.ok) {
 const transformEx: GeneratedExercise = {
   definitionId: legacyTransformDefinition.id,
   targetExampleId: legacyTransformDefinition.targetExampleId,
+  visibleTargetKey: legacyTransformDefinition.targetExampleId,
   prompt: legacyTransformResult.prompt,
   instruction: { en: "INSTRUCTION-TEXT", it: "INSTRUCTION-TEXT" },
   intentText: { en: null, it: null },

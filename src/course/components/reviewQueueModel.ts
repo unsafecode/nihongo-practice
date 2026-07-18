@@ -33,6 +33,12 @@ export interface ReviewQueueItem {
   readonly exerciseDefinitionId: string;
   /** The shared target example, for deriving in-sentence romaji in review mode. */
   readonly targetExampleId: string;
+  /** The exercise's real displayed target (still the raw value here; hashed
+   * only inside `Exercise.tsx` via `opaqueTargetKey` into
+   * `data-visible-target-key` DOM metadata — never emitted raw) — carried
+   * through review mode so a reviewed exercise is exactly as
+   * diversity-auditable as a fresh one. */
+  readonly visibleTargetKey: string;
   readonly prompt: ExercisePrompt;
   /** Localized instruction for the exercise's kind, by locale. */
   readonly instruction: Readonly<Record<Locale, string>>;
@@ -85,6 +91,7 @@ export function buildReviewQueueView(
       moduleId,
       exerciseDefinitionId: entry.exerciseDefinitionId,
       targetExampleId: exercise.targetExampleId,
+      visibleTargetKey: exercise.visibleTargetKey,
       prompt: exercise.prompt,
       instruction: exercise.instruction,
       intentText: exercise.intentText,

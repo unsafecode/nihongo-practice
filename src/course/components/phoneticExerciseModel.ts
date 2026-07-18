@@ -273,6 +273,13 @@ function buildPhoneticExercise(
         instruction,
         intentText: NULL_INTENT,
         practicePurpose,
+        // The item's own displayed glyph — the actual visible Japanese
+        // target, never `item.id`/`item.exerciseRefId` (an author-time
+        // identifier two distinct items could coincidentally share no
+        // differently than two glyphs could, which would make a diversity
+        // check tautological rather than a real check on what a learner
+        // sees).
+        visibleTargetKey: item.glyph,
       },
       tokenEntries: tokens.map((token) => [token.id, token] as const),
       exampleTokenEntries: [[item.id, tokens]],
@@ -319,6 +326,7 @@ function buildPhoneticExercise(
       instruction,
       intentText: NULL_INTENT,
       practicePurpose,
+      visibleTargetKey: item.glyph,
     },
     tokenEntries,
     exampleTokenEntries: [[item.id, [ownToken]]],

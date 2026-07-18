@@ -128,6 +128,7 @@ export function ReviewQueue(): ReactElement {
                         exercise={{
                           definitionId: item.exerciseDefinitionId,
                           targetExampleId: item.targetExampleId,
+                          visibleTargetKey: item.visibleTargetKey,
                           prompt: item.prompt,
                           instruction: item.instruction,
                           intentText: item.intentText,

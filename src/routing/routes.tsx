@@ -36,9 +36,16 @@ export function foundationFixturesEnabledFor(
  * replaces `import.meta.env.VITE_FOUNDATION_FIXTURES` at build time, so in a
  * normal (or GitHub Pages) release this whole ternary folds to `null` and
  * Rollup tree-shakes the `import()` away: no fixture chunk, no fixture module
- * graph (IDs/UI), and — because the page owns `foundation.css` — no fixture
- * CSS is emitted. When the flag is on, the dynamic import splits the harness
- * into its own chunk that loads on demand behind the route below.
+ * graph (IDs/UI), and no fixture-only markup. This gating is about the
+ * harness route/component tree only, *not* about `foundation.css` itself:
+ * that stylesheet now also ships unconditionally as part of the real
+ * production bundle, imported directly by `A1LessonPage.tsx` (see the
+ * comment there), because real semantic A1 lessons render the same
+ * `SentenceMatrix`/`FamilyGuidedConstruction` components the fixture harness
+ * exercises. So a normal/Pages build still emits `foundation.css`, just
+ * without ever loading this fixture's own gated module. When the flag is on,
+ * the dynamic import below splits the harness into its own chunk that loads
+ * on demand behind the route below.
  */
 const FoundationFixturePage =
   import.meta.env.VITE_FOUNDATION_FIXTURES === "true"

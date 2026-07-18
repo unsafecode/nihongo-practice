@@ -51,6 +51,7 @@ const constructEx = exerciseOfKind("introductions-1", "constrained-construction"
 const transformEx: GeneratedExercise = {
   definitionId: "test-transformation-fixture",
   targetExampleId: "test-transformation-fixture-target",
+  visibleTargetKey: "test-transformation-fixture-visible",
   instruction: { en: "", it: "" },
   intentText: { en: null, it: null },
   practicePurpose: "guided-controlled",

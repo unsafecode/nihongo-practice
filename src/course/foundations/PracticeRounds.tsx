@@ -22,6 +22,14 @@ import type {
   FoundationRoundModel,
   FoundationRoundTarget,
 } from "./foundationViewModel";
+import { opaqueTargetKey } from "./opaqueTargetKey";
+
+// Re-exported so existing imports of `opaqueTargetKey` from this module
+// (this file's own tests, and any other fixture-only caller) keep working
+// unchanged now that the implementation lives in its own tiny,
+// production-importable module (see `opaqueTargetKey.ts`) shared with the
+// real `Exercise.tsx` renderer.
+export { opaqueTargetKey };
 
 export interface PracticeRoundsProps {
   readonly rounds: readonly [FoundationRoundModel, FoundationRoundModel];
@@ -37,22 +45,6 @@ export interface PracticeRoundsProps {
     outcome: Exclude<AttemptOutcome, null>,
     target: FoundationRoundTarget,
   ) => void;
-}
-
-/**
- * A non-reversible opaque token for a target's visible answer key (the
- * canonical Japanese string). Emitting the raw key as review metadata would
- * leak the answer into the DOM, so a stable FNV-1a hash stands in: reviewers
- * can still tell targets apart and count reuse without any Japanese ever
- * appearing in a data attribute. Pure and deterministic.
- */
-export function opaqueTargetKey(visibleTargetKey: string): string {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < visibleTargetKey.length; i++) {
-    hash ^= visibleTargetKey.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return `k${(hash >>> 0).toString(36)}`;
 }
 
 interface FoundationExerciseCardProps {

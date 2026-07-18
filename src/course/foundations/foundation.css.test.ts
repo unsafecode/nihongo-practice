@@ -38,7 +38,11 @@ const fixturePagePath = fileURLToPath(
   new URL("./FoundationFixturePage.tsx", import.meta.url),
 );
 
-describe("foundation harness styles ship only with the gated fixture chunk", () => {
+const a1LessonPagePath = fileURLToPath(
+  new URL("../components/A1LessonPage.tsx", import.meta.url),
+);
+
+describe("foundation.css shipping contract", () => {
   it("course.css never globally imports the foundation harness styles", () => {
     const css = readFileSync(courseCssPath, "utf8");
     expect(css).not.toMatch(
@@ -46,7 +50,28 @@ describe("foundation harness styles ship only with the gated fixture chunk", () 
     );
   });
 
-  it("FoundationFixturePage imports foundation.css so it follows the dynamic chunk", () => {
+  // `foundation.css` styles `SentenceMatrix`/`FamilyGuidedConstruction`,
+  // which render on every real semantic A1 lesson via `A1LessonPage`, not
+  // just the gated fixture harness — so this import must be unconditional
+  // (a plain top-level `import`, never behind the
+  // `VITE_FOUNDATION_FIXTURES` flag or a dynamic `import()`) for the real
+  // production runtime to be styled. Regression test for a prior bug where
+  // this stylesheet shipped only as a side effect of the fixture harness's
+  // own gated import and tree-shook out of every normal/Pages build.
+  it("A1LessonPage imports foundation.css unconditionally for production runtime", () => {
+    const source = readFileSync(a1LessonPagePath, "utf8");
+    expect(source).toMatch(/^import\s+["']\.\.\/foundations\/foundation\.css["'];?\s*$/m);
+  });
+
+  // The fixture harness's *own* import stays behind the compile-time flag
+  // (via `routes.tsx`'s conditional `import()` of the whole
+  // `FoundationFixturePage` module, not a guard in this file) — it does not
+  // need to import the stylesheet unconditionally itself now that
+  // `A1LessonPage` already guarantees it ships, but it still imports it
+  // directly (rather than relying on load-order luck from another module)
+  // so the fixture route is self-contained and stays correctly styled if
+  // ever rendered standalone.
+  it("FoundationFixturePage still imports foundation.css directly, independent of A1LessonPage", () => {
     const source = readFileSync(fixturePagePath, "utf8");
     expect(source).toMatch(/import\s+["']\.\/foundation\.css["']/);
   });
