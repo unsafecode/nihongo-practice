@@ -1,3 +1,4 @@
+import { deepFreeze } from "../../foundations/deepFreeze";
 import type { RomajiBoundaryBefore, RomajiTokenKind } from "../../../romaji/types";
 
 /**
@@ -54,7 +55,7 @@ export type A2ConjugationClass =
   | "irregular-kuru";
 
 /** Every conjugation-class identity, runtime-checkable (not just a compile-time union). */
-export const A2_CONJUGATION_CLASSES: readonly A2ConjugationClass[] = [
+export const A2_CONJUGATION_CLASSES: readonly A2ConjugationClass[] = deepFreeze([
   "ichidan",
   "godan-u",
   "godan-ku",
@@ -67,7 +68,7 @@ export const A2_CONJUGATION_CLASSES: readonly A2ConjugationClass[] = [
   "godan-ru",
   "irregular-suru",
   "irregular-kuru",
-];
+]);
 
 /** The five plain forms the A2 spiral's suffix constructions attach to. */
 export type A2PlainForm = "dictionary" | "negative" | "past" | "past-negative" | "te";
@@ -100,7 +101,7 @@ interface Okurigana {
 type ClassTable = Readonly<Record<A2PlainForm, Okurigana>>;
 
 /** Regular okurigana per class (appended to the verb stem). */
-const OKURIGANA: Readonly<Record<RegularA2ConjugationClass, ClassTable>> = {
+const OKURIGANA: Readonly<Record<RegularA2ConjugationClass, ClassTable>> = deepFreeze({
   ichidan: {
     dictionary: { jp: "る", romaji: "ru" },
     negative: { jp: "ない", romaji: "nai" },
@@ -171,13 +172,13 @@ const OKURIGANA: Readonly<Record<RegularA2ConjugationClass, ClassTable>> = {
     "past-negative": { jp: "らなかった", romaji: "ranakatta" },
     te: { jp: "って", romaji: "tte" },
   },
-};
+});
 
 /** 行く い-onbin exception: past/て only (行った/行って, not 行いた/行いて). */
-const IKU_EXCEPTION: Readonly<Pick<Record<A2PlainForm, Okurigana>, "past" | "te">> = {
+const IKU_EXCEPTION: Readonly<Pick<Record<A2PlainForm, Okurigana>, "past" | "te">> = deepFreeze({
   past: { jp: "った", romaji: "tta" },
   te: { jp: "って", romaji: "tte" },
-};
+});
 
 /** A bound morpheme fragment (okurigana/endings): attaches with no boundary space. */
 function M(jp: string, romaji: string): A2Fragment {
@@ -190,25 +191,25 @@ function L(jp: string, reading: string, romaji: string): A2Fragment {
 }
 
 /** する — full-word forms (no kanji root). */
-const SURU_FORMS: Readonly<Record<A2PlainForm, readonly A2Fragment[]>> = {
+const SURU_FORMS: Readonly<Record<A2PlainForm, readonly A2Fragment[]>> = deepFreeze({
   dictionary: [M("する", "suru")],
   negative: [M("しない", "shinai")],
   past: [M("した", "shita")],
   "past-negative": [M("しなかった", "shinakatta")],
   te: [M("して", "shite")],
-};
+});
 
 /** 来る — kanji root 来 whose reading shifts (く/こ/き) plus ichidan-style okurigana. */
-const KURU_FORMS: Readonly<Record<A2PlainForm, readonly A2Fragment[]>> = {
+const KURU_FORMS: Readonly<Record<A2PlainForm, readonly A2Fragment[]>> = deepFreeze({
   dictionary: [L("来", "く", "ku"), M("る", "ru")],
   negative: [L("来", "こ", "ko"), M("ない", "nai")],
   past: [L("来", "き", "ki"), M("た", "ta")],
   "past-negative": [L("来", "こ", "ko"), M("なかった", "nakatta")],
   te: [L("来", "き", "ki"), M("て", "te")],
-};
+});
 
 /** The exact 12 registered verb senses this task freezes, one per required conjugation-class exemplar. */
-export const A2_VERBS: Readonly<Record<string, A2Verb>> = {
+export const A2_VERBS: Readonly<Record<string, A2Verb>> = deepFreeze({
   "a2-sense-taberu": { senseId: "a2-sense-taberu", conjClass: "ichidan", stem: [L("食", "た", "ta"), M("べ", "be")] },
   "a2-sense-hanasu": { senseId: "a2-sense-hanasu", conjClass: "godan-su", stem: [L("話", "はな", "hana")] },
   "a2-sense-kaku": { senseId: "a2-sense-kaku", conjClass: "godan-ku", stem: [L("書", "か", "ka")] },
@@ -226,7 +227,7 @@ export const A2_VERBS: Readonly<Record<string, A2Verb>> = {
   },
   "a2-sense-suru": { senseId: "a2-sense-suru", conjClass: "irregular-suru", stem: [] },
   "a2-sense-kuru": { senseId: "a2-sense-kuru", conjClass: "irregular-kuru", stem: [] },
-};
+});
 
 export interface ConjugationResult {
   readonly form: A2PlainForm;
@@ -243,14 +244,22 @@ export type ConjugateResult =
   | { readonly ok: true; readonly result: ConjugationResult }
   | { readonly ok: false; readonly error: "unknown-verb" };
 
+/**
+ * Assemble one conjugation result. Every fragment is cloned before
+ * assembly so the returned `fragments` array never aliases a table/stem
+ * fragment object from `A2_VERBS`/`OKURIGANA`/`SURU_FORMS`/`KURU_FORMS` —
+ * two calls (or a hostile mutation of one result) can never observe or
+ * corrupt each other. The complete result is deep-frozen before returning.
+ */
 function assemble(form: A2PlainForm, fragments: readonly A2Fragment[]): ConjugationResult {
-  return {
+  const clonedFragments = fragments.map((fragment) => ({ ...fragment }));
+  return deepFreeze({
     form,
-    fragments,
-    jp: fragments.map((f) => f.jp).join(""),
-    romaji: fragments.map((f) => f.romaji).join(""),
-    reading: fragments.map((f) => f.reading ?? f.jp).join(""),
-  };
+    fragments: clonedFragments,
+    jp: clonedFragments.map((f) => f.jp).join(""),
+    romaji: clonedFragments.map((f) => f.romaji).join(""),
+    reading: clonedFragments.map((f) => f.reading ?? f.jp).join(""),
+  });
 }
 
 /**

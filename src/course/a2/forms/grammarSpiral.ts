@@ -1,3 +1,4 @@
+import { deepFreeze } from "../../foundations/deepFreeze";
 import type { LessonId } from "../../foundations/types";
 
 /**
@@ -18,7 +19,7 @@ export interface A2GrammarForm {
 }
 
 /** The frozen A2 grammar spiral. Exactly 15 rows, one per Can-do form. */
-export const A2_GRAMMAR_SPIRAL: readonly A2GrammarForm[] = [
+export const A2_GRAMMAR_SPIRAL: readonly A2GrammarForm[] = deepFreeze([
   {
     id: "recognize-plain-forms",
     canDoId: "a2-cando-recognize-plain-forms",
@@ -139,4 +140,4 @@ export const A2_GRAMMAR_SPIRAL: readonly A2GrammarForm[] = [
     transferLessonId: "experiences-narratives-2",
     recurrenceLessonIds: ["practical-texts-3", "a2-synthesis-1"],
   },
-];
+]);

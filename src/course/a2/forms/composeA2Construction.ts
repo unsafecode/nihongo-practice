@@ -1,3 +1,4 @@
+import { deepFreeze } from "../../foundations/deepFreeze";
 import { A2_CONSTRUCTIONS } from "./a2Constructions";
 import { conjugate, type A2Fragment, type A2PlainForm } from "./a2Conjugation";
 
@@ -36,7 +37,10 @@ export type ComposeResult =
 /**
  * Compose a `suffix` construction onto the correctly conjugated base
  * (te/negative/past) for the target verb. Pure: the same input always
- * produces a deep-equal, independently-owned output.
+ * produces a deep-equal, independently-owned output — every base and tail
+ * fragment is cloned before assembly so the returned `fragments` never
+ * alias `conjugate`'s result or `A2_CONSTRUCTIONS`' tail fragments, and the
+ * complete sentence is deep-frozen before returning.
  */
 export function composeA2Construction(input: ComposeInput): ComposeResult {
   const construction = A2_CONSTRUCTIONS[input.constructionId];
@@ -52,16 +56,18 @@ export function composeA2Construction(input: ComposeInput): ComposeResult {
     return { ok: false, error: "unknown-verb" };
   }
 
-  const fragments: readonly A2Fragment[] = [...conjugated.result.fragments, ...construction.tail];
+  const baseFragments = conjugated.result.fragments.map((fragment) => ({ ...fragment }));
+  const tailFragments = construction.tail.map((fragment) => ({ ...fragment }));
+  const fragments: readonly A2Fragment[] = [...baseFragments, ...tailFragments];
   return {
     ok: true,
-    sentence: {
+    sentence: deepFreeze({
       jp: fragments.map((f) => f.jp).join(""),
       romaji: fragments.map((f) => f.romaji).join(""),
       reading: fragments.map((f) => f.reading ?? f.jp).join(""),
       base: construction.base,
       canDoId: construction.canDoId,
       fragments,
-    },
+    }),
   };
 }

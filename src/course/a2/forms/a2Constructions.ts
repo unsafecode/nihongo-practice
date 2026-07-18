@@ -1,3 +1,4 @@
+import { deepFreeze } from "../../foundations/deepFreeze";
 import type { A2Fragment, A2PlainForm } from "./a2Conjugation";
 
 /**
@@ -42,7 +43,7 @@ function M(jp: string, romaji: string): A2Fragment {
 }
 
 /** The 15 spiral forms (L2), each bound to its named Can-do. Suffix forms name their base + tail. */
-export const A2_CONSTRUCTIONS: Readonly<Record<string, A2Construction>> = {
+export const A2_CONSTRUCTIONS: Readonly<Record<string, A2Construction>> = deepFreeze({
   "recognize-plain-forms": {
     id: "recognize-plain-forms",
     kind: "plain-inflection",
@@ -132,4 +133,4 @@ export const A2_CONSTRUCTIONS: Readonly<Record<string, A2Construction>> = {
     kind: "connector",
     canDoId: "a2-cando-connectors",
   },
-};
+});
