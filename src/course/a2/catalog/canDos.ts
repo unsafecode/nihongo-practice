@@ -303,8 +303,54 @@ export const A2_M1_M4_SERVED_CANDO_IDS: readonly string[] = Object.freeze([
   "a2-cando-agree-disagree",
 ]);
 
+/**
+ * The 16 distinct Can-do ids the M5-M8 lessons (Phase 3 Task 5) actually
+ * serve: 7 grammar-spiral ids (`sequence-te`, `ongoing-teiru`,
+ * `permission-temoii`, `prohibition-tewaikenai`, `request-tekudasai`,
+ * `negative-request`, `possibility`) plus 9 topical/interaction ids
+ * (`describe-now`, `describe-ongoing-action`, `describe-routine`,
+ * `express-ability`, `ask-for-help`, `describe-facility`,
+ * `confirm-understanding`, `recount-experience`, `negotiate-price`). Every
+ * id here is one of the real, registered 59 — never a name quoted from the
+ * earlier design doc that Task 4's actual registry went on to
+ * rename/consolidate (see `canDos.test.ts`'s "16-lesson M5-M8 recipe
+ * mapping" suite for the full documented rationale per id).
+ */
+export const A2_M5_M8_SERVED_CANDO_IDS: readonly string[] = Object.freeze([
+  "a2-cando-sequence-te",
+  "a2-cando-describe-now",
+  "a2-cando-describe-ongoing-action",
+  "a2-cando-ongoing-teiru",
+  "a2-cando-describe-routine",
+  "a2-cando-permission-temoii",
+  "a2-cando-prohibition-tewaikenai",
+  "a2-cando-request-tekudasai",
+  "a2-cando-negative-request",
+  "a2-cando-possibility",
+  "a2-cando-express-ability",
+  "a2-cando-ask-for-help",
+  "a2-cando-describe-facility",
+  "a2-cando-confirm-understanding",
+  "a2-cando-recount-experience",
+  "a2-cando-negotiate-price",
+]);
+
+/**
+ * The complete, honest 31-id staged subset the 32 authored M1-M8 lessons
+ * serve — the union of `A2_M1_M4_SERVED_CANDO_IDS` and
+ * `A2_M5_M8_SERVED_CANDO_IDS`, with no overlap between the two. Exported so
+ * `modules01to08.test.ts` can request exactly this subset from
+ * `buildA2CanDos`/`buildA2CanDoLessonMap` without importing modules 9+
+ * (which do not exist yet) — mirrors `A2_M1_M4_SERVED_CANDO_IDS`'s own
+ * contract exactly, just widened as M5-M8 land.
+ */
+export const A2_M1_M8_SERVED_CANDO_IDS: readonly string[] = Object.freeze([
+  ...A2_M1_M4_SERVED_CANDO_IDS,
+  ...A2_M5_M8_SERVED_CANDO_IDS,
+]);
+
 // ---------------------------------------------------------------------------
-// Bilingual descriptor copy (the 15 M1-M4-served Can-dos only — the other 44
+// Bilingual descriptor copy (the 31 M1-M8-served Can-dos only — the other 28
 // registered ids belong to modules that do not exist yet, so their copy is
 // honestly left for the tasks that author those modules, never fabricated
 // ahead of time)
@@ -348,6 +394,38 @@ export const a2CanDoDescriptorCopy: { readonly en: Readonly<Record<string, strin
       "I can state my own opinion.",
     "a2-cando-agree-disagree-descriptor":
       "I can agree or disagree with someone's opinion.",
+    "a2-cando-sequence-te-descriptor":
+      "I can describe two or more actions in the order they happen, using the te-form.",
+    "a2-cando-describe-now-descriptor":
+      "I can describe what I am doing as part of a short daily sequence.",
+    "a2-cando-describe-ongoing-action-descriptor":
+      "I can describe an action that is happening right now.",
+    "a2-cando-ongoing-teiru-descriptor":
+      "I can describe an ongoing action or a resulting state using the teiru form.",
+    "a2-cando-describe-routine-descriptor":
+      "I can describe my daily routine, step by step.",
+    "a2-cando-permission-temoii-descriptor":
+      "I can ask for and give permission using the temoii construction.",
+    "a2-cando-prohibition-tewaikenai-descriptor":
+      "I can say that something is not allowed using the tewaikenai construction.",
+    "a2-cando-request-tekudasai-descriptor":
+      "I can politely ask someone to do something using the tekudasai construction.",
+    "a2-cando-negative-request-descriptor":
+      "I can politely ask someone not to do something using a negative request construction.",
+    "a2-cando-possibility-descriptor":
+      "I can say what is possible to do somewhere, using a koto-ga-dekimasu construction.",
+    "a2-cando-express-ability-descriptor":
+      "I can say what I can and cannot do.",
+    "a2-cando-ask-for-help-descriptor":
+      "I can ask someone for help, such as directions or a favor.",
+    "a2-cando-describe-facility-descriptor":
+      "I can describe a local facility, including where it is and whether it's open.",
+    "a2-cando-confirm-understanding-descriptor":
+      "I can confirm my order or understanding with a server or clerk.",
+    "a2-cando-recount-experience-descriptor":
+      "I can recount what happened and explain a problem with an order.",
+    "a2-cando-negotiate-price-descriptor":
+      "I can handle paying and a small problem in a short exchange.",
   },
   it: {
     "a2-cando-backchannel-followup-descriptor":
@@ -380,5 +458,37 @@ export const a2CanDoDescriptorCopy: { readonly en: Readonly<Record<string, strin
       "Riesco a esprimere una mia opinione.",
     "a2-cando-agree-disagree-descriptor":
       "Riesco a essere d'accordo o in disaccordo con l'opinione di qualcuno.",
+    "a2-cando-sequence-te-descriptor":
+      "Riesco a descrivere due o più azioni nell'ordine in cui avvengono, usando la forma in te.",
+    "a2-cando-describe-now-descriptor":
+      "Riesco a descrivere quello che sto facendo come parte di una breve sequenza quotidiana.",
+    "a2-cando-describe-ongoing-action-descriptor":
+      "Riesco a descrivere un'azione che sta accadendo proprio ora.",
+    "a2-cando-ongoing-teiru-descriptor":
+      "Riesco a descrivere un'azione in corso o uno stato risultante usando la forma teiru.",
+    "a2-cando-describe-routine-descriptor":
+      "Riesco a descrivere la mia routine quotidiana, passo dopo passo.",
+    "a2-cando-permission-temoii-descriptor":
+      "Riesco a chiedere e dare il permesso usando la costruzione temoii.",
+    "a2-cando-prohibition-tewaikenai-descriptor":
+      "Riesco a dire che qualcosa non è permesso usando la costruzione tewaikenai.",
+    "a2-cando-request-tekudasai-descriptor":
+      "Riesco a chiedere educatamente a qualcuno di fare qualcosa usando la costruzione tekudasai.",
+    "a2-cando-negative-request-descriptor":
+      "Riesco a chiedere educatamente a qualcuno di non fare qualcosa usando una costruzione negativa.",
+    "a2-cando-possibility-descriptor":
+      "Riesco a dire cosa è possibile fare in un posto, usando una costruzione koto-ga-dekimasu.",
+    "a2-cando-express-ability-descriptor":
+      "Riesco a dire cosa so e cosa non so fare.",
+    "a2-cando-ask-for-help-descriptor":
+      "Riesco a chiedere aiuto a qualcuno, ad esempio indicazioni o un favore.",
+    "a2-cando-describe-facility-descriptor":
+      "Riesco a descrivere un servizio del quartiere, dove si trova e se è aperto.",
+    "a2-cando-confirm-understanding-descriptor":
+      "Riesco a confermare il mio ordine o la mia comprensione con un cameriere o un commesso.",
+    "a2-cando-recount-experience-descriptor":
+      "Riesco a raccontare cosa è successo e spiegare un problema con un ordine.",
+    "a2-cando-negotiate-price-descriptor":
+      "Riesco a gestire il pagamento e un piccolo problema in un breve scambio.",
   },
 });

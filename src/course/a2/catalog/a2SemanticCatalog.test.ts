@@ -28,12 +28,16 @@ import { formatRomaji } from "../../../romaji/formatRomaji";
 import { realizeVariant } from "../../foundations/realizeFamily";
 import type { SentenceFamily, SentenceVariant } from "../../foundations/types";
 import {
+  A2_M1_M4_CONCEPT_IDS,
+  A2_M5_M8_CONCEPT_IDS,
   a2Contexts,
   a2LearningTargetSenses,
   a2PersonRoles,
   a2Referents,
+  a2Scenario,
   a2SemanticValues,
   a2SentenceFamilies,
+  a2SharedCopy,
 } from "./a2SemanticCatalog";
 
 function valueById(id: string) {
@@ -294,5 +298,246 @@ describe("a2SemanticCatalog — M5 dead-entry removal (repo search regression)",
       const source = readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), "utf8");
       expect(source).not.toContain(deadId);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 3 Task 5 (M5-M8): te-form/ている/permission/prohibition/request/
+// possibility grammar, 4 new contexts, and the two new compositional
+// realization rules (`rule-invariant-object`/`rule-invariant-location`,
+// added to realizeFamily.ts). Written before any M5-M8 catalog content
+// exists (RED), so this whole block is expected to fail until the catalog
+// additions below land.
+// ---------------------------------------------------------------------------
+
+describe("a2SemanticCatalog — M5-M8 new contexts (Phase 3 Task 5)", () => {
+  // These exact ids are already load-bearing in the frozen Task 3 kanji
+  // catalog (`a2/kanji/a2KanjiCatalog.ts`'s SEQUENCING_ONGOING_ROWS/
+  // PERMISSION_REQUESTS_ROWS/NEIGHBORHOOD_SERVICES_ROWS/RESTAURANT_PROBLEMS_ROWS
+  // each hard-code `contextId: "a2-context-routines"` etc. already) — so
+  // these are not a free naming choice, they are fixed by a prior task.
+  const NEW_CONTEXT_IDS = [
+    "a2-context-routines",
+    "a2-context-rules",
+    "a2-context-neighborhood",
+    "a2-context-restaurant",
+  ] as const;
+
+  it.each(NEW_CONTEXT_IDS)("declares context %s with a resolvable labelCopyId", (contextId) => {
+    const context = a2Contexts.find((c) => c.id === contextId);
+    expect(context, contextId).toBeDefined();
+    expect(context?.labelCopyId.length).toBeGreaterThan(0);
+  });
+
+  it("gives every new context a real EN/IT label in a2SharedCopy and a real EN/IT scenario note via a2Scenario", () => {
+    for (const contextId of NEW_CONTEXT_IDS) {
+      const context = a2Contexts.find((c) => c.id === contextId);
+      expect(context, contextId).toBeDefined();
+      expect(a2SharedCopy.en[(context as { labelCopyId: string }).labelCopyId], contextId).toBeTruthy();
+      expect(a2SharedCopy.it[(context as { labelCopyId: string }).labelCopyId], contextId).toBeTruthy();
+      const scenario = a2Scenario(contextId);
+      expect(scenario.en.length, contextId).toBeGreaterThan(0);
+      expect(scenario.it.length, contextId).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("a2SemanticCatalog — M5-M8 concept ids (Phase 3 Task 5)", () => {
+  it("declares exactly the 11 new M5-M8 grammar/topical concept ids, each distinct from every M1-M4 concept id", () => {
+    expect(A2_M5_M8_CONCEPT_IDS).toHaveLength(11);
+    expect(new Set(A2_M5_M8_CONCEPT_IDS).size).toBe(11);
+    for (const id of A2_M5_M8_CONCEPT_IDS) {
+      expect(A2_M1_M4_CONCEPT_IDS, id).not.toContain(id);
+    }
+  });
+});
+
+describe("a2SemanticCatalog — M5-M8 exact tokenFragments for the new suffix/clause constructions (Phase 3 Task 5)", () => {
+  // Registered Task 2 verb (taberu) through the temoii suffix construction
+  // via `composeA2Construction` — proves the "reuse the registered engine"
+  // path and the independent-word remap (いい/です are real standalone
+  // words, so must be "lexical", never the raw "morpheme" a2Constructions.ts
+  // bakes for its own Task 2 raw-concatenation contract).
+  it("a2-value-temoii-taberu carries たべてもいいです with いい/です remapped to lexical (real word-boundary spaces), via the registered たべる sense", () => {
+    expect(valueById("a2-value-temoii-taberu").tokenFragments).toEqual([
+      { jp: "た", romaji: "ta", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "べ", romaji: "be", kind: "morpheme", boundaryBefore: "attach" },
+      { jp: "て", romaji: "te", kind: "morpheme", boundaryBefore: "attach" },
+      { jp: "も", romaji: "mo", kind: "particle", boundaryBefore: "attach" },
+      { jp: "いい", romaji: "ii", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "です", romaji: "desu", kind: "lexical", boundaryBefore: "attach" },
+    ]);
+  });
+
+  // A verb NOT among the Task 2 12-registered conjugation-class exemplars
+  // (働く/hataraku, godan-ku), conjugated directly via `conjugateClass()` —
+  // the same class-aware engine every registered verb uses — for the
+  // ている suffix, with います remapped to lexical.
+  it("a2-value-teiru-hataraku carries はたらいています with います remapped to lexical, via conjugateClass (not a registered A2_VERBS entry)", () => {
+    expect(valueById("a2-value-teiru-hataraku").tokenFragments).toEqual([
+      { jp: "はたら", romaji: "hatara", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "いて", romaji: "ite", kind: "morpheme", boundaryBefore: "attach" },
+      { jp: "います", romaji: "imasu", kind: "lexical", boundaryBefore: "attach" },
+    ]);
+  });
+
+  it("a2-value-tekudasai-kesu carries けしてください with ください remapped to lexical, via conjugateClass for a new 消す (kesu, godan-su) verb", () => {
+    expect(valueById("a2-value-tekudasai-kesu").tokenFragments).toEqual([
+      { jp: "け", romaji: "ke", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "して", romaji: "shite", kind: "morpheme", boundaryBefore: "attach" },
+      { jp: "ください", romaji: "kudasai", kind: "lexical", boundaryBefore: "attach" },
+    ]);
+  });
+
+  it("a2-value-tewaikenai-suwaru carries すわってはいけません with いけません remapped to lexical, via conjugateClass for a new 座る (suwaru, godan-ru) verb", () => {
+    expect(valueById("a2-value-tewaikenai-suwaru").tokenFragments).toEqual([
+      { jp: "すわ", romaji: "suwa", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "って", romaji: "tte", kind: "morpheme", boundaryBefore: "attach" },
+      { jp: "は", romaji: "wa", kind: "particle", boundaryBefore: "attach" },
+      { jp: "いけません", romaji: "ikemasen", kind: "lexical", boundaryBefore: "attach" },
+    ]);
+  });
+
+  it("a2-value-naidekudasai-hairu carries はいらないでください with ください remapped to lexical but で staying a bound morpheme (naide is one fused word), via conjugateClass for a new 入る (hairu, godan-ru) verb", () => {
+    expect(valueById("a2-value-naidekudasai-hairu").tokenFragments).toEqual([
+      { jp: "はい", romaji: "hai", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "らない", romaji: "ranai", kind: "morpheme", boundaryBefore: "attach" },
+      { jp: "で", romaji: "de", kind: "morpheme", boundaryBefore: "attach" },
+      { jp: "ください", romaji: "kudasai", kind: "lexical", boundaryBefore: "attach" },
+    ]);
+  });
+
+  // "possibility" is `kind: "clause"` in a2Constructions.ts (like M1-M4's
+  // intentions-plans/reason-kara/reason-node/opinion-toomou/connectors) —
+  // realized as a hand-composed こと+が+X tail, mirroring
+  // experienceTakotoKana's established shape exactly, never through
+  // composeA2Construction (which only accepts `kind: "suffix"`).
+  it("a2-value-possibility-tsukau carries つかうことができます (dictionary base + こと が できます, real word-boundary spaces)", () => {
+    expect(valueById("a2-value-possibility-tsukau").tokenFragments).toEqual([
+      { jp: "つか", romaji: "tsuka", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "う", romaji: "u", kind: "morpheme", boundaryBefore: "attach" },
+      { jp: "こと", romaji: "koto", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "が", romaji: "ga", kind: "particle", boundaryBefore: "attach" },
+      { jp: "できます", romaji: "dekimasu", kind: "lexical", boundaryBefore: "attach" },
+    ]);
+  });
+});
+
+describe("a2SemanticCatalog — M5-M8 new sentence families (Phase 3 Task 5)", () => {
+  const famById = new Map(a2SentenceFamilies.map((f) => [f.id, f]));
+
+  it("declares a2-family-te-sequence using the existing rule-invariant-utterance (whole-clause bake, M1-M4 precedent) for a2-cando-sequence-te", () => {
+    const family = famById.get("a2-family-te-sequence");
+    expect(family).toBeDefined();
+    expect(family?.realizationRuleId).toBe("rule-invariant-utterance");
+    expect(family?.canDoIds).toContain("a2-cando-sequence-te");
+  });
+
+  it("declares a2-family-ongoing-teiru using the new rule-invariant-object (compositional object recombination) for a2-cando-ongoing-teiru", () => {
+    const family = famById.get("a2-family-ongoing-teiru");
+    expect(family).toBeDefined();
+    expect(family?.realizationRuleId).toBe("rule-invariant-object");
+    expect(family?.canDoIds).toContain("a2-cando-ongoing-teiru");
+  });
+
+  it("declares a2-family-permission-temoii-location using the new rule-invariant-location for a2-cando-permission-temoii", () => {
+    const family = famById.get("a2-family-permission-temoii-location");
+    expect(family).toBeDefined();
+    expect(family?.realizationRuleId).toBe("rule-invariant-location");
+    expect(family?.canDoIds).toContain("a2-cando-permission-temoii");
+  });
+
+  it("declares a2-family-describe-facility reusing the EXISTING rule-existence rule for a2-cando-describe-facility", () => {
+    const family = famById.get("a2-family-describe-facility");
+    expect(family).toBeDefined();
+    expect(family?.realizationRuleId).toBe("rule-existence");
+    expect(family?.canDoIds).toContain("a2-cando-describe-facility");
+  });
+
+  it("gives every M5-M8 concept at least one real family that requires it (no orphan concept ids)", () => {
+    for (const conceptId of A2_M5_M8_CONCEPT_IDS) {
+      const owningFamilies = a2SentenceFamilies.filter((f) => f.requiredConceptIds.includes(conceptId));
+      expect(owningFamilies.length, conceptId).toBeGreaterThan(0);
+    }
+  });
+
+  it("only ever references rule-invariant-object/rule-invariant-location from a family whose slotSchema actually declares the matching object/location slot", () => {
+    for (const family of a2SentenceFamilies) {
+      if (family.realizationRuleId === "rule-invariant-object") {
+        expect(family.slotSchema.some((s) => s.id === "object"), family.id).toBe(true);
+      }
+      if (family.realizationRuleId === "rule-invariant-location") {
+        expect(family.slotSchema.some((s) => s.id === "location"), family.id).toBe(true);
+      }
+    }
+  });
+});
+
+describe("a2SemanticCatalog — M5-M8 end-to-end realization (Phase 3 Task 5)", () => {
+  const famById = new Map<string, SentenceFamily>(a2SentenceFamilies.map((f) => [f.id, f]));
+  const realizeCatalogs = {
+    contexts: a2Contexts,
+    personRoles: a2PersonRoles,
+    referents: a2Referents,
+    semanticValues: a2SemanticValues,
+    learningTargetSenses: a2LearningTargetSenses,
+  };
+
+  function realize(familyId: string, slotValues: Readonly<Record<string, string>>, variantId: string) {
+    const family = famById.get(familyId);
+    expect(family, familyId).toBeDefined();
+    const variant: SentenceVariant = {
+      id: variantId,
+      sentenceFamilyId: familyId,
+      discourse: {
+        speakerRoleId: "a2-role-learner",
+        addresseeRoleId: null,
+        subjectReferentId: null,
+        subjectRealization: "omitted",
+        scenarioNoteCopyId: `${variantId}-scenario`,
+      },
+      contextId: "a2-context-restaurant",
+      slotValues,
+      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      pedagogicalUse: "model",
+    };
+    const result = realizeVariant(family as SentenceFamily, variant, realizeCatalogs, {
+      availableConceptIds: [...(family as SentenceFamily).requiredConceptIds],
+    });
+    if (!result.ok) {
+      throw new Error(`realize ${variantId} failed: ${JSON.stringify(result.errors)}`);
+    }
+    return result.sentence;
+  }
+
+  it("realizes a2-value-teiru-hataraku through a2-family-ongoing-teiru with a real object, recombining the SAME predicate with a genuinely different object for compositional novelty", () => {
+    const withBread = realize(
+      "a2-family-ongoing-teiru",
+      { object: "a2-value-obj-pan", predicate: "a2-value-teiru-taberu" },
+      "task5-probe-teiru-pan",
+    );
+    const withWater = realize(
+      "a2-family-ongoing-teiru",
+      { object: "a2-value-obj-mizu", predicate: "a2-value-teiru-taberu" },
+      "task5-probe-teiru-mizu",
+    );
+    expect(withBread.canonicalJapanese).not.toBe(withWater.canonicalJapanese);
+    const romajiBread = formatRomaji(withBread.tokens);
+    expect(romajiBread.ok).toBe(true);
+    if (!romajiBread.ok) throw new Error("unreachable");
+    expect(romajiBread.text).toContain("pan o");
+  });
+
+  it("realizes a2-value-possibility-tsukau through a2-family-possibility to a natural つかうことができます, never つかことができます or a malformed sequence", () => {
+    const sentence = realize(
+      "a2-family-possibility",
+      { predicate: "a2-value-possibility-tsukau" },
+      "task5-probe-possibility-tsukau",
+    );
+    expect(sentence.canonicalJapanese).toBe("つかうことができます");
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toBe("tsukau koto ga dekimasu");
   });
 });

@@ -345,6 +345,31 @@ const REALIZATION_RULES: Readonly<Record<string, RealizationRuleDefinition>> = {
     objectRole: null,
     contentSlots: [],
   },
+  // --- Phase 3 Task 5 (M5-M8): "invariant" + a non-empty contentSlots —
+  // genuinely compositional te-form/ている/permission/prohibition/request
+  // constructions, so transfer novelty comes from recombining a suffixed
+  // verb with a different object/location, not from whole-clause
+  // duplication or subject-only swapping. `objectRole`/case-frame licensing
+  // stays `null` (like `rule-companion-action`/`rule-time-action`): the
+  // predicate's dedicated sense carries no governed argument role of its
+  // own (the invariant predicate value is already the complete conjugated
+  // content), so no theme/case-frame entanglement with the "real" verb
+  // sense's own frame is ever introduced.
+  //
+  // Object marked を (e.g. "パンをたべています", "パンをたべてください").
+  "rule-invariant-object": {
+    id: "rule-invariant-object",
+    predicateKind: "invariant",
+    objectRole: null,
+    contentSlots: [{ slotId: "object", particle: { kind: "fixed", particle: "o" } }],
+  },
+  // Location marked で (e.g. "ここでたべてもいいです", "としょかんでべんきょうしてはいけません").
+  "rule-invariant-location": {
+    id: "rule-invariant-location",
+    predicateKind: "invariant",
+    objectRole: null,
+    contentSlots: [{ slotId: "location", particle: { kind: "fixed", particle: "de" } }],
+  },
 };
 
 /**

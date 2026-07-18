@@ -33,12 +33,22 @@ import type {
   LearningTargetSense,
   PersonRole,
   Referent,
+  SemanticArgumentRole,
   SemanticValue,
   SemanticValueTokenFragment,
   SentenceFamily,
 } from "../../foundations/types";
-import { conjugate, conjugateMasuStem, type A2Fragment, type A2PlainForm } from "../forms/a2Conjugation";
+import {
+  conjugate,
+  conjugateClass,
+  conjugateClassMasuStem,
+  conjugateMasuStem,
+  type A2Fragment,
+  type A2PlainForm,
+  type RegularA2ConjugationClass,
+} from "../forms/a2Conjugation";
 import { composeA2Construction } from "../forms/composeA2Construction";
+import { A2_CONSTRUCTIONS } from "../forms/a2Constructions";
 
 /** A bilingual (EN/IT) copy pair. Never carries Japanese. */
 export interface Bilingual {
@@ -156,6 +166,143 @@ function experienceTakotoKana(senseId: string): SemanticValueTokenFragment[] {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 3 Task 5 (M5-M8): te-form/ている/permission/prohibition/request/
+// negative-request suffix constructions, and the "possibility" clause
+// construction, for verbs both inside and outside the frozen Task 2
+// 12-verb `A2_VERBS` registry.
+// ---------------------------------------------------------------------------
+
+/**
+ * Remap the given independent-word tail fragments (matched by their exact
+ * `jp` text) from "morpheme" to "lexical" — a real word-boundary space
+ * before each — generalizing `experienceTakotoKana`'s established fix for
+ * the identical problem (§ Phase 3/M6-review finding I3, "semantic rōmaji
+ * boundaries"). `a2Constructions.ts` intentionally models every suffix tail
+ * as bound morphemes for its own Task 2 raw-concatenation contract; this
+ * catalog is the semantic assembly boundary where the *realized* romaji
+ * needs a real space before each independent word (います/ください/いい/です/
+ * いけません are all real, standalone words — never bound morphemes), so the
+ * remap happens only here. A bound morpheme that genuinely is NOT an
+ * independent word (て, ない, で in ないでください) is never named, so it
+ * correctly keeps attaching with no space.
+ */
+function remapIndependentWordTails(
+  fragments: readonly SemanticValueTokenFragment[],
+  independentWordsJp: ReadonlySet<string>,
+): SemanticValueTokenFragment[] {
+  return fragments.map((fragment) =>
+    fragment.kind === "morpheme" && independentWordsJp.has(fragment.jp)
+      ? { ...fragment, kind: "lexical" as const }
+      : fragment,
+  );
+}
+
+/** The independent-word tail fragments (by jp text) each M5-M8 suffix
+ * construction's own `a2Constructions.ts` tail bakes as "morpheme" but
+ * which are real, standalone words needing their own romaji space here.
+ * `sequence-te`'s empty tail needs no entry (nothing to remap). */
+const INDEPENDENT_WORD_TAIL_JP_BY_CONSTRUCTION: Readonly<Record<string, ReadonlySet<string>>> = {
+  "ongoing-teiru": new Set(["います"]),
+  "request-tekudasai": new Set(["ください"]),
+  "permission-temoii": new Set(["いい", "です"]),
+  "prohibition-tewaikenai": new Set(["いけません"]),
+  "request-negative": new Set(["ください"]),
+};
+
+/** Compose a registered Task 2 verb sense through one of the M5-M8 suffix
+ * constructions (`composeA2Construction`), with the construction's own
+ * independent-word tail fragments remapped for natural romaji boundaries
+ * (see {@link remapIndependentWordTails}). */
+function suffixKana(constructionId: string, senseId: string): SemanticValueTokenFragment[] {
+  const independentWords = INDEPENDENT_WORD_TAIL_JP_BY_CONSTRUCTION[constructionId] ?? new Set<string>();
+  return remapIndependentWordTails(composedKana(constructionId, senseId), independentWords);
+}
+
+/**
+ * A verb not among the Task 2 12-registered conjugation-class exemplars
+ * (`a2Conjugation.ts`'s `A2_VERBS`), described by its own conjugation class
+ * and kana stem — every M5-M8 kanji-linked verb this module introduces
+ * (起きる/寝る/使う/作る/洗う/終わる/始まる/働く/入る/止まる/消す/座る/立つ/飲む).
+ */
+interface NewVerb {
+  readonly conjClass: RegularA2ConjugationClass;
+  readonly stem: readonly A2Fragment[];
+}
+
+/** A kana-only lexical root fragment (no separate kanji orthography is ever
+ * authored in this catalog — see the file-level docstring). */
+function newVerbFrag(jp: string, romaji: string): A2Fragment {
+  return { jp, romaji, kind: "lexical", boundaryBefore: "attach" };
+}
+
+/** Conjugate a new (non-registered) verb to one plain form via
+ * `conjugateClass()` — the exact same class-aware regular-okurigana engine
+ * `conjugate()` itself delegates to for every registered verb — so a verb
+ * outside the frozen 12-verb table is never hand-typed from scratch. */
+function newVerbPlainKana(verb: NewVerb, form: A2PlainForm): SemanticValueTokenFragment[] {
+  return kanaFragments(conjugateClass(verb.conjClass, verb.stem, form).fragments);
+}
+
+/** Derive a new (non-registered) verb's polite ます-stem via
+ * `conjugateClassMasuStem()` — the same single linguistic source of truth
+ * `conjugateMasuStem()` itself delegates to for every registered verb. */
+function newVerbMasuStemKana(verb: NewVerb): SemanticValueTokenFragment[] {
+  return kanaFragments(conjugateClassMasuStem(verb.conjClass, verb.stem).fragments);
+}
+
+/** Append ます to a masu-stem fragment sequence (either a registered verb's
+ * `masuStemKana(...)` or a new verb's `newVerbMasuStemKana(...)`) — the
+ * common final clause of many M5-M8 two-clause te-sequence whole-clause
+ * bakes (§ mirrors the connector-utterance ...ます pattern already
+ * established in M1-M4). */
+function masuForm(stemFragments: readonly SemanticValueTokenFragment[]): SemanticValueTokenFragment[] {
+  return [...stemFragments, morphFrag("ます", "masu")];
+}
+
+/**
+ * Compose a new (non-registered) verb through one of the M5-M8 suffix
+ * constructions: conjugate its own (conjClass, stem) to the construction's
+ * exact plain base via `conjugateClass()` — never a hand-typed guess — then
+ * append the construction's own real tail fragments from `A2_CONSTRUCTIONS`
+ * (never re-typed), with the same independent-word remap `suffixKana` uses
+ * for registered verbs.
+ */
+function newVerbSuffixKana(constructionId: string, verb: NewVerb): SemanticValueTokenFragment[] {
+  const construction = A2_CONSTRUCTIONS[constructionId];
+  if (!construction || construction.kind !== "suffix" || construction.base === undefined || construction.tail === undefined) {
+    throw new Error(`a2SemanticCatalog: "${constructionId}" is not a registered suffix construction`);
+  }
+  const base = conjugateClass(verb.conjClass, verb.stem, construction.base);
+  const fragments: A2Fragment[] = [...base.fragments, ...construction.tail.map((fragment) => ({ ...fragment }))];
+  const independentWords = INDEPENDENT_WORD_TAIL_JP_BY_CONSTRUCTION[constructionId] ?? new Set<string>();
+  return remapIndependentWordTails(kanaFragments(fragments), independentWords);
+}
+
+/**
+ * "possibility" (M7): `a2Constructions.ts`'s own "possibility" entry is
+ * `kind: "clause"` — like M1-M4's intentions-plans/reason-kara/reason-node/
+ * opinion-toomou/connectors, it combines a whole clause rather than
+ * attaching a suffix to one verb, so it is realized as a hand-composed
+ * sentence-family construction here, never through `composeA2Construction`
+ * (which only ever accepts `kind: "suffix"`). Mirrors
+ * `experienceTakotoKana`'s こと+が+X tail shape exactly: a real
+ * word-boundary space before each independent word (こと and できます/
+ * できません are real, standalone words); が stays a "particle" fragment
+ * unchanged (it already spaces correctly).
+ */
+function possibilityKana(
+  dictionaryFormFragments: readonly SemanticValueTokenFragment[],
+  polarity: "affirmative" | "negative",
+): SemanticValueTokenFragment[] {
+  return [
+    ...dictionaryFormFragments,
+    frag("こと", "koto"),
+    particleFrag("が", "ga"),
+    frag(polarity === "affirmative" ? "できます" : "できません", polarity === "affirmative" ? "dekimasu" : "dekimasen"),
+  ];
+}
+
+// ---------------------------------------------------------------------------
 // Concept IDs (one per M1-M4 grammar construction; families declare exactly
 // which of these they require)
 // ---------------------------------------------------------------------------
@@ -193,6 +340,34 @@ export const A2_M1_M4_CONCEPT_IDS: readonly string[] = deepFreeze([
   A2_CONCEPT_AGREE_DISAGREE,
 ]);
 
+// --- Phase 3 Task 5 (M5-M8) concept ids ---
+export const A2_CONCEPT_SEQUENCE_TE = "a2-concept-sequence-te";
+export const A2_CONCEPT_ONGOING_TEIRU = "a2-concept-ongoing-teiru";
+export const A2_CONCEPT_PERMISSION_TEMOII = "a2-concept-permission-temoii";
+export const A2_CONCEPT_PROHIBITION_TEWAIKENAI = "a2-concept-prohibition-tewaikenai";
+export const A2_CONCEPT_REQUEST_TEKUDASAI = "a2-concept-request-tekudasai";
+export const A2_CONCEPT_NEGATIVE_REQUEST = "a2-concept-negative-request";
+export const A2_CONCEPT_POSSIBILITY = "a2-concept-possibility";
+export const A2_CONCEPT_ASK_FOR_HELP = "a2-concept-ask-for-help";
+export const A2_CONCEPT_DESCRIBE_FACILITY = "a2-concept-describe-facility";
+export const A2_CONCEPT_CONFIRM_UNDERSTANDING = "a2-concept-confirm-understanding";
+export const A2_CONCEPT_RECOUNT_EXPERIENCE = "a2-concept-recount-experience";
+
+/** Every A2 M5-M8 concept id, used as the module tests' available-concept universe. */
+export const A2_M5_M8_CONCEPT_IDS: readonly string[] = deepFreeze([
+  A2_CONCEPT_SEQUENCE_TE,
+  A2_CONCEPT_ONGOING_TEIRU,
+  A2_CONCEPT_PERMISSION_TEMOII,
+  A2_CONCEPT_PROHIBITION_TEWAIKENAI,
+  A2_CONCEPT_REQUEST_TEKUDASAI,
+  A2_CONCEPT_NEGATIVE_REQUEST,
+  A2_CONCEPT_POSSIBILITY,
+  A2_CONCEPT_ASK_FOR_HELP,
+  A2_CONCEPT_DESCRIBE_FACILITY,
+  A2_CONCEPT_CONFIRM_UNDERSTANDING,
+  A2_CONCEPT_RECOUNT_EXPERIENCE,
+]);
+
 // ---------------------------------------------------------------------------
 // Contexts
 // ---------------------------------------------------------------------------
@@ -206,6 +381,12 @@ export const a2Contexts: readonly Context[] = deepFreeze([
   { id: "a2-context-plans", labelCopyId: "a2-context-plans-label" },
   { id: "a2-context-experiences", labelCopyId: "a2-context-experiences-label" },
   { id: "a2-context-reasons", labelCopyId: "a2-context-reasons-label" },
+  // --- Phase 3 Task 5 (M5-M8) — ids fixed by the frozen Task 3 kanji
+  // catalog, which already hard-codes these exact contextIds. ---
+  { id: "a2-context-routines", labelCopyId: "a2-context-routines-label" },
+  { id: "a2-context-rules", labelCopyId: "a2-context-rules-label" },
+  { id: "a2-context-neighborhood", labelCopyId: "a2-context-neighborhood-label" },
+  { id: "a2-context-restaurant", labelCopyId: "a2-context-restaurant-label" },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -249,7 +430,7 @@ export const a2Referents: readonly Referent[] = deepFreeze([
 // they are not redeclared, only referenced — and adds the new senses M1-M4
 // vocabulary needs that the 12-verb conjugation table does not cover.
 
-export const a2LearningTargetSenses: readonly LearningTargetSense[] = deepFreeze([
+const A2_LEARNING_TARGET_SENSES_M1_M4: readonly LearningTargetSense[] = [
   // --- reused Task 2 registered verb senses (own frames declared here; the
   // conjugation table in a2Conjugation.ts owns only their morphology) ---
   { id: "a2-sense-hanasu", lexemeId: "a2-lexeme-hanasu", learningUse: "productive", semanticFrameId: "a2-frame-talk-companion", predicate: "talk", argumentRoles: ["agent", "companion"], argumentParticleByRole: {} },
@@ -442,6 +623,203 @@ export const a2LearningTargetSenses: readonly LearningTargetSense[] = deepFreeze
   { id: "a2-sense-toomou-ashita-ame", lexemeId: "a2-lexeme-toomou-ashita-ame", learningUse: "productive", semanticFrameId: "a2-frame-toomou-ashita-ame", predicate: "toomou_ashita_ame", argumentRoles: [], argumentParticleByRole: {} },
   { id: "a2-sense-toomou-hon-omoshiroi", lexemeId: "a2-lexeme-toomou-hon-omoshiroi", learningUse: "productive", semanticFrameId: "a2-frame-toomou-hon-omoshiroi", predicate: "toomou_hon_omoshiroi", argumentRoles: [], argumentParticleByRole: {} },
   { id: "a2-sense-toomou-nihongo-muzukashikunai", lexemeId: "a2-lexeme-toomou-nihongo-muzukashikunai", learningUse: "productive", semanticFrameId: "a2-frame-toomou-nihongo-muzukashikunai", predicate: "toomou_nihongo_muzukashikunai", argumentRoles: [], argumentParticleByRole: {} },
+];
+
+// ---------------------------------------------------------------------------
+// Phase 3 Task 5 (M5-M8) — new verbs (outside the frozen Task 2 12-verb
+// `A2_VERBS` table) and dedicated predicate senses.
+// ---------------------------------------------------------------------------
+
+/**
+ * The M5-M8 kanji-linked verbs not among the Task 2 12-registered
+ * conjugation-class exemplars (`a2Conjugation.ts`'s `A2_VERBS`) — every
+ * conjugation class/stem below is conjugated through `conjugateClass()`/
+ * `conjugateClassMasuStem()`, the exact same regular-okurigana engine
+ * `conjugate()`/`conjugateMasuStem()` themselves delegate to, never a
+ * hand-typed guess.
+ */
+const NEW_VERBS: Readonly<Record<string, NewVerb>> = {
+  // --- M5 sequencing-ongoing (kanji A 起寝使作毎; kanji B 洗終始働) ---
+  okiru: { conjClass: "ichidan", stem: [newVerbFrag("おき", "oki")] },
+  neru: { conjClass: "ichidan", stem: [newVerbFrag("ね", "ne")] },
+  tsukau: { conjClass: "godan-u", stem: [newVerbFrag("つか", "tsuka")] },
+  tsukuru: { conjClass: "godan-ru", stem: [newVerbFrag("つく", "tsuku")] },
+  arau: { conjClass: "godan-u", stem: [newVerbFrag("あら", "ara")] },
+  owaru: { conjClass: "godan-ru", stem: [newVerbFrag("おわ", "owa")] },
+  hajimaru: { conjClass: "godan-ru", stem: [newVerbFrag("はじま", "hajima")] },
+  hataraku: { conjClass: "godan-ku", stem: [newVerbFrag("はたら", "hatara")] },
+  // --- M6 permission-requests (kanji A 入口出止; kanji B 禁消座立) ---
+  hairu: { conjClass: "godan-ru", stem: [newVerbFrag("はい", "hai")] },
+  tomaru: { conjClass: "godan-ru", stem: [newVerbFrag("とま", "toma")] },
+  kesu: { conjClass: "godan-su", stem: [newVerbFrag("け", "ke")] },
+  suwaru: { conjClass: "godan-ru", stem: [newVerbFrag("すわ", "suwa")] },
+  tatsu: { conjClass: "godan-tsu", stem: [newVerbFrag("た", "ta")] },
+  // --- M7 neighborhood-services: あります existential (masu-stem only —
+  // this catalog never needs ある's suppletive negative ない, so treating
+  // its regular godan-ru masu-stem/dictionary/te/past forms via the same
+  // class-aware engine is safe and never exercises the irregularity). ---
+  aru: { conjClass: "godan-ru", stem: [newVerbFrag("あ", "a")] },
+  // --- M8 restaurant-problems (kanji A 食飲飯茶; kanji B 肉魚熱冷) ---
+  nomu: { conjClass: "godan-mu", stem: [newVerbFrag("の", "no")] },
+};
+
+/** One dedicated M5-M8 predicate sense — mirrors the established Task 4
+ * fix ("each distinct baked utterance gets its own sense id, never a
+ * shared bucket, so per-lesson predicate diversity is measured against
+ * real, distinct predicates"): every distinct verb+construction (or
+ * whole-clause) combination below gets its own sense, decoupled from the
+ * real registered verb's own governed-argument frame (which legitimately
+ * declares "theme"/"location" for its normal governed use elsewhere).
+ * `argumentRoles` defaults to `[]` — every `rule-invariant-object`/
+ * `rule-invariant-utterance` family licenses no governed slot for its
+ * dedicated sense — pass `["location"]` explicitly for a
+ * `rule-invariant-location` family's dedicated sense (the family's own
+ * `location` slot must be matched by the sense's frame, checked
+ * generically by the realizer). */
+function dedicatedSense(
+  id: string,
+  predicate: string,
+  argumentRoles: readonly SemanticArgumentRole[] = [],
+): LearningTargetSense {
+  const bareId = id.replace(/^a2-sense-/, "");
+  return {
+    id,
+    lexemeId: `a2-lexeme-${bareId}`,
+    learningUse: "productive",
+    semanticFrameId: `a2-frame-${bareId}`,
+    predicate,
+    argumentRoles: [...argumentRoles],
+    argumentParticleByRole: {},
+  };
+}
+
+const A2_LEARNING_TARGET_SENSES_M5_M8: readonly LearningTargetSense[] = [
+  // --- M5 sequencing-ongoing: te-sequence whole-clause-bake senses (one
+  // per distinct two-action utterance) ---
+  dedicatedSense("a2-sense-seq-okite-arau", "seq_okite_arau"),
+  dedicatedSense("a2-sense-seq-tsukutte-taberu", "seq_tsukutte_taberu"),
+  dedicatedSense("a2-sense-seq-owatte-kaeru", "seq_owatte_kaeru"),
+  dedicatedSense("a2-sense-seq-hajimatte-tsukau", "seq_hajimatte_tsukau"),
+  dedicatedSense("a2-sense-seq-itte-hanasu", "seq_itte_hanasu"),
+  dedicatedSense("a2-sense-seq-hataraite-tsukareta", "seq_hataraite_tsukareta"),
+  dedicatedSense("a2-sense-seq-aratte-neru", "seq_aratte_neru"),
+  dedicatedSense("a2-sense-seq-tsukatte-kaku", "seq_tsukatte_kaku"),
+  dedicatedSense("a2-sense-seq-oyoide-tsukareta", "seq_oyoide_tsukareta"),
+  dedicatedSense("a2-sense-seq-asonde-kaeru", "seq_asonde_kaeru"),
+  dedicatedSense("a2-sense-seq-matte-hanasu", "seq_matte_hanasu"),
+  // te-sequence with an object slot (single-clause te-form-chain, object
+  // varies) — one sense per predicate, reused across multiple objects.
+  dedicatedSense("a2-sense-seq-obj-tabete-nomu", "seq_obj_tabete_nomu"),
+  dedicatedSense("a2-sense-seq-obj-yonde-neru", "seq_obj_yonde_neru"),
+  dedicatedSense("a2-sense-seq-obj-tsukutte-taberu", "seq_obj_tsukutte_taberu"),
+  // ongoing-teiru (object-compositional; one sense per verb, reused with
+  // different objects for genuine recombination).
+  dedicatedSense("a2-sense-teiru-taberu", "teiru_taberu"),
+  dedicatedSense("a2-sense-teiru-nomu", "teiru_nomu"),
+  dedicatedSense("a2-sense-teiru-yomu", "teiru_yomu"),
+  dedicatedSense("a2-sense-teiru-kaku", "teiru_kaku"),
+  dedicatedSense("a2-sense-teiru-hanasu", "teiru_hanasu"),
+  dedicatedSense("a2-sense-teiru-asobu", "teiru_asobu"),
+  dedicatedSense("a2-sense-teiru-hataraku", "teiru_hataraku"),
+  dedicatedSense("a2-sense-teiru-matsu", "teiru_matsu"),
+
+  // --- M6 permission-requests ---
+  // permission-temoii (object-compositional)
+  dedicatedSense("a2-sense-temoii-taberu", "temoii_taberu"),
+  dedicatedSense("a2-sense-temoii-nomu", "temoii_nomu"),
+  dedicatedSense("a2-sense-temoii-kaku", "temoii_kaku"),
+  dedicatedSense("a2-sense-temoii-yomu", "temoii_yomu"),
+  dedicatedSense("a2-sense-temoii-hanasu", "temoii_hanasu"),
+  // permission-temoii (location-compositional)
+  dedicatedSense("a2-sense-temoii-loc-hanasu", "temoii_loc_hanasu", ["location"]),
+  dedicatedSense("a2-sense-temoii-loc-tsukau", "temoii_loc_tsukau", ["location"]),
+  dedicatedSense("a2-sense-temoii-loc-matsu", "temoii_loc_matsu", ["location"]),
+  // prohibition-tewaikenai (object-compositional)
+  dedicatedSense("a2-sense-tewaikenai-taberu", "tewaikenai_taberu"),
+  dedicatedSense("a2-sense-tewaikenai-nomu", "tewaikenai_nomu"),
+  dedicatedSense("a2-sense-tewaikenai-kesu", "tewaikenai_kesu"),
+  dedicatedSense("a2-sense-tewaikenai-hanasu", "tewaikenai_hanasu"),
+  dedicatedSense("a2-sense-tewaikenai-suwaru", "tewaikenai_suwaru"),
+  // prohibition-tewaikenai (location-compositional)
+  dedicatedSense("a2-sense-tewaikenai-loc-taberu", "tewaikenai_loc_taberu", ["location"]),
+  dedicatedSense("a2-sense-tewaikenai-loc-hanasu", "tewaikenai_loc_hanasu", ["location"]),
+  dedicatedSense("a2-sense-tewaikenai-loc-tomaru", "tewaikenai_loc_tomaru", ["location"]),
+  // request-tekudasai (object-compositional)
+  dedicatedSense("a2-sense-tekudasai-kesu", "tekudasai_kesu"),
+  dedicatedSense("a2-sense-tekudasai-matsu", "tekudasai_matsu"),
+  dedicatedSense("a2-sense-tekudasai-kaku", "tekudasai_kaku"),
+  dedicatedSense("a2-sense-tekudasai-suwaru", "tekudasai_suwaru"),
+  dedicatedSense("a2-sense-tekudasai-tatsu", "tekudasai_tatsu"),
+  dedicatedSense("a2-sense-tekudasai-taberu", "tekudasai_taberu"),
+  dedicatedSense("a2-sense-tekudasai-hanasu", "tekudasai_hanasu"),
+  // negative-request / naidekudasai (object-compositional)
+  dedicatedSense("a2-sense-naidekudasai-hairu", "naidekudasai_hairu"),
+  dedicatedSense("a2-sense-naidekudasai-tomaru", "naidekudasai_tomaru"),
+  dedicatedSense("a2-sense-naidekudasai-taberu", "naidekudasai_taberu"),
+  dedicatedSense("a2-sense-naidekudasai-suwaru", "naidekudasai_suwaru"),
+  dedicatedSense("a2-sense-naidekudasai-kesu", "naidekudasai_kesu"),
+
+  // --- M7 neighborhood-services ---
+  // possibility (object-compositional; affirmative/negative)
+  dedicatedSense("a2-sense-possibility-tsukau", "possibility_tsukau"),
+  dedicatedSense("a2-sense-possibility-hanasu", "possibility_hanasu"),
+  dedicatedSense("a2-sense-possibility-yomu", "possibility_yomu"),
+  dedicatedSense("a2-sense-possibility-oyogu", "possibility_oyogu"),
+  dedicatedSense("a2-sense-possibility-kaku", "possibility_kaku"),
+  dedicatedSense("a2-sense-possibility-nashi-tsukau", "possibility_nashi_tsukau"),
+  dedicatedSense("a2-sense-possibility-nashi-hanasu", "possibility_nashi_hanasu"),
+  // ask-where (topic-copular どこですか whole-utterance)
+  dedicatedSense("a2-sense-ask-where-byouin", "ask_where_byouin"),
+  dedicatedSense("a2-sense-ask-where-ginkou", "ask_where_ginkou"),
+  dedicatedSense("a2-sense-ask-where-yuubinkyoku", "ask_where_yuubinkyoku"),
+  dedicatedSense("a2-sense-ask-where-toshokan", "ask_where_toshokan"),
+  dedicatedSense("a2-sense-ask-where-eki", "ask_where_eki"),
+  // ask-for-help (request phrase content, reusing tekudasai construction
+  // shape but with its own dedicated per-utterance senses)
+  dedicatedSense("a2-sense-help-oshiete-michi", "help_oshiete_michi"),
+  dedicatedSense("a2-sense-help-oshiete-basho", "help_oshiete_basho"),
+  dedicatedSense("a2-sense-help-tetsudatte", "help_tetsudatte"),
+  // describe-facility (existence あります/います — governed location role)
+  dedicatedSense("a2-sense-exist-aru", "exist_aru", ["location"]),
+  // describe-facility (teiru recurrence: hours/state)
+  dedicatedSense("a2-sense-facility-teiru-aiteiru", "facility_teiru_aiteiru"),
+  dedicatedSense("a2-sense-facility-teiru-shimatteiru", "facility_teiru_shimatteiru"),
+
+  // --- M8 restaurant-problems ---
+  // confirm-understanding / order-food (whole-clause bake)
+  dedicatedSense("a2-sense-order-menu", "order_menu"),
+  dedicatedSense("a2-sense-order-osusume", "order_osusume"),
+  dedicatedSense("a2-sense-order-onegai", "order_onegai"),
+  dedicatedSense("a2-sense-order-sorede-ii", "order_sorede_ii"),
+  dedicatedSense("a2-sense-order-nani-ga-aru", "order_nani_ga_aru"),
+  dedicatedSense("a2-sense-order-kore-kudasai", "order_kore_kudasai"),
+  dedicatedSense("a2-sense-order-nomimono", "order_nomimono"),
+  dedicatedSense("a2-sense-order-issho-ni", "order_issho_ni"),
+  // recount-experience / report-problem (whole-clause bake)
+  dedicatedSense("a2-sense-problem-konai", "problem_konai"),
+  dedicatedSense("a2-sense-problem-chigau", "problem_chigau"),
+  dedicatedSense("a2-sense-problem-tsumetai", "problem_tsumetai"),
+  dedicatedSense("a2-sense-problem-atsui", "problem_atsui"),
+  dedicatedSense("a2-sense-problem-tarinai", "problem_tarinai"),
+  dedicatedSense("a2-sense-problem-machigai", "problem_machigai"),
+  dedicatedSense("a2-sense-problem-nioi", "problem_nioi"),
+  dedicatedSense("a2-sense-problem-daremo-konai", "problem_daremo_konai"),
+  // negotiate-price / pay-handle-problem (te-sequence recurrence,
+  // whole-clause bake, mirrors a2-sense-seq-* shape)
+  dedicatedSense("a2-sense-seq-onegaishite-harau", "seq_onegaishite_harau"),
+  dedicatedSense("a2-sense-seq-tanonde-matsu", "seq_tanonde_matsu"),
+  dedicatedSense("a2-sense-seq-kazoete-harau", "seq_kazoete_harau"),
+  dedicatedSense("a2-sense-seq-uketotte-kaeru", "seq_uketotte_kaeru"),
+  dedicatedSense("a2-sense-seq-tabete-harau", "seq_tabete_harau"),
+  dedicatedSense("a2-sense-seq-nonde-harau", "seq_nonde_harau"),
+  dedicatedSense("a2-sense-seq-mite-tanomu", "seq_mite_tanomu"),
+  dedicatedSense("a2-sense-seq-tabete-kaeru", "seq_tabete_kaeru"),
+];
+
+/** Every registered A2 learning-target sense — M1-M4's plus M5-M8's. */
+export const a2LearningTargetSenses: readonly LearningTargetSense[] = deepFreeze([
+  ...A2_LEARNING_TARGET_SENSES_M1_M4,
+  ...A2_LEARNING_TARGET_SENSES_M5_M8,
 ]);
 
 // ---------------------------------------------------------------------------
@@ -1961,11 +2339,206 @@ const a2AuthoredValuesM4: readonly SemanticValue[] = [
   },
 ];
 
+// ---------------------------------------------------------------------------
+// Phase 3 Task 5 — Module 5: sequencing-ongoing (て-form sequencing,
+// ~ている ongoing/resultant state)
+// ---------------------------------------------------------------------------
+
+const a2AuthoredValuesM5: readonly SemanticValue[] = [
+  // --- objects reused across te-sequence-object and ongoing-teiru families ---
+  { id: "a2-value-obj-pan", kind: "object", tokenFragments: [frag("パン", "pan")] },
+  { id: "a2-value-obj-mizu", kind: "object", tokenFragments: [frag("みず", "mizu")] },
+  { id: "a2-value-obj-hon-m5", kind: "object", tokenFragments: [frag("ほん", "hon")] },
+  { id: "a2-value-obj-tegami", kind: "object", tokenFragments: [frag("てがみ", "tegami")] },
+  { id: "a2-value-obj-nihongo-m5", kind: "object", tokenFragments: [frag("にほんご", "nihongo")] },
+  { id: "a2-value-obj-basu", kind: "object", tokenFragments: [frag("バス", "basu")] },
+
+  // --- te-sequence whole-clause bakes (a2-family-te-sequence, M5-1/M5-4) ---
+  { id: "a2-value-seq-okite-arau", kind: "predicate-sense", senseId: "a2-sense-seq-okite-arau", tokenFragments: [...newVerbSuffixKana("sequence-te", NEW_VERBS.okiru), punctFrag("、", ","), frag("かおを", "kao o"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.arau))] },
+  { id: "a2-value-seq-tsukutte-taberu", kind: "predicate-sense", senseId: "a2-sense-seq-tsukutte-taberu", tokenFragments: [frag("あさごはんを", "asagohan o"), ...newVerbSuffixKana("sequence-te", NEW_VERBS.tsukuru), punctFrag("、", ","), ...masuForm(masuStemKana("a2-sense-taberu"))] },
+  { id: "a2-value-seq-owatte-kaeru", kind: "predicate-sense", senseId: "a2-sense-seq-owatte-kaeru", tokenFragments: [frag("しごとが", "shigoto ga"), ...newVerbSuffixKana("sequence-te", NEW_VERBS.owaru), punctFrag("、", ","), frag("いえに", "ie ni"), ...masuForm(masuStemKana("a2-sense-kaeru"))] },
+  { id: "a2-value-seq-hajimatte-tsukau", kind: "predicate-sense", senseId: "a2-sense-seq-hajimatte-tsukau", tokenFragments: [frag("じゅぎょうが", "jugyou ga"), ...newVerbSuffixKana("sequence-te", NEW_VERBS.hajimaru), punctFrag("、", ","), frag("ノートを", "nooto o"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.tsukau))] },
+  { id: "a2-value-seq-itte-hanasu", kind: "predicate-sense", senseId: "a2-sense-seq-itte-hanasu", tokenFragments: [frag("がっこうへ", "gakkou e"), ...suffixKana("sequence-te", "a2-sense-iku"), punctFrag("、", ","), frag("ともだちと", "tomodachi to"), ...masuForm(masuStemKana("a2-sense-hanasu"))] },
+  { id: "a2-value-seq-hataraite-tsukareta", kind: "predicate-sense", senseId: "a2-sense-seq-hataraite-tsukareta", tokenFragments: [...newVerbSuffixKana("sequence-te", NEW_VERBS.hataraku), punctFrag("、", ","), frag("つかれました", "tsukaremashita")] },
+  { id: "a2-value-seq-aratte-neru", kind: "predicate-sense", senseId: "a2-sense-seq-aratte-neru", tokenFragments: [frag("かおを", "kao o"), ...newVerbSuffixKana("sequence-te", NEW_VERBS.arau), punctFrag("、", ","), ...masuForm(newVerbMasuStemKana(NEW_VERBS.neru))] },
+  { id: "a2-value-seq-tsukatte-kaku", kind: "predicate-sense", senseId: "a2-sense-seq-tsukatte-kaku", tokenFragments: [frag("コンピューターを", "konpyuutaa o"), ...newVerbSuffixKana("sequence-te", NEW_VERBS.tsukau), punctFrag("、", ","), frag("メールを", "meeru o"), ...masuForm(masuStemKana("a2-sense-kaku"))] },
+  { id: "a2-value-seq-oyoide-tsukareta", kind: "predicate-sense", senseId: "a2-sense-seq-oyoide-tsukareta", tokenFragments: [...suffixKana("sequence-te", "a2-sense-oyogu"), punctFrag("、", ","), frag("つかれました", "tsukaremashita")] },
+  { id: "a2-value-seq-asonde-kaeru", kind: "predicate-sense", senseId: "a2-sense-seq-asonde-kaeru", tokenFragments: [frag("ともだちと", "tomodachi to"), ...suffixKana("sequence-te", "a2-sense-asobu"), punctFrag("、", ","), frag("いえに", "ie ni"), ...masuForm(masuStemKana("a2-sense-kaeru"))] },
+  { id: "a2-value-seq-matte-hanasu", kind: "predicate-sense", senseId: "a2-sense-seq-matte-hanasu", tokenFragments: [frag("ともだちを", "tomodachi o"), ...suffixKana("sequence-te", "a2-sense-matsu"), punctFrag("、", ","), ...masuForm(masuStemKana("a2-sense-hanasu"))] },
+
+  // --- te-sequence with an object slot (a2-family-te-sequence-object, M5-2) ---
+  { id: "a2-value-seq-obj-tabete-nomu", kind: "predicate-sense", senseId: "a2-sense-seq-obj-tabete-nomu", tokenFragments: [...suffixKana("sequence-te", "a2-sense-taberu"), punctFrag("、", ","), ...masuForm(newVerbMasuStemKana(NEW_VERBS.nomu))] },
+  { id: "a2-value-seq-obj-yonde-neru", kind: "predicate-sense", senseId: "a2-sense-seq-obj-yonde-neru", tokenFragments: [...suffixKana("sequence-te", "a2-sense-yomu"), punctFrag("、", ","), ...masuForm(newVerbMasuStemKana(NEW_VERBS.neru))] },
+  { id: "a2-value-seq-obj-tsukutte-taberu", kind: "predicate-sense", senseId: "a2-sense-seq-obj-tsukutte-taberu", tokenFragments: [...newVerbSuffixKana("sequence-te", NEW_VERBS.tsukuru), punctFrag("、", ","), ...masuForm(masuStemKana("a2-sense-taberu"))] },
+
+  // --- ongoing-teiru (a2-family-ongoing-teiru, object-compositional; M5-3/M5-4) ---
+  { id: "a2-value-teiru-taberu", kind: "predicate-sense", senseId: "a2-sense-teiru-taberu", tokenFragments: suffixKana("ongoing-teiru", "a2-sense-taberu") },
+  { id: "a2-value-teiru-nomu", kind: "predicate-sense", senseId: "a2-sense-teiru-nomu", tokenFragments: newVerbSuffixKana("ongoing-teiru", NEW_VERBS.nomu) },
+  { id: "a2-value-teiru-yomu", kind: "predicate-sense", senseId: "a2-sense-teiru-yomu", tokenFragments: suffixKana("ongoing-teiru", "a2-sense-yomu") },
+  { id: "a2-value-teiru-kaku", kind: "predicate-sense", senseId: "a2-sense-teiru-kaku", tokenFragments: suffixKana("ongoing-teiru", "a2-sense-kaku") },
+  { id: "a2-value-teiru-hanasu", kind: "predicate-sense", senseId: "a2-sense-teiru-hanasu", tokenFragments: suffixKana("ongoing-teiru", "a2-sense-hanasu") },
+  { id: "a2-value-teiru-asobu", kind: "predicate-sense", senseId: "a2-sense-teiru-asobu", tokenFragments: suffixKana("ongoing-teiru", "a2-sense-asobu") },
+  { id: "a2-value-teiru-hataraku", kind: "predicate-sense", senseId: "a2-sense-teiru-hataraku", tokenFragments: newVerbSuffixKana("ongoing-teiru", NEW_VERBS.hataraku) },
+  { id: "a2-value-teiru-matsu", kind: "predicate-sense", senseId: "a2-sense-teiru-matsu", tokenFragments: suffixKana("ongoing-teiru", "a2-sense-matsu") },
+];
+
+// ---------------------------------------------------------------------------
+// Phase 3 Task 5 — Module 6: permission-requests (~てもいい, ~てはいけない,
+// ~てください, ~ないでください)
+// ---------------------------------------------------------------------------
+
+const a2AuthoredValuesM6: readonly SemanticValue[] = [
+  // --- objects/locations ---
+  { id: "a2-value-obj-denki", kind: "object", tokenFragments: [frag("でんき", "denki")] },
+  { id: "a2-value-obj-kore-m6", kind: "object", tokenFragments: [frag("これ", "kore")] },
+  { id: "a2-value-obj-yasai", kind: "object", tokenFragments: [frag("やさい", "yasai")] },
+  { id: "a2-value-loc-koko", kind: "location", tokenFragments: [frag("ここ", "koko")] },
+  { id: "a2-value-loc-toshokan", kind: "location", tokenFragments: [frag("としょかん", "toshokan")] },
+  { id: "a2-value-loc-eki", kind: "location", tokenFragments: [frag("えき", "eki")] },
+  { id: "a2-value-loc-kyoushitsu", kind: "location", tokenFragments: [frag("きょうしつ", "kyoushitsu")] },
+
+  // --- permission-temoii (a2-family-permission-temoii, object; M6-1) ---
+  { id: "a2-value-temoii-taberu", kind: "predicate-sense", senseId: "a2-sense-temoii-taberu", tokenFragments: suffixKana("permission-temoii", "a2-sense-taberu") },
+  { id: "a2-value-temoii-nomu", kind: "predicate-sense", senseId: "a2-sense-temoii-nomu", tokenFragments: newVerbSuffixKana("permission-temoii", NEW_VERBS.nomu) },
+  { id: "a2-value-temoii-kaku", kind: "predicate-sense", senseId: "a2-sense-temoii-kaku", tokenFragments: suffixKana("permission-temoii", "a2-sense-kaku") },
+  { id: "a2-value-temoii-yomu", kind: "predicate-sense", senseId: "a2-sense-temoii-yomu", tokenFragments: suffixKana("permission-temoii", "a2-sense-yomu") },
+  { id: "a2-value-temoii-hanasu", kind: "predicate-sense", senseId: "a2-sense-temoii-hanasu", tokenFragments: suffixKana("permission-temoii", "a2-sense-hanasu") },
+  // --- permission-temoii (a2-family-permission-temoii-location; M6-1/M7) ---
+  { id: "a2-value-temoii-loc-hanasu", kind: "predicate-sense", senseId: "a2-sense-temoii-loc-hanasu", tokenFragments: suffixKana("permission-temoii", "a2-sense-hanasu") },
+  { id: "a2-value-temoii-loc-tsukau", kind: "predicate-sense", senseId: "a2-sense-temoii-loc-tsukau", tokenFragments: newVerbSuffixKana("permission-temoii", NEW_VERBS.tsukau) },
+  { id: "a2-value-temoii-loc-matsu", kind: "predicate-sense", senseId: "a2-sense-temoii-loc-matsu", tokenFragments: suffixKana("permission-temoii", "a2-sense-matsu") },
+
+  // --- prohibition-tewaikenai (a2-family-prohibition-tewaikenai, object; M6-2) ---
+  { id: "a2-value-tewaikenai-taberu", kind: "predicate-sense", senseId: "a2-sense-tewaikenai-taberu", tokenFragments: suffixKana("prohibition-tewaikenai", "a2-sense-taberu") },
+  { id: "a2-value-tewaikenai-nomu", kind: "predicate-sense", senseId: "a2-sense-tewaikenai-nomu", tokenFragments: newVerbSuffixKana("prohibition-tewaikenai", NEW_VERBS.nomu) },
+  { id: "a2-value-tewaikenai-kesu", kind: "predicate-sense", senseId: "a2-sense-tewaikenai-kesu", tokenFragments: newVerbSuffixKana("prohibition-tewaikenai", NEW_VERBS.kesu) },
+  { id: "a2-value-tewaikenai-hanasu", kind: "predicate-sense", senseId: "a2-sense-tewaikenai-hanasu", tokenFragments: suffixKana("prohibition-tewaikenai", "a2-sense-hanasu") },
+  { id: "a2-value-tewaikenai-suwaru", kind: "predicate-sense", senseId: "a2-sense-tewaikenai-suwaru", tokenFragments: newVerbSuffixKana("prohibition-tewaikenai", NEW_VERBS.suwaru) },
+  // --- prohibition-tewaikenai (a2-family-prohibition-tewaikenai-location) ---
+  { id: "a2-value-tewaikenai-loc-taberu", kind: "predicate-sense", senseId: "a2-sense-tewaikenai-loc-taberu", tokenFragments: suffixKana("prohibition-tewaikenai", "a2-sense-taberu") },
+  { id: "a2-value-tewaikenai-loc-hanasu", kind: "predicate-sense", senseId: "a2-sense-tewaikenai-loc-hanasu", tokenFragments: suffixKana("prohibition-tewaikenai", "a2-sense-hanasu") },
+  { id: "a2-value-tewaikenai-loc-tomaru", kind: "predicate-sense", senseId: "a2-sense-tewaikenai-loc-tomaru", tokenFragments: newVerbSuffixKana("prohibition-tewaikenai", NEW_VERBS.tomaru) },
+
+  // --- request-tekudasai (a2-family-request-tekudasai, object; M6-3) ---
+  { id: "a2-value-tekudasai-kesu", kind: "predicate-sense", senseId: "a2-sense-tekudasai-kesu", tokenFragments: newVerbSuffixKana("request-tekudasai", NEW_VERBS.kesu) },
+  { id: "a2-value-tekudasai-matsu", kind: "predicate-sense", senseId: "a2-sense-tekudasai-matsu", tokenFragments: suffixKana("request-tekudasai", "a2-sense-matsu") },
+  { id: "a2-value-tekudasai-kaku", kind: "predicate-sense", senseId: "a2-sense-tekudasai-kaku", tokenFragments: suffixKana("request-tekudasai", "a2-sense-kaku") },
+  { id: "a2-value-tekudasai-suwaru", kind: "predicate-sense", senseId: "a2-sense-tekudasai-suwaru", tokenFragments: newVerbSuffixKana("request-tekudasai", NEW_VERBS.suwaru) },
+  { id: "a2-value-tekudasai-tatsu", kind: "predicate-sense", senseId: "a2-sense-tekudasai-tatsu", tokenFragments: newVerbSuffixKana("request-tekudasai", NEW_VERBS.tatsu) },
+  { id: "a2-value-tekudasai-taberu", kind: "predicate-sense", senseId: "a2-sense-tekudasai-taberu", tokenFragments: suffixKana("request-tekudasai", "a2-sense-taberu") },
+  { id: "a2-value-tekudasai-hanasu", kind: "predicate-sense", senseId: "a2-sense-tekudasai-hanasu", tokenFragments: suffixKana("request-tekudasai", "a2-sense-hanasu") },
+
+  // --- negative-request / naidekudasai (a2-family-negative-request; M6-4) ---
+  { id: "a2-value-naidekudasai-hairu", kind: "predicate-sense", senseId: "a2-sense-naidekudasai-hairu", tokenFragments: newVerbSuffixKana("request-negative", NEW_VERBS.hairu) },
+  { id: "a2-value-naidekudasai-tomaru", kind: "predicate-sense", senseId: "a2-sense-naidekudasai-tomaru", tokenFragments: newVerbSuffixKana("request-negative", NEW_VERBS.tomaru) },
+  { id: "a2-value-naidekudasai-taberu", kind: "predicate-sense", senseId: "a2-sense-naidekudasai-taberu", tokenFragments: suffixKana("request-negative", "a2-sense-taberu") },
+  { id: "a2-value-naidekudasai-suwaru", kind: "predicate-sense", senseId: "a2-sense-naidekudasai-suwaru", tokenFragments: newVerbSuffixKana("request-negative", NEW_VERBS.suwaru) },
+  { id: "a2-value-naidekudasai-kesu", kind: "predicate-sense", senseId: "a2-sense-naidekudasai-kesu", tokenFragments: newVerbSuffixKana("request-negative", NEW_VERBS.kesu) },
+];
+
+// ---------------------------------------------------------------------------
+// Phase 3 Task 5 — Module 7: neighborhood-services (possibility, directions,
+// facility existence)
+// ---------------------------------------------------------------------------
+
+const a2AuthoredValuesM7: readonly SemanticValue[] = [
+  // --- objects/locations/facility names ---
+  { id: "a2-value-obj-nihongo-m7", kind: "object", tokenFragments: [frag("にほんご", "nihongo")] },
+  { id: "a2-value-obj-eigo", kind: "object", tokenFragments: [frag("えいご", "eigo")] },
+  { id: "a2-value-obj-kaado", kind: "object", tokenFragments: [frag("カード", "kaado")] },
+  { id: "a2-value-loc-eki-m7", kind: "location", tokenFragments: [frag("えきの", "eki no"), frag("ちかく", "chikaku")] },
+  { id: "a2-value-fac-byouin-subject", kind: "referent", animacy: "inanimate", tokenFragments: [frag("びょういん", "byouin")] },
+  { id: "a2-value-fac-ginkou-subject", kind: "referent", animacy: "inanimate", tokenFragments: [frag("ぎんこう", "ginkou")] },
+  { id: "a2-value-fac-yuubinkyoku-subject", kind: "referent", animacy: "inanimate", tokenFragments: [frag("ゆうびんきょく", "yuubinkyoku")] },
+  { id: "a2-value-fac-toshokan-subject", kind: "referent", animacy: "inanimate", tokenFragments: [frag("としょかん", "toshokan")] },
+  { id: "a2-value-fac-koen-subject", kind: "referent", animacy: "inanimate", tokenFragments: [frag("こうえん", "kouen")] },
+
+  // --- possibility (a2-family-possibility, object-compositional; M7-1/M7-2) ---
+  { id: "a2-value-possibility-tsukau", kind: "predicate-sense", senseId: "a2-sense-possibility-tsukau", tokenFragments: possibilityKana(newVerbPlainKana(NEW_VERBS.tsukau, "dictionary"), "affirmative") },
+  { id: "a2-value-possibility-hanasu", kind: "predicate-sense", senseId: "a2-sense-possibility-hanasu", tokenFragments: possibilityKana(plainKana("a2-sense-hanasu", "dictionary"), "affirmative") },
+  { id: "a2-value-possibility-yomu", kind: "predicate-sense", senseId: "a2-sense-possibility-yomu", tokenFragments: possibilityKana(plainKana("a2-sense-yomu", "dictionary"), "affirmative") },
+  { id: "a2-value-possibility-oyogu", kind: "predicate-sense", senseId: "a2-sense-possibility-oyogu", tokenFragments: possibilityKana(plainKana("a2-sense-oyogu", "dictionary"), "affirmative") },
+  { id: "a2-value-possibility-kaku", kind: "predicate-sense", senseId: "a2-sense-possibility-kaku", tokenFragments: possibilityKana(plainKana("a2-sense-kaku", "dictionary"), "affirmative") },
+  { id: "a2-value-possibility-nashi-tsukau", kind: "predicate-sense", senseId: "a2-sense-possibility-nashi-tsukau", tokenFragments: possibilityKana(newVerbPlainKana(NEW_VERBS.tsukau, "dictionary"), "negative") },
+  { id: "a2-value-possibility-nashi-hanasu", kind: "predicate-sense", senseId: "a2-sense-possibility-nashi-hanasu", tokenFragments: possibilityKana(plainKana("a2-sense-hanasu", "dictionary"), "negative") },
+
+  // --- ask-where (a2-family-ask-where, rule-invariant-utterance whole-clause
+  // bake; M7-3) ---
+  { id: "a2-value-ask-where-byouin", kind: "predicate-sense", senseId: "a2-sense-ask-where-byouin", tokenFragments: [frag("びょういんは", "byouin wa"), frag("どこ", "doko"), frag("です", "desu")] },
+  { id: "a2-value-ask-where-ginkou", kind: "predicate-sense", senseId: "a2-sense-ask-where-ginkou", tokenFragments: [frag("ぎんこうは", "ginkou wa"), frag("どこ", "doko"), frag("です", "desu")] },
+  { id: "a2-value-ask-where-yuubinkyoku", kind: "predicate-sense", senseId: "a2-sense-ask-where-yuubinkyoku", tokenFragments: [frag("ゆうびんきょくは", "yuubinkyoku wa"), frag("どこ", "doko"), frag("です", "desu")] },
+  { id: "a2-value-ask-where-toshokan", kind: "predicate-sense", senseId: "a2-sense-ask-where-toshokan", tokenFragments: [frag("としょかんは", "toshokan wa"), frag("どこ", "doko"), frag("です", "desu")] },
+  { id: "a2-value-ask-where-eki", kind: "predicate-sense", senseId: "a2-sense-ask-where-eki", tokenFragments: [frag("えきは", "eki wa"), frag("どこ", "doko"), frag("です", "desu")] },
+  // --- ask-for-help (request phrase content, reuses request-tekudasai's
+  // own realized shape via dedicated per-utterance whole-clause bakes; M7-3) ---
+  { id: "a2-value-help-oshiete-michi", kind: "predicate-sense", senseId: "a2-sense-help-oshiete-michi", tokenFragments: [frag("すみません", "sumimasen"), punctFrag("、", ","), frag("みちを", "michi o"), frag("おしえて", "oshiete"), frag("ください", "kudasai")] },
+  { id: "a2-value-help-oshiete-basho", kind: "predicate-sense", senseId: "a2-sense-help-oshiete-basho", tokenFragments: [frag("すみません", "sumimasen"), punctFrag("、", ","), frag("ばしょを", "basho o"), frag("おしえて", "oshiete"), frag("ください", "kudasai")] },
+  { id: "a2-value-help-tetsudatte", kind: "predicate-sense", senseId: "a2-sense-help-tetsudatte", tokenFragments: [frag("すみません", "sumimasen"), punctFrag("、", ","), frag("てつだって", "tetsudatte"), frag("ください", "kudasai")] },
+
+  // --- describe-facility (a2-family-describe-facility, rule-existence; M7-4) ---
+  { id: "a2-value-exist-aru", kind: "predicate-sense", senseId: "a2-sense-exist-aru", tokenFragments: newVerbMasuStemKana(NEW_VERBS.aru) },
+  // --- describe-facility (a2-family-ongoing-teiru recurrence: hours/state).
+  // います is kept as its own "lexical" fragment (not a bound morpheme) so it
+  // gets the same leading-space romaji boundary as every compositional
+  // ~ている form (e.g. はたらいています → "hataraite imasu"), per the
+  // established INDEPENDENT_WORD_TAIL_JP_BY_CONSTRUCTION convention. ---
+  { id: "a2-value-facility-teiru-aiteiru", kind: "predicate-sense", senseId: "a2-sense-facility-teiru-aiteiru", tokenFragments: [frag("あいて", "aite"), frag("います", "imasu")] },
+  { id: "a2-value-facility-teiru-shimatteiru", kind: "predicate-sense", senseId: "a2-sense-facility-teiru-shimatteiru", tokenFragments: [frag("しまって", "shimatte"), frag("います", "imasu")] },
+];
+
+// ---------------------------------------------------------------------------
+// Phase 3 Task 5 — Module 8: restaurant-problems (ordering, special
+// requests, reporting a problem, paying)
+// ---------------------------------------------------------------------------
+
+const a2AuthoredValuesM8: readonly SemanticValue[] = [
+  // --- food/drink vocabulary ---
+  { id: "a2-value-obj-raamen", kind: "object", tokenFragments: [frag("ラーメン", "raamen")] },
+  { id: "a2-value-obj-ocha-m8", kind: "object", tokenFragments: [frag("おちゃ", "ocha")] },
+  { id: "a2-value-obj-niku", kind: "object", tokenFragments: [frag("にく", "niku")] },
+  { id: "a2-value-obj-menyuu", kind: "object", tokenFragments: [frag("メニュー", "menyuu")] },
+
+  // --- confirm-understanding / order-food (whole-clause bake; M8-1) ---
+  { id: "a2-value-order-menu", kind: "predicate-sense", senseId: "a2-sense-order-menu", tokenFragments: [frag("すみません", "sumimasen"), punctFrag("、", ","), frag("メニューを", "menyuu o"), frag("ください", "kudasai")] },
+  { id: "a2-value-order-osusume", kind: "predicate-sense", senseId: "a2-sense-order-osusume", tokenFragments: [frag("おすすめは", "osusume wa"), frag("なん", "nan"), frag("です", "desu"), frag("か", "ka", "particle")] },
+  { id: "a2-value-order-onegai", kind: "predicate-sense", senseId: "a2-sense-order-onegai", tokenFragments: [frag("ラーメンを", "raamen o"), frag("おねがいします", "onegaishimasu")] },
+  { id: "a2-value-order-sorede-ii", kind: "predicate-sense", senseId: "a2-sense-order-sorede-ii", tokenFragments: [frag("はい", "hai"), punctFrag("、", ","), frag("それで", "sore de"), frag("いいです", "ii desu")] },
+  { id: "a2-value-order-nani-ga-aru", kind: "predicate-sense", senseId: "a2-sense-order-nani-ga-aru", tokenFragments: [frag("のみものは", "nomimono wa"), frag("なにが", "nani ga"), frag("あります", "arimasu"), frag("か", "ka", "particle")] },
+  { id: "a2-value-order-kore-kudasai", kind: "predicate-sense", senseId: "a2-sense-order-kore-kudasai", tokenFragments: [frag("これを", "kore o"), frag("ください", "kudasai")] },
+  { id: "a2-value-order-nomimono", kind: "predicate-sense", senseId: "a2-sense-order-nomimono", tokenFragments: [frag("おちゃを", "ocha o"), frag("おねがいします", "onegaishimasu")] },
+  { id: "a2-value-order-issho-ni", kind: "predicate-sense", senseId: "a2-sense-order-issho-ni", tokenFragments: [frag("ごはんも", "gohan mo"), frag("いっしょに", "issho ni"), frag("おねがいします", "onegaishimasu")] },
+
+  // --- recount-experience / report-problem (whole-clause bake; M8-3) ---
+  { id: "a2-value-problem-konai", kind: "predicate-sense", senseId: "a2-sense-problem-konai", tokenFragments: [frag("ラーメンを", "raamen o"), frag("たのみました", "tanomimashita"), punctFrag("が", "ga"), frag("まだ", "mada"), frag("きません", "kimasen")] },
+  { id: "a2-value-problem-chigau", kind: "predicate-sense", senseId: "a2-sense-problem-chigau", tokenFragments: [frag("これは", "kore wa"), frag("わたしの", "watashi no"), frag("ちゅうもんと", "chuumon to"), frag("ちがいます", "chigaimasu")] },
+  { id: "a2-value-problem-tsumetai", kind: "predicate-sense", senseId: "a2-sense-problem-tsumetai", tokenFragments: [frag("スープが", "suupu ga"), frag("つめたい", "tsumetai"), frag("です", "desu")] },
+  { id: "a2-value-problem-atsui", kind: "predicate-sense", senseId: "a2-sense-problem-atsui", tokenFragments: [frag("おちゃが", "ocha ga"), frag("あつすぎ", "atsusugi"), frag("ます", "masu", "morpheme")] },
+  { id: "a2-value-problem-tarinai", kind: "predicate-sense", senseId: "a2-sense-problem-tarinai", tokenFragments: [frag("フォークが", "fooku ga"), frag("たりません", "tarimasen")] },
+  { id: "a2-value-problem-machigai", kind: "predicate-sense", senseId: "a2-sense-problem-machigai", tokenFragments: [frag("にくを", "niku o"), frag("たのみました", "tanomimashita"), punctFrag("が", "ga"), frag("さかなが", "sakana ga"), frag("きました", "kimashita")] },
+  { id: "a2-value-problem-nioi", kind: "predicate-sense", senseId: "a2-sense-problem-nioi", tokenFragments: [frag("この", "kono"), frag("さかなは", "sakana wa"), frag("すこし", "sukoshi"), frag("へん", "hen"), frag("です", "desu")] },
+  { id: "a2-value-problem-daremo-konai", kind: "predicate-sense", senseId: "a2-sense-problem-daremo-konai", tokenFragments: [frag("じゅうぶんぷん", "juppun"), frag("まちました", "machimashita"), punctFrag("が", "ga"), frag("だれも", "dare mo"), frag("きません", "kimasen")] },
+
+  // --- negotiate-price / pay-handle-problem (te-sequence recurrence,
+  // whole-clause bake, mirrors a2-sense-seq-* shape; M8-4) ---
+  { id: "a2-value-seq-onegaishite-harau", kind: "predicate-sense", senseId: "a2-sense-seq-onegaishite-harau", tokenFragments: [frag("おかんじょうを", "okanjou o"), frag("おねがいして", "onegaishite"), punctFrag("、", ","), frag("おかねを", "okane o"), frag("はらいました", "haraimashita")] },
+  { id: "a2-value-seq-tanonde-matsu", kind: "predicate-sense", senseId: "a2-sense-seq-tanonde-matsu", tokenFragments: [frag("おかんじょうを", "okanjou o"), frag("たのんで", "tanonde"), punctFrag("、", ","), ...masuForm(masuStemKana("a2-sense-matsu"))] },
+  { id: "a2-value-seq-kazoete-harau", kind: "predicate-sense", senseId: "a2-sense-seq-kazoete-harau", tokenFragments: [frag("おかねを", "okane o"), frag("かぞえて", "kazoete"), punctFrag("、", ","), frag("はらいました", "haraimashita")] },
+  { id: "a2-value-seq-uketotte-kaeru", kind: "predicate-sense", senseId: "a2-sense-seq-uketotte-kaeru", tokenFragments: [frag("おつりを", "otsuri o"), frag("うけとって", "uketotte"), punctFrag("、", ","), ...masuForm(masuStemKana("a2-sense-kaeru"))] },
+  { id: "a2-value-seq-tabete-harau", kind: "predicate-sense", senseId: "a2-sense-seq-tabete-harau", tokenFragments: [frag("ごはんを", "gohan o"), frag("たべて", "tabete"), punctFrag("、", ","), frag("はらいました", "haraimashita")] },
+  { id: "a2-value-seq-nonde-harau", kind: "predicate-sense", senseId: "a2-sense-seq-nonde-harau", tokenFragments: [frag("おちゃを", "ocha o"), frag("のんで", "nonde"), punctFrag("、", ","), frag("はらいました", "haraimashita")] },
+  { id: "a2-value-seq-mite-tanomu", kind: "predicate-sense", senseId: "a2-sense-seq-mite-tanomu", tokenFragments: [frag("メニューを", "menyuu o"), frag("みて", "mite"), punctFrag("、", ","), frag("ちゅうもんしました", "chuumon shimashita")] },
+  { id: "a2-value-seq-tabete-kaeru", kind: "predicate-sense", senseId: "a2-sense-seq-tabete-kaeru", tokenFragments: [frag("ごはんを", "gohan o"), frag("たべて", "tabete"), punctFrag("、", ","), ...masuForm(masuStemKana("a2-sense-kaeru"))] },
+];
+
 export const a2SemanticValues: readonly SemanticValue[] = deepFreeze([
   ...a2AuthoredValuesM1,
   ...a2AuthoredValuesM2,
   ...a2AuthoredValuesM3,
   ...a2AuthoredValuesM4,
+  ...a2AuthoredValuesM5,
+  ...a2AuthoredValuesM6,
+  ...a2AuthoredValuesM7,
+  ...a2AuthoredValuesM8,
 ]);
 
 // ---------------------------------------------------------------------------
@@ -2195,6 +2768,204 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     realizationRuleId: "rule-invariant-utterance",
     requiredConceptIds: [A2_CONCEPT_AGREE_DISAGREE],
   },
+
+  // --- M5 sequencing-ongoing ---
+  {
+    id: "a2-family-te-sequence",
+    level: "a2",
+    // Also satisfies restaurant-problems-4's primary Can-do
+    // ("negotiate-price"/pay-handle-problem): that lesson has no own
+    // dedicated construction of its own — it teaches the skill entirely via
+    // sequence-te recurrence in a payment/problem-handling context (per
+    // the M8 recipe: "support [sequence-te]; te-form recurrence"), so this
+    // family is the one that actually realizes every one of its transfers.
+    canDoIds: ["a2-cando-sequence-te", "a2-cando-negotiate-price"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_SEQUENCE_TE],
+  },
+  {
+    id: "a2-family-te-sequence-object",
+    level: "a2",
+    canDoIds: ["a2-cando-sequence-te", "a2-cando-describe-now"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "object", axis: "object", valueKind: "object", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "object", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-object",
+    requiredConceptIds: [A2_CONCEPT_SEQUENCE_TE],
+  },
+  {
+    id: "a2-family-ongoing-teiru",
+    level: "a2",
+    canDoIds: ["a2-cando-ongoing-teiru", "a2-cando-describe-ongoing-action", "a2-cando-describe-routine"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "object", axis: "object", valueKind: "object", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "object", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-object",
+    requiredConceptIds: [A2_CONCEPT_ONGOING_TEIRU],
+  },
+
+  // --- M6 permission-requests ---
+  {
+    id: "a2-family-permission-temoii",
+    level: "a2",
+    canDoIds: ["a2-cando-permission-temoii"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "object", axis: "object", valueKind: "object", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "object", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-object",
+    requiredConceptIds: [A2_CONCEPT_PERMISSION_TEMOII],
+  },
+  {
+    id: "a2-family-permission-temoii-location",
+    level: "a2",
+    canDoIds: ["a2-cando-permission-temoii", "a2-cando-possibility"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "location", axis: "location", valueKind: "location", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "location", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-location",
+    requiredConceptIds: [A2_CONCEPT_PERMISSION_TEMOII],
+  },
+  {
+    id: "a2-family-prohibition-tewaikenai",
+    level: "a2",
+    canDoIds: ["a2-cando-prohibition-tewaikenai"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "object", axis: "object", valueKind: "object", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "object", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-object",
+    requiredConceptIds: [A2_CONCEPT_PROHIBITION_TEWAIKENAI],
+  },
+  {
+    id: "a2-family-prohibition-tewaikenai-location",
+    level: "a2",
+    canDoIds: ["a2-cando-prohibition-tewaikenai"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "location", axis: "location", valueKind: "location", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "location", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-location",
+    requiredConceptIds: [A2_CONCEPT_PROHIBITION_TEWAIKENAI],
+  },
+  {
+    id: "a2-family-request-tekudasai",
+    level: "a2",
+    canDoIds: ["a2-cando-request-tekudasai", "a2-cando-ask-for-help"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "object", axis: "object", valueKind: "object", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "object", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-object",
+    requiredConceptIds: [A2_CONCEPT_REQUEST_TEKUDASAI],
+  },
+  {
+    id: "a2-family-negative-request",
+    level: "a2",
+    canDoIds: ["a2-cando-negative-request"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "object", axis: "object", valueKind: "object", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "object", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-object",
+    requiredConceptIds: [A2_CONCEPT_NEGATIVE_REQUEST],
+  },
+
+  // --- M7 neighborhood-services ---
+  {
+    id: "a2-family-possibility",
+    level: "a2",
+    canDoIds: ["a2-cando-possibility", "a2-cando-express-ability"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "object", axis: "object", valueKind: "object", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "object", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-object",
+    requiredConceptIds: [A2_CONCEPT_POSSIBILITY],
+  },
+  {
+    id: "a2-family-ask-where",
+    level: "a2",
+    canDoIds: ["a2-cando-ask-for-help"],
+    slotSchema: [{ id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false }],
+    permittedAxes: ["predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_ASK_FOR_HELP],
+  },
+  {
+    id: "a2-family-ask-for-help",
+    level: "a2",
+    canDoIds: ["a2-cando-ask-for-help"],
+    slotSchema: [{ id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false }],
+    permittedAxes: ["predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_ASK_FOR_HELP],
+  },
+  {
+    id: "a2-family-describe-facility",
+    level: "a2",
+    canDoIds: ["a2-cando-describe-facility"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      { id: "location", axis: "location", valueKind: "location", optional: true },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "location", "context"],
+    realizationRuleId: "rule-existence",
+    requiredConceptIds: [A2_CONCEPT_DESCRIBE_FACILITY],
+  },
+
+  // --- M8 restaurant-problems ---
+  {
+    id: "a2-family-confirm-understanding",
+    level: "a2",
+    canDoIds: ["a2-cando-confirm-understanding"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_CONFIRM_UNDERSTANDING],
+  },
+  {
+    id: "a2-family-recount-experience",
+    level: "a2",
+    canDoIds: ["a2-cando-recount-experience"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_RECOUNT_EXPERIENCE],
+  },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -2225,6 +2996,10 @@ export const a2SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a2-context-plans-label": "Making plans",
     "a2-context-experiences-label": "Talking about past experiences",
     "a2-context-reasons-label": "Explaining reasons and opinions",
+    "a2-context-routines-label": "Describing a daily routine",
+    "a2-context-rules-label": "Reading signs and rules",
+    "a2-context-neighborhood-label": "Around the neighborhood",
+    "a2-context-restaurant-label": "At a restaurant",
   },
   it: {
     "a2-role-learner-label": "Io (lo studente)",
@@ -2249,6 +3024,10 @@ export const a2SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a2-context-plans-label": "Facendo programmi",
     "a2-context-experiences-label": "Parlando di esperienze passate",
     "a2-context-reasons-label": "Spiegando motivi e opinioni",
+    "a2-context-routines-label": "Descrivendo una routine quotidiana",
+    "a2-context-rules-label": "Leggendo cartelli e regole",
+    "a2-context-neighborhood-label": "In giro per il quartiere",
+    "a2-context-restaurant-label": "Al ristorante",
   },
 });
 
@@ -2284,6 +3063,22 @@ const A2_CONTEXT_SCENARIO: Readonly<Record<string, Bilingual>> = deepFreeze({
   "a2-context-reasons": {
     en: "You are explaining your reasons and sharing your opinion.",
     it: "Stai spiegando le tue ragioni e condividendo la tua opinione.",
+  },
+  "a2-context-routines": {
+    en: "You are describing your daily routine, in order.",
+    it: "Stai descrivendo la tua routine quotidiana, in ordine.",
+  },
+  "a2-context-rules": {
+    en: "You are reading a sign or asking about what is and isn't allowed.",
+    it: "Stai leggendo un cartello o chiedendo cosa è permesso e cosa no.",
+  },
+  "a2-context-neighborhood": {
+    en: "You are out in the neighborhood, using local services.",
+    it: "Sei in giro per il quartiere, usando i servizi locali.",
+  },
+  "a2-context-restaurant": {
+    en: "You are at a restaurant, ordering and dealing with the staff.",
+    it: "Sei al ristorante, stai ordinando e parlando con il personale.",
   },
 });
 

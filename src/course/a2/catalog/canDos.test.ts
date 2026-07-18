@@ -16,6 +16,8 @@ import { describe, expect, it } from "vitest";
 import {
   A2_CANDO_REGISTRY,
   A2_M1_M4_SERVED_CANDO_IDS,
+  A2_M1_M8_SERVED_CANDO_IDS,
+  A2_M5_M8_SERVED_CANDO_IDS,
   a2CanDoDescriptorCopy,
   buildA2CanDoLessonMap,
   buildA2CanDos,
@@ -232,10 +234,100 @@ describe("current 16-lesson M1-M4 recipe mapping (documented contract)", () => {
   });
 });
 
-describe("a2CanDoDescriptorCopy — bilingual Can-do descriptor statements for the M1-M4 served subset", () => {
+describe("Phase 3 Task 5 — 16-lesson M5-M8 recipe mapping (documented contract)", () => {
+  // Pins the exact primary/support mapping the task specifies. The task's
+  // recipe text quotes several Can-do names verbatim from an earlier design
+  // doc (docs/superpowers/plans/2026-07-17-a1-a2-phase-3-a2-kanji.md) that
+  // predates the actual, frozen 59-entry canDos.ts registry Task 4 shipped —
+  // that registry renamed/consolidated several topical Can-do ids (e.g.
+  // "describe-ongoing" -> "describe-ongoing-action", "can-cannot" ->
+  // "express-ability", "order-food"/"special-request"/"report-problem"/
+  // "pay-handle-problem" have no literal registry counterpart at all). Every
+  // id below is mapped to its real, registered equivalent — never invented —
+  // and every *grammar* id (sequence-te/ongoing-teiru/permission-temoii/
+  // prohibition-tewaikenai/request-tekudasai/negative-request/possibility)
+  // matches `A2_GRAMMAR_SPIRAL`'s own frozen intro/practice/transfer lesson
+  // ids exactly (see forms/grammarSpiral.ts).
+  const EXPECTED: Readonly<Record<string, { primary: string; supports: readonly string[] }>> = {
+    "sequencing-ongoing-1": { primary: "a2-cando-sequence-te", supports: [] },
+    "sequencing-ongoing-2": { primary: "a2-cando-describe-now", supports: ["a2-cando-sequence-te"] },
+    "sequencing-ongoing-3": { primary: "a2-cando-describe-ongoing-action", supports: ["a2-cando-ongoing-teiru"] },
+    "sequencing-ongoing-4": { primary: "a2-cando-describe-routine", supports: ["a2-cando-sequence-te", "a2-cando-ongoing-teiru"] },
+    "permission-requests-1": { primary: "a2-cando-permission-temoii", supports: [] },
+    "permission-requests-2": { primary: "a2-cando-prohibition-tewaikenai", supports: [] },
+    "permission-requests-3": { primary: "a2-cando-request-tekudasai", supports: ["a2-cando-permission-temoii"] },
+    "permission-requests-4": { primary: "a2-cando-negative-request", supports: ["a2-cando-prohibition-tewaikenai"] },
+    "neighborhood-services-1": { primary: "a2-cando-possibility", supports: ["a2-cando-permission-temoii"] },
+    "neighborhood-services-2": { primary: "a2-cando-express-ability", supports: ["a2-cando-possibility"] },
+    "neighborhood-services-3": { primary: "a2-cando-ask-for-help", supports: [] },
+    "neighborhood-services-4": { primary: "a2-cando-describe-facility", supports: ["a2-cando-ongoing-teiru"] },
+    "restaurant-problems-1": { primary: "a2-cando-confirm-understanding", supports: [] },
+    "restaurant-problems-2": { primary: "a2-cando-ask-for-help", supports: ["a2-cando-request-tekudasai", "a2-cando-permission-temoii"] },
+    "restaurant-problems-3": { primary: "a2-cando-recount-experience", supports: [] },
+    "restaurant-problems-4": { primary: "a2-cando-negotiate-price", supports: ["a2-cando-sequence-te"] },
+  };
+
+  it("documents exactly 16 lessons, each with <=2 supports", () => {
+    expect(Object.keys(EXPECTED)).toHaveLength(16);
+    for (const [lessonId, mapping] of Object.entries(EXPECTED)) {
+      expect(mapping.supports.length, lessonId).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it("every primary/support id referenced by the mapping exists in the 59-entry registry", () => {
+    const registryIds = new Set(A2_CANDO_REGISTRY.map((c) => c.id));
+    for (const [lessonId, mapping] of Object.entries(EXPECTED)) {
+      expect(registryIds.has(mapping.primary), `${lessonId} primary ${mapping.primary}`).toBe(true);
+      for (const support of mapping.supports) {
+        expect(registryIds.has(support), `${lessonId} support ${support}`).toBe(true);
+      }
+    }
+  });
+
+  it("every grammar Can-do's lesson role matches A2_GRAMMAR_SPIRAL's own frozen schedule exactly", () => {
+    const spiralByCanDoId = new Map(A2_GRAMMAR_SPIRAL.map((row) => [row.canDoId, row]));
+    const GRAMMAR_ROLE_CHECKS: readonly { canDoId: string; lessonId: string; role: "introLessonId" | "controlledPracticeLessonId" | "transferLessonId" }[] = [
+      { canDoId: "a2-cando-sequence-te", lessonId: "sequencing-ongoing-1", role: "introLessonId" },
+      { canDoId: "a2-cando-sequence-te", lessonId: "sequencing-ongoing-2", role: "controlledPracticeLessonId" },
+      { canDoId: "a2-cando-sequence-te", lessonId: "sequencing-ongoing-4", role: "transferLessonId" },
+      { canDoId: "a2-cando-ongoing-teiru", lessonId: "sequencing-ongoing-3", role: "introLessonId" },
+      { canDoId: "a2-cando-ongoing-teiru", lessonId: "sequencing-ongoing-4", role: "controlledPracticeLessonId" },
+      { canDoId: "a2-cando-permission-temoii", lessonId: "permission-requests-1", role: "introLessonId" },
+      { canDoId: "a2-cando-permission-temoii", lessonId: "permission-requests-3", role: "controlledPracticeLessonId" },
+      { canDoId: "a2-cando-permission-temoii", lessonId: "neighborhood-services-1", role: "transferLessonId" },
+      { canDoId: "a2-cando-prohibition-tewaikenai", lessonId: "permission-requests-2", role: "introLessonId" },
+      { canDoId: "a2-cando-prohibition-tewaikenai", lessonId: "permission-requests-4", role: "controlledPracticeLessonId" },
+      { canDoId: "a2-cando-request-tekudasai", lessonId: "permission-requests-3", role: "introLessonId" },
+      { canDoId: "a2-cando-request-tekudasai", lessonId: "restaurant-problems-2", role: "controlledPracticeLessonId" },
+      { canDoId: "a2-cando-negative-request", lessonId: "permission-requests-4", role: "introLessonId" },
+      { canDoId: "a2-cando-possibility", lessonId: "neighborhood-services-1", role: "introLessonId" },
+      { canDoId: "a2-cando-possibility", lessonId: "neighborhood-services-2", role: "controlledPracticeLessonId" },
+    ];
+    for (const check of GRAMMAR_ROLE_CHECKS) {
+      const row = spiralByCanDoId.get(check.canDoId);
+      expect(row, check.canDoId).toBeDefined();
+      expect(row?.[check.role], `${check.canDoId} ${check.role}`).toBe(check.lessonId);
+    }
+  });
+});
+
+describe("a2CanDoDescriptorCopy — bilingual Can-do descriptor statements for the M1-M8 served subset", () => {
   it("has an EN and IT entry for every descriptorCopyId of the 15 M1-M4-served Can-dos, with no Japanese literal", () => {
     const JAPANESE_PATTERN = /[\u3040-\u30ff\u4e00-\u9fff]/;
     for (const id of A2_M1_M4_SERVED_CANDO_IDS) {
+      const registered = A2_CANDO_REGISTRY.find((c) => c.id === id);
+      expect(registered, id).toBeDefined();
+      const copyId = (registered as A2CanDoStub).descriptorCopyId;
+      expect(a2CanDoDescriptorCopy.en[copyId], `${id} en`).toBeTruthy();
+      expect(a2CanDoDescriptorCopy.it[copyId], `${id} it`).toBeTruthy();
+      expect(JAPANESE_PATTERN.test(a2CanDoDescriptorCopy.en[copyId]), `${id} en`).toBe(false);
+      expect(JAPANESE_PATTERN.test(a2CanDoDescriptorCopy.it[copyId]), `${id} it`).toBe(false);
+    }
+  });
+
+  it("has an EN and IT entry for every descriptorCopyId of the 16 new M5-M8-served Can-dos, with no Japanese literal", () => {
+    const JAPANESE_PATTERN = /[\u3040-\u30ff\u4e00-\u9fff]/;
+    for (const id of A2_M5_M8_SERVED_CANDO_IDS) {
       const registered = A2_CANDO_REGISTRY.find((c) => c.id === id);
       expect(registered, id).toBeDefined();
       const copyId = (registered as A2CanDoStub).descriptorCopyId;
@@ -250,5 +342,26 @@ describe("a2CanDoDescriptorCopy — bilingual Can-do descriptor statements for t
     expect(Object.keys(a2CanDoDescriptorCopy.en).sort()).toEqual(
       Object.keys(a2CanDoDescriptorCopy.it).sort(),
     );
+  });
+});
+
+describe("A2_M1_M8_SERVED_CANDO_IDS — the honest staged M1-M8 authored subset (Phase 3 Task 5)", () => {
+  it("is exactly the union of the 15 M1-M4-served ids and the 16 new M5-M8-served ids, with no duplicates", () => {
+    expect(A2_M5_M8_SERVED_CANDO_IDS).toHaveLength(16);
+    expect(new Set(A2_M5_M8_SERVED_CANDO_IDS).size).toBe(16);
+    for (const id of A2_M5_M8_SERVED_CANDO_IDS) {
+      expect(A2_M1_M4_SERVED_CANDO_IDS, id).not.toContain(id);
+    }
+    expect(A2_M1_M8_SERVED_CANDO_IDS).toHaveLength(31);
+    expect(new Set(A2_M1_M8_SERVED_CANDO_IDS)).toEqual(
+      new Set([...A2_M1_M4_SERVED_CANDO_IDS, ...A2_M5_M8_SERVED_CANDO_IDS]),
+    );
+  });
+
+  it("every id is registered in the 59-entry A2_CANDO_REGISTRY", () => {
+    const registryIds = new Set(A2_CANDO_REGISTRY.map((c) => c.id));
+    for (const id of A2_M1_M8_SERVED_CANDO_IDS) {
+      expect(registryIds.has(id), id).toBe(true);
+    }
   });
 });

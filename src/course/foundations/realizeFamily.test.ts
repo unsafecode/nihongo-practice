@@ -1986,6 +1986,314 @@ describe("realizer generalization: the additive \"invariant\" predicateKind (Pha
   });
 });
 
+// Phase 3 Task 5 (M5-M8 content): the "invariant" predicateKind (Task 4)
+// always paired an empty `contentSlots: []` with `rule-invariant-utterance`
+// because M1-M4's whole-clause-bake pattern never needed a separate content
+// slot. M5-M8's te-form/ている/permission/prohibition/request/negative-request
+// suffix constructions are still "invariant" (their complete realized
+// content — base conjugation + fixed suffix tail — is pre-composed once at
+// catalog-authoring time, exactly like §9.3's other invariant content), but
+// the recipe calls for *compositional* transfer novelty (the same suffixed
+// verb combined with different objects/locations), not just whole-clause
+// duplication or subject swapping. The generic assembly loop already
+// processes `rule.contentSlots` for any `predicateKind` (see the
+// `for (const contentSlot of rule.contentSlots)` loop, unconditional on
+// predicateKind) and already emits an "invariant" predicate's own fragments
+// with no ending — so an "invariant" rule with a *non-empty* `contentSlots`
+// is a new, purely additive *data* combination the existing dispatch logic
+// already supports; no new branching code is required. These two rules —
+// object (を) and location (で) — are genuinely needed and not expressible
+// via `composeA2Construction` (which only ever conjugates one verb + a fixed
+// tail, with no slot for a separate object/location noun at all).
+describe("realizer generalization: \"invariant\" predicateKind with a non-empty contentSlots — object/location composition (Phase 3 Task 5)", () => {
+  const bareBaseDiscourse = {
+    speakerRoleId: "fixture-role-learner",
+    addresseeRoleId: null,
+    subjectReferentId: null,
+    subjectRealization: "omitted" as const,
+    scenarioNoteCopyId: "test-scenario-invariant-object-location",
+  };
+
+  function localCatalogsWith(
+    extraValues: readonly SemanticValue[],
+    extraSenses: readonly LearningTargetSense[],
+  ): RealizeVariantCatalogs {
+    return {
+      ...catalogs,
+      semanticValues: [...catalogs.semanticValues, ...extraValues],
+      learningTargetSenses: [...catalogs.learningTargetSenses, ...extraSenses],
+    };
+  }
+
+  describe("rule-invariant-object (invariant predicate + を-marked object slot)", () => {
+    const bareSense: LearningTargetSense = {
+      id: "test-sense-invariant-object-bare",
+      lexemeId: "test-lexeme-invariant-object-bare",
+      learningUse: "productive",
+      semanticFrameId: "test-frame-invariant-object-bare",
+      predicate: "invariant-object-bare" as LearningTargetSense["predicate"],
+      argumentRoles: [],
+      argumentParticleByRole: {},
+    };
+
+    const objectOnlyFamily: SentenceFamily = {
+      id: "test-family-invariant-object" as SentenceFamily["id"],
+      level: "a2",
+      canDoIds: [],
+      slotSchema: [
+        { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+        { id: "object", axis: "object", valueKind: "object", optional: false },
+        { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      ],
+      permittedAxes: ["speaker-person", "object", "predicate-verb", "context"],
+      realizationRuleId: "rule-invariant-object",
+      requiredConceptIds: [],
+    };
+
+    const teiruPredicateValue: SemanticValue = {
+      id: "test-value-invariant-object-teiru",
+      kind: "predicate-sense",
+      senseId: bareSense.id,
+      tokenFragments: [
+        { jp: "たべ", romaji: "tabe", kind: "lexical", boundaryBefore: "attach" },
+        { jp: "て", romaji: "te", kind: "morpheme", boundaryBefore: "attach" },
+        { jp: "います", romaji: "imasu", kind: "morpheme", boundaryBefore: "attach" },
+      ],
+    };
+    const breadObjectValue: SemanticValue = {
+      id: "test-value-invariant-object-pan",
+      kind: "object",
+      tokenFragments: [{ jp: "パン", romaji: "pan", kind: "lexical", boundaryBefore: "attach" }],
+    };
+    const waterObjectValue: SemanticValue = {
+      id: "test-value-invariant-object-mizu",
+      kind: "object",
+      tokenFragments: [{ jp: "みず", romaji: "mizu", kind: "lexical", boundaryBefore: "attach" }],
+    };
+
+    it("assembles object + を + the invariant predicate's own fragments verbatim, with no ending appended", () => {
+      const variant: SentenceVariant = {
+        id: "test-variant-invariant-object-pan",
+        sentenceFamilyId: objectOnlyFamily.id,
+        discourse: bareBaseDiscourse,
+        contextId: "fixture-a1-context-language-class",
+        slotValues: { object: breadObjectValue.id, predicate: teiruPredicateValue.id },
+        form: { polarity: "affirmative", tense: "present", formality: "polite" },
+        pedagogicalUse: "model",
+      };
+      const result = realizeVariant(
+        objectOnlyFamily,
+        variant,
+        localCatalogsWith([teiruPredicateValue, breadObjectValue], [bareSense]),
+        { availableConceptIds: [] },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sentence.canonicalJapanese).toBe("パンをたべています");
+      const romaji = formatRomaji(result.sentence.tokens);
+      expect(romaji.ok).toBe(true);
+      if (!romaji.ok) return;
+      // "て"/"います" are authored "morpheme" kind here (mirroring
+      // a2Constructions.ts's own raw tail — a "morpheme"/"punctuation" kind
+      // always attaches with no leading space, generically by kind+position,
+      // never from the fragment's own authored `boundaryBefore`; see
+      // `romaji/formatRomaji.ts`'s `boundaryBefore()`). Only the を particle
+      // (kind "particle", not in the attach-exempt set) gets a real space.
+      // A catalog that wants "tabete imasu" (two independent words) would
+      // author います as "lexical" instead — a catalog-authoring choice, not
+      // a realizer concern this rule needs to make for its caller.
+      expect(romaji.text).toBe("pan o tabeteimasu");
+    });
+
+    it("recombines the SAME predicate value with a DIFFERENT object value into a genuinely distinct sentence (compositional transfer novelty)", () => {
+      const variant: SentenceVariant = {
+        id: "test-variant-invariant-object-mizu",
+        sentenceFamilyId: objectOnlyFamily.id,
+        discourse: bareBaseDiscourse,
+        contextId: "fixture-a1-context-language-class",
+        slotValues: { object: waterObjectValue.id, predicate: teiruPredicateValue.id },
+        form: { polarity: "affirmative", tense: "present", formality: "polite" },
+        pedagogicalUse: "transfer",
+      };
+      const result = realizeVariant(
+        objectOnlyFamily,
+        variant,
+        localCatalogsWith([teiruPredicateValue, waterObjectValue], [bareSense]),
+        { availableConceptIds: [] },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sentence.canonicalJapanese).toBe("みずをたべています");
+      expect(result.sentence.canonicalJapanese).not.toBe("パンをたべています");
+    });
+
+    it("prepends an explicit subject + は before the object + predicate", () => {
+      const variant: SentenceVariant = {
+        id: "test-variant-invariant-object-explicit-subject",
+        sentenceFamilyId: objectOnlyFamily.id,
+        discourse: {
+          ...bareBaseDiscourse,
+          subjectReferentId: "fixture-referent-yuki",
+          subjectRealization: "explicit",
+        },
+        contextId: "fixture-a1-context-language-class",
+        slotValues: {
+          subject: "fixture-value-yuki",
+          object: breadObjectValue.id,
+          predicate: teiruPredicateValue.id,
+        },
+        form: { polarity: "affirmative", tense: "present", formality: "polite" },
+        pedagogicalUse: "model",
+      };
+      const result = realizeVariant(
+        objectOnlyFamily,
+        variant,
+        localCatalogsWith([teiruPredicateValue, breadObjectValue], [bareSense]),
+        { availableConceptIds: [] },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sentence.canonicalJapanese).toBe("ゆきはパンをたべています");
+    });
+  });
+
+  describe("rule-invariant-location (invariant predicate + で-marked location slot)", () => {
+    const locationSense: LearningTargetSense = {
+      id: "test-sense-invariant-location-bare",
+      lexemeId: "test-lexeme-invariant-location-bare",
+      learningUse: "productive",
+      semanticFrameId: "test-frame-invariant-location-bare",
+      predicate: "invariant-location-bare" as LearningTargetSense["predicate"],
+      argumentRoles: ["location"],
+      argumentParticleByRole: {},
+    };
+
+    const locationOnlyFamily: SentenceFamily = {
+      id: "test-family-invariant-location" as SentenceFamily["id"],
+      level: "a2",
+      canDoIds: [],
+      slotSchema: [
+        { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+        { id: "location", axis: "location", valueKind: "location", optional: false },
+        { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      ],
+      permittedAxes: ["speaker-person", "location", "predicate-verb", "context"],
+      realizationRuleId: "rule-invariant-location",
+      requiredConceptIds: [],
+    };
+
+    const temoiiPredicateValue: SemanticValue = {
+      id: "test-value-invariant-location-temoii",
+      kind: "predicate-sense",
+      senseId: locationSense.id,
+      tokenFragments: [
+        { jp: "たべ", romaji: "tabe", kind: "lexical", boundaryBefore: "attach" },
+        { jp: "て", romaji: "te", kind: "morpheme", boundaryBefore: "attach" },
+        { jp: "も", romaji: "mo", kind: "particle", boundaryBefore: "attach" },
+        { jp: "いい", romaji: "ii", kind: "morpheme", boundaryBefore: "attach" },
+        { jp: "です", romaji: "desu", kind: "morpheme", boundaryBefore: "attach" },
+      ],
+    };
+    const hereLocationValue: SemanticValue = {
+      id: "test-value-invariant-location-koko",
+      kind: "location",
+      tokenFragments: [{ jp: "ここ", romaji: "koko", kind: "lexical", boundaryBefore: "attach" }],
+    };
+
+    it("assembles location + で + the invariant predicate's own fragments verbatim, with no ending appended", () => {
+      const variant: SentenceVariant = {
+        id: "test-variant-invariant-location-koko",
+        sentenceFamilyId: locationOnlyFamily.id,
+        discourse: bareBaseDiscourse,
+        contextId: "fixture-a1-context-language-class",
+        slotValues: { location: hereLocationValue.id, predicate: temoiiPredicateValue.id },
+        form: { polarity: "affirmative", tense: "present", formality: "polite" },
+        pedagogicalUse: "model",
+      };
+      const result = realizeVariant(
+        locationOnlyFamily,
+        variant,
+        localCatalogsWith([temoiiPredicateValue, hereLocationValue], [locationSense]),
+        { availableConceptIds: [] },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sentence.canonicalJapanese).toBe("ここでたべてもいいです");
+      const romaji = formatRomaji(result.sentence.tokens);
+      expect(romaji.ok).toBe(true);
+      if (!romaji.ok) return;
+      // Same rationale as the object-rule test above: "て"/"いい"/"です" are
+      // authored "morpheme" kind (attach, no space); only the particles で
+      // and も (kind "particle") get a real leading space.
+      expect(romaji.text).toBe("koko de tabete moiidesu");
+    });
+
+    it("appends the sentence-final か for an interrogative invariant+location variant", () => {
+      const variant: SentenceVariant = {
+        id: "test-variant-invariant-location-question",
+        sentenceFamilyId: locationOnlyFamily.id,
+        discourse: bareBaseDiscourse,
+        contextId: "fixture-a1-context-language-class",
+        slotValues: { location: hereLocationValue.id, predicate: temoiiPredicateValue.id },
+        form: {
+          polarity: "affirmative",
+          tense: "present",
+          formality: "polite",
+          interrogative: true,
+        },
+        pedagogicalUse: "transfer",
+      };
+      const result = realizeVariant(
+        locationOnlyFamily,
+        variant,
+        localCatalogsWith([temoiiPredicateValue, hereLocationValue], [locationSense]),
+        { availableConceptIds: [] },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sentence.canonicalJapanese).toBe("ここでたべてもいいですか");
+    });
+
+    it("still requires the family's location slot to be matched by the sense's own frame — a location slot with a sense that declares no location role fails closed", () => {
+      const noLocationSense: LearningTargetSense = {
+        id: "test-sense-invariant-location-missing-role",
+        lexemeId: "test-lexeme-invariant-location-missing-role",
+        learningUse: "productive",
+        semanticFrameId: "test-frame-invariant-location-missing-role",
+        predicate: "invariant-location-missing-role" as LearningTargetSense["predicate"],
+        argumentRoles: [],
+        argumentParticleByRole: {},
+      };
+      const noLocationValue: SemanticValue = {
+        id: "test-value-invariant-location-missing-role",
+        kind: "predicate-sense",
+        senseId: noLocationSense.id,
+        tokenFragments: [{ jp: "たべてもいいです", romaji: "tabetemoiidesu", kind: "lexical", boundaryBefore: "attach" }],
+      };
+      const variant: SentenceVariant = {
+        id: "test-variant-invariant-location-invalid",
+        sentenceFamilyId: locationOnlyFamily.id,
+        discourse: bareBaseDiscourse,
+        contextId: "fixture-a1-context-language-class",
+        slotValues: { location: hereLocationValue.id, predicate: noLocationValue.id },
+        form: { polarity: "affirmative", tense: "present", formality: "polite" },
+        pedagogicalUse: "model",
+      };
+      const result = realizeVariant(
+        locationOnlyFamily,
+        variant,
+        localCatalogsWith([noLocationValue, hereLocationValue], [noLocationSense]),
+        { availableConceptIds: [] },
+      );
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({ code: "invalid-argument-structure", referenceId: "location" }),
+      );
+    });
+  });
+});
+
 // Task 4 final spec-fix ("keep M1-M4 transfer Japanese natural"): a fresh
 // spec re-review found that mechanically prepending an explicit subject +
 // は before an already-complete baked utterance (an invitation, a request,
