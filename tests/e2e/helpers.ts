@@ -176,6 +176,125 @@ export async function assertNoHorizontalOverflow(page: Page): Promise<void> {
   ).toBeLessThanOrEqual(overflow.innerWidth + 1);
 }
 
+/** The same `< 700` boundary the rest of this suite already uses (see e.g.
+ * `isMobile()` in foundation-ux.spec.ts / a1-depth.spec.ts) to tell the
+ * `desktop-1440` project apart from `mobile-390`. */
+const MOBILE_ZOOM_BREAKPOINT = 700;
+
+export interface ZoomEvidence {
+  /** `reflow`: real desktop browser Ctrl/Cmd-+ zoom, which genuinely lays
+   *  the page out again at a narrower effective CSS-pixel viewport.
+   *  `pinch`: real mobile-browser zoom, which (for a standard
+   *  `width=device-width` page, as this app declares) is purely a *visual*
+   *  magnification over the unchanged device-width layout — the CSS layout
+   *  viewport never reflows on a real phone's pinch-zoom. Using the
+   *  mechanism that matches how each platform's browser chrome actually
+   *  zooms is what the review deviation's "consistent with browser"
+   *  requirement calls for, rather than forcing one artificial technique
+   *  onto both. */
+  readonly mode: "reflow" | "pinch";
+  readonly factor: number;
+  readonly before: { readonly innerWidth: number; readonly innerHeight: number };
+  readonly after: {
+    readonly innerWidth: number;
+    readonly innerHeight: number;
+    readonly visualScale: number | null;
+  };
+}
+
+/**
+ * Applies a genuine `factor`x browser zoom, picking the mechanism the real
+ * browser on that viewport size actually uses:
+ *
+ *  - **Desktop** (viewport width >= {@link MOBILE_ZOOM_BREAKPOINT}): shrinks
+ *    the Playwright viewport to `nominal/factor` in both dimensions.
+ *    Playwright's viewport resize is itself backed by the CDP device-metrics
+ *    mechanism, and — critically — it changes `window.innerWidth`/media
+ *    queries exactly as real desktop Ctrl/Cmd-+ zoom does, so every wrap
+ *    point, sticky offset, and breakpoint genuinely recomputes.
+ *  - **Mobile** (< {@link MOBILE_ZOOM_BREAKPOINT}): issues a CDP
+ *    `Emulation.setPageScaleFactor` command — the same visual-magnification
+ *    mechanism a real phone's pinch-zoom uses. The CSS layout viewport is
+ *    deliberately left unchanged (a real phone's pinch-zoom does not reflow
+ *    a `width=device-width` page either), while `window.visualViewport.scale`
+ *    genuinely reports the new zoom level.
+ *
+ * Returns evidence the caller must check with {@link assertZoomApplied}
+ * rather than trusting either mechanism silently took effect.
+ */
+export async function applyBrowserZoom(page: Page, factor: number): Promise<ZoomEvidence> {
+  const nominal = page.viewportSize();
+  if (!nominal) {
+    throw new Error("applyBrowserZoom requires a page with a known viewport size");
+  }
+  const before = await page.evaluate(() => ({
+    innerWidth: window.innerWidth,
+    innerHeight: window.innerHeight,
+  }));
+
+  if (nominal.width >= MOBILE_ZOOM_BREAKPOINT) {
+    await page.setViewportSize({
+      width: Math.round(nominal.width / factor),
+      height: Math.round(nominal.height / factor),
+    });
+    await page.evaluate(
+      () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+    );
+    const after = await page.evaluate(() => ({
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+      visualScale: window.visualViewport?.scale ?? null,
+    }));
+    return { mode: "reflow", factor, before, after };
+  }
+
+  const client = await page.context().newCDPSession(page);
+  await client.send("Emulation.setPageScaleFactor", { pageScaleFactor: factor });
+  await page.evaluate(
+    () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+  );
+  const after = await page.evaluate(() => ({
+    innerWidth: window.innerWidth,
+    innerHeight: window.innerHeight,
+    visualScale: window.visualViewport?.scale ?? null,
+  }));
+  return { mode: "pinch", factor, before, after };
+}
+
+/**
+ * Fails unless {@link applyBrowserZoom} genuinely changed the engine's
+ * computed scale/layout for its chosen mode — never a silent no-op:
+ *  - `reflow`: `innerWidth` must have shrunk to ~`before/factor`, proving a
+ *    real layout reflow (not merely a cosmetic property with no effect).
+ *  - `pinch`: `visualViewport.scale` must equal the requested factor
+ *    (proving the compositor genuinely zoomed in) while `innerWidth` stays
+ *    exactly as before (proving this is real pinch-zoom, not an accidental
+ *    reflow a phone would never actually apply).
+ */
+export function assertZoomApplied(evidence: ZoomEvidence): void {
+  if (evidence.mode === "reflow") {
+    const expectedWidth = evidence.before.innerWidth / evidence.factor;
+    expect(
+      evidence.after.innerWidth,
+      `desktop zoom must reflow innerWidth (${evidence.after.innerWidth}) to ~before/factor (${expectedWidth})`,
+    ).toBeCloseTo(expectedWidth, 0);
+    const expectedHeight = evidence.before.innerHeight / evidence.factor;
+    expect(
+      evidence.after.innerHeight,
+      `desktop zoom must reflow innerHeight (${evidence.after.innerHeight}) to ~before/factor (${expectedHeight})`,
+    ).toBeCloseTo(expectedHeight, 0);
+  } else {
+    expect(
+      evidence.after.visualScale,
+      `mobile pinch-zoom must report visualViewport.scale === ${evidence.factor}`,
+    ).toBe(evidence.factor);
+    expect(
+      evidence.after.innerWidth,
+      "mobile pinch-zoom must not reflow the CSS layout viewport",
+    ).toBe(evidence.before.innerWidth);
+  }
+}
+
 export interface TargetOffender {
   readonly description: string;
   readonly width: number;
@@ -415,6 +534,30 @@ export async function auditNakedActions(page: Page): Promise<string[]> {
       }
     }
     return naked;
+  });
+}
+
+/**
+ * The pinch-zoomed *visual* viewport's offset/size relative to the (always
+ * unscaled-by-pinch-zoom) layout viewport that `getBoundingClientRect()`
+ * reports against. Under {@link applyBrowserZoom}'s `"pinch"` mode this is
+ * genuinely non-zero/shrunk — real per the CSSOM View spec, since
+ * `Element.scrollIntoView` itself aligns to the visual viewport once a page
+ * is pinch-zoomed, not the full layout viewport. Under `"reflow"` mode (or
+ * no zoom at all) the two viewports coincide, so this is always `{0,
+ * innerWidth, innerHeight}`.
+ */
+export async function visualViewportMetrics(
+  page: Page,
+): Promise<{ offsetTop: number; offsetLeft: number; width: number; height: number }> {
+  return page.evaluate(() => {
+    const vv = window.visualViewport;
+    return {
+      offsetTop: vv?.offsetTop ?? 0,
+      offsetLeft: vv?.offsetLeft ?? 0,
+      width: vv?.width ?? window.innerWidth,
+      height: vv?.height ?? window.innerHeight,
+    };
   });
 }
 

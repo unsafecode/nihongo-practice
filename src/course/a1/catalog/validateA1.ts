@@ -67,13 +67,23 @@ import { a1Checkpoint, A1_CHECKPOINT_MIN_TRANSFER_TARGETS } from "./checkpoint";
 import { a1ReleaseVerbUseRecords } from "./recurrence";
 import { module1ItemsByLesson, module1Lessons, type A1PhoneticItem } from "./module01Sounds";
 import type { A1PhoneticLessonRecipe } from "../types";
+import {
+  A1_RELEASE_CATALOG_VERSION,
+  A1_RELEASE_SEED,
+} from "../releaseIdentity";
 
 // ---------------------------------------------------------------------------
 // Fixed release identity — the validator is deterministic by construction.
 // ---------------------------------------------------------------------------
 
-export const A1_RELEASE_CATALOG_VERSION = "a1-release" as const;
-export const A1_RELEASE_SEED = "seed-a1-release" as const;
+// Re-exported (not redeclared) from `../releaseIdentity`, the one shared
+// source of truth also imported directly by `../a1LessonViewModel.ts`
+// (Phase 2 §M1). `selectVariants` ranks candidates by a hash keyed on
+// `catalogVersion`/`seed`, so the validator's wrapped `validateFoundations`
+// call below and the runtime builder must use the identical pair or the
+// certified release and the shipped release can silently diverge, exercise
+// for exercise.
+export { A1_RELEASE_CATALOG_VERSION, A1_RELEASE_SEED };
 
 /** Exact structural totals the assembled A1 level must exhibit. */
 export const A1_EXPECTED_MODULE_COUNT = 12 as const;

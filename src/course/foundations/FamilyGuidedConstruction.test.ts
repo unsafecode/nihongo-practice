@@ -46,6 +46,7 @@ function render(
     readonly target?: FoundationLocalizedRow;
     readonly changedTokenIds?: readonly string[];
     readonly axes?: readonly GuidedAxisLabel[];
+    readonly script?: "hiragana" | "romaji";
   } = {},
 ): string {
   const model = guided(locale);
@@ -57,12 +58,33 @@ function render(
       activeAxes: overrides.axes ?? axisLabels(model, locale),
       targetChangedTokenIds:
         overrides.changedTokenIds ?? model.targetChangedTokenIds,
-      script: "hiragana",
+      script: overrides.script ?? "hiragana",
       copy,
       errorText: "unavailable",
       idBase: "guided-a1",
     }),
   );
+}
+
+/**
+ * Returns a copy of `row` with one token's `reading` field set, leaving every
+ * other field (and every other token) untouched. Used only to exercise the
+ * shared `JapaneseSegmentText` katakana-assist contract through
+ * `FamilyGuidedConstruction`'s own row renderer — the live A1 catalog has no
+ * reading-bearing tokens yet (Phase 2 §M2), so this synthetically augments a
+ * Phase 1 fixture row rather than inventing A1 furigana.
+ */
+function withTokenReading(
+  row: FoundationLocalizedRow,
+  tokenId: string,
+  reading: string,
+): FoundationLocalizedRow {
+  return {
+    ...row,
+    tokens: row.tokens.map((token) =>
+      token.id === tokenId ? { ...token, reading } : token,
+    ),
+  };
 }
 
 describe("FamilyGuidedConstruction valid same-family board", () => {
@@ -124,5 +146,63 @@ describe("FamilyGuidedConstruction invalid inputs", () => {
     const html = render("en", { axes: [], changedTokenIds: [] });
     expect(html).toContain(enCopy.foundation.unavailableTitle);
     expect(html).not.toContain(enCopy.foundation.targetLabel);
+  });
+});
+
+/**
+ * Locks `FamilyGuidedConstruction`'s row renderer's use of the shared
+ * `JapaneseSegmentText` katakana-assist contract (design spec §7, §8.3) ahead
+ * of A2, which is expected to introduce the level's first reading-bearing
+ * tokens. The live A1 catalog carries no `reading` tokens today, so these
+ * cases synthetically augment a Phase 1 fixture row via `withTokenReading`
+ * rather than inventing A1 furigana.
+ */
+describe("FamilyGuidedConstruction – ruby/rt reading assistance (Phase 2 M2)", () => {
+  it("wraps a changed token's reading in a semantic <ruby><rt> nested inside its changed <mark>", () => {
+    const model = guided("en");
+    const changedTokenId = model.targetChangedTokenIds[0];
+    const target = withTokenReading(model.target, changedTokenId, "イシャ");
+    const html = render("en", { target });
+    expect(html).toContain(
+      `<mark class="foundation-guided__changed"><ruby class="katakana-assist">${model.target.tokens.find((t) => t.id === changedTokenId)!.jp}<rt class="katakana-assist__reading">イシャ</rt></ruby></mark>`,
+    );
+  });
+
+  it("renders an unchanged token's reading as a bare <ruby><rt> with no extra changed mark", () => {
+    const model = guided("en");
+    const unchangedToken = model.target.tokens.find(
+      (token) => !model.targetChangedTokenIds.includes(token.id),
+    );
+    expect(unchangedToken).toBeDefined();
+    const target = withTokenReading(model.target, unchangedToken!.id, "デス");
+    const html = render("en", { target });
+    expect(html).toContain(
+      `<ruby class="katakana-assist">${unchangedToken!.jp}<rt class="katakana-assist__reading">デス</rt></ruby>`,
+    );
+    // No new <mark> was introduced for the unchanged, reading-bearing token.
+    const marks = html.match(/<mark[^>]*>/g) ?? [];
+    expect(marks.length).toBe(model.targetChangedTokenIds.length * 2);
+  });
+
+  it("keeps the initial row's matching token plain when only the target carries a reading", () => {
+    const model = guided("en");
+    const changedTokenId = model.targetChangedTokenIds[0];
+    const target = withTokenReading(model.target, changedTokenId, "イシャ");
+    const html = render("en", { target });
+    // The initial row's own token (same family, unaugmented) never gained a
+    // reading: JapaneseSegmentText is applied per-row from each row's own
+    // token data, never copied across rows.
+    const initialJp = model.initial.tokens.map((t) => t.jp).join("");
+    expect(html).not.toContain(`>${initialJp}<rt`);
+  });
+
+  it("never renders ruby/rt markup at all when the reveal script is romaji-only", () => {
+    const model = guided("en");
+    const changedTokenId = model.targetChangedTokenIds[0];
+    const target = withTokenReading(model.target, changedTokenId, "イシャ");
+    const html = render("en", { target, script: "romaji" });
+    expect(html).not.toContain("<ruby");
+    expect(html).not.toContain("<rt");
+    expect(html).not.toContain("foundation-guided__jp");
   });
 });
