@@ -11,10 +11,17 @@
 
 import { A2_MODULE_MANIFEST } from "../manifest";
 import {
+  A2_AFFIRMATIVE_PAST_POLITE,
+  A2_NEGATIVE_PAST_POLITE,
+  A2_NEGATIVE_PRESENT_POLITE,
+  A2_AFFIRMATIVE_PRESENT_PLAIN,
+  A2_AFFIRMATIVE_PAST_PLAIN,
+  A2_NEGATIVE_PAST_PLAIN,
   buildA2InstructionalLesson,
   type A2BuiltLesson,
   type A2LineSpec,
 } from "../catalog/a2LessonBuilders";
+import type { FormSelection } from "../../foundations/types";
 
 const MODULE_ID = "reasons-opinions";
 
@@ -34,17 +41,38 @@ function bareLine(
   context: string,
   translation: { en: string; it: string },
   speakerRole?: string,
+  subjectReferent: string | null = null,
+  form?: FormSelection,
 ): A2LineSpec {
   return {
     id,
     family,
     context,
-    subjectReferent: null,
-    subjectRealization: "omitted",
-    slots: { predicate },
+    subjectReferent,
+    subjectRealization: subjectReferent === null ? "omitted" : "explicit",
+    slots: subjectReferent === null ? { predicate } : { subject: subjectReferentValueId(subjectReferent), predicate },
     translation,
     speakerRole,
+    form,
   };
+}
+
+/** Referent → its subject-slot semantic value — the same shared
+ * subject-referent value catalog `module01ConnectedConversation.ts`/
+ * `module02PlansInvitations.ts`/`module03ExperiencesNarratives.ts` each
+ * carry their own identical copy of. */
+function subjectReferentValueId(subjectReferent: string): string {
+  const table: Readonly<Record<string, string>> = {
+    "a2-referent-friend": "a2-value-friend-subject",
+    "a2-referent-emi": "a2-value-emi",
+    "a2-referent-sora": "a2-value-sora",
+    "a2-referent-colleague": "a2-value-colleague-subject",
+    "a2-referent-teacher": "a2-value-teacher-subject",
+    "a2-referent-self": "a2-value-watashi",
+  };
+  const valueId = table[subjectReferent];
+  if (!valueId) throw new Error(`bareLine: no subject value mapped for referent "${subjectReferent}"`);
+  return valueId;
 }
 
 // ---------------------------------------------------------------------------
@@ -61,7 +89,7 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
   introducedSenseIds: [],
   models: [
     bareLine("reasons-opinions-1-m1", "a2-family-reason-kara", "a2-value-kara-shiken-benkyou", "a2-context-reasons", L("There's an exam tomorrow, so I'll study.", "C'è un esame domani, quindi studio."), "a2-role-learner"),
-    bareLine("reasons-opinions-1-m2", "a2-family-reason-kara", "a2-value-kara-isogashii-tsukareta", "a2-context-workplace", L("Work is busy, so I got tired.", "Il lavoro è impegnativo, quindi mi sono stancato/a."), "a2-role-colleague"),
+    bareLine("reasons-opinions-1-m2", "a2-family-reason-kara", "a2-value-kara-isogashii-tsukareta", "a2-context-workplace", L("Work is busy, so I got tired.", "Il lavoro è impegnativo, quindi mi sono stancato/a."), "a2-role-colleague", null, A2_AFFIRMATIVE_PAST_POLITE),
     bareLine("reasons-opinions-1-m3", "a2-family-reason-kara", "a2-value-kara-suki-benkyou", "a2-context-reasons", L("I like Japanese food, so I study Japanese.", "Mi piace il cibo giapponese, quindi studio giapponese."), "a2-role-emi"),
     bareLine("reasons-opinions-1-m4", "a2-family-reason-kara", "a2-value-kara-ame-kasa", "a2-context-conversation", L("It's going to rain, so I'll bring an umbrella.", "Pioverà, quindi porto l'ombrello."), "a2-role-sora"),
     bareLine("reasons-opinions-1-m5", "a2-family-reason-kara", "a2-value-kara-tsukareta-neru", "a2-context-among-friends", L("I'm tired, so I'll sleep early.", "Sono stanco/a, quindi dormo presto."), "a2-role-friend"),
@@ -70,11 +98,14 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
     bareLine("reasons-opinions-1-m8", "a2-family-reason-kara", "a2-value-kara-shigoto-owatta", "a2-context-conversation", L("Work is over, so I'll go home.", "Il lavoro è finito, quindi torno a casa."), "a2-role-emi"),
   ],
   transfers: [
-    bareLine("reasons-opinions-1-t1", "a2-family-reason-kara", "a2-value-kara-shiken-benkyou", "a2-context-conversation", L("There's an exam tomorrow, so I'll study.", "C'è un esame domani, quindi studio."), "a2-role-sora"),
-    bareLine("reasons-opinions-1-t2", "a2-family-reason-kara", "a2-value-kara-isogashii-tsukareta", "a2-context-reasons", L("Work is busy, so I got tired.", "Il lavoro è impegnativo, quindi mi sono stancato/a."), "a2-role-friend"),
-    bareLine("reasons-opinions-1-t3", "a2-family-reason-kara", "a2-value-kara-suki-benkyou", "a2-context-among-friends", L("I like Japanese food, so I study Japanese.", "Mi piace il cibo giapponese, quindi studio giapponese."), "a2-role-colleague"),
-    bareLine("reasons-opinions-1-t4", "a2-family-reason-kara", "a2-value-kara-ame-kasa", "a2-context-workplace", L("It's going to rain, so I'll bring an umbrella.", "Pioverà, quindi porto l'ombrello."), "a2-role-learner"),
-    bareLine("reasons-opinions-1-t5", "a2-family-reason-kara", "a2-value-kara-tsukareta-neru", "a2-context-conversation", L("I'm tired, so I'll sleep early.", "Sono stanco/a, quindi dormo presto."), "a2-role-emi"),
+    // I2 spec-fix: recombine with watashi (introduced in cc2, cumulatively
+    // available here) — the "so I'll..." reason clauses already have an
+    // implicit first-person subject; meaning/copy is unchanged.
+    bareLine("reasons-opinions-1-t1", "a2-family-reason-kara", "a2-value-kara-shiken-benkyou", "a2-context-conversation", L("There's an exam tomorrow, so I'll study.", "C'è un esame domani, quindi studio."), "a2-role-sora", "a2-referent-self"),
+    bareLine("reasons-opinions-1-t2", "a2-family-reason-kara", "a2-value-kara-isogashii-tsukareta", "a2-context-reasons", L("Work is busy, so I got tired.", "Il lavoro è impegnativo, quindi mi sono stancato/a."), "a2-role-friend", "a2-referent-self", A2_AFFIRMATIVE_PAST_POLITE),
+    bareLine("reasons-opinions-1-t3", "a2-family-reason-kara", "a2-value-kara-suki-benkyou", "a2-context-among-friends", L("I like Japanese food, so I study Japanese.", "Mi piace il cibo giapponese, quindi studio giapponese."), "a2-role-colleague", "a2-referent-self"),
+    bareLine("reasons-opinions-1-t4", "a2-family-reason-kara", "a2-value-kara-ame-kasa", "a2-context-workplace", L("It's going to rain, so I'll bring an umbrella.", "Pioverà, quindi porto l'ombrello."), "a2-role-learner", "a2-referent-self"),
+    bareLine("reasons-opinions-1-t5", "a2-family-reason-kara", "a2-value-kara-tsukareta-neru", "a2-context-conversation", L("I'm tired, so I'll sleep early.", "Sono stanco/a, quindi dormo presto."), "a2-role-emi", "a2-referent-self"),
   ],
 });
 
@@ -91,21 +122,26 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
   introducedConceptIds: ["a2-concept-reason-node"],
   introducedSenseIds: [],
   models: [
-    bareLine("reasons-opinions-2-m1", "a2-family-reason-node", "a2-value-node-ame-ie", "a2-context-reasons", L("It rained, so I stayed home.", "Ha piovuto, quindi sono rimasto/a a casa."), "a2-role-learner"),
-    bareLine("reasons-opinions-2-m2", "a2-family-reason-node", "a2-value-node-isogashikatta-dekakenakatta", "a2-context-workplace", L("Work was busy, so I didn't go out.", "Il lavoro era impegnativo, quindi non sono uscito/a."), "a2-role-colleague"),
-    bareLine("reasons-opinions-2-m3", "a2-family-reason-node", "a2-value-node-densha-kaigi", "a2-context-workplace", L("The train was delayed, so I was late for the meeting.", "Il treno era in ritardo, quindi sono arrivato/a tardi alla riunione."), "a2-role-teacher"),
-    bareLine("reasons-opinions-2-m4", "a2-family-reason-node", "a2-value-node-ame-futta-uchi", "a2-context-conversation", L("It rained, so I was at home.", "Ha piovuto, quindi ero a casa."), "a2-role-emi"),
-    bareLine("reasons-opinions-2-m5", "a2-family-reason-node", "a2-value-node-jikanganakatta-takushii", "a2-context-reasons", L("There was no time, so I went by taxi.", "Non c'era tempo, quindi sono andato/a in taxi."), "a2-role-sora"),
-    bareLine("reasons-opinions-2-m6", "a2-family-reason-node", "a2-value-node-samukatta-kooto", "a2-context-among-friends", L("It was cold, so I wore a coat.", "Faceva freddo, quindi ho indossato un cappotto."), "a2-role-friend"),
-    bareLine("reasons-opinions-2-m7", "a2-family-reason-node", "a2-value-node-shigoto-owatta-kaetta", "a2-context-workplace", L("Work finished, so I went home.", "Il lavoro è finito, quindi sono tornato/a a casa."), "a2-role-colleague"),
-    bareLine("reasons-opinions-2-m8", "a2-family-reason-node", "a2-value-node-byouki-yasunda", "a2-context-reasons", L("I was sick, so I was absent from school.", "Ero malato/a, quindi ho saltato la scuola."), "a2-role-emi"),
+    // M4 spec-fix ("form metadata"): node gives a reason that already
+    // happened — every currently-authored reason-node value's own final
+    // clause is genuinely past polite (past-negative for
+    // isogashikatta-dekakenakatta), never present.
+    bareLine("reasons-opinions-2-m1", "a2-family-reason-node", "a2-value-node-ame-ie", "a2-context-reasons", L("It rained, so I stayed home.", "Ha piovuto, quindi sono rimasto/a a casa."), "a2-role-learner", null, A2_AFFIRMATIVE_PAST_POLITE),
+    bareLine("reasons-opinions-2-m2", "a2-family-reason-node", "a2-value-node-isogashikatta-dekakenakatta", "a2-context-workplace", L("Work was busy, so I didn't go out.", "Il lavoro era impegnativo, quindi non sono uscito/a."), "a2-role-colleague", null, A2_NEGATIVE_PAST_POLITE),
+    bareLine("reasons-opinions-2-m3", "a2-family-reason-node", "a2-value-node-densha-kaigi", "a2-context-workplace", L("The train was delayed, so I was late for the meeting.", "Il treno era in ritardo, quindi sono arrivato/a tardi alla riunione."), "a2-role-teacher", null, A2_AFFIRMATIVE_PAST_POLITE),
+    bareLine("reasons-opinions-2-m4", "a2-family-reason-node", "a2-value-node-ame-futta-uchi", "a2-context-conversation", L("It rained, so I was at home.", "Ha piovuto, quindi ero a casa."), "a2-role-emi", null, A2_AFFIRMATIVE_PAST_POLITE),
+    bareLine("reasons-opinions-2-m5", "a2-family-reason-node", "a2-value-node-jikanganakatta-takushii", "a2-context-reasons", L("There was no time, so I went by taxi.", "Non c'era tempo, quindi sono andato/a in taxi."), "a2-role-sora", null, A2_AFFIRMATIVE_PAST_POLITE),
+    bareLine("reasons-opinions-2-m6", "a2-family-reason-node", "a2-value-node-samukatta-kooto", "a2-context-among-friends", L("It was cold, so I wore a coat.", "Faceva freddo, quindi ho indossato un cappotto."), "a2-role-friend", null, A2_AFFIRMATIVE_PAST_POLITE),
+    bareLine("reasons-opinions-2-m7", "a2-family-reason-node", "a2-value-node-shigoto-owatta-kaetta", "a2-context-workplace", L("Work finished, so I went home.", "Il lavoro è finito, quindi sono tornato/a a casa."), "a2-role-colleague", null, A2_AFFIRMATIVE_PAST_POLITE),
+    bareLine("reasons-opinions-2-m8", "a2-family-reason-node", "a2-value-node-byouki-yasunda", "a2-context-reasons", L("I was sick, so I was absent from school.", "Ero malato/a, quindi ho saltato la scuola."), "a2-role-emi", null, A2_AFFIRMATIVE_PAST_POLITE),
   ],
   transfers: [
-    bareLine("reasons-opinions-2-t1", "a2-family-reason-node", "a2-value-node-ame-ie", "a2-context-conversation", L("It rained, so I stayed home.", "Ha piovuto, quindi sono rimasto/a a casa."), "a2-role-sora"),
-    bareLine("reasons-opinions-2-t2", "a2-family-reason-node", "a2-value-node-isogashikatta-dekakenakatta", "a2-context-reasons", L("Work was busy, so I didn't go out.", "Il lavoro era impegnativo, quindi non sono uscito/a."), "a2-role-friend"),
-    bareLine("reasons-opinions-2-t3", "a2-family-reason-node", "a2-value-node-densha-kaigi", "a2-context-among-friends", L("The train was delayed, so I was late for the meeting.", "Il treno era in ritardo, quindi sono arrivato/a tardi alla riunione."), "a2-role-learner"),
-    bareLine("reasons-opinions-2-t4", "a2-family-reason-node", "a2-value-node-ame-futta-uchi", "a2-context-workplace", L("It rained, so I was at home.", "Ha piovuto, quindi ero a casa."), "a2-role-colleague"),
-    bareLine("reasons-opinions-2-t5", "a2-family-reason-node", "a2-value-node-jikanganakatta-takushii", "a2-context-conversation", L("There was no time, so I went by taxi.", "Non c'era tempo, quindi sono andato/a in taxi."), "a2-role-emi"),
+    // I2 spec-fix: recombine with watashi, same rationale as ro1.
+    bareLine("reasons-opinions-2-t1", "a2-family-reason-node", "a2-value-node-ame-ie", "a2-context-conversation", L("It rained, so I stayed home.", "Ha piovuto, quindi sono rimasto/a a casa."), "a2-role-sora", "a2-referent-self", A2_AFFIRMATIVE_PAST_POLITE),
+    bareLine("reasons-opinions-2-t2", "a2-family-reason-node", "a2-value-node-isogashikatta-dekakenakatta", "a2-context-reasons", L("Work was busy, so I didn't go out.", "Il lavoro era impegnativo, quindi non sono uscito/a."), "a2-role-friend", "a2-referent-self", A2_NEGATIVE_PAST_POLITE),
+    bareLine("reasons-opinions-2-t3", "a2-family-reason-node", "a2-value-node-densha-kaigi", "a2-context-among-friends", L("The train was delayed, so I was late for the meeting.", "Il treno era in ritardo, quindi sono arrivato/a tardi alla riunione."), "a2-role-learner", "a2-referent-self", A2_AFFIRMATIVE_PAST_POLITE),
+    bareLine("reasons-opinions-2-t4", "a2-family-reason-node", "a2-value-node-ame-futta-uchi", "a2-context-workplace", L("It rained, so I was at home.", "Ha piovuto, quindi ero a casa."), "a2-role-colleague", "a2-referent-self", A2_AFFIRMATIVE_PAST_POLITE),
+    bareLine("reasons-opinions-2-t5", "a2-family-reason-node", "a2-value-node-jikanganakatta-takushii", "a2-context-conversation", L("There was no time, so I went by taxi.", "Non c'era tempo, quindi sono andato/a in taxi."), "a2-role-emi", "a2-referent-self", A2_AFFIRMATIVE_PAST_POLITE),
   ],
 });
 
@@ -127,16 +163,19 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     bareLine("reasons-opinions-3-m3", "a2-family-opinion-toomou", "a2-value-toomou-sora-isogashii", "a2-context-workplace", L("I think Sora is busy.", "Penso che Sora sia occupato."), "a2-role-friend"),
     bareLine("reasons-opinions-3-m4", "a2-family-opinion-toomou", "a2-value-toomou-yokunai", "a2-context-among-friends", L("I think that's not good.", "Penso che non sia buono."), "a2-role-colleague"),
     bareLine("reasons-opinions-3-m5", "a2-family-opinion-toomou", "a2-value-toomou-hon-omoshiroi", "a2-context-conversation", L("I think this book is interesting.", "Penso che questo libro sia interessante."), "a2-role-sora"),
-    bareLine("reasons-opinions-3-m6", "a2-family-plain-recognition", "a2-value-plain-iku-dict", "a2-context-among-friends", L("I'm going.", "Vado."), "a2-role-teacher"),
-    bareLine("reasons-opinions-3-m7", "a2-family-plain-recognition", "a2-value-plain-taberu-past", "a2-context-reasons", L("I ate it.", "L'ho mangiato."), "a2-role-emi"),
-    bareLine("reasons-opinions-3-m8", "a2-family-plain-recognition", "a2-value-plain-hanasu-dict", "a2-context-conversation", L("I'm going to talk.", "Parlo."), "a2-role-friend"),
+    bareLine("reasons-opinions-3-m6", "a2-family-plain-recognition", "a2-value-plain-iku-dict", "a2-context-among-friends", L("I'm going.", "Vado."), "a2-role-teacher", null, A2_AFFIRMATIVE_PRESENT_PLAIN),
+    bareLine("reasons-opinions-3-m7", "a2-family-plain-recognition", "a2-value-plain-taberu-past", "a2-context-reasons", L("I ate it.", "L'ho mangiato."), "a2-role-emi", null, A2_AFFIRMATIVE_PAST_PLAIN),
+    bareLine("reasons-opinions-3-m8", "a2-family-plain-recognition", "a2-value-plain-hanasu-dict", "a2-context-conversation", L("I'm going to talk.", "Parlo."), "a2-role-friend", null, A2_AFFIRMATIVE_PRESENT_PLAIN),
   ],
   transfers: [
-    bareLine("reasons-opinions-3-t1", "a2-family-opinion-toomou", "a2-value-toomou-kore-ii", "a2-context-workplace", L("I think this is good.", "Penso che questo sia buono."), "a2-role-friend"),
-    bareLine("reasons-opinions-3-t2", "a2-family-opinion-toomou", "a2-value-toomou-benkyou-taihen", "a2-context-among-friends", L("I think Japanese study is tough.", "Penso che lo studio del giapponese sia impegnativo."), "a2-role-colleague"),
-    bareLine("reasons-opinions-3-t3", "a2-family-plain-recognition", "a2-value-plain-matsu-past-neg", "a2-context-among-friends", L("I didn't wait.", "Non ho aspettato."), "a2-role-learner"),
-    bareLine("reasons-opinions-3-t4", "a2-family-plain-recognition", "a2-value-plain-oyogu-dict", "a2-context-reasons", L("I'm going to swim.", "Nuoto."), "a2-role-friend"),
-    bareLine("reasons-opinions-3-t5", "a2-family-plain-recognition", "a2-value-plain-asobu-dict", "a2-context-conversation", L("I'm going to play.", "Gioco."), "a2-role-teacher"),
+    // I2 spec-fix: t1/t2 recombine with watashi (t3-t5, already using
+    // plain-recognition's own subject slot with values distinct from any
+    // model, were already genuinely novel and are unchanged).
+    bareLine("reasons-opinions-3-t1", "a2-family-opinion-toomou", "a2-value-toomou-kore-ii", "a2-context-workplace", L("I think this is good.", "Penso che questo sia buono."), "a2-role-friend", "a2-referent-self"),
+    bareLine("reasons-opinions-3-t2", "a2-family-opinion-toomou", "a2-value-toomou-benkyou-taihen", "a2-context-among-friends", L("I think Japanese study is tough.", "Penso che lo studio del giapponese sia impegnativo."), "a2-role-colleague", "a2-referent-self"),
+    bareLine("reasons-opinions-3-t3", "a2-family-plain-recognition", "a2-value-plain-matsu-past-neg", "a2-context-among-friends", L("I didn't wait.", "Non ho aspettato."), "a2-role-learner", null, A2_NEGATIVE_PAST_PLAIN),
+    bareLine("reasons-opinions-3-t4", "a2-family-plain-recognition", "a2-value-plain-oyogu-dict", "a2-context-reasons", L("I'm going to swim.", "Nuoto."), "a2-role-friend", null, A2_AFFIRMATIVE_PRESENT_PLAIN),
+    bareLine("reasons-opinions-3-t5", "a2-family-plain-recognition", "a2-value-plain-asobu-dict", "a2-context-conversation", L("I'm going to play.", "Gioco."), "a2-role-teacher", null, A2_AFFIRMATIVE_PRESENT_PLAIN),
   ],
 });
 
@@ -158,16 +197,28 @@ const lesson4: A2BuiltLesson = buildA2InstructionalLesson({
     bareLine("reasons-opinions-4-m3", "a2-family-agree-disagree", "a2-value-agree-sansei", "a2-context-workplace", L("I'm in favor.", "Sono d'accordo."), "a2-role-colleague"),
     bareLine("reasons-opinions-4-m4", "a2-family-agree-disagree", "a2-value-agree-hontou-soudesune", "a2-context-conversation", L("That's really true, isn't it.", "È proprio vero, no?"), "a2-role-sora"),
     bareLine("reasons-opinions-4-m5", "a2-family-agree-disagree", "a2-value-disagree-chigau", "a2-context-among-friends", L("Is that so? I think it's different.", "Ah sì? Penso che sia diverso."), "a2-role-teacher"),
-    bareLine("reasons-opinions-4-m6", "a2-family-agree-disagree", "a2-value-disagree-omoimasen", "a2-context-workplace", L("I don't think so.", "Non penso così."), "a2-role-learner"),
+    bareLine("reasons-opinions-4-m6", "a2-family-agree-disagree", "a2-value-disagree-omoimasen", "a2-context-workplace", L("I don't think so.", "Non penso così."), "a2-role-learner", null, A2_NEGATIVE_PRESENT_POLITE),
     bareLine("reasons-opinions-4-m7", "a2-family-opinion-toomou", "a2-value-toomou-sora-isogashii", "a2-context-reasons", L("I think Sora is busy.", "Penso che Sora sia occupato."), "a2-role-emi"),
-    bareLine("reasons-opinions-4-m8", "a2-family-connector-utterance", "a2-value-connector-ame-sorekara-hare", "a2-context-conversation", L("It rained. Then, it cleared up.", "Ha piovuto. Poi si è schiarito."), "a2-role-friend"),
+    bareLine("reasons-opinions-4-m8", "a2-family-connector-utterance", "a2-value-connector-ame-sorekara-hare", "a2-context-conversation", L("It rained. Then, it cleared up.", "Ha piovuto. Poi si è schiarito."), "a2-role-friend", null, A2_AFFIRMATIVE_PAST_POLITE),
   ],
   transfers: [
-    bareLine("reasons-opinions-4-t1", "a2-family-agree-disagree", "a2-value-agree-watashimo", "a2-context-workplace", L("I think so too.", "Penso anch'io così."), "a2-role-colleague"),
-    bareLine("reasons-opinions-4-t2", "a2-family-agree-disagree", "a2-value-disagree-chigau", "a2-context-conversation", L("Is that so? I think it's different.", "Ah sì? Penso che sia diverso."), "a2-role-sora"),
-    bareLine("reasons-opinions-4-t3", "a2-family-agree-disagree", "a2-value-disagree-omoimasen", "a2-context-among-friends", L("I don't think so.", "Non penso così."), "a2-role-teacher"),
+    // I2 spec-fix: agree-watashimo/disagree-chigau/disagree-omoimasen each
+    // already bake in their own "watashi(mo)" — an *external* watashi wa
+    // subject would double-mark the first person. agree-sansei ("I'm in
+    // favor") has no such conflict, so t1 recombines it with an explicit
+    // watashi subject (the family's own Can-do — a2-cando-agree-disagree —
+    // needs at least one real transfer target of its own family, per §8
+    // Can-do transfer coverage). t2/t3 recombine with already-modeled
+    // opinion-toomou facts
+    // (introduced as models in ro3, cumulatively available here) that no
+    // ro4 model uses — still exercising the lesson's supporting
+    // opinion-toomou Can-do. t4/t5 were already genuinely novel (distinct
+    // already-modeled facts reused from ro3/cc2) and are unchanged.
+    bareLine("reasons-opinions-4-t1", "a2-family-agree-disagree", "a2-value-agree-sansei", "a2-context-workplace", L("I'm in favor.", "Sono d'accordo."), "a2-role-colleague", "a2-referent-self"),
+    bareLine("reasons-opinions-4-t2", "a2-family-opinion-toomou", "a2-value-toomou-kore-ii", "a2-context-conversation", L("I think this is good.", "Penso che questo sia buono."), "a2-role-sora"),
+    bareLine("reasons-opinions-4-t3", "a2-family-opinion-toomou", "a2-value-toomou-benkyou-taihen", "a2-context-among-friends", L("I think Japanese study is tough.", "Penso che lo studio del giapponese sia impegnativo."), "a2-role-teacher"),
     bareLine("reasons-opinions-4-t4", "a2-family-opinion-toomou", "a2-value-toomou-yokunai", "a2-context-reasons", L("I think that's not good.", "Penso che non sia buono."), "a2-role-learner"),
-    bareLine("reasons-opinions-4-t5", "a2-family-connector-utterance", "a2-value-connector-shigoto-sorekara-kaeru", "a2-context-workplace", L("I finish work. Then, I go home.", "Finisco il lavoro. Poi torno a casa."), "a2-role-emi"),
+    bareLine("reasons-opinions-4-t5", "a2-family-connector-utterance", "a2-value-connector-shigoto-sorekara-kaeru", "a2-context-workplace", L("Work finished. Then, I went home.", "Il lavoro è finito. Poi sono tornato/a a casa."), "a2-role-emi", null, A2_AFFIRMATIVE_PAST_POLITE),
   ],
 });
 

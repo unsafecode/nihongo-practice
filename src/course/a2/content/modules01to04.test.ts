@@ -260,3 +260,202 @@ describe("A2 M1-M4 aggregate — Task4 editorial regression (malformed conjugati
     }
   });
 });
+
+// I2 spec-fix ("true transfer failure"): round-two transfers used to realize
+// byte-identical Japanese to a round-one model, differing only in hidden
+// discourse metadata (speaker/context) that never reaches the learner. A
+// transfer is only a genuine test of transfer if its *visible* answer is
+// something the learner has never been shown as a model in this lesson.
+// This is deliberately independent of `semanticFingerprint` (which already
+// differs via context/speaker and so can never catch this failure mode) —
+// it compares `visibleTargetKey`, the same normalized-canonical-Japanese-only
+// key `RealizedSentence` itself documents as "Never derived from or mixed
+// with discourse/context/form metadata".
+describe("A2 M1-M4 aggregate — I2 spec-fix (genuine round-two transfers, not hidden-metadata duplicates)", () => {
+  const famById = new Map<string, SentenceFamily>(a2SentenceFamilies.map((f) => [f.id, f]));
+  const realizeCatalogs = {
+    contexts: a2Contexts,
+    personRoles: a2PersonRoles,
+    referents: a2Referents,
+    semanticValues: a2SemanticValues,
+    learningTargetSenses: a2LearningTargetSenses,
+  };
+
+  function realizeI2(variant: (typeof allBuiltLessons)[number]["variants"][number]) {
+    const family = famById.get(variant.sentenceFamilyId);
+    expect(family, `${variant.id} family ${variant.sentenceFamilyId}`).toBeDefined();
+    const result = realizeVariant(family as SentenceFamily, variant, realizeCatalogs, {
+      availableConceptIds: [...(family as SentenceFamily).requiredConceptIds],
+    });
+    if (!result.ok) {
+      throw new Error(`realize ${variant.id} failed: ${JSON.stringify(result.errors)}`);
+    }
+    return result.sentence;
+  }
+
+  it("every lesson's transfer visible targets (visibleTargetKey — canonicalJapanese only, never context/speaker) all differ from every model visible target in that same lesson", () => {
+    const violations: string[] = [];
+    for (const built of allBuiltLessons) {
+      const models = built.variants.filter((v) => v.pedagogicalUse === "model");
+      const transfers = built.variants.filter((v) => v.pedagogicalUse === "transfer");
+      const modelKeys = new Map<string, string>();
+      for (const model of models) {
+        modelKeys.set(realizeI2(model).visibleTargetKey, model.id);
+      }
+      for (const transfer of transfers) {
+        const key = realizeI2(transfer).visibleTargetKey;
+        const duplicatedModelId = modelKeys.get(key);
+        if (duplicatedModelId) {
+          violations.push(
+            `${built.recipe.id}: transfer "${transfer.id}" duplicates model "${duplicatedModelId}"'s visible target "${key}"`,
+          );
+        }
+      }
+    }
+    expect(violations, `${violations.length} transfer(s) duplicate a same-lesson model:\n${violations.join("\n")}`).toEqual(
+      [],
+    );
+  });
+
+  it("every lesson has at least 5 transfers, each genuinely novel relative to that lesson's models (>=2 required; this release holds every lesson to the full 5)", () => {
+    for (const built of allBuiltLessons) {
+      const models = built.variants.filter((v) => v.pedagogicalUse === "model");
+      const transfers = built.variants.filter((v) => v.pedagogicalUse === "transfer");
+      expect(transfers.length, built.recipe.id).toBeGreaterThanOrEqual(5);
+      const modelKeys = new Set(models.map((v) => realizeI2(v).visibleTargetKey));
+      const genuineTransferCount = transfers.filter((t) => !modelKeys.has(realizeI2(t).visibleTargetKey)).length;
+      expect(genuineTransferCount, `${built.recipe.id} genuine transfer count`).toBeGreaterThanOrEqual(2);
+    }
+  });
+});
+
+// M4 spec-fix ("form metadata"): audits every invariant-family variant's
+// `FormSelection` against the honest register its own baked Japanese
+// actually realizes. `KIT_AFFIRMATIVE_PRESENT_POLITE` is a real, correct
+// form for most invariant content (backchannel reactions, yotei/tsumori
+// plans, opinions, たことがあります experience statements — every one of
+// these is a genuine present-tense polite utterance even when an *embedded*
+// clause is past/negative), but a `plain-recognition`/`narrate-order`/
+// `reason-node` (etc.) variant whose own final predicate is plain, negative,
+// past, or past-negative must say so. This table is deliberately exhaustive
+// over every currently-authored invariant predicate value — both the
+// dishonest ones (mapped to their corrected form below) and the honest ones
+// (left absent, so the default-expectation fallback proves they stay
+// honest) — one flat source of truth checked against every lesson's real
+// variants, never a fixture.
+describe("A2 M1-M4 aggregate — M4 spec-fix (honest invariant FormSelection metadata)", () => {
+  const famById = new Map<string, SentenceFamily>(a2SentenceFamilies.map((f) => [f.id, f]));
+  const realizeCatalogs = {
+    contexts: a2Contexts,
+    personRoles: a2PersonRoles,
+    referents: a2Referents,
+    semanticValues: a2SemanticValues,
+    learningTargetSenses: a2LearningTargetSenses,
+  };
+
+  // Invariant families whose predicate value's own baked content is
+  // genuinely mixed-mood (ましょう volitional / ませんか negative-question
+  // invitations) rather than a plain declarative the four-way
+  // polarity×tense grid can honestly describe — `FormSelection` has no
+  // "volitional"/"invitational" mood axis, exactly like question mood is
+  // its own separate `interrogative` flag rather than living on `polarity`.
+  // Excluded from this specific polarity/tense/formality audit; never
+  // excluded from any other check.
+  const MOOD_CARVEOUT_FAMILIES: ReadonlySet<string> = new Set([
+    "a2-family-invite",
+    "a2-family-respond-invite",
+    "a2-family-arrange-meeting",
+  ]);
+
+  // Semantic value id -> the honest FormSelection (polarity/tense/formality
+  // only — `interrogative` is separately correct already) its own realized
+  // Japanese actually carries. Every entry here was hand-verified against
+  // the real realized canonicalJapanese (see the session's form-audit dump).
+  const HONEST_FORM_BY_VALUE_ID: Readonly<Record<string, { polarity: string; tense: string; formality: string }>> = {
+    // --- a2-family-plain-recognition: the WHOLE point is plain forms ---
+    "a2-value-plain-iku-dict": { polarity: "affirmative", tense: "present", formality: "plain" },
+    "a2-value-plain-iku-neg": { polarity: "negative", tense: "present", formality: "plain" },
+    "a2-value-plain-taberu-past": { polarity: "affirmative", tense: "past", formality: "plain" },
+    "a2-value-plain-hanasu-dict": { polarity: "affirmative", tense: "present", formality: "plain" },
+    "a2-value-plain-matsu-past-neg": { polarity: "negative", tense: "past", formality: "plain" },
+    "a2-value-plain-oyogu-dict": { polarity: "affirmative", tense: "present", formality: "plain" },
+    "a2-value-plain-asobu-dict": { polarity: "affirmative", tense: "present", formality: "plain" },
+    "a2-value-plain-yomu-neg": { polarity: "negative", tense: "present", formality: "plain" },
+    "a2-value-plain-tanoshikatta": { polarity: "affirmative", tense: "past", formality: "plain" },
+    "a2-value-plain-yuumei-datta": { polarity: "affirmative", tense: "past", formality: "plain" },
+    "a2-value-plain-warukatta": { polarity: "affirmative", tense: "past", formality: "plain" },
+    // --- a2-family-narrate-order: ordered PAST narratives; plain unless
+    // the value's own final clause tags on a polite です (kyouto-tanoshikatta) ---
+    "a2-value-narrate-asagohan-gakkou": { polarity: "affirmative", tense: "past", formality: "plain" },
+    "a2-value-narrate-umi-yama": { polarity: "affirmative", tense: "past", formality: "plain" },
+    "a2-value-narrate-matsu-tabeta": { polarity: "affirmative", tense: "past", formality: "plain" },
+    "a2-value-narrate-kyouto-tanoshikatta": { polarity: "affirmative", tense: "past", formality: "polite" },
+    // --- a2-family-reason-node: ので gives a reason that already happened —
+    // every currently-authored value's own final clause is past polite ---
+    "a2-value-node-ame-ie": { polarity: "affirmative", tense: "past", formality: "polite" },
+    "a2-value-node-isogashikatta-dekakenakatta": { polarity: "negative", tense: "past", formality: "polite" },
+    "a2-value-node-densha-kaigi": { polarity: "affirmative", tense: "past", formality: "polite" },
+    "a2-value-node-ame-futta-uchi": { polarity: "affirmative", tense: "past", formality: "polite" },
+    "a2-value-node-jikanganakatta-takushii": { polarity: "affirmative", tense: "past", formality: "polite" },
+    "a2-value-node-samukatta-kooto": { polarity: "affirmative", tense: "past", formality: "polite" },
+    "a2-value-node-shigoto-owatta-kaetta": { polarity: "affirmative", tense: "past", formality: "polite" },
+    "a2-value-node-byouki-yasunda": { polarity: "affirmative", tense: "past", formality: "polite" },
+    // --- a2-family-reason-kara: mostly present/future から-clauses, but this
+    // one's own final clause (つかれました) is genuinely past ---
+    "a2-value-kara-isogashii-tsukareta": { polarity: "affirmative", tense: "past", formality: "polite" },
+    // --- a2-family-connector-utterance: mostly present, but these three's
+    // own final clause is genuinely past ---
+    "a2-value-connector-test-demo-ganbatta": { polarity: "affirmative", tense: "past", formality: "polite" },
+    "a2-value-connector-ame-sorekara-hare": { polarity: "affirmative", tense: "past", formality: "polite" },
+    "a2-value-connector-shigoto-sorekara-kaeru": { polarity: "affirmative", tense: "past", formality: "polite" },
+    // --- a2-family-clarify-repeat: わかりません/わかりました/きこえませんでした
+    // are genuine negative-present / past / past-negative statements ---
+    "a2-value-clarify-wakarimasen": { polarity: "negative", tense: "present", formality: "polite" },
+    "a2-value-clarify-wakarimashita": { polarity: "affirmative", tense: "past", formality: "polite" },
+    "a2-value-clarify-kikoemasen": { polarity: "negative", tense: "past", formality: "polite" },
+    // --- a2-family-agree-disagree: そうおもいません is a genuine present negative ---
+    "a2-value-disagree-omoimasen": { polarity: "negative", tense: "present", formality: "polite" },
+  };
+
+  const DEFAULT_HONEST_FORM = { polarity: "affirmative", tense: "present", formality: "polite" } as const;
+
+  it("every invariant-family M1-M4 variant's FormSelection matches the honest register its own baked Japanese actually is", () => {
+    const violations: string[] = [];
+    for (const built of allBuiltLessons) {
+      for (const variant of built.variants) {
+        const family = famById.get(variant.sentenceFamilyId);
+        if (!family || family.realizationRuleId !== "rule-invariant-utterance") continue;
+        if (MOOD_CARVEOUT_FAMILIES.has(family.id)) continue;
+        const predicateValueId = variant.slotValues.predicate;
+        const expected = HONEST_FORM_BY_VALUE_ID[predicateValueId] ?? DEFAULT_HONEST_FORM;
+        const actual = variant.form;
+        if (
+          actual.polarity !== expected.polarity ||
+          actual.tense !== expected.tense ||
+          actual.formality !== expected.formality
+        ) {
+          const result = realizeVariant(family, variant, realizeCatalogs, {
+            availableConceptIds: [...family.requiredConceptIds],
+          });
+          const jp = result.ok ? result.sentence.canonicalJapanese : "<realize failed>";
+          violations.push(
+            `${variant.id} (${predicateValueId} => "${jp}"): form is ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`,
+          );
+        }
+      }
+    }
+    expect(violations, `${violations.length} dishonest FormSelection(s):\n${violations.join("\n")}`).toEqual([]);
+  });
+
+  it("keeps たことがあります (experience-takoto) and other final-polite constructions honestly polite even though their embedded base is past", () => {
+    for (const built of allBuiltLessons) {
+      for (const variant of built.variants) {
+        const family = famById.get(variant.sentenceFamilyId);
+        if (!family || family.id !== "a2-family-experience-takoto") continue;
+        expect(variant.form.formality, variant.id).toBe("polite");
+        expect(variant.form.polarity, variant.id).toBe("affirmative");
+        expect(variant.form.tense, variant.id).toBe("present");
+      }
+    }
+  });
+});

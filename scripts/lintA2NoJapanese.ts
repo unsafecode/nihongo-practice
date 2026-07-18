@@ -32,6 +32,20 @@ import { fileURLToPath } from "node:url";
 export const JAPANESE_CHARACTER_PATTERN =
   /[\u3000-\u303f\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff01-\uff60\uff66-\uff9f]/;
 
+/**
+ * The same character class as {@link JAPANESE_CHARACTER_PATTERN}, but with a
+ * `+` quantifier (so a contiguous run of Japanese-range characters — e.g. one
+ * whole literal — collapses into a single match, matching this scanner's
+ * "one violation per offending run" contract) and the `g` flag (so
+ * `matchAll` finds every run on a line, not just the first). Derived from
+ * the single source of truth above rather than duplicated, so the two can
+ * never drift apart.
+ */
+const GLOBAL_JAPANESE_RUN_PATTERN = new RegExp(
+  `${JAPANESE_CHARACTER_PATTERN.source}+`,
+  "g",
+);
+
 export interface JapaneseViolation {
   readonly filePath: string;
   readonly line: number;
@@ -39,7 +53,12 @@ export interface JapaneseViolation {
   readonly snippet: string;
 }
 
-/** Scan one file's already-read text content for a Japanese-range character on any line. */
+/** Scan one file's already-read text content for every Japanese-range run on
+ * every line. A single call to `.exec()` (the previous implementation) only
+ * ever finds the *first* run on a line — a second, separate Japanese literal
+ * later on the same line silently escaped detection. `matchAll` with a
+ * global, contiguous-run pattern instead iterates every run, so every
+ * offending column is reported. */
 export function findJapaneseViolations(
   filePath: string,
   content: string,
@@ -47,12 +66,11 @@ export function findJapaneseViolations(
   const violations: JapaneseViolation[] = [];
   const lines = content.split("\n");
   lines.forEach((lineText, index) => {
-    const match = JAPANESE_CHARACTER_PATTERN.exec(lineText);
-    if (match) {
+    for (const match of lineText.matchAll(GLOBAL_JAPANESE_RUN_PATTERN)) {
       violations.push({
         filePath,
         line: index + 1,
-        column: match.index + 1,
+        column: (match.index ?? 0) + 1,
         snippet: lineText.trim(),
       });
     }

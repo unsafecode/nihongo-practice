@@ -79,6 +79,44 @@ describe("findJapaneseViolations — pure character scan", () => {
     const content = 'const s = "ともだち";';
     expect(findJapaneseViolations("x.ts", content)).toHaveLength(1);
   });
+
+  // M7 spec-fix: the previous implementation called the shared pattern's
+  // `.exec()` exactly once per line, so a line with *two separate* Japanese
+  // literals only ever reported the first one — the second violation (and
+  // its column) silently disappeared. A global, contiguous-run scan (every
+  // maximal run of Japanese-range characters is its own match) must report
+  // every offending run on the line, each with its own correct column,
+  // while still collapsing a single multi-character run into one violation
+  // (proven by the "not one per character" case above).
+  it("reports every offending run on a line with two separate Japanese literals, each with its own correct column (regression: single .exec() only found the first)", () => {
+    const content = 'const s = "ともだち" + "こんにちは";';
+    const violations = findJapaneseViolations("x.ts", content);
+    expect(violations).toHaveLength(2);
+    expect(violations[0].column).toBe(content.indexOf("ともだち") + 1);
+    expect(violations[1].column).toBe(content.indexOf("こんにちは") + 1);
+  });
+
+  it("reports every offending run across three separate Japanese literals on one line", () => {
+    const content = '"あ" + "い" + "う";';
+    const violations = findJapaneseViolations("x.ts", content);
+    expect(violations).toHaveLength(3);
+    expect(violations.map((v) => v.column)).toEqual([
+      content.indexOf("あ") + 1,
+      content.indexOf("い") + 1,
+      content.indexOf("う") + 1,
+    ]);
+  });
+
+  it("reports one violation per offending line across multiple lines, each with its own two-literal count", () => {
+    const content = [
+      'const a = "ともだち" + "こんにちは";',
+      "line two is clean",
+      'const b = "だめ" + "はい";',
+    ].join("\n");
+    const violations = findJapaneseViolations("x.ts", content);
+    expect(violations).toHaveLength(4);
+    expect(violations.map((v) => v.line)).toEqual([1, 1, 3, 3]);
+  });
 });
 
 describe("isA2ContentModuleFile — the guarded file filter", () => {

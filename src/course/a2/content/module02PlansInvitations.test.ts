@@ -178,6 +178,27 @@ describe("A2 Module 2 — connected discourse markers (no isolated grammar drill
   });
 });
 
+// C1 spec-fix ("translation/Japanese fact mismatch"): pi1-m1/pi1-t1's EN/IT
+// copy both explicitly assert "I plan to go to **Kyoto**" — the realized
+// Japanese must actually name Kyoto (with a direction/goal particle), never
+// realize only the bare "いくよていです" (I plan to go — go where?), which
+// silently drops the one fact the copy promises.
+describe("A2 Module 2 — JP/copy fidelity (C1 spec-fix: Kyoto fact must appear in the Japanese)", () => {
+  it("pi1-m1 and pi1-t1 (a2-value-yotei-iku-kyouto) realize a Kyoto destination, matching their own copy's Kyoto claim", () => {
+    const pi1 = module2Lessons[0];
+    for (const id of ["plans-invitations-1-m1", "plans-invitations-1-t1"]) {
+      const variant = pi1.variants.find((v) => v.id === id);
+      expect(variant, id).toBeDefined();
+      const sentence = realize(variant as SentenceVariant);
+      expect(sentence.canonicalJapanese, `${id} must name Kyoto`).toContain("きょうと");
+      // Still a plan statement, not merely a location — the grammar point
+      // (よてい) must survive the fix intact.
+      expect(sentence.canonicalJapanese).toContain("よてい");
+      expect(sentence.canonicalJapanese).toContain("です");
+    }
+  });
+});
+
 describe("A2 Module 2 — exact realized Japanese/rōmaji spot checks", () => {
   it("realizes every module-2 instructional variant through the shared formatter with no errors", () => {
     for (const built of module2Lessons) {
@@ -208,7 +229,12 @@ describe("A2 Module 2 — exact realized Japanese/rōmaji spot checks", () => {
     expect(sentence.canonicalJapanese).not.toContain("たべるませんか");
   });
 
-  it("realizes plans-invitations-3-t2 (same invite-shokuji value as m3) to the identical exact たべませんか invitation", () => {
+  // I2 spec-fix ("true transfer failure"): t2 used to mirror m3's exact
+  // slots (same bare no-subject predicate), realizing byte-identical
+  // Japanese. It now recombines the same predicate with an already-modeled
+  // named addressee (emi), proving the ます-stem fix (たべませんか, never
+  // たべるませんか) still holds for this new, genuinely novel combination.
+  it("realizes plans-invitations-3-t2 (invite-shokuji, emi recombined as addressee) to the exact たべませんか ます-stem, distinct from m3", () => {
     const pi3 = module2Lessons[2];
     const t2 = pi3.variants.find((v) => v.id === "plans-invitations-3-t2");
     expect(t2).toBeDefined();
@@ -216,9 +242,10 @@ describe("A2 Module 2 — exact realized Japanese/rōmaji spot checks", () => {
     const romaji = formatRomaji(sentence.tokens);
     expect(romaji.ok).toBe(true);
     if (!romaji.ok) throw new Error("unreachable");
-    expect(sentence.canonicalJapanese).toBe("いっしょにしょくじをたべませんか");
-    expect(romaji.text).toBe("issho ni shokuji o tabemasen ka");
+    expect(sentence.canonicalJapanese).toBe("えみはいっしょにしょくじをたべませんか");
+    expect(romaji.text).toBe("emi wa issho ni shokuji o tabemasen ka");
     expect(sentence.canonicalJapanese).not.toContain("たべるませんか");
+    expect(sentence.canonicalJapanese).not.toBe("いっしょにしょくじをたべませんか");
   });
 
   it("realizes plans-invitations-3-m7 (invite-tomodachi-issho) to the exact こんばん...たべませんか invitation, never たべるませんか", () => {

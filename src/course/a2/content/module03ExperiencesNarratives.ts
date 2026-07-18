@@ -12,6 +12,8 @@
 
 import { A2_MODULE_MANIFEST } from "../manifest";
 import {
+  A2_AFFIRMATIVE_PAST_PLAIN,
+  A2_AFFIRMATIVE_PAST_POLITE,
   buildA2InstructionalLesson,
   type A2BuiltLesson,
   type A2LineSpec,
@@ -76,25 +78,35 @@ function narrateLine(
     subjectRealization: subjectReferent === null ? "omitted" : "explicit",
     slots: subjectReferent === null ? { predicate } : { subject: subjectReferentValueId(subjectReferent), predicate },
     translation,
+    // M4 spec-fix ("form metadata"): every narrate-order value is a genuine
+    // PAST narrative (sorekara-linked past clauses), never present — honest
+    // formality follows the value's own final clause: plain throughout
+    // except a2-value-narrate-kyouto-tanoshikatta, whose final clause tags
+    // on a polite desu ending (tanoshikatta desu).
+    form: predicate === "a2-value-narrate-kyouto-tanoshikatta" ? A2_AFFIRMATIVE_PAST_POLITE : A2_AFFIRMATIVE_PAST_PLAIN,
   };
 }
 
 /** Bare plain-past-adjective recognition line (no polite copula) —
- * recognize-plain-forms support for en3. */
+ * recognize-plain-forms support for en3. Every currently-authored value
+ * here is a plain PAST i-/na-adjective (M4 spec-fix: honest metadata, never
+ * the polite-present default). */
 function plainAdjectiveLine(
   id: string,
   predicate: string,
   context: string,
   translation: { en: string; it: string },
+  subjectReferent: string | null = null,
 ): A2LineSpec {
   return {
     id,
     family: "a2-family-plain-recognition",
     context,
-    subjectReferent: null,
-    subjectRealization: "omitted",
-    slots: { predicate },
+    subjectReferent,
+    subjectRealization: subjectReferent === null ? "omitted" : "explicit",
+    slots: subjectReferent === null ? { predicate } : { subject: subjectReferentValueId(subjectReferent), predicate },
     translation,
+    form: A2_AFFIRMATIVE_PAST_PLAIN,
   };
 }
 
@@ -112,20 +124,31 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
   introducedSenseIds: [],
   models: [
     experienceLine("experiences-narratives-1-m1", null, "a2-value-exp-oyoida", "a2-context-experiences", L("I have swum in the sea before.", "Ho già nuotato nel mare.")),
-    experienceLine("experiences-narratives-1-m2", "a2-referent-emi", "a2-value-exp-itta", "a2-context-outing", L("Emi has been to Kyoto before.", "Emi è già stata a Kyoto.")),
-    experienceLine("experiences-narratives-1-m3", "a2-referent-sora", "a2-value-exp-tabeta", "a2-context-cafe", L("Sora has eaten sushi before.", "Sora ha già mangiato sushi.")),
+    experienceLine("experiences-narratives-1-m2", "a2-referent-emi", "a2-value-exp-itta-kyouto", "a2-context-outing", L("Emi has been to Kyoto before.", "Emi è già stata a Kyoto.")),
+    experienceLine("experiences-narratives-1-m3", "a2-referent-sora", "a2-value-exp-tabeta-sushi", "a2-context-cafe", L("Sora has eaten sushi before.", "Sora ha già mangiato sushi.")),
     experienceLine("experiences-narratives-1-m4", "a2-referent-friend", "a2-value-exp-matta", "a2-context-experiences", L("My friend has waited at the station before.", "Il mio amico ha già aspettato alla stazione.")),
-    experienceLine("experiences-narratives-1-m5", "a2-referent-colleague", "a2-value-exp-nobotta", "a2-context-workplace", L("My colleague has climbed a mountain before.", "Il mio collega ha già scalato una montagna.")),
-    experienceLine("experiences-narratives-1-m6", null, "a2-value-exp-itta", "a2-context-conversation", L("I have been to Tokyo before.", "Sono già stato/a a Tokyo.")),
+    experienceLine("experiences-narratives-1-m5", "a2-referent-colleague", "a2-value-exp-nobotta-yama", "a2-context-workplace", L("My colleague has climbed a mountain before.", "Il mio collega ha già scalato una montagna.")),
+    experienceLine("experiences-narratives-1-m6", null, "a2-value-exp-itta-tokyo", "a2-context-conversation", L("I have been to Tokyo before.", "Sono già stato/a a Tokyo.")),
     experienceLine("experiences-narratives-1-m7", "a2-referent-teacher", "a2-value-exp-oyoida", "a2-context-experiences", L("The teacher has swum in the sea before.", "L'insegnante ha già nuotato nel mare.")),
-    experienceLine("experiences-narratives-1-m8", "a2-referent-emi", "a2-value-exp-tabeta", "a2-context-cafe", L("Emi has eaten Japanese food before.", "Emi ha già mangiato cibo giapponese.")),
+    experienceLine("experiences-narratives-1-m8", "a2-referent-emi", "a2-value-exp-tabeta-nihonshoku", "a2-context-cafe", L("Emi has eaten Japanese food before.", "Emi ha già mangiato cibo giapponese.")),
+    // m9/m10: the "waited for a friend" and "climbed Mt. Fuji" facts need
+    // their own distinct values (C1 spec-fix) but are each introduced for the
+    // very first time in this, the introduction lesson — so (unlike Osaka/
+    // natto, which the later en3/en4 lessons introduce) they must be modeled
+    // here, never only transferred, to ever be legally available at all.
+    experienceLine("experiences-narratives-1-m9", "a2-referent-teacher", "a2-value-exp-matta-tomodachi", "a2-context-among-friends", L("The teacher has waited for a friend before.", "L'insegnante ha già aspettato un amico.")),
+    experienceLine("experiences-narratives-1-m10", "a2-referent-friend", "a2-value-exp-nobotta-fuji", "a2-context-outing", L("My friend has climbed Mt. Fuji before.", "Il mio amico è già scalato il Monte Fuji.")),
   ],
   transfers: [
-    experienceLine("experiences-narratives-1-t1", "a2-referent-sora", "a2-value-exp-nobotta", "a2-context-outing", L("Sora has climbed a mountain before.", "Sora ha già scalato una montagna.")),
-    experienceLine("experiences-narratives-1-t2", "a2-referent-colleague", "a2-value-exp-matta", "a2-context-workplace", L("My colleague has waited for a friend before.", "Il mio collega ha già aspettato un amico.")),
-    experienceLine("experiences-narratives-1-t3", "a2-referent-friend", "a2-value-exp-itta", "a2-context-experiences", L("My friend has been to Osaka before.", "Il mio amico è già stato a Osaka.")),
-    experienceLine("experiences-narratives-1-t4", null, "a2-value-exp-tabeta", "a2-context-cafe", L("I have eaten natto before.", "Ho già mangiato il natto.")),
-    experienceLine("experiences-narratives-1-t5", "a2-referent-teacher", "a2-value-exp-nobotta", "a2-context-experiences", L("The teacher has climbed Mt. Fuji before.", "L'insegnante ha già scalato il Monte Fuji.")),
+    experienceLine("experiences-narratives-1-t1", "a2-referent-sora", "a2-value-exp-nobotta-yama", "a2-context-outing", L("Sora has climbed a mountain before.", "Sora ha già scalato una montagna.")),
+    experienceLine("experiences-narratives-1-t2", "a2-referent-colleague", "a2-value-exp-matta-tomodachi", "a2-context-workplace", L("My colleague has waited for a friend before.", "Il mio collega ha già aspettato un amico.")),
+    // Osaka/natto are each introduced by a later lesson's own model (en3-m5,
+    // en4-m3) — a transfer can never be earlier than its own introduction,
+    // so this introduction lesson's transfers instead recombine its own
+    // already-modeled Kyoto/Japanese-food facts with a new subject.
+    experienceLine("experiences-narratives-1-t3", "a2-referent-friend", "a2-value-exp-itta-kyouto", "a2-context-experiences", L("My friend has been to Kyoto before.", "Il mio amico è già stato a Kyoto.")),
+    experienceLine("experiences-narratives-1-t4", null, "a2-value-exp-tabeta-nihonshoku", "a2-context-cafe", L("I have eaten Japanese food before.", "Ho già mangiato cibo giapponese.")),
+    experienceLine("experiences-narratives-1-t5", "a2-referent-teacher", "a2-value-exp-nobotta-fuji", "a2-context-experiences", L("The teacher has climbed Mt. Fuji before.", "L'insegnante ha già scalato il Monte Fuji.")),
   ],
 });
 
@@ -178,17 +201,20 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     experienceLine("experiences-narratives-3-m2", "a2-referent-sora", "a2-value-exp-oyoida", "a2-context-outing", L("Sora has swum in the sea before.", "Sora ha già nuotato nel mare.")),
     experienceLine("experiences-narratives-3-m3", "a2-referent-friend", "a2-value-exp-oyoida", "a2-context-among-friends", L("My friend has swum in the sea before.", "Il mio amico ha già nuotato nel mare.")),
     experienceLine("experiences-narratives-3-m4", "a2-referent-colleague", "a2-value-exp-oyoida", "a2-context-workplace", L("My colleague has swum in the sea before.", "Il mio collega ha già nuotato nel mare.")),
-    experienceLine("experiences-narratives-3-m5", "a2-referent-sora", "a2-value-exp-itta", "a2-context-experiences", L("Sora has been to Osaka before.", "Sora è già stato a Osaka.")),
+    experienceLine("experiences-narratives-3-m5", "a2-referent-sora", "a2-value-exp-itta-oosaka", "a2-context-experiences", L("Sora has been to Osaka before.", "Sora è già stato a Osaka.")),
     plainAdjectiveLine("experiences-narratives-3-m6", "a2-value-plain-tanoshikatta", "a2-context-experiences", L("It was fun.", "È stato divertente.")),
     plainAdjectiveLine("experiences-narratives-3-m7", "a2-value-plain-yuumei-datta", "a2-context-conversation", L("It was famous.", "Era famoso.")),
     plainAdjectiveLine("experiences-narratives-3-m8", "a2-value-plain-warukatta", "a2-context-among-friends", L("It was bad.", "Era brutto.")),
   ],
   transfers: [
-    experienceLine("experiences-narratives-3-t1", "a2-referent-colleague", "a2-value-exp-itta", "a2-context-workplace", L("My colleague has been to Osaka before.", "Il mio collega è già stato a Osaka.")),
-    experienceLine("experiences-narratives-3-t2", "a2-referent-friend", "a2-value-exp-tabeta", "a2-context-cafe", L("My friend has eaten sushi before.", "Il mio amico ha già mangiato sushi.")),
-    experienceLine("experiences-narratives-3-t3", "a2-referent-colleague", "a2-value-exp-tabeta", "a2-context-cafe", L("My colleague has eaten sushi before.", "Il mio collega ha già mangiato sushi.")),
+    experienceLine("experiences-narratives-3-t1", "a2-referent-colleague", "a2-value-exp-itta-oosaka", "a2-context-workplace", L("My colleague has been to Osaka before.", "Il mio collega è già stato a Osaka.")),
+    experienceLine("experiences-narratives-3-t2", "a2-referent-friend", "a2-value-exp-tabeta-sushi", "a2-context-cafe", L("My friend has eaten sushi before.", "Il mio amico ha già mangiato sushi.")),
+    experienceLine("experiences-narratives-3-t3", "a2-referent-colleague", "a2-value-exp-tabeta-sushi", "a2-context-cafe", L("My colleague has eaten sushi before.", "Il mio collega ha già mangiato sushi.")),
     experienceLine("experiences-narratives-3-t4", null, "a2-value-exp-matta", "a2-context-experiences", L("I have waited at the station before.", "Ho già aspettato alla stazione.")),
-    plainAdjectiveLine("experiences-narratives-3-t5", "a2-value-plain-tanoshikatta", "a2-context-workplace", L("It was fun.", "È stato divertente.")),
+    // I2 spec-fix: t5 now recombines with an already-modeled subject
+    // (teacher, introduced in en1) instead of mirroring m6's bare,
+    // subject-less predicate.
+    plainAdjectiveLine("experiences-narratives-3-t5", "a2-value-plain-tanoshikatta", "a2-context-workplace", L("The teacher had fun.", "L'insegnante si è divertito."), "a2-referent-teacher"),
   ],
 });
 
@@ -206,20 +232,20 @@ const lesson4: A2BuiltLesson = buildA2InstructionalLesson({
   introducedSenseIds: [],
   models: [
     experienceLine("experiences-narratives-4-m1", null, "a2-value-exp-oyoida", "a2-context-experiences", L("Have you ever swum in the sea?", "Hai mai nuotato nel mare?"), true),
-    experienceLine("experiences-narratives-4-m2", "a2-referent-emi", "a2-value-exp-itta", "a2-context-outing", L("Has Emi ever been to Kyoto?", "Emi è mai stata a Kyoto?"), true),
-    experienceLine("experiences-narratives-4-m3", null, "a2-value-exp-tabeta", "a2-context-cafe", L("Have you ever eaten natto?", "Hai mai mangiato il natto?"), true),
+    experienceLine("experiences-narratives-4-m2", "a2-referent-emi", "a2-value-exp-itta-kyouto", "a2-context-outing", L("Has Emi ever been to Kyoto?", "Emi è mai stata a Kyoto?"), true),
+    experienceLine("experiences-narratives-4-m3", null, "a2-value-exp-tabeta-natto", "a2-context-cafe", L("Have you ever eaten natto?", "Hai mai mangiato il natto?"), true),
     experienceLine("experiences-narratives-4-m4", "a2-referent-sora", "a2-value-exp-matta", "a2-context-experiences", L("Has Sora ever waited at the station?", "Sora ha mai aspettato alla stazione?"), true),
-    experienceLine("experiences-narratives-4-m5", null, "a2-value-exp-nobotta", "a2-context-outing", L("Have you ever climbed a mountain?", "Hai mai scalato una montagna?"), true),
+    experienceLine("experiences-narratives-4-m5", null, "a2-value-exp-nobotta-yama", "a2-context-outing", L("Have you ever climbed a mountain?", "Hai mai scalato una montagna?"), true),
     experienceLine("experiences-narratives-4-m6", "a2-referent-friend", "a2-value-exp-oyoida", "a2-context-among-friends", L("Has your friend ever swum in the sea?", "Il tuo amico ha mai nuotato nel mare?"), true),
-    experienceLine("experiences-narratives-4-m7", null, "a2-value-exp-itta", "a2-context-conversation", L("Have you ever been to Tokyo?", "Sei mai stato/a a Tokyo?"), true),
-    experienceLine("experiences-narratives-4-m8", "a2-referent-colleague", "a2-value-exp-tabeta", "a2-context-workplace", L("Has your colleague ever eaten sushi?", "Il tuo collega ha mai mangiato sushi?"), true),
+    experienceLine("experiences-narratives-4-m7", null, "a2-value-exp-itta-tokyo", "a2-context-conversation", L("Have you ever been to Tokyo?", "Sei mai stato/a a Tokyo?"), true),
+    experienceLine("experiences-narratives-4-m8", "a2-referent-colleague", "a2-value-exp-tabeta-sushi", "a2-context-workplace", L("Has your colleague ever eaten sushi?", "Il tuo collega ha mai mangiato sushi?"), true),
   ],
   transfers: [
     experienceLine("experiences-narratives-4-t1", "a2-referent-teacher", "a2-value-exp-matta", "a2-context-experiences", L("Has the teacher ever waited at the station?", "L'insegnante ha mai aspettato alla stazione?"), true),
     experienceLine("experiences-narratives-4-t2", "a2-referent-sora", "a2-value-exp-oyoida", "a2-context-outing", L("Has Sora ever swum in the sea?", "Sora ha mai nuotato nel mare?"), true),
     experienceLine("experiences-narratives-4-t3", "a2-referent-emi", "a2-value-exp-matta", "a2-context-cafe", L("Has Emi ever waited at the station?", "Emi ha mai aspettato alla stazione?"), true),
-    experienceLine("experiences-narratives-4-t4", "a2-referent-friend", "a2-value-exp-itta", "a2-context-among-friends", L("Has your friend ever been to Tokyo?", "Il tuo amico è mai stato a Tokyo?"), true),
-    experienceLine("experiences-narratives-4-t5", "a2-referent-teacher", "a2-value-exp-tabeta", "a2-context-workplace", L("Has the teacher ever eaten sushi?", "L'insegnante ha mai mangiato sushi?"), true),
+    experienceLine("experiences-narratives-4-t4", "a2-referent-friend", "a2-value-exp-itta-tokyo", "a2-context-among-friends", L("Has your friend ever been to Tokyo?", "Il tuo amico è mai stato a Tokyo?"), true),
+    experienceLine("experiences-narratives-4-t5", "a2-referent-teacher", "a2-value-exp-tabeta-sushi", "a2-context-workplace", L("Has the teacher ever eaten sushi?", "L'insegnante ha mai mangiato sushi?"), true),
   ],
 });
 

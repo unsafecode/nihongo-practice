@@ -37,7 +37,7 @@ import type {
   SemanticValueTokenFragment,
   SentenceFamily,
 } from "../../foundations/types";
-import { conjugate, type A2Fragment, type A2PlainForm } from "../forms/a2Conjugation";
+import { conjugate, conjugateMasuStem, type A2Fragment, type A2PlainForm } from "../forms/a2Conjugation";
 import { composeA2Construction } from "../forms/composeA2Construction";
 
 /** A bilingual (EN/IT) copy pair. Never carries Japanese. */
@@ -105,6 +105,20 @@ function plainKana(senseId: string, form: A2PlainForm): SemanticValueTokenFragme
   return kanaFragments(result.result.fragments);
 }
 
+/** Derive a registered Task 2 verb sense's polite ます-stem (via
+ * `conjugateMasuStem()`), in pure kana — the single linguistic source of
+ * truth every ます-stem used in this catalog (食べ/tabe, 行き/iki, 話し/hanashi,
+ * 泳ぎ/oyogi, ...) derives from, never a hand-typed duplicate. Throws if the
+ * sense is not registered — a programming error in this catalog, never a
+ * learner-facing failure. */
+function masuStemKana(senseId: string): SemanticValueTokenFragment[] {
+  const result = conjugateMasuStem(senseId);
+  if (!result.ok) {
+    throw new Error(`a2SemanticCatalog: conjugateMasuStem() could not resolve sense "${senseId}"`);
+  }
+  return kanaFragments(result.result.fragments);
+}
+
 /** Compose a registered `suffix` construction (currently only
  * `experience-takoto`) for a registered verb sense, in pure kana. */
 function composedKana(constructionId: string, senseId: string): SemanticValueTokenFragment[] {
@@ -115,6 +129,30 @@ function composedKana(constructionId: string, senseId: string): SemanticValueTok
     );
   }
   return kanaFragments(result.sentence.fragments);
+}
+
+/**
+ * Compose the "experience-takoto" (たことがあります) construction for a
+ * registered verb sense, then remap its two independent-word tail fragments
+ * — こと ("koto", a formal noun) and あります (the standalone existential verb)
+ * — from `a2Constructions.ts`'s "morpheme" tail-fragment kind to their true
+ * "lexical" kind (§ Phase 3/M6-review finding I3, "semantic rōmaji
+ * boundaries"). `a2Constructions.ts` models every suffix tail as bound
+ * morphemes for its own Task 2 raw-concatenation contract (see
+ * `composeA2Construction.test.ts`, which asserts the fully-glued
+ * `ittakotogaarimasu` on purpose) — this catalog is the Task 4 semantic
+ * assembly boundary where the *realized* romaji actually needs a real
+ * word-boundary space before each independent word, so the remap happens
+ * only here, never in `a2Constructions.ts`/`composeA2Construction.ts`
+ * themselves (their own semantics/tests are intentionally untouched). が
+ * stays a "particle" fragment unchanged — it already spaces correctly. */
+function experienceTakotoKana(senseId: string): SemanticValueTokenFragment[] {
+  const INDEPENDENT_WORD_TAIL_JP: ReadonlySet<string> = new Set(["こと", "あります"]);
+  return composedKana("experience-takoto", senseId).map((fragment) =>
+    fragment.kind === "morpheme" && INDEPENDENT_WORD_TAIL_JP.has(fragment.jp)
+      ? { ...fragment, kind: "lexical" as const }
+      : fragment,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -432,7 +470,7 @@ const a2AuthoredValuesM1: readonly SemanticValue[] = [
   { id: "a2-value-recipient-friend", kind: "object", tokenFragments: [frag("ともだち", "tomodachi")] },
 
   // --- predicate-sense-kind (polite ます-stems; endings belong to rules) ---
-  { id: "a2-value-hanasu", kind: "predicate-sense", senseId: "a2-sense-hanasu", tokenFragments: kanaFragments([{ jp: "話", romaji: "hanashi", kind: "lexical", boundaryBefore: "attach", reading: "はなし" }]) },
+  { id: "a2-value-hanasu", kind: "predicate-sense", senseId: "a2-sense-hanasu", tokenFragments: masuStemKana("a2-sense-hanasu") },
   { id: "a2-value-kiku", kind: "predicate-sense", senseId: "a2-sense-kiku", tokenFragments: [frag("きき", "kiki")] },
   { id: "a2-value-iu", kind: "predicate-sense", senseId: "a2-sense-iu", tokenFragments: [frag("いい", "ii")] },
   { id: "a2-value-omou-lex", kind: "predicate-sense", senseId: "a2-sense-omou-lex", tokenFragments: [frag("おもい", "omoi")] },
@@ -857,7 +895,7 @@ const a2AuthoredValuesM2: readonly SemanticValue[] = [
     id: "a2-value-yotei-iku-kyouto",
     kind: "predicate-sense",
     senseId: "a2-sense-yotei-iku-kyouto",
-    tokenFragments: [...plainKana("a2-sense-iku", "dictionary"), frag("よてい", "yotei"), frag("です", "desu")],
+    tokenFragments: [frag("きょうとへ", "kyouto e"), ...plainKana("a2-sense-iku", "dictionary"), frag("よてい", "yotei"), frag("です", "desu")],
   },
   {
     id: "a2-value-yotei-au-doyoubi",
@@ -1167,7 +1205,7 @@ const a2AuthoredValuesM2: readonly SemanticValue[] = [
     tokenFragments: [
       frag("いっしょに", "issho ni"),
       frag("しょくじを", "shokuji o"),
-      frag("たべ", "tabe"),
+      ...masuStemKana("a2-sense-taberu"),
       morphFrag("ませんか", "masen ka"),
     ],
   },
@@ -1178,7 +1216,7 @@ const a2AuthoredValuesM2: readonly SemanticValue[] = [
     tokenFragments: [
       frag("しゅうまつ", "shuumatsu"),
       frag("いっしょに", "issho ni"),
-      frag("およぎ", "oyogi"),
+      ...masuStemKana("a2-sense-oyogu"),
       morphFrag("ませんか", "masen ka"),
     ],
   },
@@ -1190,7 +1228,7 @@ const a2AuthoredValuesM2: readonly SemanticValue[] = [
       frag("こんばん", "konban"),
       frag("いっしょに", "issho ni"),
       frag("しょくじを", "shokuji o"),
-      frag("たべ", "tabe"),
+      ...masuStemKana("a2-sense-taberu"),
       morphFrag("ませんか", "masen ka"),
     ],
   },
@@ -1214,7 +1252,7 @@ const a2AuthoredValuesM2: readonly SemanticValue[] = [
       frag("こんど", "kondo"),
       frag("いっしょに", "issho ni"),
       frag("ほんやに", "hon'ya ni"),
-      frag("いき", "iki"),
+      ...masuStemKana("a2-sense-iku"),
       morphFrag("ませんか", "masen ka"),
     ],
   },
@@ -1227,7 +1265,7 @@ const a2AuthoredValuesM2: readonly SemanticValue[] = [
       frag("です", "desu"),
       particleFrag("ね", "ne"),
       punctFrag("。", "."),
-      frag("いき", "iki"),
+      ...masuStemKana("a2-sense-iku"),
       morphFrag("ましょう", "mashou"),
       punctFrag("。", "."),
     ],
@@ -1253,7 +1291,7 @@ const a2AuthoredValuesM2: readonly SemanticValue[] = [
     tokenFragments: [
       frag("ぜひ", "zehi"),
       punctFrag("、", ","),
-      frag("いき", "iki"),
+      ...masuStemKana("a2-sense-iku"),
       morphFrag("たい", "tai"),
       frag("です", "desu"),
     ],
@@ -1428,16 +1466,77 @@ const a2AuthoredValuesM3: readonly SemanticValue[] = [
   // --- experience (たことがあります), reusing composeA2Construction for the
   // registered Task 2 verbs, and a hand-composed equivalent for 登る (not one
   // of the 12 registered verbs; the exact same tail shape as
-  // a2Constructions.ts's own "experience-takoto" construction) ---
-  { id: "a2-value-exp-oyoida", kind: "predicate-sense", senseId: "a2-sense-oyogu", tokenFragments: composedKana("experience-takoto", "a2-sense-oyogu") },
-  { id: "a2-value-exp-itta", kind: "predicate-sense", senseId: "a2-sense-exp-itta", tokenFragments: composedKana("experience-takoto", "a2-sense-iku") },
-  { id: "a2-value-exp-tabeta", kind: "predicate-sense", senseId: "a2-sense-exp-tabeta", tokenFragments: composedKana("experience-takoto", "a2-sense-taberu") },
-  { id: "a2-value-exp-matta", kind: "predicate-sense", senseId: "a2-sense-exp-matta", tokenFragments: composedKana("experience-takoto", "a2-sense-matsu") },
+  // a2Constructions.ts's own "experience-takoto" construction).
+  //
+  // C1 spec-fix ("translation/Japanese fact mismatch"): a single bare
+  // "[verb]たことがあります" value used to be shared across every lesson line
+  // that used that verb, even though their EN/IT copy asserted different
+  // facts (which city; which food; waited where/for whom; which mountain).
+  // Each fact now gets its own distinct value with the correct
+  // object/location baked in before the (still shared, still
+  // `experienceTakotoKana`-derived) たことがあります tail, so the realized
+  // Japanese always carries exactly the fact its own copy asserts, and the
+  // same Japanese never stands for two different facts. ---
+  { id: "a2-value-exp-oyoida", kind: "predicate-sense", senseId: "a2-sense-oyogu", tokenFragments: experienceTakotoKana("a2-sense-oyogu") },
   {
-    id: "a2-value-exp-nobotta",
+    id: "a2-value-exp-itta-kyouto",
+    kind: "predicate-sense",
+    senseId: "a2-sense-exp-itta",
+    tokenFragments: [frag("きょうとに", "kyouto ni"), ...experienceTakotoKana("a2-sense-iku")],
+  },
+  {
+    id: "a2-value-exp-itta-tokyo",
+    kind: "predicate-sense",
+    senseId: "a2-sense-exp-itta",
+    tokenFragments: [frag("とうきょうに", "toukyou ni"), ...experienceTakotoKana("a2-sense-iku")],
+  },
+  {
+    id: "a2-value-exp-itta-oosaka",
+    kind: "predicate-sense",
+    senseId: "a2-sense-exp-itta",
+    tokenFragments: [frag("おおさかに", "oosaka ni"), ...experienceTakotoKana("a2-sense-iku")],
+  },
+  {
+    id: "a2-value-exp-tabeta-sushi",
+    kind: "predicate-sense",
+    senseId: "a2-sense-exp-tabeta",
+    tokenFragments: [frag("すしを", "sushi o"), ...experienceTakotoKana("a2-sense-taberu")],
+  },
+  {
+    id: "a2-value-exp-tabeta-nihonshoku",
+    kind: "predicate-sense",
+    senseId: "a2-sense-exp-tabeta",
+    tokenFragments: [frag("にほんのりょうりを", "nihon no ryouri o"), ...experienceTakotoKana("a2-sense-taberu")],
+  },
+  {
+    id: "a2-value-exp-tabeta-natto",
+    kind: "predicate-sense",
+    senseId: "a2-sense-exp-tabeta",
+    tokenFragments: [frag("なっとうを", "nattou o"), ...experienceTakotoKana("a2-sense-taberu")],
+  },
+  {
+    id: "a2-value-exp-matta",
+    kind: "predicate-sense",
+    senseId: "a2-sense-exp-matta",
+    tokenFragments: [frag("えきで", "eki de"), ...experienceTakotoKana("a2-sense-matsu")],
+  },
+  {
+    id: "a2-value-exp-matta-tomodachi",
+    kind: "predicate-sense",
+    senseId: "a2-sense-exp-matta",
+    tokenFragments: [frag("ともだちを", "tomodachi o"), ...experienceTakotoKana("a2-sense-matsu")],
+  },
+  {
+    id: "a2-value-exp-nobotta-yama",
     kind: "predicate-sense",
     senseId: "a2-sense-noboru",
-    tokenFragments: [frag("のぼ", "nobo"), morphFrag("った", "tta"), morphFrag("こと", "koto"), particleFrag("が", "ga"), morphFrag("あります", "arimasu")],
+    tokenFragments: [frag("やまに", "yama ni"), frag("のぼ", "nobo"), morphFrag("った", "tta"), frag("こと", "koto"), particleFrag("が", "ga"), frag("あります", "arimasu")],
+  },
+  {
+    id: "a2-value-exp-nobotta-fuji",
+    kind: "predicate-sense",
+    senseId: "a2-sense-noboru",
+    tokenFragments: [frag("ふじさんに", "fujisan ni"), frag("のぼ", "nobo"), morphFrag("った", "tta"), frag("こと", "koto"), particleFrag("が", "ga"), frag("あります", "arimasu")],
   },
 
   // --- plain-past adjectives (recognize-plain-forms support for en3): bare
@@ -1707,7 +1806,7 @@ const a2AuthoredValuesM4: readonly SemanticValue[] = [
     id: "a2-value-kara-jikanganai-takushii",
     kind: "predicate-sense",
     senseId: "a2-sense-kara-jikanganai-takushii",
-    tokenFragments: [frag("じかんが", "jikan ga"), morphFrag("ない", "nai"), particleFrag("から", "kara"), punctFrag("、", ","), frag("タクシーで", "takushii de"), frag("いきます", "ikimasu")],
+    tokenFragments: [frag("じかんが", "jikan ga"), frag("ない", "nai"), particleFrag("から", "kara"), punctFrag("、", ","), frag("タクシーで", "takushii de"), frag("いきます", "ikimasu")],
   },
   {
     id: "a2-value-kara-samui-uchi",
@@ -1764,7 +1863,7 @@ const a2AuthoredValuesM4: readonly SemanticValue[] = [
     id: "a2-value-node-jikanganakatta-takushii",
     kind: "predicate-sense",
     senseId: "a2-sense-node-jikanganakatta-takushii",
-    tokenFragments: [frag("じかんが", "jikan ga"), morphFrag("なかった", "nakatta"), particleFrag("ので", "node"), punctFrag("、", ","), frag("タクシーで", "takushii de"), frag("いきました", "ikimashita")],
+    tokenFragments: [frag("じかんが", "jikan ga"), frag("なかった", "nakatta"), particleFrag("ので", "node"), punctFrag("、", ","), frag("タクシーで", "takushii de"), frag("いきました", "ikimashita")],
   },
   {
     id: "a2-value-node-samukatta-kooto",
@@ -1926,8 +2025,11 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     id: "a2-family-connector-utterance",
     level: "a2",
     canDoIds: ["a2-cando-connectors"],
-    slotSchema: [{ id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false }],
-    permittedAxes: ["predicate-verb", "context"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
     realizationRuleId: "rule-invariant-utterance",
     requiredConceptIds: [A2_CONCEPT_CONNECTORS],
   },
@@ -1935,8 +2037,11 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     id: "a2-family-clarify-repeat",
     level: "a2",
     canDoIds: ["a2-cando-clarify-repeat"],
-    slotSchema: [{ id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false }],
-    permittedAxes: ["predicate-verb", "context"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
     realizationRuleId: "rule-invariant-utterance",
     requiredConceptIds: [A2_CONCEPT_CLARIFY_REPEAT],
   },
@@ -1955,19 +2060,6 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
 
   // --- M2 plans-invitations ---
   {
-    id: "a2-family-meet-recipient",
-    level: "a2",
-    canDoIds: ["a2-cando-intentions-plans"],
-    slotSchema: [
-      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
-      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
-      { id: "object", axis: "object", valueKind: "object", optional: false },
-    ],
-    permittedAxes: ["speaker-person", "predicate-verb", "object", "polarity-tense-form", "context"],
-    realizationRuleId: "rule-recipient-action",
-    requiredConceptIds: [],
-  },
-  {
     id: "a2-family-plan-yotei",
     level: "a2",
     canDoIds: ["a2-cando-intentions-plans"],
@@ -1977,19 +2069,6 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     ],
     permittedAxes: ["speaker-person", "predicate-verb", "polarity-tense-form", "context"],
     realizationRuleId: "rule-invariant-utterance",
-    requiredConceptIds: [A2_CONCEPT_INTENTIONS_YOTEI],
-  },
-  {
-    id: "a2-family-plan-yotei-destination",
-    level: "a2",
-    canDoIds: ["a2-cando-intentions-plans"],
-    slotSchema: [
-      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
-      { id: "location", axis: "location", valueKind: "location", optional: false },
-      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
-    ],
-    permittedAxes: ["speaker-person", "location", "predicate-verb", "polarity-tense-form", "context"],
-    realizationRuleId: "rule-invariant-with-location",
     requiredConceptIds: [A2_CONCEPT_INTENTIONS_YOTEI],
   },
   {
@@ -2008,8 +2087,11 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     id: "a2-family-invite",
     level: "a2",
     canDoIds: ["a2-cando-invite-accept-decline"],
-    slotSchema: [{ id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false }],
-    permittedAxes: ["predicate-verb", "context"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
     realizationRuleId: "rule-invariant-utterance",
     requiredConceptIds: [A2_CONCEPT_INVITE_ACCEPT_DECLINE],
   },
@@ -2017,8 +2099,11 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     id: "a2-family-respond-invite",
     level: "a2",
     canDoIds: ["a2-cando-invite-accept-decline"],
-    slotSchema: [{ id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false }],
-    permittedAxes: ["predicate-verb", "context"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
     realizationRuleId: "rule-invariant-utterance",
     requiredConceptIds: [A2_CONCEPT_INVITE_ACCEPT_DECLINE],
   },
@@ -2026,22 +2111,16 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     id: "a2-family-arrange-meeting",
     level: "a2",
     canDoIds: ["a2-cando-arrange-meeting"],
-    slotSchema: [{ id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false }],
-    permittedAxes: ["predicate-verb", "context"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
     realizationRuleId: "rule-invariant-utterance",
     requiredConceptIds: [A2_CONCEPT_ARRANGE_MEETING],
   },
 
   // --- M3 experiences-narratives ---
-  {
-    id: "a2-family-describe-adjective",
-    level: "a2",
-    canDoIds: ["a2-cando-experience-takoto"],
-    slotSchema: [{ id: "subject", axis: "speaker-person", valueKind: "referent", optional: false }, { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false }],
-    permittedAxes: ["speaker-person", "predicate-verb", "polarity-tense-form", "context"],
-    realizationRuleId: "rule-description",
-    requiredConceptIds: [],
-  },
   {
     id: "a2-family-experience-takoto",
     level: "a2",
@@ -2069,37 +2148,14 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
 
   // --- M4 reasons-opinions ---
   {
-    id: "a2-family-consider-object",
-    level: "a2",
-    canDoIds: ["a2-cando-give-reasons"],
-    slotSchema: [
-      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
-      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
-      { id: "object", axis: "object", valueKind: "object", optional: false },
-    ],
-    permittedAxes: ["speaker-person", "predicate-verb", "object", "polarity-tense-form", "context"],
-    realizationRuleId: "rule-object-action",
-    requiredConceptIds: [],
-  },
-  {
-    id: "a2-family-preference-suki",
-    level: "a2",
-    canDoIds: ["a2-cando-give-reasons"],
-    slotSchema: [
-      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
-      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
-      { id: "object", axis: "object", valueKind: "object", optional: false },
-    ],
-    permittedAxes: ["speaker-person", "predicate-verb", "object", "polarity-tense-form", "context"],
-    realizationRuleId: "rule-preference",
-    requiredConceptIds: [],
-  },
-  {
     id: "a2-family-reason-kara",
     level: "a2",
     canDoIds: ["a2-cando-give-reasons", "a2-cando-reason-kara"],
-    slotSchema: [{ id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false }],
-    permittedAxes: ["predicate-verb", "context"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
     realizationRuleId: "rule-invariant-utterance",
     requiredConceptIds: [A2_CONCEPT_REASON_KARA],
   },
@@ -2107,8 +2163,11 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     id: "a2-family-reason-node",
     level: "a2",
     canDoIds: ["a2-cando-reason-node", "a2-cando-give-reasons"],
-    slotSchema: [{ id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false }],
-    permittedAxes: ["predicate-verb", "context"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
     realizationRuleId: "rule-invariant-utterance",
     requiredConceptIds: [A2_CONCEPT_REASON_NODE],
   },
@@ -2116,8 +2175,11 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     id: "a2-family-opinion-toomou",
     level: "a2",
     canDoIds: ["a2-cando-opinion-toomou"],
-    slotSchema: [{ id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false }],
-    permittedAxes: ["predicate-verb", "context"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
     realizationRuleId: "rule-invariant-utterance",
     requiredConceptIds: [A2_CONCEPT_OPINION_TOOMOU],
   },
@@ -2125,8 +2187,11 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     id: "a2-family-agree-disagree",
     level: "a2",
     canDoIds: ["a2-cando-agree-disagree"],
-    slotSchema: [{ id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false }],
-    permittedAxes: ["predicate-verb", "context"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
     realizationRuleId: "rule-invariant-utterance",
     requiredConceptIds: [A2_CONCEPT_AGREE_DISAGREE],
   },

@@ -223,6 +223,120 @@ describe("A2 Module 3 — connected discourse markers (no isolated grammar drill
   });
 });
 
+// C1 spec-fix ("translation/Japanese fact mismatch", M3 takoto values): the
+// same bare invariant Japanese (行った/食べた/待った/登った + ことがあります) used to
+// be shared across variants whose EN/IT copy asserted *different* facts
+// (Kyoto vs Tokyo vs Osaka; sushi vs Japanese food vs natto; station vs a
+// friend; a mountain vs Mt. Fuji) — the realized Japanese never actually
+// carried the object/location the copy promised, and worse, the identical
+// Japanese silently stood for mutually exclusive facts. Every value below is
+// now distinct (own location/object baked in with the correct particle) so
+// its own realized Japanese always carries exactly the fact its copy
+// asserts, and no two variants sharing a fact-carrying value diverge.
+describe("A2 Module 3 — JP/copy fidelity (C1 spec-fix: distinct facts for distinct realized Japanese)", () => {
+  // Every location/object-specific experience variant, mapped to the exact
+  // fact word its own realized canonicalJapanese must carry.
+  const FACT_WORD_BY_VARIANT: Readonly<Record<string, string>> = {
+    // itta (行った) — Kyoto / Tokyo / Osaka must never collapse to one value.
+    "experiences-narratives-1-m2": "きょうと",
+    "experiences-narratives-1-m6": "とうきょう",
+    "experiences-narratives-1-t3": "きょうと",
+    "experiences-narratives-3-m5": "おおさか",
+    "experiences-narratives-3-t1": "おおさか",
+    "experiences-narratives-4-m2": "きょうと",
+    "experiences-narratives-4-m7": "とうきょう",
+    "experiences-narratives-4-t4": "とうきょう",
+    // tabeta (食べた) — sushi / Japanese food / natto must never collapse to
+    // one value.
+    "experiences-narratives-1-m3": "すし",
+    "experiences-narratives-1-m8": "にほん",
+    "experiences-narratives-1-t4": "にほん",
+    "experiences-narratives-3-t2": "すし",
+    "experiences-narratives-3-t3": "すし",
+    "experiences-narratives-4-m3": "なっとう",
+    "experiences-narratives-4-m8": "すし",
+    "experiences-narratives-4-t5": "すし",
+    // matta (待った) — waited at the station vs waited for a friend are
+    // different facts.
+    "experiences-narratives-1-m4": "えき",
+    "experiences-narratives-1-m9": "ともだち",
+    "experiences-narratives-1-t2": "ともだち",
+    "experiences-narratives-3-t4": "えき",
+    "experiences-narratives-4-m4": "えき",
+    "experiences-narratives-4-t1": "えき",
+    "experiences-narratives-4-t3": "えき",
+    // nobotta (登った) — a generic mountain vs the specifically named Mt.
+    // Fuji are different facts.
+    "experiences-narratives-1-m5": "やま",
+    "experiences-narratives-1-m10": "ふじ",
+    "experiences-narratives-1-t1": "やま",
+    "experiences-narratives-1-t5": "ふじ",
+    "experiences-narratives-4-m5": "やま",
+  };
+
+  it("realizes every location/food/object-specific experience variant with the exact fact word its own EN/IT copy asserts", () => {
+    const allVariants = new Map<string, SentenceVariant>();
+    for (const built of module3Lessons) {
+      for (const variant of built.variants) allVariants.set(variant.id, variant);
+    }
+    for (const [variantId, factWord] of Object.entries(FACT_WORD_BY_VARIANT)) {
+      const variant = allVariants.get(variantId);
+      expect(variant, variantId).toBeDefined();
+      const sentence = realize(variant as SentenceVariant);
+      expect(sentence.canonicalJapanese, `${variantId} must realize the fact word "${factWord}"`).toContain(
+        factWord,
+      );
+    }
+  });
+
+  it("every たことがあります experience/plain-adjective variant still contains the grammar point after the fact-word fix (no regression to the construction itself)", () => {
+    for (const built of module3Lessons) {
+      for (const variant of built.variants) {
+        if (variant.sentenceFamilyId !== "a2-family-experience-takoto") continue;
+        const sentence = realize(variant);
+        expect(sentence.canonicalJapanese, variant.id).toContain("こと");
+        expect(sentence.canonicalJapanese, variant.id).toContain("あります");
+      }
+    }
+  });
+
+  it("realizes 行った experience variants with a real こと/あります word-boundary space (itta koto ga arimasu), never ittakoto/gaarimasu (I3 regression guard)", () => {
+    const en1 = module3Lessons[0];
+    const m2 = en1.variants.find((v) => v.id === "experiences-narratives-1-m2");
+    const sentence = realize(m2 as SentenceVariant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toContain("itta koto ga arimasu");
+    expect(romaji.text).not.toContain("ittakoto");
+    expect(romaji.text).not.toContain("gaarimasu");
+  });
+
+  it("has no identical canonical Japanese within a lesson mapping to materially different EN/IT copy (same visible target ⇒ same asserted fact)", () => {
+    for (const built of module3Lessons) {
+      const byJapanese = new Map<string, Array<{ id: string; en: string }>>();
+      for (const variant of built.variants) {
+        const sentence = realize(variant);
+        const translationKey = `${variant.id}-translation`;
+        const en = built.en[translationKey] ?? "";
+        const list = byJapanese.get(sentence.canonicalJapanese) ?? [];
+        list.push({ id: variant.id, en });
+        byJapanese.set(sentence.canonicalJapanese, list);
+      }
+      for (const [japanese, entries] of byJapanese) {
+        if (entries.length < 2) continue;
+        const uniqueCopy = new Set(entries.map((e) => e.en));
+        expect(
+          uniqueCopy.size,
+          `${built.recipe.id}: identical Japanese "${japanese}" maps to conflicting copy across ${entries
+            .map((e) => `${e.id}="${e.en}"`)
+            .join(", ")}`,
+        ).toBe(1);
+      }
+    }
+  });
+});
+
 describe("A2 Module 3 — exact realized Japanese/rōmaji spot checks", () => {
   it("realizes every module-3 instructional variant through the shared formatter with no errors", () => {
     for (const built of module3Lessons) {

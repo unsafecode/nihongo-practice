@@ -19,6 +19,9 @@
  * genuinely learner-facing correct (exact assembled Japanese + rōmaji), not
  * just an isolated data assertion.
  */
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
 import { formatRomaji } from "../../../romaji/formatRomaji";
@@ -40,37 +43,48 @@ function valueById(id: string) {
 }
 
 describe("a2SemanticCatalog — exact tokenFragments for the Task4 spec-fix values", () => {
-  it("a2-value-hanasu carries the 話す ます-stem はなし/hanashi, never the bare unconjugated root はな/hana", () => {
+  // M6 spec-fix ("single-source verb stems"): `a2-value-hanasu` now derives
+  // its ます-stem from `conjugateMasuStem("a2-sense-hanasu")` (the one
+  // linguistic source of truth in `a2Conjugation.ts`) instead of a
+  // hand-typed literal — so its fragments are the real kanji-root +
+  // okurigana split (話+し), not one hand-merged はなし fragment. The
+  // rendered kana text is unchanged (はなし/hanashi), proven by the exact
+  // realized-Japanese assertions in `module01ConnectedConversation.test.ts`.
+  it("a2-value-hanasu carries the 話す ます-stem はな+し (kanji-root/okurigana split), never the bare unconjugated root はな alone", () => {
     expect(valueById("a2-value-hanasu").tokenFragments).toEqual([
-      { jp: "はなし", romaji: "hanashi", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "はな", romaji: "hana", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "し", romaji: "shi", kind: "morpheme", boundaryBefore: "attach" },
     ]);
   });
 
-  it("a2-value-invite-shokuji carries the 食べる ます-stem たべ/tabe before ませんか, never the dictionary form たべる", () => {
+  it("a2-value-invite-shokuji carries the 食べる ます-stem た+べ (kanji-root/okurigana split) before ませんか, never the dictionary form たべる", () => {
     expect(valueById("a2-value-invite-shokuji").tokenFragments).toEqual([
       { jp: "いっしょに", romaji: "issho ni", kind: "lexical", boundaryBefore: "attach" },
       { jp: "しょくじを", romaji: "shokuji o", kind: "lexical", boundaryBefore: "attach" },
-      { jp: "たべ", romaji: "tabe", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "た", romaji: "ta", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "べ", romaji: "be", kind: "morpheme", boundaryBefore: "attach" },
       { jp: "ませんか", romaji: "masen ka", kind: "morpheme", boundaryBefore: "attach" },
     ]);
   });
 
-  it("a2-value-invite-tomodachi-issho carries the same たべ/tabe ます-stem before ませんか, never the dictionary form たべる", () => {
+  it("a2-value-invite-tomodachi-issho carries the same た+べ ます-stem before ませんか, never the dictionary form たべる", () => {
     expect(valueById("a2-value-invite-tomodachi-issho").tokenFragments).toEqual([
       { jp: "こんばん", romaji: "konban", kind: "lexical", boundaryBefore: "attach" },
       { jp: "いっしょに", romaji: "issho ni", kind: "lexical", boundaryBefore: "attach" },
       { jp: "しょくじを", romaji: "shokuji o", kind: "lexical", boundaryBefore: "attach" },
-      { jp: "たべ", romaji: "tabe", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "た", romaji: "ta", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "べ", romaji: "be", kind: "morpheme", boundaryBefore: "attach" },
       { jp: "ませんか", romaji: "masen ka", kind: "morpheme", boundaryBefore: "attach" },
     ]);
   });
 
-  it("a2-value-invite-hon carries the 行く ます-stem いき/iki before ませんか, never the dictionary form いく (latent — unused by any authored M1-M4 variant)", () => {
+  it("a2-value-invite-hon carries the 行く ます-stem い+き (kanji-root/okurigana split) before ませんか, never the dictionary form いく (latent — unused by any authored M1-M4 variant)", () => {
     expect(valueById("a2-value-invite-hon").tokenFragments).toEqual([
       { jp: "こんど", romaji: "kondo", kind: "lexical", boundaryBefore: "attach" },
       { jp: "いっしょに", romaji: "issho ni", kind: "lexical", boundaryBefore: "attach" },
       { jp: "ほんやに", romaji: "hon'ya ni", kind: "lexical", boundaryBefore: "attach" },
-      { jp: "いき", romaji: "iki", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "い", romaji: "i", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "き", romaji: "ki", kind: "morpheme", boundaryBefore: "attach" },
       { jp: "ませんか", romaji: "masen ka", kind: "morpheme", boundaryBefore: "attach" },
     ]);
   });
@@ -158,5 +172,127 @@ describe("a2SemanticCatalog — latent-value realization through their real sent
     expect(sentence.canonicalJapanese).toBe("きんようびにえみさんとえいがをみるよていです");
     expect(romaji.text).toBe("kinyoubi ni emi san to eiga o miru yotei desu");
     expect(sentence.canonicalJapanese).not.toContain("みよてい");
+  });
+
+  // I3 spec-fix ("semantic rōmaji boundaries"): こと (a formal noun, "koto")
+  // and あります/ない/なかった (the standalone existential verb/its negatives)
+  // are independent words — each deserves its own word-boundary space in
+  // rōmaji — never bound morphemes glued straight onto the preceding verb
+  // ending or particle. `formatRomaji`'s generic kind-based spacing rule
+  // (morpheme/punctuation attach, everything else spaces) means the fix
+  // must remap these fragments' `kind`, not just their text.
+  it("realizes a2-value-exp-oyoida's たことがあります experience tail with real word-boundary spaces: 'oyoida koto ga arimasu', never 'oyoidakoto gaarimasu'", () => {
+    const sentence = realizeAgainst(
+      "a2-family-experience-takoto",
+      "a2-value-exp-oyoida",
+      "task4-probe-exp-oyoida-romaji",
+    );
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toBe("oyoida koto ga arimasu");
+    expect(romaji.text).not.toContain("oyoidakoto");
+    expect(romaji.text).not.toContain("gaarimasu");
+  });
+
+  it("realizes a2-value-kara-jikanganai-takushii's existential-negative reason clause with a real word-boundary space: 'jikan ga nai', never 'jikan ganai'", () => {
+    const sentence = realizeAgainst(
+      "a2-family-reason-kara",
+      "a2-value-kara-jikanganai-takushii",
+      "task4-probe-kara-jikanganai-romaji",
+    );
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toContain("jikan ga nai");
+    expect(romaji.text).not.toContain("ganai");
+  });
+
+  it("realizes a2-value-node-jikanganakatta-takushii's existential-past-negative reason clause with a real word-boundary space: 'jikan ga nakatta', never 'jikan ganakatta'", () => {
+    const sentence = realizeAgainst(
+      "a2-family-reason-node",
+      "a2-value-node-jikanganakatta-takushii",
+      "task4-probe-node-jikanganakatta-romaji",
+    );
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toContain("jikan ga nakatta");
+    expect(romaji.text).not.toContain("ganakatta");
+  });
+
+  // Regression guard: the bound-morpheme adjectival negative よくない
+  // (yokunai, "not good") is a DIFFERENT sense of ない — attached directly to
+  // the adjective's く-stem, never a standalone word — and must keep
+  // attaching with no space, so the I3 fix (which only remaps the
+  // *existential* ない/なかった) never over-corrects it.
+  it("keeps the bound adjectival negative よくない (yokunai) attached with no space — the I3 fix must not over-generalize to every ない", () => {
+    const sentence = realizeAgainst(
+      "a2-family-opinion-toomou",
+      "a2-value-toomou-yokunai",
+      "task4-probe-toomou-yokunai-romaji",
+    );
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toContain("yokunai");
+    expect(romaji.text).not.toContain("yoku nai");
+  });
+});
+
+/**
+ * M5 spec-fix: dead-entry removal regression.
+ *
+ * A fresh review found five sentence families with zero references anywhere
+ * outside their own catalog definition — never realized by any M1-M4 lesson
+ * model/transfer, never exercised by any test:
+ * `a2-family-meet-recipient`, `a2-family-plan-yotei-destination`,
+ * `a2-family-describe-adjective`, `a2-family-consider-object`,
+ * `a2-family-preference-suki`. All five are now removed from
+ * `a2SentenceFamilies`. `a2-family-plan-yotei-destination` was the only
+ * family using `rule-invariant-with-location`, so that realization rule (and
+ * its now-orphaned dedicated `realizeFamily.test.ts` coverage) is removed
+ * too. This guards against silent reintroduction of an unwired family or
+ * rule: the five ids stay permanently absent from the live catalog, and the
+ * rule id stays permanently absent from `realizeFamily.ts`'s own source.
+ */
+describe("a2SemanticCatalog — M5 dead-entry removal (repo search regression)", () => {
+  const DEAD_FAMILY_IDS = [
+    "a2-family-meet-recipient",
+    "a2-family-plan-yotei-destination",
+    "a2-family-describe-adjective",
+    "a2-family-consider-object",
+    "a2-family-preference-suki",
+  ] as const;
+
+  it.each(DEAD_FAMILY_IDS)("no longer defines the unused family %s in a2SentenceFamilies", (deadId) => {
+    expect(a2SentenceFamilies.some((family) => family.id === deadId)).toBe(false);
+  });
+
+  it("never lets any currently authored family reference the removed rule-invariant-with-location", () => {
+    expect(a2SentenceFamilies.some((family) => family.realizationRuleId === "rule-invariant-with-location")).toBe(
+      false,
+    );
+  });
+
+  it("removes rule-invariant-with-location from realizeFamily.ts's own realization-rule table — it became unused once its one family (a2-family-plan-yotei-destination) was deleted", () => {
+    const realizeFamilySource = readFileSync(
+      fileURLToPath(new URL("../../foundations/realizeFamily.ts", import.meta.url)),
+      "utf8",
+    );
+    expect(realizeFamilySource).not.toMatch(/rule-invariant-with-location/);
+  });
+
+  it.each(DEAD_FAMILY_IDS)("never references the removed family %s from any M1-M4 module content file", (deadId) => {
+    const moduleFiles = [
+      "../content/module01ConnectedConversation.ts",
+      "../content/module02PlansInvitations.ts",
+      "../content/module03ExperiencesNarratives.ts",
+      "../content/module04ReasonsOpinions.ts",
+    ];
+    for (const relativePath of moduleFiles) {
+      const source = readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), "utf8");
+      expect(source).not.toContain(deadId);
+    }
   });
 });

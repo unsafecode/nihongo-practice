@@ -4,6 +4,8 @@ import {
   A2_VERBS,
   conjugate,
   conjugateClass,
+  conjugateClassMasuStem,
+  conjugateMasuStem,
   type A2ConjugationClass,
   type A2Fragment,
   type A2PlainForm,
@@ -278,6 +280,181 @@ describe("a2 conjugation engine", () => {
           expect(viaHelper).toEqual(viaConjugate.result);
         }
       }
+    }
+  });
+});
+
+/**
+ * `conjugateMasuStem` (Phase 3/M6 spec-fix, finding "single-source verb
+ * stems"). A separately named, pure operation — it does NOT extend the
+ * five-value `A2PlainForm` union (ます-stem/renyoukei is not a plain form the
+ * grammar-spiral suffix constructions attach to) — that derives the polite
+ * ます-stem for all 12 registered verb senses, and — via the pure per-class
+ * `conjugateMasuStem`'s helper, `conjugateClassMasuStem` — for every one of
+ * the 12 conjugation classes (including `godan-u`, unused by any registered
+ * sense). This is the single linguistic source of truth
+ * `a2SemanticCatalog.ts` must derive 食べ/話し/行き (and every other
+ * registered verb's ます-stem) from, instead of hand-typing a duplicate.
+ */
+type MasuStemRow = readonly [jp: string, reading: string, romaji: string];
+
+// The exact ます-stem (renyoukei) for each of the 12 registered verb senses.
+const EXPECTED_MASU_STEM: Readonly<Record<string, MasuStemRow>> = {
+  "a2-sense-taberu": ["食べ", "たべ", "tabe"], // ichidan: stem IS the ます-stem, no extra okurigana
+  "a2-sense-hanasu": ["話し", "はなし", "hanashi"], // godan-su: す→し
+  "a2-sense-kaku": ["書き", "かき", "kaki"], // godan-ku: く→き
+  "a2-sense-oyogu": ["泳ぎ", "およぎ", "oyogi"], // godan-gu: ぐ→ぎ
+  "a2-sense-matsu": ["待ち", "まち", "machi"], // godan-tsu: つ→ち
+  "a2-sense-shinu": ["死に", "しに", "shini"], // godan-nu: ぬ→に
+  "a2-sense-asobu": ["遊び", "あそび", "asobi"], // godan-bu: ぶ→び
+  "a2-sense-yomu": ["読み", "よみ", "yomi"], // godan-mu: む→み
+  "a2-sense-kaeru": ["帰り", "かえり", "kaeri"], // godan-ru: る→り
+  // 行く: the い-onbin exception is past/て only — the ます-stem is the
+  // regular godan-ku formation 行き/iki, never an irregular い-onbin variant.
+  "a2-sense-iku": ["行き", "いき", "iki"],
+  "a2-sense-suru": ["し", "し", "shi"], // irregular: full word, no kanji root
+  "a2-sense-kuru": ["来", "き", "ki"], // irregular: kanji root only, reading shifts to き
+};
+
+describe("conjugateMasuStem() — single-source ます-stem derivation", () => {
+  it("registers a masu-stem for exactly the 12 registered verb senses (no more, no fewer)", () => {
+    expect(Object.keys(EXPECTED_MASU_STEM).sort()).toEqual(Object.keys(A2_VERBS).sort());
+  });
+
+  for (const [senseId, [jp, reading, romaji]] of Object.entries(EXPECTED_MASU_STEM)) {
+    it(`${senseId} ます-stem → ${jp} / ${reading} / ${romaji}`, () => {
+      const r = conjugateMasuStem(senseId);
+      expect(r.ok).toBe(true);
+      if (r.ok) {
+        expect(r.result.jp).toBe(jp);
+        expect(r.result.reading).toBe(reading);
+        expect(r.result.romaji).toBe(romaji);
+      }
+    });
+  }
+
+  it("keeps the kanji glyph as the visible root while the reading carries kana (来る, irregular ます-stem)", () => {
+    const r = conjugateMasuStem("a2-sense-kuru");
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.result.fragments[0].jp).toBe("来");
+      expect(r.result.fragments[0].reading).toBe("き");
+      expect(r.result.fragments[0].kind).toBe("lexical");
+      expect(r.result.fragments).toHaveLength(1);
+    }
+  });
+
+  it("keeps the kanji glyph as the visible root while the reading carries kana (食べる, ichidan ます-stem)", () => {
+    const r = conjugateMasuStem("a2-sense-taberu");
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.result.fragments[0].jp).toBe("食");
+      expect(r.result.fragments[0].reading).toBe("た");
+      expect(r.result.fragments[0].kind).toBe("lexical");
+      // ichidan's masu-stem is the stem alone — no extra okurigana fragment.
+      expect(r.result.fragments).toHaveLength(2);
+    }
+  });
+
+  it("splits 話す/hanasu's ます-stem into its kanji-root and okurigana fragments (話+し), not one merged はなし fragment", () => {
+    const r = conjugateMasuStem("a2-sense-hanasu");
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.result.fragments).toEqual([
+        { jp: "話", reading: "はな", romaji: "hana", kind: "lexical", boundaryBefore: "attach" },
+        { jp: "し", romaji: "shi", kind: "morpheme", boundaryBefore: "attach" },
+      ]);
+    }
+  });
+
+  it("行く's ます-stem is unaffected by the い-onbin te/past exception (行き, not an irregular form)", () => {
+    const r = conjugateMasuStem("a2-sense-iku");
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.result.jp).toBe("行き");
+      expect(r.result.romaji).toBe("iki");
+    }
+  });
+
+  it("rejects an unknown verb/sense id", () => {
+    expect(conjugateMasuStem("a2-sense-nope")).toEqual({
+      ok: false,
+      error: "unknown-verb",
+    });
+  });
+
+  it("produces fully concatenated, macron-free romaji with no embedded spaces for every registered sense", () => {
+    for (const senseId of Object.keys(EXPECTED_MASU_STEM)) {
+      const r = conjugateMasuStem(senseId);
+      expect(r.ok).toBe(true);
+      if (r.ok) {
+        expect(r.result.romaji).not.toMatch(/\s/);
+        expect(r.result.romaji).not.toMatch(/[āīūēō]/);
+      }
+    }
+  });
+
+  it("proves the godan-u ます-stem okurigana is correct via the pure per-class helper, without expanding A2_VERBS (買う kau, a synthetic stem)", () => {
+    const kauStem: readonly A2Fragment[] = [
+      { jp: "買", romaji: "ka", reading: "か", kind: "lexical", boundaryBefore: "attach" },
+    ];
+    const result = conjugateClassMasuStem("godan-u", kauStem);
+    expect(result.jp).toBe("買い");
+    expect(result.reading).toBe("かい");
+    expect(result.romaji).toBe("kai");
+  });
+
+  it("the pure per-class helper reproduces every registered non-irregular verb's ます-stem identically to conjugateMasuStem()", () => {
+    for (const senseId of Object.keys(EXPECTED_MASU_STEM)) {
+      const verb = A2_VERBS[senseId];
+      if (verb.conjClass === "irregular-suru" || verb.conjClass === "irregular-kuru") {
+        continue;
+      }
+      const viaFn = conjugateMasuStem(senseId);
+      const viaHelper = conjugateClassMasuStem(verb.conjClass, verb.stem);
+      expect(viaFn.ok).toBe(true);
+      if (viaFn.ok) {
+        expect(viaHelper).toEqual(viaFn.result);
+      }
+    }
+  });
+
+  it("two calls for the same sense are deep-equal but not identical, with no shared fragment objects (frozen, independently-owned outputs)", () => {
+    const first = conjugateMasuStem("a2-sense-hanasu");
+    const second = conjugateMasuStem("a2-sense-hanasu");
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    if (first.ok && second.ok) {
+      expect(first.result).toEqual(second.result);
+      expect(first.result).not.toBe(second.result);
+      expect(first.result.fragments).not.toBe(second.result.fragments);
+      expect(first.result.fragments.length).toBe(second.result.fragments.length);
+      for (let i = 0; i < first.result.fragments.length; i += 1) {
+        expect(first.result.fragments[i]).not.toBe(second.result.fragments[i]);
+      }
+      expect(Object.isFrozen(first.result)).toBe(true);
+      expect(Object.isFrozen(first.result.fragments)).toBe(true);
+      for (const fragment of first.result.fragments) {
+        expect(Object.isFrozen(fragment)).toBe(true);
+      }
+    }
+  });
+
+  it("a mutation attempt on one masu-stem result cannot alter a later call or corrupt the shared A2_VERBS stem", () => {
+    const first = conjugateMasuStem("a2-sense-taberu");
+    expect(first.ok).toBe(true);
+    if (first.ok) {
+      const target = first.result.fragments[0] as unknown as Record<string, unknown>;
+      const mutated = Reflect.set(target, "jp", "HACKED");
+      expect(mutated).toBe(false);
+      expect(first.result.fragments[0].jp).toBe("食");
+    }
+    expect(A2_VERBS["a2-sense-taberu"].stem[0].jp).toBe("食");
+
+    const second = conjugateMasuStem("a2-sense-taberu");
+    expect(second.ok).toBe(true);
+    if (second.ok) {
+      expect(second.result.jp).toBe("食べ");
     }
   });
 });

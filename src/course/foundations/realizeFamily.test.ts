@@ -1879,94 +1879,72 @@ describe("realizer generalization: the additive \"invariant\" predicateKind (Pha
     expect(romaji.text).toBe("tabeta koto ga arimasu ka");
   });
 
-  // ---- an explicit subject + content slot + invariant predicate -----------
-  // (mirrors an A2 intentions-plans construction: subject/topic + optional
-  // content slot use the ordinary generic particle mechanism; only the
-  // predicate's own already-conjugated content is "invariant").
-
-  const invariantWithSlotsFamily: SentenceFamily = {
-    id: "test-family-invariant-with-slots" as SentenceFamily["id"],
-    level: "a2",
-    canDoIds: [],
-    slotSchema: [
-      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
-      { id: "location", axis: "location", valueKind: "location", optional: false },
-      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
-    ],
-    permittedAxes: ["speaker-person", "location", "predicate-verb", "context"],
-    realizationRuleId: "rule-invariant-with-location",
-    requiredConceptIds: [],
-  };
-
-  const subjectValue: SemanticValue = {
-    id: "test-value-invariant-subject",
-    kind: "referent",
-    animacy: "animate",
-    tokenFragments: [{ jp: "ともだち", romaji: "tomodachi", kind: "lexical", boundaryBefore: "attach" }],
-  };
-  const destinationValue: SemanticValue = {
-    id: "test-value-invariant-destination",
-    kind: "location",
-    tokenFragments: [{ jp: "きょうと", romaji: "kyouto", kind: "lexical", boundaryBefore: "attach" }],
-  };
-  const goSenseWithLocation: LearningTargetSense = {
-    id: "test-sense-invariant-go",
-    lexemeId: "test-lexeme-invariant-go",
-    learningUse: "productive",
-    semanticFrameId: "test-frame-invariant-go",
-    predicate: "go" as LearningTargetSense["predicate"],
-    argumentRoles: ["location"],
-    argumentParticleByRole: {},
-  };
-  const yoteiValue: SemanticValue = {
-    id: "test-value-invariant-yotei",
-    kind: "predicate-sense",
-    senseId: goSenseWithLocation.id,
-    tokenFragments: [
-      { jp: "行く", romaji: "iku", kind: "lexical", boundaryBefore: "attach", reading: "いく" },
-      { jp: "よてい", romaji: "yotei", kind: "lexical", boundaryBefore: "attach" },
-      { jp: "です", romaji: "desu", kind: "lexical", boundaryBefore: "attach" },
-    ],
-  };
-
-  it("still applies the family's own subject-particle and content-slot particle mechanism ahead of an invariant predicate", () => {
+  // M4 spec-fix ("form metadata"): an invariant predicate's own baked
+  // fragments already ARE the complete realized content — unlike verb/
+  // adjective/copula/request predicates, an invariant rule never looks up a
+  // polite ending table keyed by tense/polarity, so its FormSelection is
+  // honest *metadata describing* the baked value's real register, never a
+  // lookup key the realizer must itself understand. It must therefore
+  // accept (not reject) a plain/negative/past/past-negative FormSelection —
+  // the exact combinations §9.3's own plain-recognition/narrate-order/
+  // reason-node content actually is.
+  it("accepts a plain-register FormSelection on an invariant variant instead of rejecting non-polite formality (honest metadata, not a lookup key)", () => {
+    const plainPastValue: SemanticValue = {
+      id: "test-value-invariant-plain-past",
+      kind: "predicate-sense",
+      senseId: bareSense.id,
+      tokenFragments: [
+        { jp: "たべ", romaji: "tabe", kind: "lexical", boundaryBefore: "attach" },
+        { jp: "た", romaji: "ta", kind: "morpheme", boundaryBefore: "attach" },
+      ],
+    };
     const variant: SentenceVariant = {
-      id: "test-variant-invariant-with-slots",
-      sentenceFamilyId: invariantWithSlotsFamily.id,
-      discourse: {
-        ...bareBaseDiscourse,
-        // References the pre-existing fixture referent (an animate persona)
-        // — `subjectReferentId` resolves against `catalogs.referents`, a
-        // distinct catalog from the semantic-value catalog `slotValues`
-        // resolves against; only their `animacy` must agree.
-        subjectReferentId: "fixture-referent-yuki",
-        subjectRealization: "explicit",
-      },
+      id: "test-variant-invariant-plain-past",
+      sentenceFamilyId: invariantOnlyFamily.id,
+      discourse: bareBaseDiscourse,
       contextId: "fixture-a1-context-language-class",
-      slotValues: {
-        subject: subjectValue.id,
-        location: destinationValue.id,
-        predicate: yoteiValue.id,
-      },
-      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      slotValues: { predicate: plainPastValue.id },
+      form: { polarity: "affirmative", tense: "past", formality: "plain" },
       pedagogicalUse: "model",
     };
     const result = realizeVariant(
-      invariantWithSlotsFamily,
+      invariantOnlyFamily,
       variant,
-      localCatalogsWith(
-        [subjectValue, destinationValue, yoteiValue],
-        [goSenseWithLocation],
-      ),
+      localCatalogsWith([plainPastValue], [bareSense]),
       { availableConceptIds: [] },
     );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.sentence.canonicalJapanese).toBe("ともだちはきょうとへ行くよていです");
-    const romaji = formatRomaji(result.sentence.tokens);
-    expect(romaji.ok).toBe(true);
-    if (!romaji.ok) return;
-    expect(romaji.text).toBe("tomodachi wa kyouto e iku yotei desu");
+    expect(result.sentence.canonicalJapanese).toBe("たべた");
+  });
+
+  it("accepts a negative-register FormSelection on an invariant variant (formality still polite here)", () => {
+    const negativeValue: SemanticValue = {
+      id: "test-value-invariant-negative",
+      kind: "predicate-sense",
+      senseId: bareSense.id,
+      tokenFragments: [
+        { jp: "わかりません", romaji: "wakarimasen", kind: "lexical", boundaryBefore: "attach" },
+      ],
+    };
+    const variant: SentenceVariant = {
+      id: "test-variant-invariant-negative",
+      sentenceFamilyId: invariantOnlyFamily.id,
+      discourse: bareBaseDiscourse,
+      contextId: "fixture-a1-context-language-class",
+      slotValues: { predicate: negativeValue.id },
+      form: { polarity: "negative", tense: "present", formality: "polite" },
+      pedagogicalUse: "model",
+    };
+    const result = realizeVariant(
+      invariantOnlyFamily,
+      variant,
+      localCatalogsWith([negativeValue], [bareSense]),
+      { availableConceptIds: [] },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.sentence.canonicalJapanese).toBe("わかりません");
   });
 
   it("still requires the predicate sense's own frame — an invariant predicate declaring a governed theme without a matching slot still fails closed", () => {

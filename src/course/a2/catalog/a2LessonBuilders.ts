@@ -249,16 +249,53 @@ export const A2_INSTRUCTIONAL_MODEL_COUNT_RANGE: readonly [number, number] = [8,
 export const A2_EXERCISE_COUNT_RANGE: readonly [number, number] = [8, 12];
 
 /**
- * Affirmative past polite form (でした/かったです) — needed by M3's
- * plain-past-adjective description content (`a2-family-describe-adjective`
- * with `form: A2_AFFIRMATIVE_PAST_POLITE`). Mirrors A1's own locally-declared
- * `A1_AFFIRMATIVE_PAST_POLITE`; the kit itself only ships the present-tense
- * constants shared by every level.
+ * The honest, non-default `FormSelection` constants for M4's spec-fix
+ * ("form metadata"): every invariant-family variant whose baked Japanese is
+ * actually plain/negative/past/past-negative must carry the matching
+ * `FormSelection`, never silently default to
+ * `KIT_AFFIRMATIVE_PRESENT_POLITE`. `A2_AFFIRMATIVE_PAST_POLITE` (past
+ * でした/かったです register) is reused for M4's own past-tense polite
+ * invariant content (reason-node, several connector/clarify values) —
+ * mirrors A1's own locally-declared `A1_AFFIRMATIVE_PAST_POLITE`; the kit
+ * itself only ships the present-tense constants shared by every level.
  */
 export const A2_AFFIRMATIVE_PAST_POLITE: FormSelection = deepFreeze({
   polarity: "affirmative",
   tense: "past",
   formality: "polite",
+} as const);
+export const A2_NEGATIVE_PRESENT_POLITE: FormSelection = deepFreeze({
+  polarity: "negative",
+  tense: "present",
+  formality: "polite",
+} as const);
+export const A2_NEGATIVE_PAST_POLITE: FormSelection = deepFreeze({
+  polarity: "negative",
+  tense: "past",
+  formality: "polite",
+} as const);
+/** Plain-register forms — `a2-family-plain-recognition`'s entire purpose is
+ * teaching these four, so every one of its variants must carry
+ * `formality: "plain"`, never the polite default. */
+export const A2_AFFIRMATIVE_PRESENT_PLAIN: FormSelection = deepFreeze({
+  polarity: "affirmative",
+  tense: "present",
+  formality: "plain",
+} as const);
+export const A2_NEGATIVE_PRESENT_PLAIN: FormSelection = deepFreeze({
+  polarity: "negative",
+  tense: "present",
+  formality: "plain",
+} as const);
+export const A2_AFFIRMATIVE_PAST_PLAIN: FormSelection = deepFreeze({
+  polarity: "affirmative",
+  tense: "past",
+  formality: "plain",
+} as const);
+export const A2_NEGATIVE_PAST_PLAIN: FormSelection = deepFreeze({
+  polarity: "negative",
+  tense: "past",
+  formality: "plain",
 } as const);
 
 /**

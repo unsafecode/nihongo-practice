@@ -180,6 +180,35 @@ const IKU_EXCEPTION: Readonly<Pick<Record<A2PlainForm, Okurigana>, "past" | "te"
   te: { jp: "って", romaji: "tte" },
 });
 
+/**
+ * The ます-stem (renyoukei) okurigana per regular class — the one linguistic
+ * source of truth for the polite connective/ます-stem form (§ Phase 3/M6
+ * spec-fix "single-source verb stems"). `null` for `ichidan`: its ます-stem
+ * IS the bare stem (食べ+ます), so no extra okurigana is ever appended.
+ * Deliberately separate from `OKURIGANA` (the plain-form table): the
+ * ます-stem is not one of the five `A2PlainForm`s the grammar-spiral suffix
+ * constructions attach to, and 行く's い-onbin exception never applies here
+ * (行く's ます-stem is the regular 行き, not an irregular い-onbin form).
+ */
+const MASU_STEM_OKURIGANA: Readonly<Record<RegularA2ConjugationClass, Okurigana | null>> = deepFreeze({
+  ichidan: null,
+  "godan-u": { jp: "い", romaji: "i" },
+  "godan-ku": { jp: "き", romaji: "ki" },
+  "godan-gu": { jp: "ぎ", romaji: "gi" },
+  "godan-su": { jp: "し", romaji: "shi" },
+  "godan-tsu": { jp: "ち", romaji: "chi" },
+  "godan-nu": { jp: "に", romaji: "ni" },
+  "godan-bu": { jp: "び", romaji: "bi" },
+  "godan-mu": { jp: "み", romaji: "mi" },
+  "godan-ru": { jp: "り", romaji: "ri" },
+});
+
+/** する — full-word ます-stem (no kanji root): し. */
+const SURU_MASU_STEM: readonly A2Fragment[] = deepFreeze([M("し", "shi")]);
+
+/** 来る — kanji root 来 read き, no further okurigana (来ます = 来+ます). */
+const KURU_MASU_STEM: readonly A2Fragment[] = deepFreeze([L("来", "き", "ki")]);
+
 /** A bound morpheme fragment (okurigana/endings): attaches with no boundary space. */
 function M(jp: string, romaji: string): A2Fragment {
   return { jp, romaji, kind: "morpheme", boundaryBefore: "attach" };
@@ -302,4 +331,82 @@ export function conjugate(senseId: string, form: A2PlainForm): ConjugateResult {
     ok: true,
     result: conjugateClass(verb.conjClass, verb.stem, form, verb.tePastException),
   };
+}
+
+// ---------------------------------------------------------------------------
+// ます-stem (renyoukei) derivation — Phase 3/M6 spec-fix, "single-source verb
+// stems". Deliberately a separate, pure operation from `conjugate()`/
+// `conjugateClass()`: the ます-stem is not a member of the five-value
+// `A2PlainForm` union (it is never a base a grammar-spiral *suffix*
+// construction attaches to via `composeA2Construction`), so it gets its own
+// result shape rather than overloading `ConjugationResult.form`.
+// ---------------------------------------------------------------------------
+
+export interface MasuStemResult {
+  readonly fragments: readonly A2Fragment[];
+  /** Fragments' `jp` joined. */
+  readonly jp: string;
+  /** Fragments' `romaji` joined — fully concatenated, no spaces, no macrons. */
+  readonly romaji: string;
+  /** Fragments' `(reading ?? jp)` joined — the full kana reading. */
+  readonly reading: string;
+}
+
+export type ConjugateMasuStemResult =
+  | { readonly ok: true; readonly result: MasuStemResult }
+  | { readonly ok: false; readonly error: "unknown-verb" };
+
+/**
+ * Assemble one ます-stem result. Mirrors `assemble()`'s clone-then-freeze
+ * contract exactly: every fragment is cloned so the returned `fragments`
+ * array never aliases a table/stem fragment object, and the complete result
+ * is deep-frozen before returning.
+ */
+function assembleMasuStem(fragments: readonly A2Fragment[]): MasuStemResult {
+  const clonedFragments = fragments.map((fragment) => ({ ...fragment }));
+  return deepFreeze({
+    fragments: clonedFragments,
+    jp: clonedFragments.map((f) => f.jp).join(""),
+    romaji: clonedFragments.map((f) => f.romaji).join(""),
+    reading: clonedFragments.map((f) => f.reading ?? f.jp).join(""),
+  });
+}
+
+/**
+ * Derive a single regular (non-irregular) class's ます-stem from its stem
+ * fragments directly, rather than a registered sense id — exactly like
+ * `conjugateClass`, so a caller (e.g. a test proving the `godan-u` ます-stem
+ * okurigana is correct) can exercise any class's ます-stem without adding a
+ * 13th entry to `A2_VERBS`. `ichidan` appends no okurigana at all: the stem
+ * itself already IS the ます-stem (食べ+ます).
+ */
+export function conjugateClassMasuStem(
+  conjClass: RegularA2ConjugationClass,
+  stem: readonly A2Fragment[],
+): MasuStemResult {
+  const tail = MASU_STEM_OKURIGANA[conjClass];
+  const fragments: readonly A2Fragment[] = tail ? [...stem, M(tail.jp, tail.romaji)] : [...stem];
+  return assembleMasuStem(fragments);
+}
+
+/**
+ * Derive a registered verb sense's polite ます-stem — the single linguistic
+ * source of truth for every hand-authored ます-stem the A2 semantic catalog
+ * used to duplicate (食べ/tabe, 行き/iki, 話し/hanashi, and every other
+ * registered verb's stem). `senseId` selects the verb entry exactly like
+ * `conjugate()`; an unresolvable sense id is the only rejection this
+ * operation reports. 行く's い-onbin te/past exception never applies here —
+ * its ます-stem is the regular godan-ku formation 行き, not an irregular
+ * variant — so `verb.tePastException` is intentionally never consulted.
+ */
+export function conjugateMasuStem(senseId: string): ConjugateMasuStemResult {
+  const verb = A2_VERBS[senseId];
+  if (!verb) return { ok: false, error: "unknown-verb" };
+  if (verb.conjClass === "irregular-suru") {
+    return { ok: true, result: assembleMasuStem(SURU_MASU_STEM) };
+  }
+  if (verb.conjClass === "irregular-kuru") {
+    return { ok: true, result: assembleMasuStem(KURU_MASU_STEM) };
+  }
+  return { ok: true, result: conjugateClassMasuStem(verb.conjClass, verb.stem) };
 }

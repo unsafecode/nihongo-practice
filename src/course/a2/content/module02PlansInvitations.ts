@@ -28,17 +28,36 @@ function bareLine(
   context: string,
   translation: { en: string; it: string },
   speakerRole?: string,
+  subjectReferent: string | null = null,
 ): A2LineSpec {
   return {
     id,
     family,
     context,
-    subjectReferent: null,
-    subjectRealization: "omitted",
-    slots: { predicate },
+    subjectReferent,
+    subjectRealization: subjectReferent === null ? "omitted" : "explicit",
+    slots: subjectReferent === null ? { predicate } : { subject: subjectReferentValueId(subjectReferent), predicate },
     translation,
     speakerRole,
   };
+}
+
+/** Referent → its subject-slot semantic value, mirroring
+ * `module01ConnectedConversation.ts`/`module03ExperiencesNarratives.ts`'s own
+ * identical helper (the shared subject-referent value catalog, not
+ * module-specific). */
+function subjectReferentValueId(subjectReferent: string): string {
+  const table: Readonly<Record<string, string>> = {
+    "a2-referent-friend": "a2-value-friend-subject",
+    "a2-referent-emi": "a2-value-emi",
+    "a2-referent-sora": "a2-value-sora",
+    "a2-referent-colleague": "a2-value-colleague-subject",
+    "a2-referent-teacher": "a2-value-teacher-subject",
+    "a2-referent-self": "a2-value-watashi",
+  };
+  const valueId = table[subjectReferent];
+  if (!valueId) throw new Error(`bareLine: no subject value mapped for referent "${subjectReferent}"`);
+  return valueId;
 }
 
 // ---------------------------------------------------------------------------
@@ -64,11 +83,15 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
     bareLine("plans-invitations-1-m8", "a2-family-plan-yotei", "a2-value-yotei-matsu-douryou", "a2-context-workplace", L("This week I plan to wait for a colleague.", "Questa settimana ho intenzione di aspettare un collega."), "a2-role-colleague"),
   ],
   transfers: [
-    bareLine("plans-invitations-1-t1", "a2-family-plan-yotei", "a2-value-yotei-iku-kyouto", "a2-context-among-friends", L("I plan to go to Kyoto.", "Ho intenzione di andare a Kyoto."), "a2-role-colleague"),
-    bareLine("plans-invitations-1-t2", "a2-family-plan-yotei", "a2-value-yotei-au-doyoubi", "a2-context-cafe", L("I plan to meet a friend on Saturday.", "Ho intenzione di incontrare un amico sabato."), "a2-role-learner"),
-    bareLine("plans-invitations-1-t3", "a2-family-plan-yotei", "a2-value-yotei-matsu-raishuu", "a2-context-workplace", L("I plan to wait for Sora next week.", "Ho intenzione di aspettare Sora la settimana prossima."), "a2-role-teacher"),
-    bareLine("plans-invitations-1-t4", "a2-family-plan-yotei", "a2-value-yotei-taberu-ashita", "a2-context-conversation", L("Tomorrow I plan to have a meal with a friend.", "Domani ho intenzione di mangiare con un amico."), "a2-role-sora"),
-    bareLine("plans-invitations-1-t5", "a2-family-plan-yotei", "a2-value-yotei-oyogu-shuumatsu", "a2-context-among-friends", L("This weekend I plan to swim at the sea.", "Questo weekend ho intenzione di nuotare al mare."), "a2-role-emi"),
+    // I2 spec-fix: each transfer makes the already-implicit "I" subject
+    // explicit via watashi (introduced in cc2, cumulatively available here),
+    // recombined with this lesson's own already-modeled yotei predicate —
+    // genuinely new visible Japanese, meaning/copy unchanged.
+    bareLine("plans-invitations-1-t1", "a2-family-plan-yotei", "a2-value-yotei-iku-kyouto", "a2-context-among-friends", L("I plan to go to Kyoto.", "Ho intenzione di andare a Kyoto."), "a2-role-colleague", "a2-referent-self"),
+    bareLine("plans-invitations-1-t2", "a2-family-plan-yotei", "a2-value-yotei-au-doyoubi", "a2-context-cafe", L("I plan to meet a friend on Saturday.", "Ho intenzione di incontrare un amico sabato."), "a2-role-learner", "a2-referent-self"),
+    bareLine("plans-invitations-1-t3", "a2-family-plan-yotei", "a2-value-yotei-matsu-raishuu", "a2-context-workplace", L("I plan to wait for Sora next week.", "Ho intenzione di aspettare Sora la settimana prossima."), "a2-role-teacher", "a2-referent-self"),
+    bareLine("plans-invitations-1-t4", "a2-family-plan-yotei", "a2-value-yotei-taberu-ashita", "a2-context-conversation", L("Tomorrow I plan to have a meal with a friend.", "Domani ho intenzione di mangiare con un amico."), "a2-role-sora", "a2-referent-self"),
+    bareLine("plans-invitations-1-t5", "a2-family-plan-yotei", "a2-value-yotei-oyogu-shuumatsu", "a2-context-among-friends", L("This weekend I plan to swim at the sea.", "Questo weekend ho intenzione di nuotare al mare."), "a2-role-emi", "a2-referent-self"),
   ],
 });
 
@@ -95,11 +118,13 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
     bareLine("plans-invitations-2-m8", "a2-family-plan-tsumori", "a2-value-tsumori-au-sora", "a2-context-conversation", L("Tomorrow I intend to meet Sora.", "Domani intendo incontrare Sora."), "a2-role-friend"),
   ],
   transfers: [
-    bareLine("plans-invitations-2-t1", "a2-family-plan-tsumori", "a2-value-tsumori-oyogu-shuumatsu", "a2-context-among-friends", L("This weekend I intend to swim.", "Questo weekend intendo nuotare."), "a2-role-emi"),
-    bareLine("plans-invitations-2-t2", "a2-family-plan-tsumori", "a2-value-tsumori-taberu-shokuji", "a2-context-workplace", L("I intend to eat a meal.", "Intendo mangiare qualcosa."), "a2-role-learner"),
-    bareLine("plans-invitations-2-t3", "a2-family-plan-tsumori", "a2-value-tsumori-iku-raigetsu", "a2-context-conversation", L("Next month I intend to go to Kyoto.", "Il mese prossimo intendo andare a Kyoto."), "a2-role-teacher"),
-    bareLine("plans-invitations-2-t4", "a2-family-plan-tsumori", "a2-value-tsumori-au-tomodachi", "a2-context-plans", L("This weekend I intend to meet a friend.", "Questo weekend intendo incontrare un amico."), "a2-role-colleague"),
-    bareLine("plans-invitations-2-t5", "a2-family-plan-tsumori", "a2-value-tsumori-matsu-emi", "a2-context-cafe", L("I intend to wait for Emi at the station.", "Intendo aspettare Emi alla stazione."), "a2-role-sora"),
+    // I2 spec-fix: recombine with watashi (introduced in cc2), same rationale
+    // as pi1's transfers.
+    bareLine("plans-invitations-2-t1", "a2-family-plan-tsumori", "a2-value-tsumori-oyogu-shuumatsu", "a2-context-among-friends", L("This weekend I intend to swim.", "Questo weekend intendo nuotare."), "a2-role-emi", "a2-referent-self"),
+    bareLine("plans-invitations-2-t2", "a2-family-plan-tsumori", "a2-value-tsumori-taberu-shokuji", "a2-context-workplace", L("I intend to eat a meal.", "Intendo mangiare qualcosa."), "a2-role-learner", "a2-referent-self"),
+    bareLine("plans-invitations-2-t3", "a2-family-plan-tsumori", "a2-value-tsumori-iku-raigetsu", "a2-context-conversation", L("Next month I intend to go to Kyoto.", "Il mese prossimo intendo andare a Kyoto."), "a2-role-teacher", "a2-referent-self"),
+    bareLine("plans-invitations-2-t4", "a2-family-plan-tsumori", "a2-value-tsumori-au-tomodachi", "a2-context-plans", L("This weekend I intend to meet a friend.", "Questo weekend intendo incontrare un amico."), "a2-role-colleague", "a2-referent-self"),
+    bareLine("plans-invitations-2-t5", "a2-family-plan-tsumori", "a2-value-tsumori-matsu-emi", "a2-context-cafe", L("I intend to wait for Emi at the station.", "Intendo aspettare Emi alla stazione."), "a2-role-sora", "a2-referent-self"),
   ],
 });
 
@@ -127,11 +152,15 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     bareLine("plans-invitations-3-m9", "a2-family-plan-yotei", "a2-value-yotei-taberu-ashita", "a2-context-plans", L("Tomorrow I plan to eat a meal with a friend.", "Domani ho intenzione di mangiare con un amico."), "a2-role-sora"),
   ],
   transfers: [
-    bareLine("plans-invitations-3-t1", "a2-family-invite", "a2-value-invite-eiga", "a2-context-workplace", L("Shall we watch a movie together?", "Guardiamo un film insieme?"), "a2-role-teacher"),
-    bareLine("plans-invitations-3-t2", "a2-family-invite", "a2-value-invite-shokuji", "a2-context-plans", L("Won't you eat together with me?", "Non mangi con me?"), "a2-role-learner"),
-    bareLine("plans-invitations-3-t3", "a2-family-respond-invite", "a2-value-respond-accept", "a2-context-among-friends", L("Sounds good. Let's go.", "Va bene. Andiamo."), "a2-role-colleague"),
-    bareLine("plans-invitations-3-t4", "a2-family-respond-invite", "a2-value-respond-decline", "a2-context-workplace", L("Sorry, that day isn't very convenient.", "Scusa, quel giorno non mi è molto comodo."), "a2-role-emi"),
-    bareLine("plans-invitations-3-t5", "a2-family-plan-yotei", "a2-value-yotei-taberu-ashita", "a2-context-among-friends", L("Tomorrow I plan to eat a meal with a friend.", "Domani ho intenzione di mangiare con un amico."), "a2-role-colleague"),
+    // I2 spec-fix: invite/respond transfers recombine with an already-
+    // modeled named addressee (introduced in cc1) — read naturally as
+    // addressing that person directly ("Sora, shall we...?"); the plan-yotei
+    // transfer recombines with watashi (introduced in cc2).
+    bareLine("plans-invitations-3-t1", "a2-family-invite", "a2-value-invite-eiga", "a2-context-workplace", L("Sora, shall we watch a movie together?", "Sora, guardiamo un film insieme?"), "a2-role-teacher", "a2-referent-sora"),
+    bareLine("plans-invitations-3-t2", "a2-family-invite", "a2-value-invite-shokuji", "a2-context-plans", L("Emi, won't you eat together with me?", "Emi, non mangi con me?"), "a2-role-learner", "a2-referent-emi"),
+    bareLine("plans-invitations-3-t3", "a2-family-respond-invite", "a2-value-respond-accept", "a2-context-among-friends", L("Sora: sounds good. Let's go.", "Sora: va bene. Andiamo."), "a2-role-colleague", "a2-referent-sora"),
+    bareLine("plans-invitations-3-t4", "a2-family-respond-invite", "a2-value-respond-decline", "a2-context-workplace", L("Emi: sorry, that day isn't very convenient.", "Emi: scusa, quel giorno non mi è molto comodo."), "a2-role-emi", "a2-referent-emi"),
+    bareLine("plans-invitations-3-t5", "a2-family-plan-yotei", "a2-value-yotei-taberu-ashita", "a2-context-among-friends", L("Tomorrow I plan to eat a meal with a friend.", "Domani ho intenzione di mangiare con un amico."), "a2-role-colleague", "a2-referent-self"),
   ],
 });
 
@@ -160,11 +189,14 @@ const lesson4: A2BuiltLesson = buildA2InstructionalLesson({
     bareLine("plans-invitations-4-m10", "a2-family-plan-tsumori", "a2-value-tsumori-kaeru-hayaku", "a2-context-workplace", L("Today I intend to go home early.", "Oggi intendo tornare a casa presto."), "a2-role-colleague"),
   ],
   transfers: [
-    bareLine("plans-invitations-4-t1", "a2-family-arrange-meeting", "a2-value-arrange-eki", "a2-context-workplace", L("Let's meet at the station at 5.", "Incontriamoci alla stazione alle 5."), "a2-role-teacher"),
-    bareLine("plans-invitations-4-t2", "a2-family-arrange-meeting", "a2-value-arrange-cafe", "a2-context-workplace", L("Let's meet at the cafe at 3pm on Saturday.", "Incontriamoci al bar alle 15 di sabato."), "a2-role-sora"),
-    bareLine("plans-invitations-4-t3", "a2-family-plan-yotei", "a2-value-yotei-oyogu-shuumatsu", "a2-context-cafe", L("This weekend I plan to swim in the sea.", "Questo weekend ho intenzione di nuotare nel mare."), "a2-role-friend"),
-    bareLine("plans-invitations-4-t4", "a2-family-plan-tsumori", "a2-value-tsumori-kaeru-hayaku", "a2-context-plans", L("Today I intend to go home early.", "Oggi intendo tornare a casa presto."), "a2-role-sora"),
-    bareLine("plans-invitations-4-t5", "a2-family-arrange-meeting", "a2-value-arrange-time-check", "a2-context-workplace", L("What time shall we meet?", "A che ora ci incontriamo?"), "a2-role-colleague"),
+    // I2 spec-fix: arrange-meeting transfers recombine with an already-
+    // modeled named addressee; plan-yotei/plan-tsumori transfers recombine
+    // with watashi — same rationale as pi1-pi3.
+    bareLine("plans-invitations-4-t1", "a2-family-arrange-meeting", "a2-value-arrange-eki", "a2-context-workplace", L("Sora, let's meet at the station at 5.", "Sora, incontriamoci alla stazione alle 5."), "a2-role-teacher", "a2-referent-sora"),
+    bareLine("plans-invitations-4-t2", "a2-family-arrange-meeting", "a2-value-arrange-cafe", "a2-context-workplace", L("Emi, let's meet at the cafe at 3pm on Saturday.", "Emi, incontriamoci al bar alle 15 di sabato."), "a2-role-sora", "a2-referent-emi"),
+    bareLine("plans-invitations-4-t3", "a2-family-plan-yotei", "a2-value-yotei-oyogu-shuumatsu", "a2-context-cafe", L("This weekend I plan to swim in the sea.", "Questo weekend ho intenzione di nuotare nel mare."), "a2-role-friend", "a2-referent-self"),
+    bareLine("plans-invitations-4-t4", "a2-family-plan-tsumori", "a2-value-tsumori-kaeru-hayaku", "a2-context-plans", L("Today I intend to go home early.", "Oggi intendo tornare a casa presto."), "a2-role-sora", "a2-referent-self"),
+    bareLine("plans-invitations-4-t5", "a2-family-arrange-meeting", "a2-value-arrange-time-check", "a2-context-workplace", L("Sora, what time shall we meet?", "Sora, a che ora ci incontriamo?"), "a2-role-colleague", "a2-referent-sora"),
   ],
 });
 

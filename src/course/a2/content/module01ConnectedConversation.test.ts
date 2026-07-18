@@ -230,7 +230,13 @@ describe("A2 Module 1 — exact realized Japanese/rōmaji spot checks", () => {
     expect(sentence.canonicalJapanese).not.toContain("はなます");
   });
 
-  it("realizes connected-conversation-1-t3 (same talk-companion slots as m1) to the identical exact はなします masu-stem", () => {
+  // I2 spec-fix ("true transfer failure"): t3 used to mirror m1's exact
+  // slots (same subject/companion), realizing byte-identical Japanese and
+  // failing to exercise a genuine transfer — it now recombines the same
+  // already-modeled predicate/companion with a different already-modeled
+  // subject (emi, introduced by m2), proving the ます-stem fix (はなします,
+  // never はなます) still holds for this new, genuinely novel combination.
+  it("realizes connected-conversation-1-t3 (talk-companion, emi recombined with m1's predicate/companion) to the exact はなします masu-stem, distinct from m1", () => {
     const cc1 = module1Lessons[0];
     const t3 = cc1.variants.find((v) => v.id === "connected-conversation-1-t3");
     expect(t3).toBeDefined();
@@ -238,9 +244,10 @@ describe("A2 Module 1 — exact realized Japanese/rōmaji spot checks", () => {
     const romaji = formatRomaji(sentence.tokens);
     expect(romaji.ok).toBe(true);
     if (!romaji.ok) throw new Error("unreachable");
-    expect(sentence.canonicalJapanese).toBe("ともだちはどうりょうとはなします");
-    expect(romaji.text).toBe("tomodachi wa douryou to hanashimasu");
+    expect(sentence.canonicalJapanese).toBe("えみはどうりょうとはなします");
+    expect(romaji.text).toBe("emi wa douryou to hanashimasu");
     expect(sentence.canonicalJapanese).not.toContain("はなます");
+    expect(sentence.canonicalJapanese).not.toBe("ともだちはどうりょうとはなします");
   });
 });
 

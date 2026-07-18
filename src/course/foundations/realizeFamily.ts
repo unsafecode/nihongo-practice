@@ -345,14 +345,6 @@ const REALIZATION_RULES: Readonly<Record<string, RealizationRuleDefinition>> = {
     objectRole: null,
     contentSlots: [],
   },
-  // The same invariant predicate, preceded by a へ-marked destination (e.g. a
-  // よてい/つもり plan naming where the subject is going).
-  "rule-invariant-with-location": {
-    id: "rule-invariant-with-location",
-    predicateKind: "invariant",
-    objectRole: null,
-    contentSlots: [{ slotId: "location", particle: { kind: "fixed", particle: "he" } }],
-  },
 };
 
 /**
@@ -940,8 +932,15 @@ export function realizeVariant(
     return fail([{ code: "unknown-realization-rule", referenceId: family.realizationRuleId }]);
   }
 
-  // 14. execute: resolve the grammatical form's ending.
-  if (variant.form.formality !== "polite") {
+  // 14. execute: resolve the grammatical form's ending. An "invariant"
+  // predicate's own baked fragments already ARE the complete realized
+  // content (see the assembly step below) — its FormSelection is honest
+  // *metadata describing* that baked register (plain/negative/past/
+  // past-negative all included, § M4 spec-fix "form metadata"), never a
+  // lookup key into the polite ending tables below, so it is the only
+  // predicateKind allowed a non-"polite" formality.
+  const isInvariant = rule.predicateKind === "invariant";
+  if (!isInvariant && variant.form.formality !== "polite") {
     return fail([{ code: "invalid-conjugation", referenceId: variant.form.formality }]);
   }
   const key = formKey(variant.form.tense, variant.form.polarity);
@@ -951,7 +950,6 @@ export function realizeVariant(
   const isCopula = rule.predicateKind === "copula";
   const isAdjective = rule.predicateKind === "adjective";
   const isRequest = rule.predicateKind === "request";
-  const isInvariant = rule.predicateKind === "invariant";
   const verbEnding = VERB_POLITE_ENDINGS[key];
   const copulaPieces = COPULA_POLITE_ENDINGS[key];
 
