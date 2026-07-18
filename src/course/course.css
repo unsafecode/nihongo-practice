@@ -752,6 +752,48 @@
   opacity: 0.85;
 }
 
+/*
+ * Contextual kanji ruby/reveal (Phase 3 Task 3, locked decision L3). The
+ * reveal toggle renders through the shared `ActionButton` (`variant="inline"`
+ * — see `src/styles.css`'s `.action`/`.action--inline`), whose
+ * `min-width`/`min-height: var(--action-target-min)` already guarantees the
+ * 44px touch target on its own; the rules below only add this feature's own
+ * layout/typography, not sizing.
+ */
+.kanji-ruby {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.kanji-ruby__ruby {
+  ruby-position: over;
+}
+
+.kanji-ruby__reading {
+  color: inherit;
+  font-size: 0.5em;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.kanji-ruby__romaji-hint {
+  font-size: 0.75em;
+  color: var(--ink-soft);
+}
+
+.kanji-reveal {
+  font-weight: 700;
+  line-height: 1;
+}
+
+.kanji-why {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
 .lesson-comparison__translation {
   margin: 0.8rem 0 0;
   font-size: 1rem;

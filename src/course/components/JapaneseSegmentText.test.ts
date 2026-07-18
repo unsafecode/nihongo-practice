@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import type { KanjiExposure } from "../a2/kanji/kanjiTypes";
 import { JapaneseSegmentText } from "./JapaneseSegmentText";
 
 /**
@@ -43,5 +44,70 @@ describe("JapaneseSegmentText", () => {
   it("renders any plain (non-katakana) segment unchanged when it carries no reading", () => {
     const html = render("たべます", undefined);
     expect(html).toBe("たべます");
+  });
+});
+
+/**
+ * Phase 3 Task 3 (contextual kanji layer): `JapaneseSegmentText` gains one
+ * additive, optional `kanji` render descriptor. When present it delegates
+ * entirely to `KanjiRubyText` — proving the delegation actually happens (not
+ * a silent no-op) and that an assessed exposure's no-support guarantee
+ * survives being routed through this shared renderer, including under a
+ * romaji script setting. `jp`/`reading` stay completely unused whenever
+ * `kanji` is supplied, and every existing katakana-assist test above keeps
+ * passing unchanged, proving this is a pure addition.
+ */
+describe("JapaneseSegmentText — kanji exposure render path (Phase 3 Task 3)", () => {
+  function kanjiExposureFixture(stage: KanjiExposure["stage"]): KanjiExposure {
+    return {
+      id: `test-${stage}`,
+      kanjiId: "a2-kanji-hana-話",
+      lexemeSenseId: "a2-sense-hanasu",
+      lessonId: "connected-conversation-1",
+      stage,
+      readingId: "a2-kanji-hana-話-reading",
+      contextId: "a2-context-conversation",
+    };
+  }
+
+  it("delegates entirely to KanjiRubyText when a kanji descriptor is present, ignoring jp/reading", () => {
+    const html = renderToStaticMarkup(
+      createElement(JapaneseSegmentText, {
+        jp: "should-not-appear",
+        reading: "should-not-appear-either",
+        kanji: {
+          glyph: "話",
+          reading: "はな",
+          romaji: "hana",
+          exposure: kanjiExposureFixture("first-supported"),
+          script: "hiragana",
+          assessedExplanation: "explanation",
+        },
+      }),
+    );
+    expect(html).toContain('<ruby lang="ja"');
+    expect(html).toContain("話");
+    expect(html).not.toContain("should-not-appear");
+    expect(html).not.toContain("katakana-assist");
+  });
+
+  it("never lets an assessed kanji exposure leak furigana/romaji through this shared renderer, even under romaji script", () => {
+    const html = renderToStaticMarkup(
+      createElement(JapaneseSegmentText, {
+        jp: "should-not-appear",
+        kanji: {
+          glyph: "話",
+          reading: "はな",
+          romaji: "hana",
+          exposure: kanjiExposureFixture("assessed"),
+          script: "romaji",
+          assessedExplanation: "Why this kanji shows no reading.",
+        },
+      }),
+    );
+    expect(html).not.toContain("<rt");
+    expect(html).not.toContain("hana");
+    expect(html).toContain("話");
+    expect(html).toContain('data-copy-id="a2-kanji-why-visible"');
   });
 });

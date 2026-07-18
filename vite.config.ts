@@ -49,7 +49,17 @@ export default defineConfig(({ mode }) => {
     },
     test: {
       environment: "node",
-      include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],
+      // Phase 3 Task 3: KanjiRubyText.test.tsx is the first test file authored
+      // directly in JSX (every earlier interactive component test used
+      // `createElement` from a `.test.ts` file specifically to avoid needing
+      // this). Included alongside the existing `.test.ts` patterns; nothing
+      // about the default "node" environment changes; jsdom-dependent files
+      // still opt in per-file with `/** @vitest-environment jsdom */`.
+      include: [
+        "src/**/*.test.ts",
+        "src/**/*.test.tsx",
+        "scripts/**/*.test.ts",
+      ],
     },
   };
 });

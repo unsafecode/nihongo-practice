@@ -1,3 +1,5 @@
+import { KanjiRubyText, type KanjiRubyTextProps } from "./KanjiRubyText";
+
 /**
  * The single shared renderer for one segment's on-page Japanese text (design
  * spec §7, §8.3; Slice B acceptance). Both {@link TransformComparison}'s
@@ -21,14 +23,26 @@
  * `assembleCourse`'s `segmentRomaji` (spec §7) and rendered as ordinary text
  * by the caller — this component only ever adds the ruby annotation to the
  * katakana/hiragana ("jp") line.
+ *
+ * Phase 3 Task 3 (contextual kanji layer) adds one additive, optional
+ * `kanji` descriptor. When a caller supplies it, this component delegates
+ * entirely to {@link KanjiRubyText} — which renders that segment's kanji
+ * exposure through the real assistance policy — before any of the
+ * katakana-assist logic above ever runs, and `jp`/`reading` are ignored for
+ * that segment. This is a minimal wiring point only: no caller in this
+ * codebase constructs a `kanji` descriptor yet, so every existing call site
+ * (and its behavior) is completely unchanged.
  */
 export function JapaneseSegmentText({
   jp,
   reading,
+  kanji,
 }: {
   readonly jp: string;
   readonly reading?: string;
+  readonly kanji?: KanjiRubyTextProps;
 }) {
+  if (kanji) return <KanjiRubyText {...kanji} />;
   if (!reading) return <>{jp}</>;
   return (
     <ruby className="katakana-assist">
