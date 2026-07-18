@@ -188,6 +188,51 @@ describe("A2 Module 2 — exact realized Japanese/rōmaji spot checks", () => {
       }
     }
   });
+
+  // Exact-string regression (Phase 3 Task 4 spec-fix): `romaji.ok === true`
+  // only proves every token is individually well-formed — it does not catch
+  // an invitation predicate built from the plain DICTIONARY form (たべる)
+  // instead of the required ます-stem (たべ) before ませんか. たべるませんか is a
+  // "well-formed" token sequence but not real Japanese; only an exact string
+  // assertion catches it.
+  it("realizes plans-invitations-3-m3 (invite-shokuji) to the exact たべませんか ます-stem invitation, never たべるませんか", () => {
+    const pi3 = module2Lessons[2];
+    const m3 = pi3.variants.find((v) => v.id === "plans-invitations-3-m3");
+    expect(m3).toBeDefined();
+    const sentence = realize(m3 as SentenceVariant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("いっしょにしょくじをたべませんか");
+    expect(romaji.text).toBe("issho ni shokuji o tabemasen ka");
+    expect(sentence.canonicalJapanese).not.toContain("たべるませんか");
+  });
+
+  it("realizes plans-invitations-3-t2 (same invite-shokuji value as m3) to the identical exact たべませんか invitation", () => {
+    const pi3 = module2Lessons[2];
+    const t2 = pi3.variants.find((v) => v.id === "plans-invitations-3-t2");
+    expect(t2).toBeDefined();
+    const sentence = realize(t2 as SentenceVariant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("いっしょにしょくじをたべませんか");
+    expect(romaji.text).toBe("issho ni shokuji o tabemasen ka");
+    expect(sentence.canonicalJapanese).not.toContain("たべるませんか");
+  });
+
+  it("realizes plans-invitations-3-m7 (invite-tomodachi-issho) to the exact こんばん...たべませんか invitation, never たべるませんか", () => {
+    const pi3 = module2Lessons[2];
+    const m7 = pi3.variants.find((v) => v.id === "plans-invitations-3-m7");
+    expect(m7).toBeDefined();
+    const sentence = realize(m7 as SentenceVariant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("こんばんいっしょにしょくじをたべませんか");
+    expect(romaji.text).toBe("konban issho ni shokuji o tabemasen ka");
+    expect(sentence.canonicalJapanese).not.toContain("たべるませんか");
+  });
 });
 
 describe("A2 Module 2 — bilingual copy coverage", () => {

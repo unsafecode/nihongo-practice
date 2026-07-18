@@ -210,6 +210,38 @@ describe("A2 Module 1 — exact realized Japanese/rōmaji spot checks", () => {
       }
     }
   });
+
+  // Exact-string regression (Phase 3 Task 4 spec-fix): a `formatRomaji`-ok
+  // check alone cannot catch an invalid ます-stem — ok merely means every
+  // token is individually well-formed, not that the assembled word is real
+  // Japanese. `a2-value-hanasu`'s stem must be the 話す masu-stem はなし
+  // (hanashi), never the bare, un-conjugated root はな (hana) — the ill-formed
+  // はなます/hanamasu would still be a "well-formed" token sequence.
+  it("realizes connected-conversation-1-m1 (talk-companion) to the exact はなします masu-stem, never はなます", () => {
+    const cc1 = module1Lessons[0];
+    const m1 = cc1.variants.find((v) => v.id === "connected-conversation-1-m1");
+    expect(m1).toBeDefined();
+    const sentence = realize(m1 as SentenceVariant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("ともだちはどうりょうとはなします");
+    expect(romaji.text).toBe("tomodachi wa douryou to hanashimasu");
+    expect(sentence.canonicalJapanese).not.toContain("はなます");
+  });
+
+  it("realizes connected-conversation-1-t3 (same talk-companion slots as m1) to the identical exact はなします masu-stem", () => {
+    const cc1 = module1Lessons[0];
+    const t3 = cc1.variants.find((v) => v.id === "connected-conversation-1-t3");
+    expect(t3).toBeDefined();
+    const sentence = realize(t3 as SentenceVariant);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("ともだちはどうりょうとはなします");
+    expect(romaji.text).toBe("tomodachi wa douryou to hanashimasu");
+    expect(sentence.canonicalJapanese).not.toContain("はなます");
+  });
 });
 
 describe("A2 Module 1 — bilingual copy coverage", () => {

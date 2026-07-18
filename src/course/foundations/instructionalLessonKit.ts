@@ -30,6 +30,8 @@ import type {
   LessonPracticeDefinition,
   PedagogicalUse,
   SentenceVariant,
+  VerbLaterUse,
+  VerbUseRecord,
 } from "./types";
 import { deepFreeze } from "./deepFreeze";
 
@@ -444,4 +446,73 @@ export function buildLessonPositionRecords(
     moduleId: recipe.moduleId,
     position: canonicalPositions[recipe.id] ?? 0,
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Verb-use-record builders (§9.3) — shared, level-agnostic
+// ---------------------------------------------------------------------------
+
+/** The compact input a level's own `a1VerbUseRecord`/`a2VerbUseRecord`
+ * wrapper forwards to {@link verbUseRecord} for one productive verb's
+ * introduction record. */
+export interface VerbUseRecordInput {
+  readonly senseId: string;
+  readonly introductionLessonId: string;
+  readonly introductionVariantIds: readonly string[];
+  readonly exerciseRoundId: string;
+  readonly exerciseKind: ExerciseKind;
+  readonly exerciseTargetVariantId: string;
+}
+
+/**
+ * Build a productive verb's introduction record from its ≥2 structurally
+ * distinct intro variants and one correctness-bearing intro exercise.
+ * `laterUses` is intentionally left to the caller (empty at module-local
+ * authoring time — later spaced reuse is a future slice, never falsely
+ * pre-claimed here). The record id is prefixed with the given `level`
+ * (`a1-verb-use-*`/`a2-verb-use-*`) so both levels' records stay
+ * distinguishable in a merged `FoundationCatalogs.verbUseRecords` list. The
+ * level-agnostic extraction of A1's original `a1VerbUseRecord` — see
+ * `a1LessonBuilders.ts`'s `a1VerbUseRecord` and `a2LessonBuilders.ts`'s
+ * `a2VerbUseRecord`, which both delegate here unchanged.
+ */
+export function verbUseRecord(
+  level: CourseLevelId,
+  input: VerbUseRecordInput,
+): VerbUseRecord {
+  return deepFreeze({
+    id: `${level}-verb-use-${input.senseId}`,
+    senseId: input.senseId,
+    learningUse: "productive",
+    introductionLessonId: input.introductionLessonId,
+    introductionVariantIds: [...input.introductionVariantIds],
+    introductionExercise: {
+      lessonId: input.introductionLessonId,
+      roundId: input.exerciseRoundId,
+      exerciseKind: input.exerciseKind,
+      targetVariantId: input.exerciseTargetVariantId,
+    },
+    laterUses: [],
+  });
+}
+
+/**
+ * Immutably augment an already-authored verb-use record with later spaced
+ * reuses, WITHOUT rewriting the module-local source record. Modules 2-4 keep
+ * their frozen `laterUses: []` intro records exactly as authored; later
+ * modules call this to produce a *new* frozen record whose `laterUses` point
+ * at the genuine later variants that reuse the sense. Passing an empty
+ * `additions` list is a no-op copy (still a fresh frozen record). The
+ * level-agnostic extraction of A1's original `withA1LaterUses` — see
+ * `a1LessonBuilders.ts`'s `withA1LaterUses` and `a2LessonBuilders.ts`'s
+ * `withA2LaterUses`, which both delegate here unchanged.
+ */
+export function withLaterUses(
+  record: VerbUseRecord,
+  additions: readonly VerbLaterUse[],
+): VerbUseRecord {
+  return deepFreeze({
+    ...record,
+    laterUses: [...record.laterUses, ...additions.map((u) => ({ ...u }))],
+  });
 }

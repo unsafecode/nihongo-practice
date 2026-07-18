@@ -16,11 +16,13 @@
  * The genuinely level-agnostic parts of this pipeline — the default
  * speaker/addressee discourse convention, the model+transfer assembly, the
  * two practice rounds, the diversity-constraints record, the recipe
- * candidate, and the `FoundationCatalogs` lesson/position helpers — now
- * delegate to `../../foundations/instructionalLessonKit`, the shared kit
- * A2 reuses. Every exported symbol below keeps its exact name/type/runtime
- * behavior; this file only changed *how* the output is produced, never
- * *what* it produces (see `a1LessonBuilders.characterization.test.ts`).
+ * candidate, the `FoundationCatalogs` lesson/position helpers, and the
+ * verb-use-record builders (`a1VerbUseRecord`/`withA1LaterUses`, now thin
+ * wrappers over the shared kit's `verbUseRecord("a1", ...)`/`withLaterUses`)
+ * — now delegate to `../../foundations/instructionalLessonKit`, the shared
+ * kit A2 reuses. Every exported symbol below keeps its exact name/type/
+ * runtime behavior; this file only changed *how* the output is produced,
+ * never *what* it produces (see `a1LessonBuilders.characterization.test.ts`).
  */
 
 import { deepFreeze } from "../../foundations/deepFreeze";
@@ -33,6 +35,8 @@ import {
   structureKey as kitStructureKey,
   toFoundationLessonDefinition,
   translationCopyId as kitTranslationCopyId,
+  verbUseRecord,
+  withLaterUses,
   type InstructionalLessonKitConfig,
 } from "../../foundations/instructionalLessonKit";
 import type {
@@ -381,6 +385,9 @@ export function buildA1InstructionalLesson(
  * distinct intro variants and one correctness-bearing intro exercise. `laterUses`
  * is intentionally left to the caller (empty at module-local authoring time —
  * later spaced reuse is a future slice, never falsely pre-claimed here).
+ * Delegates to the shared kit's level-agnostic `verbUseRecord("a1", ...)` —
+ * same signature, same byte-for-byte output (see
+ * `a1LessonBuilders.characterization.test.ts`).
  */
 export function a1VerbUseRecord(input: {
   readonly senseId: string;
@@ -390,20 +397,7 @@ export function a1VerbUseRecord(input: {
   readonly exerciseKind: "tile-ordering" | "choice" | "transformation" | "completion" | "constrained-construction";
   readonly exerciseTargetVariantId: string;
 }): VerbUseRecord {
-  return deepFreeze({
-    id: `a1-verb-use-${input.senseId}`,
-    senseId: input.senseId,
-    learningUse: "productive",
-    introductionLessonId: input.introductionLessonId,
-    introductionVariantIds: [...input.introductionVariantIds],
-    introductionExercise: {
-      lessonId: input.introductionLessonId,
-      roundId: input.exerciseRoundId,
-      exerciseKind: input.exerciseKind,
-      targetVariantId: input.exerciseTargetVariantId,
-    },
-    laterUses: [],
-  });
+  return verbUseRecord("a1", input);
 }
 
 /**
@@ -412,14 +406,13 @@ export function a1VerbUseRecord(input: {
  * their frozen `laterUses: []` intro records exactly as authored; Module 5–8
  * authoring calls this to produce a *new* frozen record whose `laterUses`
  * point at the genuine later variants that reuse the sense. Passing an empty
- * `additions` list is a no-op copy (still a fresh frozen record).
+ * `additions` list is a no-op copy (still a fresh frozen record). Delegates
+ * to the shared kit's level-agnostic `withLaterUses` — same signature, same
+ * byte-for-byte output.
  */
 export function withA1LaterUses(
   record: VerbUseRecord,
   additions: readonly VerbLaterUse[],
 ): VerbUseRecord {
-  return deepFreeze({
-    ...record,
-    laterUses: [...record.laterUses, ...additions.map((u) => ({ ...u }))],
-  });
+  return withLaterUses(record, additions);
 }

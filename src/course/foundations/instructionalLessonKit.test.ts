@@ -23,13 +23,15 @@ import {
   scenarioCopyId,
   structureKey,
   toFoundationLessonDefinition,
+  verbUseRecord,
+  withLaterUses,
   type InstructionalLessonKitConfig,
   type KitBuiltVariant,
   type KitLessonRecipeCandidate,
   type KitLineSpec,
   type KitResolvedVariantSpec,
 } from "./instructionalLessonKit";
-import type { SentenceVariant } from "./types";
+import type { SentenceVariant, VerbLaterUse } from "./types";
 import { deepFreeze } from "./deepFreeze";
 
 // ---------------------------------------------------------------------------
@@ -424,6 +426,138 @@ describe("buildLessonPositionRecords", () => {
       { lessonId: "lesson-a", level: "a2", moduleId: "mod-1", position: 1 },
       { lessonId: "lesson-b", level: "a2", moduleId: "mod-1", position: 2 },
       { lessonId: "lesson-unknown", level: "a2", moduleId: "mod-2", position: 0 },
+    ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// verbUseRecord / withLaterUses — the generic, level-agnostic verb-use-record
+// builders (Phase 3 Task 4 spec-fix). Extracted from A1's own
+// `a1VerbUseRecord`/`withA1LaterUses` (which now delegate here with an
+// identical, byte-for-byte-unchanged signature/output); A2 gets its own
+// `a2VerbUseRecord`/`withA2LaterUses` wrappers over these same two functions.
+// ---------------------------------------------------------------------------
+
+describe("verbUseRecord", () => {
+  const baseInput = {
+    senseId: "fake-sense-greet",
+    introductionLessonId: "fake-lesson-1",
+    introductionVariantIds: ["fake-lesson-1-m1", "fake-lesson-1-m2"],
+    exerciseRoundId: "fake-lesson-1-round-1",
+    exerciseKind: "tile-ordering" as const,
+    exerciseTargetVariantId: "fake-lesson-1-m1",
+  };
+
+  it("prefixes the record id with the given level (a1)", () => {
+    const record = verbUseRecord("a1", baseInput);
+    expect(record.id).toBe("a1-verb-use-fake-sense-greet");
+  });
+
+  it("prefixes the record id with the given level (a2)", () => {
+    const record = verbUseRecord("a2", baseInput);
+    expect(record.id).toBe("a2-verb-use-fake-sense-greet");
+  });
+
+  it("copies every input field onto the record and always starts with an empty laterUses", () => {
+    const record = verbUseRecord("a1", baseInput);
+    expect(record.senseId).toBe("fake-sense-greet");
+    expect(record.learningUse).toBe("productive");
+    expect(record.introductionLessonId).toBe("fake-lesson-1");
+    expect(record.introductionVariantIds).toEqual(["fake-lesson-1-m1", "fake-lesson-1-m2"]);
+    expect(record.introductionExercise).toEqual({
+      lessonId: "fake-lesson-1",
+      roundId: "fake-lesson-1-round-1",
+      exerciseKind: "tile-ordering",
+      targetVariantId: "fake-lesson-1-m1",
+    });
+    expect(record.laterUses).toEqual([]);
+  });
+
+  it("returns a deeply frozen record", () => {
+    const record = verbUseRecord("a1", baseInput);
+    expect(Object.isFrozen(record)).toBe(true);
+    expect(Object.isFrozen(record.introductionVariantIds)).toBe(true);
+    expect(Object.isFrozen(record.introductionExercise)).toBe(true);
+    expect(Object.isFrozen(record.laterUses)).toBe(true);
+  });
+
+  it("copies the introductionVariantIds array rather than aliasing the caller's own array", () => {
+    const mutableIds = ["fake-lesson-1-m1", "fake-lesson-1-m2"];
+    const record = verbUseRecord("a1", { ...baseInput, introductionVariantIds: mutableIds });
+    mutableIds.push("fake-lesson-1-m3");
+    expect(record.introductionVariantIds).toEqual(["fake-lesson-1-m1", "fake-lesson-1-m2"]);
+  });
+});
+
+describe("withLaterUses", () => {
+  const baseInput = {
+    senseId: "fake-sense-greet",
+    introductionLessonId: "fake-lesson-1",
+    introductionVariantIds: ["fake-lesson-1-m1", "fake-lesson-1-m2"],
+    exerciseRoundId: "fake-lesson-1-round-1",
+    exerciseKind: "tile-ordering" as const,
+    exerciseTargetVariantId: "fake-lesson-1-m1",
+  };
+
+  it("appends the given later uses to the record's laterUses", () => {
+    const record = verbUseRecord("a1", baseInput);
+    const additions: readonly VerbLaterUse[] = [
+      { lessonId: "fake-lesson-5", variantId: "fake-lesson-5-m3" },
+      { lessonId: "fake-lesson-7", variantId: "fake-lesson-7-m1" },
+    ];
+    const augmented = withLaterUses(record, additions);
+    expect(augmented.laterUses).toEqual(additions);
+  });
+
+  it("returns a NEW frozen record without mutating the original (still laterUses: [])", () => {
+    const record = verbUseRecord("a1", baseInput);
+    const augmented = withLaterUses(record, [
+      { lessonId: "fake-lesson-5", variantId: "fake-lesson-5-m3" },
+    ]);
+    expect(augmented).not.toBe(record);
+    expect(record.laterUses).toEqual([]);
+    expect(Object.isFrozen(augmented)).toBe(true);
+    expect(Object.isFrozen(augmented.laterUses)).toBe(true);
+  });
+
+  it("preserves every other field unchanged", () => {
+    const record = verbUseRecord("a2", baseInput);
+    const augmented = withLaterUses(record, [
+      { lessonId: "fake-lesson-5", variantId: "fake-lesson-5-m3" },
+    ]);
+    expect(augmented.id).toBe(record.id);
+    expect(augmented.senseId).toBe(record.senseId);
+    expect(augmented.learningUse).toBe(record.learningUse);
+    expect(augmented.introductionLessonId).toBe(record.introductionLessonId);
+    expect(augmented.introductionVariantIds).toEqual(record.introductionVariantIds);
+    expect(augmented.introductionExercise).toEqual(record.introductionExercise);
+  });
+
+  it("copies each addition object rather than aliasing the caller's own objects", () => {
+    const record = verbUseRecord("a1", baseInput);
+    const mutableAddition = { lessonId: "fake-lesson-5", variantId: "fake-lesson-5-m3" };
+    const augmented = withLaterUses(record, [mutableAddition]);
+    mutableAddition.variantId = "mutated-after-the-fact";
+    expect(augmented.laterUses).toEqual([
+      { lessonId: "fake-lesson-5", variantId: "fake-lesson-5-m3" },
+    ]);
+  });
+
+  it("is a no-op copy (still a fresh frozen record) when additions is empty", () => {
+    const record = verbUseRecord("a1", baseInput);
+    const augmented = withLaterUses(record, []);
+    expect(augmented).not.toBe(record);
+    expect(augmented.laterUses).toEqual([]);
+    expect(Object.isFrozen(augmented)).toBe(true);
+  });
+
+  it("supports chaining multiple withLaterUses calls, accumulating rather than replacing", () => {
+    const record = verbUseRecord("a1", baseInput);
+    const once = withLaterUses(record, [{ lessonId: "fake-lesson-5", variantId: "fake-lesson-5-m3" }]);
+    const twice = withLaterUses(once, [{ lessonId: "fake-lesson-9", variantId: "fake-lesson-9-m2" }]);
+    expect(twice.laterUses).toEqual([
+      { lessonId: "fake-lesson-5", variantId: "fake-lesson-5-m3" },
+      { lessonId: "fake-lesson-9", variantId: "fake-lesson-9-m2" },
     ]);
   });
 });

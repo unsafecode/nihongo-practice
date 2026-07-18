@@ -7,17 +7,22 @@
  * `A2_KANJI_EXPOSURES` schedule (never hand-invented); `defineA2Lesson`
  * enforces the A2 depth contract; `assembleA2FoundationCatalogs` builds a
  * real `FoundationCatalogs`; `computeAvailableContentByLesson` derives
- * cumulative introduced content in canonical position order.
+ * cumulative introduced content in canonical position order;
+ * `a2VerbUseRecord`/`withA2LaterUses` delegate to the shared kit's
+ * level-agnostic `verbUseRecord`/`withLaterUses` (mirrors A1's
+ * `a1VerbUseRecord`/`withA1LaterUses`).
  */
 import { describe, expect, it } from "vitest";
 
 import {
   a2KanjiExposureIdsForLesson,
+  a2VerbUseRecord,
   a2Variant,
   assembleA2FoundationCatalogs,
   buildA2InstructionalLesson,
   computeAvailableContentByLesson,
   defineA2Lesson,
+  withA2LaterUses,
   type A2BuiltLesson,
 } from "./a2LessonBuilders";
 import { A2_KANJI_EXPOSURES } from "../kanji/a2KanjiCatalog";
@@ -342,5 +347,42 @@ describe("computeAvailableContentByLesson", () => {
     expect(availability["connected-conversation-1"].semanticValueIds).not.toContain(
       "a2-value-connector-ame-demo-dekakeru",
     );
+  });
+});
+
+describe("a2VerbUseRecord / withA2LaterUses — delegate to the shared kit's verbUseRecord/withLaterUses", () => {
+  const baseInput = {
+    senseId: "a2-sense-hanasu",
+    introductionLessonId: "connected-conversation-1",
+    introductionVariantIds: ["connected-conversation-1-m1", "connected-conversation-1-t3"],
+    exerciseRoundId: "connected-conversation-1-round-1",
+    exerciseKind: "tile-ordering" as const,
+    exerciseTargetVariantId: "connected-conversation-1-m1",
+  };
+
+  it("prefixes the record id with a2- (the A2 counterpart of a1VerbUseRecord's a1- prefix)", () => {
+    const record = a2VerbUseRecord(baseInput);
+    expect(record.id).toBe("a2-verb-use-a2-sense-hanasu");
+    expect(record.senseId).toBe("a2-sense-hanasu");
+    expect(record.learningUse).toBe("productive");
+    expect(record.introductionVariantIds).toEqual([
+      "connected-conversation-1-m1",
+      "connected-conversation-1-t3",
+    ]);
+    expect(record.laterUses).toEqual([]);
+    expect(Object.isFrozen(record)).toBe(true);
+  });
+
+  it("withA2LaterUses appends later uses without mutating the original record", () => {
+    const record = a2VerbUseRecord(baseInput);
+    const augmented = withA2LaterUses(record, [
+      { lessonId: "plans-invitations-1", variantId: "plans-invitations-1-m1" },
+    ]);
+    expect(augmented).not.toBe(record);
+    expect(augmented.laterUses).toEqual([
+      { lessonId: "plans-invitations-1", variantId: "plans-invitations-1-m1" },
+    ]);
+    expect(record.laterUses).toEqual([]);
+    expect(Object.isFrozen(augmented)).toBe(true);
   });
 });

@@ -345,14 +345,6 @@ const REALIZATION_RULES: Readonly<Record<string, RealizationRuleDefinition>> = {
     objectRole: null,
     contentSlots: [],
   },
-  // The same invariant predicate, preceded by a と-marked companion (e.g. "X
-  // さんと" before an invitation/plan/arrangement predicate).
-  "rule-invariant-with-companion": {
-    id: "rule-invariant-with-companion",
-    predicateKind: "invariant",
-    objectRole: null,
-    contentSlots: [{ slotId: "companion", particle: { kind: "fixed", particle: "to" } }],
-  },
   // The same invariant predicate, preceded by a へ-marked destination (e.g. a
   // よてい/つもり plan naming where the subject is going).
   "rule-invariant-with-location": {
@@ -360,22 +352,6 @@ const REALIZATION_RULES: Readonly<Record<string, RealizationRuleDefinition>> = {
     predicateKind: "invariant",
     objectRole: null,
     contentSlots: [{ slotId: "location", particle: { kind: "fixed", particle: "he" } }],
-  },
-  // The same invariant predicate, preceded by a bare (particle-less) time
-  // adverbial (e.g. "らいしゅう" before a plan/intention predicate).
-  "rule-invariant-with-time": {
-    id: "rule-invariant-with-time",
-    predicateKind: "invariant",
-    objectRole: null,
-    contentSlots: [{ slotId: "time", particle: { kind: "none" } }],
-  },
-  // The same invariant predicate, preceded by a を-marked governed theme
-  // (e.g. an opinion/reason clause naming what is being discussed).
-  "rule-invariant-with-object": {
-    id: "rule-invariant-with-object",
-    predicateKind: "invariant",
-    objectRole: "governed-theme",
-    contentSlots: [{ slotId: "object", particle: { kind: "fixed", particle: "o" } }],
   },
 };
 

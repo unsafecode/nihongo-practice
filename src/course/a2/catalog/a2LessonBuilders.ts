@@ -24,6 +24,8 @@ import {
   scenarioCopyId,
   toFoundationLessonDefinition,
   translationCopyId,
+  verbUseRecord,
+  withLaterUses,
   type InstructionalLessonKitConfig,
   type KitLessonRecipeCandidate,
 } from "../../foundations/instructionalLessonKit";
@@ -39,6 +41,7 @@ import type {
   LessonPracticeDefinition,
   PedagogicalUse,
   SentenceVariant,
+  VerbLaterUse,
   VerbUseRecord,
 } from "../../foundations/types";
 import { A2_CANONICAL_POSITIONS } from "../manifest";
@@ -576,4 +579,43 @@ export function computeAvailableContentByLesson(
   }
 
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// Verb-use-record builders (mirrors a1LessonBuilders.ts's a1VerbUseRecord/
+// withA1LaterUses — thin wrappers over the shared, level-agnostic
+// instructionalLessonKit.verbUseRecord/withLaterUses)
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a productive verb's introduction record from its ≥2 structurally
+ * distinct intro variants and one correctness-bearing intro exercise.
+ * `laterUses` is intentionally left to the caller (empty at module-local
+ * authoring time — later spaced reuse is a future slice, never falsely
+ * pre-claimed here). Delegates to the shared kit's level-agnostic
+ * `verbUseRecord("a2", ...)` — the A2 counterpart of A1's `a1VerbUseRecord`.
+ */
+export function a2VerbUseRecord(input: {
+  readonly senseId: string;
+  readonly introductionLessonId: string;
+  readonly introductionVariantIds: readonly string[];
+  readonly exerciseRoundId: string;
+  readonly exerciseKind: "tile-ordering" | "choice" | "transformation" | "completion" | "constrained-construction";
+  readonly exerciseTargetVariantId: string;
+}): VerbUseRecord {
+  return verbUseRecord("a2", input);
+}
+
+/**
+ * Immutably augment an already-authored verb-use record with later spaced
+ * reuses, WITHOUT rewriting the module-local source record. Passing an empty
+ * `additions` list is a no-op copy (still a fresh frozen record). Delegates
+ * to the shared kit's level-agnostic `withLaterUses` — the A2 counterpart of
+ * A1's `withA1LaterUses`.
+ */
+export function withA2LaterUses(
+  record: VerbUseRecord,
+  additions: readonly VerbLaterUse[],
+): VerbUseRecord {
+  return withLaterUses(record, additions);
 }

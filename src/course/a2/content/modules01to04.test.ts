@@ -12,11 +12,14 @@
  */
 import { describe, expect, it } from "vitest";
 
+import { formatRomaji } from "../../../romaji/formatRomaji";
+import { realizeVariant } from "../../foundations/realizeFamily";
 import { validateFoundations } from "../../foundations/validateFoundations";
 import type {
   CheckpointDefinition,
   CourseLevel,
   FoundationModule,
+  SentenceFamily,
 } from "../../foundations/types";
 import {
   assembleA2FoundationCatalogs,
@@ -28,7 +31,15 @@ import {
   a2CanDoDescriptorCopy,
   buildA2CanDos,
 } from "../catalog/canDos";
-import { a2SharedCopy } from "../catalog/a2SemanticCatalog";
+import {
+  a2Contexts,
+  a2LearningTargetSenses,
+  a2PersonRoles,
+  a2Referents,
+  a2SemanticValues,
+  a2SentenceFamilies,
+  a2SharedCopy,
+} from "../catalog/a2SemanticCatalog";
 import { A2_CANONICAL_POSITIONS, A2_MODULE_MANIFEST } from "../manifest";
 import { module1Lessons } from "./module01ConnectedConversation";
 import { module2Lessons } from "./module02PlansInvitations";
@@ -196,5 +207,56 @@ describe("A2 M1-M4 aggregate — validateFoundations end-to-end", () => {
     }
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual([]);
+  });
+});
+
+describe("A2 M1-M4 aggregate — Task4 editorial regression (malformed conjugation guard)", () => {
+  const famById = new Map<string, SentenceFamily>(a2SentenceFamilies.map((f) => [f.id, f]));
+  const realizeCatalogs = {
+    contexts: a2Contexts,
+    personRoles: a2PersonRoles,
+    referents: a2Referents,
+    semanticValues: a2SemanticValues,
+    learningTargetSenses: a2LearningTargetSenses,
+  };
+
+  // The exact malformed sequences a fresh spec review found across M1-M4: an
+  // unconjugated verb root left before ます (はなます — should be the ます-stem
+  // はなします), a plain dictionary form left before an invitation's ませんか
+  // (たべるませんか, いくませんか — should be the ます-stem たべ/いき), and a
+  // ます-stem left before a よてい plan where the dictionary form is required
+  // (みよてい — should be みるよてい). None of these are valid Japanese; a
+  // `formatRomaji`-ok check alone can never catch them, because every
+  // individual token is still well-formed — only scanning the assembled
+  // string catches an invalid *sequence* of otherwise-valid tokens. Exact
+  // row assertions for the concrete fixed variants (cc1-m1/t3,
+  // pi3-m3/t2/m7) live in their own module test files
+  // (`module01ConnectedConversation.test.ts`, `module02PlansInvitations.test.ts`);
+  // this aggregate guard's job is the broad net across every authored
+  // M1-M4 variant, so this whole class of error can never recur anywhere
+  // in the release, not just at the five spots found this time.
+  const MALFORMED_SEQUENCES = ["はなます", "たべるませんか", "いくませんか", "みよてい"] as const;
+
+  it("realizes every currently authored M1-M4 model+transfer variant with no known-malformed conjugation sequence", () => {
+    for (const built of allBuiltLessons) {
+      for (const variant of built.variants) {
+        const family = famById.get(variant.sentenceFamilyId);
+        expect(family, `${variant.id} family ${variant.sentenceFamilyId}`).toBeDefined();
+        const result = realizeVariant(family as SentenceFamily, variant, realizeCatalogs, {
+          availableConceptIds: [...(family as SentenceFamily).requiredConceptIds],
+        });
+        if (!result.ok) {
+          throw new Error(`realize ${variant.id} failed: ${JSON.stringify(result.errors)}`);
+        }
+        const romaji = formatRomaji(result.sentence.tokens);
+        expect(romaji.ok, `${variant.id} romaji`).toBe(true);
+        for (const malformed of MALFORMED_SEQUENCES) {
+          expect(
+            result.sentence.canonicalJapanese,
+            `${variant.id} must not contain malformed sequence "${malformed}"`,
+          ).not.toContain(malformed);
+        }
+      }
+    }
   });
 });
