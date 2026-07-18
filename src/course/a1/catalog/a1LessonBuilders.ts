@@ -1,6 +1,6 @@
 /**
  * A1 lesson authoring + builders (quality-review M5 extraction from the
- * former `shared.ts` monolith).
+ * former `shared.ts` monolith; Phase 3 Task 4 shared-kit extraction).
  *
  * Owns everything that turns compact per-line specs into frozen, validated
  * lesson content: the fixed form-selection constants, the variant builder
@@ -12,16 +12,33 @@
  * never the reverse, so there is no import cycle. Re-exported through the
  * `shared.ts` barrel so existing `from "./shared"` imports keep working
  * unchanged.
+ *
+ * The genuinely level-agnostic parts of this pipeline — the default
+ * speaker/addressee discourse convention, the model+transfer assembly, the
+ * two practice rounds, the diversity-constraints record, the recipe
+ * candidate, and the `FoundationCatalogs` lesson/position helpers — now
+ * delegate to `../../foundations/instructionalLessonKit`, the shared kit
+ * A2 reuses. Every exported symbol below keeps its exact name/type/runtime
+ * behavior; this file only changed *how* the output is produced, never
+ * *what* it produces (see `a1LessonBuilders.characterization.test.ts`).
  */
 
 import { deepFreeze } from "../../foundations/deepFreeze";
+import {
+  buildInstructionalLesson,
+  buildLessonPositionRecords,
+  KIT_AFFIRMATIVE_PRESENT_POLITE,
+  KIT_AFFIRMATIVE_PRESENT_POLITE_QUESTION,
+  scenarioCopyId as kitScenarioCopyId,
+  structureKey as kitStructureKey,
+  toFoundationLessonDefinition,
+  translationCopyId as kitTranslationCopyId,
+  type InstructionalLessonKitConfig,
+} from "../../foundations/instructionalLessonKit";
 import type {
   FormSelection,
   FoundationCatalogs,
-  FoundationLessonDefinition,
-  LessonDiversityConstraints,
   LessonPositionRecord,
-  LessonPracticeDefinition,
   PedagogicalUse,
   SentenceVariant,
   VerbLaterUse,
@@ -46,22 +63,17 @@ import {
 // Fixed form selections
 // ---------------------------------------------------------------------------
 
-/** The single affirmative-present-polite form every A1 statement uses. */
-export const A1_AFFIRMATIVE_PRESENT_POLITE: FormSelection = deepFreeze({
-  polarity: "affirmative",
-  tense: "present",
-  formality: "polite",
-} as const);
+/** The single affirmative-present-polite form every A1 statement uses.
+ * Delegates to the shared kit's identical constant — same frozen value, same
+ * shape, no A1-specific behavior. */
+export const A1_AFFIRMATIVE_PRESENT_POLITE: FormSelection = KIT_AFFIRMATIVE_PRESENT_POLITE;
 
 /** The interrogative counterpart (adds the sentence-final か + mood). */
-export const A1_AFFIRMATIVE_PRESENT_POLITE_QUESTION: FormSelection = deepFreeze({
-  polarity: "affirmative",
-  tense: "present",
-  formality: "polite",
-  interrogative: true,
-} as const);
+export const A1_AFFIRMATIVE_PRESENT_POLITE_QUESTION: FormSelection =
+  KIT_AFFIRMATIVE_PRESENT_POLITE_QUESTION;
 
-/** Past affirmative polite (ました / でした). */
+/** Past affirmative polite (ました / でした). A1-only override form (Module 6),
+ * not part of the level-agnostic kit defaults. */
 export const A1_AFFIRMATIVE_PAST_POLITE: FormSelection = deepFreeze({
   polarity: "affirmative",
   tense: "past",
@@ -87,14 +99,15 @@ export const A1_NEGATIVE_PAST_POLITE: FormSelection = deepFreeze({
 // ---------------------------------------------------------------------------
 
 /** The stable copy id holding a variant's natural translation (mirrors the
- * builder convention `${variantId}-translation`). */
+ * builder convention `${variantId}-translation`). Delegates to the shared
+ * kit's identical naming convention. */
 export function a1TranslationCopyId(variantId: string): string {
-  return `${variantId}-translation`;
+  return kitTranslationCopyId(variantId);
 }
 
 /** The stable copy id holding a variant's scenario note. */
 export function a1ScenarioCopyId(variantId: string): string {
-  return `${variantId}-scenario`;
+  return kitScenarioCopyId(variantId);
 }
 
 export interface A1VariantSpec {
@@ -183,11 +196,10 @@ export function a1Variant(spec: A1VariantSpec): A1BuiltVariant {
 
 /** A verb's structure key: family, subject realization, form, and sorted slot
  * shape — deliberately excluding person/context/value ids. Two intro variants
- * with different structure keys count as structurally distinct (§9.3 rule 2). */
+ * with different structure keys count as structurally distinct (§9.3 rule 2).
+ * Delegates to the shared kit's identical, level-agnostic implementation. */
 export function a1StructureKey(variant: SentenceVariant): string {
-  const slots = Object.keys(variant.slotValues).slice().sort().join(",");
-  const f = variant.form;
-  return `${variant.sentenceFamilyId}|${variant.discourse.subjectRealization}|${f.polarity}:${f.tense}:${f.formality}|${slots}`;
+  return kitStructureKey(variant);
 }
 
 // ---------------------------------------------------------------------------
@@ -204,56 +216,27 @@ export interface AssembleA1CatalogsInput {
 }
 
 /**
- * Convert an A1 instructional lesson recipe into the Phase 1
- * `FoundationLessonDefinition` the view-model builder consumes. `familyIds` is
- * derived from the union of the lesson's model variants' families (authored
- * order preserved), never hand-declared.
- */
-function toFoundationLesson(
-  recipe: A1LessonRecipe,
-  variantById: ReadonlyMap<string, SentenceVariant>,
-): FoundationLessonDefinition {
-  const familyIds: string[] = [];
-  for (const variantId of recipe.modelVariantIds) {
-    const variant = variantById.get(variantId);
-    if (variant && !familyIds.includes(variant.sentenceFamilyId)) {
-      familyIds.push(variant.sentenceFamilyId);
-    }
-  }
-  return {
-    id: recipe.id,
-    level: "a1",
-    moduleId: recipe.moduleId,
-    primaryCanDoId: recipe.primaryCanDoId,
-    supportingCanDoIds: recipe.supportingCanDoIds,
-    modelVariantIds: recipe.modelVariantIds,
-    familyIds,
-    practice: recipe.practice,
-    diversityConstraints: recipe.diversityConstraints,
-  };
-}
-
-/**
  * Build a `FoundationCatalogs` from the shared A1 catalogs plus a set of
  * instructional lessons and their variants, ready for `buildLessonViewModel`,
  * `realizeVariant`, `selectVariants`, and `generateFamilyExercise`. Levels,
  * modules and checkpoints are intentionally empty — the view-model pipeline
  * reads none of them — while lesson positions come from the canonical manifest
- * so verb-recurrence tests can reason about ordering.
+ * so verb-recurrence tests can reason about ordering. The recipe→
+ * `FoundationLessonDefinition` conversion and lesson-position derivation
+ * delegate to the shared, level-agnostic kit helpers.
  */
 export function assembleA1FoundationCatalogs(
   input: AssembleA1CatalogsInput,
 ): FoundationCatalogs {
   const variantById = new Map(input.variants.map((v) => [v.id, v]));
   const lessons = input.lessons.map((recipe) =>
-    toFoundationLesson(recipe, variantById),
+    toFoundationLessonDefinition(recipe, "a1", variantById),
   );
-  const lessonPositions: LessonPositionRecord[] = input.lessons.map((recipe) => ({
-    lessonId: recipe.id,
-    level: "a1",
-    moduleId: recipe.moduleId,
-    position: A1_CANONICAL_POSITIONS[recipe.id] ?? 0,
-  }));
+  const lessonPositions: LessonPositionRecord[] = buildLessonPositionRecords(
+    input.lessons,
+    "a1",
+    A1_CANONICAL_POSITIONS,
+  );
   return {
     levels: [],
     modules: [],
@@ -271,7 +254,6 @@ export function assembleA1FoundationCatalogs(
     verbUseRecords: input.verbUseRecords ?? [],
   };
 }
-
 
 // ---------------------------------------------------------------------------
 // Instructional-lesson builder (models + transfers + practice + copy)
@@ -292,7 +274,8 @@ export interface A1LineSpec {
   readonly interrogative?: boolean;
   /** Explicit polarity/tense override (Module 6 past / negative / past-negative
    * and copula tense/polarity). Mutually exclusive with `interrogative: true`
-   * — {@link lineVariant} (via {@link a1Variant}) throws if both are set. */
+   * — {@link buildA1InstructionalLesson} (via the shared kit) throws if both
+   * are set. */
   readonly form?: FormSelection;
   readonly translation: Bilingual;
   readonly speakerRole?: string;
@@ -350,36 +333,31 @@ const A1_VOICEABLE_REFERENTS: ReadonlySet<string> = new Set([
   "a1-referent-friend",
 ]);
 
-/** The default speaker for a line: an explicit override, else the subject's own
- * role when the subject is a named animate person, else the learner. Speaker
- * identity is discourse-only metadata — it never changes the realized Japanese,
- * so this default diversifies discourse roles without touching any surface. */
-function defaultSpeakerRole(spec: A1LineSpec): string {
-  if (spec.speakerRole !== undefined) return spec.speakerRole;
-  const ref = spec.subjectReferent;
-  if (ref !== null && A1_VOICEABLE_REFERENTS.has(ref)) {
-    return A1_REFERENT_ROLE[ref] ?? "a1-role-learner";
-  }
-  return "a1-role-learner";
-}
-
-function lineVariant(spec: A1LineSpec, use: PedagogicalUse): A1BuiltVariant {
-  return a1Variant({
-    id: spec.id,
-    family: spec.family,
-    context: spec.context,
-    speakerRole: defaultSpeakerRole(spec),
-    addresseeRole: spec.addresseeRole === undefined ? "a1-role-teacher" : spec.addresseeRole,
-    subjectReferent: spec.subjectReferent,
-    subjectRealization: spec.subjectRealization,
-    slots: spec.slots,
-    interrogative: spec.interrogative,
-    form: spec.form,
-    use,
-    translation: spec.translation,
-    scenario: a1Scenario(spec.context),
-  });
-}
+/**
+ * The shared kit config for A1: fixed roles/referents/round-kinds/selection-
+ * policy/scenario-copy, `a1Variant` as the level's own no-Japanese-scanning
+ * variant builder (structurally satisfies the kit's `KitResolvedVariantSpec`
+ * — see {@link A1VariantSpec}), and `defineA1Lesson` as the level's own
+ * recipe validator/freezer. Every default-speaker/addressee, model+transfer
+ * assembly, practice-round, and diversity-constraint step below is now the
+ * shared, level-agnostic kit's job — this file only supplies A1's own fixed
+ * choices for it.
+ */
+const A1_INSTRUCTIONAL_KIT_CONFIG: InstructionalLessonKitConfig<A1LessonRecipe> = {
+  defaultSpeakerRoleId: "a1-role-learner",
+  defaultAddresseeRoleId: "a1-role-teacher",
+  referentPersonRoleById: A1_REFERENT_ROLE,
+  voiceableReferentIds: A1_VOICEABLE_REFERENTS,
+  scenarioCopy: a1Scenario,
+  buildVariant: a1Variant,
+  modelCountRange: [8, 8],
+  exerciseCountRange: [10, 10],
+  roundTargetCount: 5,
+  roundOneExerciseKinds: A1_ROUND_ONE_KINDS,
+  roundTwoExerciseKinds: A1_ROUND_TWO_KINDS,
+  selectionPolicyId: "a1-selection-default",
+  defineLesson: defineA1Lesson,
+};
 
 /**
  * Expand an instructional lesson's eight models and five transfers into a
@@ -388,80 +366,14 @@ function lineVariant(spec: A1LineSpec, use: PedagogicalUse): A1BuiltVariant {
  * are fixed to the A1 depth contract: eight models, ten exercises, ≥3
  * predicates, ≥3 roles, ≥2 contexts, five unique targets per round, reuse ≤2,
  * five transfer exercises, controlled construction required. `minFamilies` is
- * derived from the models' distinct families (never hand-declared).
+ * derived from the models' distinct families (never hand-declared). Delegates
+ * every level-agnostic assembly step to the shared
+ * `instructionalLessonKit.buildInstructionalLesson`.
  */
 export function buildA1InstructionalLesson(
   input: A1InstructionalLessonInput,
 ): A1BuiltLesson {
-  const modelBuilt = input.models.map((m) => lineVariant(m, "model"));
-  const transferBuilt = input.transfers.map((t) => lineVariant(t, "transfer"));
-  const modelIds = modelBuilt.map((b) => b.variant.id);
-  const transferIds = transferBuilt.map((b) => b.variant.id);
-
-  const modelFamilies = new Set(modelBuilt.map((b) => b.variant.sentenceFamilyId));
-
-  const diversityConstraints: LessonDiversityConstraints = {
-    modelCountRange: [8, 8],
-    exerciseCountRange: [10, 10],
-    minFamilies: modelFamilies.size,
-    minPredicates: 3,
-    minRoles: 3,
-    minContexts: 2,
-    minUniqueTargets: 5,
-    maxTargetReuse: 2,
-    minTransferExercises: 5,
-    requireControlledConstruction: true,
-  };
-
-  const practice: LessonPracticeDefinition = {
-    lessonId: input.id,
-    roundOne: {
-      id: `${input.id}-round-1`,
-      purpose: "guided-controlled",
-      candidateVariantIds: modelIds,
-      selectionPolicyId: "a1-selection-default",
-      exerciseKinds: [...A1_ROUND_ONE_KINDS],
-      targetCount: 5,
-    },
-    roundTwo: {
-      id: `${input.id}-round-2`,
-      purpose: "transfer",
-      candidateVariantIds: transferIds,
-      selectionPolicyId: "a1-selection-default",
-      exerciseKinds: [...A1_ROUND_TWO_KINDS],
-      targetCount: 5,
-    },
-  };
-
-  const recipe = defineA1Lesson({
-    id: input.id,
-    moduleId: input.moduleId,
-    order: input.order,
-    contract: input.contract ?? "instructional",
-    primaryCanDoId: input.primaryCanDoId,
-    supportingCanDoIds: input.supportingCanDoIds,
-    modelVariantIds: modelIds,
-    guidedVariantIds: [modelIds[0], modelIds[1]],
-    spokenVariantId: modelIds[0],
-    practice,
-    diversityConstraints,
-    introducedConceptIds: input.introducedConceptIds,
-    introducedSenseIds: input.introducedSenseIds,
-  });
-
-  const en: Record<string, string> = {};
-  const it: Record<string, string> = {};
-  for (const built of [...modelBuilt, ...transferBuilt]) {
-    Object.assign(en, built.en);
-    Object.assign(it, built.it);
-  }
-
-  return {
-    recipe,
-    variants: [...modelBuilt, ...transferBuilt].map((b) => b.variant),
-    en,
-    it,
-  };
+  return buildInstructionalLesson(A1_INSTRUCTIONAL_KIT_CONFIG, input);
 }
 
 /**

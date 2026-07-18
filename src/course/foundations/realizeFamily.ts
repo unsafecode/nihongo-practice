@@ -112,8 +112,16 @@ interface RealizationRuleDefinition {
    * inflection + invariant です (`sense.adjectiveClass === "i"`) or the
    * conjugating polite-copula pieces (`"na"`); "request" families emit the
    * predicate value's own standalone politeness word (ください) with no
-   * verbal/copular ending at all. */
-  readonly predicateKind: "copula" | "verb" | "adjective" | "request";
+   * verbal/copular ending at all. "invariant" (Phase 3 Task 4, A2) families
+   * emit the predicate value's own token fragments exactly as authored — no
+   * ending, copula, or standalone-politeness word is ever appended after
+   * them — for constructions whose complete realized content (a plain-form
+   * conjugation, a suffix composition, or a whole baked clause/utterance) is
+   * already computed once at catalog-authoring time (typically via
+   * `a2/forms/a2Conjugation.ts`'s `conjugate()` or
+   * `composeA2Construction()`), so there is nothing left for a generic
+   * ending table to add. Purely additive: no existing rule references it. */
+  readonly predicateKind: "copula" | "verb" | "adjective" | "request" | "invariant";
   /**
    * What the family's `object` slot (if any) means to the sense's own case
    * frame (§16 case-frame extension). `"copular-complement"` is a plain
@@ -317,6 +325,57 @@ const REALIZATION_RULES: Readonly<Record<string, RealizationRuleDefinition>> = {
     objectRole: null,
     subjectParticle: "ga",
     contentSlots: [{ slotId: "location", particle: { kind: "fixed", particle: "ni" } }],
+  },
+  // --- Phase 3 Task 4 A2 constructions: "invariant" predicateKind ---
+  // The predicate value's own fragments ARE the complete realized content
+  // (a plain-form conjugation, a suffix composition, or a whole baked
+  // clause/utterance authored once at catalog time) — no ending, copula, or
+  // standalone politeness word is ever appended after them.
+  //
+  // A fully self-contained utterance with no separate content slot at all —
+  // backchannels/follow-ups, connector-linked two-clause discourse,
+  // clarification set phrases, plain-form recognition dialogue, yotei/tsumori
+  // intentions, invitations, meeting arrangements, たことがあります experience
+  // (reusing `composeA2Construction("experience-takoto", ...)`), ordered
+  // narratives, から/ので reason clauses, と思います opinions, and
+  // agree/disagree reactions can all be realized through this one rule.
+  "rule-invariant-utterance": {
+    id: "rule-invariant-utterance",
+    predicateKind: "invariant",
+    objectRole: null,
+    contentSlots: [],
+  },
+  // The same invariant predicate, preceded by a と-marked companion (e.g. "X
+  // さんと" before an invitation/plan/arrangement predicate).
+  "rule-invariant-with-companion": {
+    id: "rule-invariant-with-companion",
+    predicateKind: "invariant",
+    objectRole: null,
+    contentSlots: [{ slotId: "companion", particle: { kind: "fixed", particle: "to" } }],
+  },
+  // The same invariant predicate, preceded by a へ-marked destination (e.g. a
+  // よてい/つもり plan naming where the subject is going).
+  "rule-invariant-with-location": {
+    id: "rule-invariant-with-location",
+    predicateKind: "invariant",
+    objectRole: null,
+    contentSlots: [{ slotId: "location", particle: { kind: "fixed", particle: "he" } }],
+  },
+  // The same invariant predicate, preceded by a bare (particle-less) time
+  // adverbial (e.g. "らいしゅう" before a plan/intention predicate).
+  "rule-invariant-with-time": {
+    id: "rule-invariant-with-time",
+    predicateKind: "invariant",
+    objectRole: null,
+    contentSlots: [{ slotId: "time", particle: { kind: "none" } }],
+  },
+  // The same invariant predicate, preceded by a を-marked governed theme
+  // (e.g. an opinion/reason clause naming what is being discussed).
+  "rule-invariant-with-object": {
+    id: "rule-invariant-with-object",
+    predicateKind: "invariant",
+    objectRole: "governed-theme",
+    contentSlots: [{ slotId: "object", particle: { kind: "fixed", particle: "o" } }],
   },
 };
 
@@ -916,6 +975,7 @@ export function realizeVariant(
   const isCopula = rule.predicateKind === "copula";
   const isAdjective = rule.predicateKind === "adjective";
   const isRequest = rule.predicateKind === "request";
+  const isInvariant = rule.predicateKind === "invariant";
   const verbEnding = VERB_POLITE_ENDINGS[key];
   const copulaPieces = COPULA_POLITE_ENDINGS[key];
 
@@ -946,13 +1006,19 @@ export function realizeVariant(
       pushParticle(builder, variant.id, particleId);
     }
   }
-  // A verb or adjective family emits its predicate value's own stem fragments
-  // before the ending; a request emits its politeness word as a standalone
-  // word (below); a copula emits no stem.
-  if ((rule.predicateKind === "verb" || isAdjective) && predicateValue) {
+  // A verb, adjective, or invariant family emits its predicate value's own
+  // stem/complete-content fragments before any ending; a request emits its
+  // politeness word as a standalone word (below); a copula emits no stem. An
+  // invariant predicate's fragments ARE the complete content — the branch
+  // below adds nothing further after them.
+  if ((rule.predicateKind === "verb" || isAdjective || isInvariant) && predicateValue) {
     pushSlotFragments(builder, variant.id, "predicate", predicateValue);
   }
-  if (isCopula) {
+  if (isInvariant) {
+    // No ending, copula, or standalone politeness word is ever appended: the
+    // predicate value's own fragments (pushed above) are already the
+    // complete realized content.
+  } else if (isCopula) {
     // The polite copula is a run of space-bound standalone predicate pieces
     // (です / でした / では + ありません [+ でした]); each is its own
     // traceable token so the shared formatter spaces them (`gakusei desu`),
