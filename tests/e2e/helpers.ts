@@ -30,7 +30,7 @@ export const routeUrls = {
  * lesson offers an "open in the guided Lab" deep-link), and a fully
  * populated prev/map/next footer.
  */
-export const REPRESENTATIVE_LESSON = { moduleId: "time", lessonId: "time-past" } as const;
+export const REPRESENTATIVE_LESSON = { moduleId: "past-negative", lessonId: "past-negative-2" } as const;
 
 /** A "sound" lesson whose explore links out to a specific Syllabary group.
  * Uses the current canonical lesson id directly (not a retired v2.1 alias):

@@ -72,7 +72,9 @@
 }
 
 .foundation-matrix__jp {
+  font-family: var(--font-jp);
   font-size: 1.15rem;
+  line-height: 1.3;
   overflow-wrap: anywhere;
 }
 
@@ -153,7 +155,9 @@
 }
 
 .foundation-guided__jp {
+  font-family: var(--font-jp);
   font-size: 1.15rem;
+  line-height: 1.3;
   overflow-wrap: anywhere;
 }
 

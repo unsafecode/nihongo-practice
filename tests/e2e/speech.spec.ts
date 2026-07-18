@@ -30,7 +30,7 @@ import {
  */
 
 /** The lesson used across the functional suite: a clear, fully-segmented target
- * ("My name is Yuki") whose non-critical name segment makes a truthful `close`
+ * ("Ken is a doctor") whose four independent segments make a truthful `close`
  * result reachable, and which is also exercise-rich for the no-block case. */
 const SPEECH_LESSON = { moduleId: "introductions", lessonId: "introductions-1" } as const;
 const SPEECH_LESSON_URL = routeUrls.lesson(
@@ -45,13 +45,13 @@ const KATAKANA_LESSON_URL = routeUrls.lesson("sounds", "sounds-4");
  * kana (within the close edit budget, every critical segment still aligned), and
  * an unrelated sentence (retry). No answer literal is invented beyond the target
  * sentence the lesson itself teaches. */
-const TARGET_JP = "わたしのなまえはゆきです";
-const CLOSE_JP = "わたしのなまえはゆきですね";
+const TARGET_JP = "けんはいしゃです";
+const CLOSE_JP = "けんはいしゃですね";
 const RETRY_JP = "ちがいます";
 
 /** The English translation the lesson shows for the target (locale-agnostic UI
  * proof only — never a Japanese literal). */
-const MEANING_EN = "My name is Yuki.";
+const MEANING_EN = "Ken is a doctor.";
 
 type Locale = "it" | "en";
 
@@ -303,9 +303,9 @@ test.describe("truthful result states", () => {
     const heard = block.locator(".spoken-attempt__heard-text");
     await expect(heard).toHaveText(TARGET_JP);
     await expect(heard).toHaveAttribute("lang", "ja");
-    // Coherent per-segment records: all six target segments recognized, none missing.
-    await expect(block.locator(".spoken-attempt__segment")).toHaveCount(6);
-    await expect(block.locator(".spoken-attempt__segment--matched")).toHaveCount(6);
+    // Coherent per-segment records: all four target segments recognized, none missing.
+    await expect(block.locator(".spoken-attempt__segment")).toHaveCount(4);
+    await expect(block.locator(".spoken-attempt__segment--matched")).toHaveCount(4);
     await expect(block.locator(".spoken-attempt__segment--missing")).toHaveCount(0);
     await expect(
       block.locator(".spoken-attempt__segment-state").first(),
@@ -622,10 +622,11 @@ test.describe("speech never blocks the rest of the course", () => {
     await expect(page.locator(".spoken-attempt__fallback")).toBeVisible();
 
     // 1) Exercises still complete and enqueue review. A wrong choice → retry.
+    const wrongValue = "introductions-1-t3#introductions-1-t3::rule::o";
     const choice = page.locator(".lesson-exercise", {
-      has: page.locator(".lesson-exercise__radio"),
+      has: page.locator(`input[type=radio][value="${wrongValue}"]`),
     });
-    await choice.locator('input[type=radio][value="introductions-1-say#p1"]').check();
+    await choice.locator(`input[type=radio][value="${wrongValue}"]`).check();
     await choice.locator("button[type=submit]").click();
     await expect(choice.locator(".lesson-exercise__feedback--retry")).toBeVisible();
 
@@ -640,9 +641,12 @@ test.describe("speech never blocks the rest of the course", () => {
     await expect(page.locator(".spoken-attempt__heading")).toHaveText(COPY.en.heading);
     await expect(page.getByText(COPY.en.errorUnsupported)).toBeVisible();
 
-    // 4) Katakana assistance still renders on Module 1's bridge lesson.
+    // 4) Module 1's bridge lesson still renders its katakana phonetic roster
+    // (the roster prints the katakana glyph plus its plain-text romaji inline;
+    // no `ruby`-based furigana assist is wired up for the live A1 catalog).
     await gotoReady(page, KATAKANA_LESSON_URL);
-    await expect(page.locator("ruby.katakana-assist").first()).toBeVisible();
+    await expect(page.locator(".a1-phonetic-roster__item").first()).toBeVisible();
+    await expect(page.locator("ruby.katakana-assist")).toHaveCount(0);
     // The speech block is still offered (unsupported) and never gates the lesson.
     await expect(page.locator(".spoken-attempt__fallback")).toBeVisible();
 

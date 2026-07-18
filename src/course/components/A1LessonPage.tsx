@@ -18,6 +18,15 @@ import {
 import type { FoundationLocalizedRow } from "../foundations/buildLessonViewModel";
 import { FamilyGuidedConstruction } from "../foundations/FamilyGuidedConstruction";
 import { SentenceMatrix } from "../foundations/SentenceMatrix";
+// `foundation.css` styles `SentenceMatrix`/`FamilyGuidedConstruction`
+// (`.foundation-matrix*` / `.foundation-guided*`) — both render on every
+// "semantic rule" A1 lesson via this page. The file previously shipped only
+// as a side effect of the compile-time-gated `FoundationFixturePage` import,
+// so a real `npm run build` (no `VITE_FOUNDATION_FIXTURES` flag) tree-shook
+// it out entirely, leaving these two components completely unstyled in
+// production. Import it here directly so it is part of the real bundle
+// regardless of the fixture flag.
+import "../foundations/foundation.css";
 import { getCourseCopy } from "../i18n/catalog";
 import { JapaneseSegmentText } from "./JapaneseSegmentText";
 import { A1SpokenAttempt } from "./A1SpokenAttempt";

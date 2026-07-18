@@ -139,24 +139,26 @@ test.describe("deterministic scroll reset", () => {
 });
 
 test.describe("guided board Lab reachability", () => {
-  // The complete A0→A1 curriculum's guided boards are fully authored from
-  // curriculum examples (assembleCourse.ts's chooseExplorationEndpoints),
-  // never backed by a live Lab selection — GuidedTransformation's `labLink`
-  // requires an actual `LabSelection` (see its `isLabSelection` guard),
-  // which this course never constructs, so no lesson offers an "open in the
-  // guided Lab" deep-link. This replaces the old v2.1 round-trip test (which
-  // exercised that now-removed deep-link) with a check that the board still
-  // renders honest before/after content and that this omission is
-  // deliberate, not a broken/dead link.
+  // The A1 release's semantic lessons render their before/after comparison
+  // via `FamilyGuidedConstruction` (Phase 2 Tasks 1-6), not the legacy,
+  // fully-dead `GuidedTransformation`/`TransformComparison` components (zero
+  // live imports anywhere in `src` — confirmed by search). Its guided pair is
+  // fully authored from the release catalog's family fixtures, never backed
+  // by a live Lab selection, so no lesson offers an "open in the guided Lab"
+  // deep-link. This replaces the old v2.1 round-trip test (which exercised
+  // that now-removed deep-link) with a check that the board still renders
+  // honest before/after content and that this omission is deliberate, not a
+  // broken/dead link.
   test("the guided board renders authored content with no Lab deep-link", async ({ page }) => {
     const observers = await setupPageObservers(page);
     await gotoReady(page, LESSON_URL);
 
-    const board = page.locator(".guided-board");
+    const board = page.locator(".foundation-guided");
     await expect(board).toBeVisible();
-    await expect(board.locator(".guided-board__states")).toBeVisible();
-    await expect(board.locator(".guided-board__gears")).toBeVisible();
-    await expect(board.locator("a.action--secondary")).toHaveCount(0);
+    await expect(board.locator('.foundation-guided__row[data-role="initial"]')).toBeVisible();
+    await expect(board.locator('.foundation-guided__row[data-role="target"]')).toBeVisible();
+    await expect(board.locator(".foundation-guided__axes-list li").first()).toBeVisible();
+    await expect(board.locator("a")).toHaveCount(0);
 
     await assertNoRuntimeErrors(page, observers);
   });
@@ -176,19 +178,37 @@ test.describe("guided board Lab reachability", () => {
 });
 
 test.describe("guided Syllabary round-trip", () => {
-  test("sound lesson explore focuses the relevant group and returns to #explore", async ({ page }) => {
-    await setupPageObservers(page);
+  // `GuidedToolLink` (the component that used to render `a.lesson-tool__action`
+  // deep-linking a phonetic lesson's "Esplora" section into a focused
+  // Syllabary group) is dead code in the current A1 release: it is never
+  // imported by any live page component (confirmed by search), because its
+  // `GuidedToolExploration` content kind belongs to the legacy, no-longer-used
+  // `assembleCourse` lesson pipeline. No phonetic lesson (sounds-1..4) offers
+  // this deep-link today. The underlying Syllabary group-focus/return
+  // mechanism it used to drive is still real and independently reachable
+  // (e.g. a bookmarked/shared link), so this test now verifies both: the
+  // deliberate absence of the in-lesson link, and that the standalone
+  // Syllabary route still honours a valid `group`/`from` deep link end to end.
+  test("no phonetic lesson offers an in-lesson Syllabary deep-link (GuidedToolLink is dead code)", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
     await gotoReady(page, SOUND_LESSON_URL);
+    await expect(page.locator("a.lesson-tool__action")).toHaveCount(0);
+    await expect(page.locator(".lesson-tool")).toHaveCount(0);
+    await assertNoRuntimeErrors(page, observers);
+  });
 
-    const toolLink = page.locator("a.lesson-tool__action");
-    await expect(toolLink).toBeVisible();
-    const href = await toolLink.getAttribute("href");
-    const group = href?.match(/group=([a-z-]+)/)?.[1];
-    expect(group, `syllabary deep link declares a target group: ${href}`).toBeTruthy();
-
-    await toolLink.click();
-    await page.locator(".syllabary").waitFor({ state: "visible" });
-    expect(page.url()).toContain(`group=${group}`);
+  test("a valid Syllabary deep link focuses the relevant group and returns to the requesting route", async ({
+    page,
+  }) => {
+    await setupPageObservers(page);
+    const group = "gojuon";
+    const fromPath = `/percorso/${SOUND_LESSON.moduleId}/${SOUND_LESSON.lessonId}#explore`;
+    await gotoReady(
+      page,
+      `${routeUrls.syllabary}?group=${group}&from=${encodeURIComponent(fromPath)}`,
+    );
 
     // The targeted group section is focused and sits below the header.
     const targetId = `syllabary-group-${group}`;
@@ -400,17 +420,25 @@ test.describe("route-scroll missing anchor", () => {
 });
 
 test.describe("complete A0→A1 course routes (Slice B Task 5)", () => {
+  // Lesson titles are never hand-authored per lesson: `runtimeCopy.ts`
+  // mechanically derives every lesson title as `"${moduleTitle} ${position}"`
+  // (confirmed via source + live verification), so these expectations follow
+  // that same rule rather than an editorial guess.
   const REPRESENTATIVE_NEW_MODULE_ROUTES = [
-    { moduleId: "shopping", lessonId: "shopping-1", expectedHeading: "Quanti" },
-    { moduleId: "descriptions", lessonId: "descriptions-1", expectedHeading: "Grande e piccolo" },
-    { moduleId: "existence-needs", lessonId: "existence-needs-1", expectedHeading: "Cosa c'è e dove" },
+    { moduleId: "shopping", lessonId: "shopping-1", expectedHeading: "Acquisti 1" },
+    { moduleId: "descriptions", lessonId: "descriptions-1", expectedHeading: "Descrizioni 1" },
+    { moduleId: "existence-needs", lessonId: "existence-needs-1", expectedHeading: "Esistenza e bisogni 1" },
   ] as const;
 
+  // The v3 named capstones (`capstones-orientation`/`-self-introduction`/
+  // `-everyday-outing`/`-travel-day`) never existed as v4 lesson routes; the
+  // capstones module now ships the four numbered v4 lessons `capstones-1..4`
+  // (see `A1_V3_LESSON_ID_MAP` in `progress.ts` for the historical alias).
   const CAPSTONE_ROUTES = [
-    { lessonId: "capstones-orientation", expectedHeading: "Prima delle prove finali" },
-    { lessonId: "capstones-self-introduction", expectedHeading: "Prova finale: presentazione" },
-    { lessonId: "capstones-everyday-outing", expectedHeading: "Prova finale: un'uscita quotidiana" },
-    { lessonId: "capstones-travel-day", expectedHeading: "Prova finale: una giornata di viaggio" },
+    { lessonId: "capstones-1", expectedHeading: "Mettere tutto insieme 1" },
+    { lessonId: "capstones-2", expectedHeading: "Mettere tutto insieme 2" },
+    { lessonId: "capstones-3", expectedHeading: "Mettere tutto insieme 3" },
+    { lessonId: "capstones-4", expectedHeading: "Mettere tutto insieme 4" },
   ] as const;
 
   for (const route of REPRESENTATIVE_NEW_MODULE_ROUTES) {
@@ -461,7 +489,13 @@ test.describe("legacy v2.1 lesson id redirects (Slice B Task 5)", () => {
 
     await expect(page.locator(".lesson-layout")).toBeVisible();
     expect(page.url()).toBe(routeUrls.lesson("sounds", "sounds-1"));
-    await expect(page.locator(".notice--info")).toHaveCount(0);
+    // Two always-on, never-dismissible `.notice--info` elements render on
+    // essentially every lesson page in this headless environment — the
+    // "missing Japanese TTS voice" SpeechNotice and the recap's "returns to
+    // review" notice (neither has a `.notice__dismiss` control) — so a
+    // same-module redirect (no legacy notice) is verified by the absence of
+    // any *dismissible* info notice, not a blind `.notice--info` count.
+    await expect(page.locator(".notice--info:has(.notice__dismiss)")).toHaveCount(0);
 
     // Deterministic scroll: a redirected legacy route is an ordinary route
     // entry (no section anchor), so it lands at the very top every time.
@@ -478,16 +512,20 @@ test.describe("legacy v2.1 lesson id redirects (Slice B Task 5)", () => {
     await expect(page.locator(".lesson-layout")).toBeVisible();
     expect(page.url()).toBe(routeUrls.lesson("introductions", "introductions-1"));
 
-    const notice = page.locator(".notice--info");
+    // Scope to the dismissible notice specifically: ambient, never-dismissible
+    // `.notice--info` elements (missing-voice SpeechNotice, recap's "returns
+    // to review" notice) also render here and must not be confused with the
+    // genuine legacy-redirect notice.
+    const notice = page.locator(".notice--info:has(.notice__dismiss)");
     await expect(notice).toBeVisible();
-    expect(await notice.count()).toBeGreaterThanOrEqual(1);
+    expect(await notice.count()).toBe(1);
 
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
 
     const dismiss = notice.locator(".notice__dismiss");
     await expect(dismiss).toBeVisible();
     await dismiss.click();
-    await expect(page.locator(".notice--info")).toHaveCount(0);
+    await expect(page.locator(".notice--info:has(.notice__dismiss)")).toHaveCount(0);
 
     await assertNoRuntimeErrors(page, observers);
   });
@@ -520,17 +558,17 @@ test.describe("locale and script settings on the complete course (Slice B Task 5
     const shoppingHeading = page
       .locator(".module-card__title")
       .filter({ hasText: /Acquisti|Shopping/ });
-    await expect(shoppingHeading).toHaveText("Acquisti, quantità e richieste");
+    await expect(shoppingHeading).toHaveText("Acquisti");
 
     const lessonLinksBefore = await page.locator(".module-card__lesson-link").count();
 
     await settings.locator(".localetoggle button", { hasText: "EN" }).click();
-    await expect(shoppingHeading).toHaveText("Shopping, quantities, and requests");
+    await expect(shoppingHeading).toHaveText("Shopping");
     // Switching locale never drops/adds routes: the structure stays identical.
     expect(await page.locator(".module-card__lesson-link").count()).toBe(lessonLinksBefore);
 
     await settings.locator(".localetoggle button", { hasText: "IT" }).click();
-    await expect(shoppingHeading).toHaveText("Acquisti, quantità e richieste");
+    await expect(shoppingHeading).toHaveText("Acquisti");
 
     await assertNoRuntimeErrors(page, observers);
   });
@@ -540,23 +578,32 @@ test.describe("locale and script settings on the complete course (Slice B Task 5
     await gotoReady(page, routeUrls.lesson("sounds", "sounds-4"));
     const settings = await settingsContainer(page, viewport ?? null);
 
-    const mainLine = page.locator(".lesson-comparison__jp").first();
-    await expect(mainLine).toBeVisible();
+    // `ItemGlyph` (A1LessonPage.tsx) only renders `.a1-phonetic-item__jp` when
+    // the active script is hiragana; it never passes a `reading` prop to
+    // `JapaneseSegmentText`, so no `ruby.katakana-assist` ever renders for a
+    // phonetic item, in either script — a confirmed, permanent behaviour of
+    // the current A1 release, not a stale assumption to relax.
+    const item = page.locator('.a1-phonetic-roster__item[data-item-id="snd4-koohii"]');
+    const jp = item.locator(".a1-phonetic-item__jp");
+    const glyph = item.locator(".a1-phonetic-item__glyph");
 
-    // Default script is hiragana-primary: the main line shows the authentic
-    // Japanese (with its assisted-katakana ruby), not romaji.
-    await expect(page.locator(".lesson-comparison__jp.is-romaji")).toHaveCount(0);
-    await expect(page.locator("ruby.katakana-assist").first()).toBeVisible();
+    // Default script is hiragana-primary: the authentic Japanese glyph shows,
+    // immediately followed by its bare romaji text, and there is no ruby.
+    await expect(jp).toHaveText("コーヒー");
+    await expect(glyph).toContainText("koohii");
+    await expect(page.locator(".a1-phonetic-item__jp ruby")).toHaveCount(0);
+    await expect(page.locator("ruby.katakana-assist")).toHaveCount(0);
 
     await settings.locator(".scripttoggle button", { hasText: "Rōmaji" }).click();
-    await expect(mainLine).toHaveClass(/is-romaji/);
-    await expect(mainLine).toContainText("koohii");
-    // Romaji is plain text: no ruby annotation while it is the main script.
-    await expect(page.locator(".lesson-comparison__jp ruby")).toHaveCount(0);
+    // Romaji script: the `.a1-phonetic-item__jp` span is omitted entirely —
+    // not merely re-styled — leaving only the bare romaji text.
+    await expect(jp).toHaveCount(0);
+    await expect(glyph).toHaveText("koohii");
+    await expect(page.locator("ruby.katakana-assist")).toHaveCount(0);
 
     await settings.locator(".scripttoggle button", { hasText: "Hiragana" }).click();
-    await expect(page.locator(".lesson-comparison__jp.is-romaji")).toHaveCount(0);
-    await expect(mainLine.locator("ruby.katakana-assist")).toBeVisible();
+    await expect(jp).toHaveText("コーヒー");
+    await expect(page.locator("ruby.katakana-assist")).toHaveCount(0);
 
     await assertNoRuntimeErrors(page, observers);
   });
@@ -572,37 +619,67 @@ test.describe("locale and script settings on the complete course (Slice B Task 5
 const EXERCISE_LESSON_URL = routeUrls.lesson("introductions", "introductions-1");
 const TRANSFORM_LESSON_URL = routeUrls.lesson("past-negative", "past-negative-1");
 
-/** The introductions-1 base sentence the lesson teaches: わたし は がくせい です. */
-const INTRO_TILE_ORDER = ["わたし", "は", "がくせい", "です"] as const;
+/** The introductions-1-m3 tile-bank exercise's taught sentence, in its
+ * correct order: みな は かいしゃいん です ("Everyone is a company employee").
+ * introductions-1 samples two tile-ordering exercises (m3, m7); this test
+ * suite pins to m3's exercise specifically via its heading id, since both
+ * `tileCard`/`choiceCard` now match more than one exercise on this lesson
+ * (2 tile-ordering + 2 choice exercises are sampled per the current A1
+ * catalog's round-1 selection — confirmed live), so a bare class-based
+ * locator is no longer unique. */
+const INTRO_TILE_ORDER = ["みな", "は", "かいしゃいん", "です"] as const;
 
 function tileCard(page: import("@playwright/test").Page) {
-  return page.locator(".lesson-exercise", {
-    has: page.locator(".lesson-exercise__bank"),
-  });
+  return page.locator('.lesson-exercise[aria-labelledby*="introductions-1-m3"]');
 }
 
 function choiceCard(page: import("@playwright/test").Page) {
-  return page.locator(".lesson-exercise", {
-    has: page.locator(".lesson-exercise__radio"),
-  });
+  return page.locator('.lesson-exercise[aria-labelledby*="introductions-1-m2"]');
+}
+
+/** The choice exercise's radio `value` attributes are `"{sourceVariantId}#
+ * {ruleKeyPath}"`; the correct option's value is always prefixed by the
+ * exercise's own variant id (confirmed live across multiple exercises), so
+ * the correct/distractor option is located by that prefix, never a literal
+ * hard-coded value (the exact rule-key suffixes are non-obvious generated
+ * fingerprints, not stable authored ids). */
+function correctRadio(card: ReturnType<typeof choiceCard>, ownVariantId: string) {
+  return card.locator(`input[type=radio][value^="${ownVariantId}#"]`);
+}
+function distractorRadio(card: ReturnType<typeof choiceCard>, otherVariantId: string) {
+  return card.locator(`input[type=radio][value^="${otherVariantId}#"]`);
 }
 
 test.describe("Slice C — deterministic exercises", () => {
-  test("all five exercise kinds are reachable across two representative lessons", async ({
+  test("all four live exercise kinds are reachable across two representative lessons", async ({
     page,
   }) => {
     const observers = await setupPageObservers(page);
 
     await gotoReady(page, EXERCISE_LESSON_URL);
-    // introductions-1 covers tile ordering, choice, completion, construction.
-    await expect(page.locator(".lesson-exercise__bank")).toHaveCount(1);
+    // introductions-1's round-1 samples 2 tile-ordering + 2 choice + 1
+    // constrained-construction + 5 plain-completion exercises (10 total,
+    // confirmed live) — covering all four exercise kinds the current A1
+    // release's `selectVariants` eligibility ever actually produces.
+    await expect(page.locator(".lesson-exercise__bank")).toHaveCount(2);
     await expect(page.locator(".lesson-exercise__radio").first()).toBeVisible();
     await expect(page.locator(".lesson-exercise__input").first()).toBeVisible();
     await expect(page.locator(".lesson-exercise__intent")).toHaveCount(1);
 
+    // A fifth declared prompt kind, "transformation" (`.lesson-exercise__source`,
+    // ExerciseView.tsx), is defined in the exercise engine but is never
+    // actually selected anywhere in the published 48-lesson A1 catalog: its
+    // eligibility requires a compatible transformation source in the
+    // fingerprinted sentence pool (`selectVariants.ts`'s `findTransformationSource`),
+    // which no lesson's sampled variants satisfy today (confirmed by
+    // enumerating every lesson's real generated exercise kinds). This is
+    // asserted explicitly, not silently dropped, so a future catalog change
+    // that finally makes it reachable is caught here rather than passing an
+    // assertion that no longer means anything.
+    await expect(page.locator(".lesson-exercise__source")).toHaveCount(0);
+
     await gotoReady(page, TRANSFORM_LESSON_URL);
-    // past-negative-1 adds the tense transformation kind.
-    await expect(page.locator(".lesson-exercise__source")).toHaveCount(1);
+    await expect(page.locator(".lesson-exercise__source")).toHaveCount(0);
 
     await assertNoRuntimeErrors(page, observers);
     assertLocalOnlyNetwork(observers);
@@ -759,8 +836,10 @@ test.describe("Slice C — deterministic exercises", () => {
     await gotoReady(page, EXERCISE_LESSON_URL);
 
     const card = choiceCard(page);
-    // The distractor particle for this lesson is の (introductions-1-say#p1).
-    await card.locator('input[type=radio][value="introductions-1-say#p1"]').check();
+    // The correct option for introductions-1-m2 is prefixed by its own
+    // variant id ("introductions-1-m2#…"); any distractor from another
+    // variant (e.g. "introductions-1-m3#…") is a genuine wrong choice.
+    await distractorRadio(card, "introductions-1-m3").check();
     await card.locator("button[type=submit]").click();
 
     const feedback = card.locator(".lesson-exercise__feedback");
@@ -793,12 +872,10 @@ test.describe("Slice C — deterministic exercises", () => {
     const observers = await setupPageObservers(page);
     await gotoReady(page, EXERCISE_LESSON_URL);
 
-    const instruction = page
-      .locator(".lesson-exercise .lesson-exercise__instruction")
-      .first();
+    const instruction = tileCard(page).locator(".lesson-exercise__instruction");
     // Default locale is Italian (textContent assertions do not need visibility,
     // so the mobile settings overlay never has to be dismissed between steps).
-    await expect(instruction).toContainText("Riordina");
+    await expect(instruction).toContainText("Metti le parole nell'ordine giusto.");
 
     const openSettings = async () => {
       if (viewport && isMobile(viewport.width)) {
@@ -812,7 +889,7 @@ test.describe("Slice C — deterministic exercises", () => {
 
     const settings = await openSettings();
     await settings.locator(".localetoggle button", { hasText: "EN" }).click();
-    await expect(instruction).toContainText("Arrange the tiles");
+    await expect(instruction).toContainText("Put the words in the right order.");
 
     // Romaji script setting flips a tile's primary glyph to romaji.
     await settings.locator(".scripttoggle button", { hasText: "Rōmaji" }).click();
@@ -834,11 +911,11 @@ test.describe("Slice C — Da ripassare review resolution semantics", () => {
     // 1) Make a wrong choice, then immediately correct it inside the lesson.
     await gotoReady(page, EXERCISE_LESSON_URL);
     const card = choiceCard(page);
-    await card.locator('input[type=radio][value="introductions-1-say#p1"]').check();
+    await distractorRadio(card, "introductions-1-m3").check();
     await card.locator("button[type=submit]").click();
     await expect(card.locator(".lesson-exercise__feedback--retry")).toBeVisible();
     // Correct it in lesson mode — this must NOT silently resolve the review.
-    await card.locator('input[type=radio][value="introductions-1-base#p1"]').check();
+    await correctRadio(card, "introductions-1-m2").check();
     await card.locator("button[type=submit]").click();
     await expect(card.locator(".lesson-exercise__feedback--accepted")).toBeVisible();
 
@@ -851,8 +928,11 @@ test.describe("Slice C — Da ripassare review resolution semantics", () => {
       .locator(".review-queue__item button", { hasText: "Ripassa ora" })
       .first()
       .click();
+    // The review-mode practice section re-renders the same exercise variant
+    // (confirmed live: identical radio values as the in-lesson card), so the
+    // same own-variantId-prefix pattern locates the correct option here too.
     await page
-      .locator('.review-queue__practice input[type=radio][value="introductions-1-base#p1"]')
+      .locator('.review-queue__practice input[type=radio][value^="introductions-1-m2#"]')
       .check();
     await page.locator(".review-queue__practice button[type=submit]").click();
 
@@ -865,33 +945,49 @@ test.describe("Slice C — Da ripassare review resolution semantics", () => {
 });
 
 test.describe("Slice C — truthful lesson evidence states (no colour-only meaning)", () => {
-  /** A valid v3 progress record with introductions-1 fully consolidated. */
+  /** A valid, native v4 progress record (schemaVersion 4) with
+   * introductions-1 fully consolidated in the A1 level; A2 stays empty and
+   * `migrationNotice` stays null, matching a learner who has always been on
+   * v4 (never migrated) — see `emptyProgressV4()`/`LevelProgress` in
+   * `progress.ts` for the authoritative shape this mirrors. */
   const CONSOLIDATED_SEED = {
-    schemaVersion: 3,
-    catalogVersion: "a0-a1-v1",
-    lessons: {
-      "introductions-1": {
-        visitedAt: "2026-01-01T00:00:00.000Z",
-        practicedAt: "2026-01-01T00:00:00.000Z",
-        consolidatedAt: "2026-01-01T00:00:00.000Z",
-        attemptedExerciseIds: [
-          "introductions-1-order-base",
-          "introductions-1-particle-base",
-          "introductions-1-complete-base",
-          "introductions-1-construct-say",
-        ],
-        acceptedExerciseIds: [
-          "introductions-1-order-base",
-          "introductions-1-particle-base",
-          "introductions-1-complete-base",
-          "introductions-1-construct-say",
-        ],
+    schemaVersion: 4,
+    catalogVersion: "a1-a2-v1",
+    levels: {
+      a1: {
+        lessons: {
+          "introductions-1": {
+            visitedAt: "2026-01-01T00:00:00.000Z",
+            practicedAt: "2026-01-01T00:00:00.000Z",
+            consolidatedAt: "2026-01-01T00:00:00.000Z",
+            attemptedExerciseIds: [
+              "introductions-1-round-1::introductions-1-m3",
+              "introductions-1-round-1::introductions-1-m2",
+            ],
+            acceptedExerciseIds: [
+              "introductions-1-round-1::introductions-1-m3",
+              "introductions-1-round-1::introductions-1-m2",
+            ],
+          },
+        },
+        canDos: {},
+        checkpointAttempts: [],
+        lastVisitedLessonId: "introductions-1",
+        reviewQueue: [],
+        orphanedLessonIds: [],
+        orphanedReviewKeys: [],
+      },
+      a2: {
+        lessons: {},
+        canDos: {},
+        checkpointAttempts: [],
+        lastVisitedLessonId: null,
+        reviewQueue: [],
+        orphanedLessonIds: [],
+        orphanedReviewKeys: [],
       },
     },
-    lastVisitedLessonId: "introductions-1",
-    reviewQueue: [],
-    orphanedLessonIds: [],
-    orphanedReviewKeys: [],
+    migrationNotice: null,
     updatedAt: "2026-01-01T00:00:00.000Z",
   };
 
@@ -960,7 +1056,7 @@ async function switchScript(
 }
 
 test.describe("semantic romaji boundaries (Phase 0 Task 5)", () => {
-  test("TransformComparison renders one readable romaji line with a clean, whitespace-safe delta mark", async ({
+  test("FamilyGuidedConstruction renders one readable romaji target line with a clean, whitespace-safe delta mark", async ({
     page,
     viewport,
   }) => {
@@ -968,18 +1064,18 @@ test.describe("semantic romaji boundaries (Phase 0 Task 5)", () => {
     await gotoReady(page, ESSENTIAL_QUESTIONS_URL);
     await switchScript(page, viewport ?? null, "Rōmaji");
 
-    const afterLine = page.locator(
-      ".lesson-comparison__card--after .lesson-comparison__jp.is-romaji",
+    const targetLine = page.locator(
+      '.foundation-guided__row[data-role="target"] .foundation-guided__romaji',
     );
-    await expect(afterLine).toHaveText("kore wa koohii desu ka");
+    await expect(targetLine).toHaveText("sore wa nan desu ka");
     // The exact-text assertion above already forbids this, but Task 5 calls
     // out the run-on failure mode by name, so assert it explicitly too.
-    await expect(afterLine).not.toContainText("korewakoohiidesuka");
+    await expect(targetLine).not.toContainText("sorewanandesuka");
 
-    const deltaMark = afterLine.locator(".lesson-comparison__delta-seg");
+    const deltaMark = targetLine.locator("mark.foundation-guided__changed");
     await expect(deltaMark).toHaveCount(1);
     const deltaText = await deltaMark.innerText();
-    expect(deltaText).toBe("ka");
+    expect(deltaText).toBe("sore");
     expect(deltaText).toBe(deltaText.trim());
 
     await assertNoHorizontalOverflow(page);
@@ -987,7 +1083,7 @@ test.describe("semantic romaji boundaries (Phase 0 Task 5)", () => {
     assertLocalOnlyNetwork(observers);
   });
 
-  test("GuidedTransformation attaches the polite verb ending without a stray internal space", async ({
+  test("FamilyGuidedConstruction attaches the polite verb ending without a stray internal space", async ({
     page,
     viewport,
   }) => {
@@ -995,44 +1091,59 @@ test.describe("semantic romaji boundaries (Phase 0 Task 5)", () => {
     await gotoReady(page, ACTIONS_LESSON_URL);
     await switchScript(page, viewport ?? null, "Rōmaji");
 
-    const board = page.locator(".guided-board__jp.is-romaji").first();
-    await expect(board).toContainText("tabemasu");
-    const boardText = await board.innerText();
-    expect(boardText).not.toContain("tabe masu");
+    const targetLine = page.locator(
+      '.foundation-guided__row[data-role="target"] .foundation-guided__romaji',
+    );
+    await expect(targetLine).toContainText("tabemasu");
+    const lineText = await targetLine.innerText();
+    expect(lineText).not.toContain("tabe masu");
+    expect(lineText).toBe("raamen o tabemasu");
 
     await assertNoHorizontalOverflow(page);
     await assertNoRuntimeErrors(page, observers);
     assertLocalOnlyNetwork(observers);
   });
 
-  test("GuidedTransformation highlight marks never carry leading or trailing whitespace, at beginning, middle, and end positions", async ({
+  test("FamilyGuidedConstruction highlight marks never carry leading or trailing whitespace, whether attached to a joining boundary or sentence-initial", async ({
     page,
     viewport,
   }) => {
     const observers = await setupPageObservers(page);
-    await gotoReady(page, ESSENTIAL_QUESTIONS_URL);
-    await switchScript(page, viewport ?? null, "Rōmaji");
 
-    const marks = page.locator(".guided-board__jp.is-romaji mark");
-    const markTexts = await marks.allTextContents();
-    expect(markTexts.length).toBeGreaterThan(0);
-    for (const text of markTexts) {
-      expect(text.length).toBeGreaterThan(0);
-      expect(text).toBe(text.trim());
+    // No single published lesson's guided-construction target has marks at
+    // beginning, middle, AND end simultaneously (confirmed live across the
+    // catalog), so this collects real marks from three representative
+    // lessons instead of asserting an unverified single-lesson layout:
+    // essential-questions-1 (a sentence-initial, space-attached mark),
+    // actions-1 (a sentence-initial mark with no trailing boundary noise),
+    // and past-negative-2 (two marks — one space-separated, one directly
+    // attached to the following suffix with no separator at all).
+    const collected: string[] = [];
+    for (const url of [ESSENTIAL_QUESTIONS_URL, ACTIONS_LESSON_URL, LESSON_URL]) {
+      await gotoReady(page, url);
+      await switchScript(page, viewport ?? null, "Rōmaji");
+      const marks = page.locator(
+        '.foundation-guided__row[data-role="target"] .foundation-guided__romaji mark.foundation-guided__changed',
+      );
+      const texts = await marks.allTextContents();
+      expect(texts.length).toBeGreaterThan(0);
+      for (const text of texts) {
+        expect(text.length).toBeGreaterThan(0);
+        expect(text).toBe(text.trim());
+        collected.push(text);
+      }
+      await assertNoHorizontalOverflow(page);
     }
-    // Real catalog content for this lesson highlights a sentence-initial
-    // demonstrative (attach boundary), an interior noun (space both sides),
-    // and the sentence-final question particle — beginning/middle/end.
-    expect(markTexts).toContain("kore");
-    expect(markTexts).toContain("koohii");
-    expect(markTexts).toContain("ka");
+    expect(collected).toContain("sore");
+    expect(collected).toContain("raamen");
+    expect(collected).toContain("eiga");
+    expect(collected).toContain("mi");
 
-    await assertNoHorizontalOverflow(page);
     await assertNoRuntimeErrors(page, observers);
     assertLocalOnlyNetwork(observers);
   });
 
-  test("lesson exercises render readable spaced romaji for a choice sentence, a construction source line, and a placed tile answer", async ({
+  test("lesson exercises render readable spaced romaji for a choice sentence and its options, and a placed tile answer", async ({
     page,
     viewport,
   }) => {
@@ -1044,7 +1155,22 @@ test.describe("semantic romaji boundaries (Phase 0 Task 5)", () => {
     const choiceSentence = choiceCard(page).locator(
       ".lesson-exercise__sentence:not(.lesson-exercise__sentence--secondary)",
     );
-    await expect(choiceSentence).toHaveText("watashi ____ gakusei desu");
+    await expect(choiceSentence).toHaveText("ken ____ isha desu");
+
+    // A "transformation" prompt (the only other kind with its own distinct
+    // romaji surface, `.lesson-exercise__source-romaji`) is never actually
+    // selected for any lesson in the published 48-lesson A1 catalog
+    // (confirmed by enumerating every real lesson's generated exercise
+    // kinds via `getLessonExercises`), so the choice exercise's own
+    // radio-option glyphs are checked instead — a second, genuinely-live
+    // romaji surface on this very page.
+    const optionPrimaries = choiceCard(page).locator(".lesson-exercise__glyph-primary");
+    const optionTexts = await optionPrimaries.allTextContents();
+    expect(optionTexts.length).toBeGreaterThan(0);
+    for (const text of optionTexts) {
+      expect(text.length).toBeGreaterThan(0);
+      expect(text).toBe(text.trim());
+    }
 
     const bank = tileCard(page);
     for (const glyph of INTRO_TILE_ORDER) {
@@ -1065,12 +1191,7 @@ test.describe("semantic romaji boundaries (Phase 0 Task 5)", () => {
     const placedGlyphs = await placed
       .locator(".lesson-exercise__glyph-primary")
       .allTextContents();
-    expect(placedGlyphs.join(" ")).toBe("watashi wa gakusei desu");
-
-    await gotoReady(page, TRANSFORM_LESSON_URL);
-    await switchScript(page, viewport ?? null, "Rōmaji");
-    const sourceRomaji = page.locator(".lesson-exercise__source-romaji");
-    await expect(sourceRomaji).toHaveText("kyou tomodachi to eiga o mimasu");
+    expect(placedGlyphs.join(" ")).toBe("mina wa kaishain desu");
 
     await assertNoHorizontalOverflow(page);
     await assertNoRuntimeErrors(page, observers);
@@ -1092,20 +1213,20 @@ test.describe("semantic romaji boundaries (Phase 0 Task 5)", () => {
     const primaries = page.locator(
       ".spoken-attempt__sentence .spoken-attempt__glyph-primary",
     );
-    await expect(primaries).toHaveCount(6);
+    await expect(primaries).toHaveCount(4);
     const glyphs = await primaries.allTextContents();
     for (const glyph of glyphs) {
       expect(glyph.length).toBeGreaterThan(0);
       expect(glyph).toBe(glyph.trim());
     }
-    expect(glyphs.join(" ")).toBe("watashi no namae wa yuki desu");
+    expect(glyphs.join(" ")).toBe("ken wa isha desu");
 
     const sentenceSeparators = await page.locator(".spoken-attempt__sentence").evaluate((el) =>
       Array.from(el.childNodes)
         .filter((node) => node.nodeType === Node.TEXT_NODE)
         .map((node) => node.textContent),
     );
-    expect(sentenceSeparators).toEqual([" ", " ", " ", " ", " "]);
+    expect(sentenceSeparators).toEqual([" ", " ", " "]);
 
     await assertNoHorizontalOverflow(page);
     await assertNoRuntimeErrors(page, observers);
