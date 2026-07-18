@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ship the complete CEFR-aligned A2 level — exactly 15 modules × 4 = 60 lessons, a Can-do-serving grammar spiral, a 120-glyph contextual-kanji recognition system, a two-level selector UX, and truthful A2 checkpoint/progress — on top of the frozen A1 release, reusing the shared Phase 1 foundation/exercise/validator architecture with zero destructive progress migration.
+**Goal:** Ship the complete **A2 level, aligned with JF/CEFR Can-do** descriptors (an alignment claim only — never implies or claims any certification) — exactly 15 modules × 4 = 60 lessons, a Can-do-serving grammar spiral, a 120-glyph contextual-kanji recognition system, a two-level selector UX, and truthful A2 checkpoint/progress — on top of the frozen A1 release, reusing the shared Phase 1 foundation/exercise/validator architecture with zero destructive progress migration.
 
 **Architecture:** A2 mirrors A1's proven pipeline — a declarative frozen manifest (`a2/manifest.ts`) → authored semantic catalogs (families/senses/values, no Japanese literals in lesson builders) → the shared pure `realizeVariant` + `validateFoundations` oracle → a release gate (`validateA2Release`) run at `prebuild` → deterministic runtime view-models keyed by a shared release version/seed. Three genuinely new subsystems extend the shared architecture rather than fork it: (1) an **A2 form/aspect layer** that teaches plain forms, て-form, 〜ている and the clause-combining spiral by adding bound-morpheme ending registries and clause families to the *existing* realizer; (2) a **contextual-kanji layer** (`KanjiEntry`/`KanjiExposure`/assistance policy) that renders semantic ruby, enforces first-supported→supported-retrieval→revealable→assessed ordering, and never lets hiragana/romaji bypass an assessed recognition target; (3) a **level layer** that adds an explicit A2 `CourseLevel`, a URL-routable level selector, and separate A2 Can-do/checkpoint evidence in the already-level-aware V4 progress record. A2 has **no phonetic module**, so all 60 lessons use the single instructional/synthesis depth contract and pass straight through `validateFoundations`.
 
@@ -16,7 +16,7 @@
 - **TDD is mandatory.** Every code step is: write the failing test → run it, see the exact failure → write the minimal implementation → run it, see it pass → commit. Documentation/data-table steps commit on their own.
 - **Commit granularity:** one commit per numbered "Commit" step. Never batch two tasks into one commit.
 - **Canonical Japanese lives in data, not boilerplate.** Lesson builders reference semantic *IDs* (`a2-value-*`, `a2-sense-*`, `a2-family-*`); the actual kana/kanji strings live only in the semantic-value catalog, the realizer ending registries, and the kanji catalog. A lint step (Task 4 Step 2) fails if a Japanese code point appears in any `src/course/a2/**/module*.ts` lesson file.
-- **Baseline (verified at plan authoring, HEAD `9c0c0ca`):** `npx tsc --noEmit` → clean; `npx vitest run` → green; `npm run build` → succeeds; `GITHUB_PAGES=true npm run build` → succeeds. If any is red before you start, stop and fix the baseline first.
+- **Baseline (verified at plan authoring, HEAD `53e4d11`):** `npx tsc --noEmit` → clean; `npx vitest run` → green; `npm run build` → succeeds; `GITHUB_PAGES=true npm run build` → succeeds. If any is red before you start, stop and fix the baseline first.
 
 ---
 
@@ -117,147 +117,149 @@ Each row: the form, its **named Can-do**, the **first supported intro** lesson, 
 
 A dedicated validator (`validateA2GrammarSpiral`, Task 2) fails the release if any form lacks any of the five roles, or if a controlled-practice/transfer/recurrence lesson precedes the intro lesson in canonical order.
 
-### L3 — Contextual kanji inventory: exactly 120 glyphs, 8 per module
+### L3 — Contextual kanji inventory: exactly 120 glyphs, contextually distributed, M15 introduces zero new glyphs
 
-**Count decision:** exactly **120** unique glyphs (inside the spec's 100–150 band; the user preference). **Distribution:** 8 glyphs per module × 15 modules = 120 (sums exactly). A1 taught **no** kanji (romaji/hiragana only), so all 120 are first-introduced in A2 — no A1 overlap to reconcile. Every glyph is anchored to a **contextual lexeme** drawn from that module's Can-dos (no standalone kanji dump). **Modality is recognition only:** read / choose / match — never handwriting, stroke order, or IME production.
+**Count decision:** exactly **120** unique glyphs (inside the spec's 100–150 band; the user preference). A1 taught **no** kanji (romaji/hiragana only), so all 120 are first-introduced in A2 — no A1 overlap to reconcile. Every glyph is anchored to a **contextual lexeme** drawn from its module's Can-dos (no standalone kanji dump). **Modality is recognition only:** read / choose / match — never handwriting, stroke order, or IME production.
 
-**Per-glyph four-stage schedule (mechanical, monotonic, spaced).** For a module `M` with lessons `M-1..M-4`, its 8 glyphs split into two cohorts:
+**Distribution (per module, sums to exactly 120):** M1=8, M2=12, M3=9, M4=8, M5=9, M6=8, M7=8, M8=8, M9=8, M10=8, M11=8, M12=9, M13=8, M14=9, **M15=0**. The synthesis module (M15) introduces **zero new glyphs** — it only re-exposes and assesses glyphs first supported in M1–M14 (the four M14 straddling glyphs 料/金/開/閉 have their assessed stage at `a2-synthesis-4`, i.e. M15 *assesses earlier* glyphs). This is a deliberate change from an earlier "8 per module" mechanical assumption: eight high-frequency glyphs (今 日 来 月 年 毎 山 本) that were previously first-exposed at synthesis are moved into contextually appropriate earlier modules (see the table) so that **no glyph is first-supported at any synthesis lesson**. The per-module counts are the authoritative constant `A2_KANJI_DISTRIBUTION` (Task 3); nothing derives them from a uniform "8".
 
-- **Cohort A (glyphs 1–4):** first-supported `M-1` → supported-retrieval `M-2` → revealable `M-3` → assessed `M-4`.
-- **Cohort B (glyphs 5–8):** first-supported `M-2` → supported-retrieval `M-3` → revealable `M-4` → assessed = **next module's** `-1` (for M14/M15, assessed at `a2-synthesis-4`, the checkpoint).
+**Per-glyph four-stage schedule — every stage is explicit in the table (no cohort shortcut).** The inventory table lists all four canonical stages per glyph: **first-supported → supported-retrieval → revealable → assessed**. Every row satisfies strict `first-supported < supported-retrieval < revealable < assessed` in canonical lesson order (module order 1..15 × lesson 1..4), so assessment always follows at least one supported retrieval and one revealable exposure. Two spacing patterns recur (they are *descriptive*, not a builder mechanism — the builder reads the four explicit columns, §Task 3):
 
-This guarantees, per glyph, `first-supported < supported-retrieval < revealable < assessed` in canonical order, assessment strictly after a supported retrieval, and assessment distributed across modules. The inventory table below lists, per glyph: **glyph · contextual lexeme (reading) · first-supported lesson · revealable lesson · assessed lesson** (supported-retrieval and cohort follow the schedule above and are computed by the catalog builder).
+- **Within-module (A):** first-supported `M-1` → supported-retrieval `M-2` → revealable `M-3` → assessed `M-4`.
+- **Straddling (B):** first-supported `M-2` → supported-retrieval `M-3` → revealable `M-4` → assessed = the **next** module's `-1` (M14's straddling glyphs assess at `a2-synthesis-4`, the checkpoint).
 
-| Module | Glyph | Contextual lexeme (reading) | First-supported | Revealable | Assessed |
-|--------|-------|-----------------------------|-----------------|------------|----------|
-| M1 | 話 | 話します (はなします) | connected-conversation-1 | connected-conversation-3 | connected-conversation-4 |
-| M1 | 言 | 言います (いいます) | connected-conversation-1 | connected-conversation-3 | connected-conversation-4 |
-| M1 | 聞 | 聞きます (ききます) | connected-conversation-1 | connected-conversation-3 | connected-conversation-4 |
-| M1 | 友 | 友だち (ともだち) | connected-conversation-1 | connected-conversation-3 | connected-conversation-4 |
-| M1 | 思 | 思います (おもいます) | connected-conversation-2 | connected-conversation-4 | plans-invitations-1 |
-| M1 | 名 | 名前 (なまえ) | connected-conversation-2 | connected-conversation-4 | plans-invitations-1 |
-| M1 | 前 | 名前 (なまえ) | connected-conversation-2 | connected-conversation-4 | plans-invitations-1 |
-| M1 | 何 | 何 (なに) | connected-conversation-2 | connected-conversation-4 | plans-invitations-1 |
-| M2 | 予 | 予定 (よてい) | plans-invitations-1 | plans-invitations-3 | plans-invitations-4 |
-| M2 | 定 | 予定 (よてい) | plans-invitations-1 | plans-invitations-3 | plans-invitations-4 |
-| M2 | 曜 | 曜日 (ようび) | plans-invitations-1 | plans-invitations-3 | plans-invitations-4 |
-| M2 | 会 | 会います (あいます) | plans-invitations-1 | plans-invitations-3 | plans-invitations-4 |
-| M2 | 週 | 今週 (こんしゅう) | plans-invitations-2 | plans-invitations-4 | experiences-narratives-1 |
-| M2 | 末 | 週末 (しゅうまつ) | plans-invitations-2 | plans-invitations-4 | experiences-narratives-1 |
-| M2 | 待 | 待ちます (まちます) | plans-invitations-2 | plans-invitations-4 | experiences-narratives-1 |
-| M2 | 約 | 約束 (やくそく) | plans-invitations-2 | plans-invitations-4 | experiences-narratives-1 |
-| M3 | 去 | 去年 (きょねん) | experiences-narratives-1 | experiences-narratives-3 | experiences-narratives-4 |
-| M3 | 楽 | 楽しい (たのしい) | experiences-narratives-1 | experiences-narratives-3 | experiences-narratives-4 |
-| M3 | 初 | 初めて (はじめて) | experiences-narratives-1 | experiences-narratives-3 | experiences-narratives-4 |
-| M3 | 度 | 一度 (いちど) | experiences-narratives-1 | experiences-narratives-3 | experiences-narratives-4 |
-| M3 | 有 | 有名 (ゆうめい) | experiences-narratives-2 | experiences-narratives-4 | reasons-opinions-1 |
-| M3 | 泳 | 泳ぎます (およぎます) | experiences-narratives-2 | experiences-narratives-4 | reasons-opinions-1 |
-| M3 | 登 | 登ります (のぼります) | experiences-narratives-2 | experiences-narratives-4 | reasons-opinions-1 |
-| M3 | 旅 | 旅行 (りょこう) | experiences-narratives-2 | experiences-narratives-4 | reasons-opinions-1 |
-| M4 | 理 | 理由 (りゆう) | reasons-opinions-1 | reasons-opinions-3 | reasons-opinions-4 |
-| M4 | 由 | 理由 (りゆう) | reasons-opinions-1 | reasons-opinions-3 | reasons-opinions-4 |
-| M4 | 考 | 考えます (かんがえます) | reasons-opinions-1 | reasons-opinions-3 | reasons-opinions-4 |
-| M4 | 意 | 意見 (いけん) | reasons-opinions-1 | reasons-opinions-3 | reasons-opinions-4 |
-| M4 | 見 | 意見 (いけん) | reasons-opinions-2 | reasons-opinions-4 | sequencing-ongoing-1 |
-| M4 | 気 | 気持ち (きもち) | reasons-opinions-2 | reasons-opinions-4 | sequencing-ongoing-1 |
-| M4 | 持 | 気持ち (きもち) | reasons-opinions-2 | reasons-opinions-4 | sequencing-ongoing-1 |
-| M4 | 悪 | 悪い (わるい) | reasons-opinions-2 | reasons-opinions-4 | sequencing-ongoing-1 |
-| M5 | 起 | 起きます (おきます) | sequencing-ongoing-1 | sequencing-ongoing-3 | sequencing-ongoing-4 |
-| M5 | 寝 | 寝ます (ねます) | sequencing-ongoing-1 | sequencing-ongoing-3 | sequencing-ongoing-4 |
-| M5 | 使 | 使います (つかいます) | sequencing-ongoing-1 | sequencing-ongoing-3 | sequencing-ongoing-4 |
-| M5 | 作 | 作ります (つくります) | sequencing-ongoing-1 | sequencing-ongoing-3 | sequencing-ongoing-4 |
-| M5 | 洗 | 洗います (あらいます) | sequencing-ongoing-2 | sequencing-ongoing-4 | permission-requests-1 |
-| M5 | 終 | 終わります (おわります) | sequencing-ongoing-2 | sequencing-ongoing-4 | permission-requests-1 |
-| M5 | 始 | 始まります (はじまります) | sequencing-ongoing-2 | sequencing-ongoing-4 | permission-requests-1 |
-| M5 | 働 | 働きます (はたらきます) | sequencing-ongoing-2 | sequencing-ongoing-4 | permission-requests-1 |
-| M6 | 入 | 入ります (はいります) | permission-requests-1 | permission-requests-3 | permission-requests-4 |
-| M6 | 口 | 入口 (いりぐち) | permission-requests-1 | permission-requests-3 | permission-requests-4 |
-| M6 | 出 | 出口 (でぐち) | permission-requests-1 | permission-requests-3 | permission-requests-4 |
-| M6 | 止 | 止まります (とまります) | permission-requests-1 | permission-requests-3 | permission-requests-4 |
-| M6 | 禁 | 禁止 (きんし) | permission-requests-2 | permission-requests-4 | neighborhood-services-1 |
-| M6 | 消 | 消します (けします) | permission-requests-2 | permission-requests-4 | neighborhood-services-1 |
-| M6 | 座 | 座ります (すわります) | permission-requests-2 | permission-requests-4 | neighborhood-services-1 |
-| M6 | 立 | 立ちます (たちます) | permission-requests-2 | permission-requests-4 | neighborhood-services-1 |
-| M7 | 病 | 病院 (びょういん) | neighborhood-services-1 | neighborhood-services-3 | neighborhood-services-4 |
-| M7 | 院 | 病院 (びょういん) | neighborhood-services-1 | neighborhood-services-3 | neighborhood-services-4 |
-| M7 | 銀 | 銀行 (ぎんこう) | neighborhood-services-1 | neighborhood-services-3 | neighborhood-services-4 |
-| M7 | 行 | 銀行 (ぎんこう) | neighborhood-services-1 | neighborhood-services-3 | neighborhood-services-4 |
-| M7 | 局 | 郵便局 (ゆうびんきょく) | neighborhood-services-2 | neighborhood-services-4 | restaurant-problems-1 |
-| M7 | 便 | 便利 (べんり) | neighborhood-services-2 | neighborhood-services-4 | restaurant-problems-1 |
-| M7 | 図 | 図書館 (としょかん) | neighborhood-services-2 | neighborhood-services-4 | restaurant-problems-1 |
-| M7 | 館 | 図書館 (としょかん) | neighborhood-services-2 | neighborhood-services-4 | restaurant-problems-1 |
-| M8 | 食 | 食べます (たべます) | restaurant-problems-1 | restaurant-problems-3 | restaurant-problems-4 |
-| M8 | 飲 | 飲みます (のみます) | restaurant-problems-1 | restaurant-problems-3 | restaurant-problems-4 |
-| M8 | 飯 | ご飯 (ごはん) | restaurant-problems-1 | restaurant-problems-3 | restaurant-problems-4 |
-| M8 | 茶 | お茶 (おちゃ) | restaurant-problems-1 | restaurant-problems-3 | restaurant-problems-4 |
-| M8 | 肉 | 肉 (にく) | restaurant-problems-2 | restaurant-problems-4 | shopping-returns-1 |
-| M8 | 魚 | 魚 (さかな) | restaurant-problems-2 | restaurant-problems-4 | shopping-returns-1 |
-| M8 | 熱 | 熱い (あつい) | restaurant-problems-2 | restaurant-problems-4 | shopping-returns-1 |
-| M8 | 冷 | 冷たい (つめたい) | restaurant-problems-2 | restaurant-problems-4 | shopping-returns-1 |
-| M9 | 買 | 買います (かいます) | shopping-returns-1 | shopping-returns-3 | shopping-returns-4 |
-| M9 | 店 | 店 (みせ) | shopping-returns-1 | shopping-returns-3 | shopping-returns-4 |
-| M9 | 円 | 千円 (せんえん) | shopping-returns-1 | shopping-returns-3 | shopping-returns-4 |
-| M9 | 番 | 一番 (いちばん) | shopping-returns-1 | shopping-returns-3 | shopping-returns-4 |
-| M9 | 千 | 千円 (せんえん) | shopping-returns-2 | shopping-returns-4 | health-advice-1 |
-| M9 | 万 | 一万 (いちまん) | shopping-returns-2 | shopping-returns-4 | health-advice-1 |
-| M9 | 安 | 安い (やすい) | shopping-returns-2 | shopping-returns-4 | health-advice-1 |
-| M9 | 高 | 高い (たかい) | shopping-returns-2 | shopping-returns-4 | health-advice-1 |
-| M10 | 医 | 医者 (いしゃ) | health-advice-1 | health-advice-3 | health-advice-4 |
-| M10 | 者 | 医者 (いしゃ) | health-advice-1 | health-advice-3 | health-advice-4 |
-| M10 | 薬 | 薬 (くすり) | health-advice-1 | health-advice-3 | health-advice-4 |
-| M10 | 体 | 体 (からだ) | health-advice-1 | health-advice-3 | health-advice-4 |
-| M10 | 頭 | 頭 (あたま) | health-advice-2 | health-advice-4 | work-study-messages-1 |
-| M10 | 痛 | 痛い (いたい) | health-advice-2 | health-advice-4 | work-study-messages-1 |
-| M10 | 元 | 元気 (げんき) | health-advice-2 | health-advice-4 | work-study-messages-1 |
-| M10 | 休 | 休みます (やすみます) | health-advice-2 | health-advice-4 | work-study-messages-1 |
-| M11 | 社 | 会社 (かいしゃ) | work-study-messages-1 | work-study-messages-3 | work-study-messages-4 |
-| M11 | 仕 | 仕事 (しごと) | work-study-messages-1 | work-study-messages-3 | work-study-messages-4 |
-| M11 | 事 | 仕事 (しごと) | work-study-messages-1 | work-study-messages-3 | work-study-messages-4 |
-| M11 | 教 | 教えます (おしえます) | work-study-messages-1 | work-study-messages-3 | work-study-messages-4 |
-| M11 | 学 | 学校 (がっこう) | work-study-messages-2 | work-study-messages-4 | travel-reservations-1 |
-| M11 | 校 | 学校 (がっこう) | work-study-messages-2 | work-study-messages-4 | travel-reservations-1 |
-| M11 | 先 | 先生 (せんせい) | work-study-messages-2 | work-study-messages-4 | travel-reservations-1 |
-| M11 | 生 | 学生 (がくせい) | work-study-messages-2 | work-study-messages-4 | travel-reservations-1 |
-| M12 | 空 | 空港 (くうこう) | travel-reservations-1 | travel-reservations-3 | travel-reservations-4 |
-| M12 | 港 | 空港 (くうこう) | travel-reservations-1 | travel-reservations-3 | travel-reservations-4 |
-| M12 | 駅 | 駅 (えき) | travel-reservations-1 | travel-reservations-3 | travel-reservations-4 |
-| M12 | 電 | 電車 (でんしゃ) | travel-reservations-1 | travel-reservations-3 | travel-reservations-4 |
-| M12 | 車 | 電車 (でんしゃ) | travel-reservations-2 | travel-reservations-4 | relationships-events-1 |
-| M12 | 着 | 着きます (つきます) | travel-reservations-2 | travel-reservations-4 | relationships-events-1 |
-| M12 | 発 | 出発 (しゅっぱつ) | travel-reservations-2 | travel-reservations-4 | relationships-events-1 |
-| M12 | 泊 | 泊まります (とまります) | travel-reservations-2 | travel-reservations-4 | relationships-events-1 |
-| M13 | 母 | 母 (はは) | relationships-events-1 | relationships-events-3 | relationships-events-4 |
-| M13 | 父 | 父 (ちち) | relationships-events-1 | relationships-events-3 | relationships-events-4 |
-| M13 | 家 | 家族 (かぞく) | relationships-events-1 | relationships-events-3 | relationships-events-4 |
-| M13 | 族 | 家族 (かぞく) | relationships-events-1 | relationships-events-3 | relationships-events-4 |
-| M13 | 結 | 結婚 (けっこん) | relationships-events-2 | relationships-events-4 | practical-texts-1 |
-| M13 | 婚 | 結婚 (けっこん) | relationships-events-2 | relationships-events-4 | practical-texts-1 |
-| M13 | 誕 | 誕生日 (たんじょうび) | relationships-events-2 | relationships-events-4 | practical-texts-1 |
-| M13 | 送 | 送ります (おくります) | relationships-events-2 | relationships-events-4 | practical-texts-1 |
-| M14 | 時 | 時間 (じかん) | practical-texts-1 | practical-texts-3 | practical-texts-4 |
-| M14 | 間 | 時間 (じかん) | practical-texts-1 | practical-texts-3 | practical-texts-4 |
-| M14 | 分 | 五分 (ごふん) | practical-texts-1 | practical-texts-3 | practical-texts-4 |
-| M14 | 半 | 半 (はん) | practical-texts-1 | practical-texts-3 | practical-texts-4 |
-| M14 | 料 | 料金 (りょうきん) | practical-texts-2 | practical-texts-4 | a2-synthesis-4 |
-| M14 | 金 | 料金 (りょうきん) | practical-texts-2 | practical-texts-4 | a2-synthesis-4 |
-| M14 | 開 | 開きます (あきます) | practical-texts-2 | practical-texts-4 | a2-synthesis-4 |
-| M14 | 閉 | 閉まります (しまります) | practical-texts-2 | practical-texts-4 | a2-synthesis-4 |
-| M15 | 今 | 今日 (きょう) | a2-synthesis-1 | a2-synthesis-3 | a2-synthesis-4 |
-| M15 | 日 | 今日 (きょう) | a2-synthesis-1 | a2-synthesis-3 | a2-synthesis-4 |
-| M15 | 本 | 日本 (にほん) | a2-synthesis-1 | a2-synthesis-3 | a2-synthesis-4 |
-| M15 | 毎 | 毎日 (まいにち) | a2-synthesis-1 | a2-synthesis-3 | a2-synthesis-4 |
-| M15 | 年 | 来年 (らいねん) | a2-synthesis-2 | a2-synthesis-4 | a2-synthesis-4 |
-| M15 | 来 | 来ます (きます) | a2-synthesis-2 | a2-synthesis-4 | a2-synthesis-4 |
-| M15 | 月 | 来月 (らいげつ) | a2-synthesis-2 | a2-synthesis-4 | a2-synthesis-4 |
-| M15 | 山 | 山 (やま) | a2-synthesis-2 | a2-synthesis-4 | a2-synthesis-4 |
+**Moved-glyph per-glyph readings (for the Task 3 builder `kana`/`romaji` fields).** The table's reading column shows the whole contextual lexeme; the recognition-target reading for the eight relocated glyphs is: 今→こん (`kon`, in 今週), 日→び (`bi`, in 曜日), 来→らい (`rai`, in 来月), 月→げつ (`getsu`, in 来月), 年→ねん (`nen`, in 去年), 毎→まい (`mai`, in 毎日), 山→やま (`yama`, standalone 山), 本→ほん (`hon`, standalone 本).
+
+| Module | Glyph | Contextual lexeme (reading) | First-supported | Supported-retrieval | Revealable | Assessed |
+|--------|-------|-----------------------------|-----------------|---------------------|------------|----------|
+| M1 | 話 | 話します (はなします) | connected-conversation-1 | connected-conversation-2 | connected-conversation-3 | connected-conversation-4 |
+| M1 | 言 | 言います (いいます) | connected-conversation-1 | connected-conversation-2 | connected-conversation-3 | connected-conversation-4 |
+| M1 | 聞 | 聞きます (ききます) | connected-conversation-1 | connected-conversation-2 | connected-conversation-3 | connected-conversation-4 |
+| M1 | 友 | 友だち (ともだち) | connected-conversation-1 | connected-conversation-2 | connected-conversation-3 | connected-conversation-4 |
+| M1 | 思 | 思います (おもいます) | connected-conversation-2 | connected-conversation-3 | connected-conversation-4 | plans-invitations-1 |
+| M1 | 名 | 名前 (なまえ) | connected-conversation-2 | connected-conversation-3 | connected-conversation-4 | plans-invitations-1 |
+| M1 | 前 | 名前 (なまえ) | connected-conversation-2 | connected-conversation-3 | connected-conversation-4 | plans-invitations-1 |
+| M1 | 何 | 何 (なに) | connected-conversation-2 | connected-conversation-3 | connected-conversation-4 | plans-invitations-1 |
+| M2 | 予 | 予定 (よてい) | plans-invitations-1 | plans-invitations-2 | plans-invitations-3 | plans-invitations-4 |
+| M2 | 定 | 予定 (よてい) | plans-invitations-1 | plans-invitations-2 | plans-invitations-3 | plans-invitations-4 |
+| M2 | 曜 | 曜日 (ようび) | plans-invitations-1 | plans-invitations-2 | plans-invitations-3 | plans-invitations-4 |
+| M2 | 会 | 会います (あいます) | plans-invitations-1 | plans-invitations-2 | plans-invitations-3 | plans-invitations-4 |
+| M2 | 今 | 今週 (こんしゅう) | plans-invitations-1 | plans-invitations-2 | plans-invitations-3 | plans-invitations-4 |
+| M2 | 日 | 曜日 (ようび) | plans-invitations-1 | plans-invitations-2 | plans-invitations-3 | plans-invitations-4 |
+| M2 | 週 | 今週 (こんしゅう) | plans-invitations-2 | plans-invitations-3 | plans-invitations-4 | experiences-narratives-1 |
+| M2 | 末 | 週末 (しゅうまつ) | plans-invitations-2 | plans-invitations-3 | plans-invitations-4 | experiences-narratives-1 |
+| M2 | 待 | 待ちます (まちます) | plans-invitations-2 | plans-invitations-3 | plans-invitations-4 | experiences-narratives-1 |
+| M2 | 約 | 約束 (やくそく) | plans-invitations-2 | plans-invitations-3 | plans-invitations-4 | experiences-narratives-1 |
+| M2 | 来 | 来月 (らいげつ) | plans-invitations-2 | plans-invitations-3 | plans-invitations-4 | experiences-narratives-1 |
+| M2 | 月 | 来月 (らいげつ) | plans-invitations-2 | plans-invitations-3 | plans-invitations-4 | experiences-narratives-1 |
+| M3 | 去 | 去年 (きょねん) | experiences-narratives-1 | experiences-narratives-2 | experiences-narratives-3 | experiences-narratives-4 |
+| M3 | 楽 | 楽しい (たのしい) | experiences-narratives-1 | experiences-narratives-2 | experiences-narratives-3 | experiences-narratives-4 |
+| M3 | 初 | 初めて (はじめて) | experiences-narratives-1 | experiences-narratives-2 | experiences-narratives-3 | experiences-narratives-4 |
+| M3 | 度 | 一度 (いちど) | experiences-narratives-1 | experiences-narratives-2 | experiences-narratives-3 | experiences-narratives-4 |
+| M3 | 年 | 去年 (きょねん) | experiences-narratives-1 | experiences-narratives-2 | experiences-narratives-3 | experiences-narratives-4 |
+| M3 | 有 | 有名 (ゆうめい) | experiences-narratives-2 | experiences-narratives-3 | experiences-narratives-4 | reasons-opinions-1 |
+| M3 | 泳 | 泳ぎます (およぎます) | experiences-narratives-2 | experiences-narratives-3 | experiences-narratives-4 | reasons-opinions-1 |
+| M3 | 登 | 登ります (のぼります) | experiences-narratives-2 | experiences-narratives-3 | experiences-narratives-4 | reasons-opinions-1 |
+| M3 | 旅 | 旅行 (りょこう) | experiences-narratives-2 | experiences-narratives-3 | experiences-narratives-4 | reasons-opinions-1 |
+| M4 | 理 | 理由 (りゆう) | reasons-opinions-1 | reasons-opinions-2 | reasons-opinions-3 | reasons-opinions-4 |
+| M4 | 由 | 理由 (りゆう) | reasons-opinions-1 | reasons-opinions-2 | reasons-opinions-3 | reasons-opinions-4 |
+| M4 | 考 | 考えます (かんがえます) | reasons-opinions-1 | reasons-opinions-2 | reasons-opinions-3 | reasons-opinions-4 |
+| M4 | 意 | 意見 (いけん) | reasons-opinions-1 | reasons-opinions-2 | reasons-opinions-3 | reasons-opinions-4 |
+| M4 | 見 | 意見 (いけん) | reasons-opinions-2 | reasons-opinions-3 | reasons-opinions-4 | sequencing-ongoing-1 |
+| M4 | 気 | 気持ち (きもち) | reasons-opinions-2 | reasons-opinions-3 | reasons-opinions-4 | sequencing-ongoing-1 |
+| M4 | 持 | 気持ち (きもち) | reasons-opinions-2 | reasons-opinions-3 | reasons-opinions-4 | sequencing-ongoing-1 |
+| M4 | 悪 | 悪い (わるい) | reasons-opinions-2 | reasons-opinions-3 | reasons-opinions-4 | sequencing-ongoing-1 |
+| M5 | 起 | 起きます (おきます) | sequencing-ongoing-1 | sequencing-ongoing-2 | sequencing-ongoing-3 | sequencing-ongoing-4 |
+| M5 | 寝 | 寝ます (ねます) | sequencing-ongoing-1 | sequencing-ongoing-2 | sequencing-ongoing-3 | sequencing-ongoing-4 |
+| M5 | 使 | 使います (つかいます) | sequencing-ongoing-1 | sequencing-ongoing-2 | sequencing-ongoing-3 | sequencing-ongoing-4 |
+| M5 | 作 | 作ります (つくります) | sequencing-ongoing-1 | sequencing-ongoing-2 | sequencing-ongoing-3 | sequencing-ongoing-4 |
+| M5 | 毎 | 毎日 (まいにち) | sequencing-ongoing-1 | sequencing-ongoing-2 | sequencing-ongoing-3 | sequencing-ongoing-4 |
+| M5 | 洗 | 洗います (あらいます) | sequencing-ongoing-2 | sequencing-ongoing-3 | sequencing-ongoing-4 | permission-requests-1 |
+| M5 | 終 | 終わります (おわります) | sequencing-ongoing-2 | sequencing-ongoing-3 | sequencing-ongoing-4 | permission-requests-1 |
+| M5 | 始 | 始まります (はじまります) | sequencing-ongoing-2 | sequencing-ongoing-3 | sequencing-ongoing-4 | permission-requests-1 |
+| M5 | 働 | 働きます (はたらきます) | sequencing-ongoing-2 | sequencing-ongoing-3 | sequencing-ongoing-4 | permission-requests-1 |
+| M6 | 入 | 入ります (はいります) | permission-requests-1 | permission-requests-2 | permission-requests-3 | permission-requests-4 |
+| M6 | 口 | 入口 (いりぐち) | permission-requests-1 | permission-requests-2 | permission-requests-3 | permission-requests-4 |
+| M6 | 出 | 出口 (でぐち) | permission-requests-1 | permission-requests-2 | permission-requests-3 | permission-requests-4 |
+| M6 | 止 | 止まります (とまります) | permission-requests-1 | permission-requests-2 | permission-requests-3 | permission-requests-4 |
+| M6 | 禁 | 禁止 (きんし) | permission-requests-2 | permission-requests-3 | permission-requests-4 | neighborhood-services-1 |
+| M6 | 消 | 消します (けします) | permission-requests-2 | permission-requests-3 | permission-requests-4 | neighborhood-services-1 |
+| M6 | 座 | 座ります (すわります) | permission-requests-2 | permission-requests-3 | permission-requests-4 | neighborhood-services-1 |
+| M6 | 立 | 立ちます (たちます) | permission-requests-2 | permission-requests-3 | permission-requests-4 | neighborhood-services-1 |
+| M7 | 病 | 病院 (びょういん) | neighborhood-services-1 | neighborhood-services-2 | neighborhood-services-3 | neighborhood-services-4 |
+| M7 | 院 | 病院 (びょういん) | neighborhood-services-1 | neighborhood-services-2 | neighborhood-services-3 | neighborhood-services-4 |
+| M7 | 銀 | 銀行 (ぎんこう) | neighborhood-services-1 | neighborhood-services-2 | neighborhood-services-3 | neighborhood-services-4 |
+| M7 | 行 | 銀行 (ぎんこう) | neighborhood-services-1 | neighborhood-services-2 | neighborhood-services-3 | neighborhood-services-4 |
+| M7 | 局 | 郵便局 (ゆうびんきょく) | neighborhood-services-2 | neighborhood-services-3 | neighborhood-services-4 | restaurant-problems-1 |
+| M7 | 便 | 便利 (べんり) | neighborhood-services-2 | neighborhood-services-3 | neighborhood-services-4 | restaurant-problems-1 |
+| M7 | 図 | 図書館 (としょかん) | neighborhood-services-2 | neighborhood-services-3 | neighborhood-services-4 | restaurant-problems-1 |
+| M7 | 館 | 図書館 (としょかん) | neighborhood-services-2 | neighborhood-services-3 | neighborhood-services-4 | restaurant-problems-1 |
+| M8 | 食 | 食べます (たべます) | restaurant-problems-1 | restaurant-problems-2 | restaurant-problems-3 | restaurant-problems-4 |
+| M8 | 飲 | 飲みます (のみます) | restaurant-problems-1 | restaurant-problems-2 | restaurant-problems-3 | restaurant-problems-4 |
+| M8 | 飯 | ご飯 (ごはん) | restaurant-problems-1 | restaurant-problems-2 | restaurant-problems-3 | restaurant-problems-4 |
+| M8 | 茶 | お茶 (おちゃ) | restaurant-problems-1 | restaurant-problems-2 | restaurant-problems-3 | restaurant-problems-4 |
+| M8 | 肉 | 肉 (にく) | restaurant-problems-2 | restaurant-problems-3 | restaurant-problems-4 | shopping-returns-1 |
+| M8 | 魚 | 魚 (さかな) | restaurant-problems-2 | restaurant-problems-3 | restaurant-problems-4 | shopping-returns-1 |
+| M8 | 熱 | 熱い (あつい) | restaurant-problems-2 | restaurant-problems-3 | restaurant-problems-4 | shopping-returns-1 |
+| M8 | 冷 | 冷たい (つめたい) | restaurant-problems-2 | restaurant-problems-3 | restaurant-problems-4 | shopping-returns-1 |
+| M9 | 買 | 買います (かいます) | shopping-returns-1 | shopping-returns-2 | shopping-returns-3 | shopping-returns-4 |
+| M9 | 店 | 店 (みせ) | shopping-returns-1 | shopping-returns-2 | shopping-returns-3 | shopping-returns-4 |
+| M9 | 円 | 千円 (せんえん) | shopping-returns-1 | shopping-returns-2 | shopping-returns-3 | shopping-returns-4 |
+| M9 | 番 | 一番 (いちばん) | shopping-returns-1 | shopping-returns-2 | shopping-returns-3 | shopping-returns-4 |
+| M9 | 千 | 千円 (せんえん) | shopping-returns-2 | shopping-returns-3 | shopping-returns-4 | health-advice-1 |
+| M9 | 万 | 一万 (いちまん) | shopping-returns-2 | shopping-returns-3 | shopping-returns-4 | health-advice-1 |
+| M9 | 安 | 安い (やすい) | shopping-returns-2 | shopping-returns-3 | shopping-returns-4 | health-advice-1 |
+| M9 | 高 | 高い (たかい) | shopping-returns-2 | shopping-returns-3 | shopping-returns-4 | health-advice-1 |
+| M10 | 医 | 医者 (いしゃ) | health-advice-1 | health-advice-2 | health-advice-3 | health-advice-4 |
+| M10 | 者 | 医者 (いしゃ) | health-advice-1 | health-advice-2 | health-advice-3 | health-advice-4 |
+| M10 | 薬 | 薬 (くすり) | health-advice-1 | health-advice-2 | health-advice-3 | health-advice-4 |
+| M10 | 体 | 体 (からだ) | health-advice-1 | health-advice-2 | health-advice-3 | health-advice-4 |
+| M10 | 頭 | 頭 (あたま) | health-advice-2 | health-advice-3 | health-advice-4 | work-study-messages-1 |
+| M10 | 痛 | 痛い (いたい) | health-advice-2 | health-advice-3 | health-advice-4 | work-study-messages-1 |
+| M10 | 元 | 元気 (げんき) | health-advice-2 | health-advice-3 | health-advice-4 | work-study-messages-1 |
+| M10 | 休 | 休みます (やすみます) | health-advice-2 | health-advice-3 | health-advice-4 | work-study-messages-1 |
+| M11 | 社 | 会社 (かいしゃ) | work-study-messages-1 | work-study-messages-2 | work-study-messages-3 | work-study-messages-4 |
+| M11 | 仕 | 仕事 (しごと) | work-study-messages-1 | work-study-messages-2 | work-study-messages-3 | work-study-messages-4 |
+| M11 | 事 | 仕事 (しごと) | work-study-messages-1 | work-study-messages-2 | work-study-messages-3 | work-study-messages-4 |
+| M11 | 教 | 教えます (おしえます) | work-study-messages-1 | work-study-messages-2 | work-study-messages-3 | work-study-messages-4 |
+| M11 | 学 | 学校 (がっこう) | work-study-messages-2 | work-study-messages-3 | work-study-messages-4 | travel-reservations-1 |
+| M11 | 校 | 学校 (がっこう) | work-study-messages-2 | work-study-messages-3 | work-study-messages-4 | travel-reservations-1 |
+| M11 | 先 | 先生 (せんせい) | work-study-messages-2 | work-study-messages-3 | work-study-messages-4 | travel-reservations-1 |
+| M11 | 生 | 学生 (がくせい) | work-study-messages-2 | work-study-messages-3 | work-study-messages-4 | travel-reservations-1 |
+| M12 | 空 | 空港 (くうこう) | travel-reservations-1 | travel-reservations-2 | travel-reservations-3 | travel-reservations-4 |
+| M12 | 港 | 空港 (くうこう) | travel-reservations-1 | travel-reservations-2 | travel-reservations-3 | travel-reservations-4 |
+| M12 | 駅 | 駅 (えき) | travel-reservations-1 | travel-reservations-2 | travel-reservations-3 | travel-reservations-4 |
+| M12 | 電 | 電車 (でんしゃ) | travel-reservations-1 | travel-reservations-2 | travel-reservations-3 | travel-reservations-4 |
+| M12 | 山 | 山 (やま) | travel-reservations-1 | travel-reservations-2 | travel-reservations-3 | travel-reservations-4 |
+| M12 | 車 | 電車 (でんしゃ) | travel-reservations-2 | travel-reservations-3 | travel-reservations-4 | relationships-events-1 |
+| M12 | 着 | 着きます (つきます) | travel-reservations-2 | travel-reservations-3 | travel-reservations-4 | relationships-events-1 |
+| M12 | 発 | 出発 (しゅっぱつ) | travel-reservations-2 | travel-reservations-3 | travel-reservations-4 | relationships-events-1 |
+| M12 | 泊 | 泊まります (とまります) | travel-reservations-2 | travel-reservations-3 | travel-reservations-4 | relationships-events-1 |
+| M13 | 母 | 母 (はは) | relationships-events-1 | relationships-events-2 | relationships-events-3 | relationships-events-4 |
+| M13 | 父 | 父 (ちち) | relationships-events-1 | relationships-events-2 | relationships-events-3 | relationships-events-4 |
+| M13 | 家 | 家族 (かぞく) | relationships-events-1 | relationships-events-2 | relationships-events-3 | relationships-events-4 |
+| M13 | 族 | 家族 (かぞく) | relationships-events-1 | relationships-events-2 | relationships-events-3 | relationships-events-4 |
+| M13 | 結 | 結婚 (けっこん) | relationships-events-2 | relationships-events-3 | relationships-events-4 | practical-texts-1 |
+| M13 | 婚 | 結婚 (けっこん) | relationships-events-2 | relationships-events-3 | relationships-events-4 | practical-texts-1 |
+| M13 | 誕 | 誕生日 (たんじょうび) | relationships-events-2 | relationships-events-3 | relationships-events-4 | practical-texts-1 |
+| M13 | 送 | 送ります (おくります) | relationships-events-2 | relationships-events-3 | relationships-events-4 | practical-texts-1 |
+| M14 | 時 | 時間 (じかん) | practical-texts-1 | practical-texts-2 | practical-texts-3 | practical-texts-4 |
+| M14 | 間 | 時間 (じかん) | practical-texts-1 | practical-texts-2 | practical-texts-3 | practical-texts-4 |
+| M14 | 分 | 五分 (ごふん) | practical-texts-1 | practical-texts-2 | practical-texts-3 | practical-texts-4 |
+| M14 | 半 | 半 (はん) | practical-texts-1 | practical-texts-2 | practical-texts-3 | practical-texts-4 |
+| M14 | 本 | 本 (ほん) | practical-texts-1 | practical-texts-2 | practical-texts-3 | practical-texts-4 |
+| M14 | 料 | 料金 (りょうきん) | practical-texts-2 | practical-texts-3 | practical-texts-4 | a2-synthesis-4 |
+| M14 | 金 | 料金 (りょうきん) | practical-texts-2 | practical-texts-3 | practical-texts-4 | a2-synthesis-4 |
+| M14 | 開 | 開きます (あきます) | practical-texts-2 | practical-texts-3 | practical-texts-4 | a2-synthesis-4 |
+| M14 | 閉 | 閉まります (しまります) | practical-texts-2 | practical-texts-3 | practical-texts-4 | a2-synthesis-4 |
 
 **Per-module distribution (sums to 120):**
 
 | Module | M1 | M2 | M3 | M4 | M5 | M6 | M7 | M8 | M9 | M10 | M11 | M12 | M13 | M14 | M15 | **Total** |
 |--------|----|----|----|----|----|----|----|----|----|-----|-----|-----|-----|-----|-----|-----------|
-| Glyphs | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | **120** |
+| Glyphs | 8 | 12 | 9 | 8 | 9 | 8 | 8 | 8 | 8 | 8 | 8 | 9 | 8 | 9 | 0 | **120** |
 
-> **M15 note:** the synthesis module introduces no new *families/senses/values*, but its 8 kanji are genuine high-frequency review glyphs whose recognition is assessed at the checkpoint (`a2-synthesis-4`). Cohort-B glyphs in M15 collapse revealable and assessed onto `a2-synthesis-4` (the terminal lesson); the catalog builder special-cases the final module so the schedule stays monotonic (`first-supported=a2-synthesis-2 < revealable=a2-synthesis-4 = assessed`), which the kanji-ordering validator accepts because supported-retrieval (`a2-synthesis-3`) still strictly precedes assessment.
+> **M15 note (synthesis introduces zero new glyphs):** the synthesis module introduces **no new** families/senses/values **and no new kanji glyphs**. Its lessons re-expose and consolidate glyphs already first-supported in M1–M14; the only glyphs whose formal **assessed** stage lands inside M15 are the four M14 straddling glyphs 料/金/開/閉 (assessed at `a2-synthesis-4`, the checkpoint), which is *assessment of earlier glyphs*, not first exposure. No glyph has its **first-supported** stage at any `a2-synthesis-*` lesson (enforced by the `kanji-synthesis-first-exposure` validator code, Task 3 Step 10). The checkpoint reading section therefore samples already-supported glyphs; it never introduces a glyph.
 
 ---
 ## Task 1: A2 contracts, frozen manifest, level, copy architecture, release identity
@@ -271,7 +273,7 @@ Establishes the immutable spine every later task references: the 60-lesson manif
 - Create: `src/course/a2/catalog/level.ts`
 - Test: `src/course/a2/manifest.test.ts`
 - Test: `src/course/a2/releaseIdentity.test.ts`
-- Reference (read, do not edit): `src/course/a1/manifest.ts`, `src/course/a1/types.ts` (lines 65–311), `src/course/a1/releaseIdentity.ts`, `src/course/foundations/types.ts` (`CourseLevel` at ~line 40, `CheckpointDefinition` at 102–107), `src/course/a1/catalog/checkpoint.ts`.
+- Reference (read, do not edit): `src/course/a1/manifest.ts`, `src/course/a1/types.ts` (lines 65–311), `src/course/a1/releaseIdentity.ts`, `src/course/foundations/types.ts` (`CourseLevel` at 110–117, `CheckpointDefinition` at 102–107), `src/course/a1/catalog/checkpoint.ts` (see `a1Level` at 83–88 and `A1_LEVEL_ID`).
 
 - [ ] **Step 1: Fresh spec re-read.** Re-read spec §5 (two-level architecture), §7 (A2 modules/lessons), §7.1 (grammar spiral), §22 Phase 3 scope/exit (lines ~1299–1318). Confirm against L1/L2 above: 15 modules, 60 lessons, `a2-synthesis` is synthesis, no phonetic module. Write nothing yet.
 
@@ -405,7 +407,9 @@ export const A2_RELEASE_ERROR_CODES = [
   "recurrence-incomplete",
   "foundation-invalid",
   "cando-not-sampled",
+  "cando-untransferred",
   "checkpoint-min-transfer",
+  "checkpoint-module-coverage",
   "checkpoint-claims-certification",
   "copy-parity",
   "copy-contains-japanese",
@@ -421,6 +425,7 @@ export const A2_RELEASE_ERROR_CODES = [
   "kanji-count",
   "kanji-unknown-reading",
   "kanji-exposure-order",
+  "kanji-synthesis-first-exposure",
   "kanji-furigana-premature-hide",
   "kanji-assessed-without-support",
   "kanji-romaji-bypass",
@@ -589,25 +594,69 @@ export const A2_RELEASE_SEED = "a2-release-seed-v1" as const;
 
 Run: `npx vitest run src/course/a2/releaseIdentity.test.ts` → PASS.
 
-- [ ] **Step 9: Write `src/course/a2/catalog/level.ts`** — the A2 `CourseLevel` object (mirrors `a1` in `a1/catalog/checkpoint.ts`). It carries only the alignment claim, never a certification claim.
+- [ ] **Step 9: Write the failing level test, then `src/course/a2/catalog/level.ts`.** The A2 level uses the **actual** `CourseLevel` shape from `foundations/types.ts` — `{ id, alignmentCopyId, moduleIds, canDoIds, recommendedPrerequisiteCheckpointId? }` (there is no `order`/`titleCopyId`/`alignmentClaim` field; do not invent any). Task 1 has no Can-dos yet, so this file exports the level **identity constants** plus a pure `buildA2Level(canDoIds)` helper; Task 7 calls it with `a2CanDosAuthored.map((c) => c.id)` once Can-dos exist. Failing test first:
 
 ```ts
-import type { CourseLevel } from "../../foundations/types";
+// src/course/a2/catalog/level.test.ts
+import { describe, it, expect } from "vitest";
+import type { CanDoId } from "../../foundations/types";
+import {
+  A2_LEVEL_ID, A2_ALIGNMENT_COPY_ID, A2_RECOMMENDED_PREREQUISITE_CHECKPOINT_ID, buildA2Level,
+} from "./level";
+import { A2_MODULE_IDS } from "../manifest";
 
-/**
- * The A2 level descriptor. `alignmentClaim` is a JF/CEFR *alignment* claim,
- * never a certification claim (§8, §20). Modules/checkpoint are assembled in
- * Task 7 once content exists; this file owns only the level identity + order.
- */
-export const a2Level: CourseLevel = {
-  id: "a2",
-  order: 2,
-  titleCopyId: "a2-level-title",
-  alignmentClaim: "cefr-a2-aligned",
-};
+describe("buildA2Level", () => {
+  const canDoIds: readonly CanDoId[] = ["a2-cando-recognize-plain-forms", "a2-cando-sequence-te"];
+  it("produces the exact CourseLevel shape (no invented fields)", () => {
+    const level = buildA2Level(canDoIds);
+    expect(level).toEqual({
+      id: A2_LEVEL_ID,
+      alignmentCopyId: A2_ALIGNMENT_COPY_ID,
+      moduleIds: [...A2_MODULE_IDS],
+      canDoIds: [...canDoIds],
+      recommendedPrerequisiteCheckpointId: A2_RECOMMENDED_PREREQUISITE_CHECKPOINT_ID,
+    });
+    // Exactly the five real keys — nothing else.
+    expect(Object.keys(level).sort()).toEqual(
+      ["alignmentCopyId", "canDoIds", "id", "moduleIds", "recommendedPrerequisiteCheckpointId"],
+    );
+  });
+  it("recommends but does not require the A1 checkpoint", () => {
+    expect(A2_RECOMMENDED_PREREQUISITE_CHECKPOINT_ID).toBe("a1-checkpoint");
+  });
+});
 ```
 
-> If `CourseLevel` lacks an `alignmentClaim`/`order` field, match the exact shape in `foundations/types.ts` and mirror how `a1Level` is built in `a1/catalog/checkpoint.ts`; do not invent fields.
+Run: `npx vitest run src/course/a2/catalog/level.test.ts` → FAIL (`Cannot find module './level'`). Then write the implementation:
+
+```ts
+// src/course/a2/catalog/level.ts
+import { deepFreeze } from "../../foundations/deepFreeze";
+import type { CanDoId, CheckpointId, CopyId, CourseLevel, CourseLevelId } from "../../foundations/types";
+import { A2_MODULE_IDS } from "../manifest";
+
+export const A2_LEVEL_ID: CourseLevelId = "a2";
+/** Copy key for the JF/CEFR *alignment* statement (never a certification claim; §8, §20). */
+export const A2_ALIGNMENT_COPY_ID: CopyId = "a2-level-a2-alignment";
+/** A2 recommends — but does not require — the A1 checkpoint before starting (§8). */
+export const A2_RECOMMENDED_PREREQUISITE_CHECKPOINT_ID: CheckpointId = "a1-checkpoint";
+
+/**
+ * Build the A2 `CourseLevel` from the authored Can-do IDs. Pure; the module set
+ * is the frozen manifest order. Assembled in Task 7 with `a2CanDosAuthored`.
+ */
+export function buildA2Level(canDoIds: readonly CanDoId[]): CourseLevel {
+  return deepFreeze({
+    id: A2_LEVEL_ID,
+    alignmentCopyId: A2_ALIGNMENT_COPY_ID,
+    moduleIds: [...A2_MODULE_IDS],
+    canDoIds: [...canDoIds],
+    recommendedPrerequisiteCheckpointId: A2_RECOMMENDED_PREREQUISITE_CHECKPOINT_ID,
+  });
+}
+```
+
+Run: `npx vitest run src/course/a2/catalog/level.test.ts` → PASS.
 
 - [ ] **Step 10: Typecheck.**
 
@@ -619,6 +668,7 @@ Expected: clean (no errors).
 ```bash
 git add src/course/a2/manifest.ts src/course/a2/types.ts \
   src/course/a2/releaseIdentity.ts src/course/a2/catalog/level.ts \
+  src/course/a2/catalog/level.test.ts \
   src/course/a2/manifest.test.ts src/course/a2/releaseIdentity.test.ts
 git commit -m "feat(a2): frozen 60-lesson manifest, types, release identity, level"
 ```
@@ -628,155 +678,277 @@ git commit -m "feat(a2): frozen 60-lesson manifest, types, release identity, lev
 ---
 ## Task 2: A2 form/aspect layer — realizer extension + grammar-spiral validator
 
-The A1 realizer only conjugates **polite** endings (ます/ません/ました/ませんでした) plus i-adjective and copula endings (`src/course/foundations/realizeFamily.ts` lines 357–435). The A2 spiral (L2) needs plain forms, て-form, 〜ている, and seven clause-combining constructions. This task extends the **shared** realizer with A2-owned bound-morpheme ending registries and clause families (no fork), then adds the grammar-spiral coverage validator that enforces every form's five roles.
+The A1 realizer only conjugates **polite** endings (ます/ません/ました/ませんでした) plus i-adjective and copula endings (`src/course/foundations/realizeFamily.ts` lines 357–435). The A2 spiral (L2) needs **plain** forms, the て-form, 〜ている, and seven clause-combining constructions. Plain/て/past forms are **not** a single suffix appended to a generic stem: Japanese verbs split into conjugation classes (ichidan, nine godan sub-classes by final mora, and the two irregulars する/来る) that each realize the dictionary/negative/past/past-negative/て forms differently (e.g. 書く→書いて but 泳ぐ→泳いで, 待つ→待って, 読む→読んで, and the 行く i-onbin exception 行った/行って). This task builds a **conjugation-class-aware engine** that generates each plain base correctly while preserving the kanji root and its kana/romaji reading, then a composer that attaches each construction onto the *correct* generated base, then the grammar-spiral coverage validator that enforces every form's five roles.
 
-**Design:** canonical Japanese for endings lives only in the ending registry (`src/course/a2/forms/a2Endings.ts`); constructions are addressed by a stable `A2ConstructionId`; a small wrapper `realizeA2Sentence` composes an A2 construction onto the shared `realizeVariant` output. Predicate *stems* still come from semantic values (unchanged Phase 1 contract).
+> **Do NOT reuse `src/lab/engine/conjugate.ts`.** It only produces polite masu-stem forms and uses a different long-vowel convention (ō macrons). The A2 engine below is plain-form, class-aware, and macron-free (long vowels are spelled out, e.g. `imasu`, `arimasu`), consistent with the A2 romaji policy.
+
+**Design:** all canonical Japanese for verb inflection lives in two data files — `a2Conjugation.ts` (the per-class okurigana tables, the two irregular tables, and the 12-verb class table) and `a2Constructions.ts` (the per-construction base + tail). `conjugate(senseId, form)` returns a class-correct `ConjugationResult`; `composeA2Construction({constructionId, senseId})` conjugates the required base and appends the construction tail. Predicate identity (which verb a lesson targets) still comes from the semantic-value catalog (Phase 1 contract): a sense ID selects the verb entry. No fork of the shared realizer; the A2 engine is additive.
 
 **Files:**
-- Create: `src/course/a2/forms/a2Endings.ts`
-- Create: `src/course/a2/forms/a2Constructions.ts`
-- Create: `src/course/a2/forms/realizeA2Sentence.ts`
+- Create: `src/course/a2/forms/a2Conjugation.ts` (fragment model, class tables, 12-verb table, `conjugate`)
+- Create: `src/course/a2/forms/a2Constructions.ts` (15 spiral constructions → kind/canDo/base/tail)
+- Create: `src/course/a2/forms/composeA2Construction.ts` (pure composer onto the correct base)
 - Create: `src/course/a2/forms/grammarSpiral.ts`
 - Create: `src/course/a2/forms/validateA2GrammarSpiral.ts`
-- Test: `src/course/a2/forms/a2Endings.test.ts`
-- Test: `src/course/a2/forms/realizeA2Sentence.test.ts`
+- Test: `src/course/a2/forms/a2Conjugation.test.ts`
+- Test: `src/course/a2/forms/composeA2Construction.test.ts`
 - Test: `src/course/a2/forms/validateA2GrammarSpiral.test.ts`
-- Reference (read): `src/course/foundations/realizeFamily.ts` (endings 357–435, boundary logic 563–600), `src/course/foundations/types.ts` (`FormSelection` 314–329, `RealizedSentence` 477–503), `src/romaji/formatRomaji.ts`.
+- Reference (read): `src/romaji/types.ts` (`RomajiTokenKind`, `RomajiBoundaryBefore`), `src/course/foundations/realizeFamily.ts` (polite endings 357–435, boundary logic 563–600 — background only), `src/course/foundations/types.ts` (`RealizedSentence` 477–503).
 
-- [ ] **Step 1: Fresh spec re-read.** Re-read §7.1 (grammar spiral), §9.2–§9.4 (realization), §10 (families), §13 (romaji tokens). Confirm every L2 form maps to a bound-morpheme suffix chain or a clause family. Write nothing yet.
+- [ ] **Step 1: Fresh spec re-read.** Re-read §7.1 (grammar spiral), §9.2–§9.4 (realization), §10 (families), §13 (romaji tokens). Confirm every L2 verbal form is generated by a **conjugation class** (ichidan / godan-u,ku,gu,su,tsu,nu,bu,mu,ru / irregular する・来る, plus the 行く exception) and that each construction attaches to a specific plain base (dictionary/negative/past/te). Write nothing yet.
 
-- [ ] **Step 2: Write the failing endings test.** Each ending is `{ jp, romaji }`; the registry is keyed by stable IDs.
+- [ ] **Step 2: Write the failing conjugation-engine test.** The engine must produce the five plain forms for all 12 required verbs, preserving each kanji root and its kana/romaji reading, with class-correct okurigana and the 行く/する/来る irregularities. Romaji is fully concatenated (no spaces) and macron-free.
 
 ```ts
-// src/course/a2/forms/a2Endings.test.ts
+// src/course/a2/forms/a2Conjugation.test.ts
 import { describe, it, expect } from "vitest";
-import { A2_VERB_PLAIN_ENDINGS, A2_TE_FORM_SUFFIX, A2_CONSTRUCTION_SUFFIXES } from "./a2Endings";
+import { conjugate, A2_VERBS, type A2PlainForm } from "./a2Conjugation";
 
-describe("A2 ending registry", () => {
-  it("carries the four plain verb endings", () => {
-    expect(A2_VERB_PLAIN_ENDINGS["present-affirmative"]).toEqual({ jp: "る", romaji: "ru" });
-    expect(A2_VERB_PLAIN_ENDINGS["present-negative"]).toEqual({ jp: "ない", romaji: "nai" });
-    expect(A2_VERB_PLAIN_ENDINGS["past-affirmative"]).toEqual({ jp: "た", romaji: "ta" });
-    expect(A2_VERB_PLAIN_ENDINGS["past-negative"]).toEqual({ jp: "なかった", romaji: "nakatta" });
+type Row = Readonly<Record<A2PlainForm, readonly [jp: string, reading: string, romaji: string]>>;
+
+// Full expected paradigm for every required verb (dictionary/negative/past/past-negative/te).
+const EXPECTED: Readonly<Record<string, Row>> = {
+  "a2-sense-taberu": { // 食べる — ichidan
+    dictionary: ["食べる", "たべる", "taberu"], negative: ["食べない", "たべない", "tabenai"],
+    past: ["食べた", "たべた", "tabeta"], "past-negative": ["食べなかった", "たべなかった", "tabenakatta"],
+    te: ["食べて", "たべて", "tabete"],
+  },
+  "a2-sense-hanasu": { // 話す — godan-su
+    dictionary: ["話す", "はなす", "hanasu"], negative: ["話さない", "はなさない", "hanasanai"],
+    past: ["話した", "はなした", "hanashita"], "past-negative": ["話さなかった", "はなさなかった", "hanasanakatta"],
+    te: ["話して", "はなして", "hanashite"],
+  },
+  "a2-sense-kaku": { // 書く — godan-ku (i-onbin te/past いた/いて)
+    dictionary: ["書く", "かく", "kaku"], negative: ["書かない", "かかない", "kakanai"],
+    past: ["書いた", "かいた", "kaita"], "past-negative": ["書かなかった", "かかなかった", "kakanakatta"],
+    te: ["書いて", "かいて", "kaite"],
+  },
+  "a2-sense-oyogu": { // 泳ぐ — godan-gu (voiced onbin いだ/いで)
+    dictionary: ["泳ぐ", "およぐ", "oyogu"], negative: ["泳がない", "およがない", "oyoganai"],
+    past: ["泳いだ", "およいだ", "oyoida"], "past-negative": ["泳がなかった", "およがなかった", "oyoganakatta"],
+    te: ["泳いで", "およいで", "oyoide"],
+  },
+  "a2-sense-matsu": { // 待つ — godan-tsu (促音便 った/って)
+    dictionary: ["待つ", "まつ", "matsu"], negative: ["待たない", "またない", "matanai"],
+    past: ["待った", "まった", "matta"], "past-negative": ["待たなかった", "またなかった", "matanakatta"],
+    te: ["待って", "まって", "matte"],
+  },
+  "a2-sense-shinu": { // 死ぬ — godan-nu (撥音便 んだ/んで)
+    dictionary: ["死ぬ", "しぬ", "shinu"], negative: ["死なない", "しなない", "shinanai"],
+    past: ["死んだ", "しんだ", "shinda"], "past-negative": ["死ななかった", "しななかった", "shinanakatta"],
+    te: ["死んで", "しんで", "shinde"],
+  },
+  "a2-sense-asobu": { // 遊ぶ — godan-bu (撥音便 んだ/んで)
+    dictionary: ["遊ぶ", "あそぶ", "asobu"], negative: ["遊ばない", "あそばない", "asobanai"],
+    past: ["遊んだ", "あそんだ", "asonda"], "past-negative": ["遊ばなかった", "あそばなかった", "asobanakatta"],
+    te: ["遊んで", "あそんで", "asonde"],
+  },
+  "a2-sense-yomu": { // 読む — godan-mu (撥音便 んだ/んで)
+    dictionary: ["読む", "よむ", "yomu"], negative: ["読まない", "よまない", "yomanai"],
+    past: ["読んだ", "よんだ", "yonda"], "past-negative": ["読まなかった", "よまなかった", "yomanakatta"],
+    te: ["読んで", "よんで", "yonde"],
+  },
+  "a2-sense-kaeru": { // 帰る — godan-ru (促音便 った/って; NOT ichidan despite -eru)
+    dictionary: ["帰る", "かえる", "kaeru"], negative: ["帰らない", "かえらない", "kaeranai"],
+    past: ["帰った", "かえった", "kaetta"], "past-negative": ["帰らなかった", "かえらなかった", "kaeranakatta"],
+    te: ["帰って", "かえって", "kaette"],
+  },
+  "a2-sense-iku": { // 行く — godan-ku with 行った/行って exception (NOT 行いた/行いて)
+    dictionary: ["行く", "いく", "iku"], negative: ["行かない", "いかない", "ikanai"],
+    past: ["行った", "いった", "itta"], "past-negative": ["行かなかった", "いかなかった", "ikanakatta"],
+    te: ["行って", "いって", "itte"],
+  },
+  "a2-sense-suru": { // する — irregular
+    dictionary: ["する", "する", "suru"], negative: ["しない", "しない", "shinai"],
+    past: ["した", "した", "shita"], "past-negative": ["しなかった", "しなかった", "shinakatta"],
+    te: ["して", "して", "shite"],
+  },
+  "a2-sense-kuru": { // 来る — irregular (root reading shifts く/こ/き)
+    dictionary: ["来る", "くる", "kuru"], negative: ["来ない", "こない", "konai"],
+    past: ["来た", "きた", "kita"], "past-negative": ["来なかった", "こなかった", "konakatta"],
+    te: ["来て", "きて", "kite"],
+  },
+};
+
+const FORMS: readonly A2PlainForm[] = ["dictionary", "negative", "past", "past-negative", "te"];
+
+describe("a2 conjugation engine", () => {
+  it("registers exactly the 12 required verbs", () => {
+    expect(Object.keys(A2_VERBS).sort()).toEqual(Object.keys(EXPECTED).sort());
   });
 
-  it("carries the て-form connective suffix", () => {
-    expect(A2_TE_FORM_SUFFIX).toEqual({ jp: "て", romaji: "te" });
+  for (const senseId of Object.keys(EXPECTED)) {
+    for (const form of FORMS) {
+      const [jp, reading, romaji] = EXPECTED[senseId][form];
+      it(`${senseId} ${form} → ${jp} / ${reading} / ${romaji}`, () => {
+        const r = conjugate(senseId, form);
+        expect(r.ok).toBe(true);
+        if (r.ok) {
+          expect(r.result.jp).toBe(jp);
+          expect(r.result.reading).toBe(reading);
+          expect(r.result.romaji).toBe(romaji);
+        }
+      });
+    }
+  }
+
+  it("keeps the kanji glyph as the visible root while the reading carries kana", () => {
+    const r = conjugate("a2-sense-kuru", "past"); // 来た, reading きた
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.result.fragments[0].jp).toBe("来");
+      expect(r.result.fragments[0].reading).toBe("き");
+      expect(r.result.fragments[0].kind).toBe("lexical");
+    }
   });
 
-  it("carries every spiral construction suffix chain", () => {
-    expect(Object.keys(A2_CONSTRUCTION_SUFFIXES).sort()).toEqual([
-      "experience-takoto", "ongoing-teiru", "permission-temoii",
-      "prohibition-tewaikenai", "request-negative", "request-tekudasai",
-    ]);
-    expect(A2_CONSTRUCTION_SUFFIXES["ongoing-teiru"].map((s) => s.jp).join("")).toBe("ています");
-    expect(A2_CONSTRUCTION_SUFFIXES["request-tekudasai"].map((s) => s.jp).join("")).toBe("てください");
-    expect(A2_CONSTRUCTION_SUFFIXES["permission-temoii"].map((s) => s.jp).join("")).toBe("てもいいです");
-    expect(A2_CONSTRUCTION_SUFFIXES["prohibition-tewaikenai"].map((s) => s.jp).join("")).toBe("てはいけません");
-    expect(A2_CONSTRUCTION_SUFFIXES["request-negative"].map((s) => s.jp).join("")).toBe("ないでください");
-    expect(A2_CONSTRUCTION_SUFFIXES["experience-takoto"].map((s) => s.jp).join("")).toBe("たことがあります");
+  it("rejects an unknown verb and an unknown sense id", () => {
+    expect(conjugate("a2-sense-nope", "te")).toEqual({ ok: false, error: "unknown-verb" });
   });
 });
 ```
 
-- [ ] **Step 3: Run it, see it fail** (`Cannot find module './a2Endings'`).
+- [ ] **Step 3: Run it, see it fail** (`Cannot find module './a2Conjugation'`).
 
-- [ ] **Step 4: Write `src/course/a2/forms/a2Endings.ts`.** All A2 bound morphemes live here (canonical Japanese in data, not lesson code):
+- [ ] **Step 4: Write `src/course/a2/forms/a2Conjugation.ts`.** The class-aware engine. All verbal Japanese lives here.
 
 ```ts
+import type { RomajiTokenKind, RomajiBoundaryBefore } from "../../../romaji/types";
+
 /**
- * A2 bound-morpheme ending registries (§7.1, §9.3). The ONLY place A2
- * verbal/aspectual Japanese lives. Each ending is a romaji-checkable fragment
- * that attaches to a predicate stem with no space (a bound morpheme), exactly
- * like the polite ます endings in the shared realizer.
+ * A romaji-checkable fragment of a conjugated word. Mirrors the shared
+ * AssembledToken shape (jp/romaji/kind/boundaryBefore) so downstream romaji
+ * formatting is identical. A kanji fragment carries its kana `reading`; a kana
+ * morpheme omits `reading` (it reads as its own kana).
  */
-export interface EndingFragment {
+export interface A2Fragment {
   readonly jp: string;
   readonly romaji: string;
+  readonly kind: RomajiTokenKind;
+  readonly boundaryBefore: RomajiBoundaryBefore;
+  readonly reading?: string;
 }
 
-export type PlainFormKey =
-  | "present-affirmative"
-  | "present-negative"
-  | "past-affirmative"
-  | "past-negative";
+export type A2ConjugationClass =
+  | "ichidan"
+  | "godan-u" | "godan-ku" | "godan-gu" | "godan-su" | "godan-tsu"
+  | "godan-nu" | "godan-bu" | "godan-mu" | "godan-ru"
+  | "irregular-suru" | "irregular-kuru";
 
-/** Plain (dictionary/ない/た/なかった) verbal endings. */
-export const A2_VERB_PLAIN_ENDINGS: Readonly<Record<PlainFormKey, EndingFragment>> = {
-  "present-affirmative": { jp: "る", romaji: "ru" },
-  "present-negative": { jp: "ない", romaji: "nai" },
-  "past-affirmative": { jp: "た", romaji: "ta" },
-  "past-negative": { jp: "なかった", romaji: "nakatta" },
+export type A2PlainForm = "dictionary" | "negative" | "past" | "past-negative" | "te";
+
+export interface A2Verb {
+  readonly senseId: string;
+  readonly conjClass: A2ConjugationClass;
+  /**
+   * The invariant root fragments: the kanji stem (lexical, carrying its reading)
+   * plus any leading okurigana that never changes (e.g. べ in 食べる). Empty for
+   * する and 来る, whose full words live in the irregular tables below.
+   */
+  readonly stem: readonly A2Fragment[];
+  /** 行く only: past/te use った/って (i-onbin exception), not the regular いた/いて. */
+  readonly tePastException?: "iku";
+}
+
+type Okurigana = { readonly jp: string; readonly romaji: string };
+type ClassTable = Readonly<Record<A2PlainForm, Okurigana>>;
+
+/** Regular okurigana per class (appended to the verb stem). */
+const OKURIGANA: Readonly<Record<Exclude<A2ConjugationClass, "irregular-suru" | "irregular-kuru">, ClassTable>> = {
+  "ichidan":   { dictionary: { jp: "る",   romaji: "ru" },   negative: { jp: "ない",   romaji: "nai" },   past: { jp: "た",   romaji: "ta" },   "past-negative": { jp: "なかった",   romaji: "nakatta" },   te: { jp: "て",   romaji: "te" } },
+  "godan-u":   { dictionary: { jp: "う",   romaji: "u" },    negative: { jp: "わない", romaji: "wanai" }, past: { jp: "った", romaji: "tta" }, "past-negative": { jp: "わなかった", romaji: "wanakatta" }, te: { jp: "って", romaji: "tte" } },
+  "godan-ku":  { dictionary: { jp: "く",   romaji: "ku" },   negative: { jp: "かない", romaji: "kanai" }, past: { jp: "いた", romaji: "ita" }, "past-negative": { jp: "かなかった", romaji: "kanakatta" }, te: { jp: "いて", romaji: "ite" } },
+  "godan-gu":  { dictionary: { jp: "ぐ",   romaji: "gu" },   negative: { jp: "がない", romaji: "ganai" }, past: { jp: "いだ", romaji: "ida" }, "past-negative": { jp: "がなかった", romaji: "ganakatta" }, te: { jp: "いで", romaji: "ide" } },
+  "godan-su":  { dictionary: { jp: "す",   romaji: "su" },   negative: { jp: "さない", romaji: "sanai" }, past: { jp: "した", romaji: "shita" }, "past-negative": { jp: "さなかった", romaji: "sanakatta" }, te: { jp: "して", romaji: "shite" } },
+  "godan-tsu": { dictionary: { jp: "つ",   romaji: "tsu" },  negative: { jp: "たない", romaji: "tanai" }, past: { jp: "った", romaji: "tta" }, "past-negative": { jp: "たなかった", romaji: "tanakatta" }, te: { jp: "って", romaji: "tte" } },
+  "godan-nu":  { dictionary: { jp: "ぬ",   romaji: "nu" },   negative: { jp: "なない", romaji: "nanai" }, past: { jp: "んだ", romaji: "nda" }, "past-negative": { jp: "ななかった", romaji: "nanakatta" }, te: { jp: "んで", romaji: "nde" } },
+  "godan-bu":  { dictionary: { jp: "ぶ",   romaji: "bu" },   negative: { jp: "ばない", romaji: "banai" }, past: { jp: "んだ", romaji: "nda" }, "past-negative": { jp: "ばなかった", romaji: "banakatta" }, te: { jp: "んで", romaji: "nde" } },
+  "godan-mu":  { dictionary: { jp: "む",   romaji: "mu" },   negative: { jp: "まない", romaji: "manai" }, past: { jp: "んだ", romaji: "nda" }, "past-negative": { jp: "まなかった", romaji: "manakatta" }, te: { jp: "んで", romaji: "nde" } },
+  "godan-ru":  { dictionary: { jp: "る",   romaji: "ru" },   negative: { jp: "らない", romaji: "ranai" }, past: { jp: "った", romaji: "tta" }, "past-negative": { jp: "らなかった", romaji: "ranakatta" }, te: { jp: "って", romaji: "tte" } },
 };
 
-/** The て-form connective (sequential linking + base for aspectual chains). */
-export const A2_TE_FORM_SUFFIX: EndingFragment = { jp: "て", romaji: "te" };
-
-/**
- * Suffix CHAINS for the aspectual/modal constructions that attach to a verb's
- * て- or plain-past stem. Ordered fragments so the realizer can tokenize and
- * romaji-check each piece. Reasons/opinions/plans/comparison/possibility are
- * CLAUSE families (Task 2 Step 8), not suffix chains, so they are not here.
- */
-export type A2SuffixConstructionId =
-  | "ongoing-teiru"
-  | "request-tekudasai"
-  | "request-negative"
-  | "permission-temoii"
-  | "prohibition-tewaikenai"
-  | "experience-takoto";
-
-export const A2_CONSTRUCTION_SUFFIXES: Readonly<
-  Record<A2SuffixConstructionId, readonly EndingFragment[]>
-> = {
-  // て + います
-  "ongoing-teiru": [
-    { jp: "て", romaji: "te" },
-    { jp: "います", romaji: "imasu" },
-  ],
-  // て + ください
-  "request-tekudasai": [
-    { jp: "て", romaji: "te" },
-    { jp: "ください", romaji: "kudasai" },
-  ],
-  // ない + で + ください
-  "request-negative": [
-    { jp: "ない", romaji: "nai" },
-    { jp: "で", romaji: "de" },
-    { jp: "ください", romaji: "kudasai" },
-  ],
-  // て + も + いい + です
-  "permission-temoii": [
-    { jp: "て", romaji: "te" },
-    { jp: "も", romaji: "mo" },
-    { jp: "いい", romaji: "ii" },
-    { jp: "です", romaji: "desu" },
-  ],
-  // て + は + いけません
-  "prohibition-tewaikenai": [
-    { jp: "て", romaji: "te" },
-    { jp: "は", romaji: "wa" },
-    { jp: "いけません", romaji: "ikemasen" },
-  ],
-  // た + こと + が + あります
-  "experience-takoto": [
-    { jp: "た", romaji: "ta" },
-    { jp: "こと", romaji: "koto" },
-    { jp: "が", romaji: "ga" },
-    { jp: "あります", romaji: "arimasu" },
-  ],
+/** 行く i-onbin exception: past/te only. */
+const IKU_EXCEPTION: Readonly<Pick<Record<A2PlainForm, Okurigana>, "past" | "te">> = {
+  past: { jp: "った", romaji: "tta" },
+  te: { jp: "って", romaji: "tte" },
 };
+
+const M = (jp: string, romaji: string): A2Fragment => ({ jp, romaji, kind: "morpheme", boundaryBefore: "attach" });
+const L = (jp: string, reading: string, romaji: string): A2Fragment => ({ jp, romaji, reading, kind: "lexical", boundaryBefore: "attach" });
+
+/** する — full-word forms (no kanji root). */
+const SURU_FORMS: Readonly<Record<A2PlainForm, readonly A2Fragment[]>> = {
+  dictionary: [M("する", "suru")], negative: [M("しない", "shinai")],
+  past: [M("した", "shita")], "past-negative": [M("しなかった", "shinakatta")], te: [M("して", "shite")],
+};
+
+/** 来る — kanji root 来 whose reading shifts (く/こ/き) plus ichidan-style okurigana. */
+const KURU_FORMS: Readonly<Record<A2PlainForm, readonly A2Fragment[]>> = {
+  dictionary: [L("来", "く", "ku"), M("る", "ru")],
+  negative: [L("来", "こ", "ko"), M("ない", "nai")],
+  past: [L("来", "き", "ki"), M("た", "ta")],
+  "past-negative": [L("来", "こ", "ko"), M("なかった", "nakatta")],
+  te: [L("来", "き", "ki"), M("て", "te")],
+};
+
+export const A2_VERBS: Readonly<Record<string, A2Verb>> = {
+  "a2-sense-taberu": { senseId: "a2-sense-taberu", conjClass: "ichidan",   stem: [L("食", "た", "ta"), M("べ", "be")] },
+  "a2-sense-hanasu": { senseId: "a2-sense-hanasu", conjClass: "godan-su",  stem: [L("話", "はな", "hana")] },
+  "a2-sense-kaku":   { senseId: "a2-sense-kaku",   conjClass: "godan-ku",  stem: [L("書", "か", "ka")] },
+  "a2-sense-oyogu":  { senseId: "a2-sense-oyogu",  conjClass: "godan-gu",  stem: [L("泳", "およ", "oyo")] },
+  "a2-sense-matsu":  { senseId: "a2-sense-matsu",  conjClass: "godan-tsu", stem: [L("待", "ま", "ma")] },
+  "a2-sense-shinu":  { senseId: "a2-sense-shinu",  conjClass: "godan-nu",  stem: [L("死", "し", "shi")] },
+  "a2-sense-asobu":  { senseId: "a2-sense-asobu",  conjClass: "godan-bu",  stem: [L("遊", "あそ", "aso")] },
+  "a2-sense-yomu":   { senseId: "a2-sense-yomu",   conjClass: "godan-mu",  stem: [L("読", "よ", "yo")] },
+  "a2-sense-kaeru":  { senseId: "a2-sense-kaeru",  conjClass: "godan-ru",  stem: [L("帰", "かえ", "kae")] },
+  "a2-sense-iku":    { senseId: "a2-sense-iku",    conjClass: "godan-ku",  stem: [L("行", "い", "i")], tePastException: "iku" },
+  "a2-sense-suru":   { senseId: "a2-sense-suru",   conjClass: "irregular-suru", stem: [] },
+  "a2-sense-kuru":   { senseId: "a2-sense-kuru",   conjClass: "irregular-kuru", stem: [] },
+};
+
+export interface ConjugationResult {
+  readonly form: A2PlainForm;
+  readonly fragments: readonly A2Fragment[];
+  readonly jp: string;      // fragments' jp joined
+  readonly romaji: string;  // fragments' romaji joined — no spaces, no macrons
+  readonly reading: string; // fragments' (reading ?? jp) joined — full kana reading
+}
+
+export type ConjugateResult =
+  | { ok: true; result: ConjugationResult }
+  | { ok: false; error: "unknown-verb" };
+
+function assemble(form: A2PlainForm, fragments: readonly A2Fragment[]): ConjugationResult {
+  return {
+    form,
+    fragments,
+    jp: fragments.map((f) => f.jp).join(""),
+    romaji: fragments.map((f) => f.romaji).join(""),
+    reading: fragments.map((f) => f.reading ?? f.jp).join(""),
+  };
+}
+
+export function conjugate(senseId: string, form: A2PlainForm): ConjugateResult {
+  const verb = A2_VERBS[senseId];
+  if (!verb) return { ok: false, error: "unknown-verb" };
+  if (verb.conjClass === "irregular-suru") return { ok: true, result: assemble(form, SURU_FORMS[form]) };
+  if (verb.conjClass === "irregular-kuru") return { ok: true, result: assemble(form, KURU_FORMS[form]) };
+  let tail = OKURIGANA[verb.conjClass][form];
+  if (verb.tePastException === "iku" && (form === "past" || form === "te")) tail = IKU_EXCEPTION[form];
+  const fragments: readonly A2Fragment[] = [...verb.stem, M(tail.jp, tail.romaji)];
+  return { ok: true, result: assemble(form, fragments) };
+}
 ```
 
-- [ ] **Step 5: Run the endings test, see it pass** (`npx vitest run src/course/a2/forms/a2Endings.test.ts` → PASS).
+- [ ] **Step 5: Run the conjugation test, see it pass** (`npx vitest run src/course/a2/forms/a2Conjugation.test.ts` → PASS — 62 assertions: 12 verbs × 5 forms + the 2 boundary/rejection cases).
 
-- [ ] **Step 6: Write the failing construction-registry test.** `a2Constructions.ts` maps every L2 form ID → its kind (`suffix` | `clause` | `plain-inflection` | `connector`) and the named Can-do it serves, so validators can cross-reference.
+- [ ] **Step 6: Write the failing construction-registry + composer test.** `a2Constructions.ts` maps every L2 form ID → its `kind` (`plain-inflection` | `suffix` | `clause` | `connector`), the named Can-do it serves, and (for `suffix`) the plain **base** it attaches to plus the appended **tail**. `composeA2Construction` conjugates the base and appends the tail.
 
 ```ts
-// src/course/a2/forms/realizeA2Sentence.test.ts
+// src/course/a2/forms/composeA2Construction.test.ts
 import { describe, it, expect } from "vitest";
 import { A2_CONSTRUCTIONS } from "./a2Constructions";
-import { realizeA2Sentence } from "./realizeA2Sentence";
+import { composeA2Construction } from "./composeA2Construction";
 
 describe("A2 construction registry", () => {
   it("registers all 15 spiral forms with a served Can-do", () => {
@@ -786,119 +958,160 @@ describe("A2 construction registry", () => {
     expect(A2_CONSTRUCTIONS["recognize-plain-forms"].kind).toBe("plain-inflection");
     expect(A2_CONSTRUCTIONS["connectors"].kind).toBe("connector");
   });
+  it("declares the correct plain base for each suffix construction", () => {
+    expect(A2_CONSTRUCTIONS["ongoing-teiru"].base).toBe("te");
+    expect(A2_CONSTRUCTIONS["request-negative"].base).toBe("negative");
+    expect(A2_CONSTRUCTIONS["experience-takoto"].base).toBe("past");
+  });
 });
 
-describe("realizeA2Sentence — 〜ています onto a verb stem", () => {
-  it("appends the ている chain with correct romaji and fingerprint", () => {
-    const result = realizeA2Sentence({
-      constructionId: "ongoing-teiru",
-      stem: { jp: "はたらい", romaji: "hataurai" }, // stem from semantic value
-    });
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.sentence.canonicalJapanese).toBe("はたらいています");
-      expect(result.sentence.visibleTargetKey).toBe("はたらいています");
+describe("composeA2Construction — consumes the correct conjugated base", () => {
+  it("読む + ongoing-teiru → 読んでいます (te base)", () => {
+    const r = composeA2Construction({ constructionId: "ongoing-teiru", senseId: "a2-sense-yomu" });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.sentence.jp).toBe("読んでいます");
+      expect(r.sentence.reading).toBe("よんでいます");
+      expect(r.sentence.romaji).toBe("yondeimasu");
+      expect(r.sentence.base).toBe("te");
     }
+  });
+  it("読む + experience-takoto → 読んだことがあります (past base)", () => {
+    const r = composeA2Construction({ constructionId: "experience-takoto", senseId: "a2-sense-yomu" });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.sentence.jp).toBe("読んだことがあります");
+      expect(r.sentence.romaji).toBe("yondakotogaarimasu");
+    }
+  });
+  it("行く + experience-takoto uses the 行った exception → 行ったことがあります", () => {
+    const r = composeA2Construction({ constructionId: "experience-takoto", senseId: "a2-sense-iku" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.sentence.jp).toBe("行ったことがあります");
+  });
+  it("話す + prohibition-tewaikenai → 話してはいけません (te base + はいけません)", () => {
+    const r = composeA2Construction({ constructionId: "prohibition-tewaikenai", senseId: "a2-sense-hanasu" });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.sentence.jp).toBe("話してはいけません");
+      expect(r.sentence.reading).toBe("はなしてはいけません");
+      expect(r.sentence.romaji).toBe("hanashitewaikemasen");
+    }
+  });
+  it("食べる + request-negative → 食べないでください (negative base)", () => {
+    const r = composeA2Construction({ constructionId: "request-negative", senseId: "a2-sense-taberu" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.sentence.jp).toBe("食べないでください");
+  });
+  it("rejects a clause construction (not a suffix) and an unknown verb", () => {
+    expect(composeA2Construction({ constructionId: "reason-kara", senseId: "a2-sense-yomu" }))
+      .toEqual({ ok: false, error: "not-a-suffix-construction" });
+    expect(composeA2Construction({ constructionId: "ongoing-teiru", senseId: "a2-sense-nope" }))
+      .toEqual({ ok: false, error: "unknown-verb" });
   });
 });
 ```
 
-> The `stem` here is illustrative; in real lessons the stem is read from the semantic-value catalog (Task 4), never inlined. The test uses a literal only to exercise the pure composer.
-
 - [ ] **Step 7: Run it, see it fail**, then write `src/course/a2/forms/a2Constructions.ts`:
 
 ```ts
-import type { EndingFragment } from "./a2Endings";
-import { A2_CONSTRUCTION_SUFFIXES, A2_VERB_PLAIN_ENDINGS } from "./a2Endings";
+import type { A2Fragment, A2PlainForm } from "./a2Conjugation";
 
 export type A2ConstructionKind =
-  | "plain-inflection" // conjugates the predicate stem, no extra clause
-  | "suffix" // bound-morpheme chain onto a stem
-  | "clause" // subordinate clause + main clause family
-  | "connector"; // discourse connector token between sentences
+  | "plain-inflection" // the four plain forms themselves (no extra tail)
+  | "suffix"           // conjugate a plain base, then append a fixed tail
+  | "clause"           // subordinate-clause family, realized in Task 4 (not a suffix)
+  | "connector";       // discourse connector between sentences (not a suffix)
 
 export interface A2Construction {
   readonly id: string;
   readonly kind: A2ConstructionKind;
   readonly canDoId: string;
-  /** Present only for `suffix` constructions. */
-  readonly suffix?: readonly EndingFragment[];
+  /** For `suffix`: which conjugated base to build on. */
+  readonly base?: A2PlainForm;
+  /** For `suffix`: fragments appended after the base. */
+  readonly tail?: readonly A2Fragment[];
 }
 
-/** The 15 spiral forms (L2), each bound to its named Can-do. */
-export const A2_CONSTRUCTIONS: Readonly<Record<string, A2Construction>> = {
-  "recognize-plain-forms": { id: "recognize-plain-forms", kind: "plain-inflection", canDoId: "a2-cando-recognize-plain-forms" },
-  "sequence-te": { id: "sequence-te", kind: "suffix", canDoId: "a2-cando-sequence-te", suffix: [{ jp: "て", romaji: "te" }] },
-  "ongoing-teiru": { id: "ongoing-teiru", kind: "suffix", canDoId: "a2-cando-ongoing-teiru", suffix: A2_CONSTRUCTION_SUFFIXES["ongoing-teiru"] },
-  "request-tekudasai": { id: "request-tekudasai", kind: "suffix", canDoId: "a2-cando-request-tekudasai", suffix: A2_CONSTRUCTION_SUFFIXES["request-tekudasai"] },
-  "permission-temoii": { id: "permission-temoii", kind: "suffix", canDoId: "a2-cando-permission-temoii", suffix: A2_CONSTRUCTION_SUFFIXES["permission-temoii"] },
-  "prohibition-tewaikenai": { id: "prohibition-tewaikenai", kind: "suffix", canDoId: "a2-cando-prohibition-tewaikenai", suffix: A2_CONSTRUCTION_SUFFIXES["prohibition-tewaikenai"] },
-  "request-negative": { id: "request-negative", kind: "suffix", canDoId: "a2-cando-negative-request", suffix: A2_CONSTRUCTION_SUFFIXES["request-negative"] },
-  "experience-takoto": { id: "experience-takoto", kind: "suffix", canDoId: "a2-cando-experience-takoto", suffix: A2_CONSTRUCTION_SUFFIXES["experience-takoto"] },
-  "intentions-plans": { id: "intentions-plans", kind: "clause", canDoId: "a2-cando-intentions-plans" },
-  "reason-kara": { id: "reason-kara", kind: "clause", canDoId: "a2-cando-reason-kara" },
-  "reason-node": { id: "reason-node", kind: "clause", canDoId: "a2-cando-reason-node" },
-  "opinion-toomou": { id: "opinion-toomou", kind: "clause", canDoId: "a2-cando-opinion-toomou" },
-  "compare": { id: "compare", kind: "clause", canDoId: "a2-cando-compare" },
-  "possibility": { id: "possibility", kind: "clause", canDoId: "a2-cando-possibility" },
-  "connectors": { id: "connectors", kind: "connector", canDoId: "a2-cando-connectors" },
-};
+const P = (jp: string, romaji: string): A2Fragment => ({ jp, romaji, kind: "particle", boundaryBefore: "attach" });
+const M = (jp: string, romaji: string): A2Fragment => ({ jp, romaji, kind: "morpheme", boundaryBefore: "attach" });
 
-export const A2_PLAIN_ENDINGS = A2_VERB_PLAIN_ENDINGS;
+/** The 15 spiral forms (L2), each bound to its named Can-do. Suffix forms name their base + tail. */
+export const A2_CONSTRUCTIONS: Readonly<Record<string, A2Construction>> = {
+  "recognize-plain-forms":  { id: "recognize-plain-forms",  kind: "plain-inflection", canDoId: "a2-cando-recognize-plain-forms" },
+  "sequence-te":            { id: "sequence-te",            kind: "suffix", canDoId: "a2-cando-sequence-te",            base: "te",       tail: [] },
+  "ongoing-teiru":          { id: "ongoing-teiru",          kind: "suffix", canDoId: "a2-cando-ongoing-teiru",          base: "te",       tail: [M("います", "imasu")] },
+  "request-tekudasai":      { id: "request-tekudasai",      kind: "suffix", canDoId: "a2-cando-request-tekudasai",      base: "te",       tail: [M("ください", "kudasai")] },
+  "permission-temoii":      { id: "permission-temoii",      kind: "suffix", canDoId: "a2-cando-permission-temoii",      base: "te",       tail: [P("も", "mo"), M("いい", "ii"), M("です", "desu")] },
+  "prohibition-tewaikenai": { id: "prohibition-tewaikenai", kind: "suffix", canDoId: "a2-cando-prohibition-tewaikenai", base: "te",       tail: [P("は", "wa"), M("いけません", "ikemasen")] },
+  "request-negative":       { id: "request-negative",       kind: "suffix", canDoId: "a2-cando-negative-request",       base: "negative", tail: [M("で", "de"), M("ください", "kudasai")] },
+  "experience-takoto":      { id: "experience-takoto",      kind: "suffix", canDoId: "a2-cando-experience-takoto",      base: "past",     tail: [M("こと", "koto"), P("が", "ga"), M("あります", "arimasu")] },
+  "intentions-plans":       { id: "intentions-plans",       kind: "clause",    canDoId: "a2-cando-intentions-plans" },
+  "reason-kara":            { id: "reason-kara",            kind: "clause",    canDoId: "a2-cando-reason-kara" },
+  "reason-node":            { id: "reason-node",            kind: "clause",    canDoId: "a2-cando-reason-node" },
+  "opinion-toomou":         { id: "opinion-toomou",         kind: "clause",    canDoId: "a2-cando-opinion-toomou" },
+  "compare":                { id: "compare",                kind: "clause",    canDoId: "a2-cando-compare" },
+  "possibility":            { id: "possibility",            kind: "clause",    canDoId: "a2-cando-possibility" },
+  "connectors":             { id: "connectors",             kind: "connector", canDoId: "a2-cando-connectors" },
+};
 ```
 
-- [ ] **Step 8: Write `src/course/a2/forms/realizeA2Sentence.ts`.** A pure composer that appends a suffix chain to a stem, reusing the shared romaji boundary rules. It returns the same `visibleTargetKey`/`semanticFingerprint` discipline as `RealizedSentence`.
+> **Why clause/connector forms are not suffixes.** 予定/つもり, から, ので, と思う, comparisons (のほうが/より/いちばん), possibility (使えます/ことができる), and connectors (でも/それから/だから) combine *clauses* or add discourse tokens; they are realized as explicit sentence-family constructions in Task 4 (the shared realizer), not by attaching a morpheme to one verb. The composer therefore rejects them with `not-a-suffix-construction`, and the grammar-spiral validator (Steps 10–12) still checks their five pedagogical roles from `grammarSpiral.ts`.
+
+- [ ] **Step 8: Write `src/course/a2/forms/composeA2Construction.ts`.** A pure composer: look up the construction, conjugate the required base for the target verb, append the tail, and concatenate jp/romaji/reading.
 
 ```ts
 import { A2_CONSTRUCTIONS } from "./a2Constructions";
-import type { EndingFragment } from "./a2Endings";
+import { conjugate, type A2Fragment, type A2PlainForm } from "./a2Conjugation";
 
-export interface A2RealizeInput {
+export interface ComposeInput {
   readonly constructionId: string;
-  /** Predicate stem, sourced from the semantic-value catalog in real lessons. */
-  readonly stem: EndingFragment;
+  readonly senseId: string;
 }
 
-export interface A2RealizedSentence {
-  readonly canonicalJapanese: string;
+export interface ComposedSentence {
+  readonly jp: string;
   readonly romaji: string;
-  readonly visibleTargetKey: string;
-  readonly semanticFingerprint: string;
+  readonly reading: string;
+  readonly base: A2PlainForm;
+  readonly canDoId: string;
+  readonly fragments: readonly A2Fragment[];
 }
 
-export type A2RealizeResult =
-  | { ok: true; sentence: A2RealizedSentence }
-  | { ok: false; error: "unknown-construction" | "not-a-suffix-construction" };
+export type ComposeResult =
+  | { ok: true; sentence: ComposedSentence }
+  | { ok: false; error: "unknown-construction" | "unknown-verb" | "not-a-suffix-construction" };
 
 /**
- * Compose a `suffix` construction onto a stem. Clause/plain-inflection/connector
- * constructions are realized by dedicated sentence families in the shared
- * realizer (Task 4), not here. Pure; mutates nothing.
+ * Compose a `suffix` construction onto the CORRECT conjugated base
+ * (te / negative / past) for the target verb. Clause/plain-inflection/connector
+ * constructions are realized by sentence families in Task 4, not here. Pure.
  */
-export function realizeA2Sentence(input: A2RealizeInput): A2RealizeResult {
+export function composeA2Construction(input: ComposeInput): ComposeResult {
   const c = A2_CONSTRUCTIONS[input.constructionId];
   if (!c) return { ok: false, error: "unknown-construction" };
-  if (c.kind !== "suffix" || !c.suffix) {
+  if (c.kind !== "suffix" || c.base === undefined || c.tail === undefined) {
     return { ok: false, error: "not-a-suffix-construction" };
   }
-  const fragments: EndingFragment[] = [input.stem, ...c.suffix];
-  const jp = fragments.map((f) => f.jp).join("");
-  const romaji = fragments.map((f) => f.romaji).join("");
+  const conj = conjugate(input.senseId, c.base);
+  if (!conj.ok) return { ok: false, error: "unknown-verb" };
+  const fragments: readonly A2Fragment[] = [...conj.result.fragments, ...c.tail];
   return {
     ok: true,
     sentence: {
-      canonicalJapanese: jp,
-      romaji,
-      visibleTargetKey: jp,
-      semanticFingerprint: `${input.constructionId}:${jp}`,
+      jp: fragments.map((f) => f.jp).join(""),
+      romaji: fragments.map((f) => f.romaji).join(""),
+      reading: fragments.map((f) => f.reading ?? f.jp).join(""),
+      base: c.base,
+      canDoId: c.canDoId,
+      fragments,
     },
   };
 }
 ```
 
-> The illustrative romaji `hataurai` in the test is intentionally the stem's own field; real stems carry correct romaji from the catalog. Fix the test's stem romaji to the value the catalog uses if it differs — the assertion that matters is that fragments concatenate in order.
+- [ ] **Step 9: Run the composer test, see it pass** (`npx vitest run src/course/a2/forms/composeA2Construction.test.ts` → PASS). This proves the class-correct bases feed the constructions: 読む→ています uses the んで te-form, 行く→たこと uses the った exception past, 話す→はいけません uses the して te-form.
 
-- [ ] **Step 9: Run the realizer test, see it pass** (`npx vitest run src/course/a2/forms/realizeA2Sentence.test.ts` → PASS).
 
 - [ ] **Step 10: Write the failing grammar-spiral validator test.** The spiral (L2) is encoded as data in `grammarSpiral.ts`; the validator proves every form has all five roles and that no role lesson precedes the intro in canonical order.
 
@@ -1034,10 +1247,10 @@ Expected: PASS (all three files).
 ```bash
 npx tsc --noEmit
 git add src/course/a2/forms/
-git commit -m "feat(a2): form/aspect ending registries, realizer composer, grammar-spiral validator"
+git commit -m "feat(a2): conjugation-class engine, construction composer, grammar-spiral validator"
 ```
 
-- [ ] **Step 15: Subagent quality review.** Dispatch: "Review the Task 2 diff against spec §7.1/§9.2–§9.4/§13 and plan table L2. Confirm all 15 spiral forms are registered with the exact Can-do IDs from L2, ending chains concatenate to the correct Japanese (ています/てください/てもいいです/てはいけません/ないでください/たことがあります), the spiral data equals L2, and the validator rejects a role-before-intro. Verify no Japanese appears outside `a2Endings.ts`. File inline findings." Fix before Task 3.
+- [ ] **Step 15: Subagent quality review.** Dispatch: "Review the Task 2 diff against spec §7.1/§9.2–§9.4/§13 and plan table L2. Confirm (a) the conjugation engine covers every class — ichidan, all nine godan sub-classes, する, 来る, plus the 行く った/って exception — and that all 12 verbs' five plain forms match the paradigm table (glyph root preserved, reading + macron-free romaji correct, e.g. 書いて/かいて/kaite, 泳いで/oyoide, 死んで/shinde, 帰って/kaette, 来た/きた/kita); (b) every construction attaches to the CORRECT base (て for ています/てください/てもいいです/てはいけません, negative for ないでください, past for たことがあります) and the composer rejects clause/connector forms; (c) all 15 spiral forms are registered with the exact Can-do IDs from L2 and the validator rejects a role-before-intro. Verify verbal Japanese lives only in `a2Conjugation.ts`/`a2Constructions.ts`. File inline findings." Fix before Task 3.
 
 ---
 ## Task 3: Contextual-kanji layer — types, 120-glyph catalog, assistance policy, validators, UI primitives
@@ -1112,7 +1325,7 @@ export interface KanjiAssistancePolicy {
 }
 ```
 
-- [ ] **Step 3: Write the failing catalog test.** The catalog exposes: 120 entries; a per-module distribution summing to 120; four exposures per kanji in monotonic stage order; every reading declared.
+- [ ] **Step 3: Write the failing catalog test.** The catalog exposes: 120 entries; the exact per-module distribution (`A2_KANJI_DISTRIBUTION`) summing to 120; four exposures per kanji in STRICTLY increasing canonical order; no glyph first-supported at a synthesis lesson; every reading declared.
 
 ```ts
 // src/course/a2/kanji/a2KanjiCatalog.test.ts
@@ -1121,9 +1334,10 @@ import {
   A2_KANJI_ENTRIES,
   A2_KANJI_EXPOSURES,
   A2_KANJI_READINGS,
+  A2_KANJI_DISTRIBUTION,
   a2KanjiCountByModule,
 } from "./a2KanjiCatalog";
-import { A2_CANONICAL_POSITIONS } from "../manifest";
+import { A2_CANONICAL_POSITIONS, A2_SYNTHESIS_LESSON_IDS } from "../manifest";
 
 const STAGE_ORDER = ["first-supported", "supported-retrieval", "revealable", "assessed"] as const;
 
@@ -1134,20 +1348,31 @@ describe("A2 kanji catalog", () => {
     expect(glyphs.size).toBe(120);
   });
 
-  it("distributes 8 kanji per module, summing to 120", () => {
+  it("distributes kanji per the L3 table (M2=12, M3/M5/M12/M14=9, M15=0), summing to 120", () => {
     const counts = a2KanjiCountByModule();
-    expect(Object.values(counts).every((n) => n === 8)).toBe(true);
+    expect(counts).toEqual(A2_KANJI_DISTRIBUTION);
     expect(Object.values(counts).reduce((a, b) => a + b, 0)).toBe(120);
+    expect(counts["a2-synthesis"]).toBe(0);
   });
 
-  it("gives every kanji four exposures in monotonic canonical order", () => {
+  it("gives every kanji four exposures in STRICTLY increasing canonical order", () => {
     for (const entry of A2_KANJI_ENTRIES) {
       const exposures = A2_KANJI_EXPOSURES.filter((e) => e.kanjiId === entry.id);
       expect(exposures.map((e) => e.stage)).toEqual([...STAGE_ORDER]);
       const positions = exposures.map((e) => A2_CANONICAL_POSITIONS[e.lessonId]);
-      // strictly non-decreasing; assessment strictly after supported-retrieval
-      expect(positions[1]).toBeGreaterThan(positions[0] - 1);
-      expect(positions[3]).toBeGreaterThan(positions[1]);
+      // strict monotonic: first-supported < supported-retrieval < revealable < assessed
+      expect(positions[0]).toBeLessThan(positions[1]);
+      expect(positions[1]).toBeLessThan(positions[2]);
+      expect(positions[2]).toBeLessThan(positions[3]);
+    }
+  });
+
+  it("introduces NO glyph at a synthesis lesson (M15 first-exposes nothing)", () => {
+    const synthesis = new Set(A2_SYNTHESIS_LESSON_IDS);
+    const firstSupported = A2_KANJI_EXPOSURES.filter((e) => e.stage === "first-supported");
+    expect(firstSupported).toHaveLength(120);
+    for (const e of firstSupported) {
+      expect(synthesis.has(e.lessonId)).toBe(false);
     }
   });
 
@@ -1171,45 +1396,70 @@ import type {
   KanjiReading,
 } from "./kanjiTypes";
 
-/** One authored row from plan table L3 (contextual, recognition-only). */
+/** One authored row from plan table L3 (contextual, recognition-only). All four
+ * stage lessons are explicit columns from table L3 — there is no cohort shortcut;
+ * the builder reads exactly these four lesson IDs. */
 interface KanjiRow {
   readonly glyph: string;
   readonly meaningCopyId: string;
-  readonly kana: string; // reading used in the contextual lexeme
+  readonly kana: string; // recognition-target reading for this glyph in the lexeme
   readonly romaji: string;
   readonly lexemeSenseId: string; // the a2-sense-* the glyph first appears in
   readonly contextId: string;
-  readonly cohort: "A" | "B"; // A = glyphs 1-4, B = glyphs 5-8 (schedule L3)
   readonly firstSupported: string;
+  readonly supportedRetrieval: string;
   readonly revealable: string;
   readonly assessed: string;
-  /** supported-retrieval lesson (between first-supported and revealable). */
-  readonly supportedRetrieval: string;
 }
 
 /** Module 1 — connected-conversation (plan table L3, rows 1-8). */
 const M1_ROWS: readonly KanjiRow[] = [
-  { glyph: "話", meaningCopyId: "a2-kanji-hanasu-meaning", kana: "はな", romaji: "hana", lexemeSenseId: "a2-sense-hanasu", contextId: "a2-context-conversation", cohort: "A", firstSupported: "connected-conversation-1", supportedRetrieval: "connected-conversation-2", revealable: "connected-conversation-3", assessed: "connected-conversation-4" },
-  { glyph: "言", meaningCopyId: "a2-kanji-iu-meaning", kana: "い", romaji: "i", lexemeSenseId: "a2-sense-iu", contextId: "a2-context-conversation", cohort: "A", firstSupported: "connected-conversation-1", supportedRetrieval: "connected-conversation-2", revealable: "connected-conversation-3", assessed: "connected-conversation-4" },
-  { glyph: "聞", meaningCopyId: "a2-kanji-kiku-meaning", kana: "き", romaji: "ki", lexemeSenseId: "a2-sense-kiku", contextId: "a2-context-conversation", cohort: "A", firstSupported: "connected-conversation-1", supportedRetrieval: "connected-conversation-2", revealable: "connected-conversation-3", assessed: "connected-conversation-4" },
-  { glyph: "友", meaningCopyId: "a2-kanji-tomo-meaning", kana: "とも", romaji: "tomo", lexemeSenseId: "a2-sense-tomodachi", contextId: "a2-context-conversation", cohort: "A", firstSupported: "connected-conversation-1", supportedRetrieval: "connected-conversation-2", revealable: "connected-conversation-3", assessed: "connected-conversation-4" },
-  { glyph: "思", meaningCopyId: "a2-kanji-omou-meaning", kana: "おも", romaji: "omo", lexemeSenseId: "a2-sense-omou", contextId: "a2-context-conversation", cohort: "B", firstSupported: "connected-conversation-2", supportedRetrieval: "connected-conversation-3", revealable: "connected-conversation-4", assessed: "plans-invitations-1" },
-  { glyph: "名", meaningCopyId: "a2-kanji-namae-meaning", kana: "な", romaji: "na", lexemeSenseId: "a2-sense-namae", contextId: "a2-context-conversation", cohort: "B", firstSupported: "connected-conversation-2", supportedRetrieval: "connected-conversation-3", revealable: "connected-conversation-4", assessed: "plans-invitations-1" },
-  { glyph: "前", meaningCopyId: "a2-kanji-mae-meaning", kana: "まえ", romaji: "mae", lexemeSenseId: "a2-sense-namae", contextId: "a2-context-conversation", cohort: "B", firstSupported: "connected-conversation-2", supportedRetrieval: "connected-conversation-3", revealable: "connected-conversation-4", assessed: "plans-invitations-1" },
-  { glyph: "何", meaningCopyId: "a2-kanji-nani-meaning", kana: "なに", romaji: "nani", lexemeSenseId: "a2-sense-nani", contextId: "a2-context-conversation", cohort: "B", firstSupported: "connected-conversation-2", supportedRetrieval: "connected-conversation-3", revealable: "connected-conversation-4", assessed: "plans-invitations-1" },
+  { glyph: "話", meaningCopyId: "a2-kanji-hanasu-meaning", kana: "はな", romaji: "hana", lexemeSenseId: "a2-sense-hanasu", contextId: "a2-context-conversation", firstSupported: "connected-conversation-1", supportedRetrieval: "connected-conversation-2", revealable: "connected-conversation-3", assessed: "connected-conversation-4" },
+  { glyph: "言", meaningCopyId: "a2-kanji-iu-meaning", kana: "い", romaji: "i", lexemeSenseId: "a2-sense-iu", contextId: "a2-context-conversation", firstSupported: "connected-conversation-1", supportedRetrieval: "connected-conversation-2", revealable: "connected-conversation-3", assessed: "connected-conversation-4" },
+  { glyph: "聞", meaningCopyId: "a2-kanji-kiku-meaning", kana: "き", romaji: "ki", lexemeSenseId: "a2-sense-kiku", contextId: "a2-context-conversation", firstSupported: "connected-conversation-1", supportedRetrieval: "connected-conversation-2", revealable: "connected-conversation-3", assessed: "connected-conversation-4" },
+  { glyph: "友", meaningCopyId: "a2-kanji-tomo-meaning", kana: "とも", romaji: "tomo", lexemeSenseId: "a2-sense-tomodachi", contextId: "a2-context-conversation", firstSupported: "connected-conversation-1", supportedRetrieval: "connected-conversation-2", revealable: "connected-conversation-3", assessed: "connected-conversation-4" },
+  { glyph: "思", meaningCopyId: "a2-kanji-omou-meaning", kana: "おも", romaji: "omo", lexemeSenseId: "a2-sense-omou", contextId: "a2-context-conversation", firstSupported: "connected-conversation-2", supportedRetrieval: "connected-conversation-3", revealable: "connected-conversation-4", assessed: "plans-invitations-1" },
+  { glyph: "名", meaningCopyId: "a2-kanji-namae-meaning", kana: "な", romaji: "na", lexemeSenseId: "a2-sense-namae", contextId: "a2-context-conversation", firstSupported: "connected-conversation-2", supportedRetrieval: "connected-conversation-3", revealable: "connected-conversation-4", assessed: "plans-invitations-1" },
+  { glyph: "前", meaningCopyId: "a2-kanji-mae-meaning", kana: "まえ", romaji: "mae", lexemeSenseId: "a2-sense-namae", contextId: "a2-context-conversation", firstSupported: "connected-conversation-2", supportedRetrieval: "connected-conversation-3", revealable: "connected-conversation-4", assessed: "plans-invitations-1" },
+  { glyph: "何", meaningCopyId: "a2-kanji-nani-meaning", kana: "なに", romaji: "nani", lexemeSenseId: "a2-sense-nani", contextId: "a2-context-conversation", firstSupported: "connected-conversation-2", supportedRetrieval: "connected-conversation-3", revealable: "connected-conversation-4", assessed: "plans-invitations-1" },
 ];
 
-// M2_ROWS … M15_ROWS: author identically from plan table L3, one KanjiRow per
-// glyph, cohort A for glyphs 1-4 and cohort B for glyphs 5-8, using each row's
-// First-supported/Revealable/Assessed columns and the schedule's implied
-// supportedRetrieval (the lesson immediately between first-supported and
-// revealable). For M15 cohort B, set supportedRetrieval="a2-synthesis-3" and
-// revealable=assessed="a2-synthesis-4" (see L3 M15 note).
+// M2_ROWS … M14_ROWS: author identically from plan table L3 — one KanjiRow per
+// glyph, copying that row's four explicit lesson columns
+// (First-supported / Supported-retrieval / Revealable / Assessed). There is NO
+// cohort computation: every stage lesson is taken verbatim from the table.
+// M15 (a2-synthesis) introduces ZERO new glyphs, so:
+const M15_ROWS: readonly KanjiRow[] = [];
+// The eight relocated glyphs (今 日 来 月 → plans-invitations; 年 →
+// experiences-narratives; 毎 → sequencing-ongoing; 山 → travel-reservations;
+// 本 → practical-texts) are authored inside their NEW module arrays with the
+// per-glyph readings from L3 (今→こん/kon, 日→び/bi, 来→らい/rai, 月→げつ/getsu,
+// 年→ねん/nen, 毎→まい/mai, 山→やま/yama, 本→ほん/hon).
 
 const ALL_ROWS_BY_MODULE: Readonly<Record<ModuleId, readonly KanjiRow[]>> = {
   "connected-conversation": M1_ROWS,
-  // "plans-invitations": M2_ROWS, … through "a2-synthesis": M15_ROWS,
+  // "plans-invitations": M2_ROWS (12 rows), … "practical-texts": M14_ROWS (9 rows),
+  "a2-synthesis": M15_ROWS, // [] — no new glyphs at synthesis
 };
+
+/** The authoritative per-module glyph counts from table L3 (sums to 120). */
+export const A2_KANJI_DISTRIBUTION: Readonly<Record<ModuleId, number>> = deepFreeze({
+  "connected-conversation": 8,
+  "plans-invitations": 12,
+  "experiences-narratives": 9,
+  "reasons-opinions": 8,
+  "sequencing-ongoing": 9,
+  "permission-requests": 8,
+  "neighborhood-services": 8,
+  "restaurant-problems": 8,
+  "shopping-returns": 8,
+  "health-advice": 8,
+  "work-study-messages": 8,
+  "travel-reservations": 9,
+  "relationships-events": 8,
+  "practical-texts": 9,
+  "a2-synthesis": 0,
+});
 
 function buildCatalog() {
   const entries: KanjiEntry[] = [];
@@ -1227,7 +1477,7 @@ function buildCatalog() {
         ["revealable", row.revealable],
         ["assessed", row.assessed],
       ];
-      schedule.forEach(([stage, lessonId], i) => {
+      schedule.forEach(([stage, lessonId]) => {
         exposures.push({
           id: `${kanjiId}-${stage}`,
           kanjiId, lexemeSenseId: row.lexemeSenseId, lessonId, stage,
@@ -1245,13 +1495,17 @@ export const A2_KANJI_READINGS: readonly KanjiReading[] = deepFreeze(CATALOG.rea
 export const A2_KANJI_EXPOSURES: readonly KanjiExposure[] = deepFreeze(CATALOG.exposures);
 
 export function a2KanjiCountByModule(): Readonly<Record<ModuleId, number>> {
-  return Object.fromEntries(
-    Object.entries(ALL_ROWS_BY_MODULE).map(([m, rows]) => [m, rows.length]),
-  );
+  const counts = Object.fromEntries(
+    (Object.keys(A2_KANJI_DISTRIBUTION) as ModuleId[]).map((m) => [m, 0]),
+  ) as Record<ModuleId, number>;
+  for (const [m, rows] of Object.entries(ALL_ROWS_BY_MODULE)) {
+    counts[m as ModuleId] = rows.length;
+  }
+  return counts;
 }
 ```
 
-> **Authoring note:** M2–M15 arrays are mechanical transcriptions of table L3 (glyph, lexeme reading, cohort, the three lesson columns). Do not paraphrase; copy the exact glyphs/readings/lesson IDs. The `lexemeSenseId`/`contextId` reference the semantic senses/contexts authored in Tasks 4–7; if a sense is not yet authored when Task 3 runs, use the sense ID string the content task will create (they are named deterministically, e.g. `a2-sense-hanasu`) — the kanji validator (Step 9) only cross-checks these against the assembled catalog at release time (Task 7), not at unit-test time.
+> **Authoring note:** M2–M14 arrays are mechanical transcriptions of table L3 (glyph, contextual lexeme reading, and the four explicit stage-lesson columns). Do not paraphrase; copy the exact glyphs/readings/lesson IDs, including the eight relocated glyphs in their new modules (M2 has 12 rows, M3/M5/M12/M14 have 9 rows each). `M15_ROWS` is `[]` — the synthesis module introduces no glyph. The `lexemeSenseId`/`contextId` reference the semantic senses/contexts authored in Tasks 4–7; if a sense is not yet authored when Task 3 runs, use the sense ID string the content task will create (they are named deterministically, e.g. `a2-sense-hanasu`) — the kanji validator (Step 10) only cross-checks these against the assembled catalog at release time (Task 7), not at unit-test time.
 
 - [ ] **Step 6: Run the catalog test, see it pass** (author enough of M2–M15 to reach 120; the test enforces the count). `npx vitest run src/course/a2/kanji/a2KanjiCatalog.test.ts` → PASS.
 
@@ -1320,23 +1574,27 @@ export const a2KanjiAssistancePolicy: KanjiAssistancePolicy = {
 };
 ```
 
-- [ ] **Step 9: Write the failing kanji-release-validator test.** Validates count, distribution sum, exposure order, premature-hide, assessed-without-support, undeclared reading, romaji-bypass, and standalone-dump (every exposure must reference a lexeme sense, i.e. be contextual).
+- [ ] **Step 9: Write the failing kanji-release-validator test.** Validates count, per-module distribution, STRICT four-stage exposure order, no first-exposure at a synthesis lesson, premature-hide, assessed-without-support, undeclared reading, romaji-bypass, and standalone-dump (every exposure must reference a lexeme sense, i.e. be contextual).
 
 ```ts
 // src/course/a2/kanji/validateA2Kanji.test.ts
 import { describe, it, expect } from "vitest";
 import { validateA2Kanji } from "./validateA2Kanji";
 import {
-  A2_KANJI_ENTRIES, A2_KANJI_EXPOSURES, A2_KANJI_READINGS,
+  A2_KANJI_ENTRIES, A2_KANJI_EXPOSURES, A2_KANJI_READINGS, A2_KANJI_DISTRIBUTION,
+  a2KanjiCountByModule,
 } from "./a2KanjiCatalog";
-import { A2_CANONICAL_POSITIONS } from "../manifest";
+import { A2_CANONICAL_POSITIONS, A2_SYNTHESIS_LESSON_IDS } from "../manifest";
 
 const input = {
   entries: A2_KANJI_ENTRIES,
   exposures: A2_KANJI_EXPOSURES,
   readings: A2_KANJI_READINGS,
   positions: A2_CANONICAL_POSITIONS,
+  synthesisLessonIds: A2_SYNTHESIS_LESSON_IDS,
+  countByModule: a2KanjiCountByModule(),
   expectedCount: 120,
+  expectedByModule: A2_KANJI_DISTRIBUTION,
 };
 
 describe("validateA2Kanji", () => {
@@ -1347,12 +1605,40 @@ describe("validateA2Kanji", () => {
     const codes = validateA2Kanji({ ...input, expectedCount: 100 }).errors.map((e) => e.code);
     expect(codes).toContain("kanji-count");
   });
+  it("flags a per-module distribution mismatch", () => {
+    const codes = validateA2Kanji({
+      ...input,
+      expectedByModule: { ...A2_KANJI_DISTRIBUTION, "a2-synthesis": 8 },
+    }).errors.map((e) => e.code);
+    expect(codes).toContain("kanji-distribution-sum");
+  });
   it("flags an assessed exposure with no prior supported exposure", () => {
     const broken = A2_KANJI_EXPOSURES.filter(
       (e) => !(e.kanjiId === A2_KANJI_ENTRIES[0].id && e.stage !== "assessed"),
     );
     const codes = validateA2Kanji({ ...input, exposures: broken }).errors.map((e) => e.code);
     expect(codes).toContain("kanji-assessed-without-support");
+  });
+  it("flags a non-strict stage order (revealable == assessed)", () => {
+    const target = A2_KANJI_ENTRIES[0].id;
+    const assessedLesson = A2_KANJI_EXPOSURES.find(
+      (e) => e.kanjiId === target && e.stage === "revealable",
+    )!.lessonId;
+    const broken = A2_KANJI_EXPOSURES.map((e) =>
+      e.kanjiId === target && e.stage === "assessed" ? { ...e, lessonId: assessedLesson } : e,
+    );
+    const codes = validateA2Kanji({ ...input, exposures: broken }).errors.map((e) => e.code);
+    expect(codes).toContain("kanji-exposure-order");
+  });
+  it("flags a glyph first-supported at a synthesis lesson", () => {
+    const target = A2_KANJI_ENTRIES[0].id;
+    const broken = A2_KANJI_EXPOSURES.map((e) =>
+      e.kanjiId === target && e.stage === "first-supported"
+        ? { ...e, lessonId: "a2-synthesis-1" as const }
+        : e,
+    );
+    const codes = validateA2Kanji({ ...input, exposures: broken }).errors.map((e) => e.code);
+    expect(codes).toContain("kanji-synthesis-first-exposure");
   });
   it("flags an undeclared reading", () => {
     const broken = A2_KANJI_EXPOSURES.map((e, i) =>
@@ -1368,6 +1654,7 @@ describe("validateA2Kanji", () => {
 
 ```ts
 import type { LessonId } from "../../foundations/types";
+import type { LessonId, ModuleId } from "../../foundations/types";
 import type { KanjiEntry, KanjiExposure, KanjiReading } from "./kanjiTypes";
 
 export type KanjiValidationCode =
@@ -1375,6 +1662,7 @@ export type KanjiValidationCode =
   | "kanji-distribution-sum"
   | "kanji-unknown-reading"
   | "kanji-exposure-order"
+  | "kanji-synthesis-first-exposure"
   | "kanji-furigana-premature-hide"
   | "kanji-assessed-without-support"
   | "kanji-romaji-bypass"
@@ -1390,7 +1678,13 @@ export interface ValidateA2KanjiInput {
   readonly exposures: readonly KanjiExposure[];
   readonly readings: readonly KanjiReading[];
   readonly positions: Readonly<Record<LessonId, number>>;
+  /** Lesson IDs that belong to the synthesis module (no first-supported allowed). */
+  readonly synthesisLessonIds: readonly LessonId[];
+  /** Actual glyph count per module (from a2KanjiCountByModule()). */
+  readonly countByModule: Readonly<Record<ModuleId, number>>;
   readonly expectedCount: number;
+  /** Authoritative per-module distribution from table L3 (sums to expectedCount). */
+  readonly expectedByModule: Readonly<Record<ModuleId, number>>;
 }
 
 const STAGE_RANK = {
@@ -1407,11 +1701,33 @@ export function validateA2Kanji(
   const glyphs = new Set(input.entries.map((e) => e.glyph));
   if (glyphs.size !== input.expectedCount) errors.push({ code: "kanji-count" });
 
+  // Per-module distribution must match L3 exactly, and sum to expectedCount.
+  const modules = new Set<ModuleId>([
+    ...(Object.keys(input.expectedByModule) as ModuleId[]),
+    ...(Object.keys(input.countByModule) as ModuleId[]),
+  ]);
+  let distributionSum = 0;
+  for (const m of modules) {
+    const actual = input.countByModule[m] ?? 0;
+    distributionSum += actual;
+    if (actual !== (input.expectedByModule[m] ?? 0)) {
+      errors.push({ code: "kanji-distribution-sum", id: m });
+    }
+  }
+  if (distributionSum !== input.expectedCount) {
+    errors.push({ code: "kanji-distribution-sum" });
+  }
+
+  const synthesis = new Set<LessonId>(input.synthesisLessonIds);
   const readingIds = new Set(input.readings.map((r) => r.id));
   const byKanji = new Map<string, KanjiExposure[]>();
   for (const e of input.exposures) {
     if (!readingIds.has(e.readingId)) errors.push({ code: "kanji-unknown-reading", id: e.id });
     if (!e.lexemeSenseId) errors.push({ code: "kanji-standalone-dump", id: e.id });
+    // No glyph may be first-supported at a synthesis lesson (M15 introduces nothing).
+    if (e.stage === "first-supported" && synthesis.has(e.lessonId)) {
+      errors.push({ code: "kanji-synthesis-first-exposure", id: e.id });
+    }
     (byKanji.get(e.kanjiId) ?? byKanji.set(e.kanjiId, []).get(e.kanjiId)!).push(e);
   }
 
@@ -1419,11 +1735,11 @@ export function validateA2Kanji(
     const ordered = [...list].sort(
       (a, b) => STAGE_RANK[a.stage] - STAGE_RANK[b.stage],
     );
-    // canonical position must not decrease across stages
+    // canonical position must STRICTLY increase across the four stages
     for (let i = 1; i < ordered.length; i++) {
       const prev = input.positions[ordered[i - 1].lessonId];
       const cur = input.positions[ordered[i].lessonId];
-      if (prev !== undefined && cur !== undefined && cur < prev) {
+      if (prev !== undefined && cur !== undefined && cur <= prev) {
         errors.push({ code: "kanji-exposure-order", id: kanjiId });
       }
     }
@@ -1450,6 +1766,8 @@ export function validateA2Kanji(
   return { valid: errors.length === 0, errors };
 }
 ```
+
+> **Strict ordering:** the `cur <= prev` test fires whenever two stages share a canonical position (the earlier design allowed `revealable === assessed`; that is now rejected). Every L3 row satisfies `first-supported < supported-retrieval < revealable < assessed`, so the real catalog passes. **Synthesis first-exposure:** `kanji-synthesis-first-exposure` fires if any glyph is first-supported at an `a2-synthesis-*` lesson; since M15 introduces zero glyphs, the real catalog passes.
 
 > **`kanji-romaji-bypass`** is asserted at the *activity* boundary, not the catalog: the release validator (Task 7) checks that no assessed kanji exercise renders under a romaji substitution by running the assistance policy over each assessed exposure and asserting `romaji === "not-shown"`. The code is declared here so Task 7 can emit it.
 
@@ -1573,7 +1891,7 @@ git add src/course/a2/kanji/ src/course/components/KanjiRubyText.tsx \
 git commit -m "feat(a2): contextual-kanji types, 120-glyph catalog, assistance policy, ruby UI, validators"
 ```
 
-- [ ] **Step 15: Subagent quality review.** Dispatch: "Review Task 3 against spec §14 and plan table L3. Confirm exactly 120 unique glyphs, 8/module summing to 120, per-glyph four-stage monotonic ordering, assessment strictly after a support stage, assistance policy hides furigana ONLY at assessed and never shows romaji for assessed (no bypass in romaji mode), and the ruby component keeps the glyph as the accessible text with decorative rt. Confirm recognition-only (no handwriting/IME anywhere). File inline findings." Fix before Task 4.
+- [ ] **Step 15: Subagent quality review.** Dispatch: "Review Task 3 against spec §14 and plan table L3. Confirm exactly 120 unique glyphs, the per-module counts match `A2_KANJI_DISTRIBUTION` (M2=12, M3/M5/M12/M14=9, M15=0, others 8) and sum to 120, per-glyph four-stage STRICT monotonic ordering (first-supported < supported-retrieval < revealable < assessed), no glyph first-supported at any `a2-synthesis-*` lesson, assessment strictly after a support stage, assistance policy hides furigana ONLY at assessed and never shows romaji for assessed (no bypass in romaji mode), and the ruby component keeps the glyph as the accessible text with decorative rt. Confirm recognition-only (no handwriting/IME anywhere). File inline findings." Fix before Task 4.
 
 ---
 ## Task 4: A2 authoring helpers, semantic-catalog conventions, Japanese-literal lint, and content M1–M4
@@ -1585,6 +1903,8 @@ Establishes the shared A2 lesson builder (analogous to `buildA1InstructionalLess
 **Files:**
 - Create: `src/course/a2/catalog/a2SemanticCatalog.ts` (families, senses, contexts, referents, person-roles, semantic values — the ONLY place A2 Japanese content lives)
 - Create: `src/course/a2/catalog/a2LessonBuilders.ts` (`buildA2InstructionalLesson`, `a2Variant`, `a2VerbUseRecord`, `withA2LaterUses`, `assembleA2FoundationCatalogs`)
+- Create: `src/course/foundations/instructionalLessonKit.ts` (level-agnostic `buildInstructionalLesson`/`verbUseRecord`/`withLaterUses` extracted from A1 so A1 and A2 share one implementation, §15)
+- Modify: `src/course/a1/catalog/a1LessonBuilders.ts` (thin-wrap the extracted kit; signatures unchanged) + add `src/course/a1/catalog/a1LessonBuilders.characterization.test.ts`
 - Create: `src/course/a2/catalog/canDos.ts` (mirrors `a1/catalog/canDos.ts`: `A2_CANDO_LESSONS` map (id→lessonIds) as the authoring input; the derived frozen `a2CanDosAuthored: readonly CanDo[]` array and `a2CanDoById` map built from it)
 - Create: `src/course/a2/content/module01ConnectedConversation.ts`
 - Create: `src/course/a2/content/module02PlansInvitations.ts`
@@ -1592,7 +1912,7 @@ Establishes the shared A2 lesson builder (analogous to `buildA1InstructionalLess
 - Create: `src/course/a2/content/module04ReasonsOpinions.ts`
 - Create: `scripts/lintA2NoJapanese.ts` + `src/course/a2/content/noJapaneseLint.test.ts`
 - Test: `src/course/a2/content/module01ConnectedConversation.test.ts` (+ one test file per module)
-- Reference (read): `src/course/a1/catalog/a1LessonBuilders.ts`, `src/course/a1/content/module02Introductions.ts`, `src/course/a1/catalog/a1SemanticCatalog.ts`, `src/course/foundations/validateFoundations.ts` (input 141–177), plan tables L1/L2/L3.
+- Reference (read): `src/course/a1/catalog/a1LessonBuilders.ts`, `src/course/a1/catalog/module02Introductions.ts`, `src/course/a1/catalog/a1SemanticCatalog.ts`, `src/course/foundations/validateFoundations.ts` (`ValidateFoundationsInput`), plan tables L1/L2/L3.
 
 - [ ] **Step 1: Fresh spec re-read.** Re-read §9 (depth/transfer contract), §10 (families), §11 (exercise selection), §12 (lesson experience). Confirm the floors above and that dialogues are required for conversational Can-dos. Write nothing yet.
 
@@ -1626,16 +1946,59 @@ describe("A2 content files contain no Japanese literals", () => {
 Run: `npx vitest run src/course/a2/content/noJapaneseLint.test.ts`
 Expected: PASS trivially now (no module files yet). It becomes a live guard as content lands. Also add `scripts/lintA2NoJapanese.ts` (same regex over the content dir, `process.exit(1)` on offenders) and wire it into the release gate in Task 7.
 
-- [ ] **Step 3: Write the A2 semantic-catalog conventions (`a2SemanticCatalog.ts`).** Reuse A1 families/senses that A2 re-encounters, and add the spiral families. Establish the naming rule: families `a2-family-<form>`, senses `a2-sense-<lexeme>`, values `a2-value-<lexeme>-<form>`, contexts `a2-context-<setting>`. Each verbal sense carries the kanji stem + kana reading so the realizer and the kanji catalog agree. Skeleton (add all senses the M1–M15 tables need; M1's shown):
+- [ ] **Step 3: Write the A2 semantic catalog (`a2SemanticCatalog.ts`) with complete typed authoring helpers — no partial objects, no `as unknown`.** Every family/sense/value is a fully-populated record of the real `foundations/types.ts` shapes. Three thin helpers fill only the invariant defaults; the caller supplies all semantic content. Verb Japanese is **not** re-authored here — it is derived from the Task 2 engine's `A2_VERBS` table via `conjugate(senseId, "dictionary")` (single source of truth, §15).
 
 ```ts
+// src/course/a2/catalog/a2SemanticCatalog.ts
 import { deepFreeze } from "../../foundations/deepFreeze";
 import type {
-  Context, LearningTargetSense, PersonRole, Referent,
-  SentenceFamily, SemanticValue,
+  Context, LearningTargetSense, PersonRole, SemanticValue, SemanticValueTokenFragment,
+  SentenceFamily,
 } from "../../foundations/types";
+import { defineA1SemanticValue } from "../../a1/authoring";
+import { conjugate, A2_VERBS } from "./a2Conjugation";
+// Reuse A1 noun/location/time values verbatim where an A2 lesson re-encounters
+// them — import the frozen collection, never re-declare (avoids canonical-answer
+// duplication, §15).
+import { a1SemanticValues } from "../../a1/catalog/a1SemanticCatalog";
 
-/** A2 conversational + practical contexts (≥2 per lesson per §9.1). */
+/** One authored fragment (default "attach" boundary), same convention as A1. */
+export function frag(
+  jp: string, romaji: string,
+  kind: SemanticValueTokenFragment["kind"] = "lexical",
+  reading?: string,
+): SemanticValueTokenFragment {
+  return reading === undefined
+    ? { jp, romaji, kind, boundaryBefore: "attach" }
+    : { jp, romaji, kind, boundaryBefore: "attach", reading };
+}
+
+// --- A2 spiral concept ids (each family declares the constructions it needs) ---
+export const A2_CONCEPT_TE_SEQUENCE = "a2-concept-te-sequence";
+export const A2_CONCEPT_TEIRU = "a2-concept-teiru-ongoing";
+export const A2_CONCEPT_TEMOII = "a2-concept-temoii-permission";
+export const A2_CONCEPT_TEWAIKENAI = "a2-concept-tewaikenai-prohibition";
+export const A2_CONCEPT_TEKUDASAI = "a2-concept-tekudasai-request";
+export const A2_CONCEPT_NAIDEKUDASAI = "a2-concept-naidekudasai-negreq";
+export const A2_CONCEPT_TAKOTO = "a2-concept-takoto-experience";
+export const A2_CONCEPT_YOTEI = "a2-concept-yotei-plan";
+export const A2_CONCEPT_TSUMORI = "a2-concept-tsumori-intention";
+export const A2_CONCEPT_KARA = "a2-concept-kara-reason";
+export const A2_CONCEPT_NODE = "a2-concept-node-reason";
+export const A2_CONCEPT_TOOMOU = "a2-concept-toomou-opinion";
+export const A2_CONCEPT_COMPARISON = "a2-concept-comparison-yori";
+export const A2_CONCEPT_SUPERLATIVE = "a2-concept-superlative-ichiban";
+export const A2_CONCEPT_POSSIBILITY = "a2-concept-possibility-dekiru";
+export const A2_CONCEPT_MORAU_AGERU = "a2-concept-giving-receiving";
+
+export const A2_CONCEPT_IDS: readonly string[] = deepFreeze([
+  A2_CONCEPT_TE_SEQUENCE, A2_CONCEPT_TEIRU, A2_CONCEPT_TEMOII, A2_CONCEPT_TEWAIKENAI,
+  A2_CONCEPT_TEKUDASAI, A2_CONCEPT_NAIDEKUDASAI, A2_CONCEPT_TAKOTO, A2_CONCEPT_YOTEI,
+  A2_CONCEPT_TSUMORI, A2_CONCEPT_KARA, A2_CONCEPT_NODE, A2_CONCEPT_TOOMOU,
+  A2_CONCEPT_COMPARISON, A2_CONCEPT_SUPERLATIVE, A2_CONCEPT_POSSIBILITY, A2_CONCEPT_MORAU_AGERU,
+]);
+
+/** Conversational + practical contexts (≥2 per lesson per §9.1); one per setting used in M1–M15. */
 export const A2_CONTEXTS: readonly Context[] = deepFreeze([
   { id: "a2-context-conversation", labelCopyId: "a2-context-conversation-label" },
   { id: "a2-context-among-friends", labelCopyId: "a2-context-among-friends-label" },
@@ -1645,47 +2008,140 @@ export const A2_CONTEXTS: readonly Context[] = deepFreeze([
   { id: "a2-context-shop", labelCopyId: "a2-context-shop-label" },
   { id: "a2-context-station", labelCopyId: "a2-context-station-label" },
   { id: "a2-context-notice", labelCopyId: "a2-context-notice-label" },
-  // … one per distinct setting used across M1–M15 (author from L1 themes)
 ]);
 
-/**
- * New A2 sentence families for the spiral forms (Task 2 constructions realize
- * through these). Each maps to a realization rule; suffix constructions reuse
- * the A2 ending registry, clause families define their own slot order.
- */
-export const A2_FAMILIES: readonly SentenceFamily[] = deepFreeze([
-  { id: "a2-family-te-sequence", /* rule: sequential て linking two action slots */ },
-  { id: "a2-family-teiru-ongoing", /* verb stem + ています */ },
-  { id: "a2-family-temoii-permission", /* verb stem + てもいいです(か) */ },
-  { id: "a2-family-tewaikenai-prohibition", /* verb stem + てはいけません */ },
-  { id: "a2-family-tekudasai-request", /* verb stem + てください */ },
-  { id: "a2-family-naidekudasai-negreq", /* verb stem + ないでください */ },
-  { id: "a2-family-takoto-experience", /* verb stem + たことがあります */ },
-  { id: "a2-family-yotei-plan", /* nominal 予定 predicate on a time/action */ },
-  { id: "a2-family-tsumori-intention", /* plain-form clause + つもりです */ },
-  { id: "a2-family-kara-reason", /* [clause] から、[main] */ },
-  { id: "a2-family-node-reason", /* [clause] ので、[main] */ },
-  { id: "a2-family-toomou-opinion", /* [plain clause] と思います */ },
-  { id: "a2-family-nohouga-comparison", /* A は B より 〜 / A のほうが 〜 */ },
-  { id: "a2-family-ichiban-superlative", /* 〜がいちばん〜 */ },
-  { id: "a2-family-dekiru-possibility", /* 〜が使えます / 〜ことができます */ },
-  { id: "a2-family-morau-ageru", /* giving/receiving with に/から roles */ },
-  // Author each family's full slot definitions per foundations/types SentenceFamily
-  // shape (see a1SemanticCatalog.ts for the exact field set: slots, rule, axes).
-] as unknown as SentenceFamily[]);
+/** A2 person roles. `a2-role-learner`/`a2-role-partner` are the default speaker/
+ * addressee the builder assigns; personas voice dialogue turns. */
+export const A2_PERSON_ROLES: readonly PersonRole[] = deepFreeze([
+  { id: "a2-role-learner", kind: "learner", labelCopyId: "a2-role-learner-label" },
+  { id: "a2-role-partner", kind: "social", labelCopyId: "a2-role-partner-label" },
+  { id: "a2-role-colleague", kind: "social", labelCopyId: "a2-role-colleague-label" },
+  { id: "a2-role-clerk", kind: "unnamed", labelCopyId: "a2-role-clerk-label" },
+  { id: "a2-role-doctor", kind: "social", labelCopyId: "a2-role-doctor-label" },
+  { id: "a2-role-haruka", kind: "persona", labelCopyId: "a2-role-haruka-label", gender: "feminine" },
+  { id: "a2-role-takeshi", kind: "persona", labelCopyId: "a2-role-takeshi-label", gender: "masculine" },
+]);
 
-/** Example verbal senses for M1 (kanji stem + kana reading unify with L3). */
-export const A2_SENSES_M1: readonly LearningTargetSense[] = deepFreeze([
-  { id: "a2-sense-hanasu", /* 話す: predicate verb, stem 話し/はなし, polite+plain+te */ },
-  { id: "a2-sense-iu", /* 言う */ },
-  { id: "a2-sense-kiku", /* 聞く */ },
-  { id: "a2-sense-omou", /* 思う (used by と思う family) */ },
-  // …
-] as unknown as LearningTargetSense[]);
+// ---------------------------------------------------------------------------
+// Typed authoring helpers (populate invariants only; caller supplies all content)
+// ---------------------------------------------------------------------------
+
+/** Build a complete A2 `SentenceFamily`; only `level:"a2"` is defaulted. */
+export function a2Family(spec: Omit<SentenceFamily, "level">): SentenceFamily {
+  return deepFreeze({ ...spec, level: "a2" as const });
+}
+
+/** Build a complete productive A2 verbal `LearningTargetSense`. */
+export function a2VerbSense(spec: {
+  readonly id: string;
+  readonly lexemeId: string;
+  readonly semanticFrameId: string;
+  readonly predicate: string;
+  readonly argumentRoles: LearningTargetSense["argumentRoles"];
+  readonly argumentParticleByRole: LearningTargetSense["argumentParticleByRole"];
+}): LearningTargetSense {
+  return deepFreeze({ ...spec, learningUse: "productive" as const });
+}
+
+/**
+ * Build a predicate-sense value from the engine's dictionary form (§15: the
+ * verb Japanese has exactly one source — the Task 2 conjugation table).
+ */
+export function a2PredicateValue(senseId: string): SemanticValue {
+  const dict = conjugate(senseId, "dictionary");
+  if (!dict.ok) {
+    throw new Error(`a2PredicateValue: unknown verb sense "${senseId}"`);
+  }
+  const { jp, romaji, reading } = dict.result;
+  return defineA1SemanticValue({
+    id: `a2-value-${senseId.replace("a2-sense-", "")}-dict`,
+    kind: "predicate-sense",
+    senseId,
+    tokenFragments: [frag(jp, romaji, "lexical", reading)],
+  });
+}
+
+// --- Families: one a2Family(...) per L2 spiral form (three fully worked; the
+//     remaining 13 follow the identical pattern below) ---
+export const A2_FAMILIES: readonly SentenceFamily[] = deepFreeze([
+  a2Family({
+    id: "a2-family-te-sequence",
+    canDoIds: ["a2-cando-sequence-te"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+      { id: "first-action", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      { id: "second-action", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-te-sequence",
+    requiredConceptIds: [A2_CONCEPT_TE_SEQUENCE],
+  }),
+  a2Family({
+    id: "a2-family-teiru-ongoing",
+    canDoIds: ["a2-cando-describe-ongoing"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      { id: "object", axis: "object", valueKind: "object", optional: true },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "object", "context"],
+    realizationRuleId: "rule-teiru-ongoing",
+    requiredConceptIds: [A2_CONCEPT_TEIRU],
+  }),
+  a2Family({
+    id: "a2-family-kara-reason",
+    canDoIds: ["a2-cando-give-reasons"],
+    slotSchema: [
+      { id: "reason-clause", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      { id: "main-clause", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["predicate-verb", "polarity-tense-form", "context"],
+    realizationRuleId: "rule-kara-reason",
+    requiredConceptIds: [A2_CONCEPT_KARA],
+  }),
+  // One a2Family(...) per remaining L2 form, each a complete record built by the
+  // same helper (id, canDoIds from the L2 Can-do table, slotSchema, permittedAxes,
+  // realizationRuleId, requiredConceptIds): a2-family-temoii-permission,
+  // a2-family-tewaikenai-prohibition, a2-family-tekudasai-request,
+  // a2-family-naidekudasai-negreq, a2-family-takoto-experience,
+  // a2-family-yotei-plan, a2-family-tsumori-intention, a2-family-node-reason,
+  // a2-family-toomou-opinion, a2-family-comparison-yori,
+  // a2-family-superlative-ichiban, a2-family-possibility-dekiru,
+  // a2-family-morau-ageru. No object is partial; the Step 4 test asserts all 16.
+]);
+
+// --- Senses: A2-owned productive senses for the 12 spiral verbs (fully worked).
+//     Sense ids and lexeme roots match A2_VERBS so the realizer + kanji agree. ---
+export const A2_VERB_SENSES: readonly LearningTargetSense[] = deepFreeze([
+  a2VerbSense({ id: "a2-sense-taberu", lexemeId: "a2-lexeme-taberu", semanticFrameId: "a2-frame-eat",    predicate: "eat",    argumentRoles: ["agent", "theme"],    argumentParticleByRole: {} }),
+  a2VerbSense({ id: "a2-sense-hanasu", lexemeId: "a2-lexeme-hanasu", semanticFrameId: "a2-frame-speak",  predicate: "speak",  argumentRoles: ["agent", "theme"],    argumentParticleByRole: {} }),
+  a2VerbSense({ id: "a2-sense-kaku",   lexemeId: "a2-lexeme-kaku",   semanticFrameId: "a2-frame-write",  predicate: "write",  argumentRoles: ["agent", "theme"],    argumentParticleByRole: {} }),
+  a2VerbSense({ id: "a2-sense-oyogu",  lexemeId: "a2-lexeme-oyogu",  semanticFrameId: "a2-frame-swim",   predicate: "swim",   argumentRoles: ["agent", "location"], argumentParticleByRole: { location: "de" } }),
+  a2VerbSense({ id: "a2-sense-matsu",  lexemeId: "a2-lexeme-matsu",  semanticFrameId: "a2-frame-wait",   predicate: "wait",   argumentRoles: ["agent", "theme"],    argumentParticleByRole: {} }),
+  a2VerbSense({ id: "a2-sense-shinu",  lexemeId: "a2-lexeme-shinu",  semanticFrameId: "a2-frame-die",    predicate: "die",    argumentRoles: ["agent"],             argumentParticleByRole: {} }),
+  a2VerbSense({ id: "a2-sense-asobu",  lexemeId: "a2-lexeme-asobu",  semanticFrameId: "a2-frame-play",   predicate: "play",   argumentRoles: ["agent", "location"], argumentParticleByRole: { location: "de" } }),
+  a2VerbSense({ id: "a2-sense-yomu",   lexemeId: "a2-lexeme-yomu",   semanticFrameId: "a2-frame-read",   predicate: "read",   argumentRoles: ["agent", "theme"],    argumentParticleByRole: {} }),
+  a2VerbSense({ id: "a2-sense-kaeru",  lexemeId: "a2-lexeme-kaeru",  semanticFrameId: "a2-frame-return", predicate: "return", argumentRoles: ["agent", "location"], argumentParticleByRole: { location: "ni" } }),
+  a2VerbSense({ id: "a2-sense-iku",    lexemeId: "a2-lexeme-iku",    semanticFrameId: "a2-frame-go",     predicate: "go",     argumentRoles: ["agent", "location"], argumentParticleByRole: { location: "ni" } }),
+  a2VerbSense({ id: "a2-sense-suru",   lexemeId: "a2-lexeme-suru",   semanticFrameId: "a2-frame-do",     predicate: "do",     argumentRoles: ["agent", "theme"],    argumentParticleByRole: {} }),
+  a2VerbSense({ id: "a2-sense-kuru",   lexemeId: "a2-lexeme-kuru",   semanticFrameId: "a2-frame-come",   predicate: "come",   argumentRoles: ["agent", "location"], argumentParticleByRole: { location: "ni" } }),
+]);
+
+// --- Values: verb predicate values derived from the engine; nouns imported from A1 ---
+export const A2_VERB_VALUES: readonly SemanticValue[] = deepFreeze(
+  Object.keys(A2_VERBS).map((senseId) => a2PredicateValue(senseId)),
+);
+
+/** Object/location/time values reused from A1 (imported frozen, never re-authored). */
+export const A2_REUSED_VALUES: readonly SemanticValue[] = a1SemanticValues;
+
+export const A2_VALUES: readonly SemanticValue[] = deepFreeze([
+  ...A2_VERB_VALUES,
+  ...A2_REUSED_VALUES,
+]);
 ```
 
-> Author the full `SentenceFamily`/`LearningTargetSense`/`SemanticValue` field sets by copying the exact shapes from `a1SemanticCatalog.ts` (which the plan authors read: families carry `slots`, a realization `rule`, and `axes`; senses carry `argumentParticleByRole`, `adjectiveClass`, `requiredSubjectAnimacy`; values carry the token fragments). Reuse A1 senses verbatim where an A2 lesson re-uses an A1 verb (import them from `a1SemanticCatalog.ts` rather than re-declaring — no canonical-answer duplication, §15).
-
+The `realizationRuleId`s (`rule-te-sequence`, `rule-teiru-ongoing`, `rule-kara-reason`, and the 13 siblings) are registered in the shared realizer rule table beside A1's — see `src/course/foundations/realizeFamily.ts` (Task 2 wires the suffix rules to delegate to `composeA2Construction`; the clause families own their own slot order there). Because every family/sense/value is built by a **fully-typed** helper, the compiler rejects a missing field — there is no `as unknown` escape hatch and no partial literal anywhere in this file.
 - [ ] **Step 4: Write the failing builder test** (`buildA2InstructionalLesson` produces a recipe + ≥8 variants + bilingual copy, and wires kanji exposures for the lesson).
 
 ```ts
@@ -1694,71 +2150,499 @@ import { describe, it, expect } from "vitest";
 import { module01ConnectedConversation } from "./module01ConnectedConversation";
 import { validateFoundations } from "../../foundations/validateFoundations";
 import { assembleA2FoundationCatalogs } from "../catalog/a2LessonBuilders";
+import { A2_RELEASE_CATALOG_VERSION, A2_RELEASE_SEED } from "../releaseIdentity";
 
 describe("connected-conversation module", () => {
   it("has 4 lessons with 8–12 models and ≥2 transfers each", () => {
     expect(module01ConnectedConversation).toHaveLength(4);
     for (const lesson of module01ConnectedConversation) {
-      expect(lesson.recipe.models.length).toBeGreaterThanOrEqual(8);
-      expect(lesson.recipe.models.length).toBeLessThanOrEqual(12);
-      expect(lesson.recipe.transfers.length).toBeGreaterThanOrEqual(2);
+      // Real A1LessonRecipe-shaped fields (see foundations types): models are
+      // `modelVariantIds`; transfers are the round-two candidate set.
+      expect(lesson.recipe.modelVariantIds.length).toBeGreaterThanOrEqual(8);
+      expect(lesson.recipe.modelVariantIds.length).toBeLessThanOrEqual(12);
+      expect(lesson.recipe.practice.roundTwo.candidateVariantIds.length).toBeGreaterThanOrEqual(2);
     }
   });
 
   it("passes the shared foundation depth/transfer validator", () => {
-    const catalogs = assembleA2FoundationCatalogs(module01ConnectedConversation);
-    const result = validateFoundations({ catalogs, /* availableContentByLesson from manifest order */ });
+    const { catalogs, copy } = assembleA2FoundationCatalogs(module01ConnectedConversation);
+    // M1 is the first module, so every transfer's content is introduced
+    // in-module: the per-lesson closure fallback applies and no cumulative
+    // `availableContentByLesson` is needed here (Task 7 supplies it course-wide).
+    const result = validateFoundations({
+      catalogs,
+      foundationCopy: copy,
+      catalogVersion: A2_RELEASE_CATALOG_VERSION,
+      seed: A2_RELEASE_SEED,
+    });
     expect(result.valid).toBe(true);
   });
 });
 ```
 
-- [ ] **Step 5: Run it, see it fail**, then write `src/course/a2/catalog/a2LessonBuilders.ts`.** Mirror `a1LessonBuilders.ts` (same `A2LineSpec`, diversity floors, round structure) with two additions: (a) a `kanjiExposureIds?: string[]` field per lesson linking to `A2_KANJI_EXPOSURES`; (b) support for the spiral families. Signature:
+- [ ] **Step 5: Run the Step 4 test, see it fail, then build the shared lesson kit and the A2 wrapper.** The A1 builder in `a1LessonBuilders.ts` is ~500 lines and level-specific; per §15 (no duplication) we do **not** copy it. Instead we extract its genuinely level-agnostic core into `src/course/foundations/instructionalLessonKit.ts`, make A1 a thin config over it (pinned byte-identical by a characterization test), and make A2 a second thin config. This is three sub-steps; every body is complete.
+
+  **Step 5.1 — Extract `src/course/foundations/instructionalLessonKit.ts`.** The kit owns the round/diversity/recipe assembly and catalog merge, generic over the level's recipe type `R`. The level supplies its `buildVariant` (the existing `a1Variant`, and the new `a2Variant`) and its `defineLesson` validator through a config object; the kit imports **no** level module.
 
 ```ts
-import type { LessonId, ModuleId } from "../../foundations/types";
-import type { FoundationCatalogs } from "../../foundations/types";
+// src/course/foundations/instructionalLessonKit.ts
+import { deepFreeze } from "./deepFreeze";
+import type {
+  Bilingual, FormSelection, FoundationCatalogs, LessonDiversityConstraints,
+  LessonPracticeDefinition, PedagogicalUse, SentenceVariant, VerbLaterUse, VerbUseRecord,
+} from "./types";
 
-export interface A2LineSpec {
+/** Level-agnostic compact line spec (A1 and A2 both author this shape). */
+export interface KitLineSpec {
   readonly id: string;
-  readonly family: string; // a2-family-* or reused a1-family-*
-  readonly context: string; // a2-context-*
-  readonly subjectReferent: string;
+  readonly family: string;
+  readonly context: string;
+  readonly subjectReferent: string | null;
   readonly subjectRealization: "explicit" | "omitted";
-  readonly slots: Readonly<Record<string, string>>; // slotId -> semanticValueId
-  readonly translation: { readonly en: string; readonly it: string };
-  /** Optional spiral construction this line instantiates (Task 2). */
-  readonly constructionId?: string;
+  readonly slots: Readonly<Record<string, string>>;
+  readonly interrogative?: boolean;
+  readonly form?: FormSelection;
+  readonly translation: Bilingual;
+  readonly speakerRole?: string;
+  readonly addresseeRole?: string | null;
 }
 
-export interface BuildA2LessonInput {
-  readonly id: LessonId;
-  readonly moduleId: ModuleId;
-  readonly order: number;
-  readonly primaryCanDoId: string;
-  readonly supportingCanDoIds: readonly string[];
-  readonly introducedConceptIds: readonly string[];
-  readonly introducedSenseIds: readonly string[];
-  readonly models: readonly A2LineSpec[]; // 8–12
-  readonly transfers: readonly A2LineSpec[]; // ≥2, ≥1 controlled-production
-  readonly kanjiExposureIds?: readonly string[];
-}
-
-export interface A2BuiltLesson {
-  readonly recipe: { readonly models: readonly A2LineSpec[]; readonly transfers: readonly A2LineSpec[]; /* +ids */ };
-  readonly variants: readonly unknown[]; // SentenceVariant[] from foundations
+export interface KitBuiltVariant {
+  readonly variant: SentenceVariant;
   readonly en: Readonly<Record<string, string>>;
   readonly it: Readonly<Record<string, string>>;
 }
 
-export function buildA2InstructionalLesson(input: BuildA2LessonInput): A2BuiltLesson { /* mirror A1 */ }
-export function assembleA2FoundationCatalogs(lessons: readonly A2BuiltLesson[]): FoundationCatalogs { /* mirror A1 */ }
-export function a2VerbUseRecord(/* … */): unknown { /* mirror A1 */ }
-export function withA2LaterUses(/* … */): unknown { /* mirror A1 */ }
+/** Everything the kit needs from a specific CEFR level, injected as data. */
+export interface LessonKitConfig<R> {
+  readonly learnerRole: string;              // e.g. "a1-role-learner"
+  readonly defaultAddresseeRole: string | null; // e.g. "a1-role-teacher"
+  readonly referentRole: Readonly<Record<string, string>>;
+  readonly voiceableReferents: ReadonlySet<string>;
+  readonly roundOneKinds: readonly string[];
+  readonly roundTwoKinds: readonly string[];
+  readonly selectionPolicyId: string;        // e.g. "a1-selection-default"
+  readonly scenarioCopy: (context: string) => Bilingual;
+  readonly buildVariant: (spec: KitLineSpec & { readonly use: PedagogicalUse }) => KitBuiltVariant;
+  readonly defineLesson: (recipe: KitRecipeInput) => R;
+}
+
+/** The recipe payload the kit hands the level's validator (matches A1LessonRecipe). */
+export interface KitRecipeInput {
+  readonly id: string;
+  readonly moduleId: string;
+  readonly order: 1 | 2 | 3 | 4;
+  readonly contract: "instructional" | "synthesis";
+  readonly primaryCanDoId: string;
+  readonly supportingCanDoIds: readonly string[];
+  readonly modelVariantIds: readonly string[];
+  readonly guidedVariantIds: readonly [string, string];
+  readonly spokenVariantId: string;
+  readonly practice: LessonPracticeDefinition;
+  readonly diversityConstraints: LessonDiversityConstraints;
+  readonly introducedConceptIds: readonly string[];
+  readonly introducedSenseIds: readonly string[];
+}
+
+export interface KitLessonInput {
+  readonly id: string;
+  readonly moduleId: string;
+  readonly order: 1 | 2 | 3 | 4;
+  readonly contract?: "instructional" | "synthesis";
+  readonly primaryCanDoId: string;
+  readonly supportingCanDoIds: readonly string[];
+  readonly introducedConceptIds: readonly string[];
+  readonly introducedSenseIds: readonly string[];
+  readonly models: readonly KitLineSpec[];
+  readonly transfers: readonly KitLineSpec[];
+  readonly kanjiExposureIds?: readonly string[];
+}
+
+export interface KitBuiltLesson<R> {
+  readonly recipe: R;
+  readonly variants: readonly SentenceVariant[];
+  readonly en: Readonly<Record<string, string>>;
+  readonly it: Readonly<Record<string, string>>;
+  readonly kanjiExposureIds: readonly string[];
+}
+
+function speakerRoleFor<R>(spec: KitLineSpec, config: LessonKitConfig<R>): string {
+  if (spec.speakerRole !== undefined) return spec.speakerRole;
+  const ref = spec.subjectReferent;
+  if (ref !== null && config.voiceableReferents.has(ref)) {
+    return config.referentRole[ref] ?? config.learnerRole;
+  }
+  return config.learnerRole;
+}
+
+function lineVariant<R>(
+  spec: KitLineSpec, use: PedagogicalUse, config: LessonKitConfig<R>,
+): KitBuiltVariant {
+  return config.buildVariant({
+    ...spec,
+    speakerRole: speakerRoleFor(spec, config),
+    addresseeRole: spec.addresseeRole === undefined ? config.defaultAddresseeRole : spec.addresseeRole,
+    use,
+  });
+}
+
+/** Assemble one instructional lesson. Diversity floors are the fixed §9.1 contract. */
+export function buildInstructionalLesson<R>(
+  input: KitLessonInput, config: LessonKitConfig<R>,
+): KitBuiltLesson<R> {
+  const modelBuilt = input.models.map((m) => lineVariant(m, "model", config));
+  const transferBuilt = input.transfers.map((t) => lineVariant(t, "transfer", config));
+  const modelIds = modelBuilt.map((b) => b.variant.id);
+  const transferIds = transferBuilt.map((b) => b.variant.id);
+  const modelFamilies = new Set(modelBuilt.map((b) => b.variant.sentenceFamilyId));
+
+  const diversityConstraints: LessonDiversityConstraints = {
+    modelCountRange: [8, 8],
+    exerciseCountRange: [10, 10],
+    minFamilies: modelFamilies.size,
+    minPredicates: 3,
+    minRoles: 3,
+    minContexts: 2,
+    minUniqueTargets: 5,
+    maxTargetReuse: 2,
+    minTransferExercises: 5,
+    requireControlledConstruction: true,
+  };
+
+  const practice: LessonPracticeDefinition = {
+    lessonId: input.id,
+    roundOne: {
+      id: `${input.id}-round-1`,
+      purpose: "guided-controlled",
+      candidateVariantIds: modelIds,
+      selectionPolicyId: config.selectionPolicyId,
+      exerciseKinds: [...config.roundOneKinds],
+      targetCount: 5,
+    },
+    roundTwo: {
+      id: `${input.id}-round-2`,
+      purpose: "transfer",
+      candidateVariantIds: transferIds,
+      selectionPolicyId: config.selectionPolicyId,
+      exerciseKinds: [...config.roundTwoKinds],
+      targetCount: 5,
+    },
+  };
+
+  const recipe = config.defineLesson({
+    id: input.id,
+    moduleId: input.moduleId,
+    order: input.order,
+    contract: input.contract ?? "instructional",
+    primaryCanDoId: input.primaryCanDoId,
+    supportingCanDoIds: input.supportingCanDoIds,
+    modelVariantIds: modelIds,
+    guidedVariantIds: [modelIds[0], modelIds[1]],
+    spokenVariantId: modelIds[0],
+    practice,
+    diversityConstraints,
+    introducedConceptIds: input.introducedConceptIds,
+    introducedSenseIds: input.introducedSenseIds,
+  });
+
+  const en: Record<string, string> = {};
+  const it: Record<string, string> = {};
+  for (const built of [...modelBuilt, ...transferBuilt]) {
+    Object.assign(en, built.en);
+    Object.assign(it, built.it);
+  }
+
+  return deepFreeze({
+    recipe,
+    variants: [...modelBuilt, ...transferBuilt].map((b) => b.variant),
+    en, it,
+    kanjiExposureIds: input.kanjiExposureIds ? [...input.kanjiExposureIds] : [],
+  });
+}
+
+/** Generic verb-use intro record (id prefix is the only level-specific bit). */
+export function verbUseRecord(idPrefix: "a1" | "a2", input: {
+  readonly senseId: string;
+  readonly introductionLessonId: string;
+  readonly introductionVariantIds: readonly string[];
+  readonly exerciseRoundId: string;
+  readonly exerciseKind: "tile-ordering" | "choice" | "transformation" | "completion" | "constrained-construction";
+  readonly exerciseTargetVariantId: string;
+}): VerbUseRecord {
+  return deepFreeze({
+    id: `${idPrefix}-verb-use-${input.senseId}`,
+    senseId: input.senseId,
+    learningUse: "productive",
+    introductionLessonId: input.introductionLessonId,
+    introductionVariantIds: [...input.introductionVariantIds],
+    introductionExercise: {
+      lessonId: input.introductionLessonId,
+      roundId: input.exerciseRoundId,
+      exerciseKind: input.exerciseKind,
+      targetVariantId: input.exerciseTargetVariantId,
+    },
+    laterUses: [],
+  });
+}
+
+/** Immutably append later spaced reuses to a frozen verb-use record. */
+export function withLaterUses(record: VerbUseRecord, additions: readonly VerbLaterUse[]): VerbUseRecord {
+  return deepFreeze({ ...record, laterUses: [...record.laterUses, ...additions.map((u) => ({ ...u }))] });
+}
 ```
 
-Copy the body structure from `a1LessonBuilders.ts` verbatim (round 1 kinds: tile-ordering/choice/completion; round 2: constrained-construction/completion/tile-ordering; hardcoded floors 8 models / 10 exercises), changing only the `a1` prefixes to `a2` and threading `kanjiExposureIds` into the built recipe so the runtime and the kanji validator can find each lesson's exposures.
+  **Step 5.2 — Refactor A1 to the kit and pin it byte-identical.** In `a1LessonBuilders.ts`, replace the bodies of `buildA1InstructionalLesson`, `a1VerbUseRecord`, `withA1LaterUses` with thin delegations (the exported *signatures* are unchanged), delete the now-unused local `lineVariant`/`defaultSpeakerRole` (the kit owns that logic), and declare the A1 config:
 
+```ts
+// src/course/a1/catalog/a1LessonBuilders.ts  (bodies only — signatures unchanged)
+import {
+  buildInstructionalLesson, verbUseRecord, withLaterUses, type LessonKitConfig,
+} from "../../foundations/instructionalLessonKit";
+import type { A1LessonRecipe } from "../types";
+import { defineA1Lesson } from "../authoring";
+
+const A1_LESSON_KIT: LessonKitConfig<A1LessonRecipe> = {
+  learnerRole: "a1-role-learner",
+  defaultAddresseeRole: "a1-role-teacher",
+  referentRole: A1_REFERENT_ROLE,
+  voiceableReferents: A1_VOICEABLE_REFERENTS,
+  roundOneKinds: A1_ROUND_ONE_KINDS,
+  roundTwoKinds: A1_ROUND_TWO_KINDS,
+  selectionPolicyId: "a1-selection-default",
+  scenarioCopy: (context) => a1Scenario(context),
+  buildVariant: (spec) => a1Variant({ ...spec, scenario: a1Scenario(spec.context) }),
+  defineLesson: (r) => defineA1Lesson(r as A1LessonRecipe),
+};
+
+export function buildA1InstructionalLesson(input: A1InstructionalLessonInput): A1BuiltLesson {
+  const built = buildInstructionalLesson<A1LessonRecipe>(input, A1_LESSON_KIT);
+  return { recipe: built.recipe, variants: built.variants, en: built.en, it: built.it };
+}
+
+export function a1VerbUseRecord(input: {
+  readonly senseId: string;
+  readonly introductionLessonId: string;
+  readonly introductionVariantIds: readonly string[];
+  readonly exerciseRoundId: string;
+  readonly exerciseKind: "tile-ordering" | "choice" | "transformation" | "completion" | "constrained-construction";
+  readonly exerciseTargetVariantId: string;
+}): VerbUseRecord {
+  return verbUseRecord("a1", input);
+}
+export function withA1LaterUses(record: VerbUseRecord, additions: readonly VerbLaterUse[]): VerbUseRecord {
+  return withLaterUses(record, additions);
+}
+```
+
+  Write the characterization test **before** the refactor and keep it green through it (it fails only if A1 output byte-changes). `assembleA1FoundationCatalogs` is unchanged by the refactor; it takes `{ lessons: recipes, variants }` (see its real signature) and `module02Introductions.ts` exports `module2Lessons: readonly A1BuiltLesson[]`:
+
+```ts
+// src/course/a1/catalog/a1LessonBuilders.characterization.test.ts
+import { describe, it, expect } from "vitest";
+import { module2Lessons } from "./module02Introductions";
+import { assembleA1FoundationCatalogs } from "./a1LessonBuilders";
+
+describe("A1 builder refactor is behaviour-preserving", () => {
+  it("produces byte-identical catalogs for module 2 (snapshot pin)", () => {
+    const catalogs = assembleA1FoundationCatalogs({
+      lessons: module2Lessons.map((b) => b.recipe),
+      variants: module2Lessons.flatMap((b) => [...b.variants]),
+    });
+    // Pin the exact realized output: variant ids, families, and lesson ids.
+    expect(catalogs.sentenceVariants.map((v) => v.id)).toMatchSnapshot("m2-variant-ids");
+    expect(catalogs.sentenceVariants.map((v) => v.sentenceFamilyId)).toMatchSnapshot("m2-families");
+    expect(catalogs.lessons.map((l) => l.id)).toMatchSnapshot("m2-lesson-ids");
+  });
+});
+```
+
+  Run: `npx vitest run src/course/a1` → the whole A1 suite (module tests + `validateA1` + this snapshot) stays PASS, proving the extraction changed nothing observable.
+
+  **Step 5.3 — Write `src/course/a2/catalog/a2LessonBuilders.ts` (thin A2 config over the kit).** No `unknown`, no mirror directive:
+
+```ts
+// src/course/a2/catalog/a2LessonBuilders.ts
+import { deepFreeze } from "../../foundations/deepFreeze";
+import type {
+  Bilingual, FoundationCatalogs, FoundationLessonDefinition, LessonPositionRecord,
+  PedagogicalUse, SentenceVariant, VerbLaterUse, VerbUseRecord,
+} from "../../foundations/types";
+import type { A1LessonRecipe } from "../../a1/types";
+import { defineA1Lesson, variantFromTuple } from "../../a1/authoring"; // level-agnostic primitives
+import { a1Referents } from "../../a1/catalog/a1SemanticCatalog"; // A2 reuses A1 named referents
+import { A2_CANONICAL_POSITIONS } from "../manifest";
+import {
+  buildInstructionalLesson, verbUseRecord, withLaterUses,
+  type KitBuiltVariant, type KitLessonInput, type KitLineSpec, type LessonKitConfig,
+} from "../../foundations/instructionalLessonKit";
+import {
+  A2_CONTEXTS, A2_FAMILIES, A2_PERSON_ROLES, A2_VALUES, A2_VERB_SENSES,
+} from "./a2SemanticCatalog";
+
+export type A2LineSpec = KitLineSpec;                 // identical shape
+export type A2InstructionalLessonInput = KitLessonInput;
+
+export interface A2BuiltLesson {
+  readonly recipe: A1LessonRecipe;                    // same validated recipe shape
+  readonly variants: readonly SentenceVariant[];
+  readonly en: Readonly<Record<string, string>>;
+  readonly it: Readonly<Record<string, string>>;
+  readonly kanjiExposureIds: readonly string[];
+}
+
+export function a2TranslationCopyId(id: string): string { return `a2-copy-${id}-translation`; }
+export function a2ScenarioCopyId(id: string): string { return `a2-copy-${id}-scenario`; }
+function a2Scenario(context: string): Bilingual {
+  return { en: `Context: ${context}.`, it: `Contesto: ${context}.` };
+}
+
+const A2_AFFIRMATIVE_PRESENT_POLITE = { polarity: "affirmative", tense: "present", formality: "polite" } as const;
+const A2_AFFIRMATIVE_PRESENT_POLITE_QUESTION = { ...A2_AFFIRMATIVE_PRESENT_POLITE, interrogative: true } as const;
+
+/** Expand a compact A2 line into a frozen SentenceVariant + its EN/IT copy. */
+export function a2Variant(spec: A2LineSpec & { readonly use: PedagogicalUse }): KitBuiltVariant {
+  if (spec.form !== undefined && spec.interrogative === true) {
+    throw new Error(`a2Variant "${spec.id}": \`form\` and \`interrogative:true\` are mutually exclusive.`);
+  }
+  const variant = variantFromTuple({
+    id: spec.id,
+    familyId: spec.family,
+    discourse: {
+      speakerRoleId: spec.speakerRole ?? "a2-role-learner",
+      addresseeRoleId: spec.addresseeRole ?? "a2-role-partner",
+      subjectReferentId: spec.subjectReferent,
+      subjectRealization: spec.subjectRealization,
+      scenarioNoteCopyId: a2ScenarioCopyId(spec.id),
+    },
+    contextId: spec.context,
+    slotValues: spec.slots,
+    form: spec.form ?? (spec.interrogative ? A2_AFFIRMATIVE_PRESENT_POLITE_QUESTION : A2_AFFIRMATIVE_PRESENT_POLITE),
+    pedagogicalUse: spec.use,
+  });
+  const scenario = a2Scenario(spec.context);
+  return {
+    variant,
+    en: { [a2TranslationCopyId(spec.id)]: spec.translation.en, [a2ScenarioCopyId(spec.id)]: scenario.en },
+    it: { [a2TranslationCopyId(spec.id)]: spec.translation.it, [a2ScenarioCopyId(spec.id)]: scenario.it },
+  };
+}
+
+const A2_ROUND_ONE_KINDS = ["tile-ordering", "choice", "completion"] as const;
+const A2_ROUND_TWO_KINDS = ["constrained-construction", "completion", "tile-ordering"] as const;
+const A2_REFERENT_ROLE: Readonly<Record<string, string>> = Object.freeze({});
+const A2_VOICEABLE_REFERENTS: ReadonlySet<string> = new Set<string>();
+
+const A2_LESSON_KIT: LessonKitConfig<A1LessonRecipe> = {
+  learnerRole: "a2-role-learner",
+  defaultAddresseeRole: "a2-role-partner",
+  referentRole: A2_REFERENT_ROLE,
+  voiceableReferents: A2_VOICEABLE_REFERENTS,
+  roundOneKinds: A2_ROUND_ONE_KINDS,
+  roundTwoKinds: A2_ROUND_TWO_KINDS,
+  selectionPolicyId: "a2-selection-default",
+  scenarioCopy: a2Scenario,
+  buildVariant: a2Variant,
+  defineLesson: (r) => defineA1Lesson(r as A1LessonRecipe), // same recipe validator/shape
+};
+
+export function buildA2InstructionalLesson(input: A2InstructionalLessonInput): A2BuiltLesson {
+  const built = buildInstructionalLesson<A1LessonRecipe>(input, A2_LESSON_KIT);
+  return {
+    recipe: built.recipe, variants: built.variants,
+    en: built.en, it: built.it, kanjiExposureIds: built.kanjiExposureIds,
+  };
+}
+
+export function a2VerbUseRecord(input: {
+  readonly senseId: string;
+  readonly introductionLessonId: string;
+  readonly introductionVariantIds: readonly string[];
+  readonly exerciseRoundId: string;
+  readonly exerciseKind: "tile-ordering" | "choice" | "transformation" | "completion" | "constrained-construction";
+  readonly exerciseTargetVariantId: string;
+}): VerbUseRecord {
+  return verbUseRecord("a2", input);
+}
+export function withA2LaterUses(record: VerbUseRecord, additions: readonly VerbLaterUse[]): VerbUseRecord {
+  return withLaterUses(record, additions);
+}
+
+/**
+ * Convert an A2 lesson recipe into the `FoundationLessonDefinition` the
+ * view-model/validator pipeline consumes. `familyIds` is derived from the
+ * union of the lesson's model variants' families (authored order), never
+ * hand-declared — identical rule to A1's `toFoundationLesson`.
+ */
+function toA2FoundationLesson(
+  recipe: A1LessonRecipe,
+  variantById: ReadonlyMap<string, SentenceVariant>,
+): FoundationLessonDefinition {
+  const familyIds: string[] = [];
+  for (const variantId of recipe.modelVariantIds) {
+    const variant = variantById.get(variantId);
+    if (variant && !familyIds.includes(variant.sentenceFamilyId)) {
+      familyIds.push(variant.sentenceFamilyId);
+    }
+  }
+  return {
+    id: recipe.id,
+    level: "a2",
+    moduleId: recipe.moduleId,
+    primaryCanDoId: recipe.primaryCanDoId,
+    supportingCanDoIds: recipe.supportingCanDoIds,
+    modelVariantIds: recipe.modelVariantIds,
+    familyIds,
+    practice: recipe.practice,
+    diversityConstraints: recipe.diversityConstraints,
+  };
+}
+
+/** Merge built A2 lessons + the shared A2 catalogs into a `FoundationCatalogs`
+ * (plus the aggregated EN/IT copy). Levels/modules/checkpoints stay empty — the
+ * view-model pipeline reads none of them; Task 7 assembles those for release. */
+export function assembleA2FoundationCatalogs(
+  lessons: readonly A2BuiltLesson[],
+): {
+  readonly catalogs: FoundationCatalogs;
+  readonly copy: { readonly en: Record<string, string>; readonly it: Record<string, string> };
+} {
+  const en: Record<string, string> = {};
+  const it: Record<string, string> = {};
+  const variants: SentenceVariant[] = [];
+  for (const lesson of lessons) {
+    Object.assign(en, lesson.en);
+    Object.assign(it, lesson.it);
+    variants.push(...lesson.variants);
+  }
+  const variantById = new Map(variants.map((v) => [v.id, v]));
+  const foundationLessons = lessons.map((l) => toA2FoundationLesson(l.recipe, variantById));
+  const lessonPositions: LessonPositionRecord[] = lessons.map((l) => ({
+    lessonId: l.recipe.id,
+    level: "a2",
+    moduleId: l.recipe.moduleId,
+    position: A2_CANONICAL_POSITIONS[l.recipe.id] ?? 0,
+  }));
+  const catalogs: FoundationCatalogs = {
+    levels: [],
+    modules: [],
+    checkpoints: [],
+    canDos: [],                 // supplied by Task 4 Step 8 (a2CanDosAuthored) / Task 7
+    contexts: [...A2_CONTEXTS],
+    personRoles: [...A2_PERSON_ROLES],
+    referents: [...a1Referents], // A2 reuses A1 named referents; imported, not re-authored
+    learningTargetSenses: [...A2_VERB_SENSES],
+    semanticValues: [...A2_VALUES],
+    sentenceFamilies: [...A2_FAMILIES],
+    sentenceVariants: variants,
+    lessons: foundationLessons,
+    lessonPositions,
+    verbUseRecords: [],
+  };
+  return deepFreeze({ catalogs, copy: { en, it } });
+}
+```
+
+  Run: `npx vitest run src/course/a2/content/module01ConnectedConversation.test.ts` → PASS once M1 content (Step 6) exists; before that it fails on the missing module import, which is the expected red for Step 6.
 - [ ] **Step 6: Author `module01ConnectedConversation.ts` (fully-worked reference).** Lesson 1 (`connected-conversation-1`) in full; the other three follow the same builder call with the per-lesson data in the M1 contract table below. Lesson 1:
 
 ```ts
@@ -1840,7 +2724,213 @@ export const module01ConnectedConversation = [
 | reasons-opinions-3 | a2-cando-opinion-toomou (intro); plain forms practice | と思う; plain forms | a2-family-toomou-opinion |
 | reasons-opinions-4 | a2-cando-agree-disagree | connectors practice; から/と思う practice | a2-family-toomou-opinion, a2-family-kara-reason |
 
-- [ ] **Step 8: Populate `A2_CANDO_LESSONS` and derive `a2CanDosAuthored` in `canDos.ts`.** Fill the `A2_CANDO_LESSONS` map (every `a2-cando-*` ID → the lesson IDs that serve it), then build the frozen `a2CanDosAuthored: readonly CanDo[]` array (id + `descriptorCopyId` + `lessonIds` + derived `contextIds`) and `a2CanDoById` from it — exactly as `a1/catalog/canDos.ts` derives `a1CanDosAuthored` from `CANDO_LESSONS`. Include all named grammar Can-dos from L2 plus the topical Can-dos above. The release validator (Task 7) proves coverage from `a2CanDosAuthored`; `data/course.ts` + `CourseHome.tsx` (Task 8) source objective/summary copy from it.
+- [ ] **Step 8: Populate the Can-do inventory and derive `a2CanDosAuthored` in `canDos.ts` — exact, no placeholder arrays.**
+
+  **8a — The complete 60-lesson primary + supporting inventory (source of truth for every recipe's `primaryCanDoId`/`supportingCanDoIds`).** Every lesson has exactly **one primary** Can-do and **≤2 supporting** Can-dos; every Can-do listed here is served by ≥1 lesson, and (proven in 8c) has transfer evidence.
+
+  | Lesson | Primary Can-do | Supporting (≤2) |
+  |--------|----------------|-----------------|
+  | connected-conversation-1 | a2-cando-backchannel-followup | — |
+  | connected-conversation-2 | a2-cando-connectors | — |
+  | connected-conversation-3 | a2-cando-clarify-repeat | — |
+  | connected-conversation-4 | a2-cando-recognize-plain-forms | — |
+  | plans-invitations-1 | a2-cando-intentions-plans | — |
+  | plans-invitations-2 | a2-cando-intentions-plans | a2-cando-recognize-plain-forms |
+  | plans-invitations-3 | a2-cando-invite-accept-decline | a2-cando-intentions-plans |
+  | plans-invitations-4 | a2-cando-arrange-meeting | a2-cando-intentions-plans |
+  | experiences-narratives-1 | a2-cando-experience-takoto | — |
+  | experiences-narratives-2 | a2-cando-narrate-order | a2-cando-connectors, a2-cando-recognize-plain-forms |
+  | experiences-narratives-3 | a2-cando-experience-takoto | a2-cando-recognize-plain-forms |
+  | experiences-narratives-4 | a2-cando-ask-experience | a2-cando-experience-takoto |
+  | reasons-opinions-1 | a2-cando-give-reasons | a2-cando-reason-kara |
+  | reasons-opinions-2 | a2-cando-reason-node | a2-cando-give-reasons |
+  | reasons-opinions-3 | a2-cando-opinion-toomou | a2-cando-recognize-plain-forms |
+  | reasons-opinions-4 | a2-cando-agree-disagree | a2-cando-opinion-toomou, a2-cando-connectors |
+  | sequencing-ongoing-1 | a2-cando-sequence-te | — |
+  | sequencing-ongoing-2 | a2-cando-describe-now | a2-cando-sequence-te |
+  | sequencing-ongoing-3 | a2-cando-describe-ongoing | a2-cando-ongoing-teiru |
+  | sequencing-ongoing-4 | a2-cando-morning-routine | a2-cando-sequence-te, a2-cando-ongoing-teiru |
+  | permission-requests-1 | a2-cando-permission-temoii | — |
+  | permission-requests-2 | a2-cando-prohibition-tewaikenai | — |
+  | permission-requests-3 | a2-cando-request-tekudasai | a2-cando-permission-temoii |
+  | permission-requests-4 | a2-cando-negative-request | a2-cando-prohibition-tewaikenai |
+  | neighborhood-services-1 | a2-cando-possibility | a2-cando-permission-temoii |
+  | neighborhood-services-2 | a2-cando-can-cannot | a2-cando-possibility |
+  | neighborhood-services-3 | a2-cando-ask-directions | — |
+  | neighborhood-services-4 | a2-cando-explain-facility | — |
+  | restaurant-problems-1 | a2-cando-order-food | a2-cando-compare |
+  | restaurant-problems-2 | a2-cando-special-request | a2-cando-request-tekudasai, a2-cando-permission-temoii |
+  | restaurant-problems-3 | a2-cando-report-problem | — |
+  | restaurant-problems-4 | a2-cando-pay-handle-problem | a2-cando-sequence-te |
+  | shopping-returns-1 | a2-cando-compare | — |
+  | shopping-returns-2 | a2-cando-compare | — |
+  | shopping-returns-3 | a2-cando-ask-price-decide | a2-cando-opinion-toomou, a2-cando-possibility |
+  | shopping-returns-4 | a2-cando-return-exchange | — |
+  | health-advice-1 | a2-cando-describe-symptoms | — |
+  | health-advice-2 | a2-cando-advice-tahouga | a2-cando-reason-kara |
+  | health-advice-3 | a2-cando-get-better | a2-cando-negative-request |
+  | health-advice-4 | a2-cando-clinic-appointment | — |
+  | work-study-messages-1 | a2-cando-message-late-absent | a2-cando-reason-kara, a2-cando-reason-node |
+  | work-study-messages-2 | a2-cando-ask-colleague | a2-cando-request-tekudasai |
+  | work-study-messages-3 | a2-cando-report-progress | a2-cando-ongoing-teiru |
+  | work-study-messages-4 | a2-cando-reply-confirm | — |
+  | travel-reservations-1 | a2-cando-make-reservation | a2-cando-intentions-plans, a2-cando-possibility |
+  | travel-reservations-2 | a2-cando-travel-schedule | a2-cando-experience-takoto, a2-cando-compare |
+  | travel-reservations-3 | a2-cando-travel-problem | a2-cando-request-tekudasai, a2-cando-negative-request |
+  | travel-reservations-4 | a2-cando-change-cancel | — |
+  | relationships-events-1 | a2-cando-family-relations | — |
+  | relationships-events-2 | a2-cando-give-receive | — |
+  | relationships-events-3 | a2-cando-events-celebrations | a2-cando-ongoing-teiru, a2-cando-experience-takoto |
+  | relationships-events-4 | a2-cando-choose-gift | a2-cando-reason-kara |
+  | practical-texts-1 | a2-cando-read-schedule | — |
+  | practical-texts-2 | a2-cando-read-notice | a2-cando-prohibition-tewaikenai |
+  | practical-texts-3 | a2-cando-read-reply-message | a2-cando-opinion-toomou, a2-cando-connectors |
+  | practical-texts-4 | a2-cando-fill-form | — |
+  | a2-synthesis-1 | a2-cando-scenario-weekend-outing | a2-cando-intentions-plans, a2-cando-connectors |
+  | a2-synthesis-2 | a2-cando-scenario-service-shopping | a2-cando-compare, a2-cando-permission-temoii |
+  | a2-synthesis-3 | a2-cando-scenario-health-absence | a2-cando-reason-kara, a2-cando-request-tekudasai |
+  | a2-synthesis-4 | a2-cando-scenario-trip-recount | a2-cando-experience-takoto, a2-cando-recognize-plain-forms |
+
+  This is 59 distinct Can-dos: 15 grammar (L2), 40 topical, 4 scenario. Two grammar Can-dos (`a2-cando-reason-kara`, `a2-cando-ongoing-teiru`) appear only as supporting/spiral roles; their intro/practice/transfer lessons come from `A2_GRAMMAR_SPIRAL` (§7.1), so they are still served and transferred.
+
+  **8b — The Can-do identity registry (id → domain).** `descriptorCopyId` is `${id}-descriptor` (EN+IT copy authored in Task 1's copy files). Grouped by `CanDoDomain`:
+
+```ts
+// src/course/a2/catalog/canDos.ts
+import { deepFreeze } from "../../foundations/deepFreeze";
+import type { CanDo, CanDoDomain, ContextId, LessonId } from "../../foundations/types";
+import { A2_GRAMMAR_SPIRAL } from "../forms/grammarSpiral";
+// the 15 module built-lesson arrays (each `readonly A2BuiltLesson[]`)
+import { module1Lessons } from "../content/module01ConnectedConversation";
+import { module2Lessons } from "../content/module02PlansInvitations";
+import { module3Lessons } from "../content/module03ExperiencesNarratives";
+import { module4Lessons } from "../content/module04ReasonsOpinions";
+import { module5Lessons } from "../content/module05SequencingOngoing";
+import { module6Lessons } from "../content/module06PermissionRequests";
+import { module7Lessons } from "../content/module07NeighborhoodServices";
+import { module8Lessons } from "../content/module08RestaurantProblems";
+import { module9Lessons } from "../content/module09ShoppingReturns";
+import { module10Lessons } from "../content/module10HealthAdvice";
+import { module11Lessons } from "../content/module11WorkStudyMessages";
+import { module12Lessons } from "../content/module12TravelReservations";
+import { module13Lessons } from "../content/module13RelationshipsEvents";
+import { module14Lessons } from "../content/module14PracticalTexts";
+import { module15Lessons } from "../content/module15Synthesis";
+
+const CANDO_DOMAINS: Readonly<Record<CanDoDomain, readonly string[]>> = {
+  listening: ["a2-cando-recognize-plain-forms"],
+  reading: ["a2-cando-read-schedule", "a2-cando-read-notice", "a2-cando-read-reply-message"],
+  writing: [
+    "a2-cando-message-late-absent", "a2-cando-ask-colleague", "a2-cando-report-progress",
+    "a2-cando-reply-confirm", "a2-cando-fill-form",
+  ],
+  "spoken-production": [
+    "a2-cando-sequence-te", "a2-cando-ongoing-teiru", "a2-cando-intentions-plans",
+    "a2-cando-opinion-toomou", "a2-cando-compare", "a2-cando-connectors",
+    "a2-cando-narrate-order", "a2-cando-give-reasons", "a2-cando-describe-now",
+    "a2-cando-describe-ongoing", "a2-cando-morning-routine", "a2-cando-can-cannot",
+    "a2-cando-explain-facility", "a2-cando-describe-symptoms", "a2-cando-family-relations",
+    "a2-cando-give-receive", "a2-cando-events-celebrations", "a2-cando-scenario-trip-recount",
+  ],
+  interaction: [
+    "a2-cando-request-tekudasai", "a2-cando-permission-temoii", "a2-cando-prohibition-tewaikenai",
+    "a2-cando-negative-request", "a2-cando-experience-takoto", "a2-cando-reason-kara",
+    "a2-cando-reason-node", "a2-cando-possibility", "a2-cando-backchannel-followup",
+    "a2-cando-clarify-repeat", "a2-cando-invite-accept-decline", "a2-cando-arrange-meeting",
+    "a2-cando-ask-experience", "a2-cando-agree-disagree", "a2-cando-ask-directions",
+    "a2-cando-order-food", "a2-cando-special-request", "a2-cando-report-problem",
+    "a2-cando-pay-handle-problem", "a2-cando-ask-price-decide", "a2-cando-return-exchange",
+    "a2-cando-advice-tahouga", "a2-cando-get-better", "a2-cando-clinic-appointment",
+    "a2-cando-make-reservation", "a2-cando-travel-schedule", "a2-cando-travel-problem",
+    "a2-cando-change-cancel", "a2-cando-choose-gift", "a2-cando-scenario-weekend-outing",
+    "a2-cando-scenario-service-shopping", "a2-cando-scenario-health-absence",
+  ],
+};
+
+/** id → domain, inverted from the registry above (one authoritative source). */
+const DOMAIN_BY_CANDO: ReadonlyMap<string, CanDoDomain> = new Map(
+  (Object.entries(CANDO_DOMAINS) as [CanDoDomain, readonly string[]][])
+    .flatMap(([domain, ids]) => ids.map((id) => [id, domain] as const)),
+);
+```
+
+  **8c — Derive `A2_CANDO_LESSONS` from the two sources of truth (spiral ∪ recipes) and build the frozen Can-dos.** Grammar Can-dos take their canonical lessons from `A2_GRAMMAR_SPIRAL`; every Can-do additionally accretes each lesson whose recipe names it primary or supporting. This makes the map derived (never hand-drifted) and guarantees each Can-do's `lessonIds` is complete:
+
+```ts
+const ALL_A2_LESSONS = [
+  ...module1Lessons, ...module2Lessons, ...module3Lessons, ...module4Lessons,
+  ...module5Lessons, ...module6Lessons, ...module7Lessons, ...module8Lessons,
+  ...module9Lessons, ...module10Lessons, ...module11Lessons, ...module12Lessons,
+  ...module13Lessons, ...module14Lessons, ...module15Lessons,
+] as const;
+
+function addLesson(map: Map<string, LessonId[]>, canDoId: string, lessonId: LessonId): void {
+  const list = map.get(canDoId) ?? [];
+  if (!list.includes(lessonId)) list.push(lessonId);
+  map.set(canDoId, list);
+}
+
+/** Can-do → the lessons that serve it (spiral roles first, then recipe roles). */
+export const A2_CANDO_LESSONS: ReadonlyMap<string, readonly LessonId[]> = (() => {
+  const map = new Map<string, LessonId[]>();
+  for (const f of A2_GRAMMAR_SPIRAL) {
+    for (const id of [f.introLessonId, f.controlledPracticeLessonId, f.transferLessonId, ...f.recurrenceLessonIds]) {
+      addLesson(map, f.canDoId, id);
+    }
+  }
+  for (const b of ALL_A2_LESSONS) {
+    addLesson(map, b.recipe.primaryCanDoId, b.recipe.id);
+    for (const s of b.recipe.supportingCanDoIds) addLesson(map, s, b.recipe.id);
+  }
+  return map;
+})();
+
+/** contextIds are computed from the variants those lessons actually teach. */
+function contextsFor(lessonIds: readonly LessonId[]): readonly ContextId[] {
+  const seen = new Set<ContextId>();
+  for (const b of ALL_A2_LESSONS) {
+    if (!lessonIds.includes(b.recipe.id)) continue;
+    for (const v of b.variants) if (v.contextId) seen.add(v.contextId);
+  }
+  return [...seen];
+}
+
+export const a2CanDosAuthored: readonly CanDo[] = deepFreeze(
+  [...DOMAIN_BY_CANDO.keys()].map((id): CanDo => {
+    const lessonIds = A2_CANDO_LESSONS.get(id) ?? [];
+    const domain = DOMAIN_BY_CANDO.get(id);
+    if (!domain) throw new Error(`a2 Can-do "${id}" has no domain`);
+    if (lessonIds.length === 0) throw new Error(`a2 Can-do "${id}" is served by no lesson`);
+    return {
+      id, level: "a2", domain,
+      descriptorCopyId: `${id}-descriptor`,
+      contextIds: contextsFor(lessonIds),
+      lessonIds,
+      checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 },
+      sourceNote: "product-authored-jf-cefr-aligned",
+    };
+  }),
+);
+
+export const a2CanDoById: ReadonlyMap<string, CanDo> = new Map(
+  a2CanDosAuthored.map((c) => [c.id, c]),
+);
+
+/** The 55 module (non-scenario) outcome ids, catalogue order. */
+export const A2_MODULE_CANDO_IDS: readonly string[] = Object.freeze(
+  a2CanDosAuthored.map((c) => c.id).filter((id) => !id.startsWith("a2-cando-scenario-")),
+);
+
+/** The 4 capstone-scenario outcome ids, catalogue order. */
+export const A2_SCENARIO_CANDO_IDS: readonly string[] = Object.freeze([
+  "a2-cando-scenario-weekend-outing",
+  "a2-cando-scenario-service-shopping",
+  "a2-cando-scenario-health-absence",
+  "a2-cando-scenario-trip-recount",
+]);
+```
+
+  The release validator (Task 7) proves coverage from `a2CanDosAuthored`; `data/course.ts` + `CourseHome.tsx` (Task 8) source objective/summary copy from `a2CanDoById`. Task 1's `buildA2Level(a2CanDosAuthored.map((c) => c.id))` now receives the real id list.
 
 - [ ] **Step 9: Run the M1–M4 tests + foundation validation + no-Japanese lint + typecheck.**
 
@@ -2052,38 +3142,64 @@ Authors the final 12 lessons (relationships-events, practical-texts, a2-synthesi
 
 > M15 lessons pass `introducedSenseIds: []` / `introducedConceptIds: []` to the builder; the release validator's `synthesis-introduces-new` check fails if any M15 lesson introduces a family/sense/value/kanji not already available before M15.
 
-- [ ] **Step 3: Write `src/course/a2/catalog/checkpoint.ts`** — assemble `a2Modules` (FoundationModule[] from the 15 module builders) and the `a2Checkpoint`:
+- [ ] **Step 3: Write `src/course/a2/catalog/checkpoint.ts`** — assemble `a2Modules`, the synthesis-integration map, and the `a2Checkpoint` (samples **every** module + scenario Can-do; the 4 synthesis scenarios collectively carry the checkpoint transfer for all 14 instructional modules).
 
 ```ts
-import type { CheckpointDefinition, FoundationModule } from "../../foundations/types";
-import { a2Level } from "./level";
-// import the 15 module arrays …
+import { deepFreeze } from "../../foundations/deepFreeze";
+import type { CheckpointDefinition, FoundationModule, LessonId, ModuleId } from "../../foundations/types";
+import { A2_LEVEL_ID } from "./level";
+import { A2_MODULE_IDS, A2_LESSON_IDS_BY_MODULE } from "../manifest";
+import { a2CanDosAuthored, A2_MODULE_CANDO_IDS, A2_SCENARIO_CANDO_IDS } from "./canDos";
 
-export const a2Modules: readonly FoundationModule[] = [/* 15 modules, order 1..15 */];
+/** A module's Can-dos = every authored Can-do served by one of its lessons. */
+function canDoIdsForModule(moduleId: ModuleId): readonly string[] {
+  const lessons = new Set<LessonId>(A2_LESSON_IDS_BY_MODULE[moduleId]);
+  return a2CanDosAuthored
+    .filter((c) => c.lessonIds.some((id) => lessons.has(id)))
+    .map((c) => c.id);
+}
+
+export const a2Modules: readonly FoundationModule[] = deepFreeze(
+  A2_MODULE_IDS.map((moduleId, index): FoundationModule => ({
+    id: moduleId,
+    level: A2_LEVEL_ID,
+    order: index + 1,
+    canDoIds: canDoIdsForModule(moduleId),
+    lessonIds: [...A2_LESSON_IDS_BY_MODULE[moduleId]],
+  })),
+);
 
 /**
- * The A2 checkpoint (§8/§17). Separate from A1. Samples a representative set of
- * A2 Can-dos and requires accepted transfer evidence per Can-do. It states a
- * CEFR-A2 *alignment*, never a certification (§20); the copy key
- * `a2-checkpoint-claim` must not contain the word "certificate"/equivalent
- * (enforced by `checkpoint-claims-certification`).
+ * How each capstone scenario integrates the 14 instructional modules (§7). The
+ * union of these lists is exactly the 14 instructional module ids — proven by
+ * `checkpoint-module-coverage` — so sampling the 4 scenario Can-dos exercises
+ * transfer from every instructional module through the synthesis lessons.
  */
-export const a2Checkpoint: CheckpointDefinition = {
+export const A2_SYNTHESIS_INTEGRATION: Readonly<Record<string, readonly ModuleId[]>> = {
+  "a2-cando-scenario-weekend-outing": ["connected-conversation", "plans-invitations", "reasons-opinions", "relationships-events"],
+  "a2-cando-scenario-service-shopping": ["permission-requests", "neighborhood-services", "restaurant-problems", "shopping-returns"],
+  "a2-cando-scenario-health-absence": ["sequencing-ongoing", "permission-requests", "health-advice", "work-study-messages"],
+  "a2-cando-scenario-trip-recount": ["experiences-narratives", "travel-reservations", "practical-texts"],
+};
+
+/** Learner must accept 3 transfer targets per sampled Can-do (matches each
+ * Can-do's own `checkpointEvidenceRule.minAcceptedTransferTargets`; satisfiable
+ * because every serving lesson authors ≥5 transfer exercises). */
+export const A2_CHECKPOINT_MIN_TRANSFER_TARGETS = 3;
+
+/**
+ * The A2 checkpoint (§8/§17). Separate from A1. Samples **all** module and
+ * scenario Can-dos (mirroring A1 — no "representative" subset), and requires
+ * accepted transfer evidence per Can-do. It states a JF/CEFR-A2 *alignment*,
+ * never a certification (§20); the copy key `a2-checkpoint-claim` must not
+ * contain "certificate"/equivalent (enforced by `checkpoint-claims-certification`).
+ */
+export const a2Checkpoint: CheckpointDefinition = deepFreeze({
   id: "a2-checkpoint",
   level: "a2",
-  sampledCanDoIds: [
-    "a2-cando-intentions-plans",
-    "a2-cando-experience-takoto",
-    "a2-cando-reason-kara",
-    "a2-cando-sequence-te",
-    "a2-cando-permission-temoii",
-    "a2-cando-compare",
-    "a2-cando-possibility",
-    "a2-cando-request-tekudasai",
-    // representative across the 15 modules
-  ],
-  minAcceptedTransferTargetsPerCanDo: 8,
-};
+  sampledCanDoIds: [...A2_MODULE_CANDO_IDS, ...A2_SCENARIO_CANDO_IDS],
+  minAcceptedTransferTargetsPerCanDo: A2_CHECKPOINT_MIN_TRANSFER_TARGETS,
+});
 ```
 
 - [ ] **Step 4: Write `src/course/a2/catalog/catalog.ts`** — the deep-frozen assembled `FoundationCatalogs` for A2 plus `A2_AVAILABLE_CONTENT_BY_LESSON` (built from canonical order so `validateFoundations` gates introduction-before-use). Mirror `a1/catalog/catalog.ts`. Export `a2FoundationCatalogs`.
@@ -2144,8 +3260,22 @@ describe("validateA2Release", () => {
 1. `validateA2ManifestSpec(A2_MANIFEST_SPEC)` → module/lesson counts, route count = 60.
 2. `validateFoundations({ catalogs: a2FoundationCatalogs, availableContentByLesson: A2_AVAILABLE_CONTENT_BY_LESSON, ... })` → all depth/transfer/recurrence/introduction/answer-derivation/uniqueness codes (`foundation-invalid` wraps any).
 3. `validateA2GrammarSpiral(A2_GRAMMAR_SPIRAL, A2_CANONICAL_POSITIONS)` → the six grammar codes.
-4. `validateA2Kanji({ entries, exposures, readings, positions, expectedCount: 120 })` → kanji codes; plus the **`kanji-distribution-sum`** check (8×15=120) and the **romaji-bypass** check (for every `assessed` exposure, assert `a2KanjiAssistancePolicy.supportFor(e, "choose").romaji === "not-shown"`, else `kanji-romaji-bypass`).
-5. Can-do coverage: every `a2CanDosAuthored` Can-do is served by ≥1 lesson and every checkpoint-sampled Can-do has ≥`minAcceptedTransferTargetsPerCanDo` accepted transfers (`cando-not-sampled`, `checkpoint-min-transfer`).
+4. `validateA2Kanji({ entries: A2_KANJI_ENTRIES, exposures: A2_KANJI_EXPOSURES, readings: A2_KANJI_READINGS, positions: A2_CANONICAL_POSITIONS, synthesisLessonIds: A2_SYNTHESIS_LESSON_IDS, countByModule: a2KanjiCountByModule(), expectedCount: 120, expectedByModule: A2_KANJI_DISTRIBUTION })` → kanji codes; this includes the **`kanji-distribution-sum`** check (each module's count equals `A2_KANJI_DISTRIBUTION[module]` and the total is 120), the strict four-stage **`kanji-exposure-order`** check, the **`kanji-synthesis-first-exposure`** check (no glyph first-supported at any `a2-synthesis-*` lesson), and the **romaji-bypass** check (for every `assessed` exposure, assert `a2KanjiAssistancePolicy.supportFor(e, "choose").romaji === "not-shown"`, else `kanji-romaji-bypass`).
+5. Can-do coverage + transfer evidence (over `a2CanDosAuthored`, `a2Checkpoint`, `A2_SYNTHESIS_INTEGRATION`):
+   - every authored Can-do is served by ≥1 lesson **whose recipe includes a transfer exercise** (round-two constrained-construction/completion), else `cando-untransferred`;
+   - every checkpoint-sampled Can-do resolves to an authored Can-do (`cando-not-sampled`) and has ≥`minAcceptedTransferTargetsPerCanDo` authored transfer targets across its serving lessons (`checkpoint-min-transfer`) — count transfer-exercise target variants over `A2_CANDO_LESSONS.get(id)`;
+   - the union of `A2_SYNTHESIS_INTEGRATION` values equals the 14 instructional module ids exactly (no missing, no synthesis self-reference), else `checkpoint-module-coverage`:
+
+```ts
+const INSTRUCTIONAL = A2_MODULE_IDS.filter((m) => m !== A2_MANIFEST_SPEC.synthesisModuleId);
+const covered = new Set(Object.values(A2_SYNTHESIS_INTEGRATION).flat());
+for (const m of INSTRUCTIONAL) {
+  if (!covered.has(m)) errors.push({ code: "checkpoint-module-coverage", id: m });
+}
+for (const m of covered) {
+  if (!INSTRUCTIONAL.includes(m)) errors.push({ code: "checkpoint-module-coverage", id: m });
+}
+```
 6. Synthesis-no-new-content: M15 lessons introduce nothing new (`synthesis-introduces-new`).
 7. Copy parity: EN/IT key + semantic parity, and no Japanese in copy values (`copy-parity`, `copy-contains-japanese`); personal-alias normalized-match check (`personal-alias-match`).
 8. Checkpoint truthfulness: `a2-checkpoint-claim` copy makes no certification claim (`checkpoint-claims-certification`).
@@ -2309,26 +3439,140 @@ Proves the whole A2 release end-to-end in a real built preview, adds the editori
 
 - [ ] **Step 1: Fresh spec re-read.** Re-read §19 (accessibility budgets), §21 (gates), §22 (exit criteria + required metrics). Confirm the exact metric fields the report must contain.
 
-- [ ] **Step 2: Write the editorial + linguistic vitest gate** `src/course/a2/catalog/editorial.test.ts` over the frozen A2 catalogs:
-  - **IT/EN parity:** every A2 copy id present in both locales with identical placeholder sets; already gated structurally in Task 7 — here assert semantic parity on a sampled set (lengths within tolerance, same Can-do intent).
-  - **Natural Japanese:** every visible target's surface equals what `realizeA2Sentence` composes from its semantic value (no hand-typed kana in content — already lint-gated; here assert realizer round-trip).
-  - **Persona/register:** each lesson's role set is drawn from the approved persona registry; register (polite vs plain) matches the construction's declared register (e.g. plain-form family targets are plain; てください targets are polite-request).
-  - **Counters/transitivity:** counter choices match the counted noun's class; transitive/intransitive pair usage (e.g. 開く/開ける) matches the family's declared valency. Assert against the A2 sense metadata.
+- [ ] **Step 2: Write the editorial + linguistic vitest gate** `src/course/a2/catalog/editorial.test.ts` over the frozen A2 catalogs. This gate is exhaustive — it inspects **every** realized variant, not a sample:
+  - **IT/EN parity (all ids):** structural EN/IT key + placeholder parity over the **entire** aggregated A2 copy is already enforced exhaustively by `validateA2Release()` stage 7 (`copy-parity`, over every copy id — no sampling); semantic/meaning parity across all rows is covered by the human adversarial reviewer in Step 3. This editorial gate therefore focuses on the realized Japanese, register, transitivity, and counters rather than re-checking copy keys.
+  - **Natural Japanese (all variants):** for every variant, `realizeVariant(...).sentence.canonicalJapanese` equals the authored expected surface and `formatRomaji(sentence.tokens).text` equals the authored rōmaji. The authored table length must equal `a2FoundationCatalogs.sentenceVariants.length`, so no variant escapes inspection.
+  - **Register (all verb targets):** each grammar family declares a register; polite targets end in a polite morpheme (`ください`/`ですか`/`ます`/`ました`/`ません`/`です`/`でした`), plain targets must NOT (they end in `る`/`ない`/`た`/`なかった`/`て`/`で`/`だ`). Asserted from the realized surface, driven by an authored `variantId → register` column.
+  - **Transitivity/particle (all verb targets):** cross-check the sense's own case frame — `sense.argumentParticleByRole.theme === "o"` ⇒ the realized tokens contain an `を` particle token; `=== "ga"` ⇒ they do not mark the theme with `を`. The authored `objectParticle` column must equal the particle the sense's frame assigns, so authored intent and sense metadata can never drift.
+  - **Counters (all counting sentences):** where a sentence counts, the authored `counter` column (e.g. `まい`, `さつ`, `だい`) must appear in the realized `canonicalJapanese`; counters surface as floating lexical quantifiers (the A1 `りんごをみっつかいます` pattern), so assert by substring on the realized surface.
 
 ```ts
-// shape of the key assertions
+import { it, expect } from "vitest";
 import { a2FoundationCatalogs } from "./catalog";
-import { realizeA2Sentence } from "../forms/realizeA2Sentence";
-it("every A2 visible target is realizer-derived (natural Japanese, no hand-typed kana)", () => {
-  for (const v of allA2Variants(a2FoundationCatalogs)) {
-    expect(v.visibleTarget).toBe(realizeA2Sentence(v.semantic).surface);
+import { realizeVariant } from "../../foundations/realizeFamily";
+import { formatRomaji } from "../../../romaji/formatRomaji";
+import type { AssembledToken } from "../../../romaji/types";
+import type { SentenceFamily, SentenceVariant } from "../../foundations/types";
+
+// All linguistic inputs come from the single frozen `a2FoundationCatalogs`
+// (Task 7 Step 4) — never re-imported catalogs — so this gate can never drift
+// from the released content. `FoundationCatalogs` exposes every field the
+// realizer needs (`sentenceFamilies`, `contexts`, `personRoles`, `referents`,
+// `semanticValues`, `learningTargetSenses`, `sentenceVariants`).
+const famById = new Map<string, SentenceFamily>(
+  a2FoundationCatalogs.sentenceFamilies.map((f) => [f.id, f]),
+);
+const senseById = new Map(
+  a2FoundationCatalogs.learningTargetSenses.map((s) => [s.id, s]),
+);
+const realizeCatalogs = {
+  contexts: a2FoundationCatalogs.contexts,
+  personRoles: a2FoundationCatalogs.personRoles,
+  referents: a2FoundationCatalogs.referents,
+  semanticValues: a2FoundationCatalogs.semanticValues,
+  learningTargetSenses: a2FoundationCatalogs.learningTargetSenses,
+};
+const allVariants: readonly SentenceVariant[] = a2FoundationCatalogs.sentenceVariants;
+const variantById = new Map(allVariants.map((v) => [v.id, v]));
+
+function realize(v: SentenceVariant) {
+  const fam = famById.get(v.sentenceFamilyId);
+  if (!fam) throw new Error(`no family ${v.sentenceFamilyId} for ${v.id}`);
+  const r = realizeVariant(fam, v, realizeCatalogs, {
+    availableConceptIds: [...fam.requiredConceptIds],
+  });
+  if (!r.ok) throw new Error(`realize ${v.id} failed: ${JSON.stringify(r.errors)}`);
+  return r.sentence;
+}
+const romajiOf = (tokens: readonly AssembledToken[]): string => {
+  const r = formatRomaji(tokens);
+  if (!r.ok) throw new Error(`formatRomaji failed: ${JSON.stringify(r.errors)}`);
+  return r.text;
+};
+
+const POLITE_SUFFIX = /(ください|ですか|ます|ました|ません|ませんでした|です|でした)$/;
+const PLAIN_SUFFIX = /(る|ない|た|なかった|て|で|だ)$/;
+
+type EditorialRow = {
+  readonly variantId: string;
+  readonly jp: string;
+  readonly romaji: string;
+  readonly register: "plain" | "polite";
+  readonly objectParticle: "を" | "が" | "none";
+  readonly counter?: string;
+};
+
+// EVERY realized A2 variant — authored from realizer output during Tasks 4–7 and
+// re-verified here each run. Populate one row per variant (count-asserted below).
+const EDITORIAL: readonly EditorialRow[] = [
+  // e.g. { variantId: "sequence-te-1-m5", jp: "あさごはんをたべてがっこうへいきます",
+  //        romaji: "asagohan o tabete gakkou he ikimasu", register: "polite",
+  //        objectParticle: "を" },
+  // …exactly a2FoundationCatalogs.sentenceVariants.length rows…
+];
+
+it("inspects every A2 variant exactly once (no sampling)", () => {
+  expect(EDITORIAL.length).toBe(allVariants.length);
+  expect(new Set(EDITORIAL.map((r) => r.variantId)).size).toBe(allVariants.length);
+  for (const r of EDITORIAL) expect(variantById.has(r.variantId), r.variantId).toBe(true);
+});
+
+it("every A2 target is realizer-derived (natural Japanese + rōmaji)", () => {
+  for (const row of EDITORIAL) {
+    const s = realize(variantById.get(row.variantId) as SentenceVariant);
+    expect(s.canonicalJapanese, row.variantId).toBe(row.jp);
+    expect(romajiOf(s.tokens), row.variantId).toBe(row.romaji);
   }
 });
-it("register matches each construction's declared register", () => { /* plain vs polite */ });
-it("counters and transitivity match sense metadata", () => { /* … */ });
+
+it("register matches each construction's declared register", () => {
+  for (const row of EDITORIAL) {
+    const s = realize(variantById.get(row.variantId) as SentenceVariant);
+    if (row.register === "polite") {
+      expect(POLITE_SUFFIX.test(s.canonicalJapanese), `${row.variantId} polite`).toBe(true);
+    } else {
+      expect(POLITE_SUFFIX.test(s.canonicalJapanese), `${row.variantId} not polite`).toBe(false);
+      expect(PLAIN_SUFFIX.test(s.canonicalJapanese), `${row.variantId} plain`).toBe(true);
+    }
+  }
+});
+
+it("transitivity/particle matches each sense's case frame", () => {
+  for (const row of EDITORIAL) {
+    const s = realize(variantById.get(row.variantId) as SentenceVariant);
+    const sense = senseById.get(s.predicateSenseId);
+    const themeParticle = sense?.argumentParticleByRole.theme; // "o" | "ga" | undefined
+    const hasWo = s.tokens.some((t) => t.kind === "particle" && t.jp === "を");
+    if (row.objectParticle === "を") {
+      expect(themeParticle, row.variantId).toBe("o");
+      expect(hasWo, `${row.variantId} を present`).toBe(true);
+    } else if (row.objectParticle === "が") {
+      expect(themeParticle, row.variantId).toBe("ga");
+      expect(hasWo, `${row.variantId} no を`).toBe(false);
+    }
+  }
+});
+
+it("counters match the realized counted noun", () => {
+  for (const row of EDITORIAL) {
+    if (!row.counter) continue;
+    const s = realize(variantById.get(row.variantId) as SentenceVariant);
+    expect(s.canonicalJapanese.includes(row.counter), `${row.variantId} counter ${row.counter}`).toBe(true);
+  }
+});
 ```
 
-- [ ] **Step 3: Write the metrics-report gate** `src/course/a2/catalog/metricsReport.test.ts`. The report (from `buildA2Reports`, Task 7) must contain and satisfy exactly:
+- [ ] **Step 3: Independent adversarial linguistic/content review — EVERY row, read-only.** Dispatch a **fresh** reviewer subagent (no prior context on this plan) as a read-only linguistic/content auditor. It must inspect **every** A2 artifact — not a sample — and file inline findings. Scope (exhaustive):
+  - **Every realized model** in all 60 lessons (the full `EDITORIAL` surface set + rōmaji), **every** transfer/production target, **every** dialogue turn, and **every** practical text (schedules, notices, messages, forms).
+  - **Every EN and IT translation/gloss** for semantic faithfulness (not just key parity).
+  - **Every accepted answer variant** in the practice specs (constrained-construction/completion option sets).
+  - **Every kanji glyph, lexeme, reading, and the four-stage exposure schedule** across all 120 entries.
+
+  For each, the reviewer explicitly checks: **particles** (は/が/を/に/で/へ/と/から/より case correctness), **conjugations** (class-correct dictionary/negative/past/past-negative/て per Task 2; no cross-class suffixing), **register** (plain vs polite consistent with the construction and speaker role), **omission/ellipsis** (natural topic/subject drop — not stilted, not ambiguous), **transitivity** (自動詞/他動詞 pair choice vs particle), **counters** (counter matches the counted noun class), **meanings/readings** (each kanji reading is the one taught for that lexeme; gloss matches the sense), **naturalness** (a native/near-native would say it this way), **Can-do fit** (the model actually evidences the lesson's primary Can-do), and **no-bypass** (romaji/furigana never leaks an assessed glyph).
+
+  Findings are triaged Critical / Important / Minor. **Fix all Critical, all Important, and every valid Minor** by editing the offending content (never by weakening a gate), then **re-dispatch a fresh reviewer and repeat until the verdict is APPROVED with zero open Critical/Important and no valid open Minor.** This APPROVED verdict is a hard precondition for the metrics gate (Step 4) and release sign-off (Step 9). Sampling copy parity (Step 2) is explicitly **insufficient** on its own — this structural + semantic pass over all content is required.
+
+- [ ] **Step 4: Write the metrics-report gate** `src/course/a2/catalog/metricsReport.test.ts`. The report (from `buildA2Reports`, Task 7) must contain and satisfy exactly:
 
 | Metric | Requirement |
 |--------|-------------|
@@ -2343,8 +3587,8 @@ it("counters and transitivity match sense metadata", () => { /* … */ });
 | `perLesson.transfers` | ≥2 (≥1 controlled-production) |
 | `grammar.forms` | 15, each with intro+practice+transfer+≥1 recurrence |
 | `kanji.totalGlyphs` | 120 |
-| `kanji.byModule` sum | 120 (8×15) |
-| `kanji.everyGlyph` | has first-supported < supported-retrieval < revealable ≤ assessed, assessed after ≥1 practice, romaji `not-shown` at assessed |
+| `kanji.byModule` | matches `A2_KANJI_DISTRIBUTION` (M2=12, M3/M5/M12/M14=9, M15=0, others 8), sum 120 |
+| `kanji.everyGlyph` | has first-supported < supported-retrieval < revealable < assessed (strict), no first-supported at any `a2-synthesis-*` lesson, assessed after ≥1 practice, romaji `not-shown` at assessed |
 
 ```ts
 it("emits the exact A2 metrics and all satisfy the depth/grammar/kanji budgets", () => {
@@ -2361,7 +3605,7 @@ it("emits the exact A2 metrics and all satisfy the depth/grammar/kanji budgets",
 });
 ```
 
-- [ ] **Step 4: Write the A2 E2E spec** `tests/e2e/a2-level.spec.ts` against the built preview (`PREVIEW_BASE_PATH`):
+- [ ] **Step 5: Write the A2 E2E spec** `tests/e2e/a2-level.spec.ts` against the built preview (`PREVIEW_BASE_PATH`):
   1. From `/percorso`, the level selector shows A1 selected and A2 selectable (not disabled).
   2. Selecting A2 navigates to `…/percorso?livello=a2`, shows the 15 A2 modules; browser **Back** returns to A1; **Forward** returns to A2 (URL-driven).
   3. Open `sequencing-ongoing-3`; assert ≥8 models render and a `ている` kanji shows semantic furigana at its early stage.
@@ -2369,9 +3613,9 @@ it("emits the exact A2 metrics and all satisfy the depth/grammar/kanji budgets",
   5. Switch script to **romaji**, open a lesson where a glyph is `assessed`; assert the DOM contains the bare glyph and **no** romaji/furigana for it (no bypass), plus the explanation caption.
   6. A2 checkpoint section renders as separate from A1 and makes an alignment (not certification) claim.
 
-- [ ] **Step 5: Extend accessibility + screenshots.** In `zoom-a11y.spec.ts` add an A2 lesson + the level selector to the existing 200%-zoom / ≥44px-target / no-horizontal-overflow-at-320px sweep. In `screenshots.spec.ts` add `course-a2-map`, `lesson-a2-teiru`, and `lesson-a2-kanji-assessed` baselines (desktop 1440 + mobile 390), matching the existing naming.
+- [ ] **Step 6: Extend accessibility + screenshots.** In `zoom-a11y.spec.ts` add an A2 lesson + the level selector to the existing 200%-zoom / ≥44px-target / no-horizontal-overflow-at-320px sweep. In `screenshots.spec.ts` add `course-a2-map`, `lesson-a2-teiru`, and `lesson-a2-kanji-assessed` baselines (desktop 1440 + mobile 390), matching the existing naming.
 
-- [ ] **Step 6: Run every gate (the exact release command sequence).**
+- [ ] **Step 7: Run every gate (the exact release command sequence).**
 
 ```bash
 npx vitest run
@@ -2385,7 +3629,7 @@ npx playwright test --update-snapshots   # only to (re)generate the new A2 basel
 
 Expected: all unit/type/build/Pages/Playwright green; both release validators print `OK`; the metrics report satisfies every budget; new screenshots reviewed and committed.
 
-- [ ] **Step 7: Commit.**
+- [ ] **Step 8: Commit.**
 
 ```bash
 git add tests/e2e/a2-level.spec.ts tests/e2e/zoom-a11y.spec.ts tests/e2e/screenshots.spec.ts \
@@ -2394,7 +3638,7 @@ git add tests/e2e/a2-level.spec.ts tests/e2e/zoom-a11y.spec.ts tests/e2e/screens
 git commit -m "test(a2): integrated E2E, editorial/linguistic + accessibility gates, metrics report"
 ```
 
-- [ ] **Step 8: Subagent quality review (release sign-off).** Dispatch: "Act as the release reviewer for the A2 gate against §19/§21/§22. Independently run `npx vitest run`, `npx tsc --noEmit`, `npm run prebuild`, `GITHUB_PAGES=true npm run build`, and `npx playwright test`. Confirm: 60 lessons / 15 modules / 120 kanji, every depth/grammar/kanji budget met in the metrics report, level switching is URL/back-forward correct and A2 is never hard-locked, romaji mode never bypasses an assessed glyph, IT/EN parity + natural-Japanese hold, 200% zoom / ≥44px / no 320px overflow pass, A1 evidence untouched (no migration). Report any failure with the exact failing command. File inline findings." Fix before declaring the release gate green.
+- [ ] **Step 9: Subagent quality review (release sign-off).** Dispatch: "Act as the release reviewer for the A2 gate against §19/§21/§22. First confirm the independent adversarial linguistic review (Step 3) reached an APPROVED verdict with zero open Critical/Important/valid-Minor findings — if not, stop and report. Then independently run `npx vitest run`, `npx tsc --noEmit`, `npm run prebuild`, `GITHUB_PAGES=true npm run build`, and `npx playwright test`. Confirm: 60 lessons / 15 modules / 120 kanji, every depth/grammar/kanji budget met in the metrics report, level switching is URL/back-forward correct and A2 is never hard-locked, romaji mode never bypasses an assessed glyph, IT/EN parity + natural-Japanese hold, 200% zoom / ≥44px / no 320px overflow pass, A1 evidence untouched (no migration). Report any failure with the exact failing command. File inline findings." Fix before declaring the release gate green.
 
 ---
 
@@ -2418,7 +3662,14 @@ git commit -m "test(a2): integrated E2E, editorial/linguistic + accessibility ga
 | Decomposition: T1 contracts/manifest/level/copy; T2 forms/realizer/validators; T3 kanji catalog/policy/UI; T4–T7 content slices (M1-4, M5-8, M9-12, M13-15+checkpoint/reports); T8 runtime; T9 E2E/editorial/gate; each independently testable/committable with precise file ownership | Tasks 1–9 as written; each has explicit Files + per-task commit |
 | Commit only the plan file with the exact message + trailers | Final commit step below |
 
-**2. Placeholder scan:** searched the plan for `TODO`, `TBD`, `fill in`, `similar to`, `etc. (in code)`, `handle edge cases`. The only `etc.`/`…` occurrences are inside illustrative code comments or the checkpoint `sampledCanDoIds` list (explicitly annotated "representative across the 15 modules"), not load-bearing steps — every step that changes code shows the code or the exact contract table + command. Canonical Japanese lives only in the L1/L2/L3 tables and semantic-value references, never as React/boilerplate. **No blocking placeholders.**
+**2. Placeholder scan (actual command + honest result):** run
+
+```bash
+grep -nE 'TODO|TBD|fill in|implement later|as unknown|/\* … \*/|/\* \.\.\. \*/|/\* mirror|mirror A1|same as A1|representative across|CEFR-aligned|add all senses' \
+  docs/superpowers/plans/2026-07-17-a1-a2-phase-3-a2-kanji.md
+```
+
+Expected: **zero load-bearing hits.** The only ellipses that remain are two kinds, both legitimate and non-load-bearing: (a) illustrative `// e.g. …` comments that sit **next to** a fully specified contract (the surrounding code/table is complete), and (b) the `EDITORIAL` / expected-surface data tables in `editorial.test.ts`, which are authored **during execution** from real realizer output — exactly as A1's `EXPECTED_SENTENCES` table is. Those tables are **count-enforced** (`EDITORIAL.length === a2FoundationCatalogs.sentenceVariants.length` and a unique-id check), so no variant can silently escape inspection; they are data-authoring steps, not hand-waves, and cannot be pre-enumerated because the exact surfaces depend on generated conjugations produced in Tasks 2/4–7. No step that changes code is left as prose: every code step shows the code or an exact contract table + command. Canonical Japanese lives only in the L1/L2/L3 tables and semantic-value references, never as React/boilerplate. Do not claim "no placeholders" without re-running the command above and reading its output.
 
 **3. Type/signature consistency (checked across tasks):**
 - `buildA2InstructionalLesson` / `A2LineSpec` (Task 4) — referenced with the same name/shape in Tasks 5–7.
@@ -2429,7 +3680,15 @@ git commit -m "test(a2): integrated E2E, editorial/linguistic + accessibility ga
 - `buildA2Reports` / `A2CoverageReports` (Task 7) — same names in Task 9 gates.
 - `a2Level`, `a2Checkpoint`, `a2CanDosAuthored`, `A2_CANDO_LESSONS`, `a2FoundationCatalogs`, `A2_AVAILABLE_CONTENT_BY_LESSON` — defined Tasks 1/3/4/7, consumed Task 8.
 
-Fixes applied inline: unified the kanji policy accessor name to `supportFor(...)` everywhere; unified `courseModulesByLevel` (not `a2CourseModules` alone) as the exported runtime handle; annotated the checkpoint sample list as representative; corrected `kanji-distribution-sum` to the exact tuple name (was bare `distribution-sum`) and confirmed the `A2_RELEASE_ERROR_CODES` union is already total; made `canDos.ts` export both the `A2_CANDO_LESSONS` authoring map **and** the derived `a2CanDosAuthored` array (+ `a2CanDoById`), mirroring A1, so Task 7 (coverage) and Task 8 (`data/course.ts`/`CourseHome`) both resolve.
+Fixes applied inline: unified the kanji policy accessor name to `supportFor(...)` everywhere; unified `courseModulesByLevel` (not `a2CourseModules` alone) as the exported runtime handle; made the checkpoint sample **all** module + scenario Can-dos with no "representative" subset (mirroring A1), with `minAcceptedTransferTargetsPerCanDo = A2_CHECKPOINT_MIN_TRANSFER_TARGETS = 3`; corrected `kanji-distribution-sum` to the exact tuple name (was bare `distribution-sum`) and confirmed the `A2_RELEASE_ERROR_CODES` union is already total (now also including `cando-untransferred` and `checkpoint-module-coverage`); made `canDos.ts` export both the derived `A2_CANDO_LESSONS` map **and** the derived `a2CanDosAuthored` array (+ `a2CanDoById`), mirroring A1, so Task 7 (coverage) and Task 8 (`data/course.ts`/`CourseHome`) both resolve.
+
+**4. Blocker-specific correctness checks (added at controller request — each maps to a concrete gate):**
+- **Product language:** the level/checkpoint copy states "A2, aligned with JF/CEFR Can-do", never a certificate; enforced by `checkpoint-claims-certification` over `a2-checkpoint-claim`. The only occurrences of the token `CEFR-aligned` in this file are inside this self-review's scan pattern above — no heading, goal, or copy value uses it.
+- **Conjugation-class coverage:** Task 2's `a2Conjugation.ts` enumerates ichidan; all nine godan sub-classes (u/ku/gu/su/tsu/nu/bu/mu/ru); irregular する・来る; plus the 行く った/って exception — with per-form tests for 食べる/話す/書く/泳ぐ/待つ/死ぬ/遊ぶ/読む/帰る/行く/する/来る (glyph root preserved, macron-free romaji). No generic る/ない/た/て is appended to a shared "stem". Constructions consume the correct base (て/ない/past/dictionary), verified in Task 2 Step 6 + Step 15 review.
+- **M15 zero new kanji:** `A2_KANJI_DISTRIBUTION["a2-synthesis"] === 0`; `kanji-synthesis-first-exposure` rejects any glyph first-supported at an `a2-synthesis-*` lesson; distribution M1=8,M2=12,M3=9,M4=8,M5=9,M6=8,M7=8,M8=8,M9=8,M10=8,M11=8,M12=9,M13=8,M14=9,M15=0 sums to 120 via `kanji-distribution-sum`.
+- **Strict four-stage kanji ordering:** `kanji-exposure-order` asserts first-supported `<` supported-retrieval `<` revealable `<` assessed by canonical position (strict `<`, never `≤`) for all 120 glyphs; revealable and assessed are distinct stages (no collapse).
+- **All-rows linguistic review:** Task 9 Step 3 mandates a fresh read-only reviewer over **every** model/transfer/dialogue/practical-text/EN+IT gloss/accepted variant/kanji exposure (particles, conjugations, register, omission, transitivity, counters, readings, naturalness, Can-do fit, no-bypass), fixed to APPROVED before sign-off; the automated `editorial.test.ts` count-check guarantees the surface set it audits is complete.
+- **Exact actual type signatures:** `a2Level` uses the real `CourseLevel` shape `{ id: "a2", alignmentCopyId, moduleIds, canDoIds, recommendedPrerequisiteCheckpointId: "a1-checkpoint" }`; `a2Checkpoint` uses the real `CheckpointDefinition` (`sampledCanDoIds`, `minAcceptedTransferTargetsPerCanDo`); `a2Modules` uses the real `FoundationModule` (`{ id, level, order, canDoIds, lessonIds }`); Can-dos use the real `CanDo` (`checkpointEvidenceRule.evidenceKind: "checkpoint-sampled"`); `A2_PERSON_ROLES` uses the real `PersonRole` (`{ id, kind, labelCopyId, gender? }`). All copied verbatim from `src/course/foundations/types.ts`; no invented fields, no `as unknown`.
 
 ---
 
@@ -2437,7 +3696,7 @@ Fixes applied inline: unified the kanji policy accessor name to `supportFor(...)
 
 ```bash
 git add docs/superpowers/plans/2026-07-17-a1-a2-phase-3-a2-kanji.md
-git commit -m "docs: plan the complete A2 and contextual kanji release" \
+git commit -m "docs: correct A2 conjugation, kanji scheduling, and execution detail" \
   --trailer "Co-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>" \
   --trailer "Copilot-Session: 5bb2b5fa-6441-4a34-98fa-de7aa78e0359"
 ```
