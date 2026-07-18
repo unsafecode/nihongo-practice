@@ -630,3 +630,54 @@ describe("A2 M1-M8 aggregate — kanji exposure wiring across all 32 lessons", (
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Phase 3 Task 5 spec-fix: persona pronoun consistency + mizu semantic gloss
+// audit, extended to all 32 M1-M8 lessons.
+//
+// Both checks are purely mechanical against real, already-pinned catalog
+// truth (a2PersonRoles' own `gender` field and a2-value-obj-mizu's own slot
+// identity) — never a heuristic guess — so they cannot produce false
+// positives: generic roles (learner/teacher/colleague/friend/clerk)
+// intentionally omit `gender` and are never checked; only Sora (masculine)
+// and Emi (feminine) are, and only a2-value-obj-mizu's own object slot is
+// scanned for the invented "fountain"/"fontanella" gloss.
+// ---------------------------------------------------------------------------
+describe("A2 M1-M8 aggregate — persona pronoun consistency & mizu semantic gloss audit (Phase 3 Task 5 spec-fix)", () => {
+  it("no M1-M8 Sora-subject line uses a feminine pronoun, and no Emi-subject line uses a masculine one", () => {
+    const FEMININE_PRONOUN = /\b(she|her|hers)\b/i;
+    const MASCULINE_PRONOUN = /\b(he|him|his)\b/i;
+    const violations: string[] = [];
+    for (const built of allBuiltLessons) {
+      for (const variant of built.variants) {
+        const en = built.en[`${variant.id}-translation`] ?? "";
+        if (variant.discourse.subjectReferentId === "a2-referent-sora" && FEMININE_PRONOUN.test(en)) {
+          violations.push(`${variant.id}: Sora line uses a feminine pronoun: "${en}"`);
+        }
+        if (variant.discourse.subjectReferentId === "a2-referent-emi" && MASCULINE_PRONOUN.test(en)) {
+          violations.push(`${variant.id}: Emi line uses a masculine pronoun: "${en}"`);
+        }
+      }
+    }
+    expect(violations, `${violations.length} pronoun-consistency violation(s):\n${violations.join("\n")}`).toEqual(
+      [],
+    );
+  });
+
+  it('no M1-M8 line realizing a2-value-obj-mizu glosses it as "fountain"/"fontanella" — mizu is plain "water"/"acqua"', () => {
+    const FOUNTAIN_GLOSS = /fountain|fontanella/i;
+    const violations: string[] = [];
+    for (const built of allBuiltLessons) {
+      for (const variant of built.variants) {
+        if (variant.slotValues.object !== "a2-value-obj-mizu") continue;
+        const en = built.en[`${variant.id}-translation`] ?? "";
+        const it = built.it[`${variant.id}-translation`] ?? "";
+        if (FOUNTAIN_GLOSS.test(en)) violations.push(`${variant.id}: EN mizu line invents a fountain gloss: "${en}"`);
+        if (FOUNTAIN_GLOSS.test(it)) violations.push(`${variant.id}: IT mizu line invents a fontanella gloss: "${it}"`);
+      }
+    }
+    expect(violations, `${violations.length} mizu semantic-gloss violation(s):\n${violations.join("\n")}`).toEqual(
+      [],
+    );
+  });
+});

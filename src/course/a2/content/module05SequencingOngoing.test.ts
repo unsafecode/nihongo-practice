@@ -263,4 +263,43 @@ describe("A2 Module 5 — bilingual copy coverage", () => {
     expect(so4.it["sequencing-ongoing-4-m1-translation"]).toContain("si è stancato");
     expect(so4.it["sequencing-ongoing-4-m1-translation"]).not.toContain("si e stancato");
   });
+
+  // Task 5 copy-fix: Sora (a2-role-sora / a2-referent-sora) is the course's
+  // canonical *masculine* persona (a2SemanticCatalog.ts pins
+  // `gender: "masculine"`), yet so1-m4 and so1-t1's EN copy used feminine
+  // pronouns ("she uses", "her face") for Sora — inconsistent with every
+  // other Sora line and with the Italian copy (which never distinguishes
+  // gender for a dropped subject pronoun in these sentences). Pins the
+  // corrected masculine pronouns and guards against regression.
+  it('so1-m4 and so1-t1 use masculine pronouns for Sora ("he"/"his"), never feminine ("she"/"her")', () => {
+    const soraRole = a2PersonRoles.find((r) => r.id === "a2-role-sora");
+    expect(soraRole?.gender).toBe("masculine");
+
+    const so1 = module5Lessons[0];
+    expect(so1.en["sequencing-ongoing-1-m4-translation"]).toBe("Sora's class starts, then he uses a notebook.");
+    expect(so1.en["sequencing-ongoing-1-t1-translation"]).toBe("Sora gets up, then washes his face.");
+  });
+
+  // Broader corpus guard (Phase 3 Task 5): no EN translation copy for a
+  // variant whose subject referent is Sora may use a feminine pronoun, and
+  // none for Emi (the course's canonical feminine persona) may use a
+  // masculine one. Purely mechanical (word-boundary pronoun match against
+  // the real discourse.subjectReferentId), so it can never drift.
+  it("no module-5 Sora-subject line uses a feminine pronoun, and no Emi-subject line uses a masculine one", () => {
+    const FEMININE_PRONOUN = /\b(she|her|hers)\b/i;
+    const MASCULINE_PRONOUN = /\b(he|him|his)\b/i;
+    const violations: string[] = [];
+    for (const built of module5Lessons) {
+      for (const variant of built.variants) {
+        const en = built.en[`${variant.id}-translation`] ?? "";
+        if (variant.discourse.subjectReferentId === "a2-referent-sora" && FEMININE_PRONOUN.test(en)) {
+          violations.push(`${variant.id}: Sora line uses a feminine pronoun: "${en}"`);
+        }
+        if (variant.discourse.subjectReferentId === "a2-referent-emi" && MASCULINE_PRONOUN.test(en)) {
+          violations.push(`${variant.id}: Emi line uses a masculine pronoun: "${en}"`);
+        }
+      }
+    }
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
 });

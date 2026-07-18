@@ -118,7 +118,7 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
     bareLine("sequencing-ongoing-1-m1", "a2-family-te-sequence", "a2-value-seq-okite-arau", "a2-context-routines", L("I get up, then wash my face.", "Mi alzo, poi mi lavo la faccia."), undefined, "a2-referent-self"),
     bareLine("sequencing-ongoing-1-m2", "a2-family-te-sequence", "a2-value-seq-tsukutte-taberu", "a2-context-routines", L("Emi makes breakfast, then eats it.", "Emi prepara la colazione, poi la mangia."), undefined, "a2-referent-emi"),
     bareLine("sequencing-ongoing-1-m3", "a2-family-te-sequence", "a2-value-seq-owatte-kaeru", "a2-context-workplace", L("A colleague's work finishes, then they go home.", "Il lavoro di un collega finisce, poi torna a casa."), undefined, "a2-referent-colleague"),
-    bareLine("sequencing-ongoing-1-m4", "a2-family-te-sequence", "a2-value-seq-hajimatte-tsukau", "a2-context-routines", L("Sora's class starts, then she uses a notebook.", "La lezione di Sora inizia, poi usa un quaderno."), undefined, "a2-referent-sora"),
+    bareLine("sequencing-ongoing-1-m4", "a2-family-te-sequence", "a2-value-seq-hajimatte-tsukau", "a2-context-routines", L("Sora's class starts, then he uses a notebook.", "La lezione di Sora inizia, poi usa un quaderno."), undefined, "a2-referent-sora"),
     bareLine("sequencing-ongoing-1-m5", "a2-family-te-sequence", "a2-value-seq-itte-hanasu", "a2-context-conversation", L("The teacher goes to school, then talks with a friend.", "L'insegnante va a scuola, poi parla con un amico."), undefined, "a2-referent-teacher"),
     bareLine("sequencing-ongoing-1-m6", "a2-family-te-sequence", "a2-value-seq-hataraite-tsukareta", "a2-context-workplace", L("A friend worked, then got tired.", "Un amico ha lavorato, poi si è stancato."), undefined, "a2-referent-friend", A2_AFFIRMATIVE_PAST_POLITE),
     bareLine("sequencing-ongoing-1-m7", "a2-family-te-sequence", "a2-value-seq-aratte-neru", "a2-context-routines", L("I wash my face, then go to sleep.", "Mi lavo la faccia, poi vado a dormire."), "a2-role-learner"),
@@ -133,7 +133,7 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
   // rather than inventing brand-new, never-modeled dedicated values that a
   // transfer-only cumulative-availability check could never honestly pass.
   transfers: [
-    bareLine("sequencing-ongoing-1-t1", "a2-family-te-sequence", "a2-value-seq-okite-arau", "a2-context-routines", L("Sora gets up, then washes her face.", "Sora si alza, poi si lava la faccia."), undefined, "a2-referent-sora"),
+    bareLine("sequencing-ongoing-1-t1", "a2-family-te-sequence", "a2-value-seq-okite-arau", "a2-context-routines", L("Sora gets up, then washes his face.", "Sora si alza, poi si lava la faccia."), undefined, "a2-referent-sora"),
     bareLine("sequencing-ongoing-1-t2", "a2-family-te-sequence", "a2-value-seq-tsukutte-taberu", "a2-context-among-friends", L("A colleague makes breakfast, then eats it.", "Un collega prepara la colazione, poi la mangia."), undefined, "a2-referent-colleague"),
     bareLine("sequencing-ongoing-1-t3", "a2-family-te-sequence", "a2-value-seq-owatte-kaeru", "a2-context-conversation", L("The teacher's work finishes, then goes home.", "Il lavoro dell'insegnante finisce, poi torna a casa."), undefined, "a2-referent-teacher"),
     bareLine("sequencing-ongoing-1-t4", "a2-family-te-sequence", "a2-value-seq-hajimatte-tsukau", "a2-context-routines", L("Emi's class starts, then she uses a notebook.", "La lezione di Emi inizia, poi usa un quaderno."), undefined, "a2-referent-emi"),

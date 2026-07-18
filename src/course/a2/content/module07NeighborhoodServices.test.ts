@@ -252,4 +252,19 @@ describe("A2 Module 7 — bilingual copy coverage", () => {
       }
     }
   });
+
+  // Task 5 copy-fix: ns1-m9's slot object is a2-value-obj-mizu — the same
+  // plain "water" (みず) semantic value ns1-m6 and every M1-M8 みず line
+  // glosses as "water"/"acqua" — but ns1-m9's own EN/IT copy invented an
+  // ungrounded "water fountain"/"fontanella" gloss never introduced anywhere
+  // in the catalog. Pins the corrected, semantically honest copy.
+  it('ns1-m9 realizes a2-value-obj-mizu as plain "water"/"acqua", never "water fountain"/"fontanella"', () => {
+    const ns1 = module7Lessons[0];
+    const variant = ns1.variants.find((v) => v.id === "neighborhood-services-1-m9");
+    expect(variant, "neighborhood-services-1-m9 variant").toBeDefined();
+    expect(variant?.slotValues.object).toBe("a2-value-obj-mizu");
+
+    expect(ns1.en["neighborhood-services-1-m9-translation"]).toBe("I cannot use the water.");
+    expect(ns1.it["neighborhood-services-1-m9-translation"]).toBe("Non posso usare l'acqua.");
+  });
 });

@@ -145,7 +145,7 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
     // affirmative counterpart (never a shared bucket with a polarity flag),
     // so it must be modeled here too — with a *different* object than the
     // transfers below reuse — before t1/t2 can honestly recombine it.
-    line("neighborhood-services-1-m9", "a2-family-possibility", "a2-value-possibility-nashi-tsukau", "a2-context-neighborhood", L("I cannot use the water fountain.", "Non posso usare la fontanella."), { object: "a2-value-obj-mizu", speakerRole: "a2-role-learner" }),
+    line("neighborhood-services-1-m9", "a2-family-possibility", "a2-value-possibility-nashi-tsukau", "a2-context-neighborhood", L("I cannot use the water.", "Non posso usare l'acqua."), { object: "a2-value-obj-mizu", speakerRole: "a2-role-learner" }),
     line("neighborhood-services-1-m10", "a2-family-possibility", "a2-value-possibility-nashi-hanasu", "a2-context-neighborhood", L("I cannot speak Japanese here.", "Non posso parlare giapponese qui."), { object: "a2-value-obj-nihongo-m7", speakerRole: "a2-role-friend" }),
   ],
   transfers: [
