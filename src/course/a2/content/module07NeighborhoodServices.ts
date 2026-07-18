@@ -2,12 +2,13 @@
  * A2 Module 7 — Neighborhood services (Phase 3 Task 5).
  *
  * Four instructional lessons: possibility intro (koto-ga-dekimasu) with a
- * genuine permission-temoii transfer, express-ability (possibility
- * controlled practice, affirmative and negative), ask-for-help (asking
+ * genuine permission-temoii transfer, can-cannot (possibility
+ * controlled practice, affirmative and negative), ask-directions (asking
  * where a facility is / asking someone for directions or a favor — request
  * phrase content only after request-tekudasai's own intro), and
- * describe-facility (existence statements plus teiru recurrence for a
- * facility's hours/state). Every sentence carries a semantic-ID-only
+ * explain-facility (existence statements for a facility's location, near a
+ * landmark or nearby — no supporting Can-do; grammar-spiral does not assign
+ * teiru recurrence to this lesson). Every sentence carries a semantic-ID-only
  * variant; all Japanese/romaji lives in the shared A2 semantic-value
  * catalog (`a2SemanticCatalog.ts`) in hiragana/katakana only.
  */
@@ -55,8 +56,7 @@ interface LineOptions {
 
 /** One M7 line: subject optional (vocative for direct address, never
  * explicit for a named individual), object/location optional
- * (a2-family-possibility / a2-family-describe-facility /
- * a2-family-ongoing-teiru), predicate carries the suffixed/baked content. */
+ * (a2-family-possibility), predicate carries the suffixed/baked content. */
 function line(
   id: string,
   family: string,
@@ -118,29 +118,6 @@ function facilityLine(
   };
 }
 
-/** A facility teiru recurrence line (a2-family-ongoing-teiru): subject is
- * the (inanimate) facility referent itself, required, never a person
- * referent — "the library is open", not "I am open". */
-function facilityTeiruLine(
-  id: string,
-  predicate: string,
-  facilitySubjectValueId: string,
-  context: string,
-  translation: { en: string; it: string },
-  speakerRole?: string,
-): A2LineSpec {
-  return {
-    id,
-    family: "a2-family-ongoing-teiru",
-    context,
-    subjectReferent: null,
-    subjectRealization: "explicit",
-    slots: { subject: facilitySubjectValueId, predicate },
-    translation,
-    speakerRole,
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Lesson neighborhood-services-1 — Possibility intro + permission-temoii
 // true transfer (ns1)
@@ -181,7 +158,7 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
 });
 
 // ---------------------------------------------------------------------------
-// Lesson neighborhood-services-2 — Express ability: possibility controlled
+// Lesson neighborhood-services-2 — Can-cannot: possibility controlled
 // practice, affirmative and negative (ns2)
 // ---------------------------------------------------------------------------
 
@@ -189,7 +166,7 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
   id: "neighborhood-services-2",
   moduleId: MODULE_ID,
   order: 2,
-  primaryCanDoId: "a2-cando-express-ability",
+  primaryCanDoId: "a2-cando-can-cannot",
   supportingCanDoIds: ["a2-cando-possibility"],
   introducedConceptIds: [],
   introducedSenseIds: [],
@@ -213,7 +190,7 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
 });
 
 // ---------------------------------------------------------------------------
-// Lesson neighborhood-services-3 — Ask for help: directions and requests
+// Lesson neighborhood-services-3 — Ask directions: directions and requests
 // (ns3)
 // ---------------------------------------------------------------------------
 
@@ -221,7 +198,7 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
   id: "neighborhood-services-3",
   moduleId: MODULE_ID,
   order: 3,
-  primaryCanDoId: "a2-cando-ask-for-help",
+  primaryCanDoId: "a2-cando-ask-directions",
   supportingCanDoIds: [],
   introducedConceptIds: ["a2-concept-ask-for-help"],
   introducedSenseIds: [],
@@ -244,13 +221,13 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
   // Phase 3 Task 5 fix ("introduction before use"): a2-family-ask-where and
   // a2-family-ask-for-help have NO subject/object/location slot at all (a
   // pure whole-clause bake, unlike M5's te-sequence or M8's
-  // confirm-understanding/recount-experience, which at least have a
+  // order-food/report-problem, which at least have a
   // subject slot to recombine with) — so a transfer here can never be both
   // genuinely novel (I2) and honestly "introduced" unless it draws on a
   // *different*, already-fully-available compositional family instead of
   // inventing new whole-clause-only "ask-near-*" content no model ever
   // demonstrates. a2-family-request-tekudasai's own canDoIds already
-  // include "a2-cando-ask-for-help" (this lesson's primary), and its verb
+  // include "a2-cando-ask-directions" (this lesson's primary), and its verb
   // senses have been fully available since permission-requests-3 (M6) — so
   // these 5 transfers genuinely recombine an already-introduced tekudasai
   // predicate with an already-introduced object, never a brand-new value.
@@ -264,16 +241,16 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
 });
 
 // ---------------------------------------------------------------------------
-// Lesson neighborhood-services-4 — Describe facility: existence + teiru
-// recurrence for hours/state (ns4)
+// Lesson neighborhood-services-4 — Explain facility: existence statements
+// for a facility's location, near a landmark or nearby (ns4)
 // ---------------------------------------------------------------------------
 
 const lesson4: A2BuiltLesson = buildA2InstructionalLesson({
   id: "neighborhood-services-4",
   moduleId: MODULE_ID,
   order: 4,
-  primaryCanDoId: "a2-cando-describe-facility",
-  supportingCanDoIds: ["a2-cando-ongoing-teiru"],
+  primaryCanDoId: "a2-cando-explain-facility",
+  supportingCanDoIds: [],
   introducedConceptIds: ["a2-concept-describe-facility"],
   introducedSenseIds: [],
   models: [
@@ -282,18 +259,27 @@ const lesson4: A2BuiltLesson = buildA2InstructionalLesson({
     facilityLine("neighborhood-services-4-m3", "a2-value-exist-aru", "a2-value-fac-yuubinkyoku-subject", null, "a2-context-neighborhood", L("There is a post office.", "C'è un ufficio postale."), "a2-role-sora"),
     facilityLine("neighborhood-services-4-m4", "a2-value-exist-aru", "a2-value-fac-toshokan-subject", "a2-value-loc-eki-m7", "a2-context-conversation", L("There is a library near the station.", "C'è una biblioteca vicino alla stazione."), "a2-role-colleague"),
     facilityLine("neighborhood-services-4-m5", "a2-value-exist-aru", "a2-value-fac-koen-subject", null, "a2-context-outing", L("There is a park.", "C'è un parco."), "a2-role-teacher"),
-    facilityTeiruLine("neighborhood-services-4-m6", "a2-value-facility-teiru-aiteiru", "a2-value-fac-toshokan-subject", "a2-context-neighborhood", L("The library is open.", "La biblioteca è aperta."), "a2-role-friend"),
-    facilityTeiruLine("neighborhood-services-4-m7", "a2-value-facility-teiru-shimatteiru", "a2-value-fac-byouin-subject", "a2-context-neighborhood", L("The hospital is closed.", "L'ospedale è chiuso."), "a2-role-clerk"),
+    // Phase 3 Task 5 spec-fix: the authoritative recipe gives this lesson no
+    // support at all (grammar-spiral does not assign teiru recurrence here),
+    // so these two models recombine the SAME already-established
+    // a2-family-describe-facility construction with two more genuinely
+    // distinct existence-flavored senses — imasu/iru (animate existence, for
+    // facility staff, at the already-available M6 "library" location
+    // a2-value-loc-toshokan) and miemasu/mieru (visibility) — instead of an
+    // untracked teiru recurrence.
+    facilityLine("neighborhood-services-4-m6", "a2-value-exist-iru", "a2-value-fac-shokuin-subject", "a2-value-loc-toshokan", "a2-context-neighborhood", L("There are staff at the library.", "Ci sono impiegati in biblioteca."), "a2-role-friend"),
+    facilityLine("neighborhood-services-4-m7", "a2-value-exist-mieru", "a2-value-fac-koen-subject", null, "a2-context-neighborhood", L("You can see the park.", "Si vede il parco."), "a2-role-clerk"),
     facilityLine("neighborhood-services-4-m8", "a2-value-exist-aru", "a2-value-fac-ginkou-subject", null, "a2-context-neighborhood", L("There is a bank.", "C'è una banca."), "a2-role-learner"),
   ],
   transfers: [
     facilityLine("neighborhood-services-4-t1", "a2-value-exist-aru", "a2-value-fac-yuubinkyoku-subject", "a2-value-loc-eki-m7", "a2-context-neighborhood", L("There is a post office near the station.", "C'è un ufficio postale vicino alla stazione.")),
     facilityLine("neighborhood-services-4-t2", "a2-value-exist-aru", "a2-value-fac-koen-subject", "a2-value-loc-eki-m7", "a2-context-neighborhood", L("There is a park near the station.", "C'è un parco vicino alla stazione.")),
-    facilityTeiruLine("neighborhood-services-4-t3", "a2-value-facility-teiru-aiteiru", "a2-value-fac-ginkou-subject", "a2-context-neighborhood", L("The bank is open.", "La banca è aperta.")),
-    facilityTeiruLine("neighborhood-services-4-t4", "a2-value-facility-teiru-shimatteiru", "a2-value-fac-yuubinkyoku-subject", "a2-context-neighborhood", L("The post office is closed.", "L'ufficio postale è chiuso.")),
+    facilityLine("neighborhood-services-4-t3", "a2-value-exist-iru", "a2-value-fac-shokuin-subject", "a2-value-loc-koko", "a2-context-neighborhood", L("There are staff here.", "Ci sono impiegati qui.")),
+    facilityLine("neighborhood-services-4-t4", "a2-value-exist-mieru", "a2-value-fac-byouin-subject", null, "a2-context-neighborhood", L("You can see the hospital.", "Si vede l'ospedale.")),
     facilityLine("neighborhood-services-4-t5", "a2-value-exist-aru", "a2-value-fac-byouin-subject", "a2-value-loc-eki-m7", "a2-context-neighborhood", L("There is a hospital near the station.", "C'è un ospedale vicino alla stazione.")),
   ],
 });
+
 
 export const module7Lessons: readonly A2BuiltLesson[] = [lesson1, lesson2, lesson3, lesson4];
 

@@ -1,12 +1,20 @@
 /**
- * A2 Can-do registry (Phase 3 Task 4).
+ * A2 Can-do registry (Phase 3 Task 4; canonical taxonomy restored by the
+ * Phase 3 Task 5 spec-fix).
  *
  * The complete, stable Can-do identity/domain registry for all 59 Phase-3
  * Can-dos: the 15 grammar Can-dos (one per `a2/forms/grammarSpiral.ts` row,
- * using its exact `canDoId`), 40 topical Can-dos (reading/writing/listening/
- * spoken-production/interaction), and 4 capstone-scenario Can-dos (served by
+ * using its exact `canDoId`), 40 topical Can-dos (reading/writing/
+ * spoken-production/interaction — the only listening Can-do is the grammar
+ * `recognize-plain-forms`), and 4 capstone-scenario Can-dos (served by
  * the future `a2-synthesis` module, exactly like A1's Module 12 capstones —
- * left as pure stubs with no served lessons yet, never fabricated).
+ * left as pure stubs with no served lessons yet, never fabricated). Every id
+ * here is the exact, authoritative canonical name — Task 4 had shipped a
+ * redesigned taxonomy that renamed/consolidated several topical ids (e.g.
+ * "describe-ongoing" -> "describe-ongoing-action", "can-cannot" ->
+ * "express-ability", and collapsed two distinct M7/M8 Can-dos into one
+ * shared "ask-for-help"); Task 5 restores the canonical names below with no
+ * alias map.
  *
  * `A2_CANDO_REGISTRY` fixes every Can-do's identity/domain/descriptor/
  * evidence-rule now, so later modules (M5-M15) never redeclare a definition
@@ -59,79 +67,111 @@ function stub(
 }
 
 // ---------------------------------------------------------------------------
-// 15 grammar Can-dos — exactly the grammar-spiral row ids as `a2-cando-<id>`
+// 15 grammar Can-dos — exactly the grammar-spiral row ids as `a2-cando-<id>`.
+// Domain is per-id (never a blanket "spoken-production"): most grammar
+// constructions are practiced through interactive direct-address speech acts
+// (asking/giving permission, requesting, refusing), a handful are genuinely
+// monologue-shaped spoken production (sequencing, describing, opining,
+// comparing, connecting ideas), and recognizing plain-form speech is a
+// listening skill.
 // ---------------------------------------------------------------------------
 
+const GRAMMAR_CANDO_DOMAIN: Readonly<Record<string, CanDoDomain>> = {
+  "a2-cando-recognize-plain-forms": "listening",
+  "a2-cando-sequence-te": "spoken-production",
+  "a2-cando-ongoing-teiru": "spoken-production",
+  "a2-cando-request-tekudasai": "interaction",
+  "a2-cando-permission-temoii": "interaction",
+  "a2-cando-prohibition-tewaikenai": "interaction",
+  "a2-cando-negative-request": "interaction",
+  "a2-cando-experience-takoto": "interaction",
+  "a2-cando-intentions-plans": "spoken-production",
+  "a2-cando-reason-kara": "interaction",
+  "a2-cando-reason-node": "interaction",
+  "a2-cando-opinion-toomou": "spoken-production",
+  "a2-cando-compare": "spoken-production",
+  "a2-cando-possibility": "interaction",
+  "a2-cando-connectors": "spoken-production",
+};
+
+function grammarDomain(canDoId: string): CanDoDomain {
+  const domain = GRAMMAR_CANDO_DOMAIN[canDoId];
+  if (!domain) {
+    throw new Error(`GRAMMAR_CANDO_DOMAIN: no domain mapped for grammar Can-do "${canDoId}".`);
+  }
+  return domain;
+}
+
 const GRAMMAR_STUBS: readonly A2CanDoStub[] = A2_GRAMMAR_SPIRAL.map((row) =>
-  stub(row.canDoId, "grammar", "spoken-production"),
+  stub(row.canDoId, "grammar", grammarDomain(row.canDoId)),
 );
 
 // ---------------------------------------------------------------------------
-// 40 topical Can-dos
+// 40 topical Can-dos — the exact canonical Phase 3 taxonomy.
 // ---------------------------------------------------------------------------
 
 const TOPICAL_STUBS: readonly A2CanDoStub[] = [
-  // --- reading (3) ---
-  stub("a2-cando-read-schedule", "topical", "reading"),
-  stub("a2-cando-read-notice", "topical", "reading"),
-  stub("a2-cando-read-reply", "topical", "reading"),
-
-  // --- writing (5) ---
-  stub("a2-cando-write-message", "topical", "writing"),
-  stub("a2-cando-write-colleague-note", "topical", "writing"),
-  stub("a2-cando-write-progress-update", "topical", "writing"),
-  stub("a2-cando-write-reply", "topical", "writing"),
-  stub("a2-cando-write-form", "topical", "writing"),
-
-  // --- listening (2) ---
-  stub("a2-cando-listen-plain-speech", "topical", "listening"),
-  stub("a2-cando-listen-announcement", "topical", "listening"),
-
-  // --- spoken-production (19) ---
-  stub("a2-cando-narrate-order", "topical", "spoken-production"),
-  stub("a2-cando-describe-ongoing-action", "topical", "spoken-production"),
-  stub("a2-cando-describe-daily-plans", "topical", "spoken-production"),
-  stub("a2-cando-share-opinion", "topical", "spoken-production"),
-  stub("a2-cando-compare-options", "topical", "spoken-production"),
-  stub("a2-cando-connect-spoken-ideas", "topical", "spoken-production"),
-  stub("a2-cando-recount-experience", "topical", "spoken-production"),
-  stub("a2-cando-give-reasons", "topical", "spoken-production"),
-  stub("a2-cando-describe-now", "topical", "spoken-production"),
-  stub("a2-cando-describe-ongoing-state", "topical", "spoken-production"),
-  stub("a2-cando-describe-routine", "topical", "spoken-production"),
-  stub("a2-cando-express-ability", "topical", "spoken-production"),
-  stub("a2-cando-express-inability", "topical", "spoken-production"),
-  stub("a2-cando-describe-facility", "topical", "spoken-production"),
-  stub("a2-cando-describe-symptoms", "topical", "spoken-production"),
-  stub("a2-cando-describe-family", "topical", "spoken-production"),
-  stub("a2-cando-give-receive", "topical", "spoken-production"),
-  stub("a2-cando-describe-events", "topical", "spoken-production"),
-  stub("a2-cando-describe-trip", "topical", "spoken-production"),
-
-  // --- interaction (11) ---
+  // --- interaction (21) ---
   stub("a2-cando-backchannel-followup", "topical", "interaction"),
   stub("a2-cando-clarify-repeat", "topical", "interaction"),
   stub("a2-cando-invite-accept-decline", "topical", "interaction"),
   stub("a2-cando-arrange-meeting", "topical", "interaction"),
   stub("a2-cando-ask-experience", "topical", "interaction"),
   stub("a2-cando-agree-disagree", "topical", "interaction"),
-  stub("a2-cando-ask-for-help", "topical", "interaction"),
-  stub("a2-cando-confirm-understanding", "topical", "interaction"),
-  stub("a2-cando-make-small-talk", "topical", "interaction"),
-  stub("a2-cando-negotiate-price", "topical", "interaction"),
-  stub("a2-cando-handle-phone-call", "topical", "interaction"),
+  stub("a2-cando-ask-directions", "topical", "interaction"),
+  stub("a2-cando-order-food", "topical", "interaction"),
+  stub("a2-cando-special-request", "topical", "interaction"),
+  stub("a2-cando-report-problem", "topical", "interaction"),
+  stub("a2-cando-pay-handle-problem", "topical", "interaction"),
+  stub("a2-cando-ask-price-decide", "topical", "interaction"),
+  stub("a2-cando-return-exchange", "topical", "interaction"),
+  stub("a2-cando-advice-tahouga", "topical", "interaction"),
+  stub("a2-cando-get-better", "topical", "interaction"),
+  stub("a2-cando-clinic-appointment", "topical", "interaction"),
+  stub("a2-cando-make-reservation", "topical", "interaction"),
+  stub("a2-cando-travel-schedule", "topical", "interaction"),
+  stub("a2-cando-travel-problem", "topical", "interaction"),
+  stub("a2-cando-change-cancel", "topical", "interaction"),
+  stub("a2-cando-choose-gift", "topical", "interaction"),
+
+  // --- spoken-production (11) ---
+  stub("a2-cando-narrate-order", "topical", "spoken-production"),
+  stub("a2-cando-give-reasons", "topical", "spoken-production"),
+  stub("a2-cando-describe-now", "topical", "spoken-production"),
+  stub("a2-cando-describe-ongoing", "topical", "spoken-production"),
+  stub("a2-cando-morning-routine", "topical", "spoken-production"),
+  stub("a2-cando-can-cannot", "topical", "spoken-production"),
+  stub("a2-cando-explain-facility", "topical", "spoken-production"),
+  stub("a2-cando-describe-symptoms", "topical", "spoken-production"),
+  stub("a2-cando-family-relations", "topical", "spoken-production"),
+  stub("a2-cando-give-receive", "topical", "spoken-production"),
+  stub("a2-cando-events-celebrations", "topical", "spoken-production"),
+
+  // --- writing (5) ---
+  stub("a2-cando-message-late-absent", "topical", "writing"),
+  stub("a2-cando-ask-colleague", "topical", "writing"),
+  stub("a2-cando-report-progress", "topical", "writing"),
+  stub("a2-cando-reply-confirm", "topical", "writing"),
+  stub("a2-cando-fill-form", "topical", "writing"),
+
+  // --- reading (3) ---
+  stub("a2-cando-read-schedule", "topical", "reading"),
+  stub("a2-cando-read-notice", "topical", "reading"),
+  stub("a2-cando-read-reply-message", "topical", "reading"),
 ];
 
 // ---------------------------------------------------------------------------
 // 4 capstone-scenario Can-dos (served by the future a2-synthesis module —
-// pure stubs, never fabricated lessons; mirrors A1's Module 12 capstones)
+// pure stubs, never fabricated lessons; mirrors A1's Module 12 capstones).
+// scenario-trip-recount is spoken-production (a narrated recount); the other
+// three are interaction (a lived multi-turn exchange).
 // ---------------------------------------------------------------------------
 
 const SCENARIO_STUBS: readonly A2CanDoStub[] = [
-  stub("a2-cando-scenario-1", "scenario", "interaction"),
-  stub("a2-cando-scenario-2", "scenario", "interaction"),
-  stub("a2-cando-scenario-3", "scenario", "interaction"),
-  stub("a2-cando-scenario-4", "scenario", "interaction"),
+  stub("a2-cando-scenario-weekend-outing", "scenario", "interaction"),
+  stub("a2-cando-scenario-service-shopping", "scenario", "interaction"),
+  stub("a2-cando-scenario-health-absence", "scenario", "interaction"),
+  stub("a2-cando-scenario-trip-recount", "scenario", "spoken-production"),
 ];
 
 /** The complete, frozen 59-entry A2 Can-do registry (15 + 40 + 4). */
@@ -304,39 +344,42 @@ export const A2_M1_M4_SERVED_CANDO_IDS: readonly string[] = Object.freeze([
 ]);
 
 /**
- * The 16 distinct Can-do ids the M5-M8 lessons (Phase 3 Task 5) actually
+ * The 17 distinct Can-do ids the M5-M8 lessons (Phase 3 Task 5) actually
  * serve: 7 grammar-spiral ids (`sequence-te`, `ongoing-teiru`,
  * `permission-temoii`, `prohibition-tewaikenai`, `request-tekudasai`,
- * `negative-request`, `possibility`) plus 9 topical/interaction ids
- * (`describe-now`, `describe-ongoing-action`, `describe-routine`,
- * `express-ability`, `ask-for-help`, `describe-facility`,
- * `confirm-understanding`, `recount-experience`, `negotiate-price`). Every
- * id here is one of the real, registered 59 — never a name quoted from the
- * earlier design doc that Task 4's actual registry went on to
- * rename/consolidate (see `canDos.test.ts`'s "16-lesson M5-M8 recipe
- * mapping" suite for the full documented rationale per id).
+ * `negative-request`, `possibility`) plus 10 topical/interaction ids
+ * (`describe-now`, `describe-ongoing`, `morning-routine`, `can-cannot`,
+ * `ask-directions`, `explain-facility`, `order-food`, `special-request`,
+ * `report-problem`, `pay-handle-problem`). 17, not 16: `ask-directions`
+ * (neighborhood-services-3) and `special-request` (restaurant-problems-2)
+ * are two genuinely distinct Can-dos — Task 4's redesigned registry had
+ * incorrectly collapsed both into one shared "ask-for-help" id, which this
+ * Phase 3 Task 5 spec-fix restores as two canonical ids (see
+ * `canDos.test.ts`'s "16-lesson M5-M8 recipe mapping" suite for the full
+ * per-lesson mapping).
  */
 export const A2_M5_M8_SERVED_CANDO_IDS: readonly string[] = Object.freeze([
   "a2-cando-sequence-te",
   "a2-cando-describe-now",
-  "a2-cando-describe-ongoing-action",
+  "a2-cando-describe-ongoing",
   "a2-cando-ongoing-teiru",
-  "a2-cando-describe-routine",
+  "a2-cando-morning-routine",
   "a2-cando-permission-temoii",
   "a2-cando-prohibition-tewaikenai",
   "a2-cando-request-tekudasai",
   "a2-cando-negative-request",
   "a2-cando-possibility",
-  "a2-cando-express-ability",
-  "a2-cando-ask-for-help",
-  "a2-cando-describe-facility",
-  "a2-cando-confirm-understanding",
-  "a2-cando-recount-experience",
-  "a2-cando-negotiate-price",
+  "a2-cando-can-cannot",
+  "a2-cando-ask-directions",
+  "a2-cando-explain-facility",
+  "a2-cando-order-food",
+  "a2-cando-special-request",
+  "a2-cando-report-problem",
+  "a2-cando-pay-handle-problem",
 ]);
 
 /**
- * The complete, honest 31-id staged subset the 32 authored M1-M8 lessons
+ * The complete, honest 32-id staged subset the 32 authored M1-M8 lessons
  * serve — the union of `A2_M1_M4_SERVED_CANDO_IDS` and
  * `A2_M5_M8_SERVED_CANDO_IDS`, with no overlap between the two. Exported so
  * `modules01to08.test.ts` can request exactly this subset from
@@ -350,7 +393,7 @@ export const A2_M1_M8_SERVED_CANDO_IDS: readonly string[] = Object.freeze([
 ]);
 
 // ---------------------------------------------------------------------------
-// Bilingual descriptor copy (the 31 M1-M8-served Can-dos only — the other 28
+// Bilingual descriptor copy (the 32 M1-M8-served Can-dos only — the other 27
 // registered ids belong to modules that do not exist yet, so their copy is
 // honestly left for the tasks that author those modules, never fabricated
 // ahead of time)
@@ -398,11 +441,11 @@ export const a2CanDoDescriptorCopy: { readonly en: Readonly<Record<string, strin
       "I can describe two or more actions in the order they happen, using the te-form.",
     "a2-cando-describe-now-descriptor":
       "I can describe what I am doing as part of a short daily sequence.",
-    "a2-cando-describe-ongoing-action-descriptor":
+    "a2-cando-describe-ongoing-descriptor":
       "I can describe an action that is happening right now.",
     "a2-cando-ongoing-teiru-descriptor":
       "I can describe an ongoing action or a resulting state using the teiru form.",
-    "a2-cando-describe-routine-descriptor":
+    "a2-cando-morning-routine-descriptor":
       "I can describe my daily routine, step by step.",
     "a2-cando-permission-temoii-descriptor":
       "I can ask for and give permission using the temoii construction.",
@@ -414,17 +457,19 @@ export const a2CanDoDescriptorCopy: { readonly en: Readonly<Record<string, strin
       "I can politely ask someone not to do something using a negative request construction.",
     "a2-cando-possibility-descriptor":
       "I can say what is possible to do somewhere, using a koto-ga-dekimasu construction.",
-    "a2-cando-express-ability-descriptor":
+    "a2-cando-can-cannot-descriptor":
       "I can say what I can and cannot do.",
-    "a2-cando-ask-for-help-descriptor":
-      "I can ask someone for help, such as directions or a favor.",
-    "a2-cando-describe-facility-descriptor":
+    "a2-cando-ask-directions-descriptor":
+      "I can ask for directions to a place in my neighborhood, or ask someone for help.",
+    "a2-cando-explain-facility-descriptor":
       "I can describe a local facility, including where it is and whether it's open.",
-    "a2-cando-confirm-understanding-descriptor":
-      "I can confirm my order or understanding with a server or clerk.",
-    "a2-cando-recount-experience-descriptor":
+    "a2-cando-order-food-descriptor":
+      "I can order food and drinks and confirm my order with a server or clerk.",
+    "a2-cando-special-request-descriptor":
+      "I can make a special request, such as asking permission or asking for a favor while ordering.",
+    "a2-cando-report-problem-descriptor":
       "I can recount what happened and explain a problem with an order.",
-    "a2-cando-negotiate-price-descriptor":
+    "a2-cando-pay-handle-problem-descriptor":
       "I can handle paying and a small problem in a short exchange.",
   },
   it: {
@@ -462,11 +507,11 @@ export const a2CanDoDescriptorCopy: { readonly en: Readonly<Record<string, strin
       "Riesco a descrivere due o più azioni nell'ordine in cui avvengono, usando la forma in te.",
     "a2-cando-describe-now-descriptor":
       "Riesco a descrivere quello che sto facendo come parte di una breve sequenza quotidiana.",
-    "a2-cando-describe-ongoing-action-descriptor":
+    "a2-cando-describe-ongoing-descriptor":
       "Riesco a descrivere un'azione che sta accadendo proprio ora.",
     "a2-cando-ongoing-teiru-descriptor":
       "Riesco a descrivere un'azione in corso o uno stato risultante usando la forma teiru.",
-    "a2-cando-describe-routine-descriptor":
+    "a2-cando-morning-routine-descriptor":
       "Riesco a descrivere la mia routine quotidiana, passo dopo passo.",
     "a2-cando-permission-temoii-descriptor":
       "Riesco a chiedere e dare il permesso usando la costruzione temoii.",
@@ -478,17 +523,19 @@ export const a2CanDoDescriptorCopy: { readonly en: Readonly<Record<string, strin
       "Riesco a chiedere educatamente a qualcuno di non fare qualcosa usando una costruzione negativa.",
     "a2-cando-possibility-descriptor":
       "Riesco a dire cosa è possibile fare in un posto, usando una costruzione koto-ga-dekimasu.",
-    "a2-cando-express-ability-descriptor":
+    "a2-cando-can-cannot-descriptor":
       "Riesco a dire cosa so e cosa non so fare.",
-    "a2-cando-ask-for-help-descriptor":
-      "Riesco a chiedere aiuto a qualcuno, ad esempio indicazioni o un favore.",
-    "a2-cando-describe-facility-descriptor":
+    "a2-cando-ask-directions-descriptor":
+      "Riesco a chiedere indicazioni per raggiungere un posto nel quartiere, o chiedere aiuto a qualcuno.",
+    "a2-cando-explain-facility-descriptor":
       "Riesco a descrivere un servizio del quartiere, dove si trova e se è aperto.",
-    "a2-cando-confirm-understanding-descriptor":
-      "Riesco a confermare il mio ordine o la mia comprensione con un cameriere o un commesso.",
-    "a2-cando-recount-experience-descriptor":
+    "a2-cando-order-food-descriptor":
+      "Riesco a ordinare cibo e bevande e confermare il mio ordine con un cameriere o un commesso.",
+    "a2-cando-special-request-descriptor":
+      "Riesco a fare una richiesta speciale, ad esempio chiedere il permesso o un favore mentre ordino.",
+    "a2-cando-report-problem-descriptor":
       "Riesco a raccontare cosa è successo e spiegare un problema con un ordine.",
-    "a2-cando-negotiate-price-descriptor":
+    "a2-cando-pay-handle-problem-descriptor":
       "Riesco a gestire il pagamento e un piccolo problema in un breve scambio.",
   },
 });

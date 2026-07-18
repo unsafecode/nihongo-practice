@@ -447,11 +447,11 @@ describe("a2SemanticCatalog — M5-M8 new sentence families (Phase 3 Task 5)", (
     expect(family?.canDoIds).toContain("a2-cando-permission-temoii");
   });
 
-  it("declares a2-family-describe-facility reusing the EXISTING rule-existence rule for a2-cando-describe-facility", () => {
+  it("declares a2-family-describe-facility reusing the EXISTING rule-existence rule for a2-cando-explain-facility", () => {
     const family = famById.get("a2-family-describe-facility");
     expect(family).toBeDefined();
     expect(family?.realizationRuleId).toBe("rule-existence");
-    expect(family?.canDoIds).toContain("a2-cando-describe-facility");
+    expect(family?.canDoIds).toContain("a2-cando-explain-facility");
   });
 
   it("gives every M5-M8 concept at least one real family that requires it (no orphan concept ids)", () => {
@@ -539,5 +539,33 @@ describe("a2SemanticCatalog — M5-M8 end-to-end realization (Phase 3 Task 5)", 
     expect(romaji.ok).toBe(true);
     if (!romaji.ok) throw new Error("unreachable");
     expect(romaji.text).toBe("tsukau koto ga dekimasu");
+  });
+
+  // M8 spec-fix regression (Phase 3 Task 5): a fresh review found
+  // "a2-value-problem-daremo-konai"'s own "ten minutes" fragment spelled as
+  // the malformed じゅうぶんぷん (which does not even correspond to its own
+  // "juppun" romaji) instead of the correct small-っ geminate じゅっぷん.
+  it("realizes a2-value-problem-daremo-konai through a2-family-recount-experience to genuine じゅっぷんまちましたが、だれもきません with romaji \"juppun\", never じゅうぶんぷん/\"juubunpun\"", () => {
+    const sentence = realize(
+      "a2-family-recount-experience",
+      { predicate: "a2-value-problem-daremo-konai" },
+      "task5-probe-daremo-konai",
+    );
+    expect(sentence.canonicalJapanese).not.toContain("じゅうぶんぷん");
+    expect(sentence.canonicalJapanese).toContain("じゅっぷん");
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toContain("juppun");
+    expect(romaji.text).not.toContain("juubunpun");
+  });
+});
+
+// M8 spec-fix regression (Phase 3 Task 5): the same defect, pinned directly
+// against the catalog data (independent of any family/lesson).
+describe("a2SemanticCatalog — M8 spec-fix: exact じゅっぷん kana for \"ten minutes\" (Phase 3 Task 5)", () => {
+  it("a2-value-problem-daremo-konai's first fragment is the correct じゅっぷん (small-っ geminate), not the malformed じゅうぶんぷん, for its own \"juppun\" romaji", () => {
+    const first = valueById("a2-value-problem-daremo-konai").tokenFragments[0];
+    expect(first).toEqual({ jp: "じゅっぷん", romaji: "juppun", kind: "lexical", boundaryBefore: "attach" });
   });
 });

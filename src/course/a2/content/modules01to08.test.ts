@@ -32,6 +32,7 @@ import {
   type A2BuiltLesson,
 } from "../catalog/a2LessonBuilders";
 import {
+  A2_CANDO_REGISTRY,
   A2_M1_M8_SERVED_CANDO_IDS,
   a2CanDoDescriptorCopy,
   buildA2CanDos,
@@ -190,11 +191,65 @@ describe("A2 M1-M8 aggregate — exactly 32 lessons across 8 modules in canonica
 });
 
 describe("A2 M1-M8 aggregate — buildA2CanDos honest subset", () => {
-  it("materializes exactly the 31 M1-M8-served Can-dos, each with >=1 real lessonId", () => {
-    expect(a2M1M8CanDos).toHaveLength(31);
+  it("materializes exactly the 32 M1-M8-served Can-dos, each with >=1 real lessonId", () => {
+    expect(a2M1M8CanDos).toHaveLength(32);
     for (const canDo of a2M1M8CanDos) {
       expect(canDo.lessonIds.length, canDo.id).toBeGreaterThan(0);
     }
+  });
+});
+
+// Phase 3 Task 5 spec-fix: a cross-cutting regression net independent of any
+// single module/family file, and independent of `A2_CANDO_REGISTRY`'s own
+// (possibly-drifted) content — every Can-do id actually *referenced* by the
+// real, authored M1-M8 content (recipe primary/support ids) or by any *live*
+// (actually-used) sentence family's own `canDoIds` must belong to the
+// hardcoded canonical 59-id set (never Task 4's redesigned aliases).
+describe("A2 M1-M8 aggregate — every referenced Can-do id belongs to the canonical registry (Phase 3 Task 5 spec-fix)", () => {
+  const CANONICAL_A2_CANDO_IDS = new Set(
+    [
+      // 15 grammar
+      "recognize-plain-forms", "sequence-te", "ongoing-teiru", "request-tekudasai", "permission-temoii",
+      "prohibition-tewaikenai", "negative-request", "experience-takoto", "intentions-plans", "reason-kara",
+      "reason-node", "opinion-toomou", "compare", "possibility", "connectors",
+      // 40 topical
+      "backchannel-followup", "clarify-repeat", "invite-accept-decline", "arrange-meeting", "narrate-order",
+      "ask-experience", "give-reasons", "agree-disagree", "describe-now", "describe-ongoing",
+      "morning-routine", "can-cannot", "ask-directions", "explain-facility", "order-food",
+      "special-request", "report-problem", "pay-handle-problem", "ask-price-decide", "return-exchange",
+      "describe-symptoms", "advice-tahouga", "get-better", "clinic-appointment", "message-late-absent",
+      "ask-colleague", "report-progress", "reply-confirm", "make-reservation", "travel-schedule",
+      "travel-problem", "change-cancel", "family-relations", "give-receive", "events-celebrations",
+      "choose-gift", "read-schedule", "read-notice", "read-reply-message", "fill-form",
+      // 4 scenario
+      "scenario-weekend-outing", "scenario-service-shopping", "scenario-health-absence", "scenario-trip-recount",
+    ].map((name) => `a2-cando-${name}`),
+  );
+
+  it("every recipe primaryCanDoId/supportingCanDoIds referenced by the 32 authored M1-M8 lessons is a canonical id", () => {
+    for (const built of allBuiltLessons) {
+      expect(CANONICAL_A2_CANDO_IDS.has(built.recipe.primaryCanDoId), `${built.recipe.id} primary ${built.recipe.primaryCanDoId}`).toBe(true);
+      for (const support of built.recipe.supportingCanDoIds) {
+        expect(CANONICAL_A2_CANDO_IDS.has(support), `${built.recipe.id} support ${support}`).toBe(true);
+      }
+    }
+  });
+
+  it("every live (actually-used) sentence family's own canDoIds are all canonical ids", () => {
+    const liveFamilyIds = new Set(allBuiltLessons.flatMap((built) => built.variants.map((v) => v.sentenceFamilyId)));
+    for (const family of a2SentenceFamilies) {
+      if (!liveFamilyIds.has(family.id)) continue;
+      for (const canDoId of family.canDoIds) {
+        expect(CANONICAL_A2_CANDO_IDS.has(canDoId), `family ${family.id} canDoId ${canDoId}`).toBe(true);
+      }
+    }
+  });
+
+  it("every real registered Can-do (A2_CANDO_REGISTRY) is itself a canonical id — the registry never drifts from the plan", () => {
+    for (const canDo of A2_CANDO_REGISTRY) {
+      expect(CANONICAL_A2_CANDO_IDS.has(canDo.id), canDo.id).toBe(true);
+    }
+    expect(A2_CANDO_REGISTRY).toHaveLength(CANONICAL_A2_CANDO_IDS.size);
   });
 });
 

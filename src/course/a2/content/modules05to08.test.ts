@@ -185,8 +185,8 @@ describe("A2 M5-M8 aggregate — exactly 16 lessons across 4 modules in canonica
 });
 
 describe("A2 M5-M8 aggregate — buildA2CanDos honest subset", () => {
-  it("materializes exactly the 16 M5-M8-served Can-dos, each with >=1 real lessonId", () => {
-    expect(a2M5M8CanDos).toHaveLength(16);
+  it("materializes exactly the 17 M5-M8-served Can-dos, each with >=1 real lessonId", () => {
+    expect(a2M5M8CanDos).toHaveLength(17);
     for (const canDo of a2M5M8CanDos) {
       expect(canDo.lessonIds.length, canDo.id).toBeGreaterThan(0);
     }

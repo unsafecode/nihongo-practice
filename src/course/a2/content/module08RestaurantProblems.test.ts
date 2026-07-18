@@ -1,12 +1,12 @@
 /**
  * A2 Module 8 (restaurant-problems) — module-local depth gate (Phase 3 Task 5).
  *
- * Four instructional lessons: rp1 confirm-understanding/order-food (menu
+ * Four instructional lessons: rp1 order-food (menu
  * ordering; no comparison — that grammar is not introduced until
- * shopping-returns-1), rp2 ask-for-help/special-request (tekudasai
- * controlled practice + temoii recurrence), rp3 recount-experience/report a
- * problem (plain description/reason content), rp4 negotiate-price/pay and
- * handle a problem (sequence-te recurrence). Mirrors Module 1-7's rigor:
+ * shopping-returns-1), rp2 special-request (tekudasai
+ * controlled practice + temoii recurrence), rp3 report-problem (plain
+ * description/reason content), rp4 pay-handle-problem (sequence-te
+ * recurrence). Mirrors Module 1-7's rigor:
  * assembles a real foundation catalog from the actual release data,
  * realizes every instructional variant through the shared realizer, and
  * asserts the exact depth contract — 8-12 models, 10 exercises (5+5), >=3
@@ -65,13 +65,13 @@ describe("A2 Module 8 (restaurant-problems) — exactly 4 lessons, canonical ord
 
   it("declares the exact primary/support Can-do mapping for M8", () => {
     const expected: Readonly<Record<string, { primary: string; supports: readonly string[] }>> = {
-      "restaurant-problems-1": { primary: "a2-cando-confirm-understanding", supports: [] },
+      "restaurant-problems-1": { primary: "a2-cando-order-food", supports: [] },
       "restaurant-problems-2": {
-        primary: "a2-cando-ask-for-help",
+        primary: "a2-cando-special-request",
         supports: ["a2-cando-request-tekudasai", "a2-cando-permission-temoii"],
       },
-      "restaurant-problems-3": { primary: "a2-cando-recount-experience", supports: [] },
-      "restaurant-problems-4": { primary: "a2-cando-negotiate-price", supports: ["a2-cando-sequence-te"] },
+      "restaurant-problems-3": { primary: "a2-cando-report-problem", supports: [] },
+      "restaurant-problems-4": { primary: "a2-cando-pay-handle-problem", supports: ["a2-cando-sequence-te"] },
     };
     for (const built of module8Lessons) {
       expect(built.recipe.primaryCanDoId).toBe(expected[built.recipe.id].primary);
@@ -213,6 +213,64 @@ describe("A2 Module 8 — connected restaurant dialogue (no isolated drill)", ()
     }
     const families = new Set(models.map((v) => v.sentenceFamilyId));
     expect(families.has("a2-family-te-sequence")).toBe(true);
+  });
+});
+
+// M8 spec-fix regression (Phase 3 Task 5): a fresh review found two
+// explicit-third-party-subject transfers recombined with a predicate that
+// cannot naturally take one. rp1-t3 paired an explicit "a2-referent-colleague"
+// with "a2-value-order-sorede-ii" — a first-person confirmation interjection
+// (はい、それでいいです, "Yes, that's fine") — producing an unnatural
+// interjection-plus-topic sentence. rp3-t4 paired an explicit
+// "a2-referent-teacher" with "a2-value-problem-nioi", whose own clause
+// already bakes its own topic (さかなは, "as for the fish") — producing a
+// double-topic sentence. Both are fixed by recombining with a predicate this
+// family already establishes is safe for an explicit third-party subject
+// (kore-kudasai/a "asks for X" request, exactly like t4/t5's own
+// issho-ni/onegai; atsui, が-marked with no baked topic, exactly like
+// t2/t3/t5's own tsumetai/tarinai/daremo-konai).
+describe("A2 Module 8 — spec-fix: no interjection-topic/double-topic on an explicit third-party subject", () => {
+  const UNSAFE_EXPLICIT_SUBJECT_PREDICATES: ReadonlySet<string> = new Set([
+    // First-person confirmation interjection (はい、...) — cannot be
+    // naturally attributed to an explicit third party.
+    "a2-value-order-sorede-ii",
+    // Bakes its own topic (さかなは) — stacking an explicit subject creates
+    // a double-topic sentence.
+    "a2-value-problem-nioi",
+  ]);
+
+  it("restaurant-problems-1-t3 recombines the natural kore-kudasai request (\"asks for this one\"), never the sorede-ii confirmation interjection, with its explicit colleague subject", () => {
+    const rp1 = module8Lessons[0];
+    const t3 = rp1.variants.find((v) => v.id === "restaurant-problems-1-t3");
+    expect(t3, "restaurant-problems-1-t3").toBeDefined();
+    expect(t3?.slotValues.predicate).toBe("a2-value-order-kore-kudasai");
+    expect(rp1.en["restaurant-problems-1-t3-translation"]).toBe("A colleague asks for this one.");
+    expect(rp1.it["restaurant-problems-1-t3-translation"]).toBe("Un collega chiede questo.");
+  });
+
+  it("restaurant-problems-3-t4 recombines the natural が-marked atsui problem (\"the tea is too hot\"), never the topic-baked nioi problem, with its explicit teacher subject", () => {
+    const rp3 = module8Lessons[2];
+    const t4 = rp3.variants.find((v) => v.id === "restaurant-problems-3-t4");
+    expect(t4, "restaurant-problems-3-t4").toBeDefined();
+    expect(t4?.slotValues.predicate).toBe("a2-value-problem-atsui");
+    expect(rp3.en["restaurant-problems-3-t4-translation"]).toBe("The teacher says the tea is too hot.");
+    expect(rp3.it["restaurant-problems-3-t4-translation"]).toBe("L'insegnante dice che il tè è troppo caldo.");
+  });
+
+  it("never combines an explicit third-party subject with an unsafe interjection/topic-baked predicate anywhere in M8", () => {
+    const violations: string[] = [];
+    for (const built of module8Lessons) {
+      for (const variant of built.variants) {
+        if (
+          variant.discourse.subjectRealization === "explicit" &&
+          variant.slotValues.predicate &&
+          UNSAFE_EXPLICIT_SUBJECT_PREDICATES.has(variant.slotValues.predicate)
+        ) {
+          violations.push(`${variant.id}: explicit subject combined with unsafe predicate "${variant.slotValues.predicate}"`);
+        }
+      }
+    }
+    expect(violations, violations.join("\n")).toEqual([]);
   });
 });
 

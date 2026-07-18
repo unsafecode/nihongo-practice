@@ -4,7 +4,7 @@
  * Four instructional lessons: so1 sequence-te intro (て-form action
  * sequencing), so2 describe-now (sequence-te controlled practice, no
  * premature ongoing intro), so3 describe-ongoing (ている intro), so4
- * describe-routine (sequence-te true transfer + ている controlled practice).
+ * morning-routine (sequence-te true transfer + ている controlled practice).
  * Mirrors Module 1-4's rigor: assembles a real foundation catalog from the
  * actual release data, realizes every instructional variant through the
  * shared realizer, and asserts the exact depth contract — 8-12 models, 10
@@ -66,9 +66,9 @@ describe("A2 Module 5 (sequencing-ongoing) — exactly 4 lessons, canonical orde
     const expected: Readonly<Record<string, { primary: string; supports: readonly string[] }>> = {
       "sequencing-ongoing-1": { primary: "a2-cando-sequence-te", supports: [] },
       "sequencing-ongoing-2": { primary: "a2-cando-describe-now", supports: ["a2-cando-sequence-te"] },
-      "sequencing-ongoing-3": { primary: "a2-cando-describe-ongoing-action", supports: ["a2-cando-ongoing-teiru"] },
+      "sequencing-ongoing-3": { primary: "a2-cando-describe-ongoing", supports: ["a2-cando-ongoing-teiru"] },
       "sequencing-ongoing-4": {
-        primary: "a2-cando-describe-routine",
+        primary: "a2-cando-morning-routine",
         supports: ["a2-cando-sequence-te", "a2-cando-ongoing-teiru"],
       },
     };
@@ -248,5 +248,19 @@ describe("A2 Module 5 — bilingual copy coverage", () => {
         expect(JAPANESE_PATTERN.test(value), value).toBe(false);
       }
     }
+  });
+
+  // M5 spec-fix regression (Phase 3 Task 5): a fresh review found both
+  // Italian "si e stancato" copy occurrences missing the grave accent on
+  // "è" (essere, 3rd person singular) — "si e stancato" reads as "si e
+  // stancato" (a dangling "and", ungrammatical), not "si è stancato" ("got
+  // tired"). Pins both so1-m6 and so4-m1's exact IT copy.
+  it('so1-m6 and so4-m1\'s IT copy say "si è stancato" (with the grave accent), never the malformed "si e stancato"', () => {
+    const so1 = module5Lessons[0];
+    const so4 = module5Lessons[3];
+    expect(so1.it["sequencing-ongoing-1-m6-translation"]).toContain("si è stancato");
+    expect(so1.it["sequencing-ongoing-1-m6-translation"]).not.toContain("si e stancato");
+    expect(so4.it["sequencing-ongoing-4-m1-translation"]).toContain("si è stancato");
+    expect(so4.it["sequencing-ongoing-4-m1-translation"]).not.toContain("si e stancato");
   });
 });

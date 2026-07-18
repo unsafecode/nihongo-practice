@@ -1,14 +1,14 @@
 /**
  * A2 Module 8 — Restaurant problems (Phase 3 Task 5).
  *
- * Four instructional lessons: rp1 confirm-understanding/order-food (menu
+ * Four instructional lessons: rp1 order-food (menu
  * ordering; NO comparison grammar — that construction is not introduced
  * until shopping-returns-1, the corrected authoritative spiral), rp2
- * ask-for-help/special-request (request-tekudasai + permission-temoii
+ * special-request (request-tekudasai + permission-temoii
  * post-intro practice/recurrence, recombined with new restaurant objects),
- * rp3 recount-experience/report-problem (plain description/reason
- * content, no unintroduced comparison), rp4 negotiate-price/pay and handle
- * a problem (sequence-te recurrence throughout). Every sentence carries a
+ * rp3 report-problem (plain description/reason
+ * content, no unintroduced comparison), rp4 pay-handle-problem (sequence-te
+ * recurrence throughout). Every sentence carries a
  * semantic-ID-only variant; all Japanese/romaji lives in the shared A2
  * semantic-value catalog (`a2SemanticCatalog.ts`) in hiragana/katakana
  * only.
@@ -104,14 +104,14 @@ function line(
 }
 
 // ---------------------------------------------------------------------------
-// Lesson restaurant-problems-1 — Confirm understanding / order food (rp1)
+// Lesson restaurant-problems-1 — Order food (rp1)
 // ---------------------------------------------------------------------------
 
 const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
   id: "restaurant-problems-1",
   moduleId: MODULE_ID,
   order: 1,
-  primaryCanDoId: "a2-cando-confirm-understanding",
+  primaryCanDoId: "a2-cando-order-food",
   supportingCanDoIds: [],
   introducedConceptIds: ["a2-concept-confirm-understanding"],
   introducedSenseIds: [],
@@ -136,14 +136,14 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
   transfers: [
     line("restaurant-problems-1-t1", "a2-family-confirm-understanding", "a2-value-order-kore-kudasai", "a2-context-restaurant", L("Sora, this one please.", "Sora, questo per favore."), { subjectReferent: "a2-referent-sora" }),
     line("restaurant-problems-1-t2", "a2-family-confirm-understanding", "a2-value-order-nomimono", "a2-context-cafe", L("Emi, tea please.", "Emi, tè per favore."), { subjectReferent: "a2-referent-emi" }),
-    line("restaurant-problems-1-t3", "a2-family-confirm-understanding", "a2-value-order-sorede-ii", "a2-context-restaurant", L("A colleague says that's fine.", "Un collega dice che va bene così."), { subjectReferent: "a2-referent-colleague", subjectRealization: "explicit" }),
+    line("restaurant-problems-1-t3", "a2-family-confirm-understanding", "a2-value-order-kore-kudasai", "a2-context-restaurant", L("A colleague asks for this one.", "Un collega chiede questo."), { subjectReferent: "a2-referent-colleague", subjectRealization: "explicit" }),
     line("restaurant-problems-1-t4", "a2-family-confirm-understanding", "a2-value-order-issho-ni", "a2-context-restaurant", L("The teacher asks for rice too, together.", "L'insegnante chiede anche il riso, insieme."), { subjectReferent: "a2-referent-teacher", subjectRealization: "explicit" }),
     line("restaurant-problems-1-t5", "a2-family-confirm-understanding", "a2-value-order-onegai", "a2-context-cafe", L("A friend asks for ramen.", "Un amico chiede il ramen."), { subjectReferent: "a2-referent-friend", subjectRealization: "explicit" }),
   ],
 });
 
 // ---------------------------------------------------------------------------
-// Lesson restaurant-problems-2 — Ask for help / special request, with
+// Lesson restaurant-problems-2 — Special request, with
 // request-tekudasai + permission-temoii post-intro practice/recurrence
 // (rp2)
 // ---------------------------------------------------------------------------
@@ -152,7 +152,7 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
   id: "restaurant-problems-2",
   moduleId: MODULE_ID,
   order: 2,
-  primaryCanDoId: "a2-cando-ask-for-help",
+  primaryCanDoId: "a2-cando-special-request",
   supportingCanDoIds: ["a2-cando-request-tekudasai", "a2-cando-permission-temoii"],
   introducedConceptIds: [],
   introducedSenseIds: [],
@@ -176,7 +176,7 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
 });
 
 // ---------------------------------------------------------------------------
-// Lesson restaurant-problems-3 — Recount experience / report a problem
+// Lesson restaurant-problems-3 — Report a problem
 // (rp3)
 // ---------------------------------------------------------------------------
 
@@ -184,7 +184,7 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
   id: "restaurant-problems-3",
   moduleId: MODULE_ID,
   order: 3,
-  primaryCanDoId: "a2-cando-recount-experience",
+  primaryCanDoId: "a2-cando-report-problem",
   supportingCanDoIds: [],
   introducedConceptIds: ["a2-concept-recount-experience"],
   introducedSenseIds: [],
@@ -211,13 +211,13 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     line("restaurant-problems-3-t1", "a2-family-recount-experience", "a2-value-problem-konai", "a2-context-restaurant", L("Sora, I ordered ramen, but it still hasn't come.", "Sora, ho ordinato il ramen, ma non è ancora arrivato."), { subjectReferent: "a2-referent-sora", form: A2_NEGATIVE_PRESENT_POLITE }),
     line("restaurant-problems-3-t2", "a2-family-recount-experience", "a2-value-problem-tsumetai", "a2-context-cafe", L("Emi, the soup is cold.", "Emi, la zuppa è fredda."), { subjectReferent: "a2-referent-emi" }),
     line("restaurant-problems-3-t3", "a2-family-recount-experience", "a2-value-problem-tarinai", "a2-context-among-friends", L("A colleague says there aren't enough forks.", "Un collega dice che non ci sono abbastanza forchette."), { subjectReferent: "a2-referent-colleague", subjectRealization: "explicit", form: A2_NEGATIVE_PRESENT_POLITE }),
-    line("restaurant-problems-3-t4", "a2-family-recount-experience", "a2-value-problem-nioi", "a2-context-restaurant", L("The teacher says this fish smells a bit strange.", "L'insegnante dice che questo pesce ha un odore un po' strano."), { subjectReferent: "a2-referent-teacher", subjectRealization: "explicit" }),
+    line("restaurant-problems-3-t4", "a2-family-recount-experience", "a2-value-problem-atsui", "a2-context-restaurant", L("The teacher says the tea is too hot.", "L'insegnante dice che il tè è troppo caldo."), { subjectReferent: "a2-referent-teacher", subjectRealization: "explicit" }),
     line("restaurant-problems-3-t5", "a2-family-recount-experience", "a2-value-problem-daremo-konai", "a2-context-restaurant", L("A friend waited ten minutes, but no one came.", "Un amico ha aspettato dieci minuti, ma non è venuto nessuno."), { subjectReferent: "a2-referent-friend", subjectRealization: "explicit", form: A2_NEGATIVE_PRESENT_POLITE }),
   ],
 });
 
 // ---------------------------------------------------------------------------
-// Lesson restaurant-problems-4 — Negotiate price / pay and handle a
+// Lesson restaurant-problems-4 — Pay and handle a
 // problem, with sequence-te recurrence throughout (rp4)
 // ---------------------------------------------------------------------------
 
@@ -225,7 +225,7 @@ const lesson4: A2BuiltLesson = buildA2InstructionalLesson({
   id: "restaurant-problems-4",
   moduleId: MODULE_ID,
   order: 4,
-  primaryCanDoId: "a2-cando-negotiate-price",
+  primaryCanDoId: "a2-cando-pay-handle-problem",
   supportingCanDoIds: ["a2-cando-sequence-te"],
   introducedConceptIds: [],
   introducedSenseIds: [],

@@ -659,6 +659,13 @@ const NEW_VERBS: Readonly<Record<string, NewVerb>> = {
   // its regular godan-ru masu-stem/dictionary/te/past forms via the same
   // class-aware engine is safe and never exercises the irregularity). ---
   aru: { conjClass: "godan-ru", stem: [newVerbFrag("あ", "a")] },
+  // --- M7 neighborhood-services (ns4 spec-fix): two more genuinely
+  // distinct dedicated existence-flavored ichidan verbs — います (animate
+  // existence, for facility staff) and みえます (visibility) — so ns4's
+  // predicate diversity comes from real distinct lexemes, never an
+  // untracked ~ている recurrence. ---
+  iru: { conjClass: "ichidan", stem: [newVerbFrag("い", "i")] },
+  mieru: { conjClass: "ichidan", stem: [newVerbFrag("みえ", "mie")] },
   // --- M8 restaurant-problems (kanji A 食飲飯茶; kanji B 肉魚熱冷) ---
   nomu: { conjClass: "godan-mu", stem: [newVerbFrag("の", "no")] },
 };
@@ -781,9 +788,11 @@ const A2_LEARNING_TARGET_SENSES_M5_M8: readonly LearningTargetSense[] = [
   dedicatedSense("a2-sense-help-tetsudatte", "help_tetsudatte"),
   // describe-facility (existence あります/います — governed location role)
   dedicatedSense("a2-sense-exist-aru", "exist_aru", ["location"]),
-  // describe-facility (teiru recurrence: hours/state)
-  dedicatedSense("a2-sense-facility-teiru-aiteiru", "facility_teiru_aiteiru"),
-  dedicatedSense("a2-sense-facility-teiru-shimatteiru", "facility_teiru_shimatteiru"),
+  // explain-facility (ns4 spec-fix): two more genuinely distinct
+  // existence-flavored senses (animate います for facility staff; みえます
+  // for visibility) — never an untracked ~ている recurrence.
+  dedicatedSense("a2-sense-exist-iru", "exist_iru", ["location"]),
+  dedicatedSense("a2-sense-exist-mieru", "exist_mieru", ["location"]),
 
   // --- M8 restaurant-problems ---
   // confirm-understanding / order-food (whole-clause bake)
@@ -2452,6 +2461,9 @@ const a2AuthoredValuesM7: readonly SemanticValue[] = [
   { id: "a2-value-fac-yuubinkyoku-subject", kind: "referent", animacy: "inanimate", tokenFragments: [frag("ゆうびんきょく", "yuubinkyoku")] },
   { id: "a2-value-fac-toshokan-subject", kind: "referent", animacy: "inanimate", tokenFragments: [frag("としょかん", "toshokan")] },
   { id: "a2-value-fac-koen-subject", kind: "referent", animacy: "inanimate", tokenFragments: [frag("こうえん", "kouen")] },
+  // explain-facility (ns4 spec-fix): an animate subject for the あります/
+  // います (inanimate/animate existence) contrast — facility staff.
+  { id: "a2-value-fac-shokuin-subject", kind: "referent", animacy: "animate", tokenFragments: [frag("しょくいん", "shokuin")] },
 
   // --- possibility (a2-family-possibility, object-compositional; M7-1/M7-2) ---
   { id: "a2-value-possibility-tsukau", kind: "predicate-sense", senseId: "a2-sense-possibility-tsukau", tokenFragments: possibilityKana(newVerbPlainKana(NEW_VERBS.tsukau, "dictionary"), "affirmative") },
@@ -2477,13 +2489,12 @@ const a2AuthoredValuesM7: readonly SemanticValue[] = [
 
   // --- describe-facility (a2-family-describe-facility, rule-existence; M7-4) ---
   { id: "a2-value-exist-aru", kind: "predicate-sense", senseId: "a2-sense-exist-aru", tokenFragments: newVerbMasuStemKana(NEW_VERBS.aru) },
-  // --- describe-facility (a2-family-ongoing-teiru recurrence: hours/state).
-  // います is kept as its own "lexical" fragment (not a bound morpheme) so it
-  // gets the same leading-space romaji boundary as every compositional
-  // ~ている form (e.g. はたらいています → "hataraite imasu"), per the
-  // established INDEPENDENT_WORD_TAIL_JP_BY_CONSTRUCTION convention. ---
-  { id: "a2-value-facility-teiru-aiteiru", kind: "predicate-sense", senseId: "a2-sense-facility-teiru-aiteiru", tokenFragments: [frag("あいて", "aite"), frag("います", "imasu")] },
-  { id: "a2-value-facility-teiru-shimatteiru", kind: "predicate-sense", senseId: "a2-sense-facility-teiru-shimatteiru", tokenFragments: [frag("しまって", "shimatte"), frag("います", "imasu")] },
+  // --- explain-facility (ns4 spec-fix): two more genuinely distinct
+  // existence-flavored senses through the SAME a2-family-describe-facility
+  // (never an untracked ~ている recurrence) — います (animate existence, for
+  // facility staff) and みえます (visibility, "can be seen"). ---
+  { id: "a2-value-exist-iru", kind: "predicate-sense", senseId: "a2-sense-exist-iru", tokenFragments: newVerbMasuStemKana(NEW_VERBS.iru) },
+  { id: "a2-value-exist-mieru", kind: "predicate-sense", senseId: "a2-sense-exist-mieru", tokenFragments: newVerbMasuStemKana(NEW_VERBS.mieru) },
 ];
 
 // ---------------------------------------------------------------------------
@@ -2516,7 +2527,7 @@ const a2AuthoredValuesM8: readonly SemanticValue[] = [
   { id: "a2-value-problem-tarinai", kind: "predicate-sense", senseId: "a2-sense-problem-tarinai", tokenFragments: [frag("フォークが", "fooku ga"), frag("たりません", "tarimasen")] },
   { id: "a2-value-problem-machigai", kind: "predicate-sense", senseId: "a2-sense-problem-machigai", tokenFragments: [frag("にくを", "niku o"), frag("たのみました", "tanomimashita"), punctFrag("が", "ga"), frag("さかなが", "sakana ga"), frag("きました", "kimashita")] },
   { id: "a2-value-problem-nioi", kind: "predicate-sense", senseId: "a2-sense-problem-nioi", tokenFragments: [frag("この", "kono"), frag("さかなは", "sakana wa"), frag("すこし", "sukoshi"), frag("へん", "hen"), frag("です", "desu")] },
-  { id: "a2-value-problem-daremo-konai", kind: "predicate-sense", senseId: "a2-sense-problem-daremo-konai", tokenFragments: [frag("じゅうぶんぷん", "juppun"), frag("まちました", "machimashita"), punctFrag("が", "ga"), frag("だれも", "dare mo"), frag("きません", "kimasen")] },
+  { id: "a2-value-problem-daremo-konai", kind: "predicate-sense", senseId: "a2-sense-problem-daremo-konai", tokenFragments: [frag("じゅっぷん", "juppun"), frag("まちました", "machimashita"), punctFrag("が", "ga"), frag("だれも", "dare mo"), frag("きません", "kimasen")] },
 
   // --- negotiate-price / pay-handle-problem (te-sequence recurrence,
   // whole-clause bake, mirrors a2-sense-seq-* shape; M8-4) ---
@@ -2774,12 +2785,12 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     id: "a2-family-te-sequence",
     level: "a2",
     // Also satisfies restaurant-problems-4's primary Can-do
-    // ("negotiate-price"/pay-handle-problem): that lesson has no own
+    // (pay-handle-problem): that lesson has no own
     // dedicated construction of its own — it teaches the skill entirely via
     // sequence-te recurrence in a payment/problem-handling context (per
     // the M8 recipe: "support [sequence-te]; te-form recurrence"), so this
     // family is the one that actually realizes every one of its transfers.
-    canDoIds: ["a2-cando-sequence-te", "a2-cando-negotiate-price"],
+    canDoIds: ["a2-cando-sequence-te", "a2-cando-pay-handle-problem"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -2804,7 +2815,7 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
   {
     id: "a2-family-ongoing-teiru",
     level: "a2",
-    canDoIds: ["a2-cando-ongoing-teiru", "a2-cando-describe-ongoing-action", "a2-cando-describe-routine"],
+    canDoIds: ["a2-cando-ongoing-teiru", "a2-cando-describe-ongoing", "a2-cando-morning-routine"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
       { id: "object", axis: "object", valueKind: "object", optional: true },
@@ -2871,7 +2882,13 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
   {
     id: "a2-family-request-tekudasai",
     level: "a2",
-    canDoIds: ["a2-cando-request-tekudasai", "a2-cando-ask-for-help"],
+    // Also satisfies neighborhood-services-3's primary Can-do
+    // (ask-directions, whose own dedicated whole-clause families
+    // ask-where/ask-for-help have no transfers of their own — every
+    // ns3 transfer recombines this family instead) and
+    // restaurant-problems-2's primary Can-do (special-request, whose
+    // t1-t3 transfers use this family too).
+    canDoIds: ["a2-cando-request-tekudasai", "a2-cando-ask-directions", "a2-cando-special-request"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
       { id: "object", axis: "object", valueKind: "object", optional: true },
@@ -2899,7 +2916,7 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
   {
     id: "a2-family-possibility",
     level: "a2",
-    canDoIds: ["a2-cando-possibility", "a2-cando-express-ability"],
+    canDoIds: ["a2-cando-possibility", "a2-cando-can-cannot"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
       { id: "object", axis: "object", valueKind: "object", optional: true },
@@ -2912,7 +2929,7 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
   {
     id: "a2-family-ask-where",
     level: "a2",
-    canDoIds: ["a2-cando-ask-for-help"],
+    canDoIds: ["a2-cando-ask-directions"],
     slotSchema: [{ id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false }],
     permittedAxes: ["predicate-verb", "context"],
     realizationRuleId: "rule-invariant-utterance",
@@ -2921,7 +2938,7 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
   {
     id: "a2-family-ask-for-help",
     level: "a2",
-    canDoIds: ["a2-cando-ask-for-help"],
+    canDoIds: ["a2-cando-ask-directions"],
     slotSchema: [{ id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false }],
     permittedAxes: ["predicate-verb", "context"],
     realizationRuleId: "rule-invariant-utterance",
@@ -2930,7 +2947,7 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
   {
     id: "a2-family-describe-facility",
     level: "a2",
-    canDoIds: ["a2-cando-describe-facility"],
+    canDoIds: ["a2-cando-explain-facility"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -2945,7 +2962,7 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
   {
     id: "a2-family-confirm-understanding",
     level: "a2",
-    canDoIds: ["a2-cando-confirm-understanding"],
+    canDoIds: ["a2-cando-order-food"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -2957,7 +2974,7 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
   {
     id: "a2-family-recount-experience",
     level: "a2",
-    canDoIds: ["a2-cando-recount-experience"],
+    canDoIds: ["a2-cando-report-problem"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },

@@ -4,7 +4,7 @@
  * Four instructional lessons: sequence-te (te-form action sequencing) intro,
  * describe-now (sequence-te controlled practice, no premature teiru
  * intro), describe-ongoing (teiru ongoing-action intro), and
- * describe-routine (sequence-te true transfer + teiru controlled
+ * morning-routine (sequence-te true transfer + teiru controlled
  * practice, a morning/daily-routine synthesis). Every sentence carries a
  * semantic-ID-only variant; all Japanese/romaji lives in the shared A2
  * semantic-value catalog (`a2SemanticCatalog.ts`) in hiragana/katakana only.
@@ -120,7 +120,7 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
     bareLine("sequencing-ongoing-1-m3", "a2-family-te-sequence", "a2-value-seq-owatte-kaeru", "a2-context-workplace", L("A colleague's work finishes, then they go home.", "Il lavoro di un collega finisce, poi torna a casa."), undefined, "a2-referent-colleague"),
     bareLine("sequencing-ongoing-1-m4", "a2-family-te-sequence", "a2-value-seq-hajimatte-tsukau", "a2-context-routines", L("Sora's class starts, then she uses a notebook.", "La lezione di Sora inizia, poi usa un quaderno."), undefined, "a2-referent-sora"),
     bareLine("sequencing-ongoing-1-m5", "a2-family-te-sequence", "a2-value-seq-itte-hanasu", "a2-context-conversation", L("The teacher goes to school, then talks with a friend.", "L'insegnante va a scuola, poi parla con un amico."), undefined, "a2-referent-teacher"),
-    bareLine("sequencing-ongoing-1-m6", "a2-family-te-sequence", "a2-value-seq-hataraite-tsukareta", "a2-context-workplace", L("A friend worked, then got tired.", "Un amico ha lavorato, poi si e stancato."), undefined, "a2-referent-friend", A2_AFFIRMATIVE_PAST_POLITE),
+    bareLine("sequencing-ongoing-1-m6", "a2-family-te-sequence", "a2-value-seq-hataraite-tsukareta", "a2-context-workplace", L("A friend worked, then got tired.", "Un amico ha lavorato, poi si è stancato."), undefined, "a2-referent-friend", A2_AFFIRMATIVE_PAST_POLITE),
     bareLine("sequencing-ongoing-1-m7", "a2-family-te-sequence", "a2-value-seq-aratte-neru", "a2-context-routines", L("I wash my face, then go to sleep.", "Mi lavo la faccia, poi vado a dormire."), "a2-role-learner"),
     bareLine("sequencing-ongoing-1-m8", "a2-family-te-sequence", "a2-value-seq-tsukatte-kaku", "a2-context-routines", L("I use the computer, then write an email.", "Uso il computer, poi scrivo un'email."), "a2-role-emi"),
   ],
@@ -181,7 +181,7 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
   id: "sequencing-ongoing-3",
   moduleId: MODULE_ID,
   order: 3,
-  primaryCanDoId: "a2-cando-describe-ongoing-action",
+  primaryCanDoId: "a2-cando-describe-ongoing",
   supportingCanDoIds: ["a2-cando-ongoing-teiru"],
   introducedConceptIds: ["a2-concept-ongoing-teiru"],
   introducedSenseIds: [],
@@ -213,12 +213,12 @@ const lesson4: A2BuiltLesson = buildA2InstructionalLesson({
   id: "sequencing-ongoing-4",
   moduleId: MODULE_ID,
   order: 4,
-  primaryCanDoId: "a2-cando-describe-routine",
+  primaryCanDoId: "a2-cando-morning-routine",
   supportingCanDoIds: ["a2-cando-sequence-te", "a2-cando-ongoing-teiru"],
   introducedConceptIds: [],
   introducedSenseIds: [],
   models: [
-    bareLine("sequencing-ongoing-4-m1", "a2-family-te-sequence", "a2-value-seq-oyoide-tsukareta", "a2-context-routines", L("Sora swam, then got tired.", "Sora ha nuotato, poi si e stancato."), undefined, "a2-referent-sora", A2_AFFIRMATIVE_PAST_POLITE),
+    bareLine("sequencing-ongoing-4-m1", "a2-family-te-sequence", "a2-value-seq-oyoide-tsukareta", "a2-context-routines", L("Sora swam, then got tired.", "Sora ha nuotato, poi si è stancato."), undefined, "a2-referent-sora", A2_AFFIRMATIVE_PAST_POLITE),
     bareLine("sequencing-ongoing-4-m2", "a2-family-te-sequence", "a2-value-seq-asonde-kaeru", "a2-context-among-friends", L("A friend plays with a friend, then goes home.", "Un amico gioca con un amico, poi torna a casa."), "a2-role-friend"),
     bareLine("sequencing-ongoing-4-m3", "a2-family-te-sequence", "a2-value-seq-matte-hanasu", "a2-context-conversation", L("I wait for a friend, then talk.", "Aspetto un amico, poi parlo."), "a2-role-emi"),
     objectLine("sequencing-ongoing-4-m4", "a2-family-te-sequence-object", "a2-value-seq-obj-tabete-nomu", "a2-value-obj-pan", "a2-context-routines", L("A colleague eats bread, then drinks.", "Un collega mangia il pane, poi beve."), undefined, "a2-referent-colleague"),

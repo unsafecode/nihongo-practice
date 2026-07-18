@@ -3,10 +3,11 @@
  * Task 5).
  *
  * Four instructional lessons: ns1 possibility intro (ことができます) +
- * permission-temoii true transfer, ns2 express-ability (possibility
- * controlled practice), ns3 ask-for-help (asking where a facility is /
+ * permission-temoii true transfer, ns2 can-cannot (possibility
+ * controlled practice), ns3 ask-directions (asking where a facility is /
  * asking for directions, only after request-tekudasai's own intro), ns4
- * describe-facility (existence + ~ている recurrence for hours/state).
+ * explain-facility (existence statements only — no support; grammar-spiral
+ * does not assign teiru recurrence here).
  * Mirrors Module 1-6's rigor: assembles a real foundation catalog from the
  * actual release data, realizes every instructional variant through the
  * shared realizer, and asserts the exact depth contract — 8-12 models, 10
@@ -66,9 +67,9 @@ describe("A2 Module 7 (neighborhood-services) — exactly 4 lessons, canonical o
   it("declares the exact primary/support Can-do mapping for M7", () => {
     const expected: Readonly<Record<string, { primary: string; supports: readonly string[] }>> = {
       "neighborhood-services-1": { primary: "a2-cando-possibility", supports: ["a2-cando-permission-temoii"] },
-      "neighborhood-services-2": { primary: "a2-cando-express-ability", supports: ["a2-cando-possibility"] },
-      "neighborhood-services-3": { primary: "a2-cando-ask-for-help", supports: [] },
-      "neighborhood-services-4": { primary: "a2-cando-describe-facility", supports: ["a2-cando-ongoing-teiru"] },
+      "neighborhood-services-2": { primary: "a2-cando-can-cannot", supports: ["a2-cando-possibility"] },
+      "neighborhood-services-3": { primary: "a2-cando-ask-directions", supports: [] },
+      "neighborhood-services-4": { primary: "a2-cando-explain-facility", supports: [] },
     };
     for (const built of module7Lessons) {
       expect(built.recipe.primaryCanDoId).toBe(expected[built.recipe.id].primary);
@@ -198,12 +199,25 @@ describe("A2 Module 7 — connected grammar content (no isolated drill)", () => 
     expect(requestCount + whereCount).toBe(sentences.length);
   });
 
-  it("ns4 mixes real facility-existence statements with ~ている recurrence for hours/state", () => {
+  // Phase 3 Task 5 spec-fix: ns4's authoritative recipe carries no support
+  // at all (grammar-spiral does not assign teiru recurrence to this
+  // lesson), so this lesson is honestly a single-family existence lesson —
+  // never mixed with an untracked ~ている recurrence. Predicate diversity
+  // comes from three genuinely distinct existence-flavored senses (あります/
+  // います/みえます), never a single verb padded out with an unrelated family.
+  it("ns4 is entirely real facility-existence statements (a2-family-describe-facility), with no untracked ~ている recurrence", () => {
     const ns4 = module7Lessons[3];
     const models = ns4.variants.filter((v) => v.pedagogicalUse === "model");
-    const families = new Set(models.map((v) => v.sentenceFamilyId));
+    const families = new Set(ns4.variants.map((v) => v.sentenceFamilyId));
     expect(families.has("a2-family-describe-facility")).toBe(true);
-    expect(families.has("a2-family-ongoing-teiru")).toBe(true);
+    expect(families.has("a2-family-ongoing-teiru")).toBe(false);
+    expect(families.size).toBe(1);
+    const sentences = models.map(realize);
+    const existenceEndings = ["あります", "います", "みえます"];
+    for (const s of sentences) {
+      expect(existenceEndings.some((ending) => s.canonicalJapanese.includes(ending)), s.canonicalJapanese).toBe(true);
+    }
+    expect(sentences.some((s) => s.canonicalJapanese.includes("あります"))).toBe(true);
   });
 });
 

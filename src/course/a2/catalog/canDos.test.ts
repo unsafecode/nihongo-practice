@@ -101,6 +101,205 @@ describe("A2_CANDO_REGISTRY — the complete stable identity/domain registry", (
   });
 });
 
+// Phase 3 Task 5 spec-fix: Task 4 incorrectly froze a redesigned topical
+// Can-do taxonomy (renaming/consolidating ids like "describe-ongoing" ->
+// "describe-ongoing-action", "can-cannot" -> "express-ability", collapsing
+// two distinct M7/M8 request Can-dos into one shared "ask-for-help", and
+// dropping the two dedicated "listen-*" ids in favor of them). This suite
+// hardcodes the exact, authoritative 59-id canonical taxonomy independent of
+// the registry's own implementation, so a regression back to any
+// redesigned/aliased name is caught immediately — never accepting an alias
+// map, only the literal canonical id.
+describe("A2_CANDO_REGISTRY — exact canonical 59-id taxonomy (Phase 3 Task 5 spec-fix)", () => {
+  const CANONICAL_GRAMMAR_NAMES = [
+    "recognize-plain-forms",
+    "sequence-te",
+    "ongoing-teiru",
+    "request-tekudasai",
+    "permission-temoii",
+    "prohibition-tewaikenai",
+    "negative-request",
+    "experience-takoto",
+    "intentions-plans",
+    "reason-kara",
+    "reason-node",
+    "opinion-toomou",
+    "compare",
+    "possibility",
+    "connectors",
+  ] as const;
+
+  const CANONICAL_TOPICAL_NAMES = [
+    "backchannel-followup",
+    "clarify-repeat",
+    "invite-accept-decline",
+    "arrange-meeting",
+    "narrate-order",
+    "ask-experience",
+    "give-reasons",
+    "agree-disagree",
+    "describe-now",
+    "describe-ongoing",
+    "morning-routine",
+    "can-cannot",
+    "ask-directions",
+    "explain-facility",
+    "order-food",
+    "special-request",
+    "report-problem",
+    "pay-handle-problem",
+    "ask-price-decide",
+    "return-exchange",
+    "describe-symptoms",
+    "advice-tahouga",
+    "get-better",
+    "clinic-appointment",
+    "message-late-absent",
+    "ask-colleague",
+    "report-progress",
+    "reply-confirm",
+    "make-reservation",
+    "travel-schedule",
+    "travel-problem",
+    "change-cancel",
+    "family-relations",
+    "give-receive",
+    "events-celebrations",
+    "choose-gift",
+    "read-schedule",
+    "read-notice",
+    "read-reply-message",
+    "fill-form",
+  ] as const;
+
+  const CANONICAL_SCENARIO_NAMES = [
+    "scenario-weekend-outing",
+    "scenario-service-shopping",
+    "scenario-health-absence",
+    "scenario-trip-recount",
+  ] as const;
+
+  const CANONICAL_59_IDS: readonly string[] = [
+    ...CANONICAL_GRAMMAR_NAMES,
+    ...CANONICAL_TOPICAL_NAMES,
+    ...CANONICAL_SCENARIO_NAMES,
+  ].map((name) => `a2-cando-${name}`);
+
+  // Task 4's redesigned replacement ids (and any other noncanonical
+  // replacement) — must never appear anywhere in the registry again.
+  const FORBIDDEN_NONCANONICAL_IDS = [
+    "a2-cando-describe-ongoing-action",
+    "a2-cando-describe-ongoing-state",
+    "a2-cando-describe-routine",
+    "a2-cando-express-ability",
+    "a2-cando-express-inability",
+    "a2-cando-ask-for-help",
+    "a2-cando-describe-facility",
+    "a2-cando-confirm-understanding",
+    "a2-cando-recount-experience",
+    "a2-cando-negotiate-price",
+    "a2-cando-listen-plain-speech",
+    "a2-cando-listen-announcement",
+    "a2-cando-write-message",
+    "a2-cando-write-colleague-note",
+    "a2-cando-write-progress-update",
+    "a2-cando-write-reply",
+    "a2-cando-write-form",
+    "a2-cando-share-opinion",
+    "a2-cando-compare-options",
+    "a2-cando-connect-spoken-ideas",
+    "a2-cando-describe-daily-plans",
+    "a2-cando-describe-family",
+    "a2-cando-describe-events",
+    "a2-cando-describe-trip",
+    "a2-cando-make-small-talk",
+    "a2-cando-handle-phone-call",
+    "a2-cando-read-reply",
+    "a2-cando-scenario-1",
+    "a2-cando-scenario-2",
+    "a2-cando-scenario-3",
+    "a2-cando-scenario-4",
+  ] as const;
+
+  it("has exactly 59 entries whose sorted ids equal the exact canonical 59-id set — no extras, no aliases", () => {
+    const actualIds = A2_CANDO_REGISTRY.map((c) => c.id);
+    expect(actualIds).toHaveLength(59);
+    expect(new Set(actualIds).size).toBe(59);
+    expect([...actualIds].sort()).toEqual([...CANONICAL_59_IDS].sort());
+  });
+
+  it("assigns every canonical id to its documented group (15 grammar, 40 topical, 4 scenario)", () => {
+    const byId = new Map(A2_CANDO_REGISTRY.map((c) => [c.id, c]));
+    for (const name of CANONICAL_GRAMMAR_NAMES) {
+      expect(byId.get(`a2-cando-${name}`)?.group, name).toBe("grammar");
+    }
+    for (const name of CANONICAL_TOPICAL_NAMES) {
+      expect(byId.get(`a2-cando-${name}`)?.group, name).toBe("topical");
+    }
+    for (const name of CANONICAL_SCENARIO_NAMES) {
+      expect(byId.get(`a2-cando-${name}`)?.group, name).toBe("scenario");
+    }
+  });
+
+  it("never registers any of Task 4's redesigned/noncanonical replacement ids", () => {
+    const actualIds = new Set(A2_CANDO_REGISTRY.map((c) => c.id));
+    for (const forbidden of FORBIDDEN_NONCANONICAL_IDS) {
+      expect(actualIds.has(forbidden), forbidden).toBe(false);
+    }
+  });
+
+  it("gives every canonical grammar id exactly the domain the authoritative plan assigns (listening: recognize-plain-forms; spoken-production: sequence-te/ongoing-teiru/intentions-plans/opinion-toomou/compare/connectors; interaction: the rest)", () => {
+    const byId = new Map(A2_CANDO_REGISTRY.map((c) => [c.id, c]));
+    const EXPECTED_GRAMMAR_DOMAIN: Readonly<Record<string, string>> = {
+      "recognize-plain-forms": "listening",
+      "sequence-te": "spoken-production",
+      "ongoing-teiru": "spoken-production",
+      "request-tekudasai": "interaction",
+      "permission-temoii": "interaction",
+      "prohibition-tewaikenai": "interaction",
+      "negative-request": "interaction",
+      "experience-takoto": "interaction",
+      "intentions-plans": "spoken-production",
+      "reason-kara": "interaction",
+      "reason-node": "interaction",
+      "opinion-toomou": "spoken-production",
+      compare: "spoken-production",
+      possibility: "interaction",
+      connectors: "spoken-production",
+    };
+    for (const [name, domain] of Object.entries(EXPECTED_GRAMMAR_DOMAIN)) {
+      expect(byId.get(`a2-cando-${name}`)?.domain, name).toBe(domain);
+    }
+  });
+
+  it("gives every canonical topical/scenario id exactly the domain the authoritative plan assigns (reading: read-*; writing: message-late-absent/ask-colleague/report-progress/reply-confirm/fill-form; spoken-production: narrate-order/give-reasons/describe-now/describe-ongoing/morning-routine/can-cannot/explain-facility/describe-symptoms/family-relations/give-receive/events-celebrations/scenario-trip-recount; interaction: the rest)", () => {
+    const byId = new Map(A2_CANDO_REGISTRY.map((c) => [c.id, c]));
+    const READING = ["read-schedule", "read-notice", "read-reply-message"];
+    const WRITING = ["message-late-absent", "ask-colleague", "report-progress", "reply-confirm", "fill-form"];
+    const SPOKEN_PRODUCTION = [
+      "narrate-order",
+      "give-reasons",
+      "describe-now",
+      "describe-ongoing",
+      "morning-routine",
+      "can-cannot",
+      "explain-facility",
+      "describe-symptoms",
+      "family-relations",
+      "give-receive",
+      "events-celebrations",
+      "scenario-trip-recount",
+    ];
+    const remaining = [...CANONICAL_TOPICAL_NAMES, ...CANONICAL_SCENARIO_NAMES].filter(
+      (name) => !READING.includes(name) && !WRITING.includes(name) && !SPOKEN_PRODUCTION.includes(name),
+    );
+    for (const name of READING) expect(byId.get(`a2-cando-${name}`)?.domain, name).toBe("reading");
+    for (const name of WRITING) expect(byId.get(`a2-cando-${name}`)?.domain, name).toBe("writing");
+    for (const name of SPOKEN_PRODUCTION) expect(byId.get(`a2-cando-${name}`)?.domain, name).toBe("spoken-production");
+    for (const name of remaining) expect(byId.get(`a2-cando-${name}`)?.domain, name).toBe("interaction");
+  });
+});
+
 describe("buildA2CanDoLessonMap — grammar Can-dos derive lessonIds from the grammar-spiral union", () => {
   it("unions intro/controlled-practice/transfer/recurrence lesson ids for a grammar Can-do, filtered to lessons that actually exist", () => {
     const spiralRow = A2_GRAMMAR_SPIRAL.find((r) => r.id === "connectors");
@@ -235,37 +434,36 @@ describe("current 16-lesson M1-M4 recipe mapping (documented contract)", () => {
 });
 
 describe("Phase 3 Task 5 — 16-lesson M5-M8 recipe mapping (documented contract)", () => {
-  // Pins the exact primary/support mapping the task specifies. The task's
-  // recipe text quotes several Can-do names verbatim from an earlier design
-  // doc (docs/superpowers/plans/2026-07-17-a1-a2-phase-3-a2-kanji.md) that
-  // predates the actual, frozen 59-entry canDos.ts registry Task 4 shipped —
-  // that registry renamed/consolidated several topical Can-do ids (e.g.
-  // "describe-ongoing" -> "describe-ongoing-action", "can-cannot" ->
-  // "express-ability", "order-food"/"special-request"/"report-problem"/
-  // "pay-handle-problem" have no literal registry counterpart at all). Every
-  // id below is mapped to its real, registered equivalent — never invented —
-  // and every *grammar* id (sequence-te/ongoing-teiru/permission-temoii/
+  // Pins the exact canonical primary/support mapping the task specifies.
+  // Task 4 previously froze a *redesigned* registry that renamed/consolidated
+  // several of these topical ids (e.g. "describe-ongoing" was renamed to
+  // "describe-ongoing-action", "can-cannot" to "express-ability", and
+  // "ask-directions"/"special-request" were collapsed into one shared
+  // "ask-for-help") — this Phase 3 Task 5 spec-fix restores the exact
+  // canonical ids below, matching the authoritative plan verbatim. Every
+  // *grammar* id (sequence-te/ongoing-teiru/permission-temoii/
   // prohibition-tewaikenai/request-tekudasai/negative-request/possibility)
   // matches `A2_GRAMMAR_SPIRAL`'s own frozen intro/practice/transfer lesson
   // ids exactly (see forms/grammarSpiral.ts).
   const EXPECTED: Readonly<Record<string, { primary: string; supports: readonly string[] }>> = {
     "sequencing-ongoing-1": { primary: "a2-cando-sequence-te", supports: [] },
     "sequencing-ongoing-2": { primary: "a2-cando-describe-now", supports: ["a2-cando-sequence-te"] },
-    "sequencing-ongoing-3": { primary: "a2-cando-describe-ongoing-action", supports: ["a2-cando-ongoing-teiru"] },
-    "sequencing-ongoing-4": { primary: "a2-cando-describe-routine", supports: ["a2-cando-sequence-te", "a2-cando-ongoing-teiru"] },
+    "sequencing-ongoing-3": { primary: "a2-cando-describe-ongoing", supports: ["a2-cando-ongoing-teiru"] },
+    "sequencing-ongoing-4": { primary: "a2-cando-morning-routine", supports: ["a2-cando-sequence-te", "a2-cando-ongoing-teiru"] },
     "permission-requests-1": { primary: "a2-cando-permission-temoii", supports: [] },
     "permission-requests-2": { primary: "a2-cando-prohibition-tewaikenai", supports: [] },
     "permission-requests-3": { primary: "a2-cando-request-tekudasai", supports: ["a2-cando-permission-temoii"] },
     "permission-requests-4": { primary: "a2-cando-negative-request", supports: ["a2-cando-prohibition-tewaikenai"] },
     "neighborhood-services-1": { primary: "a2-cando-possibility", supports: ["a2-cando-permission-temoii"] },
-    "neighborhood-services-2": { primary: "a2-cando-express-ability", supports: ["a2-cando-possibility"] },
-    "neighborhood-services-3": { primary: "a2-cando-ask-for-help", supports: [] },
-    "neighborhood-services-4": { primary: "a2-cando-describe-facility", supports: ["a2-cando-ongoing-teiru"] },
-    "restaurant-problems-1": { primary: "a2-cando-confirm-understanding", supports: [] },
-    "restaurant-problems-2": { primary: "a2-cando-ask-for-help", supports: ["a2-cando-request-tekudasai", "a2-cando-permission-temoii"] },
-    "restaurant-problems-3": { primary: "a2-cando-recount-experience", supports: [] },
-    "restaurant-problems-4": { primary: "a2-cando-negotiate-price", supports: ["a2-cando-sequence-te"] },
+    "neighborhood-services-2": { primary: "a2-cando-can-cannot", supports: ["a2-cando-possibility"] },
+    "neighborhood-services-3": { primary: "a2-cando-ask-directions", supports: [] },
+    "neighborhood-services-4": { primary: "a2-cando-explain-facility", supports: [] },
+    "restaurant-problems-1": { primary: "a2-cando-order-food", supports: [] },
+    "restaurant-problems-2": { primary: "a2-cando-special-request", supports: ["a2-cando-request-tekudasai", "a2-cando-permission-temoii"] },
+    "restaurant-problems-3": { primary: "a2-cando-report-problem", supports: [] },
+    "restaurant-problems-4": { primary: "a2-cando-pay-handle-problem", supports: ["a2-cando-sequence-te"] },
   };
+
 
   it("documents exactly 16 lessons, each with <=2 supports", () => {
     expect(Object.keys(EXPECTED)).toHaveLength(16);
@@ -325,7 +523,7 @@ describe("a2CanDoDescriptorCopy — bilingual Can-do descriptor statements for t
     }
   });
 
-  it("has an EN and IT entry for every descriptorCopyId of the 16 new M5-M8-served Can-dos, with no Japanese literal", () => {
+  it("has an EN and IT entry for every descriptorCopyId of the 17 new M5-M8-served Can-dos, with no Japanese literal", () => {
     const JAPANESE_PATTERN = /[\u3040-\u30ff\u4e00-\u9fff]/;
     for (const id of A2_M5_M8_SERVED_CANDO_IDS) {
       const registered = A2_CANDO_REGISTRY.find((c) => c.id === id);
@@ -346,13 +544,17 @@ describe("a2CanDoDescriptorCopy — bilingual Can-do descriptor statements for t
 });
 
 describe("A2_M1_M8_SERVED_CANDO_IDS — the honest staged M1-M8 authored subset (Phase 3 Task 5)", () => {
-  it("is exactly the union of the 15 M1-M4-served ids and the 16 new M5-M8-served ids, with no duplicates", () => {
-    expect(A2_M5_M8_SERVED_CANDO_IDS).toHaveLength(16);
-    expect(new Set(A2_M5_M8_SERVED_CANDO_IDS).size).toBe(16);
+  it("is exactly the union of the 15 M1-M4-served ids and the 17 new M5-M8-served ids, with no duplicates", () => {
+    // 17, not 16: Task 4's redesigned registry had incorrectly collapsed two
+    // distinct M7/M8 Can-dos (ask-directions and special-request) into one
+    // shared "ask-for-help" id — the canonical taxonomy restores them as two
+    // separate ids, so the M5-M8-served subset gains one more distinct id.
+    expect(A2_M5_M8_SERVED_CANDO_IDS).toHaveLength(17);
+    expect(new Set(A2_M5_M8_SERVED_CANDO_IDS).size).toBe(17);
     for (const id of A2_M5_M8_SERVED_CANDO_IDS) {
       expect(A2_M1_M4_SERVED_CANDO_IDS, id).not.toContain(id);
     }
-    expect(A2_M1_M8_SERVED_CANDO_IDS).toHaveLength(31);
+    expect(A2_M1_M8_SERVED_CANDO_IDS).toHaveLength(32);
     expect(new Set(A2_M1_M8_SERVED_CANDO_IDS)).toEqual(
       new Set([...A2_M1_M4_SERVED_CANDO_IDS, ...A2_M5_M8_SERVED_CANDO_IDS]),
     );
