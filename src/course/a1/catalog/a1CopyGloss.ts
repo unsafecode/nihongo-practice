@@ -13,6 +13,7 @@
  */
 
 import { deepFreeze } from "../../foundations/deepFreeze";
+import { a1PersonRoles } from "./a1SemanticCatalog";
 
 /** A bilingual (EN/IT) copy pair. Never carries Japanese. */
 export interface Bilingual {
@@ -200,18 +201,64 @@ export const A1_SUBJECT_GLOSS: Readonly<Record<string, Bilingual>> = deepFreeze(
   "a1-value-kin-father-hon": { en: "Your father", it: "Tuo padre" },
 });
 
+/**
+ * A copular-complement gloss. `itFeminine` is only present for complements
+ * whose Italian surface form actually changes with the subject's gender
+ * (occupation nouns, nationality adjectives); complements that are
+ * grammatically invariant (giapponese, un medico, un ingegnere, un
+ * insegnante, un commesso) simply omit it and always render `it`.
+ */
+export interface ComplementGloss extends Bilingual {
+  readonly itFeminine?: string;
+}
+
 /** Copular-complement glosses (occupations, nationalities). */
-export const A1_COMPLEMENT_GLOSS: Readonly<Record<string, Bilingual>> = deepFreeze({
-  "a1-value-obj-student": { en: "a student", it: "uno studente" },
+export const A1_COMPLEMENT_GLOSS: Readonly<Record<string, ComplementGloss>> = deepFreeze({
+  "a1-value-obj-student": { en: "a student", it: "uno studente", itFeminine: "una studentessa" },
   "a1-value-obj-teacher": { en: "a teacher", it: "un insegnante" },
   "a1-value-obj-doctor": { en: "a doctor", it: "un medico" },
-  "a1-value-obj-office-worker": { en: "an office worker", it: "un impiegato" },
+  "a1-value-obj-office-worker": { en: "an office worker", it: "un impiegato", itFeminine: "un'impiegata" },
   "a1-value-obj-engineer": { en: "an engineer", it: "un ingegnere" },
   "a1-value-obj-clerk": { en: "a shop clerk", it: "un commesso" },
   "a1-value-obj-japanese-person": { en: "Japanese", it: "giapponese" },
-  "a1-value-obj-italian-person": { en: "Italian", it: "italiano" },
-  "a1-value-obj-american-person": { en: "American", it: "americano" },
+  "a1-value-obj-italian-person": { en: "Italian", it: "italiano", itFeminine: "italiana" },
+  "a1-value-obj-american-person": { en: "American", it: "americano", itFeminine: "americana" },
 });
+
+// ---------------------------------------------------------------------------
+// Persona gender lookup (drives gender-aware complement selection below)
+// ---------------------------------------------------------------------------
+
+/**
+ * Bridges a copular subject's semantic-value id to its person-role id, so
+ * gender-aware complement selection can read the persona's grammatical
+ * gender from the single source of truth in `a1PersonRoles` (§ persona
+ * gender agreement) instead of duplicating a gender decision per variant
+ * here. Only subjects that can plausibly fill a copular subject slot need an
+ * entry — every other subject id simply has no known gender and keeps the
+ * existing invariant/default complement form (never guessed).
+ */
+const A1_SUBJECT_PERSON_ROLE_ID: Readonly<Record<string, string>> = deepFreeze({
+  "a1-value-watashi": "a1-role-learner",
+  "a1-value-yuki": "a1-role-yuki",
+  "a1-value-ken": "a1-role-ken",
+  "a1-value-mina": "a1-role-mina",
+  "a1-value-teacher-subject": "a1-role-teacher",
+  "a1-value-classmate-subject": "a1-role-classmate",
+  "a1-value-friend-subject": "a1-role-friend",
+  "a1-value-clerk-subject": "a1-role-clerk",
+});
+
+const A1_ROLE_GENDER: Readonly<Record<string, "masculine" | "feminine" | undefined>> = deepFreeze(
+  Object.fromEntries(a1PersonRoles.map((role) => [role.id, role.gender])),
+);
+
+/** The subject's settled persona gender, or `undefined` when unknown/generic
+ * (self, unnamed roles) — never guessed. */
+function a1SubjectGender(subjectValueId: string): "masculine" | "feminine" | undefined {
+  const roleId = A1_SUBJECT_PERSON_ROLE_ID[subjectValueId];
+  return roleId === undefined ? undefined : A1_ROLE_GENDER[roleId];
+}
 
 /** Verb-object (theme) glosses, article baked in for natural target text. */
 export const A1_OBJECT_GLOSS: Readonly<Record<string, Bilingual>> = deepFreeze({
@@ -305,24 +352,32 @@ export const A1_CONTEXT_SCENARIO: Readonly<Record<string, Bilingual>> = deepFree
   },
 });
 
-function glossOrThrow(
-  table: Readonly<Record<string, Bilingual>>,
+function glossOrThrow<T>(
+  table: Readonly<Record<string, T>>,
   id: string,
   kind: string,
-): Bilingual {
+): T {
   const g = table[id];
   if (!g) throw new Error(`Missing ${kind} gloss for "${id}".`);
   return g;
 }
 
-/** Natural "X is a Y" copular translation (handles first-person agreement). */
+/**
+ * Natural "X is a Y" copular translation (handles first-person agreement).
+ * Also gender-agrees the Italian complement with the subject's canonical
+ * persona gender (§ persona gender agreement) when the complement carries a
+ * feminine alternate: Mina and Yuki select `itFeminine`, Ken and every
+ * unknown-gender subject (self, generic roles) keep the default `it` form.
+ */
 export function a1Copular(subjectValueId: string, complementValueId: string): Bilingual {
   const subj = glossOrThrow(A1_SUBJECT_GLOSS, subjectValueId, "subject");
   const comp = glossOrThrow(A1_COMPLEMENT_GLOSS, complementValueId, "complement");
   const first = subjectValueId === "a1-value-watashi";
+  const gender = a1SubjectGender(subjectValueId);
+  const complementIt = gender === "feminine" && comp.itFeminine !== undefined ? comp.itFeminine : comp.it;
   return {
     en: `${subj.en} ${first ? "am" : "is"} ${comp.en}.`,
-    it: `${subj.it} ${first ? "sono" : "è"} ${comp.it}.`,
+    it: `${subj.it} ${first ? "sono" : "è"} ${complementIt}.`,
   };
 }
 

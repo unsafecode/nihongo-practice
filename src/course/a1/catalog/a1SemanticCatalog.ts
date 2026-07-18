@@ -113,11 +113,18 @@ export const a1Contexts: readonly Context[] = deepFreeze([
 // Person roles
 // ---------------------------------------------------------------------------
 
+// Canonical persona gender agreement for the whole A1 release (independent
+// finding, Phase 2 Task 7): Ken is masculine, Mina and Yuki are feminine.
+// This is the single source of truth `a1CopyGloss.ts`'s gender-aware copular
+// complement selection reads from — never re-declared per call site. Generic
+// roles (learner, teacher, classmate, friend, clerk, person, thing,
+// creature) intentionally omit `gender`: the course never establishes a
+// real-world gender for them, so callers must not guess one.
 export const a1PersonRoles: readonly PersonRole[] = deepFreeze([
   { id: "a1-role-learner", kind: "learner", labelCopyId: "a1-role-learner-label" },
-  { id: "a1-role-yuki", kind: "persona", labelCopyId: "a1-role-yuki-label" },
-  { id: "a1-role-ken", kind: "persona", labelCopyId: "a1-role-ken-label" },
-  { id: "a1-role-mina", kind: "persona", labelCopyId: "a1-role-mina-label" },
+  { id: "a1-role-yuki", kind: "persona", labelCopyId: "a1-role-yuki-label", gender: "feminine" },
+  { id: "a1-role-ken", kind: "persona", labelCopyId: "a1-role-ken-label", gender: "masculine" },
+  { id: "a1-role-mina", kind: "persona", labelCopyId: "a1-role-mina-label", gender: "feminine" },
   { id: "a1-role-teacher", kind: "social", labelCopyId: "a1-role-teacher-label" },
   { id: "a1-role-classmate", kind: "social", labelCopyId: "a1-role-classmate-label" },
   { id: "a1-role-friend", kind: "social", labelCopyId: "a1-role-friend-label" },

@@ -142,11 +142,25 @@ export interface LessonPositionRecord {
 /** Grammatical role/person kinds a discourse participant may carry (§9.2). */
 export type PersonRoleKind = "persona" | "family" | "social" | "learner" | "unnamed";
 
+/**
+ * A persona's grammatical gender, used only to select gender-agreeing
+ * target-language forms (e.g. Italian copular predicate nouns and past
+ * participles) for named recurring characters. Absent/undefined means the
+ * gender is not established for this role — callers must never guess and
+ * must fall back to the existing invariant/default form instead.
+ */
+export type PersonGender = "masculine" | "feminine";
+
 /** A speaker/addressee/subject role catalog entry (§9.2). */
 export interface PersonRole {
   readonly id: PersonRoleId;
   readonly kind: PersonRoleKind;
   readonly labelCopyId: CopyId;
+  /** Settled grammatical gender for named personas (§ persona gender
+   * agreement); omitted for generic/unnamed roles whose gender the course
+   * never establishes (teacher, clerk, person, thing, creature, the
+   * learner). */
+  readonly gender?: PersonGender;
 }
 
 export type Animacy = "animate" | "inanimate";
