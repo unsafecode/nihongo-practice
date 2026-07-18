@@ -263,7 +263,7 @@ describe("A2 M5-M8 aggregate — realization soundness (romaji formats OK for ev
 // te-sequence/ongoing-teiru and M8's recount-experience content
 // legitimately use "explicit" sora/emi as third-party narrative-statement
 // subjects (e.g. so1's "そらは おきて、かおをあらいます" — "Sora gets up, then
-// washes her face" — a genuine statement *about* Sora, not a vocative
+// washes his face" — a genuine statement *about* Sora, not a vocative
 // mistake, exactly like M1-M4's cc1 precedent), so those families are
 // deliberately excluded from this specific check.
 describe("A2 M5-M8 aggregate — vocative-mistake audit (never sora/emi as an explicit topic-marked subject on a direct-address family)", () => {
