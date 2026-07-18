@@ -844,6 +844,13 @@ const a2AuthoredValuesM1: readonly SemanticValue[] = [
   { id: "a2-value-friend-subject", kind: "referent", animacy: "animate", tokenFragments: [frag("ともだち", "tomodachi")] },
   { id: "a2-value-colleague-subject", kind: "referent", animacy: "animate", tokenFragments: [frag("どうりょう", "douryou")] },
   { id: "a2-value-teacher-subject", kind: "referent", animacy: "animate", tokenFragments: [frag("せんせい", "sensei")] },
+  // M8 spec-fix (Phase 3 Task 5 quality pass, I2): a real subject-slot value
+  // for a2-referent-clerk (てんいん/ten'in — mirrors the A1 catalog's own
+  // established clerk vocabulary in `a1SemanticCatalog.ts`), so restaurant
+  // content can vocative-address the clerk directly (てんいんさん、…) instead
+  // of miscasting a generic social role (colleague/teacher/friend) as the
+  // addressee of a first-person order request.
+  { id: "a2-value-clerk-subject", kind: "referent", animacy: "animate", tokenFragments: [frag("てんいん", "ten'in")] },
 
   // --- object/companion-kind nouns ---
   { id: "a2-value-obj-namae", kind: "object", tokenFragments: [frag("なまえ", "namae")] },
@@ -2520,14 +2527,21 @@ const a2AuthoredValuesM8: readonly SemanticValue[] = [
   { id: "a2-value-order-issho-ni", kind: "predicate-sense", senseId: "a2-sense-order-issho-ni", tokenFragments: [frag("ごはんも", "gohan mo"), frag("いっしょに", "issho ni"), frag("おねがいします", "onegaishimasu")] },
 
   // --- recount-experience / report-problem (whole-clause bake; M8-3) ---
-  { id: "a2-value-problem-konai", kind: "predicate-sense", senseId: "a2-sense-problem-konai", tokenFragments: [frag("ラーメンを", "raamen o"), frag("たのみました", "tanomimashita"), punctFrag("が", "ga"), frag("まだ", "mada"), frag("きません", "kimasen")] },
+  // I1 spec-fix (Phase 3 Task 5 quality pass): the adversative が ("...but
+  // ...") is a grammatical particle, never punctuation — `punctFrag`'s
+  // punctuation kind always attaches with no leading space (correct for a
+  // real 、/。, wrong for が), which glued the romaji into
+  // "tanomimashitaga"/"machimashitaga". `particleFrag` gives it the real
+  // word-boundary space every other particle in this catalog gets, with the
+  // Japanese itself unchanged.
+  { id: "a2-value-problem-konai", kind: "predicate-sense", senseId: "a2-sense-problem-konai", tokenFragments: [frag("ラーメンを", "raamen o"), frag("たのみました", "tanomimashita"), particleFrag("が", "ga"), frag("まだ", "mada"), frag("きません", "kimasen")] },
   { id: "a2-value-problem-chigau", kind: "predicate-sense", senseId: "a2-sense-problem-chigau", tokenFragments: [frag("これは", "kore wa"), frag("わたしの", "watashi no"), frag("ちゅうもんと", "chuumon to"), frag("ちがいます", "chigaimasu")] },
   { id: "a2-value-problem-tsumetai", kind: "predicate-sense", senseId: "a2-sense-problem-tsumetai", tokenFragments: [frag("スープが", "suupu ga"), frag("つめたい", "tsumetai"), frag("です", "desu")] },
   { id: "a2-value-problem-atsui", kind: "predicate-sense", senseId: "a2-sense-problem-atsui", tokenFragments: [frag("おちゃが", "ocha ga"), frag("あつすぎ", "atsusugi"), frag("ます", "masu", "morpheme")] },
   { id: "a2-value-problem-tarinai", kind: "predicate-sense", senseId: "a2-sense-problem-tarinai", tokenFragments: [frag("フォークが", "fooku ga"), frag("たりません", "tarimasen")] },
-  { id: "a2-value-problem-machigai", kind: "predicate-sense", senseId: "a2-sense-problem-machigai", tokenFragments: [frag("にくを", "niku o"), frag("たのみました", "tanomimashita"), punctFrag("が", "ga"), frag("さかなが", "sakana ga"), frag("きました", "kimashita")] },
+  { id: "a2-value-problem-machigai", kind: "predicate-sense", senseId: "a2-sense-problem-machigai", tokenFragments: [frag("にくを", "niku o"), frag("たのみました", "tanomimashita"), particleFrag("が", "ga"), frag("さかなが", "sakana ga"), frag("きました", "kimashita")] },
   { id: "a2-value-problem-nioi", kind: "predicate-sense", senseId: "a2-sense-problem-nioi", tokenFragments: [frag("この", "kono"), frag("さかなは", "sakana wa"), frag("すこし", "sukoshi"), frag("へん", "hen"), frag("です", "desu")] },
-  { id: "a2-value-problem-daremo-konai", kind: "predicate-sense", senseId: "a2-sense-problem-daremo-konai", tokenFragments: [frag("じゅっぷん", "juppun"), frag("まちました", "machimashita"), punctFrag("が", "ga"), frag("だれも", "dare mo"), frag("きません", "kimasen")] },
+  { id: "a2-value-problem-daremo-konai", kind: "predicate-sense", senseId: "a2-sense-problem-daremo-konai", tokenFragments: [frag("じゅっぷん", "juppun"), frag("まちました", "machimashita"), particleFrag("が", "ga"), frag("だれも", "dare mo"), frag("きません", "kimasen")] },
 
   // --- negotiate-price / pay-handle-problem (te-sequence recurrence,
   // whole-clause bake, mirrors a2-sense-seq-* shape; M8-4) ---

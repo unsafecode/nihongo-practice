@@ -19,6 +19,7 @@ import {
   buildA2InstructionalLesson,
   A2_AFFIRMATIVE_PAST_POLITE,
   A2_NEGATIVE_PRESENT_POLITE,
+  a2SubjectReferentValueId as subjectReferentValueId,
   type A2BuiltLesson,
   type A2LineSpec,
 } from "../catalog/a2LessonBuilders";
@@ -28,23 +29,6 @@ const MODULE_ID = "restaurant-problems";
 
 function L(en: string, it: string) {
   return { en, it };
-}
-
-/** Referent -> its subject-slot semantic value — the same shared
- * subject-referent value catalog every M1-M8 module content file carries
- * its own identical copy of. */
-function subjectReferentValueId(subjectReferent: string): string {
-  const table: Readonly<Record<string, string>> = {
-    "a2-referent-friend": "a2-value-friend-subject",
-    "a2-referent-emi": "a2-value-emi",
-    "a2-referent-sora": "a2-value-sora",
-    "a2-referent-colleague": "a2-value-colleague-subject",
-    "a2-referent-teacher": "a2-value-teacher-subject",
-    "a2-referent-self": "a2-value-watashi",
-  };
-  const valueId = table[subjectReferent];
-  if (!valueId) throw new Error(`subjectReferentValueId: no subject value mapped for referent "${subjectReferent}"`);
-  return valueId;
 }
 
 interface LineOptions {
@@ -124,21 +108,47 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
     line("restaurant-problems-1-m6", "a2-family-confirm-understanding", "a2-value-order-kore-kudasai", "a2-context-cafe", L("This one, please.", "Questo, per favore."), { speakerRole: "a2-role-teacher" }),
     line("restaurant-problems-1-m7", "a2-family-confirm-understanding", "a2-value-order-nomimono", "a2-context-restaurant", L("Tea, please.", "Tè, per favore."), { speakerRole: "a2-role-sora" }),
     line("restaurant-problems-1-m8", "a2-family-confirm-understanding", "a2-value-order-issho-ni", "a2-context-restaurant", L("Rice too, together, please.", "Anche il riso, insieme, per favore."), { speakerRole: "a2-role-emi" }),
+    // I2 spec-fix (Phase 3 Task 5 quality pass): models the clerk vocative
+    // ("ten'in-san, ...") once here — introducing a2-value-clerk-subject
+    // through a MODEL before t3/t4/t5 (below) recombine it, per
+    // "introduction before use" — with a predicate none of those three
+    // transfers reuse (order-onegai, already modeled plain in m3 above; here
+    // recombined with the clerk address instead of friend's plain
+    // first-person request).
+    line("restaurant-problems-1-m9", "a2-family-confirm-understanding", "a2-value-order-onegai", "a2-context-restaurant", L("Excuse me, ramen, please.", "Scusi, ramen per favore."), { subjectReferent: "a2-referent-clerk", speakerRole: "a2-role-learner" }),
   ],
   // Phase 3 Task 5 fix ("introduction before use"): every transfer here
   // recombines an already-modeled predicate value (m1-m8, above — this
   // family's predicate is a whole-clause bake with no object/location slot,
   // but its subject slot IS a real, separately-tracked compositional
-  // dimension) with a subject referent that was already introduced back at
-  // sequencing-ongoing-1 (self/emi/colleague/sora/teacher/friend all appear
-  // there as explicit subjects, cumulative-available ever since) — genuine
+  // dimension) with a subject referent already introduced elsewhere
+  // (self/emi/colleague/sora/teacher/friend all first appear as explicit
+  // subjects back at sequencing-ongoing-1, cumulative-available ever
+  // since; a2-referent-clerk is the same "shop clerk" a2-role-clerk already
+  // voices restaurant-2/neighborhood-services content as) — genuine
   // recombination, never a brand-new never-modeled dedicated value.
+  //
+  // I2 spec-fix (Phase 3 Task 5 quality pass): t3/t4/t5 used to pair an
+  // EXPLICIT (wa-marked topic) colleague/teacher/friend subject with a
+  // first-person request predicate (kore o kudasai / gohan mo issho ni
+  // onegaishimasu / raamen o onegaishimasu) — "as for the colleague, ...
+  // please give ME this" is incoherent, since kudasai/onegaishimasu are
+  // inherently first-person speech acts a third-party topic can never own.
+  // This lesson is literally the learner ordering FROM a clerk, so the
+  // natural fix addresses the clerk directly with a real vocative
+  // ("ten'in-san, ...") — a shop clerk naturally takes -san in direct
+  // address exactly like a real name — never a generic social role
+  // (colleague/teacher/friend cannot naturally take vocative -san;
+  // "sensei-san"/"tomodachi-san"/"douryou-san" are not natural Japanese).
+  // Each of t3/t4/t5 recombines a distinct already-modeled order-*
+  // predicate never reused from t1/t2's own kore-kudasai/nomimono, so all 5
+  // transfers stay visibly novel.
   transfers: [
     line("restaurant-problems-1-t1", "a2-family-confirm-understanding", "a2-value-order-kore-kudasai", "a2-context-restaurant", L("Sora, this one please.", "Sora, questo per favore."), { subjectReferent: "a2-referent-sora" }),
     line("restaurant-problems-1-t2", "a2-family-confirm-understanding", "a2-value-order-nomimono", "a2-context-cafe", L("Emi, tea please.", "Emi, tè per favore."), { subjectReferent: "a2-referent-emi" }),
-    line("restaurant-problems-1-t3", "a2-family-confirm-understanding", "a2-value-order-kore-kudasai", "a2-context-restaurant", L("A colleague asks for this one.", "Un collega chiede questo."), { subjectReferent: "a2-referent-colleague", subjectRealization: "explicit" }),
-    line("restaurant-problems-1-t4", "a2-family-confirm-understanding", "a2-value-order-issho-ni", "a2-context-restaurant", L("The teacher asks for rice too, together.", "L'insegnante chiede anche il riso, insieme."), { subjectReferent: "a2-referent-teacher", subjectRealization: "explicit" }),
-    line("restaurant-problems-1-t5", "a2-family-confirm-understanding", "a2-value-order-onegai", "a2-context-cafe", L("A friend asks for ramen.", "Un amico chiede il ramen."), { subjectReferent: "a2-referent-friend", subjectRealization: "explicit" }),
+    line("restaurant-problems-1-t3", "a2-family-confirm-understanding", "a2-value-order-osusume", "a2-context-restaurant", L("Excuse me, what do you recommend?", "Scusi, cosa consiglia?"), { subjectReferent: "a2-referent-clerk", speakerRole: "a2-role-learner" }),
+    line("restaurant-problems-1-t4", "a2-family-confirm-understanding", "a2-value-order-nani-ga-aru", "a2-context-restaurant", L("Excuse me, what drinks do you have?", "Scusi, che bevande avete?"), { subjectReferent: "a2-referent-clerk", speakerRole: "a2-role-learner" }),
+    line("restaurant-problems-1-t5", "a2-family-confirm-understanding", "a2-value-order-issho-ni", "a2-context-cafe", L("Excuse me, rice too, together, please.", "Scusi, anche il riso, insieme, per favore."), { subjectReferent: "a2-referent-clerk", speakerRole: "a2-role-learner" }),
   ],
 });
 
@@ -195,7 +205,7 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     line("restaurant-problems-3-m4", "a2-family-recount-experience", "a2-value-problem-atsui", "a2-context-cafe", L("The tea is too hot.", "Il tè è troppo caldo."), { speakerRole: "a2-role-friend" }),
     line("restaurant-problems-3-m5", "a2-family-recount-experience", "a2-value-problem-tarinai", "a2-context-restaurant", L("There aren't enough forks.", "Non ci sono abbastanza forchette."), { speakerRole: "a2-role-learner", form: A2_NEGATIVE_PRESENT_POLITE }),
     line("restaurant-problems-3-m6", "a2-family-recount-experience", "a2-value-problem-machigai", "a2-context-restaurant", L("I ordered meat, but fish came.", "Ho ordinato carne, ma è arrivato pesce."), { speakerRole: "a2-role-sora", form: A2_AFFIRMATIVE_PAST_POLITE }),
-    line("restaurant-problems-3-m7", "a2-family-recount-experience", "a2-value-problem-nioi", "a2-context-restaurant", L("This fish smells a bit strange.", "Questo pesce ha un odore un po' strano."), { speakerRole: "a2-role-teacher" }),
+    line("restaurant-problems-3-m7", "a2-family-recount-experience", "a2-value-problem-nioi", "a2-context-restaurant", L("This fish is a bit strange.", "Questo pesce è un po' strano."), { speakerRole: "a2-role-teacher" }),
     line("restaurant-problems-3-m8", "a2-family-recount-experience", "a2-value-problem-daremo-konai", "a2-context-restaurant", L("I waited ten minutes, but no one is coming.", "Ho aspettato dieci minuti, ma non viene nessuno."), { speakerRole: "a2-role-emi", form: A2_NEGATIVE_PRESENT_POLITE }),
   ],
   // Phase 3 Task 5 fix ("introduction before use"): every transfer here
@@ -210,8 +220,8 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
   transfers: [
     line("restaurant-problems-3-t1", "a2-family-recount-experience", "a2-value-problem-konai", "a2-context-restaurant", L("Sora, I ordered ramen, but it still hasn't come.", "Sora, ho ordinato il ramen, ma non è ancora arrivato."), { subjectReferent: "a2-referent-sora", form: A2_NEGATIVE_PRESENT_POLITE }),
     line("restaurant-problems-3-t2", "a2-family-recount-experience", "a2-value-problem-tsumetai", "a2-context-cafe", L("Emi, the soup is cold.", "Emi, la zuppa è fredda."), { subjectReferent: "a2-referent-emi" }),
-    line("restaurant-problems-3-t3", "a2-family-recount-experience", "a2-value-problem-tarinai", "a2-context-among-friends", L("A colleague says there aren't enough forks.", "Un collega dice che non ci sono abbastanza forchette."), { subjectReferent: "a2-referent-colleague", subjectRealization: "explicit", form: A2_NEGATIVE_PRESENT_POLITE }),
-    line("restaurant-problems-3-t4", "a2-family-recount-experience", "a2-value-problem-atsui", "a2-context-restaurant", L("The teacher says the tea is too hot.", "L'insegnante dice che il tè è troppo caldo."), { subjectReferent: "a2-referent-teacher", subjectRealization: "explicit" }),
+    line("restaurant-problems-3-t3", "a2-family-recount-experience", "a2-value-problem-tarinai", "a2-context-among-friends", L("The colleague doesn't have enough forks.", "Il collega non ha abbastanza forchette."), { subjectReferent: "a2-referent-colleague", subjectRealization: "explicit", form: A2_NEGATIVE_PRESENT_POLITE }),
+    line("restaurant-problems-3-t4", "a2-family-recount-experience", "a2-value-problem-atsui", "a2-context-restaurant", L("The teacher's tea is too hot.", "Il tè dell'insegnante è troppo caldo."), { subjectReferent: "a2-referent-teacher", subjectRealization: "explicit" }),
     line("restaurant-problems-3-t5", "a2-family-recount-experience", "a2-value-problem-daremo-konai", "a2-context-restaurant", L("A friend waited ten minutes, but no one came.", "Un amico ha aspettato dieci minuti, ma non è venuto nessuno."), { subjectReferent: "a2-referent-friend", subjectRealization: "explicit", form: A2_NEGATIVE_PRESENT_POLITE }),
   ],
 });
@@ -248,7 +258,7 @@ const lesson4: A2BuiltLesson = buildA2InstructionalLesson({
     line("restaurant-problems-4-t1", "a2-family-te-sequence", "a2-value-seq-onegaishite-harau", "a2-context-restaurant", L("Sora, asking for the check, I paid the money.", "Sora, chiedendo il conto, ho pagato i soldi."), { subjectReferent: "a2-referent-sora", form: A2_AFFIRMATIVE_PAST_POLITE }),
     line("restaurant-problems-4-t2", "a2-family-te-sequence", "a2-value-seq-tanonde-matsu", "a2-context-restaurant", L("Emi, asking for the check, I wait.", "Emi, chiedendo il conto, aspetto."), { subjectReferent: "a2-referent-emi" }),
     line("restaurant-problems-4-t3", "a2-family-te-sequence", "a2-value-seq-kazoete-harau", "a2-context-restaurant", L("A colleague counted the money, then paid.", "Un collega ha contato i soldi, poi ha pagato."), { subjectReferent: "a2-referent-colleague", subjectRealization: "explicit", form: A2_AFFIRMATIVE_PAST_POLITE }),
-    line("restaurant-problems-4-t4", "a2-family-te-sequence", "a2-value-seq-uketotte-kaeru", "a2-context-restaurant", L("The teacher received the change, then went home.", "L'insegnante ha ricevuto il resto, poi è tornato a casa."), { subjectReferent: "a2-referent-teacher", subjectRealization: "explicit" }),
+    line("restaurant-problems-4-t4", "a2-family-te-sequence", "a2-value-seq-uketotte-kaeru", "a2-context-restaurant", L("The teacher receives the change, then goes home.", "L'insegnante riceve il resto, poi torna a casa."), { subjectReferent: "a2-referent-teacher", subjectRealization: "explicit" }),
     line("restaurant-problems-4-t5", "a2-family-te-sequence", "a2-value-seq-tabete-harau", "a2-context-cafe", L("A friend ate the meal, then paid.", "Un amico ha mangiato il pasto, poi ha pagato."), { subjectReferent: "a2-referent-friend", subjectRealization: "explicit", form: A2_AFFIRMATIVE_PAST_POLITE }),
   ],
 });

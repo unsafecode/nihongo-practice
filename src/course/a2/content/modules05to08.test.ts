@@ -24,6 +24,7 @@ import type {
   CourseLevel,
   FoundationModule,
   SentenceFamily,
+  SentenceVariant,
 } from "../../foundations/types";
 import {
   assembleA2FoundationCatalogs,
@@ -297,6 +298,190 @@ describe("A2 M5-M8 aggregate — vocative-mistake audit (never sora/emi as an ex
       }
     }
     expect(violations, `${violations.length} vocative mistake(s):\n${violations.join("\n")}`).toEqual([]);
+  });
+});
+
+// I2 spec-fix (Phase 3 Task 5 quality pass): the vocative-mistake audit
+// above only ever guarded AGAINST an explicit topic-marked NAMED individual
+// (sora/emi) on a direct-address family; a fresh review found the opposite
+// mistake was never guarded at all — a *social* role referent
+// (teacher/friend/colleague) vocative-addressed with さん. Real Japanese
+// never says 先生さん/友達さん/同僚さん (sensei-san/tomodachi-san/douryou-san) —
+// a generic social-role noun does not take さん in direct address the way a
+// real name does. Only two referent-role kinds naturally take vocative さん:
+// `"persona"` (a real name — sora/emi) and `"unnamed"` (an addressable
+// service role, e.g. a2-referent-clerk/てんいん — "ten'in-san" is exactly how
+// a customer addresses restaurant/shop staff). `"social"` (teacher/friend/
+// colleague — a role known about someone, not a term of direct address) and
+// `"learner"` (the self-referent — no vocative address to oneself) never
+// qualify.
+describe("A2 M5-M8 aggregate — I2 spec-fix: a social-role referent (teacher/friend/colleague) can never be vocative-addressed", () => {
+  const referentById = new Map(a2Referents.map((r) => [r.id, r]));
+  const roleById = new Map(a2PersonRoles.map((r) => [r.id, r]));
+
+  function isSocialRoleVocativeMistake(variant: SentenceVariant): boolean {
+    if (variant.discourse.subjectRealization !== "vocative") return false;
+    const referentId = variant.discourse.subjectReferentId;
+    if (!referentId) return false;
+    const referent = referentById.get(referentId);
+    if (!referent) return false;
+    const role = roleById.get(referent.personRoleId);
+    return role?.kind === "social";
+  }
+
+  it("self-test: flags a synthetic vocative-addressed teacher, never a real vocative-addressed clerk/sora (both natural)", () => {
+    const syntheticBadVariant: SentenceVariant = {
+      id: "test-social-role-vocative-probe",
+      sentenceFamilyId: "a2-family-confirm-understanding",
+      discourse: {
+        speakerRoleId: "a2-role-learner",
+        addresseeRoleId: null,
+        subjectReferentId: "a2-referent-teacher",
+        subjectRealization: "vocative",
+        scenarioNoteCopyId: "test-scenario",
+      },
+      contextId: "a2-context-restaurant",
+      slotValues: { subject: "a2-value-teacher-subject", predicate: "a2-value-order-menu" },
+      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      pedagogicalUse: "transfer",
+    };
+    expect(isSocialRoleVocativeMistake(syntheticBadVariant)).toBe(true);
+
+    const rp1 = allBuiltLessons.find((built) => built.recipe.id === "restaurant-problems-1");
+    const clerkTransfer = rp1?.variants.find((v) => v.id === "restaurant-problems-1-t3");
+    expect(clerkTransfer, "restaurant-problems-1-t3").toBeDefined();
+    expect((clerkTransfer as SentenceVariant).discourse.subjectRealization).toBe("vocative");
+    expect(isSocialRoleVocativeMistake(clerkTransfer as SentenceVariant)).toBe(false);
+
+    const soraTransfer = rp1?.variants.find((v) => v.id === "restaurant-problems-1-t1");
+    expect(soraTransfer, "restaurant-problems-1-t1").toBeDefined();
+    expect(isSocialRoleVocativeMistake(soraTransfer as SentenceVariant)).toBe(false);
+  });
+
+  it("flags zero social-role vocative mistakes across every currently authored M5-M8 model+transfer (no false positives against real sora/emi/clerk vocative content)", () => {
+    const violations: string[] = [];
+    for (const built of allBuiltLessons) {
+      for (const variant of built.variants) {
+        if (isSocialRoleVocativeMistake(variant)) {
+          violations.push(
+            `${variant.id}: vocative-addressed "${variant.discourse.subjectReferentId}" has person-role kind "social" — teacher/friend/colleague cannot naturally take vocative さん; use a persona (sora/emi) or unnamed (clerk) referent instead`,
+          );
+        }
+      }
+    }
+    expect(violations, `${violations.length} social-role vocative mistake(s):\n${violations.join("\n")}`).toEqual([]);
+  });
+});
+
+// M2 spec-fix (Phase 3 Task 5 quality pass): rp4-t4's own Japanese was
+// genuinely nonpast (baked ~ます, e.g. かえります "goes home") but its EN/IT
+// copy glossed it in the past tense ("received... went home") — a
+// same-underlying-Japanese, conflicting-copy defect. Generalizes into a
+// standing audit scoped to the te-sequence families (a2-family-te-sequence /
+// a2-family-te-sequence-object): every one of their predicate values is
+// baked ONCE, at catalog-authoring time, to either nonpast (~ます, via
+// `masuForm()`) or past (~ました, hand-baked) — never derived from a
+// variant's own `form` metadata — so a variant reusing a nonpast-baked
+// predicate must never gloss it with one of this closed, course-vocabulary
+// simple-past marker set. Deliberately scoped to te-sequence only (never
+// recount-experience, whose problem-*/adversative-が sentences legitimately
+// mix a past first clause with a nonpast second clause) to avoid false
+// positives against that family's own different, already-correct shape.
+describe("A2 M5-M8 aggregate — M2 spec-fix: te-sequence copy never contradicts its own baked (nonpast vs. past) Japanese tense", () => {
+  const valueById = new Map(a2SemanticValues.map((v) => [v.id, v]));
+  const TE_SEQUENCE_FAMILY_IDS: ReadonlySet<string> = new Set([
+    "a2-family-te-sequence",
+    "a2-family-te-sequence-object",
+  ]);
+  // Every simple-past English form a te-sequence final verb (寝る/書く/飲む/
+  // 食べる/話す/洗う/使う/待つ/帰る — the only nonpast-baked te-sequence finals in
+  // this closed course vocabulary) could ever be glossed with. Deliberately
+  // closed/exhaustive rather than a generic English tense heuristic, so it
+  // can never false-positive on unrelated vocabulary.
+  const EN_PAST_TENSE_MARKERS: readonly RegExp[] = [
+    /\bwent home\b/i,
+    /\bate\b/i,
+    /\bdrank\b/i,
+    /\bwrote\b/i,
+    /\btalked\b/i,
+    /\bwashed\b/i,
+    /\bused\b/i,
+    /\bslept\b/i,
+    /\bwaited\b/i,
+  ];
+  const IT_PAST_TENSE_MARKERS: readonly RegExp[] = [
+    /\bè tornat[oa]\b/i,
+    /\bha mangiato\b/i,
+    /\bha bevuto\b/i,
+    /\bha scritto\b/i,
+    /\bha parlato\b/i,
+    /\bha lavato\b/i,
+    /\bha usato\b/i,
+    /\bha dormito\b/i,
+    /\bha aspettato\b/i,
+  ];
+
+  function bakedTenseIsNonpastAffirmative(predicateValueId: string | undefined): boolean {
+    if (!predicateValueId) return false;
+    const value = valueById.get(predicateValueId);
+    if (!value) return false;
+    const jp = value.tokenFragments.map((f) => f.jp).join("");
+    // Nonpast affirmative ends bare ます, never ました (past) or ません/
+    // ませんでした (negative) — checked as an exact-ending string comparison,
+    // never a loose romaji/English heuristic.
+    return jp.endsWith("ます") && !jp.endsWith("ません");
+  }
+
+  function hasConflictingPastTenseCopy(
+    variant: SentenceVariant,
+    enText: string | undefined,
+    itText: string | undefined,
+  ): boolean {
+    if (!TE_SEQUENCE_FAMILY_IDS.has(variant.sentenceFamilyId)) return false;
+    if (!bakedTenseIsNonpastAffirmative(variant.slotValues.predicate)) return false;
+    const enHit = enText ? EN_PAST_TENSE_MARKERS.some((pattern) => pattern.test(enText)) : false;
+    const itHit = itText ? IT_PAST_TENSE_MARKERS.some((pattern) => pattern.test(itText)) : false;
+    return enHit || itHit;
+  }
+
+  it("self-test: flags a synthetic past-tense gloss on a real nonpast-baked te-sequence predicate, never the real (fixed) rp4-t4/rp4-m4 present-tense copy", () => {
+    const rp4 = allBuiltLessons.find((built) => built.recipe.id === "restaurant-problems-4");
+    const t4 = rp4?.variants.find((v) => v.id === "restaurant-problems-4-t4");
+    expect(t4, "restaurant-problems-4-t4").toBeDefined();
+    expect(bakedTenseIsNonpastAffirmative((t4 as SentenceVariant).slotValues.predicate)).toBe(true);
+    expect(
+      hasConflictingPastTenseCopy(t4 as SentenceVariant, "The teacher went home after receiving the change.", "L'insegnante è tornato a casa."),
+    ).toBe(true);
+
+    const realEn = rp4?.en["restaurant-problems-4-t4-translation"];
+    const realIt = rp4?.it["restaurant-problems-4-t4-translation"];
+    expect(hasConflictingPastTenseCopy(t4 as SentenceVariant, realEn, realIt)).toBe(false);
+
+    const m4 = rp4?.variants.find((v) => v.id === "restaurant-problems-4-m4");
+    expect(m4, "restaurant-problems-4-m4").toBeDefined();
+    expect(
+      hasConflictingPastTenseCopy(
+        m4 as SentenceVariant,
+        rp4?.en["restaurant-problems-4-m4-translation"],
+        rp4?.it["restaurant-problems-4-m4-translation"],
+      ),
+    ).toBe(false);
+  });
+
+  it("flags zero conflicting-tense te-sequence copy across every currently authored M5-M8 model+transfer", () => {
+    const violations: string[] = [];
+    for (const built of allBuiltLessons) {
+      for (const variant of built.variants) {
+        const enText = built.en[`${variant.id}-translation`];
+        const itText = built.it[`${variant.id}-translation`];
+        if (hasConflictingPastTenseCopy(variant, enText, itText)) {
+          violations.push(
+            `${variant.id}: predicate "${variant.slotValues.predicate}" is baked nonpast, but its copy uses a simple-past marker — en="${enText}" it="${itText}"`,
+          );
+        }
+      }
+    }
+    expect(violations, `${violations.length} conflicting-tense te-sequence copy violation(s):\n${violations.join("\n")}`).toEqual([]);
   });
 });
 

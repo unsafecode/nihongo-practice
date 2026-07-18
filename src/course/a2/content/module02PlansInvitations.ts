@@ -10,6 +10,7 @@
 
 import { A2_MODULE_MANIFEST } from "../manifest";
 import {
+  a2SubjectReferentValueId as subjectReferentValueId,
   buildA2InstructionalLesson,
   type A2BuiltLesson,
   type A2LineSpec,
@@ -41,24 +42,6 @@ function bareLine(
     translation,
     speakerRole,
   };
-}
-
-/** Referent → its subject-slot semantic value, mirroring
- * `module01ConnectedConversation.ts`/`module03ExperiencesNarratives.ts`'s own
- * identical helper (the shared subject-referent value catalog, not
- * module-specific). */
-function subjectReferentValueId(subjectReferent: string): string {
-  const table: Readonly<Record<string, string>> = {
-    "a2-referent-friend": "a2-value-friend-subject",
-    "a2-referent-emi": "a2-value-emi",
-    "a2-referent-sora": "a2-value-sora",
-    "a2-referent-colleague": "a2-value-colleague-subject",
-    "a2-referent-teacher": "a2-value-teacher-subject",
-    "a2-referent-self": "a2-value-watashi",
-  };
-  const valueId = table[subjectReferent];
-  if (!valueId) throw new Error(`bareLine: no subject value mapped for referent "${subjectReferent}"`);
-  return valueId;
 }
 
 // ---------------------------------------------------------------------------

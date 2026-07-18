@@ -14,6 +14,7 @@ import { A2_MODULE_MANIFEST } from "../manifest";
 import {
   A2_AFFIRMATIVE_PAST_PLAIN,
   A2_AFFIRMATIVE_PAST_POLITE,
+  a2SubjectReferentValueId as subjectReferentValueId,
   buildA2InstructionalLesson,
   type A2BuiltLesson,
   type A2LineSpec,
@@ -23,19 +24,6 @@ const MODULE_ID = "experiences-narratives";
 
 function L(en: string, it: string) {
   return { en, it };
-}
-
-function subjectReferentValueId(subjectReferent: string): string {
-  const table: Readonly<Record<string, string>> = {
-    "a2-referent-friend": "a2-value-friend-subject",
-    "a2-referent-emi": "a2-value-emi",
-    "a2-referent-sora": "a2-value-sora",
-    "a2-referent-colleague": "a2-value-colleague-subject",
-    "a2-referent-teacher": "a2-value-teacher-subject",
-  };
-  const valueId = table[subjectReferent];
-  if (!valueId) throw new Error(`no subject value mapped for referent "${subjectReferent}"`);
-  return valueId;
 }
 
 /** "ta koto ga arimasu" experience statements — optional explicit subject,

@@ -221,6 +221,62 @@ describe("A2 Module 7 — connected grammar content (no isolated drill)", () => 
   });
 });
 
+// M4 spec-fix (Phase 3 Task 5 quality pass): neighborhood-services-1's own
+// primary Can-do (a2-cando-possibility) is authoritatively framed as "ask
+// whether you can do something at a place" (使えますか — L1's own illustrative
+// example), but every ns1 model was a plain affirmative/negative possibility
+// STATEMENT (ことができます/ことができません) or a temoii PERMISSION question
+// (てもいいですか, a different construction/nuance: "may I", not "is it
+// possible"). No model ever actually asked whether something is possible.
+// Fixed by adding a genuine ことができますか question — reusing the existing,
+// family/realizer-generic `interrogative` FormSelection (the same mechanism
+// permission-temoii's own questions already use) on the possibility family,
+// never a hand-baked whole-clause duplicate and never the early,
+// unintroduced 使えます potential-verb form L1 merely illustrates with.
+describe("A2 Module 7 — M4 spec-fix: ns1 genuinely asks whether something is possible (ことができますか)", () => {
+  it("ns1 has at least one real ことができますか model — a genuine possibility QUESTION, not a plain statement or a temoii permission question", () => {
+    const ns1 = module7Lessons[0];
+    const models = ns1.variants.filter((v) => v.pedagogicalUse === "model");
+    const possibilityQuestions = models.filter(
+      (v) => v.sentenceFamilyId === "a2-family-possibility" && v.form.interrogative === true,
+    );
+    expect(possibilityQuestions.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("realizes the new possibility question to genuine カードをつかうことができますか, with honest interrogative FormSelection metadata (affirmative/present/polite + interrogative:true)", () => {
+    const ns1 = module7Lessons[0];
+    const models = ns1.variants.filter((v) => v.pedagogicalUse === "model");
+    const questionVariant = models.find(
+      (v) => v.sentenceFamilyId === "a2-family-possibility" && v.form.interrogative === true,
+    );
+    expect(questionVariant, "ns1 possibility question model").toBeDefined();
+    expect(questionVariant?.slotValues.predicate).toBe("a2-value-possibility-tsukau");
+    expect(questionVariant?.form).toEqual({
+      polarity: "affirmative",
+      tense: "present",
+      formality: "polite",
+      interrogative: true,
+    });
+    const sentence = realize(questionVariant as SentenceVariant);
+    expect(sentence.canonicalJapanese).toBe("カードをつかうことができますか");
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toBe("kaado o tsukau koto ga dekimasu ka");
+    const translationKey = `${(questionVariant as SentenceVariant).id}-translation`;
+    expect(ns1.en[translationKey]).toMatch(/\bcan\b.*\?$|\bable to\b.*\?$/i);
+    expect(ns1.en[translationKey]).not.toMatch(/\bmay i\b/i);
+    expect(ns1.it[translationKey]).toMatch(/\?$/);
+  });
+
+  it("still satisfies the 8-12 model depth contract after adding the possibility question", () => {
+    const ns1 = module7Lessons[0];
+    const models = ns1.variants.filter((v) => v.pedagogicalUse === "model");
+    expect(models.length).toBeGreaterThanOrEqual(8);
+    expect(models.length).toBeLessThanOrEqual(12);
+  });
+});
+
 describe("A2 Module 7 — exact realized Japanese/rōmaji spot checks", () => {
   it("realizes every module-7 instructional variant through the shared formatter with no errors", () => {
     for (const built of module7Lessons) {

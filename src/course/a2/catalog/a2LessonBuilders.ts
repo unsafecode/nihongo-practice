@@ -446,6 +446,39 @@ const A2_VOICEABLE_REFERENTS: ReadonlySet<string> = new Set([
   "a2-referent-clerk",
 ]);
 
+/**
+ * Referent → its subject-slot semantic value (M5 spec-fix, Phase 3 Task 5
+ * quality pass): every M1-M8 module content file (`module01Connected
+ * Conversation.ts` .. `module08RestaurantProblems.ts`) used to author its
+ * own byte-identical local `subjectReferentValueId` function + table —
+ * eight duplicated copies of the same mapping. This is the single, deep-
+ * frozen source of truth every module now imports instead of
+ * hand-duplicating; `a2-referent-clerk` (added for the I2 spec-fix, "natural
+ * clerk-vocative address") lives here alongside the six pre-existing
+ * referents.
+ */
+const A2_SUBJECT_REFERENT_VALUE_IDS: Readonly<Record<string, string>> = deepFreeze({
+  "a2-referent-friend": "a2-value-friend-subject",
+  "a2-referent-emi": "a2-value-emi",
+  "a2-referent-sora": "a2-value-sora",
+  "a2-referent-colleague": "a2-value-colleague-subject",
+  "a2-referent-teacher": "a2-value-teacher-subject",
+  "a2-referent-self": "a2-value-watashi",
+  "a2-referent-clerk": "a2-value-clerk-subject",
+});
+
+/** Resolve a referent id to its subject-slot semantic value id. Fails closed
+ * (throws) on an unknown referent — a programming error in the calling
+ * lesson content, never a learner-facing failure — instead of silently
+ * returning `undefined`. */
+export function a2SubjectReferentValueId(referentId: string): string {
+  const valueId = A2_SUBJECT_REFERENT_VALUE_IDS[referentId];
+  if (!valueId) {
+    throw new Error(`a2SubjectReferentValueId: no subject value mapped for referent "${referentId}"`);
+  }
+  return valueId;
+}
+
 const A2_INSTRUCTIONAL_KIT_CONFIG: InstructionalLessonKitConfig<A2LessonRecipeWithoutKanji> = {
   defaultSpeakerRoleId: "a2-role-learner",
   defaultAddresseeRoleId: "a2-role-teacher",

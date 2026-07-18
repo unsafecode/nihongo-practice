@@ -14,6 +14,7 @@ import { A2_MODULE_MANIFEST } from "../manifest";
 import {
   buildA2InstructionalLesson,
   A2_AFFIRMATIVE_PAST_POLITE,
+  a2SubjectReferentValueId as subjectReferentValueId,
   type A2BuiltLesson,
   type A2LineSpec,
 } from "../catalog/a2LessonBuilders";
@@ -23,23 +24,6 @@ const MODULE_ID = "sequencing-ongoing";
 
 function L(en: string, it: string) {
   return { en, it };
-}
-
-/** Referent -> its subject-slot semantic value — the same shared
- * subject-referent value catalog every M1-M8 module content file carries
- * its own identical copy of. */
-function subjectReferentValueId(subjectReferent: string): string {
-  const table: Readonly<Record<string, string>> = {
-    "a2-referent-friend": "a2-value-friend-subject",
-    "a2-referent-emi": "a2-value-emi",
-    "a2-referent-sora": "a2-value-sora",
-    "a2-referent-colleague": "a2-value-colleague-subject",
-    "a2-referent-teacher": "a2-value-teacher-subject",
-    "a2-referent-self": "a2-value-watashi",
-  };
-  const valueId = table[subjectReferent];
-  if (!valueId) throw new Error(`subjectReferentValueId: no subject value mapped for referent "${subjectReferent}"`);
-  return valueId;
 }
 
 /** A bare (no-object) invariant utterance — subject optional, predicate is

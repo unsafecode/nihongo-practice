@@ -559,6 +559,56 @@ describe("a2SemanticCatalog — M5-M8 end-to-end realization (Phase 3 Task 5)", 
     expect(romaji.text).toContain("juppun");
     expect(romaji.text).not.toContain("juubunpun");
   });
+
+  // I1 spec-fix (Phase 3 Task 5 quality pass): the adversative が in
+  // problem-konai/machigai/daremo-konai was authored with `punctFrag`,
+  // whose `punctuation` kind always attaches with no leading space (like a
+  // real 、/。) — producing the glued-together romaji "tanomimashitaga"/
+  // "machimashitaga" instead of a real word-boundary space before the
+  // particle. が is a grammatical particle, never punctuation; the Japanese
+  // itself (ラーメンをたのみましたがまだきません, etc.) is unchanged — only the
+  // romaji boundary is corrected.
+  it("realizes a2-value-problem-konai's adversative が with a genuine word-boundary space: romaji \"raamen o tanomimashita ga mada kimasen\", never the glued \"tanomimashitaga\"", () => {
+    const sentence = realize(
+      "a2-family-recount-experience",
+      { predicate: "a2-value-problem-konai" },
+      "task5-probe-i1-problem-konai",
+    );
+    expect(sentence.canonicalJapanese).toBe("ラーメンをたのみましたがまだきません");
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toBe("raamen o tanomimashita ga mada kimasen");
+    expect(romaji.text).not.toContain("tanomimashitaga");
+  });
+
+  it("realizes a2-value-problem-machigai's adversative が with a genuine word-boundary space: romaji \"niku o tanomimashita ga sakana ga kimashita\", never the glued \"tanomimashitaga\"", () => {
+    const sentence = realize(
+      "a2-family-recount-experience",
+      { predicate: "a2-value-problem-machigai" },
+      "task5-probe-i1-problem-machigai",
+    );
+    expect(sentence.canonicalJapanese).toBe("にくをたのみましたがさかながきました");
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toBe("niku o tanomimashita ga sakana ga kimashita");
+    expect(romaji.text).not.toContain("tanomimashitaga");
+  });
+
+  it("realizes a2-value-problem-daremo-konai's adversative が with a genuine word-boundary space: romaji \"juppun machimashita ga dare mo kimasen\", never the glued \"machimashitaga\"", () => {
+    const sentence = realize(
+      "a2-family-recount-experience",
+      { predicate: "a2-value-problem-daremo-konai" },
+      "task5-probe-i1-problem-daremo-konai",
+    );
+    expect(sentence.canonicalJapanese).toBe("じゅっぷんまちましたがだれもきません");
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toBe("juppun machimashita ga dare mo kimasen");
+    expect(romaji.text).not.toContain("machimashitaga");
+  });
 });
 
 // M8 spec-fix regression (Phase 3 Task 5): the same defect, pinned directly
@@ -567,5 +617,37 @@ describe("a2SemanticCatalog — M8 spec-fix: exact じゅっぷん kana for \"te
   it("a2-value-problem-daremo-konai's first fragment is the correct じゅっぷん (small-っ geminate), not the malformed じゅうぶんぷん, for its own \"juppun\" romaji", () => {
     const first = valueById("a2-value-problem-daremo-konai").tokenFragments[0];
     expect(first).toEqual({ jp: "じゅっぷん", romaji: "juppun", kind: "lexical", boundaryBefore: "attach" });
+  });
+});
+
+// I1 spec-fix (Phase 3 Task 5 quality pass): the adversative が's token kind
+// pinned directly against the catalog data (independent of realization), and
+// a catalog-wide audit that が is never authored as punctuation anywhere in
+// the shared A2 catalog — が is a grammatical particle in every Japanese
+// dialect, never a punctuation mark, so this generalizes the fix into a
+// standing regression guard (extends the aggregate editorial audit for
+// "adversative が spacing" per the M1-M8 quality pass).
+describe("a2SemanticCatalog — I1 spec-fix: adversative が is a particle, never punctuation (Phase 3 Task 5)", () => {
+  it.each([
+    ["a2-value-problem-konai", 2],
+    ["a2-value-problem-machigai", 2],
+    ["a2-value-problem-daremo-konai", 2],
+  ] as const)("%s's adversative が fragment (index %i) is kind \"particle\", never \"punctuation\"", (valueId, index) => {
+    const fragment = valueById(valueId).tokenFragments[index];
+    expect(fragment.jp).toBe("が");
+    expect(fragment.romaji).toBe("ga");
+    expect(fragment.kind).toBe("particle");
+  });
+
+  it("no semantic value anywhere in the shared A2 catalog authors が with kind \"punctuation\" (catalog-wide audit)", () => {
+    const violations: string[] = [];
+    for (const value of a2SemanticValues) {
+      for (const [index, fragment] of value.tokenFragments.entries()) {
+        if (fragment.jp === "が" && fragment.kind === "punctuation") {
+          violations.push(`${value.id}[${index}]: が authored as kind "punctuation" (must be "particle")`);
+        }
+      }
+    }
+    expect(violations, violations.join("\n")).toEqual([]);
   });
 });

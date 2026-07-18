@@ -216,19 +216,21 @@ describe("A2 Module 8 — connected restaurant dialogue (no isolated drill)", ()
   });
 });
 
-// M8 spec-fix regression (Phase 3 Task 5): a fresh review found two
-// explicit-third-party-subject transfers recombined with a predicate that
-// cannot naturally take one. rp1-t3 paired an explicit "a2-referent-colleague"
-// with "a2-value-order-sorede-ii" — a first-person confirmation interjection
-// (はい、それでいいです, "Yes, that's fine") — producing an unnatural
-// interjection-plus-topic sentence. rp3-t4 paired an explicit
+// M8 spec-fix regression (Phase 3 Task 5): a fresh review found an
+// explicit-third-party-subject transfer recombined with a predicate that
+// cannot naturally take one. rp3-t4 paired an explicit
 // "a2-referent-teacher" with "a2-value-problem-nioi", whose own clause
 // already bakes its own topic (さかなは, "as for the fish") — producing a
-// double-topic sentence. Both are fixed by recombining with a predicate this
-// family already establishes is safe for an explicit third-party subject
-// (kore-kudasai/a "asks for X" request, exactly like t4/t5's own
-// issho-ni/onegai; atsui, が-marked with no baked topic, exactly like
-// t2/t3/t5's own tsumetai/tarinai/daremo-konai).
+// double-topic sentence. Fixed by recombining with a predicate this family
+// already establishes is safe for an explicit third-party subject (atsui,
+// が-marked with no baked topic, exactly like t2/t3/t5's own
+// tsumetai/tarinai/daremo-konai). rp1-t3's own historical fix (this same
+// concern, applied to the confirm-understanding family: a first-person
+// confirmation interjection はい、それでいいです cannot be attributed to an
+// explicit third party either) has since been superseded by the I2 spec-fix
+// below — rp1-t3/t4/t5 no longer use an explicit third-party subject at all,
+// so the general "unsafe predicate" guard here still protects the whole
+// module even though the specific t3 pin has moved.
 describe("A2 Module 8 — spec-fix: no interjection-topic/double-topic on an explicit third-party subject", () => {
   const UNSAFE_EXPLICIT_SUBJECT_PREDICATES: ReadonlySet<string> = new Set([
     // First-person confirmation interjection (はい、...) — cannot be
@@ -239,22 +241,13 @@ describe("A2 Module 8 — spec-fix: no interjection-topic/double-topic on an exp
     "a2-value-problem-nioi",
   ]);
 
-  it("restaurant-problems-1-t3 recombines the natural kore-kudasai request (\"asks for this one\"), never the sorede-ii confirmation interjection, with its explicit colleague subject", () => {
-    const rp1 = module8Lessons[0];
-    const t3 = rp1.variants.find((v) => v.id === "restaurant-problems-1-t3");
-    expect(t3, "restaurant-problems-1-t3").toBeDefined();
-    expect(t3?.slotValues.predicate).toBe("a2-value-order-kore-kudasai");
-    expect(rp1.en["restaurant-problems-1-t3-translation"]).toBe("A colleague asks for this one.");
-    expect(rp1.it["restaurant-problems-1-t3-translation"]).toBe("Un collega chiede questo.");
-  });
-
   it("restaurant-problems-3-t4 recombines the natural が-marked atsui problem (\"the tea is too hot\"), never the topic-baked nioi problem, with its explicit teacher subject", () => {
     const rp3 = module8Lessons[2];
     const t4 = rp3.variants.find((v) => v.id === "restaurant-problems-3-t4");
     expect(t4, "restaurant-problems-3-t4").toBeDefined();
     expect(t4?.slotValues.predicate).toBe("a2-value-problem-atsui");
-    expect(rp3.en["restaurant-problems-3-t4-translation"]).toBe("The teacher says the tea is too hot.");
-    expect(rp3.it["restaurant-problems-3-t4-translation"]).toBe("L'insegnante dice che il tè è troppo caldo.");
+    expect(rp3.en["restaurant-problems-3-t4-translation"]).toBe("The teacher's tea is too hot.");
+    expect(rp3.it["restaurant-problems-3-t4-translation"]).toBe("Il tè dell'insegnante è troppo caldo.");
   });
 
   it("never combines an explicit third-party subject with an unsafe interjection/topic-baked predicate anywhere in M8", () => {
@@ -271,6 +264,185 @@ describe("A2 Module 8 — spec-fix: no interjection-topic/double-topic on an exp
       }
     }
     expect(violations, violations.join("\n")).toEqual([]);
+  });
+});
+
+// I2 spec-fix (Phase 3 Task 5 quality pass): rp1-t3/t4/t5 previously paired
+// an EXPLICIT third-party subject (colleague/teacher/friend, は-marked) with
+// a first-person request predicate (これをください/ごはんもいっしょにおねがいし
+// ます/ラーメンをおねがいします) — producing an incoherent "As for the
+// colleague, ... please give ME this" sentence, since ください/おねがいします
+// are inherently first-person speech acts that cannot be topic-marked onto
+// a third party. restaurant-problems-1 is literally the learner ordering
+// FROM a clerk, so the natural fix addresses the clerk directly with a real
+// vocative (てんいんさん、…) — 店員 ("clerk") naturally takes さん in direct
+// address exactly like a real name — never colleague/teacher/friend
+// (generic social roles that cannot naturally take vocative さん; see the
+// "social role can never be vocative-addressed" audit in
+// modules01to08.test.ts/modules05to08.test.ts). t3/t4/t5 each recombine a
+// distinct already-modeled order-* predicate (never reusing t1/t2's own
+// kore-kudasai/nomimono), so all 5 rp1 transfers stay visibly novel.
+describe("A2 Module 8 — I2 spec-fix: rp1-t3/t4/t5 address the clerk directly (natural vocative, never an unnatural third-party topic)", () => {
+  it("restaurant-problems-1-t3 vocative-addresses the clerk (てんいんさん、) asking what they recommend, never a colleague topic-marked onto a first-person request", () => {
+    const rp1 = module8Lessons[0];
+    const t3 = rp1.variants.find((v) => v.id === "restaurant-problems-1-t3");
+    expect(t3, "restaurant-problems-1-t3").toBeDefined();
+    expect(t3?.discourse.subjectRealization).toBe("vocative");
+    expect(t3?.discourse.subjectReferentId).toBe("a2-referent-clerk");
+    expect(t3?.slotValues.predicate).toBe("a2-value-order-osusume");
+    const sentence = realize(t3 as SentenceVariant);
+    expect(sentence.canonicalJapanese).toBe("てんいんさん、おすすめはなんですか");
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toBe("ten'in san, osusume wa nan desu ka");
+    expect(rp1.en["restaurant-problems-1-t3-translation"]).toBe("Excuse me, what do you recommend?");
+    expect(rp1.it["restaurant-problems-1-t3-translation"]).toBe("Scusi, cosa consiglia?");
+  });
+
+  it("restaurant-problems-1-t4 vocative-addresses the clerk asking what drinks they have, never the teacher topic-marked onto issho-ni", () => {
+    const rp1 = module8Lessons[0];
+    const t4 = rp1.variants.find((v) => v.id === "restaurant-problems-1-t4");
+    expect(t4, "restaurant-problems-1-t4").toBeDefined();
+    expect(t4?.discourse.subjectRealization).toBe("vocative");
+    expect(t4?.discourse.subjectReferentId).toBe("a2-referent-clerk");
+    expect(t4?.slotValues.predicate).toBe("a2-value-order-nani-ga-aru");
+    const sentence = realize(t4 as SentenceVariant);
+    expect(sentence.canonicalJapanese).toBe("てんいんさん、のみものはなにがありますか");
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toBe("ten'in san, nomimono wa nani ga arimasu ka");
+    expect(rp1.en["restaurant-problems-1-t4-translation"]).toBe("Excuse me, what drinks do you have?");
+    expect(rp1.it["restaurant-problems-1-t4-translation"]).toBe("Scusi, che bevande avete?");
+  });
+
+  it("restaurant-problems-1-t5 vocative-addresses the clerk requesting rice too, never the friend topic-marked onto onegai", () => {
+    const rp1 = module8Lessons[0];
+    const t5 = rp1.variants.find((v) => v.id === "restaurant-problems-1-t5");
+    expect(t5, "restaurant-problems-1-t5").toBeDefined();
+    expect(t5?.discourse.subjectRealization).toBe("vocative");
+    expect(t5?.discourse.subjectReferentId).toBe("a2-referent-clerk");
+    expect(t5?.slotValues.predicate).toBe("a2-value-order-issho-ni");
+    const sentence = realize(t5 as SentenceVariant);
+    expect(sentence.canonicalJapanese).toBe("てんいんさん、ごはんもいっしょにおねがいします");
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toBe("ten'in san, gohan mo issho ni onegaishimasu");
+    expect(rp1.en["restaurant-problems-1-t5-translation"]).toBe("Excuse me, rice too, together, please.");
+    expect(rp1.it["restaurant-problems-1-t5-translation"]).toBe("Scusi, anche il riso, insieme, per favore.");
+  });
+
+  it("t3/t4/t5 each recombine a distinct predicate, none of them t1/t2's own kore-kudasai/nomimono, so all 5 rp1 transfers are visibly novel", () => {
+    const rp1 = module8Lessons[0];
+    const transferPredicates = ["t1", "t2", "t3", "t4", "t5"].map((suffix) => {
+      const v = rp1.variants.find((variant) => variant.id === `restaurant-problems-1-${suffix}`);
+      expect(v, `restaurant-problems-1-${suffix}`).toBeDefined();
+      return v!.slotValues.predicate;
+    });
+    expect(new Set(transferPredicates).size).toBe(5);
+  });
+});
+
+// M1 spec-fix (Phase 3 Task 5 quality pass): rp3-t3/t4 EN/IT copy invented a
+// "says"/"dice" reporting verb that appears nowhere in the Japanese — an
+// explicit-topic statement (どうりょうは/せんせいは, "as for the colleague/
+// teacher") is not a report ABOUT what someone said, it is a direct
+// description of their situation. The natural direct gloss of an X-は-marked
+// stative clause is "X's Y is Z" / "X doesn't have enough Y", never
+// "X says Y is Z". Neither the Japanese nor its realized form/tokens change
+// here — only the EN/IT copy is corrected. rp3-m7's own EN/IT copy also
+// invented an absent "smells"/"odore" (smell) concept: the actual Japanese
+// (このさかなはすこしへんです) uses へん ("strange/odd"), never a smell verb/noun.
+describe("A2 Module 8 — M1 spec-fix: rp3 direct gloss, no invented reporting verb or absent smell concept", () => {
+  it("restaurant-problems-3-t3 glosses the colleague's fork shortage directly, never with an invented \"says\" reporting verb", () => {
+    const rp3 = module8Lessons[2];
+    const t3 = rp3.variants.find((v) => v.id === "restaurant-problems-3-t3");
+    expect(t3, "restaurant-problems-3-t3").toBeDefined();
+    expect(t3?.slotValues.predicate).toBe("a2-value-problem-tarinai");
+    const sentence = realize(t3 as SentenceVariant);
+    expect(sentence.canonicalJapanese).toBe("どうりょうはフォークがたりません");
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toBe("douryou wa fooku ga tarimasen");
+    expect(rp3.en["restaurant-problems-3-t3-translation"]).toBe("The colleague doesn't have enough forks.");
+    expect(rp3.it["restaurant-problems-3-t3-translation"]).toBe("Il collega non ha abbastanza forchette.");
+    expect(rp3.en["restaurant-problems-3-t3-translation"]).not.toMatch(/\bsays\b/i);
+    expect(rp3.it["restaurant-problems-3-t3-translation"]).not.toMatch(/\bdice\b/i);
+  });
+
+  it("restaurant-problems-3-t4 glosses the teacher's hot tea directly, never with an invented \"says\" reporting verb (Japanese/romaji unchanged)", () => {
+    const rp3 = module8Lessons[2];
+    const t4 = rp3.variants.find((v) => v.id === "restaurant-problems-3-t4");
+    expect(t4, "restaurant-problems-3-t4").toBeDefined();
+    expect(t4?.slotValues.predicate).toBe("a2-value-problem-atsui");
+    const sentence = realize(t4 as SentenceVariant);
+    expect(sentence.canonicalJapanese).toBe("せんせいはおちゃがあつすぎます");
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toBe("sensei wa ocha ga atsusugimasu");
+    expect(rp3.en["restaurant-problems-3-t4-translation"]).not.toMatch(/\bsays\b/i);
+    expect(rp3.it["restaurant-problems-3-t4-translation"]).not.toMatch(/\bdice\b/i);
+  });
+
+  it("restaurant-problems-3-t5 stays the unchanged, already-natural direct gloss (no reporting verb) as the anchor for t3/t4's fix", () => {
+    const rp3 = module8Lessons[2];
+    const t5 = rp3.variants.find((v) => v.id === "restaurant-problems-3-t5");
+    expect(t5, "restaurant-problems-3-t5").toBeDefined();
+    expect(rp3.en["restaurant-problems-3-t5-translation"]).toBe("A friend waited ten minutes, but no one came.");
+    expect(rp3.it["restaurant-problems-3-t5-translation"]).toBe(
+      "Un amico ha aspettato dieci minuti, ma non è venuto nessuno.",
+    );
+  });
+
+  it("restaurant-problems-3-m7 glosses this fish as \"strange\" (へん), never an invented \"smells\"/odor concept absent from the Japanese", () => {
+    const rp3 = module8Lessons[2];
+    const m7 = rp3.variants.find((v) => v.id === "restaurant-problems-3-m7");
+    expect(m7, "restaurant-problems-3-m7").toBeDefined();
+    expect(m7?.slotValues.predicate).toBe("a2-value-problem-nioi");
+    const sentence = realize(m7 as SentenceVariant);
+    expect(sentence.canonicalJapanese).toBe("このさかなはすこしへんです");
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toBe("kono sakana wa sukoshi hen desu");
+    expect(rp3.en["restaurant-problems-3-m7-translation"]).toBe("This fish is a bit strange.");
+    expect(rp3.it["restaurant-problems-3-m7-translation"]).toBe("Questo pesce è un po' strano.");
+    expect(rp3.en["restaurant-problems-3-m7-translation"]).not.toMatch(/smell/i);
+    expect(rp3.it["restaurant-problems-3-m7-translation"]).not.toMatch(/odor/i);
+  });
+});
+
+// M2 spec-fix (Phase 3 Task 5 quality pass): rp4-t4's own Japanese
+// (せんせいはおつりをうけとって、かえります) is baked nonpast — うけとって is the
+// tenseless て-form and かえります is present ("goes home"), exactly like
+// rp4-m4's own already-correct "Receiving the change, I go home." — but
+// t4's EN/IT copy glossed it in the past tense ("received... went home"),
+// contradicting its own genuinely nonpast Japanese. The Japanese/tokens are
+// unchanged; only the EN/IT copy is corrected to match.
+describe("A2 Module 8 — M2 spec-fix: rp4-t4 present-tense copy matches its genuinely nonpast Japanese", () => {
+  it("restaurant-problems-4-t4 glosses the teacher receiving change/going home in the PRESENT tense, matching its baked かえります (never a past \"received/went home\")", () => {
+    const rp4 = module8Lessons[3];
+    const t4 = rp4.variants.find((v) => v.id === "restaurant-problems-4-t4");
+    expect(t4, "restaurant-problems-4-t4").toBeDefined();
+    expect(t4?.slotValues.predicate).toBe("a2-value-seq-uketotte-kaeru");
+    const sentence = realize(t4 as SentenceVariant);
+    expect(sentence.canonicalJapanese).toBe("せんせいはおつりをうけとって、かえります");
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toBe("sensei wa otsuri o uketotte, kaerimasu");
+    expect(rp4.en["restaurant-problems-4-t4-translation"]).toBe(
+      "The teacher receives the change, then goes home.",
+    );
+    expect(rp4.it["restaurant-problems-4-t4-translation"]).toBe(
+      "L'insegnante riceve il resto, poi torna a casa.",
+    );
+    expect(rp4.en["restaurant-problems-4-t4-translation"]).not.toMatch(/\breceived\b|\bwent\b/i);
+    expect(rp4.it["restaurant-problems-4-t4-translation"]).not.toMatch(/\bha ricevuto\b|\bè tornato\b/i);
   });
 });
 

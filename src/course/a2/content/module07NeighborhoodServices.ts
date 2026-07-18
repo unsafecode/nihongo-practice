@@ -16,6 +16,7 @@
 import { A2_MODULE_MANIFEST } from "../manifest";
 import {
   buildA2InstructionalLesson,
+  a2SubjectReferentValueId as subjectReferentValueId,
   type A2BuiltLesson,
   type A2LineSpec,
 } from "../catalog/a2LessonBuilders";
@@ -25,23 +26,6 @@ const MODULE_ID = "neighborhood-services";
 
 function L(en: string, it: string) {
   return { en, it };
-}
-
-/** Referent -> its subject-slot semantic value — the same shared
- * subject-referent value catalog every M1-M8 module content file carries
- * its own identical copy of. */
-function subjectReferentValueId(subjectReferent: string): string {
-  const table: Readonly<Record<string, string>> = {
-    "a2-referent-friend": "a2-value-friend-subject",
-    "a2-referent-emi": "a2-value-emi",
-    "a2-referent-sora": "a2-value-sora",
-    "a2-referent-colleague": "a2-value-colleague-subject",
-    "a2-referent-teacher": "a2-value-teacher-subject",
-    "a2-referent-self": "a2-value-watashi",
-  };
-  const valueId = table[subjectReferent];
-  if (!valueId) throw new Error(`subjectReferentValueId: no subject value mapped for referent "${subjectReferent}"`);
-  return valueId;
 }
 
 interface LineOptions {
@@ -147,6 +131,20 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
     // transfers below reuse — before t1/t2 can honestly recombine it.
     line("neighborhood-services-1-m9", "a2-family-possibility", "a2-value-possibility-nashi-tsukau", "a2-context-neighborhood", L("I cannot use the water.", "Non posso usare l'acqua."), { object: "a2-value-obj-mizu", speakerRole: "a2-role-learner" }),
     line("neighborhood-services-1-m10", "a2-family-possibility", "a2-value-possibility-nashi-hanasu", "a2-context-neighborhood", L("I cannot speak Japanese here.", "Non posso parlare giapponese qui."), { object: "a2-value-obj-nihongo-m7", speakerRole: "a2-role-friend" }),
+    // M4 spec-fix (Phase 3 Task 5 quality pass): ns1's own primary Can-do is
+    // authoritatively framed as "ask whether you can do something at a
+    // place" (a2-cando-possibility's L1 descriptor cites the illustrative
+    // "tsukaemasu ka"), but every model above only ever states possibility
+    // (affirmative/negative) or asks temoii PERMISSION ("may I") — never
+    // actually asks whether something is POSSIBLE. Fixed generically at the
+    // family/realizer boundary: the same `interrogative` FormSelection
+    // permission-temoii's own questions already use, now applied to the
+    // possibility family itself (m1's own "I can use the card" recombined as
+    // a genuine question) — a real "koto ga dekimasu ka", never a hand-baked
+    // duplicate clause and never the early, unintroduced "tsukaemasu"
+    // potential form L1 merely illustrates with (L2 only ever teaches koto
+    // ga dekiru).
+    line("neighborhood-services-1-m11", "a2-family-possibility", "a2-value-possibility-tsukau", "a2-context-neighborhood", L("Can I use the card here?", "Si può usare la tessera qui?"), { object: "a2-value-obj-kaado", interrogative: true, speakerRole: "a2-role-learner" }),
   ],
   transfers: [
     line("neighborhood-services-1-t1", "a2-family-possibility", "a2-value-possibility-nashi-tsukau", "a2-context-neighborhood", L("I cannot use the card.", "Non posso usare la tessera."), { object: "a2-value-obj-kaado" }),

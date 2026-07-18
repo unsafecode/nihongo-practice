@@ -16,6 +16,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   a2KanjiExposureIdsForLesson,
+  a2SubjectReferentValueId,
   a2VerbUseRecord,
   a2Variant,
   assembleA2FoundationCatalogs,
@@ -26,6 +27,7 @@ import {
   type A2BuiltLesson,
 } from "./a2LessonBuilders";
 import { A2_KANJI_EXPOSURES } from "../kanji/a2KanjiCatalog";
+import { a2Referents, a2SemanticValues } from "./a2SemanticCatalog";
 
 describe("a2KanjiExposureIdsForLesson", () => {
   it("returns every real exposure id scheduled at connected-conversation-1 (first-supported 話言聞友)", () => {
@@ -384,5 +386,56 @@ describe("a2VerbUseRecord / withA2LaterUses — delegate to the shared kit's ver
     ]);
     expect(record.laterUses).toEqual([]);
     expect(Object.isFrozen(augmented)).toBe(true);
+  });
+});
+
+// M5 spec-fix (Phase 3 Task 5 quality pass): every M1-M8 module content file
+// (module01ConnectedConversation.ts .. module08RestaurantProblems.ts)
+// authored its own byte-identical local `subjectReferentValueId` function +
+// referent->subject-value table — eight duplicated copies of the same seven
+// (now eight, with clerk added for I2's natural clerk-vocative fix) entries.
+// `a2SubjectReferentValueId` is the single hoisted, deep-frozen, fail-closed
+// source of truth every module now imports instead.
+describe("a2SubjectReferentValueId — the single hoisted referent->subject-value map (M5 spec-fix)", () => {
+  const EXPECTED_MAPPING: Readonly<Record<string, string>> = {
+    "a2-referent-self": "a2-value-watashi",
+    "a2-referent-emi": "a2-value-emi",
+    "a2-referent-sora": "a2-value-sora",
+    "a2-referent-friend": "a2-value-friend-subject",
+    "a2-referent-colleague": "a2-value-colleague-subject",
+    "a2-referent-teacher": "a2-value-teacher-subject",
+    "a2-referent-clerk": "a2-value-clerk-subject",
+  };
+
+  it.each(Object.entries(EXPECTED_MAPPING))(
+    "resolves %s to its exact subject-slot semantic value %s",
+    (referentId, expectedValueId) => {
+      expect(a2SubjectReferentValueId(referentId)).toBe(expectedValueId);
+    },
+  );
+
+  it("maps every referent in the real a2Referents catalog (no fewer, no more) to a resolvable subject-slot value", () => {
+    expect(Object.keys(EXPECTED_MAPPING).sort()).toEqual(a2Referents.map((r) => r.id).sort());
+    for (const referent of a2Referents) {
+      expect(() => a2SubjectReferentValueId(referent.id), referent.id).not.toThrow();
+    }
+  });
+
+  it("fails closed (throws) on an unknown referent id, never returning undefined", () => {
+    expect(() => a2SubjectReferentValueId("a2-referent-does-not-exist")).toThrow(
+      /no subject value mapped for referent/,
+    );
+  });
+
+  it("fails closed (throws) on an empty-string referent id", () => {
+    expect(() => a2SubjectReferentValueId("")).toThrow();
+  });
+
+  it("every resolved subject-value id is a real, registered semantic value in a2SemanticValues", () => {
+    const valueIds = new Set(a2SemanticValues.map((v) => v.id));
+    for (const referentId of Object.keys(EXPECTED_MAPPING)) {
+      const resolved = a2SubjectReferentValueId(referentId);
+      expect(valueIds.has(resolved), `${referentId} -> ${resolved}`).toBe(true);
+    }
   });
 });

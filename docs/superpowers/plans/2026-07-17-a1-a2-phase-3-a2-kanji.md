@@ -47,7 +47,7 @@ Module IDs are kebab-case and are the lesson-ID prefixes (`<module>-1..4`). Orde
 | | | reasons-opinions-3 | State an opinion using plain-form + と思います |
 | | | reasons-opinions-4 | Agree or disagree gently and add a short reason |
 | 5 | sequencing-ongoing | sequencing-ongoing-1 | Describe a sequence of actions using the て-form |
-| | | sequencing-ongoing-2 | Say what someone is doing right now using 〜ています |
+| | | sequencing-ongoing-2 | Describe what happens next in a short everyday sequence using the て-form |
 | | | sequencing-ongoing-3 | Describe habits and ongoing states using 〜ています |
 | | | sequencing-ongoing-4 | Narrate a morning routine as one connected sequence |
 | 6 | permission-requests | permission-requests-1 | Ask for and give permission using 〜てもいいですか |
