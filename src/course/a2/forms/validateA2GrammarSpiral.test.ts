@@ -111,8 +111,8 @@ const EXPECTED_SPIRAL: readonly A2GrammarForm[] = [
     canDoId: "a2-cando-compare",
     introLessonId: "shopping-returns-1",
     controlledPracticeLessonId: "shopping-returns-3",
-    transferLessonId: "restaurant-problems-1",
-    recurrenceLessonIds: ["travel-reservations-2", "a2-synthesis-2"],
+    transferLessonId: "travel-reservations-2",
+    recurrenceLessonIds: ["a2-synthesis-2"],
   },
   {
     id: "possibility",
@@ -134,20 +134,9 @@ const EXPECTED_SPIRAL: readonly A2GrammarForm[] = [
 
 const UNKNOWN_LESSON: LessonId = "not-a-real-lesson-1";
 
-/**
- * The real spiral with the one known compare/restaurant-problems-1 finding
- * (see the dedicated tests below) pre-neutralized, used as a clean baseline
- * for the single-field mutation tests further down so their error
- * assertions describe only the mutation under test, not the pre-existing
- * finding elsewhere in the array.
- */
-const NEUTRAL_SPIRAL: readonly A2GrammarForm[] = A2_GRAMMAR_SPIRAL.map((f) =>
-  f.id === "compare" ? { ...f, transferLessonId: "shopping-returns-2" } : f,
-);
-
-/** Clone the neutral baseline spiral, replacing one row with a patched copy. */
+/** Clone the real release spiral, replacing one row with a patched copy. */
 function withRow(id: string, patch: Partial<A2GrammarForm>): readonly A2GrammarForm[] {
-  return NEUTRAL_SPIRAL.map((f) => (f.id === id ? { ...f, ...patch } : f));
+  return A2_GRAMMAR_SPIRAL.map((f) => (f.id === id ? { ...f, ...patch } : f));
 }
 
 describe("A2_GRAMMAR_SPIRAL data", () => {
@@ -192,23 +181,8 @@ describe("A2_GRAMMAR_SPIRAL data", () => {
 });
 
 describe("validateA2GrammarSpiral against the real release", () => {
-  it("finds only the known compare/restaurant-problems-1 transfer-ordering note", () => {
-    // `compare`'s transferLessonId ("restaurant-problems-1", canonical position 29) sits
-    // earlier than its own introLessonId ("shopping-returns-1", canonical position 33) in
-    // the frozen A2 release order. This is a genuine, narrow content-modeling artifact of
-    // the exact spec row (present verbatim in the task's own row table), not a defect in
-    // this validator: every other one of the 15 forms is fully self-consistent. The
-    // adjacent test proves the validator reports zero errors once that single field is
-    // corrected, without mutating the exported `A2_GRAMMAR_SPIRAL` constant itself.
-    const result = validateA2GrammarSpiral(A2_GRAMMAR_SPIRAL, A2_CANONICAL_POSITIONS);
-    expect(result.valid).toBe(false);
-    expect(result.errors).toEqual([
-      { code: "grammar-role-before-intro", id: "compare:restaurant-problems-1" },
-    ]);
-  });
-
-  it("reports zero errors once compare's transfer example is patched to a non-earlier lesson", () => {
-    expect(validateA2GrammarSpiral(NEUTRAL_SPIRAL, A2_CANONICAL_POSITIONS)).toEqual({
+  it("reports zero errors for the frozen A2 grammar spiral", () => {
+    expect(validateA2GrammarSpiral(A2_GRAMMAR_SPIRAL, A2_CANONICAL_POSITIONS)).toEqual({
       valid: true,
       errors: [],
     });

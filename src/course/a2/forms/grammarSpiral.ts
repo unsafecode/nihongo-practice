@@ -120,8 +120,8 @@ export const A2_GRAMMAR_SPIRAL: readonly A2GrammarForm[] = [
     canDoId: "a2-cando-compare",
     introLessonId: "shopping-returns-1",
     controlledPracticeLessonId: "shopping-returns-3",
-    transferLessonId: "restaurant-problems-1",
-    recurrenceLessonIds: ["travel-reservations-2", "a2-synthesis-2"],
+    transferLessonId: "travel-reservations-2",
+    recurrenceLessonIds: ["a2-synthesis-2"],
   },
   {
     id: "possibility",

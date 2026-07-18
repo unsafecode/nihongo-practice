@@ -111,7 +111,7 @@ Each row: the form, its **named Can-do**, the **first supported intro** lesson, 
 | 10 | 〜から (reason) | a2-cando-reason-kara | reasons-opinions-1 | reasons-opinions-4 | health-advice-2 | work-study-messages-1, a2-synthesis-3 |
 | 11 | 〜ので (reason, softer/polite) | a2-cando-reason-node | reasons-opinions-2 | work-study-messages-1 | travel-reservations-3 | a2-synthesis-3 |
 | 12 | 〜と思う (opinion) | a2-cando-opinion-toomou | reasons-opinions-3 | reasons-opinions-4 | shopping-returns-3 | practical-texts-3, a2-synthesis-2 |
-| 13 | Comparisons (のほうが / より / いちばん) | a2-cando-compare | shopping-returns-1 (のほうが/より), shopping-returns-2 (いちばん) | shopping-returns-3 | restaurant-problems-1 | travel-reservations-2, a2-synthesis-2 |
+| 13 | Comparisons (のほうが / より / いちばん) | a2-cando-compare | shopping-returns-1 (のほうが/より), shopping-returns-2 (いちばん) | shopping-returns-3 | travel-reservations-2 | a2-synthesis-2 |
 | 14 | Possibility (使えます / 〜ことができる) | a2-cando-possibility | neighborhood-services-1 | neighborhood-services-2 | shopping-returns-3 | travel-reservations-1, a2-synthesis-2 |
 | 15 | Connectors (でも / それから / だから) | a2-cando-connectors | connected-conversation-2 | reasons-opinions-4 | experiences-narratives-2 | practical-texts-3, a2-synthesis-1 |
 
@@ -1178,7 +1178,7 @@ export const A2_GRAMMAR_SPIRAL: readonly A2GrammarForm[] = [
   { id: "reason-kara", canDoId: "a2-cando-reason-kara", introLessonId: "reasons-opinions-1", controlledPracticeLessonId: "reasons-opinions-4", transferLessonId: "health-advice-2", recurrenceLessonIds: ["work-study-messages-1", "a2-synthesis-3"] },
   { id: "reason-node", canDoId: "a2-cando-reason-node", introLessonId: "reasons-opinions-2", controlledPracticeLessonId: "work-study-messages-1", transferLessonId: "travel-reservations-3", recurrenceLessonIds: ["a2-synthesis-3"] },
   { id: "opinion-toomou", canDoId: "a2-cando-opinion-toomou", introLessonId: "reasons-opinions-3", controlledPracticeLessonId: "reasons-opinions-4", transferLessonId: "shopping-returns-3", recurrenceLessonIds: ["practical-texts-3", "a2-synthesis-2"] },
-  { id: "compare", canDoId: "a2-cando-compare", introLessonId: "shopping-returns-1", controlledPracticeLessonId: "shopping-returns-3", transferLessonId: "restaurant-problems-1", recurrenceLessonIds: ["travel-reservations-2", "a2-synthesis-2"] },
+  { id: "compare", canDoId: "a2-cando-compare", introLessonId: "shopping-returns-1", controlledPracticeLessonId: "shopping-returns-3", transferLessonId: "travel-reservations-2", recurrenceLessonIds: ["a2-synthesis-2"] },
   { id: "possibility", canDoId: "a2-cando-possibility", introLessonId: "neighborhood-services-1", controlledPracticeLessonId: "neighborhood-services-2", transferLessonId: "shopping-returns-3", recurrenceLessonIds: ["travel-reservations-1", "a2-synthesis-2"] },
   { id: "connectors", canDoId: "a2-cando-connectors", introLessonId: "connected-conversation-2", controlledPracticeLessonId: "reasons-opinions-4", transferLessonId: "experiences-narratives-2", recurrenceLessonIds: ["practical-texts-3", "a2-synthesis-1"] },
 ];
@@ -2758,7 +2758,7 @@ export const module01ConnectedConversation = [
   | neighborhood-services-2 | a2-cando-can-cannot | a2-cando-possibility |
   | neighborhood-services-3 | a2-cando-ask-directions | — |
   | neighborhood-services-4 | a2-cando-explain-facility | — |
-  | restaurant-problems-1 | a2-cando-order-food | a2-cando-compare |
+  | restaurant-problems-1 | a2-cando-order-food | — |
   | restaurant-problems-2 | a2-cando-special-request | a2-cando-request-tekudasai, a2-cando-permission-temoii |
   | restaurant-problems-3 | a2-cando-report-problem | — |
   | restaurant-problems-4 | a2-cando-pay-handle-problem | a2-cando-sequence-te |
@@ -2996,7 +2996,7 @@ Authors 16 lessons with `buildA2InstructionalLesson` (Task 4 Step 5) and the sha
 
 | Lesson | Primary Can-do | Spiral form | Families |
 |--------|----------------|-------------|----------|
-| restaurant-problems-1 | a2-cando-order-food; compare transfer | comparison transfer | a1-family-object-action, a2-family-nohouga-comparison |
+| restaurant-problems-1 | a2-cando-order-food | plain forms/description | a1-family-object-action |
 | restaurant-problems-2 | a2-cando-special-request | てください practice; てもいい recurrence | a2-family-tekudasai-request, a2-family-temoii-permission |
 | restaurant-problems-3 | a2-cando-report-problem | plain forms/description | a1-family-description, a2-family-kara-reason |
 | restaurant-problems-4 | a2-cando-pay-handle-problem | て-form recurrence | a2-family-te-sequence |
@@ -3069,7 +3069,7 @@ Authors 16 lessons introducing comparisons/advice/reason-recurrence/experience-t
 | Lesson | Primary Can-do | Spiral form | Families |
 |--------|----------------|-------------|----------|
 | travel-reservations-1 | a2-cando-make-reservation; 予定 recurrence; possibility recurrence | plans recurrence | a2-family-yotei-plan, a2-family-dekiru-possibility |
-| travel-reservations-2 | a2-cando-travel-schedule; たことがある transfer; comparison recurrence | experience transfer | a2-family-takoto-experience, a2-family-nohouga-comparison |
+| travel-reservations-2 | a2-cando-travel-schedule; たことがある transfer; comparison transfer | experience transfer; comparison transfer | a2-family-takoto-experience, a2-family-nohouga-comparison |
 | travel-reservations-3 | a2-cando-travel-problem; negative-request transfer; ので transfer | negative-request + ので transfer | a2-family-naidekudasai-negreq, a2-family-node-reason |
 | travel-reservations-4 | a2-cando-change-cancel | て-form/request recurrence | a2-family-te-sequence, a2-family-tekudasai-request |
 
@@ -3089,7 +3089,7 @@ git add src/course/a2/content/module{09,10,11,12}*.ts \
 git commit -m "feat(a2): content M9–M12 (comparisons, advice, work/study messages, travel)"
 ```
 
-- [ ] **Step 6: Subagent quality review.** Dispatch: "Review Task 6 (M9–M12) against §9 and L2/L3. Confirm depth floors, spiral transfer/recurrence roles land in the exact L2 lessons (comparison intro=shopping-returns-1/2, たことがある transfer=travel-reservations-2, ている transfer=work-study-messages-3, negative-request transfer=travel-reservations-3, から transfer=health-advice-2), kanji stages match L3, and no Japanese in module files. File inline findings." Fix before Task 7.
+- [ ] **Step 6: Subagent quality review.** Dispatch: "Review Task 6 (M9–M12) against §9 and L2/L3. Confirm depth floors, spiral transfer/recurrence roles land in the exact L2 lessons (comparison intro=shopping-returns-1/2, comparison transfer=travel-reservations-2, たことがある transfer=travel-reservations-2, ている transfer=work-study-messages-3, negative-request transfer=travel-reservations-3, から transfer=health-advice-2), kanji stages match L3, and no Japanese in module files. File inline findings." Fix before Task 7.
 
 ---
 ## Task 7: Content M13–M15, A2 checkpoint, machine-readable reports, and the `validateA2Release` gate
