@@ -71,9 +71,11 @@ export interface A2ManifestSpec {
 /** The structured failure codes the manifest validator can report. */
 export type A2ManifestErrorCode =
   | "module-count"
+  | "duplicate-module-id"
   | "lessons-per-module"
   | "duplicate-lesson-id"
   | "unknown-synthesis-module"
+  | "unknown-prerequisite"
   | "prerequisite-cycle"
   | "alias-target-missing";
 

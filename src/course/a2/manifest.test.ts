@@ -4,11 +4,14 @@ import {
   A2_LEGACY_LESSON_ALIASES,
   A2_LESSON_IDS,
   A2_LESSON_IDS_BY_MODULE,
+  A2_LESSON_MANIFEST,
   A2_MANIFEST_SPEC,
   A2_MODULE_IDS,
+  A2_MODULE_MANIFEST,
   A2_SYNTHESIS_LESSON_IDS,
   validateA2ManifestSpec,
 } from "./manifest";
+import { A2_RELEASE_ERROR_CODES } from "./types";
 import type { A2ManifestSpec } from "./types";
 
 /**
@@ -111,5 +114,131 @@ describe("A2 manifest", () => {
         "alias-target-missing",
       ].sort(),
     );
+  });
+
+  it("reports duplicate-module-id when the same module id is declared twice", () => {
+    const broken: A2ManifestSpec = {
+      moduleIds: ["mod-a", "mod-a"],
+      lessonIdsByModule: {
+        "mod-a": ["mod-a-1", "mod-a-2", "mod-a-3", "mod-a-4"],
+      },
+      modulePrerequisites: { "mod-a": [] },
+      moduleContracts: { "mod-a": "instructional" },
+      synthesisModuleId: "mod-a",
+      aliases: {},
+    };
+    const result = validateA2ManifestSpec(broken);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    const codes = result.errors.map((e) => e.code);
+    expect(codes).toContain("duplicate-module-id");
+  });
+
+  it("reports unknown-prerequisite for a dangling prerequisite id, not prerequisite-cycle", () => {
+    const broken: A2ManifestSpec = {
+      moduleIds: ["mod-a", "mod-b"],
+      lessonIdsByModule: {
+        "mod-a": ["mod-a-1", "mod-a-2", "mod-a-3", "mod-a-4"],
+        "mod-b": ["mod-b-1", "mod-b-2", "mod-b-3", "mod-b-4"],
+      },
+      modulePrerequisites: {
+        "mod-a": [],
+        "mod-b": ["mod-nonexistent"],
+      },
+      moduleContracts: { "mod-a": "instructional", "mod-b": "synthesis" },
+      synthesisModuleId: "mod-b",
+      aliases: {},
+    };
+    const result = validateA2ManifestSpec(broken);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    const codes = result.errors.map((e) => e.code);
+    expect(codes).toContain("unknown-prerequisite");
+    expect(codes).not.toContain("prerequisite-cycle");
+  });
+
+  it("does not silently accept a dangling prerequisite id (regression: previously ok:true)", () => {
+    const withDanglingPrereq: A2ManifestSpec = {
+      ...A2_MANIFEST_SPEC,
+      moduleIds: [...A2_MANIFEST_SPEC.moduleIds],
+      modulePrerequisites: {
+        ...A2_MANIFEST_SPEC.modulePrerequisites,
+        "connected-conversation": ["module-that-does-not-exist"],
+      },
+    };
+    const result = validateA2ManifestSpec(withDanglingPrereq);
+    expect(result.ok).toBe(false);
+  });
+});
+
+describe("A2 derived manifest exports", () => {
+  it("derives A2_MODULE_MANIFEST with correct ordering, prerequisite, contract, and outcome ids", () => {
+    expect(Object.keys(A2_MODULE_MANIFEST)).toHaveLength(15);
+    A2_MODULE_IDS.forEach((moduleId, index) => {
+      const entry = A2_MODULE_MANIFEST[moduleId];
+      expect(entry.id).toBe(moduleId);
+      expect(entry.order).toBe(index + 1);
+      expect(entry.contract).toBe(A2_MANIFEST_SPEC.moduleContracts[moduleId]);
+      expect(entry.prerequisiteIds).toEqual(
+        A2_MANIFEST_SPEC.modulePrerequisites[moduleId],
+      );
+      expect(entry.lessonIds).toEqual(A2_LESSON_IDS_BY_MODULE[moduleId]);
+      expect(entry.outcomeCopyId).toBe(`a2-module-outcome-${moduleId}`);
+    });
+    // First module has no prerequisites; every later module's prerequisite
+    // is exactly the module immediately before it in canonical order.
+    expect(A2_MODULE_MANIFEST[A2_MODULE_IDS[0]].prerequisiteIds).toEqual([]);
+    for (let i = 1; i < A2_MODULE_IDS.length; i++) {
+      expect(A2_MODULE_MANIFEST[A2_MODULE_IDS[i]].prerequisiteIds).toEqual([
+        A2_MODULE_IDS[i - 1],
+      ]);
+    }
+  });
+
+  it("derives A2_LESSON_MANIFEST endpoints, positions, and outcome/order ids", () => {
+    expect(Object.keys(A2_LESSON_MANIFEST)).toHaveLength(60);
+
+    const firstLessonId = A2_LESSON_IDS[0];
+    const lastLessonId = A2_LESSON_IDS[A2_LESSON_IDS.length - 1];
+    expect(A2_LESSON_MANIFEST[firstLessonId]).toMatchObject({
+      lessonId: firstLessonId,
+      moduleId: A2_MODULE_IDS[0],
+      order: 1,
+      position: 1,
+    });
+    expect(A2_LESSON_MANIFEST[lastLessonId]).toMatchObject({
+      lessonId: lastLessonId,
+      moduleId: A2_MODULE_IDS[A2_MODULE_IDS.length - 1],
+      order: 4,
+      position: 60,
+    });
+
+    for (const lessonId of A2_LESSON_IDS) {
+      const entry = A2_LESSON_MANIFEST[lessonId];
+      expect(entry.position).toBe(A2_CANONICAL_POSITIONS[lessonId]);
+      expect(entry.contract).toBe(
+        A2_MANIFEST_SPEC.moduleContracts[entry.moduleId],
+      );
+      expect([1, 2, 3, 4]).toContain(entry.order);
+    }
+  });
+});
+
+describe("A2_RELEASE_ERROR_CODES", () => {
+  it("declares a non-empty, duplicate-free release error code vocabulary", () => {
+    expect(A2_RELEASE_ERROR_CODES.length).toBeGreaterThan(0);
+    expect(new Set(A2_RELEASE_ERROR_CODES).size).toBe(
+      A2_RELEASE_ERROR_CODES.length,
+    );
+  });
+
+  it("includes representative manifest, grammar-form, and kanji release codes", () => {
+    expect(A2_RELEASE_ERROR_CODES).toContain("module-count");
+    expect(A2_RELEASE_ERROR_CODES).toContain("lessons-per-module");
+    expect(A2_RELEASE_ERROR_CODES).toContain("route-count");
+    expect(A2_RELEASE_ERROR_CODES).toContain("grammar-form-missing-cando");
+    expect(A2_RELEASE_ERROR_CODES).toContain("grammar-role-before-intro");
+    expect(A2_RELEASE_ERROR_CODES).toContain("kanji-count");
+    expect(A2_RELEASE_ERROR_CODES).toContain("kanji-distribution-sum");
   });
 });

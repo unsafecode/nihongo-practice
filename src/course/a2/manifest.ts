@@ -231,6 +231,12 @@ export function validateA2ManifestSpec(
     );
   }
 
+  // Duplicate module IDs.
+  for (const dup of findDuplicates(moduleIds)) {
+    push("duplicate-module-id", `Module id "${dup}" appears more than once.`);
+  }
+  const declaredModuleIdSet = new Set(moduleIds);
+
   // Per-module lesson count and cross-module duplicate lessons.
   const allLessonIds: LessonId[] = [];
   for (const moduleId of moduleIds) {
@@ -254,6 +260,18 @@ export function validateA2ManifestSpec(
       "unknown-synthesis-module",
       `Synthesis module "${spec.synthesisModuleId}" is not among the declared modules.`,
     );
+  }
+
+  // Prerequisites must reference a declared module id; no dangling ids.
+  for (const moduleId of moduleIds) {
+    for (const prereq of spec.modulePrerequisites[moduleId] ?? []) {
+      if (!declaredModuleIdSet.has(prereq)) {
+        push(
+          "unknown-prerequisite",
+          `Module "${moduleId}" prerequisite "${prereq}" is not a declared module.`,
+        );
+      }
+    }
   }
 
   // Prerequisite graph must be acyclic.
