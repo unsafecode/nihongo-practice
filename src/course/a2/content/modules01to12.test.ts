@@ -1,18 +1,20 @@
 /**
- * A2 Modules 1-8 — full cumulative aggregate validation (Phase 3 Task 5).
+ * A2 Modules 1-12 — full cumulative aggregate validation (Phase 3 Task 6).
  *
- * The final, authoritative integration gate: assembles all 32 authored
- * M1-M8 lessons into one real `FoundationCatalogs` (never a fixture),
- * derives the honest M1-M8-served Can-do subset via `buildA2CanDos`,
- * computes cumulative introduced-content availability in canonical position
- * order, and runs the shared `validateFoundations` pipeline end-to-end
- * against real release data — exactly the same validator A1's own release
- * relies on. Extends every Task 4 exhaustive editorial audit
- * (malformed-conjugation guard, vocative-mistake/double-topic/speaker-label
- * detectors, I2 genuine-transfer-novelty, honest invariant FormSelection
- * metadata) to the complete 32-lesson set. No validator is ever weakened
- * here; a failure here must be fixed by correcting content/wiring, never by
- * loosening a check.
+ * The final, authoritative integration gate for the complete A2 release
+ * built so far: assembles all 48 authored M1-M12 lessons into one real
+ * `FoundationCatalogs` (never a fixture), derives the honest M1-M12-served
+ * Can-do subset via `buildA2CanDos`, computes cumulative introduced-content
+ * availability in canonical position order, and runs the shared
+ * `validateFoundations` pipeline end-to-end against real release data —
+ * exactly the same validator A1's own release relies on. Extends every
+ * Task 4/5 exhaustive editorial audit (malformed-conjugation guard,
+ * vocative-mistake/double-topic/speaker-label detectors, I2
+ * genuine-transfer-novelty, honest invariant FormSelection metadata) to the
+ * complete 48-lesson set, and folds in Task 6's own new M9-M12 audits
+ * (comparison/superlative realizer soundness, no-dead-values/families). No
+ * validator is ever weakened here; a failure here must be fixed by
+ * correcting content/wiring, never by loosening a check.
  */
 import { describe, expect, it } from "vitest";
 
@@ -33,7 +35,7 @@ import {
 } from "../catalog/a2LessonBuilders";
 import {
   A2_CANDO_REGISTRY,
-  A2_M1_M8_SERVED_CANDO_IDS,
+  A2_M1_M12_SERVED_CANDO_IDS,
   a2CanDoDescriptorCopy,
   buildA2CanDos,
 } from "../catalog/canDos";
@@ -55,9 +57,13 @@ import { module5Lessons } from "./module05SequencingOngoing";
 import { module6Lessons } from "./module06PermissionRequests";
 import { module7Lessons } from "./module07NeighborhoodServices";
 import { module8Lessons } from "./module08RestaurantProblems";
+import { module9Lessons } from "./module09ShoppingReturns";
+import { module10Lessons } from "./module10HealthAdvice";
+import { module11Lessons } from "./module11WorkStudyMessages";
+import { module12Lessons } from "./module12TravelReservations";
 
 // ---------------------------------------------------------------------------
-// Assemble the real, cumulative M1-M8 catalog (32 lessons, 8 modules)
+// Assemble the real, cumulative M1-M12 catalog (48 lessons, 12 modules)
 // ---------------------------------------------------------------------------
 
 const allBuiltLessonsUnsorted: readonly A2BuiltLesson[] = [
@@ -69,6 +75,10 @@ const allBuiltLessonsUnsorted: readonly A2BuiltLesson[] = [
   ...module6Lessons,
   ...module7Lessons,
   ...module8Lessons,
+  ...module9Lessons,
+  ...module10Lessons,
+  ...module11Lessons,
+  ...module12Lessons,
 ];
 
 // Never assume authoring order is canonical order — sort explicitly by the
@@ -78,9 +88,9 @@ const allBuiltLessons: readonly A2BuiltLesson[] = [...allBuiltLessonsUnsorted].s
   (a, b) => A2_CANONICAL_POSITIONS[a.recipe.id] - A2_CANONICAL_POSITIONS[b.recipe.id],
 );
 
-const a2M1M8CanDos = buildA2CanDos(A2_M1_M8_SERVED_CANDO_IDS, allBuiltLessons);
+const a2M1M12CanDos = buildA2CanDos(A2_M1_M12_SERVED_CANDO_IDS, allBuiltLessons);
 
-const M1_M8_MODULE_IDS = [
+const M1_M12_MODULE_IDS = [
   "connected-conversation",
   "plans-invitations",
   "experiences-narratives",
@@ -89,9 +99,13 @@ const M1_M8_MODULE_IDS = [
   "permission-requests",
   "neighborhood-services",
   "restaurant-problems",
+  "shopping-returns",
+  "health-advice",
+  "work-study-messages",
+  "travel-reservations",
 ] as const;
 
-const foundationModules: readonly FoundationModule[] = M1_M8_MODULE_IDS.map((moduleId) => {
+const foundationModules: readonly FoundationModule[] = M1_M12_MODULE_IDS.map((moduleId) => {
   const manifestEntry = A2_MODULE_MANIFEST[moduleId];
   const lessonsInModule = allBuiltLessons.filter((built) => built.recipe.moduleId === moduleId);
   const canDoIds = [
@@ -114,11 +128,11 @@ const foundationModules: readonly FoundationModule[] = M1_M8_MODULE_IDS.map((mod
 const foundationLevel: CourseLevel = {
   id: "a2",
   alignmentCopyId: "a2-level-alignment",
-  moduleIds: [...M1_M8_MODULE_IDS],
-  canDoIds: [...A2_M1_M8_SERVED_CANDO_IDS],
+  moduleIds: [...M1_M12_MODULE_IDS],
+  canDoIds: [...A2_M1_M12_SERVED_CANDO_IDS],
 };
 
-// A synthetic, interim checkpoint sampling exactly the M1-M8 taught primary
+// A synthetic, interim checkpoint sampling exactly the M1-M12 taught primary
 // Can-dos (no real A2 checkpoint module exists yet — that is a later task's
 // deliverable).
 const TAUGHT_PRIMARY_CAN_DO_IDS = [
@@ -126,7 +140,7 @@ const TAUGHT_PRIMARY_CAN_DO_IDS = [
 ].sort();
 
 const interimCheckpoint: CheckpointDefinition = {
-  id: "a2-checkpoint-m1-m8-interim",
+  id: "a2-checkpoint-m1-m12-interim",
   level: "a2",
   sampledCanDoIds: TAUGHT_PRIMARY_CAN_DO_IDS,
   minAcceptedTransferTargetsPerCanDo: 3,
@@ -135,47 +149,36 @@ const interimCheckpoint: CheckpointDefinition = {
 const catalogs = assembleA2FoundationCatalogs({
   lessons: allBuiltLessons.map((built) => built.recipe),
   variants: allBuiltLessons.flatMap((built) => built.variants),
-  canDos: a2M1M8CanDos,
+  canDos: a2M1M12CanDos,
   modules: foundationModules,
   levels: [foundationLevel],
   checkpoints: [interimCheckpoint],
 });
 
-// Phase 3 Task 6 fix: `a2SentenceFamilies` is the complete, ever-growing
-// shared array — until Task 6, it happened to contain exactly the 33
-// families M1-M8's own 32 lessons collectively reference (zero orphans), so
-// this full M1-M8 aggregate needed no scoping fix of its own. Now that M9's
-// own families (e.g. `a2-family-comparison-favor`, whose `canDoIds` names
-// "a2-cando-compare" — a Can-do this M1-M8-only aggregate's own `canDos`
-// deliberately never materializes) live in that same shared array, this
-// aggregate must scope `sentenceFamilies` down to exactly the families the
-// 32 M1-M8 lessons' own variants actually reference — mirrors
-// `modules05to08.test.ts`'s own `scopedCatalogs` fix exactly; never a
-// validator weakening, just correctly-scoped input data for an
-// intentionally M1-M8-only test.
-//
-// a2-family-ongoing-teiru (genuinely one of M1-M8's OWN families, first
-// introduced at sequencing-ongoing-3) now ALSO names
-// `a2-cando-report-progress` in its static `canDoIds` array (Phase 3 Task
-// 6's work-study-messages-3 primary, served by this SAME family reused
-// verbatim — see its own doc-comment in a2SemanticCatalog.ts). That id is
-// genuinely out of scope here (no M1-M8 lesson ever teaches or transfers
-// it), so every scoped family's `canDoIds` is additionally trimmed down to
-// just the ids this M1-M8 slice actually serves — never a validator
-// weakening, just correctly-scoped input data. The full M1-M12 aggregate
-// needs no such trim, since work-study-messages-3 is genuinely present
-// there.
-const A2_M1_M8_SERVED_CANDO_ID_SET = new Set(A2_M1_M8_SERVED_CANDO_IDS);
-const m1m8FamilyIds = new Set(
+// `a2SentenceFamilies` is the complete, ever-growing shared array; scope
+// `sentenceFamilies` down to exactly the families the 48 M1-M12 lessons'
+// own variants actually reference (harmless no-op today — every declared
+// family is genuinely referenced somewhere across M1-M12 — but kept as a
+// forward-looking safety net once M13+ families join the same shared
+// array, mirroring every earlier partial aggregate's own fix). Each
+// scoped family's `canDoIds` is likewise trimmed to just the ids this
+// M1-M12 release actually serves (`A2_M1_M12_SERVED_CANDO_IDS`) — today
+// every family's canDoIds already lies entirely within that 47-id set (no
+// M1-M12 family names a future M13+ topical id), so this is also a no-op
+// safety net, not a fix for any currently-real gap. Never a validator
+// weakening — `checkReferences` itself is untouched and still demands 100%
+// integrity against whatever catalogs it is given.
+const A2_M1_M12_SERVED_CANDO_ID_SET = new Set(A2_M1_M12_SERVED_CANDO_IDS);
+const m1m12FamilyIds = new Set(
   allBuiltLessons.flatMap((built) => built.variants.map((variant) => variant.sentenceFamilyId)),
 );
 const scopedCatalogs = {
   ...catalogs,
   sentenceFamilies: catalogs.sentenceFamilies
-    .filter((family) => m1m8FamilyIds.has(family.id))
+    .filter((family) => m1m12FamilyIds.has(family.id))
     .map((family) => ({
       ...family,
-      canDoIds: family.canDoIds.filter((id) => A2_M1_M8_SERVED_CANDO_ID_SET.has(id)),
+      canDoIds: family.canDoIds.filter((id) => A2_M1_M12_SERVED_CANDO_ID_SET.has(id)),
     })),
 };
 
@@ -204,13 +207,13 @@ const foundationCopy = {
   ),
 };
 
-describe("A2 M1-M8 aggregate — exactly 32 lessons across 8 modules in canonical order", () => {
-  it("has exactly 32 lessons total", () => {
-    expect(allBuiltLessons).toHaveLength(32);
+describe("A2 M1-M12 aggregate — exactly 48 lessons across 12 modules in canonical order", () => {
+  it("has exactly 48 lessons total", () => {
+    expect(allBuiltLessons).toHaveLength(48);
   });
 
   it("lists each module's exact 4 lesson ids in the real manifest", () => {
-    for (const moduleId of M1_M8_MODULE_IDS) {
+    for (const moduleId of M1_M12_MODULE_IDS) {
       expect(A2_MODULE_MANIFEST[moduleId].lessonIds).toHaveLength(4);
     }
   });
@@ -223,10 +226,10 @@ describe("A2 M1-M8 aggregate — exactly 32 lessons across 8 modules in canonica
   });
 });
 
-describe("A2 M1-M8 aggregate — buildA2CanDos honest subset", () => {
-  it("materializes exactly the 32 M1-M8-served Can-dos, each with >=1 real lessonId", () => {
-    expect(a2M1M8CanDos).toHaveLength(32);
-    for (const canDo of a2M1M8CanDos) {
+describe("A2 M1-M12 aggregate — buildA2CanDos honest subset", () => {
+  it("materializes exactly the 47 M1-M12-served Can-dos, each with >=1 real lessonId", () => {
+    expect(a2M1M12CanDos).toHaveLength(47);
+    for (const canDo of a2M1M12CanDos) {
       expect(canDo.lessonIds.length, canDo.id).toBeGreaterThan(0);
     }
   });
@@ -235,10 +238,10 @@ describe("A2 M1-M8 aggregate — buildA2CanDos honest subset", () => {
 // Phase 3 Task 5 spec-fix: a cross-cutting regression net independent of any
 // single module/family file, and independent of `A2_CANDO_REGISTRY`'s own
 // (possibly-drifted) content — every Can-do id actually *referenced* by the
-// real, authored M1-M8 content (recipe primary/support ids) or by any *live*
+// real, authored M1-M12 content (recipe primary/support ids) or by any *live*
 // (actually-used) sentence family's own `canDoIds` must belong to the
 // hardcoded canonical 59-id set (never Task 4's redesigned aliases).
-describe("A2 M1-M8 aggregate — every referenced Can-do id belongs to the canonical registry (Phase 3 Task 5 spec-fix)", () => {
+describe("A2 M1-M12 aggregate — every referenced Can-do id belongs to the canonical registry (Phase 3 Task 5 spec-fix)", () => {
   const CANONICAL_A2_CANDO_IDS = new Set(
     [
       // 15 grammar
@@ -259,7 +262,7 @@ describe("A2 M1-M8 aggregate — every referenced Can-do id belongs to the canon
     ].map((name) => `a2-cando-${name}`),
   );
 
-  it("every recipe primaryCanDoId/supportingCanDoIds referenced by the 32 authored M1-M8 lessons is a canonical id", () => {
+  it("every recipe primaryCanDoId/supportingCanDoIds referenced by the 48 authored M1-M12 lessons is a canonical id", () => {
     for (const built of allBuiltLessons) {
       expect(CANONICAL_A2_CANDO_IDS.has(built.recipe.primaryCanDoId), `${built.recipe.id} primary ${built.recipe.primaryCanDoId}`).toBe(true);
       for (const support of built.recipe.supportingCanDoIds) {
@@ -286,7 +289,7 @@ describe("A2 M1-M8 aggregate — every referenced Can-do id belongs to the canon
   });
 });
 
-describe("A2 M1-M8 aggregate — foundation copy parity", () => {
+describe("A2 M1-M12 aggregate — foundation copy parity", () => {
   it("has identical EN/IT key sets across the full aggregate", () => {
     expect(Object.keys(foundationCopy.en).sort()).toEqual(Object.keys(foundationCopy.it).sort());
   });
@@ -299,13 +302,13 @@ describe("A2 M1-M8 aggregate — foundation copy parity", () => {
   });
 });
 
-describe("A2 M1-M8 aggregate — validateFoundations end-to-end", () => {
-  it("is valid against the real, cumulative M1-M8 release data (never weakened to pass)", () => {
+describe("A2 M1-M12 aggregate — validateFoundations end-to-end", () => {
+  it("is valid against the real, cumulative M1-M12 release data (never weakened to pass)", () => {
     const result = validateFoundations({
       catalogs: scopedCatalogs,
       foundationCopy,
-      catalogVersion: "a2-m1-m8-task5",
-      seed: "a2-task5-full-aggregate-seed",
+      catalogVersion: "a2-m1-m12-task6",
+      seed: "a2-task6-full-aggregate-seed",
       availableContentByLesson,
     });
     if (!result.valid) {
@@ -319,7 +322,7 @@ describe("A2 M1-M8 aggregate — validateFoundations end-to-end", () => {
   });
 });
 
-describe("A2 M1-M8 aggregate — Task4 editorial regression (malformed conjugation guard), extended to all 32 lessons", () => {
+describe("A2 M1-M12 aggregate — Task4 editorial regression (malformed conjugation guard), extended to all 48 lessons", () => {
   const famById = new Map<string, SentenceFamily>(a2SentenceFamilies.map((f) => [f.id, f]));
   const realizeCatalogs = {
     contexts: a2Contexts,
@@ -330,10 +333,10 @@ describe("A2 M1-M8 aggregate — Task4 editorial regression (malformed conjugati
   };
 
   // The exact malformed sequences a fresh M1-M4 spec review found; never
-  // recurs anywhere in the full 32-lesson release.
+  // recurs anywhere in the full 48-lesson release.
   const MALFORMED_SEQUENCES = ["はなます", "たべるませんか", "いくませんか", "みよてい"] as const;
 
-  it("realizes every currently authored M1-M8 model+transfer variant with no known-malformed conjugation sequence, and formatRomaji().ok === true", () => {
+  it("realizes every currently authored M1-M12 model+transfer variant with no known-malformed conjugation sequence, and formatRomaji().ok === true", () => {
     for (const built of allBuiltLessons) {
       for (const variant of built.variants) {
         const family = famById.get(variant.sentenceFamilyId);
@@ -358,18 +361,20 @@ describe("A2 M1-M8 aggregate — Task4 editorial regression (malformed conjugati
 });
 
 // Task 4 final spec-fix ("keep transfer Japanese natural"), extended to
-// M5-M8: a *named individual* (Sora/Emi) must never be marked as an
+// M5-M12: a *named individual* (Sora/Emi) must never be marked as an
 // explicit topic-marked subject (そらは/えみは) on a family whose own
 // content is a complete direct-address speech act. M1-M4's own four
 // direct-address families (invite/respond-invite/arrange-meeting/
-// clarify-repeat) and M6-M8's nine direct-address families (permission/
+// clarify-repeat), M6-M8's nine direct-address families (permission/
 // prohibition/request/negative-request/confirm-understanding/ask-where/
-// ask-for-help) are combined into one allowlist here — M5's te-sequence/
-// ongoing-teiru and M8's recount-experience are deliberately excluded
-// (their "explicit" sora/emi usage is a genuine third-party narrative
-// statement, e.g. so1's "そらは おきて、かおをあらいます", exactly like M1-M4's
-// own cc1 precedent "そらはどうりょうとはなします" — never a vocative mistake).
-describe("A2 M1-M8 aggregate — Task4 final spec-fix editorial audit (vocative mistakes, double-topic, speaker-label copy), extended to all 32 lessons", () => {
+// ask-for-help), and M9-M12's own two (ask-colleague/change-cancel) are
+// combined into one allowlist here — M5's te-sequence/ongoing-teiru, M8's
+// recount-experience, and M10/M12's clinic-appointment/make-reservation
+// are deliberately excluded (their "explicit" sora/emi usage is a genuine
+// third-party narrative statement, e.g. so1's "そらは おきて、かおをあらいます",
+// exactly like M1-M4's own cc1 precedent "そらはどうりょうとはなします" — never a
+// vocative mistake).
+describe("A2 M1-M12 aggregate — Task4 final spec-fix editorial audit (vocative mistakes, double-topic, speaker-label copy), extended to all 48 lessons", () => {
   const famById = new Map<string, SentenceFamily>(a2SentenceFamilies.map((f) => [f.id, f]));
   const valueById = new Map(a2SemanticValues.map((value) => [value.id, value]));
 
@@ -389,6 +394,9 @@ describe("A2 M1-M8 aggregate — Task4 final spec-fix editorial audit (vocative 
     "a2-family-confirm-understanding",
     "a2-family-ask-where",
     "a2-family-ask-for-help",
+    // M9-M12
+    "a2-family-ask-colleague",
+    "a2-family-change-cancel",
   ]);
   const NAMED_INDIVIDUAL_REFERENT_IDS: ReadonlySet<string> = new Set(["a2-referent-sora", "a2-referent-emi"]);
 
@@ -425,7 +433,7 @@ describe("A2 M1-M8 aggregate — Task4 final spec-fix editorial audit (vocative 
     );
   }
 
-  it("flags zero vocative mistakes across every currently authored M1-M8 model+transfer", () => {
+  it("flags zero vocative mistakes across every currently authored M1-M12 model+transfer", () => {
     const violations: string[] = [];
     for (const built of allBuiltLessons) {
       for (const variant of built.variants) {
@@ -441,7 +449,7 @@ describe("A2 M1-M8 aggregate — Task4 final spec-fix editorial audit (vocative 
     expect(violations, `${violations.length} vocative mistake(s):\n${violations.join("\n")}`).toEqual([]);
   });
 
-  it("flags zero double-topic transfers across every currently authored M1-M8 model+transfer", () => {
+  it("flags zero double-topic transfers across every currently authored M1-M12 model+transfer", () => {
     const violations: string[] = [];
     for (const built of allBuiltLessons) {
       for (const variant of built.variants) {
@@ -472,7 +480,7 @@ describe("A2 M1-M8 aggregate — Task4 final spec-fix editorial audit (vocative 
   });
 });
 
-// I2 spec-fix (Phase 3 Task 5 quality pass), extended to all 32 lessons: the
+// I2 spec-fix (Phase 3 Task 5 quality pass), extended to all 48 lessons: the
 // vocative-mistake audit above only ever guarded AGAINST an explicit
 // topic-marked NAMED individual (sora/emi) on a direct-address family; a
 // fresh review found the opposite mistake was never guarded at all — a
@@ -485,7 +493,7 @@ describe("A2 M1-M8 aggregate — Task4 final spec-fix editorial audit (vocative 
 // "ten'in-san" is exactly how a customer addresses restaurant/shop staff).
 // `"social"` (teacher/friend/colleague) and `"learner"` (the self-referent)
 // never qualify.
-describe("A2 M1-M8 aggregate — I2 spec-fix: a social-role referent (teacher/friend/colleague) can never be vocative-addressed, extended to all 32 lessons", () => {
+describe("A2 M1-M12 aggregate — I2 spec-fix: a social-role referent (teacher/friend/colleague) can never be vocative-addressed, extended to all 48 lessons", () => {
   const referentById = new Map(a2Referents.map((r) => [r.id, r]));
   const roleById = new Map(a2PersonRoles.map((r) => [r.id, r]));
 
@@ -528,7 +536,7 @@ describe("A2 M1-M8 aggregate — I2 spec-fix: a social-role referent (teacher/fr
     expect(isSocialRoleVocativeMistake(soraTransfer as SentenceVariant)).toBe(false);
   });
 
-  it("flags zero social-role vocative mistakes across every currently authored M1-M8 model+transfer (no false positives against real sora/emi/clerk vocative content)", () => {
+  it("flags zero social-role vocative mistakes across every currently authored M1-M12 model+transfer (no false positives against real sora/emi/clerk vocative content)", () => {
     const violations: string[] = [];
     for (const built of allBuiltLessons) {
       for (const variant of built.variants) {
@@ -544,7 +552,7 @@ describe("A2 M1-M8 aggregate — I2 spec-fix: a social-role referent (teacher/fr
 });
 
 
-// M2 spec-fix (Phase 3 Task 5 quality pass), extended to all 32 lessons:
+// M2 spec-fix (Phase 3 Task 5 quality pass), extended to all 48 lessons:
 // rp4-t4's own Japanese was genuinely nonpast (baked ~ます, e.g. かえります
 // "goes home") but its EN/IT copy glossed it in the past tense ("received...
 // went home") — a same-underlying-Japanese, conflicting-copy defect.
@@ -559,7 +567,7 @@ describe("A2 M1-M8 aggregate — I2 spec-fix: a social-role referent (teacher/fr
 // sentences legitimately mix a past first clause with a nonpast second
 // clause) to avoid false positives against that family's own different,
 // already-correct shape.
-describe("A2 M1-M8 aggregate — M2 spec-fix: te-sequence copy never contradicts its own baked (nonpast vs. past) Japanese tense, extended to all 32 lessons", () => {
+describe("A2 M1-M12 aggregate — M2 spec-fix: te-sequence copy never contradicts its own baked (nonpast vs. past) Japanese tense, extended to all 48 lessons", () => {
   const valueById = new Map(a2SemanticValues.map((v) => [v.id, v]));
   const TE_SEQUENCE_FAMILY_IDS: ReadonlySet<string> = new Set([
     "a2-family-te-sequence",
@@ -637,7 +645,7 @@ describe("A2 M1-M8 aggregate — M2 spec-fix: te-sequence copy never contradicts
     ).toBe(false);
   });
 
-  it("flags zero conflicting-tense te-sequence copy across every currently authored M1-M8 model+transfer", () => {
+  it("flags zero conflicting-tense te-sequence copy across every currently authored M1-M12 model+transfer", () => {
     const violations: string[] = [];
     for (const built of allBuiltLessons) {
       for (const variant of built.variants) {
@@ -655,12 +663,12 @@ describe("A2 M1-M8 aggregate — M2 spec-fix: te-sequence copy never contradicts
 });
 
 
-// I2 spec-fix ("true transfer failure"), extended to all 32 lessons: a
+// I2 spec-fix ("true transfer failure"), extended to all 48 lessons: a
 // transfer is only a genuine test of transfer if its *visible* answer
 // (visibleTargetKey — canonicalJapanese-only, never discourse/context
 // metadata) is something the learner has never been shown as a model in
 // this same lesson.
-describe("A2 M1-M8 aggregate — I2 spec-fix (genuine round-two transfers, not hidden-metadata duplicates), extended to all 32 lessons", () => {
+describe("A2 M1-M12 aggregate — I2 spec-fix (genuine round-two transfers, not hidden-metadata duplicates), extended to all 48 lessons", () => {
   const famById = new Map<string, SentenceFamily>(a2SentenceFamilies.map((f) => [f.id, f]));
   const realizeCatalogs = {
     contexts: a2Contexts,
@@ -717,7 +725,7 @@ describe("A2 M1-M8 aggregate — I2 spec-fix (genuine round-two transfers, not h
     }
   });
 
-  it("collects zero total transfer-novelty collisions across the entire 32-lesson release", () => {
+  it("collects zero total transfer-novelty collisions across the entire 48-lesson release", () => {
     let collisionCount = 0;
     for (const built of allBuiltLessons) {
       const models = built.variants.filter((v) => v.pedagogicalUse === "model");
@@ -731,8 +739,8 @@ describe("A2 M1-M8 aggregate — I2 spec-fix (genuine round-two transfers, not h
 
 // M4 spec-fix ("form metadata"), extended to M5-M8: audits every
 // invariant-family variant's `FormSelection` against the honest register
-// its own baked Japanese actually realizes, across the full M1-M8 release.
-describe("A2 M1-M8 aggregate — M4-style honest invariant FormSelection metadata, extended to all 32 lessons", () => {
+// its own baked Japanese actually realizes, across the full M1-M12 release.
+describe("A2 M1-M12 aggregate — M4-style honest invariant FormSelection metadata, extended to all 48 lessons", () => {
   const famById = new Map<string, SentenceFamily>(a2SentenceFamilies.map((f) => [f.id, f]));
   const realizeCatalogs = {
     contexts: a2Contexts,
@@ -794,11 +802,21 @@ describe("A2 M1-M8 aggregate — M4-style honest invariant FormSelection metadat
     "a2-value-problem-tarinai": { polarity: "negative", tense: "present", formality: "polite" },
     "a2-value-problem-machigai": { polarity: "affirmative", tense: "past", formality: "polite" },
     "a2-value-problem-daremo-konai": { polarity: "negative", tense: "present", formality: "polite" },
+    // --- M9-M12 (rule-invariant-utterance families only; travel-problem's
+    // own two past-tense values use rule-invariant-object instead, so they
+    // are audited separately below rather than added to this map, where
+    // they would never actually be reached by this check's own family-type
+    // condition) ---
+    "a2-value-return-tsukatteinai": { polarity: "negative", tense: "present", formality: "polite" },
+    "a2-value-better-genki-ni-natta": { polarity: "affirmative", tense: "past", formality: "polite" },
+    "a2-value-better-naotta": { polarity: "affirmative", tense: "past", formality: "polite" },
+    "a2-value-reply-wakarimashita": { polarity: "affirmative", tense: "past", formality: "polite" },
+    "a2-value-reply-shouchishimashita": { polarity: "affirmative", tense: "past", formality: "polite" },
   };
 
   const DEFAULT_HONEST_FORM = { polarity: "affirmative", tense: "present", formality: "polite" } as const;
 
-  it("every invariant-family M1-M8 variant's FormSelection matches the honest register its own baked Japanese actually is", () => {
+  it("every invariant-family M1-M12 variant's FormSelection matches the honest register its own baked Japanese actually is", () => {
     const violations: string[] = [];
     for (const built of allBuiltLessons) {
       for (const variant of built.variants) {
@@ -839,7 +857,59 @@ describe("A2 M1-M8 aggregate — M4-style honest invariant FormSelection metadat
   });
 });
 
-describe("A2 M1-M8 aggregate — kanji exposure wiring across all 32 lessons", () => {
+// Phase 3 Task 6 extension of the same honest-FormSelection principle to
+// M9-M12's own "rule-invariant-object" families — scoped tightly to just
+// `a2-family-travel-problem` (the one M9-M12 family of this shape whose
+// baked Japanese is genuinely past-tense) rather than widening the M1-M8
+// audit above to every "rule-invariant-object" family in the release
+// (which would also pull in M1-M8's own a2-family-ongoing-teiru/
+// a2-family-order-food/a2-family-report-problem — never audited this way
+// before, and out of this task's scope to newly re-litigate).
+describe("A2 M1-M12 aggregate — M9-M12's own rule-invariant-object FormSelection honesty (Phase 3 Task 6)", () => {
+  const famById = new Map<string, SentenceFamily>(a2SentenceFamilies.map((f) => [f.id, f]));
+  const realizeCatalogs = {
+    contexts: a2Contexts,
+    personRoles: a2PersonRoles,
+    referents: a2Referents,
+    semanticValues: a2SemanticValues,
+    learningTargetSenses: a2LearningTargetSenses,
+  };
+
+  const HONEST_FORM_BY_VALUE_ID: Readonly<Record<string, { polarity: string; tense: string; formality: string }>> = {
+    "a2-value-problem-nakusu": { polarity: "affirmative", tense: "past", formality: "polite" },
+    "a2-value-problem-machigaeru": { polarity: "affirmative", tense: "past", formality: "polite" },
+  };
+  const DEFAULT_HONEST_FORM = { polarity: "affirmative", tense: "present", formality: "polite" } as const;
+
+  it("every travel-problem variant's FormSelection matches the honest register its own baked Japanese actually is", () => {
+    const violations: string[] = [];
+    for (const built of allBuiltLessons) {
+      for (const variant of built.variants) {
+        const family = famById.get(variant.sentenceFamilyId);
+        if (!family || family.id !== "a2-family-travel-problem") continue;
+        const predicateValueId = variant.slotValues.predicate;
+        const expected = HONEST_FORM_BY_VALUE_ID[predicateValueId] ?? DEFAULT_HONEST_FORM;
+        const actual = variant.form;
+        if (
+          actual.polarity !== expected.polarity ||
+          actual.tense !== expected.tense ||
+          actual.formality !== expected.formality
+        ) {
+          const result = realizeVariant(family, variant, realizeCatalogs, {
+            availableConceptIds: [...family.requiredConceptIds],
+          });
+          const jp = result.ok ? result.sentence.canonicalJapanese : "<realize failed>";
+          violations.push(
+            `${variant.id} (${predicateValueId} => "${jp}"): form is ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`,
+          );
+        }
+      }
+    }
+    expect(violations, `${violations.length} dishonest FormSelection(s):\n${violations.join("\n")}`).toEqual([]);
+  });
+});
+
+describe("A2 M1-M12 aggregate — kanji exposure wiring across all 48 lessons", () => {
   it("every lesson's kanjiExposureIds resolves from the real Task 3 catalog (no omissions/inventions)", () => {
     for (const built of allBuiltLessons) {
       expect(built.recipe.kanjiExposureIds.length, built.recipe.id).toBeGreaterThan(0);
@@ -849,7 +919,7 @@ describe("A2 M1-M8 aggregate — kanji exposure wiring across all 32 lessons", (
 
 // ---------------------------------------------------------------------------
 // Phase 3 Task 5 spec-fix: persona pronoun consistency + mizu semantic gloss
-// audit, extended to all 32 M1-M8 lessons.
+// audit, extended to all 48 M1-M12 lessons.
 //
 // Both checks are purely mechanical against real, already-pinned catalog
 // truth (a2PersonRoles' own `gender` field and a2-value-obj-mizu's own slot
@@ -859,8 +929,8 @@ describe("A2 M1-M8 aggregate — kanji exposure wiring across all 32 lessons", (
 // and Emi (feminine) are, and only a2-value-obj-mizu's own object slot is
 // scanned for the invented "fountain"/"fontanella" gloss.
 // ---------------------------------------------------------------------------
-describe("A2 M1-M8 aggregate — persona pronoun consistency & mizu semantic gloss audit (Phase 3 Task 5 spec-fix)", () => {
-  it("no M1-M8 Sora-subject line uses a feminine pronoun, and no Emi-subject line uses a masculine one", () => {
+describe("A2 M1-M12 aggregate — persona pronoun consistency & mizu semantic gloss audit (Phase 3 Task 5 spec-fix)", () => {
+  it("no M1-M12 Sora-subject line uses a feminine pronoun, and no Emi-subject line uses a masculine one", () => {
     const FEMININE_PRONOUN = /\b(she|her|hers)\b/i;
     const MASCULINE_PRONOUN = /\b(he|him|his)\b/i;
     const violations: string[] = [];
@@ -880,7 +950,7 @@ describe("A2 M1-M8 aggregate — persona pronoun consistency & mizu semantic glo
     );
   });
 
-  it('no M1-M8 line realizing a2-value-obj-mizu glosses it as "fountain"/"fontanella" — mizu is plain "water"/"acqua"', () => {
+  it('no M1-M12 line realizing a2-value-obj-mizu glosses it as "fountain"/"fontanella" — mizu is plain "water"/"acqua"', () => {
     const FOUNTAIN_GLOSS = /fountain|fontanella/i;
     const violations: string[] = [];
     for (const built of allBuiltLessons) {
@@ -895,5 +965,60 @@ describe("A2 M1-M8 aggregate — persona pronoun consistency & mizu semantic glo
     expect(violations, `${violations.length} mizu semantic-gloss violation(s):\n${violations.join("\n")}`).toEqual(
       [],
     );
+  });
+});
+
+// New realizer/family editorial gates specific to Phase 3 Task 6: no new
+// dead values/families — every semantic value and family that task adds is
+// genuinely referenced by at least one authored M9-M12 variant, checked
+// here against the full 48-lesson release (never re-litigating M1-M8's own
+// pre-existing family list, which this task never modified).
+describe("A2 M1-M12 aggregate — no new dead values/families (Phase 3 Task 6)", () => {
+  const M9_M12_FAMILY_IDS: readonly string[] = [
+    "a2-family-comparison-favor",
+    "a2-family-superlative",
+    "a2-family-ask-price-decide",
+    "a2-family-return-exchange",
+    "a2-family-symptom",
+    "a2-family-wellbeing",
+    "a2-family-symptom-exist",
+    "a2-family-tahouga-advice",
+    "a2-family-get-better",
+    "a2-family-clinic-appointment",
+    "a2-family-message-late-absent",
+    "a2-family-ask-colleague",
+    "a2-family-reply-confirm",
+    "a2-family-make-reservation",
+    "a2-family-travel-arrival",
+    "a2-family-travel-schedule-other",
+    "a2-family-travel-problem",
+    "a2-family-change-cancel",
+  ];
+
+  it("every M9-M12 family is referenced by at least one authored variant (no dead families)", () => {
+    const liveFamilyIds = new Set(allBuiltLessons.flatMap((built) => built.variants.map((v) => v.sentenceFamilyId)));
+    for (const familyId of M9_M12_FAMILY_IDS) {
+      expect(liveFamilyIds.has(familyId), familyId).toBe(true);
+    }
+  });
+
+  it("every semantic value referenced by any M1-M12 variant's slotValues resolves to a real catalog entry (no dangling references)", () => {
+    const valueIds = new Set(a2SemanticValues.map((v) => v.id));
+    for (const built of allBuiltLessons) {
+      for (const variant of built.variants) {
+        for (const valueId of Object.values(variant.slotValues)) {
+          expect(valueIds.has(valueId), `${variant.id} -> ${valueId}`).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("every family in the shared catalog that is referenced by an M1-M12 variant is itself present in a2SentenceFamilies (no orphan family ids on variants)", () => {
+    const famIds = new Set(a2SentenceFamilies.map((f) => f.id));
+    for (const built of allBuiltLessons) {
+      for (const variant of built.variants) {
+        expect(famIds.has(variant.sentenceFamilyId), `${variant.id} -> ${variant.sentenceFamilyId}`).toBe(true);
+      }
+    }
   });
 });

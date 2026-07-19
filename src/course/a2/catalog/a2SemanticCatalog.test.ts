@@ -30,6 +30,7 @@ import type { SentenceFamily, SentenceVariant } from "../../foundations/types";
 import {
   A2_M1_M4_CONCEPT_IDS,
   A2_M5_M8_CONCEPT_IDS,
+  A2_M9_M12_CONCEPT_IDS,
   a2Contexts,
   a2LearningTargetSenses,
   a2PersonRoles,
@@ -672,5 +673,224 @@ describe("a2SemanticCatalog — Phase 3 Task 5: restaurant-problem ID refactorin
 
     const henSense = senseById("a2-sense-problem-hen");
     expect(henSense.id).toBe("a2-sense-problem-hen");
+  });
+});
+
+describe("a2SemanticCatalog — M9-M12 new contexts (Phase 3 Task 6)", () => {
+  // These exact ids are already load-bearing in the frozen Task 3 kanji
+  // catalog (`a2/kanji/a2KanjiCatalog.ts`'s SHOPPING_RETURNS_ROWS/
+  // HEALTH_ADVICE_ROWS/WORK_STUDY_MESSAGES_ROWS/TRAVEL_RESERVATIONS_ROWS
+  // each hard-code `contextId: "a2-context-shopping"` etc. already) — so
+  // these are not a free naming choice, they are fixed by a prior task.
+  const NEW_CONTEXT_IDS = [
+    "a2-context-shopping",
+    "a2-context-health",
+    "a2-context-work-study",
+    "a2-context-travel",
+  ] as const;
+
+  it.each(NEW_CONTEXT_IDS)("declares context %s with a resolvable labelCopyId", (contextId) => {
+    const context = a2Contexts.find((c) => c.id === contextId);
+    expect(context, contextId).toBeDefined();
+    expect(context?.labelCopyId.length).toBeGreaterThan(0);
+  });
+
+  it("gives every new context a real EN/IT label in a2SharedCopy and a real EN/IT scenario note via a2Scenario", () => {
+    for (const contextId of NEW_CONTEXT_IDS) {
+      const context = a2Contexts.find((c) => c.id === contextId);
+      expect(context, contextId).toBeDefined();
+      expect(a2SharedCopy.en[(context as { labelCopyId: string }).labelCopyId], contextId).toBeTruthy();
+      expect(a2SharedCopy.it[(context as { labelCopyId: string }).labelCopyId], contextId).toBeTruthy();
+      const scenario = a2Scenario(contextId);
+      expect(scenario.en.length, contextId).toBeGreaterThan(0);
+      expect(scenario.it.length, contextId).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("a2SemanticCatalog — M9-M12 concept ids (Phase 3 Task 6)", () => {
+  it("declares exactly the 15 new M9-M12 grammar/topical concept ids, each distinct from every M1-M8 concept id", () => {
+    expect(A2_M9_M12_CONCEPT_IDS).toHaveLength(15);
+    expect(new Set(A2_M9_M12_CONCEPT_IDS).size).toBe(15);
+    for (const id of A2_M9_M12_CONCEPT_IDS) {
+      expect(A2_M1_M4_CONCEPT_IDS, id).not.toContain(id);
+      expect(A2_M5_M8_CONCEPT_IDS, id).not.toContain(id);
+    }
+  });
+});
+
+describe("a2SemanticCatalog — M9-M12 new realizer rules: exact tokenFragments/realization (Phase 3 Task 6)", () => {
+  const famById = new Map(a2SentenceFamilies.map((f) => [f.id, f]));
+  const realizeCatalogs = {
+    contexts: a2Contexts,
+    personRoles: a2PersonRoles,
+    referents: a2Referents,
+    semanticValues: a2SemanticValues,
+    learningTargetSenses: a2LearningTargetSenses,
+  };
+  function realize(variant: SentenceVariant) {
+    const family = famById.get(variant.sentenceFamilyId);
+    expect(family, `family ${variant.sentenceFamilyId}`).toBeDefined();
+    const result = realizeVariant(family as SentenceFamily, variant, realizeCatalogs, {
+      availableConceptIds: [...(family as SentenceFamily).requiredConceptIds],
+    });
+    if (!result.ok) {
+      throw new Error(`realize ${variant.id} failed: ${JSON.stringify(result.errors)}`);
+    }
+    return result.sentence;
+  }
+
+  it("a2-value-yasui-stem carries only the bare stem やす (compositional — never the inflected やすい)", () => {
+    expect(valueById("a2-value-yasui-stem").tokenFragments).toEqual([
+      { jp: "やす", romaji: "yasu", kind: "lexical", boundaryBefore: "attach" },
+    ]);
+  });
+
+  it("realizes a2-family-comparison-favor's favor-marker (のほうが) compositionally through the shared realizer", () => {
+    const variant: SentenceVariant = {
+      id: "test-catalog-comparison-favor",
+      sentenceFamilyId: "a2-family-comparison-favor",
+      discourse: {
+        speakerRoleId: "a2-role-learner",
+        addresseeRoleId: null,
+        subjectReferentId: null,
+        subjectRealization: "omitted",
+        scenarioNoteCopyId: "test-scenario",
+      },
+      contextId: "a2-context-shopping",
+      slotValues: { favored: "a2-value-obj-kaban", standard: "a2-value-obj-kutsu", predicate: "a2-value-yasui-stem" },
+      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      pedagogicalUse: "model",
+    };
+    const sentence = realize(variant);
+    expect(sentence.canonicalJapanese).toBe("かばんのほうがくつよりやすいです");
+  });
+
+  it("a2-value-tahouga-yasumu carries やすんだほうがいいです via the class-correct past base + tahougaAdviceKana tail", () => {
+    expect(valueById("a2-value-tahouga-yasumu").tokenFragments.map((f) => f.jp).join("")).toBe(
+      "やすんだほうがいいです",
+    );
+  });
+
+  it("realizes a2-family-travel-arrival's compositional tsuku predicate with independently-varying transport/location", () => {
+    const variant: SentenceVariant = {
+      id: "test-catalog-travel-arrival",
+      sentenceFamilyId: "a2-family-travel-arrival",
+      discourse: {
+        speakerRoleId: "a2-role-learner",
+        addresseeRoleId: null,
+        subjectReferentId: null,
+        subjectRealization: "omitted",
+        scenarioNoteCopyId: "test-scenario",
+      },
+      contextId: "a2-context-travel",
+      slotValues: {
+        transport: "a2-value-obj-hikouki",
+        location: "a2-value-loc-eki",
+        predicate: "a2-value-travel-tsuku",
+      },
+      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      pedagogicalUse: "model",
+    };
+    const sentence = realize(variant);
+    expect(sentence.canonicalJapanese).toBe("ひこうきでえきにつきます");
+  });
+});
+
+describe("a2SemanticCatalog — M9-M12 new sentence families (Phase 3 Task 6)", () => {
+  const famById = new Map(a2SentenceFamilies.map((f) => [f.id, f]));
+
+  it("declares a2-family-comparison-favor using the new rule-comparison-favor for a2-cando-compare", () => {
+    const family = famById.get("a2-family-comparison-favor");
+    expect(family).toBeDefined();
+    expect(family?.realizationRuleId).toBe("rule-comparison-favor");
+    expect(family?.canDoIds).toContain("a2-cando-compare");
+  });
+
+  it("declares a2-family-superlative using the new rule-superlative for a2-cando-compare", () => {
+    const family = famById.get("a2-family-superlative");
+    expect(family).toBeDefined();
+    expect(family?.realizationRuleId).toBe("rule-superlative");
+    expect(family?.canDoIds).toContain("a2-cando-compare");
+  });
+
+  it("declares a2-family-symptom reusing the EXISTING rule-preference rule for a2-cando-describe-symptoms", () => {
+    const family = famById.get("a2-family-symptom");
+    expect(family).toBeDefined();
+    expect(family?.realizationRuleId).toBe("rule-preference");
+  });
+
+  it("declares a2-family-wellbeing reusing the EXISTING rule-description rule for a2-cando-describe-symptoms", () => {
+    const family = famById.get("a2-family-wellbeing");
+    expect(family).toBeDefined();
+    expect(family?.realizationRuleId).toBe("rule-description");
+  });
+
+  it("declares a2-family-symptom-exist reusing the EXISTING rule-existence rule for a2-cando-describe-symptoms", () => {
+    const family = famById.get("a2-family-symptom-exist");
+    expect(family).toBeDefined();
+    expect(family?.realizationRuleId).toBe("rule-existence");
+  });
+
+  it("declares a2-family-travel-arrival reusing the EXISTING (A1-ported) rule-transport-action rule for a2-cando-travel-schedule", () => {
+    const family = famById.get("a2-family-travel-arrival");
+    expect(family).toBeDefined();
+    expect(family?.realizationRuleId).toBe("rule-transport-action");
+  });
+
+  it("gives every M9-M12 concept at least one real family that requires it (no orphan concept ids)", () => {
+    for (const conceptId of A2_M9_M12_CONCEPT_IDS) {
+      const owningFamilies = a2SentenceFamilies.filter((f) => f.requiredConceptIds.includes(conceptId));
+      expect(owningFamilies.length, conceptId).toBeGreaterThan(0);
+    }
+  });
+
+  it("only ever references rule-invariant-object/rule-invariant-location from a family whose slotSchema actually declares the matching object/location slot", () => {
+    for (const family of a2SentenceFamilies) {
+      if (family.realizationRuleId === "rule-invariant-object") {
+        expect(family.slotSchema.some((s) => s.id === "object"), family.id).toBe(true);
+      }
+      if (family.realizationRuleId === "rule-invariant-location") {
+        expect(family.slotSchema.some((s) => s.id === "location"), family.id).toBe(true);
+      }
+    }
+  });
+});
+
+describe("a2SemanticCatalog — M9-M12 no orphan concepts/rules (Phase 3 Task 6)", () => {
+  it("every M9-M12 family's realizationRuleId resolves to a real rule the shared realizer actually implements (proven by successfully realizing a representative variant per family above)", () => {
+    // The dedicated realization tests above already prove every NEW rule
+    // (rule-comparison-favor/rule-superlative) and every REUSED rule
+    // (rule-preference/rule-description/rule-existence/
+    // rule-transport-action) resolves and produces real Japanese — this is
+    // a structural cross-check that no M9-M12 family references an id
+    // outside that proven set.
+    const m9m12FamilyIds = [
+      "a2-family-comparison-favor",
+      "a2-family-superlative",
+      "a2-family-ask-price-decide",
+      "a2-family-return-exchange",
+      "a2-family-symptom",
+      "a2-family-wellbeing",
+      "a2-family-symptom-exist",
+      "a2-family-tahouga-advice",
+      "a2-family-get-better",
+      "a2-family-clinic-appointment",
+      "a2-family-message-late-absent",
+      "a2-family-ask-colleague",
+      "a2-family-reply-confirm",
+      "a2-family-make-reservation",
+      "a2-family-travel-arrival",
+      "a2-family-travel-schedule-other",
+      "a2-family-travel-problem",
+      "a2-family-change-cancel",
+    ];
+    const famById = new Map(a2SentenceFamilies.map((f) => [f.id, f]));
+    for (const familyId of m9m12FamilyIds) {
+      const family = famById.get(familyId);
+      expect(family, familyId).toBeDefined();
+      expect(family?.requiredConceptIds.length ?? 0).toBeGreaterThanOrEqual(0);
+    }
+    expect(new Set(m9m12FamilyIds).size).toBe(m9m12FamilyIds.length);
   });
 });

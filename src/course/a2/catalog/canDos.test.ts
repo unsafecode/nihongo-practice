@@ -17,7 +17,9 @@ import {
   A2_CANDO_REGISTRY,
   A2_M1_M4_SERVED_CANDO_IDS,
   A2_M1_M8_SERVED_CANDO_IDS,
+  A2_M1_M12_SERVED_CANDO_IDS,
   A2_M5_M8_SERVED_CANDO_IDS,
+  A2_M9_M12_SERVED_CANDO_IDS,
   a2CanDoDescriptorCopy,
   buildA2CanDoLessonMap,
   buildA2CanDos,
@@ -563,6 +565,139 @@ describe("A2_M1_M8_SERVED_CANDO_IDS — the honest staged M1-M8 authored subset 
   it("every id is registered in the 59-entry A2_CANDO_REGISTRY", () => {
     const registryIds = new Set(A2_CANDO_REGISTRY.map((c) => c.id));
     for (const id of A2_M1_M8_SERVED_CANDO_IDS) {
+      expect(registryIds.has(id), id).toBe(true);
+    }
+  });
+});
+
+describe("Phase 3 Task 6 — 16-lesson M9-M12 recipe mapping (documented contract)", () => {
+  // Pins the exact canonical primary/support mapping the task specifies.
+  // Every grammar id used as a primary/support here (compare/reason-kara/
+  // reason-node/opinion-toomou/possibility/request-tekudasai/
+  // negative-request/ongoing-teiru/intentions-plans/experience-takoto)
+  // matches `A2_GRAMMAR_SPIRAL`'s own frozen schedule exactly (see
+  // forms/grammarSpiral.ts) — including compare, whose true transfer lands
+  // at travel-reservations-2 (the corrected authoritative spiral), never
+  // shopping-returns' own internal practice.
+  const EXPECTED: Readonly<Record<string, { primary: string; supports: readonly string[] }>> = {
+    "shopping-returns-1": { primary: "a2-cando-compare", supports: [] },
+    "shopping-returns-2": { primary: "a2-cando-compare", supports: [] },
+    "shopping-returns-3": {
+      primary: "a2-cando-ask-price-decide",
+      supports: ["a2-cando-opinion-toomou", "a2-cando-possibility"],
+    },
+    "shopping-returns-4": { primary: "a2-cando-return-exchange", supports: [] },
+    "health-advice-1": { primary: "a2-cando-describe-symptoms", supports: [] },
+    "health-advice-2": { primary: "a2-cando-advice-tahouga", supports: ["a2-cando-reason-kara"] },
+    "health-advice-3": { primary: "a2-cando-get-better", supports: ["a2-cando-negative-request"] },
+    "health-advice-4": { primary: "a2-cando-clinic-appointment", supports: [] },
+    "work-study-messages-1": {
+      primary: "a2-cando-message-late-absent",
+      supports: ["a2-cando-reason-kara", "a2-cando-reason-node"],
+    },
+    "work-study-messages-2": { primary: "a2-cando-ask-colleague", supports: ["a2-cando-request-tekudasai"] },
+    "work-study-messages-3": { primary: "a2-cando-report-progress", supports: ["a2-cando-ongoing-teiru"] },
+    "work-study-messages-4": { primary: "a2-cando-reply-confirm", supports: [] },
+    "travel-reservations-1": {
+      primary: "a2-cando-make-reservation",
+      supports: ["a2-cando-intentions-plans", "a2-cando-possibility"],
+    },
+    "travel-reservations-2": {
+      primary: "a2-cando-travel-schedule",
+      supports: ["a2-cando-experience-takoto", "a2-cando-compare"],
+    },
+    "travel-reservations-3": {
+      primary: "a2-cando-travel-problem",
+      supports: ["a2-cando-request-tekudasai", "a2-cando-negative-request"],
+    },
+    "travel-reservations-4": { primary: "a2-cando-change-cancel", supports: [] },
+  };
+
+  it("documents exactly 16 lessons, each with <=2 supports", () => {
+    expect(Object.keys(EXPECTED)).toHaveLength(16);
+    for (const [lessonId, mapping] of Object.entries(EXPECTED)) {
+      expect(mapping.supports.length, lessonId).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it("every primary/support id referenced by the mapping exists in the 59-entry registry", () => {
+    const registryIds = new Set(A2_CANDO_REGISTRY.map((c) => c.id));
+    for (const [lessonId, mapping] of Object.entries(EXPECTED)) {
+      expect(registryIds.has(mapping.primary), `${lessonId} primary ${mapping.primary}`).toBe(true);
+      for (const support of mapping.supports) {
+        expect(registryIds.has(support), `${lessonId} support ${support}`).toBe(true);
+      }
+    }
+  });
+
+  it("travel-reservations-3 never names reason-node as a third support (the recipe caps supports at two)", () => {
+    expect(EXPECTED["travel-reservations-3"].supports).toEqual([
+      "a2-cando-request-tekudasai",
+      "a2-cando-negative-request",
+    ]);
+    expect(EXPECTED["travel-reservations-3"].supports).not.toContain("a2-cando-reason-node");
+  });
+
+  it("compare's own grammar-spiral row matches this mapping's introduction/practice/transfer schedule exactly", () => {
+    const spiralByCanDoId = new Map(A2_GRAMMAR_SPIRAL.map((row) => [row.canDoId, row]));
+    const compareRow = spiralByCanDoId.get("a2-cando-compare");
+    expect(compareRow).toBeDefined();
+    expect(compareRow?.introLessonId).toBe("shopping-returns-1");
+    expect(compareRow?.controlledPracticeLessonId).toBe("shopping-returns-3");
+    expect(compareRow?.transferLessonId).toBe("travel-reservations-2");
+  });
+});
+
+describe("a2CanDoDescriptorCopy — bilingual Can-do descriptor statements for the M9-M12 served subset (Phase 3 Task 6)", () => {
+  it("has an EN and IT entry for every descriptorCopyId of the 15 newly-served M9-M12 Can-dos, with no Japanese literal", () => {
+    const JAPANESE_PATTERN = /[\u3040-\u30ff\u4e00-\u9fff]/;
+    for (const id of A2_M9_M12_SERVED_CANDO_IDS) {
+      const registered = A2_CANDO_REGISTRY.find((c) => c.id === id);
+      expect(registered, id).toBeDefined();
+      const copyId = (registered as A2CanDoStub).descriptorCopyId;
+      expect(a2CanDoDescriptorCopy.en[copyId], `${id} en`).toBeTruthy();
+      expect(a2CanDoDescriptorCopy.it[copyId], `${id} it`).toBeTruthy();
+      expect(JAPANESE_PATTERN.test(a2CanDoDescriptorCopy.en[copyId]), `${id} en`).toBe(false);
+      expect(JAPANESE_PATTERN.test(a2CanDoDescriptorCopy.it[copyId]), `${id} it`).toBe(false);
+    }
+  });
+
+  it("has identical EN/IT key sets (parity)", () => {
+    expect(Object.keys(a2CanDoDescriptorCopy.en).sort()).toEqual(
+      Object.keys(a2CanDoDescriptorCopy.it).sort(),
+    );
+  });
+});
+
+describe("A2_M9_M12_SERVED_CANDO_IDS — the honest staged M9-M12 first-served subset (Phase 3 Task 6)", () => {
+  it("has exactly 15 distinct ids, none already served by M1-M8 (so A2_M1_M12_SERVED_CANDO_IDS's own concatenation stays duplicate-free)", () => {
+    expect(A2_M9_M12_SERVED_CANDO_IDS).toHaveLength(15);
+    expect(new Set(A2_M9_M12_SERVED_CANDO_IDS).size).toBe(15);
+    for (const id of A2_M9_M12_SERVED_CANDO_IDS) {
+      expect(A2_M1_M8_SERVED_CANDO_IDS, id).not.toContain(id);
+    }
+  });
+
+  it("every id is registered in the 59-entry A2_CANDO_REGISTRY", () => {
+    const registryIds = new Set(A2_CANDO_REGISTRY.map((c) => c.id));
+    for (const id of A2_M9_M12_SERVED_CANDO_IDS) {
+      expect(registryIds.has(id), id).toBe(true);
+    }
+  });
+});
+
+describe("A2_M1_M12_SERVED_CANDO_IDS — the honest staged M1-M12 authored subset (Phase 3 Task 6)", () => {
+  it("is exactly the union of the 32 M1-M8-served ids and the 15 new M9-M12-served ids, with no duplicates", () => {
+    expect(A2_M1_M12_SERVED_CANDO_IDS).toHaveLength(47);
+    expect(new Set(A2_M1_M12_SERVED_CANDO_IDS).size).toBe(47);
+    expect(new Set(A2_M1_M12_SERVED_CANDO_IDS)).toEqual(
+      new Set([...A2_M1_M8_SERVED_CANDO_IDS, ...A2_M9_M12_SERVED_CANDO_IDS]),
+    );
+  });
+
+  it("every id is registered in the 59-entry A2_CANDO_REGISTRY", () => {
+    const registryIds = new Set(A2_CANDO_REGISTRY.map((c) => c.id));
+    for (const id of A2_M1_M12_SERVED_CANDO_IDS) {
       expect(registryIds.has(id), id).toBe(true);
     }
   });

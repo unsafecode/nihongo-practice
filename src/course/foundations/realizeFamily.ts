@@ -92,11 +92,17 @@ export interface RealizeVariantOptions {
 // Realization rule registry (fixed; no fallback rule)
 // ---------------------------------------------------------------------------
 
-/** How a rule assigns (or withholds) a case particle for one content slot. */
+/** How a rule assigns (or withholds) a case particle for one content slot.
+ * `"favor-marker"` (Phase 3 Task 6, A2 comparison) appends the fixed
+ * compositional の+ほう+が sequence after the slot's own value fragments —
+ * three genuinely fixed grammar-level tokens (never authored per-lesson,
+ * exactly like the vocative's さん+、), so "X のほうが" always follows any
+ * favored-item value the lesson recombines. */
 type SlotParticleStrategy =
   | { readonly kind: "none" }
   | { readonly kind: "fixed"; readonly particle: SemanticParticleId }
-  | { readonly kind: "from-sense-metadata"; readonly role: SemanticArgumentRole };
+  | { readonly kind: "from-sense-metadata"; readonly role: SemanticArgumentRole }
+  | { readonly kind: "favor-marker" };
 
 interface ContentSlotRule {
   readonly slotId: SentenceSlotId;
@@ -142,6 +148,13 @@ interface RealizationRuleDefinition {
    * generically at assembly time, never from a Japanese-string switch.
    */
   readonly subjectParticle?: SemanticParticleId;
+  /**
+   * A fixed adverb pushed immediately before the predicate value's own
+   * fragments (Phase 3 Task 6, A2 superlative いちばん) — genuinely fixed
+   * grammar-level content the rule itself contributes, never authored per
+   * semantic value, so any adjective stem recombines with it compositionally.
+   */
+  readonly predicateAdverbPrefix?: { readonly jp: string; readonly romaji: string };
 }
 
 /**
@@ -370,6 +383,38 @@ const REALIZATION_RULES: Readonly<Record<string, RealizationRuleDefinition>> = {
     objectRole: null,
     contentSlots: [{ slotId: "location", particle: { kind: "fixed", particle: "de" } }],
   },
+  // --- Phase 3 Task 6 (A2 M9 shopping-returns): genuinely compositional
+  // favor-marked comparison and が-marked superlative. Both are
+  // `predicateKind: "adjective"` — the SAME i-/na-class conjugation the
+  // fixture "rule-description"/"rule-comparison" families already use — so
+  // one adjective stem value (e.g. やす "yasu") recombines honestly across
+  // every FormSelection (やすいです/やすくないです/やすかったです), never a
+  // per-comparison whole-clause bake.
+  //
+  // Favor-marked comparison "XのほうがYよりADJです": the favored item (X)
+  // takes the fixed の+ほう+が sequence (see `pushFavorMarker` below,
+  // dispatched by the "favor-marker" content-slot particle strategy); the
+  // standard (Y) takes より exactly like the existing `rule-comparison`.
+  "rule-comparison-favor": {
+    id: "rule-comparison-favor",
+    predicateKind: "adjective",
+    objectRole: null,
+    contentSlots: [
+      { slotId: "favored", particle: { kind: "favor-marker" } },
+      { slotId: "standard", particle: { kind: "fixed", particle: "yori" } },
+    ],
+  },
+  // Superlative "Xがいちばん ADJです": が-marked favored item (identifying
+  // "which one" among an implicit set), with いちばん — fixed grammar
+  // content, never authored per-value — inserted immediately before the
+  // predicate stem via `predicateAdverbPrefix`.
+  "rule-superlative": {
+    id: "rule-superlative",
+    predicateKind: "adjective",
+    objectRole: null,
+    contentSlots: [{ slotId: "favored", particle: { kind: "fixed", particle: "ga" } }],
+    predicateAdverbPrefix: { jp: "いちばん", romaji: "ichiban" },
+  },
 };
 
 /**
@@ -482,6 +527,18 @@ const VOCATIVE_HONORIFIC: EndingForm = { jp: "さん", romaji: "san" };
  * introduces (「そらさん、いいですね。」), immediately following さん with no
  * space of its own — exactly like every other authored comma. */
 const VOCATIVE_COMMA: EndingForm = { jp: "、", romaji: "," };
+
+/**
+ * The fixed favor-marker sequence (Phase 3 Task 6, A2 comparison): の
+ * (attributive particle) + ほう (a real, standalone noun — "direction/side")
+ * that together with the が pushed via `PARTICLE_TEXT.ga` produce
+ * "Xのほうが". Grammar-level fixed content exactly like
+ * `VOCATIVE_HONORIFIC`/`VOCATIVE_COMMA` above — never a modeled semantic
+ * value or per-lesson content, so a favored-item value recombines with it
+ * compositionally.
+ */
+const FAVOR_MARKER_NO: EndingForm = { jp: "の", romaji: "no" };
+const FAVOR_MARKER_HOU: EndingForm = { jp: "ほう", romaji: "hou" };
 
 /**
  * i-adjective polite conjugation (§ Phase 2 M9/M11). Each key gives the bound
@@ -654,6 +711,36 @@ function pushVocativeAddress(builder: TokenBuilder, variantId: SentenceVariantId
     "punctuation",
     { domain: "family", referenceId: `${variantId}/rule/vocative` },
   );
+}
+
+/**
+ * Appends the fixed の+ほう+が favor-marker sequence (Phase 3 Task 6, A2
+ * comparison) after a favored-item slot's own value fragments: の and が are
+ * "particle"-kind tokens (a real leading space, like any other particle);
+ * ほう is a real, standalone "lexical" noun (also space-bound). Together with
+ * the slot's already-pushed value this renders "X のほうが" — called only
+ * from the content-slot loop below, after that slot's fragments.
+ */
+function pushFavorMarker(builder: TokenBuilder, variantId: SentenceVariantId): void {
+  pushToken(
+    builder,
+    variantId,
+    "rule::favor::no",
+    FAVOR_MARKER_NO.jp,
+    FAVOR_MARKER_NO.romaji,
+    "particle",
+    { domain: "family", referenceId: `${variantId}/rule/favor` },
+  );
+  pushToken(
+    builder,
+    variantId,
+    "rule::favor::hou",
+    FAVOR_MARKER_HOU.jp,
+    FAVOR_MARKER_HOU.romaji,
+    "lexical",
+    { domain: "family", referenceId: `${variantId}/rule/favor` },
+  );
+  pushParticle(builder, variantId, "ga");
 }
 
 /**
@@ -1061,7 +1148,23 @@ export function realizeVariant(
         contentSlot.particle.role
       ] as SemanticParticleId;
       pushParticle(builder, variant.id, particleId);
+    } else if (contentSlot.particle.kind === "favor-marker") {
+      pushFavorMarker(builder, variant.id);
     }
+  }
+  // A fixed adverb (e.g. いちばん) the rule itself contributes, inserted
+  // immediately before the predicate stem — genuinely fixed grammar content,
+  // never authored per semantic value (§ Phase 3 Task 6 superlative).
+  if (rule.predicateAdverbPrefix) {
+    pushToken(
+      builder,
+      variant.id,
+      "rule::predicate-adverb-prefix",
+      rule.predicateAdverbPrefix.jp,
+      rule.predicateAdverbPrefix.romaji,
+      "lexical",
+      { domain: "family", referenceId: `${variant.id}/rule/predicate-adverb-prefix` },
+    );
   }
   // A verb, adjective, or invariant family emits its predicate value's own
   // stem/complete-content fragments before any ending; a request emits its

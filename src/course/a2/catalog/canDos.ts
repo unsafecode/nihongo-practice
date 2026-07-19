@@ -392,6 +392,56 @@ export const A2_M1_M8_SERVED_CANDO_IDS: readonly string[] = Object.freeze([
   ...A2_M5_M8_SERVED_CANDO_IDS,
 ]);
 
+/**
+ * The 15 distinct Can-do ids FIRST served by the M9-M12 lessons (Phase 3
+ * Task 6): 4 grammar-spiral ids introduced in this range
+ * (`compare` — genuinely new here, introduced at shopping-returns-1/2) plus
+ * 14 topical ids (`ask-price-decide`, `return-exchange`,
+ * `describe-symptoms`, `advice-tahouga`, `get-better`,
+ * `clinic-appointment`, `message-late-absent`, `ask-colleague`,
+ * `report-progress`, `reply-confirm`, `make-reservation`,
+ * `travel-schedule`, `travel-problem`, `change-cancel`). Deliberately
+ * excludes every id M9-M12 merely RECOMBINES from an earlier block
+ * (`opinion-toomou`/`possibility`/`reason-kara`/`reason-node`/
+ * `negative-request`/`request-tekudasai`/`ongoing-teiru`/
+ * `intentions-plans`/`experience-takoto` — all already served by
+ * `A2_M1_M8_SERVED_CANDO_IDS`), so `A2_M1_M12_SERVED_CANDO_IDS`'s own
+ * concatenation stays duplicate-free.
+ */
+export const A2_M9_M12_SERVED_CANDO_IDS: readonly string[] = Object.freeze([
+  "a2-cando-compare",
+  "a2-cando-ask-price-decide",
+  "a2-cando-return-exchange",
+  "a2-cando-describe-symptoms",
+  "a2-cando-advice-tahouga",
+  "a2-cando-get-better",
+  "a2-cando-clinic-appointment",
+  "a2-cando-message-late-absent",
+  "a2-cando-ask-colleague",
+  "a2-cando-report-progress",
+  "a2-cando-reply-confirm",
+  "a2-cando-make-reservation",
+  "a2-cando-travel-schedule",
+  "a2-cando-travel-problem",
+  "a2-cando-change-cancel",
+]);
+
+/**
+ * The complete, honest 47-id staged subset the 48 authored M1-M12 lessons
+ * serve — the union of `A2_M1_M8_SERVED_CANDO_IDS` and
+ * `A2_M9_M12_SERVED_CANDO_IDS`, with no overlap between the two (47, not
+ * 32+15's naive 47 minus zero — every M9-M12-reused id is already counted
+ * once, in `A2_M1_M8_SERVED_CANDO_IDS`). Exported so
+ * `modules01to12.test.ts` can request exactly this subset from
+ * `buildA2CanDos`/`buildA2CanDoLessonMap` without importing modules 13+
+ * (which do not exist yet) — mirrors `A2_M1_M8_SERVED_CANDO_IDS`'s own
+ * contract exactly, just widened as M9-M12 land.
+ */
+export const A2_M1_M12_SERVED_CANDO_IDS: readonly string[] = Object.freeze([
+  ...A2_M1_M8_SERVED_CANDO_IDS,
+  ...A2_M9_M12_SERVED_CANDO_IDS,
+]);
+
 // ---------------------------------------------------------------------------
 // Bilingual descriptor copy (the 32 M1-M8-served Can-dos only — the other 27
 // registered ids belong to modules that do not exist yet, so their copy is
@@ -471,6 +521,36 @@ export const a2CanDoDescriptorCopy: { readonly en: Readonly<Record<string, strin
       "I can recount what happened and explain a problem with an order.",
     "a2-cando-pay-handle-problem-descriptor":
       "I can handle paying and a small problem in a short exchange.",
+    "a2-cando-compare-descriptor":
+      "I can compare two things, and say which one is the most, using comparison phrases.",
+    "a2-cando-ask-price-decide-descriptor":
+      "I can ask the price of something and decide what to buy.",
+    "a2-cando-return-exchange-descriptor":
+      "I can return or exchange an item at a shop.",
+    "a2-cando-describe-symptoms-descriptor":
+      "I can describe simple symptoms, like saying what hurts or how I feel.",
+    "a2-cando-advice-tahouga-descriptor":
+      "I can give simple advice, saying what someone should do.",
+    "a2-cando-get-better-descriptor":
+      "I can talk about getting better after being unwell.",
+    "a2-cando-clinic-appointment-descriptor":
+      "I can make or change a clinic appointment.",
+    "a2-cando-message-late-absent-descriptor":
+      "I can write a short message saying I will be late or absent.",
+    "a2-cando-ask-colleague-descriptor":
+      "I can ask a colleague or classmate to help with something specific.",
+    "a2-cando-report-progress-descriptor":
+      "I can report what I am currently working on.",
+    "a2-cando-reply-confirm-descriptor":
+      "I can reply to confirm that I understand or agree.",
+    "a2-cando-make-reservation-descriptor":
+      "I can make a simple travel reservation.",
+    "a2-cando-travel-schedule-descriptor":
+      "I can describe a simple travel schedule, like how and when I arrive.",
+    "a2-cando-travel-problem-descriptor":
+      "I can explain a problem that comes up while traveling.",
+    "a2-cando-change-cancel-descriptor":
+      "I can change or cancel a reservation.",
   },
   it: {
     "a2-cando-backchannel-followup-descriptor":
@@ -537,5 +617,35 @@ export const a2CanDoDescriptorCopy: { readonly en: Readonly<Record<string, strin
       "Riesco a raccontare cosa è successo e spiegare un problema con un ordine.",
     "a2-cando-pay-handle-problem-descriptor":
       "Riesco a gestire il pagamento e un piccolo problema in un breve scambio.",
+    "a2-cando-compare-descriptor":
+      "Riesco a confrontare due cose, e dire quale sia la più, usando espressioni di confronto.",
+    "a2-cando-ask-price-decide-descriptor":
+      "Riesco a chiedere il prezzo di qualcosa e decidere cosa comprare.",
+    "a2-cando-return-exchange-descriptor":
+      "Riesco a restituire o cambiare un articolo in un negozio.",
+    "a2-cando-describe-symptoms-descriptor":
+      "Riesco a descrivere sintomi semplici, dicendo cosa mi fa male o come mi sento.",
+    "a2-cando-advice-tahouga-descriptor":
+      "Riesco a dare un consiglio semplice, dicendo cosa qualcuno dovrebbe fare.",
+    "a2-cando-get-better-descriptor":
+      "Riesco a parlare del migliorare dopo essere stato male.",
+    "a2-cando-clinic-appointment-descriptor":
+      "Riesco a prendere o cambiare un appuntamento in ambulatorio.",
+    "a2-cando-message-late-absent-descriptor":
+      "Riesco a scrivere un breve messaggio per dire che farò tardi o che sarò assente.",
+    "a2-cando-ask-colleague-descriptor":
+      "Riesco a chiedere a un collega o un compagno di aiutarmi con qualcosa di specifico.",
+    "a2-cando-report-progress-descriptor":
+      "Riesco a riferire su cosa sto lavorando in questo momento.",
+    "a2-cando-reply-confirm-descriptor":
+      "Riesco a rispondere per confermare di aver capito o di essere d'accordo.",
+    "a2-cando-make-reservation-descriptor":
+      "Riesco a fare una semplice prenotazione di viaggio.",
+    "a2-cando-travel-schedule-descriptor":
+      "Riesco a descrivere un semplice programma di viaggio, come e quando arrivo.",
+    "a2-cando-travel-problem-descriptor":
+      "Riesco a spiegare un problema che si presenta durante un viaggio.",
+    "a2-cando-change-cancel-descriptor":
+      "Riesco a cambiare o cancellare una prenotazione.",
   },
 });

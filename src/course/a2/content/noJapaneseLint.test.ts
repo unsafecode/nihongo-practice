@@ -199,9 +199,9 @@ describe("the real A2 content directory (unmocked filesystem)", () => {
     expect(violations).toEqual([]);
   });
 
-  it("guards at least the 4 M1-M4 module content files once authored", () => {
+  it("guards at least the 12 M1-M12 module content files once authored", () => {
     const files = listA2ContentModuleFiles(A2_CONTENT_DIR);
-    expect(files.length).toBeGreaterThanOrEqual(4);
+    expect(files.length).toBeGreaterThanOrEqual(12);
   });
 
   it("cross-checks lintA2NoJapanese against a raw independent directory scan (no shared caching)", () => {

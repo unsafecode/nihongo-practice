@@ -133,12 +133,31 @@ const catalogs = assembleA2FoundationCatalogs({
 // down to exactly the families the 16 M5-M8 lessons' own variants actually
 // reference — never a validator weakening, just correctly-scoped input data
 // for an intentionally M5-M8-only test.
+//
+// a2-family-ongoing-teiru's own static `canDoIds` array now also names
+// `a2-cando-report-progress` (Phase 3 Task 6's work-study-messages-3
+// primary, served by this SAME M5-introduced family reused verbatim — see
+// its own doc-comment in a2SemanticCatalog.ts, mirroring how
+// a2-family-request-tekudasai already spanned multiple modules' topical
+// Can-dos even before this). That id is genuinely out of scope for an
+// M5-M8-only aggregate (no M5-M8 lesson ever teaches or transfers it), so
+// this test's own scoped view of every family trims `canDoIds` down to
+// just the ids this M5-M8 slice actually serves — never a validator
+// weakening, just correctly-scoped input data. The full M1-M12 aggregate
+// needs no such trim, since work-study-messages-3 is genuinely present
+// there.
+const A2_M5_M8_SERVED_CANDO_ID_SET = new Set(A2_M5_M8_SERVED_CANDO_IDS);
 const m5m8FamilyIds = new Set(
   allBuiltLessons.flatMap((built) => built.variants.map((variant) => variant.sentenceFamilyId)),
 );
 const scopedCatalogs = {
   ...catalogs,
-  sentenceFamilies: catalogs.sentenceFamilies.filter((family) => m5m8FamilyIds.has(family.id)),
+  sentenceFamilies: catalogs.sentenceFamilies
+    .filter((family) => m5m8FamilyIds.has(family.id))
+    .map((family) => ({
+      ...family,
+      canDoIds: family.canDoIds.filter((id) => A2_M5_M8_SERVED_CANDO_ID_SET.has(id)),
+    })),
 };
 
 const availableContentByLesson = computeAvailableContentByLesson(allBuiltLessons, scopedCatalogs);

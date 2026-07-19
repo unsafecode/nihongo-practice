@@ -302,6 +302,29 @@ function possibilityKana(
   ];
 }
 
+/**
+ * "a2-family-tahouga-advice" (Phase 3 Task 6, A2 M10 health-advice): a
+ * SUPPORTING form — never one of the 15 grammar-spiral rows in
+ * `a2Constructions.ts` — combining a verb's class-correct PAST plain base
+ * (via `plainKana(senseId, "past")`/`newVerbPlainKana(verb, "past")`, never
+ * hand-typed) with the fixed advice tail ほう+が+いい+です
+ * ("〜たほうがいいです", "it would be better to ..."). Mirrors
+ * `possibilityKana`'s established こと+が+X shape exactly: every tail word
+ * is a real, standalone independent word (ほう/いい/です), so each is
+ * "lexical" (a genuine word-boundary space) — never a bound morpheme.
+ */
+function tahougaAdviceKana(
+  pastFormFragments: readonly SemanticValueTokenFragment[],
+): SemanticValueTokenFragment[] {
+  return [
+    ...pastFormFragments,
+    frag("ほう", "hou"),
+    particleFrag("が", "ga"),
+    frag("いい", "ii"),
+    frag("です", "desu"),
+  ];
+}
+
 // ---------------------------------------------------------------------------
 // Concept IDs (one per M1-M4 grammar construction; families declare exactly
 // which of these they require)
@@ -368,6 +391,46 @@ export const A2_M5_M8_CONCEPT_IDS: readonly string[] = deepFreeze([
   A2_CONCEPT_RECOUNT_EXPERIENCE,
 ]);
 
+// --- Phase 3 Task 6 (M9-M12) concept ids. work-study-messages-3
+// (report-progress) introduces no new concept of its own — it teaches its
+// primary Can-do entirely via a2-family-ongoing-teiru recurrence (M5's own
+// A2_CONCEPT_ONGOING_TEIRU), mirroring restaurant-problems-4's own
+// sequence-te-recurrence precedent (Phase 3 Task 5) exactly. ---
+export const A2_CONCEPT_COMPARISON = "a2-concept-comparison";
+export const A2_CONCEPT_SUPERLATIVE = "a2-concept-superlative";
+export const A2_CONCEPT_ASK_PRICE_DECIDE = "a2-concept-ask-price-decide";
+export const A2_CONCEPT_RETURN_EXCHANGE = "a2-concept-return-exchange";
+export const A2_CONCEPT_DESCRIBE_SYMPTOMS = "a2-concept-describe-symptoms";
+export const A2_CONCEPT_TAHOUGA_ADVICE = "a2-concept-tahouga-advice";
+export const A2_CONCEPT_GET_BETTER = "a2-concept-get-better";
+export const A2_CONCEPT_CLINIC_APPOINTMENT = "a2-concept-clinic-appointment";
+export const A2_CONCEPT_MESSAGE_LATE_ABSENT = "a2-concept-message-late-absent";
+export const A2_CONCEPT_ASK_COLLEAGUE = "a2-concept-ask-colleague";
+export const A2_CONCEPT_REPLY_CONFIRM = "a2-concept-reply-confirm";
+export const A2_CONCEPT_MAKE_RESERVATION = "a2-concept-make-reservation";
+export const A2_CONCEPT_TRAVEL_SCHEDULE = "a2-concept-travel-schedule";
+export const A2_CONCEPT_TRAVEL_PROBLEM = "a2-concept-travel-problem";
+export const A2_CONCEPT_CHANGE_CANCEL = "a2-concept-change-cancel";
+
+/** Every A2 M9-M12 concept id, used as the module tests' available-concept universe. */
+export const A2_M9_M12_CONCEPT_IDS: readonly string[] = deepFreeze([
+  A2_CONCEPT_COMPARISON,
+  A2_CONCEPT_SUPERLATIVE,
+  A2_CONCEPT_ASK_PRICE_DECIDE,
+  A2_CONCEPT_RETURN_EXCHANGE,
+  A2_CONCEPT_DESCRIBE_SYMPTOMS,
+  A2_CONCEPT_TAHOUGA_ADVICE,
+  A2_CONCEPT_GET_BETTER,
+  A2_CONCEPT_CLINIC_APPOINTMENT,
+  A2_CONCEPT_MESSAGE_LATE_ABSENT,
+  A2_CONCEPT_ASK_COLLEAGUE,
+  A2_CONCEPT_REPLY_CONFIRM,
+  A2_CONCEPT_MAKE_RESERVATION,
+  A2_CONCEPT_TRAVEL_SCHEDULE,
+  A2_CONCEPT_TRAVEL_PROBLEM,
+  A2_CONCEPT_CHANGE_CANCEL,
+]);
+
 // ---------------------------------------------------------------------------
 // Contexts
 // ---------------------------------------------------------------------------
@@ -387,6 +450,12 @@ export const a2Contexts: readonly Context[] = deepFreeze([
   { id: "a2-context-rules", labelCopyId: "a2-context-rules-label" },
   { id: "a2-context-neighborhood", labelCopyId: "a2-context-neighborhood-label" },
   { id: "a2-context-restaurant", labelCopyId: "a2-context-restaurant-label" },
+  // --- Phase 3 Task 6 (M9-M12) — ids fixed by the frozen Task 3 kanji
+  // catalog, which already hard-codes these exact contextIds. ---
+  { id: "a2-context-shopping", labelCopyId: "a2-context-shopping-label" },
+  { id: "a2-context-health", labelCopyId: "a2-context-health-label" },
+  { id: "a2-context-work-study", labelCopyId: "a2-context-work-study-label" },
+  { id: "a2-context-travel", labelCopyId: "a2-context-travel-label" },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -668,6 +737,37 @@ const NEW_VERBS: Readonly<Record<string, NewVerb>> = {
   mieru: { conjClass: "ichidan", stem: [newVerbFrag("みえ", "mie")] },
   // --- M8 restaurant-problems (kanji A 食飲飯茶; kanji B 肉魚熱冷) ---
   nomu: { conjClass: "godan-mu", stem: [newVerbFrag("の", "no")] },
+  // --- M9 shopping-returns (kanji A 買店円番; kanji B 千万安高) ---
+  kau: { conjClass: "godan-u", stem: [newVerbFrag("か", "ka")] },
+  kaesu: { conjClass: "godan-su", stem: [newVerbFrag("かえ", "kae")] },
+  // --- M10 health-advice (kanji A 医者薬体; kanji B 頭痛元休) ---
+  yasumu: { conjClass: "godan-mu", stem: [newVerbFrag("やす", "yasu")] },
+  naoru: { conjClass: "godan-ru", stem: [newVerbFrag("なお", "nao")] },
+  naru: { conjClass: "godan-ru", stem: [newVerbFrag("な", "na")] },
+  // --- M11 work-study-messages (kanji A 社仕事教; kanji B 学校先生) ---
+  oshieru: { conjClass: "ichidan", stem: [newVerbFrag("おしえ", "oshie")] },
+  tsutaeru: { conjClass: "ichidan", stem: [newVerbFrag("つたえ", "tsutae")] },
+  okureru: { conjClass: "ichidan", stem: [newVerbFrag("おくれ", "okure")] },
+  tetsudau: { conjClass: "godan-u", stem: [newVerbFrag("てつだ", "tetsuda")] },
+  okuru: { conjClass: "godan-ru", stem: [newVerbFrag("おく", "oku")] },
+  // --- M12 travel-reservations (kanji A 空港駅電山; kanji B 車着発泊) ---
+  tsuku: { conjClass: "godan-ku", stem: [newVerbFrag("つ", "tsu")] },
+  deru: { conjClass: "ichidan", stem: [newVerbFrag("で", "de")] },
+  noru: { conjClass: "godan-ru", stem: [newVerbFrag("の", "no")] },
+  nakusu: { conjClass: "godan-su", stem: [newVerbFrag("なく", "naku")] },
+  machigaeru: { conjClass: "ichidan", stem: [newVerbFrag("まちがえ", "machigae")] },
+  tasukeru: { conjClass: "ichidan", stem: [newVerbFrag("たすけ", "tasuke")] },
+  wasureru: { conjClass: "ichidan", stem: [newVerbFrag("わすれ", "wasure")] },
+  // 泊まる (tomaruStay, "to stay overnight") is a real homophone of the
+  // already-registered M6 とまる (止まる, "to stop") — a genuinely distinct
+  // word/kanji sharing the same kana reading, exactly as in real Japanese —
+  // so it needs its own NEW_VERBS key (never overwriting `tomaru` above).
+  tomaruStay: { conjClass: "godan-ru", stem: [newVerbFrag("とま", "toma")] },
+  // 変える (kaeruChange, ichidan, "to change [a reservation]") is likewise a
+  // genuine homophone of the already-registered Task 2 かえる (帰る,
+  // "go home", godan-ru) — a distinct word/kanji/conjugation-class sharing
+  // the same kana reading, so it needs its own NEW_VERBS key too.
+  kaeruChange: { conjClass: "ichidan", stem: [newVerbFrag("かえ", "kae")] },
 };
 
 /** One dedicated M5-M8 predicate sense — mirrors the established Task 4
@@ -825,10 +925,136 @@ const A2_LEARNING_TARGET_SENSES_M5_M8: readonly LearningTargetSense[] = [
   dedicatedSense("a2-sense-seq-tabete-kaeru", "seq_tabete_kaeru"),
 ];
 
-/** Every registered A2 learning-target sense — M1-M4's plus M5-M8's. */
+// ---------------------------------------------------------------------------
+// Phase 3 Task 6 (M9-M12) learning-target senses
+// ---------------------------------------------------------------------------
+
+const A2_LEARNING_TARGET_SENSES_M9_M12: readonly LearningTargetSense[] = [
+  // --- M9 shopping-returns: comparison/superlative adjective stems
+  // (genuinely compositional — argumentRoles: ["topic"] is inert bookkeeping
+  // for "rule-comparison-favor"/"rule-superlative", which never consult it;
+  // mirrors the existing a2-sense-tanoshii/a2-sense-warui convention). ---
+  { id: "a2-sense-yasui", lexemeId: "a2-lexeme-yasui", learningUse: "productive", semanticFrameId: "a2-frame-yasui", predicate: "cheap", argumentRoles: ["topic"], argumentParticleByRole: {}, adjectiveClass: "i" },
+  { id: "a2-sense-takai", lexemeId: "a2-lexeme-takai", learningUse: "productive", semanticFrameId: "a2-frame-takai", predicate: "expensive", argumentRoles: ["topic"], argumentParticleByRole: {}, adjectiveClass: "i" },
+  { id: "a2-sense-ookii", lexemeId: "a2-lexeme-ookii", learningUse: "productive", semanticFrameId: "a2-frame-ookii", predicate: "big", argumentRoles: ["topic"], argumentParticleByRole: {}, adjectiveClass: "i" },
+  { id: "a2-sense-chiisai", lexemeId: "a2-lexeme-chiisai", learningUse: "productive", semanticFrameId: "a2-frame-chiisai", predicate: "small", argumentRoles: ["topic"], argumentParticleByRole: {}, adjectiveClass: "i" },
+  // ask-price-decide (whole-clause bake)
+  dedicatedSense("a2-sense-price-ikura", "price_ikura"),
+  dedicatedSense("a2-sense-price-zenbude", "price_zenbude"),
+  dedicatedSense("a2-sense-price-kore-onegai", "price_kore_onegai"),
+  dedicatedSense("a2-sense-price-kore-ni-suru", "price_kore_ni_suru"),
+  dedicatedSense("a2-sense-price-takai-ne", "price_takai_ne"),
+  dedicatedSense("a2-sense-price-yasui-ne", "price_yasui_ne"),
+  // opinion-toomou transfer (M4 family recurrence, shopping-flavored)
+  dedicatedSense("a2-sense-opinion-kaban-ii", "opinion_kaban_ii"),
+  dedicatedSense("a2-sense-opinion-mise-yasui", "opinion_mise_yasui"),
+  dedicatedSense("a2-sense-opinion-kutsu-ookii", "opinion_kutsu_ookii"),
+  // return-exchange (whole-clause bake)
+  dedicatedSense("a2-sense-return-kore", "return_kore"),
+  dedicatedSense("a2-sense-return-kaban", "return_kaban"),
+  dedicatedSense("a2-sense-return-kutsu", "return_kutsu"),
+  dedicatedSense("a2-sense-return-tokei", "return_tokei"),
+  dedicatedSense("a2-sense-return-fuku", "return_fuku"),
+  dedicatedSense("a2-sense-return-size-chiisai", "return_size_chiisai"),
+  dedicatedSense("a2-sense-return-iro-chigau", "return_iro_chigau"),
+  dedicatedSense("a2-sense-return-reshiito-aru", "return_reshiito_aru"),
+  dedicatedSense("a2-sense-return-koukan-dekiru", "return_koukan_dekiru"),
+  dedicatedSense("a2-sense-return-tsukatteinai", "return_tsukatteinai"),
+  // reason-kara/reason-node recurrence (M4 families, shopping-flavored)
+  dedicatedSense("a2-sense-kara-chiisai-kaesu", "kara_chiisai_kaesu"),
+  dedicatedSense("a2-sense-kara-takai-kaesu", "kara_takai_kaesu"),
+  dedicatedSense("a2-sense-node-chigau-koukan", "node_chigau_koukan"),
+  dedicatedSense("a2-sense-node-ookii-koukan", "node_ookii_koukan"),
+
+  // --- M10 health-advice ---
+  // describe-symptoms (rule-preference: compositional body-part + itai;
+  // rule-description: genki wellbeing; rule-existence: netsu ga arimasu)
+  { id: "a2-sense-itai", lexemeId: "a2-lexeme-itai", learningUse: "productive", semanticFrameId: "a2-frame-itai", predicate: "hurts", argumentRoles: ["topic", "theme"], argumentParticleByRole: {}, adjectiveClass: "i" },
+  { id: "a2-sense-genki", lexemeId: "a2-lexeme-genki", learningUse: "productive", semanticFrameId: "a2-frame-genki", predicate: "well", argumentRoles: ["topic"], argumentParticleByRole: {}, adjectiveClass: "na" },
+  dedicatedSense("a2-sense-exist-netsu", "exist_netsu", ["location"]),
+  // advice-tahouga (whole-clause bake, class-correct past base + ほうがいいです)
+  dedicatedSense("a2-sense-tahouga-yasumu", "tahouga_yasumu"),
+  dedicatedSense("a2-sense-tahouga-byouin", "tahouga_byouin"),
+  dedicatedSense("a2-sense-tahouga-kusuri", "tahouga_kusuri"),
+  dedicatedSense("a2-sense-tahouga-hayaku-neru", "tahouga_hayaku_neru"),
+  // reason-kara true transfer (M4 family recurrence, health-flavored)
+  dedicatedSense("a2-sense-kara-atama-yasumu", "kara_atama_yasumu"),
+  dedicatedSense("a2-sense-kara-netsu-byouin", "kara_netsu_byouin"),
+  // get-better (whole-clause bake)
+  dedicatedSense("a2-sense-better-daijoubu", "better_daijoubu"),
+  dedicatedSense("a2-sense-better-genki-ni-natta", "better_genki_ni_natta"),
+  dedicatedSense("a2-sense-better-naotta", "better_naotta"),
+  dedicatedSense("a2-sense-better-mou-sukoshi-yasunde", "better_mou_sukoshi_yasunde"),
+  // negative-request true transfer (M6 family recurrence, health-flavored)
+  dedicatedSense("a2-sense-naidekudasai-muri", "naidekudasai_muri"),
+  dedicatedSense("a2-sense-naidekudasai-hataraku", "naidekudasai_hataraku"),
+  // clinic-appointment (whole-clause bake)
+  dedicatedSense("a2-sense-clinic-yoyaku-shitai", "clinic_yoyaku_shitai"),
+  dedicatedSense("a2-sense-clinic-itsu-aiteru", "clinic_itsu_aiteru"),
+  dedicatedSense("a2-sense-clinic-jikan-henkou", "clinic_jikan_henkou"),
+  dedicatedSense("a2-sense-clinic-ashita-ikitai", "clinic_ashita_ikitai"),
+
+  // --- M11 work-study-messages ---
+  // message-late-absent (whole-clause bake) + kara/node true recurrence
+  dedicatedSense("a2-sense-msg-osokunarimasu", "msg_osokunarimasu"),
+  dedicatedSense("a2-sense-msg-yasumimasu", "msg_yasumimasu"),
+  dedicatedSense("a2-sense-msg-sumimasen-osoku", "msg_sumimasen_osoku"),
+  dedicatedSense("a2-sense-kara-densha-okureru", "kara_densha_okureru"),
+  dedicatedSense("a2-sense-node-netsu-yasumu", "node_netsu_yasumu"),
+  // ask-colleague (rule-invariant-object recombination + request-tekudasai
+  // true transfer, work-flavored)
+  dedicatedSense("a2-sense-ask-tetsudatte", "ask_tetsudatte"),
+  dedicatedSense("a2-sense-ask-oshiete", "ask_oshiete"),
+  dedicatedSense("a2-sense-ask-kakunin-shite", "ask_kakunin_shite"),
+  dedicatedSense("a2-sense-tekudasai-okuru", "tekudasai_okuru"),
+  // report-progress: NO new sense here at all — work-study-messages-3 is a
+  // pure a2-family-ongoing-teiru recurrence (M5's own concept/family),
+  // recombined only with new M11 objects below.
+  // reply-confirm (whole-clause bake)
+  dedicatedSense("a2-sense-reply-wakarimashita", "reply_wakarimashita"),
+  dedicatedSense("a2-sense-reply-daijoubudesu", "reply_daijoubudesu"),
+  dedicatedSense("a2-sense-reply-arigatougozaimasu", "reply_arigatougozaimasu"),
+  dedicatedSense("a2-sense-reply-shouchishimashita", "reply_shouchishimashita"),
+
+  // --- M12 travel-reservations ---
+  // make-reservation (whole-clause bake) + intentions-plans/possibility true
+  // recombination (possibility reuses the EXISTING M7 possibility values
+  // verbatim in the new travel context — no new possibility sense needed).
+  dedicatedSense("a2-sense-resv-yoyaku-shitai", "resv_yoyaku_shitai"),
+  dedicatedSense("a2-sense-resv-heya-arimasuka", "resv_heya_arimasuka"),
+  dedicatedSense("a2-sense-resv-hitori-desu", "resv_hitori_desu"),
+  dedicatedSense("a2-sense-plan-ryokou-yotei", "plan_ryokou_yotei"),
+  // travel-schedule: ONE genuinely compositional "tsuku" (arrive) predicate
+  // sense, reused across independently-varying transport(で)/location(に)
+  // slot values via the EXISTING (A1-ported) rule-transport-action rule —
+  // never a per-combination whole-clause bake. deru/tomaru are simpler
+  // whole-clause bakes (their own place baked in), giving genuine family
+  // diversity for TR-2's own models without the added complexity of a
+  // second/third compositional rule.
+  dedicatedSense("a2-sense-travel-tsuku", "travel_tsuku", ["location"]),
+  dedicatedSense("a2-sense-travel-deru-kuukou", "travel_deru_kuukou"),
+  dedicatedSense("a2-sense-travel-deru-eki", "travel_deru_eki"),
+  dedicatedSense("a2-sense-travel-tomaru-hoteru", "travel_tomaru_hoteru"),
+  dedicatedSense("a2-sense-exp-kyoto-itta", "exp_kyoto_itta"),
+  dedicatedSense("a2-sense-exp-shinkansen-notta", "exp_shinkansen_notta"),
+  // travel-problem (rule-invariant-object recombination) + request-
+  // tekudasai/negative-request recurrence
+  dedicatedSense("a2-sense-problem-okureru", "problem_okureru"),
+  dedicatedSense("a2-sense-problem-nakushita", "problem_nakushita"),
+  dedicatedSense("a2-sense-tekudasai-tetsudau-travel", "tekudasai_tetsudau_travel"),
+  dedicatedSense("a2-sense-naidekudasai-shinpai", "naidekudasai_shinpai"),
+  // change-cancel (whole-clause bake)
+  dedicatedSense("a2-sense-change-yoyaku-henkou", "change_yoyaku_henkou"),
+  dedicatedSense("a2-sense-change-hiduke-kaetai", "change_hiduke_kaetai"),
+  dedicatedSense("a2-sense-cancel-kyanseru", "cancel_kyanseru"),
+  dedicatedSense("a2-sense-cancel-ryoukin", "cancel_ryoukin"),
+];
+
+/** Every registered A2 learning-target sense — M1-M4's, M5-M8's, and M9-M12's. */
 export const a2LearningTargetSenses: readonly LearningTargetSense[] = deepFreeze([
   ...A2_LEARNING_TARGET_SENSES_M1_M4,
   ...A2_LEARNING_TARGET_SENSES_M5_M8,
+  ...A2_LEARNING_TARGET_SENSES_M9_M12,
 ]);
 
 // ---------------------------------------------------------------------------
@@ -2555,6 +2781,197 @@ const a2AuthoredValuesM8: readonly SemanticValue[] = [
   { id: "a2-value-seq-tabete-kaeru", kind: "predicate-sense", senseId: "a2-sense-seq-tabete-kaeru", tokenFragments: [frag("ごはんを", "gohan o"), frag("たべて", "tabete"), punctFrag("、", ","), ...masuForm(masuStemKana("a2-sense-kaeru"))] },
 ];
 
+// ---------------------------------------------------------------------------
+// Phase 3 Task 6 — Module 9: shopping-returns (comparison/superlative,
+// asking price and deciding, returning/exchanging an item)
+// ---------------------------------------------------------------------------
+
+const a2AuthoredValuesM9: readonly SemanticValue[] = [
+  // --- comparison/superlative adjective stems (compositional — never the
+  // inflected ending; the realizer's "adjective" predicateKind appends
+  // い/くない/かった/くなかった generically from the variant's own
+  // FormSelection, so the SAME stem honestly recombines across every form). ---
+  { id: "a2-value-yasui-stem", kind: "predicate-sense", senseId: "a2-sense-yasui", tokenFragments: [frag("やす", "yasu")] },
+  { id: "a2-value-takai-stem", kind: "predicate-sense", senseId: "a2-sense-takai", tokenFragments: [frag("たか", "taka")] },
+  { id: "a2-value-ookii-stem", kind: "predicate-sense", senseId: "a2-sense-ookii", tokenFragments: [frag("おおき", "ooki")] },
+  { id: "a2-value-chiisai-stem", kind: "predicate-sense", senseId: "a2-sense-chiisai", tokenFragments: [frag("ちいさ", "chiisa")] },
+  // --- items/shops being compared (object-kind — never a discourse
+  // referent: these are things, not people, so every comparison/superlative
+  // variant keeps subjectRealization "omitted") ---
+  { id: "a2-value-obj-kaban", kind: "object", tokenFragments: [frag("かばん", "kaban")] },
+  { id: "a2-value-obj-kutsu", kind: "object", tokenFragments: [frag("くつ", "kutsu")] },
+  { id: "a2-value-obj-tokei", kind: "object", tokenFragments: [frag("とけい", "tokei")] },
+  { id: "a2-value-obj-fuku", kind: "object", tokenFragments: [frag("ふく", "fuku")] },
+  { id: "a2-value-obj-kono-mise", kind: "object", tokenFragments: [frag("この", "kono"), frag("みせ", "mise")] },
+  { id: "a2-value-obj-ano-mise", kind: "object", tokenFragments: [frag("あの", "ano"), frag("みせ", "mise")] },
+
+  // --- ask-price-decide (whole-clause bake; SR-3) ---
+  { id: "a2-value-price-ikura", kind: "predicate-sense", senseId: "a2-sense-price-ikura", tokenFragments: [frag("いくら", "ikura"), frag("です", "desu"), frag("か", "ka", "particle")] },
+  { id: "a2-value-price-zenbude", kind: "predicate-sense", senseId: "a2-sense-price-zenbude", tokenFragments: [frag("ぜんぶで", "zenbu de"), frag("いくら", "ikura"), frag("です", "desu"), frag("か", "ka", "particle")] },
+  { id: "a2-value-price-kore-onegai", kind: "predicate-sense", senseId: "a2-sense-price-kore-onegai", tokenFragments: [frag("これを", "kore o"), frag("おねがいします", "onegaishimasu")] },
+  { id: "a2-value-price-kore-ni-suru", kind: "predicate-sense", senseId: "a2-sense-price-kore-ni-suru", tokenFragments: [frag("これに", "kore ni"), frag("します", "shimasu")] },
+  { id: "a2-value-price-takai-ne", kind: "predicate-sense", senseId: "a2-sense-price-takai-ne", tokenFragments: [frag("たかい", "takai"), frag("です", "desu"), frag("ね", "ne", "particle")] },
+  { id: "a2-value-price-yasui-ne", kind: "predicate-sense", senseId: "a2-sense-price-yasui-ne", tokenFragments: [frag("やすい", "yasui"), frag("です", "desu"), frag("ね", "ne", "particle")] },
+
+  // --- opinion-toomou transfer (M4 family recurrence, shopping-flavored;
+  // SR-3 transfers) ---
+  { id: "a2-value-opinion-kaban-ii", kind: "predicate-sense", senseId: "a2-sense-opinion-kaban-ii", tokenFragments: [frag("この", "kono"), frag("かばんの", "kaban no"), frag("ほうが", "hou ga"), frag("いい", "ii"), particleFrag("と", "to"), frag("おもいます", "omoimasu")] },
+  { id: "a2-value-opinion-mise-yasui", kind: "predicate-sense", senseId: "a2-sense-opinion-mise-yasui", tokenFragments: [frag("この", "kono"), frag("みせの", "mise no"), frag("ほうが", "hou ga"), frag("やすい", "yasui"), particleFrag("と", "to"), frag("おもいます", "omoimasu")] },
+  { id: "a2-value-opinion-kutsu-ookii", kind: "predicate-sense", senseId: "a2-sense-opinion-kutsu-ookii", tokenFragments: [frag("その", "sono"), frag("くつの", "kutsu no"), frag("ほうが", "hou ga"), frag("おおきい", "ookii"), particleFrag("と", "to"), frag("おもいます", "omoimasu")] },
+
+  // --- return-exchange (whole-clause bake; SR-4) ---
+  { id: "a2-value-return-kore", kind: "predicate-sense", senseId: "a2-sense-return-kore", tokenFragments: [frag("これを", "kore o"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.kaesu))] },
+  { id: "a2-value-return-kaban", kind: "predicate-sense", senseId: "a2-sense-return-kaban", tokenFragments: [frag("この", "kono"), frag("かばんを", "kaban o"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.kaesu))] },
+  { id: "a2-value-return-kutsu", kind: "predicate-sense", senseId: "a2-sense-return-kutsu", tokenFragments: [frag("この", "kono"), frag("くつを", "kutsu o"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.kaesu))] },
+  { id: "a2-value-return-tokei", kind: "predicate-sense", senseId: "a2-sense-return-tokei", tokenFragments: [frag("この", "kono"), frag("とけいを", "tokei o"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.kaesu))] },
+  { id: "a2-value-return-fuku", kind: "predicate-sense", senseId: "a2-sense-return-fuku", tokenFragments: [frag("この", "kono"), frag("ふくを", "fuku o"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.kaesu))] },
+  { id: "a2-value-return-size-chiisai", kind: "predicate-sense", senseId: "a2-sense-return-size-chiisai", tokenFragments: [frag("サイズが", "saizu ga"), frag("ちいさい", "chiisai"), frag("です", "desu")] },
+  { id: "a2-value-return-iro-chigau", kind: "predicate-sense", senseId: "a2-sense-return-iro-chigau", tokenFragments: [frag("いろが", "iro ga"), frag("ちがいます", "chigaimasu")] },
+  { id: "a2-value-return-reshiito-aru", kind: "predicate-sense", senseId: "a2-sense-return-reshiito-aru", tokenFragments: [frag("レシートが", "reshiito ga"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.aru))] },
+  { id: "a2-value-return-koukan-dekiru", kind: "predicate-sense", senseId: "a2-sense-return-koukan-dekiru", tokenFragments: [frag("こうかん", "koukan"), frag("できます", "dekimasu"), frag("か", "ka", "particle")] },
+  { id: "a2-value-return-tsukatteinai", kind: "predicate-sense", senseId: "a2-sense-return-tsukatteinai", tokenFragments: [frag("これは", "kore wa"), ...newVerbSuffixKana("sequence-te", NEW_VERBS.tsukau), frag("いません", "imasen")] },
+
+  // --- reason-kara/reason-node recurrence (M4 families, shopping-flavored;
+  // SR-4 models+transfers) ---
+  { id: "a2-value-kara-chiisai-kaesu", kind: "predicate-sense", senseId: "a2-sense-kara-chiisai-kaesu", tokenFragments: [frag("サイズが", "saizu ga"), frag("ちいさい", "chiisai"), frag("です", "desu"), particleFrag("から", "kara"), punctFrag("、", ","), ...masuForm(newVerbMasuStemKana(NEW_VERBS.kaesu))] },
+  { id: "a2-value-kara-takai-kaesu", kind: "predicate-sense", senseId: "a2-sense-kara-takai-kaesu", tokenFragments: [frag("たかい", "takai"), frag("です", "desu"), particleFrag("から", "kara"), punctFrag("、", ","), ...masuForm(newVerbMasuStemKana(NEW_VERBS.kaesu))] },
+  { id: "a2-value-node-chigau-koukan", kind: "predicate-sense", senseId: "a2-sense-node-chigau-koukan", tokenFragments: [frag("いろが", "iro ga"), frag("ちがいます", "chigaimasu"), particleFrag("ので", "node"), punctFrag("、", ","), frag("こうかん", "koukan"), frag("します", "shimasu")] },
+  { id: "a2-value-node-ookii-koukan", kind: "predicate-sense", senseId: "a2-sense-node-ookii-koukan", tokenFragments: [frag("サイズが", "saizu ga"), frag("おおきい", "ookii"), frag("です", "desu"), particleFrag("ので", "node"), punctFrag("、", ","), frag("こうかん", "koukan"), frag("します", "shimasu")] },
+];
+
+// ---------------------------------------------------------------------------
+// Phase 3 Task 6 — Module 10: health-advice (describing symptoms, giving
+// advice with 〜たほうがいい, getting better, booking a clinic appointment)
+// ---------------------------------------------------------------------------
+
+const a2AuthoredValuesM10: readonly SemanticValue[] = [
+  // --- describe-symptoms: compositional body-part + itai (rule-preference,
+  // mirrors a2-sense-suki's shape exactly) ---
+  { id: "a2-value-itai-stem", kind: "predicate-sense", senseId: "a2-sense-itai", tokenFragments: [frag("いた", "ita")] },
+  { id: "a2-value-genki-stem", kind: "predicate-sense", senseId: "a2-sense-genki", tokenFragments: [frag("げんき", "genki")] },
+  { id: "a2-value-obj-atama", kind: "object", tokenFragments: [frag("あたま", "atama")] },
+  { id: "a2-value-obj-onaka", kind: "object", tokenFragments: [frag("おなか", "onaka")] },
+  { id: "a2-value-obj-nodo", kind: "object", tokenFragments: [frag("のど", "nodo")] },
+  { id: "a2-value-obj-ha", kind: "object", tokenFragments: [frag("は", "ha")] },
+  // a fever "exists" (rule-existence — mirrors a2-family-describe-facility's
+  // own inanimate-referent-subject shape exactly; reuses the EXISTING
+  // a2-value-exist-aru predicate value verbatim, zero new predicate content).
+  { id: "a2-value-netsu-subject", kind: "referent", animacy: "inanimate", tokenFragments: [frag("ねつ", "netsu")] },
+
+  // --- advice-tahouga (whole-clause bake: class-correct past base +
+  // "hou ga ii desu", via tahougaAdviceKana — never hand-authored suffixing) ---
+  { id: "a2-value-tahouga-yasumu", kind: "predicate-sense", senseId: "a2-sense-tahouga-yasumu", tokenFragments: tahougaAdviceKana(newVerbPlainKana(NEW_VERBS.yasumu, "past")) },
+  { id: "a2-value-tahouga-byouin", kind: "predicate-sense", senseId: "a2-sense-tahouga-byouin", tokenFragments: [frag("びょういんに", "byouin ni"), ...tahougaAdviceKana(plainKana("a2-sense-iku", "past"))] },
+  { id: "a2-value-tahouga-kusuri", kind: "predicate-sense", senseId: "a2-sense-tahouga-kusuri", tokenFragments: [frag("くすりを", "kusuri o"), ...tahougaAdviceKana(newVerbPlainKana(NEW_VERBS.nomu, "past"))] },
+  { id: "a2-value-tahouga-hayaku-neru", kind: "predicate-sense", senseId: "a2-sense-tahouga-hayaku-neru", tokenFragments: [frag("はやく", "hayaku"), ...tahougaAdviceKana(newVerbPlainKana(NEW_VERBS.neru, "past"))] },
+  // reason-kara true transfer (M4 family recurrence, health-flavored)
+  { id: "a2-value-kara-atama-yasumu", kind: "predicate-sense", senseId: "a2-sense-kara-atama-yasumu", tokenFragments: [frag("あたまが", "atama ga"), frag("いたい", "itai"), frag("です", "desu"), particleFrag("から", "kara"), punctFrag("、", ","), ...tahougaAdviceKana(newVerbPlainKana(NEW_VERBS.yasumu, "past"))] },
+  { id: "a2-value-kara-netsu-byouin", kind: "predicate-sense", senseId: "a2-sense-kara-netsu-byouin", tokenFragments: [frag("ねつが", "netsu ga"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.aru)), particleFrag("から", "kara"), punctFrag("、", ","), frag("びょういんに", "byouin ni"), ...tahougaAdviceKana(plainKana("a2-sense-iku", "past"))] },
+
+  // --- get-better (whole-clause bake) ---
+  { id: "a2-value-better-daijoubu", kind: "predicate-sense", senseId: "a2-sense-better-daijoubu", tokenFragments: [frag("もう", "mou"), frag("だいじょうぶです", "daijoubu desu")] },
+  { id: "a2-value-better-genki-ni-natta", kind: "predicate-sense", senseId: "a2-sense-better-genki-ni-natta", tokenFragments: [frag("げんきに", "genki ni"), ...newVerbMasuStemKana(NEW_VERBS.naru), morphFrag("ました", "mashita")] },
+  { id: "a2-value-better-naotta", kind: "predicate-sense", senseId: "a2-sense-better-naotta", tokenFragments: [frag("びょうきが", "byouki ga"), ...newVerbMasuStemKana(NEW_VERBS.naoru), morphFrag("ました", "mashita")] },
+  { id: "a2-value-better-mou-sukoshi-yasunde", kind: "predicate-sense", senseId: "a2-sense-better-mou-sukoshi-yasunde", tokenFragments: [frag("もうすこし", "mou sukoshi"), ...newVerbSuffixKana("request-tekudasai", NEW_VERBS.yasumu)] },
+  // negative-request true transfer (M6 family recurrence, health-flavored)
+  { id: "a2-value-naidekudasai-muri", kind: "predicate-sense", senseId: "a2-sense-naidekudasai-muri", tokenFragments: [frag("むりを", "muri o"), frag("しないで", "shinaide"), frag("ください", "kudasai")] },
+  { id: "a2-value-naidekudasai-hataraku", kind: "predicate-sense", senseId: "a2-sense-naidekudasai-hataraku", tokenFragments: [frag("いまは", "ima wa"), ...newVerbSuffixKana("request-negative", NEW_VERBS.hataraku)] },
+
+  // --- clinic-appointment (whole-clause bake) ---
+  { id: "a2-value-clinic-yoyaku-shitai", kind: "predicate-sense", senseId: "a2-sense-clinic-yoyaku-shitai", tokenFragments: [frag("よやくを", "yoyaku o"), frag("おねがいします", "onegaishimasu")] },
+  { id: "a2-value-clinic-itsu-aiteru", kind: "predicate-sense", senseId: "a2-sense-clinic-itsu-aiteru", tokenFragments: [frag("いつ", "itsu"), frag("あいて", "aite"), frag("います", "imasu"), frag("か", "ka", "particle")] },
+  { id: "a2-value-clinic-jikan-henkou", kind: "predicate-sense", senseId: "a2-sense-clinic-jikan-henkou", tokenFragments: [frag("じかんを", "jikan o"), frag("へんこう", "henkou"), frag("できます", "dekimasu"), frag("か", "ka", "particle")] },
+  { id: "a2-value-clinic-ashita-ikitai", kind: "predicate-sense", senseId: "a2-sense-clinic-ashita-ikitai", tokenFragments: [frag("あしたでも", "ashita demo"), frag("いい", "ii"), frag("です", "desu"), frag("か", "ka", "particle")] },
+];
+
+// ---------------------------------------------------------------------------
+// Phase 3 Task 6 — Module 11: work-study-messages (messaging about being
+// late/absent, asking a colleague, reporting progress, replying/confirming)
+// ---------------------------------------------------------------------------
+
+const a2AuthoredValuesM11: readonly SemanticValue[] = [
+  // --- objects reused across ask-colleague/report-progress ---
+  { id: "a2-value-obj-shorui", kind: "object", tokenFragments: [frag("しょるい", "shorui")] },
+  { id: "a2-value-obj-shigoto-m11", kind: "object", tokenFragments: [frag("しごと", "shigoto")] },
+  { id: "a2-value-obj-mail", kind: "object", tokenFragments: [frag("メール", "meeru")] },
+  { id: "a2-value-obj-repooto", kind: "object", tokenFragments: [frag("レポート", "repooto")] },
+  { id: "a2-value-obj-henji", kind: "object", tokenFragments: [frag("へんじ", "henji")] },
+
+  // --- message-late-absent (whole-clause bake; WSM-1) ---
+  { id: "a2-value-msg-osokunarimasu", kind: "predicate-sense", senseId: "a2-sense-msg-osokunarimasu", tokenFragments: [frag("すこし", "sukoshi"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.okureru))] },
+  { id: "a2-value-msg-yasumimasu", kind: "predicate-sense", senseId: "a2-sense-msg-yasumimasu", tokenFragments: [frag("きょう", "kyou"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.yasumu))] },
+  { id: "a2-value-msg-sumimasen-osoku", kind: "predicate-sense", senseId: "a2-sense-msg-sumimasen-osoku", tokenFragments: [frag("すみません", "sumimasen"), punctFrag("、", ","), frag("でんしゃが", "densha ga"), ...newVerbSuffixKana("ongoing-teiru", NEW_VERBS.okureru)] },
+  // reason-kara/reason-node true recurrence (M4 families, work-flavored)
+  { id: "a2-value-kara-densha-okureru", kind: "predicate-sense", senseId: "a2-sense-kara-densha-okureru", tokenFragments: [frag("でんしゃが", "densha ga"), ...newVerbSuffixKana("ongoing-teiru", NEW_VERBS.okureru), particleFrag("から", "kara"), punctFrag("、", ","), frag("すこし", "sukoshi"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.okureru))] },
+  { id: "a2-value-node-netsu-yasumu", kind: "predicate-sense", senseId: "a2-sense-node-netsu-yasumu", tokenFragments: [frag("ねつが", "netsu ga"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.aru)), particleFrag("ので", "node"), punctFrag("、", ","), frag("きょう", "kyou"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.yasumu))] },
+
+  // --- ask-colleague (object-compositional, rule-invariant-object; WSM-2) ---
+  { id: "a2-value-ask-tetsudatte", kind: "predicate-sense", senseId: "a2-sense-ask-tetsudatte", tokenFragments: newVerbSuffixKana("request-tekudasai", NEW_VERBS.tetsudau) },
+  { id: "a2-value-ask-oshiete", kind: "predicate-sense", senseId: "a2-sense-ask-oshiete", tokenFragments: newVerbSuffixKana("request-tekudasai", NEW_VERBS.oshieru) },
+  { id: "a2-value-ask-kakunin-shite", kind: "predicate-sense", senseId: "a2-sense-ask-kakunin-shite", tokenFragments: newVerbSuffixKana("request-tekudasai", NEW_VERBS.tsutaeru) },
+  // request-tekudasai true transfer (M6 family recurrence, work-flavored,
+  // reusing the EXISTING a2-family-request-tekudasai verbatim)
+  { id: "a2-value-tekudasai-okuru", kind: "predicate-sense", senseId: "a2-sense-tekudasai-okuru", tokenFragments: newVerbSuffixKana("request-tekudasai", NEW_VERBS.okuru) },
+
+  // --- reply-confirm (whole-clause bake; WSM-4) ---
+  { id: "a2-value-reply-wakarimashita", kind: "predicate-sense", senseId: "a2-sense-reply-wakarimashita", tokenFragments: [frag("わかりました", "wakarimashita")] },
+  { id: "a2-value-reply-daijoubudesu", kind: "predicate-sense", senseId: "a2-sense-reply-daijoubudesu", tokenFragments: [frag("だいじょうぶです", "daijoubu desu")] },
+  { id: "a2-value-reply-arigatougozaimasu", kind: "predicate-sense", senseId: "a2-sense-reply-arigatougozaimasu", tokenFragments: [frag("ありがとうございます", "arigatou gozaimasu")] },
+  { id: "a2-value-reply-shouchishimashita", kind: "predicate-sense", senseId: "a2-sense-reply-shouchishimashita", tokenFragments: [frag("しょうちしました", "shouchi shimashita")] },
+];
+
+// ---------------------------------------------------------------------------
+// Phase 3 Task 6 — Module 12: travel-reservations (making a reservation,
+// describing a travel schedule, handling a travel problem,
+// changing/cancelling a reservation)
+// ---------------------------------------------------------------------------
+
+const a2AuthoredValuesM12: readonly SemanticValue[] = [
+  // --- transport/place vocabulary (object-kind and location-kind — the
+  // SAME real-world place fills a DIFFERENT slot kind depending on the
+  // family, e.g. くうこう is a location when arriving AT it but an object
+  // when departing FROM it) ---
+  { id: "a2-value-obj-densha-m12", kind: "object", tokenFragments: [frag("でんしゃ", "densha")] },
+  { id: "a2-value-obj-hikouki", kind: "object", tokenFragments: [frag("ひこうき", "hikouki")] },
+  { id: "a2-value-loc-kuukou", kind: "location", tokenFragments: [frag("くうこう", "kuukou")] },
+  { id: "a2-value-obj-yoyaku", kind: "object", tokenFragments: [frag("よやく", "yoyaku")] },
+  { id: "a2-value-obj-pasupooto", kind: "object", tokenFragments: [frag("パスポート", "pasupooto")] },
+  { id: "a2-value-obj-kippu", kind: "object", tokenFragments: [frag("きっぷ", "kippu")] },
+
+  // --- make-reservation (whole-clause bake; TR-1) ---
+  { id: "a2-value-resv-yoyaku-shitai", kind: "predicate-sense", senseId: "a2-sense-resv-yoyaku-shitai", tokenFragments: [frag("へやの", "heya no"), frag("よやくを", "yoyaku o"), frag("おねがいします", "onegaishimasu")] },
+  { id: "a2-value-resv-heya-arimasuka", kind: "predicate-sense", senseId: "a2-sense-resv-heya-arimasuka", tokenFragments: [frag("へやは", "heya wa"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.aru)), frag("か", "ka", "particle")] },
+  { id: "a2-value-resv-hitori-desu", kind: "predicate-sense", senseId: "a2-sense-resv-hitori-desu", tokenFragments: [frag("ひとりです", "hitori desu")] },
+  // intentions-plans true transfer (M2 family recurrence, travel-flavored)
+  { id: "a2-value-plan-ryokou-yotei", kind: "predicate-sense", senseId: "a2-sense-plan-ryokou-yotei", tokenFragments: [frag("らいしゅう", "raishuu"), frag("りょこうの", "ryokou no"), frag("よてい", "yotei"), frag("です", "desu")] },
+
+  // --- travel-schedule: one genuinely compositional predicate (tsuku),
+  // reused across independently-varying object/location values below via
+  // the EXISTING (A1-ported) rule-transport-action rule; deru/tomaru are
+  // simpler whole-clause bakes with their own place baked in (TR-2) ---
+  { id: "a2-value-travel-tsuku", kind: "predicate-sense", senseId: "a2-sense-travel-tsuku", tokenFragments: newVerbMasuStemKana(NEW_VERBS.tsuku) },
+  { id: "a2-value-travel-deru-kuukou", kind: "predicate-sense", senseId: "a2-sense-travel-deru-kuukou", tokenFragments: [frag("くうこうを", "kuukou o"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.deru))] },
+  { id: "a2-value-travel-deru-eki", kind: "predicate-sense", senseId: "a2-sense-travel-deru-eki", tokenFragments: [frag("えきを", "eki o"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.deru))] },
+  { id: "a2-value-travel-tomaru-hoteru", kind: "predicate-sense", senseId: "a2-sense-travel-tomaru-hoteru", tokenFragments: [frag("ホテルに", "hoteru ni"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.tomaruStay))] },
+  // experience-takoto true transfer (M3 family recurrence, travel-flavored)
+  { id: "a2-value-exp-kyoto-itta", kind: "predicate-sense", senseId: "a2-sense-exp-kyoto-itta", tokenFragments: [frag("きょうとに", "kyouto ni"), ...experienceTakotoKana("a2-sense-iku")] },
+  { id: "a2-value-exp-shinkansen-notta", kind: "predicate-sense", senseId: "a2-sense-exp-shinkansen-notta", tokenFragments: [frag("しんかんせんに", "shinkansen ni"), ...newVerbSuffixKana("experience-takoto", NEW_VERBS.noru)] },
+
+  // --- travel-problem (object-compositional, rule-invariant-object; TR-3) ---
+  { id: "a2-value-problem-nakusu", kind: "predicate-sense", senseId: "a2-sense-problem-nakushita", tokenFragments: [...newVerbMasuStemKana(NEW_VERBS.nakusu), morphFrag("ました", "mashita")] },
+  { id: "a2-value-problem-machigaeru", kind: "predicate-sense", senseId: "a2-sense-problem-okureru", tokenFragments: [...newVerbMasuStemKana(NEW_VERBS.machigaeru), morphFrag("ました", "mashita")] },
+  // request-tekudasai/negative-request true recurrence (M6 families,
+  // travel-flavored)
+  { id: "a2-value-tekudasai-tasukete", kind: "predicate-sense", senseId: "a2-sense-tekudasai-tetsudau-travel", tokenFragments: newVerbSuffixKana("request-tekudasai", NEW_VERBS.tasukeru) },
+  { id: "a2-value-naidekudasai-wasureru", kind: "predicate-sense", senseId: "a2-sense-naidekudasai-shinpai", tokenFragments: newVerbSuffixKana("request-negative", NEW_VERBS.wasureru) },
+
+  // --- change-cancel (whole-clause bake; TR-4) ---
+  { id: "a2-value-change-yoyaku-henkou", kind: "predicate-sense", senseId: "a2-sense-change-yoyaku-henkou", tokenFragments: [frag("よやくを", "yoyaku o"), frag("へんこう", "henkou"), frag("できます", "dekimasu"), frag("か", "ka", "particle")] },
+  { id: "a2-value-change-hiduke-kaetai", kind: "predicate-sense", senseId: "a2-sense-change-hiduke-kaetai", tokenFragments: [frag("ひづけを", "hiduke o"), ...newVerbSuffixKana("request-tekudasai", NEW_VERBS.kaeruChange)] },
+  { id: "a2-value-cancel-kyanseru", kind: "predicate-sense", senseId: "a2-sense-cancel-kyanseru", tokenFragments: [frag("これを", "kore o"), frag("キャンセルします", "kyanseru shimasu")] },
+  { id: "a2-value-cancel-ryoukin", kind: "predicate-sense", senseId: "a2-sense-cancel-ryoukin", tokenFragments: [frag("キャンセルりょうきんは", "kyanseru ryoukin wa"), frag("いくら", "ikura"), frag("です", "desu"), frag("か", "ka", "particle")] },
+];
+
 export const a2SemanticValues: readonly SemanticValue[] = deepFreeze([
   ...a2AuthoredValuesM1,
   ...a2AuthoredValuesM2,
@@ -2564,6 +2981,10 @@ export const a2SemanticValues: readonly SemanticValue[] = deepFreeze([
   ...a2AuthoredValuesM6,
   ...a2AuthoredValuesM7,
   ...a2AuthoredValuesM8,
+  ...a2AuthoredValuesM9,
+  ...a2AuthoredValuesM10,
+  ...a2AuthoredValuesM11,
+  ...a2AuthoredValuesM12,
 ]);
 
 // ---------------------------------------------------------------------------
@@ -2829,7 +3250,14 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
   {
     id: "a2-family-ongoing-teiru",
     level: "a2",
-    canDoIds: ["a2-cando-ongoing-teiru", "a2-cando-describe-ongoing", "a2-cando-morning-routine"],
+    // Also satisfies work-study-messages-3's primary Can-do
+    // (report-progress: this module has no dedicated "report progress"
+    // family of its own — the teiru form IS the mechanism for progress
+    // reporting, exactly per the task recipe's own "teiru true transfer"
+    // description — so wsm3's transfers recombine this family verbatim,
+    // mirroring how a2-family-request-tekudasai already spans multiple
+    // modules' topical Can-dos above).
+    canDoIds: ["a2-cando-ongoing-teiru", "a2-cando-describe-ongoing", "a2-cando-morning-routine", "a2-cando-report-progress"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
       { id: "object", axis: "object", valueKind: "object", optional: true },
@@ -2997,6 +3425,289 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     realizationRuleId: "rule-invariant-utterance",
     requiredConceptIds: [A2_CONCEPT_RECOUNT_EXPERIENCE],
   },
+
+  // --- Phase 3 Task 6 (M9-M12) ---
+  // --- M9 shopping-returns ---
+  {
+    // shopping-returns-1: genuinely compositional favor-marked comparison
+    // "XのほうがYよりADJです" — favored/standard are things (objects), never
+    // discourse referents, so every variant keeps subjectRealization
+    // "omitted" and speaker-role diversity comes only from the discourse
+    // `speakerRole` override (who is saying this), never a grammatical
+    // subject.
+    id: "a2-family-comparison-favor",
+    level: "a2",
+    canDoIds: ["a2-cando-compare"],
+    slotSchema: [
+      { id: "favored", axis: "object", valueKind: "object", optional: false },
+      { id: "standard", axis: "object", valueKind: "object", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["object", "predicate-verb", "polarity-tense-form", "context"],
+    realizationRuleId: "rule-comparison-favor",
+    requiredConceptIds: [A2_CONCEPT_COMPARISON],
+  },
+  {
+    // shopping-returns-2: が-marked superlative "Xがいちばん ADJです" — the SAME
+    // compositional adjective stems as comparison-favor, recombined through
+    // a genuinely different rule/surface (いちばん, fixed grammar content).
+    id: "a2-family-superlative",
+    level: "a2",
+    canDoIds: ["a2-cando-compare"],
+    slotSchema: [
+      { id: "favored", axis: "object", valueKind: "object", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["object", "predicate-verb", "polarity-tense-form", "context"],
+    realizationRuleId: "rule-superlative",
+    requiredConceptIds: [A2_CONCEPT_SUPERLATIVE],
+  },
+  {
+    // shopping-returns-3: asking price and deciding what to buy
+    // (whole-clause bake — set phrases like いくらですか/これにします).
+    id: "a2-family-ask-price-decide",
+    level: "a2",
+    canDoIds: ["a2-cando-ask-price-decide"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_ASK_PRICE_DECIDE],
+  },
+  {
+    // shopping-returns-4: returning/exchanging an item (whole-clause bake).
+    id: "a2-family-return-exchange",
+    level: "a2",
+    canDoIds: ["a2-cando-return-exchange"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_RETURN_EXCHANGE],
+  },
+
+  // --- M10 health-advice ---
+  {
+    // health-advice-1: compositional symptom description "X wa Y ga itai
+    // desu" — Y (body part) is a が-marked governed theme, reusing the
+    // EXISTING rule-preference rule verbatim (ported from the A1 fixture
+    // precedent, never before used by an A2 family).
+    id: "a2-family-symptom",
+    level: "a2",
+    canDoIds: ["a2-cando-describe-symptoms"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "object", axis: "object", valueKind: "object", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "object", "predicate-verb", "polarity-tense-form", "context"],
+    realizationRuleId: "rule-preference",
+    requiredConceptIds: [A2_CONCEPT_DESCRIBE_SYMPTOMS],
+  },
+  {
+    // health-advice-1: general wellbeing "X wa genki desu" — reuses the
+    // EXISTING rule-description rule verbatim.
+    id: "a2-family-wellbeing",
+    level: "a2",
+    canDoIds: ["a2-cando-describe-symptoms"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "polarity-tense-form", "context"],
+    realizationRuleId: "rule-description",
+    requiredConceptIds: [A2_CONCEPT_DESCRIBE_SYMPTOMS],
+  },
+  {
+    // health-advice-1: "netsu ga arimasu" (a fever exists) — mirrors
+    // a2-family-describe-facility's own inanimate-referent-subject shape
+    // exactly (reuses the EXISTING rule-existence rule and the EXISTING
+    // a2-value-exist-aru predicate value verbatim, whose own frame declares
+    // a "location" role — an optional, never-filled location slot here
+    // keeps that reused sense's frame honestly backed, exactly like
+    // describe-facility's own optional location slot).
+    id: "a2-family-symptom-exist",
+    level: "a2",
+    canDoIds: ["a2-cando-describe-symptoms"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      { id: "location", axis: "location", valueKind: "location", optional: true },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "location", "context"],
+    realizationRuleId: "rule-existence",
+    requiredConceptIds: [A2_CONCEPT_DESCRIBE_SYMPTOMS],
+  },
+  {
+    // health-advice-2: 〜たほうがいいです advice (whole-clause bake — a
+    // SUPPORTING form, never one of the 15 grammar-spiral rows).
+    id: "a2-family-tahouga-advice",
+    level: "a2",
+    canDoIds: ["a2-cando-advice-tahouga"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_TAHOUGA_ADVICE],
+  },
+  {
+    // health-advice-3: getting better (whole-clause bake).
+    id: "a2-family-get-better",
+    level: "a2",
+    canDoIds: ["a2-cando-get-better"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_GET_BETTER],
+  },
+  {
+    // health-advice-4: booking/changing a clinic appointment (whole-clause
+    // bake).
+    id: "a2-family-clinic-appointment",
+    level: "a2",
+    canDoIds: ["a2-cando-clinic-appointment"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_CLINIC_APPOINTMENT],
+  },
+
+  // --- M11 work-study-messages ---
+  {
+    // work-study-messages-1: messaging about being late/absent
+    // (whole-clause bake).
+    id: "a2-family-message-late-absent",
+    level: "a2",
+    canDoIds: ["a2-cando-message-late-absent"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_MESSAGE_LATE_ABSENT],
+  },
+  {
+    // work-study-messages-2: asking a colleague for help (object-
+    // compositional, rule-invariant-object — the same construction shape as
+    // the EXISTING a2-family-request-tekudasai, scoped to its own topical
+    // Can-do exactly like restaurant-problems-2's own special-request
+    // family did for M6's request-tekudasai in Phase 3 Task 5).
+    id: "a2-family-ask-colleague",
+    level: "a2",
+    canDoIds: ["a2-cando-ask-colleague"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "object", axis: "object", valueKind: "object", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "object", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-object",
+    requiredConceptIds: [A2_CONCEPT_ASK_COLLEAGUE],
+  },
+  {
+    // work-study-messages-4: replying/confirming (whole-clause bake, short
+    // set phrases).
+    id: "a2-family-reply-confirm",
+    level: "a2",
+    canDoIds: ["a2-cando-reply-confirm"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_REPLY_CONFIRM],
+  },
+
+  // --- M12 travel-reservations ---
+  {
+    // travel-reservations-1: making a reservation (whole-clause bake).
+    id: "a2-family-make-reservation",
+    level: "a2",
+    canDoIds: ["a2-cando-make-reservation"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_MAKE_RESERVATION],
+  },
+  {
+    // travel-reservations-2: arriving somewhere by some transport
+    // ("X で Y に つきます") — genuinely compositional, reusing the
+    // EXISTING (A1-ported) rule-transport-action rule verbatim.
+    id: "a2-family-travel-arrival",
+    level: "a2",
+    canDoIds: ["a2-cando-travel-schedule"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      { id: "transport", axis: "object", valueKind: "object", optional: false },
+      { id: "location", axis: "location", valueKind: "location", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "object", "location", "polarity-tense-form", "context"],
+    realizationRuleId: "rule-transport-action",
+    requiredConceptIds: [A2_CONCEPT_TRAVEL_SCHEDULE],
+  },
+  {
+    // travel-reservations-2: departing/staying (whole-clause bake — the
+    // place is baked into the predicate value, giving TR-2's own models
+    // real family/predicate diversity alongside the compositional arrival
+    // family above).
+    id: "a2-family-travel-schedule-other",
+    level: "a2",
+    canDoIds: ["a2-cando-travel-schedule"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_TRAVEL_SCHEDULE],
+  },
+  {
+    // travel-reservations-3: a travel problem (object-compositional,
+    // rule-invariant-object — losing/mistaking something).
+    id: "a2-family-travel-problem",
+    level: "a2",
+    canDoIds: ["a2-cando-travel-problem"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "object", axis: "object", valueKind: "object", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "object", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-object",
+    requiredConceptIds: [A2_CONCEPT_TRAVEL_PROBLEM],
+  },
+  {
+    // travel-reservations-4: changing/cancelling a reservation
+    // (whole-clause bake).
+    id: "a2-family-change-cancel",
+    level: "a2",
+    canDoIds: ["a2-cando-change-cancel"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_CHANGE_CANCEL],
+  },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -3031,6 +3742,10 @@ export const a2SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a2-context-rules-label": "Reading signs and rules",
     "a2-context-neighborhood-label": "Around the neighborhood",
     "a2-context-restaurant-label": "At a restaurant",
+    "a2-context-shopping-label": "Shopping",
+    "a2-context-health-label": "Talking about health",
+    "a2-context-work-study-label": "At work or school",
+    "a2-context-travel-label": "Traveling",
   },
   it: {
     "a2-role-learner-label": "Io (lo studente)",
@@ -3059,6 +3774,10 @@ export const a2SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a2-context-rules-label": "Leggendo cartelli e regole",
     "a2-context-neighborhood-label": "In giro per il quartiere",
     "a2-context-restaurant-label": "Al ristorante",
+    "a2-context-shopping-label": "Facendo shopping",
+    "a2-context-health-label": "Parlando di salute",
+    "a2-context-work-study-label": "Al lavoro o a scuola",
+    "a2-context-travel-label": "In viaggio",
   },
 });
 
@@ -3110,6 +3829,22 @@ const A2_CONTEXT_SCENARIO: Readonly<Record<string, Bilingual>> = deepFreeze({
   "a2-context-restaurant": {
     en: "You are at a restaurant, ordering and dealing with the staff.",
     it: "Sei al ristorante, stai ordinando e parlando con il personale.",
+  },
+  "a2-context-shopping": {
+    en: "You are shopping, comparing items and deciding what to buy.",
+    it: "Stai facendo shopping, confrontando gli articoli e decidendo cosa comprare.",
+  },
+  "a2-context-health": {
+    en: "You are describing how you feel and getting health advice.",
+    it: "Stai descrivendo come ti senti e ricevendo consigli sulla salute.",
+  },
+  "a2-context-work-study": {
+    en: "You are messaging a colleague or classmate about work or school.",
+    it: "Stai scrivendo a un collega o un compagno di scuola per lavoro o studio.",
+  },
+  "a2-context-travel": {
+    en: "You are traveling, making and managing reservations.",
+    it: "Sei in viaggio, stai facendo e gestendo prenotazioni.",
   },
 });
 

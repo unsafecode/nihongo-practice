@@ -2504,3 +2504,227 @@ describe("realizer generalization: the additive \"vocative\" subjectRealization 
     expect(result.sentence.canonicalJapanese).toBe("ゆきさん、なんじにあいましょうか");
   });
 });
+
+// Phase 3 Task 6 (A2 M9-M12 dense content): two new, genuinely compositional
+// rules the A2 shopping-returns module needs — favor-marked comparison
+// ("XのほうがYよりADJです") and が-marked superlative ("Xがいちばんいちばん
+// ADJです"). Both reuse the existing `predicateKind: "adjective"` machinery
+// (i/na-class conjugation, honest FormSelection) so the SAME predicate stem
+// value (e.g. やす "yasu") produces やすいです/やすくないです/やすかったです
+// automatically — never a per-comparison whole-clause bake. の/ほう/が and
+// いちばん are fixed grammar-level content the rule itself contributes
+// (mirrors さん/、 in `pushVocativeAddress` above), never authored per-lesson.
+describe("realizer generalization: \"rule-comparison-favor\" (Xのほうが Yより ADJです) and \"rule-superlative\" (Xが いちばん ADJです) (Phase 3 Task 6)", () => {
+  const bareBaseDiscourse = {
+    speakerRoleId: "fixture-role-learner",
+    addresseeRoleId: null,
+    subjectReferentId: null,
+    subjectRealization: "omitted" as const,
+    scenarioNoteCopyId: "test-scenario-comparison",
+  };
+
+  function localCatalogsWith(
+    extraValues: readonly SemanticValue[],
+    extraSenses: readonly LearningTargetSense[],
+  ): RealizeVariantCatalogs {
+    return {
+      ...catalogs,
+      semanticValues: [...catalogs.semanticValues, ...extraValues],
+      learningTargetSenses: [...catalogs.learningTargetSenses, ...extraSenses],
+    };
+  }
+
+  const yasuiSense: LearningTargetSense = {
+    id: "test-sense-comparison-yasui",
+    lexemeId: "test-lexeme-comparison-yasui",
+    learningUse: "productive",
+    semanticFrameId: "test-frame-comparison-yasui",
+    predicate: "test-cheap" as LearningTargetSense["predicate"],
+    argumentRoles: ["topic"],
+    argumentParticleByRole: {},
+    adjectiveClass: "i",
+  };
+  const yasuiStemValue: SemanticValue = {
+    id: "test-value-comparison-yasui-stem",
+    kind: "predicate-sense",
+    senseId: yasuiSense.id,
+    tokenFragments: [{ jp: "やす", romaji: "yasu", kind: "lexical", boundaryBefore: "attach" }],
+  };
+  const kabanValue: SemanticValue = {
+    id: "test-value-comparison-kaban",
+    kind: "object",
+    tokenFragments: [{ jp: "かばん", romaji: "kaban", kind: "lexical", boundaryBefore: "attach" }],
+  };
+  const kutsuValue: SemanticValue = {
+    id: "test-value-comparison-kutsu",
+    kind: "object",
+    tokenFragments: [{ jp: "くつ", romaji: "kutsu", kind: "lexical", boundaryBefore: "attach" }],
+  };
+
+  describe("rule-comparison-favor", () => {
+    const comparisonFamily: SentenceFamily = {
+      id: "test-family-comparison-favor" as SentenceFamily["id"],
+      level: "a2",
+      canDoIds: [],
+      slotSchema: [
+        { id: "favored", axis: "object", valueKind: "object", optional: false },
+        { id: "standard", axis: "object", valueKind: "object", optional: false },
+        { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      ],
+      permittedAxes: ["object", "predicate-verb", "polarity-tense-form", "context"],
+      realizationRuleId: "rule-comparison-favor",
+      requiredConceptIds: [],
+    };
+
+    function variantWith(form: SentenceVariant["form"]): SentenceVariant {
+      return {
+        id: "test-variant-comparison-favor",
+        sentenceFamilyId: comparisonFamily.id,
+        discourse: bareBaseDiscourse,
+        contextId: "fixture-a1-context-language-class",
+        slotValues: { favored: kabanValue.id, standard: kutsuValue.id, predicate: yasuiStemValue.id },
+        form,
+        pedagogicalUse: "model",
+      };
+    }
+
+    it("assembles favored + のほうが + standard + より + the adjective stem's own present-affirmative inflection", () => {
+      const result = realizeVariant(
+        comparisonFamily,
+        variantWith({ polarity: "affirmative", tense: "present", formality: "polite" }),
+        localCatalogsWith([yasuiStemValue, kabanValue, kutsuValue], [yasuiSense]),
+        { availableConceptIds: [] },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sentence.canonicalJapanese).toBe("かばんのほうがくつよりやすいです");
+      const romaji = formatRomaji(result.sentence.tokens);
+      expect(romaji.ok).toBe(true);
+      if (!romaji.ok) return;
+      expect(romaji.text).toBe("kaban no hou ga kutsu yori yasui desu");
+    });
+
+    it("conjugates the SAME stem value honestly across form selections (negative/past), never a hand-baked whole clause", () => {
+      const negative = realizeVariant(
+        comparisonFamily,
+        variantWith({ polarity: "negative", tense: "present", formality: "polite" }),
+        localCatalogsWith([yasuiStemValue, kabanValue, kutsuValue], [yasuiSense]),
+        { availableConceptIds: [] },
+      );
+      expect(negative.ok).toBe(true);
+      if (negative.ok) expect(negative.sentence.canonicalJapanese).toBe("かばんのほうがくつよりやすくないです");
+
+      const past = realizeVariant(
+        comparisonFamily,
+        variantWith({ polarity: "affirmative", tense: "past", formality: "polite" }),
+        localCatalogsWith([yasuiStemValue, kabanValue, kutsuValue], [yasuiSense]),
+        { availableConceptIds: [] },
+      );
+      expect(past.ok).toBe(true);
+      if (past.ok) expect(past.sentence.canonicalJapanese).toBe("かばんのほうがくつよりやすかったです");
+    });
+
+    it("recombines the SAME predicate stem with DIFFERENT favored/standard values into a genuinely distinct sentence (compositional transfer novelty)", () => {
+      const variant: SentenceVariant = {
+        id: "test-variant-comparison-favor-swapped",
+        sentenceFamilyId: comparisonFamily.id,
+        discourse: bareBaseDiscourse,
+        contextId: "fixture-a1-context-language-class",
+        slotValues: { favored: kutsuValue.id, standard: kabanValue.id, predicate: yasuiStemValue.id },
+        form: { polarity: "affirmative", tense: "present", formality: "polite" },
+        pedagogicalUse: "transfer",
+      };
+      const result = realizeVariant(
+        comparisonFamily,
+        variant,
+        localCatalogsWith([yasuiStemValue, kabanValue, kutsuValue], [yasuiSense]),
+        { availableConceptIds: [] },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sentence.canonicalJapanese).toBe("くつのほうがかばんよりやすいです");
+      expect(result.sentence.canonicalJapanese).not.toBe("かばんのほうがくつよりやすいです");
+    });
+
+    it("appends the sentence-final か for an interrogative comparison variant", () => {
+      const result = realizeVariant(
+        comparisonFamily,
+        {
+          ...variantWith({
+            polarity: "affirmative",
+            tense: "present",
+            formality: "polite",
+            interrogative: true,
+          }),
+          pedagogicalUse: "transfer",
+        },
+        localCatalogsWith([yasuiStemValue, kabanValue, kutsuValue], [yasuiSense]),
+        { availableConceptIds: [] },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sentence.canonicalJapanese).toBe("かばんのほうがくつよりやすいですか");
+    });
+  });
+
+  describe("rule-superlative", () => {
+    const superlativeFamily: SentenceFamily = {
+      id: "test-family-superlative" as SentenceFamily["id"],
+      level: "a2",
+      canDoIds: [],
+      slotSchema: [
+        { id: "favored", axis: "object", valueKind: "object", optional: false },
+        { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      ],
+      permittedAxes: ["object", "predicate-verb", "polarity-tense-form", "context"],
+      realizationRuleId: "rule-superlative",
+      requiredConceptIds: [],
+    };
+
+    it("assembles favored + が + いちばん + the adjective stem's own present-affirmative inflection, with いちばん fixed (never authored per-value)", () => {
+      const variant: SentenceVariant = {
+        id: "test-variant-superlative",
+        sentenceFamilyId: superlativeFamily.id,
+        discourse: bareBaseDiscourse,
+        contextId: "fixture-a1-context-language-class",
+        slotValues: { favored: kabanValue.id, predicate: yasuiStemValue.id },
+        form: { polarity: "affirmative", tense: "present", formality: "polite" },
+        pedagogicalUse: "model",
+      };
+      const result = realizeVariant(
+        superlativeFamily,
+        variant,
+        localCatalogsWith([yasuiStemValue, kabanValue], [yasuiSense]),
+        { availableConceptIds: [] },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sentence.canonicalJapanese).toBe("かばんがいちばんやすいです");
+      const romaji = formatRomaji(result.sentence.tokens);
+      expect(romaji.ok).toBe(true);
+      if (!romaji.ok) return;
+      expect(romaji.text).toBe("kaban ga ichiban yasui desu");
+    });
+
+    it("recombines the SAME predicate stem with a DIFFERENT favored value into a genuinely distinct sentence", () => {
+      const variant: SentenceVariant = {
+        id: "test-variant-superlative-kutsu",
+        sentenceFamilyId: superlativeFamily.id,
+        discourse: bareBaseDiscourse,
+        contextId: "fixture-a1-context-language-class",
+        slotValues: { favored: kutsuValue.id, predicate: yasuiStemValue.id },
+        form: { polarity: "affirmative", tense: "present", formality: "polite" },
+        pedagogicalUse: "transfer",
+      };
+      const result = realizeVariant(
+        superlativeFamily,
+        variant,
+        localCatalogsWith([yasuiStemValue, kutsuValue], [yasuiSense]),
+        { availableConceptIds: [] },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sentence.canonicalJapanese).toBe("くつがいちばんやすいです");
+    });
+  });
+});
