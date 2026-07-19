@@ -98,7 +98,9 @@ export function validateA2GrammarSpiral(
 
 // ---------------------------------------------------------------------------
 // Content-evidence audit (Phase 3 Task 6 spec-fix, "grammar spiral content
-// mismatch") — a layer ON TOP OF the purely structural checks above.
+// mismatch"; recurrence role added by the I1 spec-fix, "grammar evidence
+// audit recurrence gap") — a layer ON TOP OF the purely structural checks
+// above.
 // ---------------------------------------------------------------------------
 
 /** Runtime-checkable tuple of every error code {@link auditA2GrammarSpiralEvidence} can raise. */
@@ -136,40 +138,58 @@ export interface GrammarEvidenceLesson {
   readonly variants: readonly GrammarEvidenceVariant[];
 }
 
-const GRAMMAR_EVIDENCE_ROLES = ["intro", "practice", "transfer"] as const;
+const GRAMMAR_EVIDENCE_ROLES = ["intro", "practice", "transfer", "recurrence"] as const;
 type GrammarEvidenceRole = (typeof GRAMMAR_EVIDENCE_ROLES)[number];
 
-function roleLessonId(form: A2GrammarForm, role: GrammarEvidenceRole): LessonId {
-  if (role === "intro") return form.introLessonId;
-  if (role === "practice") return form.controlledPracticeLessonId;
-  return form.transferLessonId;
+/** Every lesson id a form's given role names — a single lesson for
+ * intro/practice/transfer, but *every* entry in `recurrenceLessonIds`
+ * (plural: a form can genuinely recur in more than one later lesson) for
+ * `"recurrence"`, so the caller below can fan out over each one uniformly. */
+function roleLessonIds(form: A2GrammarForm, role: GrammarEvidenceRole): readonly LessonId[] {
+  if (role === "intro") return [form.introLessonId];
+  if (role === "practice") return [form.controlledPracticeLessonId];
+  if (role === "transfer") return [form.transferLessonId];
+  return form.recurrenceLessonIds;
 }
 
 /**
  * Content-evidence audit (Phase 3 Task 6 spec-fix, "grammar spiral content
- * mismatch"): {@link validateA2GrammarSpiral} only ever proves a role's
- * lesson id *resolves* to a real, correctly-ordered lesson — it never opens
- * that lesson's own authored content, so a grammar-spiral row can silently
- * drift from the real construction it claims to teach. This is exactly what
- * happened: `reason-node`'s own `transferLessonId` names
- * `travel-reservations-3`, a lesson whose own authored models/transfers
- * never once used the `a2-family-reason-node` family, even though the
- * spiral claims that lesson is where reason-node genuinely transfers.
+ * mismatch"; recurrence coverage added by the I1 spec-fix, "grammar
+ * evidence audit recurrence gap"): {@link validateA2GrammarSpiral} only
+ * ever proves a role's lesson id *resolves* to a real, correctly-ordered
+ * lesson — it never opens that lesson's own authored content, so a
+ * grammar-spiral row can silently drift from the real construction it
+ * claims to teach. This is exactly what happened: `reason-node`'s own
+ * `transferLessonId` names `travel-reservations-3`, a lesson whose own
+ * authored models/transfers never once used the `a2-family-reason-node`
+ * family, even though the spiral claims that lesson is where reason-node
+ * genuinely transfers. The same drift is equally possible for a form's own
+ * `recurrenceLessonIds` — a lesson the spiral claims later re-exposes the
+ * learner to a construction, with no guarantee that lesson's own authored
+ * content ever uses it again.
  *
- * For every form/role whose lesson the caller supplies real evidence for
- * (`evidenceByLessonId` — a role lesson outside the caller's currently built
- * scope, e.g. a future M13+ lesson, is silently skipped: not yet judgeable,
- * exactly like {@link validateA2GrammarSpiral}'s own `resolvePosition`
- * treats an unresolvable id), this verifies the lesson's own authored
- * variants — never `recipe.primaryCanDoId`/`supportingCanDoIds`
- * declarations alone, which are hand-authored labels that can drift exactly
- * like the lesson-id reference itself already did — contain at least one
- * MODEL or TRANSFER variant whose sentence family genuinely serves the
- * form's own Can-do (per `servingFamiliesByCanDoId`, derived from the real,
- * frozen `SentenceFamily.canDoIds`). Since a role's own *transfer* lesson
+ * For every form/role — including every individual entry in
+ * `recurrenceLessonIds`, never just the first — whose lesson the caller
+ * supplies real evidence for (`evidenceByLessonId`; a role lesson outside
+ * the caller's currently built scope, e.g. a future M13+ lesson, is
+ * silently skipped: not yet judgeable, exactly like
+ * {@link validateA2GrammarSpiral}'s own `resolvePosition` treats an
+ * unresolvable id), this verifies the lesson's own authored variants —
+ * never `recipe.primaryCanDoId`/`supportingCanDoIds` declarations alone,
+ * which are hand-authored labels that can drift exactly like the lesson-id
+ * reference itself already did — contain at least one variant whose
+ * sentence family genuinely serves the form's own Can-do (per
+ * `servingFamiliesByCanDoId`, derived from the real, frozen
+ * `SentenceFamily.canDoIds`). Since a role's own *transfer* lesson
  * specifically promises a freer-task TRANSFER of the construction — never
  * just a walk-on model cameo — this additionally requires at least one of
- * those matching variants to itself be pedagogically a `"transfer"`.
+ * those matching variants to itself be pedagogically a `"transfer"`; no
+ * other role (including `"recurrence"`, which only promises the
+ * construction is genuinely met again, in whatever pedagogical guise that
+ * later lesson itself uses) carries that extra requirement. Each
+ * recurrence lesson is reported under its own id,
+ * `<form.id>:recurrence:<lessonId>`, one error per unevidenced recurrence
+ * lesson — never collapsed into a single form-level error.
  */
 export function auditA2GrammarSpiralEvidence(
   forms: readonly A2GrammarForm[],
@@ -181,17 +201,18 @@ export function auditA2GrammarSpiralEvidence(
   for (const form of forms) {
     const servingFamilies = servingFamiliesByCanDoId.get(form.canDoId) ?? new Set<string>();
     for (const role of GRAMMAR_EVIDENCE_ROLES) {
-      const lessonId = roleLessonId(form, role);
-      const lesson = evidenceByLessonId.get(lessonId);
-      if (!lesson) continue; // outside the caller's currently-built scope — not yet judgeable
+      for (const lessonId of roleLessonIds(form, role)) {
+        const lesson = evidenceByLessonId.get(lessonId);
+        if (!lesson) continue; // outside the caller's currently-built scope — not yet judgeable
 
-      const matching = lesson.variants.filter((v) => servingFamilies.has(v.sentenceFamilyId));
-      if (matching.length === 0) {
-        errors.push({ code: "grammar-form-no-role-evidence", id: `${form.id}:${role}:${lessonId}` });
-        continue;
-      }
-      if (role === "transfer" && !matching.some((v) => v.pedagogicalUse === "transfer")) {
-        errors.push({ code: "grammar-form-no-transfer-pedagogical-evidence", id: `${form.id}:${lessonId}` });
+        const matching = lesson.variants.filter((v) => servingFamilies.has(v.sentenceFamilyId));
+        if (matching.length === 0) {
+          errors.push({ code: "grammar-form-no-role-evidence", id: `${form.id}:${role}:${lessonId}` });
+          continue;
+        }
+        if (role === "transfer" && !matching.some((v) => v.pedagogicalUse === "transfer")) {
+          errors.push({ code: "grammar-form-no-transfer-pedagogical-evidence", id: `${form.id}:${lessonId}` });
+        }
       }
     }
   }

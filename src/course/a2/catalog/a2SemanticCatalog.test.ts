@@ -964,3 +964,106 @@ describe("a2SemanticCatalog — Phase 3 Task 6 spec-fix: a2-family-narrate-order
     expect((kyoutoJp.match(/。/g) ?? []).length, "kyouto-tanoshikatta clause count").toBeGreaterThanOrEqual(2);
   });
 });
+
+// M1 spec-fix ("rename misleading IDs"): `a2-value-ask-kakunin-shite` /
+// `a2-sense-ask-kakunin-shite` named themselves after 確認する (kakunin
+// suru, "to confirm"), but their own baked tokenFragments never once render
+// that verb — they render 伝えて (tsutaete, the て-form of 伝える/tsutaeru,
+// "to convey/pass along"), via `NEW_VERBS.tsutaeru`. The wsm2 lesson lines
+// that use this value are themselves glossed "please pass along the
+// email/documents/task" (never "confirm"), so the real meaning always was
+// つたえて — only the id/predicate name was wrong. Renamed everywhere to
+// `a2-value-ask-tsutaete`/`a2-sense-ask-tsutaete` (predicate
+// `ask_tsutaete`), including every module11 work-study-messages reference.
+// This is an id-only rename: the rendered Japanese/English/Italian surface
+// text is completely unchanged.
+describe("a2SemanticCatalog — M1 spec-fix (rename misleading a2-value/a2-sense-ask-kakunin-shite to ...-ask-tsutaete)", () => {
+  it("resolves the canonical a2-sense-ask-tsutaete, with predicate ask_tsutaete (never the old ask_kakunin_shite)", () => {
+    const sense = senseById("a2-sense-ask-tsutaete");
+    expect(sense.predicate).toBe("ask_tsutaete");
+    expect(sense.lexemeId).toBe("a2-lexeme-ask-tsutaete");
+    expect(sense.semanticFrameId).toBe("a2-frame-ask-tsutaete");
+  });
+
+  it("resolves the canonical a2-value-ask-tsutaete, still rendering the exact same つたえてください (tsutaete kudasai) tokenFragments — an id-only rename, never a content change", () => {
+    const value = valueById("a2-value-ask-tsutaete");
+    expect(value.senseId).toBe("a2-sense-ask-tsutaete");
+    expect(value.tokenFragments).toEqual([
+      { jp: "つたえ", romaji: "tsutae", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "て", romaji: "te", kind: "morpheme", boundaryBefore: "attach" },
+      { jp: "ください", romaji: "kudasai", kind: "lexical", boundaryBefore: "attach" },
+    ]);
+  });
+
+  it("never leaves the old misleading a2-value-ask-kakunin-shite id resolvable in a2SemanticValues", () => {
+    expect(a2SemanticValues.some((v) => v.id === "a2-value-ask-kakunin-shite")).toBe(false);
+  });
+
+  it("never leaves the old misleading a2-sense-ask-kakunin-shite id resolvable in a2LearningTargetSenses", () => {
+    expect(a2LearningTargetSenses.some((s) => s.id === "a2-sense-ask-kakunin-shite")).toBe(false);
+  });
+
+  it("never leaves the old ask_kakunin_shite predicate string anywhere in a2LearningTargetSenses", () => {
+    expect(a2LearningTargetSenses.some((s) => s.predicate === "ask_kakunin_shite")).toBe(false);
+  });
+
+  it("never references the old kakunin-shite id from module11's own work-study-messages content — every wsm2 line now names a2-value-ask-tsutaete", () => {
+    const source = readFileSync(
+      fileURLToPath(new URL("../content/module11WorkStudyMessages.ts", import.meta.url)),
+      "utf8",
+    );
+    expect(source).not.toContain("kakunin");
+    expect(source).toContain("a2-value-ask-tsutaete");
+  });
+});
+
+// M2 spec-fix ("dead NEW_VERBS.kau"): `NEW_VERBS` (this file's own private
+// M5-M8/M9-M12 kanji-linked verb table, `a2Conjugation.ts`'s `A2_VERBS`'s
+// counterpart for verbs outside that frozen 12-verb table) is never
+// exported — every entry only ever earns its place by being genuinely
+// conjugated into a real, authored semantic value (via `newVerbSuffixKana`/
+// `newVerbMasuStemKana`/`newVerbPlainKana`, each keyed `NEW_VERBS.<key>`).
+// A repo-search style audit (mirroring the M5 dead-family-id regression
+// above) proved `kau` (registered for M9 shopping-returns, alongside its
+// sibling `kaesu`) is the one entry never once referenced that way — no
+// authored value/family ever composes it, and it carries no reserved/
+// forward-looking justification either. It is now removed. This is a
+// source-level audit (never importing the private `NEW_VERBS` object
+// itself) so it stays a genuine repo-search regression, not an allowlist:
+// any future dead entry re-trips it by name, the same way `kau` did.
+describe("a2SemanticCatalog — M2 spec-fix (dead NEW_VERBS entries, repo search regression)", () => {
+  const CATALOG_SOURCE = readFileSync(fileURLToPath(new URL("./a2SemanticCatalog.ts", import.meta.url)), "utf8");
+
+  /** Keys deliberately pre-registered ahead of any current authored use.
+   * Empty today — any future entry added here must carry its own
+   * justification comment right at its `NEW_VERBS` definition site, never
+   * a silent addition just to make this test pass. */
+  const RESERVED_UNUSED_NEW_VERB_KEYS: readonly string[] = [];
+
+  function extractNewVerbKeys(source: string): readonly string[] {
+    const block = source.match(/const NEW_VERBS: Readonly<Record<string, NewVerb>> = \{([\s\S]*?)\n\};/);
+    expect(block, "NEW_VERBS block itself must still be found in the source").not.toBeNull();
+    const keys = [...block![1].matchAll(/^\s*(\w+):\s*\{/gm)].map((m) => m[1]);
+    expect(keys.length, "NEW_VERBS key count").toBeGreaterThan(0);
+    return keys;
+  }
+
+  it("references every NEW_VERBS key from at least one authored semantic value via NEW_VERBS.<key>, or the key is explicitly reserved/justified above — never a silently unused entry", () => {
+    const keys = extractNewVerbKeys(CATALOG_SOURCE);
+    const unreferenced = keys.filter((key) => {
+      if (RESERVED_UNUSED_NEW_VERB_KEYS.includes(key)) return false;
+      return !new RegExp(`NEW_VERBS\\.${key}\\b`).test(CATALOG_SOURCE);
+    });
+    expect(unreferenced, "unreferenced (dead) NEW_VERBS keys").toEqual([]);
+  });
+
+  it("no longer defines the dead kau entry in NEW_VERBS at all — never referenced by any authored semantic value/family, and not reserved", () => {
+    const keys = extractNewVerbKeys(CATALOG_SOURCE);
+    expect(keys).not.toContain("kau");
+  });
+
+  it("leaves kau's kanji-catalog entry (買, 買う's own kanji progression) completely untouched — the dead entry was only ever the conjugation-helper duplicate, never the kanji itself", () => {
+    const kanjiSource = readFileSync(fileURLToPath(new URL("../kanji/a2KanjiCatalog.ts", import.meta.url)), "utf8");
+    expect(kanjiSource).toContain('sense: "kau"');
+  });
+});

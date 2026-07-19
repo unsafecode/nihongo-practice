@@ -473,3 +473,132 @@ describe("auditA2GrammarSpiralEvidence — synthetic forms/lessons", () => {
     });
   });
 });
+
+// I1 spec-fix ("grammar evidence audit recurrence gap"): the audit above
+// only ever fanned out over intro/practice/transfer — a form's own
+// `recurrenceLessonIds` (plural; a form can recur in more than one later
+// lesson) were never opened at all, so a grammar-spiral row could claim a
+// construction "recurs" in a lesson whose own authored content never once
+// used a family serving that Can-do, and the audit would stay silently
+// green. `recurrence` now joins the role model exactly like the other
+// three roles: for every recurrenceLessonId the caller supplies real
+// evidence for, at least one of that lesson's own variants must belong to
+// a family genuinely serving the form's Can-do — using the SAME
+// `grammar-form-no-role-evidence` code, with an id of
+// `<form.id>:recurrence:<lessonId>`, one entry per recurrence lesson (never
+// collapsed into a single form-level error). A recurrence lesson outside
+// the caller's currently-built scope (e.g. a future M13-M15 lesson not yet
+// authored) is silently skipped — not yet judgeable — exactly like every
+// other role's own unbuilt-lesson handling.
+describe("auditA2GrammarSpiralEvidence — recurrence role (I1 spec-fix, synthetic forms/lessons)", () => {
+  const oneForm: readonly A2GrammarForm[] = [
+    {
+      id: "widget-form",
+      canDoId: "a2-cando-widget",
+      introLessonId: "intro-lesson",
+      controlledPracticeLessonId: "practice-lesson",
+      transferLessonId: "transfer-lesson",
+      recurrenceLessonIds: ["recurrence-lesson-bad", "recurrence-lesson-good"],
+    },
+  ];
+  const servingFamilies = new Map<string, ReadonlySet<string>>([
+    ["a2-cando-widget", new Set(["a2-family-widget"])],
+  ]);
+
+  function lessonEvidence(
+    variants: readonly GrammarEvidenceLesson["variants"][number][],
+  ): GrammarEvidenceLesson {
+    return { variants };
+  }
+
+  // Every test below gives intro/practice/transfer genuine evidence so the
+  // ONLY errors possible are the new recurrence ones — isolating the
+  // recurrence fan-out from the three already-covered roles.
+  const soundIntroPracticeTransfer = [
+    ["intro-lesson", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" as const }])],
+    ["practice-lesson", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" as const }])],
+    [
+      "transfer-lesson",
+      lessonEvidence([
+        { sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" as const },
+        { sentenceFamilyId: "a2-family-widget", pedagogicalUse: "transfer" as const },
+      ]),
+    ],
+  ] as const;
+
+  it("flags grammar-form-no-role-evidence for each built recurrenceLessonId lacking content evidence, using <form.id>:recurrence:<lesson> ids", () => {
+    const evidence = new Map<LessonId, GrammarEvidenceLesson>([
+      ...soundIntroPracticeTransfer,
+      ["recurrence-lesson-bad", lessonEvidence([{ sentenceFamilyId: "a2-family-unrelated", pedagogicalUse: "model" }])],
+      ["recurrence-lesson-good", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" }])],
+    ]);
+    expect(auditA2GrammarSpiralEvidence(oneForm, servingFamilies, evidence)).toEqual({
+      valid: false,
+      errors: [{ code: "grammar-form-no-role-evidence", id: "widget-form:recurrence:recurrence-lesson-bad" }],
+    });
+  });
+
+  it("flags every bad recurrenceLessonId independently — two built-but-unevidenced recurrence lessons yield two distinct errors, never collapsed into one", () => {
+    const evidence = new Map<LessonId, GrammarEvidenceLesson>([
+      ...soundIntroPracticeTransfer,
+      ["recurrence-lesson-bad", lessonEvidence([{ sentenceFamilyId: "a2-family-unrelated", pedagogicalUse: "model" }])],
+      ["recurrence-lesson-good", lessonEvidence([])],
+    ]);
+    const result = auditA2GrammarSpiralEvidence(oneForm, servingFamilies, evidence);
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        { code: "grammar-form-no-role-evidence", id: "widget-form:recurrence:recurrence-lesson-bad" },
+        { code: "grammar-form-no-role-evidence", id: "widget-form:recurrence:recurrence-lesson-good" },
+      ]),
+    );
+    expect(result.errors).toHaveLength(2);
+  });
+
+  it("silently skips (never fails) a recurrence lesson the caller has no evidence for — not yet judgeable, exactly like a future M13-M15 lesson not yet built", () => {
+    const evidence = new Map<LessonId, GrammarEvidenceLesson>([
+      ...soundIntroPracticeTransfer,
+      ["recurrence-lesson-good", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" }])],
+      // "recurrence-lesson-bad" intentionally has no entry at all here (e.g.
+      // a future M13-M15 lesson not yet built) — must be skipped, not
+      // flagged, even though its id is unresolved evidence-wise.
+    ]);
+    expect(auditA2GrammarSpiralEvidence(oneForm, servingFamilies, evidence)).toEqual({
+      valid: true,
+      errors: [],
+    });
+  });
+
+  it("never requires a recurrence lesson's matching evidence to itself be a pedagogical transfer — a MODEL-only recurrence use still resolves with zero errors, unlike the transfer role", () => {
+    const modelOnlyForm: readonly A2GrammarForm[] = [
+      {
+        id: "widget-form",
+        canDoId: "a2-cando-widget",
+        introLessonId: "intro-lesson",
+        controlledPracticeLessonId: "practice-lesson",
+        transferLessonId: "transfer-lesson",
+        recurrenceLessonIds: ["recurrence-lesson-good"],
+      },
+    ];
+    const evidence = new Map<LessonId, GrammarEvidenceLesson>([
+      ...soundIntroPracticeTransfer,
+      ["recurrence-lesson-good", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" }])],
+    ]);
+    expect(auditA2GrammarSpiralEvidence(modelOnlyForm, servingFamilies, evidence)).toEqual({
+      valid: true,
+      errors: [],
+    });
+  });
+
+  it("reports zero errors when every recurrenceLessonId (as well as intro/practice/transfer) carries genuine matching-family evidence", () => {
+    const evidence = new Map<LessonId, GrammarEvidenceLesson>([
+      ...soundIntroPracticeTransfer,
+      ["recurrence-lesson-bad", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" }])],
+      ["recurrence-lesson-good", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" }])],
+    ]);
+    expect(auditA2GrammarSpiralEvidence(oneForm, servingFamilies, evidence)).toEqual({
+      valid: true,
+      errors: [],
+    });
+  });
+});

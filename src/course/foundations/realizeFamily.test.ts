@@ -2507,7 +2507,7 @@ describe("realizer generalization: the additive \"vocative\" subjectRealization 
 
 // Phase 3 Task 6 (A2 M9-M12 dense content): two new, genuinely compositional
 // rules the A2 shopping-returns module needs — favor-marked comparison
-// ("XのほうがYよりADJです") and が-marked superlative ("Xがいちばんいちばん
+// ("XのほうがYよりADJです") and が-marked superlative ("Xがいちばん
 // ADJです"). Both reuse the existing `predicateKind: "adjective"` machinery
 // (i/na-class conjugation, honest FormSelection) so the SAME predicate stem
 // value (e.g. やす "yasu") produces やすいです/やすくないです/やすかったです

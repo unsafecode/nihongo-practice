@@ -744,7 +744,6 @@ const NEW_VERBS: Readonly<Record<string, NewVerb>> = {
   // --- M8 restaurant-problems (kanji A 食飲飯茶; kanji B 肉魚熱冷) ---
   nomu: { conjClass: "godan-mu", stem: [newVerbFrag("の", "no")] },
   // --- M9 shopping-returns (kanji A 買店円番; kanji B 千万安高) ---
-  kau: { conjClass: "godan-u", stem: [newVerbFrag("か", "ka")] },
   kaesu: { conjClass: "godan-su", stem: [newVerbFrag("かえ", "kae")] },
   // --- M10 health-advice (kanji A 医者薬体; kanji B 頭痛元休) ---
   yasumu: { conjClass: "godan-mu", stem: [newVerbFrag("やす", "yasu")] },
@@ -1011,7 +1010,7 @@ const A2_LEARNING_TARGET_SENSES_M9_M12: readonly LearningTargetSense[] = [
   // true transfer, work-flavored)
   dedicatedSense("a2-sense-ask-tetsudatte", "ask_tetsudatte"),
   dedicatedSense("a2-sense-ask-oshiete", "ask_oshiete"),
-  dedicatedSense("a2-sense-ask-kakunin-shite", "ask_kakunin_shite"),
+  dedicatedSense("a2-sense-ask-tsutaete", "ask_tsutaete"),
   dedicatedSense("a2-sense-tekudasai-okuru", "tekudasai_okuru"),
   // report-progress: NO new sense here at all — work-study-messages-3 is a
   // pure a2-family-ongoing-teiru recurrence (M5's own concept/family),
@@ -2919,7 +2918,7 @@ const a2AuthoredValuesM11: readonly SemanticValue[] = [
   // --- ask-colleague (object-compositional, rule-invariant-object; WSM-2) ---
   { id: "a2-value-ask-tetsudatte", kind: "predicate-sense", senseId: "a2-sense-ask-tetsudatte", tokenFragments: newVerbSuffixKana("request-tekudasai", NEW_VERBS.tetsudau) },
   { id: "a2-value-ask-oshiete", kind: "predicate-sense", senseId: "a2-sense-ask-oshiete", tokenFragments: newVerbSuffixKana("request-tekudasai", NEW_VERBS.oshieru) },
-  { id: "a2-value-ask-kakunin-shite", kind: "predicate-sense", senseId: "a2-sense-ask-kakunin-shite", tokenFragments: newVerbSuffixKana("request-tekudasai", NEW_VERBS.tsutaeru) },
+  { id: "a2-value-ask-tsutaete", kind: "predicate-sense", senseId: "a2-sense-ask-tsutaete", tokenFragments: newVerbSuffixKana("request-tekudasai", NEW_VERBS.tsutaeru) },
   // request-tekudasai true transfer (M6 family recurrence, work-flavored,
   // reusing the EXISTING a2-family-request-tekudasai verbatim)
   { id: "a2-value-tekudasai-okuru", kind: "predicate-sense", senseId: "a2-sense-tekudasai-okuru", tokenFragments: newVerbSuffixKana("request-tekudasai", NEW_VERBS.okuru) },

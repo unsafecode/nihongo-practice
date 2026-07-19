@@ -1051,15 +1051,32 @@ describe("A2 M1-M12 aggregate — no new dead values/families (Phase 3 Task 6)",
 //     model there, recombining an already-modeled ro1 semantic value
 //     (never inventing new Japanese).
 //
+// I1 spec-fix ("grammar evidence audit recurrence gap"): the audit above
+// originally fanned out over intro/practice/transfer only — a form's own
+// `recurrenceLessonIds` were never opened at all, so a later "recurrence"
+// claim could drift from real content exactly like the three gaps above
+// once did for intro/practice/transfer. `auditA2GrammarSpiralEvidence` now
+// fans out over `recurrence` too (proven first against synthetic data in
+// `validateA2GrammarSpiral.test.ts`). Run against the real M1-M12 catalog,
+// this exposed ZERO further gaps: every recurrence lesson already built in
+// M1-M12 (`restaurant-problems-4` for `sequence-te`, `travel-reservations-3`
+// for `request-tekudasai`, `restaurant-problems-2` for `permission-temoii`,
+// `travel-reservations-1` for both `intentions-plans` and `possibility`, and
+// `work-study-messages-1` for `reason-kara`) already carries genuine
+// matching-family evidence; every other row's recurrence lessons
+// (`a2-synthesis-*`, `relationships-events-*`, `practical-texts-*`) are
+// future M13-M15 lessons outside this file's scope and are correctly
+// skipped, not judged.
+//
 // `auditA2GrammarSpiralEvidence` (a reusable, generic function — proven
 // against synthetic data in `validateA2GrammarSpiral.test.ts`) is run here
 // against the COMPLETE real M1-M12 catalog and all 15 grammar-spiral rows
 // (not scoped to any single form). No known-debt allowlist survives this
-// fix: every intro/practice/transfer role whose own lesson is inside the
-// M1-M12 scope this file builds must carry genuine content evidence, full
-// stop — a failure here must be fixed by correcting content/wiring, never
-// by re-pinning a weaker expectation.
-describe("A2 M1-M12 aggregate — grammar-spiral CONTENT-evidence audit (Phase 3 Task 6 spec-fix, closes the reason-node/travel-reservations-3, recognize-plain-forms+connectors/experiences-narratives-2, and reason-kara/reasons-opinions-4 content mismatches)", () => {
+// fix: every intro/practice/transfer/recurrence role whose own lesson is
+// inside the M1-M12 scope this file builds must carry genuine content
+// evidence, full stop — a failure here must be fixed by correcting
+// content/wiring, never by re-pinning a weaker expectation.
+describe("A2 M1-M12 aggregate — grammar-spiral CONTENT-evidence audit (Phase 3 Task 6 spec-fix, closes the reason-node/travel-reservations-3, recognize-plain-forms+connectors/experiences-narratives-2, and reason-kara/reasons-opinions-4 content mismatches; I1 spec-fix extends the same audit to every built recurrence lesson)", () => {
   const canDoToServingFamilies = new Map<string, Set<string>>();
   for (const family of a2SentenceFamilies) {
     for (const canDoId of family.canDoIds) {
@@ -1085,7 +1102,12 @@ describe("A2 M1-M12 aggregate — grammar-spiral CONTENT-evidence audit (Phase 3
     expect(result.errors.some((e) => e.id.startsWith("reason-node:"))).toBe(false);
   });
 
-  it("reports ZERO errors across all 15 grammar-spiral rows — every intro/practice/transfer role whose own lesson is built in M1-M12 carries genuine content evidence, with no known-debt allowlist left to pin", () => {
+  it("I1 spec-fix: every built recurrence lesson (restaurant-problems-4, travel-reservations-1, travel-reservations-3, restaurant-problems-2, work-study-messages-1) carries genuine content evidence too — no :recurrence: error anywhere in the audit output", () => {
+    const result = auditA2GrammarSpiralEvidence(A2_GRAMMAR_SPIRAL, canDoToServingFamilies, evidenceByLessonId);
+    expect(result.errors.some((e) => e.id.includes(":recurrence:"))).toBe(false);
+  });
+
+  it("reports ZERO errors across all 15 grammar-spiral rows — every intro/practice/transfer/recurrence role whose own lesson is built in M1-M12 carries genuine content evidence, with no known-debt allowlist left to pin", () => {
     const result = auditA2GrammarSpiralEvidence(A2_GRAMMAR_SPIRAL, canDoToServingFamilies, evidenceByLessonId);
     expect(result).toEqual({ valid: true, errors: [] });
   });

@@ -394,7 +394,7 @@ export const A2_M1_M8_SERVED_CANDO_IDS: readonly string[] = Object.freeze([
 
 /**
  * The 15 distinct Can-do ids FIRST served by the M9-M12 lessons (Phase 3
- * Task 6): 4 grammar-spiral ids introduced in this range
+ * Task 6): 1 grammar-spiral id introduced in this range
  * (`compare` — genuinely new here, introduced at shopping-returns-1/2) plus
  * 14 topical ids (`ask-price-decide`, `return-exchange`,
  * `describe-symptoms`, `advice-tahouga`, `get-better`,
