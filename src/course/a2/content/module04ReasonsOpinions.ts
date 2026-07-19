@@ -3,10 +3,11 @@
  *
  * Four instructional lessons: giving reasons with kara, giving softer/more
  * objective reasons with node, stating an opinion with to-omoimasu, and a
- * review/synthesis lesson practicing agree/disagree alongside opinion and
- * connector recall. Every sentence carries a semantic-ID-only variant; all
- * Japanese/romaji lives in the shared A2 semantic-value catalog
- * (`a2SemanticCatalog.ts`) in hiragana/katakana only.
+ * review/synthesis lesson practicing agree/disagree alongside opinion,
+ * connector, and (Phase 3 Task 6 spec-fix) kara controlled-practice recall.
+ * Every sentence carries a semantic-ID-only variant; all Japanese/romaji
+ * lives in the shared A2 semantic-value catalog (`a2SemanticCatalog.ts`) in
+ * hiragana/katakana only.
  */
 
 import { A2_MODULE_MANIFEST } from "../manifest";
@@ -183,6 +184,15 @@ const lesson4: A2BuiltLesson = buildA2InstructionalLesson({
     bareLine("reasons-opinions-4-m6", "a2-family-agree-disagree", "a2-value-disagree-omoimasen", "a2-context-workplace", L("I don't think so.", "Non penso così."), "a2-role-learner", null, A2_NEGATIVE_PRESENT_POLITE),
     bareLine("reasons-opinions-4-m7", "a2-family-opinion-toomou", "a2-value-toomou-sora-isogashii", "a2-context-reasons", L("I think Sora is busy.", "Penso che Sora sia occupato."), "a2-role-emi"),
     bareLine("reasons-opinions-4-m8", "a2-family-connector-utterance", "a2-value-connector-ame-sorekara-hare", "a2-context-conversation", L("It rained. Then, it cleared up.", "Ha piovuto. Poi si è schiarito."), "a2-role-friend", null, A2_AFFIRMATIVE_PAST_POLITE),
+    // Phase 3 Task 6 spec-fix ("grammar spiral content mismatch"): ro1
+    // introduces kara and ro4 is the grammar spiral's own designated
+    // controlled-practice lesson for it — genuine review evidence was
+    // missing entirely (zero a2-family-reason-kara content in this lesson).
+    // Recombines an already-modeled ro1 reason (a2-value-kara-suki-benkyou,
+    // ro1-m3) with a fresh speaker/context instead of inventing new
+    // Japanese, exactly like this lesson's own transfers already recombine
+    // already-modeled opinion-toomou facts above.
+    bareLine("reasons-opinions-4-m9", "a2-family-reason-kara", "a2-value-kara-suki-benkyou", "a2-context-among-friends", L("I like Japanese food, so I study Japanese.", "Mi piace il cibo giapponese, quindi studio giapponese."), "a2-role-friend"),
   ],
   transfers: [
     // I2 spec-fix: agree-watashimo/disagree-chigau/disagree-omoimasen each

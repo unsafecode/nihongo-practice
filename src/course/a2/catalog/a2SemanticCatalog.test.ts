@@ -920,3 +920,47 @@ describe("a2SemanticCatalog — M9-M12 no orphan concepts/rules (Phase 3 Task 6)
     expect(new Set(m9m12FamilyIds).size).toBe(m9m12FamilyIds.length);
   });
 });
+
+// Phase 3 Task 6 spec-fix ("grammar spiral content mismatch"):
+// `auditA2GrammarSpiralEvidence` (see `validateA2GrammarSpiral.ts`) proved
+// `recognize-plain-forms`/`connectors` share a transfer lesson
+// (`experiences-narratives-2`) whose own `a2-family-narrate-order` content
+// already genuinely realizes both a それから connector AND a plain-past
+// (no です/ます) predicate in every model/transfer — the family's own
+// `canDoIds` just never named the two Can-dos its real Japanese already
+// serves. These focused tests pin the fix directly against the family's own
+// static data AND its real baked semantic values, independent of the full
+// M1-M12 aggregate in `modules01to12.test.ts`.
+describe("a2SemanticCatalog — Phase 3 Task 6 spec-fix: a2-family-narrate-order genuinely serves connectors + recognize-plain-forms", () => {
+  const famById = new Map(a2SentenceFamilies.map((f) => [f.id, f]));
+
+  it("declares a2-family-narrate-order's canDoIds naming all three Can-dos its own baked Japanese already serves (never an unrelated family)", () => {
+    const family = famById.get("a2-family-narrate-order");
+    expect(family).toBeDefined();
+    expect(family?.canDoIds).toEqual([
+      "a2-cando-narrate-order",
+      "a2-cando-connectors",
+      "a2-cando-recognize-plain-forms",
+    ]);
+  });
+
+  it("every currently-authored a2-family-narrate-order value's own baked Japanese genuinely contains a それから connector AND a plain-past (no です/ます) clause — real evidence for the canDoIds label above, not just a name change", () => {
+    const PLAIN_PAST_NARRATE_ORDER_VALUE_IDS = [
+      "a2-value-narrate-asagohan-gakkou",
+      "a2-value-narrate-umi-yama",
+      "a2-value-narrate-matsu-tabeta",
+    ];
+    for (const valueId of PLAIN_PAST_NARRATE_ORDER_VALUE_IDS) {
+      const jp = valueById(valueId).tokenFragments.map((f) => f.jp).join("");
+      expect(jp, valueId).toContain("それから");
+      expect(jp, `${valueId} must stay plain (no です/ます)`).not.toMatch(/(です|ます)/);
+    }
+    // The one polite exception (its own final clause tags on です) is still
+    // a genuine two-clause past narrative — きょねん きょうとへ いった。とても
+    // たのしかったです。("Last year I went to Kyoto. It was really fun.") —
+    // proven by real content rather than assuming every narrate-order value
+    // shares the exact same それから shape.
+    const kyoutoJp = valueById("a2-value-narrate-kyouto-tanoshikatta").tokenFragments.map((f) => f.jp).join("");
+    expect((kyoutoJp.match(/。/g) ?? []).length, "kyouto-tanoshikatta clause count").toBeGreaterThanOrEqual(2);
+  });
+});

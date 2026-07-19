@@ -203,6 +203,57 @@ describe("A2 Module 4 — connected discourse markers (no isolated grammar drill
   });
 });
 
+// Phase 3 Task 6 spec-fix ("grammar spiral content mismatch"):
+// `A2_GRAMMAR_SPIRAL` (see `a2/forms/grammarSpiral.ts`) names ro4
+// (`reasons-opinions-4`) as reason-kara's own controlled-PRACTICE lesson —
+// `auditA2GrammarSpiralEvidence` (see `validateA2GrammarSpiral.ts`) proved
+// that promise was empty: ro4 never carried any `a2-family-reason-kara`
+// content at all. Fixed by adding a genuine から reason+main-clause model
+// (`reasons-opinions-4-m9`) that recombines an already-modeled ro1 semantic
+// value (`a2-value-kara-suki-benkyou`) — never inventing new Japanese. This
+// focused test pins the exact real PRACTICE-role evidence that now backs
+// reason-kara's grammar-spiral promise, and locks ro4's own recipe
+// primary/support Can-dos exactly as they were: reason-kara is genuine
+// grammar-practice evidence here, never promoted to a third support.
+describe("A2 Module 4 — Phase 3 Task 6 spec-fix: ro4 carries genuine reason-kara controlled-PRACTICE evidence", () => {
+  it("ro4 declares a real a2-family-reason-kara model reusing an already-modeled ro1 semantic value, with exact JP/romaji/copy", () => {
+    const ro4 = module4Lessons[3];
+    const m9 = ro4.variants.find((v) => v.id === "reasons-opinions-4-m9");
+    expect(m9).toBeDefined();
+    expect(m9?.pedagogicalUse).toBe("model");
+    expect(m9?.sentenceFamilyId).toBe("a2-family-reason-kara");
+    expect(m9?.slotValues.predicate).toBe("a2-value-kara-suki-benkyou");
+
+    const sentence = realize(m9 as SentenceVariant);
+    expect(sentence.canonicalJapanese).toBe("にほんのたべものがすきだから、にほんごをべんきょうします");
+    expect(sentence.canonicalJapanese).toContain("から");
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toBe("nihon no tabemono ga suki dakara, nihongo o benkyoushimasu");
+
+    expect(ro4.en["reasons-opinions-4-m9-translation"]).toBe("I like Japanese food, so I study Japanese.");
+    expect(ro4.it["reasons-opinions-4-m9-translation"]).toBe(
+      "Mi piace il cibo giapponese, quindi studio giapponese.",
+    );
+  });
+
+  it("ro4's recipe primary/support Can-dos stay exactly agree-disagree [opinion-toomou, connectors] — reason-kara is grammar-practice evidence here, never promoted to a third support", () => {
+    const ro4 = module4Lessons[3];
+    expect(ro4.recipe.primaryCanDoId).toBe("a2-cando-agree-disagree");
+    expect(ro4.recipe.supportingCanDoIds).toEqual(["a2-cando-opinion-toomou", "a2-cando-connectors"]);
+  });
+
+  it("ro4 still satisfies 8-12 models and exactly 5 novel transfers after adding the reason-kara model", () => {
+    const ro4 = module4Lessons[3];
+    const models = ro4.variants.filter((v) => v.pedagogicalUse === "model");
+    const transfers = ro4.variants.filter((v) => v.pedagogicalUse === "transfer");
+    expect(models.length).toBeGreaterThanOrEqual(8);
+    expect(models.length).toBeLessThanOrEqual(12);
+    expect(transfers.length).toBe(5);
+  });
+});
+
 describe("A2 Module 4 — exact realized Japanese/rōmaji spot checks", () => {
   it("realizes every module-4 instructional variant through the shared formatter with no errors", () => {
     for (const built of module4Lessons) {

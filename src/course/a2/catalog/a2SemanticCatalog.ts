@@ -3175,7 +3175,19 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
   {
     id: "a2-family-narrate-order",
     level: "a2",
-    canDoIds: ["a2-cando-narrate-order"],
+    // Phase 3 Task 6 spec-fix ("grammar spiral content mismatch"): every
+    // currently-authored narrate-order value already genuinely bakes in
+    // BOTH a それから connector AND a plain-past verb form (see the
+    // "narrate-order: baked ordered two/three-clause narratives" comment on
+    // this family's own values, above) — this family's own `canDoIds` used
+    // to only name `a2-cando-narrate-order`, silently under-claiming what
+    // its real, already-authored Japanese actually serves. Naming
+    // `a2-cando-connectors`/`a2-cando-recognize-plain-forms` here too is
+    // never "adding Can-do ids to an unrelated family": it is the one
+    // family whose real sentences already realize both, exactly mirroring
+    // the precedent of `a2-family-ongoing-teiru` (M5) also naming a later
+    // module's own Can-do it genuinely serves.
+    canDoIds: ["a2-cando-narrate-order", "a2-cando-connectors", "a2-cando-recognize-plain-forms"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },

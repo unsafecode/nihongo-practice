@@ -423,4 +423,53 @@ describe("auditA2GrammarSpiralEvidence — synthetic forms/lessons", () => {
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0].code).toBe("grammar-form-no-role-evidence");
   });
+
+  // Phase 3 Task 6 spec-fix ("grammar spiral content mismatch"): the real
+  // fix wired ONE family (`a2-family-narrate-order`) to genuinely serve
+  // THREE Can-dos, with two different grammar-spiral forms
+  // (`recognize-plain-forms`/`connectors`) sharing that same family's own
+  // transfer lesson (`experiences-narratives-2`). This proves the generic
+  // audit needs no per-form special-casing for that shape: a single
+  // multi-Can-do-serving family, shared by two independent forms whose
+  // transfer role lands on the very same lesson, resolves with zero errors
+  // for both — exactly mirroring the real fix, never hand-tuned to it.
+  it("resolves TWO different forms that share the same transfer lesson and the same multi-Can-do-serving family with zero errors for either — the audit needs no per-form special-casing (mirrors the real recognize-plain-forms/connectors/experiences-narratives-2 fix)", () => {
+    const twoForms: readonly A2GrammarForm[] = [
+      {
+        id: "widget-form-a",
+        canDoId: "a2-cando-widget-a",
+        introLessonId: "intro-lesson",
+        controlledPracticeLessonId: "practice-lesson",
+        transferLessonId: "shared-transfer-lesson",
+        recurrenceLessonIds: ["a2-synthesis-1"],
+      },
+      {
+        id: "widget-form-b",
+        canDoId: "a2-cando-widget-b",
+        introLessonId: "intro-lesson",
+        controlledPracticeLessonId: "practice-lesson",
+        transferLessonId: "shared-transfer-lesson",
+        recurrenceLessonIds: ["a2-synthesis-1"],
+      },
+    ];
+    const multiServingFamilies = new Map<string, ReadonlySet<string>>([
+      ["a2-cando-widget-a", new Set(["a2-family-multi-widget"])],
+      ["a2-cando-widget-b", new Set(["a2-family-multi-widget"])],
+    ]);
+    const evidence = new Map<LessonId, GrammarEvidenceLesson>([
+      ["intro-lesson", lessonEvidence([{ sentenceFamilyId: "a2-family-multi-widget", pedagogicalUse: "model" }])],
+      ["practice-lesson", lessonEvidence([{ sentenceFamilyId: "a2-family-multi-widget", pedagogicalUse: "model" }])],
+      [
+        "shared-transfer-lesson",
+        lessonEvidence([
+          { sentenceFamilyId: "a2-family-multi-widget", pedagogicalUse: "model" },
+          { sentenceFamilyId: "a2-family-multi-widget", pedagogicalUse: "transfer" },
+        ]),
+      ],
+    ]);
+    expect(auditA2GrammarSpiralEvidence(twoForms, multiServingFamilies, evidence)).toEqual({
+      valid: true,
+      errors: [],
+    });
+  });
 });

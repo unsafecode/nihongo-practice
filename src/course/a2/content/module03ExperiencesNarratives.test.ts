@@ -223,6 +223,45 @@ describe("A2 Module 3 — connected discourse markers (no isolated grammar drill
   });
 });
 
+// Phase 3 Task 6 spec-fix ("grammar spiral content mismatch"):
+// `A2_GRAMMAR_SPIRAL` (see `a2/forms/grammarSpiral.ts`) names en2
+// (`experiences-narratives-2`) as the own TRANSFER lesson for BOTH
+// `recognize-plain-forms` and `connectors` — `auditA2GrammarSpiralEvidence`
+// (see `validateA2GrammarSpiral.ts`) proved that promise was empty:
+// nothing had ever verified en2's real content actually realized either
+// grammar point. It does — every en2 model/transfer is a genuine ordered
+// past narrative baking in both a それから connector and a plain-past (no
+// です/ます) predicate — so `a2-family-narrate-order`'s own `canDoIds` now
+// names all three Can-dos it truly serves (fixed in `a2SemanticCatalog.ts`)
+// instead of only `a2-cando-narrate-order`. These focused tests pin the
+// exact real TRANSFER-role evidence that now backs both Can-dos'
+// grammar-spiral promise, independent of the full M1-M12 aggregate.
+describe("A2 Module 3 — Phase 3 Task 6 spec-fix: en2 TRANSFER-role evidence for recognize-plain-forms/connectors", () => {
+  it("every en2 TRANSFER variant belongs to a2-family-narrate-order (so recognize-plain-forms/connectors' own TRANSFER role is never a lucky one-off)", () => {
+    const en2 = module3Lessons[1];
+    const transfers = en2.variants.filter((v) => v.pedagogicalUse === "transfer");
+    expect(transfers.length).toBeGreaterThanOrEqual(5);
+    for (const t of transfers) {
+      expect(t.sentenceFamilyId, t.id).toBe("a2-family-narrate-order");
+    }
+  });
+
+  it("experiences-narratives-2-t1 is a genuine TRANSFER realizing both a それから connector and a plain-past (no です/ます) predicate — exact JP/romaji proof of recognize-plain-forms/connectors' own TRANSFER-role evidence", () => {
+    const en2 = module3Lessons[1];
+    const t1 = en2.variants.find((v) => v.id === "experiences-narratives-2-t1");
+    expect(t1).toBeDefined();
+    expect(t1?.pedagogicalUse).toBe("transfer");
+    const sentence = realize(t1 as SentenceVariant);
+    expect(sentence.canonicalJapanese).toBe("えみはあさごはんをたべた。それから、がっこうへいった。");
+    expect(sentence.canonicalJapanese).toContain("それから");
+    expect(sentence.canonicalJapanese).not.toMatch(/(です|ます)/);
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toBe("emi wa asagohan o tabeta. sorekara, gakkou e itta.");
+  });
+});
+
 // C1 spec-fix ("translation/Japanese fact mismatch", M3 takoto values): the
 // same bare invariant Japanese (行った/食べた/待った/登った + ことがあります) used to
 // be shared across variants whose EN/IT copy asserted *different* facts
