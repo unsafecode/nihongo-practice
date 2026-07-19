@@ -1,0 +1,69 @@
+import { describe, it } from "vitest";
+import { realizeVariant } from "../../foundations/realizeFamily";
+import { formatRomaji } from "../../../romaji/formatRomaji";
+import { writeFileSync } from "node:fs";
+import type { SemanticValue, SentenceFamily, SentenceVariant } from "../../foundations/types";
+import { a2SemanticBuiltLessons, a2FoundationCopy } from "./catalog";
+import {
+  a2Contexts,
+  a2LearningTargetSenses,
+  a2PersonRoles,
+  a2Referents,
+  a2SemanticValues,
+  a2SentenceFamilies,
+} from "./a2SemanticCatalog";
+
+const famById = new Map<string, SentenceFamily>(a2SentenceFamilies.map((f) => [f.id, f]));
+const catalogs = {
+  contexts: a2Contexts,
+  personRoles: a2PersonRoles,
+  referents: a2Referents,
+  semanticValues: a2SemanticValues,
+  learningTargetSenses: a2LearningTargetSenses,
+};
+
+function romajiOf(sentence: ReturnType<typeof realizeVariant>): string {
+  if (!sentence.ok) return "ERR";
+  const r = formatRomaji(sentence.sentence.tokens);
+  return r.ok ? r.text : "ROMAJI-ERR";
+}
+
+describe("scratch dump", () => {
+  it("dump M13-M15", () => {
+    const targetModules = ["sequencing-ongoing", "relationships-events", "practical-texts", "synthesis"];
+    const out: string[] = [];
+    for (const built of a2SemanticBuiltLessons) {
+      if (!targetModules.includes(built.recipe.moduleId)) continue;
+      const lines: string[] = [];
+      lines.push(`\n===== LESSON ${built.recipe.id} (module=${built.recipe.moduleId}) =====`);
+      for (const v of built.variants as SentenceVariant[]) {
+        const fam = famById.get(v.sentenceFamilyId);
+        if (!fam) {
+          lines.push(`${v.id}: NO FAMILY ${v.sentenceFamilyId}`);
+          continue;
+        }
+        const r = realizeVariant(fam, v, catalogs, {
+          availableConceptIds: [...fam.requiredConceptIds],
+        });
+        if (!r.ok) {
+          lines.push(`${v.id}: REALIZE FAIL ${JSON.stringify(r.errors)}`);
+          continue;
+        }
+        const jp = r.sentence.canonicalJapanese;
+        const romaji = romajiOf(r);
+        const en = a2FoundationCopy.en[`${v.id}-translation`];
+        const it = a2FoundationCopy.it[`${v.id}-translation`];
+        const predId = v.slotValues.predicate;
+        lines.push(
+          `${v.id} [fam=${v.sentenceFamilyId}] [pred=${predId}] [subjReal=${v.discourse.subjectRealization}] [interro=${v.form.interrogative ?? false}]\n` +
+            `   JP: ${jp}\n` +
+            `   RO: ${romaji}\n` +
+            `   EN: ${en}\n` +
+            `   IT: ${it}`,
+        );
+      }
+      out.push(lines.join("\n"));
+    }
+    writeFileSync("review_dump.txt", out.join("\n"), "utf8");
+  });
+});

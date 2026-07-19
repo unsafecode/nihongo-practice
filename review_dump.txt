@@ -1,0 +1,824 @@
+
+===== LESSON sequencing-ongoing-1 (module=sequencing-ongoing) =====
+sequencing-ongoing-1-m1 [fam=a2-family-te-sequence] [pred=a2-value-seq-okite-arau] [subjReal=explicit] [interro=false]
+   JP: わたしはおきて、かおをあらいます
+   RO: watashi wa okite, kao o araimasu
+   EN: I get up, then wash my face.
+   IT: Mi alzo, poi mi lavo la faccia.
+sequencing-ongoing-1-m2 [fam=a2-family-te-sequence] [pred=a2-value-seq-tsukutte-taberu] [subjReal=explicit] [interro=false]
+   JP: えみはあさごはんをつくって、たべます
+   RO: emi wa asagohan o tsukutte, tabemasu
+   EN: Emi makes breakfast, then eats it.
+   IT: Emi prepara la colazione, poi la mangia.
+sequencing-ongoing-1-m3 [fam=a2-family-te-sequence] [pred=a2-value-seq-owatte-kaeru] [subjReal=explicit] [interro=false]
+   JP: どうりょうはしごとがおわって、いえにかえります
+   RO: douryou wa shigoto ga owatte, ie ni kaerimasu
+   EN: A colleague's work finishes, then they go home.
+   IT: Il lavoro di un collega finisce, poi torna a casa.
+sequencing-ongoing-1-m4 [fam=a2-family-te-sequence] [pred=a2-value-seq-hajimatte-tsukau] [subjReal=explicit] [interro=false]
+   JP: そらはじゅぎょうがはじまって、ノートをつかいます
+   RO: sora wa jugyou ga hajimatte, nooto o tsukaimasu
+   EN: Sora's class starts, then he uses a notebook.
+   IT: La lezione di Sora inizia, poi usa un quaderno.
+sequencing-ongoing-1-m5 [fam=a2-family-te-sequence] [pred=a2-value-seq-itte-hanasu] [subjReal=explicit] [interro=false]
+   JP: せんせいはがっこうへいって、ともだちとはなします
+   RO: sensei wa gakkou e itte, tomodachi to hanashimasu
+   EN: The teacher goes to school, then talks with a friend.
+   IT: L'insegnante va a scuola, poi parla con un amico.
+sequencing-ongoing-1-m6 [fam=a2-family-te-sequence] [pred=a2-value-seq-hataraite-tsukareta] [subjReal=explicit] [interro=false]
+   JP: ともだちははたらいて、つかれました
+   RO: tomodachi wa hataraite, tsukaremashita
+   EN: A friend worked, then got tired.
+   IT: Un amico ha lavorato, poi si è stancato.
+sequencing-ongoing-1-m7 [fam=a2-family-te-sequence] [pred=a2-value-seq-aratte-neru] [subjReal=omitted] [interro=false]
+   JP: かおをあらって、ねます
+   RO: kao o aratte, nemasu
+   EN: I wash my face, then go to sleep.
+   IT: Mi lavo la faccia, poi vado a dormire.
+sequencing-ongoing-1-m8 [fam=a2-family-te-sequence] [pred=a2-value-seq-tsukatte-kaku] [subjReal=omitted] [interro=false]
+   JP: コンピューターをつかって、メールをかきます
+   RO: konpyuutaa o tsukatte, meeru o kakimasu
+   EN: I use the computer, then write an email.
+   IT: Uso il computer, poi scrivo un'email.
+sequencing-ongoing-1-t1 [fam=a2-family-te-sequence] [pred=a2-value-seq-okite-arau] [subjReal=explicit] [interro=false]
+   JP: そらはおきて、かおをあらいます
+   RO: sora wa okite, kao o araimasu
+   EN: Sora gets up, then washes his face.
+   IT: Sora si alza, poi si lava la faccia.
+sequencing-ongoing-1-t2 [fam=a2-family-te-sequence] [pred=a2-value-seq-tsukutte-taberu] [subjReal=explicit] [interro=false]
+   JP: どうりょうはあさごはんをつくって、たべます
+   RO: douryou wa asagohan o tsukutte, tabemasu
+   EN: A colleague makes breakfast, then eats it.
+   IT: Un collega prepara la colazione, poi la mangia.
+sequencing-ongoing-1-t3 [fam=a2-family-te-sequence] [pred=a2-value-seq-owatte-kaeru] [subjReal=explicit] [interro=false]
+   JP: せんせいはしごとがおわって、いえにかえります
+   RO: sensei wa shigoto ga owatte, ie ni kaerimasu
+   EN: The teacher's work finishes, then goes home.
+   IT: Il lavoro dell'insegnante finisce, poi torna a casa.
+sequencing-ongoing-1-t4 [fam=a2-family-te-sequence] [pred=a2-value-seq-hajimatte-tsukau] [subjReal=explicit] [interro=false]
+   JP: えみはじゅぎょうがはじまって、ノートをつかいます
+   RO: emi wa jugyou ga hajimatte, nooto o tsukaimasu
+   EN: Emi's class starts, then she uses a notebook.
+   IT: La lezione di Emi inizia, poi usa un quaderno.
+sequencing-ongoing-1-t5 [fam=a2-family-te-sequence] [pred=a2-value-seq-itte-hanasu] [subjReal=explicit] [interro=false]
+   JP: わたしはがっこうへいって、ともだちとはなします
+   RO: watashi wa gakkou e itte, tomodachi to hanashimasu
+   EN: I go to school, then talk with a friend.
+   IT: Vado a scuola, poi parlo con un amico.
+
+===== LESSON sequencing-ongoing-2 (module=sequencing-ongoing) =====
+sequencing-ongoing-2-m1 [fam=a2-family-te-sequence] [pred=a2-value-seq-oyoide-tsukareta] [subjReal=omitted] [interro=false]
+   JP: およいで、つかれました
+   RO: oyoide, tsukaremashita
+   EN: I swam, then I got tired.
+   IT: Ho nuotato, poi mi sono stancato/a.
+sequencing-ongoing-2-m2 [fam=a2-family-te-sequence] [pred=a2-value-seq-asonde-kaeru] [subjReal=omitted] [interro=false]
+   JP: ともだちとあそんで、いえにかえります
+   RO: tomodachi to asonde, ie ni kaerimasu
+   EN: I play with a friend, then go home.
+   IT: Gioco con un amico, poi torno a casa.
+sequencing-ongoing-2-m3 [fam=a2-family-te-sequence] [pred=a2-value-seq-matte-hanasu] [subjReal=omitted] [interro=false]
+   JP: ともだちをまって、はなします
+   RO: tomodachi o matte, hanashimasu
+   EN: I wait for a friend, then talk.
+   IT: Aspetto un amico, poi parlo.
+sequencing-ongoing-2-m4 [fam=a2-family-te-sequence-object] [pred=a2-value-seq-obj-tabete-nomu] [subjReal=omitted] [interro=false]
+   JP: パンをたべて、のみます
+   RO: pan o tabete, nomimasu
+   EN: I eat bread, then drink.
+   IT: Mangio il pane, poi bevo.
+sequencing-ongoing-2-m5 [fam=a2-family-te-sequence-object] [pred=a2-value-seq-obj-yonde-neru] [subjReal=omitted] [interro=false]
+   JP: ほんをよんで、ねます
+   RO: hon o yonde, nemasu
+   EN: I read a book, then sleep.
+   IT: Leggo un libro, poi dormo.
+sequencing-ongoing-2-m6 [fam=a2-family-te-sequence-object] [pred=a2-value-seq-obj-yonde-neru] [subjReal=omitted] [interro=false]
+   JP: てがみをよんで、ねます
+   RO: tegami o yonde, nemasu
+   EN: I read a letter, then sleep.
+   IT: Leggo una lettera, poi dormo.
+sequencing-ongoing-2-m7 [fam=a2-family-te-sequence-object] [pred=a2-value-seq-obj-tsukutte-taberu] [subjReal=omitted] [interro=false]
+   JP: パンをつくって、たべます
+   RO: pan o tsukutte, tabemasu
+   EN: I make bread, then eat it.
+   IT: Preparo il pane, poi lo mangio.
+sequencing-ongoing-2-m8 [fam=a2-family-te-sequence-object] [pred=a2-value-seq-obj-tabete-nomu] [subjReal=explicit] [interro=false]
+   JP: そらはパンをたべて、のみます
+   RO: sora wa pan o tabete, nomimasu
+   EN: Sora eats bread, then drinks.
+   IT: Sora mangia il pane, poi beve.
+sequencing-ongoing-2-t1 [fam=a2-family-te-sequence-object] [pred=a2-value-seq-obj-yonde-neru] [subjReal=explicit] [interro=false]
+   JP: えみはほんをよんで、ねます
+   RO: emi wa hon o yonde, nemasu
+   EN: Emi reads a book, then sleeps.
+   IT: Emi legge un libro, poi dorme.
+sequencing-ongoing-2-t2 [fam=a2-family-te-sequence-object] [pred=a2-value-seq-obj-tsukutte-taberu] [subjReal=explicit] [interro=false]
+   JP: どうりょうはパンをつくって、たべます
+   RO: douryou wa pan o tsukutte, tabemasu
+   EN: A colleague makes bread, then eats it.
+   IT: Un collega prepara il pane, poi lo mangia.
+sequencing-ongoing-2-t3 [fam=a2-family-te-sequence-object] [pred=a2-value-seq-obj-tabete-nomu] [subjReal=explicit] [interro=false]
+   JP: わたしはパンをたべて、のみます
+   RO: watashi wa pan o tabete, nomimasu
+   EN: I eat bread, then drink.
+   IT: Mangio il pane, poi bevo.
+sequencing-ongoing-2-t4 [fam=a2-family-te-sequence] [pred=a2-value-seq-matte-hanasu] [subjReal=explicit] [interro=false]
+   JP: せんせいはともだちをまって、はなします
+   RO: sensei wa tomodachi o matte, hanashimasu
+   EN: The teacher waits for a friend, then talks.
+   IT: L'insegnante aspetta un amico, poi parla.
+sequencing-ongoing-2-t5 [fam=a2-family-te-sequence] [pred=a2-value-seq-asonde-kaeru] [subjReal=explicit] [interro=false]
+   JP: えみはともだちとあそんで、いえにかえります
+   RO: emi wa tomodachi to asonde, ie ni kaerimasu
+   EN: Emi plays with a friend, then goes home.
+   IT: Emi gioca con un amico, poi torna a casa.
+
+===== LESSON sequencing-ongoing-3 (module=sequencing-ongoing) =====
+sequencing-ongoing-3-m1 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-taberu] [subjReal=omitted] [interro=false]
+   JP: パンをたべています
+   RO: pan o tabete imasu
+   EN: I am eating bread.
+   IT: Sto mangiando il pane.
+sequencing-ongoing-3-m2 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-nomu] [subjReal=omitted] [interro=false]
+   JP: みずをのんでいます
+   RO: mizu o nonde imasu
+   EN: Emi is drinking water.
+   IT: Emi sta bevendo acqua.
+sequencing-ongoing-3-m3 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-yomu] [subjReal=omitted] [interro=false]
+   JP: ほんをよんでいます
+   RO: hon o yonde imasu
+   EN: Sora is reading a book.
+   IT: Sora sta leggendo un libro.
+sequencing-ongoing-3-m4 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-kaku] [subjReal=omitted] [interro=false]
+   JP: てがみをかいています
+   RO: tegami o kaite imasu
+   EN: A friend is writing a letter.
+   IT: Un amico sta scrivendo una lettera.
+sequencing-ongoing-3-m5 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-hanasu] [subjReal=omitted] [interro=false]
+   JP: にほんごをはなしています
+   RO: nihongo o hanashite imasu
+   EN: A colleague is speaking Japanese.
+   IT: Un collega sta parlando giapponese.
+sequencing-ongoing-3-m6 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-asobu] [subjReal=omitted] [interro=false]
+   JP: あそんでいます
+   RO: asonde imasu
+   EN: The teacher is playing.
+   IT: L'insegnante sta giocando.
+sequencing-ongoing-3-m7 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-hataraku] [subjReal=omitted] [interro=false]
+   JP: はたらいています
+   RO: hataraite imasu
+   EN: I am working.
+   IT: Sto lavorando.
+sequencing-ongoing-3-m8 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-matsu] [subjReal=omitted] [interro=false]
+   JP: バスをまっています
+   RO: basu o matte imasu
+   EN: Emi is waiting for a bus.
+   IT: Emi sta aspettando un autobus.
+sequencing-ongoing-3-t1 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-taberu] [subjReal=explicit] [interro=false]
+   JP: そらはパンをたべています
+   RO: sora wa pan o tabete imasu
+   EN: Sora is eating bread.
+   IT: Sora sta mangiando il pane.
+sequencing-ongoing-3-t2 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-nomu] [subjReal=explicit] [interro=false]
+   JP: ともだちはみずをのんでいます
+   RO: tomodachi wa mizu o nonde imasu
+   EN: A friend is drinking water.
+   IT: Un amico sta bevendo acqua.
+sequencing-ongoing-3-t3 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-yomu] [subjReal=explicit] [interro=false]
+   JP: どうりょうはほんをよんでいます
+   RO: douryou wa hon o yonde imasu
+   EN: A colleague is reading a book.
+   IT: Un collega sta leggendo un libro.
+sequencing-ongoing-3-t4 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-hanasu] [subjReal=explicit] [interro=false]
+   JP: えみはにほんごをはなしています
+   RO: emi wa nihongo o hanashite imasu
+   EN: Emi is speaking Japanese.
+   IT: Emi sta parlando giapponese.
+sequencing-ongoing-3-t5 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-hataraku] [subjReal=explicit] [interro=false]
+   JP: せんせいははたらいています
+   RO: sensei wa hataraite imasu
+   EN: The teacher is working.
+   IT: L'insegnante sta lavorando.
+
+===== LESSON sequencing-ongoing-4 (module=sequencing-ongoing) =====
+sequencing-ongoing-4-m1 [fam=a2-family-te-sequence] [pred=a2-value-seq-oyoide-tsukareta] [subjReal=explicit] [interro=false]
+   JP: そらはおよいで、つかれました
+   RO: sora wa oyoide, tsukaremashita
+   EN: Sora swam, then got tired.
+   IT: Sora ha nuotato, poi si è stancato.
+sequencing-ongoing-4-m2 [fam=a2-family-te-sequence] [pred=a2-value-seq-asonde-kaeru] [subjReal=omitted] [interro=false]
+   JP: ともだちとあそんで、いえにかえります
+   RO: tomodachi to asonde, ie ni kaerimasu
+   EN: A friend plays with a friend, then goes home.
+   IT: Un amico gioca con un amico, poi torna a casa.
+sequencing-ongoing-4-m3 [fam=a2-family-te-sequence] [pred=a2-value-seq-matte-hanasu] [subjReal=omitted] [interro=false]
+   JP: ともだちをまって、はなします
+   RO: tomodachi o matte, hanashimasu
+   EN: I wait for a friend, then talk.
+   IT: Aspetto un amico, poi parlo.
+sequencing-ongoing-4-m4 [fam=a2-family-te-sequence-object] [pred=a2-value-seq-obj-tabete-nomu] [subjReal=explicit] [interro=false]
+   JP: どうりょうはパンをたべて、のみます
+   RO: douryou wa pan o tabete, nomimasu
+   EN: A colleague eats bread, then drinks.
+   IT: Un collega mangia il pane, poi beve.
+sequencing-ongoing-4-m5 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-yomu] [subjReal=omitted] [interro=false]
+   JP: てがみをよんでいます
+   RO: tegami o yonde imasu
+   EN: The teacher is reading a letter.
+   IT: L'insegnante sta leggendo una lettera.
+sequencing-ongoing-4-m6 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-kaku] [subjReal=omitted] [interro=false]
+   JP: にほんごをかいています
+   RO: nihongo o kaite imasu
+   EN: I am writing in Japanese.
+   IT: Sto scrivendo in giapponese.
+sequencing-ongoing-4-m7 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-hataraku] [subjReal=explicit] [interro=false]
+   JP: そらははたらいています
+   RO: sora wa hataraite imasu
+   EN: Sora is working.
+   IT: Sora sta lavorando.
+sequencing-ongoing-4-m8 [fam=a2-family-te-sequence-object] [pred=a2-value-seq-obj-yonde-neru] [subjReal=explicit] [interro=false]
+   JP: ともだちはてがみをよんで、ねます
+   RO: tomodachi wa tegami o yonde, nemasu
+   EN: A friend reads a letter, then sleeps.
+   IT: Un amico legge una lettera, poi dorme.
+sequencing-ongoing-4-t1 [fam=a2-family-te-sequence-object] [pred=a2-value-seq-obj-tsukutte-taberu] [subjReal=explicit] [interro=false]
+   JP: せんせいはパンをつくって、たべます
+   RO: sensei wa pan o tsukutte, tabemasu
+   EN: The teacher makes bread, then eats it.
+   IT: L'insegnante prepara il pane, poi lo mangia.
+sequencing-ongoing-4-t2 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-nomu] [subjReal=explicit] [interro=false]
+   JP: どうりょうはみずをのんでいます
+   RO: douryou wa mizu o nonde imasu
+   EN: A colleague is drinking water.
+   IT: Un collega sta bevendo acqua.
+sequencing-ongoing-4-t3 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-asobu] [subjReal=explicit] [interro=false]
+   JP: そらはあそんでいます
+   RO: sora wa asonde imasu
+   EN: Sora is playing.
+   IT: Sora sta giocando.
+sequencing-ongoing-4-t4 [fam=a2-family-te-sequence] [pred=a2-value-seq-matte-hanasu] [subjReal=explicit] [interro=false]
+   JP: どうりょうはともだちをまって、はなします
+   RO: douryou wa tomodachi o matte, hanashimasu
+   EN: A colleague waits for a friend, then talks.
+   IT: Un collega aspetta un amico, poi parla.
+sequencing-ongoing-4-t5 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-hanasu] [subjReal=explicit] [interro=false]
+   JP: ともだちはにほんごをはなしています
+   RO: tomodachi wa nihongo o hanashite imasu
+   EN: A friend is speaking Japanese.
+   IT: Un amico sta parlando giapponese.
+
+===== LESSON relationships-events-1 (module=relationships-events) =====
+relationships-events-1-m1 [fam=a2-family-family-description] [pred=a2-value-yasashii-stem] [subjReal=explicit] [interro=false]
+   JP: はははやさしいです
+   RO: haha wa yasashii desu
+   EN: My mother is kind.
+   IT: Mia madre è gentile.
+relationships-events-1-m2 [fam=a2-family-family-description] [pred=a2-value-genki-stem] [subjReal=explicit] [interro=false]
+   JP: ちちはげんきです
+   RO: chichi wa genki desu
+   EN: My father is well.
+   IT: Mio padre sta bene.
+relationships-events-1-m3 [fam=a2-family-family-description] [pred=a2-value-yasashii-stem] [subjReal=explicit] [interro=false]
+   JP: あねはやさしいです
+   RO: ane wa yasashii desu
+   EN: My older sister is kind.
+   IT: Mia sorella maggiore è gentile.
+relationships-events-1-m4 [fam=a2-family-family-description] [pred=a2-value-genki-stem] [subjReal=explicit] [interro=false]
+   JP: おとうとはげんきです
+   RO: otouto wa genki desu
+   EN: My younger brother is well.
+   IT: Mio fratello minore sta bene.
+relationships-events-1-m5 [fam=a2-family-family-description] [pred=a2-value-yasashii-stem] [subjReal=explicit] [interro=false]
+   JP: いもうとはやさしいです
+   RO: imouto wa yasashii desu
+   EN: My younger sister is kind.
+   IT: Mia sorella minore è gentile.
+relationships-events-1-m6 [fam=a2-family-family-description] [pred=a2-value-genki-stem] [subjReal=explicit] [interro=false]
+   JP: ともだちはげんきです
+   RO: tomodachi wa genki desu
+   EN: My friend is well.
+   IT: Il mio amico sta bene.
+relationships-events-1-m7 [fam=a2-family-describe-facility] [pred=a2-value-exist-iru] [subjReal=explicit] [interro=false]
+   JP: きょうだいがいます
+   RO: kyoudai ga imasu
+   EN: I have siblings.
+   IT: Ho fratelli e sorelle.
+relationships-events-1-m8 [fam=a2-family-describe-facility] [pred=a2-value-exist-iru] [subjReal=explicit] [interro=false]
+   JP: こどもがいます
+   RO: kodomo ga imasu
+   EN: I have children.
+   IT: Ho dei figli.
+relationships-events-1-m9 [fam=a2-family-family-description] [pred=a2-value-ookii-stem] [subjReal=explicit] [interro=false]
+   JP: あにはおおきいです
+   RO: ani wa ookii desu
+   EN: My older brother is big.
+   IT: Mio fratello maggiore è grande.
+relationships-events-1-t1 [fam=a2-family-family-description] [pred=a2-value-genki-stem] [subjReal=explicit] [interro=false]
+   JP: あねはげんきです
+   RO: ane wa genki desu
+   EN: My older sister is well.
+   IT: Mia sorella maggiore sta bene.
+relationships-events-1-t2 [fam=a2-family-family-description] [pred=a2-value-yasashii-stem] [subjReal=explicit] [interro=false]
+   JP: おとうとはやさしいです
+   RO: otouto wa yasashii desu
+   EN: My younger brother is kind.
+   IT: Mio fratello minore è gentile.
+relationships-events-1-t3 [fam=a2-family-family-description] [pred=a2-value-genki-stem] [subjReal=explicit] [interro=false]
+   JP: いもうとはげんきです
+   RO: imouto wa genki desu
+   EN: My younger sister is well.
+   IT: Mia sorella minore sta bene.
+relationships-events-1-t4 [fam=a2-family-family-description] [pred=a2-value-yasashii-stem] [subjReal=explicit] [interro=false]
+   JP: ちちはやさしいです
+   RO: chichi wa yasashii desu
+   EN: My father is kind.
+   IT: Mio padre è gentile.
+relationships-events-1-t5 [fam=a2-family-family-description] [pred=a2-value-genki-stem] [subjReal=explicit] [interro=false]
+   JP: あにはげんきです
+   RO: ani wa genki desu
+   EN: My older brother is well.
+   IT: Mio fratello maggiore sta bene.
+
+===== LESSON relationships-events-2 (module=relationships-events) =====
+relationships-events-2-m1 [fam=a2-family-give-receive] [pred=a2-value-give-ageru] [subjReal=omitted] [interro=false]
+   JP: そらにプレゼントをあげます
+   RO: sora ni purezento o agemasu
+   EN: I'll give Sora a present.
+   IT: Darò un regalo a Sora.
+relationships-events-2-m2 [fam=a2-family-give-receive] [pred=a2-value-give-ageru] [subjReal=omitted] [interro=false]
+   JP: えみにはなをあげます
+   RO: emi ni hana o agemasu
+   EN: I'll give Emi flowers.
+   IT: Darò dei fiori a Emi.
+relationships-events-2-m3 [fam=a2-family-give-receive] [pred=a2-value-give-morau] [subjReal=omitted] [interro=false]
+   JP: ともだちにほんをもらいます
+   RO: tomodachi ni hon o moraimasu
+   EN: I'll get a book from my friend.
+   IT: Riceverò un libro dal mio amico.
+relationships-events-2-m4 [fam=a2-family-give-receive] [pred=a2-value-give-morau] [subjReal=omitted] [interro=false]
+   JP: せんせいにおかしをもらいます
+   RO: sensei ni okashi o moraimasu
+   EN: I'll get sweets from the teacher.
+   IT: Riceverò dei dolci dall'insegnante.
+relationships-events-2-m5 [fam=a2-family-give-receive] [pred=a2-value-give-ageru] [subjReal=explicit] [interro=false]
+   JP: そらはえみにプレゼントをあげます
+   RO: sora wa emi ni purezento o agemasu
+   EN: Sora gives Emi a present.
+   IT: Sora dà un regalo a Emi.
+relationships-events-2-m6 [fam=a2-family-give-receive] [pred=a2-value-give-morau] [subjReal=explicit] [interro=false]
+   JP: ともだちはせんせいにほんをもらいます
+   RO: tomodachi wa sensei ni hon o moraimasu
+   EN: My friend gets a book from the teacher.
+   IT: Il mio amico riceve un libro dall'insegnante.
+relationships-events-2-m7 [fam=a2-family-give-receive] [pred=a2-value-give-kureru] [subjReal=explicit] [interro=false]
+   JP: そらはわたしにほんをくれます
+   RO: sora wa watashi ni hon o kuremasu
+   EN: Sora gives me a book.
+   IT: Sora mi dà un libro.
+relationships-events-2-m8 [fam=a2-family-give-receive] [pred=a2-value-give-kureru] [subjReal=explicit] [interro=false]
+   JP: えみはわたしにおかしをくれます
+   RO: emi wa watashi ni okashi o kuremasu
+   EN: Emi gives me sweets.
+   IT: Emi mi dà dei dolci.
+relationships-events-2-m9 [fam=a2-family-give-receive] [pred=a2-value-give-ageru] [subjReal=omitted] [interro=false]
+   JP: ともだちにおかしをあげます
+   RO: tomodachi ni okashi o agemasu
+   EN: I'll give my friend sweets.
+   IT: Darò dei dolci al mio amico.
+relationships-events-2-t1 [fam=a2-family-give-receive] [pred=a2-value-give-ageru] [subjReal=omitted] [interro=false]
+   JP: せんせいにはなをあげます
+   RO: sensei ni hana o agemasu
+   EN: I'll give the teacher flowers.
+   IT: Darò dei fiori all'insegnante.
+relationships-events-2-t2 [fam=a2-family-give-receive] [pred=a2-value-give-morau] [subjReal=omitted] [interro=false]
+   JP: そらにプレゼントをもらいます
+   RO: sora ni purezento o moraimasu
+   EN: I'll get a present from Sora.
+   IT: Riceverò un regalo da Sora.
+relationships-events-2-t3 [fam=a2-family-give-receive] [pred=a2-value-give-morau] [subjReal=explicit] [interro=false]
+   JP: えみはともだちにはなをもらいます
+   RO: emi wa tomodachi ni hana o moraimasu
+   EN: Emi gets flowers from my friend.
+   IT: Emi riceve dei fiori dal mio amico.
+relationships-events-2-t4 [fam=a2-family-give-receive] [pred=a2-value-give-kureru] [subjReal=explicit] [interro=false]
+   JP: ともだちはわたしにおかしをくれます
+   RO: tomodachi wa watashi ni okashi o kuremasu
+   EN: My friend gives me sweets.
+   IT: Il mio amico mi dà dei dolci.
+relationships-events-2-t5 [fam=a2-family-give-receive] [pred=a2-value-give-ageru] [subjReal=omitted] [interro=false]
+   JP: そらにおかしをあげます
+   RO: sora ni okashi o agemasu
+   EN: I'll give Sora sweets.
+   IT: Darò dei dolci a Sora.
+
+===== LESSON relationships-events-3 (module=relationships-events) =====
+relationships-events-3-m1 [fam=a2-family-celebrate-event] [pred=a2-value-events-iwaimasu] [subjReal=omitted] [interro=false]
+   JP: たんじょうびをいわいます
+   RO: tanjoubi o iwaimasu
+   EN: I'll celebrate a birthday.
+   IT: Festeggerò un compleanno.
+relationships-events-3-m2 [fam=a2-family-celebrate-event] [pred=a2-value-events-iwaimasu] [subjReal=omitted] [interro=false]
+   JP: けっこんしきをいわいます
+   RO: kekkonshiki o iwaimasu
+   EN: I'll celebrate a wedding.
+   IT: Festeggerò un matrimonio.
+relationships-events-3-m3 [fam=a2-family-celebrate-event] [pred=a2-value-events-okurimasu] [subjReal=omitted] [interro=false]
+   JP: てがみをおくります
+   RO: tegami o okurimasu
+   EN: I'll send a letter.
+   IT: Manderò una lettera.
+relationships-events-3-m4 [fam=a2-family-celebrate-event] [pred=a2-value-events-okurimasu] [subjReal=omitted] [interro=false]
+   JP: プレゼントをおくります
+   RO: purezento o okurimasu
+   EN: I'll send a present.
+   IT: Manderò un regalo.
+relationships-events-3-m5 [fam=a2-family-celebrate-event] [pred=a2-value-events-iwaimasu] [subjReal=explicit] [interro=false]
+   JP: そらはたんじょうびをいわいます
+   RO: sora wa tanjoubi o iwaimasu
+   EN: Sora will celebrate a birthday.
+   IT: Sora festeggerà un compleanno.
+relationships-events-3-m6 [fam=a2-family-celebrate-event] [pred=a2-value-events-okurimasu] [subjReal=explicit] [interro=false]
+   JP: えみはてがみをおくります
+   RO: emi wa tegami o okurimasu
+   EN: Emi will send a letter.
+   IT: Emi manderà una lettera.
+relationships-events-3-m7 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-paatii-shiteimasu] [subjReal=omitted] [interro=false]
+   JP: パーティーをしています
+   RO: paatii oshite imasu
+   EN: I'm having a party.
+   IT: Sto facendo una festa.
+relationships-events-3-m8 [fam=a2-family-experience-takoto] [pred=a2-value-exp-kekkonshiki-itta] [subjReal=omitted] [interro=false]
+   JP: けっこんしきにいったことがあります
+   RO: kekkonshiki ni itta koto ga arimasu
+   EN: I have been to a wedding.
+   IT: Sono stato a un matrimonio.
+relationships-events-3-m9 [fam=a2-family-celebrate-event] [pred=a2-value-events-iwaimasu] [subjReal=explicit] [interro=false]
+   JP: ともだちはけっこんしきをいわいます
+   RO: tomodachi wa kekkonshiki o iwaimasu
+   EN: My friend will celebrate a wedding.
+   IT: Il mio amico festeggerà un matrimonio.
+relationships-events-3-t1 [fam=a2-family-ongoing-teiru] [pred=a2-value-teiru-paatii-shiteimasu] [subjReal=explicit] [interro=false]
+   JP: そらはパーティーをしています
+   RO: sora wa paatii oshite imasu
+   EN: Sora is having a party.
+   IT: Sora sta facendo una festa.
+relationships-events-3-t2 [fam=a2-family-experience-takoto] [pred=a2-value-exp-kekkonshiki-itta] [subjReal=explicit] [interro=false]
+   JP: えみはけっこんしきにいったことがあります
+   RO: emi wa kekkonshiki ni itta koto ga arimasu
+   EN: Emi has been to a wedding.
+   IT: Emi è stata a un matrimonio.
+relationships-events-3-t3 [fam=a2-family-celebrate-event] [pred=a2-value-events-okurimasu] [subjReal=explicit] [interro=false]
+   JP: ともだちはプレゼントをおくります
+   RO: tomodachi wa purezento o okurimasu
+   EN: My friend will send a present.
+   IT: Il mio amico manderà un regalo.
+relationships-events-3-t4 [fam=a2-family-celebrate-event] [pred=a2-value-events-iwaimasu] [subjReal=explicit] [interro=false]
+   JP: せんせいはたんじょうびをいわいます
+   RO: sensei wa tanjoubi o iwaimasu
+   EN: The teacher will celebrate a birthday.
+   IT: L'insegnante festeggerà un compleanno.
+relationships-events-3-t5 [fam=a2-family-celebrate-event] [pred=a2-value-events-okurimasu] [subjReal=explicit] [interro=false]
+   JP: そらはてがみをおくります
+   RO: sora wa tegami o okurimasu
+   EN: Sora will send a letter.
+   IT: Sora manderà una lettera.
+
+===== LESSON relationships-events-4 (module=relationships-events) =====
+relationships-events-4-m1 [fam=a2-family-choose-gift] [pred=a2-value-choose-hon] [subjReal=omitted] [interro=false]
+   JP: このほんにします
+   RO: kono hon ni shimasu
+   EN: I'll go with this book.
+   IT: Sceglierò questo libro.
+relationships-events-4-m2 [fam=a2-family-choose-gift] [pred=a2-value-choose-kasa] [subjReal=omitted] [interro=false]
+   JP: このかさにします
+   RO: kono kasa ni shimasu
+   EN: I'll go with this umbrella.
+   IT: Sceglierò questo ombrello.
+relationships-events-4-m3 [fam=a2-family-choose-gift] [pred=a2-value-choose-hana] [subjReal=omitted] [interro=false]
+   JP: このはなにします
+   RO: kono hana ni shimasu
+   EN: I'll go with these flowers.
+   IT: Sceglierò questi fiori.
+relationships-events-4-m4 [fam=a2-family-choose-gift] [pred=a2-value-choose-tokei] [subjReal=omitted] [interro=false]
+   JP: このとけいにします
+   RO: kono tokei ni shimasu
+   EN: I'll go with this watch.
+   IT: Sceglierò questo orologio.
+relationships-events-4-m5 [fam=a2-family-choose-gift] [pred=a2-value-choose-kaban] [subjReal=omitted] [interro=false]
+   JP: このかばんにします
+   RO: kono kaban ni shimasu
+   EN: I'll go with this bag.
+   IT: Sceglierò questa borsa.
+relationships-events-4-m6 [fam=a2-family-choose-gift] [pred=a2-value-choose-kutsu] [subjReal=omitted] [interro=false]
+   JP: このくつにします
+   RO: kono kutsu ni shimasu
+   EN: I'll go with these shoes.
+   IT: Sceglierò queste scarpe.
+relationships-events-4-m7 [fam=a2-family-choose-gift] [pred=a2-value-choose-nani-ga-ii] [subjReal=omitted] [interro=true]
+   JP: プレゼントはなにがいいですか
+   RO: purezento wa nani ga ii desu ka
+   EN: What present would be good?
+   IT: Che regalo andrebbe bene?
+relationships-events-4-m8 [fam=a2-family-reason-kara] [pred=a2-value-kara-yasui-kono-hon] [subjReal=omitted] [interro=false]
+   JP: このほんはやすいから、これにします
+   RO: kono hon wa yasui kara, kore ni shimasu
+   EN: This book is cheap, so I'll go with this one.
+   IT: Questo libro è economico, quindi sceglierò questo.
+relationships-events-4-m9 [fam=a2-family-choose-gift] [pred=a2-value-choose-ikaga] [subjReal=omitted] [interro=true]
+   JP: これはいかがですか
+   RO: kore wa ikaga desu ka
+   EN: How about this one?
+   IT: Che ne dici di questo?
+relationships-events-4-t1 [fam=a2-family-reason-kara] [pred=a2-value-kara-chiisai-kaesu] [subjReal=omitted] [interro=false]
+   JP: サイズがちいさいですから、かえします
+   RO: saizu ga chiisai desu kara, kaeshimasu
+   EN: The size is small, so I'll return it.
+   IT: La taglia è piccola, quindi lo restituisco.
+relationships-events-4-t2 [fam=a2-family-choose-gift] [pred=a2-value-choose-hon] [subjReal=explicit] [interro=false]
+   JP: そらはこのほんにします
+   RO: sora wa kono hon ni shimasu
+   EN: Sora will go with this book.
+   IT: Sora sceglierà questo libro.
+relationships-events-4-t3 [fam=a2-family-choose-gift] [pred=a2-value-choose-kasa] [subjReal=explicit] [interro=false]
+   JP: えみはこのかさにします
+   RO: emi wa kono kasa ni shimasu
+   EN: Emi will go with this umbrella.
+   IT: Emi sceglierà questo ombrello.
+relationships-events-4-t4 [fam=a2-family-choose-gift] [pred=a2-value-choose-hana] [subjReal=explicit] [interro=false]
+   JP: ともだちはこのはなにします
+   RO: tomodachi wa kono hana ni shimasu
+   EN: My friend will go with these flowers.
+   IT: Il mio amico sceglierà questi fiori.
+relationships-events-4-t5 [fam=a2-family-choose-gift] [pred=a2-value-choose-tokei] [subjReal=explicit] [interro=false]
+   JP: せんせいはこのとけいにします
+   RO: sensei wa kono tokei ni shimasu
+   EN: The teacher will go with this watch.
+   IT: L'insegnante sceglierà questo orologio.
+
+===== LESSON practical-texts-1 (module=practical-texts) =====
+practical-texts-1-m1 [fam=a2-family-read-schedule] [pred=a2-value-sched-tsugi-densha] [subjReal=omitted] [interro=false]
+   JP: つぎのでんしゃはくじじゅうごふんです
+   RO: tsugi no densha wa kuji juugofun desu
+   EN: The next train is at 9:15.
+   IT: Il prossimo treno è alle 9:15.
+practical-texts-1-m2 [fam=a2-family-read-schedule] [pred=a2-value-sched-honsuu] [subjReal=omitted] [interro=false]
+   JP: でんしゃはいちじかんによんほんあります
+   RO: densha wa ichijikan ni yonhon arimasu
+   EN: There are 4 trains an hour.
+   IT: Ci sono 4 treni all'ora.
+practical-texts-1-m3 [fam=a2-family-read-schedule] [pred=a2-value-sched-jugyou-han] [subjReal=omitted] [interro=false]
+   JP: じゅぎょうはさんじはんからです
+   RO: jugyou wa sanji han kara desu
+   EN: Class is from 3:30.
+   IT: La lezione è dalle 3:30.
+practical-texts-1-m4 [fam=a2-family-read-schedule] [pred=a2-value-sched-basu-jikan] [subjReal=omitted] [interro=false]
+   JP: バスはじゅうじにでます
+   RO: basu wa juuji ni demasu
+   EN: The bus leaves at 10.
+   IT: L'autobus parte alle 10.
+practical-texts-1-m5 [fam=a2-family-read-schedule] [pred=a2-value-sched-kyuukou-kuji-han] [subjReal=omitted] [interro=false]
+   JP: きゅうこうはくじはんにでます
+   RO: kyuukou wa kuji han ni demasu
+   EN: The express leaves at 9:30.
+   IT: Il rapido parte alle 9:30.
+practical-texts-1-m6 [fam=a2-family-read-schedule] [pred=a2-value-sched-shuuden-juuichi] [subjReal=omitted] [interro=false]
+   JP: しゅうでんはじゅういちじです
+   RO: shuuden wa juuichiji desu
+   EN: The last train is at 11.
+   IT: L'ultimo treno è alle 11.
+practical-texts-1-m7 [fam=a2-family-read-schedule] [pred=a2-value-sched-basu-honsuu] [subjReal=omitted] [interro=false]
+   JP: バスはいちじかんにさんぼんあります
+   RO: basu wa ichijikan ni sanbon arimasu
+   EN: There are 3 buses an hour.
+   IT: Ci sono 3 autobus all'ora.
+practical-texts-1-m8 [fam=a2-family-read-schedule] [pred=a2-value-sched-jugyou-owaru] [subjReal=omitted] [interro=false]
+   JP: じゅぎょうはごじにおわります
+   RO: jugyou wa goji ni owarimasu
+   EN: Class ends at 5.
+   IT: La lezione finisce alle 5.
+practical-texts-1-t1 [fam=a2-family-read-schedule] [pred=a2-value-sched-tsugi-densha] [subjReal=omitted] [interro=true]
+   JP: つぎのでんしゃはくじじゅうごふんですか
+   RO: tsugi no densha wa kuji juugofun desu ka
+   EN: Is the next train at 9:15?
+   IT: Il prossimo treno è alle 9:15?
+practical-texts-1-t2 [fam=a2-family-read-schedule] [pred=a2-value-sched-honsuu] [subjReal=omitted] [interro=true]
+   JP: でんしゃはいちじかんによんほんありますか
+   RO: densha wa ichijikan ni yonhon arimasu ka
+   EN: Are there 4 trains an hour?
+   IT: Ci sono 4 treni all'ora?
+practical-texts-1-t3 [fam=a2-family-read-schedule] [pred=a2-value-sched-jugyou-han] [subjReal=omitted] [interro=true]
+   JP: じゅぎょうはさんじはんからですか
+   RO: jugyou wa sanji han kara desu ka
+   EN: Is class from 3:30?
+   IT: La lezione è dalle 3:30?
+practical-texts-1-t4 [fam=a2-family-read-schedule] [pred=a2-value-sched-basu-jikan] [subjReal=omitted] [interro=true]
+   JP: バスはじゅうじにでますか
+   RO: basu wa juuji ni demasu ka
+   EN: Does the bus leave at 10?
+   IT: L'autobus parte alle 10?
+practical-texts-1-t5 [fam=a2-family-read-schedule] [pred=a2-value-sched-kyuukou-kuji-han] [subjReal=omitted] [interro=true]
+   JP: きゅうこうはくじはんにでますか
+   RO: kyuukou wa kuji han ni demasu ka
+   EN: Does the express leave at 9:30?
+   IT: Il rapido parte alle 9:30?
+
+===== LESSON practical-texts-2 (module=practical-texts) =====
+practical-texts-2-m1 [fam=a2-family-read-notice] [pred=a2-value-notice-aku-9] [subjReal=omitted] [interro=false]
+   JP: このみせはごぜんくじにあきます
+   RO: kono mise wa gozen kuji ni akimasu
+   EN: This shop opens at 9am.
+   IT: Questo negozio apre alle 9 del mattino.
+practical-texts-2-m2 [fam=a2-family-read-notice] [pred=a2-value-notice-shimaru-6] [subjReal=omitted] [interro=false]
+   JP: このみせはごごろくじにしまります
+   RO: kono mise wa gogo rokuji ni shimarimasu
+   EN: This shop closes at 6pm.
+   IT: Questo negozio chiude alle 6 del pomeriggio.
+practical-texts-2-m3 [fam=a2-family-read-notice] [pred=a2-value-notice-ryoukin-500] [subjReal=omitted] [interro=false]
+   JP: にゅうじょうりょうきんはごひゃくえんです
+   RO: nyuujouryoukin wa gohyaku en desu
+   EN: Admission is 500 yen.
+   IT: L'ingresso costa 500 yen.
+practical-texts-2-m4 [fam=a2-family-read-notice] [pred=a2-value-notice-kodomo-muryou] [subjReal=omitted] [interro=false]
+   JP: こどもはむりょうです
+   RO: kodomo wa muryou desu
+   EN: It's free for children.
+   IT: È gratis per i bambini.
+practical-texts-2-m5 [fam=a2-family-read-notice] [pred=a2-value-notice-getsuyou-yasumi] [subjReal=omitted] [interro=false]
+   JP: げつようびはやすみです
+   RO: getsuyoubi wa yasumi desu
+   EN: It's closed on Mondays.
+   IT: È chiuso il lunedì.
+practical-texts-2-m6 [fam=a2-family-read-notice] [pred=a2-value-notice-chuushajou-300] [subjReal=omitted] [interro=false]
+   JP: ちゅうしゃじょうはさんびゃくえんです
+   RO: chuushajou wa sanbyaku en desu
+   EN: Parking is 300 yen.
+   IT: Il parcheggio costa 300 yen.
+practical-texts-2-m7 [fam=a2-family-prohibition-tewaikenai] [pred=a2-value-tewaikenai-shashin] [subjReal=omitted] [interro=false]
+   JP: しゃしんをとってはいけません
+   RO: shashin o totte wa ikemasen
+   EN: You must not take photos.
+   IT: Non si possono scattare foto.
+practical-texts-2-m8 [fam=a2-family-read-notice] [pred=a2-value-notice-saishuu-nyuujou] [subjReal=omitted] [interro=false]
+   JP: さいしゅうにゅうじょうはごじはんです
+   RO: saishuu nyuujou wa goji han desu
+   EN: Last entry is 5:30.
+   IT: L'ultimo ingresso è alle 5:30.
+practical-texts-2-t1 [fam=a2-family-prohibition-tewaikenai] [pred=a2-value-tewaikenai-taberu] [subjReal=omitted] [interro=false]
+   JP: たべてはいけません
+   RO: tabete wa ikemasen
+   EN: You must not eat here.
+   IT: Non si può mangiare qui.
+practical-texts-2-t2 [fam=a2-family-read-notice] [pred=a2-value-notice-aku-9] [subjReal=omitted] [interro=true]
+   JP: このみせはごぜんくじにあきますか
+   RO: kono mise wa gozen kuji ni akimasu ka
+   EN: Does this shop open at 9am?
+   IT: Questo negozio apre alle 9 del mattino?
+practical-texts-2-t3 [fam=a2-family-read-notice] [pred=a2-value-notice-ryoukin-500] [subjReal=omitted] [interro=true]
+   JP: にゅうじょうりょうきんはごひゃくえんですか
+   RO: nyuujouryoukin wa gohyaku en desu ka
+   EN: Is admission 500 yen?
+   IT: L'ingresso costa 500 yen?
+practical-texts-2-t4 [fam=a2-family-read-notice] [pred=a2-value-notice-kodomo-muryou] [subjReal=omitted] [interro=true]
+   JP: こどもはむりょうですか
+   RO: kodomo wa muryou desu ka
+   EN: Is it free for children?
+   IT: È gratis per i bambini?
+practical-texts-2-t5 [fam=a2-family-read-notice] [pred=a2-value-notice-shimaru-6] [subjReal=omitted] [interro=true]
+   JP: このみせはごごろくじにしまりますか
+   RO: kono mise wa gogo rokuji ni shimarimasu ka
+   EN: Does this shop close at 6pm?
+   IT: Questo negozio chiude alle 6 del pomeriggio?
+
+===== LESSON practical-texts-3 (module=practical-texts) =====
+practical-texts-3-m1 [fam=a2-family-read-reply-message] [pred=a2-value-msg-eiga-sasoi] [subjReal=omitted] [interro=false]
+   JP: どようび、いっしょにえいがをみませんか
+   RO: doyoubi, issho ni eiga o mimasen ka
+   EN: Saturday, want to watch a movie together?
+   IT: Sabato, vogliamo vedere un film insieme?
+practical-texts-3-m2 [fam=a2-family-read-reply-message] [pred=a2-value-msg-zannen-kotowaru] [subjReal=omitted] [interro=false]
+   JP: ざんねんですが、どようびはちょっと
+   RO: zannen desu ga, doyoubi wa chotto
+   EN: Sorry, Saturday's a bit difficult.
+   IT: Mi dispiace, sabato è un po' difficile.
+practical-texts-3-m3 [fam=a2-family-read-reply-message] [pred=a2-value-msg-wakatta-aimashou] [subjReal=omitted] [interro=false]
+   JP: わかりました、どようびにあいましょう
+   RO: wakarimashita, doyoubi ni aimashou
+   EN: Understood, let's meet on Saturday.
+   IT: Capito, incontriamoci sabato.
+practical-texts-3-m4 [fam=a2-family-read-reply-message] [pred=a2-value-msg-kouen-sasoi] [subjReal=omitted] [interro=false]
+   JP: にちようび、こうえんにいきませんか
+   RO: nichiyoubi, kouen ni ikimasen ka
+   EN: Sunday, shall we go to the park?
+   IT: Domenica, andiamo al parco?
+practical-texts-3-m5 [fam=a2-family-read-reply-message] [pred=a2-value-msg-gogo-daijoubu] [subjReal=omitted] [interro=false]
+   JP: ごごはだいじょうぶです
+   RO: gogo wa daijoubu desu
+   EN: The afternoon is fine.
+   IT: Il pomeriggio va bene.
+practical-texts-3-m6 [fam=a2-family-opinion-toomou] [pred=a2-value-opinion-eiga-omoshiroi] [subjReal=omitted] [interro=false]
+   JP: このえいがはおもしろいとおもいます
+   RO: kono eiga wa omoshiroi to omoimasu
+   EN: I think this movie is interesting.
+   IT: Penso che questo film sia interessante.
+practical-texts-3-m7 [fam=a2-family-connector-utterance] [pred=a2-value-connector-msg-ame-dekakeru] [subjReal=omitted] [interro=false]
+   JP: あめですが、でかけます
+   RO: ame desu ga, dekakemasu
+   EN: It's raining, but I'll go out.
+   IT: Piove, ma esco lo stesso.
+practical-texts-3-m8 [fam=a2-family-read-reply-message] [pred=a2-value-msg-eki-mae-au] [subjReal=omitted] [interro=false]
+   JP: えきのまえであいましょう
+   RO: eki no mae de aimashou
+   EN: Let's meet in front of the station.
+   IT: Incontriamoci davanti alla stazione.
+practical-texts-3-t1 [fam=a2-family-opinion-toomou] [pred=a2-value-toomou-kore-ii] [subjReal=omitted] [interro=false]
+   JP: これはいいとおもいます
+   RO: kore wa ii to omoimasu
+   EN: I think this is good.
+   IT: Penso che questo sia buono.
+practical-texts-3-t2 [fam=a2-family-opinion-toomou] [pred=a2-value-toomou-hon-omoshiroi] [subjReal=omitted] [interro=false]
+   JP: このほんはおもしろいとおもいます
+   RO: kono hon wa omoshiroi to omoimasu
+   EN: I think this book is interesting.
+   IT: Penso che questo libro sia interessante.
+practical-texts-3-t3 [fam=a2-family-read-reply-message] [pred=a2-value-msg-gogo-daijoubu] [subjReal=omitted] [interro=true]
+   JP: ごごはだいじょうぶですか
+   RO: gogo wa daijoubu desu ka
+   EN: Is the afternoon OK?
+   IT: Il pomeriggio va bene?
+practical-texts-3-t4 [fam=a2-family-read-reply-message] [pred=a2-value-msg-eki-mae-au] [subjReal=omitted] [interro=true]
+   JP: えきのまえであいましょうか
+   RO: eki no mae de aimashou ka
+   EN: Shall we meet in front of the station?
+   IT: Ci vediamo davanti alla stazione?
+practical-texts-3-t5 [fam=a2-family-read-reply-message] [pred=a2-value-msg-wakatta-aimashou] [subjReal=omitted] [interro=true]
+   JP: わかりました、どようびにあいましょうか
+   RO: wakarimashita, doyoubi ni aimashou ka
+   EN: Understood, shall we meet on Saturday?
+   IT: Capito, ci vediamo sabato?
+
+===== LESSON practical-texts-4 (module=practical-texts) =====
+practical-texts-4-m1 [fam=a2-family-fill-form] [pred=a2-value-form-namae] [subjReal=omitted] [interro=false]
+   JP: なまえはたなかです
+   RO: namae wa tanaka desu
+   EN: Name: Tanaka.
+   IT: Nome: Tanaka.
+practical-texts-4-m2 [fam=a2-family-fill-form] [pred=a2-value-form-denwabangou] [subjReal=omitted] [interro=false]
+   JP: でんわばんごうはぜろきゅうぜろです
+   RO: denwabangou wa zero kyuu zero desu
+   EN: Phone number: 090.
+   IT: Numero di telefono: 090.
+practical-texts-4-m3 [fam=a2-family-fill-form] [pred=a2-value-form-seinengappi] [subjReal=omitted] [interro=false]
+   JP: たんじょうびはさんがついつかです
+   RO: tanjoubi wa sangatsu itsuka desu
+   EN: Birthday: March 5th.
+   IT: Compleanno: 5 marzo.
+practical-texts-4-m4 [fam=a2-family-fill-form] [pred=a2-value-form-jikan] [subjReal=omitted] [interro=false]
+   JP: じかんはごごにじはんです
+   RO: jikan wa gogo niji han desu
+   EN: Time: 2:30pm.
+   IT: Ora: le 2:30 del pomeriggio.
+practical-texts-4-m5 [fam=a2-family-fill-form] [pred=a2-value-form-ninzuu] [subjReal=omitted] [interro=false]
+   JP: にんずうはふたりです
+   RO: ninzuu wa futari desu
+   EN: Number of people: two.
+   IT: Numero di persone: due.
+practical-texts-4-m6 [fam=a2-family-fill-form] [pred=a2-value-form-shusseki-youbi] [subjReal=omitted] [interro=false]
+   JP: しゅっせきびはどようびです
+   RO: shussekibi wa doyoubi desu
+   EN: Attendance day: Saturday.
+   IT: Giorno di partecipazione: sabato.
+practical-texts-4-m7 [fam=a2-family-fill-form] [pred=a2-value-form-juusho] [subjReal=omitted] [interro=false]
+   JP: じゅうしょはとうきょうです
+   RO: juusho wa toukyou desu
+   EN: Address: Tokyo.
+   IT: Indirizzo: Tokyo.
+practical-texts-4-m8 [fam=a2-family-fill-form] [pred=a2-value-form-kokuseki] [subjReal=omitted] [interro=false]
+   JP: こくせきはイタリアです
+   RO: kokuseki wa itaria desu
+   EN: Nationality: Italy.
+   IT: Nazionalità: Italia.
+practical-texts-4-t1 [fam=a2-family-fill-form] [pred=a2-value-form-namae] [subjReal=omitted] [interro=true]
+   JP: なまえはたなかですか
+   RO: namae wa tanaka desu ka
+   EN: Is the name Tanaka?
+   IT: Il nome è Tanaka?
+practical-texts-4-t2 [fam=a2-family-fill-form] [pred=a2-value-form-denwabangou] [subjReal=omitted] [interro=true]
+   JP: でんわばんごうはぜろきゅうぜろですか
+   RO: denwabangou wa zero kyuu zero desu ka
+   EN: Is the phone number 090?
+   IT: Il numero di telefono è 090?
+practical-texts-4-t3 [fam=a2-family-fill-form] [pred=a2-value-form-seinengappi] [subjReal=omitted] [interro=true]
+   JP: たんじょうびはさんがついつかですか
+   RO: tanjoubi wa sangatsu itsuka desu ka
+   EN: Is the birthday March 5th?
+   IT: Il compleanno è il 5 marzo?
+practical-texts-4-t4 [fam=a2-family-fill-form] [pred=a2-value-form-jikan] [subjReal=omitted] [interro=true]
+   JP: じかんはごごにじはんですか
+   RO: jikan wa gogo niji han desu ka
+   EN: Is the time 2:30pm?
+   IT: L'ora è le 2:30 del pomeriggio?
+practical-texts-4-t5 [fam=a2-family-fill-form] [pred=a2-value-form-ninzuu] [subjReal=omitted] [interro=true]
+   JP: にんずうはふたりですか
+   RO: ninzuu wa futari desu ka
+   EN: Is the number of people two?
+   IT: Il numero di persone è due?
