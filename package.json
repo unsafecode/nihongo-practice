@@ -6,7 +6,7 @@
   "description": "Bilingual practical Japanese learning with hiragana, sentence building, and browser speech.",
   "scripts": {
     "dev": "vite",
-    "prebuild": "vite-node scripts/validateA1Release.ts",
+    "prebuild": "vite-node scripts/validateA1Release.ts && vite-node scripts/validateA2Release.ts && vite-node scripts/lintA2NoJapanese.ts",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",

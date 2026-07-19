@@ -442,18 +442,80 @@ export const A2_M1_M12_SERVED_CANDO_IDS: readonly string[] = Object.freeze([
   ...A2_M9_M12_SERVED_CANDO_IDS,
 ]);
 
+/**
+ * The 8 distinct Can-do ids FIRST served by the M13-M14 lessons (Phase 3
+ * Task 7): 4 topical ids from relationships-events (`family-relations`,
+ * `give-receive`, `events-celebrations`, `choose-gift`) plus 4 from
+ * practical-texts (`read-schedule`, `read-notice`, `read-reply-message`,
+ * `fill-form`). Deliberately excludes every id M13-M14 merely RECOMBINES
+ * from an earlier block (`ongoing-teiru`/`experience-takoto`/`reason-kara`/
+ * `prohibition-tewaikenai`/`opinion-toomou`/`connectors` — all already
+ * served by `A2_M1_M12_SERVED_CANDO_IDS`), so `A2_M1_M14_SERVED_CANDO_IDS`'s
+ * own concatenation stays duplicate-free.
+ */
+export const A2_M13_M14_SERVED_CANDO_IDS: readonly string[] = Object.freeze([
+  "a2-cando-family-relations",
+  "a2-cando-give-receive",
+  "a2-cando-events-celebrations",
+  "a2-cando-choose-gift",
+  "a2-cando-read-schedule",
+  "a2-cando-read-notice",
+  "a2-cando-read-reply-message",
+  "a2-cando-fill-form",
+]);
+
+/**
+ * The complete, honest 55-id staged subset the 56 authored M1-M14 lessons
+ * serve — the union of `A2_M1_M12_SERVED_CANDO_IDS` and
+ * `A2_M13_M14_SERVED_CANDO_IDS`, with no overlap between the two. The
+ * remaining 4 (out of 59) registered ids are the M15 scenario Can-dos,
+ * served only once `a2-synthesis` exists. Exported so
+ * `modules01to14.test.ts`/the full aggregate test can request exactly this
+ * subset from `buildA2CanDos`/`buildA2CanDoLessonMap` without importing
+ * module 15 — mirrors `A2_M1_M12_SERVED_CANDO_IDS`'s own contract exactly.
+ */
+export const A2_M1_M14_SERVED_CANDO_IDS: readonly string[] = Object.freeze([
+  ...A2_M1_M12_SERVED_CANDO_IDS,
+  ...A2_M13_M14_SERVED_CANDO_IDS,
+]);
+
+/** The 4 capstone-scenario Can-do ids, in catalogue order, served by the
+ * `a2-synthesis` module (Phase 3 Task 7) — mirrors A1's own
+ * `A1_SCENARIO_CANDO_IDS` contract exactly. */
+export const A2_SCENARIO_CANDO_IDS: readonly string[] = Object.freeze([
+  "a2-cando-scenario-weekend-outing",
+  "a2-cando-scenario-service-shopping",
+  "a2-cando-scenario-health-absence",
+  "a2-cando-scenario-trip-recount",
+]);
+
+/**
+ * The complete, honest 59-id served subset — every Can-do in
+ * `A2_CANDO_REGISTRY`, now that all 15 modules (M1-M15) are authored: the
+ * union of `A2_M1_M14_SERVED_CANDO_IDS` (55) and `A2_SCENARIO_CANDO_IDS` (4),
+ * with no overlap between the two. Exported so the complete release
+ * catalog (`catalog.ts`), the level/checkpoint (`checkpoint.ts`), and the
+ * full aggregate test can request exactly the full registry from
+ * `buildA2CanDos`/`buildA2CanDoLessonMap` in one call.
+ */
+export const A2_ALL_59_CANDO_IDS: readonly string[] = Object.freeze([
+  ...A2_M1_M14_SERVED_CANDO_IDS,
+  ...A2_SCENARIO_CANDO_IDS,
+]);
+
 // ---------------------------------------------------------------------------
-// Bilingual descriptor copy (the 32 M1-M8-served Can-dos only — the other 27
-// registered ids belong to modules that do not exist yet, so their copy is
-// honestly left for the tasks that author those modules, never fabricated
-// ahead of time)
+// Bilingual descriptor copy (every Can-do served by an authored module so
+// far — Bilingual descriptor copy for all 59 registered Can-dos, now that
+// all 15 modules (M1-M15) are authored)
 // ---------------------------------------------------------------------------
 
 /**
  * Natural, non-placeholder EN/IT "I can..." statements keyed by each served
  * Can-do's own `descriptorCopyId` (never the raw Can-do id) — resolved by
  * `validateFoundations`'s copy-parity/reference integrity check for every
- * Can-do present in an assembled `FoundationCatalogs.canDos`.
+ * Can-do present in an assembled `FoundationCatalogs.canDos`. Every
+ * statement is an alignment/practice claim only — never "certified",
+ * "certificate", or "equivalent" language (§ no-certification policy).
  */
 export const a2CanDoDescriptorCopy: { readonly en: Readonly<Record<string, string>>; readonly it: Readonly<Record<string, string>> } = Object.freeze({
   en: {
@@ -551,6 +613,30 @@ export const a2CanDoDescriptorCopy: { readonly en: Readonly<Record<string, strin
       "I can explain a problem that comes up while traveling.",
     "a2-cando-change-cancel-descriptor":
       "I can change or cancel a reservation.",
+    "a2-cando-family-relations-descriptor":
+      "I can describe my family and friends naturally.",
+    "a2-cando-give-receive-descriptor":
+      "I can talk about giving and receiving gifts.",
+    "a2-cando-events-celebrations-descriptor":
+      "I can talk about celebrating an event, like a birthday or a wedding.",
+    "a2-cando-choose-gift-descriptor":
+      "I can decide on a gift and give a simple reason for my choice.",
+    "a2-cando-read-schedule-descriptor":
+      "I can read a simple timetable or schedule.",
+    "a2-cando-read-notice-descriptor":
+      "I can read a simple notice or sign, like opening hours or a price.",
+    "a2-cando-read-reply-message-descriptor":
+      "I can read a short message or invitation and understand a reply.",
+    "a2-cando-fill-form-descriptor":
+      "I can fill in a simple form with times, dates, and numbers.",
+    "a2-cando-scenario-weekend-outing-descriptor":
+      "I can make weekend plans with a friend, discuss the weather, and describe what we'll do, aligned with A2-level outcomes.",
+    "a2-cando-scenario-service-shopping-descriptor":
+      "I can compare items, ask about permission and possibility, and handle a short shopping or service exchange, aligned with A2-level outcomes.",
+    "a2-cando-scenario-health-absence-descriptor":
+      "I can explain why I feel unwell, request help, and let someone know I'll be absent, aligned with A2-level outcomes.",
+    "a2-cando-scenario-trip-recount-descriptor":
+      "I can recount a past trip, naming places I've been and things I've done, aligned with A2-level outcomes.",
   },
   it: {
     "a2-cando-backchannel-followup-descriptor":
@@ -647,5 +733,29 @@ export const a2CanDoDescriptorCopy: { readonly en: Readonly<Record<string, strin
       "Riesco a spiegare un problema che si presenta durante un viaggio.",
     "a2-cando-change-cancel-descriptor":
       "Riesco a cambiare o cancellare una prenotazione.",
+    "a2-cando-family-relations-descriptor":
+      "Riesco a descrivere la mia famiglia e i miei amici in modo naturale.",
+    "a2-cando-give-receive-descriptor":
+      "Riesco a parlare di dare e ricevere regali.",
+    "a2-cando-events-celebrations-descriptor":
+      "Riesco a parlare di come festeggiare un evento, come un compleanno o un matrimonio.",
+    "a2-cando-choose-gift-descriptor":
+      "Riesco a decidere un regalo e a dare una motivazione semplice per la mia scelta.",
+    "a2-cando-read-schedule-descriptor":
+      "Riesco a leggere un semplice orario o programma.",
+    "a2-cando-read-notice-descriptor":
+      "Riesco a leggere un semplice avviso o cartello, come orari di apertura o un prezzo.",
+    "a2-cando-read-reply-message-descriptor":
+      "Riesco a leggere un breve messaggio o invito e capire una risposta.",
+    "a2-cando-fill-form-descriptor":
+      "Riesco a compilare un semplice modulo con orari, date e numeri.",
+    "a2-cando-scenario-weekend-outing-descriptor":
+      "Riesco a organizzare un weekend con un amico, parlare del tempo e descrivere cosa faremo, in linea con gli obiettivi di livello A2.",
+    "a2-cando-scenario-service-shopping-descriptor":
+      "Riesco a confrontare articoli, chiedere permesso e possibilità, e gestire un breve scambio in un negozio o un servizio, in linea con gli obiettivi di livello A2.",
+    "a2-cando-scenario-health-absence-descriptor":
+      "Riesco a spiegare perché non mi sento bene, chiedere aiuto e avvisare che sarò assente, in linea con gli obiettivi di livello A2.",
+    "a2-cando-scenario-trip-recount-descriptor":
+      "Riesco a raccontare un viaggio passato, nominando i posti in cui sono stato e le cose che ho fatto, in linea con gli obiettivi di livello A2.",
   },
 });

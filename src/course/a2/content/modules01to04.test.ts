@@ -136,12 +136,29 @@ const catalogs = assembleA2FoundationCatalogs({
 // the same "only what this slice needs" scoping `a2M1M4CanDos` already
 // applies to `canDos` — never a validator weakening, just correctly-scoped
 // input data for an intentionally M1-M4-only test.
+//
+// Phase 3 Task 7 note: several of these SAME M1-M4-owned families (e.g.
+// `a2-family-plan-yotei`, `a2-family-experience-takoto`,
+// `a2-family-reason-kara`) now ALSO name a later a2-synthesis scenario
+// Can-do in their static `canDoIds` array (reused verbatim for M15 — see
+// each family's own doc-comment in a2SemanticCatalog.ts). Those scenario
+// ids are genuinely out of scope here (no M1-M4 lesson ever teaches or
+// transfers them), so every scoped family's `canDoIds` is additionally
+// trimmed down to just the ids this M1-M4 slice actually serves — mirrors
+// `modules01to08.test.ts`'s own identical trim exactly; never a validator
+// weakening, just correctly-scoped input data.
+const A2_M1_M4_SERVED_CANDO_ID_SET = new Set(A2_M1_M4_SERVED_CANDO_IDS);
 const m1m4FamilyIds = new Set(
   allBuiltLessons.flatMap((built) => built.variants.map((variant) => variant.sentenceFamilyId)),
 );
 const scopedCatalogs = {
   ...catalogs,
-  sentenceFamilies: catalogs.sentenceFamilies.filter((family) => m1m4FamilyIds.has(family.id)),
+  sentenceFamilies: catalogs.sentenceFamilies
+    .filter((family) => m1m4FamilyIds.has(family.id))
+    .map((family) => ({
+      ...family,
+      canDoIds: family.canDoIds.filter((id) => A2_M1_M4_SERVED_CANDO_ID_SET.has(id)),
+    })),
 };
 
 const availableContentByLesson = computeAvailableContentByLesson(allBuiltLessons, scopedCatalogs);

@@ -415,6 +415,29 @@ const REALIZATION_RULES: Readonly<Record<string, RealizationRuleDefinition>> = {
     contentSlots: [{ slotId: "favored", particle: { kind: "fixed", particle: "ga" } }],
     predicateAdverbPrefix: { jp: "いちばん", romaji: "ichiban" },
   },
+  // --- Phase 3 Task 7 (A2 M13 relationships-events): あげる/もらう give-receive ---
+  // Verb + a に-marked recipient/source + a を-marked gift/theme object, in
+  // that natural word order ("そらにほんをあげます", "そらにほんをもらいます").
+  // The recipient is a real "referent"-kind content slot — never the
+  // grammatical subject/topic (see `realizeVariant`'s `subject`-only
+  // special-casing for animacy/vocative/explicit rendering) — so the SAME
+  // giver/receiver referent values already used as subjects elsewhere (e.g.
+  // "a2-value-sora") recombine here with no new vocabulary. The gift/theme
+  // object is licensed exactly like `rule-object-action`'s own を object
+  // (`objectRole: "governed-theme"`), so あげる/もらう's shared sense frame
+  // (`argumentRoles: ["agent","theme"]`) is generically checked, never a
+  // Japanese-string switch. Perspective (who gives, who receives) is carried
+  // entirely by which referent fills `subject` vs. `recipient` and by the
+  // predicate's own verb choice — never by a different particle pattern.
+  "rule-recipient-object-action": {
+    id: "rule-recipient-object-action",
+    predicateKind: "verb",
+    objectRole: "governed-theme",
+    contentSlots: [
+      { slotId: "recipient", particle: { kind: "fixed", particle: "ni" } },
+      { slotId: "object", particle: { kind: "fixed", particle: "o" } },
+    ],
+  },
 };
 
 /**

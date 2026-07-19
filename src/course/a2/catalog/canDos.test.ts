@@ -18,8 +18,12 @@ import {
   A2_M1_M4_SERVED_CANDO_IDS,
   A2_M1_M8_SERVED_CANDO_IDS,
   A2_M1_M12_SERVED_CANDO_IDS,
+  A2_M1_M14_SERVED_CANDO_IDS,
   A2_M5_M8_SERVED_CANDO_IDS,
   A2_M9_M12_SERVED_CANDO_IDS,
+  A2_M13_M14_SERVED_CANDO_IDS,
+  A2_ALL_59_CANDO_IDS,
+  A2_SCENARIO_CANDO_IDS,
   a2CanDoDescriptorCopy,
   buildA2CanDoLessonMap,
   buildA2CanDos,
@@ -700,5 +704,224 @@ describe("A2_M1_M12_SERVED_CANDO_IDS — the honest staged M1-M12 authored subse
     for (const id of A2_M1_M12_SERVED_CANDO_IDS) {
       expect(registryIds.has(id), id).toBe(true);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 3 Task 7 — M13-M14 (relationships-events, practical-texts)
+// ---------------------------------------------------------------------------
+
+describe("Phase 3 Task 7 — 8-lesson M13-M14 recipe mapping (documented contract)", () => {
+  // Pins the exact canonical primary/support mapping the task specifies.
+  // Every grammar id used as a support here (ongoing-teiru/experience-takoto/
+  // reason-kara/prohibition-tewaikenai/opinion-toomou/connectors) matches
+  // `A2_GRAMMAR_SPIRAL`'s own frozen schedule exactly (see
+  // forms/grammarSpiral.ts).
+  const EXPECTED: Readonly<Record<string, { primary: string; supports: readonly string[] }>> = {
+    "relationships-events-1": { primary: "a2-cando-family-relations", supports: [] },
+    "relationships-events-2": { primary: "a2-cando-give-receive", supports: [] },
+    "relationships-events-3": {
+      primary: "a2-cando-events-celebrations",
+      supports: ["a2-cando-ongoing-teiru", "a2-cando-experience-takoto"],
+    },
+    "relationships-events-4": {
+      primary: "a2-cando-choose-gift",
+      supports: ["a2-cando-reason-kara"],
+    },
+    "practical-texts-1": { primary: "a2-cando-read-schedule", supports: [] },
+    "practical-texts-2": {
+      primary: "a2-cando-read-notice",
+      supports: ["a2-cando-prohibition-tewaikenai"],
+    },
+    "practical-texts-3": {
+      primary: "a2-cando-read-reply-message",
+      supports: ["a2-cando-opinion-toomou", "a2-cando-connectors"],
+    },
+    "practical-texts-4": { primary: "a2-cando-fill-form", supports: [] },
+  };
+
+  it("documents exactly 8 lessons, each with <=2 supports", () => {
+    expect(Object.keys(EXPECTED)).toHaveLength(8);
+    for (const [lessonId, mapping] of Object.entries(EXPECTED)) {
+      expect(mapping.supports.length, lessonId).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it("every primary/support id referenced by the mapping exists in the 59-entry registry", () => {
+    const registryIds = new Set(A2_CANDO_REGISTRY.map((c) => c.id));
+    for (const [lessonId, mapping] of Object.entries(EXPECTED)) {
+      expect(registryIds.has(mapping.primary), `${lessonId} primary ${mapping.primary}`).toBe(true);
+      for (const support of mapping.supports) {
+        expect(registryIds.has(support), `${lessonId} support ${support}`).toBe(true);
+      }
+    }
+  });
+
+  it("relationships-events-3's own grammar-spiral rows both name it as a recurrence lesson", () => {
+    const spiralByCanDoId = new Map(A2_GRAMMAR_SPIRAL.map((row) => [row.canDoId, row]));
+    const ongoingRow = spiralByCanDoId.get("a2-cando-ongoing-teiru");
+    const experienceRow = spiralByCanDoId.get("a2-cando-experience-takoto");
+    expect(ongoingRow?.recurrenceLessonIds).toContain("relationships-events-3");
+    expect(experienceRow?.recurrenceLessonIds).toContain("relationships-events-3");
+  });
+
+  it("practical-texts-2's own prohibition-tewaikenai grammar-spiral row names it as the TRANSFER lesson", () => {
+    const spiralByCanDoId = new Map(A2_GRAMMAR_SPIRAL.map((row) => [row.canDoId, row]));
+    const row = spiralByCanDoId.get("a2-cando-prohibition-tewaikenai");
+    expect(row?.transferLessonId).toBe("practical-texts-2");
+  });
+
+  it("practical-texts-3's own opinion-toomou/connectors grammar-spiral rows both name it as a recurrence lesson", () => {
+    const spiralByCanDoId = new Map(A2_GRAMMAR_SPIRAL.map((row) => [row.canDoId, row]));
+    const opinionRow = spiralByCanDoId.get("a2-cando-opinion-toomou");
+    const connectorsRow = spiralByCanDoId.get("a2-cando-connectors");
+    expect(opinionRow?.recurrenceLessonIds).toContain("practical-texts-3");
+    expect(connectorsRow?.recurrenceLessonIds).toContain("practical-texts-3");
+  });
+});
+
+describe("a2CanDoDescriptorCopy — bilingual Can-do descriptor statements for the M13-M14 served subset (Phase 3 Task 7)", () => {
+  it("has an EN and IT entry for every descriptorCopyId of the 8 newly-served M13-M14 Can-dos, with no Japanese literal", () => {
+    const JAPANESE_PATTERN = /[\u3040-\u30ff\u4e00-\u9fff]/;
+    for (const id of A2_M13_M14_SERVED_CANDO_IDS) {
+      const registered = A2_CANDO_REGISTRY.find((c) => c.id === id);
+      expect(registered, id).toBeDefined();
+      const copyId = (registered as A2CanDoStub).descriptorCopyId;
+      expect(a2CanDoDescriptorCopy.en[copyId], `${id} en`).toBeTruthy();
+      expect(a2CanDoDescriptorCopy.it[copyId], `${id} it`).toBeTruthy();
+      expect(JAPANESE_PATTERN.test(a2CanDoDescriptorCopy.en[copyId]), `${id} en`).toBe(false);
+      expect(JAPANESE_PATTERN.test(a2CanDoDescriptorCopy.it[copyId]), `${id} it`).toBe(false);
+    }
+  });
+
+  it("has identical EN/IT key sets (parity)", () => {
+    expect(Object.keys(a2CanDoDescriptorCopy.en).sort()).toEqual(
+      Object.keys(a2CanDoDescriptorCopy.it).sort(),
+    );
+  });
+});
+
+describe("A2_M13_M14_SERVED_CANDO_IDS — the honest staged M13-M14 first-served subset (Phase 3 Task 7)", () => {
+  it("has exactly 8 distinct ids, none already served by M1-M12 (so A2_M1_M14_SERVED_CANDO_IDS's own concatenation stays duplicate-free)", () => {
+    expect(A2_M13_M14_SERVED_CANDO_IDS).toHaveLength(8);
+    expect(new Set(A2_M13_M14_SERVED_CANDO_IDS).size).toBe(8);
+    for (const id of A2_M13_M14_SERVED_CANDO_IDS) {
+      expect(A2_M1_M12_SERVED_CANDO_IDS, id).not.toContain(id);
+    }
+  });
+
+  it("every id is registered in the 59-entry A2_CANDO_REGISTRY", () => {
+    const registryIds = new Set(A2_CANDO_REGISTRY.map((c) => c.id));
+    for (const id of A2_M13_M14_SERVED_CANDO_IDS) {
+      expect(registryIds.has(id), id).toBe(true);
+    }
+  });
+
+  it("contains exactly the 8 expected topical ids", () => {
+    expect(new Set(A2_M13_M14_SERVED_CANDO_IDS)).toEqual(
+      new Set([
+        "a2-cando-family-relations",
+        "a2-cando-give-receive",
+        "a2-cando-events-celebrations",
+        "a2-cando-choose-gift",
+        "a2-cando-read-schedule",
+        "a2-cando-read-notice",
+        "a2-cando-read-reply-message",
+        "a2-cando-fill-form",
+      ]),
+    );
+  });
+});
+
+describe("A2_M1_M14_SERVED_CANDO_IDS — the honest staged M1-M14 authored subset (Phase 3 Task 7)", () => {
+  it("is exactly the union of the 47 M1-M12-served ids and the 8 new M13-M14-served ids, with no duplicates", () => {
+    expect(A2_M1_M14_SERVED_CANDO_IDS).toHaveLength(55);
+    expect(new Set(A2_M1_M14_SERVED_CANDO_IDS).size).toBe(55);
+    expect(new Set(A2_M1_M14_SERVED_CANDO_IDS)).toEqual(
+      new Set([...A2_M1_M12_SERVED_CANDO_IDS, ...A2_M13_M14_SERVED_CANDO_IDS]),
+    );
+  });
+
+  it("every id is registered in the 59-entry A2_CANDO_REGISTRY", () => {
+    const registryIds = new Set(A2_CANDO_REGISTRY.map((c) => c.id));
+    for (const id of A2_M1_M14_SERVED_CANDO_IDS) {
+      expect(registryIds.has(id), id).toBe(true);
+    }
+  });
+
+  it("is exactly 55 (out of 59) ids — the remaining 4 are the M15 scenario Can-dos, served only once a2-synthesis exists", () => {
+    const registryIds = A2_CANDO_REGISTRY.map((c) => c.id);
+    expect(registryIds).toHaveLength(59);
+    const remaining = registryIds.filter((id) => !A2_M1_M14_SERVED_CANDO_IDS.includes(id));
+    expect(remaining.sort()).toEqual(
+      [
+        "a2-cando-scenario-weekend-outing",
+        "a2-cando-scenario-service-shopping",
+        "a2-cando-scenario-health-absence",
+        "a2-cando-scenario-trip-recount",
+      ].sort(),
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 3 Task 7 — M15 (a2-synthesis) and the complete 59-id catalog
+// ---------------------------------------------------------------------------
+
+describe("A2_SCENARIO_CANDO_IDS — the 4 capstone-scenario Can-do ids (Phase 3 Task 7)", () => {
+  it("has exactly the 4 scenario ids, in catalogue order, matching A2_CANDO_REGISTRY's own scenario entries", () => {
+    expect(A2_SCENARIO_CANDO_IDS).toEqual([
+      "a2-cando-scenario-weekend-outing",
+      "a2-cando-scenario-service-shopping",
+      "a2-cando-scenario-health-absence",
+      "a2-cando-scenario-trip-recount",
+    ]);
+  });
+
+  it("every id is registered in the 59-entry A2_CANDO_REGISTRY with group 'scenario'", () => {
+    for (const id of A2_SCENARIO_CANDO_IDS) {
+      const registered = A2_CANDO_REGISTRY.find((c) => c.id === id);
+      expect(registered, id).toBeDefined();
+      expect(registered?.group).toBe("scenario");
+    }
+  });
+});
+
+describe("a2CanDoDescriptorCopy — bilingual Can-do descriptor statements for the 4 scenario Can-dos (Phase 3 Task 7)", () => {
+  it("has an EN and IT entry for every descriptorCopyId of the 4 scenario Can-dos, with no Japanese literal, no certification/certificate/equivalent claim", () => {
+    const JAPANESE_PATTERN = /[\u3040-\u30ff\u4e00-\u9fff]/;
+    const FORBIDDEN_CLAIM_PATTERN = /certificat|certified|equivalent/i;
+    for (const id of A2_SCENARIO_CANDO_IDS) {
+      const registered = A2_CANDO_REGISTRY.find((c) => c.id === id);
+      expect(registered, id).toBeDefined();
+      const copyId = (registered as A2CanDoStub).descriptorCopyId;
+      expect(a2CanDoDescriptorCopy.en[copyId], `${id} en`).toBeTruthy();
+      expect(a2CanDoDescriptorCopy.it[copyId], `${id} it`).toBeTruthy();
+      expect(JAPANESE_PATTERN.test(a2CanDoDescriptorCopy.en[copyId]), `${id} en`).toBe(false);
+      expect(JAPANESE_PATTERN.test(a2CanDoDescriptorCopy.it[copyId]), `${id} it`).toBe(false);
+      expect(FORBIDDEN_CLAIM_PATTERN.test(a2CanDoDescriptorCopy.en[copyId]), `${id} en`).toBe(false);
+      expect(FORBIDDEN_CLAIM_PATTERN.test(a2CanDoDescriptorCopy.it[copyId]), `${id} it`).toBe(false);
+    }
+  });
+
+  it("has identical EN/IT key sets (parity) across all 59 entries", () => {
+    expect(Object.keys(a2CanDoDescriptorCopy.en).sort()).toEqual(
+      Object.keys(a2CanDoDescriptorCopy.it).sort(),
+    );
+    expect(Object.keys(a2CanDoDescriptorCopy.en)).toHaveLength(59);
+  });
+});
+
+describe("A2_ALL_59_CANDO_IDS — the complete, honest 59-id served subset (Phase 3 Task 7)", () => {
+  it("is exactly the union of the 55 M1-M14-served ids and the 4 scenario ids, with no duplicates", () => {
+    expect(A2_ALL_59_CANDO_IDS).toHaveLength(59);
+    expect(new Set(A2_ALL_59_CANDO_IDS).size).toBe(59);
+    expect(new Set(A2_ALL_59_CANDO_IDS)).toEqual(
+      new Set([...A2_M1_M14_SERVED_CANDO_IDS, ...A2_SCENARIO_CANDO_IDS]),
+    );
+  });
+
+  it("is exactly the full A2_CANDO_REGISTRY id set", () => {
+    expect(new Set(A2_ALL_59_CANDO_IDS)).toEqual(new Set(A2_CANDO_REGISTRY.map((c) => c.id)));
   });
 });

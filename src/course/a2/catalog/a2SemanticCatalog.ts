@@ -437,6 +437,38 @@ export const A2_M9_M12_CONCEPT_IDS: readonly string[] = deepFreeze([
   A2_CONCEPT_CHANGE_CANCEL,
 ]);
 
+// --- Phase 3 Task 7 (M13-M14) concept ids. ---
+export const A2_CONCEPT_FAMILY_RELATIONS = "a2-concept-family-relations";
+export const A2_CONCEPT_GIVE_RECEIVE = "a2-concept-give-receive";
+export const A2_CONCEPT_EVENTS_CELEBRATIONS = "a2-concept-events-celebrations";
+export const A2_CONCEPT_CHOOSE_GIFT = "a2-concept-choose-gift";
+export const A2_CONCEPT_READ_SCHEDULE = "a2-concept-read-schedule";
+export const A2_CONCEPT_READ_NOTICE = "a2-concept-read-notice";
+export const A2_CONCEPT_READ_REPLY_MESSAGE = "a2-concept-read-reply-message";
+export const A2_CONCEPT_FILL_FORM = "a2-concept-fill-form";
+
+/** Every A2 M13 concept id, used as the module test's available-concept universe. */
+export const A2_M13_CONCEPT_IDS: readonly string[] = deepFreeze([
+  A2_CONCEPT_FAMILY_RELATIONS,
+  A2_CONCEPT_GIVE_RECEIVE,
+  A2_CONCEPT_EVENTS_CELEBRATIONS,
+  A2_CONCEPT_CHOOSE_GIFT,
+]);
+
+/** Every A2 M14 concept id, used as the module test's available-concept universe. */
+export const A2_M14_CONCEPT_IDS: readonly string[] = deepFreeze([
+  A2_CONCEPT_READ_SCHEDULE,
+  A2_CONCEPT_READ_NOTICE,
+  A2_CONCEPT_READ_REPLY_MESSAGE,
+  A2_CONCEPT_FILL_FORM,
+]);
+
+/** Every A2 M13-M14 concept id (M15 introduces none). */
+export const A2_M13_M14_CONCEPT_IDS: readonly string[] = deepFreeze([
+  ...A2_M13_CONCEPT_IDS,
+  ...A2_M14_CONCEPT_IDS,
+]);
+
 // ---------------------------------------------------------------------------
 // Contexts
 // ---------------------------------------------------------------------------
@@ -462,6 +494,10 @@ export const a2Contexts: readonly Context[] = deepFreeze([
   { id: "a2-context-health", labelCopyId: "a2-context-health-label" },
   { id: "a2-context-work-study", labelCopyId: "a2-context-work-study-label" },
   { id: "a2-context-travel", labelCopyId: "a2-context-travel-label" },
+  // --- Phase 3 Task 7 (M13-M14) — ids fixed by the frozen Task 3 kanji
+  // catalog, which already hard-codes these exact contextIds. ---
+  { id: "a2-context-relationships", labelCopyId: "a2-context-relationships-label" },
+  { id: "a2-context-notices", labelCopyId: "a2-context-notices-label" },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -570,7 +606,6 @@ const A2_LEARNING_TARGET_SENSES_M1_M4: readonly LearningTargetSense[] = [
   { id: "a2-sense-connector-test-ganbatta", lexemeId: "a2-lexeme-connector-test-ganbatta", learningUse: "productive", semanticFrameId: "a2-frame-connector-test-ganbatta", predicate: "connect-test-effort", argumentRoles: [], argumentParticleByRole: {} },
   { id: "a2-sense-connector-morning-rain-clear", lexemeId: "a2-lexeme-connector-morning-rain-clear", learningUse: "productive", semanticFrameId: "a2-frame-connector-morning-rain-clear", predicate: "connect-weather-change", argumentRoles: [], argumentParticleByRole: {} },
   { id: "a2-sense-connector-work-then-home", lexemeId: "a2-lexeme-connector-work-then-home", learningUse: "productive", semanticFrameId: "a2-frame-connector-work-then-home", predicate: "connect-work-home", argumentRoles: [], argumentParticleByRole: {} },
-  { id: "a2-sense-connector-friend-then-eat", lexemeId: "a2-lexeme-connector-friend-then-eat", learningUse: "productive", semanticFrameId: "a2-frame-connector-friend-then-eat", predicate: "connect-friend-meal", argumentRoles: [], argumentParticleByRole: {} },
   { id: "a2-sense-connector-book-not-interesting", lexemeId: "a2-lexeme-connector-book-not-interesting", learningUse: "productive", semanticFrameId: "a2-frame-connector-book-not-interesting", predicate: "connect-book-opinion", argumentRoles: [], argumentParticleByRole: {} },
   { id: "a2-sense-connector-rain-still-walked", lexemeId: "a2-lexeme-connector-rain-still-walked", learningUse: "productive", semanticFrameId: "a2-frame-connector-rain-still-walked", predicate: "connect-rain-walk", argumentRoles: [], argumentParticleByRole: {} },
   { id: "a2-sense-connector-tv-then-bath", lexemeId: "a2-lexeme-connector-tv-then-bath", learningUse: "productive", semanticFrameId: "a2-frame-connector-tv-then-bath", predicate: "connect-tv-bath", argumentRoles: [], argumentParticleByRole: {} },
@@ -677,7 +712,6 @@ const A2_LEARNING_TARGET_SENSES_M1_M4: readonly LearningTargetSense[] = [
   { id: "a2-sense-disagree-souhaomoimasen", lexemeId: "a2-lexeme-disagree-souhaomoimasen", learningUse: "productive", semanticFrameId: "a2-frame-disagree-souhaomoimasen", predicate: "disagree_souhaomoimasen", argumentRoles: [], argumentParticleByRole: {} },
   { id: "a2-sense-kara-ame-kasa", lexemeId: "a2-lexeme-kara-ame-kasa", learningUse: "productive", semanticFrameId: "a2-frame-kara-ame-kasa", predicate: "kara_ame_kasa", argumentRoles: [], argumentParticleByRole: {} },
   { id: "a2-sense-kara-atama-byouin", lexemeId: "a2-lexeme-kara-atama-byouin", learningUse: "productive", semanticFrameId: "a2-frame-kara-atama-byouin", predicate: "kara_atama_byouin", argumentRoles: [], argumentParticleByRole: {} },
-  { id: "a2-sense-kara-densha-aruku", lexemeId: "a2-lexeme-kara-densha-aruku", learningUse: "productive", semanticFrameId: "a2-frame-kara-densha-aruku", predicate: "kara_densha_aruku", argumentRoles: [], argumentParticleByRole: {} },
   { id: "a2-sense-kara-jikanganai-takushii", lexemeId: "a2-lexeme-kara-jikanganai-takushii", learningUse: "productive", semanticFrameId: "a2-frame-kara-jikanganai-takushii", predicate: "kara_jikanganai_takushii", argumentRoles: [], argumentParticleByRole: {} },
   { id: "a2-sense-kara-nihongo-hanasu", lexemeId: "a2-lexeme-kara-nihongo-hanasu", learningUse: "productive", semanticFrameId: "a2-frame-kara-nihongo-hanasu", predicate: "kara_nihongo_hanasu", argumentRoles: [], argumentParticleByRole: {} },
   { id: "a2-sense-kara-samui-uchi", lexemeId: "a2-lexeme-kara-samui-uchi", learningUse: "productive", semanticFrameId: "a2-frame-kara-samui-uchi", predicate: "kara_samui_uchi", argumentRoles: [], argumentParticleByRole: {} },
@@ -773,6 +807,22 @@ const NEW_VERBS: Readonly<Record<string, NewVerb>> = {
   // "go home", godan-ru) — a distinct word/kanji/conjugation-class sharing
   // the same kana reading, so it needs its own NEW_VERBS key too.
   kaeruChange: { conjClass: "ichidan", stem: [newVerbFrag("かえ", "kae")] },
+  // --- M13 relationships-events (kanji A 母父家族; kanji B 結婚誕送) ---
+  ageru: { conjClass: "ichidan", stem: [newVerbFrag("あげ", "age")] },
+  morau: { conjClass: "godan-u", stem: [newVerbFrag("もら", "mora")] },
+  // くれる (kureru, "give to me/us") is a genuine homophone-free ichidan verb
+  // distinct from あげる/もらう — the third member of the standard あげる/もらう/
+  // くれる give-receive triad, needed here so the recipient can genuinely be
+  // the speaker's own in-group (perspective, per the recipe's own "correct
+  // giver/receiver particles and perspective").
+  kureru: { conjClass: "ichidan", stem: [newVerbFrag("くれ", "kure")] },
+  iwau: { conjClass: "godan-u", stem: [newVerbFrag("いわ", "iwa")] },
+  // --- M14 practical-texts (kanji A 時間分半本; kanji B 料金開閉) ---
+  // 撮る (toru, "to take [a photo]") — a real homophone of とる's own kana
+  // reading with no prior NEW_VERBS entry; final vowel お is always godan
+  // (never the い/え-vowel ichidan/godan ambiguity), so this is godan-ru
+  // exactly like 送る/帰る above.
+  toru: { conjClass: "godan-ru", stem: [newVerbFrag("と", "to")] },
 };
 
 /** One dedicated M5-M8 predicate sense — mirrors the established Task 4
@@ -952,7 +1002,6 @@ const A2_LEARNING_TARGET_SENSES_M9_M12: readonly LearningTargetSense[] = [
   dedicatedSense("a2-sense-price-yasui-ne", "price_yasui_ne"),
   // opinion-toomou transfer (M4 family recurrence, shopping-flavored)
   dedicatedSense("a2-sense-opinion-kaban-ii", "opinion_kaban_ii"),
-  dedicatedSense("a2-sense-opinion-mise-yasui", "opinion_mise_yasui"),
   dedicatedSense("a2-sense-opinion-kutsu-ookii", "opinion_kutsu_ookii"),
   // return-exchange (whole-clause bake)
   dedicatedSense("a2-sense-return-kore", "return_kore"),
@@ -1060,11 +1109,77 @@ const A2_LEARNING_TARGET_SENSES_M9_M12: readonly LearningTargetSense[] = [
   dedicatedSense("a2-sense-cancel-ryoukin", "cancel_ryoukin"),
 ];
 
-/** Every registered A2 learning-target sense — M1-M4's, M5-M8's, and M9-M12's. */
+// ---------------------------------------------------------------------------
+// Phase 3 Task 7 (M13-M14) learning-target senses
+// ---------------------------------------------------------------------------
+
+const A2_LEARNING_TARGET_SENSES_M13_M14: readonly LearningTargetSense[] = [
+  // --- M13 relationships-events ---
+  // family-description (rule-description, i-adjective; reuses the EXISTING
+  // a2-sense-genki/a2-sense-ookii verbatim alongside this one new adjective).
+  { id: "a2-sense-yasashii", lexemeId: "a2-lexeme-yasashii", learningUse: "productive", semanticFrameId: "a2-frame-yasashii", predicate: "kind", argumentRoles: ["topic"], argumentParticleByRole: {}, adjectiveClass: "i" },
+  // give-receive (rule-recipient-object-action; genuinely governed theme —
+  // the gift/received item is a real を-marked argument, so every sense
+  // declares "theme", checked generically by the shared realizer).
+  dedicatedSense("a2-sense-ageru", "give", ["theme"]),
+  dedicatedSense("a2-sense-morau", "receive", ["theme"]),
+  dedicatedSense("a2-sense-kureru", "give_to_speaker", ["theme"]),
+  // events-celebrations (rule-object-action reused; genuinely governed theme).
+  dedicatedSense("a2-sense-iwau", "celebrate", ["theme"]),
+  dedicatedSense("a2-sense-okuru", "send", ["theme"]),
+  // events-celebrations recurrence dedicated senses (ongoing-teiru/
+  // experience-takoto — decoupled from the real registered verb's own
+  // governed frame, exactly like every other dedicated recurrence sense).
+  dedicatedSense("a2-sense-teiru-paatii", "teiru_paatii"),
+  dedicatedSense("a2-sense-exp-kekkonshiki-itta", "exp_kekkonshiki_itta"),
+  // choose-gift (rule-invariant-utterance whole-clause bake)
+  dedicatedSense("a2-sense-choose-hon", "choose_hon"),
+  dedicatedSense("a2-sense-choose-kasa", "choose_kasa"),
+  dedicatedSense("a2-sense-choose-hana", "choose_hana"),
+  dedicatedSense("a2-sense-choose-tokei", "choose_tokei"),
+  dedicatedSense("a2-sense-choose-kaban", "choose_kaban"),
+  dedicatedSense("a2-sense-choose-kutsu", "choose_kutsu"),
+  dedicatedSense("a2-sense-choose-nani-ga-ii", "choose_nani_ga_ii"),
+  dedicatedSense("a2-sense-choose-ikaga", "choose_ikaga"),
+  // reason-kara true transfer for choose-gift (M4 family recurrence)
+  dedicatedSense("a2-sense-kara-yasui-kono-hon", "kara_yasui_kono_hon"),
+
+  // --- M14 practical-texts ---
+  // read-schedule (rule-invariant-utterance whole-clause bake)
+  dedicatedSense("a2-sense-sched-tsugi-densha", "sched_tsugi_densha"),
+  dedicatedSense("a2-sense-sched-honsuu", "sched_honsuu"),
+  dedicatedSense("a2-sense-sched-jugyou-han", "sched_jugyou_han"),
+  dedicatedSense("a2-sense-sched-basu-jikan", "sched_basu_jikan"),
+  // read-notice (rule-invariant-utterance whole-clause bake)
+  dedicatedSense("a2-sense-notice-aku-9", "notice_aku_9"),
+  dedicatedSense("a2-sense-notice-shimaru-6", "notice_shimaru_6"),
+  dedicatedSense("a2-sense-notice-ryoukin-500", "notice_ryoukin_500"),
+  dedicatedSense("a2-sense-notice-kodomo-muryou", "notice_kodomo_muryou"),
+  // prohibition-tewaikenai true TRANSFER for read-notice (M6 family recurrence)
+  dedicatedSense("a2-sense-tewaikenai-shashin", "tewaikenai_shashin"),
+  // read-reply-message (rule-invariant-utterance whole-clause bake)
+  dedicatedSense("a2-sense-msg-eiga-sasoi", "msg_eiga_sasoi"),
+  dedicatedSense("a2-sense-msg-zannen-kotowaru", "msg_zannen_kotowaru"),
+  dedicatedSense("a2-sense-msg-wakatta-aimashou", "msg_wakatta_aimashou"),
+  // opinion-toomou/connectors true recurrence for read-reply-message (M4
+  // family recurrence, both)
+  dedicatedSense("a2-sense-opinion-eiga-omoshiroi", "opinion_eiga_omoshiroi"),
+  dedicatedSense("a2-sense-connector-msg-ame-dekakeru", "connector_msg_ame_dekakeru"),
+  // fill-form (rule-invariant-utterance whole-clause bake)
+  dedicatedSense("a2-sense-form-namae", "form_namae"),
+  dedicatedSense("a2-sense-form-denwabangou", "form_denwabangou"),
+  dedicatedSense("a2-sense-form-seinengappi", "form_seinengappi"),
+  dedicatedSense("a2-sense-form-jikan", "form_jikan"),
+  dedicatedSense("a2-sense-form-ninzuu", "form_ninzuu"),
+  dedicatedSense("a2-sense-form-shusseki-youbi", "form_shusseki_youbi"),
+];
+
+/** Every registered A2 learning-target sense — M1-M4's, M5-M8's, M9-M12's, and M13-M14's. */
 export const a2LearningTargetSenses: readonly LearningTargetSense[] = deepFreeze([
   ...A2_LEARNING_TARGET_SENSES_M1_M4,
   ...A2_LEARNING_TARGET_SENSES_M5_M8,
   ...A2_LEARNING_TARGET_SENSES_M9_M12,
+  ...A2_LEARNING_TARGET_SENSES_M13_M14,
 ]);
 
 // ---------------------------------------------------------------------------
@@ -1268,21 +1383,6 @@ const a2AuthoredValuesM1: readonly SemanticValue[] = [
       punctFrag("、", ","),
       frag("いえに", "ie ni"),
       frag("かえりました", "kaerimashita"),
-      punctFrag("。", "."),
-    ],
-  },
-  {
-    id: "a2-value-connector-tomodachi-sorekara-taberu",
-    kind: "predicate-sense",
-    senseId: "a2-sense-connector-friend-then-eat",
-    tokenFragments: [
-      frag("ともだちに", "tomodachi ni"),
-      frag("あいました", "aimashita"),
-      punctFrag("。", "."),
-      frag("それから", "sorekara"),
-      punctFrag("、", ","),
-      frag("いっしょに", "issho ni"),
-      frag("たべました", "tabemashita"),
       punctFrag("。", "."),
     ],
   },
@@ -2463,12 +2563,6 @@ const a2AuthoredValuesM4: readonly SemanticValue[] = [
     tokenFragments: [frag("やすみだから", "yasumi dakara"), punctFrag("、", ","), frag("ともだちと", "tomodachi to"), frag("あそびます", "asobimasu")],
   },
   {
-    id: "a2-value-kara-densha-aruku",
-    kind: "predicate-sense",
-    senseId: "a2-sense-kara-densha-aruku",
-    tokenFragments: [frag("でんしゃが", "densha ga"), frag("こんでいる", "konde iru"), particleFrag("から", "kara"), punctFrag("、", ","), frag("あるいて", "aruite"), frag("いきます", "ikimasu")],
-  },
-  {
     id: "a2-value-kara-shukudai-isogashii",
     kind: "predicate-sense",
     senseId: "a2-sense-kara-shukudai-isogashii",
@@ -2826,7 +2920,6 @@ const a2AuthoredValuesM9: readonly SemanticValue[] = [
   // --- opinion-toomou transfer (M4 family recurrence, shopping-flavored;
   // SR-3 transfers) ---
   { id: "a2-value-opinion-kaban-ii", kind: "predicate-sense", senseId: "a2-sense-opinion-kaban-ii", tokenFragments: [frag("この", "kono"), frag("かばんの", "kaban no"), frag("ほうが", "hou ga"), frag("いい", "ii"), particleFrag("と", "to"), frag("おもいます", "omoimasu")] },
-  { id: "a2-value-opinion-mise-yasui", kind: "predicate-sense", senseId: "a2-sense-opinion-mise-yasui", tokenFragments: [frag("この", "kono"), frag("みせの", "mise no"), frag("ほうが", "hou ga"), frag("やすい", "yasui"), particleFrag("と", "to"), frag("おもいます", "omoimasu")] },
   { id: "a2-value-opinion-kutsu-ookii", kind: "predicate-sense", senseId: "a2-sense-opinion-kutsu-ookii", tokenFragments: [frag("その", "sono"), frag("くつの", "kutsu no"), frag("ほうが", "hou ga"), frag("おおきい", "ookii"), particleFrag("と", "to"), frag("おもいます", "omoimasu")] },
 
   // --- return-exchange (whole-clause bake; SR-4) ---
@@ -2991,6 +3084,108 @@ const a2AuthoredValuesM12: readonly SemanticValue[] = [
   { id: "a2-value-cancel-ryoukin", kind: "predicate-sense", senseId: "a2-sense-cancel-ryoukin", tokenFragments: [frag("キャンセルりょうきんは", "kyanseru ryoukin wa"), frag("いくら", "ikura"), frag("です", "desu"), frag("か", "ka", "particle")] },
 ];
 
+// ---------------------------------------------------------------------------
+// Phase 3 Task 7 — Module 13: relationships-events (family/friend
+// description + existence, give-receive, events-celebrations, choose-gift)
+// ---------------------------------------------------------------------------
+
+const a2AuthoredValuesM13: readonly SemanticValue[] = [
+  // --- family-relations: family-member "subject" values, directly filling
+  // the "subject" slot (never through a tracked discourse referent — no new
+  // Referent/PersonRole is authored; mirrors a2-family-describe-facility's
+  // own established "direct subject value" shape for a non-discourse-tracked
+  // topic/existent) ---
+  { id: "a2-value-family-haha-subject", kind: "referent", animacy: "animate", tokenFragments: [frag("はは", "haha")] },
+  { id: "a2-value-family-chichi-subject", kind: "referent", animacy: "animate", tokenFragments: [frag("ちち", "chichi")] },
+  { id: "a2-value-family-ane-subject", kind: "referent", animacy: "animate", tokenFragments: [frag("あね", "ane")] },
+  { id: "a2-value-family-otouto-subject", kind: "referent", animacy: "animate", tokenFragments: [frag("おとうと", "otouto")] },
+  { id: "a2-value-family-imouto-subject", kind: "referent", animacy: "animate", tokenFragments: [frag("いもうと", "imouto")] },
+  { id: "a2-value-family-ani-subject", kind: "referent", animacy: "animate", tokenFragments: [frag("あに", "ani")] },
+  { id: "a2-value-family-kyoudai-subject", kind: "referent", animacy: "animate", tokenFragments: [frag("きょうだい", "kyoudai")] },
+  { id: "a2-value-family-kodomo-subject", kind: "referent", animacy: "animate", tokenFragments: [frag("こども", "kodomo")] },
+  // family-description predicate (rule-description, i-adjective stem — the
+  // ONE genuinely new adjective; genki/ookii are reused verbatim from M9/M10).
+  { id: "a2-value-yasashii-stem", kind: "predicate-sense", senseId: "a2-sense-yasashii", tokenFragments: [frag("やさし", "yasashi")] },
+
+  // --- give-receive (rule-recipient-object-action; a2-cando-give-receive) ---
+  { id: "a2-value-gift-purezento", kind: "object", tokenFragments: [frag("プレゼント", "purezento")] },
+  { id: "a2-value-gift-hana", kind: "object", tokenFragments: [frag("はな", "hana")] },
+  { id: "a2-value-gift-hon", kind: "object", tokenFragments: [frag("ほん", "hon")] },
+  { id: "a2-value-gift-okashi", kind: "object", tokenFragments: [frag("おかし", "okashi")] },
+  { id: "a2-value-give-ageru", kind: "predicate-sense", senseId: "a2-sense-ageru", tokenFragments: newVerbMasuStemKana(NEW_VERBS.ageru) },
+  { id: "a2-value-give-morau", kind: "predicate-sense", senseId: "a2-sense-morau", tokenFragments: newVerbMasuStemKana(NEW_VERBS.morau) },
+  { id: "a2-value-give-kureru", kind: "predicate-sense", senseId: "a2-sense-kureru", tokenFragments: newVerbMasuStemKana(NEW_VERBS.kureru) },
+
+  // --- events-celebrations (rule-object-action REUSED; a2-cando-events-celebrations) ---
+  { id: "a2-value-obj-tanjoubi", kind: "object", tokenFragments: [frag("たんじょうび", "tanjoubi")] },
+  { id: "a2-value-obj-kekkonshiki", kind: "object", tokenFragments: [frag("けっこんしき", "kekkonshiki")] },
+  // a2-value-obj-tegami ("letter") already exists (M11 ask-colleague) —
+  // reused verbatim below, never redeclared.
+  { id: "a2-value-obj-paatii", kind: "object", tokenFragments: [frag("パーティー", "paatii")] },
+  { id: "a2-value-events-iwaimasu", kind: "predicate-sense", senseId: "a2-sense-iwau", tokenFragments: newVerbMasuStemKana(NEW_VERBS.iwau) },
+  { id: "a2-value-events-okurimasu", kind: "predicate-sense", senseId: "a2-sense-okuru", tokenFragments: newVerbMasuStemKana(NEW_VERBS.okuru) },
+  // ongoing-teiru true recurrence (M5 family, events-flavored: "having a
+  // party" via the registered する verb's own ている composition)
+  { id: "a2-value-teiru-paatii-shiteimasu", kind: "predicate-sense", senseId: "a2-sense-teiru-paatii", tokenFragments: suffixKana("ongoing-teiru", "a2-sense-suru") },
+  // experience-takoto true recurrence (M3 family, events-flavored)
+  { id: "a2-value-exp-kekkonshiki-itta", kind: "predicate-sense", senseId: "a2-sense-exp-kekkonshiki-itta", tokenFragments: [frag("けっこんしきに", "kekkonshiki ni"), ...experienceTakotoKana("a2-sense-iku")] },
+
+  // --- choose-gift (rule-invariant-utterance whole-clause bake;
+  // a2-cando-choose-gift) ---
+  { id: "a2-value-choose-hon", kind: "predicate-sense", senseId: "a2-sense-choose-hon", tokenFragments: [frag("このほんに", "kono hon ni"), frag("します", "shimasu")] },
+  { id: "a2-value-choose-kasa", kind: "predicate-sense", senseId: "a2-sense-choose-kasa", tokenFragments: [frag("このかさに", "kono kasa ni"), frag("します", "shimasu")] },
+  { id: "a2-value-choose-hana", kind: "predicate-sense", senseId: "a2-sense-choose-hana", tokenFragments: [frag("このはなに", "kono hana ni"), frag("します", "shimasu")] },
+  { id: "a2-value-choose-tokei", kind: "predicate-sense", senseId: "a2-sense-choose-tokei", tokenFragments: [frag("このとけいに", "kono tokei ni"), frag("します", "shimasu")] },
+  { id: "a2-value-choose-kaban", kind: "predicate-sense", senseId: "a2-sense-choose-kaban", tokenFragments: [frag("このかばんに", "kono kaban ni"), frag("します", "shimasu")] },
+  { id: "a2-value-choose-kutsu", kind: "predicate-sense", senseId: "a2-sense-choose-kutsu", tokenFragments: [frag("このくつに", "kono kutsu ni"), frag("します", "shimasu")] },
+  { id: "a2-value-choose-nani-ga-ii", kind: "predicate-sense", senseId: "a2-sense-choose-nani-ga-ii", tokenFragments: [frag("プレゼントは", "purezento wa"), frag("なにが", "nani ga"), frag("いい", "ii"), frag("です", "desu"), frag("か", "ka", "particle")] },
+  { id: "a2-value-choose-ikaga", kind: "predicate-sense", senseId: "a2-sense-choose-ikaga", tokenFragments: [frag("これは", "kore wa"), frag("いかが", "ikaga"), frag("です", "desu"), frag("か", "ka", "particle")] },
+  // reason-kara true transfer (M4 family recurrence, gift-flavored)
+  { id: "a2-value-kara-yasui-kono-hon", kind: "predicate-sense", senseId: "a2-sense-kara-yasui-kono-hon", tokenFragments: [frag("このほんは", "kono hon wa"), frag("やすい", "yasui"), particleFrag("から", "kara"), punctFrag("、", ","), frag("これに", "kore ni"), frag("します", "shimasu")] },
+];
+
+// ---------------------------------------------------------------------------
+// Phase 3 Task 7 — Module 14: practical-texts (read-schedule, read-notice,
+// read-reply-message, fill-form)
+// ---------------------------------------------------------------------------
+
+const a2AuthoredValuesM14: readonly SemanticValue[] = [
+  // --- read-schedule (rule-invariant-utterance whole-clause bake;
+  // a2-cando-read-schedule) ---
+  { id: "a2-value-sched-tsugi-densha", kind: "predicate-sense", senseId: "a2-sense-sched-tsugi-densha", tokenFragments: [frag("つぎのでんしゃは", "tsugi no densha wa"), frag("くじ", "kuji"), frag("じゅうごふんです", "juugofun desu")] },
+  { id: "a2-value-sched-honsuu", kind: "predicate-sense", senseId: "a2-sense-sched-honsuu", tokenFragments: [frag("でんしゃは", "densha wa"), frag("いちじかんに", "ichijikan ni"), frag("よんほんあります", "yonhon arimasu")] },
+  { id: "a2-value-sched-jugyou-han", kind: "predicate-sense", senseId: "a2-sense-sched-jugyou-han", tokenFragments: [frag("じゅぎょうは", "jugyou wa"), frag("さんじはんから", "sanji han kara"), frag("です", "desu")] },
+  { id: "a2-value-sched-basu-jikan", kind: "predicate-sense", senseId: "a2-sense-sched-basu-jikan", tokenFragments: [frag("バスは", "basu wa"), frag("じゅうじに", "juuji ni"), frag("でます", "demasu")] },
+
+  // --- read-notice (rule-invariant-utterance whole-clause bake;
+  // a2-cando-read-notice) ---
+  { id: "a2-value-notice-aku-9", kind: "predicate-sense", senseId: "a2-sense-notice-aku-9", tokenFragments: [frag("このみせは", "kono mise wa"), frag("ごぜんくじに", "gozen kuji ni"), frag("あきます", "akimasu")] },
+  { id: "a2-value-notice-shimaru-6", kind: "predicate-sense", senseId: "a2-sense-notice-shimaru-6", tokenFragments: [frag("ごご", "gogo"), frag("ろくじに", "rokuji ni"), frag("しまります", "shimarimasu")] },
+  { id: "a2-value-notice-ryoukin-500", kind: "predicate-sense", senseId: "a2-sense-notice-ryoukin-500", tokenFragments: [frag("にゅうじょうりょうきんは", "nyuujouryoukin wa"), frag("ごひゃくえんです", "gohyaku en desu")] },
+  { id: "a2-value-notice-kodomo-muryou", kind: "predicate-sense", senseId: "a2-sense-notice-kodomo-muryou", tokenFragments: [frag("こどもは", "kodomo wa"), frag("むりょうです", "muryou desu")] },
+  // prohibition-tewaikenai true TRANSFER (M6 family recurrence, notice-flavored)
+  { id: "a2-value-obj-shashin", kind: "object", tokenFragments: [frag("しゃしん", "shashin")] },
+  { id: "a2-value-tewaikenai-shashin", kind: "predicate-sense", senseId: "a2-sense-tewaikenai-shashin", tokenFragments: newVerbSuffixKana("prohibition-tewaikenai", NEW_VERBS.toru) },
+
+  // --- read-reply-message (rule-invariant-utterance whole-clause bake;
+  // a2-cando-read-reply-message) ---
+  { id: "a2-value-msg-eiga-sasoi", kind: "predicate-sense", senseId: "a2-sense-msg-eiga-sasoi", tokenFragments: [frag("どようび", "doyoubi"), punctFrag("、", ","), frag("いっしょに", "issho ni"), frag("えいがを", "eiga o"), frag("みません", "mimasen"), frag("か", "ka", "particle")] },
+  { id: "a2-value-msg-zannen-kotowaru", kind: "predicate-sense", senseId: "a2-sense-msg-zannen-kotowaru", tokenFragments: [frag("ざんねんです", "zannen desu"), particleFrag("が", "ga"), punctFrag("、", ","), frag("どようびは", "doyoubi wa"), frag("ちょっと", "chotto")] },
+  { id: "a2-value-msg-wakatta-aimashou", kind: "predicate-sense", senseId: "a2-sense-msg-wakatta-aimashou", tokenFragments: [frag("わかりました", "wakarimashita"), punctFrag("、", ","), frag("どようびに", "doyoubi ni"), frag("あいましょう", "aimashou")] },
+  // opinion-toomou/connectors true recurrence (M4 families, message-flavored)
+  { id: "a2-value-opinion-eiga-omoshiroi", kind: "predicate-sense", senseId: "a2-sense-opinion-eiga-omoshiroi", tokenFragments: [frag("このえいがは", "kono eiga wa"), frag("おもしろい", "omoshiroi"), particleFrag("と", "to"), frag("おもいます", "omoimasu")] },
+  { id: "a2-value-connector-msg-ame-dekakeru", kind: "predicate-sense", senseId: "a2-sense-connector-msg-ame-dekakeru", tokenFragments: [frag("あめです", "ame desu"), particleFrag("が", "ga"), punctFrag("、", ","), frag("でかけます", "dekakemasu")] },
+
+  // --- fill-form (rule-invariant-utterance whole-clause bake;
+  // a2-cando-fill-form) ---
+  { id: "a2-value-form-namae", kind: "predicate-sense", senseId: "a2-sense-form-namae", tokenFragments: [frag("なまえは", "namae wa"), frag("たなかです", "tanaka desu")] },
+  { id: "a2-value-form-denwabangou", kind: "predicate-sense", senseId: "a2-sense-form-denwabangou", tokenFragments: [frag("でんわばんごうは", "denwabangou wa"), frag("ぜろきゅうぜろです", "zero kyuu zero desu")] },
+  { id: "a2-value-form-seinengappi", kind: "predicate-sense", senseId: "a2-sense-form-seinengappi", tokenFragments: [frag("たんじょうびは", "tanjoubi wa"), frag("さんがつ", "sangatsu"), frag("いつかです", "itsuka desu")] },
+  { id: "a2-value-form-jikan", kind: "predicate-sense", senseId: "a2-sense-form-jikan", tokenFragments: [frag("じかんは", "jikan wa"), frag("ごご", "gogo"), frag("にじはんです", "niji han desu")] },
+  { id: "a2-value-form-ninzuu", kind: "predicate-sense", senseId: "a2-sense-form-ninzuu", tokenFragments: [frag("にんずうは", "ninzuu wa"), frag("ふたりです", "futari desu")] },
+  { id: "a2-value-form-shusseki-youbi", kind: "predicate-sense", senseId: "a2-sense-form-shusseki-youbi", tokenFragments: [frag("しゅっせきびは", "shussekibi wa"), frag("どようびです", "doyoubi desu")] },
+];
+
 export const a2SemanticValues: readonly SemanticValue[] = deepFreeze([
   ...a2AuthoredValuesM1,
   ...a2AuthoredValuesM2,
@@ -3004,6 +3199,8 @@ export const a2SemanticValues: readonly SemanticValue[] = deepFreeze([
   ...a2AuthoredValuesM10,
   ...a2AuthoredValuesM11,
   ...a2AuthoredValuesM12,
+  ...a2AuthoredValuesM13,
+  ...a2AuthoredValuesM14,
 ]);
 
 // ---------------------------------------------------------------------------
@@ -3098,9 +3295,15 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
 
   // --- M2 plans-invitations ---
   {
+    // Also satisfies a2-synthesis-1's primary Can-do (scenario-weekend-
+    // outing): the family's own real intentions-yotei sentences already
+    // realize a genuine weekend-outing plan statement — reused verbatim,
+    // never a new family (mirrors the established precedent of
+    // a2-family-ongoing-teiru/a2-family-narrate-order also naming a later
+    // module's own Can-do they genuinely serve).
     id: "a2-family-plan-yotei",
     level: "a2",
-    canDoIds: ["a2-cando-intentions-plans"],
+    canDoIds: ["a2-cando-intentions-plans", "a2-cando-scenario-weekend-outing"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -3160,9 +3363,13 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
 
   // --- M3 experiences-narratives ---
   {
+    // Also satisfies a2-synthesis-4's primary Can-do (scenario-trip-
+    // recount): the family's own real たことがあります sentences already
+    // realize a genuine narrated trip recount — reused verbatim, never a
+    // new family (same established precedent as a2-family-plan-yotei above).
     id: "a2-family-experience-takoto",
     level: "a2",
-    canDoIds: ["a2-cando-experience-takoto", "a2-cando-ask-experience"],
+    canDoIds: ["a2-cando-experience-takoto", "a2-cando-ask-experience", "a2-cando-scenario-trip-recount"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -3198,9 +3405,13 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
 
   // --- M4 reasons-opinions ---
   {
+    // Also satisfies a2-synthesis-3's primary Can-do (scenario-health-
+    // absence): the family's own real から reason sentences already realize
+    // a genuine health-absence explanation — reused verbatim, never a new
+    // family (same established precedent as a2-family-plan-yotei above).
     id: "a2-family-reason-kara",
     level: "a2",
-    canDoIds: ["a2-cando-give-reasons", "a2-cando-reason-kara"],
+    canDoIds: ["a2-cando-give-reasons", "a2-cando-reason-kara", "a2-cando-scenario-health-absence"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -3418,9 +3629,16 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     requiredConceptIds: [A2_CONCEPT_ASK_FOR_HELP],
   },
   {
+    // Also satisfies relationships-events-1's primary Can-do
+    // (family-relations): the family's own real existence shape ("X ga
+    // imasu") is exactly how a sibling/child's existence is naturally
+    // stated — reused verbatim with a fresh, non-facility subject value
+    // (きょうだい/こども), never a new family (mirrors the established
+    // precedent of a2-family-ongoing-teiru/a2-family-narrate-order also
+    // naming a later module's own Can-do they genuinely serve).
     id: "a2-family-describe-facility",
     level: "a2",
-    canDoIds: ["a2-cando-explain-facility"],
+    canDoIds: ["a2-cando-explain-facility", "a2-cando-family-relations"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -3465,10 +3683,14 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     // discourse referents, so every variant keeps subjectRealization
     // "omitted" and speaker-role diversity comes only from the discourse
     // `speakerRole` override (who is saying this), never a grammatical
-    // subject.
+    // subject. Also satisfies a2-synthesis-2's primary Can-do (scenario-
+    // service-shopping): the family's own real comparison sentences already
+    // realize a genuine shopping-decision comparison — reused verbatim,
+    // never a new family (same established precedent as a2-family-plan-
+    // yotei above).
     id: "a2-family-comparison-favor",
     level: "a2",
-    canDoIds: ["a2-cando-compare"],
+    canDoIds: ["a2-cando-compare", "a2-cando-scenario-service-shopping"],
     slotSchema: [
       { id: "favored", axis: "object", valueKind: "object", optional: false },
       { id: "standard", axis: "object", valueKind: "object", optional: false },
@@ -3739,6 +3961,128 @@ export const a2SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     realizationRuleId: "rule-invariant-utterance",
     requiredConceptIds: [A2_CONCEPT_CHANGE_CANCEL],
   },
+
+  // --- Phase 3 Task 7 (M13-M14) ---
+  // --- M13 relationships-events ---
+  {
+    // relationships-events-1: natural family/friend description ("X wa
+    // ADJ desu") — a real "referent"-kind subject slot filled directly by a
+    // family-member value (never a tracked discourse referent), exactly
+    // like a2-family-describe-facility's own established shape.
+    id: "a2-family-family-description",
+    level: "a2",
+    canDoIds: ["a2-cando-family-relations"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-description",
+    requiredConceptIds: [A2_CONCEPT_FAMILY_RELATIONS],
+  },
+  {
+    // relationships-events-2: あげる/もらう/くれる give-receive, genuinely
+    // compositional across independently-varying recipient/gift pairs via
+    // the new rule-recipient-object-action rule (Phase 3 Task 7).
+    id: "a2-family-give-receive",
+    level: "a2",
+    canDoIds: ["a2-cando-give-receive"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "recipient", axis: "object", valueKind: "referent", optional: false },
+      { id: "object", axis: "object", valueKind: "object", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "object", "predicate-verb", "context"],
+    realizationRuleId: "rule-recipient-object-action",
+    requiredConceptIds: [A2_CONCEPT_GIVE_RECEIVE],
+  },
+  {
+    // relationships-events-3: celebrating an event (object-compositional —
+    // reuses the EXISTING rule-object-action rule verbatim).
+    id: "a2-family-celebrate-event",
+    level: "a2",
+    canDoIds: ["a2-cando-events-celebrations"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "object", axis: "object", valueKind: "object", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "object", "predicate-verb", "context"],
+    realizationRuleId: "rule-object-action",
+    requiredConceptIds: [A2_CONCEPT_EVENTS_CELEBRATIONS],
+  },
+  {
+    // relationships-events-4: deciding on a gift (whole-clause bake).
+    id: "a2-family-choose-gift",
+    level: "a2",
+    canDoIds: ["a2-cando-choose-gift"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_CHOOSE_GIFT],
+  },
+
+  // --- M14 practical-texts ---
+  {
+    // practical-texts-1: reading an actual timetable/schedule text
+    // (whole-clause bake).
+    id: "a2-family-read-schedule",
+    level: "a2",
+    canDoIds: ["a2-cando-read-schedule"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_READ_SCHEDULE],
+  },
+  {
+    // practical-texts-2: reading an actual notice/sign text (whole-clause
+    // bake — hours/fees/open-closed).
+    id: "a2-family-read-notice",
+    level: "a2",
+    canDoIds: ["a2-cando-read-notice"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_READ_NOTICE],
+  },
+  {
+    // practical-texts-3: reading an actual short message/invitation/reply
+    // (whole-clause bake).
+    id: "a2-family-read-reply-message",
+    level: "a2",
+    canDoIds: ["a2-cando-read-reply-message"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_READ_REPLY_MESSAGE],
+  },
+  {
+    // practical-texts-4: filling a simple form with times/dates/numbers
+    // (whole-clause bake).
+    id: "a2-family-fill-form",
+    level: "a2",
+    canDoIds: ["a2-cando-fill-form"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: true },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "context"],
+    realizationRuleId: "rule-invariant-utterance",
+    requiredConceptIds: [A2_CONCEPT_FILL_FORM],
+  },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -3777,6 +4121,8 @@ export const a2SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a2-context-health-label": "Talking about health",
     "a2-context-work-study-label": "At work or school",
     "a2-context-travel-label": "Traveling",
+    "a2-context-relationships-label": "Talking about family, friends, and events",
+    "a2-context-notices-label": "Reading practical texts and notices",
   },
   it: {
     "a2-role-learner-label": "Io (lo studente)",
@@ -3809,6 +4155,8 @@ export const a2SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a2-context-health-label": "Parlando di salute",
     "a2-context-work-study-label": "Al lavoro o a scuola",
     "a2-context-travel-label": "In viaggio",
+    "a2-context-relationships-label": "Parlando di famiglia, amici ed eventi",
+    "a2-context-notices-label": "Leggendo testi pratici e avvisi",
   },
 });
 
@@ -3876,6 +4224,14 @@ const A2_CONTEXT_SCENARIO: Readonly<Record<string, Bilingual>> = deepFreeze({
   "a2-context-travel": {
     en: "You are traveling, making and managing reservations.",
     it: "Sei in viaggio, stai facendo e gestendo prenotazioni.",
+  },
+  "a2-context-relationships": {
+    en: "You are talking about your family, friends, and shared events.",
+    it: "Stai parlando della tua famiglia, dei tuoi amici e di eventi condivisi.",
+  },
+  "a2-context-notices": {
+    en: "You are reading a practical text — a schedule, a notice, a message, or a form.",
+    it: "Stai leggendo un testo pratico — un orario, un avviso, un messaggio o un modulo.",
   },
 });
 

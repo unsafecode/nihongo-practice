@@ -1735,6 +1735,142 @@ describe("Task 3 realizer rules: schedule/direction/route/transport (M4)", () =>
   });
 });
 
+// ---------------------------------------------------------------------------
+// Phase 3 Task 7 (A2 M13 relationships-events, give-receive): a genuinely
+// compositional あげる/もらう construction needs TWO independently-varying
+// content slots after the topic — a に-marked recipient/source and a を-marked
+// gift/theme object, in that natural word order ("そらにほんをあげます") —
+// which no existing rule shape provides (`rule-recipient-action` has only one
+// content slot; `rule-transport-action`/`rule-route-action` both pair a
+// location-kind slot with a different fixed particle, never object+を).
+// `rule-recipient-object-action` is the minimal, purely additive rule that
+// closes this gap: a real "referent"-kind `recipient` slot (never a
+// discourse-tracked subject — see `realizeVariant`'s own `subject`-only
+// special-casing) marked に, followed by a governed-theme `object` slot marked
+// を, then the ordinary verb ending table. No existing family references this
+// id, so no A1/A2 fixture behavior changes.
+// ---------------------------------------------------------------------------
+
+describe("Phase 3 Task 7 realizer rule: rule-recipient-object-action (A2 M13 give-receive)", () => {
+  const giveSense: LearningTargetSense = {
+    id: "test-sense-give-m13",
+    lexemeId: "test-lexeme-ageru-m13",
+    learningUse: "productive",
+    semanticFrameId: "test-frame-give-m13",
+    predicate: "give" as LearningTargetSense["predicate"],
+    argumentRoles: ["theme"],
+    argumentParticleByRole: {},
+  };
+  const giveSenseNoTheme: LearningTargetSense = {
+    ...giveSense,
+    id: "test-sense-give-m13-no-theme",
+    argumentRoles: [],
+  };
+  const recipientValue: SemanticValue = {
+    id: "test-value-recipient-m13",
+    kind: "referent",
+    animacy: "animate",
+    tokenFragments: [{ jp: "そら", romaji: "sora", kind: "lexical", boundaryBefore: "attach" }],
+  };
+  const giftValue: SemanticValue = {
+    id: "test-value-gift-m13",
+    kind: "object",
+    tokenFragments: [{ jp: "ほん", romaji: "hon", kind: "lexical", boundaryBefore: "attach" }],
+  };
+  const giveValue: SemanticValue = {
+    id: "test-value-give-m13",
+    kind: "predicate-sense",
+    senseId: giveSense.id,
+    tokenFragments: [{ jp: "あげ", romaji: "age", kind: "lexical", boundaryBefore: "attach" }],
+  };
+  const giveValueNoTheme: SemanticValue = {
+    ...giveValue,
+    id: "test-value-give-m13-no-theme",
+    senseId: giveSenseNoTheme.id,
+  };
+
+  const baseDiscourseM13 = {
+    speakerRoleId: "fixture-role-learner",
+    addresseeRoleId: null,
+    subjectReferentId: null,
+    subjectRealization: "omitted" as const,
+    scenarioNoteCopyId: "test-scenario-m13",
+  };
+
+  function localCatalogsWith(
+    extraValues: readonly SemanticValue[],
+    extraSenses: readonly LearningTargetSense[],
+  ): RealizeVariantCatalogs {
+    return {
+      ...catalogs,
+      semanticValues: [...catalogs.semanticValues, ...extraValues],
+      learningTargetSenses: [...catalogs.learningTargetSenses, ...extraSenses],
+    };
+  }
+
+  const giveReceiveFamily: SentenceFamily = {
+    id: "test-family-give-receive-m13" as SentenceFamily["id"],
+    level: "a2",
+    canDoIds: [],
+    slotSchema: [
+      { id: "recipient", axis: "object", valueKind: "referent", optional: false },
+      { id: "object", axis: "object", valueKind: "object", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["object", "predicate-verb"],
+    realizationRuleId: "rule-recipient-object-action",
+    requiredConceptIds: [],
+  };
+
+  it("realizes そらにほんをあげます / sora ni hon o agemasu (recipient に precedes gift を)", () => {
+    const variant: SentenceVariant = {
+      id: "test-variant-give-m13",
+      sentenceFamilyId: giveReceiveFamily.id,
+      discourse: baseDiscourseM13,
+      contextId: "fixture-a1-context-language-class",
+      slotValues: { recipient: recipientValue.id, object: giftValue.id, predicate: giveValue.id },
+      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      pedagogicalUse: "model",
+    };
+    const result = realizeVariant(
+      giveReceiveFamily,
+      variant,
+      localCatalogsWith([recipientValue, giftValue, giveValue], [giveSense]),
+      { availableConceptIds: [] },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.sentence.canonicalJapanese).toBe("そらにほんをあげます");
+    const romaji = formatRomaji(result.sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) return;
+    expect(romaji.text).toBe("sora ni hon o agemasu");
+  });
+
+  it("rejects a sense whose argumentRoles omit `theme` (the object slot is a governed theme marked を)", () => {
+    const variant: SentenceVariant = {
+      id: "test-variant-give-m13-invalid",
+      sentenceFamilyId: giveReceiveFamily.id,
+      discourse: baseDiscourseM13,
+      contextId: "fixture-a1-context-language-class",
+      slotValues: { recipient: recipientValue.id, object: giftValue.id, predicate: giveValueNoTheme.id },
+      form: { polarity: "affirmative", tense: "present", formality: "polite" },
+      pedagogicalUse: "model",
+    };
+    const result = realizeVariant(
+      giveReceiveFamily,
+      variant,
+      localCatalogsWith([recipientValue, giftValue, giveValueNoTheme], [giveSenseNoTheme]),
+      { availableConceptIds: [] },
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ code: "invalid-argument-structure", referenceId: "theme" }),
+    );
+  });
+});
+
 /**
  * Phase 3 Task 4: the additive `"invariant"` predicateKind. A2's grammar
  * spiral needs plain-form, suffix-composed (たことがあります/つもりです/よてい
