@@ -551,7 +551,7 @@ describe("a2SemanticCatalog — M5-M8 end-to-end realization (Phase 3 Task 5)", 
   // "a2-value-problem-daremo-konai"'s own "ten minutes" fragment spelled as
   // the malformed じゅうぶんぷん (which does not even correspond to its own
   // "juppun" romaji) instead of the correct small-っ geminate じゅっぷん.
-  it("realizes a2-value-problem-daremo-konai through a2-family-recount-experience to genuine じゅっぷんまちましただれもきません with romaji \"juppun\", never じゅうぶんぷん/\"juubunpun\"", () => {
+  it("realizes a2-value-problem-daremo-konai through a2-family-recount-experience to genuine じゅっぷんまちましたがだれもきません with romaji \"juppun\", never じゅうぶんぷん/\"juubunpun\"", () => {
     const sentence = realize(
       "a2-family-recount-experience",
       { predicate: "a2-value-problem-daremo-konai" },
