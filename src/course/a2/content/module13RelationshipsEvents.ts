@@ -224,12 +224,15 @@ const lesson4: A2BuiltLesson = buildA2InstructionalLesson({
     line("relationships-events-4-m8", "a2-family-reason-kara", "a2-value-kara-yasui-kono-hon", RELATIONSHIPS, L("This book is cheap, so I'll go with this one.", "Questo libro è economico, quindi sceglierò questo."), { speakerRole: "a2-role-teacher" }),
     line("relationships-events-4-m9", "a2-family-choose-gift", "a2-value-choose-ikaga", OUTING, L("How about this one?", "Che ne dici di questo?"), { speakerRole: "a2-role-learner", interrogative: true }),
   ],
-  // t1 is m8's own reason-kara value transferred with a fresh Sora subject
-  // wrapper (the grammar spiral's real reason-kara TRANSFER evidence);
-  // t2-t5 recombine an already-modeled choose-gift predicate with a fresh
-  // explicit subject not used above, so all 5 transfers stay visibly novel.
+  // t1 is the reason-kara TRANSFER: it applies the reason-kara construction
+  // to a fresh decision by REUSING the already-introduced M9 reason-kara
+  // value `a2-value-kara-chiisai-kaesu` (subordinate clause marked with ga,
+  // so it never double-topics), realized subject-less; t2-t5 recombine an
+  // already-modeled choose-gift predicate with a fresh explicit subject not
+  // used above (each choose value marks its item with ni, so the person
+  // stays the single topic), so all 5 transfers stay visibly novel.
   transfers: [
-    line("relationships-events-4-t1", "a2-family-reason-kara", "a2-value-kara-yasui-kono-hon", OUTING, L("Sora, this book is cheap, so I'll go with this one.", "Sora, questo libro è economico, quindi scelgo questo."), { subjectValueId: "a2-value-sora", speakerRole: "a2-role-friend" }),
+    line("relationships-events-4-t1", "a2-family-reason-kara", "a2-value-kara-chiisai-kaesu", OUTING, L("The size is small, so I'll return it.", "La taglia è piccola, quindi lo restituisco."), { speakerRole: "a2-role-friend" }),
     line("relationships-events-4-t2", "a2-family-choose-gift", "a2-value-choose-hon", OUTING, L("Sora will go with this book.", "Sora sceglierà questo libro."), { subjectValueId: "a2-value-sora", speakerRole: "a2-role-colleague" }),
     line("relationships-events-4-t3", "a2-family-choose-gift", "a2-value-choose-kasa", OUTING, L("Emi will go with this umbrella.", "Emi sceglierà questo ombrello."), { subjectValueId: "a2-value-emi", speakerRole: "a2-role-teacher" }),
     line("relationships-events-4-t4", "a2-family-choose-gift", "a2-value-choose-hana", OUTING, L("My friend will go with these flowers.", "Il mio amico sceglierà questi fiori."), { subjectValueId: "a2-value-friend-subject", speakerRole: "a2-role-learner" }),

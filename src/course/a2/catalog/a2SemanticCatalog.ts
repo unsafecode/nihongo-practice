@@ -1150,17 +1150,27 @@ const A2_LEARNING_TARGET_SENSES_M13_M14: readonly LearningTargetSense[] = [
   dedicatedSense("a2-sense-sched-honsuu", "sched_honsuu"),
   dedicatedSense("a2-sense-sched-jugyou-han", "sched_jugyou_han"),
   dedicatedSense("a2-sense-sched-basu-jikan", "sched_basu_jikan"),
+  dedicatedSense("a2-sense-sched-kyuukou-kuji-han", "sched_kyuukou_kuji_han"),
+  dedicatedSense("a2-sense-sched-shuuden-juuichi", "sched_shuuden_juuichi"),
+  dedicatedSense("a2-sense-sched-basu-honsuu", "sched_basu_honsuu"),
+  dedicatedSense("a2-sense-sched-jugyou-owaru", "sched_jugyou_owaru"),
   // read-notice (rule-invariant-utterance whole-clause bake)
   dedicatedSense("a2-sense-notice-aku-9", "notice_aku_9"),
   dedicatedSense("a2-sense-notice-shimaru-6", "notice_shimaru_6"),
   dedicatedSense("a2-sense-notice-ryoukin-500", "notice_ryoukin_500"),
   dedicatedSense("a2-sense-notice-kodomo-muryou", "notice_kodomo_muryou"),
+  dedicatedSense("a2-sense-notice-getsuyou-yasumi", "notice_getsuyou_yasumi"),
+  dedicatedSense("a2-sense-notice-chuushajou-300", "notice_chuushajou_300"),
+  dedicatedSense("a2-sense-notice-saishuu-nyuujou", "notice_saishuu_nyuujou"),
   // prohibition-tewaikenai true TRANSFER for read-notice (M6 family recurrence)
   dedicatedSense("a2-sense-tewaikenai-shashin", "tewaikenai_shashin"),
   // read-reply-message (rule-invariant-utterance whole-clause bake)
   dedicatedSense("a2-sense-msg-eiga-sasoi", "msg_eiga_sasoi"),
   dedicatedSense("a2-sense-msg-zannen-kotowaru", "msg_zannen_kotowaru"),
   dedicatedSense("a2-sense-msg-wakatta-aimashou", "msg_wakatta_aimashou"),
+  dedicatedSense("a2-sense-msg-kouen-sasoi", "msg_kouen_sasoi"),
+  dedicatedSense("a2-sense-msg-gogo-daijoubu", "msg_gogo_daijoubu"),
+  dedicatedSense("a2-sense-msg-eki-mae-au", "msg_eki_mae_au"),
   // opinion-toomou/connectors true recurrence for read-reply-message (M4
   // family recurrence, both)
   dedicatedSense("a2-sense-opinion-eiga-omoshiroi", "opinion_eiga_omoshiroi"),
@@ -1172,6 +1182,8 @@ const A2_LEARNING_TARGET_SENSES_M13_M14: readonly LearningTargetSense[] = [
   dedicatedSense("a2-sense-form-jikan", "form_jikan"),
   dedicatedSense("a2-sense-form-ninzuu", "form_ninzuu"),
   dedicatedSense("a2-sense-form-shusseki-youbi", "form_shusseki_youbi"),
+  dedicatedSense("a2-sense-form-juusho", "form_juusho"),
+  dedicatedSense("a2-sense-form-kokuseki", "form_kokuseki"),
 ];
 
 /** Every registered A2 learning-target sense — M1-M4's, M5-M8's, M9-M12's, and M13-M14's. */
@@ -1331,6 +1343,9 @@ const a2AuthoredValuesM1: readonly SemanticValue[] = [
     id: "a2-value-connector-samui-demo-genki",
     kind: "predicate-sense",
     senseId: "a2-sense-connector-samui-demo-genki",
+    // Self-topical weather report (opens with the time-topic きょうは) — never
+    // additionally wrapped in an explicit person subject/topic.
+    carriesOwnTopic: true,
     tokenFragments: [
       frag("きょうは", "kyou wa"),
       frag("さむい", "samui"),
@@ -1361,6 +1376,9 @@ const a2AuthoredValuesM1: readonly SemanticValue[] = [
     id: "a2-value-connector-ame-sorekara-hare",
     kind: "predicate-sense",
     senseId: "a2-sense-connector-morning-rain-clear",
+    // Self-topical weather report (opens with the time-topic あさは) — never
+    // additionally wrapped in an explicit person subject/topic.
+    carriesOwnTopic: true,
     tokenFragments: [
       frag("あさは", "asa wa"),
       frag("あめでした", "ame deshita"),
@@ -3138,10 +3156,10 @@ const a2AuthoredValuesM13: readonly SemanticValue[] = [
   { id: "a2-value-choose-tokei", kind: "predicate-sense", senseId: "a2-sense-choose-tokei", tokenFragments: [frag("このとけいに", "kono tokei ni"), frag("します", "shimasu")] },
   { id: "a2-value-choose-kaban", kind: "predicate-sense", senseId: "a2-sense-choose-kaban", tokenFragments: [frag("このかばんに", "kono kaban ni"), frag("します", "shimasu")] },
   { id: "a2-value-choose-kutsu", kind: "predicate-sense", senseId: "a2-sense-choose-kutsu", tokenFragments: [frag("このくつに", "kono kutsu ni"), frag("します", "shimasu")] },
-  { id: "a2-value-choose-nani-ga-ii", kind: "predicate-sense", senseId: "a2-sense-choose-nani-ga-ii", tokenFragments: [frag("プレゼントは", "purezento wa"), frag("なにが", "nani ga"), frag("いい", "ii"), frag("です", "desu"), frag("か", "ka", "particle")] },
-  { id: "a2-value-choose-ikaga", kind: "predicate-sense", senseId: "a2-sense-choose-ikaga", tokenFragments: [frag("これは", "kore wa"), frag("いかが", "ikaga"), frag("です", "desu"), frag("か", "ka", "particle")] },
+  { id: "a2-value-choose-nani-ga-ii", kind: "predicate-sense", senseId: "a2-sense-choose-nani-ga-ii", carriesOwnTopic: true, tokenFragments: [frag("プレゼントは", "purezento wa"), frag("なにが", "nani ga"), frag("いい", "ii"), frag("です", "desu")] },
+  { id: "a2-value-choose-ikaga", kind: "predicate-sense", senseId: "a2-sense-choose-ikaga", carriesOwnTopic: true, tokenFragments: [frag("これは", "kore wa"), frag("いかが", "ikaga"), frag("です", "desu")] },
   // reason-kara true transfer (M4 family recurrence, gift-flavored)
-  { id: "a2-value-kara-yasui-kono-hon", kind: "predicate-sense", senseId: "a2-sense-kara-yasui-kono-hon", tokenFragments: [frag("このほんは", "kono hon wa"), frag("やすい", "yasui"), particleFrag("から", "kara"), punctFrag("、", ","), frag("これに", "kore ni"), frag("します", "shimasu")] },
+  { id: "a2-value-kara-yasui-kono-hon", kind: "predicate-sense", senseId: "a2-sense-kara-yasui-kono-hon", carriesOwnTopic: true, tokenFragments: [frag("このほんは", "kono hon wa"), frag("やすい", "yasui"), particleFrag("から", "kara"), punctFrag("、", ","), frag("これに", "kore ni"), frag("します", "shimasu")] },
 ];
 
 // ---------------------------------------------------------------------------
@@ -3151,39 +3169,56 @@ const a2AuthoredValuesM13: readonly SemanticValue[] = [
 
 const a2AuthoredValuesM14: readonly SemanticValue[] = [
   // --- read-schedule (rule-invariant-utterance whole-clause bake;
-  // a2-cando-read-schedule) ---
-  { id: "a2-value-sched-tsugi-densha", kind: "predicate-sense", senseId: "a2-sense-sched-tsugi-densha", tokenFragments: [frag("つぎのでんしゃは", "tsugi no densha wa"), frag("くじ", "kuji"), frag("じゅうごふんです", "juugofun desu")] },
-  { id: "a2-value-sched-honsuu", kind: "predicate-sense", senseId: "a2-sense-sched-honsuu", tokenFragments: [frag("でんしゃは", "densha wa"), frag("いちじかんに", "ichijikan ni"), frag("よんほんあります", "yonhon arimasu")] },
-  { id: "a2-value-sched-jugyou-han", kind: "predicate-sense", senseId: "a2-sense-sched-jugyou-han", tokenFragments: [frag("じゅぎょうは", "jugyou wa"), frag("さんじはんから", "sanji han kara"), frag("です", "desu")] },
-  { id: "a2-value-sched-basu-jikan", kind: "predicate-sense", senseId: "a2-sense-sched-basu-jikan", tokenFragments: [frag("バスは", "basu wa"), frag("じゅうじに", "juuji ni"), frag("でます", "demasu")] },
+  // a2-cando-read-schedule). Every schedule line is a self-contained posted
+  // timetable entry that opens with its own topic — never additionally
+  // wrapped in a person subject (carriesOwnTopic). ---
+  { id: "a2-value-sched-tsugi-densha", kind: "predicate-sense", senseId: "a2-sense-sched-tsugi-densha", carriesOwnTopic: true, tokenFragments: [frag("つぎのでんしゃは", "tsugi no densha wa"), frag("くじ", "kuji"), frag("じゅうごふんです", "juugofun desu")] },
+  { id: "a2-value-sched-honsuu", kind: "predicate-sense", senseId: "a2-sense-sched-honsuu", carriesOwnTopic: true, tokenFragments: [frag("でんしゃは", "densha wa"), frag("いちじかんに", "ichijikan ni"), frag("よんほんあります", "yonhon arimasu")] },
+  { id: "a2-value-sched-jugyou-han", kind: "predicate-sense", senseId: "a2-sense-sched-jugyou-han", carriesOwnTopic: true, tokenFragments: [frag("じゅぎょうは", "jugyou wa"), frag("さんじはんから", "sanji han kara"), frag("です", "desu")] },
+  { id: "a2-value-sched-basu-jikan", kind: "predicate-sense", senseId: "a2-sense-sched-basu-jikan", carriesOwnTopic: true, tokenFragments: [frag("バスは", "basu wa"), frag("じゅうじに", "juuji ni"), frag("でます", "demasu")] },
+  { id: "a2-value-sched-kyuukou-kuji-han", kind: "predicate-sense", senseId: "a2-sense-sched-kyuukou-kuji-han", carriesOwnTopic: true, tokenFragments: [frag("きゅうこうは", "kyuukou wa"), frag("くじはんに", "kuji han ni"), frag("でます", "demasu")] },
+  { id: "a2-value-sched-shuuden-juuichi", kind: "predicate-sense", senseId: "a2-sense-sched-shuuden-juuichi", carriesOwnTopic: true, tokenFragments: [frag("しゅうでんは", "shuuden wa"), frag("じゅういちじです", "juuichiji desu")] },
+  { id: "a2-value-sched-basu-honsuu", kind: "predicate-sense", senseId: "a2-sense-sched-basu-honsuu", carriesOwnTopic: true, tokenFragments: [frag("バスは", "basu wa"), frag("いちじかんに", "ichijikan ni"), frag("さんぼんあります", "sanbon arimasu")] },
+  { id: "a2-value-sched-jugyou-owaru", kind: "predicate-sense", senseId: "a2-sense-sched-jugyou-owaru", carriesOwnTopic: true, tokenFragments: [frag("じゅぎょうは", "jugyou wa"), frag("ごじに", "goji ni"), frag("おわります", "owarimasu")] },
 
   // --- read-notice (rule-invariant-utterance whole-clause bake;
-  // a2-cando-read-notice) ---
-  { id: "a2-value-notice-aku-9", kind: "predicate-sense", senseId: "a2-sense-notice-aku-9", tokenFragments: [frag("このみせは", "kono mise wa"), frag("ごぜんくじに", "gozen kuji ni"), frag("あきます", "akimasu")] },
-  { id: "a2-value-notice-shimaru-6", kind: "predicate-sense", senseId: "a2-sense-notice-shimaru-6", tokenFragments: [frag("ごご", "gogo"), frag("ろくじに", "rokuji ni"), frag("しまります", "shimarimasu")] },
-  { id: "a2-value-notice-ryoukin-500", kind: "predicate-sense", senseId: "a2-sense-notice-ryoukin-500", tokenFragments: [frag("にゅうじょうりょうきんは", "nyuujouryoukin wa"), frag("ごひゃくえんです", "gohyaku en desu")] },
-  { id: "a2-value-notice-kodomo-muryou", kind: "predicate-sense", senseId: "a2-sense-notice-kodomo-muryou", tokenFragments: [frag("こどもは", "kodomo wa"), frag("むりょうです", "muryou desu")] },
+  // a2-cando-read-notice). Every notice line is a self-contained posted sign
+  // (carriesOwnTopic) — never wrapped in a person subject. ---
+  { id: "a2-value-notice-aku-9", kind: "predicate-sense", senseId: "a2-sense-notice-aku-9", carriesOwnTopic: true, tokenFragments: [frag("このみせは", "kono mise wa"), frag("ごぜんくじに", "gozen kuji ni"), frag("あきます", "akimasu")] },
+  { id: "a2-value-notice-shimaru-6", kind: "predicate-sense", senseId: "a2-sense-notice-shimaru-6", carriesOwnTopic: true, tokenFragments: [frag("このみせは", "kono mise wa"), frag("ごご", "gogo"), frag("ろくじに", "rokuji ni"), frag("しまります", "shimarimasu")] },
+  { id: "a2-value-notice-ryoukin-500", kind: "predicate-sense", senseId: "a2-sense-notice-ryoukin-500", carriesOwnTopic: true, tokenFragments: [frag("にゅうじょうりょうきんは", "nyuujouryoukin wa"), frag("ごひゃくえんです", "gohyaku en desu")] },
+  { id: "a2-value-notice-kodomo-muryou", kind: "predicate-sense", senseId: "a2-sense-notice-kodomo-muryou", carriesOwnTopic: true, tokenFragments: [frag("こどもは", "kodomo wa"), frag("むりょうです", "muryou desu")] },
+  { id: "a2-value-notice-getsuyou-yasumi", kind: "predicate-sense", senseId: "a2-sense-notice-getsuyou-yasumi", carriesOwnTopic: true, tokenFragments: [frag("げつようびは", "getsuyoubi wa"), frag("やすみです", "yasumi desu")] },
+  { id: "a2-value-notice-chuushajou-300", kind: "predicate-sense", senseId: "a2-sense-notice-chuushajou-300", carriesOwnTopic: true, tokenFragments: [frag("ちゅうしゃじょうは", "chuushajou wa"), frag("さんびゃくえんです", "sanbyaku en desu")] },
+  { id: "a2-value-notice-saishuu-nyuujou", kind: "predicate-sense", senseId: "a2-sense-notice-saishuu-nyuujou", carriesOwnTopic: true, tokenFragments: [frag("さいしゅうにゅうじょうは", "saishuu nyuujou wa"), frag("ごじはんです", "goji han desu")] },
   // prohibition-tewaikenai true TRANSFER (M6 family recurrence, notice-flavored)
   { id: "a2-value-obj-shashin", kind: "object", tokenFragments: [frag("しゃしん", "shashin")] },
   { id: "a2-value-tewaikenai-shashin", kind: "predicate-sense", senseId: "a2-sense-tewaikenai-shashin", tokenFragments: newVerbSuffixKana("prohibition-tewaikenai", NEW_VERBS.toru) },
 
   // --- read-reply-message (rule-invariant-utterance whole-clause bake;
-  // a2-cando-read-reply-message) ---
-  { id: "a2-value-msg-eiga-sasoi", kind: "predicate-sense", senseId: "a2-sense-msg-eiga-sasoi", tokenFragments: [frag("どようび", "doyoubi"), punctFrag("、", ","), frag("いっしょに", "issho ni"), frag("えいがを", "eiga o"), frag("みません", "mimasen"), frag("か", "ka", "particle")] },
-  { id: "a2-value-msg-zannen-kotowaru", kind: "predicate-sense", senseId: "a2-sense-msg-zannen-kotowaru", tokenFragments: [frag("ざんねんです", "zannen desu"), particleFrag("が", "ga"), punctFrag("、", ","), frag("どようびは", "doyoubi wa"), frag("ちょっと", "chotto")] },
-  { id: "a2-value-msg-wakatta-aimashou", kind: "predicate-sense", senseId: "a2-sense-msg-wakatta-aimashou", tokenFragments: [frag("わかりました", "wakarimashita"), punctFrag("、", ","), frag("どようびに", "doyoubi ni"), frag("あいましょう", "aimashou")] },
+  // a2-cando-read-reply-message). Each self-contained message line
+  // (carriesOwnTopic) — never wrapped in a person subject/topic. ---
+  { id: "a2-value-msg-eiga-sasoi", kind: "predicate-sense", senseId: "a2-sense-msg-eiga-sasoi", carriesOwnTopic: true, tokenFragments: [frag("どようび", "doyoubi"), punctFrag("、", ","), frag("いっしょに", "issho ni"), frag("えいがを", "eiga o"), frag("みません", "mimasen"), frag("か", "ka", "particle")] },
+  { id: "a2-value-msg-zannen-kotowaru", kind: "predicate-sense", senseId: "a2-sense-msg-zannen-kotowaru", carriesOwnTopic: true, tokenFragments: [frag("ざんねんです", "zannen desu"), particleFrag("が", "ga"), punctFrag("、", ","), frag("どようびは", "doyoubi wa"), frag("ちょっと", "chotto")] },
+  { id: "a2-value-msg-wakatta-aimashou", kind: "predicate-sense", senseId: "a2-sense-msg-wakatta-aimashou", carriesOwnTopic: true, tokenFragments: [frag("わかりました", "wakarimashita"), punctFrag("、", ","), frag("どようびに", "doyoubi ni"), frag("あいましょう", "aimashou")] },
+  { id: "a2-value-msg-kouen-sasoi", kind: "predicate-sense", senseId: "a2-sense-msg-kouen-sasoi", carriesOwnTopic: true, tokenFragments: [frag("にちようび", "nichiyoubi"), punctFrag("、", ","), frag("こうえんに", "kouen ni"), frag("いきません", "ikimasen"), frag("か", "ka", "particle")] },
+  { id: "a2-value-msg-gogo-daijoubu", kind: "predicate-sense", senseId: "a2-sense-msg-gogo-daijoubu", carriesOwnTopic: true, tokenFragments: [frag("ごごは", "gogo wa"), frag("だいじょうぶです", "daijoubu desu")] },
+  { id: "a2-value-msg-eki-mae-au", kind: "predicate-sense", senseId: "a2-sense-msg-eki-mae-au", carriesOwnTopic: true, tokenFragments: [frag("えきの", "eki no"), frag("まえで", "mae de"), frag("あいましょう", "aimashou")] },
   // opinion-toomou/connectors true recurrence (M4 families, message-flavored)
   { id: "a2-value-opinion-eiga-omoshiroi", kind: "predicate-sense", senseId: "a2-sense-opinion-eiga-omoshiroi", tokenFragments: [frag("このえいがは", "kono eiga wa"), frag("おもしろい", "omoshiroi"), particleFrag("と", "to"), frag("おもいます", "omoimasu")] },
   { id: "a2-value-connector-msg-ame-dekakeru", kind: "predicate-sense", senseId: "a2-sense-connector-msg-ame-dekakeru", tokenFragments: [frag("あめです", "ame desu"), particleFrag("が", "ga"), punctFrag("、", ","), frag("でかけます", "dekakemasu")] },
 
   // --- fill-form (rule-invariant-utterance whole-clause bake;
-  // a2-cando-fill-form) ---
-  { id: "a2-value-form-namae", kind: "predicate-sense", senseId: "a2-sense-form-namae", tokenFragments: [frag("なまえは", "namae wa"), frag("たなかです", "tanaka desu")] },
-  { id: "a2-value-form-denwabangou", kind: "predicate-sense", senseId: "a2-sense-form-denwabangou", tokenFragments: [frag("でんわばんごうは", "denwabangou wa"), frag("ぜろきゅうぜろです", "zero kyuu zero desu")] },
-  { id: "a2-value-form-seinengappi", kind: "predicate-sense", senseId: "a2-sense-form-seinengappi", tokenFragments: [frag("たんじょうびは", "tanjoubi wa"), frag("さんがつ", "sangatsu"), frag("いつかです", "itsuka desu")] },
-  { id: "a2-value-form-jikan", kind: "predicate-sense", senseId: "a2-sense-form-jikan", tokenFragments: [frag("じかんは", "jikan wa"), frag("ごご", "gogo"), frag("にじはんです", "niji han desu")] },
-  { id: "a2-value-form-ninzuu", kind: "predicate-sense", senseId: "a2-sense-form-ninzuu", tokenFragments: [frag("にんずうは", "ninzuu wa"), frag("ふたりです", "futari desu")] },
-  { id: "a2-value-form-shusseki-youbi", kind: "predicate-sense", senseId: "a2-sense-form-shusseki-youbi", tokenFragments: [frag("しゅっせきびは", "shussekibi wa"), frag("どようびです", "doyoubi desu")] },
+  // a2-cando-fill-form). Each self-contained form field (carriesOwnTopic) —
+  // never wrapped in a person subject/topic. ---
+  { id: "a2-value-form-namae", kind: "predicate-sense", senseId: "a2-sense-form-namae", carriesOwnTopic: true, tokenFragments: [frag("なまえは", "namae wa"), frag("たなかです", "tanaka desu")] },
+  { id: "a2-value-form-denwabangou", kind: "predicate-sense", senseId: "a2-sense-form-denwabangou", carriesOwnTopic: true, tokenFragments: [frag("でんわばんごうは", "denwabangou wa"), frag("ぜろきゅうぜろです", "zero kyuu zero desu")] },
+  { id: "a2-value-form-seinengappi", kind: "predicate-sense", senseId: "a2-sense-form-seinengappi", carriesOwnTopic: true, tokenFragments: [frag("たんじょうびは", "tanjoubi wa"), frag("さんがつ", "sangatsu"), frag("いつかです", "itsuka desu")] },
+  { id: "a2-value-form-jikan", kind: "predicate-sense", senseId: "a2-sense-form-jikan", carriesOwnTopic: true, tokenFragments: [frag("じかんは", "jikan wa"), frag("ごご", "gogo"), frag("にじはんです", "niji han desu")] },
+  { id: "a2-value-form-ninzuu", kind: "predicate-sense", senseId: "a2-sense-form-ninzuu", carriesOwnTopic: true, tokenFragments: [frag("にんずうは", "ninzuu wa"), frag("ふたりです", "futari desu")] },
+  { id: "a2-value-form-shusseki-youbi", kind: "predicate-sense", senseId: "a2-sense-form-shusseki-youbi", carriesOwnTopic: true, tokenFragments: [frag("しゅっせきびは", "shussekibi wa"), frag("どようびです", "doyoubi desu")] },
+  { id: "a2-value-form-juusho", kind: "predicate-sense", senseId: "a2-sense-form-juusho", carriesOwnTopic: true, tokenFragments: [frag("じゅうしょは", "juusho wa"), frag("とうきょうです", "toukyou desu")] },
+  { id: "a2-value-form-kokuseki", kind: "predicate-sense", senseId: "a2-sense-form-kokuseki", carriesOwnTopic: true, tokenFragments: [frag("こくせきは", "kokuseki wa"), frag("イタリアです", "itaria desu")] },
 ];
 
 export const a2SemanticValues: readonly SemanticValue[] = deepFreeze([

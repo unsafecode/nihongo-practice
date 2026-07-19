@@ -296,6 +296,22 @@ export interface SemanticValue {
   readonly senseId?: LexemeSenseId;
   readonly animacy?: Animacy;
   readonly tokenFragments: readonly SemanticValueTokenFragment[];
+  /**
+   * `true` for a predicate-sense value whose baked form is already a
+   * self-contained, independently topical statement — a posted
+   * schedule/notice/form line, a self-topical short message, a standalone
+   * reason-kara decision, or a weather report — that opens with its own
+   * top-level topic は. Such a value must never additionally be given an
+   * explicit grammatical subject/topic: doing so bakes two competing
+   * top-level topics (`そらは…でんしゃは…`) or an incoherent person topic over
+   * an impersonal posted text. Left `undefined` (falsy) for ordinary
+   * predicate values that legitimately take an explicit subject (including
+   * embedded-clause constructions like a first-person opinion
+   * `わたしはこれはいいとおもいます`, whose second は is a nested clause topic,
+   * not a competing matrix topic). Enforced by
+   * `a2RealizedIntegrity.test.ts`.
+   */
+  readonly carriesOwnTopic?: boolean;
 }
 
 /** One slot a sentence family's realization rule fills from a semantic value. */

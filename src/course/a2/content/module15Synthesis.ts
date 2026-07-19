@@ -115,14 +115,14 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
     line("a2-synthesis-1-m5", "a2-family-plain-recognition", "a2-value-plain-iku-dict", OUTING, L("(casual speech) go", "(discorso informale) andare"), { speakerRole: "a2-role-learner" }),
     line("a2-synthesis-1-m6", "a2-family-plain-recognition", "a2-value-plain-taberu-past", OUTING, L("(casual speech) ate", "(discorso informale) ho mangiato"), { speakerRole: "a2-role-friend" }),
     line("a2-synthesis-1-m7", "a2-family-plan-yotei", "a2-value-yotei-oyogu-shuumatsu", OUTING, L("Sora is planning to swim this weekend.", "Sora ha in programma di nuotare questo weekend."), { subjectValueId: "a2-value-sora", speakerRole: "a2-role-colleague" }),
-    line("a2-synthesis-1-m8", "a2-family-connector-utterance", "a2-value-connector-ame-sorekara-hare", PLANS, L("Emi says it rained, then cleared up.", "Emi dice che ha piovuto, poi si è schiarito."), { subjectValueId: "a2-value-emi", speakerRole: "a2-role-teacher" }),
+    line("a2-synthesis-1-m8", "a2-family-connector-utterance", "a2-value-connector-ame-sorekara-hare", PLANS, L("In the morning it rained. Then, it cleared up.", "Al mattino ha piovuto. Poi si è schiarito."), { speakerRole: "a2-role-teacher" }),
   ],
   // Every transfer recombines an already-taught family with a fresh value
   // not used above, so all 5 transfers stay visibly novel while never
   // introducing anything new.
   transfers: [
     line("a2-synthesis-1-t1", "a2-family-plan-tsumori", "a2-value-tsumori-yomu-hon", OUTING, L("My friend intends to read a book.", "Il mio amico ha intenzione di leggere un libro."), { subjectValueId: "a2-value-friend-subject", speakerRole: "a2-role-friend" }),
-    line("a2-synthesis-1-t2", "a2-family-connector-utterance", "a2-value-connector-samui-demo-genki", PLANS, L("The teacher says it's cold, but is well.", "L'insegnante dice che fa freddo, ma sta bene."), { subjectValueId: "a2-value-teacher-subject", speakerRole: "a2-role-teacher" }),
+    line("a2-synthesis-1-t2", "a2-family-connector-utterance", "a2-value-connector-samui-demo-genki", PLANS, L("Today it's cold, but I'm well.", "Oggi fa freddo, ma sto bene."), { speakerRole: "a2-role-teacher" }),
     line("a2-synthesis-1-t3", "a2-family-plain-recognition", "a2-value-plain-hanasu-dict", OUTING, L("(casual speech) speak", "(discorso informale) parlare"), { speakerRole: "a2-role-colleague" }),
     line("a2-synthesis-1-t4", "a2-family-plan-yotei", "a2-value-yotei-au-doyoubi", OUTING, L("The colleague is planning to meet on Saturday.", "Il collega ha in programma di incontrarsi sabato."), { subjectValueId: "a2-value-colleague-subject", speakerRole: "a2-role-learner" }),
     line("a2-synthesis-1-t5", "a2-family-connector-utterance", "a2-value-connector-shukudai-sorekara-terebi", PLANS, L("My friend will do homework, then watch TV.", "Il mio amico farà i compiti, poi guarderà la TV."), { subjectValueId: "a2-value-friend-subject", speakerRole: "a2-role-friend" }),
