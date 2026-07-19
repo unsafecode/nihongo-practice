@@ -219,7 +219,7 @@ describe("A2 Module 8 — connected restaurant dialogue (no isolated drill)", ()
 // M8 spec-fix regression (Phase 3 Task 5): a fresh review found an
 // explicit-third-party-subject transfer recombined with a predicate that
 // cannot naturally take one. rp3-t4 paired an explicit
-// "a2-referent-teacher" with "a2-value-problem-nioi", whose own clause
+// "a2-referent-teacher" with "a2-value-problem-hen", whose own clause
 // already bakes its own topic (さかなは, "as for the fish") — producing a
 // double-topic sentence. Fixed by recombining with a predicate this family
 // already establishes is safe for an explicit third-party subject (atsui,
@@ -238,10 +238,10 @@ describe("A2 Module 8 — spec-fix: no interjection-topic/double-topic on an exp
     "a2-value-order-sorede-ii",
     // Bakes its own topic (さかなは) — stacking an explicit subject creates
     // a double-topic sentence.
-    "a2-value-problem-nioi",
+    "a2-value-problem-hen",
   ]);
 
-  it("restaurant-problems-3-t4 recombines the natural が-marked atsui problem (\"the tea is too hot\"), never the topic-baked nioi problem, with its explicit teacher subject", () => {
+  it("restaurant-problems-3-t4 recombines the natural が-marked atsui problem (\"the tea is too hot\"), never the topic-baked hen problem, with its explicit teacher subject", () => {
     const rp3 = module8Lessons[2];
     const t4 = rp3.variants.find((v) => v.id === "restaurant-problems-3-t4");
     expect(t4, "restaurant-problems-3-t4").toBeDefined();
@@ -402,7 +402,7 @@ describe("A2 Module 8 — M1 spec-fix: rp3 direct gloss, no invented reporting v
     const rp3 = module8Lessons[2];
     const m7 = rp3.variants.find((v) => v.id === "restaurant-problems-3-m7");
     expect(m7, "restaurant-problems-3-m7").toBeDefined();
-    expect(m7?.slotValues.predicate).toBe("a2-value-problem-nioi");
+    expect(m7?.slotValues.predicate).toBe("a2-value-problem-hen");
     const sentence = realize(m7 as SentenceVariant);
     expect(sentence.canonicalJapanese).toBe("このさかなはすこしへんです");
     const romaji = formatRomaji(sentence.tokens);

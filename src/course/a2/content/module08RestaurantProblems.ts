@@ -205,7 +205,7 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     line("restaurant-problems-3-m4", "a2-family-recount-experience", "a2-value-problem-atsui", "a2-context-cafe", L("The tea is too hot.", "Il tè è troppo caldo."), { speakerRole: "a2-role-friend" }),
     line("restaurant-problems-3-m5", "a2-family-recount-experience", "a2-value-problem-tarinai", "a2-context-restaurant", L("There aren't enough forks.", "Non ci sono abbastanza forchette."), { speakerRole: "a2-role-learner", form: A2_NEGATIVE_PRESENT_POLITE }),
     line("restaurant-problems-3-m6", "a2-family-recount-experience", "a2-value-problem-machigai", "a2-context-restaurant", L("I ordered meat, but fish came.", "Ho ordinato carne, ma è arrivato pesce."), { speakerRole: "a2-role-sora", form: A2_AFFIRMATIVE_PAST_POLITE }),
-    line("restaurant-problems-3-m7", "a2-family-recount-experience", "a2-value-problem-nioi", "a2-context-restaurant", L("This fish is a bit strange.", "Questo pesce è un po' strano."), { speakerRole: "a2-role-teacher" }),
+    line("restaurant-problems-3-m7", "a2-family-recount-experience", "a2-value-problem-hen", "a2-context-restaurant", L("This fish is a bit strange.", "Questo pesce è un po' strano."), { speakerRole: "a2-role-teacher" }),
     line("restaurant-problems-3-m8", "a2-family-recount-experience", "a2-value-problem-daremo-konai", "a2-context-restaurant", L("I waited ten minutes, but no one is coming.", "Ho aspettato dieci minuti, ma non viene nessuno."), { speakerRole: "a2-role-emi", form: A2_NEGATIVE_PRESENT_POLITE }),
   ],
   // Phase 3 Task 5 fix ("introduction before use"): every transfer here

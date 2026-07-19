@@ -811,7 +811,7 @@ const A2_LEARNING_TARGET_SENSES_M5_M8: readonly LearningTargetSense[] = [
   dedicatedSense("a2-sense-problem-atsui", "problem_atsui"),
   dedicatedSense("a2-sense-problem-tarinai", "problem_tarinai"),
   dedicatedSense("a2-sense-problem-machigai", "problem_machigai"),
-  dedicatedSense("a2-sense-problem-nioi", "problem_nioi"),
+  dedicatedSense("a2-sense-problem-hen", "problem_nioi"),
   dedicatedSense("a2-sense-problem-daremo-konai", "problem_daremo_konai"),
   // negotiate-price / pay-handle-problem (te-sequence recurrence,
   // whole-clause bake, mirrors a2-sense-seq-* shape)
@@ -2540,7 +2540,7 @@ const a2AuthoredValuesM8: readonly SemanticValue[] = [
   { id: "a2-value-problem-atsui", kind: "predicate-sense", senseId: "a2-sense-problem-atsui", tokenFragments: [frag("おちゃが", "ocha ga"), frag("あつすぎ", "atsusugi"), frag("ます", "masu", "morpheme")] },
   { id: "a2-value-problem-tarinai", kind: "predicate-sense", senseId: "a2-sense-problem-tarinai", tokenFragments: [frag("フォークが", "fooku ga"), frag("たりません", "tarimasen")] },
   { id: "a2-value-problem-machigai", kind: "predicate-sense", senseId: "a2-sense-problem-machigai", tokenFragments: [frag("にくを", "niku o"), frag("たのみました", "tanomimashita"), particleFrag("が", "ga"), frag("さかなが", "sakana ga"), frag("きました", "kimashita")] },
-  { id: "a2-value-problem-nioi", kind: "predicate-sense", senseId: "a2-sense-problem-nioi", tokenFragments: [frag("この", "kono"), frag("さかなは", "sakana wa"), frag("すこし", "sukoshi"), frag("へん", "hen"), frag("です", "desu")] },
+  { id: "a2-value-problem-hen", kind: "predicate-sense", senseId: "a2-sense-problem-hen", tokenFragments: [frag("この", "kono"), frag("さかなは", "sakana wa"), frag("すこし", "sukoshi"), frag("へん", "hen"), frag("です", "desu")] },
   { id: "a2-value-problem-daremo-konai", kind: "predicate-sense", senseId: "a2-sense-problem-daremo-konai", tokenFragments: [frag("じゅっぷん", "juppun"), frag("まちました", "machimashita"), particleFrag("が", "ga"), frag("だれも", "dare mo"), frag("きません", "kimasen")] },
 
   // --- negotiate-price / pay-handle-problem (te-sequence recurrence,

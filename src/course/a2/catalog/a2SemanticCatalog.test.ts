@@ -46,6 +46,12 @@ function valueById(id: string) {
   return value!;
 }
 
+function senseById(id: string) {
+  const sense = a2LearningTargetSenses.find((s) => s.id === id);
+  expect(sense, `learning target sense ${id}`).toBeDefined();
+  return sense!;
+}
+
 describe("a2SemanticCatalog — exact tokenFragments for the Task4 spec-fix values", () => {
   // M6 spec-fix ("single-source verb stems"): `a2-value-hanasu` now derives
   // its ます-stem from `conjugateMasuStem("a2-sense-hanasu")` (the one
@@ -545,7 +551,7 @@ describe("a2SemanticCatalog — M5-M8 end-to-end realization (Phase 3 Task 5)", 
   // "a2-value-problem-daremo-konai"'s own "ten minutes" fragment spelled as
   // the malformed じゅうぶんぷん (which does not even correspond to its own
   // "juppun" romaji) instead of the correct small-っ geminate じゅっぷん.
-  it("realizes a2-value-problem-daremo-konai through a2-family-recount-experience to genuine じゅっぷんまちましたが、だれもきません with romaji \"juppun\", never じゅうぶんぷん/\"juubunpun\"", () => {
+  it("realizes a2-value-problem-daremo-konai through a2-family-recount-experience to genuine じゅっぷんまちましただれもきません with romaji \"juppun\", never じゅうぶんぷん/\"juubunpun\"", () => {
     const sentence = realize(
       "a2-family-recount-experience",
       { predicate: "a2-value-problem-daremo-konai" },
@@ -649,5 +655,22 @@ describe("a2SemanticCatalog — I1 spec-fix: adversative が is a particle, neve
       }
     }
     expect(violations, violations.join("\n")).toEqual([]);
+  });
+});
+
+describe("a2SemanticCatalog — Phase 3 Task 5: restaurant-problem ID refactoring (nioi → hen)", () => {
+  it("old nioi IDs are absent and new hen IDs resolve with へん meaning", () => {
+    // Verify old IDs are gone
+    expect(() => valueById("a2-value-problem-nioi")).toThrow();
+    expect(() => senseById("a2-sense-problem-nioi")).toThrow();
+
+    // Verify new IDs exist and render correctly
+    const henValue = valueById("a2-value-problem-hen");
+    expect(henValue.id).toBe("a2-value-problem-hen");
+    expect(henValue.senseId).toBe("a2-sense-problem-hen");
+    expect(henValue.tokenFragments.some((f) => f.jp === "へん")).toBe(true);
+
+    const henSense = senseById("a2-sense-problem-hen");
+    expect(henSense.id).toBe("a2-sense-problem-hen");
   });
 });
