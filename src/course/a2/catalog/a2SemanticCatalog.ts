@@ -197,16 +197,22 @@ function remapIndependentWordTails(
   );
 }
 
-/** The independent-word tail fragments (by jp text) each M5-M8 suffix
+/** The independent-word tail fragments (by jp text) each suffix
  * construction's own `a2Constructions.ts` tail bakes as "morpheme" but
  * which are real, standalone words needing their own romaji space here.
- * `sequence-te`'s empty tail needs no entry (nothing to remap). */
+ * `sequence-te`'s empty tail needs no entry (nothing to remap).
+ * `experience-takoto`'s こと/あります tail is the same independent-word pair
+ * `experienceTakotoKana` remaps for registered senses — listed here so a
+ * new (non-registered) verb realized through
+ * `newVerbSuffixKana("experience-takoto", ...)` gets the identical
+ * "... koto ga arimasu" word-boundary spacing (§ I3), never "...koto gaarimasu". */
 const INDEPENDENT_WORD_TAIL_JP_BY_CONSTRUCTION: Readonly<Record<string, ReadonlySet<string>>> = {
   "ongoing-teiru": new Set(["います"]),
   "request-tekudasai": new Set(["ください"]),
   "permission-temoii": new Set(["いい", "です"]),
   "prohibition-tewaikenai": new Set(["いけません"]),
   "request-negative": new Set(["ください"]),
+  "experience-takoto": new Set(["こと", "あります"]),
 };
 
 /** Compose a registered Task 2 verb sense through one of the M5-M8 suffix
@@ -1043,6 +1049,11 @@ const A2_LEARNING_TARGET_SENSES_M9_M12: readonly LearningTargetSense[] = [
   dedicatedSense("a2-sense-problem-nakushita", "problem_nakushita"),
   dedicatedSense("a2-sense-tekudasai-tetsudau-travel", "tekudasai_tetsudau_travel"),
   dedicatedSense("a2-sense-naidekudasai-shinpai", "naidekudasai_shinpai"),
+  // reason-node (ので) true TRANSFER evidence for tr3 (Phase 3 Task 6
+  // spec-fix, "grammar spiral content mismatch") — a whole-clause bake, like
+  // every other reason-node value above, never a third named support
+  // (tr3's recipe stays capped at request-tekudasai/negative-request).
+  dedicatedSense("a2-sense-node-pasupooto-nakushita-tasukete", "node_pasupooto_nakushita_tasukete"),
   // change-cancel (whole-clause bake)
   dedicatedSense("a2-sense-change-yoyaku-henkou", "change_yoyaku_henkou"),
   dedicatedSense("a2-sense-change-hiduke-kaetai", "change_hiduke_kaetai"),
@@ -2964,6 +2975,15 @@ const a2AuthoredValuesM12: readonly SemanticValue[] = [
   // travel-flavored)
   { id: "a2-value-tekudasai-tasukete", kind: "predicate-sense", senseId: "a2-sense-tekudasai-tetsudau-travel", tokenFragments: newVerbSuffixKana("request-tekudasai", NEW_VERBS.tasukeru) },
   { id: "a2-value-naidekudasai-wasureru", kind: "predicate-sense", senseId: "a2-sense-naidekudasai-shinpai", tokenFragments: newVerbSuffixKana("request-negative", NEW_VERBS.wasureru) },
+  // reason-node (ので) true TRANSFER evidence (Phase 3 Task 6 spec-fix,
+  // "grammar spiral content mismatch"): a natural travel-problem ので
+  // explanation — なくした (なくす's own registered NEW_VERBS past, never
+  // hand-typed) — followed by the EXISTING polite request/help clause
+  // (newVerbSuffixKana("request-tekudasai", NEW_VERBS.tasukeru), the exact
+  // same call a2-value-tekudasai-tasukete above already uses) — a
+  // whole-clause bake exactly like every other reason-node value in this
+  // catalog, never a third named support on tr3's own recipe.
+  { id: "a2-value-node-pasupooto-nakushita-tasukete", kind: "predicate-sense", senseId: "a2-sense-node-pasupooto-nakushita-tasukete", tokenFragments: [frag("パスポートを", "pasupooto o"), ...newVerbPlainKana(NEW_VERBS.nakusu, "past"), particleFrag("ので", "node"), punctFrag("、", ","), ...newVerbSuffixKana("request-tekudasai", NEW_VERBS.tasukeru)] },
 
   // --- change-cancel (whole-clause bake; TR-4) ---
   { id: "a2-value-change-yoyaku-henkou", kind: "predicate-sense", senseId: "a2-sense-change-yoyaku-henkou", tokenFragments: [frag("よやくを", "yoyaku o"), frag("へんこう", "henkou"), frag("できます", "dekimasu"), frag("か", "ka", "particle")] },

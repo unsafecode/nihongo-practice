@@ -206,6 +206,32 @@ describe("a2SemanticCatalog — latent-value realization through their real sent
     expect(romaji.text).not.toContain("gaarimasu");
   });
 
+  // I3 regression guard, new-verb path: `a2-value-exp-shinkansen-notta`
+  // realizes 乗る (a verb OUTSIDE the registered Task2 12-verb table) through
+  // `newVerbSuffixKana("experience-takoto", ...)`, a *different* code path
+  // than `experienceTakotoKana` (which only ever composes REGISTERED
+  // senses like 泳ぐ/行く/食べる/待つ above). `newVerbSuffixKana` remaps its
+  // construction's independent-word tail via the shared
+  // `INDEPENDENT_WORD_TAIL_JP_BY_CONSTRUCTION` table keyed by construction
+  // id, not `experienceTakotoKana`'s own local set — so an "experience-takoto"
+  // entry must exist in that shared table too, or this new-verb tail keeps
+  // こと/あります as bound morphemes and glues them onto the preceding verb
+  // ending/particle instead of spacing them as the real, independent words
+  // they are.
+  it("realizes a2-value-exp-shinkansen-notta's たことがあります experience tail (a NEW-verb 乗る through newVerbSuffixKana) with real word-boundary spaces: 'notta koto ga arimasu', never 'nottakoto gaarimasu' (I3 regression guard for the new-verb suffix path)", () => {
+    const sentence = realizeAgainst(
+      "a2-family-experience-takoto",
+      "a2-value-exp-shinkansen-notta",
+      "task6-probe-exp-shinkansen-notta-romaji",
+    );
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok).toBe(true);
+    if (!romaji.ok) throw new Error("unreachable");
+    expect(romaji.text).toBe("shinkansen ni notta koto ga arimasu");
+    expect(romaji.text).not.toContain("nottakoto");
+    expect(romaji.text).not.toContain("gaarimasu");
+  });
+
   it("realizes a2-value-kara-jikanganai-takushii's existential-negative reason clause with a real word-boundary space: 'jikan ga nai', never 'jikan ganai'", () => {
     const sentence = realizeAgainst(
       "a2-family-reason-kara",

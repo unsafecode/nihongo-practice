@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { LessonId } from "../../foundations/types";
 import { A2_CANONICAL_POSITIONS } from "../manifest";
 import { A2_GRAMMAR_SPIRAL, type A2GrammarForm } from "./grammarSpiral";
-import { validateA2GrammarSpiral } from "./validateA2GrammarSpiral";
+import {
+  auditA2GrammarSpiralEvidence,
+  validateA2GrammarSpiral,
+  type GrammarEvidenceLesson,
+} from "./validateA2GrammarSpiral";
 
 /**
  * Exact expected row data (task spec table). Pinning this independently of
@@ -301,5 +305,122 @@ describe("validateA2GrammarSpiral unknown lesson ids", () => {
     const result = validateA2GrammarSpiral(broken, A2_CANONICAL_POSITIONS);
     expect(result.valid).toBe(false);
     expect(result.errors.length).toBeGreaterThanOrEqual(4);
+  });
+});
+
+// Phase 3 Task 6 spec-fix ("grammar spiral content mismatch"): a reusable,
+// generic content-evidence audit layered ON TOP of validateA2GrammarSpiral's
+// purely structural checks above — proven here against small synthetic
+// forms/lessons first (this describe block), then against the complete real
+// M1-M12 catalog in `modules01to12.test.ts` (the cumulative aggregate).
+describe("auditA2GrammarSpiralEvidence — synthetic forms/lessons", () => {
+  const oneForm: readonly A2GrammarForm[] = [
+    {
+      id: "widget-form",
+      canDoId: "a2-cando-widget",
+      introLessonId: "intro-lesson",
+      controlledPracticeLessonId: "practice-lesson",
+      transferLessonId: "transfer-lesson",
+      recurrenceLessonIds: ["a2-synthesis-1"],
+    },
+  ];
+  const servingFamilies = new Map<string, ReadonlySet<string>>([
+    ["a2-cando-widget", new Set(["a2-family-widget"])],
+  ]);
+
+  function lessonEvidence(
+    variants: readonly GrammarEvidenceLesson["variants"][number][],
+  ): GrammarEvidenceLesson {
+    return { variants };
+  }
+
+  it("reports zero errors when intro/practice/transfer lessons each carry a genuine model AND the transfer lesson also carries a genuine transfer", () => {
+    const evidence = new Map<LessonId, GrammarEvidenceLesson>([
+      ["intro-lesson", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" }])],
+      ["practice-lesson", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" }])],
+      [
+        "transfer-lesson",
+        lessonEvidence([
+          { sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" },
+          { sentenceFamilyId: "a2-family-widget", pedagogicalUse: "transfer" },
+        ]),
+      ],
+    ]);
+    expect(auditA2GrammarSpiralEvidence(oneForm, servingFamilies, evidence)).toEqual({
+      valid: true,
+      errors: [],
+    });
+  });
+
+  it("flags grammar-form-no-role-evidence when a role's own lesson has real content but none of it belongs to a family serving the form's Can-do", () => {
+    const evidence = new Map<LessonId, GrammarEvidenceLesson>([
+      ["intro-lesson", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" }])],
+      ["practice-lesson", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" }])],
+      [
+        "transfer-lesson",
+        lessonEvidence([
+          { sentenceFamilyId: "a2-family-unrelated", pedagogicalUse: "model" },
+          { sentenceFamilyId: "a2-family-unrelated", pedagogicalUse: "transfer" },
+        ]),
+      ],
+    ]);
+    expect(auditA2GrammarSpiralEvidence(oneForm, servingFamilies, evidence)).toEqual({
+      valid: false,
+      errors: [{ code: "grammar-form-no-role-evidence", id: "widget-form:transfer:transfer-lesson" }],
+    });
+  });
+
+  it("flags grammar-form-no-transfer-pedagogical-evidence when the transfer lesson uses the right family only as a MODEL, never as an actual transfer (a walk-on cameo, never the real transfer the spiral promises)", () => {
+    const evidence = new Map<LessonId, GrammarEvidenceLesson>([
+      ["intro-lesson", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" }])],
+      ["practice-lesson", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" }])],
+      [
+        "transfer-lesson",
+        lessonEvidence([
+          { sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" },
+          { sentenceFamilyId: "a2-family-unrelated", pedagogicalUse: "transfer" },
+        ]),
+      ],
+    ]);
+    expect(auditA2GrammarSpiralEvidence(oneForm, servingFamilies, evidence)).toEqual({
+      valid: false,
+      errors: [{ code: "grammar-form-no-transfer-pedagogical-evidence", id: "widget-form:transfer-lesson" }],
+    });
+  });
+
+  it("never counts recipe/support metadata alone — the audit only ever inspects real variants, so an empty-variants lesson always fails even if the caller believes it 'supports' the Can-do", () => {
+    const evidence = new Map<LessonId, GrammarEvidenceLesson>([
+      ["intro-lesson", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" }])],
+      ["practice-lesson", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" }])],
+      ["transfer-lesson", lessonEvidence([])],
+    ]);
+    expect(auditA2GrammarSpiralEvidence(oneForm, servingFamilies, evidence)).toEqual({
+      valid: false,
+      errors: [{ code: "grammar-form-no-role-evidence", id: "widget-form:transfer:transfer-lesson" }],
+    });
+  });
+
+  it("silently skips (never fails) a role lesson the caller has no evidence for — not yet judgeable, exactly like validateA2GrammarSpiral's own unresolved-lesson handling", () => {
+    const evidence = new Map<LessonId, GrammarEvidenceLesson>([
+      ["intro-lesson", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" }])],
+      ["practice-lesson", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" }])],
+      // "transfer-lesson" intentionally has no entry at all (e.g. a future
+      // M13+ lesson not yet built).
+    ]);
+    expect(auditA2GrammarSpiralEvidence(oneForm, servingFamilies, evidence)).toEqual({
+      valid: true,
+      errors: [],
+    });
+  });
+
+  it("never double-reports the same role: zero role-evidence yields exactly one error, never also the transfer-pedagogical one", () => {
+    const evidence = new Map<LessonId, GrammarEvidenceLesson>([
+      ["intro-lesson", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" }])],
+      ["practice-lesson", lessonEvidence([{ sentenceFamilyId: "a2-family-widget", pedagogicalUse: "model" }])],
+      ["transfer-lesson", lessonEvidence([{ sentenceFamilyId: "a2-family-unrelated", pedagogicalUse: "model" }])],
+    ]);
+    const result = auditA2GrammarSpiralEvidence(oneForm, servingFamilies, evidence);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].code).toBe("grammar-form-no-role-evidence");
   });
 });

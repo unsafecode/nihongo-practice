@@ -11,9 +11,13 @@
  * family recurrence) AND comparison (M9 family recurrence) — the corrected
  * true-transfer lesson for compare; tr3 (travel-reservations-3) handles a
  * travel problem (object-compositional), transferring into
- * request-tekudasai/negative-request (M6 family recurrence — reason-node
- * content is deliberately never named as a third support here, since the
- * recipe caps supports at two); tr4 (travel-reservations-4) changes or
+ * request-tekudasai/negative-request (M6 family recurrence) AND carries
+ * genuine reason-node ("node", M4 family) TRUE TRANSFER content (Phase 3
+ * Task 6 spec-fix, "grammar spiral content mismatch" — the grammar
+ * spiral's own reason-node row names this lesson as its transfer, so a
+ * real node-reason travel-problem explanation + polite request now lives
+ * here — still never named as a third support, since the recipe caps
+ * supports at two); tr4 (travel-reservations-4) changes or
  * cancels a reservation (whole-clause bake). Every sentence carries a
  * semantic-ID-only variant; all Japanese/romaji lives in the shared A2
  * semantic-value catalog (`a2SemanticCatalog.ts`) in hiragana/katakana only.
@@ -191,7 +195,8 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
 
 // ---------------------------------------------------------------------------
 // Lesson travel-reservations-3 — Travel problem (tr3), with
-// request-tekudasai/negative-request true recurrence
+// request-tekudasai/negative-request true recurrence AND reason-node true
+// transfer
 // ---------------------------------------------------------------------------
 
 const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
@@ -211,15 +216,28 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     line("travel-reservations-3-m6", "a2-family-request-tekudasai", "a2-value-tekudasai-tasukete", TRAVEL, L("Please help!", "Per favore, aiutatemi!"), { speakerRole: "a2-role-learner" }),
     line("travel-reservations-3-m7", "a2-family-request-tekudasai", "a2-value-tekudasai-tasukete", TRAVEL, L("Excuse me, please help!", "Scusi, mi aiuti!"), { subjectReferent: "a2-referent-clerk", subjectRealization: "vocative", speakerRole: "a2-role-learner" }),
     line("travel-reservations-3-m8", "a2-family-negative-request", "a2-value-naidekudasai-wasureru", TRAVEL, L("Please don't forget your passport.", "Per favore, non dimenticare il passaporto."), { object: "a2-value-obj-pasupooto", speakerRole: "a2-role-teacher" }),
+    // m9: reason-node ("node") TRUE TRANSFER evidence (Phase 3 Task 6
+    // spec-fix, "grammar spiral content mismatch") — the grammar spiral's
+    // own reason-node row names travel-reservations-3 as its TRANSFER
+    // lesson, so this construction must genuinely be available/available-
+    // then-transferred here, exactly like every other recurring grammar
+    // family in this module. Modeled here first (never only transferred),
+    // mirroring every other family in this lesson/module's own precedent.
+    // Never a third named support (see `supportingCanDoIds` above,
+    // unchanged at exactly the canonical two) — content evidence and
+    // recipe-support labeling are deliberately independent (§ "do not count
+    // recipe support alone").
+    line("travel-reservations-3-m9", "a2-family-reason-node", "a2-value-node-pasupooto-nakushita-tasukete", TRAVEL, L("I lost my passport, so please help.", "Ho perso il passaporto, quindi aiutatemi."), { speakerRole: "a2-role-learner" }),
   ],
   // Every transfer recombines an already-modeled predicate with an
   // object/subject pairing not used above, so all 5 transfers stay
-  // visibly novel. Node-reason content is deliberately never named as a
-  // third support here — the recipe caps supports at two — even though
-  // this travel-problem context naturally invites a kara/node explanation;
-  // no such content is authored in this lesson to avoid mislabeling it.
+  // visibly novel. t1 is m9's own reason-node value transferred with a
+  // fresh Sora vocative wrapper (the grammar spiral's real reason-node
+  // TRANSFER evidence) — still never a third named support; travel-problem
+  // itself keeps t2's own transfer, so the primary Can-do's transfer
+  // coverage stays intact too.
   transfers: [
-    line("travel-reservations-3-t1", "a2-family-travel-problem", "a2-value-problem-machigaeru", OUTING, L("Sora made a mistake with the passport.", "Sora ha sbagliato il passaporto."), { object: "a2-value-obj-pasupooto", subjectReferent: "a2-referent-sora", subjectRealization: "explicit", speakerRole: "a2-role-colleague" , form: PAST_AFFIRMATIVE }),
+    line("travel-reservations-3-t1", "a2-family-reason-node", "a2-value-node-pasupooto-nakushita-tasukete", TRAVEL, L("Sora, I lost my passport, so please help.", "Sora, ho perso il passaporto, quindi aiutami."), { subjectReferent: "a2-referent-sora", subjectRealization: "vocative", speakerRole: "a2-role-friend" }),
     line("travel-reservations-3-t2", "a2-family-travel-problem", "a2-value-problem-nakusu", OUTING, L("Emi lost her ticket.", "Emi ha perso il biglietto."), { object: "a2-value-obj-kippu", subjectReferent: "a2-referent-emi", subjectRealization: "explicit", speakerRole: "a2-role-teacher" , form: PAST_AFFIRMATIVE }),
     line("travel-reservations-3-t3", "a2-family-request-tekudasai", "a2-value-tekudasai-tasukete", OUTING, L("Sora, please help!", "Sora, aiutami!"), { subjectReferent: "a2-referent-sora", subjectRealization: "vocative", speakerRole: "a2-role-friend" }),
     line("travel-reservations-3-t4", "a2-family-negative-request", "a2-value-naidekudasai-wasureru", TRAVEL, L("Please don't forget your ticket.", "Per favore, non dimenticare il biglietto."), { object: "a2-value-obj-kippu", speakerRole: "a2-role-colleague" }),

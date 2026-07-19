@@ -229,6 +229,49 @@ describe("A2 Module 10 — exact realized Japanese/rōmaji spot checks", () => {
   });
 });
 
+// Phase 3 Task 6 spec-fix: ha2's reason-kara models m7/m8 (and their t3/t4
+// transfers) carry NO explicit subjectReferent — the omitted subject on a
+// "since ___, you should rest/go to the hospital" advice utterance is
+// naturally read as the ADDRESSEE's own symptom (the person being advised),
+// never the speaker's — so the EN/IT copy must say "your head hurts"/"you
+// have a fever" (IT "ti fa male"/"hai la febbre"), never the first-person
+// "my head hurts"/"I have a fever" (IT "mi fa male"/"ho la febbre") a
+// stale draft had mis-copied.
+describe("A2 Module 10 — health-advice-2 reason-kara second-person addressee copy fidelity (Phase 3 Task 6 spec-fix)", () => {
+  const ha2 = module10Lessons[1];
+
+  it("health-advice-2-m7 says 'your head hurts' (EN)/'ti fa male' (IT), never the first-person 'my head hurts'/'mi fa male'", () => {
+    expect(ha2.en["health-advice-2-m7-translation"]).toBe("Since your head hurts, you should rest.");
+    expect(ha2.it["health-advice-2-m7-translation"]).toBe("Siccome ti fa male la testa, dovresti riposare.");
+  });
+
+  it("health-advice-2-m8 says 'you have a fever' (EN)/'hai la febbre' (IT), never the first-person 'I have a fever'/'ho la febbre'", () => {
+    expect(ha2.en["health-advice-2-m8-translation"]).toBe("Since you have a fever, you should go to the hospital.");
+    expect(ha2.it["health-advice-2-m8-translation"]).toBe("Siccome hai la febbre, dovresti andare in ospedale.");
+  });
+
+  it("health-advice-2-t3 (Sora vocative) says 'your head hurts' (EN)/'ti fa male' (IT), never the first-person 'my head hurts'/'mi fa male'", () => {
+    expect(ha2.en["health-advice-2-t3-translation"]).toBe("Sora, since your head hurts, you should rest.");
+    expect(ha2.it["health-advice-2-t3-translation"]).toBe("Sora, siccome ti fa male la testa, dovresti riposare.");
+  });
+
+  it("health-advice-2-t4 (Emi vocative) says 'you have a fever' (EN)/'hai la febbre' (IT), never the first-person 'I have a fever'/'ho la febbre'", () => {
+    expect(ha2.en["health-advice-2-t4-translation"]).toBe("Emi, since you have a fever, you should go to the hospital.");
+    expect(ha2.it["health-advice-2-t4-translation"]).toBe("Emi, siccome hai la febbre, dovresti andare in ospedale.");
+  });
+
+  it("never uses the mis-copied first-person EN/IT possessive+verb pairs in m7/m8/t3/t4", () => {
+    for (const id of ["health-advice-2-m7", "health-advice-2-m8", "health-advice-2-t3", "health-advice-2-t4"]) {
+      const en = ha2.en[`${id}-translation`];
+      const it = ha2.it[`${id}-translation`];
+      expect(en, id).not.toMatch(/\bmy head hurts\b/i);
+      expect(en, id).not.toMatch(/\bI have a fever\b/i);
+      expect(it, id).not.toMatch(/mi fa male/i);
+      expect(it, id).not.toMatch(/\bho la febbre\b/i);
+    }
+  });
+});
+
 describe("A2 Module 10 — bilingual copy coverage", () => {
   it("every model+transfer variant has an EN and IT translation entry", () => {
     for (const built of module10Lessons) {

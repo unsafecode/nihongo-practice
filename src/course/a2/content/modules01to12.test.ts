@@ -49,6 +49,11 @@ import {
   a2SharedCopy,
 } from "../catalog/a2SemanticCatalog";
 import { A2_CANONICAL_POSITIONS, A2_MODULE_MANIFEST } from "../manifest";
+import { A2_GRAMMAR_SPIRAL } from "../forms/grammarSpiral";
+import {
+  auditA2GrammarSpiralEvidence,
+  type GrammarEvidenceLesson,
+} from "../forms/validateA2GrammarSpiral";
 import { module1Lessons } from "./module01ConnectedConversation";
 import { module2Lessons } from "./module02PlansInvitations";
 import { module3Lessons } from "./module03ExperiencesNarratives";
@@ -1020,5 +1025,80 @@ describe("A2 M1-M12 aggregate — no new dead values/families (Phase 3 Task 6)",
         expect(famIds.has(variant.sentenceFamilyId), `${variant.id} -> ${variant.sentenceFamilyId}`).toBe(true);
       }
     }
+  });
+});
+
+// Phase 3 Task 6 spec-fix ("grammar spiral content mismatch"): closes the
+// gap where `A2_GRAMMAR_SPIRAL`'s own lesson-id references could silently
+// drift from the real content those lessons actually authored —
+// `validateA2GrammarSpiral` above only ever proves a role's lesson id
+// resolves to a real, correctly-ordered lesson; it never opens that
+// lesson's own models/transfers. `reason-node`'s own `transferLessonId`
+// named `travel-reservations-3`, a lesson that (correctly, by its own
+// recipe) never named reason-node as a third support — but the spiral row
+// still claimed it as reason-node's TRUE TRANSFER lesson, and nothing ever
+// verified that lesson's own content backed that claim up. It didn't: zero
+// `a2-family-reason-node` content existed there at all.
+//
+// `auditA2GrammarSpiralEvidence` (a reusable, generic function — proven
+// against synthetic data in `validateA2GrammarSpiral.test.ts`) is run here
+// against the COMPLETE real M1-M12 catalog and all 15 grammar-spiral rows
+// (not scoped to reason-node alone). Two pre-existing forms
+// (`recognize-plain-forms`/`connectors`, both M1-M4/Task-4 content) share a
+// transfer lesson (`experiences-narratives-2`) that serves them only
+// through that lesson's own `a2-family-narrate-order` whole-clause values
+// (never their own dedicated family), and `reason-kara`'s own
+// `controlledPracticeLessonId` (`reasons-opinions-4`, also M1-M4/Task-4
+// content) never carries `a2-family-reason-kara` content either — both
+// pre-existing, out of THIS task's M9-M12 scope, and deliberately left
+// untouched here (fixing M1-M8 authored content is unrelated to the Task 6
+// M9-M12 dense-content work this file's own docstring describes) rather
+// than silently ignored: this pinned list IS the audit's full, honest
+// output, so any *new* regression anywhere else in the whole M1-M12 catalog
+// immediately fails this test.
+describe("A2 M1-M12 aggregate — grammar-spiral CONTENT-evidence audit (Phase 3 Task 6 spec-fix, closes the reason-node/travel-reservations-3 content mismatch)", () => {
+  const canDoToServingFamilies = new Map<string, Set<string>>();
+  for (const family of a2SentenceFamilies) {
+    for (const canDoId of family.canDoIds) {
+      if (!canDoToServingFamilies.has(canDoId)) canDoToServingFamilies.set(canDoId, new Set());
+      canDoToServingFamilies.get(canDoId)!.add(family.id);
+    }
+  }
+
+  const evidenceByLessonId = new Map<string, GrammarEvidenceLesson>(
+    allBuiltLessons.map((built) => [
+      built.recipe.id,
+      {
+        variants: built.variants.map((v) => ({
+          sentenceFamilyId: v.sentenceFamilyId,
+          pedagogicalUse: v.pedagogicalUse,
+        })),
+      },
+    ]),
+  );
+
+  function sortedErrors(errors: readonly { code: string; id: string }[]) {
+    return [...errors].sort((a, b) => a.id.localeCompare(b.id));
+  }
+
+  it("reason-node's real TRANSFER role (travel-reservations-3) now carries genuine a2-family-reason-node evidence — no error for it anywhere in the audit output", () => {
+    const result = auditA2GrammarSpiralEvidence(A2_GRAMMAR_SPIRAL, canDoToServingFamilies, evidenceByLessonId);
+    expect(result.errors.some((e) => e.id.startsWith("reason-node:"))).toBe(false);
+  });
+
+  it("the audit's complete output across all 15 grammar-spiral rows is EXACTLY the known, pre-existing, out-of-M9-M12-scope M1-M8 debt — never a new/wider regression", () => {
+    const result = auditA2GrammarSpiralEvidence(A2_GRAMMAR_SPIRAL, canDoToServingFamilies, evidenceByLessonId);
+    const KNOWN_PRE_EXISTING_M1_M8_DEBT = sortedErrors([
+      // recognize-plain-forms/connectors both transfer at experiences-narratives-2
+      // (M3, Task 4), which serves them only through its own
+      // a2-family-narrate-order whole-clause content, never their own
+      // dedicated family.
+      { code: "grammar-form-no-role-evidence", id: "recognize-plain-forms:transfer:experiences-narratives-2" },
+      { code: "grammar-form-no-role-evidence", id: "connectors:transfer:experiences-narratives-2" },
+      // reason-kara's own controlled-practice lesson (reasons-opinions-4,
+      // M4, Task 4) never carries a2-family-reason-kara content.
+      { code: "grammar-form-no-role-evidence", id: "reason-kara:practice:reasons-opinions-4" },
+    ]);
+    expect(sortedErrors(result.errors)).toEqual(KNOWN_PRE_EXISTING_M1_M8_DEBT);
   });
 });

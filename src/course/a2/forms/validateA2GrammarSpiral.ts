@@ -95,3 +95,106 @@ export function validateA2GrammarSpiral(
 
   return { valid: errors.length === 0, errors };
 }
+
+// ---------------------------------------------------------------------------
+// Content-evidence audit (Phase 3 Task 6 spec-fix, "grammar spiral content
+// mismatch") — a layer ON TOP OF the purely structural checks above.
+// ---------------------------------------------------------------------------
+
+/** Runtime-checkable tuple of every error code {@link auditA2GrammarSpiralEvidence} can raise. */
+export const A2_GRAMMAR_EVIDENCE_ERROR_CODES = [
+  "grammar-form-no-role-evidence",
+  "grammar-form-no-transfer-pedagogical-evidence",
+] as const;
+
+export type GrammarEvidenceErrorCode = (typeof A2_GRAMMAR_EVIDENCE_ERROR_CODES)[number];
+
+export interface GrammarEvidenceError {
+  readonly code: GrammarEvidenceErrorCode;
+  readonly id: string;
+}
+
+export interface GrammarEvidenceResult {
+  readonly valid: boolean;
+  readonly errors: readonly GrammarEvidenceError[];
+}
+
+/** Minimal shape this audit needs from a real, already-realized lesson
+ * variant — just enough to know which sentence family it uses and whether
+ * it is a `"model"` or a `"transfer"`. Kept structural/generic (never a
+ * `SentenceVariant` import) so this stays a pure, reusable, level-agnostic
+ * audit layer, exactly like {@link validateA2GrammarSpiral} itself. */
+export interface GrammarEvidenceVariant {
+  readonly sentenceFamilyId: string;
+  readonly pedagogicalUse: string;
+}
+
+/** One real lesson's full set of authored model/transfer variants, keyed by
+ * the caller under its own `LessonId` in the `evidenceByLessonId` map passed
+ * to {@link auditA2GrammarSpiralEvidence}. */
+export interface GrammarEvidenceLesson {
+  readonly variants: readonly GrammarEvidenceVariant[];
+}
+
+const GRAMMAR_EVIDENCE_ROLES = ["intro", "practice", "transfer"] as const;
+type GrammarEvidenceRole = (typeof GRAMMAR_EVIDENCE_ROLES)[number];
+
+function roleLessonId(form: A2GrammarForm, role: GrammarEvidenceRole): LessonId {
+  if (role === "intro") return form.introLessonId;
+  if (role === "practice") return form.controlledPracticeLessonId;
+  return form.transferLessonId;
+}
+
+/**
+ * Content-evidence audit (Phase 3 Task 6 spec-fix, "grammar spiral content
+ * mismatch"): {@link validateA2GrammarSpiral} only ever proves a role's
+ * lesson id *resolves* to a real, correctly-ordered lesson — it never opens
+ * that lesson's own authored content, so a grammar-spiral row can silently
+ * drift from the real construction it claims to teach. This is exactly what
+ * happened: `reason-node`'s own `transferLessonId` names
+ * `travel-reservations-3`, a lesson whose own authored models/transfers
+ * never once used the `a2-family-reason-node` family, even though the
+ * spiral claims that lesson is where reason-node genuinely transfers.
+ *
+ * For every form/role whose lesson the caller supplies real evidence for
+ * (`evidenceByLessonId` — a role lesson outside the caller's currently built
+ * scope, e.g. a future M13+ lesson, is silently skipped: not yet judgeable,
+ * exactly like {@link validateA2GrammarSpiral}'s own `resolvePosition`
+ * treats an unresolvable id), this verifies the lesson's own authored
+ * variants — never `recipe.primaryCanDoId`/`supportingCanDoIds`
+ * declarations alone, which are hand-authored labels that can drift exactly
+ * like the lesson-id reference itself already did — contain at least one
+ * MODEL or TRANSFER variant whose sentence family genuinely serves the
+ * form's own Can-do (per `servingFamiliesByCanDoId`, derived from the real,
+ * frozen `SentenceFamily.canDoIds`). Since a role's own *transfer* lesson
+ * specifically promises a freer-task TRANSFER of the construction — never
+ * just a walk-on model cameo — this additionally requires at least one of
+ * those matching variants to itself be pedagogically a `"transfer"`.
+ */
+export function auditA2GrammarSpiralEvidence(
+  forms: readonly A2GrammarForm[],
+  servingFamiliesByCanDoId: ReadonlyMap<string, ReadonlySet<string>>,
+  evidenceByLessonId: ReadonlyMap<LessonId, GrammarEvidenceLesson>,
+): GrammarEvidenceResult {
+  const errors: GrammarEvidenceError[] = [];
+
+  for (const form of forms) {
+    const servingFamilies = servingFamiliesByCanDoId.get(form.canDoId) ?? new Set<string>();
+    for (const role of GRAMMAR_EVIDENCE_ROLES) {
+      const lessonId = roleLessonId(form, role);
+      const lesson = evidenceByLessonId.get(lessonId);
+      if (!lesson) continue; // outside the caller's currently-built scope — not yet judgeable
+
+      const matching = lesson.variants.filter((v) => servingFamilies.has(v.sentenceFamilyId));
+      if (matching.length === 0) {
+        errors.push({ code: "grammar-form-no-role-evidence", id: `${form.id}:${role}:${lessonId}` });
+        continue;
+      }
+      if (role === "transfer" && !matching.some((v) => v.pedagogicalUse === "transfer")) {
+        errors.push({ code: "grammar-form-no-transfer-pedagogical-evidence", id: `${form.id}:${lessonId}` });
+      }
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
+}

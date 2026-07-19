@@ -139,8 +139,8 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
     line("health-advice-2-m4", "a2-family-tahouga-advice", "a2-value-tahouga-hayaku-neru", AMONG_FRIENDS, L("Emi, you should go to bed early.", "Emi, dovresti andare a letto presto."), { subjectReferent: "a2-referent-emi", subjectRealization: "vocative", speakerRole: "a2-role-colleague" }),
     line("health-advice-2-m5", "a2-family-tahouga-advice", "a2-value-tahouga-yasumu", AMONG_FRIENDS, L("Sora, you should rest.", "Sora, dovresti riposare."), { subjectReferent: "a2-referent-sora", subjectRealization: "vocative", speakerRole: "a2-role-learner" }),
     line("health-advice-2-m6", "a2-family-tahouga-advice", "a2-value-tahouga-byouin", AMONG_FRIENDS, L("Emi, you should go to the hospital.", "Emi, dovresti andare in ospedale."), { subjectReferent: "a2-referent-emi", subjectRealization: "vocative", speakerRole: "a2-role-learner" }),
-    line("health-advice-2-m7", "a2-family-reason-kara", "a2-value-kara-atama-yasumu", HEALTH, L("Since my head hurts, you should rest.", "Siccome mi fa male la testa, dovresti riposare."), { speakerRole: "a2-role-teacher" }),
-    line("health-advice-2-m8", "a2-family-reason-kara", "a2-value-kara-netsu-byouin", HEALTH, L("Since I have a fever, you should go to the hospital.", "Siccome ho la febbre, dovresti andare in ospedale."), { speakerRole: "a2-role-colleague" }),
+    line("health-advice-2-m7", "a2-family-reason-kara", "a2-value-kara-atama-yasumu", HEALTH, L("Since your head hurts, you should rest.", "Siccome ti fa male la testa, dovresti riposare."), { speakerRole: "a2-role-teacher" }),
+    line("health-advice-2-m8", "a2-family-reason-kara", "a2-value-kara-netsu-byouin", HEALTH, L("Since you have a fever, you should go to the hospital.", "Siccome hai la febbre, dovresti andare in ospedale."), { speakerRole: "a2-role-colleague" }),
   ],
   // Every transfer recombines an already-modeled predicate with a
   // vocative/subject pairing not used above, so all 5 transfers stay
@@ -148,8 +148,8 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
   transfers: [
     line("health-advice-2-t1", "a2-family-tahouga-advice", "a2-value-tahouga-kusuri", AMONG_FRIENDS, L("Sora, you should take medicine.", "Sora, dovresti prendere la medicina."), { subjectReferent: "a2-referent-sora", subjectRealization: "vocative", speakerRole: "a2-role-friend" }),
     line("health-advice-2-t2", "a2-family-tahouga-advice", "a2-value-tahouga-yasumu", AMONG_FRIENDS, L("Emi, you should rest.", "Emi, dovresti riposare."), { subjectReferent: "a2-referent-emi", subjectRealization: "vocative", speakerRole: "a2-role-teacher" }),
-    line("health-advice-2-t3", "a2-family-reason-kara", "a2-value-kara-atama-yasumu", AMONG_FRIENDS, L("Sora, since my head hurts, you should rest.", "Sora, siccome mi fa male la testa, dovresti riposare."), { subjectReferent: "a2-referent-sora", subjectRealization: "vocative", speakerRole: "a2-role-learner" }),
-    line("health-advice-2-t4", "a2-family-reason-kara", "a2-value-kara-netsu-byouin", AMONG_FRIENDS, L("Emi, since I have a fever, you should go to the hospital.", "Emi, siccome ho la febbre, dovresti andare in ospedale."), { subjectReferent: "a2-referent-emi", subjectRealization: "vocative", speakerRole: "a2-role-learner" }),
+    line("health-advice-2-t3", "a2-family-reason-kara", "a2-value-kara-atama-yasumu", AMONG_FRIENDS, L("Sora, since your head hurts, you should rest.", "Sora, siccome ti fa male la testa, dovresti riposare."), { subjectReferent: "a2-referent-sora", subjectRealization: "vocative", speakerRole: "a2-role-learner" }),
+    line("health-advice-2-t4", "a2-family-reason-kara", "a2-value-kara-netsu-byouin", AMONG_FRIENDS, L("Emi, since you have a fever, you should go to the hospital.", "Emi, siccome hai la febbre, dovresti andare in ospedale."), { subjectReferent: "a2-referent-emi", subjectRealization: "vocative", speakerRole: "a2-role-learner" }),
     line("health-advice-2-t5", "a2-family-tahouga-advice", "a2-value-tahouga-hayaku-neru", AMONG_FRIENDS, L("Sora, you should go to bed early.", "Sora, dovresti andare a letto presto."), { subjectReferent: "a2-referent-sora", subjectRealization: "vocative", speakerRole: "a2-role-colleague" }),
   ],
 });

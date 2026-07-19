@@ -199,17 +199,76 @@ describe("A2 Module 12 — tr2's compositional travel-arrival family (genuine tr
   });
 });
 
-describe("A2 Module 12 — tr3's supports cap: never a third (mislabeled) reason-node support", () => {
-  it("declares exactly 2 supporting Can-dos (request-tekudasai, negative-request), never reason-node", () => {
+describe("A2 Module 12 — tr3's supports cap: reason-node TRANSFER evidence without a mislabeled third support (Phase 3 Task 6 spec-fix)", () => {
+  it("declares exactly 2 supporting Can-dos (request-tekudasai, negative-request), never reason-node — the grammar spiral's reason-node TRANSFER role points here too, but that is content evidence, never a recipe label", () => {
     const tr3 = module12Lessons[2];
     expect(tr3.recipe.supportingCanDoIds).toEqual(["a2-cando-request-tekudasai", "a2-cando-negative-request"]);
     expect(tr3.recipe.supportingCanDoIds).not.toContain("a2-cando-reason-node");
+    expect(tr3.recipe.primaryCanDoId).not.toBe("a2-cando-reason-node");
   });
 
-  it("tr3 never references a2-family-reason-node at all (no mislabeled/uncredited node content)", () => {
+  it("tr3 models at least one a2-family-reason-node value — the construction is genuinely available here, not merely referenced by the grammar spiral", () => {
     const tr3 = module12Lessons[2];
-    const families = new Set(tr3.variants.map((v) => v.sentenceFamilyId));
-    expect(families.has("a2-family-reason-node")).toBe(false);
+    const models = tr3.variants.filter((v) => v.pedagogicalUse === "model");
+    expect(models.some((v) => v.sentenceFamilyId === "a2-family-reason-node")).toBe(true);
+  });
+
+  it("tr3 has at least one visibly-novel TRANSFER using a2-family-reason-node — the grammar spiral's real transfer evidence, decoupled from the (unchanged, still exactly 2) recipe support cap", () => {
+    const tr3 = module12Lessons[2];
+    const models = tr3.variants.filter((v) => v.pedagogicalUse === "model");
+    const transfers = tr3.variants.filter((v) => v.pedagogicalUse === "transfer");
+    const nodeTransfers = transfers.filter((v) => v.sentenceFamilyId === "a2-family-reason-node");
+    expect(nodeTransfers.length).toBeGreaterThanOrEqual(1);
+
+    // "visibly novel" (I2, the same standard every other transfer in this
+    // file is held to): a node transfer may never repeat a model's own
+    // semantic fingerprint/visible target.
+    const modelSentences = models.map(realize);
+    const modelFingerprints = new Set(modelSentences.map((s) => s.semanticFingerprint));
+    const modelVisibleTargets = new Set(modelSentences.map((s) => s.visibleTargetKey));
+    for (const t of nodeTransfers) {
+      const sentence = realize(t);
+      expect(modelFingerprints.has(sentence.semanticFingerprint), t.id).toBe(false);
+      expect(modelVisibleTargets.has(sentence.visibleTargetKey), t.id).toBe(false);
+    }
+  });
+
+  it("tr3's node model/transfer realize the exact natural ので travel-problem explanation + polite request/help clause", () => {
+    const tr3 = module12Lessons[2];
+    const nodeModel = tr3.variants.find(
+      (v) => v.pedagogicalUse === "model" && v.sentenceFamilyId === "a2-family-reason-node",
+    );
+    const nodeTransfer = tr3.variants.find(
+      (v) => v.pedagogicalUse === "transfer" && v.sentenceFamilyId === "a2-family-reason-node",
+    );
+    expect(nodeModel, "tr3 node model").toBeDefined();
+    expect(nodeTransfer, "tr3 node transfer").toBeDefined();
+
+    const modelSentence = realize(nodeModel as SentenceVariant);
+    expect(modelSentence.canonicalJapanese).toBe("パスポートをなくしたので、たすけてください");
+    const modelRomaji = formatRomaji(modelSentence.tokens);
+    expect(modelRomaji.ok).toBe(true);
+    if (!modelRomaji.ok) throw new Error("unreachable");
+    expect(modelRomaji.text).toBe("pasupooto o nakushita node, tasukete kudasai");
+    expect(modelRomaji.text).not.toContain("nakushitanode");
+    expect(modelRomaji.text).not.toContain("nodetasukete");
+
+    const transferSentence = realize(nodeTransfer as SentenceVariant);
+    expect(transferSentence.canonicalJapanese).toBe("そらさん、パスポートをなくしたので、たすけてください");
+    const transferRomaji = formatRomaji(transferSentence.tokens);
+    expect(transferRomaji.ok).toBe(true);
+    if (!transferRomaji.ok) throw new Error("unreachable");
+    expect(transferRomaji.text).toBe("sora san, pasupooto o nakushita node, tasukete kudasai");
+  });
+
+  it("still keeps request-tekudasai/negative-request/travel-problem transfer coverage intact after the node rebalance", () => {
+    const tr3 = module12Lessons[2];
+    const transfers = tr3.variants.filter((v) => v.pedagogicalUse === "transfer");
+    const families = new Set(transfers.map((v) => v.sentenceFamilyId));
+    expect(families.has("a2-family-travel-problem")).toBe(true);
+    expect(families.has("a2-family-request-tekudasai")).toBe(true);
+    expect(families.has("a2-family-negative-request")).toBe(true);
+    expect(transfers.length).toBe(5);
   });
 });
 
