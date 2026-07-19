@@ -207,7 +207,7 @@ const lesson4: A2BuiltLesson = buildA2InstructionalLesson({
   models: [
     line("practical-texts-4-m1", "a2-family-fill-form", "a2-value-form-namae", NOTICES, L("Name: Tanaka.", "Nome: Tanaka."), { speakerRole: "a2-role-learner" }),
     line("practical-texts-4-m2", "a2-family-fill-form", "a2-value-form-denwabangou", NOTICES, L("Phone number: 090.", "Numero di telefono: 090."), { speakerRole: "a2-role-friend" }),
-    line("practical-texts-4-m3", "a2-family-fill-form", "a2-value-form-seinengappi", NOTICES, L("Birthday: March 5th.", "Data di nascita: 5 marzo."), { speakerRole: "a2-role-colleague" }),
+    line("practical-texts-4-m3", "a2-family-fill-form", "a2-value-form-seinengappi", NOTICES, L("Birthday: March 5th.", "Compleanno: 5 marzo."), { speakerRole: "a2-role-colleague" }),
     line("practical-texts-4-m4", "a2-family-fill-form", "a2-value-form-jikan", NOTICES, L("Time: 2:30pm.", "Ora: le 2:30 del pomeriggio."), { speakerRole: "a2-role-teacher" }),
     line("practical-texts-4-m5", "a2-family-fill-form", "a2-value-form-ninzuu", NOTICES, L("Number of people: two.", "Numero di persone: due."), { speakerRole: "a2-role-learner" }),
     line("practical-texts-4-m6", "a2-family-fill-form", "a2-value-form-shusseki-youbi", NOTICES, L("Attendance day: Saturday.", "Giorno di partecipazione: sabato."), { speakerRole: "a2-role-friend" }),
@@ -220,7 +220,7 @@ const lesson4: A2BuiltLesson = buildA2InstructionalLesson({
   transfers: [
     line("practical-texts-4-t1", "a2-family-fill-form", "a2-value-form-namae", WORKPLACE, L("Is the name Tanaka?", "Il nome è Tanaka?"), { speakerRole: "a2-role-learner", interrogative: true }),
     line("practical-texts-4-t2", "a2-family-fill-form", "a2-value-form-denwabangou", WORKPLACE, L("Is the phone number 090?", "Il numero di telefono è 090?"), { speakerRole: "a2-role-friend", interrogative: true }),
-    line("practical-texts-4-t3", "a2-family-fill-form", "a2-value-form-seinengappi", WORKPLACE, L("Is the birthday March 5th?", "La data di nascita è il 5 marzo?"), { speakerRole: "a2-role-colleague", interrogative: true }),
+    line("practical-texts-4-t3", "a2-family-fill-form", "a2-value-form-seinengappi", WORKPLACE, L("Is the birthday March 5th?", "Il compleanno è il 5 marzo?"), { speakerRole: "a2-role-colleague", interrogative: true }),
     line("practical-texts-4-t4", "a2-family-fill-form", "a2-value-form-jikan", NOTICES, L("Is the time 2:30pm?", "L'ora è le 2:30 del pomeriggio?"), { speakerRole: "a2-role-teacher", interrogative: true }),
     line("practical-texts-4-t5", "a2-family-fill-form", "a2-value-form-ninzuu", NOTICES, L("Is the number of people two?", "Il numero di persone è due?"), { speakerRole: "a2-role-friend", interrogative: true }),
   ],

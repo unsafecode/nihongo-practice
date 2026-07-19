@@ -107,4 +107,45 @@ describe("A2 realized-content integrity — no double top-level topic (finding B
     }
     expect(dishonest, dishonest.join("\n")).toEqual([]);
   });
+
+  it("every whole-clause predicate-sense value that opens with a top-level topic AND contains an internal sentence boundary is marked carriesOwnTopic (mandatory-flag gate; excludes single-clause embedded opinion frames)", () => {
+    // The complementary, forward direction of finding B: rather than only
+    // rejecting an explicit subject over an already-flagged value, this
+    // proves every value that is STRUCTURALLY a self-contained multi-clause
+    // utterance opening with its own top-level topic は (a weather report,
+    // a contrast/sequence connector like `きょうは…です。でも、…`) actually
+    // carries the flag — so a future authoring omission fails closed instead
+    // of silently re-admitting a double-topic answer key.
+    //
+    // The gate is deliberately anchored to real clause structure, never a
+    // naive は count: it fires ONLY when BOTH (a) the value opens with a
+    // top-level topic — its first fragment is a baked `…は` noun-topic, or a
+    // bare noun immediately followed by a standalone は particle — AND (b) it
+    // contains an INTERNAL sentence boundary (a 。 that is not the final
+    // fragment), i.e. it is genuinely two independent clauses. This cleanly
+    // EXCLUDES legitimate single-clause embedded opinion frames
+    // (`これはいいとおもいます`, `わたしはそうおもいません`) and topic-fronted
+    // questions (`びょういんはどこですか`), which are one clause with no
+    // internal boundary and are never double-topic hazards.
+    const opensWithTopLevelTopic = (fragments: SemanticValue["tokenFragments"]): boolean => {
+      if (fragments.length === 0) return false;
+      const first = fragments[0];
+      if (first.jp.length > 1 && first.jp.endsWith("は")) return true;
+      const second = fragments[1];
+      return second !== undefined && second.jp === "は" && second.kind === "particle";
+    };
+    const hasInternalSentenceBoundary = (fragments: SemanticValue["tokenFragments"]): boolean =>
+      fragments.some((f, i) => i < fragments.length - 1 && f.kind === "punctuation" && f.jp === "。");
+
+    const unmarked: string[] = [];
+    for (const value of a2SemanticValues) {
+      if (value.kind !== "predicate-sense") continue;
+      if (!opensWithTopLevelTopic(value.tokenFragments)) continue;
+      if (!hasInternalSentenceBoundary(value.tokenFragments)) continue;
+      if (value.carriesOwnTopic !== true) {
+        unmarked.push(`${value.id}: ${value.tokenFragments.map((f) => f.jp).join("")}`);
+      }
+    }
+    expect(unmarked, unmarked.join("\n")).toEqual([]);
+  });
 });

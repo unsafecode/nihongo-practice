@@ -256,3 +256,88 @@ describe("A2 Module 15 — bilingual copy coverage", () => {
     }
   });
 });
+
+describe("A2 Module 15 — linguistic-fidelity regressions (Task 7 quality pass)", () => {
+  const byId = new Map<string, SentenceVariant>();
+  const enById = new Map<string, string>();
+  const itById = new Map<string, string>();
+  for (const built of module15Lessons) {
+    for (const variant of built.variants) {
+      byId.set(variant.id, variant);
+      enById.set(variant.id, built.en[`${variant.id}-translation`] ?? "");
+      itById.set(variant.id, built.it[`${variant.id}-translation`] ?? "");
+    }
+  }
+  const realizedJp = (id: string) => realize(byId.get(id) as SentenceVariant).canonicalJapanese;
+  const terminalKaCount = (jp: string) => (jp.match(/か+$/)?.[0].length ?? 0);
+
+  describe("I1 — M15 permission-temoii lines are real permission QUESTIONS, not permission-granted statements", () => {
+    it("a2-synthesis-2-m2 realizes as これをたべてもいいですか (interrogative, single terminal か, object これ present)", () => {
+      const variant = byId.get("a2-synthesis-2-m2") as SentenceVariant;
+      expect(variant.slotValues.object, "object slot").toBe("a2-value-obj-kore-m6");
+      const jp = realizedJp("a2-synthesis-2-m2");
+      expect(jp).toBe("これをたべてもいいですか");
+      expect(jp.startsWith("これを"), "object leads the clause").toBe(true);
+      expect(jp.endsWith("か"), "terminal question particle").toBe(true);
+      expect(terminalKaCount(jp), "no duplicated terminal か").toBe(1);
+      expect(enById.get("a2-synthesis-2-m2")).toMatch(/^May I eat this\?$/);
+      expect(itById.get("a2-synthesis-2-m2")).toMatch(/^Posso mangiare questo\?$/);
+    });
+
+    it("a2-synthesis-2-t2 realizes as みずをのんでもいいですか (interrogative, single terminal か, object みず present)", () => {
+      const variant = byId.get("a2-synthesis-2-t2") as SentenceVariant;
+      expect(variant.slotValues.object, "object slot").toBe("a2-value-obj-mizu");
+      const jp = realizedJp("a2-synthesis-2-t2");
+      expect(jp).toBe("みずをのんでもいいですか");
+      expect(jp.startsWith("みずを"), "object leads the clause").toBe(true);
+      expect(jp.endsWith("か"), "terminal question particle").toBe(true);
+      expect(terminalKaCount(jp), "no duplicated terminal か").toBe(1);
+      expect(enById.get("a2-synthesis-2-t2")).toMatch(/^May I drink water\?$/);
+      expect(itById.get("a2-synthesis-2-t2")).toMatch(/^Posso bere l'acqua\?$/);
+    });
+
+    it("neither permission-temoii gloss still uses the awkward 'try (eat/drink)' / 'assaggiar' phrasing", () => {
+      for (const id of ["a2-synthesis-2-m2", "a2-synthesis-2-t2"]) {
+        expect(enById.get(id), `${id} en`).not.toMatch(/try/i);
+        expect(itById.get(id), `${id} it`).not.toMatch(/assaggi/i);
+      }
+    });
+  });
+
+  describe("M3 — M15 s1 glosses carry every content word the Japanese realizes", () => {
+    it("a2-synthesis-1-m2 gloss includes 'this weekend' (こんしゅうのしゅうまつ) in EN and IT", () => {
+      expect(realizedJp("a2-synthesis-1-m2")).toContain("こんしゅうのしゅうまつ");
+      expect(enById.get("a2-synthesis-1-m2")).toMatch(/this weekend/i);
+      expect(itById.get("a2-synthesis-1-m2")).toMatch(/questo weekend|questo fine settimana/i);
+    });
+
+    it("a2-synthesis-1-m7 gloss includes 'at the sea' (うみで) in EN and IT", () => {
+      expect(realizedJp("a2-synthesis-1-m7")).toContain("うみで");
+      expect(enById.get("a2-synthesis-1-m7")).toMatch(/at the sea|in the sea/i);
+      expect(itById.get("a2-synthesis-1-m7")).toMatch(/al mare|nel mare/i);
+    });
+
+    it("a2-synthesis-1-t1 gloss includes 'weekend' (しゅうまつ) in EN and IT", () => {
+      expect(realizedJp("a2-synthesis-1-t1")).toContain("しゅうまつ");
+      expect(enById.get("a2-synthesis-1-t1")).toMatch(/weekend/i);
+      expect(itById.get("a2-synthesis-1-t1")).toMatch(/weekend|fine settimana/i);
+    });
+  });
+
+  describe("M4 — M15 s3 m6 makes no say/report claim the Japanese never states", () => {
+    it("a2-synthesis-3-m6 gloss has no reporting verb (says/dice che) and matches the delayed-train proposition", () => {
+      expect(realizedJp("a2-synthesis-3-m6")).toBe("ともだちはでんしゃがおくれていますから、すこしおくれます");
+      const en = enById.get("a2-synthesis-3-m6") ?? "";
+      const it = itById.get("a2-synthesis-3-m6") ?? "";
+      expect(en, "no reporting verb in EN").not.toMatch(/\bsays?\b|\btells?\b|\bsaid\b/i);
+      expect(it, "no reporting verb in IT").not.toMatch(/\bdice\b|\bdicono\b|\bdetto\b/i);
+      expect(en).toMatch(/friend/i);
+      expect(en).toMatch(/late/i);
+      expect(en).toMatch(/train/i);
+      expect(en).toMatch(/delay/i);
+      expect(it).toMatch(/amico/i);
+      expect(it).toMatch(/treno/i);
+      expect(it).toMatch(/ritardo|tardi/i);
+    });
+  });
+});

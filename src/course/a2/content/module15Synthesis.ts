@@ -109,19 +109,19 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
   introducedSenseIds: [],
   models: [
     line("a2-synthesis-1-m1", "a2-family-plan-yotei", "a2-value-yotei-iku-kyouto", OUTING, L("I'm planning to go to Kyoto.", "Ho in programma di andare a Kyoto."), { speakerRole: "a2-role-learner" }),
-    line("a2-synthesis-1-m2", "a2-family-plan-tsumori", "a2-value-tsumori-au-tomodachi", OUTING, L("I intend to meet a friend.", "Ho intenzione di incontrare un amico."), { speakerRole: "a2-role-friend" }),
+    line("a2-synthesis-1-m2", "a2-family-plan-tsumori", "a2-value-tsumori-au-tomodachi", OUTING, L("I intend to meet a friend this weekend.", "Ho intenzione di incontrare un amico questo weekend."), { speakerRole: "a2-role-friend" }),
     line("a2-synthesis-1-m3", "a2-family-connector-utterance", "a2-value-connector-ame-demo-dekakeru", PLANS, L("It's raining, but I'll go out.", "Piove, ma esco lo stesso."), { speakerRole: "a2-role-colleague" }),
     line("a2-synthesis-1-m4", "a2-family-connector-utterance", "a2-value-connector-shigoto-sorekara-kaeru", PLANS, L("Work finished. Then, I went home.", "Il lavoro è finito. Poi sono tornato a casa."), { speakerRole: "a2-role-teacher" }),
     line("a2-synthesis-1-m5", "a2-family-plain-recognition", "a2-value-plain-iku-dict", OUTING, L("(casual speech) go", "(discorso informale) andare"), { speakerRole: "a2-role-learner" }),
     line("a2-synthesis-1-m6", "a2-family-plain-recognition", "a2-value-plain-taberu-past", OUTING, L("(casual speech) ate", "(discorso informale) ho mangiato"), { speakerRole: "a2-role-friend" }),
-    line("a2-synthesis-1-m7", "a2-family-plan-yotei", "a2-value-yotei-oyogu-shuumatsu", OUTING, L("Sora is planning to swim this weekend.", "Sora ha in programma di nuotare questo weekend."), { subjectValueId: "a2-value-sora", speakerRole: "a2-role-colleague" }),
+    line("a2-synthesis-1-m7", "a2-family-plan-yotei", "a2-value-yotei-oyogu-shuumatsu", OUTING, L("Sora is planning to swim at the sea this weekend.", "Sora ha in programma di nuotare al mare questo weekend."), { subjectValueId: "a2-value-sora", speakerRole: "a2-role-colleague" }),
     line("a2-synthesis-1-m8", "a2-family-connector-utterance", "a2-value-connector-ame-sorekara-hare", PLANS, L("In the morning it rained. Then, it cleared up.", "Al mattino ha piovuto. Poi si è schiarito."), { speakerRole: "a2-role-teacher" }),
   ],
   // Every transfer recombines an already-taught family with a fresh value
   // not used above, so all 5 transfers stay visibly novel while never
   // introducing anything new.
   transfers: [
-    line("a2-synthesis-1-t1", "a2-family-plan-tsumori", "a2-value-tsumori-yomu-hon", OUTING, L("My friend intends to read a book.", "Il mio amico ha intenzione di leggere un libro."), { subjectValueId: "a2-value-friend-subject", speakerRole: "a2-role-friend" }),
+    line("a2-synthesis-1-t1", "a2-family-plan-tsumori", "a2-value-tsumori-yomu-hon", OUTING, L("My friend intends to read a book this weekend.", "Il mio amico ha intenzione di leggere un libro questo weekend."), { subjectValueId: "a2-value-friend-subject", speakerRole: "a2-role-friend" }),
     line("a2-synthesis-1-t2", "a2-family-connector-utterance", "a2-value-connector-samui-demo-genki", PLANS, L("Today it's cold, but I'm well.", "Oggi fa freddo, ma sto bene."), { speakerRole: "a2-role-teacher" }),
     line("a2-synthesis-1-t3", "a2-family-plain-recognition", "a2-value-plain-hanasu-dict", OUTING, L("(casual speech) speak", "(discorso informale) parlare"), { speakerRole: "a2-role-colleague" }),
     line("a2-synthesis-1-t4", "a2-family-plan-yotei", "a2-value-yotei-au-doyoubi", OUTING, L("The colleague is planning to meet on Saturday.", "Il collega ha in programma di incontrarsi sabato."), { subjectValueId: "a2-value-colleague-subject", speakerRole: "a2-role-learner" }),
@@ -144,7 +144,7 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
   introducedSenseIds: [],
   models: [
     line("a2-synthesis-2-m1", "a2-family-comparison-favor", "a2-value-yasui-stem", SHOPPING, L("The bag is cheaper than the shoes.", "La borsa è più economica delle scarpe."), { favored: "a2-value-obj-kaban", standard: "a2-value-obj-kutsu", speakerRole: "a2-role-learner" }),
-    line("a2-synthesis-2-m2", "a2-family-permission-temoii", "a2-value-temoii-taberu", SHOPPING, L("May I try (eat) this?", "Posso assaggiarlo?"), { speakerRole: "a2-role-friend" }),
+    line("a2-synthesis-2-m2", "a2-family-permission-temoii", "a2-value-temoii-taberu", SHOPPING, L("May I eat this?", "Posso mangiare questo?"), { object: "a2-value-obj-kore-m6", interrogative: true, speakerRole: "a2-role-friend" }),
     line("a2-synthesis-2-m3", "a2-family-ongoing-teiru", "a2-value-teiru-paatii-shiteimasu", SHOPPING, L("I'm having a party.", "Sto facendo una festa."), { object: "a2-value-obj-paatii", speakerRole: "a2-role-colleague" }),
     line("a2-synthesis-2-m4", "a2-family-prohibition-tewaikenai", "a2-value-tewaikenai-shashin", SHOPPING, L("You must not take photos.", "Non si possono scattare foto."), { object: "a2-value-obj-shashin", speakerRole: "a2-role-teacher" }),
     line("a2-synthesis-2-m5", "a2-family-opinion-toomou", "a2-value-opinion-kaban-ii", SHOPPING, L("I think this bag is better.", "Penso che questa borsa sia migliore."), { speakerRole: "a2-role-learner" }),
@@ -160,7 +160,7 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
   // three unlabeled families their own transfer-shaped recombination too.
   transfers: [
     line("a2-synthesis-2-t1", "a2-family-comparison-favor", "a2-value-takai-stem", SHOPPING, L("The shoes are more expensive than the bag.", "Le scarpe sono più costose della borsa."), { favored: "a2-value-obj-kutsu", standard: "a2-value-obj-kaban", speakerRole: "a2-role-colleague" }),
-    line("a2-synthesis-2-t2", "a2-family-permission-temoii", "a2-value-temoii-nomu", SHOPPING, L("May I try (drink) this?", "Posso assaggiarlo (da bere)?"), { speakerRole: "a2-role-friend" }),
+    line("a2-synthesis-2-t2", "a2-family-permission-temoii", "a2-value-temoii-nomu", SHOPPING, L("May I drink water?", "Posso bere l'acqua?"), { object: "a2-value-obj-mizu", interrogative: true, speakerRole: "a2-role-friend" }),
     line("a2-synthesis-2-t3", "a2-family-ongoing-teiru", "a2-value-teiru-paatii-shiteimasu", SHOPPING, L("Sora is having a party.", "Sora sta facendo una festa."), { subjectValueId: "a2-value-sora", object: "a2-value-obj-paatii", speakerRole: "a2-role-teacher" }),
     line("a2-synthesis-2-t4", "a2-family-prohibition-tewaikenai", "a2-value-tewaikenai-taberu", SHOPPING, L("You must not eat the meat.", "Non si può mangiare la carne."), { object: "a2-value-obj-niku", speakerRole: "a2-role-learner" }),
     line("a2-synthesis-2-t5", "a2-family-opinion-toomou", "a2-value-opinion-eiga-omoshiroi", SHOPPING, L("I think this movie is interesting.", "Penso che questo film sia interessante."), { speakerRole: "a2-role-friend" }),
@@ -186,7 +186,7 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     line("a2-synthesis-3-m3", "a2-family-te-sequence", "a2-value-seq-owatte-kaeru", WORKPLACE, L("Work finished, then I went home.", "Il lavoro è finito, poi sono tornato a casa."), { speakerRole: "a2-role-colleague" }),
     line("a2-synthesis-3-m4", "a2-family-negative-request", "a2-value-naidekudasai-muri", HEALTH, L("Please don't overdo it.", "Per favore, non strafare."), { speakerRole: "a2-role-teacher" }),
     line("a2-synthesis-3-m5", "a2-family-reason-node", "a2-value-node-netsu-yasumu", HEALTH, L("I have a fever, so I'll rest today.", "Ho la febbre, quindi oggi riposo."), { speakerRole: "a2-role-learner" }),
-    line("a2-synthesis-3-m6", "a2-family-reason-kara", "a2-value-kara-densha-okureru", WORKPLACE, L("My friend says the train is delayed, so they'll be a bit late.", "Il mio amico dice che il treno è in ritardo, quindi farà un po' tardi."), { subjectValueId: "a2-value-friend-subject", speakerRole: "a2-role-friend" }),
+    line("a2-synthesis-3-m6", "a2-family-reason-kara", "a2-value-kara-densha-okureru", WORKPLACE, L("My friend will be a bit late because the train is delayed.", "Il mio amico farà un po' tardi perché il treno è in ritardo."), { subjectValueId: "a2-value-friend-subject", speakerRole: "a2-role-friend" }),
     line("a2-synthesis-3-m7", "a2-family-request-tekudasai", "a2-value-tekudasai-matsu", WORKPLACE, L("Please wait.", "Per favore, aspetti."), { speakerRole: "a2-role-colleague" }),
     line("a2-synthesis-3-m8", "a2-family-te-sequence", "a2-value-seq-hataraite-tsukareta", HEALTH, L("I worked, and got tired.", "Ho lavorato e mi sono stancato."), { speakerRole: "a2-role-teacher" }),
   ],

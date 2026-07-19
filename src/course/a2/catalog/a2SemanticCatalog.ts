@@ -1285,6 +1285,10 @@ const a2AuthoredValuesM1: readonly SemanticValue[] = [
     id: "a2-value-connector-ame-demo-dekakeru",
     kind: "predicate-sense",
     senseId: "a2-sense-connector-ame-demo-dekakeru",
+    // Self-topical two-clause weather-then-plan report (opens with the
+    // time-topic きょうは) — never additionally wrapped in an explicit person
+    // subject/topic.
+    carriesOwnTopic: true,
     tokenFragments: [
       frag("きょう", "kyou"),
       particleFrag("は", "wa"),
@@ -1315,6 +1319,9 @@ const a2AuthoredValuesM1: readonly SemanticValue[] = [
     id: "a2-value-connector-isogashii-demo-ganbaru",
     kind: "predicate-sense",
     senseId: "a2-sense-connector-isogashii-demo-ganbaru",
+    // Self-topical two-clause work report (opens with the topic しごとは) —
+    // never additionally wrapped in an explicit person subject/topic.
+    carriesOwnTopic: true,
     tokenFragments: [
       frag("しごとは", "shigoto wa"),
       frag("いそがしい", "isogashii"),
@@ -1361,6 +1368,9 @@ const a2AuthoredValuesM1: readonly SemanticValue[] = [
     id: "a2-value-connector-test-demo-ganbatta",
     kind: "predicate-sense",
     senseId: "a2-sense-connector-test-ganbatta",
+    // Self-topical two-clause exam report (opens with the topic テストは) —
+    // never additionally wrapped in an explicit person subject/topic.
+    carriesOwnTopic: true,
     tokenFragments: [
       frag("テストは", "tesuto wa"),
       frag("むずかしかった", "muzukashikatta"),

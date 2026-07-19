@@ -234,3 +234,26 @@ describe("A2 Module 14 — bilingual copy coverage", () => {
     }
   });
 });
+
+describe("A2 Module 14 — birthday (たんじょうび) EN/IT parity (Task 7 M2 quality pass)", () => {
+  const enById = new Map<string, string>();
+  const itById = new Map<string, string>();
+  for (const built of module14Lessons) {
+    for (const variant of built.variants) {
+      enById.set(variant.id, built.en[`${variant.id}-translation`] ?? "");
+      itById.set(variant.id, built.it[`${variant.id}-translation`] ?? "");
+    }
+  }
+
+  it("practical-texts-4-m3 (たんじょうびは…) reads 'Compleanno: 5 marzo.' in IT, matching the EN/JP birthday intent", () => {
+    expect(enById.get("practical-texts-4-m3")).toBe("Birthday: March 5th.");
+    expect(itById.get("practical-texts-4-m3")).toBe("Compleanno: 5 marzo.");
+    expect(itById.get("practical-texts-4-m3"), "no 'date of birth' mismatch").not.toMatch(/data di nascita/i);
+  });
+
+  it("practical-texts-4-t3 confirmation question reads 'Il compleanno è il 5 marzo?' in IT", () => {
+    expect(enById.get("practical-texts-4-t3")).toBe("Is the birthday March 5th?");
+    expect(itById.get("practical-texts-4-t3")).toBe("Il compleanno è il 5 marzo?");
+    expect(itById.get("practical-texts-4-t3"), "no 'date of birth' mismatch").not.toMatch(/data di nascita/i);
+  });
+});
