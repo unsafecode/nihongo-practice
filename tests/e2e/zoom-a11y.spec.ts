@@ -338,7 +338,7 @@ test.describe(`A2 assessed kanji ${A2_ASSESSED_LESSON.lessonId} at 200% zoom`, (
 });
 
 test.describe("A2 surfaces at the 320px reflow floor (WCAG SC 1.4.10)", () => {
-  test("A2 new surfaces reflow to 320px without introducing horizontal overflow", async ({
+  test("the course map, a representative A2 lesson, and a representative A1 lesson all reflow to 320px with no whole-page horizontal overflow", async ({
     page,
   }, testInfo) => {
     // This scenario explicitly forces a 320px CSS layout viewport regardless of
@@ -356,15 +356,22 @@ test.describe("A2 surfaces at the 320px reflow floor (WCAG SC 1.4.10)", () => {
     const mapOffenders = await auditTouchTargets(page);
     expect(mapOffenders, JSON.stringify(mapOffenders)).toEqual([]);
 
-    // On A2 lessons the A2-specific surfaces themselves fit within 320 CSS px
-    // (they are never intrinsically wider than the viewport). The ~6px overflow
-    // the shared `.lesson-layout`/`.foundation-matrix` grid chrome shows at
-    // exactly 320px is identical on A1 lessons and sits below this app's
-    // documented 390px mobile design floor, so it is out of Task 9's A2 scope;
-    // this proves the new A2 content is not itself a source of reflow overflow.
+    // The shared lesson chrome (`.lesson-layout` / `.foundation-matrix` grid)
+    // must genuinely reflow — not merely fit its own A2 content — to the WCAG
+    // SC 1.4.10 320px floor with NO whole-page horizontal overflow. This is
+    // proven directly on both a representative deep A2 lesson
+    // (`sequencing-ongoing-3`) and a representative A1 lesson
+    // (`past-negative-2`, REPRESENTATIVE_LESSON), because the offending chrome
+    // is shared across every lesson level. Content must wrap, not clip: the
+    // A2-specific surfaces are additionally verified to stay within the
+    // viewport (never intrinsically wider than 320 CSS px).
     const a2Selectors = [".a2-lesson-rule", ".a2-kanji", ".a2-kanji__item", ".kanji-reveal", ".kanji-ruby--assessed"];
-    for (const lesson of [A2_LESSON, A2_ASSESSED_LESSON]) {
+    for (const lesson of [A2_LESSON, A2_ASSESSED_LESSON, REPRESENTATIVE_LESSON]) {
       await gotoReady(page, routeUrls.lesson(lesson.moduleId, lesson.lessonId));
+      await assertNoHorizontalOverflow(page);
+      const lessonOffenders = await auditTouchTargets(page);
+      expect(lessonOffenders, `${lesson.lessonId} touch targets ${JSON.stringify(lessonOffenders)}`).toEqual([]);
+
       const viewportWidth = await page.evaluate(() => document.documentElement.clientWidth);
       for (const selector of a2Selectors) {
         const widths = await page
