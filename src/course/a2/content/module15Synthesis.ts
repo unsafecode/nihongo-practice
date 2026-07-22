@@ -110,7 +110,7 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
   models: [
     line("a2-synthesis-1-m1", "a2-family-plan-yotei", "a2-value-yotei-iku-kyouto", OUTING, L("I'm planning to go to Kyoto.", "Ho in programma di andare a Kyoto."), { speakerRole: "a2-role-learner" }),
     line("a2-synthesis-1-m2", "a2-family-plan-tsumori", "a2-value-tsumori-au-tomodachi", OUTING, L("I intend to meet a friend this weekend.", "Ho intenzione di incontrare un amico questo weekend."), { speakerRole: "a2-role-friend" }),
-    line("a2-synthesis-1-m3", "a2-family-connector-utterance", "a2-value-connector-ame-demo-dekakeru", PLANS, L("It's raining, but I'll go out.", "Piove, ma esco lo stesso."), { speakerRole: "a2-role-colleague" }),
+    line("a2-synthesis-1-m3", "a2-family-connector-utterance", "a2-value-connector-ame-demo-dekakeru", PLANS, L("Today it's raining, but I'll go out.", "Oggi piove, ma esco lo stesso."), { speakerRole: "a2-role-colleague" }),
     line("a2-synthesis-1-m4", "a2-family-connector-utterance", "a2-value-connector-shigoto-sorekara-kaeru", PLANS, L("Work finished. Then, I went home.", "Il lavoro è finito. Poi sono tornato a casa."), { speakerRole: "a2-role-teacher" }),
     line("a2-synthesis-1-m5", "a2-family-plain-recognition", "a2-value-plain-iku-dict", OUTING, L("(casual speech) go", "(discorso informale) andare"), { speakerRole: "a2-role-learner" }),
     line("a2-synthesis-1-m6", "a2-family-plain-recognition", "a2-value-plain-taberu-past", OUTING, L("(casual speech) ate", "(discorso informale) ho mangiato"), { speakerRole: "a2-role-friend" }),

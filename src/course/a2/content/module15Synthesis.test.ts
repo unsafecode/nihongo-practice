@@ -341,6 +341,15 @@ describe("A2 Module 15 — linguistic-fidelity regressions (Task 7 quality pass)
     });
   });
 
+  describe("M3b — a2-synthesis-1-m3 gloss reflects the きょうは time-topic present in the Japanese, consistent with sibling t2", () => {
+    it("a2-synthesis-1-m3 JP contains きょうは, EN contains 'Today', IT contains 'Oggi'", () => {
+      const jp = realizedJp("a2-synthesis-1-m3");
+      expect(jp, "JP must open with the time-topic きょうは").toContain("きょうは");
+      expect(enById.get("a2-synthesis-1-m3"), "EN gloss must include Today").toMatch(/Today/);
+      expect(itById.get("a2-synthesis-1-m3"), "IT gloss must include Oggi").toMatch(/Oggi/);
+    });
+  });
+
   describe("M5 — M15 s1-t4 gloss preserves the baked ともだちに friend argument", () => {
     it("a2-synthesis-1-t4 JP realizes with ともだちに, EN includes 'a friend', IT includes 'amico'", () => {
       const jp = realizedJp("a2-synthesis-1-t4");
