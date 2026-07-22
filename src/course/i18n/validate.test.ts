@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { courseModules } from "../data/course";
+import { courseModulesByLevel } from "../data/course";
 import { courseModules as legacyCourseModules } from "../catalog/assembleCourse";
 import { examples } from "../data/examples";
 import { lessonPlans } from "../catalog/lessonPlans";
@@ -12,6 +12,14 @@ import { it as itCopy } from "./it";
 import { en as enCopy } from "./en";
 import type { CourseCopy } from "./types";
 
+/** Every runtime course module across both levels (A1 + A2) — the merged copy
+ * catalog (Phase 3 Task 8) covers both, so the coverage/orphan checks below
+ * derive their known-id sets from both levels rather than A1 alone. */
+const allRuntimeModules = [
+  ...courseModulesByLevel.a1,
+  ...courseModulesByLevel.a2,
+];
+
 function collectStaticStrings(value: unknown): string[] {
   if (typeof value === "string") return [value];
   if (Array.isArray(value)) return value.flatMap(collectStaticStrings);
@@ -22,8 +30,8 @@ function collectStaticStrings(value: unknown): string[] {
 }
 
 describe.each([itCopy, enCopy])("course locale", (copy) => {
-  it("covers every module, lesson, objective, and outcome copy id the A1 catalog references", () => {
-    for (const courseModule of courseModules) {
+  it("covers every module, lesson, objective, and outcome copy id the A1 and A2 catalogs reference", () => {
+    for (const courseModule of allRuntimeModules) {
       expect(copy.modules[courseModule.id]).toBeTruthy();
       for (const outcomeId of courseModule.outcomeCopyIds) {
         expect(copy.outcomes[outcomeId]).toBeTruthy();
@@ -82,15 +90,15 @@ describe.each([itCopy, enCopy])("course locale", (copy) => {
   });
 
   it("has no orphan localized keys beyond what course data references", () => {
-    const knownModuleIds = new Set(courseModules.map((m) => m.id));
+    const knownModuleIds = new Set(allRuntimeModules.map((m) => m.id));
     const knownLessonTitleIds = new Set(
-      courseModules.flatMap((m) => m.lessons.map((l) => l.titleCopyId)),
+      allRuntimeModules.flatMap((m) => m.lessons.map((l) => l.titleCopyId)),
     );
     const knownObjectiveIds = new Set(
-      courseModules.flatMap((m) => m.lessons.flatMap((l) => l.objectiveCopyIds)),
+      allRuntimeModules.flatMap((m) => m.lessons.flatMap((l) => l.objectiveCopyIds)),
     );
     const knownOutcomeIds = new Set(
-      courseModules.flatMap((m) => m.outcomeCopyIds),
+      allRuntimeModules.flatMap((m) => m.outcomeCopyIds),
     );
     // `copy.blocks`/`copy.examples` are sourced from the legacy
     // `assembleCourse` pipeline (see i18n/en.ts, i18n/it.ts), not from the
@@ -160,6 +168,60 @@ describe("locale parity", () => {
     expect(itCopy.lesson.contentFormattingError).toBe(
       "Non è stato possibile mostrare questo esempio in giapponese.",
     );
+  });
+});
+
+describe("A2 runtime copy (Phase 3 Task 8): level selector + kanji chrome", () => {
+  // Any CJK / kana character — copy values are IT/EN UI text only, never
+  // Japanese (the prebuild no-Japanese lint gate enforces the same rule).
+  const JAPANESE = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff66-\uff9f]/;
+
+  function courseLevelStrings(copy: CourseCopy): string[] {
+    const c = copy.courseLevels;
+    return [
+      c.selectorLabel,
+      c.a1,
+      c.a2,
+      c.a1Heading,
+      c.a2Heading,
+      c.a2Badge,
+      c.a2AvailableHint,
+      c.a2RecommendedHint,
+      c.a2CheckpointHeading,
+      c.a2CheckpointNotAttempted,
+      c.a2CheckpointAttempted(3, 2),
+    ];
+  }
+
+  function kanjiStrings(copy: CourseCopy): string[] {
+    const k = copy.kanji;
+    return [k.sectionHeading, k.sectionIntro, k.assessedExplanation, k.revealShow, k.revealHide];
+  }
+
+  it("declares the same courseLevels and kanji keys in both locales", () => {
+    expect(Object.keys(itCopy.courseLevels).sort()).toEqual(
+      Object.keys(enCopy.courseLevels).sort(),
+    );
+    expect(Object.keys(itCopy.kanji).sort()).toEqual(Object.keys(enCopy.kanji).sort());
+  });
+
+  it.each([
+    ["en", enCopy],
+    ["it", itCopy],
+  ] as const)("has non-empty, Japanese-free A2 level/kanji copy (%s)", (_locale, copy) => {
+    for (const value of [...courseLevelStrings(copy), ...kanjiStrings(copy)]) {
+      expect(value.trim().length).toBeGreaterThan(0);
+      expect(JAPANESE.test(value)).toBe(false);
+    }
+  });
+
+  it("keeps the A2 checkpoint copy an alignment claim, never certification/mastery", () => {
+    for (const copy of [enCopy, itCopy]) {
+      const body = `${copy.courseLevels.a2CheckpointNotAttempted} ${copy.courseLevels.a2CheckpointAttempted(3, 2)}`;
+      expect(body.toLowerCase()).not.toMatch(
+        /\b(certif|mastered|mastery|fluent|passed|superato|certificato|padronanza)\b/,
+      );
+    }
   });
 });
 

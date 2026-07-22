@@ -25,3 +25,36 @@ export const routePaths = {
 export function lessonPath(moduleId: string, lessonId: string): string {
   return `/percorso/${encodeURIComponent(moduleId)}/${encodeURIComponent(lessonId)}`;
 }
+
+/**
+ * Query param that selects the visible level on the course map (Phase 3
+ * Task 8, design spec §5). It is a *query* param — never a new path segment —
+ * so it can never collide with the existing `/percorso/:moduleId/:lessonId`
+ * lesson route, and it still yields distinct browser-history entries so back/
+ * forward restores the previously-selected level.
+ */
+export const courseLevelParam = "livello";
+
+/** The two course levels the runtime exposes. */
+export type CourseLevelParam = "a1" | "a2";
+
+/**
+ * Course-map URL focused on a given level, e.g. `/percorso?livello=a2`. A1 is
+ * the default and renders at the bare `${routePaths.course}` (no param at all)
+ * so every existing A1 URL stays byte-for-byte stable; A2 alone carries the
+ * `livello` query param.
+ */
+export function coursePathForLevel(level: CourseLevelParam): string {
+  return level === "a1"
+    ? routePaths.course
+    : `${routePaths.course}?${courseLevelParam}=a2`;
+}
+
+/**
+ * Resolves a raw `livello` query-param value to a course level, defaulting to
+ * A1 for a missing or unrecognized value (invalid input never hard-fails the
+ * course home — it just shows the stable A1 default).
+ */
+export function courseLevelFromParam(value: string | null): CourseLevelParam {
+  return value === "a2" ? "a2" : "a1";
+}

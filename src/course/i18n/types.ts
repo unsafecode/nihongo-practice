@@ -81,6 +81,49 @@ export interface CourseCopy {
     notAttemptedBody: string;
     attemptedBody: (acceptedExerciseCount: number, sampledCanDoCount: number) => string;
   };
+  /**
+   * The URL-reflected level dimension (Phase 3 Task 8, design spec §5). The
+   * level selector and the A2-specific Course Home sections (hero badge, level
+   * heading, checkpoint) resolve their copy here. A2 is always selectable and
+   * directly routable — the two hints are soft, non-blocking guidance only
+   * (A2 is never locked or gated). Every string is alignment/practice copy,
+   * never a certification/mastery/"passed" claim.
+   */
+  courseLevels: {
+    /** Accessible name for the two-option level selector group. */
+    selectorLabel: string;
+    /** Selector option labels (short, e.g. "A1" / "A2"). */
+    a1: string;
+    a2: string;
+    /** Level map headings (the focus target when the level changes). */
+    a1Heading: string;
+    a2Heading: string;
+    /** A2 hero alignment badge — states the level + its JF/CEFR alignment claim. */
+    a2Badge: string;
+    /** Soft hint shown before the A1 checkpoint is attempted (A2 still selectable). */
+    a2AvailableHint: string;
+    /** Soft "recommended next" hint shown once the A1 checkpoint is attempted. */
+    a2RecommendedHint: string;
+    /** A2 checkpoint attempt-state section copy (separate from A1's). */
+    a2CheckpointHeading: string;
+    a2CheckpointNotAttempted: string;
+    a2CheckpointAttempted: (acceptedExerciseCount: number, sampledCanDoCount: number) => string;
+  };
+  /**
+   * Localized chrome for the A2 contextual-kanji UI (Phase 3 Task 8; Task 3
+   * `KanjiRubyText`). `assessedExplanation` (`a2-kanji-why-visible`),
+   * `revealShow` (`a2-kanji-reveal-show`), and `revealHide`
+   * (`a2-kanji-reveal-hide`) are the exact copy the recognition-only kanji
+   * renderer requires. No Japanese in any value; recognition-only (no
+   * handwriting/IME claim).
+   */
+  kanji: {
+    sectionHeading: string;
+    sectionIntro: string;
+    assessedExplanation: string;
+    revealShow: string;
+    revealHide: string;
+  };
   lesson: {
     back: string;
     modulePosition: (current: number, total: number) => string;

@@ -272,3 +272,27 @@ describe("lesson page CSS contract: 44px rail + footer targets, mobile stacking"
     expect(block).toMatch(/\.lesson-footer\s*{[^}]*flex-direction:\s*column/);
   });
 });
+
+describe("A2 level selector + kanji CSS contract (Phase 3 Task 8)", () => {
+  it("gives each level-selector option the shared 44px minimum touch target", () => {
+    const rule = findRule(readCourseCss(), ".level-selector__option");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/min-height:\s*var\(--action-target-min\)/);
+  });
+
+  it("wraps the level-selector options so they never overflow horizontally", () => {
+    const rule = findRule(readCourseCss(), ".level-selector__options");
+    expect(rule).toMatch(/flex-wrap:\s*wrap/);
+  });
+
+  it("gives the focusable level heading a visible focus ring", () => {
+    const rule = findRule(readCourseCss(), ".course-level-heading:focus-visible");
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/outline:/);
+  });
+
+  it("gives the kanji reveal control a visible focus ring and wraps the kanji list", () => {
+    expect(findRule(readCourseCss(), ".kanji-reveal:focus-visible")).toMatch(/outline:/);
+    expect(findRule(readCourseCss(), ".a2-kanji__list")).toMatch(/flex-wrap:\s*wrap/);
+  });
+});

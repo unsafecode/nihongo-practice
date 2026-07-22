@@ -1804,3 +1804,108 @@
 @media (max-width: 680px) {
   .spoken-attempt__actions { flex-direction: column; align-items: stretch; }
 }
+
+/* ── Level selector + level heading + contextual kanji (Phase 3 Task 8) ──── */
+
+/*
+ * The URL-reflected level selector. Two always-enabled option links laid out
+ * as a wrapping row (never overflowing at 320px), each carrying the shared
+ * `.action` ≥44px touch-target contract; a soft, non-blocking hint sits below.
+ */
+.level-selector {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-5) 0 var(--space-3);
+}
+.level-selector__options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.level-selector__option-item { margin: 0; }
+.level-selector__option {
+  /* Explicit ≥44px target in addition to the shared `.action` sizing, so the
+   * segmented control stays touch/keyboard friendly on every viewport. */
+  min-height: var(--action-target-min);
+  min-width: var(--action-target-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.level-selector__option.is-selected {
+  border-color: var(--course-coral);
+  font-weight: 800;
+}
+.level-selector__hint {
+  margin: 0;
+  color: var(--course-muted);
+  max-width: 60ch;
+}
+
+/*
+ * The selected level's heading is the focus target when the level changes
+ * (CourseHome moves focus here). It is programmatically focusable
+ * (`tabindex="-1"`) and must show a visible focus ring for keyboard/AT users.
+ */
+.course-level-heading {
+  margin: var(--space-3) 0 var(--space-2);
+  scroll-margin-top: var(--space-4);
+}
+.course-level-heading:focus-visible {
+  outline: 3px solid var(--time);
+  outline-offset: 2px;
+}
+
+/*
+ * The per-lesson contextual-kanji section. Recognition-only: each entry is a
+ * `KanjiRubyText` (glyph + staged furigana/reveal/assessed caption). The list
+ * wraps so it never overflows horizontally at 320px.
+ */
+.a2-kanji {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border-left: 3px solid var(--course-line);
+  border-radius: var(--radius-sm);
+  background: var(--course-surface);
+}
+.a2-kanji__heading { margin: 0; font-weight: 800; }
+.a2-kanji__intro { margin: 0; color: var(--course-muted); }
+.a2-kanji__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.a2-kanji__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.kanji-ruby { display: inline-flex; align-items: center; gap: var(--space-1); }
+.kanji-ruby__ruby { font-size: 1.6rem; }
+.kanji-ruby--assessed span[lang="ja"] { font-size: 1.6rem; }
+.kanji-ruby__romaji-hint { color: var(--course-muted); }
+.kanji-why {
+  display: block;
+  color: var(--course-muted);
+  max-width: 40ch;
+}
+.kanji-reveal:focus-visible {
+  outline: 3px solid var(--time);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .level-selector__option { transition: none; }
+}
+
+@media (max-width: 680px) {
+  .level-selector__options { flex-direction: column; align-items: stretch; }
+}

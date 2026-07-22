@@ -2,9 +2,14 @@ import type { Locale } from "../../i18n/LocaleContext";
 import type { AssembledToken } from "../../romaji/types";
 import { buildA1LessonViewModel } from "../a1/a1LessonViewModel";
 import { a1FoundationCatalogs } from "../a1/catalog/catalog";
-import { courseModules } from "../data/course";
+import { a2FoundationCatalogs } from "../a2/catalog/catalog";
+import { buildA2FoundationViewModel } from "../a2/view/buildA2LessonViewModel";
+import { courseModulesByLevel } from "../data/course";
 import type { ExercisePrompt } from "../exercises/types";
-import type { FoundationLessonViewModel } from "../foundations/buildLessonViewModel";
+import type {
+  FoundationLessonViewModel,
+  FoundationLessonViewModelResult,
+} from "../foundations/buildLessonViewModel";
 import { buildPhoneticLessonModel, phoneticLessonIds } from "./phoneticExerciseModel";
 
 /**
@@ -90,10 +95,21 @@ export interface LessonExercisesModel {
 
 const LOCALES: readonly Locale[] = ["en", "it"];
 
-/** The lesson ids that carry sentence-engine content (the 44 semantic lessons). */
-const semanticLessonIds = new Set(
+/** A catalog-neutral lesson-view-model builder (A1 or A2), used by
+ * {@link buildSemanticModel} so both levels' sentence lessons resolve their
+ * rounds/targets through the same deterministic path. */
+type FoundationViewModelBuilder = (
+  lessonId: string,
+  locale: Locale,
+) => FoundationLessonViewModelResult;
+
+/** The A1 lesson ids that carry sentence-engine content (the 44 semantic lessons). */
+const a1SemanticLessonIds = new Set(
   a1FoundationCatalogs.lessons.map((lesson) => lesson.id),
 );
+
+/** Every A2 lesson id — all 60 A2 lessons are semantic (no phonetic module). */
+const a2LessonIds = new Set(a2FoundationCatalogs.lessons.map((lesson) => lesson.id));
 
 function emptyModel(lessonId: string): LessonExercisesModel {
   return { lessonId, exercises: [], errors: [] };
@@ -107,10 +123,13 @@ function errorModel(
   return { lessonId, exercises: [], errors: [{ code, lessonId, detail }] };
 }
 
-function buildSemanticModel(lessonId: string): LessonExercisesModel {
+function buildSemanticModel(
+  lessonId: string,
+  buildViewModel: FoundationViewModelBuilder,
+): LessonExercisesModel {
   const byLocale = new Map<Locale, FoundationLessonViewModel>();
   for (const locale of LOCALES) {
-    const result = buildA1LessonViewModel(lessonId, locale);
+    const result = buildViewModel(lessonId, locale);
     if (!result.ok) {
       return errorModel(lessonId, result.error.code, result.error.detail);
     }
@@ -160,14 +179,20 @@ function buildSemanticModel(lessonId: string): LessonExercisesModel {
 }
 
 function buildModel(lessonId: string): LessonExercisesModel {
-  if (semanticLessonIds.has(lessonId)) return buildSemanticModel(lessonId);
+  if (a1SemanticLessonIds.has(lessonId)) {
+    return buildSemanticModel(lessonId, buildA1LessonViewModel);
+  }
+  if (a2LessonIds.has(lessonId)) {
+    return buildSemanticModel(lessonId, buildA2FoundationViewModel);
+  }
   if (phoneticLessonIds.has(lessonId)) return buildPhoneticLessonModel(lessonId).model;
   return emptyModel(lessonId);
 }
 
-const allCourseLessonIds = courseModules.flatMap((courseModule) =>
-  courseModule.lessons.map((lesson) => lesson.id),
-);
+const allCourseLessonIds = [
+  ...courseModulesByLevel.a1,
+  ...courseModulesByLevel.a2,
+].flatMap((courseModule) => courseModule.lessons.map((lesson) => lesson.id));
 
 const modelsByLesson = new Map<string, LessonExercisesModel>(
   allCourseLessonIds.map((lessonId) => [lessonId, buildModel(lessonId)]),
@@ -222,23 +247,31 @@ function exampleIdsForPrompt(
     : [targetExampleId];
 }
 
-for (const lessonId of semanticLessonIds) {
-  const model = getLessonExercises(lessonId);
-  if (!model || model.exercises.length === 0) continue;
-  const built = buildA1LessonViewModel(lessonId, "en");
-  if (!built.ok) continue; // Already recorded as a model error above.
-  const { tokenForTile, tokensForExample } = built.model;
-  for (const exercise of model.exercises) {
-    for (const tileId of tileIdsForPrompt(exercise.prompt, exercise.targetExampleId)) {
-      const token = tokenForTile(tileId);
-      if (token) tokenByTileId.set(tileId, token);
-    }
-    for (const exampleId of exampleIdsForPrompt(exercise.prompt, exercise.targetExampleId)) {
-      const tokens = tokensForExample(exampleId);
-      if (tokens) tokensByExampleId.set(exampleId, tokens);
+function indexSemanticLessonTokens(
+  lessonIds: Iterable<string>,
+  buildViewModel: FoundationViewModelBuilder,
+): void {
+  for (const lessonId of lessonIds) {
+    const model = getLessonExercises(lessonId);
+    if (!model || model.exercises.length === 0) continue;
+    const built = buildViewModel(lessonId, "en");
+    if (!built.ok) continue; // Already recorded as a model error above.
+    const { tokenForTile, tokensForExample } = built.model;
+    for (const exercise of model.exercises) {
+      for (const tileId of tileIdsForPrompt(exercise.prompt, exercise.targetExampleId)) {
+        const token = tokenForTile(tileId);
+        if (token) tokenByTileId.set(tileId, token);
+      }
+      for (const exampleId of exampleIdsForPrompt(exercise.prompt, exercise.targetExampleId)) {
+        const tokens = tokensForExample(exampleId);
+        if (tokens) tokensByExampleId.set(exampleId, tokens);
+      }
     }
   }
 }
+
+indexSemanticLessonTokens(a1SemanticLessonIds, buildA1LessonViewModel);
+indexSemanticLessonTokens(a2LessonIds, buildA2FoundationViewModel);
 
 for (const lessonId of phoneticLessonIds) {
   const model = getLessonExercises(lessonId);

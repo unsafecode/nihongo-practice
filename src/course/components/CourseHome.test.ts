@@ -12,6 +12,7 @@ import { en as enCopy } from "../i18n/en";
 import { it as itCopy } from "../i18n/it";
 import {
   emptyProgress,
+  emptyProgressV4,
   markLessonVisited,
   type CanDoEvidence,
   type CheckpointAttempt,
@@ -54,6 +55,17 @@ function makeProgressValue(
     },
     canDoEvidence: {},
     checkpointAttempts: [],
+    progressV4: emptyProgressV4(),
+    lessonEvidence: () => undefined,
+    levelSummaryFor: (level) => ({
+      level,
+      visitedLessonCount: 0,
+      totalLessonCount: level === "a1" ? totalLessons : 60,
+      visitedPercent: 0,
+      recommendedContinuationLessonId: null,
+    }),
+    canDoEvidenceFor: () => ({}),
+    checkpointAttemptsFor: () => [],
     ...overrides,
   };
 }

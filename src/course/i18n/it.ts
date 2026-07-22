@@ -7,6 +7,12 @@ import {
   a1RuntimeOutcomeCopy,
   a1RuntimePhoneticCopy,
 } from "../a1/runtimeCopy";
+import {
+  a2RuntimeLessonCopy,
+  a2RuntimeModuleCopy,
+  a2RuntimeObjectiveCopy,
+  a2RuntimeOutcomeCopy,
+} from "../a2/runtimeCopy";
 
 const itUi = {
   home: {
@@ -51,6 +57,32 @@ const itUi = {
       "Non hai ancora affrontato gli scenari della verifica A1. Non è obbligatoria e nel frattempo nulla resta bloccato.",
     attemptedBody: (acceptedExerciseCount: number, sampledCanDoCount: number) =>
       `Hai affrontato gli scenari della verifica A1, con ${acceptedExerciseCount} esercizi accettati su ${sampledCanDoCount} Can-do campionati. Questo registra solo cosa hai fatto — non è un punteggio, e non significa aver finito il livello A1.`,
+  },
+  courseLevels: {
+    selectorLabel: "Livello del corso",
+    a1: "A1",
+    a2: "A2",
+    a1Heading: "Corso A1",
+    a2Heading: "Corso A2",
+    a2Badge: "A2, allineato ai Can-do JF/CEFR",
+    a2AvailableHint:
+      "A2 è disponibile quando vuoi. Si basa su A1, quindi affrontare prima A1 aiuta — ma nulla è bloccato.",
+    a2RecommendedHint:
+      "Hai affrontato la verifica A1, quindi A2 è un buon passo successivo. Era comunque sempre aperto — nulla era bloccato.",
+    a2CheckpointHeading: "Verifica A2",
+    a2CheckpointNotAttempted:
+      "Non hai ancora affrontato gli scenari della verifica A2. Non è obbligatoria e nel frattempo nulla resta bloccato.",
+    a2CheckpointAttempted: (acceptedExerciseCount: number, sampledCanDoCount: number) =>
+      `Hai affrontato gli scenari della verifica A2, con ${acceptedExerciseCount} esercizi accettati su ${sampledCanDoCount} Can-do campionati. Questo registra solo cosa hai fatto — non è un punteggio, e non significa aver finito il livello A2.`,
+  },
+  kanji: {
+    sectionHeading: "Kanji di questa lezione",
+    sectionIntro:
+      "Questi kanji compaiono nelle frasi di questa lezione. Riconoscili nel contesto — non c'è nulla da scrivere.",
+    assessedExplanation:
+      "Su questo kanji sei in fase di verifica, quindi la lettura non è mostrata qui.",
+    revealShow: "Mostra la lettura",
+    revealHide: "Nascondi la lettura",
   },
 
   lesson: {
@@ -255,7 +287,7 @@ const itUi = {
     helpBody:
       "Una versione precedente di questo percorso teneva traccia dei progressi in modo diverso. Quando la struttura è cambiata, ogni visita a una lezione che corrisponde in modo sicuro alla nuova struttura viene mantenuta automaticamente. I tentativi di pratica, gli elementi di ripasso salvati e i risultati delle verifiche legati agli esercizi rinnovati potrebbero dover essere completati di nuovo, perché non corrispondono più esattamente ai nuovi esercizi. Ogni vecchia visita senza una corrispondenza sicura nella nuova struttura è conservata come dati di recupero, senza essere considerata una lezione visitata equivalente.",
   },
-} satisfies Pick<CourseCopy, "home" | "canDoSummary" | "checkpoint" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
+} satisfies Pick<CourseCopy, "home" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
 
 const itCourseMap: CourseCopy["courseMap"] = {
   heading: "Il percorso",
@@ -290,10 +322,10 @@ export const it = {
   // from — so they're kept from the legacy course copy, still genuinely used
   // by the legacy `spokenAttemptModel`/`TransformComparison`/`GuidedToolLink`
   // consumers. `journeyScenes` has no shipped content in either pipeline.
-  modules: a1RuntimeModuleCopy("it"),
-  lessons: a1RuntimeLessonCopy("it"),
-  objectives: a1RuntimeObjectiveCopy("it"),
-  outcomes: a1RuntimeOutcomeCopy("it"),
+  modules: { ...a1RuntimeModuleCopy("it"), ...a2RuntimeModuleCopy("it") },
+  lessons: { ...a1RuntimeLessonCopy("it"), ...a2RuntimeLessonCopy("it") },
+  objectives: { ...a1RuntimeObjectiveCopy("it"), ...a2RuntimeObjectiveCopy("it") },
+  outcomes: { ...a1RuntimeOutcomeCopy("it"), ...a2RuntimeOutcomeCopy("it") },
   blocks: assembledCourseCopy.it.blocks,
   examples: assembledCourseCopy.it.examples,
   journeyScenes: {} as CourseCopy["journeyScenes"],

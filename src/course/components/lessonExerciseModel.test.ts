@@ -3,6 +3,8 @@ import { courseModules } from "../data/course";
 import { a1FoundationCatalogs } from "../a1/catalog/catalog";
 import { buildA1LessonViewModel } from "../a1/a1LessonViewModel";
 import { module1ItemsByLesson } from "../a1/catalog/module01Sounds";
+import { A2_LESSON_IDS } from "../a2/manifest";
+import { buildA2FoundationViewModel } from "../a2/view/buildA2LessonViewModel";
 import {
   exampleTokens,
   getLessonExercises,
@@ -273,5 +275,44 @@ describe("exampleTokens — the full ordered token list for an example id", () =
 
   it("returns undefined for an unknown example id", () => {
     expect(exampleTokens("nope-example")).toBeUndefined();
+  });
+});
+
+/**
+ * Phase 3 Task 8: the same deterministic exercise model now also resolves the
+ * 60 A2 lessons (from `buildA2FoundationViewModel`), so the shared
+ * `LessonExercises` component renders A2 rounds without a fork. A1 and A2
+ * lesson id namespaces are disjoint, so a single `getLessonExercises` lookup
+ * serves both levels.
+ */
+describe("getLessonExercises — A2 lessons resolve through the same model", () => {
+  it("generates an error-free, non-empty exercise set for every A2 lesson", () => {
+    for (const lessonId of A2_LESSON_IDS) {
+      const model = getLessonExercises(lessonId);
+      expect(model, `model for ${lessonId}`).toBeDefined();
+      expect(model!.errors, `errors for ${lessonId}`).toEqual([]);
+      expect(model!.exercises.length, `count for ${lessonId}`).toBeGreaterThan(0);
+    }
+  });
+
+  it("matches the A2 release builder's exact round-1 + round-2 target count for a sample", () => {
+    for (const lessonId of ["sequencing-ongoing-3", "plans-invitations-1", "a2-synthesis-4"]) {
+      const built = buildA2FoundationViewModel(lessonId, "en");
+      if (!built.ok) throw new Error(`expected ok for ${lessonId}`);
+      const expectedCount = built.model.rounds.reduce(
+        (total, round) => total + round.targets.length,
+        0,
+      );
+      expect(getLessonExercises(lessonId)!.exercises).toHaveLength(expectedCount);
+    }
+  });
+
+  it("resolves in-sentence tokens for an A2 exercise so its romaji renders from real tokens", () => {
+    const model = getLessonExercises("sequencing-ongoing-3");
+    expect(model).toBeDefined();
+    const withExample = model!.exercises.find(
+      (exercise) => exampleTokens(exercise.targetExampleId) !== undefined,
+    );
+    expect(withExample, "at least one A2 exercise resolves its example tokens").toBeDefined();
   });
 });

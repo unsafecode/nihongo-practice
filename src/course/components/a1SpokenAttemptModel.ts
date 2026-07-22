@@ -87,7 +87,7 @@ function segmentKindFor(kind: RomajiTokenKind): SpokenSegmentView["kind"] {
   }
 }
 
-function segmentsFromTokens(tokens: readonly AssembledToken[]): SpokenSegmentView[] {
+export function segmentsFromTokens(tokens: readonly AssembledToken[]): SpokenSegmentView[] {
   return tokens.map((token) => ({
     id: token.id,
     jp: token.jp,
@@ -105,8 +105,10 @@ function segmentsFromTokens(tokens: readonly AssembledToken[]): SpokenSegmentVie
 /** Builds a `ResolvedSpeechPrompt` by hand from realized tokens, bypassing
  * the legacy `resolveSpeechPrompt`/`SpeechExampleInput` catalog shape
  * entirely — there is no second, separately-authored example catalog for A1
- * lessons to resolve against. */
-function resolvePromptFromTokens(
+ * lessons to resolve against. Exported so the A2 spoken-attempt model
+ * (`a2SpokenAttemptModel.ts`) builds its prompt through the exact same
+ * realized-token path, never a second copy of the Japanese. */
+export function resolvePromptFromTokens(
   promptId: string,
   targetExampleId: string,
   tokens: readonly AssembledToken[],

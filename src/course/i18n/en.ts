@@ -7,6 +7,12 @@ import {
   a1RuntimeOutcomeCopy,
   a1RuntimePhoneticCopy,
 } from "../a1/runtimeCopy";
+import {
+  a2RuntimeLessonCopy,
+  a2RuntimeModuleCopy,
+  a2RuntimeObjectiveCopy,
+  a2RuntimeOutcomeCopy,
+} from "../a2/runtimeCopy";
 
 const enUi = {
   home: {
@@ -51,6 +57,32 @@ const enUi = {
       "You have not yet worked through the A1 checkpoint scenarios. It is not required, and nothing is locked while you wait.",
     attemptedBody: (acceptedExerciseCount: number, sampledCanDoCount: number) =>
       `You have worked through the A1 checkpoint scenarios, accepting ${acceptedExerciseCount} exercises across ${sampledCanDoCount} sampled Can-do statements. This only records what you did — it is not a score, and it does not mean you have finished the A1 level.`,
+  },
+  courseLevels: {
+    selectorLabel: "Course level",
+    a1: "A1",
+    a2: "A2",
+    a1Heading: "A1 course",
+    a2Heading: "A2 course",
+    a2Badge: "A2, aligned with JF/CEFR Can-do",
+    a2AvailableHint:
+      "A2 is available whenever you like. It builds on A1, so working through A1 first helps — but nothing is locked.",
+    a2RecommendedHint:
+      "You have worked through the A1 checkpoint, so A2 is a good next step. It was open all along — nothing was locked.",
+    a2CheckpointHeading: "A2 checkpoint",
+    a2CheckpointNotAttempted:
+      "You have not yet worked through the A2 checkpoint scenarios. It is not required, and nothing is locked while you wait.",
+    a2CheckpointAttempted: (acceptedExerciseCount: number, sampledCanDoCount: number) =>
+      `You have worked through the A2 checkpoint scenarios, accepting ${acceptedExerciseCount} exercises across ${sampledCanDoCount} sampled Can-do statements. This only records what you did — it is not a score, and it does not mean you have finished the A2 level.`,
+  },
+  kanji: {
+    sectionHeading: "Kanji in this lesson",
+    sectionIntro:
+      "These kanji appear in this lesson's sentences. Recognize them in context — there is no writing to do.",
+    assessedExplanation:
+      "You are being assessed on this kanji, so its reading is not shown here.",
+    revealShow: "Show the reading",
+    revealHide: "Hide the reading",
   },
   lesson: {
     back: "All modules",
@@ -252,7 +284,7 @@ const enUi = {
     helpBody:
       "An earlier version of this course tracked progress differently. When the structure changed, any lesson visit that safely matches the new structure carries over automatically. Practice attempts, saved review items, and checkpoint results tied to exercises that were redesigned may need to be completed again, since they no longer match the new exercises exactly. Any older visit without a safe match in the new structure is retained as recovery data rather than shown as an equivalent visited lesson.",
   },
-} satisfies Pick<CourseCopy, "home" | "canDoSummary" | "checkpoint" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
+} satisfies Pick<CourseCopy, "home" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
 
 const enCourseMap: CourseCopy["courseMap"] = {
   heading: "The course",
@@ -287,10 +319,15 @@ export const en = {
   // from — so they're kept from the legacy course copy, still genuinely used
   // by the legacy `spokenAttemptModel`/`TransformComparison`/`GuidedToolLink`
   // consumers. `journeyScenes` has no shipped content in either pipeline.
-  modules: a1RuntimeModuleCopy("en"),
-  lessons: a1RuntimeLessonCopy("en"),
-  objectives: a1RuntimeObjectiveCopy("en"),
-  outcomes: a1RuntimeOutcomeCopy("en"),
+  // A1 and A2 module/lesson/objective/outcome copy are merged into one map
+  // per dictionary (Phase 3 Task 8). The two levels' module and lesson id
+  // namespaces are disjoint (A2 ids are all `${a2Module}-${n}` prefixes A1
+  // never uses), so the merge never collides; the i18n orphan/coverage checks
+  // derive their known-id sets from both levels' `courseModulesByLevel`.
+  modules: { ...a1RuntimeModuleCopy("en"), ...a2RuntimeModuleCopy("en") },
+  lessons: { ...a1RuntimeLessonCopy("en"), ...a2RuntimeLessonCopy("en") },
+  objectives: { ...a1RuntimeObjectiveCopy("en"), ...a2RuntimeObjectiveCopy("en") },
+  outcomes: { ...a1RuntimeOutcomeCopy("en"), ...a2RuntimeOutcomeCopy("en") },
   blocks: assembledCourseCopy.en.blocks,
   examples: assembledCourseCopy.en.examples,
   journeyScenes: {} as CourseCopy["journeyScenes"],

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { courseModules } from "./course";
+import { courseModules, courseModulesByLevel } from "./course";
 import type { CourseModule } from "./types";
-import { A1CourseShapeError, assertA1CourseShape } from "./runtimeShapeAssertion";
+import {
+  A1CourseShapeError,
+  A2CourseShapeError,
+  assertA1CourseShape,
+  assertA2CourseShape,
+} from "./runtimeShapeAssertion";
 
 /**
  * The production runtime's small fail-closed structural gate (Phase 2 Task
@@ -114,5 +119,52 @@ describe("assertA1CourseShape — the always-bundled runtime structural gate (I3
     // catches a manifest/build regression that silently drops content.
     const modules = [validModule()];
     expect(() => assertA1CourseShape(modules)).toThrow(A1CourseShapeError);
+  });
+});
+
+/** A structurally-valid A2 module fixture (kept independent of the real
+ * catalog so the count/uniqueness branches can be exercised in isolation). */
+function validA2Module(overrides: Partial<CourseModule> = {}): CourseModule {
+  return {
+    id: "a2-m1",
+    order: 1,
+    prerequisiteIds: [],
+    outcomeCopyIds: ["a2-m1-outcome"],
+    iconId: "identity",
+    lessons: [
+      { id: "a2-m1-1", moduleId: "a2-m1", order: 1, titleCopyId: "a2-m1-1", objectiveCopyIds: ["o"] },
+    ],
+    ...overrides,
+  };
+}
+
+describe("assertA2CourseShape — the always-bundled A2 runtime structural gate", () => {
+  it("passes silently for the real, derived A2 runtime course (15 modules / 60 lessons)", () => {
+    expect(() => assertA2CourseShape(courseModulesByLevel.a2)).not.toThrow();
+    expect(courseModulesByLevel.a2).toHaveLength(15);
+    expect(
+      courseModulesByLevel.a2.flatMap((courseModule) => courseModule.lessons),
+    ).toHaveLength(60);
+  });
+
+  it("throws A2CourseShapeError for an empty module list", () => {
+    expect(() => assertA2CourseShape([])).toThrow(A2CourseShapeError);
+  });
+
+  it("throws for a duplicate module id", () => {
+    expect(() => assertA2CourseShape([validA2Module(), validA2Module()])).toThrow(
+      /duplicate module id/,
+    );
+  });
+
+  it("throws when the total module/lesson count drifts from the fixed A2 totals (15/60)", () => {
+    // One structurally-valid module is still a corrupted A2 release shape.
+    expect(() => assertA2CourseShape([validA2Module()])).toThrow(
+      A2CourseShapeError,
+    );
+  });
+
+  it("does not accept the A1 course as a valid A2 shape (guards against a level mix-up)", () => {
+    expect(() => assertA2CourseShape(courseModules)).toThrow(A2CourseShapeError);
   });
 });

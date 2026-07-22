@@ -16,13 +16,16 @@ import {
   type StoredValue,
 } from "../../settings/storage";
 import {
+  type CourseLevelId,
   type CourseProgressV3,
   type CourseProgressV4,
   type ExerciseEvidence,
   type LevelProgress,
+  type LessonProgress,
   type CanDoEvidence,
   type CheckpointAttempt,
   type LevelProgressSummary,
+  type ModuleOutline,
   type ProgressMigrationNotice,
   acknowledgeMigrationNotice as acknowledgeMigrationNoticeV4,
   emptyProgressV4,
@@ -36,59 +39,124 @@ import {
 } from "./progress";
 import { reconcileReviewQueueEntries, reviewKeyFor } from "./reviewQueue";
 import { getLessonExercises } from "../components/lessonExerciseModel";
-import { courseModules } from "../data/course";
+import { courseModulesByLevel } from "../data/course";
+import type { CourseModule } from "../data/types";
+import type { CheckpointDefinition } from "../foundations/types";
 import { a1CanDosAuthored } from "../a1/catalog/canDos";
 import {
   a1Checkpoint,
   A1_CHECKPOINT_ID,
   A1_CHECKPOINT_SCENARIO_LESSON_IDS,
 } from "../a1/catalog/checkpoint";
+import { a2SemanticBuiltLessons } from "../a2/catalog/catalog";
+import { a2Checkpoint, A2_CHECKPOINT_ID } from "../a2/catalog/checkpoint";
+import { A2_SYNTHESIS_LESSON_IDS } from "../a2/manifest";
 
 export const STORAGE_KEY = "nihongo.course.progress";
-const knownLessonIds = new Set(
-  courseModules.flatMap((courseModule) =>
+
+/**
+ * The per-level runtime metadata every evidence mutation needs (Phase 3
+ * Task 8). A1 and A2 each carry their own known-lesson/known-review-key sets,
+ * their own lesson→primary-Can-do map, their own module outline for level
+ * summaries, and their own checkpoint definition + scenario lessons. The V4
+ * store is already level-aware, so recording A2 evidence only ever touches
+ * `levels.a2` and leaves `levels.a1` byte-identical (no destructive migration).
+ */
+interface LevelRuntime {
+  readonly level: CourseLevelId;
+  readonly knownLessonIds: ReadonlySet<string>;
+  readonly knownReviewKeys: ReadonlySet<string>;
+  /** lessonId → the Can-do whose evidence a visit/practice of that lesson records. */
+  readonly lessonToCanDoId: ReadonlyMap<string, string>;
+  readonly moduleOutline: readonly ModuleOutline[];
+  readonly checkpoint: CheckpointDefinition;
+  readonly checkpointAttemptId: string;
+  readonly checkpointScenarioLessonIds: readonly string[];
+}
+
+function moduleOutlineFor(modules: readonly CourseModule[]): ModuleOutline[] {
+  return modules.map((courseModule) => ({
+    id: courseModule.id,
+    prerequisiteIds: courseModule.prerequisiteIds,
+    lessons: courseModule.lessons.map((lesson) => ({ id: lesson.id })),
+  }));
+}
+
+function knownReviewKeysFor(lessonIds: ReadonlySet<string>): ReadonlySet<string> {
+  return new Set(
+    [...lessonIds].flatMap((lessonId) =>
+      (getLessonExercises(lessonId)?.exercises ?? []).map((exercise) =>
+        reviewKeyFor(lessonId, exercise.definitionId),
+      ),
+    ),
+  );
+}
+
+// A1 lesson → its single authored Can-do id (the same total 1:1 mapping
+// `data/course.ts` relies on). A2 lesson → its recipe's primary Can-do id
+// (an A2 lesson has one primary plus supporting Can-dos, so the primary comes
+// from the recipe, never from scanning Can-do lessonIds).
+const a1LessonToCanDoId = new Map(
+  a1CanDosAuthored.flatMap((canDo) => canDo.lessonIds.map((lessonId) => [lessonId, canDo.id])),
+);
+const a2LessonToCanDoId = new Map(
+  a2SemanticBuiltLessons.map((built) => [built.recipe.id, built.recipe.primaryCanDoId]),
+);
+
+const a1KnownLessonIds = new Set(
+  courseModulesByLevel.a1.flatMap((courseModule) =>
+    courseModule.lessons.map((lesson) => lesson.id),
+  ),
+);
+const a2KnownLessonIds = new Set(
+  courseModulesByLevel.a2.flatMap((courseModule) =>
     courseModule.lessons.map((lesson) => lesson.id),
   ),
 );
 
-/**
- * Every review key the current catalog still recognises (`lessonId:exerciseId`).
- * A stored review entry outside this set is obsolete metadata: `loadProgress`
- * reconciles it into `orphanedReviewKeys` rather than dropping it (spec §10.4).
- */
-const knownReviewKeys = new Set(
-  [...knownLessonIds].flatMap((lessonId) =>
-    (getLessonExercises(lessonId)?.exercises ?? []).map((exercise) =>
-      reviewKeyFor(lessonId, exercise.definitionId),
-    ),
-  ),
-);
+const LEVEL_RUNTIME: Readonly<Record<CourseLevelId, LevelRuntime>> = {
+  a1: {
+    level: "a1",
+    knownLessonIds: a1KnownLessonIds,
+    knownReviewKeys: knownReviewKeysFor(a1KnownLessonIds),
+    lessonToCanDoId: a1LessonToCanDoId,
+    moduleOutline: moduleOutlineFor(courseModulesByLevel.a1),
+    checkpoint: a1Checkpoint,
+    checkpointAttemptId: A1_CHECKPOINT_ID,
+    checkpointScenarioLessonIds: A1_CHECKPOINT_SCENARIO_LESSON_IDS,
+  },
+  a2: {
+    level: "a2",
+    knownLessonIds: a2KnownLessonIds,
+    knownReviewKeys: knownReviewKeysFor(a2KnownLessonIds),
+    lessonToCanDoId: a2LessonToCanDoId,
+    moduleOutline: moduleOutlineFor(courseModulesByLevel.a2),
+    checkpoint: a2Checkpoint,
+    checkpointAttemptId: A2_CHECKPOINT_ID,
+    checkpointScenarioLessonIds: A2_SYNTHESIS_LESSON_IDS,
+  },
+};
+
+const COURSE_LEVEL_IDS: readonly CourseLevelId[] = ["a1", "a2"];
 
 /**
- * Every A1 lesson's one authored Can-do id (design spec §8), from
- * `a1CanDosAuthored`'s `lessonIds` — the same total, 1:1 mapping
- * `data/course.ts` already relies on. Evidence recording below never
- * fabricates a Can-do id for a lesson this map doesn't recognise.
+ * The level a lesson belongs to, resolved from the (disjoint) lesson-id
+ * namespaces. An id unknown to A2 defaults to A1 — the stable default level —
+ * so a legacy/opaque id can never route a mutation to the wrong level.
  */
-const lessonToCanDoId = new Map(
-  a1CanDosAuthored.flatMap((canDo) => canDo.lessonIds.map((lessonId) => [lessonId, canDo.id])),
-);
-
-/** The A1 course modules' outline shape `summarizeLevel` needs. */
-const a1ModuleOutline = courseModules.map((courseModule) => ({
-  id: courseModule.id,
-  prerequisiteIds: courseModule.prerequisiteIds,
-  lessons: courseModule.lessons.map((lesson) => ({ id: lesson.id })),
-}));
+function levelForLesson(lessonId: string): CourseLevelId {
+  return LEVEL_RUNTIME.a2.knownLessonIds.has(lessonId) ? "a2" : "a1";
+}
 
 /**
  * Records observed Can-do evidence for one lesson interaction, resolving the
- * lesson's single authored Can-do id from {@link lessonToCanDoId}. A lesson
- * this map doesn't recognise (never expected for a real A1 lesson id) is a
- * safe no-op rather than a fabricated Can-do.
+ * lesson's Can-do id from the given level's {@link LevelRuntime.lessonToCanDoId}.
+ * A lesson that level does not recognise is a safe no-op rather than a
+ * fabricated Can-do.
  */
 function withCanDoEvidence(
   level: LevelProgress,
+  runtime: LevelRuntime,
   lessonId: string,
   at: string,
   input: {
@@ -97,7 +165,7 @@ function withCanDoEvidence(
     readonly acceptedTransferExerciseId?: string;
   },
 ): LevelProgress {
-  const canDoId = lessonToCanDoId.get(lessonId);
+  const canDoId = runtime.lessonToCanDoId.get(lessonId);
   if (!canDoId) return level;
   return recordCanDoEvidence(level, {
     canDoId,
@@ -109,34 +177,32 @@ function withCanDoEvidence(
 }
 
 /**
- * Once every capstone scenario lesson (`A1_CHECKPOINT_SCENARIO_LESSON_IDS`)
- * has reached `consolidatedAt`, idempotently records the single A1 checkpoint
- * attempt (fixed id, so re-triggering — e.g. a later re-accept in an already
- * consolidated capstone — can never duplicate it, matching
- * `recordCheckpointAttempt`'s own by-id idempotence). Never a pass/fail
- * verdict: only which exercises were accepted and which Can-dos this attempt
- * sampled, then folded into each sampled Can-do's own `checkpointAttemptIds`
- * evidence.
+ * Once every checkpoint scenario lesson for this level has reached
+ * `consolidatedAt`, idempotently records the single level checkpoint attempt
+ * (fixed id per level), then folds it into each sampled Can-do's evidence.
+ * Never a pass/fail verdict — only which exercises were accepted and which
+ * Can-dos this attempt sampled. Generalized over the level runtime so A1 and
+ * A2 share one implementation.
  */
-function withCheckpointAttempt(level: LevelProgress, at: string): LevelProgress {
-  const allConsolidated = A1_CHECKPOINT_SCENARIO_LESSON_IDS.every(
+function withCheckpointAttempt(level: LevelProgress, runtime: LevelRuntime, at: string): LevelProgress {
+  const allConsolidated = runtime.checkpointScenarioLessonIds.every(
     (lessonId) => level.lessons[lessonId]?.consolidatedAt != null,
   );
   if (!allConsolidated) return level;
 
   const attempt: CheckpointAttempt = {
-    id: `${A1_CHECKPOINT_ID}-attempt-1`,
-    checkpointId: a1Checkpoint.id,
+    id: `${runtime.checkpointAttemptId}-attempt-1`,
+    checkpointId: runtime.checkpoint.id,
     attemptedAt: at,
-    acceptedExerciseIds: A1_CHECKPOINT_SCENARIO_LESSON_IDS.flatMap(
+    acceptedExerciseIds: runtime.checkpointScenarioLessonIds.flatMap(
       (lessonId) => level.lessons[lessonId]?.acceptedExerciseIds ?? [],
     ),
-    sampledCanDoIds: a1Checkpoint.sampledCanDoIds,
+    sampledCanDoIds: runtime.checkpoint.sampledCanDoIds,
   };
   const withAttempt = recordCheckpointAttempt(level, attempt);
   if (withAttempt === level) return level; // already recorded — no duplicate evidence fold
 
-  return a1Checkpoint.sampledCanDoIds.reduce(
+  return runtime.checkpoint.sampledCanDoIds.reduce(
     (acc, canDoId) => recordCanDoEvidence(acc, { canDoId, at, checkpointAttemptId: attempt.id }),
     withAttempt,
   );
@@ -154,6 +220,7 @@ function withCheckpointAttempt(level: LevelProgress, at: string): LevelProgress 
  */
 function withAttemptEvidence(
   level: LevelProgress,
+  runtime: LevelRuntime,
   lessonId: string,
   exerciseDefinitionId: string,
   wasPracticedAt: string | null,
@@ -167,12 +234,12 @@ function withAttemptEvidence(
         (exercise) => exercise.definitionId === exerciseDefinitionId,
       )?.practicePurpose
     : undefined;
-  let next = withCanDoEvidence(level, lessonId, at, {
+  let next = withCanDoEvidence(level, runtime, lessonId, at, {
     practiced: justPracticed,
     acceptedTransferExerciseId:
       practicePurpose === "transfer" ? exerciseDefinitionId : undefined,
   });
-  if (accepted) next = withCheckpointAttempt(next, at);
+  if (accepted) next = withCheckpointAttempt(next, runtime, at);
   return next;
 }
 
@@ -280,6 +347,20 @@ export interface ProgressContextValue {
   canDoEvidence: Readonly<Record<string, CanDoEvidence>>;
   /** Every completed A1 checkpoint attempt so far, oldest first (design spec §17). */
   checkpointAttempts: readonly CheckpointAttempt[];
+  /**
+   * The full level-aware V4 state (Phase 3 Task 8). Exposed so level-aware
+   * consumers (Course Home) can read A1 *or* A2 evidence without going through
+   * the A1-only v3-compat projection above.
+   */
+  progressV4: CourseProgressV4;
+  /** One lesson's own evidence, resolved from whichever level owns it. */
+  lessonEvidence: (lessonId: string) => LessonProgress | undefined;
+  /** A given level's independent visited-lesson summary — never the other level's evidence. */
+  levelSummaryFor: (level: CourseLevelId) => LevelProgressSummary;
+  /** A given level's observed Can-do evidence, by Can-do id. */
+  canDoEvidenceFor: (level: CourseLevelId) => Readonly<Record<string, CanDoEvidence>>;
+  /** A given level's completed checkpoint attempts, oldest first. */
+  checkpointAttemptsFor: (level: CourseLevelId) => readonly CheckpointAttempt[];
 }
 
 interface InitialProgress {
@@ -309,26 +390,35 @@ interface PreparedProgress {
  */
 export function prepareProgress(storage: Storage | null): PreparedProgress {
   const stored = readSetting(storage, STORAGE_KEY);
-  const parsed = parseProgress(stored.value, knownLessonIds);
-  const a1 = parsed.progress.levels.a1;
-  const reconciled = reconcileReviewQueueEntries(
-    a1.reviewQueue,
-    a1.orphanedReviewKeys,
-    knownReviewKeys,
-  );
-  const progress: CourseProgressV4 = reconciled.changed
-    ? {
-        ...parsed.progress,
+  // v1/v2 payloads only ever carried A1 lessons, so the migration
+  // reconciliation uses A1's known lesson ids (v4 payloads ignore this arg).
+  const parsed = parseProgress(stored.value, LEVEL_RUNTIME.a1.knownLessonIds);
+
+  // Reconcile each level's review queue against its own known review keys —
+  // an A2 review entry reconciles against A2 exercises, never A1's, and each
+  // level's reconciliation leaves the other level untouched (spec §10.4/§17).
+  let progress = parsed.progress;
+  for (const level of COURSE_LEVEL_IDS) {
+    const levelProgress = progress.levels[level];
+    const reconciled = reconcileReviewQueueEntries(
+      levelProgress.reviewQueue,
+      levelProgress.orphanedReviewKeys,
+      LEVEL_RUNTIME[level].knownReviewKeys,
+    );
+    if (reconciled.changed) {
+      progress = {
+        ...progress,
         levels: {
-          ...parsed.progress.levels,
-          a1: {
-            ...a1,
+          ...progress.levels,
+          [level]: {
+            ...levelProgress,
             reviewQueue: reconciled.reviewQueue,
             orphanedReviewKeys: reconciled.orphanedReviewKeys,
           },
         },
-      }
-    : parsed.progress;
+      };
+    }
+  }
 
   return { progress, corrupted: parsed.corrupted, migrated: parsed.migrated, stored };
 }
@@ -447,19 +537,22 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
   );
 
   const markVisited = useCallback((lessonId: string) => {
+    const level = levelForLesson(lessonId);
+    const runtime = LEVEL_RUNTIME[level];
     setProgressV4((current) => {
-      const v3 = levelToV3Compat(current.levels.a1, current.updatedAt);
+      const v3 = levelToV3Compat(current.levels[level], current.updatedAt);
       const nextV3 = markLessonVisited(v3, lessonId);
       if (nextV3 === v3) return current;
-      const level = withCanDoEvidence(
-        v3CompatToLevel(nextV3, current.levels.a1),
+      const levelProgress = withCanDoEvidence(
+        v3CompatToLevel(nextV3, current.levels[level]),
+        runtime,
         lessonId,
         nextV3.updatedAt,
         { visited: true },
       );
       return {
         ...current,
-        levels: { ...current.levels, a1: level },
+        levels: { ...current.levels, [level]: levelProgress },
         updatedAt: nextV3.updatedAt,
       };
     });
@@ -467,6 +560,8 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
 
   const recordAttempt = useCallback((input: ExerciseAttemptInput) => {
     const at = new Date().toISOString();
+    const level = levelForLesson(input.lessonId);
+    const runtime = LEVEL_RUNTIME[level];
     const evidence = evidenceFor(
       input.lessonId,
       input.exerciseDefinitionId,
@@ -475,14 +570,15 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       at,
     );
     setProgressV4((current) => {
-      const v3 = levelToV3Compat(current.levels.a1, current.updatedAt);
+      const v3 = levelToV3Compat(current.levels[level], current.updatedAt);
       const accepted = input.outcome === "accepted";
       const nextV3 = accepted
         ? recordExerciseAcceptance(v3, evidence, "lesson")
         : recordExerciseMistake(v3, evidence);
       if (nextV3 === v3) return current;
-      const level = withAttemptEvidence(
-        v3CompatToLevel(nextV3, current.levels.a1),
+      const levelProgress = withAttemptEvidence(
+        v3CompatToLevel(nextV3, current.levels[level]),
+        runtime,
         input.lessonId,
         input.exerciseDefinitionId,
         v3.lessons[input.lessonId]?.practicedAt ?? null,
@@ -492,7 +588,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       );
       return {
         ...current,
-        levels: { ...current.levels, a1: level },
+        levels: { ...current.levels, [level]: levelProgress },
         updatedAt: nextV3.updatedAt,
       };
     });
@@ -500,6 +596,8 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
 
   const resolveReview = useCallback((input: ReviewResolutionInput) => {
     const at = new Date().toISOString();
+    const level = levelForLesson(input.lessonId);
+    const runtime = LEVEL_RUNTIME[level];
     const evidence = evidenceFor(
       input.lessonId,
       input.exerciseDefinitionId,
@@ -508,11 +606,12 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       at,
     );
     setProgressV4((current) => {
-      const v3 = levelToV3Compat(current.levels.a1, current.updatedAt);
+      const v3 = levelToV3Compat(current.levels[level], current.updatedAt);
       const nextV3 = recordExerciseAcceptance(v3, evidence, "review");
       if (nextV3 === v3) return current;
-      const level = withAttemptEvidence(
-        v3CompatToLevel(nextV3, current.levels.a1),
+      const levelProgress = withAttemptEvidence(
+        v3CompatToLevel(nextV3, current.levels[level]),
+        runtime,
         input.lessonId,
         input.exerciseDefinitionId,
         v3.lessons[input.lessonId]?.practicedAt ?? null,
@@ -522,7 +621,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       );
       return {
         ...current,
-        levels: { ...current.levels, a1: level },
+        levels: { ...current.levels, [level]: levelProgress },
         updatedAt: nextV3.updatedAt,
       };
     });
@@ -546,11 +645,32 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const levelSummary = useMemo(
-    () => summarizeLevel(progressV4, "a1", a1ModuleOutline),
+    () => summarizeLevel(progressV4, "a1", LEVEL_RUNTIME.a1.moduleOutline),
     [progressV4],
   );
   const canDoEvidence = progressV4.levels.a1.canDos;
   const checkpointAttempts = progressV4.levels.a1.checkpointAttempts;
+
+  const lessonEvidence = useCallback(
+    (lessonId: string): LessonProgress | undefined =>
+      progressV4.levels[levelForLesson(lessonId)].lessons[lessonId],
+    [progressV4],
+  );
+  const levelSummaryFor = useCallback(
+    (level: CourseLevelId): LevelProgressSummary =>
+      summarizeLevel(progressV4, level, LEVEL_RUNTIME[level].moduleOutline),
+    [progressV4],
+  );
+  const canDoEvidenceFor = useCallback(
+    (level: CourseLevelId): Readonly<Record<string, CanDoEvidence>> =>
+      progressV4.levels[level].canDos,
+    [progressV4],
+  );
+  const checkpointAttemptsFor = useCallback(
+    (level: CourseLevelId): readonly CheckpointAttempt[] =>
+      progressV4.levels[level].checkpointAttempts,
+    [progressV4],
+  );
 
   const value = useMemo<ProgressContextValue>(
     () => ({
@@ -567,6 +687,11 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       levelSummary,
       canDoEvidence,
       checkpointAttempts,
+      progressV4,
+      lessonEvidence,
+      levelSummaryFor,
+      canDoEvidenceFor,
+      checkpointAttemptsFor,
     }),
     [
       progress,
@@ -577,11 +702,15 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       resolveReview,
       dismissCorruption,
       reset,
-      progressV4.migrationNotice,
+      progressV4,
       acknowledgeMigrationNotice,
       levelSummary,
       canDoEvidence,
       checkpointAttempts,
+      lessonEvidence,
+      levelSummaryFor,
+      canDoEvidenceFor,
+      checkpointAttemptsFor,
     ],
   );
 

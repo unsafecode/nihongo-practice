@@ -1,20 +1,23 @@
-import type { ReactElement } from "react";
+import { useEffect, useRef, type ReactElement } from "react";
+import { useLocation } from "react-router";
 import { ActionButton, ActionLink } from "../../components/actions/Action";
 import { Notice } from "../../components/Notice";
 import { useLocale } from "../../i18n/LocaleContext";
 import { lessonPath, routePaths } from "../../routing/routes";
+import { courseLevelFromParam, courseLevelParam } from "../../routing/routePaths";
 import { a1CanDosAuthored } from "../a1/catalog/canDos";
-import { courseModules } from "../data/course";
+import { a2CanDoDescriptorCopy } from "../a2/catalog/canDos";
+import { a2CanDosAuthored } from "../a2/catalog/catalog";
+import { courseModulesByLevel } from "../data/course";
 import { getCourseCopy } from "../i18n/catalog";
 import { useProgress } from "../progress/ProgressContext";
-import { visitedLessonIds } from "../progress/progress";
+import { visitedLessonIds, visitedLessonIdsForLevel } from "../progress/progress";
 import { buildCanDoSummaryModel } from "./canDoSummaryModel";
 import { buildCourseMapModel } from "./courseMapModel";
 import { CourseMap } from "./CourseMap";
+import { LevelSelector } from "./LevelSelector";
 import { RouteNotice } from "./RouteNotice";
 import "../course.css";
-
-const lessons = courseModules.flatMap((courseModule) => courseModule.lessons);
 
 const canDoEvidenceTierCopyKey = {
   "not-started": "tierNotStarted",
@@ -35,26 +38,34 @@ const canDoEvidenceTierCopyKey = {
  * painted pixels) would never see at all.
  */
 const CAN_DO_TIER_GLYPH: Partial<Record<keyof typeof canDoEvidenceTierCopyKey, string>> = {
-  visited: "○",
-  practiced: "◐",
-  demonstrated: "●",
+  visited: "\u25CB",
+  practiced: "\u25D0",
+  demonstrated: "\u25CF",
 };
 
 /**
- * Course home (design spec §5.7/§6.1, extended for the A1 release by Phase 2
- * Task 6): a bounded "editoriale mnemonico" hero (title, eyebrow, lead,
- * A1/JF-CEFR alignment badge, fixed course shape, visited progress, primary
- * + secondary actions), the one-time v3→v4 migration notice/help, the
- * flat CourseMap, a truthful Can-do evidence summary, and the A1 checkpoint
- * attempt-state section. Replaces the old uniform chapter grid and raw
- * status markup - all route/reset/storage/migration status uses the Task 1
- * `Notice`/Action primitives, and nothing here locks or blocks navigation to
- * any lesson or claims certification, mastery, or that A1 was "completed" or
- * "passed" (§3.1) — every dynamic section reports only recorded evidence.
+ * Course home (design spec 5.7/6.1; extended level-aware for the A2 release
+ * by Phase 3 Task 8). It reads the `livello` URL search param (missing/invalid
+ * defaults to A1, so every bare `/percorso` A1 URL and its output stay stable),
+ * renders the accessible {@link LevelSelector}, and shows the *selected*
+ * level's own heading, flat CourseMap, truthful Can-do evidence summary, and
+ * checkpoint attempt-state section. A1 and A2 evidence never cross-contaminate:
+ * A1 reads the v3-compat `progress`/`canDoEvidence`/`checkpointAttempts`
+ * surfaces (unchanged), while A2 reads its own `progressV4.levels.a2`. Nothing
+ * here locks or blocks navigation to any level or lesson, or claims
+ * certification, mastery, or that a level was "completed"/"passed" (3.1) --
+ * every dynamic section reports only recorded evidence, and A2 is only ever
+ * *recommended* as a soft, non-blocking hint after the A1 checkpoint.
  */
 export function CourseHome(): ReactElement {
   const { locale } = useLocale();
   const copy = getCourseCopy(locale);
+  const location = useLocation();
+  const level = courseLevelFromParam(
+    new URLSearchParams(location.search).get(courseLevelParam),
+  );
+  const levelIsA1 = level === "a1";
+
   const {
     progress,
     corrupted,
@@ -65,25 +76,83 @@ export function CourseHome(): ReactElement {
     acknowledgeMigrationNotice,
     canDoEvidence,
     checkpointAttempts,
+    progressV4,
   } = useProgress();
-  const visitedIds = visitedLessonIds(progress);
+
+  // Move focus to the selected level's heading whenever the level changes
+  // (never on the initial render), so a keyboard/AT user lands in the newly
+  // selected level's content instead of being left on the link they clicked.
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const previousLevelRef = useRef(level);
+  useEffect(() => {
+    if (previousLevelRef.current !== level) {
+      previousLevelRef.current = level;
+      headingRef.current?.focus();
+    }
+  }, [level]);
+
+  const modules = courseModulesByLevel[level];
+  const lessons = modules.flatMap((courseModule) => courseModule.lessons);
+
+  // The selected level's own progress source. A1 keeps reading the existing
+  // v3-compat projection (so A1 output is byte-for-byte stable); A2 reads its
+  // own, independent `levels.a2` slice.
+  const a2LevelProgress = progressV4.levels.a2;
+  const visitedIds = levelIsA1
+    ? visitedLessonIds(progress)
+    : visitedLessonIdsForLevel(a2LevelProgress);
+  const lastVisitedLessonId = levelIsA1
+    ? progress.lastVisitedLessonId
+    : a2LevelProgress.lastVisitedLessonId;
+  const lessonEvidenceMap = levelIsA1 ? progress.lessons : a2LevelProgress.lessons;
 
   const model = buildCourseMapModel(
-    courseModules,
+    modules,
     visitedIds,
-    progress.lastVisitedLessonId,
-    progress.lessons,
+    lastVisitedLessonId,
+    lessonEvidenceMap,
   );
 
-  const canDoSummary = buildCanDoSummaryModel(a1CanDosAuthored, canDoEvidence);
-  const latestCheckpointAttempt = checkpointAttempts[checkpointAttempts.length - 1] ?? null;
+  const canDos = levelIsA1 ? a1CanDosAuthored : a2CanDosAuthored;
+  const levelCanDoEvidence = levelIsA1 ? canDoEvidence : a2LevelProgress.canDos;
+  const canDoSummary = buildCanDoSummaryModel(canDos, levelCanDoEvidence);
+  const resolveDescriptor = (descriptorCopyId: string): string =>
+    (levelIsA1 ? copy.objectives : a2CanDoDescriptorCopy[locale])[descriptorCopyId] ?? "";
+
+  const levelCheckpointAttempts = levelIsA1
+    ? checkpointAttempts
+    : a2LevelProgress.checkpointAttempts;
+  const latestCheckpointAttempt =
+    levelCheckpointAttempts[levelCheckpointAttempts.length - 1] ?? null;
+
+  // A2 is *recommended* (soft, non-blocking) once the A1 checkpoint has been
+  // attempted -- derived from real A1 checkpoint evidence, never a lock.
+  const a2Recommended = checkpointAttempts.length > 0;
+
+  const badge = levelIsA1 ? copy.home.levelBadge : copy.courseLevels.a2Badge;
+  const levelHeading = levelIsA1
+    ? copy.courseLevels.a1Heading
+    : copy.courseLevels.a2Heading;
+  const checkpointHeading = levelIsA1
+    ? copy.checkpoint.heading
+    : copy.courseLevels.a2CheckpointHeading;
+  const checkpointBody = latestCheckpointAttempt
+    ? (levelIsA1
+        ? copy.checkpoint.attemptedBody
+        : copy.courseLevels.a2CheckpointAttempted)(
+        latestCheckpointAttempt.acceptedExerciseIds.length,
+        latestCheckpointAttempt.sampledCanDoIds.length,
+      )
+    : levelIsA1
+      ? copy.checkpoint.notAttemptedBody
+      : copy.courseLevels.a2CheckpointNotAttempted;
 
   const continuationLessonId = model.recommendedLessonId ?? model.currentLessonId;
   const continuation =
     lessons.find((lesson) => lesson.id === continuationLessonId) ?? lessons[0];
   const continuationModule =
-    courseModules.find((courseModule) => courseModule.id === continuation.moduleId) ??
-    courseModules[0];
+    modules.find((courseModule) => courseModule.id === continuation.moduleId) ??
+    modules[0];
 
   const primaryLabel = model.allVisited
     ? copy.home.review
@@ -91,8 +160,7 @@ export function CourseHome(): ReactElement {
       ? copy.home.continue
       : copy.home.start;
 
-  const canReset =
-    visitedIds.length > 0 || progress.lastVisitedLessonId !== null;
+  const canReset = visitedIds.length > 0 || lastVisitedLessonId !== null;
 
   const resetProgress = () => {
     if (window.confirm(copy.home.resetConfirm)) reset();
@@ -137,9 +205,9 @@ export function CourseHome(): ReactElement {
             {copy.home.title}
           </h1>
           <p className="course-hero__lead">{copy.home.lead}</p>
-          <p className="course-hero__badge">{copy.home.levelBadge}</p>
+          <p className="course-hero__badge">{badge}</p>
           <p className="course-hero__shape">
-            {copy.home.courseShape(courseModules.length, lessons.length)}
+            {copy.home.courseShape(modules.length, lessons.length)}
           </p>
         </div>
         <div className="course-hero__progress">
@@ -167,6 +235,21 @@ export function CourseHome(): ReactElement {
         </div>
       </section>
 
+      <LevelSelector
+        level={level}
+        a2Recommended={a2Recommended}
+        copy={copy.courseLevels}
+      />
+
+      <h2
+        ref={headingRef}
+        id="course-level-heading"
+        className="course-level-heading"
+        tabIndex={-1}
+      >
+        {levelHeading}
+      </h2>
+
       <CourseMap model={model} />
 
       <section className="can-do-summary" aria-labelledby="can-do-summary-heading">
@@ -189,7 +272,7 @@ export function CourseHome(): ReactElement {
                 data-can-do-id={item.canDoId}
               >
                 <span className="can-do-summary__descriptor">
-                  {copy.objectives[item.descriptorCopyId]}
+                  {resolveDescriptor(item.descriptorCopyId)}
                 </span>
                 <span
                   className={`can-do-summary__tier can-do-summary__tier--${item.tier}`}
@@ -213,15 +296,10 @@ export function CourseHome(): ReactElement {
 
       <section className="checkpoint-state" aria-labelledby="checkpoint-state-heading">
         <h2 id="checkpoint-state-heading" className="checkpoint-state__heading">
-          {copy.checkpoint.heading}
+          {checkpointHeading}
         </h2>
         <p className="checkpoint-state__body" role="status">
-          {latestCheckpointAttempt
-            ? copy.checkpoint.attemptedBody(
-                latestCheckpointAttempt.acceptedExerciseIds.length,
-                latestCheckpointAttempt.sampledCanDoIds.length,
-              )
-            : copy.checkpoint.notAttemptedBody}
+          {checkpointBody}
         </p>
       </section>
 
@@ -244,4 +322,3 @@ export function CourseHome(): ReactElement {
     </main>
   );
 }
-

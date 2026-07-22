@@ -1,7 +1,9 @@
 import type { SemanticIconId } from "../../components/icons/Icon";
 import { a1CanDosAuthored } from "../a1/catalog/canDos";
 import { A1_MODULE_IDS, A1_MODULE_MANIFEST } from "../a1/manifest";
-import { assertA1CourseShape } from "./runtimeShapeAssertion";
+import { a2CanDosAuthored, a2SemanticBuiltLessons } from "../a2/catalog/catalog";
+import { A2_MODULE_IDS, A2_MODULE_MANIFEST } from "../a2/manifest";
+import { assertA1CourseShape, assertA2CourseShape } from "./runtimeShapeAssertion";
 import type { CourseModule, Lesson } from "./types";
 
 /**
@@ -108,3 +110,120 @@ const assembledModules: CourseModule[] = A1_MODULE_IDS.map(buildModule);
 assertA1CourseShape(assembledModules);
 
 export const courseModules: CourseModule[] = assembledModules;
+
+// ---------------------------------------------------------------------------
+// A2 runtime course (Phase 3 Task 8, design spec §5)
+// ---------------------------------------------------------------------------
+
+/**
+ * The A2 runtime course is derived from the frozen A2 release exactly as A1 is
+ * (Phase 3 Task 8): `A2_MODULE_MANIFEST` supplies structure/order/prerequisites
+ * and each module's outcome copy id, and each lesson's objective copy comes
+ * from the primary Can-do its authored recipe actually names — never
+ * fabricated. The build never imports the full `validateA2Release()` content
+ * gate (that runs at prebuild / in the test suite); it only calls the small,
+ * always-bundled `assertA2CourseShape()` so a corrupted assembly throws rather
+ * than exporting a partial `a2CourseModules`.
+ */
+
+/**
+ * One decorative semantic icon per A2 module, in module order. A2 has fifteen
+ * modules but the runtime only ships twelve semantic icons, so icons are
+ * reused across modules — the mapping is purely decorative (never a content
+ * claim), exactly like A1's own 1:1 map.
+ */
+const A2_MODULE_ICON_IDS: Readonly<Record<string, SemanticIconId>> = {
+  "connected-conversation": "people",
+  "plans-invitations": "time",
+  "experiences-narratives": "sentence",
+  "reasons-opinions": "questions",
+  "sequencing-ongoing": "ordering",
+  "permission-requests": "identity",
+  "neighborhood-services": "places",
+  "restaurant-problems": "existence",
+  "shopping-returns": "shopping",
+  "health-advice": "descriptions",
+  "work-study-messages": "sentence",
+  "travel-reservations": "places",
+  "relationships-events": "people",
+  "practical-texts": "questions",
+  "a2-synthesis": "capstone",
+};
+
+/** Each A2 Can-do's descriptor copy id, by Can-do id (the authoritative,
+ * validated A2 registry — never fabricated). */
+const a2DescriptorByCanDoId = new Map(
+  a2CanDosAuthored.map((canDo) => [canDo.id, canDo.descriptorCopyId]),
+);
+
+/**
+ * Each A2 lesson's own primary Can-do id, taken straight from its authored
+ * recipe (`built.recipe.primaryCanDoId`). Unlike A1 — where every lesson maps
+ * 1:1 to a single authored Can-do — an A2 lesson has one primary plus several
+ * supporting Can-dos and a Can-do can serve many lessons, so the primary must
+ * come from the recipe itself, not from scanning Can-do `lessonIds`.
+ */
+const a2PrimaryCanDoByLessonId = new Map<string, string>(
+  a2SemanticBuiltLessons.map((built) => [built.recipe.id, built.recipe.primaryCanDoId]),
+);
+
+function buildA2Lesson(lessonId: string, moduleId: string, order: number): Lesson {
+  const primaryCanDoId = a2PrimaryCanDoByLessonId.get(lessonId);
+  if (!primaryCanDoId) {
+    throw new Error(
+      `data/course: A2 lesson "${lessonId}" has no authored recipe to source its primary Can-do from.`,
+    );
+  }
+  const objectiveCopyId = a2DescriptorByCanDoId.get(primaryCanDoId);
+  if (!objectiveCopyId) {
+    throw new Error(
+      `data/course: A2 lesson "${lessonId}" primary Can-do "${primaryCanDoId}" has no authored descriptor copy.`,
+    );
+  }
+  return {
+    id: lessonId,
+    moduleId,
+    order,
+    // Every A2 lesson's title copy is keyed by its own stable lesson id, the
+    // same convention A1 uses (`a2/runtimeCopy.ts` resolves the localized text).
+    titleCopyId: lessonId,
+    objectiveCopyIds: [objectiveCopyId],
+  };
+}
+
+function buildA2Module(moduleId: string): CourseModule {
+  const manifestEntry = A2_MODULE_MANIFEST[moduleId];
+  const iconId = A2_MODULE_ICON_IDS[moduleId];
+  if (!iconId) {
+    throw new Error(`data/course: no semantic icon mapped for A2 module "${moduleId}".`);
+  }
+  return {
+    id: moduleId,
+    order: manifestEntry.order,
+    prerequisiteIds: [...manifestEntry.prerequisiteIds],
+    outcomeCopyIds: [manifestEntry.outcomeCopyId],
+    iconId,
+    lessons: manifestEntry.lessonIds.map((lessonId, index) =>
+      buildA2Lesson(lessonId, moduleId, index + 1),
+    ),
+  };
+}
+
+const a2AssembledModules: CourseModule[] = A2_MODULE_IDS.map(buildA2Module);
+assertA2CourseShape(a2AssembledModules);
+
+export const a2CourseModules: CourseModule[] = a2AssembledModules;
+
+/**
+ * The level-aware runtime course handle (Phase 3 Task 8). `a1` is the exact
+ * same `courseModules` reference every existing A1 consumer already imports —
+ * so A1 output/URLs stay byte-for-byte stable — and `a2` is the fail-closed
+ * A2 derivation above.
+ */
+export const courseModulesByLevel = {
+  a1: courseModules,
+  a2: a2CourseModules,
+} as const;
+
+/** A runtime course level id (`"a1"` | `"a2"`). */
+export type CourseModulesLevel = keyof typeof courseModulesByLevel;

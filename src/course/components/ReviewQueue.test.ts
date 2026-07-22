@@ -10,6 +10,7 @@ import {
 } from "../progress/ProgressContext";
 import {
   emptyProgress,
+  emptyProgressV4,
   recordExerciseMistake,
 } from "../progress/progress";
 import type { CourseProgressV3, ExerciseEvidence } from "../progress/progress";
@@ -84,6 +85,17 @@ function contextValue(
     },
     canDoEvidence: {},
     checkpointAttempts: [],
+    progressV4: emptyProgressV4(),
+    lessonEvidence: () => undefined,
+    levelSummaryFor: () => ({
+      level: "a1",
+      visitedLessonCount: 0,
+      totalLessonCount: 48,
+      visitedPercent: 0,
+      recommendedContinuationLessonId: null,
+    }),
+    canDoEvidenceFor: () => ({}),
+    checkpointAttemptsFor: () => [],
     ...overrides,
   };
 }

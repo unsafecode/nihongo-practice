@@ -354,7 +354,7 @@ export function PhoneticSection({
 // Shared recap content (Can-do restated / variation / vocab / next-retrieval)
 // ---------------------------------------------------------------------------
 
-function RecapContent({
+export function RecapContent({
   canDoText,
   variationLabels,
   vocab,

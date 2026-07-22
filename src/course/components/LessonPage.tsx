@@ -12,7 +12,9 @@ import {
   lessonSectionAnchorId,
 } from "../../routing/lessonSections";
 import { lessonPath, routePaths } from "../../routing/routes";
-import { courseModules } from "../data/course";
+import { courseModulesByLevel } from "../data/course";
+import type { CourseModule } from "../data/types";
+import { A2_MODULE_IDS } from "../a2/manifest";
 import { getCourseCopy } from "../i18n/catalog";
 import {
   isLegacyConsolidatedRedirectState,
@@ -23,12 +25,32 @@ import {
 } from "../routing/lessonRouteResolution";
 import { useProgress } from "../progress/ProgressContext";
 import { A1LessonSection } from "./A1LessonPage";
+import { A2LessonSection } from "./A2LessonPage";
 import { LessonRail } from "./LessonRail";
 import { useActiveSection } from "./useActiveSection";
 
-const orderedLessons = courseModules.flatMap((courseModule) =>
-  courseModule.lessons.map((lesson) => ({ courseModule, lesson })),
-);
+/**
+ * Resolves which level (and therefore which module set + section renderer) a
+ * lesson URL belongs to (Phase 3 Task 8). A2 module ids are disjoint from
+ * A1's, so an A2 module id in the URL selects the A2 course + A2 renderer;
+ * everything else (including A1 legacy module aliases) resolves against A1.
+ */
+const a2ModuleIdSet = new Set<string>(A2_MODULE_IDS);
+
+function levelForModule(moduleId: string | undefined): "a1" | "a2" {
+  return moduleId !== undefined && a2ModuleIdSet.has(moduleId) ? "a2" : "a1";
+}
+
+const orderedLessonsByLevel: Readonly<
+  Record<"a1" | "a2", readonly { courseModule: CourseModule; lesson: CourseModule["lessons"][number] }[]>
+> = {
+  a1: courseModulesByLevel.a1.flatMap((courseModule) =>
+    courseModule.lessons.map((lesson) => ({ courseModule, lesson })),
+  ),
+  a2: courseModulesByLevel.a2.flatMap((courseModule) =>
+    courseModule.lessons.map((lesson) => ({ courseModule, lesson })),
+  ),
+};
 
 export function LessonPage() {
   // The URL's `:moduleId` segment must name either the lesson's real
@@ -48,7 +70,13 @@ export function LessonPage() {
   const { supported, japaneseVoiceAvailable, playbackFailed } = useSpeech();
   const { markVisited } = useProgress();
   const activeSectionId = useActiveSection(LESSON_SECTION_IDS);
-  const resolution = resolveLessonRoute(moduleId, lessonId, courseModules);
+  // The A2 module ids are disjoint from A1's, so the URL's module segment
+  // selects the level: an A2 module resolves against the A2 course and renders
+  // through the A2 section renderer, everything else against A1 (unchanged).
+  const level = levelForModule(moduleId);
+  const modules = courseModulesByLevel[level];
+  const orderedLessons = orderedLessonsByLevel[level];
+  const resolution = resolveLessonRoute(moduleId, lessonId, modules);
   // A stable primitive derived from `resolution`, used (instead of the
   // `resolution` object itself, which is a fresh reference every render) as
   // the effect dependency below: it only actually changes when the matched
@@ -102,9 +130,12 @@ export function LessonPage() {
     .map((id) => copy.objectives[id])
     .join(" ");
 
-  const renderSectionBody = (sectionId: (typeof LESSON_SECTION_IDS)[number]) => (
-    <A1LessonSection lessonId={lesson.id} sectionId={sectionId} />
-  );
+  const renderSectionBody = (sectionId: (typeof LESSON_SECTION_IDS)[number]) =>
+    level === "a2" ? (
+      <A2LessonSection lessonId={lesson.id} sectionId={sectionId} />
+    ) : (
+      <A1LessonSection lessonId={lesson.id} sectionId={sectionId} />
+    );
 
   return (
     <main className="lesson-layout">
@@ -121,7 +152,7 @@ export function LessonPage() {
             <Icon id={courseModule.iconId} size="small" decorative />
             {copy.lesson.modulePosition(
               courseModule.order,
-              courseModules.length,
+              modules.length,
             )}
           </p>
           <h1>{lessonCopy.title}</h1>
