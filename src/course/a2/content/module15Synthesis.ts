@@ -183,7 +183,7 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
   models: [
     line("a2-synthesis-3-m1", "a2-family-reason-kara", "a2-value-kara-atama-yasumu", HEALTH, L("My head hurts, so I should rest.", "Mi fa male la testa, quindi dovrei riposare."), { speakerRole: "a2-role-learner" }),
     line("a2-synthesis-3-m2", "a2-family-request-tekudasai", "a2-value-tekudasai-tasukete", WORKPLACE, L("Please help.", "Per favore, aiutatemi."), { speakerRole: "a2-role-friend" }),
-    line("a2-synthesis-3-m3", "a2-family-te-sequence", "a2-value-seq-owatte-kaeru", WORKPLACE, L("Work finished, then I went home.", "Il lavoro è finito, poi sono tornato a casa."), { speakerRole: "a2-role-colleague" }),
+    line("a2-synthesis-3-m3", "a2-family-te-sequence", "a2-value-seq-owatte-kaeru", WORKPLACE, L("Work finishes, then I go home.", "Il lavoro finisce, poi torno a casa."), { speakerRole: "a2-role-colleague" }),
     line("a2-synthesis-3-m4", "a2-family-negative-request", "a2-value-naidekudasai-muri", HEALTH, L("Please don't overdo it.", "Per favore, non strafare."), { speakerRole: "a2-role-teacher" }),
     line("a2-synthesis-3-m5", "a2-family-reason-node", "a2-value-node-netsu-yasumu", HEALTH, L("I have a fever, so I'll rest today.", "Ho la febbre, quindi oggi riposo."), { speakerRole: "a2-role-learner" }),
     line("a2-synthesis-3-m6", "a2-family-reason-kara", "a2-value-kara-densha-okureru", WORKPLACE, L("My friend will be a bit late because the train is delayed.", "Il mio amico farà un po' tardi perché il treno è in ritardo."), { subjectValueId: "a2-value-friend-subject", speakerRole: "a2-role-friend" }),
@@ -199,9 +199,9 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
   transfers: [
     line("a2-synthesis-3-t1", "a2-family-reason-kara", "a2-value-kara-shigoto-owatta", HEALTH, L("Work is over, so I'll go home.", "Il lavoro è finito, quindi torno a casa."), { speakerRole: "a2-role-friend" }),
     line("a2-synthesis-3-t2", "a2-family-request-tekudasai", "a2-value-tekudasai-suwaru", WORKPLACE, L("Please sit down.", "Per favore, si sieda."), { speakerRole: "a2-role-teacher" }),
-    line("a2-synthesis-3-t3", "a2-family-te-sequence", "a2-value-seq-aratte-neru", HEALTH, L("I washed my face, then went to sleep.", "Mi sono lavato la faccia, poi sono andato a dormire."), { speakerRole: "a2-role-colleague" }),
+    line("a2-synthesis-3-t3", "a2-family-te-sequence", "a2-value-seq-aratte-neru", HEALTH, L("I wash my face, then go to sleep.", "Mi lavo la faccia, poi vado a dormire."), { speakerRole: "a2-role-colleague" }),
     line("a2-synthesis-3-t4", "a2-family-negative-request", "a2-value-naidekudasai-hataraku", WORKPLACE, L("Please don't work right now.", "Per favore, non lavori adesso."), { speakerRole: "a2-role-learner" }),
-    line("a2-synthesis-3-t5", "a2-family-reason-node", "a2-value-node-byouki-yasunda", HEALTH, L("I was ill, so I rested.", "Ero malato, quindi ho riposato."), { speakerRole: "a2-role-friend" }),
+    line("a2-synthesis-3-t5", "a2-family-reason-node", "a2-value-node-byouki-yasunda", HEALTH, L("I was ill, so I stayed home from school.", "Ero malato, quindi ho saltato la scuola."), { speakerRole: "a2-role-friend" }),
   ],
 });
 

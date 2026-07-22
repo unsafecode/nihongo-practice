@@ -349,4 +349,55 @@ describe("A2 Module 15 — linguistic-fidelity regressions (Task 7 quality pass)
       expect(itById.get("a2-synthesis-1-t4"), "IT gloss must mention 'amico'").toMatch(/amico/i);
     });
   });
+
+  describe("M15-3 — non-past て-sequence lines must not be glossed in past tense", () => {
+    it("a2-synthesis-3-m3 JP ends in non-past かえります; EN/IT use present-tense, not past", () => {
+      const jp = realizedJp("a2-synthesis-3-m3");
+      expect(jp, "JP is しごとがおわって、いえにかえります").toBe("しごとがおわって、いえにかえります");
+      expect(jp.endsWith("かえります"), "final verb is non-past かえります").toBe(true);
+      const en = enById.get("a2-synthesis-3-m3") ?? "";
+      const it = itById.get("a2-synthesis-3-m3") ?? "";
+      expect(en, "EN must not use past 'went home'").not.toMatch(/went home/i);
+      expect(en, "EN must not use past 'finished' as final predicate").not.toMatch(/^Work finished/i);
+      expect(en, "EN present: finishes / go home").toMatch(/finish(?:es)?.*go\s+home|go\s+home/i);
+      expect(it, "IT must not use past 'sono tornato a casa'").not.toMatch(/sono tornato a casa/i);
+      expect(it, "IT present: finisce / torno").toMatch(/torno a casa/i);
+    });
+
+    it("a2-synthesis-3-t3 JP ends in non-past ねます; EN/IT use present-tense, not past", () => {
+      const jp = realizedJp("a2-synthesis-3-t3");
+      expect(jp, "JP is かおをあらって、ねます").toBe("かおをあらって、ねます");
+      expect(jp.endsWith("ねます"), "final verb is non-past ねます").toBe(true);
+      const en = enById.get("a2-synthesis-3-t3") ?? "";
+      const it = itById.get("a2-synthesis-3-t3") ?? "";
+      expect(en, "EN must not use past 'washed'").not.toMatch(/\bwashed\b/i);
+      expect(en, "EN must not use past 'went to sleep'").not.toMatch(/went to sleep/i);
+      expect(en, "EN present: wash / go to sleep").toMatch(/wash.*face/i);
+      expect(en, "EN present: go to sleep").toMatch(/go to sleep/i);
+      expect(it, "IT must not use past 'mi sono lavato'").not.toMatch(/mi sono lavato/i);
+      expect(it, "IT must not use past 'sono andato a dormire'").not.toMatch(/sono andato a dormire/i);
+      expect(it, "IT present: mi lavo / vado a dormire").toMatch(/mi lavo la faccia/i);
+      expect(it, "IT present: vado a dormire").toMatch(/vado a dormire/i);
+    });
+  });
+
+  describe("M15-5 — びょうきだったので、がっこうをやすみました must convey school absence, not generic rest", () => {
+    it("a2-synthesis-3-t5 JP contains がっこうを (explicit school object); EN/IT reference school absence", () => {
+      const jp = realizedJp("a2-synthesis-3-t5");
+      expect(jp, "JP is びょうきだったので、がっこうをやすみました").toBe(
+        "びょうきだったので、がっこうをやすみました",
+      );
+      expect(jp, "JP must include explicit がっこうを").toContain("がっこうを");
+      const en = enById.get("a2-synthesis-3-t5") ?? "";
+      const it = itById.get("a2-synthesis-3-t5") ?? "";
+      expect(en, "EN must mention school").toMatch(/school/i);
+      expect(en, "EN must convey absence from school, not merely rested").toMatch(
+        /stayed home from school|absent from school|missed school|home from school/i,
+      );
+      expect(it, "IT must mention scuola").toMatch(/scuola/i);
+      expect(it, "IT must not be merely generic 'ho riposato' without school").not.toMatch(
+        /^Ero malato, quindi ho riposato\.$/,
+      );
+    });
+  });
 });
