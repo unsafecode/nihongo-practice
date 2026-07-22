@@ -226,6 +226,27 @@ describe("A2 Module 13 — re2's give-receive: correct giver/receiver particles 
   });
 });
 
+describe("A2 Module 13 — re3's ている party rōmaji uses a semantic verb-head boundary (パーティーをしています → 'paatii o shite imasu')", () => {
+  // Regression (Phase 3 Task 7 review finding): the する te-form head し(て)
+  // is a verb head — a new word after the を particle — so its rōmaji must
+  // carry a word boundary (`... o shite imasu`), never glue onto the particle
+  // as `... oshite imasu`. Uses the ACTUAL realizer + formatRomaji output.
+  const partyVariantIds = ["relationships-events-3-m7", "relationships-events-3-t1"] as const;
+
+  it.each(partyVariantIds)("%s realizes パーティーをしています with 'o shite imasu' (never 'oshite')", (variantId) => {
+    const re3 = module13Lessons[2];
+    const variant = re3.variants.find((v) => v.id === variantId);
+    expect(variant, `${variantId} exists`).toBeDefined();
+    const sentence = realize(variant as SentenceVariant);
+    expect(sentence.canonicalJapanese).toContain("パーティーをしています");
+    const romaji = formatRomaji(sentence.tokens);
+    expect(romaji.ok, `${variantId} romaji`).toBe(true);
+    if (!romaji.ok) return;
+    expect(romaji.text, variantId).toContain("paatii o shite imasu");
+    expect(romaji.text, variantId).not.toMatch(/oshite/);
+  });
+});
+
 describe("A2 Module 13 — exact realized Japanese/rōmaji spot checks", () => {
   it("realizes every module-13 instructional variant through the shared formatter with no errors", () => {
     for (const built of module13Lessons) {

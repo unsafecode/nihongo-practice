@@ -215,13 +215,41 @@ const INDEPENDENT_WORD_TAIL_JP_BY_CONSTRUCTION: Readonly<Record<string, Readonly
   "experience-takoto": new Set(["こと", "あります"]),
 };
 
+/**
+ * Promote a composed verb's HEAD fragment from "morpheme" to "lexical" when
+ * it is a whole-word verb head that carries no kanji root — i.e. する's
+ * し/して/した/しない (`a2Conjugation.ts` bakes the irregular する as a single
+ * kana "morpheme" fragment because it has no kanji stem to split into
+ * root+okurigana). A verb head always *begins* a word, so once it follows a
+ * preceding particle/object its realized rōmaji needs a real word boundary
+ * (パーティーをしています → "paatii o shite imasu", never the glued
+ * "paatii oshite imasu"). Every other registered/new verb already carries a
+ * lexical head (食べ/話し/来/おき/…), so this is a no-op for them; only the
+ * empty-kanji-root irregular する is ever promoted. The bound okurigana/ending
+ * morphemes that FOLLOW the head (て/べ/ます/…) are never touched, so they keep
+ * attaching to their stem correctly. This is the identical
+ * catalog-as-semantic-assembly-boundary principle as
+ * {@link remapIndependentWordTails} (§ Phase 3/Task 7 review finding,
+ * "semantic rōmaji boundaries"), applied to the verb head rather than an
+ * independent-word tail — `a2Conjugation.ts`/`a2Constructions.ts` keep their
+ * own raw-concatenation contract untouched. */
+function remapVerbHead(
+  fragments: readonly SemanticValueTokenFragment[],
+): SemanticValueTokenFragment[] {
+  if (fragments.length === 0 || fragments[0].kind !== "morpheme") {
+    return [...fragments];
+  }
+  return [{ ...fragments[0], kind: "lexical" as const }, ...fragments.slice(1)];
+}
+
 /** Compose a registered Task 2 verb sense through one of the M5-M8 suffix
  * constructions (`composeA2Construction`), with the construction's own
  * independent-word tail fragments remapped for natural romaji boundaries
- * (see {@link remapIndependentWordTails}). */
+ * (see {@link remapIndependentWordTails}) and the verb head remapped for a
+ * word boundary after a preceding particle (see {@link remapVerbHead}). */
 function suffixKana(constructionId: string, senseId: string): SemanticValueTokenFragment[] {
   const independentWords = INDEPENDENT_WORD_TAIL_JP_BY_CONSTRUCTION[constructionId] ?? new Set<string>();
-  return remapIndependentWordTails(composedKana(constructionId, senseId), independentWords);
+  return remapVerbHead(remapIndependentWordTails(composedKana(constructionId, senseId), independentWords));
 }
 
 /**
@@ -281,7 +309,7 @@ function newVerbSuffixKana(constructionId: string, verb: NewVerb): SemanticValue
   const base = conjugateClass(verb.conjClass, verb.stem, construction.base);
   const fragments: A2Fragment[] = [...base.fragments, ...construction.tail.map((fragment) => ({ ...fragment }))];
   const independentWords = INDEPENDENT_WORD_TAIL_JP_BY_CONSTRUCTION[constructionId] ?? new Set<string>();
-  return remapIndependentWordTails(kanaFragments(fragments), independentWords);
+  return remapVerbHead(remapIndependentWordTails(kanaFragments(fragments), independentWords));
 }
 
 /**

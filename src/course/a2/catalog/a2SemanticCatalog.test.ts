@@ -445,13 +445,19 @@ describe("a2SemanticCatalog — M5-M8 exact tokenFragments for the new suffix/cl
   // realized as a hand-composed こと+が+X tail, mirroring
   // experienceTakotoKana's established shape exactly, never through
   // composeA2Construction (which only accepts `kind: "suffix"`).
-  it("a2-value-possibility-tsukau carries つかうことができます (dictionary base + こと が できます, real word-boundary spaces)", () => {
-    expect(valueById("a2-value-possibility-tsukau").tokenFragments).toEqual([
-      { jp: "つか", romaji: "tsuka", kind: "lexical", boundaryBefore: "attach" },
-      { jp: "う", romaji: "u", kind: "morpheme", boundaryBefore: "attach" },
-      { jp: "こと", romaji: "koto", kind: "lexical", boundaryBefore: "attach" },
-      { jp: "が", romaji: "ga", kind: "particle", boundaryBefore: "attach" },
-      { jp: "できます", romaji: "dekimasu", kind: "lexical", boundaryBefore: "attach" },
+  // The irregular する has no kanji root, so `a2Conjugation.ts` bakes its
+  // whole te-form as a single kana "morpheme" fragment (して). That fragment
+  // is nonetheless a VERB HEAD — a new word after the を particle — so
+  // `remapVerbHead` promotes it to "lexical" here, exactly as the tail
+  // independent-word remap promotes います. Without this the realized rōmaji
+  // glues the head onto the preceding particle ("...oshite imasu"); with it
+  // the semantic word boundary is preserved ("... o shite imasu"). Every
+  // other verb head already carries a lexical kanji root (た/はたら/け/…), so
+  // the remap is a no-op for them — this is the ONE affected value.
+  it("a2-value-teiru-paatii-shiteimasu promotes する's kana verb head して to lexical (semantic word boundary), keeping います lexical too", () => {
+    expect(valueById("a2-value-teiru-paatii-shiteimasu").tokenFragments).toEqual([
+      { jp: "して", romaji: "shite", kind: "lexical", boundaryBefore: "attach" },
+      { jp: "います", romaji: "imasu", kind: "lexical", boundaryBefore: "attach" },
     ]);
   });
 });

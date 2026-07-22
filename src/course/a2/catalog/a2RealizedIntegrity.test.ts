@@ -31,7 +31,7 @@ import { describe, expect, it } from "vitest";
 
 import { realizeVariant } from "../../foundations/realizeFamily";
 import type { SemanticValue, SentenceFamily, SentenceVariant } from "../../foundations/types";
-import { a2AllVariants } from "./catalog";
+import { a2AllVariants, a2SemanticBuiltLessons } from "./catalog";
 import {
   a2Contexts,
   a2LearningTargetSenses,
@@ -61,6 +61,69 @@ function realize(variant: SentenceVariant) {
     throw new Error(`realize ${variant.id} failed: ${JSON.stringify(r.errors)}`);
   }
   return r.sentence;
+}
+
+/** Finding C — a NAMED person (proper name: Sora/Emi) added as an
+ * untracked subject must appear in the copy. This complements finding B: B
+ * only rejects an explicit subject over a value that already carries its own
+ * baked topic (`carriesOwnTopic`), so a proper-name person added to a
+ * NON-self-topical whole clause whose bilingual copy silently omits that
+ * person slips past B entirely. Proper names are locale-invariant (they read
+ * identically in EN and IT), so this check is exact and false-positive-free —
+ * it is deliberately scoped to proper-name individuals, never common-noun
+ * role/family subjects (friend/teacher/haha/…), whose copy realization is
+ * locale-dependent. It is scoped to lines authored the M13/M14/M15 way — a
+ * bare, untracked semantic value (`subjectReferentId === null`) — never a
+ * genuine tracked-discourse-referent line (M1-M12's own, deliberately
+ * different, `subjectReferent`-driven vocative convention), and never an
+ * `"omitted"` subject (the legitimate impersonal case). */
+const KNOWN_PERSON_NAME_SUBJECTS: Readonly<Record<string, RegExp>> = {
+  "a2-value-sora": /\bsora\b/i,
+  "a2-value-emi": /\bemi\b/i,
+};
+
+interface PersonNameSubjectCandidate {
+  readonly id: string;
+  readonly subjectValueId: string;
+  readonly en: string;
+  readonly it: string;
+}
+
+/** Every model+transfer whose subject is a known proper-name person value,
+ * realized with an explicit/vocative (never "omitted") subject and authored
+ * as a bare untracked value (`subjectReferentId === null`). Takes the built
+ * lessons as a parameter so the detector can also be exercised against a
+ * representative synthetic fixture. */
+function collectUntrackedPersonNameSubjects(
+  builtLessons: readonly { readonly variants: readonly SentenceVariant[]; readonly en: Readonly<Record<string, string>>; readonly it: Readonly<Record<string, string>> }[],
+): PersonNameSubjectCandidate[] {
+  const out: PersonNameSubjectCandidate[] = [];
+  for (const built of builtLessons) {
+    for (const variant of built.variants) {
+      if (variant.discourse.subjectRealization === "omitted") continue;
+      if (variant.discourse.subjectReferentId !== null) continue;
+      const subjectValueId = variant.slotValues.subject;
+      if (!subjectValueId || !(subjectValueId in KNOWN_PERSON_NAME_SUBJECTS)) continue;
+      out.push({
+        id: variant.id,
+        subjectValueId,
+        en: built.en[`${variant.id}-translation`] ?? "",
+        it: built.it[`${variant.id}-translation`] ?? "",
+      });
+    }
+  }
+  return out;
+}
+
+/** Of the candidates, keep only those whose EN or IT copy fails to name the
+ * added proper-name subject. */
+function personNameCopyOffenders(
+  candidates: readonly PersonNameSubjectCandidate[],
+): PersonNameSubjectCandidate[] {
+  return candidates.filter((c) => {
+    const re = KNOWN_PERSON_NAME_SUBJECTS[c.subjectValueId];
+    return !(re.test(c.en) && re.test(c.it));
+  });
 }
 
 describe("A2 realized-content integrity — no duplicate terminal question particle (finding A)", () => {
@@ -147,5 +210,36 @@ describe("A2 realized-content integrity — no double top-level topic (finding B
       }
     }
     expect(unmarked, unmarked.join("\n")).toEqual([]);
+  });
+});
+
+describe("A2 realized-content integrity — a named person added as an untracked subject must appear in the copy (finding C)", () => {
+  it("the detector fires on a representative offender fixture and never on a correctly-named one", () => {
+    const offender = {
+      id: "fixture-offender",
+      subjectValueId: "a2-value-sora",
+      en: "The teacher will send a letter.",
+      it: "L'insegnante manderà una lettera.",
+    };
+    const named = {
+      id: "fixture-named",
+      subjectValueId: "a2-value-sora",
+      en: "Sora will send a letter.",
+      it: "Sora manderà una lettera.",
+    };
+    expect(personNameCopyOffenders([offender]).map((o) => o.id)).toEqual(["fixture-offender"]);
+    expect(personNameCopyOffenders([named])).toEqual([]);
+  });
+
+  it("at least one all-60 variant really adds an untracked proper-name (Sora/Emi) subject, so the sweep below is non-vacuous", () => {
+    expect(collectUntrackedPersonNameSubjects(a2SemanticBuiltLessons).length).toBeGreaterThan(0);
+  });
+
+  it("no all-60 variant adds an untracked proper-name subject whose EN or IT copy omits that name", () => {
+    const offenders = personNameCopyOffenders(collectUntrackedPersonNameSubjects(a2SemanticBuiltLessons));
+    expect(
+      offenders,
+      offenders.map((o) => `${o.id} (${o.subjectValueId}): EN=${JSON.stringify(o.en)} IT=${JSON.stringify(o.it)}`).join("\n"),
+    ).toEqual([]);
   });
 });
