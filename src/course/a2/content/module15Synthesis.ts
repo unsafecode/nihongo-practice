@@ -124,7 +124,7 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
     line("a2-synthesis-1-t1", "a2-family-plan-tsumori", "a2-value-tsumori-yomu-hon", OUTING, L("My friend intends to read a book this weekend.", "Il mio amico ha intenzione di leggere un libro questo weekend."), { subjectValueId: "a2-value-friend-subject", speakerRole: "a2-role-friend" }),
     line("a2-synthesis-1-t2", "a2-family-connector-utterance", "a2-value-connector-samui-demo-genki", PLANS, L("Today it's cold, but I'm well.", "Oggi fa freddo, ma sto bene."), { speakerRole: "a2-role-teacher" }),
     line("a2-synthesis-1-t3", "a2-family-plain-recognition", "a2-value-plain-hanasu-dict", OUTING, L("(casual speech) speak", "(discorso informale) parlare"), { speakerRole: "a2-role-colleague" }),
-    line("a2-synthesis-1-t4", "a2-family-plan-yotei", "a2-value-yotei-au-doyoubi", OUTING, L("The colleague is planning to meet on Saturday.", "Il collega ha in programma di incontrarsi sabato."), { subjectValueId: "a2-value-colleague-subject", speakerRole: "a2-role-learner" }),
+    line("a2-synthesis-1-t4", "a2-family-plan-yotei", "a2-value-yotei-au-doyoubi", OUTING, L("The colleague is planning to meet a friend on Saturday.", "Il collega ha in programma di incontrare un amico sabato."), { subjectValueId: "a2-value-colleague-subject", speakerRole: "a2-role-learner" }),
     line("a2-synthesis-1-t5", "a2-family-connector-utterance", "a2-value-connector-shukudai-sorekara-terebi", PLANS, L("My friend will do homework, then watch TV.", "Il mio amico farà i compiti, poi guarderà la TV."), { subjectValueId: "a2-value-friend-subject", speakerRole: "a2-role-friend" }),
   ],
 });

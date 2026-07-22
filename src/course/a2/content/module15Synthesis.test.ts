@@ -340,4 +340,13 @@ describe("A2 Module 15 — linguistic-fidelity regressions (Task 7 quality pass)
       expect(it).toMatch(/ritardo|tardi/i);
     });
   });
+
+  describe("M5 — M15 s1-t4 gloss preserves the baked ともだちに friend argument", () => {
+    it("a2-synthesis-1-t4 JP realizes with ともだちに, EN includes 'a friend', IT includes 'amico'", () => {
+      const jp = realizedJp("a2-synthesis-1-t4");
+      expect(jp, "JP must contain the baked ともだちに argument").toContain("ともだちに");
+      expect(enById.get("a2-synthesis-1-t4"), "EN gloss must mention 'a friend'").toMatch(/a friend/i);
+      expect(itById.get("a2-synthesis-1-t4"), "IT gloss must mention 'amico'").toMatch(/amico/i);
+    });
+  });
 });
