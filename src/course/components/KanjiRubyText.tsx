@@ -52,6 +52,16 @@ export interface KanjiRubyTextProps {
   readonly script: Script;
   /** Recognition-only activity mode. Defaults to `"read"`. */
   readonly mode?: KanjiActivityMode;
+  /**
+   * The resolved, localized semantic gloss for this glyph in its lexeme
+   * (Phase 3 Task 8 spec-fix, ISSUE 2) — already looked up from
+   * `copy.kanjiMeanings[meaningCopyId]` at the page boundary, never the raw
+   * copy id. Surfaced as accessible support text at the supported stages and,
+   * gated with the reading, at `revealable`; deliberately withheld at
+   * `assessed` so it can never leak the target of an assessed recognition.
+   * Optional: when absent, no meaning element is rendered at all.
+   */
+  readonly meaning?: string;
   /** Localized copy for key `a2-kanji-why-visible`, shown at the assessed stage. */
   readonly assessedExplanation: string;
   /**
@@ -77,6 +87,7 @@ export function KanjiRubyText({
   exposure,
   script,
   mode = "read",
+  meaning,
   assessedExplanation,
   revealShowLabel,
   revealHideLabel,
@@ -84,6 +95,10 @@ export function KanjiRubyText({
   const support = a2KanjiAssistancePolicy.supportFor(exposure, mode);
 
   if (exposure.stage === "assessed") {
+    // Assessed: bare glyph only. No furigana, no romaji, and — deliberately —
+    // no semantic gloss either: if meaning is the recognition target, surfacing
+    // it here would leak the answer, so the safest stage-aware behavior is to
+    // withhold it entirely (spec-fix ISSUE 2).
     return (
       <span className="kanji-ruby kanji-ruby--assessed">
         <span lang="ja">{glyph}</span>
@@ -102,6 +117,7 @@ export function KanjiRubyText({
         glyph={glyph}
         reading={reading}
         romaji={romaji}
+        meaning={meaning}
         showRomajiHint={showRomajiHint}
         revealShowLabel={revealShowLabel}
         revealHideLabel={revealHideLabel}
@@ -118,6 +134,7 @@ export function KanjiRubyText({
         </rt>
       </ruby>
       {showRomajiHint ? <span className="kanji-ruby__romaji-hint">{romaji}</span> : null}
+      {meaning ? <span className="kanji-ruby__meaning">{meaning}</span> : null}
     </span>
   );
 }
@@ -126,6 +143,7 @@ function RevealableKanjiRuby({
   glyph,
   reading,
   romaji,
+  meaning,
   showRomajiHint,
   revealShowLabel,
   revealHideLabel,
@@ -133,6 +151,7 @@ function RevealableKanjiRuby({
   readonly glyph: string;
   readonly reading: string;
   readonly romaji?: string;
+  readonly meaning?: string;
   readonly showRomajiHint: boolean;
   readonly revealShowLabel: string;
   readonly revealHideLabel: string;
@@ -160,6 +179,9 @@ function RevealableKanjiRuby({
         <span aria-hidden="true">{revealed ? "\u2212" : "+"}</span>
       </ActionButton>
       {showRomajiHint ? <span className="kanji-ruby__romaji-hint">{romaji}</span> : null}
+      {/* The gloss is support, so at `revealable` it is gated with the reading:
+          not rendered at all until the learner reveals, mirroring the `<rt>`. */}
+      {revealed && meaning ? <span className="kanji-ruby__meaning">{meaning}</span> : null}
     </span>
   );
 }

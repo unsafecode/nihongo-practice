@@ -44,6 +44,7 @@ function makeProgressValue(
     resolveReview: () => {},
     dismissCorruption: () => {},
     reset: () => {},
+    clearLevel: () => {},
     migrationNotice: null,
     acknowledgeMigrationNotice: () => {},
     levelSummary: {
@@ -274,40 +275,51 @@ describe("CourseHome: visible, non-blocking storage failure states", () => {
   });
 });
 
-describe("CourseHome: destructive, confirmed, localized reset", () => {
-  it("renders reset as a destructive action and disables it when there is nothing to reset", () => {
+describe("CourseHome: destructive, confirmed, level-scoped reset (ISSUE 3)", () => {
+  it("labels the destructive action with the selected level (A1) and disables it when there is nothing to reset", () => {
     const html = renderHome(makeProgressValue());
     expect(html).toMatch(
-      /class="action action--destructive[^"]*" disabled=""[^>]*>Azzera i progressi</,
+      /class="action action--destructive[^"]*" disabled=""[^>]*>Azzera i progressi di A1</,
     );
   });
 
-  it("enables reset once there is visited or last-visited progress", () => {
+  it("enables the A1 reset once the A1 level has visited or last-visited progress", () => {
     const html = renderHome(
       makeProgressValue({
         progress: progressWithVisited([firstLesson.id]),
       }),
     );
-    expect(html).toMatch(/class="action action--destructive[^"]*">Azzera i progressi</);
+    expect(html).toMatch(/class="action action--destructive[^"]*">Azzera i progressi di A1</);
     expect(html).not.toMatch(
       /class="action action--destructive[^"]*" disabled=""/,
     );
   });
 
-  it("never labels reset with mastery/completion wording", () => {
-    expect(itCopy.home.reset.toLowerCase()).not.toMatch(/padronanza|completat/);
-    expect(itCopy.home.resetConfirm.toLowerCase()).not.toMatch(/padronanza|completat/);
+  it("never labels the level-scoped reset with mastery/completion wording, in either locale", () => {
+    for (const copy of [itCopy, enCopy]) {
+      for (const label of ["A1", "A2"]) {
+        expect(copy.courseLevels.resetLevel(label).toLowerCase()).not.toMatch(
+          /padronanza|completat|master|complete/,
+        );
+        expect(copy.courseLevels.resetLevelConfirm(label).toLowerCase()).not.toMatch(
+          /padronanza|completat|master|complete/,
+        );
+      }
+    }
   });
 
-  it("gates the destructive reset behind a localized window.confirm before clearing progress (source contract)", () => {
+  it("gates the level-scoped reset behind a localized window.confirm and clears ONLY the selected level (source contract)", () => {
     // No @testing-library/react DOM harness is installed in this repo (see
-    // LessonPage.test.ts), and renderToStaticMarkup never wires up
-    // onClick handlers to real DOM events, so the confirm-gate itself is
-    // asserted against the component source, matching that precedent.
+    // LessonPage.test.ts), and renderToStaticMarkup never wires up onClick
+    // handlers to real DOM events, so the confirm-gate + level-scoped clear
+    // are asserted against the component source, matching that precedent.
+    // The pure level-only-clear behavior is proven in ProgressContext.a2.test.ts.
     const source = readCourseHomeSource();
     expect(source).toMatch(
-      /if \(window\.confirm\(copy\.home\.resetConfirm\)\) reset\(\);/,
+      /if \(window\.confirm\(copy\.courseLevels\.resetLevelConfirm\(levelLabel\)\)\)\s*\n?\s*clearLevel\(level\);/,
     );
+    // It must NOT call the global, both-levels reset from this level-scoped view.
+    expect(source).not.toMatch(/\breset\(\);/);
   });
 });
 

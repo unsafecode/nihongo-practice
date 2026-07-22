@@ -176,6 +176,7 @@ function A2KanjiSection({
                 glyph={view.glyph}
                 reading={view.reading}
                 romaji={view.romaji}
+                meaning={copy.kanjiMeanings[view.meaningCopyId]}
                 exposure={exposure}
                 script={script}
                 assessedExplanation={copy.kanji.assessedExplanation}

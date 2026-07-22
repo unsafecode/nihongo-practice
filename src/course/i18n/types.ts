@@ -108,6 +108,16 @@ export interface CourseCopy {
     a2CheckpointHeading: string;
     a2CheckpointNotAttempted: string;
     a2CheckpointAttempted: (acceptedExerciseCount: number, sampledCanDoCount: number) => string;
+    /**
+     * Level-scoped destructive-reset copy (Phase 3 Task 8 spec-fix, ISSUE 3).
+     * `resetLevel` is the button label and `resetLevelConfirm` the
+     * `window.confirm` prompt, both taking the selected level's short label
+     * (e.g. "A1"/"A2") so the action always names exactly which level it
+     * clears and reassures the learner the other level is kept — never a
+     * whole-progress wipe, never a mastery/completion claim.
+     */
+    resetLevel: (levelLabel: string) => string;
+    resetLevelConfirm: (levelLabel: string) => string;
   };
   /**
    * Localized chrome for the A2 contextual-kanji UI (Phase 3 Task 8; Task 3
@@ -459,4 +469,13 @@ export interface CourseCopy {
    * its spoken listen/repeat equivalent.
    */
   phonetics: Record<string, string>;
+  /**
+   * Localized semantic gloss for each A2 contextual kanji (Phase 3 Task 8
+   * spec-fix, ISSUE 2), keyed by the frozen kanji catalog's per-entry
+   * `meaningCopyId`. Real EN/IT support copy only — never Japanese — surfaced
+   * next to a glyph at its supported stages so a kanji item shows a genuine
+   * meaning instead of a dangling copy id. Withheld at the assessed stage by
+   * the renderer so it can never leak the target of an assessed recognition.
+   */
+  kanjiMeanings: Record<string, string>;
 }

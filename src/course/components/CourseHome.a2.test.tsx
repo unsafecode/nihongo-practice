@@ -4,14 +4,22 @@ import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter, Routes, Route } from "react-router";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "../../i18n/LocaleContext";
 import { coursePathForLevel } from "../../routing/routePaths";
+import { lessonPath } from "../../routing/routes";
 import { a2CanDoDescriptorCopy } from "../a2/catalog/canDos";
 import { a2CanDosAuthored } from "../a2/catalog/catalog";
 import { courseModulesByLevel } from "../data/course";
 import { it as itCopy } from "../i18n/it";
-import { emptyProgressV4, type CourseProgressV4 } from "../progress/progress";
+import {
+  emptyProgressV4,
+  emptyLevelProgress,
+  type CourseProgressV4,
+  type ReviewQueueEntry,
+} from "../progress/progress";
+import { reviewKeyFor } from "../progress/reviewQueue";
+import { getLessonExercises } from "./lessonExerciseModel";
 import {
   ProgressContext,
   type ProgressContextValue,
@@ -26,16 +34,20 @@ const a2Lessons = a2Modules.flatMap((m) => m.lessons);
 function makeProgressValue(
   progressV4: CourseProgressV4 = emptyProgressV4(),
 ): ProgressContextValue {
+  // Project the v3-compat `progress` surface from levels.a1, exactly as the
+  // real ProgressContext does — so a level-scoped review surface reading
+  // `progress` for A1 and `progressV4.levels.a2` for A2 sees consistent data.
+  const a1 = progressV4.levels.a1;
   return {
     progress: {
       schemaVersion: 3,
       catalogVersion: "a0-a1-v1",
-      lessons: {},
-      lastVisitedLessonId: null,
-      reviewQueue: [],
-      orphanedLessonIds: [],
-      orphanedReviewKeys: [],
-      updatedAt: new Date(0).toISOString(),
+      lessons: { ...a1.lessons },
+      lastVisitedLessonId: a1.lastVisitedLessonId,
+      reviewQueue: [...a1.reviewQueue],
+      orphanedLessonIds: [...a1.orphanedLessonIds],
+      orphanedReviewKeys: [...a1.orphanedReviewKeys],
+      updatedAt: progressV4.updatedAt,
     },
     corrupted: false,
     persistenceAvailable: true,
@@ -44,6 +56,7 @@ function makeProgressValue(
     resolveReview: () => {},
     dismissCorruption: () => {},
     reset: () => {},
+    clearLevel: () => {},
     migrationNotice: null,
     acknowledgeMigrationNotice: () => {},
     levelSummary: {
@@ -135,12 +148,184 @@ describe("CourseHome — A2 level view via ?livello=a2 (Phase 3 Task 8)", () => 
   });
 });
 
+function progressV4WithLevelVisit(
+  level: "a1" | "a2",
+  lessonId: string,
+): CourseProgressV4 {
+  const base = emptyProgressV4();
+  return {
+    ...base,
+    levels: {
+      ...base.levels,
+      [level]: {
+        ...base.levels[level],
+        lessons: {
+          [lessonId]: {
+            visitedAt: "2026-07-22T00:00:00.000Z",
+            practicedAt: null,
+            consolidatedAt: null,
+            attemptedExerciseIds: [],
+            acceptedExerciseIds: [],
+          },
+        },
+        lastVisitedLessonId: lessonId,
+      },
+    },
+  };
+}
+
+describe("CourseHome — level-scoped reset on the A2 view (ISSUE 3)", () => {
+  it("labels the destructive reset for the A2 level and disables it when A2 has no progress", () => {
+    const html = renderAt(coursePathForLevel("a2"));
+    expect(html).toMatch(
+      /class="action action--destructive[^"]*" disabled=""[^>]*>Azzera i progressi di A2</,
+    );
+  });
+
+  it("enables the A2 reset once the A2 level itself has visited progress", () => {
+    const html = renderAt(
+      coursePathForLevel("a2"),
+      makeProgressValue(progressV4WithLevelVisit("a2", "connected-conversation-1")),
+    );
+    expect(html).toMatch(/class="action action--destructive[^"]*">Azzera i progressi di A2</);
+    expect(html).not.toMatch(/class="action action--destructive[^"]*" disabled=""/);
+  });
+
+  it("keeps the A2 reset disabled when only A1 has progress — the enabled state follows the SELECTED level, never the other", () => {
+    const html = renderAt(
+      coursePathForLevel("a2"),
+      makeProgressValue(progressV4WithLevelVisit("a1", "sounds-1")),
+    );
+    expect(html).toMatch(
+      /class="action action--destructive[^"]*" disabled=""[^>]*>Azzera i progressi di A2</,
+    );
+  });
+
+  it("keeps the A1 reset disabled on the default view when only A2 has progress", () => {
+    const html = renderAt(
+      "/percorso",
+      makeProgressValue(progressV4WithLevelVisit("a2", "connected-conversation-1")),
+    );
+    expect(html).toMatch(
+      /class="action action--destructive[^"]*" disabled=""[^>]*>Azzera i progressi di A1</,
+    );
+  });
+});
+
+function reviewEntry(lessonId: string, exerciseDefinitionId: string, at: string): ReviewQueueEntry {
+  return {
+    reviewKey: reviewKeyFor(lessonId, exerciseDefinitionId),
+    lessonId,
+    exerciseDefinitionId,
+    targetConceptIds: [],
+    targetLexemeIds: [],
+    mistakeCount: 1,
+    lastMistakeAt: at,
+  };
+}
+
+function progressV4WithReviews(
+  entries: Partial<Record<"a1" | "a2", ReviewQueueEntry[]>>,
+): CourseProgressV4 {
+  const base = emptyProgressV4();
+  return {
+    ...base,
+    levels: {
+      a1: { ...emptyLevelProgress(), reviewQueue: entries.a1 ?? [] },
+      a2: { ...emptyLevelProgress(), reviewQueue: entries.a2 ?? [] },
+    },
+  };
+}
+
+const a1ReviewExerciseId = getLessonExercises("introductions-1")!.exercises[0]!.definitionId;
+const a2ReviewExerciseId = getLessonExercises("connected-conversation-1")!.exercises[0]!.definitionId;
+
+describe("CourseHome — selected-level review surface (Phase 3 Task 8 spec-fix, BLOCKER 1)", () => {
+  // `review.fromLesson(title)` ("Da: <title>") is unique to the review surface,
+  // so asserting on it proves the entry is rendered by the review queue rather
+  // than merely appearing as a CourseMap lesson link.
+  const a1From = itCopy.review.fromLesson(itCopy.lessons["introductions-1"].title);
+  const a2From = itCopy.review.fromLesson(itCopy.lessons["connected-conversation-1"].title);
+
+  it("renders the A2 level's own review entry on the A2 view, with an A2 lesson deep link", () => {
+    const html = renderAt(
+      coursePathForLevel("a2"),
+      makeProgressValue(
+        progressV4WithReviews({
+          a2: [reviewEntry("connected-conversation-1", a2ReviewExerciseId, "2026-02-01T00:00:00.000Z")],
+        }),
+      ),
+    );
+    expect(html).toContain(itCopy.review.title); // "Da ripassare"
+    expect(html).toContain(itCopy.review.count(1));
+    expect(html).toContain(a2From);
+    expect(html).toContain(lessonPath("connected-conversation", "connected-conversation-1"));
+  });
+
+  it("never surfaces an A1 review entry on the A2 view (reads only the selected level) and shows the truthful A2 empty state", () => {
+    const html = renderAt(
+      coursePathForLevel("a2"),
+      makeProgressValue(
+        progressV4WithReviews({
+          a1: [reviewEntry("introductions-1", a1ReviewExerciseId, "2026-01-01T00:00:00.000Z")],
+        }),
+      ),
+    );
+    // The A1 entry lives only in levels.a1; the A2 review surface must ignore it.
+    expect(html).not.toContain(a1From);
+    // Apostrophe-free substring of review.empty (renderToStaticMarkup escapes ').
+    expect(html).toContain("niente da ripassare");
+  });
+
+  it("renders the A1 level's own review entry on the default A1 view", () => {
+    const html = renderAt(
+      "/percorso",
+      makeProgressValue(
+        progressV4WithReviews({
+          a1: [reviewEntry("introductions-1", a1ReviewExerciseId, "2026-01-01T00:00:00.000Z")],
+        }),
+      ),
+    );
+    expect(html).toContain(itCopy.review.count(1));
+    expect(html).toContain(a1From);
+  });
+
+  it("shows the truthful empty review state on a fresh A1 view", () => {
+    const html = renderAt("/percorso");
+    expect(html).toContain(itCopy.review.title);
+    expect(html).toContain("niente da ripassare");
+  });
+});
+
 describe("CourseHome — selecting a level moves focus and is back/forward safe", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("focuses the level heading when switching to A2, and back to A1 restores its heading", async () => {
+    // RR7 commits a `Link` navigation via `React.startTransition`, which the
+    // scheduler posts as a MessageChannel macrotask. A bare `await act(async
+    // () => dispatch)` only drains microtasks, leaving the transition to
+    // commit on a later out-of-act tick and log "update ... not wrapped in
+    // act(...)". `clickAndFlush` awaits a macrotask inside act() so the
+    // navigation commits within the act() scope; this spy proves the warning
+    // is genuinely gone (it still forwards to the real console — not
+    // suppressed) rather than merely tolerated.
+    const consoleError = vi.spyOn(console, "error");
+
     const container = document.createElement("div");
     document.body.append(container);
     const root = createRoot(container);
     const value = makeProgressValue();
+
+    const clickAndFlush = async (link: HTMLAnchorElement) => {
+      await act(async () => {
+        link.dispatchEvent(
+          new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }),
+        );
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    };
 
     await act(async () => {
       root.render(
@@ -172,11 +357,7 @@ describe("CourseHome — selecting a level moves focus and is back/forward safe"
 
     // Activate the A2 option (a real link → client push navigation).
     const a2Link = container.querySelector<HTMLAnchorElement>('[data-level="a2"]');
-    await act(async () => {
-      a2Link!.dispatchEvent(
-        new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }),
-      );
-    });
+    await clickAndFlush(a2Link!);
 
     expect(heading()?.textContent).toContain("A2");
     // Focus moved to the newly-selected level's heading (keyboard/AT context).
@@ -184,15 +365,89 @@ describe("CourseHome — selecting a level moves focus and is back/forward safe"
 
     // Both options stay routable: selecting A1 again returns and refocuses.
     const a1Link = container.querySelector<HTMLAnchorElement>('[data-level="a1"]');
-    await act(async () => {
-      a1Link!.dispatchEvent(
-        new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }),
-      );
-    });
+    await clickAndFlush(a1Link!);
     expect(heading()?.textContent).toContain("A1");
     expect(document.activeElement).toBe(heading());
 
-    root.unmount();
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+
+    const actWarnings = consoleError.mock.calls.filter((args) =>
+      String(args[0]).includes("not wrapped in act"),
+    );
+    expect(actWarnings).toEqual([]);
+  });
+
+  it("swaps the review surface to the newly-selected level on navigation, and back", async () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    const value = makeProgressValue(
+      progressV4WithReviews({
+        a1: [reviewEntry("introductions-1", a1ReviewExerciseId, "2026-01-01T00:00:00.000Z")],
+        a2: [reviewEntry("connected-conversation-1", a2ReviewExerciseId, "2026-02-01T00:00:00.000Z")],
+      }),
+    );
+
+    const clickAndFlush = async (link: HTMLAnchorElement) => {
+      await act(async () => {
+        link.dispatchEvent(
+          new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }),
+        );
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    };
+
+    await act(async () => {
+      root.render(
+        createElement(
+          MemoryRouter,
+          { initialEntries: ["/percorso"] },
+          createElement(
+            LocaleProvider,
+            null,
+            createElement(
+              ProgressContext.Provider,
+              { value },
+              createElement(
+                Routes,
+                null,
+                createElement(Route, {
+                  path: "/percorso",
+                  element: createElement(CourseHome),
+                }),
+              ),
+            ),
+          ),
+        ),
+      );
+    });
+
+    const a1From = itCopy.review.fromLesson(itCopy.lessons["introductions-1"].title);
+    const a2From = itCopy.review.fromLesson(itCopy.lessons["connected-conversation-1"].title);
+    // Scope assertions to the review surface (the CourseMap also renders lesson
+    // links, so a page-wide check could not tell the two apart).
+    const reviewHtml = () => container.querySelector(".review-queue")?.innerHTML ?? "";
+
+    // Default A1 view shows the A1 review entry, not the A2 one.
+    expect(reviewHtml()).toContain(a1From);
+    expect(reviewHtml()).not.toContain(a2From);
+
+    // Switch to A2 → the review surface swaps to the A2 queue.
+    await clickAndFlush(container.querySelector<HTMLAnchorElement>('[data-level="a2"]')!);
+    expect(reviewHtml()).toContain(a2From);
+    expect(reviewHtml()).not.toContain(a1From);
+
+    // Back to A1 → the surface swaps back to the A1 queue.
+    await clickAndFlush(container.querySelector<HTMLAnchorElement>('[data-level="a1"]')!);
+    expect(reviewHtml()).toContain(a1From);
+    expect(reviewHtml()).not.toContain(a2From);
+
+    await act(async () => {
+      root.unmount();
+    });
     container.remove();
   });
 });

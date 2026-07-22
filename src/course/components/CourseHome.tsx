@@ -16,6 +16,7 @@ import { buildCanDoSummaryModel } from "./canDoSummaryModel";
 import { buildCourseMapModel } from "./courseMapModel";
 import { CourseMap } from "./CourseMap";
 import { LevelSelector } from "./LevelSelector";
+import { ReviewQueue } from "./ReviewQueue";
 import { RouteNotice } from "./RouteNotice";
 import "../course.css";
 
@@ -71,7 +72,7 @@ export function CourseHome(): ReactElement {
     corrupted,
     persistenceAvailable,
     dismissCorruption,
-    reset,
+    clearLevel,
     migrationNotice,
     acknowledgeMigrationNotice,
     canDoEvidence,
@@ -162,8 +163,15 @@ export function CourseHome(): ReactElement {
 
   const canReset = visitedIds.length > 0 || lastVisitedLessonId !== null;
 
+  // Level-scoped reset (ISSUE 3): the button always names the *selected* level
+  // and clears only that level, leaving the other level's saved progress
+  // untouched. `canReset` above is already computed from the selected level's
+  // own visited/last-visited evidence, so the enabled state follows the
+  // selected level too — never the other one.
+  const levelLabel = levelIsA1 ? copy.courseLevels.a1 : copy.courseLevels.a2;
   const resetProgress = () => {
-    if (window.confirm(copy.home.resetConfirm)) reset();
+    if (window.confirm(copy.courseLevels.resetLevelConfirm(levelLabel)))
+      clearLevel(level);
   };
 
   return (
@@ -229,7 +237,7 @@ export function CourseHome(): ReactElement {
               onClick={resetProgress}
               disabled={!canReset}
             >
-              {copy.home.reset}
+              {copy.courseLevels.resetLevel(levelLabel)}
             </ActionButton>
           </div>
         </div>
@@ -302,6 +310,17 @@ export function CourseHome(): ReactElement {
           {checkpointBody}
         </p>
       </section>
+
+      {/*
+        The selected level's own review queue (Phase 3 Task 8 spec-fix,
+        BLOCKER 1). `ReviewQueue` reads `progressV4.levels[level]` for A2 and
+        the A1 v3-compat projection for A1, resolving every entry against the
+        selected level's catalog — it never reads the other level. Switching
+        levels (or back/forward) re-renders it with the new `level`, swapping
+        the surface. Its practice/resolve actions infer the owning level from
+        each entry's lesson id, so an A2 entry is genuinely actionable.
+      */}
+      <ReviewQueue level={level} />
 
       {migrationNotice ? (
         <section

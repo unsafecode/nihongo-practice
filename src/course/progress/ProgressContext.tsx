@@ -28,6 +28,7 @@ import {
   type ModuleOutline,
   type ProgressMigrationNotice,
   acknowledgeMigrationNotice as acknowledgeMigrationNoticeV4,
+  clearLevel as clearLevelProgress,
   emptyProgressV4,
   markLessonVisited,
   parseProgress,
@@ -337,6 +338,18 @@ export interface ProgressContextValue {
   resolveReview: (input: ReviewResolutionInput) => void;
   dismissCorruption: () => void;
   reset: () => void;
+  /**
+   * Resets ONE level back to empty, leaving the other level's serialized
+   * evidence byte-identical (Phase 3 Task 8 spec-fix, ISSUE 3). Unlike the
+   * global {@link reset}, this never removes the whole stored record — it
+   * writes a scoped update through the same persistence path every other
+   * mutation uses, so the untouched level survives a reload and a save
+   * failure is reported truthfully via `persistenceAvailable`. Inferring the
+   * level is the caller's job (Course Home passes its selected level), so a
+   * level-scoped surface can never wipe the level the learner is not looking
+   * at.
+   */
+  clearLevel: (level: CourseLevelId) => void;
   /** Non-null exactly once for a learner whose v3 progress migrated to v4 (spec §17). */
   migrationNotice: ProgressMigrationNotice | null;
   /** Stamps `migrationNotice.acknowledgedAt` — never deletes the record (its "what changed" copy stays available). */
@@ -638,6 +651,23 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
     if (result.status === "removed") setProgressV4(emptyProgressV4());
   }, [storage]);
 
+  // Level-scoped reset (ISSUE 3). Never removes the whole stored record the
+  // way `reset` does — it maps the current V4 store through the pure
+  // `clearLevel`, which empties exactly the one level and returns the other
+  // level (and the migration notice) by reference, then hands the result to
+  // `setProgressV4`. The ongoing-persistence effect below writes that scoped
+  // update and updates `persistenceAvailable` from the real write result, so
+  // the preserved level is genuinely re-serialized to storage and a failed
+  // save is reported truthfully — exactly the persistence/error path every
+  // other evidence mutation already uses. A no-op (same reference from
+  // `clearLevel`) when that level is already empty means no needless write.
+  const clearLevel = useCallback((level: CourseLevelId) => {
+    setCorrupted(false);
+    setProgressV4((current) =>
+      clearLevelProgress(current, level, new Date().toISOString()),
+    );
+  }, []);
+
   const acknowledgeMigrationNotice = useCallback(() => {
     setProgressV4((current) =>
       acknowledgeMigrationNoticeV4(current, new Date().toISOString()),
@@ -682,6 +712,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       resolveReview,
       dismissCorruption,
       reset,
+      clearLevel,
       migrationNotice: progressV4.migrationNotice,
       acknowledgeMigrationNotice,
       levelSummary,
@@ -702,6 +733,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       resolveReview,
       dismissCorruption,
       reset,
+      clearLevel,
       progressV4,
       acknowledgeMigrationNotice,
       levelSummary,

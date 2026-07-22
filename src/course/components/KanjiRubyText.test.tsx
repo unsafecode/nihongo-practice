@@ -37,6 +37,7 @@ function baseProps(overrides: Partial<KanjiRubyTextProps> = {}): KanjiRubyTextPr
     glyph: "話",
     reading: "はな",
     romaji: "hana",
+    meaning: "to speak, to talk",
     exposure: exposureAt("first-supported"),
     script: "hiragana" as Script,
     assessedExplanation: "Kanji you're assessed on show no reading support.",
@@ -196,5 +197,78 @@ describe("KanjiRubyText — assessed (no support, in every mode/script)", () => 
       expect(html).not.toContain("<rt");
       expect(html).not.toContain("hana");
     }
+  });
+});
+
+describe("KanjiRubyText — semantic gloss (Phase 3 Task 8 spec-fix, ISSUE 2)", () => {
+  function mount(props: KanjiRubyTextProps): { container: HTMLDivElement; root: Root } {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => {
+      root.render(createElement(KanjiRubyText, props));
+    });
+    return { container, root };
+  }
+
+  for (const stage of ["first-supported", "supported-retrieval"] as const) {
+    it(`surfaces the real localized meaning gloss at ${stage} (accessible, not aria-hidden)`, () => {
+      const html = renderStatic(
+        baseProps({ exposure: exposureAt(stage), meaning: "to speak, to talk" }),
+      );
+      expect(html).toContain("to speak, to talk");
+      // The gloss is not hidden from assistive tech.
+      expect(html).not.toMatch(/aria-hidden="true"[^>]*>to speak, to talk/);
+    });
+  }
+
+  it("renders the meaning as text, never as a raw copy id", () => {
+    const html = renderStatic(
+      baseProps({ exposure: exposureAt("first-supported"), meaning: "to speak, to talk" }),
+    );
+    expect(html).toContain("to speak, to talk");
+    // The resolved gloss text is rendered — never the catalog's copy id.
+    expect(html).not.toContain("a2-kanji-");
+    expect(html).not.toContain("-meaning");
+  });
+
+  it("does NOT surface the meaning at the assessed stage, in any mode or script (no answer leak)", () => {
+    for (const mode of ALL_MODES) {
+      for (const script of ["hiragana", "romaji"] as const) {
+        const html = renderStatic(
+          baseProps({
+            exposure: exposureAt("assessed"),
+            mode,
+            script,
+            meaning: "SENTINEL_ASSESSED_GLOSS",
+          }),
+        );
+        expect(html).not.toContain("SENTINEL_ASSESSED_GLOSS");
+      }
+    }
+  });
+
+  it("gates the meaning behind the reveal toggle at the revealable stage: hidden until revealed, shown after", () => {
+    const { container } = mount(
+      baseProps({ exposure: exposureAt("revealable"), meaning: "SENTINEL_REVEAL_GLOSS" }),
+    );
+    // Collapsed: neither the reading nor the meaning is present anywhere.
+    expect(container.textContent).not.toContain("SENTINEL_REVEAL_GLOSS");
+    for (const node of container.querySelectorAll("*")) {
+      expect(node.getAttribute("title") ?? "").not.toContain("SENTINEL_REVEAL_GLOSS");
+      expect(node.getAttribute("aria-label") ?? "").not.toContain("SENTINEL_REVEAL_GLOSS");
+    }
+
+    const button = container.querySelector("button.kanji-reveal") as HTMLButtonElement;
+    act(() => button.click());
+    // Revealed: the meaning is now surfaced alongside the reading.
+    expect(container.textContent).toContain("SENTINEL_REVEAL_GLOSS");
+  });
+
+  it("omits the meaning element entirely when no gloss is supplied", () => {
+    const html = renderStatic(
+      baseProps({ exposure: exposureAt("first-supported"), meaning: undefined }),
+    );
+    expect(html).not.toContain("kanji-ruby__meaning");
   });
 });

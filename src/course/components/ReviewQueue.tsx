@@ -5,32 +5,54 @@ import { useLocale } from "../../i18n/LocaleContext";
 import { lessonPath } from "../../routing/routes";
 import { getCourseCopy } from "../i18n/catalog";
 import { useProgress } from "../progress/ProgressContext";
+import type { CourseLevelId } from "../progress/progress";
 import { Exercise } from "./Exercise";
 import type { GeneratedExercise } from "./lessonExerciseModel";
 import { buildReviewQueueView } from "./reviewQueueModel";
 import type { ReviewQueueItem } from "./reviewQueueModel";
 
 /**
- * The lightweight `Da ripassare` review-queue surface on Practice Home (Slice C
- * plan Task 4 step 4; design spec §10.4). It lists the ordered, de-duplicated
- * queue with a count, links each entry back to its lesson, and reveals the
- * exercise inline in **review mode** on request. A review-mode acceptance calls
+ * The lightweight `Da ripassare` review-queue surface (Slice C plan Task 4
+ * step 4; design spec §10.4). It lists the ordered, de-duplicated queue with a
+ * count, links each entry back to its lesson, and reveals the exercise inline
+ * in **review mode** on request. A review-mode acceptance calls
  * `resolveReview`, which is the only path that removes an entry — an immediate
  * same-lesson correction never silently resolves it (spec §10.4). Empty, orphan,
  * and storage-unavailable states each have their own explicit localized copy,
  * and the surface never blocks the other practice tools.
+ *
+ * Level-aware (Phase 3 Task 8 spec-fix, BLOCKER 1): `level` selects *which*
+ * level's queue this surface shows. It defaults to `"a1"`, reading the
+ * A1 v3-compat `progress` projection so Practice Home's existing A1 review is
+ * byte-for-byte unchanged. Course Home passes its selected level, so the A2
+ * view reads `progressV4.levels.a2` and resolves every entry (title, module
+ * deep link, engine prompt) against the A2 catalog — never A1's. The mutation
+ * callbacks (`resolveReview`/`recordAttempt`) already infer the owning level
+ * from each entry's lesson id, so an A2 entry's "practice" action genuinely
+ * resolves the A2 queue: nothing here is inert data dressed up as actionable.
  */
 
-export function ReviewQueue(): ReactElement {
+export interface ReviewQueueProps {
+  /**
+   * Which level's review queue to show. Defaults to `"a1"`, reading the
+   * A1 v3-compat `progress` projection (Practice Home's existing behavior).
+   */
+  readonly level?: CourseLevelId;
+}
+
+export function ReviewQueue({ level = "a1" }: ReviewQueueProps): ReactElement {
   const { locale } = useLocale();
   const copy = getCourseCopy(locale);
   const reviewCopy = copy.review;
-  const { progress, persistenceAvailable, recordAttempt, resolveReview } =
+  const { progress, progressV4, persistenceAvailable, recordAttempt, resolveReview } =
     useProgress();
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [resolvedNotice, setResolvedNotice] = useState(false);
 
-  const view = buildReviewQueueView(progress);
+  // A1 reads the v3-compat projection (unchanged); every other level reads its
+  // own independent `levels[level]` slice — never the other level's queue.
+  const source = level === "a1" ? progress : progressV4.levels[level];
+  const view = buildReviewQueueView(source, level);
 
   const handleAttempt = (item: ReviewQueueItem) => (
     outcome: "accepted" | "retry",

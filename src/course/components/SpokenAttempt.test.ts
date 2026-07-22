@@ -494,6 +494,7 @@ describe("createSpokenAttemptHandlers — consent never touches the recognizer",
       start: vi.fn(),
       abort: vi.fn(),
       reset: vi.fn(),
+      clearLevel: vi.fn(),
     };
   }
 

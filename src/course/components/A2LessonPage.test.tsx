@@ -122,6 +122,26 @@ describe("A2 lesson page renders through the A2 renderer + staged kanji", () => 
     // The reading is not present in the DOM while collapsed (no <rt> leak).
     expect(item).not.toContain("<rt");
   });
+
+  it("surfaces the real localized semantic gloss next to a supported-stage glyph (not the copy id)", () => {
+    // 洗 (arau) is at supported-retrieval in sequencing-ongoing-3; its IT gloss
+    // must render as text next to the glyph — resolved from the copy id, never
+    // shown as the copy id itself.
+    const item = exposureItem(html, "a2-kanji-ara-洗-supported-retrieval");
+    const arauGloss = itCopy.kanjiMeanings["a2-kanji-arau-meaning"];
+    expect(arauGloss.length).toBeGreaterThan(0);
+    expect(item).toContain("kanji-ruby__meaning");
+    expect(item).toContain(arauGloss);
+    // The dangling copy id itself is never rendered.
+    expect(item).not.toContain("a2-kanji-arau-meaning");
+  });
+
+  it("keeps a revealable glyph's gloss out of the collapsed DOM (gated with the reading)", () => {
+    // 起 (okiru) revealable: its gloss must not be present while collapsed.
+    const item = exposureItem(html, "a2-kanji-o-起-revealable");
+    expect(item).not.toContain(itCopy.kanjiMeanings["a2-kanji-okiru-meaning"]);
+    expect(item).not.toContain("kanji-ruby__meaning");
+  });
 });
 
 describe("A2 lesson page: assessed kanji never leaks its reading, even in romaji mode", () => {
@@ -144,5 +164,13 @@ describe("A2 lesson page: assessed kanji never leaks its reading, even in romaji
     // The assessed glyph span itself renders only the glyph + the caption.
     const assessedSpan = item.slice(item.indexOf('class="kanji-ruby kanji-ruby--assessed"'));
     expect(assessedSpan).not.toContain("hana");
+  });
+
+  it("does not surface the semantic gloss at the assessed stage (no answer leak)", () => {
+    const html = render(lessonPath("connected-conversation", "connected-conversation-4"));
+    const item = exposureItem(html, "a2-kanji-hana-話-assessed");
+    // 話's own gloss must not appear at the assessed stage.
+    expect(item).not.toContain(itCopy.kanjiMeanings["a2-kanji-hanasu-meaning"]);
+    expect(item).not.toContain("kanji-ruby__meaning");
   });
 });

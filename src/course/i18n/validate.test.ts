@@ -190,6 +190,10 @@ describe("A2 runtime copy (Phase 3 Task 8): level selector + kanji chrome", () =
       c.a2CheckpointHeading,
       c.a2CheckpointNotAttempted,
       c.a2CheckpointAttempted(3, 2),
+      c.resetLevel("A1"),
+      c.resetLevel("A2"),
+      c.resetLevelConfirm("A1"),
+      c.resetLevelConfirm("A2"),
     ];
   }
 

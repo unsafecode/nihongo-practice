@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { emptyProgress, recordExerciseMistake } from "../progress/progress";
-import type { CourseProgressV3, ExerciseEvidence } from "../progress/progress";
+import type { CourseProgressV3, ExerciseEvidence, ReviewQueueEntry } from "../progress/progress";
+import { reviewKeyFor } from "../progress/reviewQueue";
 import { getLessonExercises } from "./lessonExerciseModel";
 import { buildReviewQueueView } from "./reviewQueueModel";
 
@@ -136,6 +137,60 @@ describe("buildReviewQueueView — determinism", () => {
     );
     expect(JSON.stringify(buildReviewQueueView(progress))).toEqual(
       JSON.stringify(buildReviewQueueView(progress)),
+    );
+  });
+});
+
+/** A real A2 exercise definition id from an A2 lesson's own practice set. */
+const a2ExerciseId = getLessonExercises("connected-conversation-1")!.exercises[0]!.definitionId;
+
+function a2ReviewEntry(): ReviewQueueEntry {
+  return {
+    reviewKey: reviewKeyFor("connected-conversation-1", a2ExerciseId),
+    lessonId: "connected-conversation-1",
+    exerciseDefinitionId: a2ExerciseId,
+    targetConceptIds: [],
+    targetLexemeIds: [],
+    mistakeCount: 1,
+    lastMistakeAt: "2026-02-01T00:00:00.000Z",
+  };
+}
+
+describe("buildReviewQueueView — level-aware A2 resolution (Phase 3 Task 8 spec-fix, BLOCKER 1)", () => {
+  it("resolves an A2 review entry against the A2 catalog (module + exercise), given the a2 level", () => {
+    const view = buildReviewQueueView(
+      { reviewQueue: [a2ReviewEntry()], orphanedReviewKeys: [] },
+      "a2",
+    );
+    expect(view.items).toHaveLength(1);
+    const [item] = view.items;
+    expect(item.lessonId).toBe("connected-conversation-1");
+    // The A2 module id, resolved from the A2 course modules — never A1's.
+    expect(item.moduleId).toBe("connected-conversation");
+    expect(item.exerciseDefinitionId).toBe(a2ExerciseId);
+    expect(item.prompt).toBeTruthy();
+    expect(view.unresolvableKeys).toEqual([]);
+  });
+
+  it("does NOT resolve an A2 entry when asked for the a1 level — never reads the other level's catalog", () => {
+    const view = buildReviewQueueView(
+      { reviewQueue: [a2ReviewEntry()], orphanedReviewKeys: [] },
+      "a1",
+    );
+    // The A2 lesson id is unknown to the A1 module map, so it lands in the
+    // explicit unresolvable bucket rather than being cross-resolved.
+    expect(view.items).toEqual([]);
+    expect(view.unresolvableKeys).toEqual([
+      reviewKeyFor("connected-conversation-1", a2ExerciseId),
+    ]);
+  });
+
+  it("defaults to the a1 level (byte-compatible with the existing single-arg call)", () => {
+    const progress = withMistakes(
+      ["introductions-1", introductionsChoiceId, "2026-01-01T00:00:00.000Z"],
+    );
+    expect(JSON.stringify(buildReviewQueueView(progress))).toEqual(
+      JSON.stringify(buildReviewQueueView(progress, "a1")),
     );
   });
 });

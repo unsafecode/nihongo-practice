@@ -782,6 +782,12 @@
   color: var(--ink-soft);
 }
 
+.kanji-ruby__meaning {
+  font-size: 0.75em;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
 .kanji-reveal {
   font-weight: 700;
   line-height: 1;

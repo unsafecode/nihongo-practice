@@ -12,6 +12,7 @@ import {
   a2RuntimeModuleCopy,
   a2RuntimeObjectiveCopy,
   a2RuntimeOutcomeCopy,
+  a2RuntimeKanjiMeaningCopy,
 } from "../a2/runtimeCopy";
 
 const enUi = {
@@ -74,6 +75,9 @@ const enUi = {
       "You have not yet worked through the A2 checkpoint scenarios. It is not required, and nothing is locked while you wait.",
     a2CheckpointAttempted: (acceptedExerciseCount: number, sampledCanDoCount: number) =>
       `You have worked through the A2 checkpoint scenarios, accepting ${acceptedExerciseCount} exercises across ${sampledCanDoCount} sampled Can-do statements. This only records what you did — it is not a score, and it does not mean you have finished the A2 level.`,
+    resetLevel: (levelLabel: string) => `Reset ${levelLabel} progress`,
+    resetLevelConfirm: (levelLabel: string) =>
+      `Do you really want to reset your ${levelLabel} course progress? Your other level's progress is kept.`,
   },
   kanji: {
     sectionHeading: "Kanji in this lesson",
@@ -332,4 +336,5 @@ export const en = {
   examples: assembledCourseCopy.en.examples,
   journeyScenes: {} as CourseCopy["journeyScenes"],
   phonetics: a1RuntimePhoneticCopy("en"),
+  kanjiMeanings: a2RuntimeKanjiMeaningCopy("en"),
 } satisfies CourseCopy;

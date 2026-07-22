@@ -4,7 +4,7 @@ import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { en as enCopy } from "../i18n/en";
 import { coursePathForLevel } from "../../routing/routePaths";
 import { LevelSelector } from "./LevelSelector";
@@ -69,7 +69,23 @@ describe("LevelSelector — URL drives selection and clicking pushes history", (
     );
   }
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("navigates (pushes history) to the A2 URL when its option is activated, and back restores A1", async () => {
+    // React Router 7 commits a `Link` navigation via `React.startTransition`
+    // (see chunk-SA4DP3SF.js: `startTransition(() => setStateImpl(...))`),
+    // which the React scheduler posts as a MessageChannel macrotask. A bare
+    // `await act(async () => { dispatch click })` only drains microtasks, so
+    // the transition's state update lands *after* the act() scope and React
+    // logs "An update to Root inside a test was not wrapped in act(...)". This
+    // spy fails the test if that warning is emitted, so the fix (flushing the
+    // transition inside act — see clickAndFlush) is proven, not suppressed.
+    // spy still forwards to the real console (no suppression) — we only
+    // inspect its calls to assert the warning never fires.
+    const consoleError = vi.spyOn(console, "error");
+
     const container = document.createElement("div");
     document.body.append(container);
     const root = createRoot(container);
@@ -101,13 +117,26 @@ describe("LevelSelector — URL drives selection and clicking pushes history", (
     expect(a2Link).not.toBeNull();
     await act(async () => {
       a2Link!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
+      // Flush RR7's startTransition-deferred navigation state update *inside*
+      // act(): React's scheduler posts it as a MessageChannel macrotask, so a
+      // microtask-only drain leaves it pending until a later out-of-act tick
+      // (e.g. unmount), which is exactly what triggered the warning. Awaiting a
+      // macrotask here commits the transition within the act() scope.
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
     expect(container.querySelector('[data-testid="loc"]')?.textContent).toBe(
       "/percorso?livello=a2",
     );
 
-    root.unmount();
+    await act(async () => {
+      root.unmount();
+    });
     container.remove();
+
+    const actWarnings = consoleError.mock.calls.filter((args) =>
+      String(args[0]).includes("not wrapped in act"),
+    );
+    expect(actWarnings).toEqual([]);
   });
 });

@@ -1,6 +1,6 @@
-import { courseModules } from "../data/course";
+import { courseModulesByLevel } from "../data/course";
 import type { Locale } from "../../i18n/LocaleContext";
-import type { CourseProgressV3 } from "../progress/progress";
+import type { CourseLevelId, ReviewQueueEntry } from "../progress/progress";
 import { orderedReviewQueue } from "../progress/reviewQueue";
 import type { GeneratedExercise } from "./lessonExerciseModel";
 import type { ExercisePrompt } from "../exercises/types";
@@ -24,7 +24,27 @@ import { getLessonExercises } from "./lessonExerciseModel";
  *
  * No answer string is ever reconstructed here — the shared engine regenerates
  * each prompt from the same catalog the lesson uses.
+ *
+ * Level-aware (Phase 3 Task 8 spec-fix): it accepts the minimal
+ * {@link ReviewQueueSource} shape (satisfied by both the A1 v3-compat
+ * `CourseProgressV3` and any v4 `LevelProgress`) plus the `level` whose course
+ * catalog resolves each entry's module id. `level` defaults to `"a1"`, so
+ * every existing single-argument A1/PracticeHome call is byte-for-byte
+ * unchanged. Module ids are resolved *only* against the given level's own
+ * course modules, so an A2 review surface never reads A1's catalog and vice
+ * versa; the disjoint lesson-id namespaces mean a foreign entry lands in the
+ * explicit `unresolvableKeys` bucket rather than being cross-resolved.
  */
+
+/**
+ * The minimum progress shape the review view-model reads. Both
+ * `CourseProgressV3` (the A1 v3-compat projection) and a v4 `LevelProgress`
+ * structurally satisfy it, so one implementation serves both levels.
+ */
+export interface ReviewQueueSource {
+  readonly reviewQueue: readonly ReviewQueueEntry[];
+  readonly orphanedReviewKeys: readonly string[];
+}
 
 export interface ReviewQueueItem {
   readonly reviewKey: string;
@@ -57,11 +77,18 @@ export interface ReviewQueueView {
   readonly orphanedKeys: readonly string[];
 }
 
-const moduleIdByLesson = new Map<string, string>(
-  courseModules.flatMap((courseModule) =>
-    courseModule.lessons.map((lesson) => [lesson.id, courseModule.id]),
+const moduleIdByLessonForLevel: Readonly<Record<CourseLevelId, ReadonlyMap<string, string>>> = {
+  a1: new Map(
+    courseModulesByLevel.a1.flatMap((courseModule) =>
+      courseModule.lessons.map((lesson) => [lesson.id, courseModule.id]),
+    ),
   ),
-);
+  a2: new Map(
+    courseModulesByLevel.a2.flatMap((courseModule) =>
+      courseModule.lessons.map((lesson) => [lesson.id, courseModule.id]),
+    ),
+  ),
+};
 
 function exerciseFor(
   lessonId: string,
@@ -73,12 +100,14 @@ function exerciseFor(
 }
 
 export function buildReviewQueueView(
-  progress: CourseProgressV3,
+  source: ReviewQueueSource,
+  level: CourseLevelId = "a1",
 ): ReviewQueueView {
   const items: ReviewQueueItem[] = [];
   const unresolvableKeys: string[] = [];
+  const moduleIdByLesson = moduleIdByLessonForLevel[level];
 
-  for (const entry of orderedReviewQueue(progress.reviewQueue)) {
+  for (const entry of orderedReviewQueue(source.reviewQueue)) {
     const moduleId = moduleIdByLesson.get(entry.lessonId);
     const exercise = exerciseFor(entry.lessonId, entry.exerciseDefinitionId);
     if (moduleId === undefined || exercise === undefined) {
@@ -105,6 +134,6 @@ export function buildReviewQueueView(
   return {
     items,
     unresolvableKeys,
-    orphanedKeys: progress.orphanedReviewKeys,
+    orphanedKeys: [...source.orphanedReviewKeys],
   };
 }

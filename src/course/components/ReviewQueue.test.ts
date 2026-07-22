@@ -11,9 +11,11 @@ import {
 import {
   emptyProgress,
   emptyProgressV4,
+  emptyLevelProgress,
   recordExerciseMistake,
 } from "../progress/progress";
-import type { CourseProgressV3, ExerciseEvidence } from "../progress/progress";
+import type { CourseProgressV3, CourseProgressV4, ExerciseEvidence } from "../progress/progress";
+import { reviewKeyFor } from "../progress/reviewQueue";
 import { getLessonExercises } from "./lessonExerciseModel";
 import { en as enCopy } from "../i18n/en";
 import { it as itCopy } from "../i18n/it";
@@ -74,6 +76,7 @@ function contextValue(
     resolveReview: vi.fn(),
     dismissCorruption: vi.fn(),
     reset: vi.fn(),
+    clearLevel: vi.fn(),
     migrationNotice: null,
     acknowledgeMigrationNotice: vi.fn(),
     levelSummary: {
@@ -100,7 +103,7 @@ function contextValue(
   };
 }
 
-function render(value: ProgressContextValue): string {
+function render(value: ProgressContextValue, props: { level?: "a1" | "a2" } = {}): string {
   return renderToStaticMarkup(
     createElement(
       MemoryRouter,
@@ -114,7 +117,7 @@ function render(value: ProgressContextValue): string {
           createElement(
             ProgressContext.Provider,
             { value },
-            createElement(ReviewQueue, null),
+            createElement(ReviewQueue, { ...props }),
           ),
         ),
       ),
@@ -219,5 +222,64 @@ describe("ReviewQueue — locale parity", () => {
     expect(enCopy.review.empty).not.toBe(itCopy.review.empty);
     expect(enCopy.review.unresolvable(2)).toContain("2 authored review items");
     expect(itCopy.review.unresolvable(2)).toContain("2 elementi di ripasso");
+  });
+});
+
+const a2ReviewExerciseId = getLessonExercises("connected-conversation-1")!.exercises[0]!.definitionId;
+
+function progressV4WithA2Review(): CourseProgressV4 {
+  const base = emptyProgressV4();
+  return {
+    ...base,
+    levels: {
+      ...base.levels,
+      a2: {
+        ...emptyLevelProgress(),
+        reviewQueue: [
+          {
+            reviewKey: reviewKeyFor("connected-conversation-1", a2ReviewExerciseId),
+            lessonId: "connected-conversation-1",
+            exerciseDefinitionId: a2ReviewExerciseId,
+            targetConceptIds: [],
+            targetLexemeIds: [],
+            mistakeCount: 1,
+            lastMistakeAt: "2026-02-01T00:00:00.000Z",
+          },
+        ],
+      },
+    },
+  };
+}
+
+describe("ReviewQueue — level-scoped A2 surface (Phase 3 Task 8 spec-fix, BLOCKER 1)", () => {
+  it("reads progressV4.levels.a2 and renders the A2 entry with an A2 deep link when level='a2'", () => {
+    const value = contextValue(emptyProgress(), { progressV4: progressV4WithA2Review() });
+    const html = render(value, { level: "a2" });
+    expect(html).toContain(itCopy.review.count(1));
+    // The A2 lesson title (from the merged copy) and its A2 module deep link.
+    expect(html).toContain(itCopy.lessons["connected-conversation-1"].title);
+    expect(html).toContain(lessonPath("connected-conversation", "connected-conversation-1"));
+  });
+
+  it("shows the truthful empty state for A2 when only the A1 v3-compat queue has entries (never reads the other level)", () => {
+    const a1Only = withMistakes([
+      "introductions-1",
+      getLessonExercises("introductions-1")!.exercises[0]!.definitionId,
+      "2026-01-01T00:00:00.000Z",
+    ]);
+    // level='a2' reads levels.a2 (empty), so the A1 entry must not leak in.
+    const html = render(contextValue(a1Only), { level: "a2" });
+    expect(html).toContain("niente da ripassare");
+    expect(html).not.toContain(lessonPath("introductions", "introductions-1"));
+  });
+
+  it("defaults to the A1 v3-compat surface when no level prop is given (existing behavior unchanged)", () => {
+    const populated = withMistakes([
+      "introductions-1",
+      introductionsExerciseId,
+      "2026-01-01T00:00:00.000Z",
+    ]);
+    const html = render(contextValue(populated));
+    expect(html).toContain(lessonPath("introductions", "introductions-1"));
   });
 });

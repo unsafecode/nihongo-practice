@@ -12,6 +12,7 @@ import {
   a2RuntimeModuleCopy,
   a2RuntimeObjectiveCopy,
   a2RuntimeOutcomeCopy,
+  a2RuntimeKanjiMeaningCopy,
 } from "../a2/runtimeCopy";
 
 const itUi = {
@@ -74,6 +75,9 @@ const itUi = {
       "Non hai ancora affrontato gli scenari della verifica A2. Non è obbligatoria e nel frattempo nulla resta bloccato.",
     a2CheckpointAttempted: (acceptedExerciseCount: number, sampledCanDoCount: number) =>
       `Hai affrontato gli scenari della verifica A2, con ${acceptedExerciseCount} esercizi accettati su ${sampledCanDoCount} Can-do campionati. Questo registra solo cosa hai fatto — non è un punteggio, e non significa aver finito il livello A2.`,
+    resetLevel: (levelLabel: string) => `Azzera i progressi di ${levelLabel}`,
+    resetLevelConfirm: (levelLabel: string) =>
+      `Vuoi davvero azzerare i progressi del corso ${levelLabel}? I progressi dell'altro livello vengono mantenuti.`,
   },
   kanji: {
     sectionHeading: "Kanji di questa lezione",
@@ -330,4 +334,5 @@ export const it = {
   examples: assembledCourseCopy.it.examples,
   journeyScenes: {} as CourseCopy["journeyScenes"],
   phonetics: a1RuntimePhoneticCopy("it"),
+  kanjiMeanings: a2RuntimeKanjiMeaningCopy("it"),
 } satisfies CourseCopy;

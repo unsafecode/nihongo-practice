@@ -8,6 +8,7 @@ import {
   useProgress,
   type ProgressContextValue,
 } from "./ProgressContext";
+import { emptyLevelProgress } from "./progress";
 import { getLessonExercises } from "../components/lessonExerciseModel";
 import { a2Checkpoint } from "../a2/catalog/checkpoint";
 import { A2_SYNTHESIS_LESSON_IDS } from "../a2/manifest";
@@ -59,8 +60,8 @@ function Consumer({ onValue }: { onValue: (value: ProgressContextValue) => void 
 
 async function withMountedProvider(
   fn: (get: () => ProgressContextValue) => Promise<void> | void,
+  storage: Storage = memoryStorage({}),
 ): Promise<void> {
-  const storage = memoryStorage({});
   const container = document.createElement("div");
   document.body.append(container);
   let latest: ProgressContextValue | undefined;
@@ -160,6 +161,116 @@ describe("ProgressContext — level-aware A2 evidence (Phase 3 Task 8)", () => {
       expect(get().progress.lessons["connected-conversation-1"]).toBeUndefined();
       expect(get().levelSummary.level).toBe("a1");
       expect(get().levelSummary.visitedLessonCount).toBe(0);
+    });
+  });
+});
+
+describe("ProgressContext — level-scoped clearLevel (Phase 3 Task 8 spec-fix, ISSUE 3)", () => {
+  it("clears ONLY the selected A2 level and leaves the serialized A1 level byte-identical", async () => {
+    await withMountedProvider(async (get) => {
+      // Real evidence in both levels (disjoint lesson-id namespaces route each
+      // visit to its own level).
+      await act(async () => get().markVisited("sounds-1"));
+      await act(async () => get().markVisited("connected-conversation-1"));
+      expect(get().levelSummaryFor("a1").visitedLessonCount).toBe(1);
+      expect(get().levelSummaryFor("a2").visitedLessonCount).toBe(1);
+
+      const a1Before = JSON.stringify(get().progressV4.levels.a1);
+
+      await act(async () => get().clearLevel("a2"));
+
+      // A2 wiped back to empty…
+      expect(get().levelSummaryFor("a2").visitedLessonCount).toBe(0);
+      expect(get().progressV4.levels.a2).toEqual(emptyLevelProgress());
+      // …while A1 is preserved byte-for-byte.
+      expect(JSON.stringify(get().progressV4.levels.a1)).toBe(a1Before);
+      expect(get().levelSummaryFor("a1").visitedLessonCount).toBe(1);
+    });
+  });
+
+  it("clears ONLY the selected A1 level and leaves A2 untouched", async () => {
+    await withMountedProvider(async (get) => {
+      await act(async () => get().markVisited("sounds-1"));
+      await act(async () => get().markVisited("connected-conversation-1"));
+      const a2Before = JSON.stringify(get().progressV4.levels.a2);
+
+      await act(async () => get().clearLevel("a1"));
+
+      expect(get().levelSummaryFor("a1").visitedLessonCount).toBe(0);
+      expect(get().progressV4.levels.a1).toEqual(emptyLevelProgress());
+      expect(JSON.stringify(get().progressV4.levels.a2)).toBe(a2Before);
+      expect(get().levelSummaryFor("a2").visitedLessonCount).toBe(1);
+    });
+  });
+
+  it("persists the cleared level so the other level survives a reload byte-identical (no destructive whole-store wipe)", async () => {
+    const storage = memoryStorage({});
+    await withMountedProvider(async (get) => {
+      await act(async () => get().markVisited("sounds-1"));
+      await act(async () => get().markVisited("connected-conversation-1"));
+      await act(async () => get().clearLevel("a2"));
+    }, storage);
+
+    // A fresh provider mounted on the same storage still sees A1's visit and
+    // an empty A2 — proving clearLevel wrote a scoped update, not removeItem.
+    await withMountedProvider((get) => {
+      expect(get().levelSummaryFor("a1").visitedLessonCount).toBe(1);
+      expect(get().levelSummaryFor("a2").visitedLessonCount).toBe(0);
+    }, storage);
+  });
+
+  it("reports a truthful save error when the scoped clear cannot be persisted", async () => {
+    let failWrites = false;
+    const inner = memoryStorage({});
+    const storage: Storage = {
+      get length() {
+        return inner.length;
+      },
+      clear: () => inner.clear(),
+      getItem: (key) => inner.getItem(key),
+      key: (index) => inner.key(index),
+      removeItem: (key) => inner.removeItem(key),
+      setItem: (key, value) => {
+        if (failWrites) throw new DOMException("QuotaExceededError");
+        inner.setItem(key, value);
+      },
+    };
+    await withMountedProvider(async (get) => {
+      await act(async () => get().markVisited("connected-conversation-1"));
+      expect(get().persistenceAvailable).toBe(true);
+      // Storage starts failing every subsequent write.
+      failWrites = true;
+      await act(async () => get().clearLevel("a2"));
+      // The surface reports the failure truthfully rather than claiming a save.
+      expect(get().persistenceAvailable).toBe(false);
+    }, storage);
+  });
+});
+
+describe("ProgressContext — A2 review actions infer and mutate the A2 level (BLOCKER 1)", () => {
+  it("queues an A2 review entry on a wrong attempt and resolves it via resolveReview, leaving A1 byte-identical", async () => {
+    await withMountedProvider(async (get) => {
+      const exercise = getLessonExercises("connected-conversation-1")!.exercises[0]!;
+      const input = {
+        lessonId: "connected-conversation-1",
+        exerciseDefinitionId: exercise.definitionId,
+        targetConceptIds: exercise.prompt.assessedConceptIds,
+        targetLexemeIds: exercise.prompt.assessedLexemeIds,
+      };
+
+      // A wrong attempt on an A2 exercise queues a review entry — into A2 only.
+      await act(async () => get().recordAttempt({ ...input, outcome: "retry" }));
+      expect(get().progressV4.levels.a2.reviewQueue.length).toBe(1);
+      expect(get().progressV4.levels.a1.reviewQueue.length).toBe(0);
+
+      const a1Before = JSON.stringify(get().progressV4.levels.a1);
+
+      // Resolving in review mode (the surface's "practice" action) clears the
+      // A2 entry — proving the resolution mutation inferred the A2 level from
+      // the lesson id, so the A2 review surface is genuinely actionable.
+      await act(async () => get().resolveReview(input));
+      expect(get().progressV4.levels.a2.reviewQueue.length).toBe(0);
+      expect(JSON.stringify(get().progressV4.levels.a1)).toBe(a1Before);
     });
   });
 });

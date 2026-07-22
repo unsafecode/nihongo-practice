@@ -30,6 +30,7 @@
 import { a2CourseModules } from "../data/course";
 import { A2_MODULE_IDS } from "./manifest";
 import { a2CanDoDescriptorCopy } from "./catalog/canDos";
+import { A2_KANJI_MEANINGS } from "./kanji/kanjiMeanings";
 import type { LessonCopy, ModuleCopy } from "../i18n/types";
 
 type Locale = "en" | "it";
@@ -216,6 +217,24 @@ export function a2RuntimeOutcomeCopy(locale: Locale): Record<string, string> {
       throw new Error(`a2/runtimeCopy: no authored module outcome for "${moduleId}" (${locale}).`);
     }
     out[a2ModuleOutcomeCopyId(moduleId)] = text;
+  }
+  return out;
+}
+
+/**
+ * `CourseCopy["kanjiMeanings"]` — the authored semantic gloss for every A2
+ * contextual kanji, resolved to the requested locale and keyed by the exact
+ * `meaningCopyId` the frozen kanji catalog assigns each entry (Phase 3 Task 8
+ * spec-fix, ISSUE 2). The gloss is real EN/IT support copy (never Japanese),
+ * so the lesson page can render a meaning next to each glyph rather than a
+ * dangling copy id. The authored source (`kanji/kanjiMeanings.ts`) is
+ * validated 1:1 against the catalog's entries, so this map covers exactly the
+ * 120 meaning ids — no more, no fewer.
+ */
+export function a2RuntimeKanjiMeaningCopy(locale: Locale): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [meaningCopyId, gloss] of Object.entries(A2_KANJI_MEANINGS)) {
+    out[meaningCopyId] = gloss[locale];
   }
   return out;
 }
