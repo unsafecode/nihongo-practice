@@ -24,7 +24,13 @@
  * catalog (`a2SemanticCatalog.ts`), authored in M1-M14 only.
  */
 import { A2_MODULE_MANIFEST } from "../manifest";
+import type { FormSelection } from "../../foundations/types";
 import {
+  A2_AFFIRMATIVE_PAST_PLAIN,
+  A2_AFFIRMATIVE_PAST_POLITE,
+  A2_AFFIRMATIVE_PRESENT_PLAIN,
+  A2_NEGATIVE_PAST_PLAIN,
+  A2_NEGATIVE_PRESENT_PLAIN,
   buildA2InstructionalLesson,
   type A2BuiltLesson,
   type A2LineSpec,
@@ -43,6 +49,13 @@ interface LineOptions {
   readonly standard?: string | null;
   readonly speakerRole?: string;
   readonly interrogative?: boolean;
+  /** Explicit register override for an invariant-family line whose baked
+   * semantic value is NOT affirmative/present/polite (plain-recognition's
+   * plain forms, a connector/te-sequence/reason-node past-polite bake, etc.).
+   * Threaded straight through to the shared `A2LineSpec.form` so the variant's
+   * FormSelection honestly matches the register its own baked Japanese carries
+   * in M1-M14 — never silently defaulting to affirmative/present/polite. */
+  readonly form?: FormSelection;
 }
 
 /** A synthesis line: the "subject" slot, when present, is always a DIRECT
@@ -81,6 +94,7 @@ function line(
     slots,
     translation,
     interrogative: options.interrogative,
+    form: options.form,
     speakerRole: options.speakerRole,
   };
 }
@@ -111,11 +125,11 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
     line("a2-synthesis-1-m1", "a2-family-plan-yotei", "a2-value-yotei-iku-kyouto", OUTING, L("I'm planning to go to Kyoto.", "Ho in programma di andare a Kyoto."), { speakerRole: "a2-role-learner" }),
     line("a2-synthesis-1-m2", "a2-family-plan-tsumori", "a2-value-tsumori-au-tomodachi", OUTING, L("I intend to meet a friend this weekend.", "Ho intenzione di incontrare un amico questo weekend."), { speakerRole: "a2-role-friend" }),
     line("a2-synthesis-1-m3", "a2-family-connector-utterance", "a2-value-connector-ame-demo-dekakeru", PLANS, L("Today it's raining, but I'll go out.", "Oggi piove, ma esco lo stesso."), { speakerRole: "a2-role-colleague" }),
-    line("a2-synthesis-1-m4", "a2-family-connector-utterance", "a2-value-connector-shigoto-sorekara-kaeru", PLANS, L("Work finished. Then, I went home.", "Il lavoro è finito. Poi sono tornato a casa."), { speakerRole: "a2-role-teacher" }),
-    line("a2-synthesis-1-m5", "a2-family-plain-recognition", "a2-value-plain-iku-dict", OUTING, L("(casual speech) go", "(discorso informale) andare"), { speakerRole: "a2-role-learner" }),
-    line("a2-synthesis-1-m6", "a2-family-plain-recognition", "a2-value-plain-taberu-past", OUTING, L("(casual speech) ate", "(discorso informale) ho mangiato"), { speakerRole: "a2-role-friend" }),
+    line("a2-synthesis-1-m4", "a2-family-connector-utterance", "a2-value-connector-shigoto-sorekara-kaeru", PLANS, L("Work finished. Then, I went home.", "Il lavoro è finito. Poi sono tornato a casa."), { speakerRole: "a2-role-teacher", form: A2_AFFIRMATIVE_PAST_POLITE }),
+    line("a2-synthesis-1-m5", "a2-family-plain-recognition", "a2-value-plain-iku-dict", OUTING, L("(casual speech) go", "(discorso informale) andare"), { speakerRole: "a2-role-learner", form: A2_AFFIRMATIVE_PRESENT_PLAIN }),
+    line("a2-synthesis-1-m6", "a2-family-plain-recognition", "a2-value-plain-taberu-past", OUTING, L("(casual speech) ate", "(discorso informale) ho mangiato"), { speakerRole: "a2-role-friend", form: A2_AFFIRMATIVE_PAST_PLAIN }),
     line("a2-synthesis-1-m7", "a2-family-plan-yotei", "a2-value-yotei-oyogu-shuumatsu", OUTING, L("Sora is planning to swim at the sea this weekend.", "Sora ha in programma di nuotare al mare questo weekend."), { subjectValueId: "a2-value-sora", speakerRole: "a2-role-colleague" }),
-    line("a2-synthesis-1-m8", "a2-family-connector-utterance", "a2-value-connector-ame-sorekara-hare", PLANS, L("In the morning it rained. Then, it cleared up.", "Al mattino ha piovuto. Poi si è schiarito."), { speakerRole: "a2-role-teacher" }),
+    line("a2-synthesis-1-m8", "a2-family-connector-utterance", "a2-value-connector-ame-sorekara-hare", PLANS, L("In the morning it rained. Then, it cleared up.", "Al mattino ha piovuto. Poi si è schiarito."), { speakerRole: "a2-role-teacher", form: A2_AFFIRMATIVE_PAST_POLITE }),
   ],
   // Every transfer recombines an already-taught family with a fresh value
   // not used above, so all 5 transfers stay visibly novel while never
@@ -123,7 +137,7 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
   transfers: [
     line("a2-synthesis-1-t1", "a2-family-plan-tsumori", "a2-value-tsumori-yomu-hon", OUTING, L("My friend intends to read a book this weekend.", "Il mio amico ha intenzione di leggere un libro questo weekend."), { subjectValueId: "a2-value-friend-subject", speakerRole: "a2-role-friend" }),
     line("a2-synthesis-1-t2", "a2-family-connector-utterance", "a2-value-connector-samui-demo-genki", PLANS, L("Today it's cold, but I'm well.", "Oggi fa freddo, ma sto bene."), { speakerRole: "a2-role-teacher" }),
-    line("a2-synthesis-1-t3", "a2-family-plain-recognition", "a2-value-plain-hanasu-dict", OUTING, L("(casual speech) speak", "(discorso informale) parlare"), { speakerRole: "a2-role-colleague" }),
+    line("a2-synthesis-1-t3", "a2-family-plain-recognition", "a2-value-plain-hanasu-dict", OUTING, L("(casual speech) speak", "(discorso informale) parlare"), { speakerRole: "a2-role-colleague", form: A2_AFFIRMATIVE_PRESENT_PLAIN }),
     line("a2-synthesis-1-t4", "a2-family-plan-yotei", "a2-value-yotei-au-doyoubi", OUTING, L("The colleague is planning to meet a friend on Saturday.", "Il collega ha in programma di incontrare un amico sabato."), { subjectValueId: "a2-value-colleague-subject", speakerRole: "a2-role-learner" }),
     line("a2-synthesis-1-t5", "a2-family-connector-utterance", "a2-value-connector-shukudai-sorekara-terebi", PLANS, L("My friend will do homework, then watch TV.", "Il mio amico farà i compiti, poi guarderà la TV."), { subjectValueId: "a2-value-friend-subject", speakerRole: "a2-role-friend" }),
   ],
@@ -188,7 +202,7 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     line("a2-synthesis-3-m5", "a2-family-reason-node", "a2-value-node-netsu-yasumu", HEALTH, L("I have a fever, so I'll rest today.", "Ho la febbre, quindi oggi riposo."), { speakerRole: "a2-role-learner" }),
     line("a2-synthesis-3-m6", "a2-family-reason-kara", "a2-value-kara-densha-okureru", WORKPLACE, L("My friend will be a bit late because the train is delayed.", "Il mio amico farà un po' tardi perché il treno è in ritardo."), { subjectValueId: "a2-value-friend-subject", speakerRole: "a2-role-friend" }),
     line("a2-synthesis-3-m7", "a2-family-request-tekudasai", "a2-value-tekudasai-matsu", WORKPLACE, L("Please wait.", "Per favore, aspetti."), { speakerRole: "a2-role-colleague" }),
-    line("a2-synthesis-3-m8", "a2-family-te-sequence", "a2-value-seq-hataraite-tsukareta", HEALTH, L("I worked, and got tired.", "Ho lavorato e mi sono stancato."), { speakerRole: "a2-role-teacher" }),
+    line("a2-synthesis-3-m8", "a2-family-te-sequence", "a2-value-seq-hataraite-tsukareta", HEALTH, L("I worked, and got tired.", "Ho lavorato e mi sono stancato."), { speakerRole: "a2-role-teacher", form: A2_AFFIRMATIVE_PAST_POLITE }),
   ],
   // Every transfer recombines an already-taught family with a fresh value
   // not used above, so all 5 transfers stay visibly novel while never
@@ -201,7 +215,7 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     line("a2-synthesis-3-t2", "a2-family-request-tekudasai", "a2-value-tekudasai-suwaru", WORKPLACE, L("Please sit down.", "Per favore, si sieda."), { speakerRole: "a2-role-teacher" }),
     line("a2-synthesis-3-t3", "a2-family-te-sequence", "a2-value-seq-aratte-neru", HEALTH, L("I wash my face, then go to sleep.", "Mi lavo la faccia, poi vado a dormire."), { speakerRole: "a2-role-colleague" }),
     line("a2-synthesis-3-t4", "a2-family-negative-request", "a2-value-naidekudasai-hataraku", WORKPLACE, L("Please don't work right now.", "Per favore, non lavori adesso."), { speakerRole: "a2-role-learner" }),
-    line("a2-synthesis-3-t5", "a2-family-reason-node", "a2-value-node-byouki-yasunda", HEALTH, L("I was ill, so I stayed home from school.", "Ero malato, quindi ho saltato la scuola."), { speakerRole: "a2-role-friend" }),
+    line("a2-synthesis-3-t5", "a2-family-reason-node", "a2-value-node-byouki-yasunda", HEALTH, L("I was ill, so I stayed home from school.", "Ero malato, quindi ho saltato la scuola."), { speakerRole: "a2-role-friend", form: A2_AFFIRMATIVE_PAST_POLITE }),
   ],
 });
 
@@ -222,12 +236,12 @@ const lesson4: A2BuiltLesson = buildA2InstructionalLesson({
   models: [
     line("a2-synthesis-4-m1", "a2-family-experience-takoto", "a2-value-exp-itta-tokyo", EXPERIENCES, L("I have been to Tokyo.", "Sono stato a Tokyo."), { speakerRole: "a2-role-learner" }),
     line("a2-synthesis-4-m2", "a2-family-experience-takoto", "a2-value-exp-nobotta-fuji", EXPERIENCES, L("I have climbed Mt. Fuji.", "Ho scalato il Monte Fuji."), { speakerRole: "a2-role-friend" }),
-    line("a2-synthesis-4-m3", "a2-family-plain-recognition", "a2-value-plain-oyogu-dict", TRAVEL, L("(casual speech) swim", "(discorso informale) nuotare"), { speakerRole: "a2-role-colleague" }),
-    line("a2-synthesis-4-m4", "a2-family-plain-recognition", "a2-value-plain-asobu-dict", TRAVEL, L("(casual speech) play/hang out", "(discorso informale) divertirsi"), { speakerRole: "a2-role-teacher" }),
+    line("a2-synthesis-4-m3", "a2-family-plain-recognition", "a2-value-plain-oyogu-dict", TRAVEL, L("(casual speech) swim", "(discorso informale) nuotare"), { speakerRole: "a2-role-colleague", form: A2_AFFIRMATIVE_PRESENT_PLAIN }),
+    line("a2-synthesis-4-m4", "a2-family-plain-recognition", "a2-value-plain-asobu-dict", TRAVEL, L("(casual speech) play/hang out", "(discorso informale) divertirsi"), { speakerRole: "a2-role-teacher", form: A2_AFFIRMATIVE_PRESENT_PLAIN }),
     line("a2-synthesis-4-m5", "a2-family-experience-takoto", "a2-value-exp-tabeta-sushi", EXPERIENCES, L("My friend has eaten sushi.", "Il mio amico ha mangiato sushi."), { subjectValueId: "a2-value-friend-subject", speakerRole: "a2-role-learner" }),
     line("a2-synthesis-4-m6", "a2-family-experience-takoto", "a2-value-exp-shinkansen-notta", TRAVEL, L("Sora has ridden the shinkansen.", "Sora ha preso lo shinkansen."), { subjectValueId: "a2-value-sora", speakerRole: "a2-role-friend" }),
-    line("a2-synthesis-4-m7", "a2-family-plain-recognition", "a2-value-plain-yomu-neg", EXPERIENCES, L("(casual speech) doesn't read", "(discorso informale) non legge"), { speakerRole: "a2-role-colleague" }),
-    line("a2-synthesis-4-m8", "a2-family-plain-recognition", "a2-value-plain-matsu-past-neg", TRAVEL, L("(casual speech) didn't wait", "(discorso informale) non ha aspettato"), { speakerRole: "a2-role-teacher" }),
+    line("a2-synthesis-4-m7", "a2-family-plain-recognition", "a2-value-plain-yomu-neg", EXPERIENCES, L("(casual speech) doesn't read", "(discorso informale) non legge"), { speakerRole: "a2-role-colleague", form: A2_NEGATIVE_PRESENT_PLAIN }),
+    line("a2-synthesis-4-m8", "a2-family-plain-recognition", "a2-value-plain-matsu-past-neg", TRAVEL, L("(casual speech) didn't wait", "(discorso informale) non ha aspettato"), { speakerRole: "a2-role-teacher", form: A2_NEGATIVE_PAST_PLAIN }),
   ],
   // Every transfer recombines an already-taught family with a fresh value
   // (or a fresh subject wrapper on an already-modeled value) not used
@@ -239,7 +253,7 @@ const lesson4: A2BuiltLesson = buildA2InstructionalLesson({
     line("a2-synthesis-4-t1", "a2-family-experience-takoto", "a2-value-exp-itta-oosaka", EXPERIENCES, L("Emi has been to Osaka.", "Emi è stata a Osaka."), { subjectValueId: "a2-value-emi", speakerRole: "a2-role-friend" }),
     line("a2-synthesis-4-t2", "a2-family-experience-takoto", "a2-value-exp-matta-tomodachi", TRAVEL, L("The teacher has waited for a friend.", "L'insegnante ha aspettato un amico."), { subjectValueId: "a2-value-teacher-subject", speakerRole: "a2-role-colleague" }),
     line("a2-synthesis-4-t3", "a2-family-experience-takoto", "a2-value-exp-kekkonshiki-itta", EXPERIENCES, L("The colleague has been to a wedding.", "Il collega è stato a un matrimonio."), { subjectValueId: "a2-value-colleague-subject", speakerRole: "a2-role-learner" }),
-    line("a2-synthesis-4-t4", "a2-family-plain-recognition", "a2-value-plain-hanasu-dict", EXPERIENCES, L("(casual speech) speak", "(discorso informale) parlare"), { speakerRole: "a2-role-friend" }),
+    line("a2-synthesis-4-t4", "a2-family-plain-recognition", "a2-value-plain-hanasu-dict", EXPERIENCES, L("(casual speech) speak", "(discorso informale) parlare"), { speakerRole: "a2-role-friend", form: A2_AFFIRMATIVE_PRESENT_PLAIN }),
     line("a2-synthesis-4-t5", "a2-family-experience-takoto", "a2-value-exp-oyoida", TRAVEL, L("I have swum before.", "Ho già nuotato."), { speakerRole: "a2-role-teacher" }),
   ],
 });

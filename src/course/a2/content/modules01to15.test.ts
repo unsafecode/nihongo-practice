@@ -127,6 +127,135 @@ describe("A2 M1-M15 aggregate — malformed conjugation guard, extended to all 6
   });
 });
 
+// ---------------------------------------------------------------------------
+// Phase 3 Task 7 structural-quality fix: honest invariant-family FormSelection
+// across the WHOLE release, self-deriving its source of truth.
+//
+// Every invariant-family (`rule-invariant-*`) variant bakes its predicate's
+// Japanese whole — the FormSelection is descriptive register metadata the
+// realizer never consults — so a value's honest polarity/tense/formality is an
+// invariant of that baked value, identical everywhere it recurs. This audit
+// derives that truth *from the release itself* (the honest M1-M14
+// instructional occurrences, each of which already passes its own module's
+// register-honesty test — see `modules01to12.test.ts`'s "M4-style honest
+// invariant FormSelection metadata" audit) and then holds EVERY
+// invariant-family variant in all 60 lessons to it. Because M15 (contract
+// "synthesis") recombines only already-taught values, every synthesis
+// invariant-family variant MUST carry the same register its own baked value
+// carries in the instructional modules; a silent affirmative/present/polite
+// default over past/plain/negative baked Japanese is exactly the
+// dishonest-metadata defect this catches — generically over the whole
+// invariant-family space, never by a hand-listed set of ids. Fail-closed: a
+// synthesis value with no honest instructional precedent, or any instructional
+// value that itself carries two conflicting registers, fails rather than being
+// silently skipped.
+//
+// Mood (`interrogative`) is a per-utterance choice, not a property of the baked
+// value (the same value legitimately appears as both statement and question),
+// so only polarity/tense/formality are compared.
+// ---------------------------------------------------------------------------
+describe("A2 M1-M15 aggregate — honest invariant-family FormSelection register across the whole release (Phase 3 Task 7)", () => {
+  const famById = new Map<string, SentenceFamily>(a2SentenceFamilies.map((f) => [f.id, f]));
+  const realizeCatalogs = {
+    contexts: a2Contexts,
+    personRoles: a2PersonRoles,
+    referents: a2Referents,
+    semanticValues: a2SemanticValues,
+    learningTargetSenses: a2LearningTargetSenses,
+  };
+
+  const isInvariantFamily = (familyId: string): boolean =>
+    famById.get(familyId)?.realizationRuleId.startsWith("rule-invariant-") ?? false;
+
+  interface Register {
+    readonly polarity: string;
+    readonly tense: string;
+    readonly formality: string;
+  }
+  const registerKey = (f: Register): string => `${f.polarity}/${f.tense}/${f.formality}`;
+
+  // Source of truth: derive each invariant-family predicate value's honest
+  // register from the M1-M14 instructional occurrences ONLY, never from M15
+  // itself (whose candidate defect this audit exists to catch).
+  const instructionalRegistersByValueId = new Map<string, Set<string>>();
+  const honestRegisterByValueId = new Map<string, Register>();
+  for (const built of allBuiltLessons) {
+    if (built.recipe.contract === "synthesis") continue;
+    for (const variant of built.variants) {
+      if (!isInvariantFamily(variant.sentenceFamilyId)) continue;
+      const predicateValueId = variant.slotValues.predicate;
+      if (!predicateValueId) continue;
+      const register: Register = {
+        polarity: variant.form.polarity,
+        tense: variant.form.tense,
+        formality: variant.form.formality,
+      };
+      if (!instructionalRegistersByValueId.has(predicateValueId)) {
+        instructionalRegistersByValueId.set(predicateValueId, new Set());
+      }
+      instructionalRegistersByValueId.get(predicateValueId)!.add(registerKey(register));
+      honestRegisterByValueId.set(predicateValueId, register);
+    }
+  }
+
+  it("the instructional (M1-M14) source of truth is internally consistent — every invariant-family value carries exactly one register", () => {
+    const conflicting: string[] = [];
+    for (const [valueId, registers] of instructionalRegistersByValueId) {
+      if (registers.size > 1) {
+        conflicting.push(`${valueId}: ${[...registers].sort().join(" vs ")}`);
+      }
+    }
+    expect(
+      conflicting,
+      `${conflicting.length} invariant-family value(s) with conflicting instructional registers:\n${conflicting.join("\n")}`,
+    ).toEqual([]);
+  });
+
+  it("every invariant-family variant across all 60 lessons carries the honest register its own baked value realizes (no dishonest affirmative/present/polite default)", () => {
+    const violations: string[] = [];
+    for (const built of allBuiltLessons) {
+      for (const variant of built.variants) {
+        if (!isInvariantFamily(variant.sentenceFamilyId)) continue;
+        const predicateValueId = variant.slotValues.predicate;
+        if (!predicateValueId) continue;
+        const expected = honestRegisterByValueId.get(predicateValueId);
+        // Fail-closed: an invariant-family value with no honest instructional
+        // precedent cannot be validated, so it is a violation rather than a
+        // silent skip.
+        if (!expected) {
+          violations.push(
+            `${variant.id} (${predicateValueId}): no instructional register precedent to validate against`,
+          );
+          continue;
+        }
+        const actual = variant.form;
+        if (
+          actual.polarity !== expected.polarity ||
+          actual.tense !== expected.tense ||
+          actual.formality !== expected.formality
+        ) {
+          const family = famById.get(variant.sentenceFamilyId) as SentenceFamily;
+          const result = realizeVariant(family, variant, realizeCatalogs, {
+            availableConceptIds: [...family.requiredConceptIds],
+          });
+          const jp = result.ok ? result.sentence.canonicalJapanese : "<realize failed>";
+          violations.push(
+            `${variant.id} (${predicateValueId} => "${jp}"): form is ${JSON.stringify({
+              polarity: actual.polarity,
+              tense: actual.tense,
+              formality: actual.formality,
+            })}, expected ${JSON.stringify(expected)}`,
+          );
+        }
+      }
+    }
+    expect(
+      violations,
+      `${violations.length} dishonest invariant-family FormSelection(s):\n${violations.join("\n")}`,
+    ).toEqual([]);
+  });
+});
+
 describe("A2 M1-M15 aggregate — no dead values/families across the complete release", () => {
   const M13_M15_FAMILY_IDS: readonly string[] = [
     "a2-family-family-description",
