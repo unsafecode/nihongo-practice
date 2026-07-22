@@ -18,6 +18,7 @@ import {
   SpokenAttemptView,
   createSpokenAttemptHandlers,
   type SpokenAttemptHandlers,
+  type SpokenAttemptRecognition,
 } from "./SpokenAttempt";
 import { LessonPage } from "./LessonPage";
 
@@ -494,8 +495,7 @@ describe("createSpokenAttemptHandlers — consent never touches the recognizer",
       start: vi.fn(),
       abort: vi.fn(),
       reset: vi.fn(),
-      clearLevel: vi.fn(),
-    };
+    } satisfies SpokenAttemptRecognition;
   }
 
   it("acknowledging consent calls acknowledgeConsent and never start", () => {
