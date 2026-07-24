@@ -214,7 +214,7 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     // MODEL variants' families, never its transfers) before the 5
     // transfers below can recombine its already-M6-introduced verb senses
     // with a fresh object.
-    line("neighborhood-services-3-m9", "a2-family-request-tekudasai", "a2-value-tekudasai-taberu", "a2-context-neighborhood", L("Please eat the vegetables.", "Per favore, mangi le verdure."), { object: "a2-value-obj-yasai", speakerRole: "a2-role-clerk" }),
+    line("neighborhood-services-3-m9", "a2-family-request-tekudasai", "a2-value-tekudasai-taberu", "a2-context-neighborhood", L("Please eat the vegetables.", "Per favore, mangia le verdure."), { object: "a2-value-obj-yasai", speakerRole: "a2-role-clerk" }),
   ],
   // Phase 3 Task 5 fix ("introduction before use"): a2-family-ask-where and
   // a2-family-ask-for-help have NO subject/object/location slot at all (a
@@ -230,11 +230,11 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
   // these 5 transfers genuinely recombine an already-introduced tekudasai
   // predicate with an already-introduced object, never a brand-new value.
   transfers: [
-    line("neighborhood-services-3-t1", "a2-family-request-tekudasai", "a2-value-tekudasai-kaku", "a2-context-neighborhood", L("Please write your name.", "Per favore, scriva il suo nome."), { object: "a2-value-obj-namae" }),
-    line("neighborhood-services-3-t2", "a2-family-request-tekudasai", "a2-value-tekudasai-matsu", "a2-context-neighborhood", L("Please wait.", "Per favore, aspetti."), {}),
-    line("neighborhood-services-3-t3", "a2-family-request-tekudasai", "a2-value-tekudasai-suwaru", "a2-context-neighborhood", L("Please sit down.", "Per favore, si sieda."), {}),
-    line("neighborhood-services-3-t4", "a2-family-request-tekudasai", "a2-value-tekudasai-hanasu", "a2-context-conversation", L("Please speak in English.", "Per favore, parli in inglese."), { object: "a2-value-obj-eigo" }),
-    line("neighborhood-services-3-t5", "a2-family-request-tekudasai", "a2-value-tekudasai-tatsu", "a2-context-neighborhood", L("Please stand up.", "Per favore, si alzi."), {}),
+    line("neighborhood-services-3-t1", "a2-family-request-tekudasai", "a2-value-tekudasai-kaku", "a2-context-neighborhood", L("Please write your name.", "Per favore, scrivi il tuo nome."), { object: "a2-value-obj-namae" }),
+    line("neighborhood-services-3-t2", "a2-family-request-tekudasai", "a2-value-tekudasai-matsu", "a2-context-neighborhood", L("Please wait.", "Per favore, aspetta."), {}),
+    line("neighborhood-services-3-t3", "a2-family-request-tekudasai", "a2-value-tekudasai-suwaru", "a2-context-neighborhood", L("Please sit down.", "Per favore, siediti."), {}),
+    line("neighborhood-services-3-t4", "a2-family-request-tekudasai", "a2-value-tekudasai-hanasu", "a2-context-conversation", L("Please speak in English.", "Per favore, parla in inglese."), { object: "a2-value-obj-eigo" }),
+    line("neighborhood-services-3-t5", "a2-family-request-tekudasai", "a2-value-tekudasai-tatsu", "a2-context-neighborhood", L("Please stand up.", "Per favore, alzati."), {}),
   ],
 });
 

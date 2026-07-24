@@ -5693,7 +5693,7 @@
     "jp": "やさいをたべてください",
     "romaji": "yasai o tabete kudasai",
     "en": "Please eat the vegetables.",
-    "it": "Per favore, mangi le verdure."
+    "it": "Per favore, mangia le verdure."
   },
   {
     "id": "neighborhood-services-3-t1",
@@ -5709,7 +5709,7 @@
     "jp": "なまえをかいてください",
     "romaji": "namae o kaite kudasai",
     "en": "Please write your name.",
-    "it": "Per favore, scriva il suo nome."
+    "it": "Per favore, scrivi il tuo nome."
   },
   {
     "id": "neighborhood-services-3-t2",
@@ -5725,7 +5725,7 @@
     "jp": "まってください",
     "romaji": "matte kudasai",
     "en": "Please wait.",
-    "it": "Per favore, aspetti."
+    "it": "Per favore, aspetta."
   },
   {
     "id": "neighborhood-services-3-t3",
@@ -5741,7 +5741,7 @@
     "jp": "すわってください",
     "romaji": "suwatte kudasai",
     "en": "Please sit down.",
-    "it": "Per favore, si sieda."
+    "it": "Per favore, siediti."
   },
   {
     "id": "neighborhood-services-3-t4",
@@ -5757,7 +5757,7 @@
     "jp": "えいごをはなしてください",
     "romaji": "eigo o hanashite kudasai",
     "en": "Please speak in English.",
-    "it": "Per favore, parli in inglese."
+    "it": "Per favore, parla in inglese."
   },
   {
     "id": "neighborhood-services-3-t5",
@@ -5773,7 +5773,7 @@
     "jp": "たってください",
     "romaji": "tatte kudasai",
     "en": "Please stand up.",
-    "it": "Per favore, si alzi."
+    "it": "Per favore, alzati."
   },
   {
     "id": "neighborhood-services-4-m1",
@@ -6221,7 +6221,7 @@
     "jp": "まってください",
     "romaji": "matte kudasai",
     "en": "Please wait.",
-    "it": "Per favore, aspetti."
+    "it": "Per favore, aspetta."
   },
   {
     "id": "restaurant-problems-2-m2",
@@ -6237,7 +6237,7 @@
     "jp": "すわってください",
     "romaji": "suwatte kudasai",
     "en": "Please sit down.",
-    "it": "Per favore, si sieda."
+    "it": "Per favore, siediti."
   },
   {
     "id": "restaurant-problems-2-m3",
@@ -6253,7 +6253,7 @@
     "jp": "なまえをかいてください",
     "romaji": "namae o kaite kudasai",
     "en": "Please write your name.",
-    "it": "Per favore, scriva il suo nome."
+    "it": "Per favore, scrivi il tuo nome."
   },
   {
     "id": "restaurant-problems-2-m4",
@@ -6269,7 +6269,7 @@
     "jp": "にくをたべてください",
     "romaji": "niku o tabete kudasai",
     "en": "Please try the meat.",
-    "it": "Per favore, provi la carne."
+    "it": "Per favore, prova la carne."
   },
   {
     "id": "restaurant-problems-2-m5",
@@ -6285,7 +6285,7 @@
     "jp": "えいごをはなしてください",
     "romaji": "eigo o hanashite kudasai",
     "en": "Please speak in English.",
-    "it": "Per favore, parli in inglese."
+    "it": "Per favore, parla in inglese."
   },
   {
     "id": "restaurant-problems-2-m6",
@@ -6349,7 +6349,7 @@
     "jp": "たってください",
     "romaji": "tatte kudasai",
     "en": "Please stand up.",
-    "it": "Per favore, si alzi."
+    "it": "Per favore, alzati."
   },
   {
     "id": "restaurant-problems-2-t2",
@@ -6365,7 +6365,7 @@
     "jp": "ラーメンをたべてください",
     "romaji": "raamen o tabete kudasai",
     "en": "Please try the ramen.",
-    "it": "Per favore, provi il ramen."
+    "it": "Per favore, prova il ramen."
   },
   {
     "id": "restaurant-problems-2-t3",
@@ -6381,7 +6381,7 @@
     "jp": "でんきをけしてください",
     "romaji": "denki o keshite kudasai",
     "en": "Please turn off the lights.",
-    "it": "Per favore, spenga le luci."
+    "it": "Per favore, spegni le luci."
   },
   {
     "id": "restaurant-problems-2-t4",
@@ -6636,8 +6636,8 @@
     "interrogative": false,
     "jp": "おかんじょうをおねがいして、おかねをはらいました",
     "romaji": "okanjou o onegaishite, okane o haraimashita",
-    "en": "Asking for the check, I paid the money.",
-    "it": "Chiedendo il conto, ho pagato i soldi."
+    "en": "I asked for the check, then paid the money.",
+    "it": "Ho chiesto il conto, poi ho pagato i soldi."
   },
   {
     "id": "restaurant-problems-4-m2",
@@ -6652,8 +6652,8 @@
     "interrogative": false,
     "jp": "おかんじょうをたのんで、まちます",
     "romaji": "okanjou o tanonde, machimasu",
-    "en": "Asking for the check, I wait.",
-    "it": "Chiedendo il conto, aspetto."
+    "en": "I ask for the check, then wait.",
+    "it": "Chiedo il conto, poi aspetto."
   },
   {
     "id": "restaurant-problems-4-m3",
@@ -6668,8 +6668,8 @@
     "interrogative": false,
     "jp": "おかねをかぞえて、はらいました",
     "romaji": "okane o kazoete, haraimashita",
-    "en": "Counting the money, I paid.",
-    "it": "Contando i soldi, ho pagato."
+    "en": "I counted the money, then paid.",
+    "it": "Ho contato i soldi, poi ho pagato."
   },
   {
     "id": "restaurant-problems-4-m4",
@@ -6684,8 +6684,8 @@
     "interrogative": false,
     "jp": "おつりをうけとって、かえります",
     "romaji": "otsuri o uketotte, kaerimasu",
-    "en": "Receiving the change, I go home.",
-    "it": "Ricevendo il resto, torno a casa."
+    "en": "I receive the change, then go home.",
+    "it": "Ricevo il resto, poi torno a casa."
   },
   {
     "id": "restaurant-problems-4-m5",
@@ -6700,8 +6700,8 @@
     "interrogative": false,
     "jp": "ごはんをたべて、はらいました",
     "romaji": "gohan o tabete, haraimashita",
-    "en": "Eating the meal, I paid.",
-    "it": "Mangiando il pasto, ho pagato."
+    "en": "I ate the meal, then paid.",
+    "it": "Ho mangiato il pasto, poi ho pagato."
   },
   {
     "id": "restaurant-problems-4-m6",
@@ -6716,8 +6716,8 @@
     "interrogative": false,
     "jp": "おちゃをのんで、はらいました",
     "romaji": "ocha o nonde, haraimashita",
-    "en": "Drinking the tea, I paid.",
-    "it": "Bevendo il tè, ho pagato."
+    "en": "I drank the tea, then paid.",
+    "it": "Ho bevuto il tè, poi ho pagato."
   },
   {
     "id": "restaurant-problems-4-m7",
@@ -6732,8 +6732,8 @@
     "interrogative": false,
     "jp": "メニューをみて、ちゅうもんしました",
     "romaji": "menyuu o mite, chuumon shimashita",
-    "en": "Looking at the menu, I ordered.",
-    "it": "Guardando il menù, ho ordinato."
+    "en": "I looked at the menu, then ordered.",
+    "it": "Ho guardato il menù, poi ho ordinato."
   },
   {
     "id": "restaurant-problems-4-m8",
@@ -6748,8 +6748,8 @@
     "interrogative": false,
     "jp": "ごはんをたべて、かえります",
     "romaji": "gohan o tabete, kaerimasu",
-    "en": "Eating the meal, I go home.",
-    "it": "Mangiando il pasto, torno a casa."
+    "en": "I eat the meal, then go home.",
+    "it": "Mangio il pasto, poi torno a casa."
   },
   {
     "id": "restaurant-problems-4-t1",
@@ -6764,8 +6764,8 @@
     "interrogative": false,
     "jp": "そらさん、おかんじょうをおねがいして、おかねをはらいました",
     "romaji": "sora san, okanjou o onegaishite, okane o haraimashita",
-    "en": "Sora, asking for the check, I paid the money.",
-    "it": "Sora, chiedendo il conto, ho pagato i soldi."
+    "en": "Sora, I asked for the check, then paid the money.",
+    "it": "Sora, ho chiesto il conto, poi ho pagato i soldi."
   },
   {
     "id": "restaurant-problems-4-t2",
@@ -6780,8 +6780,8 @@
     "interrogative": false,
     "jp": "えみさん、おかんじょうをたのんで、まちます",
     "romaji": "emi san, okanjou o tanonde, machimasu",
-    "en": "Emi, asking for the check, I wait.",
-    "it": "Emi, chiedendo il conto, aspetto."
+    "en": "Emi, I ask for the check, then wait.",
+    "it": "Emi, chiedo il conto, poi aspetto."
   },
   {
     "id": "restaurant-problems-4-t3",
@@ -9997,7 +9997,7 @@
     "jp": "たすけてください",
     "romaji": "tasukete kudasai",
     "en": "Please help!",
-    "it": "Per favore, aiutatemi!"
+    "it": "Per favore, aiutami!"
   },
   {
     "id": "travel-reservations-3-m7",
@@ -10045,7 +10045,7 @@
     "jp": "パスポートをなくしたので、たすけてください",
     "romaji": "pasupooto o nakushita node, tasukete kudasai",
     "en": "I lost my passport, so please help.",
-    "it": "Ho perso il passaporto, quindi aiutatemi."
+    "it": "Ho perso il passaporto, quindi aiutami."
   },
   {
     "id": "travel-reservations-3-t1",
@@ -12509,7 +12509,7 @@
     "jp": "たすけてください",
     "romaji": "tasukete kudasai",
     "en": "Please help.",
-    "it": "Per favore, aiutatemi."
+    "it": "Per favore, aiutami."
   },
   {
     "id": "a2-synthesis-3-m3",
@@ -12589,7 +12589,7 @@
     "jp": "まってください",
     "romaji": "matte kudasai",
     "en": "Please wait.",
-    "it": "Per favore, aspetti."
+    "it": "Per favore, aspetta."
   },
   {
     "id": "a2-synthesis-3-m8",
@@ -12637,7 +12637,7 @@
     "jp": "すわってください",
     "romaji": "suwatte kudasai",
     "en": "Please sit down.",
-    "it": "Per favore, si sieda."
+    "it": "Per favore, siediti."
   },
   {
     "id": "a2-synthesis-3-t3",

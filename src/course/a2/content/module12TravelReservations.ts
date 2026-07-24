@@ -213,7 +213,7 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     line("travel-reservations-3-m3", "a2-family-travel-problem", "a2-value-problem-nakusu", TRAVEL, L("I lost my ticket.", "Ho perso il biglietto."), { object: "a2-value-obj-kippu", speakerRole: "a2-role-teacher" , form: PAST_AFFIRMATIVE }),
     line("travel-reservations-3-m4", "a2-family-travel-problem", "a2-value-problem-nakusu", OUTING, L("The friend lost their passport.", "L'amico ha perso il passaporto."), { object: "a2-value-obj-pasupooto", subjectReferent: "a2-referent-friend", subjectRealization: "explicit", speakerRole: "a2-role-friend" , form: PAST_AFFIRMATIVE }),
     line("travel-reservations-3-m5", "a2-family-travel-problem", "a2-value-problem-machigaeru", TRAVEL, L("I made a mistake with the ticket.", "Ho sbagliato il biglietto."), { object: "a2-value-obj-kippu", speakerRole: "a2-role-learner" , form: PAST_AFFIRMATIVE }),
-    line("travel-reservations-3-m6", "a2-family-request-tekudasai", "a2-value-tekudasai-tasukete", TRAVEL, L("Please help!", "Per favore, aiutatemi!"), { speakerRole: "a2-role-learner" }),
+    line("travel-reservations-3-m6", "a2-family-request-tekudasai", "a2-value-tekudasai-tasukete", TRAVEL, L("Please help!", "Per favore, aiutami!"), { speakerRole: "a2-role-learner" }),
     line("travel-reservations-3-m7", "a2-family-request-tekudasai", "a2-value-tekudasai-tasukete", TRAVEL, L("Excuse me, please help!", "Scusi, mi aiuti!"), { subjectReferent: "a2-referent-clerk", subjectRealization: "vocative", speakerRole: "a2-role-learner" }),
     line("travel-reservations-3-m8", "a2-family-negative-request", "a2-value-naidekudasai-wasureru", TRAVEL, L("Please don't forget your passport.", "Per favore, non dimenticare il passaporto."), { object: "a2-value-obj-pasupooto", speakerRole: "a2-role-teacher" }),
     // m9: reason-node ("node") TRUE TRANSFER evidence (Phase 3 Task 6
@@ -227,7 +227,7 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     // unchanged at exactly the canonical two) — content evidence and
     // recipe-support labeling are deliberately independent (§ "do not count
     // recipe support alone").
-    line("travel-reservations-3-m9", "a2-family-reason-node", "a2-value-node-pasupooto-nakushita-tasukete", TRAVEL, L("I lost my passport, so please help.", "Ho perso il passaporto, quindi aiutatemi."), { speakerRole: "a2-role-learner" }),
+    line("travel-reservations-3-m9", "a2-family-reason-node", "a2-value-node-pasupooto-nakushita-tasukete", TRAVEL, L("I lost my passport, so please help.", "Ho perso il passaporto, quindi aiutami."), { speakerRole: "a2-role-learner" }),
   ],
   // Every transfer recombines an already-modeled predicate with an
   // object/subject pairing not used above, so all 5 transfers stay

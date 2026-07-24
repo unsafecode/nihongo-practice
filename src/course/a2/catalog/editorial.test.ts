@@ -405,3 +405,252 @@ describe("A2 editorial gate — genuine transfers (no within-lesson semantic cop
     expect(transfersChecked, "transfers checked").toBe(300);
   });
 });
+
+// ---------------------------------------------------------------------------
+// A2 editorial gate — te-sequence sequential-gloss policy (Phase 3 Task 9
+// linguistic fix). Every て-form sequence sentence ("X-te, Y") narrates two
+// events in TEMPORAL ORDER ("first X, then Y"), never one as the manner or
+// simultaneous circumstance of the other. Its EN/IT gloss must therefore mark
+// the sequence explicitly with two finite clauses ("X, then Y" / "X, poi Y")
+// and must NEVER front the first event as an English present participle
+// ("Asking…, I paid") or an Italian gerund ("Chiedendo…, ho pagato") — those
+// read as manner/simultaneity ("by/while asking") and mistranslate the
+// と-less te-sequence. "and"/"e" is tolerated ONLY for the single
+// inherently-consequential pairing already reviewed as unambiguously
+// sequential (worked → got tired); every other row must use then/poi. Scope is
+// frozen by count + id membership so no newly-authored te-sequence variant can
+// escape this gate.
+// ---------------------------------------------------------------------------
+const TE_SEQUENCE_FAMILY_IDS = new Set(["a2-family-te-sequence", "a2-family-te-sequence-object"]);
+const EXPECTED_TE_SEQUENCE_COUNT = 49;
+// The only te-sequence rows allowed to mark the sequence with "and"/"e"
+// instead of "then"/"poi": an inherently consequential worked→got-tired
+// pairing whose conjunction is unambiguously sequential in context.
+const TE_SEQUENCE_AND_EXCEPTIONS = new Set(["a2-synthesis-3-m8"]);
+// An English present participle heading the (optionally vocative-prefixed)
+// first clause — i.e. "Asking …," or "Sora, asking …," — the manner-drift
+// mistranslation this gate forbids.
+const EN_GERUND_FRONT = /^(?:[A-Z][A-Za-z]+,\s+)?[A-Za-z]+ing\b/;
+// An Italian gerund (-ando/-endo) heading the (optionally vocative-prefixed)
+// first clause — "Chiedendo …," or "Sora, chiedendo …,".
+const IT_GERUND_FRONT = /^(?:[A-Z\u00C0-\u00DD][A-Za-z\u00C0-\u00FF\u2019']+,\s+)?[A-Za-z\u00E0-\u00FF]+(?:ando|endo)\b/;
+
+describe("A2 editorial gate — te-sequence sequential gloss (no gerund-front / manner drift)", () => {
+  const teSequence = a2AllVariants.filter((variant) => TE_SEQUENCE_FAMILY_IDS.has(variant.sentenceFamilyId));
+
+  it("covers every te-sequence variant exactly once (frozen scope, fail-closed count + membership)", () => {
+    expect(teSequence.length, "te-sequence variant count").toBe(EXPECTED_TE_SEQUENCE_COUNT);
+    const ids = teSequence.map((variant) => variant.id);
+    expect(new Set(ids).size, "unique te-sequence ids").toBe(EXPECTED_TE_SEQUENCE_COUNT);
+    // Every declared and/e exception is a real te-sequence variant (no dead pins).
+    const idSet = new Set(ids);
+    for (const exceptionId of TE_SEQUENCE_AND_EXCEPTIONS) {
+      expect(idSet.has(exceptionId), `and/e exception ${exceptionId} is a te-sequence variant`).toBe(true);
+    }
+  });
+
+  it("marks the sequence explicitly in EN and IT and never fronts a participle/gerund (manner drift)", () => {
+    let checked = 0;
+    for (const variant of teSequence) {
+      const gloss = glossByVariant.get(variant.id);
+      expect(gloss?.en, `${variant.id} EN gloss present`).toBeTruthy();
+      expect(gloss?.it, `${variant.id} IT gloss present`).toBeTruthy();
+      const en = gloss?.en ?? "";
+      const it = gloss?.it ?? "";
+
+      // (1) No gerund/participle heading the first clause (reads as manner).
+      expect(EN_GERUND_FRONT.test(en), `${variant.id} EN fronts a present participle :: ${en}`).toBe(false);
+      expect(IT_GERUND_FRONT.test(it), `${variant.id} IT fronts a gerund :: ${it}`).toBe(false);
+
+      // (2) An explicit sequence connective is present.
+      const enThen = /\bthen\b/iu.test(en);
+      const enAnd = /\band\b/iu.test(en);
+      const itPoi = /\bpoi\b/iu.test(it);
+      const itE = /\be\b/iu.test(it);
+      expect(enThen || enAnd, `${variant.id} EN lacks a sequence connective (then/and) :: ${en}`).toBe(true);
+      expect(itPoi || itE, `${variant.id} IT lacks a sequence connective (poi/e) :: ${it}`).toBe(true);
+
+      // (3) Prefer then/poi: only the reviewed exception may rely on and/e alone.
+      if (!TE_SEQUENCE_AND_EXCEPTIONS.has(variant.id)) {
+        expect(enThen, `${variant.id} EN must sequence with "then", not bare "and" :: ${en}`).toBe(true);
+        expect(itPoi, `${variant.id} IT must sequence with "poi", not bare "e" :: ${it}`).toBe(true);
+      }
+      checked += 1;
+    }
+    expect(checked, "te-sequence variants checked").toBe(EXPECTED_TE_SEQUENCE_COUNT);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A2 editorial gate — Italian register for polite requests (てください)
+// [Phase 3 Task 9 linguistic fix]. `speakerRole` records WHO speaks, never
+// WHOM they address, and nothing in the authored metadata encodes the
+// addressee's social status; the identical speakerRole (teacher / colleague /
+// friend / clerk / learner) was consequently realized as both informal `tu`
+// AND formal `Lei` (and even plural `voi`) across modules — a direct
+// contradiction for equivalent role/context.
+//
+// Policy (grounded in actual speaker + copy semantics, per Task 9): てください
+// is a neutral-polite request, and this beginner app addresses its single
+// learner directly, so the DEFAULT gloss is Italian `tu` (informal SINGULAR)
+// imperative — never `Lei` (formal 3sg) and never `voi` (plural). `tu`
+// singular also repairs the NUMBER of たすけてください (the old `aiutatemi` voi
+// forms were wrong in number, not only register). Clerk-VOICED generic
+// requests are `tu` too: the app frames them as learner-facing examples, not
+// real clerk↔customer dialogue, and `speakerRole` (the clerk) is not the
+// addressee. The SINGLE formal exception is a learner's deferential request to
+// a service clerk explicitly marked by "Scusi" (subjectReferent = clerk,
+// vocative): `travel-reservations-3-m7` ("Scusi, mi aiuti!") stays `Lei`,
+// because that is the natural Italian service register AND because it keeps the
+// line consistent with the sibling `a2-family-ask-for-help` construction
+// (neighborhood-services-3-m6/m7/m8), which deliberately teaches the same
+// deferential "Scusi + Lei" stranger-request register. Mechanically
+// informalizing that one line would both read unnaturally and contradict that
+// parallel family — exactly what Task 9 warns against.
+//
+// The table pins, per tu variant, the exact `tu` imperative head that MUST
+// appear in that line's Italian copy; the Lei exception is pinned separately
+// and positively verified. A closed denylist of the Lei/voi forms of the same
+// verbs must NEVER appear in a tu line. Scope is frozen by count + id
+// membership (tu table ∪ Lei exceptions == catalog ids) so a newly-authored
+// request cannot escape the register gate.
+// ---------------------------------------------------------------------------
+const TEKUDASAI_FAMILY_ID = "a2-family-request-tekudasai";
+// tu variant id → required Italian `tu` (informal singular) imperative head.
+const TEKUDASAI_TU_HEAD: Readonly<Record<string, string>> = {
+  "permission-requests-3-m1": "spegni",
+  "permission-requests-3-m2": "aspetta",
+  "permission-requests-3-m3": "scrivi",
+  "permission-requests-3-m4": "siediti",
+  "permission-requests-3-m5": "alzati",
+  "permission-requests-3-m6": "mangia",
+  "permission-requests-3-m7": "parla",
+  "permission-requests-3-t1": "spegni",
+  "permission-requests-3-t2": "mangia",
+  "permission-requests-3-t3": "siediti",
+  "permission-requests-3-t4": "parla",
+  "neighborhood-services-3-m9": "mangia",
+  "neighborhood-services-3-t1": "scrivi",
+  "neighborhood-services-3-t2": "aspetta",
+  "neighborhood-services-3-t3": "siediti",
+  "neighborhood-services-3-t4": "parla",
+  "neighborhood-services-3-t5": "alzati",
+  "restaurant-problems-2-m1": "aspetta",
+  "restaurant-problems-2-m2": "siediti",
+  "restaurant-problems-2-m3": "scrivi",
+  "restaurant-problems-2-m4": "prova",
+  "restaurant-problems-2-m5": "parla",
+  "restaurant-problems-2-t1": "alzati",
+  "restaurant-problems-2-t2": "prova",
+  "restaurant-problems-2-t3": "spegni",
+  "work-study-messages-2-m9": "manda",
+  "work-study-messages-2-t3": "manda",
+  "work-study-messages-2-t4": "manda",
+  "work-study-messages-2-t5": "parla",
+  "travel-reservations-3-m6": "aiutami",
+  "travel-reservations-3-t3": "aiutami",
+  "a2-synthesis-3-m2": "aiutami",
+  "a2-synthesis-3-m7": "aspetta",
+  "a2-synthesis-3-t2": "siediti",
+};
+// The sole formal exception: a learner's "Scusi …" deferential request to a
+// service clerk, kept `Lei` to match the natural service register and the
+// parallel `a2-family-ask-for-help` construction. Its Italian copy must
+// positively carry these Lei service markers.
+const TEKUDASAI_LEI_EXCEPTIONS: Readonly<Record<string, readonly string[]>> = {
+  "travel-reservations-3-m7": ["Scusi", "mi aiuti"],
+};
+// Lei (formal 3sg) and voi (plural) imperatives — plus the formal possessive
+// suo/sua — of every verb used above. None may appear in any `tu` てください gloss.
+const TEKUDASAI_FORBIDDEN_REGISTER: readonly string[] = [
+  // Lei formal singular imperatives
+  "spenga",
+  "aspetti",
+  "scriva",
+  "mangi",
+  "provi",
+  "parli",
+  "mandi",
+  "aiuti",
+  "sieda",
+  "alzi",
+  // formal possessive (tu uses tuo/tua)
+  "suo",
+  "sua",
+  // voi plural imperatives (wrong number for a singular てください)
+  "spegnete",
+  "aspettate",
+  "scrivete",
+  "mangiate",
+  "provate",
+  "parlate",
+  "mandate",
+  "aiutatemi",
+  "aiutateci",
+  "sedetevi",
+  "alzatevi",
+];
+
+describe("A2 editorial gate — Italian てください register (learner-facing tu; one Scusi/Lei service exception)", () => {
+  const tekudasai = a2AllVariants.filter((variant) => variant.sentenceFamilyId === TEKUDASAI_FAMILY_ID);
+
+  it("covers every てください variant exactly once (tu table ∪ Lei exceptions == catalog scope, fail-closed)", () => {
+    const catalogIds = tekudasai.map((variant) => variant.id);
+    const tuIds = Object.keys(TEKUDASAI_TU_HEAD);
+    const leiIds = Object.keys(TEKUDASAI_LEI_EXCEPTIONS);
+    expect(new Set(catalogIds).size, "unique catalog tekudasai ids").toBe(catalogIds.length);
+    // tu and Lei partitions are disjoint (no id double-classified).
+    for (const id of leiIds) {
+      expect(tuIds.includes(id), `${id} is double-listed in tu table and Lei exceptions`).toBe(false);
+    }
+    const covered = [...tuIds, ...leiIds];
+    expect(new Set(covered).size, "unique covered ids").toBe(covered.length);
+    expect([...covered].sort(), "register scope exactly covers the catalog てください ids").toEqual(
+      [...catalogIds].sort(),
+    );
+  });
+
+  it("every tu request is tu (head present, no Lei/voi form); the one Scusi service request stays Lei", () => {
+    let tuChecked = 0;
+    let leiChecked = 0;
+    for (const variant of tekudasai) {
+      const it = glossByVariant.get(variant.id)?.it ?? "";
+      expect(it, `${variant.id} IT gloss present`).toBeTruthy();
+
+      const leiMarkers = TEKUDASAI_LEI_EXCEPTIONS[variant.id];
+      if (leiMarkers) {
+        for (const marker of leiMarkers) {
+          expect(it.includes(marker), `${variant.id} Lei service exception missing "${marker}" :: ${it}`).toBe(true);
+        }
+        leiChecked += 1;
+        continue;
+      }
+
+      const head = TEKUDASAI_TU_HEAD[variant.id];
+      expect(head, `${variant.id} has a pinned tu head`).toBeTruthy();
+      expect(new RegExp(`\\b${head}\\b`, "iu").test(it), `${variant.id} IT missing tu head "${head}" :: ${it}`).toBe(
+        true,
+      );
+      for (const forbidden of TEKUDASAI_FORBIDDEN_REGISTER) {
+        expect(
+          new RegExp(`\\b${forbidden}\\b`, "iu").test(it),
+          `${variant.id} IT uses non-tu (Lei/voi) form "${forbidden}" :: ${it}`,
+        ).toBe(false);
+      }
+      tuChecked += 1;
+    }
+    expect(tuChecked, "tu てください variants checked").toBe(Object.keys(TEKUDASAI_TU_HEAD).length);
+    expect(leiChecked, "Lei-exception variants checked").toBe(Object.keys(TEKUDASAI_LEI_EXCEPTIONS).length);
+  });
+
+  it("no A2 gloss uses the wrong-number voi help form (aiutatemi/aiutateci) — たすけて is singular", () => {
+    const offenders: string[] = [];
+    for (const variant of a2AllVariants) {
+      const it = glossByVariant.get(variant.id)?.it ?? "";
+      if (/\baiutatemi\b/iu.test(it) || /\baiutateci\b/iu.test(it)) {
+        offenders.push(`${variant.id} :: ${it}`);
+      }
+    }
+    expect(offenders, offenders.join("\n")).toEqual([]);
+  });
+});
