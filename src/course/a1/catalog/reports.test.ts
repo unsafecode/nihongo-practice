@@ -141,11 +141,15 @@ describe("a1ReportMarkdown – A1_REPORT print gate", () => {
     const env = { ...process.env };
     if (flag === undefined) delete env.A1_REPORT;
     else env.A1_REPORT = flag;
+    const viteNodePath = path.resolve(process.cwd(), "node_modules/vite-node/vite-node.mjs");
     const result = spawnSync(
-      "npx",
-      ["tsx", "-e", `import(${JSON.stringify(modulePath)})`],
+      process.execPath,
+      [viteNodePath, modulePath],
       { encoding: "utf8", env, cwd: process.cwd() },
     );
+    if (result.status !== 0) {
+      throw new Error(`A1 report child import failed (${result.status}): ${result.stderr}`);
+    }
     return result.stdout ?? "";
   };
 
