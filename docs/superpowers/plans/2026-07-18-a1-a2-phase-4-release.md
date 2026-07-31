@@ -67,7 +67,7 @@ Independently re-measured at `ab0c0789236c53b754c591fa1c2cc43c86e4ad0e` before t
 | Exercise kinds over 600 A2 exercises | completion 287, tile-ordering 172, choice 81, constrained-construction 60, transformation **0** |
 | Transformation-eligible ordered variant pairs in A2 | **0 of 60 lessons** |
 | Minimum distinct model families per lesson | **1** (A2 distribution `{1:26, 2:14, 3:12, 4:6, 5:1, 6:1}`; A1 `{1:10, 2:11, 3:14, 4:6, 5:1, 6:2}`) |
-| Kanji exposures whose `lexemeSenseId` appears in their own lesson's realized sentences | **10 of 480** |
+| Kanji exposures whose contextual lexeme is used by a sentence in their own lesson | **10 of 480** (method recorded in the D5 measurement note; 0 of 120 at the `assessed` stage) |
 | Distinct contextual lexeme senses across the 120 glyphs | 98 |
 
 ### D4 — The golden is regenerated exactly once, deliberately
@@ -82,7 +82,7 @@ Reasoning, in the order it was established:
 
 1. **The claim is false today.** `src/course/i18n/en.ts:84-85` tells the learner "These kanji appear in this lesson's sentences." Zero of 806 realized sentences contain a single ideograph. This is the Critical claims defect in D2 and must be fixed regardless of which option is chosen.
 2. **The panel is the flashcard its own type contract forbids.** `src/course/a2/kanji/kanjiTypes.ts:1-14` states "nothing here permits a standalone glyph-meaning flashcard divorced from that context", yet `resolveA2KanjiExposureViews` (`src/course/a2/view/buildA2LessonViewModel.ts:103-145`) emits only `glyph`, `reading`, `romaji`, `meaningCopyId` — no word, no sentence. The learner sees a bare glyph.
-3. **Rendering the lesson's own sentences in kanji cannot fix it.** Only **10 of 480** exposures have their `lexemeSenseId` present in any realized sentence of their own lesson (D3). For 98% of exposures there is no sentence to render, so the expensive option does not even buy the claim.
+3. **Rendering the lesson's own sentences in kanji cannot fix it.** Only **10 of 480** exposures have their contextual lexeme actually used by a sentence in their own lesson (D3). For 98% of exposures there is no sentence to render in kanji, so the expensive option does not even buy the claim. The measurement method is spelled out immediately below, because this figure is load-bearing here.
 4. **The expensive option's blast radius is Phase-5-scale.** Kanji in realized sentences would change the romaji formatter contract, tile-ordering token splits, the answer checker's normalization, every Playwright snapshot, the golden, and the shared A1/A2 foundation renderer — and it collides with the hiragana-first writing policy A1 established.
 5. **The cheap option is a one-column extension of an existing authoring table.** `KanjiRow` in `src/course/a2/kanji/a2KanjiCatalog.ts:35-52` already carries `glyph`, `kana`, `romaji`, `sense`. A `sense`-keyed word table (98 entries for 120 rows, since `名` and `前` share `namae`) makes the glyph appear inside its real lexeme, keeps each row legible on its own (the file's stated house rule), and is validated mechanically by validator C8 in Task 26.
 
@@ -91,6 +91,47 @@ Reasoning, in the order it was established:
 **Rendering rule:** the word carries its *whole* kana reading as ruby (subject to the exposure's stage — visible, revealable, or hidden), with the target glyph visually emphasized. Ruby over only the target glyph would leave the rest of the word unreadable.
 
 **Recorded as future work, not Phase 4:** kanji inside realized practice sentences, which would require authoring kanji orthography for the semantic value catalog and a script-aware renderer. Task 33 records it in the backlog.
+
+#### D5 measurement note — how the "10 of 480" figure was derived
+
+This figure is load-bearing in reasoning point 3, so the method is recorded here in full and was re-derived independently after the plan was first written. Both the strict figure and the looser proxy below were reproduced exactly.
+
+**What was counted.** `KanjiExposure.lexemeSenseId` (`src/course/a2/kanji/kanjiTypes.ts:59`) is built as `a2-sense-${row.sense}` by `buildCatalog` (`src/course/a2/kanji/a2KanjiCatalog.ts:311`). That is the *same identifier namespace* the semantic catalog uses for `LearningTargetSense.id`, and `SemanticValue.senseId` (`src/course/foundations/types.ts:296`) points into it. So a kanji's contextual lexeme is "present in a sentence" exactly when some variant of that sentence has a slot value whose `senseId` equals the exposure's `lexemeSenseId`.
+
+The measure is therefore:
+
+```text
+for each exposure e in A2_KANJI_EXPOSURES (480):
+  owned = { valueById[v].senseId : v in variant.slotValues, variant in lesson e.lessonId }
+  hit(e) = e.lexemeSenseId ∈ owned
+```
+
+with `valueById` built from `a2SemanticValues` and lessons taken from `a2SemanticBuiltLessons` keyed by `built.recipe.id`.
+
+**Decisions this measure makes, stated explicitly:**
+
+- **Matched on sense identity, not on surface text.** No substring or kana matching is involved.
+- **Counted per exposure, not per glyph.** All 480 exposures are counted, so a glyph contributes up to four times.
+- **"Own lesson" means the exposure's own `lessonId` only.** No neighbouring lesson, no module, no level-wide pool.
+- **All four stages treated alike.** No stage is excluded or weighted.
+- **Every exposure lesson exists.** Zero exposure `lessonId`s are missing from the built lessons, so no exposure is silently dropped by the lookup — the denominator really is 480.
+
+**Result, with the breakdown the single number hides:**
+
+| Measure | Value |
+| --- | --- |
+| Exposures whose lexeme is used in their own lesson | **10 of 480** |
+| … by stage | first-supported 5/120, supported-retrieval 3/120, revealable 2/120, **assessed 0/120** |
+| Distinct glyphs with at least one own-lesson hit | **8 of 120** |
+| Distinct contextual lexeme senses used *anywhere* in the 806 sentences | **10 of 98** |
+| Glyphs whose lexeme is used *anywhere* in the 806 sentences | **10 of 120** |
+| Distinct senses reachable from all A2 variants (the pool being matched against) | 312 |
+
+The ten hits are: 話/言/聞 (`hanasu`/`iu`/`kiku`) in `connected-conversation-1`; 泳 (`oyogu`) in `experiences-narratives-3` and again in `-4`; 登 (`noboru`) in `experiences-narratives-4`; 安 (`yasui`) in `shopping-returns-2` and again in `-3`; 高 (`takai`) in `shopping-returns-2`; 送 (`okuru`) in `relationships-events-3`.
+
+**Why a substring proxy reports 231 instead, and why it is the wrong measure.** Testing whether the glyph's own kana reading occurs anywhere in the lesson's concatenated Japanese returns **231 of 480** — reproduced exactly. That measure is an inflated upper bound, and the inflation is measurable: of the 120 glyph readings, 31 are a single mora, and single-mora readings account for **102 of the 231 hits**. A reading like `な` or `こ` matches somewhere in almost any lesson by coincidence, with no lexeme of the kanji present. The proxy answers "do these kana appear", the strict measure answers "does this kanji's word appear" — and only the second bears on whether a sentence could be rendered with that kanji in it.
+
+**Does the decision still follow?** Yes, and it does not rest on this figure alone. Reasoning points 1, 4 and 5 stand independently: the claim is false regardless of the number, the blast radius argument is about the renderer/formatter/golden contracts and the hiragana-first writing policy, and the cheap option's cost is a 98-row authoring table either way. The figure's role is narrower — it rules out the tempting middle option of "just render the lesson's existing sentences in kanji", and the stage breakdown strengthens that: **0 of 120 assessed exposures** have their lexeme in their own lesson, so the middle option would leave exactly the stage that withholds all support with nothing contextual to show.
 
 ### D6 — Checkpoint: reword and link, do not build a test
 
@@ -2657,7 +2698,7 @@ grouped at the end and labelled as recognition."
 Three verified facts converge here:
 
 1. All 806 realized sentences contain **zero** ideographs — 12,003 Japanese characters, all kana.
-2. Only **10 of 480** kanji exposures have their `lexemeSenseId` present in their own lesson's realized sentences.
+2. Only **10 of 480** kanji exposures have their contextual lexeme used by a sentence in their own lesson — and **0 of the 120 `assessed`-stage exposures** do. The measurement method is recorded in the D5 measurement note near the top of this plan; do not re-derive it with a substring test, which returns an inflated 231.
 3. The learner-facing copy at `src/course/i18n/en.ts:84-85` says *"These kanji appear in this lesson's sentences."* — which is false, in both languages.
 
 `kanjiTypes.ts:1-14` states the contract this violates: a kanji must never be "a standalone glyph-meaning flashcard divorced from that context". `resolveA2KanjiExposureViews` emits glyph, reading, romaji and meaning — a flashcard.
