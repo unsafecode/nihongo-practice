@@ -1356,3 +1356,97 @@ The master cycle is complete only when:
 The next artifact after approval of this specification is the Phase 0
 implementation plan only. Phases 1-4 receive their own plans after the preceding
 exit gate passes.
+
+## 24. Amendment 1 — Phase 4 expanded scope (curriculum quality)
+
+**Status:** accepted. **Date:** 2026-07-18. **Applies to:** Section 22, Phase 4.
+**Decided by:** the product owner, in response to an explicit scope question
+raised after the Phase 3 double-check review. Recorded here rather than left
+implicit, because Section 22 Phase 4 says "fix cross-level regressions only; new
+curriculum scope requires an amendment", and the work below is new curriculum
+scope.
+
+### 24.1 Why this amendment exists
+
+Four independent read-only reviews of the shipped Phase 3 release (an
+adversarial gate review with mutation testing, a full 806-variant linguistic
+review, a spec-plus-live-UX audit, and an adjudication of the disputed
+linguistic claims) agreed on three findings that Phase 4's original scope could
+not act on:
+
+1. Two release gates are structurally unable to fail — one validates a
+   selection that is never shipped, the other derives its own threshold from the
+   data it is validating. Fixing these is in the original scope (they are gate
+   defects), but the defects they were meant to catch are content defects, and
+   correcting content is what the original scope forbids.
+2. Exercise variety is materially below what Section 10's depth contract
+   implies: 34 of 60 A2 lessons present the identical ten-exercise kind
+   sequence, and one of the five declared exercise kinds (`transformation`) is
+   never used at all despite having complete localized instruction copy.
+3. The four A2 synthesis lessons are described in learner-facing copy as
+   connected discourse, but are realized as independent single sentences, which
+   makes the associated Can-do statements overclaim.
+
+Findings 2 and 3 are not regressions — they were shipped this way — so they fall
+outside "fix cross-level regressions only". They are nonetheless quality defects
+that the release's own claims depend on. The product owner chose to widen Phase
+4 rather than defer them, on the grounds that the claims are already public.
+
+### 24.2 What Phase 4 additionally covers
+
+Phase 4's scope is extended by exactly the following. Everything else in Section
+22 Phase 4 stands unchanged.
+
+- **A4.1 Exercise variety.** Rebalancing how exercise kinds are assigned across
+  the two practice rounds of every A1 and A2 lesson, and putting the declared
+  but unused `transformation` kind into genuine service by authoring the paired
+  variants it requires. This changes exercise *selection* and adds *paired
+  variants within existing families*; it does not add modules, lessons, families,
+  senses, or kanji.
+- **A4.2 Synthesis-lesson discourse.** Making the four A2 synthesis lessons
+  (`a2-synthesis-1` … `a2-synthesis-4`) genuinely connected — or, where that is
+  not achievable inside the Phase 3 constraint that the synthesis module
+  introduces no new family, sense, value, or kanji, rewording the affected
+  Can-do statements so they describe what the lesson actually practises. The
+  plan must state which of the two it does for each lesson, and why.
+- **A4.3 Content correctness fixes.** Correcting the adjudicated linguistic
+  defects in the shipped A1/A2 semantic catalogs, and deliberately regenerating
+  the editorial golden so the corrected surfaces become the new drift lock.
+- **A4.4 Deterministic validators for the defect classes above.** Every content
+  correction under A4.3 must ship with a validator that would have caught it,
+  so the class cannot silently return.
+- **A4.5 Contextual-kanji honesty.** Making the contextual-kanji surface match
+  what Section 12 and the learner-facing copy claim about it, and recording the
+  reasoned decision about kanji inside realized practice sentences.
+
+### 24.3 What remains out of scope
+
+This amendment does not authorize, and Phase 4 must not introduce:
+
+- new modules, or any change to the 48 A1 and 60 A2 lesson counts, or to the 59
+  A2 Can-do statements' identity (rewording an existing Can-do to be truthful is
+  permitted under A4.2; adding or removing one is not);
+- new kanji beyond the frozen 120, or any change to their four-stage schedule;
+- any productive/handwriting/IME kanji mode — Section 12's recognition-only
+  constraint is unchanged;
+- certification claims of any kind — Section 3's "aligned with JF/CEFR Can-do"
+  language is unchanged and is re-verified in Phase 4;
+- any backend, account, telemetry, or network call — Section 20 is unchanged;
+- automatic speech scoring or any pass/fail verdict — Sections 13 and 19 are
+  unchanged;
+- a new checkpoint assessment surface. The checkpoint stays what Section 17
+  defines: an observational record, never a test.
+
+### 24.4 Amended Phase 4 exit criteria
+
+Section 22 Phase 4's exit criteria stand, and the following are added:
+
+- no A1 or A2 lesson shares its full exercise-kind sequence with more than eight
+  other lessons, and every declared exercise kind is realized at least once in
+  the shipped selection;
+- each of the four A2 synthesis lessons either realizes connected discourse or
+  states a Can-do that its realized content actually supports;
+- every content correction made under A4.3 has a deterministic validator that
+  fails on the pre-correction data;
+- the contextual-kanji surface shows each glyph inside its contextual lexeme,
+  and no learner-facing copy asserts a kanji appears somewhere it does not.
