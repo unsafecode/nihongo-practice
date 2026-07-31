@@ -129,7 +129,21 @@ with `valueById` built from `a2SemanticValues` and lessons taken from `a2Semanti
 
 The ten hits are: 話/言/聞 (`hanasu`/`iu`/`kiku`) in `connected-conversation-1`; 泳 (`oyogu`) in `experiences-narratives-3` and again in `-4`; 登 (`noboru`) in `experiences-narratives-4`; 安 (`yasui`) in `shopping-returns-2` and again in `-3`; 高 (`takai`) in `shopping-returns-2`; 送 (`okuru`) in `relationships-events-3`.
 
-**Why a substring proxy reports 231 instead, and why it is the wrong measure.** Testing whether the glyph's own kana reading occurs anywhere in the lesson's concatenated Japanese returns **231 of 480** — reproduced exactly. That measure is an inflated upper bound, and the inflation is measurable: of the 120 glyph readings, 31 are a single mora, and single-mora readings account for **102 of the 231 hits**. A reading like `な` or `こ` matches somewhere in almost any lesson by coincidence, with no lexeme of the kanji present. The proxy answers "do these kana appear", the strict measure answers "does this kanji's word appear" — and only the second bears on whether a sentence could be rendered with that kanji in it.
+**Why a substring proxy reports 231 instead, and why it is the wrong measure.** Testing whether the glyph's own kana reading occurs anywhere in the lesson's concatenated Japanese returns **231 of 480** — reproduced exactly. That measure is an inflated upper bound, and the inflation is measurable. A reading like `な` or `こ` matches somewhere in almost any lesson by coincidence, with no lexeme of the kanji present.
+
+*Mora convention used below, stated so the counts are reproducible:* a mora is one kana character, **excluding** the small kana `ゃゅょぁぃぅぇぉ` (and their katakana forms), which combine with the preceding kana rather than forming a mora of their own — so `きょ` and `しゃ` are one mora each. `ん` and the sokuon `っ` **do** each count as their own mora, which is the standard convention; 24 of the 120 readings contain `ん` and one contains `っ`. No long-vowel mark `ー` occurs in any reading, so vowel length never arises. Counting kana characters naively instead — JavaScript `String.length` over the same rows — gives 31/79/10 and is *not* a mora count; the earlier draft of this note quoted those numbers without saying so, which is why they are called out here.
+
+The counts below describe **three different populations**, named explicitly, because the same histogram over a different population looks like a contradiction:
+
+| Population | 1 mora | 2 morae | 3 morae | Total |
+| --- | --- | --- | --- | --- |
+| A — rows in `A2_KANJI_READINGS`, one per glyph | **37** | 77 | 6 | 120 |
+| B — *distinct* kana reading strings among those rows | 25 | 67 | 6 | 98 |
+| C — the 231 proxy hits, weighted by exposure | **114** | 110 | 7 | 231 |
+
+Stated unambiguously: **37 of the 120 glyph readings are a single mora, and those short readings alone account for 114 of the 231 proxy hits** — out of a theoretical maximum of 148 (37 readings × 4 exposure stages), meaning a one-mora reading "hits" in 77% of its own exposures purely by coincidence. Roughly a third of the readings thus produce half the proxy's total. Population B is given because rows outnumber distinct strings (120 rows, 98 distinct strings — glyphs sharing a lexeme such as `名`/`前` contribute separate rows), so a reader counting distinct strings will legitimately get 25 rather than 37 and should know which is which.
+
+The proxy answers "do these kana appear", the strict measure answers "does this kanji's word appear" — and only the second bears on whether a sentence could be rendered with that kanji in it.
 
 **Does the decision still follow?** Yes, and it does not rest on this figure alone. Reasoning points 1, 4 and 5 stand independently: the claim is false regardless of the number, the blast radius argument is about the renderer/formatter/golden contracts and the hiragana-first writing policy, and the cheap option's cost is a 98-row authoring table either way. The figure's role is narrower — it rules out the tempting middle option of "just render the lesson's existing sentences in kanji", and the stage breakdown strengthens that: **0 of 120 assessed exposures** have their lexeme in their own lesson, so the middle option would leave exactly the stage that withholds all support with nothing contextual to show.
 
