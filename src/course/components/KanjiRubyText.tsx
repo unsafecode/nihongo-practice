@@ -1,4 +1,4 @@
-import { createElement, useState, type ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import { ActionButton } from "../../components/actions/Action";
 import type { Script } from "../../settings/ScriptContext";
 import { a2KanjiAssistancePolicy } from "../a2/kanji/kanjiAssistancePolicy";
@@ -6,7 +6,12 @@ import type { KanjiActivityMode, KanjiExposure } from "../a2/kanji/kanjiTypes";
 
 /**
  * Renders the word base text, emphasizing the target glyph within it.
- * If displayBase === glyph (single character, no word context), returns it directly.
+ * If displayBase === glyph (no word context), returns it directly as a plain string.
+ * If indexOf returns -1 (glyph absent — reachable only for all-kana words,
+ * which the C8 validator in a2ContextualWords.test.ts asserts never contain
+ * the target kanji), returns displayBase as a plain string with no emphasis.
+ * If glyph appears more than once, only the first occurrence is emphasised;
+ * later occurrences render undecorated — not reachable with current catalog data.
  */
 function renderWordBase(displayBase: string, glyph: string): ReactElement | string {
   if (displayBase === glyph) return glyph;
@@ -14,12 +19,12 @@ function renderWordBase(displayBase: string, glyph: string): ReactElement | stri
   if (idx === -1) return displayBase;
   const before = displayBase.slice(0, idx);
   const after = displayBase.slice(idx + glyph.length);
-  return createElement(
-    "span",
-    { className: "kanji-ruby__word" },
-    before ? createElement("span", { className: "kanji-ruby__word-ctx" }, before) : null,
-    createElement("span", { className: "kanji-ruby__word-target" }, glyph),
-    after ? createElement("span", { className: "kanji-ruby__word-ctx" }, after) : null,
+  return (
+    <span className="kanji-ruby__word">
+      {before ? <span className="kanji-ruby__word-ctx">{before}</span> : null}
+      <span className="kanji-ruby__word-target">{glyph}</span>
+      {after ? <span className="kanji-ruby__word-ctx">{after}</span> : null}
+    </span>
   );
 }
 
@@ -52,10 +57,10 @@ function renderWordBase(displayBase: string, glyph: string): ReactElement | stri
  *   every test, must supply real copy) so the control is never silently
  *   English-only for a non-English learner. Once revealed, the `<rt>` is
  *   deliberately *not* aria-hidden (it is now the only visible reading), so
- *   the `<ruby>` gets an explicit `aria-label` pinned to just the glyph —
+ *   the `<ruby>` gets an explicit `aria-label` pinned to the word base —
  *   otherwise the browser's default ruby accessible-name computation would
- *   concatenate base+rt into a duplicated "glyph+reading" string.
- * - `assessed` (furigana "hidden", romaji "not-shown"): a bare glyph, no
+ *   concatenate base+rt into a duplicated "word+reading" string.
+ * - `assessed` (furigana "hidden", romaji "not-shown"): the 交ぜ書き word base, no
  *   `<ruby>`/`<rt>` element at all, and no romaji hint, unconditionally —
  *   plus a visible explanation caption sourced from the caller-supplied
  *   `assessedExplanation` copy (key `a2-kanji-why-visible`), tagged with a
@@ -193,7 +198,7 @@ function RevealableKanjiRuby({
       <ruby
         lang="ja"
         className="kanji-ruby__ruby"
-        aria-label={revealed ? glyph : undefined}
+        aria-label={revealed ? displayBase : undefined}
       >
         {renderWordBase(displayBase, glyph)}
         {revealed ? <rt className="kanji-ruby__reading">{reading}</rt> : null}

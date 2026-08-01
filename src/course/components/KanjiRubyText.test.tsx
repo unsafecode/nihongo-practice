@@ -78,6 +78,19 @@ describe("KanjiRubyText — first-supported / supported-retrieval (visible furig
     const rendered = ALL_MODES.map((mode) => renderStatic(baseProps({ mode })));
     expect(new Set(rendered).size).toBe(1);
   });
+
+  it("renders the full word as the ruby base with the target glyph in kanji-ruby__word-target, and the whole-word kana in the aria-hidden rt (word prop)", () => {
+    const html = renderStatic(
+      baseProps({
+        exposure: exposureAt("first-supported"),
+        word: "話す",
+        wordKana: "はなす",
+      }),
+    );
+    expect(html).toContain('<ruby lang="ja"');
+    expect(html).toMatch(/<rt[^>]*aria-hidden="true"[^>]*>はなす<\/rt>/);
+    expect(html).toContain('class="kanji-ruby__word-target">話');
+  });
 });
 
 describe("KanjiRubyText — revealable (furigana hidden behind a learner toggle)", () => {
@@ -125,10 +138,29 @@ describe("KanjiRubyText — revealable (furigana hidden behind a learner toggle)
     // Now that it is the only visible reading, it must not be re-hidden from
     // assistive tech by aria-hidden.
     expect(rt?.getAttribute("aria-hidden")).toBeNull();
-    // The ruby's own accessible name is pinned to just the glyph so it does
+    // The ruby's own accessible name is pinned to the word base so it does
     // not become a duplicated "話はな" string once rt is no longer hidden.
     const ruby = container.querySelector("ruby");
     expect(ruby?.getAttribute("aria-label")).toBe("話");
+  });
+
+  it("pins the ruby aria-label to the whole word after revealing with word prop — regression for aria-label pinned to bare glyph", () => {
+    const { container } = mount(
+      baseProps({
+        exposure: exposureAt("revealable"),
+        word: "話す",
+        wordKana: "はなす",
+      }),
+    );
+    const button = container.querySelector("button.kanji-reveal") as HTMLButtonElement;
+    act(() => {
+      button.click();
+    });
+
+    const ruby = container.querySelector("ruby");
+    // aria-label must be the word, not the bare glyph, so the screen-reader
+    // announces "話す" (the full context word) rather than just "話".
+    expect(ruby?.getAttribute("aria-label")).toBe("話す");
   });
 
   it("toggles back to hidden (aria-expanded false, rt removed) on a second click", () => {
@@ -199,6 +231,24 @@ describe("KanjiRubyText — assessed (no support, in every mode/script)", () => 
       expect(html).not.toContain("hana");
       expect(html).not.toContain("はな");
     }
+  });
+
+  it("renders the 交ぜ書き word base at assessed — no ruby, no rt, no romaji (word prop)", () => {
+    const html = renderStatic(
+      baseProps({
+        exposure: exposureAt("assessed"),
+        script: "romaji",
+        word: "話す",
+        wordKana: "はなす",
+      }),
+    );
+    expect(html).not.toContain("<ruby");
+    expect(html).not.toContain("<rt");
+    expect(html).not.toContain("hana");
+    // wordKana is never rendered at assessed — no rt to put it in.
+    expect(html).not.toContain("はなす");
+    // The 交ぜ書き word base is rendered with the glyph emphasised.
+    expect(html).toContain('class="kanji-ruby__word-target">話');
   });
 });
 
