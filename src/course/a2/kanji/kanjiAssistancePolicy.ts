@@ -5,9 +5,9 @@
  * the activity mode or the learner's global script preference. In particular,
  * `revealable` and `assessed` exposures always withhold romaji in every mode;
  * there is no code path in this policy that can be parameterized back to
- * allowed for either of those stages, so a learner cannot use a romaji script
- * setting to bypass the retrieval effort at revealable or the assessment at
- * assessed.
+ * `allowed` for either of those stages, so a learner cannot use a romaji
+ * script setting to bypass the retrieval effort at `revealable` or the
+ * assessment at `assessed`.
  */
 
 import { deepFreeze } from "../../foundations/deepFreeze";

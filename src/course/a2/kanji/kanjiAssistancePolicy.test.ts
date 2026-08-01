@@ -48,7 +48,7 @@ describe("a2KanjiAssistancePolicy", () => {
     }
   });
 
-  it("makes furigana revealable and withholds romaji at revealable, in every mode", () => {
+  it("makes furigana revealable and withholds romaji at the revealable stage, in every mode", () => {
     for (const mode of ALL_MODES) {
       const support = a2KanjiAssistancePolicy.supportFor(exposureAt("revealable"), mode);
       expect(support).toEqual({ furigana: "revealable", romaji: "not-shown" });
