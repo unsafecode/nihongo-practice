@@ -106,6 +106,9 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
     line("health-advice-1-m6", "a2-family-wellbeing", "a2-value-genki-stem", WORKPLACE, L("The teacher is well.", "L'insegnante sta bene."), { subjectReferent: "a2-referent-teacher", subjectRealization: "explicit", speakerRole: "a2-role-teacher" }),
     line("health-advice-1-m7", "a2-family-symptom", "a2-value-itai-stem", AMONG_FRIENDS, L("Sora's head hurts.", "A Sora fa male la testa."), { object: "a2-value-obj-atama", subjectReferent: "a2-referent-sora", subjectRealization: "explicit", speakerRole: "a2-role-sora" }),
     line("health-advice-1-m8", "a2-family-symptom-exist", "a2-value-exist-aru", HEALTH, L("I have a fever.", "Ho la febbre."), { subjectValue: "a2-value-netsu-subject", subjectRealization: "explicit", speakerRole: "a2-role-learner" }),
+    // Model twin of t4 — tense flip (past -> present) for transformation pairing
+    // t4 is "Sora's stomach hurt" (PAST); m9 is the present-tense counterpart
+    line("health-advice-1-m9", "a2-family-symptom", "a2-value-itai-stem", HEALTH, L("Sora's stomach hurts.", "A Sora fa male la pancia."), { object: "a2-value-obj-onaka", subjectReferent: "a2-referent-sora", subjectRealization: "explicit", speakerRole: "a2-role-sora" }),
   ],
   // Every transfer recombines an already-modeled predicate (itai/genki —
   // m1-m7, above) with a body-part/subject/form pairing not used in this

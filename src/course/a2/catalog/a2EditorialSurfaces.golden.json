@@ -7856,6 +7856,22 @@
     "it": "Ho la febbre."
   },
   {
+    "id": "health-advice-1-m9",
+    "position": 37,
+    "lessonId": "health-advice-1",
+    "use": "model",
+    "family": "a2-family-symptom",
+    "rule": "rule-preference",
+    "formality": "polite",
+    "polarity": "affirmative",
+    "tense": "present",
+    "interrogative": false,
+    "jp": "そらはおなかがいたいです",
+    "romaji": "sora wa onaka ga itai desu",
+    "en": "Sora's stomach hurts.",
+    "it": "A Sora fa male la pancia."
+  },
+  {
     "id": "health-advice-1-t1",
     "position": 37,
     "lessonId": "health-advice-1",
@@ -10560,6 +10576,22 @@
     "it": "Mio fratello maggiore sta bene."
   },
   {
+    "id": "relationships-events-1-t6",
+    "position": 49,
+    "lessonId": "relationships-events-1",
+    "use": "transfer",
+    "family": "a2-family-family-description",
+    "rule": "rule-description",
+    "formality": "polite",
+    "polarity": "affirmative",
+    "tense": "past",
+    "interrogative": false,
+    "jp": "あにはげんきでした",
+    "romaji": "ani wa genki deshita",
+    "en": "My older brother was well.",
+    "it": "Mio fratello maggiore stava bene."
+  },
+  {
     "id": "relationships-events-2-m1",
     "position": 50,
     "lessonId": "relationships-events-2",
@@ -10798,6 +10830,22 @@
     "romaji": "tanjoubi o iwaimasu",
     "en": "I'll celebrate a birthday.",
     "it": "Festeggerò un compleanno."
+  },
+  {
+    "id": "relationships-events-3-m10",
+    "position": 51,
+    "lessonId": "relationships-events-3",
+    "use": "model",
+    "family": "a2-family-celebrate-event",
+    "rule": "rule-object-action",
+    "formality": "polite",
+    "polarity": "affirmative",
+    "tense": "past",
+    "interrogative": false,
+    "jp": "せんせいはたんじょうびをいわいました",
+    "romaji": "sensei wa tanjoubi o iwaimashita",
+    "en": "The teacher celebrated a birthday.",
+    "it": "L'insegnante ha festeggiato un compleanno."
   },
   {
     "id": "relationships-events-3-m2",

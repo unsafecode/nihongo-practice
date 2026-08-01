@@ -37,7 +37,7 @@ describe("buildA2Reports — exact level metrics", () => {
       level: "a2",
       moduleCount: 15,
       lessonCount: 60,
-      modelCount: 506,
+      modelCount: 508,
       exerciseCount: 600,
       transferCount: 300,
       complete: true,

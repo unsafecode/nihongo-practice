@@ -428,7 +428,7 @@ export interface A2BuiltLesson {
 }
 
 const A2_ROUND_ONE_KINDS = ["tile-ordering", "choice", "completion"] as const;
-const A2_ROUND_TWO_KINDS = ["constrained-construction", "completion", "tile-ordering", "choice"] as const;
+const A2_ROUND_TWO_KINDS = ["constrained-construction", "completion", "tile-ordering", "choice", "transformation"] as const;
 
 /** Referent → its person-role, derived from the frozen A2 referent catalog. */
 const A2_REFERENT_ROLE: Readonly<Record<string, string>> = Object.freeze(

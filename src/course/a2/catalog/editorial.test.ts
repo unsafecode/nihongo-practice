@@ -46,7 +46,7 @@ import {
 } from "./a2SemanticCatalog";
 import { A2_SYNTHESIS_LESSON_IDS } from "../manifest";
 
-const EXPECTED_VARIANT_COUNT = 806;
+const EXPECTED_VARIANT_COUNT = 809;
 
 // ---------------------------------------------------------------------------
 // Shared realization harness (identical catalogs/options to every other A2
@@ -402,7 +402,7 @@ describe("A2 editorial gate — genuine transfers (no within-lesson semantic cop
         expect(modelSet.has(fingerprint), `${transfer.id} copies a model fingerprint`).toBe(false);
       }
     }
-    expect(transfersChecked, "transfers checked").toBe(300);
+    expect(transfersChecked, "transfers checked").toBe(301);
   });
 });
 

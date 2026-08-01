@@ -18,6 +18,7 @@
  */
 import { A2_MODULE_MANIFEST } from "../manifest";
 import {
+  A2_AFFIRMATIVE_PAST_POLITE,
   buildA2InstructionalLesson,
   type A2BuiltLesson,
   type A2LineSpec,
@@ -115,6 +116,8 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
     line("relationships-events-1-t3", "a2-family-family-description", "a2-value-genki-stem", RELATIONSHIPS, L("My younger sister is well.", "Mia sorella minore sta bene."), { subjectValueId: "a2-value-family-imouto-subject", speakerRole: "a2-role-teacher" }),
     line("relationships-events-1-t4", "a2-family-family-description", "a2-value-yasashii-stem", RELATIONSHIPS, L("My father is kind.", "Mio padre è gentile."), { subjectValueId: "a2-value-family-chichi-subject", speakerRole: "a2-role-learner" }),
     line("relationships-events-1-t5", "a2-family-family-description", "a2-value-genki-stem", RELATIONSHIPS, L("My older brother is well.", "Mio fratello maggiore sta bene."), { subjectValueId: "a2-value-family-ani-subject", speakerRole: "a2-role-friend" }),
+    // Transfer twin of t5 — tense flip (present -> past) for transformation pairing
+    { ...line("relationships-events-1-t6", "a2-family-family-description", "a2-value-genki-stem", RELATIONSHIPS, L("My older brother was well.", "Mio fratello maggiore stava bene."), { subjectValueId: "a2-value-family-ani-subject", speakerRole: "a2-role-friend" }), form: A2_AFFIRMATIVE_PAST_POLITE },
   ],
 });
 
@@ -182,6 +185,9 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     line("relationships-events-3-m7", "a2-family-ongoing-teiru", "a2-value-teiru-paatii-shiteimasu", OUTING, L("I'm having a party.", "Sto facendo una festa."), { object: "a2-value-obj-paatii", speakerRole: "a2-role-learner" }),
     line("relationships-events-3-m8", "a2-family-experience-takoto", "a2-value-exp-kekkonshiki-itta", RELATIONSHIPS, L("I have been to a wedding.", "Sono stato a un matrimonio."), { speakerRole: "a2-role-friend" }),
     line("relationships-events-3-m9", "a2-family-celebrate-event", "a2-value-events-iwaimasu", OUTING, L("My friend will celebrate a wedding.", "Il mio amico festeggerà un matrimonio."), { subjectValueId: "a2-value-friend-subject", object: "a2-value-obj-kekkonshiki", speakerRole: "a2-role-teacher" }),
+    // Model twin of t4 — tense flip (present -> past) for transformation pairing
+    // t4 is "The teacher will celebrate a birthday" (default/present); m10 is the past-tense counterpart
+    { ...line("relationships-events-3-m10", "a2-family-celebrate-event", "a2-value-events-iwaimasu", RELATIONSHIPS, L("The teacher celebrated a birthday.", "L'insegnante ha festeggiato un compleanno."), { subjectValueId: "a2-value-teacher-subject", object: "a2-value-obj-tanjoubi", speakerRole: "a2-role-learner" }), form: A2_AFFIRMATIVE_PAST_POLITE },
   ],
   // t1/t2 are the genuine supporting-Can-do transfers (ongoing-teiru and
   // experience-takoto), reusing an EXISTING M5/M3 family+value verbatim with
