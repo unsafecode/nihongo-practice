@@ -16,6 +16,7 @@ import {
   fnv1a32,
   parseFingerprint,
   transformationAxis,
+  rotateKinds,
   type PracticeCandidate,
   type SelectVariantsRoundConstraints,
   type SelectVariantsRoundInput,
@@ -1329,5 +1330,62 @@ describe("fixture lesson selections", () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.errors).toEqual([{ code: "unknown-candidate", referenceId: "not-a-real-variant" }]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// rotateKinds — direct unit tests
+// ---------------------------------------------------------------------------
+
+describe("rotateKinds", () => {
+  const FOUR = ["A", "B", "C", "D"] as unknown as readonly import("../exercises/types").ExerciseKind[];
+  const THREE = ["A", "B", "C"] as unknown as readonly import("../exercises/types").ExerciseKind[];
+
+  /** Assert that the result is a permutation of the input (every element exactly once). */
+  function expectPermutation(result: readonly unknown[], input: readonly unknown[]) {
+    expect([...result].sort()).toEqual([...input].sort());
+  }
+
+  it("even-length list with a stride sharing a factor produces a full permutation", () => {
+    // stride 2 shares factor 2 with length 4 — before the fix this yielded ["A","C","A","C"]
+    const result = rotateKinds(FOUR, 0, 2);
+    expectPermutation(result, FOUR);
+  });
+
+  it("stride 0 produces a full permutation (falls back to step 1)", () => {
+    const result = rotateKinds(FOUR, 0, 0);
+    expectPermutation(result, FOUR);
+  });
+
+  it("negative offset wraps correctly and produces a permutation", () => {
+    const result = rotateKinds(FOUR, -3, 1);
+    expectPermutation(result, FOUR);
+    // offset -3 mod 4 = 1, so first element should be FOUR[1]
+    expect(result[0]).toBe(FOUR[1]);
+  });
+
+  it("single-element list returns that element", () => {
+    const single = ["X"] as unknown as readonly import("../exercises/types").ExerciseKind[];
+    const result = rotateKinds(single, 5, 7);
+    expect(result).toEqual(single);
+  });
+
+  it("empty list returns empty", () => {
+    const empty: readonly import("../exercises/types").ExerciseKind[] = [];
+    const result = rotateKinds(empty, 3, 2);
+    expect(result).toEqual([]);
+  });
+
+  it("length-3 list is always a permutation regardless of stride", () => {
+    // Every non-zero step mod 3 is coprime with 3, so all strides work
+    for (const stride of [1, 2, 3, 4, 5]) {
+      expectPermutation(rotateKinds(THREE, 0, stride), THREE);
+    }
+  });
+
+  it("different offsets produce different orderings", () => {
+    const r0 = rotateKinds(FOUR, 0, 1).join(",");
+    const r1 = rotateKinds(FOUR, 1, 1).join(",");
+    expect(r0).not.toBe(r1);
   });
 });

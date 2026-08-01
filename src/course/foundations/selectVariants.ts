@@ -483,8 +483,7 @@ function backtrackSelect(
   constraints: SelectVariantsRoundConstraints,
   alreadySelected: readonly SelectedPracticeTarget[],
   backtrackCallLimit: number,
-  kindOffset: number,
-  kindStride: number = 1,
+  kindRotation: KindRotation,
 ): BacktrackOutcome {
   const targetCount = round.targetCount;
   const families = new Map(baseline.families);
@@ -517,7 +516,7 @@ function backtrackSelect(
   // unexplored.
   function tryAcceptTerminal(): readonly SelectedPracticeTarget[] | null {
     if (!satisfiesFinal()) return null;
-    const assignment = assignExerciseKinds(chosen, round, constraints, alreadySelected, kindOffset, kindStride);
+    const assignment = assignExerciseKinds(chosen, round, constraints, alreadySelected, kindRotation);
     if (!assignment.ok) {
       lastKindError = assignment.error;
       return null;
@@ -674,16 +673,40 @@ function eligibleKindsFor(
   return result;
 }
 
+/** Greatest common divisor (Euclidean algorithm). */
+function gcd(a: number, b: number): number {
+  let x = a;
+  let y = b;
+  while (y !== 0) {
+    const remainder = x % y;
+    x = y;
+    y = remainder;
+  }
+  return x;
+}
+
 /**
- * `kinds` reordered by walking from `offset` with the given `stride`, so
- * that each (lesson, round) gets a different kind preference order.
+ * A seed-derived offset/stride pair for `rotateKinds`.
  *
- * When the stride is coprime to `kinds.length`, every kind is visited
- * exactly once before the walk repeats — so stride 1 and stride 2 on a
- * list of length 3 produce mirror-image orderings, doubling the set of
- * reachable in-round patterns from 3 to 6.
+ * Both values are computed together from the same FNV-1a seed material and
+ * always passed together — bundling them prevents silent transposition of
+ * two positional `number` parameters that TypeScript cannot distinguish.
  */
-function rotateKinds(
+export interface KindRotation {
+  readonly offset: number;
+  readonly stride: number;
+}
+
+/**
+ * `kinds` reordered by walking from `rotation.offset` with
+ * `rotation.stride`, so that each (lesson, round) gets a different kind
+ * preference order.
+ *
+ * The step is reduced until it is coprime with `kinds.length`, so every
+ * kind is visited exactly once before the walk repeats. This terminates
+ * because step 1 is always coprime with any positive length.
+ */
+export function rotateKinds(
   kinds: readonly ExerciseKind[],
   offset: number,
   stride: number = 1,
@@ -691,7 +714,12 @@ function rotateKinds(
   if (kinds.length === 0) return kinds;
   const len = kinds.length;
   const start = ((offset % len) + len) % len;
-  const step = ((stride % len) + len) % len || 1; // ensure non-zero
+  let step = ((stride % len) + len) % len || 1; // ensure non-zero
+  // Reduce step until coprime with len so every position is visited.
+  while (gcd(step, len) !== 1) {
+    step -= 1;
+    if (step <= 0) { step = 1; break; }
+  }
   return kinds.map((_unused, index) => kinds[(start + index * step) % len]);
 }
 
@@ -700,8 +728,7 @@ function assignExerciseKinds(
   round: SelectVariantsRoundInput,
   constraints: SelectVariantsRoundConstraints,
   alreadySelected: readonly SelectedPracticeTarget[],
-  kindOffset: number,
-  kindStride: number = 1,
+  kindRotation: KindRotation,
 ): { readonly ok: true; readonly targets: readonly SelectedPracticeTarget[] } | { readonly ok: false; readonly error: SelectVariantsError } {
   const ordered = [...ranked].sort((left, right) =>
     left.rank !== right.rank ? left.rank - right.rank : compareIds(left.candidate.variant.id, right.candidate.variant.id),
@@ -739,7 +766,10 @@ function assignExerciseKinds(
         // full list (which starts with CC) makes offsets 0 and 1 both map to
         // `completion`, halving effective variety.
         const nonCCKinds = round.exerciseKinds.filter((kind) => kind !== "constrained-construction");
-        const preferred = rotateKinds(nonCCKinds, kindOffset + otherIndex, kindStride).find(
+        const preferred = rotateKinds(nonCCKinds, kindRotation.offset + otherIndex, kindRotation.stride).find(
+          // Cast is load-bearing: `.filter()` above narrows `otherKinds` to
+          // exclude "constrained-construction", so TS 5.5+ infers a narrowed
+          // element type that rejects the wider `ExerciseKind` in `.includes()`.
           (kind) => (otherKinds as readonly ExerciseKind[]).includes(kind),
         );
         assigned.set(entry, preferred ?? otherKinds[0]);
@@ -777,7 +807,7 @@ function assignExerciseKinds(
           error: { code: "no-eligible-kind", referenceId: `${round.id}::${entry.candidate.variant.id}` },
         };
       }
-      const rotated = rotateKinds(round.exerciseKinds, index + kindOffset, kindStride);
+      const rotated = rotateKinds(round.exerciseKinds, index + kindRotation.offset, kindRotation.stride);
       let chosenKind: ExerciseKind | undefined;
       for (const candidateKind of rotated) {
         if (kinds.includes(candidateKind)) {
@@ -877,9 +907,11 @@ function selectVariantsInternal(input: SelectVariantsInput, backtrackCallLimit: 
   const ranked = rankCandidates(catalogVersion, lessonId, round.id, seed, eligible);
   const baseline = baselineCountsFrom(alreadySelected);
 
-  const kindOffset = fnv1a32(`${catalogVersion}|${lessonId}|${round.id}|${seed}|kind-offset`);
-  const kindStride = fnv1a32(`${catalogVersion}|${lessonId}|${round.id}|${seed}|kind-stride`);
-  const outcome = backtrackSelect(ranked, round, baseline, constraints, alreadySelected, backtrackCallLimit, kindOffset, kindStride);
+  const kindRotation: KindRotation = {
+    offset: fnv1a32(`${catalogVersion}|${lessonId}|${round.id}|${seed}|kind-offset`),
+    stride: fnv1a32(`${catalogVersion}|${lessonId}|${round.id}|${seed}|kind-stride`),
+  };
+  const outcome = backtrackSelect(ranked, round, baseline, constraints, alreadySelected, backtrackCallLimit, kindRotation);
   switch (outcome.status) {
     case "found":
       return { ok: true, targets: outcome.targets };
