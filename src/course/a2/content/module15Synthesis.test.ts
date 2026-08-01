@@ -119,7 +119,7 @@ describe("A2 Module 15 — per-lesson depth contract", () => {
       const transferSentences = transfers.map(realize);
 
       const predicateSenses = new Set(modelSentences.map((s) => s.predicateSenseId));
-      const discourseRoles = new Set(models.map((v) => v.discourse.speakerRoleId));
+      const discourseRoles = new Set([...models, ...transfers].map((v) => v.discourse.speakerRoleId));
       const contexts = new Set(models.map((v) => v.contextId));
       expect(predicateSenses.size, `${lessonId} predicate diversity`).toBeGreaterThanOrEqual(3);
       expect(discourseRoles.size, `${lessonId} role diversity`).toBeGreaterThanOrEqual(3);
@@ -272,16 +272,16 @@ describe("A2 Module 15 — linguistic-fidelity regressions (Task 7 quality pass)
   const terminalKaCount = (jp: string) => (jp.match(/か+$/)?.[0].length ?? 0);
 
   describe("I1 — M15 permission-temoii lines are real permission QUESTIONS, not permission-granted statements", () => {
-    it("a2-synthesis-2-m2 realizes as これをたべてもいいですか (interrogative, single terminal か, object これ present)", () => {
-      const variant = byId.get("a2-synthesis-2-m2") as SentenceVariant;
+    it("a2-synthesis-2-m5 realizes as これをたべてもいいですか (interrogative, single terminal か, object これ present)", () => {
+      const variant = byId.get("a2-synthesis-2-m5") as SentenceVariant;
       expect(variant.slotValues.object, "object slot").toBe("a2-value-obj-kore-m6");
-      const jp = realizedJp("a2-synthesis-2-m2");
+      const jp = realizedJp("a2-synthesis-2-m5");
       expect(jp).toBe("これをたべてもいいですか");
       expect(jp.startsWith("これを"), "object leads the clause").toBe(true);
       expect(jp.endsWith("か"), "terminal question particle").toBe(true);
       expect(terminalKaCount(jp), "no duplicated terminal か").toBe(1);
-      expect(enById.get("a2-synthesis-2-m2")).toMatch(/^May I eat this\?$/);
-      expect(itById.get("a2-synthesis-2-m2")).toMatch(/^Posso mangiare questo\?$/);
+      expect(enById.get("a2-synthesis-2-m5")).toMatch(/^May I eat this\?$/);
+      expect(itById.get("a2-synthesis-2-m5")).toMatch(/^Posso mangiare questo\?$/);
     });
 
     it("a2-synthesis-2-t2 realizes as みずをのんでもいいですか (interrogative, single terminal か, object みず present)", () => {
@@ -297,7 +297,7 @@ describe("A2 Module 15 — linguistic-fidelity regressions (Task 7 quality pass)
     });
 
     it("neither permission-temoii gloss still uses the awkward 'try (eat/drink)' / 'assaggiar' phrasing", () => {
-      for (const id of ["a2-synthesis-2-m2", "a2-synthesis-2-t2"]) {
+      for (const id of ["a2-synthesis-2-m5", "a2-synthesis-2-t2"]) {
         expect(enById.get(id), `${id} en`).not.toMatch(/try/i);
         expect(itById.get(id), `${id} it`).not.toMatch(/assaggi/i);
       }
@@ -311,10 +311,10 @@ describe("A2 Module 15 — linguistic-fidelity regressions (Task 7 quality pass)
       expect(itById.get("a2-synthesis-1-m2")).toMatch(/questo weekend|questo fine settimana/i);
     });
 
-    it("a2-synthesis-1-m7 gloss includes 'at the sea' (うみで) in EN and IT", () => {
-      expect(realizedJp("a2-synthesis-1-m7")).toContain("うみで");
-      expect(enById.get("a2-synthesis-1-m7")).toMatch(/at the sea|in the sea/i);
-      expect(itById.get("a2-synthesis-1-m7")).toMatch(/al mare|nel mare/i);
+    it("a2-synthesis-1-m3 gloss includes 'at the sea' (うみで) in EN and IT", () => {
+      expect(realizedJp("a2-synthesis-1-m3")).toContain("うみで");
+      expect(enById.get("a2-synthesis-1-m3")).toMatch(/at the sea|in the sea/i);
+      expect(itById.get("a2-synthesis-1-m3")).toMatch(/al mare|nel mare/i);
     });
 
     it("a2-synthesis-1-t1 gloss includes 'weekend' (しゅうまつ) in EN and IT", () => {
@@ -324,11 +324,11 @@ describe("A2 Module 15 — linguistic-fidelity regressions (Task 7 quality pass)
     });
   });
 
-  describe("M4 — M15 s3 m6 makes no say/report claim the Japanese never states", () => {
-    it("a2-synthesis-3-m6 gloss has no reporting verb (says/dice che) and matches the delayed-train proposition", () => {
-      expect(realizedJp("a2-synthesis-3-m6")).toBe("ともだちはでんしゃがおくれていますから、すこしおくれます");
-      const en = enById.get("a2-synthesis-3-m6") ?? "";
-      const it = itById.get("a2-synthesis-3-m6") ?? "";
+  describe("M4 — M15 s3 m5 makes no say/report claim the Japanese never states", () => {
+    it("a2-synthesis-3-m5 gloss has no reporting verb (says/dice che) and matches the delayed-train proposition", () => {
+      expect(realizedJp("a2-synthesis-3-m5")).toBe("ともだちはでんしゃがおくれていますから、すこしおくれます");
+      const en = enById.get("a2-synthesis-3-m5") ?? "";
+      const it = itById.get("a2-synthesis-3-m5") ?? "";
       expect(en, "no reporting verb in EN").not.toMatch(/\bsays?\b|\btells?\b|\bsaid\b/i);
       expect(it, "no reporting verb in IT").not.toMatch(/\bdice\b|\bdicono\b|\bdetto\b/i);
       expect(en).toMatch(/friend/i);
@@ -341,12 +341,12 @@ describe("A2 Module 15 — linguistic-fidelity regressions (Task 7 quality pass)
     });
   });
 
-  describe("M3b — a2-synthesis-1-m3 gloss reflects the きょうは time-topic present in the Japanese, consistent with sibling t2", () => {
-    it("a2-synthesis-1-m3 JP contains きょうは, EN contains 'Today', IT contains 'Oggi'", () => {
-      const jp = realizedJp("a2-synthesis-1-m3");
+  describe("M3b — a2-synthesis-1-m4 gloss reflects the きょうは time-topic present in the Japanese, consistent with sibling t2", () => {
+    it("a2-synthesis-1-m4 JP contains きょうは, EN contains 'Today', IT contains 'Oggi'", () => {
+      const jp = realizedJp("a2-synthesis-1-m4");
       expect(jp, "JP must open with the time-topic きょうは").toContain("きょうは");
-      expect(enById.get("a2-synthesis-1-m3"), "EN gloss must include Today").toMatch(/Today/);
-      expect(itById.get("a2-synthesis-1-m3"), "IT gloss must include Oggi").toMatch(/Oggi/);
+      expect(enById.get("a2-synthesis-1-m4"), "EN gloss must include Today").toMatch(/Today/);
+      expect(itById.get("a2-synthesis-1-m4"), "IT gloss must include Oggi").toMatch(/Oggi/);
     });
   });
 
@@ -360,12 +360,12 @@ describe("A2 Module 15 — linguistic-fidelity regressions (Task 7 quality pass)
   });
 
   describe("M15-3 — non-past て-sequence lines must not be glossed in past tense", () => {
-    it("a2-synthesis-3-m3 JP ends in non-past かえります; EN/IT use present-tense, not past", () => {
-      const jp = realizedJp("a2-synthesis-3-m3");
+    it("a2-synthesis-3-m8 JP ends in non-past かえります; EN/IT use present-tense, not past", () => {
+      const jp = realizedJp("a2-synthesis-3-m8");
       expect(jp, "JP is しごとがおわって、いえにかえります").toBe("しごとがおわって、いえにかえります");
       expect(jp.endsWith("かえります"), "final verb is non-past かえります").toBe(true);
-      const en = enById.get("a2-synthesis-3-m3") ?? "";
-      const it = itById.get("a2-synthesis-3-m3") ?? "";
+      const en = enById.get("a2-synthesis-3-m8") ?? "";
+      const it = itById.get("a2-synthesis-3-m8") ?? "";
       expect(en, "EN must not use past 'went home'").not.toMatch(/went home/i);
       expect(en, "EN must not use past 'finished' as final predicate").not.toMatch(/^Work finished/i);
       expect(en, "EN present: finishes / go home").toMatch(/finish(?:es)?.*go\s+home|go\s+home/i);

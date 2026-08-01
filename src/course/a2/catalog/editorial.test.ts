@@ -426,7 +426,7 @@ const EXPECTED_TE_SEQUENCE_COUNT = 49;
 // The only te-sequence rows allowed to mark the sequence with "and"/"e"
 // instead of "then"/"poi": an inherently consequential worked→got-tired
 // pairing whose conjunction is unambiguously sequential in context.
-const TE_SEQUENCE_AND_EXCEPTIONS = new Set(["a2-synthesis-3-m8"]);
+const TE_SEQUENCE_AND_EXCEPTIONS = new Set(["a2-synthesis-3-m1"]);
 // An English present participle heading the (optionally vocative-prefixed)
 // first clause — i.e. "Asking …," or "Sora, asking …," — the manner-drift
 // mistranslation this gate forbids.
@@ -549,8 +549,8 @@ const TEKUDASAI_TU_HEAD: Readonly<Record<string, string>> = {
   "work-study-messages-2-t5": "parla",
   "travel-reservations-3-m6": "aiutami",
   "travel-reservations-3-t3": "aiutami",
-  "a2-synthesis-3-m2": "aiutami",
-  "a2-synthesis-3-m7": "aspetta",
+  "a2-synthesis-3-m4": "aiutami",
+  "a2-synthesis-3-m6": "aspetta",
   "a2-synthesis-3-t2": "siediti",
 };
 // The sole formal exception: a learner's "Scusi …" deferential request to a
