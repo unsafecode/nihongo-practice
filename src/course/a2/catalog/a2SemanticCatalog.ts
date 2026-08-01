@@ -4261,7 +4261,7 @@ export const a2SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a2-role-colleague-label": "Un collega",
     "a2-role-friend-label": "Un amico",
     "a2-role-clerk-label": "Il commesso",
-    "a2-role-reception-label": "La receptionist della clinica",
+    "a2-role-reception-label": "Il receptionist della clinica",
     "a2-role-frontdesk-label": "Il receptionist dell'hotel",
     "a2-referent-self-label": "Io",
     "a2-referent-emi-label": "Emi",
