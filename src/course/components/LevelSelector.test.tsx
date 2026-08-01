@@ -54,8 +54,20 @@ describe("LevelSelector — accessible two-option level control (Phase 3 Task 8)
     expect(renderStatic("a1", true)).toContain(`href="${coursePathForLevel("a2")}"`);
   });
 
-  it("names the selector group for assistive tech", () => {
-    expect(renderStatic("a1", false)).toContain(copy.selectorLabel);
+  it("names the selector group for assistive tech with visible text, not only an aria-label attribute", () => {
+    const html = renderStatic("a1", false);
+    // Must appear as visible text content between tags, not just hidden inside an attribute value.
+    expect(html).toContain(`>${copy.selectorLabel}<`);
+  });
+
+  it("labels the nav landmark via aria-labelledby referencing an element that exists in the output", () => {
+    const html = renderStatic("a1", false);
+    // The nav uses aria-labelledby, not a free-standing aria-label.
+    expect(html).toContain('aria-labelledby="level-selector-label"');
+    expect(html).not.toContain(`aria-label="${copy.selectorLabel}"`);
+    // The referenced element is present and its text content is the selector label.
+    expect(html).toContain('id="level-selector-label"');
+    expect(html).toMatch(new RegExp(`id="level-selector-label"[^>]*>${copy.selectorLabel}<`));
   });
 });
 

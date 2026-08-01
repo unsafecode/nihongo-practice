@@ -1867,6 +1867,11 @@
   color: var(--course-muted);
   max-width: 60ch;
 }
+.level-selector__label {
+  margin: 0;
+  font-weight: 600;
+  color: var(--course-ink);
+}
 
 /*
  * The selected level's heading is the focus target when the level changes

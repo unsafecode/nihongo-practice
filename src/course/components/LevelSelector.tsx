@@ -4,14 +4,20 @@ import type { CourseCopy } from "../i18n/types";
 import { coursePathForLevel, type CourseLevelParam } from "../../routing/routePaths";
 
 /**
- * The accessible, URL-reflected level selector (Phase 3 Task 8, design spec
- * §5). Two options — A1 and A2 — rendered as real internal links to
- * `coursePathForLevel(level)`, so selecting a level is an ordinary client-side
- * push navigation: it is directly URL-routable, yields a distinct browser
- * history entry (back/forward restores the previously-selected level), and is
- * keyboard/touch operable natively. Both options are ALWAYS enabled — A2 is
- * never disabled or hard-locked; the recommendation is a soft, non-blocking
- * hint only.
+ * The visible, accessible, URL-reflected level selector (Phase 3 Task 8,
+ * design spec §5). Two options — A1 and A2 — rendered as real internal links
+ * to `coursePathForLevel(level)`, so selecting a level is an ordinary
+ * client-side push navigation: it is directly URL-routable, yields a distinct
+ * browser history entry (back/forward restores the previously-selected level),
+ * and is keyboard/touch operable natively. Both options are ALWAYS enabled —
+ * A2 is never disabled or hard-locked; the recommendation is a soft,
+ * non-blocking hint only.
+ *
+ * A visible `<p id="level-selector-label" className="level-selector__label">`
+ * element renders `copy.selectorLabel` as the first child of the `<nav>`. The
+ * landmark is named via `aria-labelledby="level-selector-label"` so sighted
+ * and AT users both see the same label text — no separate hidden aria-label is
+ * needed (using both simultaneously would risk an ambiguous accessible name).
  *
  * The selected level (driven by the `livello` URL param, resolved by the
  * caller) is marked with `aria-current="true"`. The two options use the shared
@@ -42,7 +48,10 @@ export function LevelSelector({
   copy,
 }: LevelSelectorProps): ReactElement {
   return (
-    <nav className="level-selector" aria-label={copy.selectorLabel}>
+    <nav className="level-selector" aria-labelledby="level-selector-label">
+      <p id="level-selector-label" className="level-selector__label">
+        {copy.selectorLabel}
+      </p>
       <ul className="level-selector__options">
         {LEVEL_OPTIONS.map((option) => {
           const selected = option.level === level;
