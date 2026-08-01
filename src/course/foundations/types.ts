@@ -380,14 +380,15 @@ export interface FormSelection {
   readonly tense: Tense;
   readonly formality: Formality;
   /**
-   * When true, the sentence is realized as a polite yes/no or content
-   * question: the realizer appends the sentence-final interrogative particle
-   * か after the predicate ending and marks the semantic fingerprint with a
-   * distinct `mood=interrogative` segment. Omitted/undefined means a plain
-   * statement — the fingerprint carries no mood segment at all, so every
-   * existing statement variant keeps a byte-identical fingerprint. Question
-   * word order is authored entirely through slot values (e.g. a なに/どこ
-   * complement); this flag only governs the sentence-final particle + mood.
+   * Whether the *realization rule* should append a sentence-final question
+   * particle. This is NOT "is this sentence a question": 43 A2 variants are
+   * genuine questions whose predicate value already bakes its own か
+   * (`ありますか`, `いいですか`), and they correctly omit `interrogative`
+   * so the rule does not append a second one and emit `…ですかか`.
+   *
+   * Reviewers periodically flag those 43 as a data defect. They are not.
+   * Verify by flipping one and realizing it: the surface gains a duplicate
+   * terminal か, which `a2RealizedIntegrity.test.ts` finding A rejects.
    */
   readonly interrogative?: boolean;
 }
