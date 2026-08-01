@@ -180,6 +180,7 @@ describe("KanjiRubyText — assessed (no support, in every mode/script)", () => 
     expect(html).not.toContain("<ruby");
     expect(html).not.toContain("<rt");
     expect(html).not.toContain("hana");
+    expect(html).not.toContain("はな");
     expect(html).toContain("話");
   });
 
@@ -196,6 +197,7 @@ describe("KanjiRubyText — assessed (no support, in every mode/script)", () => 
       const html = renderStatic(baseProps({ exposure: exposureAt("assessed"), script: "romaji", mode }));
       expect(html).not.toContain("<rt");
       expect(html).not.toContain("hana");
+      expect(html).not.toContain("はな");
     }
   });
 });
