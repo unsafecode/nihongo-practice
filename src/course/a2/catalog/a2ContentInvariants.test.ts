@@ -213,10 +213,16 @@ const GLOSS_REPORTS_A_FORMULA =
 /**
  * Quotative と plus any inflection of the speech verbs A2 teaches (言う, 話す).
  * Stem-based rather than a closed conjugation list so that te-forms
- * (…といってください), negatives and progressives are recognised as
- * genuine quotative structure instead of being flagged as missing it.
+ * (…といってください), negatives (…といわないでください, …とはなさないでください)
+ * and progressives are recognised as genuine quotative structure instead of
+ * being flagged as missing it.
+ *
+ * 言う stems: いい (polite / continuative), いう (plain present), いっ (geminate
+ * for て-form), いわ (irrealis for plain negative といわない-).
+ * 話す stems: はなし (polite / continuative), はなす (plain present), はなさ
+ * (irrealis for plain negative とはなさない-).
  */
-const HAS_QUOTATIVE_STRUCTURE = /と(いい|いう|いっ|はなし|はなす)/;
+const HAS_QUOTATIVE_STRUCTURE = /と(いい|いう|いっ|いわ|はなし|はなす|はなさ)/;
 
 describe("C5 — reported speech is structurally reported", () => {
   it("requires quotative と + a speech verb whenever the gloss attributes a formula", () => {
