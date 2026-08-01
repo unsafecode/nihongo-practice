@@ -484,6 +484,7 @@ function backtrackSelect(
   alreadySelected: readonly SelectedPracticeTarget[],
   backtrackCallLimit: number,
   kindOffset: number,
+  kindStride: number = 1,
 ): BacktrackOutcome {
   const targetCount = round.targetCount;
   const families = new Map(baseline.families);
@@ -516,7 +517,7 @@ function backtrackSelect(
   // unexplored.
   function tryAcceptTerminal(): readonly SelectedPracticeTarget[] | null {
     if (!satisfiesFinal()) return null;
-    const assignment = assignExerciseKinds(chosen, round, constraints, alreadySelected, kindOffset);
+    const assignment = assignExerciseKinds(chosen, round, constraints, alreadySelected, kindOffset, kindStride);
     if (!assignment.ok) {
       lastKindError = assignment.error;
       return null;
@@ -674,17 +675,24 @@ function eligibleKindsFor(
 }
 
 /**
- * `kinds` rotated left by `offset`, so the element at `offset` becomes the
- * first preference. Used to give each (lesson, round) a different starting
- * kind instead of every lesson starting from the same one.
+ * `kinds` reordered by walking from `offset` with the given `stride`, so
+ * that each (lesson, round) gets a different kind preference order.
+ *
+ * When the stride is coprime to `kinds.length`, every kind is visited
+ * exactly once before the walk repeats — so stride 1 and stride 2 on a
+ * list of length 3 produce mirror-image orderings, doubling the set of
+ * reachable in-round patterns from 3 to 6.
  */
 function rotateKinds(
   kinds: readonly ExerciseKind[],
   offset: number,
+  stride: number = 1,
 ): readonly ExerciseKind[] {
   if (kinds.length === 0) return kinds;
-  const start = ((offset % kinds.length) + kinds.length) % kinds.length;
-  return kinds.map((_unused, index) => kinds[(start + index) % kinds.length]);
+  const len = kinds.length;
+  const start = ((offset % len) + len) % len;
+  const step = ((stride % len) + len) % len || 1; // ensure non-zero
+  return kinds.map((_unused, index) => kinds[(start + index * step) % len]);
 }
 
 function assignExerciseKinds(
@@ -693,6 +701,7 @@ function assignExerciseKinds(
   constraints: SelectVariantsRoundConstraints,
   alreadySelected: readonly SelectedPracticeTarget[],
   kindOffset: number,
+  kindStride: number = 1,
 ): { readonly ok: true; readonly targets: readonly SelectedPracticeTarget[] } | { readonly ok: false; readonly error: SelectVariantsError } {
   const ordered = [...ranked].sort((left, right) =>
     left.rank !== right.rank ? left.rank - right.rank : compareIds(left.candidate.variant.id, right.candidate.variant.id),
@@ -730,7 +739,7 @@ function assignExerciseKinds(
         // full list (which starts with CC) makes offsets 0 and 1 both map to
         // `completion`, halving effective variety.
         const nonCCKinds = round.exerciseKinds.filter((kind) => kind !== "constrained-construction");
-        const preferred = rotateKinds(nonCCKinds, kindOffset + otherIndex).find(
+        const preferred = rotateKinds(nonCCKinds, kindOffset + otherIndex, kindStride).find(
           (kind) => (otherKinds as readonly ExerciseKind[]).includes(kind),
         );
         assigned.set(entry, preferred ?? otherKinds[0]);
@@ -768,10 +777,9 @@ function assignExerciseKinds(
           error: { code: "no-eligible-kind", referenceId: `${round.id}::${entry.candidate.variant.id}` },
         };
       }
-      const preferredIndex = (index + kindOffset) % round.exerciseKinds.length;
+      const rotated = rotateKinds(round.exerciseKinds, index + kindOffset, kindStride);
       let chosenKind: ExerciseKind | undefined;
-      for (let offset = 0; offset < round.exerciseKinds.length; offset += 1) {
-        const candidateKind = round.exerciseKinds[(preferredIndex + offset) % round.exerciseKinds.length];
+      for (const candidateKind of rotated) {
         if (kinds.includes(candidateKind)) {
           chosenKind = candidateKind;
           break;
@@ -870,7 +878,8 @@ function selectVariantsInternal(input: SelectVariantsInput, backtrackCallLimit: 
   const baseline = baselineCountsFrom(alreadySelected);
 
   const kindOffset = fnv1a32(`${catalogVersion}|${lessonId}|${round.id}|${seed}|kind-offset`);
-  const outcome = backtrackSelect(ranked, round, baseline, constraints, alreadySelected, backtrackCallLimit, kindOffset);
+  const kindStride = fnv1a32(`${catalogVersion}|${lessonId}|${round.id}|${seed}|kind-stride`);
+  const outcome = backtrackSelect(ranked, round, baseline, constraints, alreadySelected, backtrackCallLimit, kindOffset, kindStride);
   switch (outcome.status) {
     case "found":
       return { ok: true, targets: outcome.targets };
