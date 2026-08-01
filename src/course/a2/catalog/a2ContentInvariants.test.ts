@@ -210,8 +210,13 @@ describe("C4 — gloss subject perspective matches the Japanese", () => {
 /** "…says thank you" / "…said sorry" — attributing a fixed formula to someone. */
 const GLOSS_REPORTS_A_FORMULA =
   /\b(says?|said)\s+(thank you|thanks|sorry|hello|goodbye|excuse me)\b/i;
-/** Quotative と plus one of the speech verbs A2 teaches. */
-const HAS_QUOTATIVE_STRUCTURE = /と(いいました|いいます|いった|いう|はなしました|はなします)/;
+/**
+ * Quotative と plus any inflection of the speech verbs A2 teaches (言う, 話す).
+ * Stem-based rather than a closed conjugation list so that te-forms
+ * (…といってください), negatives and progressives are recognised as
+ * genuine quotative structure instead of being flagged as missing it.
+ */
+const HAS_QUOTATIVE_STRUCTURE = /と(いい|いう|いっ|はなし|はなす)/;
 
 describe("C5 — reported speech is structurally reported", () => {
   it("requires quotative と + a speech verb whenever the gloss attributes a formula", () => {
@@ -221,7 +226,10 @@ describe("C5 — reported speech is structurally reported", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("requires a reporting gloss whenever the Japanese carries quotation marks", () => {
+  // Currently vacuous: no corpus row carries 「. This is a forward gate — once
+  // quoted speech is authored, both glosses must carry a reporting verb or this
+  // goes red.
+  it("requires both English and Italian glosses to carry a reporting verb whenever the Japanese carries quotation marks", () => {
     const offenders = ROWS.filter(
       (row) =>
         row.jp.includes("「") &&
