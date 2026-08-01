@@ -545,6 +545,8 @@ export const a2PersonRoles: readonly PersonRole[] = deepFreeze([
   { id: "a2-role-colleague", kind: "social", labelCopyId: "a2-role-colleague-label" },
   { id: "a2-role-friend", kind: "social", labelCopyId: "a2-role-friend-label" },
   { id: "a2-role-clerk", kind: "unnamed", labelCopyId: "a2-role-clerk-label" },
+  { id: "a2-role-reception", kind: "unnamed", labelCopyId: "a2-role-reception-label" },
+  { id: "a2-role-frontdesk", kind: "unnamed", labelCopyId: "a2-role-frontdesk-label" },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -559,6 +561,8 @@ export const a2Referents: readonly Referent[] = deepFreeze([
   { id: "a2-referent-colleague", personRoleId: "a2-role-colleague", animacy: "animate", labelCopyId: "a2-referent-colleague-label" },
   { id: "a2-referent-friend", personRoleId: "a2-role-friend", animacy: "animate", labelCopyId: "a2-referent-friend-label" },
   { id: "a2-referent-clerk", personRoleId: "a2-role-clerk", animacy: "animate", labelCopyId: "a2-referent-clerk-label" },
+  { id: "a2-referent-reception", personRoleId: "a2-role-reception", animacy: "animate", labelCopyId: "a2-referent-reception-label" },
+  { id: "a2-referent-frontdesk", personRoleId: "a2-role-frontdesk", animacy: "animate", labelCopyId: "a2-referent-frontdesk-label" },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -1250,6 +1254,24 @@ const a2AuthoredValuesM1: readonly SemanticValue[] = [
     // clinic desk (受付) and wrong for a hotel desk (フロント), so the contexts
     // are declared and C3 enforces them.
     serviceTitleContexts: ["a2-context-restaurant", "a2-context-cafe", "a2-context-shopping"],
+  },
+  // 受付 is the desk you address at a clinic, surgery or office reception —
+  // never 店員, which is specifically a shop/restaurant floor employee.
+  {
+    id: "a2-value-reception-subject",
+    kind: "referent",
+    animacy: "animate",
+    tokenFragments: [frag("うけつけ", "uketsuke")],
+    serviceTitleContexts: ["a2-context-health"],
+  },
+  // フロント is the hotel front desk. Also correct for the travel/outing
+  // reservation contexts, where the addressee is hotel or booking staff.
+  {
+    id: "a2-value-frontdesk-subject",
+    kind: "referent",
+    animacy: "animate",
+    tokenFragments: [frag("フロント", "furonto")],
+    serviceTitleContexts: ["a2-context-travel", "a2-context-outing"],
   },
 
   // --- object/companion-kind nouns ---
@@ -4201,6 +4223,8 @@ export const a2SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a2-role-colleague-label": "A colleague",
     "a2-role-friend-label": "A friend",
     "a2-role-clerk-label": "The shop clerk",
+    "a2-role-reception-label": "The reception desk",
+    "a2-role-frontdesk-label": "The hotel front desk",
     "a2-referent-self-label": "I",
     "a2-referent-emi-label": "Emi",
     "a2-referent-sora-label": "Sora",
@@ -4208,6 +4232,8 @@ export const a2SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a2-referent-colleague-label": "The colleague",
     "a2-referent-friend-label": "The friend",
     "a2-referent-clerk-label": "The clerk",
+    "a2-referent-reception-label": "The receptionist",
+    "a2-referent-frontdesk-label": "The front desk",
     "a2-context-conversation-label": "In everyday conversation",
     "a2-context-among-friends-label": "Chatting among friends",
     "a2-context-workplace-label": "At work",
@@ -4235,6 +4261,8 @@ export const a2SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a2-role-colleague-label": "Un collega",
     "a2-role-friend-label": "Un amico",
     "a2-role-clerk-label": "Il commesso",
+    "a2-role-reception-label": "L'accettazione",
+    "a2-role-frontdesk-label": "La reception dell'hotel",
     "a2-referent-self-label": "Io",
     "a2-referent-emi-label": "Emi",
     "a2-referent-sora-label": "Sora",
@@ -4242,6 +4270,8 @@ export const a2SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a2-referent-colleague-label": "Il collega",
     "a2-referent-friend-label": "L'amico",
     "a2-referent-clerk-label": "Il commesso",
+    "a2-referent-reception-label": "L'addetto all'accettazione",
+    "a2-referent-frontdesk-label": "La reception",
     "a2-context-conversation-label": "In una conversazione quotidiana",
     "a2-context-among-friends-label": "Chiacchierando tra amici",
     "a2-context-workplace-label": "Al lavoro",

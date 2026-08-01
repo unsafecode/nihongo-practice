@@ -465,6 +465,8 @@ const A2_SUBJECT_REFERENT_VALUE_IDS: Readonly<Record<string, string>> = deepFree
   "a2-referent-teacher": "a2-value-teacher-subject",
   "a2-referent-self": "a2-value-watashi",
   "a2-referent-clerk": "a2-value-clerk-subject",
+  "a2-referent-reception": "a2-value-reception-subject",
+  "a2-referent-frontdesk": "a2-value-frontdesk-subject",
 });
 
 /** Resolve a referent id to its subject-slot semantic value id. Fails closed

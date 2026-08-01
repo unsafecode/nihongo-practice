@@ -405,6 +405,8 @@ describe("a2SubjectReferentValueId — the single hoisted referent->subject-valu
     "a2-referent-colleague": "a2-value-colleague-subject",
     "a2-referent-teacher": "a2-value-teacher-subject",
     "a2-referent-clerk": "a2-value-clerk-subject",
+    "a2-referent-reception": "a2-value-reception-subject",
+    "a2-referent-frontdesk": "a2-value-frontdesk-subject",
   };
 
   it.each(Object.entries(EXPECTED_MAPPING))(
