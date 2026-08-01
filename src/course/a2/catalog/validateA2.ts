@@ -71,9 +71,17 @@ import {
   A2_KANJI_DISTRIBUTION,
 } from "../kanji/a2KanjiCatalog";
 import type { KanjiEntry, KanjiExposure, KanjiReading } from "../kanji/kanjiTypes";
+import { A2_RELEASE_CATALOG_VERSION, A2_RELEASE_SEED } from "../releaseIdentity";
 
-const A2_RELEASE_CATALOG_VERSION = "a2-validate-release" as const;
-const A2_RELEASE_SEED = "a2-validate-release-seed" as const;
+// Re-exported (not redeclared) from `../releaseIdentity`, the one shared
+// source of truth also imported directly by `../view/buildA2LessonViewModel.ts`
+// and by `./reports.ts`. `selectVariants` ranks candidates by a hash keyed on
+// `catalogVersion`/`seed`, so the wrapped `validateFoundations` call below,
+// the published coverage reports and the runtime builder must use the
+// identical pair or the certified release and the shipped release silently
+// diverge, exercise for exercise. `releaseIdentity.test.ts` fails if they do.
+export { A2_RELEASE_CATALOG_VERSION, A2_RELEASE_SEED };
+
 const A2_SYNTHESIS_MODULE_ID = "a2-synthesis" as const;
 
 /** Same character class every other A2 no-Japanese guard uses (hiragana,

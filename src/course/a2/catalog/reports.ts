@@ -45,9 +45,12 @@ import {
   a2KanjiCountByModule,
 } from "../kanji/a2KanjiCatalog";
 import type { KanjiExposure } from "../kanji/kanjiTypes";
+import { A2_RELEASE_CATALOG_VERSION, A2_RELEASE_SEED } from "../releaseIdentity";
 
-const A2_RELEASE_CATALOG_VERSION = "a2-release" as const;
-const A2_RELEASE_SEED = "a2-release-seed" as const;
+// Re-exported (not redeclared) from `../releaseIdentity`. Coverage reports
+// describe the selection a learner is actually served, so they must be built
+// from the same `catalogVersion`/`seed` the validator and runtime use.
+export { A2_RELEASE_CATALOG_VERSION, A2_RELEASE_SEED };
 
 // ---------------------------------------------------------------------------
 // Report row contracts
