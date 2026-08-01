@@ -31,11 +31,19 @@ function L(en: string, it: string) {
   return { en, it };
 }
 
-/** Bare invariant utterance (no subject slot) — used by every M4 family
- * (reason-kara, reason-node, opinion-toomou, agree-disagree,
- * plain-recognition, connector-utterance all share this shape). An explicit
- * `speakerRole` override is required for role diversity since these
- * families never carry a voiceable subject. */
+/** Bare invariant utterance for every M4 family (reason-kara, reason-node,
+ * opinion-toomou, agree-disagree, plain-recognition, connector-utterance).
+ *
+ * Three subject modes:
+ *  - `subjectReferent: null` (default) — subject slot omitted entirely.
+ *  - non-null `subjectReferent` — explicit topic-marked subject included.
+ *  - non-null `subjectReferent` + `subjectRealizationOverride: "vocative"` —
+ *    the referent is rendered as a direct-address vocative (the realizer
+ *    appends the honorific and a comma) instead of a topic-marked subject.
+ *    This is what keeps a transfer row distinct from a model that already
+ *    omits its subject — the reason the parameter exists.
+ *
+ * An explicit `speakerRole` override is required for role diversity. */
 function bareLine(
   id: string,
   family: string,
