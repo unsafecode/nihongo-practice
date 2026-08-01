@@ -352,6 +352,10 @@ const A1_VOICEABLE_REFERENTS: ReadonlySet<string> = new Set([
  * shared, level-agnostic kit's job — this file only supplies A1's own fixed
  * choices for it.
  */
+/** @internal Exported for same-directory test access only; not public API.
+ * The `export *` barrel in `shared.ts` re-exports this as a consequence of
+ * TypeScript's module system — the value is not intended for external consumers.
+ */
 export const A1_INSTRUCTIONAL_KIT_CONFIG: InstructionalLessonKitConfig<A1LessonRecipe> = {
   defaultSpeakerRoleId: "a1-role-learner",
   defaultAddresseeRoleId: "a1-role-teacher",
