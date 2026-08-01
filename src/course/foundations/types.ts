@@ -346,6 +346,20 @@ export interface SemanticValue {
    * value from a context it does not declare.
    */
   readonly serviceTitleContexts?: readonly ContextId[];
+  /**
+   * For an object value, the comparison dimensions this thing actually has a
+   * value on (`"physical-size"`, `"priced"`). Used only by comparison and
+   * superlative families.
+   */
+  readonly comparableDimensions?: readonly string[];
+
+  /**
+   * For a comparison/superlative adjective stem, the single dimension it
+   * compares along. Every object placed in the `favored`/`standard` slot of a
+   * comparison must declare that dimension in `comparableDimensions`, or the
+   * sentence compares two things along an axis one of them does not have.
+   */
+  readonly comparisonDimension?: string;
 }
 
 /** One slot a sentence family's realization rule fills from a semantic value. */

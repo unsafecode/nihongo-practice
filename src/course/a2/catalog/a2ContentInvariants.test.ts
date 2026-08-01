@@ -244,3 +244,55 @@ describe("C5 — reported speech is structurally reported", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+const COMPARISON_FAMILY_IDS = new Set(["a2-family-comparison-favor", "a2-family-superlative"]);
+const COMPARISON_OBJECT_SLOTS = ["favored", "standard"] as const;
+
+describe("C6 — comparisons compare comparable things", () => {
+  it("declares a comparisonDimension on every comparison adjective stem", () => {
+    const stems = new Set<string>();
+    for (const row of ROWS) {
+      if (!COMPARISON_FAMILY_IDS.has(row.variant.sentenceFamilyId)) continue;
+      if (row.predicateValueId) stems.add(row.predicateValueId);
+    }
+    const undeclared = [...stems]
+      .filter((id) => valueById.get(id)?.comparisonDimension === undefined)
+      .sort();
+    expect(undeclared).toEqual([]);
+  });
+
+  it("declares comparableDimensions on every object used in a comparison slot", () => {
+    const objects = new Set<string>();
+    for (const row of ROWS) {
+      if (!COMPARISON_FAMILY_IDS.has(row.variant.sentenceFamilyId)) continue;
+      for (const slot of COMPARISON_OBJECT_SLOTS) {
+        const id = row.variant.slotValues[slot];
+        if (id) objects.add(id);
+      }
+    }
+    const undeclared = [...objects]
+      .filter((id) => valueById.get(id)?.comparableDimensions === undefined)
+      .sort();
+    expect(undeclared).toEqual([]);
+  });
+
+  it("never compares two things along a dimension one of them lacks", () => {
+    const offenders: string[] = [];
+    for (const row of ROWS) {
+      if (!COMPARISON_FAMILY_IDS.has(row.variant.sentenceFamilyId)) continue;
+      const dimension = row.predicateValueId
+        ? valueById.get(row.predicateValueId)?.comparisonDimension
+        : undefined;
+      if (!dimension) continue;
+      for (const slot of COMPARISON_OBJECT_SLOTS) {
+        const id = row.variant.slotValues[slot];
+        if (!id) continue;
+        const dimensions = valueById.get(id)?.comparableDimensions ?? [];
+        if (!dimensions.includes(dimension)) {
+          offenders.push(`${row.id}: ${slot}=${id} lacks "${dimension}" (${row.jp})`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});

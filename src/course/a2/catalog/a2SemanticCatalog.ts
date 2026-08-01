@@ -2768,7 +2768,7 @@ const a2AuthoredValuesM5: readonly SemanticValue[] = [
   { id: "a2-value-obj-hon-m5", kind: "object", tokenFragments: [frag("ほん", "hon")] },
   { id: "a2-value-obj-tegami", kind: "object", tokenFragments: [frag("てがみ", "tegami")] },
   { id: "a2-value-obj-nihongo-m5", kind: "object", tokenFragments: [frag("にほんご", "nihongo")] },
-  { id: "a2-value-obj-basu", kind: "object", tokenFragments: [frag("バス", "basu")] },
+  { id: "a2-value-obj-basu", kind: "object", tokenFragments: [frag("バス", "basu")], comparableDimensions: ["physical-size", "priced"] },
 
   // --- te-sequence whole-clause bakes (a2-family-te-sequence, M5-1/M5-4) ---
   { id: "a2-value-seq-okite-arau", kind: "predicate-sense", senseId: "a2-sense-seq-okite-arau", tokenFragments: [...newVerbSuffixKana("sequence-te", NEW_VERBS.okiru), punctFrag("、", ","), frag("かおを", "kao o"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.arau))] },
@@ -2966,19 +2966,19 @@ const a2AuthoredValuesM9: readonly SemanticValue[] = [
   // inflected ending; the realizer's "adjective" predicateKind appends
   // い/くない/かった/くなかった generically from the variant's own
   // FormSelection, so the SAME stem honestly recombines across every form). ---
-  { id: "a2-value-yasui-stem", kind: "predicate-sense", senseId: "a2-sense-yasui", tokenFragments: [frag("やす", "yasu")] },
-  { id: "a2-value-takai-stem", kind: "predicate-sense", senseId: "a2-sense-takai", tokenFragments: [frag("たか", "taka")] },
-  { id: "a2-value-ookii-stem", kind: "predicate-sense", senseId: "a2-sense-ookii", tokenFragments: [frag("おおき", "ooki")] },
-  { id: "a2-value-chiisai-stem", kind: "predicate-sense", senseId: "a2-sense-chiisai", tokenFragments: [frag("ちいさ", "chiisa")] },
+  { id: "a2-value-yasui-stem", kind: "predicate-sense", senseId: "a2-sense-yasui", tokenFragments: [frag("やす", "yasu")], comparisonDimension: "priced" },
+  { id: "a2-value-takai-stem", kind: "predicate-sense", senseId: "a2-sense-takai", tokenFragments: [frag("たか", "taka")], comparisonDimension: "priced" },
+  { id: "a2-value-ookii-stem", kind: "predicate-sense", senseId: "a2-sense-ookii", tokenFragments: [frag("おおき", "ooki")], comparisonDimension: "physical-size" },
+  { id: "a2-value-chiisai-stem", kind: "predicate-sense", senseId: "a2-sense-chiisai", tokenFragments: [frag("ちいさ", "chiisa")], comparisonDimension: "physical-size" },
   // --- items/shops being compared (object-kind — never a discourse
   // referent: these are things, not people, so every comparison/superlative
   // variant keeps subjectRealization "omitted") ---
-  { id: "a2-value-obj-kaban", kind: "object", tokenFragments: [frag("かばん", "kaban")] },
-  { id: "a2-value-obj-kutsu", kind: "object", tokenFragments: [frag("くつ", "kutsu")] },
-  { id: "a2-value-obj-tokei", kind: "object", tokenFragments: [frag("とけい", "tokei")] },
-  { id: "a2-value-obj-fuku", kind: "object", tokenFragments: [frag("ふく", "fuku")] },
-  { id: "a2-value-obj-kono-mise", kind: "object", tokenFragments: [frag("この", "kono"), frag("みせ", "mise")] },
-  { id: "a2-value-obj-ano-mise", kind: "object", tokenFragments: [frag("あの", "ano"), frag("みせ", "mise")] },
+  { id: "a2-value-obj-kaban", kind: "object", tokenFragments: [frag("かばん", "kaban")], comparableDimensions: ["physical-size", "priced"] },
+  { id: "a2-value-obj-kutsu", kind: "object", tokenFragments: [frag("くつ", "kutsu")], comparableDimensions: ["physical-size", "priced"] },
+  { id: "a2-value-obj-tokei", kind: "object", tokenFragments: [frag("とけい", "tokei")], comparableDimensions: ["physical-size", "priced"] },
+  { id: "a2-value-obj-fuku", kind: "object", tokenFragments: [frag("ふく", "fuku")], comparableDimensions: ["physical-size", "priced"] },
+  { id: "a2-value-obj-kono-mise", kind: "object", tokenFragments: [frag("この", "kono"), frag("みせ", "mise")], comparableDimensions: ["physical-size", "priced"] },
+  { id: "a2-value-obj-ano-mise", kind: "object", tokenFragments: [frag("あの", "ano"), frag("みせ", "mise")], comparableDimensions: ["physical-size", "priced"] },
 
   // --- ask-price-decide (whole-clause bake; SR-3) ---
   { id: "a2-value-price-ikura", kind: "predicate-sense", senseId: "a2-sense-price-ikura", tokenFragments: [frag("いくら", "ikura"), frag("です", "desu"), frag("か", "ka", "particle")] },
@@ -3112,8 +3112,8 @@ const a2AuthoredValuesM12: readonly SemanticValue[] = [
   // SAME real-world place fills a DIFFERENT slot kind depending on the
   // family, e.g. くうこう is a location when arriving AT it but an object
   // when departing FROM it) ---
-  { id: "a2-value-obj-densha-m12", kind: "object", tokenFragments: [frag("でんしゃ", "densha")] },
-  { id: "a2-value-obj-hikouki", kind: "object", tokenFragments: [frag("ひこうき", "hikouki")] },
+  { id: "a2-value-obj-densha-m12", kind: "object", tokenFragments: [frag("でんしゃ", "densha")], comparableDimensions: ["physical-size", "priced"] },
+  { id: "a2-value-obj-hikouki", kind: "object", tokenFragments: [frag("ひこうき", "hikouki")], comparableDimensions: ["physical-size", "priced"] },
   { id: "a2-value-loc-kuukou", kind: "location", tokenFragments: [frag("くうこう", "kuukou")] },
   { id: "a2-value-obj-yoyaku", kind: "object", tokenFragments: [frag("よやく", "yoyaku")] },
   { id: "a2-value-obj-pasupooto", kind: "object", tokenFragments: [frag("パスポート", "pasupooto")] },
