@@ -3,6 +3,22 @@
  * localized (buildLessonViewModel.ts:207-210), and generated zero times,
  * because no lesson contained an eligible source/target pair. This test
  * keeps at least one in the catalogue.
+ *
+ * Margin warning: the catalogue currently yields exactly one transformation
+ * (`health-advice-1-t4`, sourced from its tense twin `health-advice-1-m9`),
+ * so the first assertion has no headroom. If a content or seed change drops
+ * it to zero, the fix is to author another twin — never to weaken or delete
+ * this test, which would restore the dead-code state the twins exist to end.
+ *
+ * When authoring that twin, pick a family whose realization rule actually
+ * conjugates (`rule-preference`, `rule-description`, `rule-object-action`).
+ * Families realized by `rule-invariant-utterance` or `rule-invariant-object`
+ * emit their predicate value's baked fragments verbatim, so flipping tense or
+ * polarity on one yields byte-identical Japanese under a form label that now
+ * lies about it — a pair that satisfies `transformationAxis` while asking the
+ * learner to transform a sentence into itself. `permittedAxes` does not
+ * protect you here: `a2-family-experience-takoto` lists `polarity-tense-form`
+ * yet is still invariant.
  */
 import { describe, expect, it } from "vitest";
 
