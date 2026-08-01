@@ -488,14 +488,14 @@ describe("CourseHome: Can-do evidence tier glyphs are explicit aria-hidden spans
 });
 
 
-describe("CourseHome: A1 checkpoint attempt-state (design spec §8/§17, Phase 2 Task 6)", () => {
-  it("shows the honest not-attempted body when there is no checkpoint attempt yet", () => {
+describe("CourseHome: checkpoint evidence state (Phase 4 Task 27 — automatic accrual)", () => {
+  it("shows the not-met body when no checkpoint evidence has been recorded yet", () => {
     const html = renderHome(makeProgressValue());
     expect(html).toContain(itCopy.checkpoint.heading);
-    expect(html).toContain(itCopy.checkpoint.notAttemptedBody);
+    expect(html).toContain(escapeHtmlText(itCopy.checkpoint.notMet));
   });
 
-  it("shows the observational attempted body with real accepted/sampled counts, never a pass/fail score", () => {
+  it("shows the met body once checkpoint evidence is present, and hides the not-met body", () => {
     const attempt: CheckpointAttempt = {
       id: "a1-checkpoint-attempt-1",
       checkpointId: "a1-checkpoint",
@@ -506,13 +506,14 @@ describe("CourseHome: A1 checkpoint attempt-state (design spec §8/§17, Phase 2
     const html = renderHome(
       makeProgressValue({ checkpointAttempts: [attempt] }),
     );
-    expect(html).toContain(
-      itCopy.checkpoint.attemptedBody(
-        attempt.acceptedExerciseIds.length,
-        attempt.sampledCanDoIds.length,
-      ),
-    );
-    expect(html).not.toContain(itCopy.checkpoint.notAttemptedBody);
+    expect(html).toContain(escapeHtmlText(itCopy.checkpoint.met));
+    expect(html).not.toContain(escapeHtmlText(itCopy.checkpoint.notMet));
+  });
+
+  it("renders the evidence link pointing to #can-do-summary", () => {
+    const html = renderHome(makeProgressValue());
+    expect(html).toContain('href="#can-do-summary"');
+    expect(html).toContain(escapeHtmlText(itCopy.checkpoint.evidenceLink));
   });
 });
 

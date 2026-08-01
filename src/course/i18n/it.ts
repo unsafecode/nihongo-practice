@@ -54,10 +54,10 @@ const itUi = {
   },
   checkpoint: {
     heading: "Verifica A1",
-    notAttemptedBody:
-      "Non hai ancora affrontato gli scenari della verifica A1. Non è obbligatoria e nel frattempo nulla resta bloccato.",
-    attemptedBody: (acceptedExerciseCount: number, sampledCanDoCount: number) =>
-      `Hai affrontato gli scenari della verifica A1, con ${acceptedExerciseCount} esercizi accettati su ${sampledCanDoCount} Can-do campionati. Questo registra solo cosa hai fatto — non è un punteggio, e non significa aver finito il livello A1.`,
+    notMet:
+      "La verifica si completa automaticamente quando ogni lezione scenario è consolidata. Non c'è un test separato da sostenere.",
+    met: "Verifica completata: tutte le lezioni scenario sono consolidate.",
+    evidenceLink: "Vedi le prove dei tuoi Can-do",
   },
   courseLevels: {
     selectorLabel: "Livello del corso",
@@ -71,10 +71,6 @@ const itUi = {
     a2RecommendedHint:
       "Hai affrontato la verifica A1, quindi A2 è un buon passo successivo. Era comunque sempre aperto — nulla era bloccato.",
     a2CheckpointHeading: "Verifica A2",
-    a2CheckpointNotAttempted:
-      "Non hai ancora affrontato gli scenari della verifica A2. Non è obbligatoria e nel frattempo nulla resta bloccato.",
-    a2CheckpointAttempted: (acceptedExerciseCount: number, sampledCanDoCount: number) =>
-      `Hai affrontato gli scenari della verifica A2, con ${acceptedExerciseCount} esercizi accettati su ${sampledCanDoCount} Can-do campionati. Questo registra solo cosa hai fatto — non è un punteggio, e non significa aver finito il livello A2.`,
     resetLevel: (levelLabel: string) => `Azzera i progressi di ${levelLabel}`,
     resetLevelConfirm: (levelLabel: string) =>
       `Vuoi davvero azzerare i progressi del corso ${levelLabel}? I progressi dell'altro livello vengono mantenuti.`,

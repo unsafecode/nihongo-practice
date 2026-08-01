@@ -78,8 +78,12 @@ export interface CourseCopy {
    */
   checkpoint: {
     heading: string;
-    notAttemptedBody: string;
-    attemptedBody: (acceptedExerciseCount: number, sampledCanDoCount: number) => string;
+    /** Body when no checkpoint evidence has been recorded yet. */
+    notMet: string;
+    /** Body once every scenario lesson is consolidated and the checkpoint is met. */
+    met: string;
+    /** Label for the anchor linking to the per-Can-do evidence breakdown above. */
+    evidenceLink: string;
   };
   /**
    * The URL-reflected level dimension (Phase 3 Task 8, design spec §5). The
@@ -106,8 +110,6 @@ export interface CourseCopy {
     a2RecommendedHint: string;
     /** A2 checkpoint attempt-state section copy (separate from A1's). */
     a2CheckpointHeading: string;
-    a2CheckpointNotAttempted: string;
-    a2CheckpointAttempted: (acceptedExerciseCount: number, sampledCanDoCount: number) => string;
     /**
      * Level-scoped destructive-reset copy (Phase 3 Task 8 spec-fix, ISSUE 3).
      * `resetLevel` is the button label and `resetLevelConfirm` the

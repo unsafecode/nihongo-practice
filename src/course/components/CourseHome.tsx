@@ -14,6 +14,7 @@ import { useProgress } from "../progress/ProgressContext";
 import { visitedLessonIds, visitedLessonIdsForLevel } from "../progress/progress";
 import { buildCanDoSummaryModel } from "./canDoSummaryModel";
 import { buildCourseMapModel } from "./courseMapModel";
+import { CheckpointState } from "./CheckpointState";
 import { CourseMap } from "./CourseMap";
 import { LevelSelector } from "./LevelSelector";
 import { ReviewQueue } from "./ReviewQueue";
@@ -137,16 +138,8 @@ export function CourseHome(): ReactElement {
   const checkpointHeading = levelIsA1
     ? copy.checkpoint.heading
     : copy.courseLevels.a2CheckpointHeading;
-  const checkpointBody = latestCheckpointAttempt
-    ? (levelIsA1
-        ? copy.checkpoint.attemptedBody
-        : copy.courseLevels.a2CheckpointAttempted)(
-        latestCheckpointAttempt.acceptedExerciseIds.length,
-        latestCheckpointAttempt.sampledCanDoIds.length,
-      )
-    : levelIsA1
-      ? copy.checkpoint.notAttemptedBody
-      : copy.courseLevels.a2CheckpointNotAttempted;
+  const checkpointMet = latestCheckpointAttempt !== null;
+  const checkpointBody = checkpointMet ? copy.checkpoint.met : copy.checkpoint.notMet;
 
   const continuationLessonId = model.recommendedLessonId ?? model.currentLessonId;
   const continuation =
@@ -260,7 +253,7 @@ export function CourseHome(): ReactElement {
 
       <CourseMap model={model} />
 
-      <section className="can-do-summary" aria-labelledby="can-do-summary-heading">
+      <section id="can-do-summary" className="can-do-summary" aria-labelledby="can-do-summary-heading">
         <h2 id="can-do-summary-heading" className="can-do-summary__heading">
           {copy.canDoSummary.heading}
         </h2>
@@ -302,14 +295,13 @@ export function CourseHome(): ReactElement {
         </ul>
       </section>
 
-      <section className="checkpoint-state" aria-labelledby="checkpoint-state-heading">
-        <h2 id="checkpoint-state-heading" className="checkpoint-state__heading">
-          {checkpointHeading}
-        </h2>
-        <p className="checkpoint-state__body" role="status">
-          {checkpointBody}
-        </p>
-      </section>
+      <CheckpointState
+        heading={checkpointHeading}
+        body={checkpointBody}
+        linkLabel={copy.checkpoint.evidenceLink}
+        linkHref="#can-do-summary"
+        met={checkpointMet}
+      />
 
       {/*
         The selected level's own review queue (Phase 3 Task 8 spec-fix,

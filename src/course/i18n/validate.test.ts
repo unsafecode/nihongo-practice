@@ -188,8 +188,6 @@ describe("A2 runtime copy (Phase 3 Task 8): level selector + kanji chrome", () =
       c.a2AvailableHint,
       c.a2RecommendedHint,
       c.a2CheckpointHeading,
-      c.a2CheckpointNotAttempted,
-      c.a2CheckpointAttempted(3, 2),
       c.resetLevel("A1"),
       c.resetLevel("A2"),
       c.resetLevelConfirm("A1"),
@@ -219,9 +217,9 @@ describe("A2 runtime copy (Phase 3 Task 8): level selector + kanji chrome", () =
     }
   });
 
-  it("keeps the A2 checkpoint copy an alignment claim, never certification/mastery", () => {
+  it("keeps the checkpoint copy an alignment claim, never certification/mastery", () => {
     for (const copy of [enCopy, itCopy]) {
-      const body = `${copy.courseLevels.a2CheckpointNotAttempted} ${copy.courseLevels.a2CheckpointAttempted(3, 2)}`;
+      const body = `${copy.checkpoint.notMet} ${copy.checkpoint.met}`;
       expect(body.toLowerCase()).not.toMatch(
         /\b(certif|mastered|mastery|fluent|passed|superato|certificato|padronanza)\b/,
       );

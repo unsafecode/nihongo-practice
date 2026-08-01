@@ -54,10 +54,10 @@ const enUi = {
   },
   checkpoint: {
     heading: "A1 checkpoint",
-    notAttemptedBody:
-      "You have not yet worked through the A1 checkpoint scenarios. It is not required, and nothing is locked while you wait.",
-    attemptedBody: (acceptedExerciseCount: number, sampledCanDoCount: number) =>
-      `You have worked through the A1 checkpoint scenarios, accepting ${acceptedExerciseCount} exercises across ${sampledCanDoCount} sampled Can-do statements. This only records what you did — it is not a score, and it does not mean you have finished the A1 level.`,
+    notMet:
+      "Your checkpoint is met automatically once every scenario lesson is consolidated. There is no separate test to sit.",
+    met: "Checkpoint met — every scenario lesson is consolidated.",
+    evidenceLink: "See your Can-do evidence",
   },
   courseLevels: {
     selectorLabel: "Course level",
@@ -71,10 +71,6 @@ const enUi = {
     a2RecommendedHint:
       "You have worked through the A1 checkpoint, so A2 is a good next step. It was open all along — nothing was locked.",
     a2CheckpointHeading: "A2 checkpoint",
-    a2CheckpointNotAttempted:
-      "You have not yet worked through the A2 checkpoint scenarios. It is not required, and nothing is locked while you wait.",
-    a2CheckpointAttempted: (acceptedExerciseCount: number, sampledCanDoCount: number) =>
-      `You have worked through the A2 checkpoint scenarios, accepting ${acceptedExerciseCount} exercises across ${sampledCanDoCount} sampled Can-do statements. This only records what you did — it is not a score, and it does not mean you have finished the A2 level.`,
     resetLevel: (levelLabel: string) => `Reset ${levelLabel} progress`,
     resetLevelConfirm: (levelLabel: string) =>
       `Do you really want to reset your ${levelLabel} course progress? Your other level's progress is kept.`,

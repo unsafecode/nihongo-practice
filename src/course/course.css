@@ -388,6 +388,10 @@
   line-height: 1.55;
 }
 
+.checkpoint-state__link {
+  font-size: var(--text-3);
+}
+
 .can-do-summary__list {
   display: flex;
   flex-direction: column;
