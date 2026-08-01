@@ -206,3 +206,27 @@ describe("C4 — gloss subject perspective matches the Japanese", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+/** "…says thank you" / "…said sorry" — attributing a fixed formula to someone. */
+const GLOSS_REPORTS_A_FORMULA =
+  /\b(says?|said)\s+(thank you|thanks|sorry|hello|goodbye|excuse me)\b/i;
+/** Quotative と plus one of the speech verbs A2 teaches. */
+const HAS_QUOTATIVE_STRUCTURE = /と(いいました|いいます|いった|いう|はなしました|はなします)/;
+
+describe("C5 — reported speech is structurally reported", () => {
+  it("requires quotative と + a speech verb whenever the gloss attributes a formula", () => {
+    const offenders = ROWS.filter(
+      (row) => GLOSS_REPORTS_A_FORMULA.test(row.en) && !HAS_QUOTATIVE_STRUCTURE.test(row.jp),
+    ).map((row) => `${row.id}: ${row.jp} | ${row.en}`);
+    expect(offenders).toEqual([]);
+  });
+
+  it("requires a reporting gloss whenever the Japanese carries quotation marks", () => {
+    const offenders = ROWS.filter(
+      (row) =>
+        row.jp.includes("「") &&
+        !(/\b(says?|said)\b/i.test(row.en) && /\b(dice|ha detto|dicono)\b/i.test(row.it)),
+    ).map((row) => `${row.id}: ${row.jp} | ${row.en} | ${row.it}`);
+    expect(offenders).toEqual([]);
+  });
+});
