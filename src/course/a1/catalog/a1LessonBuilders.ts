@@ -319,6 +319,7 @@ const A1_ROUND_TWO_KINDS = [
   "constrained-construction",
   "completion",
   "tile-ordering",
+  "choice",
 ] as const;
 
 /** Referent → its person-role, derived from the frozen referent catalog. */

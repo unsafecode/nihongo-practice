@@ -1265,11 +1265,11 @@ describe("fixture lesson selections", () => {
     // regression guard (a legitimate golden-value test: shape/intent above
     // was written before these concrete values existed).
     expect(first.round1.map((t) => `${t.variantId}:${t.exerciseKind}`)).toEqual([
-      "fixture-a1-yuki-live-rome:tile-ordering",
-      "fixture-a1-ken-doctor-meeting:choice",
-      "fixture-a1-teacher-omitted-class:completion",
-      "fixture-a1-omitted-work-company:tile-ordering",
-      "fixture-a1-yuki-study-japanese:choice",
+      "fixture-a1-yuki-live-rome:choice",
+      "fixture-a1-ken-doctor-meeting:completion",
+      "fixture-a1-teacher-omitted-class:tile-ordering",
+      "fixture-a1-omitted-work-company:choice",
+      "fixture-a1-yuki-study-japanese:completion",
     ]);
     expect(first.round2.map((t) => `${t.variantId}:${t.exerciseKind}`)).toEqual([
       "fixture-a1-transfer-yuki-work-company:constrained-construction",
