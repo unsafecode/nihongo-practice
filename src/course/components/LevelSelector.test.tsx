@@ -67,7 +67,8 @@ describe("LevelSelector — accessible two-option level control (Phase 3 Task 8)
     expect(html).not.toContain(`aria-label="${copy.selectorLabel}"`);
     // The referenced element is present and its text content is the selector label.
     expect(html).toContain('id="level-selector-label"');
-    expect(html).toMatch(new RegExp(`id="level-selector-label"[^>]*>${copy.selectorLabel}<`));
+    const escapedLabel = copy.selectorLabel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    expect(html).toMatch(new RegExp(`id="level-selector-label"[^>]*>${escapedLabel}<`));
   });
 });
 
