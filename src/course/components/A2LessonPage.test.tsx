@@ -109,9 +109,11 @@ describe("A2 lesson page renders through the A2 renderer + staged kanji", () => 
 
   it("shows a supported-retrieval glyph as a semantic ruby with an aria-hidden reading", () => {
     // 洗 (arau) is at supported-retrieval in sequencing-ongoing-3.
+    // The ruby annotation now shows the whole-word kana (あらう) rather than
+    // just the glyph's own reading (あら), because the word context is surfaced.
     const item = exposureItem(html, "a2-kanji-ara-洗-supported-retrieval");
     expect(item).toMatch(/<ruby lang="ja"/);
-    expect(item).toMatch(/<rt[^>]*aria-hidden="true"[^>]*>あら<\/rt>/);
+    expect(item).toMatch(/<rt[^>]*aria-hidden="true"[^>]*>あらう<\/rt>/);
   });
 
   it("shows a revealable glyph behind an accessible reveal control (aria-expanded), reading hidden until revealed", () => {

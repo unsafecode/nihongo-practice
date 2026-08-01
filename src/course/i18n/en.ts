@@ -82,7 +82,7 @@ const enUi = {
   kanji: {
     sectionHeading: "Kanji in this lesson",
     sectionIntro:
-      "These kanji appear in this lesson's sentences. Recognize them in context — there is no writing to do.",
+      "Each kanji is shown inside the word it belongs to. Recognize them there — the practice sentences stay in kana, and there is no writing to do.",
     assessedExplanation:
       "You are being assessed on this kanji, so its reading is not shown here.",
     revealShow: "Show the reading",

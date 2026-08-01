@@ -182,6 +182,8 @@ function A2KanjiSection({
                 assessedExplanation={copy.kanji.assessedExplanation}
                 revealShowLabel={copy.kanji.revealShow}
                 revealHideLabel={copy.kanji.revealHide}
+                word={view.word}
+                wordKana={view.wordKana}
               />
             </li>
           );

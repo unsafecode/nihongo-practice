@@ -16,6 +16,7 @@ import type {
   KanjiExposureStage,
   KanjiReading,
 } from "../kanji/kanjiTypes";
+import { A2_CONTEXTUAL_WORDS } from "../kanji/a2ContextualWords";
 import { A2_RELEASE_CATALOG_VERSION, A2_RELEASE_SEED } from "../releaseIdentity";
 
 /**
@@ -52,6 +53,10 @@ export interface A2KanjiExposureView {
   readonly meaningCopyId: string;
   readonly lexemeSenseId: string;
   readonly contextId: string;
+  /** The contextual word this glyph lives in, written 交ぜ書き. */
+  readonly word: string;
+  /** The contextual word's full kana reading (for ruby). */
+  readonly wordKana: string;
 }
 
 export interface A2LessonViewModel {
@@ -128,6 +133,8 @@ export function resolveA2KanjiExposureViews(
         error: { code: "unknown-kanji-reading", lessonId, referenceId: exposure.readingId },
       };
     }
+    const senseSlug = exposure.lexemeSenseId.replace(/^a2-sense-/, "");
+    const ctxWord = A2_CONTEXTUAL_WORDS[senseSlug];
     views.push({
       exposureId: exposure.id,
       kanjiId: entry.id,
@@ -139,6 +146,8 @@ export function resolveA2KanjiExposureViews(
       meaningCopyId: entry.meaningCopyId,
       lexemeSenseId: exposure.lexemeSenseId,
       contextId: exposure.contextId,
+      word: ctxWord?.word ?? entry.glyph,
+      wordKana: ctxWord?.wordKana ?? reading.kana,
     });
   }
   return { ok: true, views };

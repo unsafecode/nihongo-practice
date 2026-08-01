@@ -82,7 +82,7 @@ const itUi = {
   kanji: {
     sectionHeading: "Kanji di questa lezione",
     sectionIntro:
-      "Questi kanji compaiono nelle frasi di questa lezione. Riconoscili nel contesto — non c'è nulla da scrivere.",
+      "Ogni kanji è mostrato dentro la parola a cui appartiene. Riconoscilo lì: le frasi di pratica restano in kana e non c'è nulla da scrivere.",
     assessedExplanation:
       "Su questo kanji sei in fase di verifica, quindi la lettura non è mostrata qui.",
     revealShow: "Mostra la lettura",

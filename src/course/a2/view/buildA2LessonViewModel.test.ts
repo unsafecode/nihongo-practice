@@ -130,6 +130,8 @@ describe("resolveA2KanjiExposureViews — fail-closed reference resolution", () 
         meaningCopyId: "a2-kanji-hanasu-meaning",
         lexemeSenseId: "a2-sense-hanasu",
         contextId: "a2-context-conversation",
+        word: "話す",
+        wordKana: "はなす",
       },
     ]);
   });

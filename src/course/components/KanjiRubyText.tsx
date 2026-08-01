@@ -1,8 +1,27 @@
-import { useState, type ReactElement } from "react";
+import { createElement, useState, type ReactElement } from "react";
 import { ActionButton } from "../../components/actions/Action";
 import type { Script } from "../../settings/ScriptContext";
 import { a2KanjiAssistancePolicy } from "../a2/kanji/kanjiAssistancePolicy";
 import type { KanjiActivityMode, KanjiExposure } from "../a2/kanji/kanjiTypes";
+
+/**
+ * Renders the word base text, emphasizing the target glyph within it.
+ * If displayBase === glyph (single character, no word context), returns it directly.
+ */
+function renderWordBase(displayBase: string, glyph: string): ReactElement | string {
+  if (displayBase === glyph) return glyph;
+  const idx = displayBase.indexOf(glyph);
+  if (idx === -1) return displayBase;
+  const before = displayBase.slice(0, idx);
+  const after = displayBase.slice(idx + glyph.length);
+  return createElement(
+    "span",
+    { className: "kanji-ruby__word" },
+    before ? createElement("span", { className: "kanji-ruby__word-ctx" }, before) : null,
+    createElement("span", { className: "kanji-ruby__word-target" }, glyph),
+    after ? createElement("span", { className: "kanji-ruby__word-ctx" }, after) : null,
+  );
+}
 
 /**
  * Renders one contextual-kanji exposure (design spec, Phase 3 Task 3, locked
@@ -78,6 +97,10 @@ export interface KanjiRubyTextProps {
    * reading. Same no-hardcoded-fallback guarantee as {@link revealShowLabel}.
    */
   readonly revealHideLabel: string;
+  /** The contextual word this glyph lives in (交ぜ書き). When set, the ruby base shows the word with the target glyph emphasized. */
+  readonly word?: string;
+  /** The whole-word kana reading (for the ruby annotation). */
+  readonly wordKana?: string;
 }
 
 export function KanjiRubyText({
@@ -91,8 +114,12 @@ export function KanjiRubyText({
   assessedExplanation,
   revealShowLabel,
   revealHideLabel,
+  word,
+  wordKana,
 }: KanjiRubyTextProps): ReactElement {
   const support = a2KanjiAssistancePolicy.supportFor(exposure, mode);
+  const displayBase = word ?? glyph;
+  const displayReading = wordKana ?? reading;
 
   if (exposure.stage === "assessed") {
     // Assessed: bare glyph only. No furigana, no romaji, and — deliberately —
@@ -101,7 +128,7 @@ export function KanjiRubyText({
     // withhold it entirely (spec-fix ISSUE 2).
     return (
       <span className="kanji-ruby kanji-ruby--assessed">
-        <span lang="ja">{glyph}</span>
+        <span lang="ja">{renderWordBase(displayBase, glyph)}</span>
         <span className="kanji-why" data-copy-id="a2-kanji-why-visible">
           {assessedExplanation}
         </span>
@@ -115,7 +142,8 @@ export function KanjiRubyText({
     return (
       <RevealableKanjiRuby
         glyph={glyph}
-        reading={reading}
+        displayBase={displayBase}
+        reading={displayReading}
         romaji={romaji}
         meaning={meaning}
         showRomajiHint={showRomajiHint}
@@ -128,9 +156,9 @@ export function KanjiRubyText({
   return (
     <span className="kanji-ruby kanji-ruby--visible">
       <ruby lang="ja" className="kanji-ruby__ruby">
-        {glyph}
+        {renderWordBase(displayBase, glyph)}
         <rt aria-hidden="true" className="kanji-ruby__reading">
-          {reading}
+          {displayReading}
         </rt>
       </ruby>
       {showRomajiHint ? <span className="kanji-ruby__romaji-hint">{romaji}</span> : null}
@@ -141,6 +169,7 @@ export function KanjiRubyText({
 
 function RevealableKanjiRuby({
   glyph,
+  displayBase,
   reading,
   romaji,
   meaning,
@@ -149,6 +178,7 @@ function RevealableKanjiRuby({
   revealHideLabel,
 }: {
   readonly glyph: string;
+  readonly displayBase: string;
   readonly reading: string;
   readonly romaji?: string;
   readonly meaning?: string;
@@ -165,7 +195,7 @@ function RevealableKanjiRuby({
         className="kanji-ruby__ruby"
         aria-label={revealed ? glyph : undefined}
       >
-        {glyph}
+        {renderWordBase(displayBase, glyph)}
         {revealed ? <rt className="kanji-ruby__reading">{reading}</rt> : null}
       </ruby>
       <ActionButton
