@@ -758,7 +758,7 @@ function checkModelDiversity(analysis: LessonAnalysis, errors: ValidationError[]
   if (predicates.length < d.minPredicates) {
     errors.push({ code: "insufficient-predicate-diversity", stage: STAGE.modelDiversity, lessonId: lesson.id, id: lesson.id, dimension: "predicate", expected: d.minPredicates, actual: predicates.length });
   }
-  const roles = distinctRoleIds([...models, ...analysis.transferSentences]);
+  const roles = distinctRoleIds(models);
   if (roles.length < d.minRoles) {
     errors.push({ code: "insufficient-role-diversity", stage: STAGE.modelDiversity, lessonId: lesson.id, id: lesson.id, dimension: "role", expected: d.minRoles, actual: roles.length });
   }
@@ -1374,7 +1374,7 @@ function buildLessonRow(
     productiveSenseIds: sortedUnique(productiveSenseIds),
     receptiveSenseIds: sortedUnique(receptiveSenseIds),
     predicateSenseIds: sortedUnique(models.map((sentence) => sentence.predicateSenseId)),
-    roleIds: distinctRoleIds([...models, ...analysis.transferSentences]),
+    roleIds: distinctRoleIds(models),
     omittedSubjectCount: models.filter((sentence) => sentence.discourse.subjectRealization === "omitted").length,
     contextIds: sortedUnique(models.map((sentence) => sentence.contextId)),
     exerciseCount: selection.exerciseCount,
@@ -1711,9 +1711,6 @@ function diagnosticLessonRow(
       .map((variant) => ctx.valueById.get(variant.slotValues["predicate"] ?? "")?.senseId)
       .filter((id): id is string => id !== undefined),
   );
-  const transferVariants = (lesson.practice.roundTwo.candidateVariantIds)
-    .map((id) => ctx.variantById.get(id))
-    .filter((variant): variant is SentenceVariant => variant !== undefined);
   return {
     lessonId: lesson.id,
     level: lesson.level,
@@ -1726,7 +1723,7 @@ function diagnosticLessonRow(
     productiveSenseIds: [],
     receptiveSenseIds: [],
     predicateSenseIds,
-    roleIds: sortedUnique([...modelVariants, ...transferVariants].map((variant) => variant.discourse.speakerRoleId)),
+    roleIds: sortedUnique(modelVariants.map((variant) => variant.discourse.speakerRoleId)),
     omittedSubjectCount: modelVariants.filter((variant) => variant.discourse.subjectRealization === "omitted").length,
     contextIds: sortedUnique(modelVariants.map((variant) => variant.contextId)),
     exerciseCount: 0,

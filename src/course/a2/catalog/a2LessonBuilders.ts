@@ -418,6 +418,12 @@ export interface A2InstructionalLessonInput {
   readonly introducedSenseIds: readonly string[];
   readonly models: readonly A2LineSpec[];
   readonly transfers: readonly A2LineSpec[];
+  /**
+   * Override the minimum distinct speaker roles required for this lesson's
+   * models.  Omit for the default (`3`).  Synthesis lessons authored as
+   * two-speaker scenes set this to `2`.
+   */
+  readonly minRoles?: number;
 }
 
 export interface A2BuiltLesson {
@@ -518,7 +524,10 @@ export function a2KanjiExposureIdsForLesson(lessonId: string): readonly string[]
 export function buildA2InstructionalLesson(
   input: A2InstructionalLessonInput,
 ): A2BuiltLesson {
-  const built = buildInstructionalLesson(A2_INSTRUCTIONAL_KIT_CONFIG, input);
+  const config = input.minRoles !== undefined
+    ? { ...A2_INSTRUCTIONAL_KIT_CONFIG, minRoles: input.minRoles }
+    : A2_INSTRUCTIONAL_KIT_CONFIG;
+  const built = buildInstructionalLesson(config, input);
   const recipe: A2LessonRecipe = deepFreeze({
     ...built.recipe,
     kanjiExposureIds: a2KanjiExposureIdsForLesson(input.id),

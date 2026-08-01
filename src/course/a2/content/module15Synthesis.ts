@@ -121,6 +121,9 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
   supportingCanDoIds: ["a2-cando-intentions-plans", "a2-cando-connectors"],
   introducedConceptIds: [],
   introducedSenseIds: [],
+  // Two-speaker capstone scene: the honest contract is two roles, not three.
+  // The scene is deliberately a learner-plus-interlocutor exchange.
+  minRoles: 2,
   models: [
     line("a2-synthesis-1-m1", "a2-family-plan-yotei", "a2-value-yotei-iku-kyouto", OUTING, L("I'm planning to go to Kyoto this weekend.", "Questo weekend ho in programma di andare a Kyoto."), { speakerRole: "a2-role-learner" }),
     line("a2-synthesis-1-m2", "a2-family-plan-tsumori", "a2-value-tsumori-au-tomodachi", OUTING, L("Nice. I intend to meet a friend this weekend.", "Bello. Io ho intenzione di incontrare un amico questo weekend."), { speakerRole: "a2-role-friend" }),
@@ -156,6 +159,7 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
   supportingCanDoIds: ["a2-cando-compare", "a2-cando-permission-temoii"],
   introducedConceptIds: [],
   introducedSenseIds: [],
+  minRoles: 2,
   models: [
     line("a2-synthesis-2-m1", "a2-family-ongoing-teiru", "a2-value-teiru-paatii-shiteimasu", SHOPPING, L("I'm having a party.", "Sto facendo una festa."), { object: "a2-value-obj-paatii", speakerRole: "a2-role-learner" }),
     line("a2-synthesis-2-m2", "a2-family-comparison-favor", "a2-value-yasui-stem", SHOPPING, L("This shop is cheaper than that one.", "Questo negozio è più economico di quello."), { favored: "a2-value-obj-kono-mise", standard: "a2-value-obj-ano-mise", speakerRole: "a2-role-learner" }),
@@ -194,6 +198,7 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
   supportingCanDoIds: ["a2-cando-reason-kara", "a2-cando-request-tekudasai"],
   introducedConceptIds: [],
   introducedSenseIds: [],
+  minRoles: 2,
   models: [
     line("a2-synthesis-3-m1", "a2-family-te-sequence", "a2-value-seq-hataraite-tsukareta", HEALTH, L("I worked, and got tired.", "Ho lavorato e mi sono stancato."), { speakerRole: "a2-role-learner", form: A2_AFFIRMATIVE_PAST_POLITE }),
     line("a2-synthesis-3-m2", "a2-family-reason-kara", "a2-value-kara-atama-yasumu", HEALTH, L("My head hurts, so I should rest.", "Mi fa male la testa, quindi dovrei riposare."), { speakerRole: "a2-role-learner" }),
@@ -233,6 +238,7 @@ const lesson4: A2BuiltLesson = buildA2InstructionalLesson({
   supportingCanDoIds: ["a2-cando-experience-takoto", "a2-cando-recognize-plain-forms"],
   introducedConceptIds: [],
   introducedSenseIds: [],
+  minRoles: 2,
   models: [
     line("a2-synthesis-4-m1", "a2-family-experience-takoto", "a2-value-exp-itta-tokyo", EXPERIENCES, L("I have been to Tokyo.", "Sono stato a Tokyo."), { speakerRole: "a2-role-learner" }),
     line("a2-synthesis-4-m2", "a2-family-experience-takoto", "a2-value-exp-shinkansen-notta", TRAVEL, L("Sora has ridden the shinkansen, too.", "Anche Sora ha preso lo shinkansen."), { subjectValueId: "a2-value-sora", speakerRole: "a2-role-learner" }),

@@ -314,7 +314,9 @@ describe("A2 metrics report — per-lesson depth budget (every one of the 60 les
       expect(row.uniqueTargetCount, `${where} unique targets`).toBeGreaterThanOrEqual(5);
       expect(row.maximumVisibleReuse, `${where} max reuse`).toBeLessThanOrEqual(2);
       expect(row.predicateCount, `${where} predicates`).toBeGreaterThanOrEqual(3);
-      expect(row.roleCount, `${where} roles`).toBeGreaterThanOrEqual(3);
+      // Synthesis (capstone) lessons are two-speaker scenes: minRoles is 2.
+      const expectedMinRoles = row.lessonId.startsWith("a2-synthesis-") ? 2 : 3;
+      expect(row.roleCount, `${where} roles`).toBeGreaterThanOrEqual(expectedMinRoles);
       expect(row.contextCount, `${where} contexts`).toBeGreaterThanOrEqual(2);
       expect(row.transferCount, `${where} transfers`).toBeGreaterThanOrEqual(2);
       expect(row.controlledProduction, `${where} controlled production`).toBe(true);

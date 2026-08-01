@@ -201,6 +201,13 @@ export interface InstructionalLessonKitConfig<TRecipe> {
    * target diversity are, and those gates carry real margin.
    */
   readonly minFamilies: number;
+  /**
+   * The minimum number of distinct speaker roles a lesson's models must
+   * span.  Defaults to `3` when omitted — the standard A1/A2 instructional
+   * contract.  Synthesis (capstone) lessons that are deliberately written as
+   * two-speaker scenes may lower this to `2`.
+   */
+  readonly minRoles?: number;
   readonly exerciseCountRange: readonly [number, number];
   /** Each of the two practice rounds selects this many targets. */
   readonly roundTargetCount: number;
@@ -337,7 +344,7 @@ export function buildInstructionalLesson<TRecipe>(
     exerciseCountRange: config.exerciseCountRange,
     minFamilies: config.minFamilies,
     minPredicates: 3,
-    minRoles: 3,
+    minRoles: config.minRoles ?? 3,
     minContexts: 2,
     minUniqueTargets: 5,
     maxTargetReuse: 2,

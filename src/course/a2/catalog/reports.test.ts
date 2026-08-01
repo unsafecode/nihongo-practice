@@ -50,7 +50,9 @@ describe("buildA2Reports — exact level metrics", () => {
       expect(row.modelCount, row.lessonId).toBeLessThanOrEqual(12);
       expect(row.exerciseCount, row.lessonId).toBe(10);
       expect(row.predicateCount, row.lessonId).toBeGreaterThanOrEqual(3);
-      expect(row.roleCount, row.lessonId).toBeGreaterThanOrEqual(3);
+      // Synthesis (capstone) lessons are two-speaker scenes: minRoles is 2.
+      const expectedMinRoles = row.lessonId.startsWith("a2-synthesis-") ? 2 : 3;
+      expect(row.roleCount, row.lessonId).toBeGreaterThanOrEqual(expectedMinRoles);
       expect(row.contextCount, row.lessonId).toBeGreaterThanOrEqual(2);
       expect(row.uniqueTargetCount, row.lessonId).toBeGreaterThanOrEqual(5);
       expect(row.maximumVisibleReuse, row.lessonId).toBeLessThanOrEqual(2);
