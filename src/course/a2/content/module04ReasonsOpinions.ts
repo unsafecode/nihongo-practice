@@ -88,10 +88,12 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
     // I2 spec-fix: recombine with watashi (introduced in cc2, cumulatively
     // available here) — the "so I'll..." reason clauses already have an
     // implicit first-person subject; meaning/copy is unchanged.
+    // t4: vocative addressee (Emi-san) instead of watashi to avoid a
+    // duplicate visibleTargetKey with m4.
     bareLine("reasons-opinions-1-t1", "a2-family-reason-kara", "a2-value-kara-shiken-benkyou", "a2-context-conversation", L("There's an exam tomorrow, so I'll study.", "C'è un esame domani, quindi studio."), "a2-role-sora", "a2-referent-self"),
     bareLine("reasons-opinions-1-t2", "a2-family-reason-kara", "a2-value-kara-isogashii-tsukareta", "a2-context-reasons", L("Work is busy, so I got tired.", "Il lavoro è impegnativo, quindi mi sono stancato/a."), "a2-role-friend", "a2-referent-self", A2_AFFIRMATIVE_PAST_POLITE),
     bareLine("reasons-opinions-1-t3", "a2-family-reason-kara", "a2-value-kara-suki-benkyou", "a2-context-among-friends", L("I like Japanese food, so I study Japanese.", "Mi piace il cibo giapponese, quindi studio giapponese."), "a2-role-colleague", "a2-referent-self"),
-    bareLine("reasons-opinions-1-t4", "a2-family-reason-kara", "a2-value-kara-ame-kasa", "a2-context-workplace", L("It's going to rain, so I'll bring an umbrella.", "Pioverà, quindi porto l'ombrello."), "a2-role-learner", "a2-referent-emi", undefined, "vocative"),
+    bareLine("reasons-opinions-1-t4", "a2-family-reason-kara", "a2-value-kara-ame-kasa", "a2-context-workplace", L("Emi, it's going to rain, so I'll bring an umbrella.", "Emi, pioverà, quindi porto l'ombrello."), "a2-role-learner", "a2-referent-emi", undefined, "vocative"),
     bareLine("reasons-opinions-1-t5", "a2-family-reason-kara", "a2-value-kara-tsukareta-neru", "a2-context-conversation", L("I'm tired, so I'll sleep early.", "Sono stanco/a, quindi dormo presto."), "a2-role-emi", "a2-referent-self"),
   ],
 });
@@ -124,10 +126,12 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
   ],
   transfers: [
     // I2 spec-fix: recombine with watashi, same rationale as ro1.
-    bareLine("reasons-opinions-2-t1", "a2-family-reason-node", "a2-value-node-ame-ie", "a2-context-conversation", L("It rained, so I stayed home.", "Ha piovuto, quindi sono rimasto/a a casa."), "a2-role-sora", "a2-referent-emi", A2_AFFIRMATIVE_PAST_POLITE, "vocative"),
+    // t1, t4: vocative addressee instead of watashi to avoid a duplicate
+    // visibleTargetKey with m1/m4.
+    bareLine("reasons-opinions-2-t1", "a2-family-reason-node", "a2-value-node-ame-ie", "a2-context-conversation", L("Emi, it rained, so I stayed home.", "Emi, ha piovuto, quindi sono rimasto/a a casa."), "a2-role-sora", "a2-referent-emi", A2_AFFIRMATIVE_PAST_POLITE, "vocative"),
     bareLine("reasons-opinions-2-t2", "a2-family-reason-node", "a2-value-node-isogashikatta-dekakenakatta", "a2-context-reasons", L("Work was busy, so I didn't go out.", "Il lavoro era impegnativo, quindi non sono uscito/a."), "a2-role-friend", "a2-referent-self", A2_NEGATIVE_PAST_POLITE),
     bareLine("reasons-opinions-2-t3", "a2-family-reason-node", "a2-value-node-densha-kaigi", "a2-context-among-friends", L("The train was delayed, so I was late for the meeting.", "Il treno era in ritardo, quindi sono arrivato/a tardi alla riunione."), "a2-role-learner", "a2-referent-self", A2_AFFIRMATIVE_PAST_POLITE),
-    bareLine("reasons-opinions-2-t4", "a2-family-reason-node", "a2-value-node-ame-futta-uchi", "a2-context-workplace", L("It rained, so I was at home.", "Ha piovuto, quindi ero a casa."), "a2-role-colleague", "a2-referent-sora", A2_AFFIRMATIVE_PAST_POLITE, "vocative"),
+    bareLine("reasons-opinions-2-t4", "a2-family-reason-node", "a2-value-node-ame-futta-uchi", "a2-context-workplace", L("Sora, it rained, so I was at home.", "Sora, ha piovuto, quindi ero a casa."), "a2-role-colleague", "a2-referent-sora", A2_AFFIRMATIVE_PAST_POLITE, "vocative"),
     bareLine("reasons-opinions-2-t5", "a2-family-reason-node", "a2-value-node-jikanganakatta-takushii", "a2-context-conversation", L("There was no time, so I went by taxi.", "Non c'era tempo, quindi sono andato/a in taxi."), "a2-role-emi", "a2-referent-self", A2_AFFIRMATIVE_PAST_POLITE),
   ],
 });
