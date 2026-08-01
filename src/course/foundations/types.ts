@@ -333,6 +333,19 @@ export interface SemanticValue {
    * in `a2ContentInvariants.test.ts`.
    */
   readonly predicateSemanticType?: "quantity" | "weather" | "formula";
+  /**
+   * For a service-role referent value used as a vocative address term (店員さん,
+   * 受付さん, フロントさん …), the exact contexts in which that title is the
+   * correct way to address the person. Japanese service titles are not
+   * interchangeable: a shop clerk is 店員, a clinic desk is 受付, a hotel desk
+   * is フロント, and using the wrong one is a real social error rather than a
+   * stylistic preference.
+   *
+   * Absent means "not a service-role address term" and imposes no constraint.
+   * `a2ContentInvariants.test.ts` C3 rejects any variant that addresses such a
+   * value from a context it does not declare.
+   */
+  readonly serviceTitleContexts?: readonly string[];
 }
 
 /** One slot a sentence family's realization rule fills from a semantic value. */

@@ -158,3 +158,28 @@ describe("C2 — one register per realized sentence", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe("C3 — service titles fit the addressee's context", () => {
+  it("declares serviceTitleContexts on every service-role address value", () => {
+    const declared = a2SemanticValues
+      .filter((value) => value.serviceTitleContexts !== undefined)
+      .map((value) => value.id)
+      .sort();
+    expect(declared).toEqual([
+      "a2-value-clerk-subject",
+      "a2-value-frontdesk-subject",
+      "a2-value-reception-subject",
+    ]);
+  });
+
+  it("never addresses a service role by a title its context does not license", () => {
+    const offenders = ROWS.filter((row) => {
+      if (row.variant.discourse.subjectRealization !== "vocative") return false;
+      const subject = row.subjectValueId ? valueById.get(row.subjectValueId) : undefined;
+      const allowed = subject?.serviceTitleContexts;
+      if (!allowed) return false;
+      return !allowed.includes(row.contextId);
+    }).map((row) => `${row.id}: ${row.jp} [${row.contextId}]`);
+    expect(offenders).toEqual([]);
+  });
+});

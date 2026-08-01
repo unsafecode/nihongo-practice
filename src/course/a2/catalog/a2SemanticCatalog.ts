@@ -1241,7 +1241,16 @@ const a2AuthoredValuesM1: readonly SemanticValue[] = [
   // content can vocative-address the clerk directly (てんいんさん、…) instead
   // of miscasting a generic social role (colleague/teacher/friend) as the
   // addressee of a first-person order request.
-  { id: "a2-value-clerk-subject", kind: "referent", animacy: "animate", tokenFragments: [frag("てんいん", "ten'in")] },
+  {
+    id: "a2-value-clerk-subject",
+    kind: "referent",
+    animacy: "animate",
+    tokenFragments: [frag("てんいん", "ten'in")],
+    // 店員 is specifically a shop/restaurant floor employee. It is wrong for a
+    // clinic desk (受付) and wrong for a hotel desk (フロント), so the contexts
+    // are declared and C3 enforces them.
+    serviceTitleContexts: ["a2-context-restaurant", "a2-context-cafe", "a2-context-shopping"],
+  },
 
   // --- object/companion-kind nouns ---
   { id: "a2-value-obj-namae", kind: "object", tokenFragments: [frag("なまえ", "namae")] },
