@@ -352,7 +352,7 @@ const A1_VOICEABLE_REFERENTS: ReadonlySet<string> = new Set([
  * shared, level-agnostic kit's job — this file only supplies A1's own fixed
  * choices for it.
  */
-const A1_INSTRUCTIONAL_KIT_CONFIG: InstructionalLessonKitConfig<A1LessonRecipe> = {
+export const A1_INSTRUCTIONAL_KIT_CONFIG: InstructionalLessonKitConfig<A1LessonRecipe> = {
   defaultSpeakerRoleId: "a1-role-learner",
   defaultAddresseeRoleId: "a1-role-teacher",
   referentPersonRoleById: A1_REFERENT_ROLE,
