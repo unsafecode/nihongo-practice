@@ -260,13 +260,14 @@ describe("A2 Module 1 — exact realized Japanese/rōmaji spot checks", () => {
 //    already reads as vocative direct address ("Sora, sorry, ..."). They now
 //    use the new "vocative" subjectRealization (そらさん、/えみさん、, never
 //    は). cc3-t5 had a worse version of the same defect: it addressed a
-//    *common noun* referent (ともだち, "friend") as if it were a name, which
-//    nobody does in natural Japanese (you address a friend by name, never
-//    literally as "friend") — so vocative isn't the fix here either. It now
-//    recombines self (わたし, explicit) with the already-modeled (cc3-m6)
-//    a2-value-clarify-kikoemasen, following the exact same "make the already
-//    implicit I explicit" pattern already used by cc3-t3/t4, and no longer
-//    duplicates m5's plain いみは-question rendering.
+//    *common noun* referent (ともだち, "friend") as if it were a name —
+//    nobody calls out to a friend as literally "friend" in Japanese (you
+//    use their name). Here the resolution IS a named vocative: そらさん,
+//    paired with the already-modeled (cc3-m6) predicate
+//    a2-value-clarify-kikoemasen, yielding そらさん、すみません、
+//    きこえませんでした. This does not collide with cc3-t1's existing
+//    sora vocative because t1 carries a different predicate value
+//    (a2-value-clarify-mouichido); the two sentences are distinct.
 // 2. cc2-t1/t3/t5 recombined self (わたしは) with a connector value whose own
 //    baked content already opens with its own topic (きょうは/しごとは),
 //    producing an unnatural double topic (わたしは きょうは...). Each now
@@ -315,7 +316,7 @@ describe("A2 Module 1 — Task4 final spec-fix (natural vocative + no double-top
     expect(sentence.canonicalJapanese).not.toContain("えみは");
   });
 
-  it("cc3-t5 does not address a common noun as a name and does not place a topic before an interjection — it uses a vocative address with sora", () => {
+  it("cc3-t5 (clarify-kikoemasen, sora) realizes as a genuine vocative そらさん、, never ともだちは", () => {
     const variant = findVariant(2, "connected-conversation-3-t5");
     expect(variant.discourse.subjectRealization).toBe("vocative");
     expect(variant.discourse.subjectReferentId).toBe("a2-referent-sora");
@@ -324,6 +325,8 @@ describe("A2 Module 1 — Task4 final spec-fix (natural vocative + no double-top
     const romaji = formatRomaji(sentence.tokens);
     expect(romaji.ok).toBe(true);
     if (!romaji.ok) throw new Error("unreachable");
+    expect(sentence.canonicalJapanese).toBe("そらさん、すみません、きこえませんでした");
+    expect(romaji.text).toBe("sora san, sumimasen, kikoemasen deshita");
     expect(sentence.canonicalJapanese).not.toContain("ともだち");
     expect(sentence.canonicalJapanese).not.toMatch(/は.*すみません/);
     const { en, it } = translationFor(2, "connected-conversation-3-t5");
