@@ -5,7 +5,8 @@
  * double-check review found ungated. Every one of them is derived either from
  * the realized surface or from typed catalog data — never from an allow-list
  * of the specific ids that happened to be wrong, so a *new* offender authored
- * next year is caught too.
+ * next year is caught too. (C7 is a deliberate exception: it uses a curated
+ * phrase-pair list, as documented at its definition.)
  *
  * These complement `a2RealizedIntegrity.test.ts` (duplicate terminal か,
  * `carriesOwnTopic` double topics, proper-name subject/copy agreement) rather
