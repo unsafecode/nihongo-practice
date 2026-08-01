@@ -1352,6 +1352,17 @@ describe("rotateKinds", () => {
     expectPermutation(result, FOUR);
   });
 
+  it("stride needing several reductions to reach coprimality still permutes", () => {
+    // len 6, stride 4: gcd(4,6)=2, gcd(3,6)=3, gcd(2,6)=2, so step walks
+    // 4 -> 3 -> 2 -> 1. This is the only case exercising more than one
+    // iteration of the reduction loop.
+    const six = ["A", "B", "C", "D", "E", "F"] as unknown as readonly import("../exercises/types").ExerciseKind[];
+    expectPermutation(rotateKinds(six, 0, 4), six);
+    for (let stride = 0; stride <= 12; stride += 1) {
+      expectPermutation(rotateKinds(six, stride, stride), six);
+    }
+  });
+
   it("stride 0 produces a full permutation (falls back to step 1)", () => {
     const result = rotateKinds(FOUR, 0, 0);
     expectPermutation(result, FOUR);
