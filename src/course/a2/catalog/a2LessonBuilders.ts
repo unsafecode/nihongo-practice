@@ -453,9 +453,10 @@ const A2_VOICEABLE_REFERENTS: ReadonlySet<string> = new Set([
  * own byte-identical local `subjectReferentValueId` function + table —
  * eight duplicated copies of the same mapping. This is the single, deep-
  * frozen source of truth every module now imports instead of
- * hand-duplicating; `a2-referent-clerk` (added for the I2 spec-fix, "natural
- * clerk-vocative address") lives here alongside the six pre-existing
- * referents.
+ * hand-duplicating. `a2-referent-clerk` was added for the I2 spec-fix
+ * ("natural clerk-vocative address"); `a2-referent-reception` and
+ * `a2-referent-frontdesk` were added in Task 15 (clinic/hotel service-title
+ * fix). The map itself is the authoritative list of entries.
  */
 const A2_SUBJECT_REFERENT_VALUE_IDS: Readonly<Record<string, string>> = deepFreeze({
   "a2-referent-friend": "a2-value-friend-subject",

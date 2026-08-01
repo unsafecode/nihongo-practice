@@ -392,8 +392,10 @@ describe("a2VerbUseRecord / withA2LaterUses — delegate to the shared kit's ver
 // M5 spec-fix (Phase 3 Task 5 quality pass): every M1-M8 module content file
 // (module01ConnectedConversation.ts .. module08RestaurantProblems.ts)
 // authored its own byte-identical local `subjectReferentValueId` function +
-// referent->subject-value table — eight duplicated copies of the same seven
-// (now eight, with clerk added for I2's natural clerk-vocative fix) entries.
+// referent->subject-value table — eight duplicated copies of the same mapping.
+// `a2-referent-clerk` was added for the I2 spec-fix ("natural clerk-vocative
+// address"); `a2-referent-reception` and `a2-referent-frontdesk` were added
+// in Task 15 (clinic/hotel service-title fix).
 // `a2SubjectReferentValueId` is the single hoisted, deep-frozen, fail-closed
 // source of truth every module now imports instead.
 describe("a2SubjectReferentValueId — the single hoisted referent->subject-value map (M5 spec-fix)", () => {
