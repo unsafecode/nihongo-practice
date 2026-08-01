@@ -777,7 +777,7 @@ describe("A2 M1-M12 aggregate — M4-style honest invariant FormSelection metada
     "a2-value-narrate-asagohan-gakkou": { polarity: "affirmative", tense: "past", formality: "plain" },
     "a2-value-narrate-umi-yama": { polarity: "affirmative", tense: "past", formality: "plain" },
     "a2-value-narrate-matsu-tabeta": { polarity: "affirmative", tense: "past", formality: "plain" },
-    "a2-value-narrate-kyouto-tanoshikatta": { polarity: "affirmative", tense: "past", formality: "polite" },
+    "a2-value-narrate-kyouto-tanoshikatta": { polarity: "affirmative", tense: "past", formality: "plain" },
     "a2-value-node-ame-ie": { polarity: "affirmative", tense: "past", formality: "polite" },
     "a2-value-node-isogashikatta-dekakenakatta": { polarity: "negative", tense: "past", formality: "polite" },
     "a2-value-node-densha-kaigi": { polarity: "affirmative", tense: "past", formality: "polite" },

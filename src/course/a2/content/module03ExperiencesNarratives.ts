@@ -13,7 +13,6 @@
 import { A2_MODULE_MANIFEST } from "../manifest";
 import {
   A2_AFFIRMATIVE_PAST_PLAIN,
-  A2_AFFIRMATIVE_PAST_POLITE,
   a2SubjectReferentValueId as subjectReferentValueId,
   buildA2InstructionalLesson,
   type A2BuiltLesson,
@@ -68,10 +67,8 @@ function narrateLine(
     translation,
     // M4 spec-fix ("form metadata"): every narrate-order value is a genuine
     // PAST narrative (sorekara-linked past clauses), never present — honest
-    // formality follows the value's own final clause: plain throughout
-    // except a2-value-narrate-kyouto-tanoshikatta, whose final clause tags
-    // on a polite desu ending (tanoshikatta desu).
-    form: predicate === "a2-value-narrate-kyouto-tanoshikatta" ? A2_AFFIRMATIVE_PAST_POLITE : A2_AFFIRMATIVE_PAST_PLAIN,
+    // formality follows the value's own final clause: plain throughout.
+    form: A2_AFFIRMATIVE_PAST_PLAIN,
   };
 }
 

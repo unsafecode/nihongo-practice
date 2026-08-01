@@ -961,9 +961,10 @@ describe("a2SemanticCatalog — Phase 3 Task 6 spec-fix: a2-family-narrate-order
       expect(jp, valueId).toContain("それから");
       expect(jp, `${valueId} must stay plain (no です/ます)`).not.toMatch(/(です|ます)/);
     }
-    // The one polite exception (its own final clause tags on です) is still
-    // a genuine two-clause past narrative — きょねん きょうとへ いった。とても
-    // たのしかったです。("Last year I went to Kyoto. It was really fun.") —
+    // The kyouto-tanoshikatta value does not use それから (it pairs plain-past
+    // いった with plain-past たのしかった), but it is still a genuine two-clause
+    // past narrative — きょねん きょうとへ いった。とても たのしかった。
+    // ("Last year I went to Kyoto. It was really fun.") —
     // proven by real content rather than assuming every narrate-order value
     // shares the exact same それから shape.
     const kyoutoJp = valueById("a2-value-narrate-kyouto-tanoshikatta").tokenFragments.map((f) => f.jp).join("");

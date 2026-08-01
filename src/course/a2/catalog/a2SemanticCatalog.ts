@@ -2424,7 +2424,6 @@ const a2AuthoredValuesM3: readonly SemanticValue[] = [
       frag("とても", "totemo"),
       frag("たのし", "tanoshi"),
       morphFrag("かった", "katta"),
-      frag("です", "desu"),
       punctFrag("。", "."),
     ],
   },

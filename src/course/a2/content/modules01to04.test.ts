@@ -637,12 +637,11 @@ describe("A2 M1-M4 aggregate — M4 spec-fix (honest invariant FormSelection met
     "a2-value-plain-tanoshikatta": { polarity: "affirmative", tense: "past", formality: "plain" },
     "a2-value-plain-yuumei-datta": { polarity: "affirmative", tense: "past", formality: "plain" },
     "a2-value-plain-warukatta": { polarity: "affirmative", tense: "past", formality: "plain" },
-    // --- a2-family-narrate-order: ordered PAST narratives; plain unless
-    // the value's own final clause tags on a polite です (kyouto-tanoshikatta) ---
+    // --- a2-family-narrate-order: ordered PAST narratives; all plain past ---
     "a2-value-narrate-asagohan-gakkou": { polarity: "affirmative", tense: "past", formality: "plain" },
     "a2-value-narrate-umi-yama": { polarity: "affirmative", tense: "past", formality: "plain" },
     "a2-value-narrate-matsu-tabeta": { polarity: "affirmative", tense: "past", formality: "plain" },
-    "a2-value-narrate-kyouto-tanoshikatta": { polarity: "affirmative", tense: "past", formality: "polite" },
+    "a2-value-narrate-kyouto-tanoshikatta": { polarity: "affirmative", tense: "past", formality: "plain" },
     // --- a2-family-reason-node: ので gives a reason that already happened —
     // every currently-authored value's own final clause is past polite ---
     "a2-value-node-ame-ie": { polarity: "affirmative", tense: "past", formality: "polite" },
