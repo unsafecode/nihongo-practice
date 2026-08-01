@@ -586,10 +586,10 @@
     "polarity": "negative",
     "tense": "present",
     "interrogative": false,
-    "jp": "わたしはすみません、わかりません",
-    "romaji": "watashi wa sumimasen, wakarimasen",
-    "en": "Sorry, I don't understand.",
-    "it": "Scusa, non capisco."
+    "jp": "えみさん、すみません、わかりません",
+    "romaji": "emi san, sumimasen, wakarimasen",
+    "en": "Emi, sorry, I don't understand.",
+    "it": "Emi, scusa, non capisco."
   },
   {
     "id": "connected-conversation-3-t4",
@@ -618,10 +618,10 @@
     "polarity": "negative",
     "tense": "past",
     "interrogative": false,
-    "jp": "わたしはすみません、きこえませんでした",
-    "romaji": "watashi wa sumimasen, kikoemasen deshita",
-    "en": "Sorry, I couldn't hear.",
-    "it": "Scusa, non ho sentito."
+    "jp": "そらさん、すみません、きこえませんでした",
+    "romaji": "sora san, sumimasen, kikoemasen deshita",
+    "en": "Sora, sorry, I couldn't hear.",
+    "it": "Sora, scusa, non ho sentito."
   },
   {
     "id": "connected-conversation-4-m1",
@@ -1724,8 +1724,8 @@
     "interrogative": false,
     "jp": "およいだことがあります",
     "romaji": "oyoida koto ga arimasu",
-    "en": "I have swum in the sea before.",
-    "it": "Ho già nuotato nel mare."
+    "en": "I have swum before.",
+    "it": "Ho già nuotato."
   },
   {
     "id": "experiences-narratives-1-m10",
@@ -1836,8 +1836,8 @@
     "interrogative": false,
     "jp": "せんせいはおよいだことがあります",
     "romaji": "sensei wa oyoida koto ga arimasu",
-    "en": "The teacher has swum in the sea before.",
-    "it": "L'insegnante ha già nuotato nel mare."
+    "en": "The teacher has swum before.",
+    "it": "L'insegnante ha già nuotato."
   },
   {
     "id": "experiences-narratives-1-m8",
@@ -2006,12 +2006,12 @@
     "use": "model",
     "family": "a2-family-narrate-order",
     "rule": "rule-invariant-utterance",
-    "formality": "polite",
+    "formality": "plain",
     "polarity": "affirmative",
     "tense": "past",
     "interrogative": false,
-    "jp": "そらはきょねんきょうとへいった。とてもたのしかったです。",
-    "romaji": "sora wa kyonen kyouto e itta. totemo tanoshikatta desu.",
+    "jp": "そらはきょねんきょうとへいった。とてもたのしかった。",
+    "romaji": "sora wa kyonen kyouto e itta. totemo tanoshikatta.",
     "en": "Sora went to Kyoto last year. It was a lot of fun.",
     "it": "Sora è andato a Kyoto l'anno scorso. È stato molto divertente."
   },
@@ -2070,12 +2070,12 @@
     "use": "model",
     "family": "a2-family-narrate-order",
     "rule": "rule-invariant-utterance",
-    "formality": "polite",
+    "formality": "plain",
     "polarity": "affirmative",
     "tense": "past",
     "interrogative": false,
-    "jp": "ともだちはきょねんきょうとへいった。とてもたのしかったです。",
-    "romaji": "tomodachi wa kyonen kyouto e itta. totemo tanoshikatta desu.",
+    "jp": "ともだちはきょねんきょうとへいった。とてもたのしかった。",
+    "romaji": "tomodachi wa kyonen kyouto e itta. totemo tanoshikatta.",
     "en": "My friend went to Kyoto last year. It was a lot of fun.",
     "it": "Il mio amico è andato a Kyoto l'anno scorso. È stato molto divertente."
   },
@@ -2134,12 +2134,12 @@
     "use": "transfer",
     "family": "a2-family-narrate-order",
     "rule": "rule-invariant-utterance",
-    "formality": "polite",
+    "formality": "plain",
     "polarity": "affirmative",
     "tense": "past",
     "interrogative": false,
-    "jp": "せんせいはきょねんきょうとへいった。とてもたのしかったです。",
-    "romaji": "sensei wa kyonen kyouto e itta. totemo tanoshikatta desu.",
+    "jp": "せんせいはきょねんきょうとへいった。とてもたのしかった。",
+    "romaji": "sensei wa kyonen kyouto e itta. totemo tanoshikatta.",
     "en": "The teacher went to Kyoto last year. It was a lot of fun.",
     "it": "L'insegnante è andato a Kyoto l'anno scorso. È stato molto divertente."
   },
@@ -2172,8 +2172,8 @@
     "interrogative": false,
     "jp": "えみはおよいだことがあります",
     "romaji": "emi wa oyoida koto ga arimasu",
-    "en": "Emi has swum in the sea before.",
-    "it": "Emi ha già nuotato nel mare."
+    "en": "Emi has swum before.",
+    "it": "Emi ha già nuotato."
   },
   {
     "id": "experiences-narratives-3-m2",
@@ -2188,8 +2188,8 @@
     "interrogative": false,
     "jp": "そらはおよいだことがあります",
     "romaji": "sora wa oyoida koto ga arimasu",
-    "en": "Sora has swum in the sea before.",
-    "it": "Sora ha già nuotato nel mare."
+    "en": "Sora has swum before.",
+    "it": "Sora ha già nuotato."
   },
   {
     "id": "experiences-narratives-3-m3",
@@ -2204,8 +2204,8 @@
     "interrogative": false,
     "jp": "ともだちはおよいだことがあります",
     "romaji": "tomodachi wa oyoida koto ga arimasu",
-    "en": "My friend has swum in the sea before.",
-    "it": "Il mio amico ha già nuotato nel mare."
+    "en": "My friend has swum before.",
+    "it": "Il mio amico ha già nuotato."
   },
   {
     "id": "experiences-narratives-3-m4",
@@ -2220,8 +2220,8 @@
     "interrogative": false,
     "jp": "どうりょうはおよいだことがあります",
     "romaji": "douryou wa oyoida koto ga arimasu",
-    "en": "My colleague has swum in the sea before.",
-    "it": "Il mio collega ha già nuotato nel mare."
+    "en": "My colleague has swum before.",
+    "it": "Il mio collega ha già nuotato."
   },
   {
     "id": "experiences-narratives-3-m5",
@@ -2380,8 +2380,8 @@
     "interrogative": true,
     "jp": "およいだことがありますか",
     "romaji": "oyoida koto ga arimasu ka",
-    "en": "Have you ever swum in the sea?",
-    "it": "Hai mai nuotato nel mare?"
+    "en": "Have you ever swum?",
+    "it": "Hai mai nuotato?"
   },
   {
     "id": "experiences-narratives-4-m2",
@@ -2460,8 +2460,8 @@
     "interrogative": true,
     "jp": "ともだちはおよいだことがありますか",
     "romaji": "tomodachi wa oyoida koto ga arimasu ka",
-    "en": "Has your friend ever swum in the sea?",
-    "it": "Il tuo amico ha mai nuotato nel mare?"
+    "en": "Has your friend ever swum?",
+    "it": "Il tuo amico ha mai nuotato?"
   },
   {
     "id": "experiences-narratives-4-m7",
@@ -2524,8 +2524,8 @@
     "interrogative": true,
     "jp": "そらはおよいだことがありますか",
     "romaji": "sora wa oyoida koto ga arimasu ka",
-    "en": "Has Sora ever swum in the sea?",
-    "it": "Sora ha mai nuotato nel mare?"
+    "en": "Has Sora ever swum?",
+    "it": "Sora ha mai nuotato?"
   },
   {
     "id": "experiences-narratives-4-t3",
@@ -2762,10 +2762,10 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "わたしはあめがふるから、かさをもっていきます",
-    "romaji": "watashi wa ame ga furu kara, kasa o motte ikimasu",
-    "en": "It's going to rain, so I'll bring an umbrella.",
-    "it": "Pioverà, quindi porto l'ombrello."
+    "jp": "えみさん、あめがふるから、かさをもっていきます",
+    "romaji": "emi san, ame ga furu kara, kasa o motte ikimasu",
+    "en": "Emi, it's going to rain, so I'll bring an umbrella.",
+    "it": "Emi, pioverà, quindi porto l'ombrello."
   },
   {
     "id": "reasons-opinions-1-t5",
@@ -2922,10 +2922,10 @@
     "polarity": "affirmative",
     "tense": "past",
     "interrogative": false,
-    "jp": "わたしはあめだったので、いえにいました",
-    "romaji": "watashi wa ame datta node, ie ni imashita",
-    "en": "It rained, so I stayed home.",
-    "it": "Ha piovuto, quindi sono rimasto/a a casa."
+    "jp": "えみさん、あめだったので、いえにいました",
+    "romaji": "emi san, ame datta node, ie ni imashita",
+    "en": "Emi, it rained, so I stayed home.",
+    "it": "Emi, ha piovuto, quindi sono rimasto/a a casa."
   },
   {
     "id": "reasons-opinions-2-t2",
@@ -2970,10 +2970,10 @@
     "polarity": "affirmative",
     "tense": "past",
     "interrogative": false,
-    "jp": "わたしはあめがふったので、うちにいました",
-    "romaji": "watashi wa ame ga futta node, uchi ni imashita",
-    "en": "It rained, so I was at home.",
-    "it": "Ha piovuto, quindi ero a casa."
+    "jp": "そらさん、あめがふったので、うちにいました",
+    "romaji": "sora san, ame ga futta node, uchi ni imashita",
+    "en": "Sora, it rained, so I was at home.",
+    "it": "Sora, ha piovuto, quindi ero a casa."
   },
   {
     "id": "reasons-opinions-2-t5",
@@ -3866,8 +3866,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "みずをのんでいます",
-    "romaji": "mizu o nonde imasu",
+    "jp": "えみはみずをのんでいます",
+    "romaji": "emi wa mizu o nonde imasu",
     "en": "Emi is drinking water.",
     "it": "Emi sta bevendo acqua."
   },
@@ -3882,8 +3882,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "ほんをよんでいます",
-    "romaji": "hon o yonde imasu",
+    "jp": "そらはほんをよんでいます",
+    "romaji": "sora wa hon o yonde imasu",
     "en": "Sora is reading a book.",
     "it": "Sora sta leggendo un libro."
   },
@@ -3898,8 +3898,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "てがみをかいています",
-    "romaji": "tegami o kaite imasu",
+    "jp": "ともだちはてがみをかいています",
+    "romaji": "tomodachi wa tegami o kaite imasu",
     "en": "A friend is writing a letter.",
     "it": "Un amico sta scrivendo una lettera."
   },
@@ -3914,8 +3914,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "にほんごをはなしています",
-    "romaji": "nihongo o hanashite imasu",
+    "jp": "どうりょうはにほんごをはなしています",
+    "romaji": "douryou wa nihongo o hanashite imasu",
     "en": "A colleague is speaking Japanese.",
     "it": "Un collega sta parlando giapponese."
   },
@@ -3930,8 +3930,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "あそんでいます",
-    "romaji": "asonde imasu",
+    "jp": "せんせいはあそんでいます",
+    "romaji": "sensei wa asonde imasu",
     "en": "The teacher is playing.",
     "it": "L'insegnante sta giocando."
   },
@@ -3962,8 +3962,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "バスをまっています",
-    "romaji": "basu o matte imasu",
+    "jp": "えみはバスをまっています",
+    "romaji": "emi wa basu o matte imasu",
     "en": "Emi is waiting for a bus.",
     "it": "Emi sta aspettando un autobus."
   },
@@ -4076,8 +4076,8 @@
     "interrogative": false,
     "jp": "ともだちとあそんで、いえにかえります",
     "romaji": "tomodachi to asonde, ie ni kaerimasu",
-    "en": "A friend plays with a friend, then goes home.",
-    "it": "Un amico gioca con un amico, poi torna a casa."
+    "en": "I play with a friend, then go home.",
+    "it": "Gioco con un amico, poi torno a casa."
   },
   {
     "id": "sequencing-ongoing-4-m3",
@@ -4122,8 +4122,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "てがみをよんでいます",
-    "romaji": "tegami o yonde imasu",
+    "jp": "せんせいはてがみをよんでいます",
+    "romaji": "sensei wa tegami o yonde imasu",
     "en": "The teacher is reading a letter.",
     "it": "L'insegnante sta leggendo una lettera."
   },
@@ -4492,8 +4492,8 @@
     "interrogative": false,
     "jp": "みずをのんではいけません",
     "romaji": "mizu o nonde wa ikemasen",
-    "en": "You must not drink water here.",
-    "it": "Non devi bere l'acqua qui."
+    "en": "You must not drink water.",
+    "it": "Non devi bere l'acqua."
   },
   {
     "id": "permission-requests-2-m3",
@@ -4524,8 +4524,8 @@
     "interrogative": false,
     "jp": "えいごをはなしてはいけません",
     "romaji": "eigo o hanashite wa ikemasen",
-    "en": "You must not speak English here.",
-    "it": "Non devi parlare inglese qui."
+    "en": "You must not speak English.",
+    "it": "Non devi parlare inglese."
   },
   {
     "id": "permission-requests-2-m5",
@@ -4908,8 +4908,8 @@
     "interrogative": false,
     "jp": "とまらないでください",
     "romaji": "tomaranaide kudasai",
-    "en": "Please don't stop here.",
-    "it": "Per favore, non fermarti qui."
+    "en": "Please don't stop.",
+    "it": "Per favore, non fermarti."
   },
   {
     "id": "permission-requests-4-m3",
@@ -4972,8 +4972,8 @@
     "interrogative": false,
     "jp": "えいごをはなしてはいけません",
     "romaji": "eigo o hanashite wa ikemasen",
-    "en": "You must not speak English here.",
-    "it": "Non devi parlare inglese qui."
+    "en": "You must not speak English.",
+    "it": "Non devi parlare inglese."
   },
   {
     "id": "permission-requests-4-m7",
@@ -5020,8 +5020,8 @@
     "interrogative": false,
     "jp": "えみさん、とまらないでください",
     "romaji": "emi san, tomaranaide kudasai",
-    "en": "Emi, please don't stop here.",
-    "it": "Emi, per favore non fermarti qui."
+    "en": "Emi, please don't stop.",
+    "it": "Emi, per favore non fermarti."
   },
   {
     "id": "permission-requests-4-t2",
@@ -5116,8 +5116,8 @@
     "interrogative": false,
     "jp": "にほんごをはなすことができません",
     "romaji": "nihongo o hanasu koto ga dekimasen",
-    "en": "I cannot speak Japanese here.",
-    "it": "Non posso parlare giapponese qui."
+    "en": "I cannot speak Japanese.",
+    "it": "Non posso parlare giapponese."
   },
   {
     "id": "neighborhood-services-1-m11",
@@ -5132,8 +5132,8 @@
     "interrogative": true,
     "jp": "カードをつかうことができますか",
     "romaji": "kaado o tsukau koto ga dekimasu ka",
-    "en": "Can I use the card here?",
-    "it": "Si può usare la tessera qui?"
+    "en": "Can I use the card?",
+    "it": "Si può usare la tessera?"
   },
   {
     "id": "neighborhood-services-1-m2",
@@ -5148,8 +5148,8 @@
     "interrogative": false,
     "jp": "えいごをはなすことができます",
     "romaji": "eigo o hanasu koto ga dekimasu",
-    "en": "I can speak English here.",
-    "it": "Posso parlare inglese qui."
+    "en": "I can speak English.",
+    "it": "Posso parlare inglese."
   },
   {
     "id": "neighborhood-services-1-m3",
@@ -5164,8 +5164,8 @@
     "interrogative": false,
     "jp": "ほんをよむことができます",
     "romaji": "hon o yomu koto ga dekimasu",
-    "en": "I can read the book here.",
-    "it": "Posso leggere il libro qui."
+    "en": "I can read the book.",
+    "it": "Posso leggere il libro."
   },
   {
     "id": "neighborhood-services-1-m4",
@@ -5180,8 +5180,8 @@
     "interrogative": false,
     "jp": "およぐことができます",
     "romaji": "oyogu koto ga dekimasu",
-    "en": "I can swim here.",
-    "it": "Posso nuotare qui."
+    "en": "I can swim.",
+    "it": "Posso nuotare."
   },
   {
     "id": "neighborhood-services-1-m5",
@@ -5196,8 +5196,8 @@
     "interrogative": false,
     "jp": "なまえをかくことができます",
     "romaji": "namae o kaku koto ga dekimasu",
-    "en": "I can write my name here.",
-    "it": "Posso scrivere il mio nome qui."
+    "en": "I can write my name.",
+    "it": "Posso scrivere il mio nome."
   },
   {
     "id": "neighborhood-services-1-m6",
@@ -5244,8 +5244,8 @@
     "interrogative": false,
     "jp": "にほんごをはなすことができます",
     "romaji": "nihongo o hanasu koto ga dekimasu",
-    "en": "I can speak Japanese here.",
-    "it": "Posso parlare giapponese qui."
+    "en": "I can speak Japanese.",
+    "it": "Posso parlare giapponese."
   },
   {
     "id": "neighborhood-services-1-m9",
@@ -5292,8 +5292,8 @@
     "interrogative": false,
     "jp": "えいごをはなすことができません",
     "romaji": "eigo o hanasu koto ga dekimasen",
-    "en": "I cannot speak English here.",
-    "it": "Non posso parlare inglese qui."
+    "en": "I cannot speak English.",
+    "it": "Non posso parlare inglese."
   },
   {
     "id": "neighborhood-services-1-t3",
@@ -5324,8 +5324,8 @@
     "interrogative": false,
     "jp": "えいごをよむことができます",
     "romaji": "eigo o yomu koto ga dekimasu",
-    "en": "I can read English here.",
-    "it": "Posso leggere inglese qui."
+    "en": "I can read English.",
+    "it": "Posso leggere inglese."
   },
   {
     "id": "neighborhood-services-1-t5",
@@ -5388,8 +5388,8 @@
     "interrogative": false,
     "jp": "えいごをはなすことができます",
     "romaji": "eigo o hanasu koto ga dekimasu",
-    "en": "I can speak English here.",
-    "it": "Posso parlare inglese qui."
+    "en": "I can speak English.",
+    "it": "Posso parlare inglese."
   },
   {
     "id": "neighborhood-services-2-m4",
@@ -5404,8 +5404,8 @@
     "interrogative": false,
     "jp": "えいごをはなすことができません",
     "romaji": "eigo o hanasu koto ga dekimasen",
-    "en": "I cannot speak English here.",
-    "it": "Non posso parlare inglese qui."
+    "en": "I cannot speak English.",
+    "it": "Non posso parlare inglese."
   },
   {
     "id": "neighborhood-services-2-m5",
@@ -5420,8 +5420,8 @@
     "interrogative": false,
     "jp": "ほんをよむことができます",
     "romaji": "hon o yomu koto ga dekimasu",
-    "en": "I can read the book here.",
-    "it": "Posso leggere il libro qui."
+    "en": "I can read the book.",
+    "it": "Posso leggere il libro."
   },
   {
     "id": "neighborhood-services-2-m6",
@@ -5436,8 +5436,8 @@
     "interrogative": false,
     "jp": "にほんごをよむことができます",
     "romaji": "nihongo o yomu koto ga dekimasu",
-    "en": "I can read Japanese here.",
-    "it": "Posso leggere giapponese qui."
+    "en": "I can read Japanese.",
+    "it": "Posso leggere giapponese."
   },
   {
     "id": "neighborhood-services-2-m7",
@@ -5452,8 +5452,8 @@
     "interrogative": false,
     "jp": "およぐことができます",
     "romaji": "oyogu koto ga dekimasu",
-    "en": "I can swim here.",
-    "it": "Posso nuotare qui."
+    "en": "I can swim.",
+    "it": "Posso nuotare."
   },
   {
     "id": "neighborhood-services-2-m8",
@@ -5468,8 +5468,8 @@
     "interrogative": false,
     "jp": "なまえをかくことができます",
     "romaji": "namae o kaku koto ga dekimasu",
-    "en": "I can write my name here.",
-    "it": "Posso scrivere il mio nome qui."
+    "en": "I can write my name.",
+    "it": "Posso scrivere il mio nome."
   },
   {
     "id": "neighborhood-services-2-t1",
@@ -5484,8 +5484,8 @@
     "interrogative": false,
     "jp": "にほんごをつかうことができます",
     "romaji": "nihongo o tsukau koto ga dekimasu",
-    "en": "I can use Japanese here.",
-    "it": "Posso usare il giapponese qui."
+    "en": "I can use Japanese.",
+    "it": "Posso usare il giapponese."
   },
   {
     "id": "neighborhood-services-2-t2",
@@ -5500,8 +5500,8 @@
     "interrogative": false,
     "jp": "にほんごをはなすことができます",
     "romaji": "nihongo o hanasu koto ga dekimasu",
-    "en": "I can speak Japanese here.",
-    "it": "Posso parlare giapponese qui."
+    "en": "I can speak Japanese.",
+    "it": "Posso parlare giapponese."
   },
   {
     "id": "neighborhood-services-2-t3",
@@ -5516,8 +5516,8 @@
     "interrogative": false,
     "jp": "えいごをかくことができます",
     "romaji": "eigo o kaku koto ga dekimasu",
-    "en": "I can write in English here.",
-    "it": "Posso scrivere in inglese qui."
+    "en": "I can write in English.",
+    "it": "Posso scrivere in inglese."
   },
   {
     "id": "neighborhood-services-2-t4",
@@ -5532,8 +5532,8 @@
     "interrogative": false,
     "jp": "にほんごをつかうことができません",
     "romaji": "nihongo o tsukau koto ga dekimasen",
-    "en": "I cannot use Japanese here.",
-    "it": "Non posso usare il giapponese qui."
+    "en": "I cannot use Japanese.",
+    "it": "Non posso usare il giapponese."
   },
   {
     "id": "neighborhood-services-2-t5",
@@ -5548,8 +5548,8 @@
     "interrogative": false,
     "jp": "にほんごをはなすことができません",
     "romaji": "nihongo o hanasu koto ga dekimasen",
-    "en": "I cannot speak Japanese here.",
-    "it": "Non posso parlare giapponese qui."
+    "en": "I cannot speak Japanese.",
+    "it": "Non posso parlare giapponese."
   },
   {
     "id": "neighborhood-services-3-m1",
@@ -7292,8 +7292,8 @@
     "interrogative": false,
     "jp": "なまえをかくことができます",
     "romaji": "namae o kaku koto ga dekimasu",
-    "en": "I can write my name here.",
-    "it": "Posso scrivere il mio nome qui."
+    "en": "I can write my name.",
+    "it": "Posso scrivere il mio nome."
   },
   {
     "id": "shopping-returns-3-m2",
@@ -7500,8 +7500,8 @@
     "interrogative": false,
     "jp": "にほんごをはなすことができます",
     "romaji": "nihongo o hanasu koto ga dekimasu",
-    "en": "You can speak Japanese here.",
-    "it": "Qui si può parlare giapponese."
+    "en": "You can speak Japanese.",
+    "it": "Si può parlare giapponese."
   },
   {
     "id": "shopping-returns-4-m1",
@@ -8426,8 +8426,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "てんいんさん、よやくをおねがいします",
-    "romaji": "ten'in san, yoyaku o onegaishimasu",
+    "jp": "うけつけさん、よやくをおねがいします",
+    "romaji": "uketsuke san, yoyaku o onegaishimasu",
     "en": "Excuse me, I'd like to make an appointment.",
     "it": "Scusi, vorrei prendere un appuntamento."
   },
@@ -8442,8 +8442,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "てんいんさん、いつあいていますか",
-    "romaji": "ten'in san, itsu aite imasu ka",
+    "jp": "うけつけさん、いつあいていますか",
+    "romaji": "uketsuke san, itsu aite imasu ka",
     "en": "Excuse me, when are you open?",
     "it": "Scusi, quando siete aperti?"
   },
@@ -8458,8 +8458,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "てんいんさん、じかんをへんこうできますか",
-    "romaji": "ten'in san, jikan o henkou dekimasu ka",
+    "jp": "うけつけさん、じかんをへんこうできますか",
+    "romaji": "uketsuke san, jikan o henkou dekimasu ka",
     "en": "Excuse me, can you change the time?",
     "it": "Scusi, potete cambiare l'orario?"
   },
@@ -8490,8 +8490,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "てんいんさん、あしたでもいいですか",
-    "romaji": "ten'in san, ashita demo ii desu ka",
+    "jp": "うけつけさん、あしたでもいいですか",
+    "romaji": "uketsuke san, ashita demo ii desu ka",
     "en": "Excuse me, is tomorrow okay too?",
     "it": "Scusi, va bene anche domani?"
   },
@@ -8810,10 +8810,10 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "メールをつたえてください",
-    "romaji": "meeru o tsutaete kudasai",
-    "en": "Please pass along the email.",
-    "it": "Per favore, gira l'email."
+    "jp": "でんごんをつたえてください",
+    "romaji": "dengon o tsutaete kudasai",
+    "en": "Please pass along the message.",
+    "it": "Per favore, riferisci il messaggio."
   },
   {
     "id": "work-study-messages-2-m4",
@@ -8858,10 +8858,10 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "しょるいをつたえてください",
-    "romaji": "shorui o tsutaete kudasai",
-    "en": "Please pass along the documents.",
-    "it": "Per favore, gira i documenti."
+    "jp": "よていをつたえてください",
+    "romaji": "yotei o tsutaete kudasai",
+    "en": "Please pass along the schedule.",
+    "it": "Per favore, riferisci il programma."
   },
   {
     "id": "work-study-messages-2-m7",
@@ -8922,10 +8922,10 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "しごとをつたえてください",
-    "romaji": "shigoto o tsutaete kudasai",
-    "en": "Please pass along the task.",
-    "it": "Per favore, gira il compito."
+    "jp": "えみさん、でんごんをつたえてください",
+    "romaji": "emi san, dengon o tsutaete kudasai",
+    "en": "Emi, please pass along the message.",
+    "it": "Emi, per favore riferisci il messaggio."
   },
   {
     "id": "work-study-messages-2-t2",
@@ -9370,10 +9370,10 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "ともだちはありがとうございます",
-    "romaji": "tomodachi wa arigatou gozaimasu",
-    "en": "The friend says thank you.",
-    "it": "L'amico dice grazie."
+    "jp": "そらさん、ありがとうございます",
+    "romaji": "sora san, arigatou gozaimasu",
+    "en": "Sora, thank you.",
+    "it": "Sora, grazie."
   },
   {
     "id": "work-study-messages-4-t4",
@@ -9436,8 +9436,8 @@
     "interrogative": false,
     "jp": "にほんごをはなすことができます",
     "romaji": "nihongo o hanasu koto ga dekimasu",
-    "en": "You can speak Japanese here.",
-    "it": "Qui si può parlare giapponese."
+    "en": "You can speak Japanese.",
+    "it": "Si può parlare giapponese."
   },
   {
     "id": "travel-reservations-1-m2",
@@ -9482,8 +9482,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "てんいんさん、へやのよやくをおねがいします",
-    "romaji": "ten'in san, heya no yoyaku o onegaishimasu",
+    "jp": "フロントさん、へやのよやくをおねがいします",
+    "romaji": "furonto san, heya no yoyaku o onegaishimasu",
     "en": "Excuse me, I'd like to reserve a room.",
     "it": "Scusi, vorrei prenotare una stanza."
   },
@@ -9498,8 +9498,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "てんいんさん、へやはありますか",
-    "romaji": "ten'in san, heya wa arimasu ka",
+    "jp": "フロントさん、へやはありますか",
+    "romaji": "furonto san, heya wa arimasu ka",
     "en": "Excuse me, do you have a room available?",
     "it": "Scusi, avete una stanza disponibile?"
   },
@@ -9514,10 +9514,10 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "そらはひとりです",
-    "romaji": "sora wa hitori desu",
-    "en": "It's one person for Sora.",
-    "it": "È una persona per Sora."
+    "jp": "そらさん、へやはありますか",
+    "romaji": "sora san, heya wa arimasu ka",
+    "en": "Sora, do you have a room available?",
+    "it": "Sora, c'è una stanza disponibile?"
   },
   {
     "id": "travel-reservations-1-m7",
@@ -9549,7 +9549,7 @@
     "jp": "えみさん、へやはありますか",
     "romaji": "emi san, heya wa arimasu ka",
     "en": "Emi, do you have a room available?",
-    "it": "Emi, avete una stanza disponibile?"
+    "it": "Emi, c'è una stanza disponibile?"
   },
   {
     "id": "travel-reservations-1-m9",
@@ -9642,8 +9642,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "てんいんさん、ひとりです",
-    "romaji": "ten'in san, hitori desu",
+    "jp": "フロントさん、ひとりです",
+    "romaji": "furonto san, hitori desu",
     "en": "Excuse me, it's for one person.",
     "it": "Scusi, è per una persona."
   },
@@ -10010,8 +10010,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "てんいんさん、たすけてください",
-    "romaji": "ten'in san, tasukete kudasai",
+    "jp": "フロントさん、たすけてください",
+    "romaji": "furonto san, tasukete kudasai",
     "en": "Excuse me, please help!",
     "it": "Scusi, mi aiuti!"
   },
@@ -10202,8 +10202,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "てんいんさん、よやくをへんこうできますか",
-    "romaji": "ten'in san, yoyaku o henkou dekimasu ka",
+    "jp": "フロントさん、よやくをへんこうできますか",
+    "romaji": "furonto san, yoyaku o henkou dekimasu ka",
     "en": "Excuse me, can you change the reservation?",
     "it": "Scusi, potete cambiare la prenotazione?"
   },
@@ -10218,8 +10218,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "てんいんさん、ひづけをかえてください",
-    "romaji": "ten'in san, hiduke o kaete kudasai",
+    "jp": "フロントさん、ひづけをかえてください",
+    "romaji": "furonto san, hiduke o kaete kudasai",
     "en": "Excuse me, please change the date.",
     "it": "Scusi, cambi la data."
   },
@@ -10250,8 +10250,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "てんいんさん、キャンセルりょうきんはいくらですか",
-    "romaji": "ten'in san, kyanseru ryoukin wa ikura desu ka",
+    "jp": "フロントさん、キャンセルりょうきんはいくらですか",
+    "romaji": "furonto san, kyanseru ryoukin wa ikura desu ka",
     "en": "Excuse me, how much is the cancellation fee?",
     "it": "Scusi, quanto costa la cancellazione?"
   },
@@ -10330,8 +10330,8 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "てんいんさん、これをキャンセルします",
-    "romaji": "ten'in san, kore o kyanseru shimasu",
+    "jp": "フロントさん、これをキャンセルします",
+    "romaji": "furonto san, kore o kyanseru shimasu",
     "en": "Excuse me, I'll cancel this.",
     "it": "Scusi, cancello questo."
   },
@@ -11580,8 +11580,8 @@
     "interrogative": false,
     "jp": "たべてはいけません",
     "romaji": "tabete wa ikemasen",
-    "en": "You must not eat here.",
-    "it": "Non si può mangiare qui."
+    "en": "You must not eat.",
+    "it": "Non si può mangiare."
   },
   {
     "id": "practical-texts-2-t2",
@@ -12364,8 +12364,8 @@
     "interrogative": false,
     "jp": "カードをつかうことができます",
     "romaji": "kaado o tsukau koto ga dekimasu",
-    "en": "You can use a card here.",
-    "it": "Qui si può usare la carta."
+    "en": "You can use a card.",
+    "it": "Si può usare la carta."
   },
   {
     "id": "a2-synthesis-2-m7",
@@ -12396,8 +12396,8 @@
     "interrogative": false,
     "jp": "メニューをよむことができます",
     "romaji": "menyuu o yomu koto ga dekimasu",
-    "en": "You can read the menu here.",
-    "it": "Qui si può leggere il menu."
+    "en": "You can read the menu.",
+    "it": "Si può leggere il menu."
   },
   {
     "id": "a2-synthesis-2-t1",
