@@ -315,21 +315,20 @@ describe("A2 Module 1 — Task4 final spec-fix (natural vocative + no double-top
     expect(sentence.canonicalJapanese).not.toContain("えみは");
   });
 
-  it("cc3-t5 no longer addresses a common noun (ともだち) as a name — it recombines self with the already-modeled (cc3-m6) a2-value-clarify-kikoemasen instead, distinct from m5's imikotoba question", () => {
+  it("cc3-t5 does not address a common noun as a name and does not place a topic before an interjection — it uses a vocative address with sora", () => {
     const variant = findVariant(2, "connected-conversation-3-t5");
-    expect(variant.discourse.subjectRealization).toBe("explicit");
-    expect(variant.discourse.subjectReferentId).toBe("a2-referent-self");
+    expect(variant.discourse.subjectRealization).toBe("vocative");
+    expect(variant.discourse.subjectReferentId).toBe("a2-referent-sora");
     expect(variant.slotValues.predicate).toBe("a2-value-clarify-kikoemasen");
     const sentence = realize(variant);
     const romaji = formatRomaji(sentence.tokens);
     expect(romaji.ok).toBe(true);
     if (!romaji.ok) throw new Error("unreachable");
-    expect(sentence.canonicalJapanese).toBe("わたしはすみません、きこえませんでした");
-    expect(romaji.text).toBe("watashi wa sumimasen, kikoemasen deshita");
     expect(sentence.canonicalJapanese).not.toContain("ともだち");
+    expect(sentence.canonicalJapanese).not.toMatch(/は.*すみません/);
     const { en, it } = translationFor(2, "connected-conversation-3-t5");
-    expect(en).toBe("Sorry, I couldn't hear.");
-    expect(it).toBe("Scusa, non ho sentito.");
+    expect(en).toBe("Sora, sorry, I couldn't hear.");
+    expect(it).toBe("Sora, scusa, non ho sentito.");
   });
 
   it("cc2-t1 no longer double-topics わたしは...きょうは... — it recombines self with the already-modeled (cc2-m8) topic-free a2-value-connector-shigoto-sorekara-kaeru instead", () => {

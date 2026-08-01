@@ -214,9 +214,9 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     // longer duplicates m5's imi-wa question rendering.
     clarifyLine("connected-conversation-3-t1", "a2-value-clarify-mouichido", "a2-context-workplace", L("Sora, sorry, one more time, please.", "Sora, scusa, un'altra volta, per favore."), "a2-role-sora", "a2-referent-sora", undefined, "vocative"),
     clarifyLine("connected-conversation-3-t2", "a2-value-clarify-yukkuri", "a2-context-conversation", L("Emi, a little more slowly, please.", "Emi, un po' più lentamente, per favore."), "a2-role-learner", "a2-referent-emi", undefined, "vocative"),
-    clarifyLine("connected-conversation-3-t3", "a2-value-clarify-wakarimasen", "a2-context-among-friends", L("Sorry, I don't understand.", "Scusa, non capisco."), "a2-role-colleague", "a2-referent-self", A2_NEGATIVE_PRESENT_POLITE),
+    clarifyLine("connected-conversation-3-t3", "a2-value-clarify-wakarimasen", "a2-context-among-friends", L("Emi, sorry, I don't understand.", "Emi, scusa, non capisco."), "a2-role-colleague", "a2-referent-emi", A2_NEGATIVE_PRESENT_POLITE, "vocative"),
     clarifyLine("connected-conversation-3-t4", "a2-value-clarify-wakarimashita", "a2-context-cafe", L("I understood.", "Ho capito."), "a2-role-emi", "a2-referent-self", A2_AFFIRMATIVE_PAST_POLITE),
-    clarifyLine("connected-conversation-3-t5", "a2-value-clarify-kikoemasen", "a2-context-conversation", L("Sorry, I couldn't hear.", "Scusa, non ho sentito."), "a2-role-teacher", "a2-referent-self", A2_NEGATIVE_PAST_POLITE),
+    clarifyLine("connected-conversation-3-t5", "a2-value-clarify-kikoemasen", "a2-context-conversation", L("Sora, sorry, I couldn't hear.", "Sora, scusa, non ho sentito."), "a2-role-teacher", "a2-referent-sora", A2_NEGATIVE_PAST_POLITE, "vocative"),
   ],
 });
 

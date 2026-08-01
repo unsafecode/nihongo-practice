@@ -228,7 +228,7 @@ const lesson4: A2BuiltLesson = buildA2InstructionalLesson({
   transfers: [
     line("work-study-messages-4-t1", "a2-family-reply-confirm", "a2-value-reply-daijoubudesu", WORK_STUDY, L("Sora, that's fine.", "Sora, va bene."), { subjectReferent: "a2-referent-sora", subjectRealization: "vocative", speakerRole: "a2-role-colleague" }),
     line("work-study-messages-4-t2", "a2-family-reply-confirm", "a2-value-reply-wakarimashita", WORKPLACE, L("Emi, understood.", "Emi, capito."), { subjectReferent: "a2-referent-emi", subjectRealization: "vocative", speakerRole: "a2-role-teacher" , form: PAST_AFFIRMATIVE }),
-    line("work-study-messages-4-t3", "a2-family-reply-confirm", "a2-value-reply-arigatougozaimasu", WORK_STUDY, L("The friend says thank you.", "L'amico dice grazie."), { subjectReferent: "a2-referent-friend", subjectRealization: "explicit", speakerRole: "a2-role-colleague" }),
+    line("work-study-messages-4-t3", "a2-family-reply-confirm", "a2-value-reply-arigatougozaimasu", WORK_STUDY, L("Sora, thank you.", "Sora, grazie."), { subjectReferent: "a2-referent-sora", subjectRealization: "vocative", speakerRole: "a2-role-colleague" }),
     line("work-study-messages-4-t4", "a2-family-reply-confirm", "a2-value-reply-shouchishimashita", WORK_STUDY, L("Sora, understood, will do.", "Sora, capito, me ne occupo."), { subjectReferent: "a2-referent-sora", subjectRealization: "vocative", speakerRole: "a2-role-teacher" , form: PAST_AFFIRMATIVE }),
     line("work-study-messages-4-t5", "a2-family-reply-confirm", "a2-value-reply-wakarimashita", WORKPLACE, L("The colleague understood.", "Il collega ha capito."), { subjectReferent: "a2-referent-colleague", subjectRealization: "explicit", speakerRole: "a2-role-learner" , form: PAST_AFFIRMATIVE }),
   ],
