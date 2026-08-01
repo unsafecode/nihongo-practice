@@ -312,6 +312,25 @@ export interface SemanticValue {
    * `a2RealizedIntegrity.test.ts`.
    */
   readonly carriesOwnTopic?: boolean;
+  /**
+   * What kind of thing this predicate value predicates. Declared only on
+   * `kind: "predicate-sense"` values, and only where the distinction is
+   * load-bearing.
+   *
+   *  - `"quantity"` — a measure or headcount (`ひとりです`). Predicates over
+   *    the situation, never over a person, so an animate topic is a type
+   *    error: `そらはひとりです` says "Sora is one person".
+   *  - `"weather"` — a meteorological event (`あめだった`, `あめがふる`).
+   *    Japanese weather clauses are impersonal; an animate topic says "I was
+   *    rain".
+   *  - `"formula"` — a fixed social formula (`ありがとうございます`) with no
+   *    propositional subject at all.
+   *
+   * Absent means "an ordinary action/state/property predicate", which takes an
+   * animate topic normally. `a2ContentInvariants.test.ts` C1b rejects any
+   * animate explicit topic over a `quantity` / `weather` / `formula` value.
+   */
+  readonly predicateSemanticType?: "quantity" | "weather" | "formula";
 }
 
 /** One slot a sentence family's realization rule fills from a semantic value. */

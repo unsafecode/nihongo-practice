@@ -2458,6 +2458,8 @@ const a2AuthoredValuesM4: readonly SemanticValue[] = [
     id: "a2-value-node-ame-ie",
     kind: "predicate-sense",
     senseId: "a2-sense-node-ame-ie",
+    // a2-value-node-ame-ie — impersonal weather clause.
+    predicateSemanticType: "weather",
     tokenFragments: [
       frag("あめだった", "ame datta"),
       particleFrag("ので", "node"),
@@ -2580,6 +2582,8 @@ const a2AuthoredValuesM4: readonly SemanticValue[] = [
     id: "a2-value-kara-ame-kasa",
     kind: "predicate-sense",
     senseId: "a2-sense-kara-ame-kasa",
+    // a2-value-kara-ame-kasa — impersonal weather clause.
+    predicateSemanticType: "weather",
     tokenFragments: [frag("あめが", "ame ga"), frag("ふる", "furu"), particleFrag("から", "kara"), punctFrag("、", ","), frag("かさを", "kasa o"), frag("もっていきます", "motte ikimasu")],
   },
   {
@@ -2637,6 +2641,8 @@ const a2AuthoredValuesM4: readonly SemanticValue[] = [
     id: "a2-value-node-ame-futta-uchi",
     kind: "predicate-sense",
     senseId: "a2-sense-node-ame-futta-uchi",
+    // a2-value-node-ame-futta-uchi — impersonal weather clause.
+    predicateSemanticType: "weather",
     tokenFragments: [frag("あめが", "ame ga"), frag("ふった", "futta"), particleFrag("ので", "node"), punctFrag("、", ","), frag("うちに", "uchi ni"), frag("いました", "imashita")],
   },
   {
@@ -3075,7 +3081,14 @@ const a2AuthoredValuesM11: readonly SemanticValue[] = [
   // --- reply-confirm (whole-clause bake; WSM-4) ---
   { id: "a2-value-reply-wakarimashita", kind: "predicate-sense", senseId: "a2-sense-reply-wakarimashita", tokenFragments: [frag("わかりました", "wakarimashita")] },
   { id: "a2-value-reply-daijoubudesu", kind: "predicate-sense", senseId: "a2-sense-reply-daijoubudesu", tokenFragments: [frag("だいじょうぶです", "daijoubu desu")] },
-  { id: "a2-value-reply-arigatougozaimasu", kind: "predicate-sense", senseId: "a2-sense-reply-arigatougozaimasu", tokenFragments: [frag("ありがとうございます", "arigatou gozaimasu")] },
+  {
+    id: "a2-value-reply-arigatougozaimasu",
+    kind: "predicate-sense",
+    senseId: "a2-sense-reply-arigatougozaimasu",
+    // a2-value-reply-arigatougozaimasu — a fixed social formula with no propositional subject.
+    predicateSemanticType: "formula",
+    tokenFragments: [frag("ありがとうございます", "arigatou gozaimasu")],
+  },
   { id: "a2-value-reply-shouchishimashita", kind: "predicate-sense", senseId: "a2-sense-reply-shouchishimashita", tokenFragments: [frag("しょうちしました", "shouchi shimashita")] },
 ];
 
@@ -3100,7 +3113,15 @@ const a2AuthoredValuesM12: readonly SemanticValue[] = [
   // --- make-reservation (whole-clause bake; TR-1) ---
   { id: "a2-value-resv-yoyaku-shitai", kind: "predicate-sense", senseId: "a2-sense-resv-yoyaku-shitai", tokenFragments: [frag("へやの", "heya no"), frag("よやくを", "yoyaku o"), frag("おねがいします", "onegaishimasu")] },
   { id: "a2-value-resv-heya-arimasuka", kind: "predicate-sense", senseId: "a2-sense-resv-heya-arimasuka", tokenFragments: [frag("へやは", "heya wa"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.aru)), frag("か", "ka", "particle")] },
-  { id: "a2-value-resv-hitori-desu", kind: "predicate-sense", senseId: "a2-sense-resv-hitori-desu", tokenFragments: [frag("ひとりです", "hitori desu")] },
+  {
+    id: "a2-value-resv-hitori-desu",
+    kind: "predicate-sense",
+    senseId: "a2-sense-resv-hitori-desu",
+    // a2-value-resv-hitori-desu — a headcount for the booking, never a property
+    // of a person. An animate topic would read "Sora is one person".
+    predicateSemanticType: "quantity",
+    tokenFragments: [frag("ひとりです", "hitori desu")],
+  },
   // intentions-plans true transfer (M2 family recurrence, travel-flavored)
   { id: "a2-value-plan-ryokou-yotei", kind: "predicate-sense", senseId: "a2-sense-plan-ryokou-yotei", tokenFragments: [frag("らいしゅう", "raishuu"), frag("りょこうの", "ryokou no"), frag("よてい", "yotei"), frag("です", "desu")] },
 
