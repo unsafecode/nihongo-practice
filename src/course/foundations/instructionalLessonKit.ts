@@ -189,6 +189,18 @@ export interface InstructionalLessonKitConfig<TRecipe> {
    * `variantFromTuple`-equivalent plus translation/scenario copy-id entries). */
   readonly buildVariant: (spec: KitResolvedVariantSpec) => KitBuiltVariant;
   readonly modelCountRange: readonly [number, number];
+  /**
+   * The hand-declared minimum number of distinct sentence families a lesson's
+   * models must span. Hand-declared, never derived from the models being
+   * validated — deriving it made `checkModelDiversity` compare `n < n`, so the
+   * gate could not fire on any lesson in either level.
+   *
+   * Both shipped levels declare `1`: 26 of 60 A2 lessons and 10 of 44 A1
+   * lessons genuinely teach a single family, because family count is not this
+   * course's diversity lever. Predicate, role, context and unique-visible-
+   * target diversity are, and those gates carry real margin.
+   */
+  readonly minFamilies: number;
   readonly exerciseCountRange: readonly [number, number];
   /** Each of the two practice rounds selects this many targets. */
   readonly roundTargetCount: number;
@@ -308,7 +320,8 @@ export interface BuiltInstructionalLesson<TRecipe> {
  * contract every A1/A2 instructional lesson shares: ≥3 predicates, ≥3 roles,
  * ≥2 contexts, ≥5 unique targets per round, reuse ≤2, `roundTargetCount`
  * transfer exercises, controlled construction required. `minFamilies` is
- * derived from the models' distinct families (never hand-declared).
+ * hand-declared by the kit config (never derived from the models being
+ * validated — a derived floor can only ever compare `n < n`).
  */
 export function buildInstructionalLesson<TRecipe>(
   config: InstructionalLessonKitConfig<TRecipe>,
@@ -319,12 +332,10 @@ export function buildInstructionalLesson<TRecipe>(
   const modelIds = modelBuilt.map((b) => b.variant.id);
   const transferIds = transferBuilt.map((b) => b.variant.id);
 
-  const modelFamilies = new Set(modelBuilt.map((b) => b.variant.sentenceFamilyId));
-
   const diversityConstraints: LessonDiversityConstraints = {
     modelCountRange: config.modelCountRange,
     exerciseCountRange: config.exerciseCountRange,
-    minFamilies: modelFamilies.size,
+    minFamilies: config.minFamilies,
     minPredicates: 3,
     minRoles: 3,
     minContexts: 2,

@@ -360,6 +360,7 @@ const A1_INSTRUCTIONAL_KIT_CONFIG: InstructionalLessonKitConfig<A1LessonRecipe> 
   scenarioCopy: a1Scenario,
   buildVariant: a1Variant,
   modelCountRange: [8, 8],
+  minFamilies: 1,
   exerciseCountRange: [10, 10],
   roundTargetCount: 5,
   roundOneExerciseKinds: A1_ROUND_ONE_KINDS,
@@ -375,7 +376,8 @@ const A1_INSTRUCTIONAL_KIT_CONFIG: InstructionalLessonKitConfig<A1LessonRecipe> 
  * are fixed to the A1 depth contract: eight models, ten exercises, ≥3
  * predicates, ≥3 roles, ≥2 contexts, five unique targets per round, reuse ≤2,
  * five transfer exercises, controlled construction required. `minFamilies` is
- * derived from the models' distinct families (never hand-declared). Delegates
+ * declared as 1 (the honest floor — 10 of 44 A1 lessons genuinely teach a single
+ * family). Delegates
  * every level-agnostic assembly step to the shared
  * `instructionalLessonKit.buildInstructionalLesson`.
  */

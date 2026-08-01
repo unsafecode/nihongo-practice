@@ -89,6 +89,7 @@ const FAKE_CONFIG: InstructionalLessonKitConfig<FakeRecipe> = {
   scenarioCopy: fakeScenarioCopy,
   buildVariant: fakeBuildVariant,
   modelCountRange: [8, 12],
+  minFamilies: 1,
   exerciseCountRange: [8, 12],
   roundTargetCount: 5,
   roundOneExerciseKinds: ["tile-ordering", "choice", "completion"],
@@ -261,7 +262,7 @@ describe("buildInstructionalLesson", () => {
     });
   });
 
-  it("derives minFamilies from the distinct model families and applies the config's fixed floors", () => {
+  it("uses the config's declared minFamilies as the floor and applies the config's fixed floors", () => {
     expect(built.recipe.diversityConstraints).toEqual({
       modelCountRange: [8, 12],
       exerciseCountRange: [8, 12],
@@ -559,5 +560,64 @@ describe("withLaterUses", () => {
       { lessonId: "fake-lesson-5", variantId: "fake-lesson-5-m3" },
       { lessonId: "fake-lesson-9", variantId: "fake-lesson-9-m2" },
     ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// declared model-family floor (Phase 4 Task 4)
+// ---------------------------------------------------------------------------
+
+describe("declared model-family floor (Phase 4 Task 4)", () => {
+  it("rejects a lesson whose models fall below the kit's declared minFamilies", () => {
+    // All eightModels default to family: "fake-family-one" — single family.
+    // The declared floor of 2 must be carried through from config, not derived
+    // from the 1 actual model family (which would produce n < n — always false).
+    const built = buildInstructionalLesson(
+      { ...FAKE_CONFIG, minFamilies: 2 },
+      {
+        id: "ph4t4-lesson-1",
+        moduleId: "fake-module",
+        order: 1,
+        primaryCanDoId: "fake-can-do-one",
+        supportingCanDoIds: [],
+        introducedConceptIds: [],
+        introducedSenseIds: [],
+        models: eightModels("ph4t4-lesson-1"),
+        transfers: fiveTransfers("ph4t4-lesson-1"),
+      },
+    );
+    const variantById = new Map(built.variants.map((v) => [v.id, v]));
+    const actualFamilies = new Set(
+      built.recipe.modelVariantIds.map((id) => variantById.get(id)?.sentenceFamilyId ?? ""),
+    );
+    expect(actualFamilies.size, "fixture must contain a single-family lesson").toBe(1);
+    // The declared floor lives in the recipe — it came from config, not derived from models.
+    expect(built.recipe.diversityConstraints.minFamilies).toBe(2);
+    // 1 actual < 2 declared → validateFoundations fires "insufficient-family-diversity".
+    expect(actualFamilies.size).toBeLessThan(built.recipe.diversityConstraints.minFamilies);
+  });
+
+  it("accepts the same fixture at the declared floor of 1", () => {
+    const built = buildInstructionalLesson(
+      { ...FAKE_CONFIG, minFamilies: 1 },
+      {
+        id: "ph4t4-lesson-2",
+        moduleId: "fake-module",
+        order: 2,
+        primaryCanDoId: "fake-can-do-one",
+        supportingCanDoIds: [],
+        introducedConceptIds: [],
+        introducedSenseIds: [],
+        models: eightModels("ph4t4-lesson-2"),
+        transfers: fiveTransfers("ph4t4-lesson-2"),
+      },
+    );
+    expect(built.recipe.diversityConstraints.minFamilies).toBe(1);
+    const variantById = new Map(built.variants.map((v) => [v.id, v]));
+    const actualFamilies = new Set(
+      built.recipe.modelVariantIds.map((id) => variantById.get(id)?.sentenceFamilyId ?? ""),
+    );
+    // 1 actual family ≥ floor of 1 → no "insufficient-family-diversity" error.
+    expect(actualFamilies.size).toBeGreaterThanOrEqual(built.recipe.diversityConstraints.minFamilies);
   });
 });

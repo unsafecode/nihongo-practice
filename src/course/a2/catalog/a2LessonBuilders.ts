@@ -487,6 +487,7 @@ const A2_INSTRUCTIONAL_KIT_CONFIG: InstructionalLessonKitConfig<A2LessonRecipeWi
   scenarioCopy: a2Scenario,
   buildVariant: a2Variant,
   modelCountRange: A2_INSTRUCTIONAL_MODEL_COUNT_RANGE,
+  minFamilies: 1,
   exerciseCountRange: A2_EXERCISE_COUNT_RANGE,
   roundTargetCount: 5,
   roundOneExerciseKinds: A2_ROUND_ONE_KINDS,
