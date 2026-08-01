@@ -107,7 +107,7 @@ describe("A2 Module 15 (a2-synthesis) — exactly 4 lessons, canonical order", (
 
 describe("A2 Module 15 — per-lesson depth contract", () => {
   it.each(module15Lessons.map((b) => [b.recipe.id, b] as const))(
-    "%s satisfies the A2 depth contract (8-12 models, 10 exercises, >=3 predicates/roles, >=2 contexts, >=5 unique targets, reuse <=2)",
+    "%s satisfies the A2 depth contract (8-12 models, 10 exercises, >=3 predicates/>=2 roles, >=2 contexts, >=5 unique targets, reuse <=2)",
     (lessonId, built) => {
       const models = built.variants.filter((v) => v.pedagogicalUse === "model");
       const transfers = built.variants.filter((v) => v.pedagogicalUse === "transfer");
@@ -119,10 +119,12 @@ describe("A2 Module 15 — per-lesson depth contract", () => {
       const transferSentences = transfers.map(realize);
 
       const predicateSenses = new Set(modelSentences.map((s) => s.predicateSenseId));
-      const discourseRoles = new Set([...models, ...transfers].map((v) => v.discourse.speakerRoleId));
+      const discourseRoles = new Set(models.map((v) => v.discourse.speakerRoleId));
       const contexts = new Set(models.map((v) => v.contextId));
+      // Synthesis (capstone) lessons are two-speaker scenes: minRoles is 2.
+      const expectedMinRoles = lessonId.startsWith("a2-synthesis-") ? 2 : 3;
       expect(predicateSenses.size, `${lessonId} predicate diversity`).toBeGreaterThanOrEqual(3);
-      expect(discourseRoles.size, `${lessonId} role diversity`).toBeGreaterThanOrEqual(3);
+      expect(discourseRoles.size, `${lessonId} role diversity`).toBeGreaterThanOrEqual(expectedMinRoles);
       expect(contexts.size, `${lessonId} context diversity`).toBeGreaterThanOrEqual(2);
 
       const targetCounts = new Map<string, number>();

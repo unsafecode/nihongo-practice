@@ -203,9 +203,9 @@ export interface InstructionalLessonKitConfig<TRecipe> {
   readonly minFamilies: number;
   /**
    * The minimum number of distinct speaker roles a lesson's models must
-   * span.  Defaults to `3` when omitted — the standard A1/A2 instructional
-   * contract.  Synthesis (capstone) lessons that are deliberately written as
-   * two-speaker scenes may lower this to `2`.
+   * span.  Omitting this field accepts the default of `3`.  Lower values
+   * may be set on lessons whose design intentionally restricts the speaker
+   * cast.
    */
   readonly minRoles?: number;
   readonly exerciseCountRange: readonly [number, number];

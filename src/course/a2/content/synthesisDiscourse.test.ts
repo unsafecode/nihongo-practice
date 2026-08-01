@@ -21,12 +21,14 @@ describe("synthesis lessons are scenes", () => {
 
   it.each(SYNTHESIS_IDS)("%s never labels a scene line as casual-speech recognition", (lessonId) => {
     const lesson = module15Lessons.find((entry) => entry.recipe.id === lessonId);
-    const models = lesson!.variants.filter((v) => v.pedagogicalUse === "model");
+    expect(lesson, `lesson ${lessonId} not found`).toBeDefined();
+    if (!lesson) return;
+    const models = lesson.variants.filter((v) => v.pedagogicalUse === "model");
     const misplaced = models
       .filter((v) => v.sentenceFamilyId !== "a2-family-plain-recognition")
       .filter((v) => {
-        const en = lesson!.en[`${v.id}-translation`] ?? "";
-        const it = lesson!.it[`${v.id}-translation`] ?? "";
+        const en = lesson.en[`${v.id}-translation`] ?? "";
+        const it = lesson.it[`${v.id}-translation`] ?? "";
         return /casual speech|discorso informale|parlato informale/i.test(`${en} ${it}`);
       })
       .map((v) => v.id);
@@ -35,7 +37,9 @@ describe("synthesis lessons are scenes", () => {
 
   it.each(SYNTHESIS_IDS)("%s groups every casual-speech recognition item at the end", (lessonId) => {
     const lesson = module15Lessons.find((entry) => entry.recipe.id === lessonId);
-    const models = lesson!.variants.filter((v) => v.pedagogicalUse === "model");
+    expect(lesson, `lesson ${lessonId} not found`).toBeDefined();
+    if (!lesson) return;
+    const models = lesson.variants.filter((v) => v.pedagogicalUse === "model");
     const flags = models.map((v) => v.sentenceFamilyId === "a2-family-plain-recognition");
     const firstRecognition = flags.indexOf(true);
     if (firstRecognition === -1) return;
