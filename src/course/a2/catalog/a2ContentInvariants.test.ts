@@ -283,6 +283,9 @@ describe("C6 — comparisons compare comparable things", () => {
       const dimension = row.predicateValueId
         ? valueById.get(row.predicateValueId)?.comparisonDimension
         : undefined;
+      // Rows with no declared comparisonDimension are skipped here because
+      // C6's first test already gates that case, so this test's coverage is
+      // complete only while that test is green.
       if (!dimension) continue;
       for (const slot of COMPARISON_OBJECT_SLOTS) {
         const id = row.variant.slotValues[slot];
