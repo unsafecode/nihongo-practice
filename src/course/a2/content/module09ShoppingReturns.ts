@@ -198,7 +198,7 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     // m11 models a fresh possibility value/object pair, distinct from
     // t4/t5's own M7-reused targets below.
     line("shopping-returns-3-m10", "a2-family-opinion-toomou", "a2-value-opinion-kaban-ii", SHOPPING, L("I think this bag is better.", "Penso che questa borsa sia migliore."), { speakerRole: "a2-role-emi" }),
-    line("shopping-returns-3-m11", "a2-family-possibility", "a2-value-possibility-kaku", SHOPPING, L("I can write my name here.", "Posso scrivere il mio nome qui."), { object: "a2-value-obj-namae", speakerRole: "a2-role-friend" }),
+    line("shopping-returns-3-m11", "a2-family-possibility", "a2-value-possibility-kaku", SHOPPING, L("I can write my name.", "Posso scrivere il mio nome."), { object: "a2-value-obj-namae", speakerRole: "a2-role-friend" }),
   ],
   // Supporting-Can-do transfer: opinion-toomou (M4 family recurrence,
   // shopping-flavored — genuinely reuses "no hou ga" from sr1/sr2 inside a
@@ -214,7 +214,7 @@ const lesson3: A2BuiltLesson = buildA2InstructionalLesson({
     line("shopping-returns-3-t2", "a2-family-opinion-toomou", "a2-value-opinion-kaban-ii", SHOPPING, L("Sora, I think this bag is better.", "Sora, penso che questa borsa sia migliore."), { subjectReferent: "a2-referent-sora", speakerRole: "a2-role-friend" }),
     line("shopping-returns-3-t3", "a2-family-opinion-toomou", "a2-value-opinion-kaban-ii", SHOPPING, L("Emi, I think this bag is better.", "Emi, penso che questa borsa sia migliore."), { subjectReferent: "a2-referent-emi", speakerRole: "a2-role-colleague" }),
     line("shopping-returns-3-t4", "a2-family-possibility", "a2-value-possibility-tsukau", SHOPPING, L("You can use a card.", "Si può usare la carta."), { object: "a2-value-obj-kaado", speakerRole: "a2-role-clerk" }),
-    line("shopping-returns-3-t5", "a2-family-possibility", "a2-value-possibility-hanasu", SHOPPING, L("You can speak Japanese here.", "Qui si può parlare giapponese."), { object: "a2-value-obj-nihongo-m7", speakerRole: "a2-role-clerk" }),
+    line("shopping-returns-3-t5", "a2-family-possibility", "a2-value-possibility-hanasu", SHOPPING, L("You can speak Japanese.", "Si può parlare giapponese."), { object: "a2-value-obj-nihongo-m7", speakerRole: "a2-role-clerk" }),
   ],
 });
 

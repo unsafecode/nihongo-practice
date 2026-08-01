@@ -117,20 +117,20 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
   introducedSenseIds: [],
   models: [
     line("neighborhood-services-1-m1", "a2-family-possibility", "a2-value-possibility-tsukau", "a2-context-neighborhood", L("I can use the card.", "Posso usare la tessera."), { object: "a2-value-obj-kaado", speakerRole: "a2-role-learner" }),
-    line("neighborhood-services-1-m2", "a2-family-possibility", "a2-value-possibility-hanasu", "a2-context-neighborhood", L("I can speak English here.", "Posso parlare inglese qui."), { object: "a2-value-obj-eigo", speakerRole: "a2-role-emi" }),
-    line("neighborhood-services-1-m3", "a2-family-possibility", "a2-value-possibility-yomu", "a2-context-rules", L("I can read the book here.", "Posso leggere il libro qui."), { object: "a2-value-obj-hon-m5", speakerRole: "a2-role-sora" }),
-    line("neighborhood-services-1-m4", "a2-family-possibility", "a2-value-possibility-oyogu", "a2-context-outing", L("I can swim here.", "Posso nuotare qui."), { speakerRole: "a2-role-colleague" }),
-    line("neighborhood-services-1-m5", "a2-family-possibility", "a2-value-possibility-kaku", "a2-context-neighborhood", L("I can write my name here.", "Posso scrivere il mio nome qui."), { object: "a2-value-obj-namae", speakerRole: "a2-role-teacher" }),
+    line("neighborhood-services-1-m2", "a2-family-possibility", "a2-value-possibility-hanasu", "a2-context-neighborhood", L("I can speak English.", "Posso parlare inglese."), { object: "a2-value-obj-eigo", speakerRole: "a2-role-emi" }),
+    line("neighborhood-services-1-m3", "a2-family-possibility", "a2-value-possibility-yomu", "a2-context-rules", L("I can read the book.", "Posso leggere il libro."), { object: "a2-value-obj-hon-m5", speakerRole: "a2-role-sora" }),
+    line("neighborhood-services-1-m4", "a2-family-possibility", "a2-value-possibility-oyogu", "a2-context-outing", L("I can swim.", "Posso nuotare."), { speakerRole: "a2-role-colleague" }),
+    line("neighborhood-services-1-m5", "a2-family-possibility", "a2-value-possibility-kaku", "a2-context-neighborhood", L("I can write my name.", "Posso scrivere il mio nome."), { object: "a2-value-obj-namae", speakerRole: "a2-role-teacher" }),
     line("neighborhood-services-1-m6", "a2-family-permission-temoii", "a2-value-temoii-nomu", "a2-context-neighborhood", L("May I drink water?", "Posso bere l'acqua?"), { object: "a2-value-obj-mizu", interrogative: true, speakerRole: "a2-role-learner" }),
     line("neighborhood-services-1-m7", "a2-family-permission-temoii-location", "a2-value-temoii-loc-tsukau", "a2-context-neighborhood", L("May I use this at the library?", "Posso usarlo in biblioteca?"), { location: "a2-value-loc-toshokan", interrogative: true, speakerRole: "a2-role-friend" }),
-    line("neighborhood-services-1-m8", "a2-family-possibility", "a2-value-possibility-hanasu", "a2-context-neighborhood", L("I can speak Japanese here.", "Posso parlare giapponese qui."), { object: "a2-value-obj-nihongo-m7", speakerRole: "a2-role-clerk" }),
+    line("neighborhood-services-1-m8", "a2-family-possibility", "a2-value-possibility-hanasu", "a2-context-neighborhood", L("I can speak Japanese.", "Posso parlare giapponese."), { object: "a2-value-obj-nihongo-m7", speakerRole: "a2-role-clerk" }),
     // Phase 3 Task 5 fix ("introduction before use"): possibility's negative
     // ("cannot") sense is a genuinely distinct dedicated sense from its
     // affirmative counterpart (never a shared bucket with a polarity flag),
     // so it must be modeled here too — with a *different* object than the
     // transfers below reuse — before t1/t2 can honestly recombine it.
     line("neighborhood-services-1-m9", "a2-family-possibility", "a2-value-possibility-nashi-tsukau", "a2-context-neighborhood", L("I cannot use the water.", "Non posso usare l'acqua."), { object: "a2-value-obj-mizu", speakerRole: "a2-role-learner" }),
-    line("neighborhood-services-1-m10", "a2-family-possibility", "a2-value-possibility-nashi-hanasu", "a2-context-neighborhood", L("I cannot speak Japanese here.", "Non posso parlare giapponese qui."), { object: "a2-value-obj-nihongo-m7", speakerRole: "a2-role-friend" }),
+    line("neighborhood-services-1-m10", "a2-family-possibility", "a2-value-possibility-nashi-hanasu", "a2-context-neighborhood", L("I cannot speak Japanese.", "Non posso parlare giapponese."), { object: "a2-value-obj-nihongo-m7", speakerRole: "a2-role-friend" }),
     // M4 spec-fix (Phase 3 Task 5 quality pass): ns1's own primary Can-do is
     // authoritatively framed as "ask whether you can do something at a
     // place" (a2-cando-possibility's L1 descriptor cites the illustrative
@@ -144,13 +144,13 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
     // duplicate clause and never the early, unintroduced "tsukaemasu"
     // potential form L1 merely illustrates with (L2 only ever teaches koto
     // ga dekiru).
-    line("neighborhood-services-1-m11", "a2-family-possibility", "a2-value-possibility-tsukau", "a2-context-neighborhood", L("Can I use the card here?", "Si può usare la tessera qui?"), { object: "a2-value-obj-kaado", interrogative: true, speakerRole: "a2-role-learner" }),
+    line("neighborhood-services-1-m11", "a2-family-possibility", "a2-value-possibility-tsukau", "a2-context-neighborhood", L("Can I use the card?", "Si può usare la tessera?"), { object: "a2-value-obj-kaado", interrogative: true, speakerRole: "a2-role-learner" }),
   ],
   transfers: [
     line("neighborhood-services-1-t1", "a2-family-possibility", "a2-value-possibility-nashi-tsukau", "a2-context-neighborhood", L("I cannot use the card.", "Non posso usare la tessera."), { object: "a2-value-obj-kaado" }),
-    line("neighborhood-services-1-t2", "a2-family-possibility", "a2-value-possibility-nashi-hanasu", "a2-context-neighborhood", L("I cannot speak English here.", "Non posso parlare inglese qui."), { object: "a2-value-obj-eigo" }),
+    line("neighborhood-services-1-t2", "a2-family-possibility", "a2-value-possibility-nashi-hanasu", "a2-context-neighborhood", L("I cannot speak English.", "Non posso parlare inglese."), { object: "a2-value-obj-eigo" }),
     line("neighborhood-services-1-t3", "a2-family-permission-temoii", "a2-value-temoii-kaku", "a2-context-neighborhood", L("Sora, may I write my name?", "Sora, posso scrivere il mio nome?"), { object: "a2-value-obj-namae", subjectReferent: "a2-referent-sora", interrogative: true }),
-    line("neighborhood-services-1-t4", "a2-family-possibility", "a2-value-possibility-yomu", "a2-context-neighborhood", L("I can read English here.", "Posso leggere inglese qui."), { object: "a2-value-obj-eigo" }),
+    line("neighborhood-services-1-t4", "a2-family-possibility", "a2-value-possibility-yomu", "a2-context-neighborhood", L("I can read English.", "Posso leggere inglese."), { object: "a2-value-obj-eigo" }),
     line("neighborhood-services-1-t5", "a2-family-permission-temoii-location", "a2-value-temoii-loc-hanasu", "a2-context-rules", L("May I talk in the classroom?", "Posso parlare in classe?"), { location: "a2-value-loc-kyoushitsu", interrogative: true }),
   ],
 });
@@ -171,19 +171,19 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
   models: [
     line("neighborhood-services-2-m1", "a2-family-possibility", "a2-value-possibility-tsukau", "a2-context-neighborhood", L("I can use the card.", "Posso usare la tessera."), { object: "a2-value-obj-kaado", speakerRole: "a2-role-learner" }),
     line("neighborhood-services-2-m2", "a2-family-possibility", "a2-value-possibility-nashi-tsukau", "a2-context-neighborhood", L("I cannot use the card.", "Non posso usare la tessera."), { object: "a2-value-obj-kaado", speakerRole: "a2-role-emi" }),
-    line("neighborhood-services-2-m3", "a2-family-possibility", "a2-value-possibility-hanasu", "a2-context-rules", L("I can speak English here.", "Posso parlare inglese qui."), { object: "a2-value-obj-eigo", speakerRole: "a2-role-sora" }),
-    line("neighborhood-services-2-m4", "a2-family-possibility", "a2-value-possibility-nashi-hanasu", "a2-context-rules", L("I cannot speak English here.", "Non posso parlare inglese qui."), { object: "a2-value-obj-eigo", speakerRole: "a2-role-colleague" }),
-    line("neighborhood-services-2-m5", "a2-family-possibility", "a2-value-possibility-yomu", "a2-context-neighborhood", L("I can read the book here.", "Posso leggere il libro qui."), { object: "a2-value-obj-hon-m5", speakerRole: "a2-role-teacher" }),
-    line("neighborhood-services-2-m6", "a2-family-possibility", "a2-value-possibility-yomu", "a2-context-neighborhood", L("I can read Japanese here.", "Posso leggere giapponese qui."), { object: "a2-value-obj-nihongo-m7", speakerRole: "a2-role-friend" }),
-    line("neighborhood-services-2-m7", "a2-family-possibility", "a2-value-possibility-oyogu", "a2-context-neighborhood", L("I can swim here.", "Posso nuotare qui."), { speakerRole: "a2-role-clerk" }),
-    line("neighborhood-services-2-m8", "a2-family-possibility", "a2-value-possibility-kaku", "a2-context-neighborhood", L("I can write my name here.", "Posso scrivere il mio nome qui."), { object: "a2-value-obj-namae", speakerRole: "a2-role-learner" }),
+    line("neighborhood-services-2-m3", "a2-family-possibility", "a2-value-possibility-hanasu", "a2-context-rules", L("I can speak English.", "Posso parlare inglese."), { object: "a2-value-obj-eigo", speakerRole: "a2-role-sora" }),
+    line("neighborhood-services-2-m4", "a2-family-possibility", "a2-value-possibility-nashi-hanasu", "a2-context-rules", L("I cannot speak English.", "Non posso parlare inglese."), { object: "a2-value-obj-eigo", speakerRole: "a2-role-colleague" }),
+    line("neighborhood-services-2-m5", "a2-family-possibility", "a2-value-possibility-yomu", "a2-context-neighborhood", L("I can read the book.", "Posso leggere il libro."), { object: "a2-value-obj-hon-m5", speakerRole: "a2-role-teacher" }),
+    line("neighborhood-services-2-m6", "a2-family-possibility", "a2-value-possibility-yomu", "a2-context-neighborhood", L("I can read Japanese.", "Posso leggere giapponese."), { object: "a2-value-obj-nihongo-m7", speakerRole: "a2-role-friend" }),
+    line("neighborhood-services-2-m7", "a2-family-possibility", "a2-value-possibility-oyogu", "a2-context-neighborhood", L("I can swim.", "Posso nuotare."), { speakerRole: "a2-role-clerk" }),
+    line("neighborhood-services-2-m8", "a2-family-possibility", "a2-value-possibility-kaku", "a2-context-neighborhood", L("I can write my name.", "Posso scrivere il mio nome."), { object: "a2-value-obj-namae", speakerRole: "a2-role-learner" }),
   ],
   transfers: [
-    line("neighborhood-services-2-t1", "a2-family-possibility", "a2-value-possibility-tsukau", "a2-context-neighborhood", L("I can use Japanese here.", "Posso usare il giapponese qui."), { object: "a2-value-obj-nihongo-m7" }),
-    line("neighborhood-services-2-t2", "a2-family-possibility", "a2-value-possibility-hanasu", "a2-context-neighborhood", L("I can speak Japanese here.", "Posso parlare giapponese qui."), { object: "a2-value-obj-nihongo-m7" }),
-    line("neighborhood-services-2-t3", "a2-family-possibility", "a2-value-possibility-kaku", "a2-context-neighborhood", L("I can write in English here.", "Posso scrivere in inglese qui."), { object: "a2-value-obj-eigo" }),
-    line("neighborhood-services-2-t4", "a2-family-possibility", "a2-value-possibility-nashi-tsukau", "a2-context-neighborhood", L("I cannot use Japanese here.", "Non posso usare il giapponese qui."), { object: "a2-value-obj-nihongo-m7" }),
-    line("neighborhood-services-2-t5", "a2-family-possibility", "a2-value-possibility-nashi-hanasu", "a2-context-neighborhood", L("I cannot speak Japanese here.", "Non posso parlare giapponese qui."), { object: "a2-value-obj-nihongo-m7" }),
+    line("neighborhood-services-2-t1", "a2-family-possibility", "a2-value-possibility-tsukau", "a2-context-neighborhood", L("I can use Japanese.", "Posso usare il giapponese."), { object: "a2-value-obj-nihongo-m7" }),
+    line("neighborhood-services-2-t2", "a2-family-possibility", "a2-value-possibility-hanasu", "a2-context-neighborhood", L("I can speak Japanese.", "Posso parlare giapponese."), { object: "a2-value-obj-nihongo-m7" }),
+    line("neighborhood-services-2-t3", "a2-family-possibility", "a2-value-possibility-kaku", "a2-context-neighborhood", L("I can write in English.", "Posso scrivere in inglese."), { object: "a2-value-obj-eigo" }),
+    line("neighborhood-services-2-t4", "a2-family-possibility", "a2-value-possibility-nashi-tsukau", "a2-context-neighborhood", L("I cannot use Japanese.", "Non posso usare il giapponese."), { object: "a2-value-obj-nihongo-m7" }),
+    line("neighborhood-services-2-t5", "a2-family-possibility", "a2-value-possibility-nashi-hanasu", "a2-context-neighborhood", L("I cannot speak Japanese.", "Non posso parlare giapponese."), { object: "a2-value-obj-nihongo-m7" }),
   ],
 });
 

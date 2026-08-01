@@ -142,7 +142,7 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
   // natural comprehension questions confirming a posted notice line (visibly
   // novel via the sentence-final ka, never a person topic over a sign).
   transfers: [
-    line("practical-texts-2-t1", "a2-family-prohibition-tewaikenai", "a2-value-tewaikenai-taberu", NOTICES, L("You must not eat here.", "Non si può mangiare qui."), { speakerRole: "a2-role-friend" }),
+    line("practical-texts-2-t1", "a2-family-prohibition-tewaikenai", "a2-value-tewaikenai-taberu", NOTICES, L("You must not eat.", "Non si può mangiare."), { speakerRole: "a2-role-friend" }),
     line("practical-texts-2-t2", "a2-family-read-notice", "a2-value-notice-aku-9", NOTICES, L("Does this shop open at 9am?", "Questo negozio apre alle 9 del mattino?"), { speakerRole: "a2-role-colleague", interrogative: true }),
     line("practical-texts-2-t3", "a2-family-read-notice", "a2-value-notice-ryoukin-500", NOTICES, L("Is admission 500 yen?", "L'ingresso costa 500 yen?"), { speakerRole: "a2-role-teacher", interrogative: true }),
     line("practical-texts-2-t4", "a2-family-read-notice", "a2-value-notice-kodomo-muryou", WORKPLACE, L("Is it free for children?", "È gratis per i bambini?"), { speakerRole: "a2-role-learner", interrogative: true }),

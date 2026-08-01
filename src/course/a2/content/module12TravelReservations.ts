@@ -122,7 +122,7 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
     // wrapper (t1 below has none, so the visible target still differs);
     // m10 uses a fresh possibility value/object pair, distinct from t2's.
     line("travel-reservations-1-m9", "a2-family-plan-yotei", "a2-value-plan-ryokou-yotei", OUTING, L("Sora, I'm planning to travel next week.", "Sora, ho in programma di viaggiare la prossima settimana."), { subjectReferent: "a2-referent-sora", subjectRealization: "vocative", speakerRole: "a2-role-learner" }),
-    line("travel-reservations-1-m10", "a2-family-possibility", "a2-value-possibility-hanasu", TRAVEL, L("You can speak Japanese here.", "Qui si può parlare giapponese."), { object: "a2-value-obj-nihongo-m7", speakerRole: "a2-role-clerk" }),
+    line("travel-reservations-1-m10", "a2-family-possibility", "a2-value-possibility-hanasu", TRAVEL, L("You can speak Japanese.", "Si può parlare giapponese."), { object: "a2-value-obj-nihongo-m7", speakerRole: "a2-role-clerk" }),
   ],
   // t1/t2 are the genuine supporting-Can-do transfers (intentions-plans and
   // possibility, both reusing an EXISTING M2/M7 family+value verbatim); t3-t5

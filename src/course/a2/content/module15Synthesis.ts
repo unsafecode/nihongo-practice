@@ -162,9 +162,9 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
     line("a2-synthesis-2-m3", "a2-family-ongoing-teiru", "a2-value-teiru-paatii-shiteimasu", SHOPPING, L("I'm having a party.", "Sto facendo una festa."), { object: "a2-value-obj-paatii", speakerRole: "a2-role-colleague" }),
     line("a2-synthesis-2-m4", "a2-family-prohibition-tewaikenai", "a2-value-tewaikenai-shashin", SHOPPING, L("You must not take photos.", "Non si possono scattare foto."), { object: "a2-value-obj-shashin", speakerRole: "a2-role-teacher" }),
     line("a2-synthesis-2-m5", "a2-family-opinion-toomou", "a2-value-opinion-kaban-ii", SHOPPING, L("I think this bag is better.", "Penso che questa borsa sia migliore."), { speakerRole: "a2-role-learner" }),
-    line("a2-synthesis-2-m6", "a2-family-possibility", "a2-value-possibility-tsukau", NEIGHBORHOOD, L("You can use a card here.", "Qui si può usare la carta."), { object: "a2-value-obj-kaado", speakerRole: "a2-role-friend" }),
+    line("a2-synthesis-2-m6", "a2-family-possibility", "a2-value-possibility-tsukau", NEIGHBORHOOD, L("You can use a card.", "Si può usare la carta."), { object: "a2-value-obj-kaado", speakerRole: "a2-role-friend" }),
     line("a2-synthesis-2-m7", "a2-family-comparison-favor", "a2-value-yasui-stem", SHOPPING, L("The train is cheaper than the bus.", "Il treno è più economico dell'autobus."), { favored: "a2-value-obj-densha-m12", standard: "a2-value-obj-basu", speakerRole: "a2-role-colleague" }),
-    line("a2-synthesis-2-m8", "a2-family-possibility", "a2-value-possibility-yomu", NEIGHBORHOOD, L("You can read the menu here.", "Qui si può leggere il menu."), { object: "a2-value-obj-menyuu", speakerRole: "a2-role-teacher" }),
+    line("a2-synthesis-2-m8", "a2-family-possibility", "a2-value-possibility-yomu", NEIGHBORHOOD, L("You can read the menu.", "Si può leggere il menu."), { object: "a2-value-obj-menyuu", speakerRole: "a2-role-teacher" }),
   ],
   // Every transfer recombines an already-taught family with a fresh value
   // (or a fresh subject wrapper on an already-modeled value) not used
