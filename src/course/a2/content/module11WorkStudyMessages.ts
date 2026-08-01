@@ -132,10 +132,10 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
   models: [
     line("work-study-messages-2-m1", "a2-family-ask-colleague", "a2-value-ask-tetsudatte", WORK_STUDY, L("Please help with the documents.", "Per favore, aiutami con i documenti."), { object: "a2-value-obj-shorui", speakerRole: "a2-role-learner" }),
     line("work-study-messages-2-m2", "a2-family-ask-colleague", "a2-value-ask-oshiete", WORK_STUDY, L("Please explain the task to me.", "Per favore, spiegami il compito."), { object: "a2-value-obj-shigoto-m11", speakerRole: "a2-role-colleague" }),
-    line("work-study-messages-2-m3", "a2-family-ask-colleague", "a2-value-ask-tsutaete", WORKPLACE, L("Please pass along the email.", "Per favore, gira l'email."), { object: "a2-value-obj-mail", speakerRole: "a2-role-teacher" }),
+    line("work-study-messages-2-m3", "a2-family-ask-colleague", "a2-value-ask-tsutaete", WORKPLACE, L("Please pass along the message.", "Per favore, riferisci il messaggio."), { object: "a2-value-obj-dengon", speakerRole: "a2-role-teacher" }),
     line("work-study-messages-2-m4", "a2-family-ask-colleague", "a2-value-ask-tetsudatte", WORK_STUDY, L("Please help with the task.", "Per favore, aiutami con il compito."), { object: "a2-value-obj-shigoto-m11", speakerRole: "a2-role-learner" }),
     line("work-study-messages-2-m5", "a2-family-ask-colleague", "a2-value-ask-oshiete", WORKPLACE, L("Please explain the email to me.", "Per favore, spiegami l'email."), { object: "a2-value-obj-mail", speakerRole: "a2-role-colleague" }),
-    line("work-study-messages-2-m6", "a2-family-ask-colleague", "a2-value-ask-tsutaete", WORK_STUDY, L("Please pass along the documents.", "Per favore, gira i documenti."), { object: "a2-value-obj-shorui", speakerRole: "a2-role-teacher" }),
+    line("work-study-messages-2-m6", "a2-family-ask-colleague", "a2-value-ask-tsutaete", WORK_STUDY, L("Please pass along the schedule.", "Per favore, riferisci il programma."), { object: "a2-value-obj-yotei-obj", speakerRole: "a2-role-teacher" }),
     line("work-study-messages-2-m7", "a2-family-ask-colleague", "a2-value-ask-tetsudatte", WORK_STUDY, L("Sora, please help with the documents.", "Sora, aiutami con i documenti."), { object: "a2-value-obj-shorui", subjectReferent: "a2-referent-sora", subjectRealization: "vocative", speakerRole: "a2-role-learner" }),
     line("work-study-messages-2-m8", "a2-family-ask-colleague", "a2-value-ask-oshiete", WORKPLACE, L("Emi, please explain the task to me.", "Emi, spiegami il compito."), { object: "a2-value-obj-shigoto-m11", subjectReferent: "a2-referent-emi", subjectRealization: "vocative", speakerRole: "a2-role-learner" }),
     // m9: request-tekudasai's own "okuru" (send) value must also be
@@ -156,7 +156,7 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
   // unit); t5 reuses the EXISTING M6 hanasu sense verbatim with the
   // already-modeled shigoto-m11 object.
   transfers: [
-    line("work-study-messages-2-t1", "a2-family-ask-colleague", "a2-value-ask-tsutaete", WORK_STUDY, L("Please pass along the task.", "Per favore, gira il compito."), { object: "a2-value-obj-shigoto-m11", speakerRole: "a2-role-colleague" }),
+    line("work-study-messages-2-t1", "a2-family-ask-colleague", "a2-value-ask-tsutaete", WORK_STUDY, L("Emi, please pass along the message.", "Emi, per favore riferisci il messaggio."), { object: "a2-value-obj-dengon", subjectReferent: "a2-referent-emi", subjectRealization: "vocative", speakerRole: "a2-role-colleague" }),
     line("work-study-messages-2-t2", "a2-family-ask-colleague", "a2-value-ask-tetsudatte", WORKPLACE, L("Please help with the email.", "Per favore, aiutami con l'email."), { object: "a2-value-obj-mail", speakerRole: "a2-role-teacher" }),
     line("work-study-messages-2-t3", "a2-family-request-tekudasai", "a2-value-tekudasai-okuru", WORK_STUDY, L("Sora, please send the documents.", "Sora, per favore manda i documenti."), { object: "a2-value-obj-shorui", subjectReferent: "a2-referent-sora", speakerRole: "a2-role-learner" }),
     line("work-study-messages-2-t4", "a2-family-request-tekudasai", "a2-value-tekudasai-okuru", WORKPLACE, L("Please send the email.", "Per favore, manda l'email."), { object: "a2-value-obj-mail", speakerRole: "a2-role-colleague" }),

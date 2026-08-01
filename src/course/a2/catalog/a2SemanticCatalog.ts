@@ -3091,6 +3091,8 @@ const a2AuthoredValuesM11: readonly SemanticValue[] = [
   { id: "a2-value-obj-mail", kind: "object", tokenFragments: [frag("メール", "meeru")] },
   { id: "a2-value-obj-repooto", kind: "object", tokenFragments: [frag("レポート", "repooto")] },
   { id: "a2-value-obj-henji", kind: "object", tokenFragments: [frag("へんじ", "henji")] },
+  { id: "a2-value-obj-dengon", kind: "object", tokenFragments: [frag("でんごん", "dengon")] },
+  { id: "a2-value-obj-yotei-obj", kind: "object", tokenFragments: [frag("よてい", "yotei")] },
 
   // --- message-late-absent (whole-clause bake; WSM-1) ---
   { id: "a2-value-msg-osokunarimasu", kind: "predicate-sense", senseId: "a2-sense-msg-osokunarimasu", tokenFragments: [frag("すこし", "sukoshi"), ...masuForm(newVerbMasuStemKana(NEW_VERBS.okureru))] },
