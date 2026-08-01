@@ -188,12 +188,13 @@ describe("C3 — service titles fit the addressee's context", () => {
 });
 
 /**
- * English subject phrases that name a *specific* third party. Impersonal
- * "you"/"we"/"one" are deliberately absent: an impersonal gloss over a
- * subjectless Japanese sentence is correct, a specific one is not.
+ * English subject phrases that name a *specific* third party — including
+ * named personas, third-person pronouns (She/He/They), and role nouns.
+ * Impersonal "you"/"we"/"one" are deliberately absent: an impersonal gloss
+ * over a subjectless Japanese sentence is correct, a specific one is not.
  */
 const SPECIFIC_THIRD_PERSON_SUBJECT =
-  /^(Sora|Emi|The teacher|My teacher|A friend|My friend|The friend|Your friend|A colleague|My colleague|The colleague|The clerk)\b/;
+  /^(Sora|Emi|She|He|They|The teacher|My teacher|A friend|My friend|The friend|Your friend|A colleague|My colleague|The colleague|The clerk)\b/;
 
 describe("C4 — gloss subject perspective matches the Japanese", () => {
   it("never glosses a subjectless Japanese sentence with a specific third-person subject", () => {
