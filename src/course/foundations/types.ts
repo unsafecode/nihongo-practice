@@ -329,6 +329,8 @@ export interface SemanticValue {
    * Absent means "an ordinary action/state/property predicate", which takes an
    * animate topic normally. `a2ContentInvariants.test.ts` C1b rejects any
    * animate explicit topic over a `quantity` / `weather` / `formula` value.
+   * Adding a member to this union requires updating `IMPERSONAL_PREDICATE_TYPES`
+   * in `a2ContentInvariants.test.ts`.
    */
   readonly predicateSemanticType?: "quantity" | "weather" | "formula";
 }

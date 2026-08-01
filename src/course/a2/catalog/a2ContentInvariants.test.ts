@@ -100,10 +100,14 @@ describe("C1a — no topic phrase before a clause-initial interjection", () => {
 });
 
 /** Predicate semantic types that never accept an animate grammatical topic. */
-const IMPERSONAL_PREDICATE_TYPES = new Set(["quantity", "weather", "formula"]);
+const IMPERSONAL_PREDICATE_TYPES = new Set<NonNullable<SemanticValue["predicateSemanticType"]>>([
+  "quantity",
+  "weather",
+  "formula",
+]);
 
 describe("C1b — no animate topic over an impersonal predicate", () => {
-  it("declares a predicateSemanticType on at least the four known impersonal values", () => {
+  it("declares a predicateSemanticType on exactly these five impersonal values", () => {
     const typed = a2SemanticValues.filter((value) => value.predicateSemanticType !== undefined);
     expect(typed.map((value) => value.id).sort()).toEqual([
       "a2-value-kara-ame-kasa",
