@@ -146,15 +146,18 @@ const lesson2: A2BuiltLesson = buildA2InstructionalLesson({
     // object below; t3 differentiates with a fresh vocative subject.
     line("work-study-messages-2-m9", "a2-family-request-tekudasai", "a2-value-tekudasai-okuru", WORK_STUDY, L("Please send the documents.", "Per favore, manda i documenti."), { object: "a2-value-obj-shorui", speakerRole: "a2-role-teacher" }),
   ],
-  // t1/t2 recombine ask-colleague's own predicates with fresh
-  // object/predicate pairings; t3-t5 are the genuine request-tekudasai
-  // support transfer, reusing the EXISTING M6 family verbatim with new
-  // work-flavored verbs/objects. t3 reuses m9's own okuru+shorui pairing
-  // with a fresh vocative subject (so it stays visibly novel); t4
-  // recombines the already-modeled okuru predicate with the
-  // already-modeled mail object (a fresh pairing, never modeled as a
-  // unit); t5 reuses the EXISTING M6 hanasu sense verbatim with the
-  // already-modeled shigoto-m11 object.
+  // t1 reuses m3's own tsutaete+dengon pairing; its vocative subject is
+  // load-bearing — required to keep visibleTargetKey distinct from m3
+  // and satisfy the lesson depth contract (removing it would silently
+  // duplicate m3 and break the contract). t2 recombines ask-colleague's
+  // tetsudatte predicate with a fresh mail object (never modeled as a
+  // unit); t3-t5 are the genuine request-tekudasai support transfer,
+  // reusing the EXISTING M6 family verbatim with new work-flavored
+  // verbs/objects. t3 reuses m9's own okuru+shorui pairing with a fresh
+  // vocative subject (so it stays visibly novel); t4 recombines the
+  // already-modeled okuru predicate with the already-modeled mail object
+  // (a fresh pairing, never modeled as a unit); t5 reuses the EXISTING
+  // M6 hanasu sense verbatim with the already-modeled shigoto-m11 object.
   transfers: [
     line("work-study-messages-2-t1", "a2-family-ask-colleague", "a2-value-ask-tsutaete", WORK_STUDY, L("Emi, please pass along the message.", "Emi, per favore riferisci il messaggio."), { object: "a2-value-obj-dengon", subjectReferent: "a2-referent-emi", subjectRealization: "vocative", speakerRole: "a2-role-colleague" }),
     line("work-study-messages-2-t2", "a2-family-ask-colleague", "a2-value-ask-tetsudatte", WORKPLACE, L("Please help with the email.", "Per favore, aiutami con l'email."), { object: "a2-value-obj-mail", speakerRole: "a2-role-teacher" }),
