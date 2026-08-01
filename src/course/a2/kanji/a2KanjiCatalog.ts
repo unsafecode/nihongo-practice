@@ -32,7 +32,7 @@ import type {
   KanjiReading,
 } from "./kanjiTypes";
 
-interface KanjiRow {
+export interface KanjiRow {
   readonly glyph: string;
   /** This glyph's own kana reading inside its contextual lexeme. */
   readonly kana: string;
@@ -220,7 +220,7 @@ const PRACTICAL_TEXTS_ROWS: readonly KanjiRow[] = [
 /** `a2-synthesis` (module 15) introduces no new glyphs. */
 const A2_SYNTHESIS_ROWS: readonly KanjiRow[] = [];
 
-const ALL_ROWS: readonly KanjiRow[] = [
+export const A2_KANJI_ROWS: readonly KanjiRow[] = [
   ...CONNECTED_CONVERSATION_ROWS,
   ...PLANS_INVITATIONS_ROWS,
   ...EXPERIENCES_NARRATIVES_ROWS,
@@ -320,7 +320,7 @@ function buildCatalog(rows: readonly KanjiRow[]): BuiltCatalog {
   return { entries, readings, exposures };
 }
 
-const CATALOG = buildCatalog(ALL_ROWS);
+const CATALOG = buildCatalog(A2_KANJI_ROWS);
 
 // ---------------------------------------------------------------------------
 // Exports (deep-frozen)
