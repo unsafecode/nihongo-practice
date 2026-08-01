@@ -137,3 +137,24 @@ describe("C1b — no animate topic over an impersonal predicate", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+/**
+ * Polite sentence-final endings A2 teaches, with the optional sentence-final
+ * particles か/ね/よ. Anything else that ends a `。`-delimited sentence is
+ * plain register. Only sentence-final position is inspected, so subordinate
+ * clauses joined by て-form, から or ので never register as a second predicate.
+ */
+const POLITE_SENTENCE_END =
+  /(です|ます|ません|でした|ました|ませんでした|ましょう)[かねよ]?$/;
+
+describe("C2 — one register per realized sentence", () => {
+  it("never mixes plain and polite sentence-final predicates inside one surface", () => {
+    const offenders = ROWS.filter((row) => {
+      const sentences = row.jp.split("。").filter((part) => part.trim().length > 0);
+      if (sentences.length < 2) return false;
+      const registers = new Set(sentences.map((s) => POLITE_SENTENCE_END.test(s)));
+      return registers.size > 1;
+    }).map((row) => `${row.id}: ${row.jp}`);
+    expect(offenders).toEqual([]);
+  });
+});
