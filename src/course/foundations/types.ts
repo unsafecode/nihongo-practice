@@ -345,7 +345,7 @@ export interface SemanticValue {
    * `a2ContentInvariants.test.ts` C3 rejects any variant that addresses such a
    * value from a context it does not declare.
    */
-  readonly serviceTitleContexts?: readonly string[];
+  readonly serviceTitleContexts?: readonly ContextId[];
 }
 
 /** One slot a sentence family's realization rule fills from a semantic value. */

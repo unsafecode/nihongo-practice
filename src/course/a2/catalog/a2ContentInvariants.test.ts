@@ -161,6 +161,9 @@ describe("C2 — one register per realized sentence", () => {
 
 describe("C3 — service titles fit the addressee's context", () => {
   it("declares serviceTitleContexts on every service-role address value", () => {
+    // Intentionally red until Task 15 authors the front-desk and reception
+    // address values (a2-value-frontdesk-subject, a2-value-reception-subject);
+    // the assertion is the contract those values must meet.
     const declared = a2SemanticValues
       .filter((value) => value.serviceTitleContexts !== undefined)
       .map((value) => value.id)
