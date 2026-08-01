@@ -389,6 +389,7 @@
 }
 
 .checkpoint-state__link {
+  color: var(--course-teal);
   font-size: var(--text-3);
 }
 

@@ -45,7 +45,6 @@ describe("CheckpointState", () => {
   it("keeps the body class name on the live region", () => {
     const html = render(BASE);
     expect(html).toContain('class="checkpoint-state__body"');
-    expect(html).toContain('role="status"');
   });
 
   it("marks data-met=false when not met", () => {

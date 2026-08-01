@@ -116,18 +116,7 @@ function primaryActionHref(html: string): string | null {
   return href ? href[1] : null;
 }
 
-/** React's renderToStaticMarkup HTML-escapes &, <, >, ", and ' even inside
- * plain text nodes (not just attributes) — see CourseMap.test.ts for the
- * same precedent. Any copy string containing an apostrophe must be run
- * through this before a .toContain() check against rendered HTML. */
-function escapeHtmlText(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
-}
+import { escapeHtmlText } from "./renderTestUtils";
 
 describe("CourseHome hero: editoriale mnemonico", () => {
   it("renders a bounded-title editorial hero with eyebrow and lead", () => {

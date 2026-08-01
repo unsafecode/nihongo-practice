@@ -22,19 +22,7 @@ function renderMap(
   );
 }
 
-/**
- * React's static-markup renderer HTML-escapes text content (including
- * apostrophes as `&#x27;`), so free-form prose copy must be escaped the
- * same way before being compared against rendered output.
- */
-function escapeHtmlText(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
-}
+import { escapeHtmlText } from "./renderTestUtils";
 
 /** All twelve real module ids, in their authored (approved) order. */
 const allModuleIdsInOrder = [

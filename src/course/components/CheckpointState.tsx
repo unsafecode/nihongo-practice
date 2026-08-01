@@ -29,7 +29,7 @@ export function CheckpointState({
     <section
       className="checkpoint-state"
       aria-labelledby="checkpoint-state-heading"
-      data-met={met ? "true" : "false"}
+      data-met={met}
     >
       <h2 id="checkpoint-state-heading" className="checkpoint-state__heading">
         {heading}

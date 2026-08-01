@@ -25,6 +25,7 @@ import {
   type ProgressContextValue,
 } from "../progress/ProgressContext";
 import { CourseHome } from "./CourseHome";
+import { escapeHtmlText } from "./renderTestUtils";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -126,8 +127,7 @@ describe("CourseHome — A2 level view via ?livello=a2 (Phase 3 Task 8)", () => 
 
   it("lists the A2 Can-do descriptors and the A2 checkpoint section", () => {
     expect(html).toContain(itCopy.courseLevels.a2CheckpointHeading);
-    // Apostrophe-free substring — renderToStaticMarkup escapes ' to &#x27;.
-    expect(html).toContain("La verifica si completa automaticamente");
+    expect(html).toContain(escapeHtmlText(itCopy.checkpoint.notMet));
     expect(html).toContain(
       itCopy.canDoSummary.demonstratedCount(0, a2CanDosAuthored.length),
     );

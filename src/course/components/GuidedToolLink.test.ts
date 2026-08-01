@@ -41,19 +41,7 @@ function render(): string {
   );
 }
 
-/**
- * React's renderToStaticMarkup HTML-escapes apostrophes (as `&#x27;`) even in
- * plain text nodes, so copy containing an apostrophe must be escaped the same
- * way before a `.toContain()` check against rendered HTML (see CourseMap.test).
- */
-function escapeHtmlText(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
-}
+import { escapeHtmlText } from "./renderTestUtils";
 
 describe("GuidedToolLink", () => {
   it("renders an Action-styled link to the Syllabary, not a naked anchor", () => {
