@@ -7,9 +7,13 @@
  *
  * Japanese compounds alter a component's reading predictably, so the check
  * tolerates exactly three documented alternations and nothing else:
- *   rendaku   か→が, く→ぐ, ち→ぢ, つ→づ, は→ば, ひ→び, ふ→ぶ, へ→べ, ほ→ぼ, さ→ざ, し→じ, す→ず, せ→ぜ, そ→ぞ, た→だ, て→で, と→ど
- *   handakuon は→ぱ, ひ→ぴ, ふ→ぷ, へ→ぺ, ほ→ぽ
+ *   rendaku   the k/s/t/h rows voicing — かきくけこ→がぎぐげご, さしすせそ→ざじずぜぞ,
+ *             たちつてと→だぢづでど, はひふへほ→ばびぶべぼ
+ *   handakuon はひふへほ→ぱぴぷぺぽ
  *   sokuon    a final つ/ち/く/き becoming っ
+ *
+ * Never widen these tolerances to make a row pass. A word that needs a fourth
+ * alternation is the wrong word for that glyph.
  */
 import { describe, expect, it } from "vitest";
 
@@ -65,6 +69,23 @@ describe("C8 — contextual kanji readings", () => {
       if (!entry) return false;
       return /[\u4e00-\u9fff]/.test(entry.word) && !entry.word.includes(row.glyph);
     }).map((row) => `${row.glyph} (${row.sense}) missing from ${A2_CONTEXTUAL_WORDS[row.sense]!.word}`);
+    expect(offenders).toEqual([]);
+  });
+
+  /**
+   * The assessed stage renders the whole 交ぜ書き word, so every kana in it is
+   * legible to the learner. That is safe only while a word's kana spells some
+   * *other* glyph's reading — never the reading being assessed. The convention
+   * delivers this today, but conventions are not gates: without this test a
+   * future word could hand the learner the answer and leave every gate green.
+   */
+  it("never spells the assessed glyph's own reading in the kana around it", () => {
+    const offenders = A2_KANJI_ROWS.filter((row) => {
+      const entry = A2_CONTEXTUAL_WORDS[row.sense];
+      if (!entry) return false;
+      const kanaContext = entry.word.split(row.glyph).join("");
+      return allowedSurfaces(row.kana).some((surface) => kanaContext.includes(surface));
+    }).map((row) => `${row.glyph} (${row.sense}): reading ${row.kana} is legible in ${A2_CONTEXTUAL_WORDS[row.sense]!.word}`);
     expect(offenders).toEqual([]);
   });
 });
