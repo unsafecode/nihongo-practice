@@ -4,10 +4,11 @@ import type { KanjiActivityMode, KanjiExposure, KanjiExposureStage } from "./kan
 
 /**
  * The A2 contextual kanji assistance policy (Phase 3 Task 3, locked decision
- * L3): first-supported and supported-retrieval always show furigana with
- * romaji allowed; revealable hides furigana behind a learner toggle but still
- * allows romaji; assessed always hides furigana AND withholds romaji, in
- * every recognition mode, with no way to bypass it back to visible/allowed.
+ * L3): first-supported and supported-retrieval show furigana with romaji
+ * allowed; revealable hides furigana behind a learner toggle and withholds
+ * romaji so that retrieval is effortful in every script mode; assessed hides
+ * furigana AND withholds romaji, in every recognition mode, with no way to
+ * bypass it back to visible/allowed.
  */
 
 const ALL_MODES: readonly KanjiActivityMode[] = ["read", "choose", "match"];
@@ -47,10 +48,10 @@ describe("a2KanjiAssistancePolicy", () => {
     }
   });
 
-  it("makes furigana revealable with romaji still allowed at revealable, in every mode", () => {
+  it("makes furigana revealable and withholds romaji at revealable, in every mode", () => {
     for (const mode of ALL_MODES) {
       const support = a2KanjiAssistancePolicy.supportFor(exposureAt("revealable"), mode);
-      expect(support).toEqual({ furigana: "revealable", romaji: "allowed" });
+      expect(support).toEqual({ furigana: "revealable", romaji: "not-shown" });
     }
   });
 

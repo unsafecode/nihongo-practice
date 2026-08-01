@@ -12,8 +12,8 @@ import { KanjiRubyText, type KanjiRubyTextProps } from "./KanjiRubyText";
  * Component contract for the A2 contextual kanji ruby/reveal renderer
  * (Phase 3 Task 3, locked decision L3). Recognition-only; behavior is driven
  * entirely by `exposure.stage` through the real assistance policy — there is
- * no script/mode combination that bypasses an assessed exposure's hidden
- * furigana/withheld romaji.
+ * no script/mode combination that bypasses a revealable or assessed exposure's
+ * withheld romaji, or an assessed exposure's hidden furigana.
  */
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -172,9 +172,9 @@ describe("KanjiRubyText — revealable (furigana hidden behind a learner toggle)
     expect(container.querySelector("rt")).toBeNull();
   });
 
-  it("still allows the permitted romaji hint under romaji script at the revealable stage", () => {
+  it("withholds the romaji hint even under romaji script at the revealable stage", () => {
     const { container } = mount(baseProps({ exposure: exposureAt("revealable"), script: "romaji" }));
-    expect(container.textContent).toContain("hana");
+    expect(container.textContent).not.toContain("hana");
   });
 
   it("uses the exact caller-supplied EN revealShowLabel/revealHideLabel as the toggle's accessible name, proving no hardcoded fallback string", () => {
