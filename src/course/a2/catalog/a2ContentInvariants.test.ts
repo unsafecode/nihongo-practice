@@ -299,3 +299,34 @@ describe("C6 — comparisons compare comparable things", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+/**
+ * Curated locative-gloss gate. Each entry pairs a locative phrase that must
+ * not appear in a gloss unless the Japanese contains the corresponding word.
+ * Deliberately small and exact rather than a general gloss-alignment engine,
+ * which the catalog cannot support without per-fragment gloss authoring
+ * (recorded as future work in the Phase 4 backlog).
+ */
+const LOCATIVE_GLOSS_RULES: readonly {
+  readonly label: string;
+  readonly en: RegExp;
+  readonly it: RegExp;
+  readonly requiredJapanese: string;
+}[] = [
+  { label: "sea", en: /\bin the sea\b/i, it: /\bnel mare\b/i, requiredJapanese: "うみ" },
+  { label: "here", en: /\bhere\b/i, it: /\bqui\b/i, requiredJapanese: "ここ" },
+];
+
+describe("C7 — glosses do not invent a place the Japanese never names", () => {
+  it.each(LOCATIVE_GLOSS_RULES)(
+    "never claims $label unless the Japanese contains $requiredJapanese",
+    (rule) => {
+      const offenders = ROWS.filter(
+        (row) =>
+          (rule.en.test(row.en) || rule.it.test(row.it)) &&
+          !row.jp.includes(rule.requiredJapanese),
+      ).map((row) => `${row.id}: ${row.jp} | ${row.en} | ${row.it}`);
+      expect(offenders).toEqual([]);
+    },
+  );
+});
