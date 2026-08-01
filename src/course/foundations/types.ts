@@ -383,8 +383,10 @@ export interface FormSelection {
    * Whether the *realization rule* should append a sentence-final question
    * particle. This is NOT "is this sentence a question": 43 A2 variants are
    * genuine questions whose predicate value already bakes its own か
-   * (`ありますか`, `いいですか`), and they correctly omit `interrogative`
-   * so the rule does not append a second one and emit `…ですかか`.
+   * (`ありますか`, `いいですか`), and they correctly omit `interrogative` in
+   * source — which serializes as `"interrogative": false` in the realized
+   * golden, which is where a reviewer usually meets them — so the rule does
+   * not append a second one and emit `…ですかか`.
    *
    * Reviewers periodically flag those 43 as a data defect. They are not.
    * Verify by flipping one and realizing it: the surface gains a duplicate
