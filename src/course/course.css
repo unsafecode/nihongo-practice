@@ -393,6 +393,11 @@
   font-size: var(--text-3);
 }
 
+.checkpoint-state__link:focus-visible {
+  outline: 3px solid var(--time);
+  outline-offset: 2px;
+}
+
 .can-do-summary__list {
   display: flex;
   flex-direction: column;

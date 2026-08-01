@@ -24,6 +24,7 @@ import {
   type ProgressContextValue,
 } from "../progress/ProgressContext";
 import { CourseHome } from "./CourseHome";
+import { escapeHtmlText } from "./renderTestUtils";
 
 const allLessons = courseModules.flatMap((courseModule) =>
   courseModule.lessons.map((lesson) => ({ ...lesson, moduleId: courseModule.id })),
@@ -115,8 +116,6 @@ function primaryActionHref(html: string): string | null {
   const href = anchor[0].match(/href="([^"]*)"/);
   return href ? href[1] : null;
 }
-
-import { escapeHtmlText } from "./renderTestUtils";
 
 describe("CourseHome hero: editoriale mnemonico", () => {
   it("renders a bounded-title editorial hero with eyebrow and lead", () => {
