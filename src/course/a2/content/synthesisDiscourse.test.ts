@@ -14,7 +14,8 @@ describe("synthesis lessons are scenes", () => {
   it.each(SYNTHESIS_IDS)("%s has exactly two speakers across its models", (lessonId) => {
     const lesson = module15Lessons.find((entry) => entry.recipe.id === lessonId);
     expect(lesson, `lesson ${lessonId} not found`).toBeDefined();
-    const models = lesson!.variants.filter((v) => v.pedagogicalUse === "model");
+    if (!lesson) return;
+    const models = lesson.variants.filter((v) => v.pedagogicalUse === "model");
     const roles = new Set(models.map((v) => v.discourse.speakerRoleId));
     expect([...roles].sort()).toHaveLength(2);
   });

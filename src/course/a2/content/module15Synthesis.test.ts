@@ -121,8 +121,9 @@ describe("A2 Module 15 — per-lesson depth contract", () => {
       const predicateSenses = new Set(modelSentences.map((s) => s.predicateSenseId));
       const discourseRoles = new Set(models.map((v) => v.discourse.speakerRoleId));
       const contexts = new Set(models.map((v) => v.contextId));
-      // Synthesis (capstone) lessons are two-speaker scenes: minRoles is 2.
-      const expectedMinRoles = lessonId.startsWith("a2-synthesis-") ? 2 : 3;
+      // Every module 15 lesson is a synthesis (capstone) lesson, and a
+      // capstone is deliberately a two-speaker scene, so minRoles is 2 here.
+      const expectedMinRoles = 2;
       expect(predicateSenses.size, `${lessonId} predicate diversity`).toBeGreaterThanOrEqual(3);
       expect(discourseRoles.size, `${lessonId} role diversity`).toBeGreaterThanOrEqual(expectedMinRoles);
       expect(contexts.size, `${lessonId} context diversity`).toBeGreaterThanOrEqual(2);
