@@ -551,3 +551,176 @@ load-bearing conclusion is that exposure is unchanged by this release. The clean
 fix (react-router 8.3.0) requires a second major upgrade (react ≥ 19.2.7 vs. our
 18.3.1) and is deferred. Why the advisory escaped earlier detection: **no
 mechanism established** — see item 7, point 6.
+
+---
+
+## Deployment
+
+Executed as **Task 36** on **2026-08-02**, the final and only irreversible item
+of the Phase 4 plan. This is the deploy of the gated SHA to the live GitHub
+Pages site and its post-deploy verification. Each figure sits beside the command
+that produced it, and the one live-check concern below is recorded as measured,
+not smoothed over.
+
+### Release identity — fast-forward, not merge
+
+- Release SHA (deployed): `426cee86fdf9d4d2ba7fdafbdab981355f806c67` (full 40 characters).
+- Pre-release live SHA: `ab0c0789236c53b754c591fa1c2cc43c86e4ad0e`.
+
+`origin/master` was an **ancestor** of HEAD
+(`git merge-base --is-ancestor origin/master HEAD` → exit 0), so
+`git push origin HEAD:master` is a **fast-forward**: master's tip becomes
+*literally* the gated SHA — identity, not a new merge commit carrying an equal
+tree. No merge, no merge commit, no `--no-ff`, on Riccardo Chiodaroli's ruling
+that the object verified and the object deployed must be the same object.
+
+- Pre-push assertion: `git rev-parse origin/master` = `ab0c0789236c53b754c591fa1c2cc43c86e4ad0e` — unchanged from the value measured at dispatch, so no concurrent push had voided the plan.
+- Push: `git push origin HEAD:master` → `ab0c078..426cee8  HEAD -> master`.
+- Read-back: `git ls-remote origin master` → `426cee86fdf9d4d2ba7fdafbdab981355f806c67`, equal to the release SHA exactly. Success is taken from this read-back, not inferred from the absence of an error message.
+
+### Gate re-run at the deployed SHA
+
+Item 25 of the verification promised that Task 36 re-runs every gate at the final
+deployed SHA; this is that run, at HEAD `426cee8`. All figures carry their
+referent.
+
+| Gate | Command | Result (as measured) |
+|---|---|---|
+| Clean install | `npm ci` | clean — 152 packages added, 153 audited |
+| Unit + property suite | `npx vitest run` | **199 files / 3759 tests** passed (A1 + A2) |
+| Typecheck | `npx tsc --noEmit` | clean — exit 0, no output |
+| Prebuild validator | `npm run prebuild` | **60 lessons, 15 modules, 59 Can-dos, 120 kanji (A2 only)**; **0** Japanese-literal violations |
+| Standard build | `npm run build` | succeeded; largest chunk `course-a2` **465.09 kB** |
+| Playwright suite | `npx playwright test` | **400 passed / 58 skipped / 0 failed** |
+
+**Tripwire — the four speech baselines.** The 4 PNGs in
+`tests/e2e/course-visuals.spec.ts-snapshots/` were captured with `shasum -a 256`
+*before* the Playwright run and compared *after*: byte-identical, and
+`git status --short` showed no snapshot bytes moved. Only the 12 baselines in
+`tests/e2e/screenshots.spec.ts-snapshots/` belong to this phase; none of the 4
+speech baselines moved, so the tripwire did not fire and no escalation was
+warranted.
+
+### Deployment artifact — `GITHUB_PAGES=true`
+
+`GITHUB_PAGES=true npm run build` produces the artifact that actually ships: the
+base path becomes `/nihongo-practice/`, which changes the content — and therefore
+the content hash — of 12 of the 23 assets versus a plain `npm run build`. The
+load-bearing hashes below are each from `shasum -a 256 dist/assets/<file>` on
+**my own** Pages build, not accepted from any document:
+
+| Asset (`GITHUB_PAGES=true` build) | `shasum -a 256` |
+|---|---|
+| `course-a1-CikFG_zU.js` | `96c19f1b09db6a3ebe088a4e6abd5e25b60feabc31bebb26229875528696f5c2` |
+| `course-a2-DRWLSAeA.js` | `7e24cd7a939b81d9c64525a02d83c4e1e831d71ec1c2962787e11ac98edde6f2` |
+| `course-foundations-FFo7yljR.js` | `84c6b987580d57f291c33640009bfc69f135ddc8a126ff03b5f1796565470e84` |
+| `index-fgTHUphq.js` | `ae2a2adf2ef456460f40feba7bf23d932194664643a59e71a58579d144788fd9` |
+| `vendor-DrNfcWTL.js` | `76d8ceb3536841f92229f1c2b5470c479c6ccb08321c12eed52b8fcd22ff057d` |
+| `style-bScKvLqn.css` | `99ed13802a2dd090139d56c7aed71d735799f134729f7f2e1ab7bbebcebd2543` |
+
+### Rollback path — recorded before the push, while it cost nothing
+
+`.github/workflows/deploy-pages.yml:19-24` hard-requires `refs/heads/master`, so
+rollback is **not** a branch move or force-push. It is a revert commit on master
+that restores the pre-release tree `ab0c0789` (moving master *forward*, which
+satisfies the workflow's ref gate), followed by a re-dispatch. It must run in the
+**master worktree** (`/Users/ricchi/Repos/nihongo-practice`), never in this
+Phase-4 worktree. Recorded here verbatim, exactly as written before the deploy:
+
+```
+cd /Users/ricchi/Repos/nihongo-practice
+git fetch origin
+git checkout master
+git pull --ff-only origin master
+git read-tree -u -m ab0c0789236c53b754c591fa1c2cc43c86e4ad0e
+git commit -m "revert: roll back GitHub Pages to ab0c0789 (pre-Phase-4 live)"
+git push origin master
+gh workflow run "Deploy GitHub Pages" --ref master
+gh run watch <id>
+```
+
+This path was **recorded but not exercised.** No marker or gate failed at the
+deploy, and the single live-check concern below (Check 7) is a pre-existing
+in-code defect present identically in the deployed bytes — rolling back would
+delete the whole Task 27 feature rather than fix it, and a wrong rollback is
+worse than a fix-forward.
+
+### Dispatch and confirmation
+
+- `gh workflow run "Deploy GitHub Pages" --ref master` → run **30751862964**.
+- `gh run watch 30751862964` → every job green.
+- `gh run list --workflow "Deploy GitHub Pages" --limit 1 --json headSha,conclusion,url`:
+  - `headSha` = `426cee86fdf9d4d2ba7fdafbdab981355f806c67` — equals the release SHA exactly.
+  - `conclusion` = `success`.
+  - `url` = <https://github.com/unsafecode/nihongo-practice/actions/runs/30751862964>.
+
+A green run proves a job exited zero, not that the site serves the gated bytes.
+The markers below are that proof.
+
+### Post-deploy markers — as measured
+
+Base URL: `https://unsafecode.github.io/nihongo-practice/`
+
+**404 property (confirmed, not assumed).** A missing asset returns a *real* 404,
+not a `200` carrying an SPA fallback, which is what makes presence meaningful:
+
+- `curl -s -o /dev/null -w "%{http_code}" $BASE/assets/course-a2-DOESNOTEXIST.js` → `404`
+- `curl -s -o /dev/null -w "%{http_code}" $BASE/` → `200`
+
+**Marker 1 (primary) — served `course-*` chunk bytes vs. my Pages-build hashes.**
+Command per file: `curl -s $BASE/assets/<file> | shasum -a 256`.
+
+| Served chunk | `shasum -a 256` of served bytes | equals build hash above? |
+|---|---|---|
+| `course-a1-CikFG_zU.js` | `96c19f1b09db6a3ebe088a4e6abd5e25b60feabc31bebb26229875528696f5c2` | yes |
+| `course-a2-DRWLSAeA.js` | `7e24cd7a939b81d9c64525a02d83c4e1e831d71ec1c2962787e11ac98edde6f2` | yes |
+| `course-foundations-FFo7yljR.js` | `84c6b987580d57f291c33640009bfc69f135ddc8a126ff03b5f1796565470e84` | yes |
+
+All three served hashes equal the corresponding `dist/assets` hashes exactly.
+These three chunks are **new files that never existed on the live site**, so no
+stale/cached copy can satisfy them — presence, integrity, and gated-byte
+identity are proven at once, immune to caching.
+
+**Marker 2 (secondary) — cache-busted `index.html`.**
+`curl -s "$BASE/?cachebust=$(date +%s)" | grep -oE 'assets/index-[A-Za-z0-9_]+\.js'`
+→ `assets/index-fgTHUphq.js`, the index chunk from my own Pages build. A
+`grep -c 'index-DrfSmasq.js'` of the same fetch returns `0`: the previously-live
+index chunk (`index-DrfSmasq.js`) is gone.
+
+**Marker 3 (disclosed trap) — the vendor invariant.**
+`curl -s $BASE/assets/vendor-DrNfcWTL.js | shasum -a 256` →
+`76d8ceb3536841f92229f1c2b5470c479c6ccb08321c12eed52b8fcd22ff057d` (begins
+`76d8ceb3`), byte-identical to the pre-release vendor chunk because no dependency
+changed. **This marker misleads in both directions and is named here as a trap:**
+its being unchanged does **not** mean the deploy failed, and its being present
+does **not** mean the new build is live — it was already there under `ab0c0789`.
+It proves nothing on its own; Marker 1 is what proves the new build is served.
+
+### Live browser verification — nine checks
+
+Run with the Playwright browser tools against the live URL. Each records what
+actually rendered, not merely that the page loaded without error.
+
+1. **PASS (Task 29).** Home shows a visible, labelled level control — a `navigation` landmark labelled "Livello del corso" carrying the A1 and A2 selectors.
+2. **PASS.** Switched to A1, opened `past-negative-2`, completed Exercise 2 (chose particle に) → "✓ Corretto".
+3. **PASS (Task 14).** A2 `connected-conversation-3`: the corrected clarify lines read as vocative address — `えみさん、…` / `そらさん、…` (name + さん + comma), with no は topic marker standing before an interjection.
+4. **PASS (Task 15).** `travel-reservations-4`: the front desk is addressed as フロント (4 occurrences in the rendered lesson, measured live); 店員 and 店員さん appear **0** times.
+5. **PASS in both IT and EN (Task 26).** An A2 kanji panel shows each taught glyph inside its word with visible emphasis — `.kanji-ruby__word-target` renders at `font-weight: 800` with a 2px orange `rgb(228, 87, 46)` underline — and the intro copy no longer claims the kanji appear in the sentences. This was the release's most serious defect (a false learner-facing claim, live in both languages); it is fixed on the served site.
+6. **PASS (Task 28).** Rōmaji script mode at the revealable kanji stage (`sequencing-ongoing-3`): the revealable kanji (毎日 / 寝る / 起きる / 使う / 作る) show **no** reading until the ± control is used; taught kanji still show their readings.
+7. **CONCERN — the check is half-met (Task 27).** The checkpoint section *does* describe how the evidence accrues — "Your checkpoint is met automatically once every scenario lesson is consolidated. There is no separate test to sit." — and its link *does* target the Can-do breakdown (`href="#can-do-summary"`, whose section heading is "What you can do so far"). **But the link does not leave the learner at that breakdown.** Measured: with the link in view (`window.scrollY` 4788, link top 338 px), a real click scrolls natively to the section for one frame (`hashchange` → `#can-do-summary`, `window.scrollY` 4159), then the page immediately resets to the top — `window.scrollY` **0**, the Can-do section left at viewport-relative top 4159 px (out of a 720 px viewport), stable across a 1 s post-click wait and reproduced on a clean reload. Root cause, traced in the *deployed* code: a plain `<a href="#can-do-summary">` makes `HashRouter` parse `can-do-summary` as an unknown route → the catch-all `InvalidRoute` (`src/routing/routes.tsx:238`) issues `<Navigate replace to="/percorso">` (`src/routing/routes.tsx:118-127`), and that redirect drives `RouteScrollManager` — which honours only *validated lesson-section* anchors (`src/routing/scrollPlan.ts`) — to a "reset" plan that runs `window.scrollTo({ top: 0 })` (`src/routing/RouteScrollManager.tsx:69-71`), clobbering the native anchor scroll. This is a deterministic, in-code defect present identically in the gated bytes (Marker 1 proves the deploy shipped exactly those bytes), so it is **not a deployment fault and not a rollback trigger** — it is recorded here for a fix-forward on Task 27's link wiring.
+8. **PASS (Section 20 privacy).** On reload, all **18** network requests (`browser_network_requests`) target the Pages origin `unsafecode.github.io` — the app chunks, the self-hosted Manrope `.woff2` fonts, and the favicon. **Zero** third-party requests of any kind.
+9. **PASS (Task 25).** Synthesis lesson `a2-synthesis-1` ("Bringing It Together 1") reads as a two-speaker scene: its sentence matrix attributes lines to two distinct speakers — "Me (the learner)" ("I'm planning to go to Kyoto this weekend.") and "A friend" ("Nice. I intend to meet a friend this weekend." / "Sora is planning to swim at the sea this weekend."). The friend's turn reads as a conversational reply, and both the Compare and Recap panels foreground "Who is speaking".
+
+### Final git state and the docs-only follow-up
+
+This record is committed on `unsafecode-execute-phase-4` and then fast-forwarded
+to master. Master's tip therefore moves **one docs-only commit past the deployed
+SHA `426cee8`** — expected, and it changes nothing a learner downloads: this
+commit touches only `docs/`, and `dist/` is built from `src/`, `index.html`, and
+the build config, none of which a docs-only commit modifies. The served bytes
+remain those of `426cee8`, as Marker 1 proves.
+
+- Deployed SHA: `426cee86fdf9d4d2ba7fdafbdab981355f806c67`.
+- Workflow run: <https://github.com/unsafecode/nihongo-practice/actions/runs/30751862964>.
+- Live URL: <https://unsafecode.github.io/nihongo-practice/>.
+- Date: **2026-08-02**.
