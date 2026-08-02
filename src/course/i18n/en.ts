@@ -39,7 +39,7 @@ const enUi = {
     persistenceWarningTitle: "Progress will not be saved",
     persistenceWarningBody:
       "Your browser does not allow saving course progress in this session. You can keep using the app, but visited lessons will not be remembered after you close it.",
-    levelBadge: "A1, aligned with JF/CEFR Can-do",
+    levelBadge: "A1, our alignment to JF/CEFR Can-do descriptors",
     courseShape: (moduleCount: number, lessonCount: number) =>
       `${moduleCount} modules, ${lessonCount} lessons`,
   },
@@ -65,7 +65,7 @@ const enUi = {
     a2: "A2",
     a1Heading: "A1 course",
     a2Heading: "A2 course",
-    a2Badge: "A2, aligned with JF/CEFR Can-do",
+    a2Badge: "A2, our alignment to JF/CEFR Can-do descriptors",
     a2AvailableHint:
       "A2 is available whenever you like. It builds on A1, so working through A1 first helps — but nothing is locked.",
     a2RecommendedHint:

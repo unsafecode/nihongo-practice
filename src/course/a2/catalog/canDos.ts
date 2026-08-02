@@ -630,13 +630,13 @@ export const a2CanDoDescriptorCopy: { readonly en: Readonly<Record<string, strin
     "a2-cando-fill-form-descriptor":
       "I can fill in a simple form with times, dates, and numbers.",
     "a2-cando-scenario-weekend-outing-descriptor":
-      "I can make weekend plans with a friend, discuss the weather, and describe what we'll do, aligned with A2-level outcomes.",
+      "I can make weekend plans with a friend, discuss the weather, and describe what we'll do.",
     "a2-cando-scenario-service-shopping-descriptor":
-      "I can compare items, ask about permission and possibility, and handle a short shopping or service exchange, aligned with A2-level outcomes.",
+      "I can compare items, ask about permission and possibility, and handle a short shopping or service exchange.",
     "a2-cando-scenario-health-absence-descriptor":
-      "I can explain why I feel unwell, request help, and let someone know I'll be absent, aligned with A2-level outcomes.",
+      "I can explain why I feel unwell, request help, and let someone know I'll be absent.",
     "a2-cando-scenario-trip-recount-descriptor":
-      "I can recount a past trip, naming places I've been and things I've done, aligned with A2-level outcomes.",
+      "I can recount a past trip, naming places I've been and things I've done.",
   },
   it: {
     "a2-cando-backchannel-followup-descriptor":
@@ -750,12 +750,12 @@ export const a2CanDoDescriptorCopy: { readonly en: Readonly<Record<string, strin
     "a2-cando-fill-form-descriptor":
       "Riesco a compilare un semplice modulo con orari, date e numeri.",
     "a2-cando-scenario-weekend-outing-descriptor":
-      "Riesco a organizzare un weekend con un amico, parlare del tempo e descrivere cosa faremo, in linea con gli obiettivi di livello A2.",
+      "Riesco a organizzare un weekend con un amico, parlare del tempo e descrivere cosa faremo.",
     "a2-cando-scenario-service-shopping-descriptor":
-      "Riesco a confrontare articoli, chiedere permesso e possibilità, e gestire un breve scambio in un negozio o un servizio, in linea con gli obiettivi di livello A2.",
+      "Riesco a confrontare articoli, chiedere permesso e possibilità, e gestire un breve scambio in un negozio o un servizio.",
     "a2-cando-scenario-health-absence-descriptor":
-      "Riesco a spiegare perché non mi sento bene, chiedere aiuto e avvisare che sarò assente, in linea con gli obiettivi di livello A2.",
+      "Riesco a spiegare perché non mi sento bene, chiedere aiuto e avvisare che sarò assente.",
     "a2-cando-scenario-trip-recount-descriptor":
-      "Riesco a raccontare un viaggio passato, nominando i posti in cui sono stato e le cose che ho fatto, in linea con gli obiettivi di livello A2.",
+      "Riesco a raccontare un viaggio passato, nominando i posti in cui sono stato e le cose che ho fatto.",
   },
 });

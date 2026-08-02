@@ -39,7 +39,7 @@ const itUi = {
     persistenceWarningTitle: "I progressi non verranno salvati",
     persistenceWarningBody:
       "Il browser non permette di salvare i progressi del percorso in questa sessione. Puoi continuare a usare l'app, ma alla chiusura le lezioni visitate non verranno ricordate.",
-    levelBadge: "A1, allineato al Can-do JF/CEFR",
+    levelBadge: "A1, il nostro allineamento ai descrittori Can-do JF/CEFR",
     courseShape: (moduleCount: number, lessonCount: number) =>
       `${moduleCount} moduli, ${lessonCount} lezioni`,
   },
@@ -65,7 +65,7 @@ const itUi = {
     a2: "A2",
     a1Heading: "Corso A1",
     a2Heading: "Corso A2",
-    a2Badge: "A2, allineato ai Can-do JF/CEFR",
+    a2Badge: "A2, il nostro allineamento ai descrittori Can-do JF/CEFR",
     a2AvailableHint:
       "A2 è disponibile quando vuoi. Si basa su A1, quindi affrontare prima A1 aiuta — ma nulla è bloccato.",
     a2RecommendedHint:
