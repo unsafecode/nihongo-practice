@@ -79,16 +79,57 @@ L'app è disponibile su <http://localhost:5173>.
 
 ## Verifica
 
+Esistono **due insiemi di gate** e non coincidono. Chi esegue solo quello breve
+deve sapere che cosa non copre.
+
+**Insieme di sviluppo** — i quattro comandi del piano di fase, il ciclo rapido
+usato durante lo sviluppo:
+
+```bash
+npx vitest run       # Vitest: motore coniugazione, dati, metadati
+npx tsc --noEmit     # TypeScript: nessun errore di tipo
+npm run prebuild     # validatori di rilascio A1/A2 + lint no-Japanese
+npm run build        # tsc --noEmit && vite build
+```
+
+Questi quattro comandi valgono **meno di quattro** controlli distinti: `npm run
+build` è `tsc --noEmit && vite build`, quindi **assorbe** il type-check autonomo
+(`npx tsc --noEmit`); e `prebuild` è uno *pre-script* npm, quindi gira
+**automaticamente** prima di `npm run build` e non è mai un gate a sé. Di fatto
+l'insieme si riduce a `npx vitest run` più `npm run build`.
+
+**Insieme di rilascio** — il gate canonico completo, **sei** comandi:
+
 ```bash
 npm test                          # Vitest: motore coniugazione, dati, metadati
 npm run build                     # TypeScript + Vite (build da solo non è sufficiente)
-npm run test:e2e                  # Playwright: flussi desktop e mobile
+npm run test:e2e                  # Playwright: flussi desktop e mobile (accettazione)
 GITHUB_PAGES=true npm run build   # build con prefisso /nihongo-practice/
 npm audit --omit=dev              # solo dipendenze di produzione
 npm audit                         # tutte le dipendenze
 ```
 
+L'insieme di sviluppo è un **sottoinsieme stretto** di quello di rilascio:
+rispetto ai sei comandi canonici omette i test di accettazione Playwright
+(`npm run test:e2e`), la build con prefisso Pages (`GITHUB_PAGES=true npm run
+build`) ed **entrambi** gli audit delle dipendenze (`npm audit --omit=dev`,
+`npm audit`).
+
 La suite completa comprende **Vitest** (unit/integrazione) e **Playwright** (desktop e mobile). La build da sola non sostituisce i test: TypeScript non cattura errori runtime né regressioni di comportamento.
+
+C'è inoltre un controllo che non compare in **nessuno** dei due insiemi:
+`npm run check:bundle` (`vite-node scripts/checkBundleBudget.ts`) verifica che
+ogni chunk emesso resti sotto i 500 kB. Esiste in `package.json` ed è verificato
+funzionante ("bundle budget OK", previa una build), ma non è cablato in
+`prebuild`, in `build`, né in alcun workflow: gira solo se eseguito a mano.
+Andrebbe eseguito come parte dell'insieme di rilascio finché non viene
+automatizzato.
+
+**Principio.** Un gate che è un sottoinsieme ma non dichiara di esserlo riporta
+la copertura del superinsieme: il segnale è indistinguibile — stessa parola
+"green", stessa forma di output. È così che un insieme di sviluppo riportato come
+"tutti e quattro i gate verdi" fu scambiato per la copertura del gate canonico, e
+il marciume dei test di accettazione è rimasto invisibile per un'intera fase.
 
 ## Architettura
 
