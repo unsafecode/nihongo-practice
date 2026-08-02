@@ -730,6 +730,16 @@ It proves nothing on its own; Marker 1 is what proves the new build is served.
 Run with the Playwright browser tools against the live URL. Each records what
 actually rendered, not merely that the page loaded without error.
 
+**Provenance — observation-only.** These nine checks were measured live with the
+Playwright browser tools against the deployed site
+(`https://unsafecode.github.io/nihongo-practice/`) at the deployed SHA
+`426cee8`, during the release-execution session. Alone among this record's
+evidence, they are **not reproducible from the repository at any SHA**: a reader
+holding the tree and `git` cannot re-derive them and must open the site to look.
+This is provenance, not doubt — they are the strongest evidence here, and this
+very class of check — opening the deployed artifact in a browser — is what
+caught the Task 37 defect after every gate had passed green.
+
 1. **PASS (Task 29).** Home shows a visible, labelled level control — a `navigation` landmark labelled "Livello del corso" carrying the A1 and A2 selectors.
 2. **PASS.** Switched to A1, opened `past-negative-2`, completed Exercise 2 (chose particle に) → "✓ Corretto".
 3. **PASS (Task 14).** A2 `connected-conversation-3`: the corrected clarify lines read as vocative address — `えみさん、…` / `そらさん、…` (name + さん + comma), with no は topic marker standing before an interjection.
