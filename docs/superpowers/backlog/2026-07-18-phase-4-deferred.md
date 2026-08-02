@@ -294,6 +294,54 @@ focus on validated anchors (see D-7), this is the place it belongs. Stated
 plainly as deliberate and pre-existing, so no reader mistakes it for a defect
 this phase created.
 
+### D-9. C1b and C3 pin id allowlists instead of deriving membership from an independent signal
+
+The final whole-release review found that two sub-assertions in
+`src/course/a2/catalog/a2ContentInvariants.test.ts` re-freeze current state rather
+than asserting an independent property. Check **C1b** (lines 111–120) asserts that
+`predicateSemanticType` is declared on **exactly these five** value ids as a
+hard-coded list, and its protective check (lines 129–139) then inspects **only**
+predicates that already carry the flag — `a2ContentInvariants.test.ts:133`,
+`if (!predicate?.predicateSemanticType) return false;`. Check **C3** (lines 164–177)
+has the identical shape: it pins `serviceTitleContexts` to exactly three ids with a
+`toEqual`, and its protective check (lines 179–188) inspects only values that carry
+the flag (`:184`, `if (!allowed) return false;`). Membership in "impersonal
+predicate" and "service-role address" is therefore **self-declared by the flag and
+cross-checked only against itself**: an impersonal predicate that is simply
+*missing* its flag is invisible to the whole C1b suite — it is not in the pinned
+list, so "exactly these five" still passes, and it is skipped by the protective
+check, so that never sees it either. This is the same pattern the Phase 4 plan
+flagged in the editorial golden — a drift lock proves output has not changed, but
+cannot prove the baseline was ever correct.
+
+**No current realized content violates the property, and the full suite is green
+(199 files / 3,759 tests at this review) — a future reader must not re-escalate this
+into a release blocker.** The dangerous case, a person-topic stacked over a
+self-topical clause (`Xは … あめでした`), is independently guarded by
+`src/course/a2/catalog/a2RealizedIntegrity.test.ts:174`, a genuine structural
+detector that fires on any predicate-sense value opening with a top-level `…は`
+topic **and** containing an internal `。` boundary, and which mandates
+`carriesOwnTopic`. It **fails closed**. Every realized weather connector is either
+caught by that gate (`a2-value-connector-ame-demo-dekakeru` opens `きょうは…` and
+`a2-value-connector-ame-sorekara-hare` opens `あさは…`, both `carriesOwnTopic:
+true`) or has an omitted subject (`a2-family-connector-utterance`, whose subject
+slot is `optional: true`). The single non-topic-opening weather clause that would
+slip through both nets, `a2-value-connector-ame-demo-sanpo`
+(`src/course/a2/catalog/a2SemanticCatalog.ts:1494`, `あめでした。でも、さんぽにいきました。`),
+is **unused** — no content file references it and its surface is realized
+nowhere — and **pre-existing**, present at the pre-phase baseline `ab0c078`. It also
+fits the catalog's documented "latent — unused by any authored M1-M4 variant"
+convention (`a2SemanticCatalog.test.ts:14,92,103`), so it is not a Phase 4 leftover.
+
+Recorded, not fixed: **Minor, non-blocking, no learner impact.** It is a
+test-robustness weakness, not a defect, and the release is already deployed. The
+remedy, should it ever be taken up, is to derive membership in "impersonal
+predicate" and "service-role address" from an independent signal — token or gloss
+inspection — rather than pinning the id list, so each check fails closed the way
+`a2RealizedIntegrity.test.ts:174` already does. Not scheduled; recorded so that a
+future author extending either family knows the pinned lists must be replaced with a
+derived signal, not merely appended to.
+
 ---
 
 ## Part 2 — Rejected — do not act on these
