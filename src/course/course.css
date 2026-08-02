@@ -389,11 +389,26 @@
 }
 
 .checkpoint-state__link {
+  /* Rendered as a <button> (this section has no URL under HashRouter), reset
+     to the neutral, link-styled appearance the design calls for so it is
+     visually identical to the anchor it replaces — no native button chrome,
+     inheriting the surrounding type. `font` precedes `font-size` so the
+     explicit size still wins. */
+  appearance: none;
+  -webkit-appearance: none;
   display: inline-flex;
   align-items: center;
   min-height: var(--action-target-min);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: inherit;
   color: var(--course-teal);
   font-size: var(--text-3);
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .checkpoint-state__link:focus-visible {

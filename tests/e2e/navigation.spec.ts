@@ -369,11 +369,16 @@ test.describe("checkpoint evidence link is an in-page target, not a route", () =
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
     await expect(page.locator(".notice--warning")).toHaveCount(0);
 
-    // The control must be a real, focusable, keyboard-operable link with an
-    // accessible name — not a div/button with a click handler.
+    // The control must be a real, focusable, keyboard-operable button with an
+    // accessible name — not a div with a click handler, and (per the owner's
+    // ruling) not an anchor: this in-page section has no URL under HashRouter,
+    // so it must not advertise one. Assert it is a <button> and that it carries
+    // no fragment href for a modified click / copy-link / restore to detonate.
     const link = page.locator(".checkpoint-state__link");
     await expect(link).toBeVisible();
-    await expect(link).toHaveJSProperty("tagName", "A");
+    await expect(link).toHaveJSProperty("tagName", "BUTTON");
+    await expect(link).toHaveJSProperty("type", "button");
+    expect(await link.getAttribute("href")).toBeNull();
     expect((await link.innerText()).trim().length).toBeGreaterThan(0);
 
     await link.click();

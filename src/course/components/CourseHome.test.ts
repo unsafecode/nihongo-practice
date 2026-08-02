@@ -498,17 +498,18 @@ describe("CourseHome: checkpoint evidence state (Phase 4 Task 27 — automatic a
     expect(html).not.toContain(escapeHtmlText(itCopy.checkpoint.notMet));
   });
 
-  it("links to the on-page #can-do-summary section (an in-page target, not a route)", () => {
+  it("reveals the on-page can-do-summary section without any fragment anchor (in-page action, not a route)", () => {
     const html = renderHome(makeProgressValue());
-    // The evidence link points at a section that this very page renders, by
-    // its element id — not at an arbitrary route. Under the app's HashRouter
-    // the fragment is intercepted for in-page scrolling (see CheckpointState
-    // and tests/e2e/navigation.spec.ts, which clicks it and asserts the
-    // learner never sees the false "page not found" warning). Asserting the
-    // href *and* that its target section exists in the same document encodes
-    // the real contract: this fragment resolves to our own content, so it must
-    // never be treated as an unknown route.
-    expect(html).toContain('href="#can-do-summary"');
+    // The evidence control reveals a section this very page renders, by its
+    // element id. Under the app's HashRouter that section has no URL, so it must
+    // NOT be exposed as an anchor: a fragment href is read by ⌘/middle-click,
+    // copy-link, bookmark, and session restore, all of which detonate the
+    // router into the false "page not found" warning. Assert the whole rendered
+    // home carries NO anchor pointing at a fragment — a property of the output,
+    // not of one string, that the next caller cannot violate silently — while
+    // the target section, its evidence copy, and the click-time scroll + focus
+    // (tests/e2e/navigation.spec.ts) remain intact.
+    expect(html).not.toMatch(/href="#/);
     expect(html).toContain('id="can-do-summary"');
     expect(html).toContain(escapeHtmlText(itCopy.checkpoint.evidenceLink));
   });
