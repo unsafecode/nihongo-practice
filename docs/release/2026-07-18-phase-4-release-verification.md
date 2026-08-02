@@ -914,7 +914,8 @@ Marker 1). So on the live site the click path **still exhibits the banner**; the
 button changes the served bytes only after the next deployment. That redeploy and
 its post-deploy markers will be recorded in a separate follow-up, in the same
 `docs/`-appended pattern as the `dce5642` deployment record — this section is not
-that record.
+that record. [Resolved after the fact: that follow-up is the *Second deployment —
+Task 38* section below, which records the redeploy to `0230db0` and its markers.]
 
 The complete fix is teaching the router to resolve the fragment; that is
 `RouteScrollManager` routing scope and was **explicitly declined twice, for the
