@@ -299,7 +299,7 @@ export function CourseHome(): ReactElement {
         heading={checkpointHeading}
         body={checkpointBody}
         linkLabel={copy.checkpoint.evidenceLink}
-        linkHref="#can-do-summary"
+        linkTargetId="can-do-summary"
         met={checkpointMet}
       />
 

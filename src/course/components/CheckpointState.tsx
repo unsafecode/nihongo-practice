@@ -1,10 +1,29 @@
-import type { ReactElement } from "react";
+import type { MouseEvent, ReactElement } from "react";
+import {
+  prefersReducedMotion,
+  resolveScrollBehavior,
+} from "../../routing/scrollPlan";
 
 export interface CheckpointStateProps {
   readonly heading: string;
   readonly body: string;
   readonly linkLabel: string;
-  readonly linkHref: string;
+  /**
+   * The DOM `id` of the in-page section this link reveals — the per-Can-do
+   * breakdown that already renders above this component — NOT an arbitrary
+   * href.
+   *
+   * The app mounts a `HashRouter` (`App.tsx`), so the URL fragment *is* the
+   * route. A bare `<a href="#can-do-summary">` therefore does not scroll
+   * in-page: clicking it sets the hash, the router reads path
+   * `/can-do-summary`, matches nothing, falls to the `*` catch-all, and
+   * redirects the learner to the course home with a false "page does not
+   * exist" warning. Taking an element id instead of an href makes that
+   * failure impossible to *express*: no caller can hand this component a
+   * fragment that detonates the router, and the component's only job is the
+   * in-page scroll it now owns.
+   */
+  readonly linkTargetId: string;
   readonly met: boolean;
 }
 
@@ -22,9 +41,39 @@ export function CheckpointState({
   heading,
   body,
   linkLabel,
-  linkHref,
+  linkTargetId,
   met,
 }: CheckpointStateProps): ReactElement {
+  function handleEvidenceLinkActivation(
+    event: MouseEvent<HTMLAnchorElement>,
+  ): void {
+    // Only intercept a plain primary activation. Browsers dispatch keyboard
+    // Enter on a link as a button-0 click, so this also covers the keyboard
+    // path. A modified click (new tab/window) is left to the browser.
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+    if (typeof document === "undefined") return;
+    const target = document.getElementById(linkTargetId);
+    if (!target) return;
+    // Keep this an in-page move: scroll to the section ourselves instead of
+    // letting the fragment reach HashRouter's route matcher. Reuse the shared
+    // reduced-motion helper so the preference is resolved in exactly one place
+    // (RouteScrollManager and the Syllabary jumps use the same one).
+    event.preventDefault();
+    target.scrollIntoView({
+      behavior: resolveScrollBehavior(prefersReducedMotion()),
+      block: "start",
+    });
+  }
+
   return (
     <section
       className="checkpoint-state"
@@ -37,7 +86,11 @@ export function CheckpointState({
       <p className="checkpoint-state__body" role="status">
         {body}
       </p>
-      <a className="checkpoint-state__link" href={linkHref}>
+      <a
+        className="checkpoint-state__link"
+        href={`#${linkTargetId}`}
+        onClick={handleEvidenceLinkActivation}
+      >
         {linkLabel}
       </a>
     </section>

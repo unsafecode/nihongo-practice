@@ -353,6 +353,45 @@ test.describe("unknown route", () => {
   });
 });
 
+test.describe("checkpoint evidence link is an in-page target, not a route", () => {
+  // Regression for the Phase 4 defect (commit a033a8c): the checkpoint
+  // "See your Can-do evidence" link rendered a bare `<a href="#can-do-summary">`.
+  // Under the app's HashRouter the fragment IS the route, so clicking it set
+  // path `/can-do-summary`, matched nothing, fell to the `*` catch-all, and
+  // redirected the learner to the home with a false amber "page does not
+  // exist" warning — about `#can-do-summary`, a section rendered on that very
+  // page. The fix intercepts the click and scrolls to the section in-page.
+  test("clicking it reveals #can-do-summary and never shows the false 'page not found' warning", async ({ page }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, routeUrls.home);
+
+    // Baseline: the learner is at the top of a clean home — no warning banner.
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    await expect(page.locator(".notice--warning")).toHaveCount(0);
+
+    // The control must be a real, focusable, keyboard-operable link with an
+    // accessible name — not a div/button with a click handler.
+    const link = page.locator(".checkpoint-state__link");
+    await expect(link).toBeVisible();
+    await expect(link).toHaveJSProperty("tagName", "A");
+    expect((await link.innerText()).trim().length).toBeGreaterThan(0);
+
+    await link.click();
+
+    // (1) The sharpest assertion: the invalid-route warning banner the learner
+    //     actually reads must be ABSENT. A scroll-only check would pass with
+    //     the banner still on screen.
+    await expect(page.locator(".notice--warning")).toHaveCount(0);
+    // The click stayed on the course route; it did not enter the catch-all.
+    expect(page.url()).toContain("#/percorso");
+
+    // (2) The #can-do-summary section is in view after the click.
+    await expect(page.locator("#can-do-summary")).toBeInViewport();
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+});
+
 test.describe("route-scroll missing anchor", () => {
   // Uses a direct canonical lesson id (not the shared REPRESENTATIVE_LESSON
   // fixture, which is a retired v2.1 alias — see helpers.ts): a legacy-id

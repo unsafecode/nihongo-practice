@@ -12,14 +12,17 @@ const BASE: CheckpointStateProps = {
   heading: "A2 checkpoint",
   body: "Your checkpoint is met automatically once every scenario lesson is consolidated.",
   linkLabel: "See your Can-do evidence",
-  linkHref: "#can-do-summary",
+  linkTargetId: "can-do-summary",
   met: false,
 };
 
 describe("CheckpointState", () => {
-  it("explains how evidence accrues and links to the breakdown", () => {
+  it("explains how evidence accrues and links to the breakdown by its element id", () => {
     const html = render(BASE);
     expect(html).toContain("A2 checkpoint");
+    // The prop is an element id, and the component builds the same-page
+    // fragment from it. Click-time interception (so the fragment never reaches
+    // HashRouter) is covered by tests/e2e/navigation.spec.ts.
     expect(html).toContain('href="#can-do-summary"');
     expect(html).toContain("See your Can-do evidence");
   });
