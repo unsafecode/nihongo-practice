@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:update": "playwright test --update-snapshots"
+    "test:e2e:update": "playwright test --update-snapshots",
+    "check:bundle": "vite-node scripts/checkBundleBudget.ts"
   },
   "dependencies": {
     "react": "^18.3.1",

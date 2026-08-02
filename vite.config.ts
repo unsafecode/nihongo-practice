@@ -39,6 +39,51 @@ export default defineConfig(({ mode }) => {
           // release does not have to re-download it just because app code
           // changed.
           manualChunks(id: string): string | undefined {
+            // Phase 4 Task 30: the A1 and A2 catalogue modules are imported by
+            // several lazy route chunks, so Rollup hoists them into the entry
+            // chunk (the common ancestor) rather than leaving them in the route
+            // chunk that first pulls them in. Naming them here gives each
+            // catalogue its own chunk, which drops the entry chunk from ~1,010 kB
+            // to ~265 kB and lets a content-only edit to one level invalidate
+            // just that level's chunk instead of the whole entry.
+            //
+            // This is a packaging win, NOT a deferral: `ProgressContext.tsx`
+            // renders at the app root and statically imports `a2/catalog/catalog`
+            // (`a2SemanticBuiltLessons`), `a1/catalog/canDos`, both checkpoints
+            // and `a2/manifest`, so the entry chunk still holds a static import
+            // of course-a1/course-a2/course-foundations and first paint still
+            // waits on all of them. Making the catalogues genuinely on-demand
+            // means breaking that root-level dependency first; until then, do
+            // not describe these chunks as lazy.
+            //
+            // Rollup's absorption algorithm assigns foundations/buildLessonViewModel,
+            // foundations/realizeFamily, and romaji/formatRomaji to course-a1 and
+            // course-a2 respectively rather than making them auto-shared, because
+            // the named-chunk dependency graph is resolved before the shared-chunk
+            // graph is finalized.  The result is a cycle:
+            //   course-a1 (buildLessonViewModel) → course-a2 (realizeFamily)
+            //   course-a2 (a2/catalog) → course-a1 (a1/checkpoint)
+            // Naming these modules "course-foundations" breaks the cycle: neither
+            // course-a1 nor course-a2 contain any foundation code, so the only
+            // inter-named-chunk dependency is the one-way course-a2 → course-a1
+            // arc that already exists (a2 catalog intentionally references the
+            // A1 checkpoint definition).
+            //
+            // .tsx and .css files inside foundations/ are deliberately excluded:
+            // they import from course/i18n which in turn imports a1/runtimeCopy
+            // and a2/runtimeCopy, so they would create foundations → a1/a2 arcs
+            // and re-introduce the cycle from the other direction. Those .tsx
+            // files are lazy (LessonPage chunk) and need no explicit grouping.
+            if (id.includes("/src/romaji/formatRomaji.ts")) return "course-foundations";
+            if (
+              id.includes("/src/course/foundations/") &&
+              !id.endsWith(".tsx") &&
+              !id.endsWith(".css")
+            ) {
+              return "course-foundations";
+            }
+            if (id.includes("/src/course/a2/")) return "course-a2";
+            if (id.includes("/src/course/a1/")) return "course-a1";
             if (id.includes("node_modules")) {
               return "vendor";
             }
