@@ -177,9 +177,13 @@ killing it when it stops holding:
 2. The vulnerable codepath is unreachable here: production routing is
    `HashRouter` only (`src/App.tsx`; `MemoryRouter` appears only in tests), there
    are zero RSC imports, and the declared production dependencies are just three
-   — `react`, `react-dom`, `react-router`. (Its transitive production closure
-   adds `cookie` and `set-cookie-parser`, five packages in all; none touch the
-   RSC path.)
+   — `react`, `react-dom`, `react-router`. The full transitive production
+   closure (`npm ls --omit=dev --all`) is **eight**: those three plus `cookie`
+   and `set-cookie-parser` under `react-router`, and `loose-envify`,
+   `js-tokens` and `scheduler` under `react`/`react-dom`. None touch the RSC
+   path. Quote the eight-package figure, not the three-package one — "three"
+   is the *declared direct* count and describes a smaller surface than the one
+   actually shipped.
 3. `^7.18.1` already admits `7.18.2`.
 
 The mechanism is **not** established, and two proposed explanations were
@@ -342,7 +346,66 @@ introduced a new one of its own. Plausible-sounding prose about behaviour gets
 written faster than it gets checked — including by a process built to remove
 exactly that.
 
-**A change indistinguishable from a working one in the diff.** `aria-label` on a
+Two further instances landed while this very document was being written, which
+is why it is recorded as a mechanism rather than an incident. A correction to a
+factual claim in the brief for this document — "the production closure is three
+packages" — was itself wrong: the corrected figure offered was five, and the
+measured figure is **eight** (`npm ls --omit=dev --all`). Three is the declared
+direct count; five omits the `react-dom` subtree. So a pass whose purpose was
+replacing an unverified number produced a second unverified number, and it read
+as more credible than the original precisely because it arrived labelled as a
+correction. **Rule: a correction carries no more authority than the claim it
+replaces, and needs the same measurement. Record the command that produced the
+figure next to the figure.**
+
+**A reviewed commit that is amended leaves the review pointing at nothing.**
+Task 26c's final review verdicts were recorded against `dbc85ff`. Actioning one
+Minor comment-only finding produced `828c734` by `git commit --amend`, so
+`dbc85ff` and `828c734` share the same parent (`8538a93`) and the same subject
+line, and `git merge-base --is-ancestor dbc85ff 828c734` is **false**:
+`dbc85ff` is unreachable from the branch and will eventually be garbage
+collected. The review would have survived as a document whose subject cannot be
+retrieved — the same failure as an untracked verification record, or a comment
+describing code that has moved: an artifact that reads as authoritative with a
+referent nobody can reach. The reflog shows amend-in-place was the habit
+throughout this phase, on at least eight distinct commits; every other instance
+was *pre-review* and therefore harmless, which is exactly why the one
+post-review instance was not noticed. **Rule: never amend a commit once a
+review verdict has been recorded against it — add a follow-up commit instead.
+The amend destroys the reviewed object; a follow-up leaves both in history and
+makes the post-review delta permanently visible.** The pull toward amending is
+strongest when the change is trivial, which is when the record's anchor is
+cheapest to lose. Where a verdict must cite a superseded SHA, state in the same
+sentence that it was amended away, and quote the delta inline so the record is
+self-contained.
+
+**A second authority is more dangerous than a missing one.** The four-command
+"development gate set" used throughout Phase 4 execution was introduced by the
+phase plan, which never referenced `README.md`'s canonical `## Verifica` list —
+a list that already named `npm run test:e2e`. Nobody was working without a
+spec; they were working from a spec that had been quietly forked, and the
+narrower fork produced confident green output for an entire phase while
+acceptance-test rot stayed invisible. An omission announces itself when someone
+looks for the missing thing. A fork does not: both lists are internally
+consistent, both report "green", and the outputs are indistinguishable.
+**Rule: a subset gate that does not announce it is a subset reports the
+coverage of the superset.**
+
+**An inferred mechanism is worth nothing until someone probes a case it rules
+out.** Three explanations in this phase were inferred from a consistent pattern
+and each was destroyed by a single direct probe costing one command: a mora
+histogram read as evidence of a generation rule; a package feed diagnosed as
+"~7 days stale"; and its replacement, "the feed ingests only the `latest`
+dist-tag lineage", killed by `react-router@6.30.4` resolving under the
+`version-6` tag having never been `latest`. Each survived exactly as long as it
+was only tested where it predicted. The operative distinction is not between
+checked and unchecked assumptions but between confirming and falsifying probes:
+querying another case a hypothesis predicts can only ever strengthen it.
+**Where a mechanism cannot be established, record "cause not established"
+rather than the most plausible candidate — the first is actionable, the second
+stops the next reader.**
+
+
 role-less span; `aria-describedby` landing in the description. Both look like
 fixes and may do nothing — the same shape as a golden file that re-freezes
 current output, or a gate that cannot fail. **Rule: prefer changes verifiable by
