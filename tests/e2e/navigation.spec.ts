@@ -378,18 +378,33 @@ test.describe("checkpoint evidence link is an in-page target, not a route", () =
 
     await link.click();
 
-    // Settle race-free before asserting *absence*. Resolve as soon as the
-    // click has fully taken effect in EITHER direction: the fix has focused
-    // the section, or (regression) the router detonated and rendered the
-    // banner. Without this the absence checks below could sample during the
-    // broken build's brief pre-redirect window (URL momentarily
-    // "#can-do-summary", banner not yet committed) and pass spuriously — a
-    // test that goes green while the bug is present.
-    await page.waitForFunction(
-      () =>
-        document.activeElement?.id === "can-do-summary" ||
-        document.querySelector(".notice--warning") !== null,
-    );
+    // Settle race-free before the specific assertions run. Resolve as soon as
+    // the click has produced ANY observable completion, then let each assertion
+    // below accuse its own cause. The disjunction covers every way the click
+    // can finish:
+    //   - focus landed on the section (a correct fix), OR
+    //   - the section scrolled into view (a mouse-only fix that forgot focus), OR
+    //   - the router detonated and rendered the banner (the original regression).
+    // Two properties this must preserve:
+    //   * Race-protection: it still resolves on the banner, so the original
+    //     regression cannot slip through the broken build's brief pre-redirect
+    //     window (URL momentarily "#can-do-summary", banner not yet committed)
+    //     and read as "absent".
+    //   * Diagnosability: it must NOT hinge only on focus, or a mouse-only
+    //     regression (focus never moves, no banner) would hang here for the full
+    //     timeout and report at this settle helper — a failure message that
+    //     accuses the wait condition instead of the missing focus, tempting a
+    //     future reader to loosen the gate and ship the regression green. With
+    //     the viewport arm the gate resolves under that mutation, and
+    //     toBeFocused() below fails naming focus and the section.
+    await page.waitForFunction(() => {
+      if (document.activeElement?.id === "can-do-summary") return true;
+      if (document.querySelector(".notice--warning") !== null) return true;
+      const section = document.getElementById("can-do-summary");
+      if (!section) return false;
+      const rect = section.getBoundingClientRect();
+      return rect.top < window.innerHeight && rect.bottom > 0;
+    });
 
     // (1) The sharpest, learner-facing assertion: the invalid-route warning
     //     banner must be ABSENT. Assert on the CLASS and the COPY — never on
@@ -411,11 +426,25 @@ test.describe("checkpoint evidence link is an in-page target, not a route", () =
     //     the assertion that distinguishes a genuine fix from a mouse-only one.
     await expect(page.locator("#can-do-summary")).toBeFocused();
 
-    // (3) The #can-do-summary section is genuinely in view after the click. The
-    //     live section sits ~4171-4272px down a 720px viewport, so "in view"
-    //     must be a real viewport check — `toBeVisible()` is true for an element
-    //     five viewports below the fold and would pass against the broken build.
-    await expect(page.locator("#can-do-summary")).toBeInViewport();
+    // (3) The section must be scrolled to the TOP of the viewport — the
+    //     `scrollIntoView({ block: "start" })` contract our handler owns — not
+    //     merely intersecting it. A plain `toBeInViewport()` is DECORATIVE here,
+    //     and it took a mutation probe to see why: Playwright auto-scrolls the
+    //     link into view before clicking it, and `.checkpoint-state__link` sits
+    //     just *below* #can-do-summary (the summary "renders above" the
+    //     checkpoint). So the click itself drags the section partly into view
+    //     regardless of our scroll code — with the scrollIntoView call removed,
+    //     the section's top sits ~393px ABOVE the viewport top yet still
+    //     intersects, so `toBeInViewport()` (any-pixel) passes while the scroll
+    //     is broken. Asserting the top edge is aligned to the viewport top
+    //     instead is discriminating: it lands at ~0 only when our
+    //     scrollIntoView({ block: "start" }) actually ran (measured 0.4px
+    //     desktop / 0.2px mobile on the fix; -393px with it removed).
+    const sectionTop = await page
+      .locator("#can-do-summary")
+      .evaluate((el) => el.getBoundingClientRect().top);
+    expect(sectionTop).toBeGreaterThanOrEqual(-16);
+    expect(sectionTop).toBeLessThanOrEqual(16);
 
     await assertNoRuntimeErrors(page, observers);
   });
