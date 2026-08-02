@@ -16,12 +16,22 @@ and therefore cannot change the built artifact** — `dist/` is produced from
 `src/`, `index.html`, and the build config, none of which these commits modify.
 That invariant terminates the regress here rather than deferring it: no
 docs-only commit can move a byte a learner downloads. Concretely, item 11's
-"79 commits / 102 files changed" is measured at the verified SHA; the commit that
-added this document (`ed157e6`) shows **80 commits / 103 files**, and this
-correcting follow-up shows **81 commits / 103 files** (it edits the same `docs/`
-file, so the file count does not rise again). A reader reconciling item 11
-against `git` at the tip should expect those higher figures and the one extra
-`docs/` path. Finally, this document is **not** the last word on the deployed
+"79 commits / 102 files changed" is measured at the verified SHA (`9e78940`),
+against the basis `ab0c078..<ref>` — `git rev-list --count ab0c078..<ref>` for
+the commit count, `git diff --stat ab0c078..<ref>` for files changed. On that
+basis the commit that added this document (`ed157e6`) measured **80 commits /
+103 files changed**, and the first correcting follow-up (`0f4cfb34`) measured
+**81 commits / 103 files changed**. Each docs-only follow-up adds one commit, so
+the commit count rises with every correction; a reader who measures a larger
+number at whatever ref they hold is seeing that expected growth, not a
+discrepancy, and should compute it with the commands above rather than expect
+any fixed figure — this record has further follow-ups coming, including the
+deploy record. The **files-changed** count corroborates it and is the more
+durable of the two figures: it was **103 at both `ed157e6` and `0f4cfb34`** and
+holds at 103 across any follow-up that edits only `docs/` paths already in that
+set; it would rise only if a follow-up adds a *new* `docs/` path — for instance
+the override-ratification decision record tracked as D-6 — which the `git diff
+--stat` above would surface as a new line. Finally, this document is **not** the last word on the deployed
 tree: **Task 36 re-runs every gate at the final deployed SHA**, and that run —
 not this one — certifies what is actually served.
 
