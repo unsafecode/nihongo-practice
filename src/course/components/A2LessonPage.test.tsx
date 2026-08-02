@@ -147,13 +147,14 @@ describe("A2 lesson page renders through the A2 renderer + staged kanji", () => 
 });
 
 describe("A2 lesson page: assessed kanji never leaks its reading, even in romaji mode", () => {
-  it("renders an assessed glyph bare (no furigana, no romaji) with a visible explanation, under romaji script", () => {
+  it("renders an assessed glyph within its contextual word (no furigana, no romaji) with a visible explanation, under romaji script", () => {
     installStorage({ "nihongo.script": "romaji" });
     const html = render(lessonPath("connected-conversation", "connected-conversation-4"));
     // 話 (hana / はな) is assessed at connected-conversation-4.
     const item = exposureItem(html, "a2-kanji-hana-話-assessed");
-    expect(item).toContain("話"); // the required bare glyph
-    expect(item).toContain(itCopy.kanji.assessedExplanation); // explanatory caption
+    expect(item).toContain("話"); // the taught glyph, present within its contextual word 話す
+    // 話 is the taught glyph assessed here; the caption interpolates it.
+    expect(item).toContain(itCopy.kanji.assessedExplanation("話")); // explanatory caption
     // No romaji bypass and no furigana leak, even though script === "romaji":
     // no ruby/rt element, no romaji-hint element, and the kana reading never
     // appears as visible text. (The `data-exposure-id` deliberately carries the
@@ -163,7 +164,7 @@ describe("A2 lesson page: assessed kanji never leaks its reading, even in romaji
     expect(item).not.toContain("kanji-ruby__romaji-hint");
     expect(item).not.toContain("<rt");
     expect(item).not.toContain("<ruby");
-    // The assessed glyph span itself renders only the glyph + the caption.
+    // The assessed glyph span itself renders the contextual word + the caption.
     const assessedSpan = item.slice(item.indexOf('class="kanji-ruby kanji-ruby--assessed"'));
     expect(assessedSpan).not.toContain("hana");
   });

@@ -131,7 +131,8 @@ export function A2LessonSection({
  * {@link KanjiRubyText} recognition-only renderer. Behavior is driven entirely
  * by each exposure's `stage`: first-supported/supported-retrieval show a
  * semantic ruby, revealable hides the reading behind an accessible reveal
- * control, and assessed shows a bare glyph with a visible explanation caption
+ * control, and assessed shows the contextual word with the taught glyph
+ * emphasised and a visible explanation caption
  * and NO romaji/furigana — even under the romaji script setting (the assistance
  * policy has no bypass). Renders nothing when the lesson has no kanji.
  */

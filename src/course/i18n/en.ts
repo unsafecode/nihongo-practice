@@ -79,8 +79,8 @@ const enUi = {
     sectionHeading: "Kanji in this lesson",
     sectionIntro:
       "Each kanji is shown inside the word it belongs to. Recognize them there — the practice sentences stay in kana, and there is no writing to do.",
-    assessedExplanation:
-      "You are being assessed on this kanji, so its reading is not shown here.",
+    assessedExplanation: (glyph: string) =>
+      `You are being assessed on ${glyph}, so its reading is not shown here.`,
     revealShow: "Show the reading",
     revealHide: "Hide the reading",
   },

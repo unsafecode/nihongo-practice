@@ -73,11 +73,12 @@ describe("C8 — contextual kanji readings", () => {
   });
 
   /**
-   * The assessed stage renders the whole 交ぜ書き word, so every kana in it is
-   * legible to the learner. That is safe only while a word's kana spells some
-   * *other* glyph's reading — never the reading being assessed. The convention
-   * delivers this today, but conventions are not gates: without this test a
-   * future word could hand the learner the answer and leave every gate green.
+   * The assessed stage renders the whole contextual word, so every character
+   * around the taught glyph is legible to the learner. That is safe only while
+   * those surrounding characters never spell the reading being assessed. The
+   * convention delivers this today, but conventions are not gates: without this
+   * test a future word could hand the learner the answer and leave every gate
+   * green.
    */
   it("never spells the assessed glyph's own reading in the kana around it", () => {
     const offenders = A2_KANJI_ROWS.filter((row) => {

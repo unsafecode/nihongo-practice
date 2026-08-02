@@ -40,7 +40,7 @@ function baseProps(overrides: Partial<KanjiRubyTextProps> = {}): KanjiRubyTextPr
     meaning: "to speak, to talk",
     exposure: exposureAt("first-supported"),
     script: "hiragana" as Script,
-    assessedExplanation: "Kanji you're assessed on show no reading support.",
+    assessedExplanation: (glyph: string) => `You are being assessed on ${glyph}; no reading is shown.`,
     revealShowLabel: "Reveal the reading",
     revealHideLabel: "Conceal the reading",
     ...overrides,
@@ -51,22 +51,44 @@ function renderStatic(props: KanjiRubyTextProps): string {
   return renderToStaticMarkup(createElement(KanjiRubyText, props));
 }
 
+/**
+ * Renders to static markup, then parses it into a detached container so tests
+ * can assert against the DOM (querySelector/textContent) instead of coupling
+ * to React's exact HTML attribute serialization and ordering.
+ */
+function renderDom(props: KanjiRubyTextProps): HTMLElement {
+  const container = document.createElement("div");
+  container.innerHTML = renderStatic(props);
+  return container;
+}
+
 describe("KanjiRubyText — first-supported / supported-retrieval (visible furigana)", () => {
   for (const stage of ["first-supported", "supported-retrieval"] as const) {
     it(`renders a semantic ruby with the glyph as base text and an aria-hidden rt reading (${stage})`, () => {
-      const html = renderStatic(baseProps({ exposure: exposureAt(stage) }));
-      expect(html).toContain('<ruby lang="ja"');
-      expect(html).toMatch(/<ruby[^>]*>話/);
-      expect(html).toMatch(/<rt[^>]*aria-hidden="true"[^>]*>はな<\/rt>/);
+      const container = renderDom(baseProps({ exposure: exposureAt(stage) }));
+      const ruby = container.querySelector("ruby");
+      expect(ruby).not.toBeNull();
+      expect(ruby?.getAttribute("lang")).toBe("ja");
+      // The single taught glyph is the ruby base, always marked with the
+      // target hook (consistent emphasis vocabulary), not rendered bare.
+      expect(ruby?.querySelector(".kanji-ruby__word-target")?.textContent).toBe("話");
+      const rt = ruby?.querySelector("rt");
+      expect(rt?.getAttribute("aria-hidden")).toBe("true");
+      expect(rt?.textContent).toBe("はな");
     });
   }
 
   it("exposes a permitted romaji hint as a separate element under romaji script, without replacing the glyph", () => {
-    const html = renderStatic(baseProps({ script: "romaji" }));
-    expect(html).toMatch(/<ruby[^>]*>話/);
-    expect(html).toContain("hana");
-    // The glyph itself must still be the ruby's base text, not swapped for romaji.
-    expect(html).toMatch(/<ruby[^>]*>話<rt/);
+    const props = baseProps({ script: "romaji" });
+    const container = renderDom(props);
+    const ruby = container.querySelector("ruby");
+    expect(ruby?.querySelector(".kanji-ruby__word-target")?.textContent).toBe("話");
+    expect(container.textContent).toContain("hana");
+    // Serialization check kept as a string assertion: the target glyph span is
+    // immediately followed by the <rt>, proving the glyph is the ruby base and
+    // was not swapped for romaji. This asserts sibling *order* in the markup,
+    // which a DOM presence query cannot express.
+    expect(renderStatic(props)).toMatch(/kanji-ruby__word-target">話<\/span><\/span><rt/);
   });
 
   it("does not render a romaji hint under hiragana script", () => {
@@ -80,16 +102,21 @@ describe("KanjiRubyText — first-supported / supported-retrieval (visible furig
   });
 
   it("renders the full word as the ruby base with the target glyph in kanji-ruby__word-target, and the whole-word kana in the aria-hidden rt (word prop)", () => {
-    const html = renderStatic(
+    const container = renderDom(
       baseProps({
         exposure: exposureAt("first-supported"),
         word: "話す",
         wordKana: "はなす",
       }),
     );
-    expect(html).toContain('<ruby lang="ja"');
-    expect(html).toMatch(/<rt[^>]*aria-hidden="true"[^>]*>はなす<\/rt>/);
-    expect(html).toContain('class="kanji-ruby__word-target">話');
+    const ruby = container.querySelector("ruby");
+    expect(ruby?.getAttribute("lang")).toBe("ja");
+    expect(ruby?.querySelector(".kanji-ruby__word-target")?.textContent).toBe("話");
+    // The trailing す is context, in a context span (not the target hook).
+    expect(ruby?.querySelector(".kanji-ruby__word-ctx")?.textContent).toBe("す");
+    const rt = ruby?.querySelector("rt");
+    expect(rt?.getAttribute("aria-hidden")).toBe("true");
+    expect(rt?.textContent).toBe("はなす");
   });
 });
 
@@ -207,21 +234,35 @@ describe("KanjiRubyText — revealable (furigana hidden behind a learner toggle)
 });
 
 describe("KanjiRubyText — assessed (no support, in every mode/script)", () => {
-  it("renders only the bare glyph — no ruby, no rt, no romaji — even under romaji script", () => {
-    const html = renderStatic(baseProps({ exposure: exposureAt("assessed"), script: "romaji" }));
-    expect(html).not.toContain("<ruby");
-    expect(html).not.toContain("<rt");
-    expect(html).not.toContain("hana");
-    expect(html).not.toContain("はな");
-    expect(html).toContain("話");
+  it("marks the single taught glyph with the target hook — no ruby, no rt, no romaji — even under romaji script", () => {
+    const container = renderDom(baseProps({ exposure: exposureAt("assessed"), script: "romaji" }));
+    expect(container.querySelector("ruby")).toBeNull();
+    expect(container.querySelector("rt")).toBeNull();
+    expect(container.textContent).not.toContain("hana");
+    expect(container.textContent).not.toContain("はな");
+    // A word that is the single taught glyph is still marked (no context
+    // spans, but the target hook), so it never reads as an unemphasised
+    // context character. Regression guard for the 13 single-glyph words.
+    expect(container.querySelector(".kanji-ruby__word-target")?.textContent).toBe("話");
+    expect(container.querySelector(".kanji-ruby__word-ctx")).toBeNull();
   });
 
   it("renders the assessed explanation caption tagged with data-copy-id=a2-kanji-why-visible", () => {
     const html = renderStatic(
-      baseProps({ exposure: exposureAt("assessed"), assessedExplanation: "Why no reading is shown here." }),
+      baseProps({ exposure: exposureAt("assessed"), assessedExplanation: () => "Why no reading is shown here." }),
     );
     expect(html).toContain('data-copy-id="a2-kanji-why-visible"');
     expect(html).toContain("Why no reading is shown here.");
+  });
+
+  it("names the taught glyph in the assessed explanation caption (the non-visual cue of which glyph is under test)", () => {
+    // At assessed there is no ruby and no gloss, so the visual emphasis is the
+    // only thing saying which glyph is being tested — for sighted users. The
+    // caption interpolates the glyph so that information is also present as
+    // plain DOM text (resolvable by braille / character navigation).
+    const container = renderDom(baseProps({ glyph: "毎", exposure: exposureAt("assessed") }));
+    const caption = container.querySelector('[data-copy-id="a2-kanji-why-visible"]');
+    expect(caption?.textContent).toContain("毎");
   });
 
   it("withholds furigana/romaji at assessed in every recognition mode", () => {
@@ -233,8 +274,8 @@ describe("KanjiRubyText — assessed (no support, in every mode/script)", () => 
     }
   });
 
-  it("renders the 交ぜ書き word base at assessed — no ruby, no rt, no romaji (word prop)", () => {
-    const html = renderStatic(
+  it("renders the word base at assessed — no ruby, no rt, no romaji (word prop)", () => {
+    const container = renderDom(
       baseProps({
         exposure: exposureAt("assessed"),
         script: "romaji",
@@ -242,13 +283,16 @@ describe("KanjiRubyText — assessed (no support, in every mode/script)", () => 
         wordKana: "はなす",
       }),
     );
-    expect(html).not.toContain("<ruby");
-    expect(html).not.toContain("<rt");
-    expect(html).not.toContain("hana");
+    expect(container.querySelector("ruby")).toBeNull();
+    expect(container.querySelector("rt")).toBeNull();
+    expect(container.textContent).not.toContain("hana");
     // wordKana is never rendered at assessed — no rt to put it in.
-    expect(html).not.toContain("はなす");
-    // The 交ぜ書き word base is rendered with the glyph emphasised.
-    expect(html).toContain('class="kanji-ruby__word-target">話');
+    expect(container.textContent).not.toContain("はなす");
+    // The word base wraps the taught glyph in its emphasis hook; this asserts
+    // the DOM structure only — the rendered visual emphasis is verified by the
+    // Playwright suite (jsdom has no layout engine to see it).
+    expect(container.querySelector(".kanji-ruby__word-target")?.textContent).toBe("話");
+    expect(container.querySelector(".kanji-ruby__word-ctx")?.textContent).toBe("す");
   });
 });
 

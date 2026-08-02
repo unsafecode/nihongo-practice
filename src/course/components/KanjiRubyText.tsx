@@ -5,16 +5,24 @@ import { a2KanjiAssistancePolicy } from "../a2/kanji/kanjiAssistancePolicy";
 import type { KanjiActivityMode, KanjiExposure } from "../a2/kanji/kanjiTypes";
 
 /**
- * Renders the word base text, emphasizing the target glyph within it.
- * If displayBase === glyph (no word context), returns it directly as a plain string.
+ * Renders the word base text, wrapping the taught glyph in the
+ * `.kanji-ruby__word-target` hook that course.css emphasises (heavier weight
+ * plus a baseline rule) and any surrounding characters in
+ * `.kanji-ruby__word-ctx` context spans. The taught glyph is always marked,
+ * so the emphasis vocabulary is consistent: heavy + ruled means "this is the
+ * glyph the gloss describes", light + unruled means "context". This holds
+ * even when the whole word IS the single taught glyph (e.g. 何) — it flows
+ * through the same wrapper with a target span and no context spans, rather
+ * than rendering bare (which would read as an unemphasised context character).
  * If indexOf returns -1 (glyph absent — reachable only for all-kana words,
  * which the C8 validator in a2ContextualWords.test.ts asserts never contain
- * the target kanji), returns displayBase as a plain string with no emphasis.
- * If glyph appears more than once, only the first occurrence is emphasised;
- * later occurrences render undecorated — not reachable with current catalog data.
+ * the target kanji), returns displayBase as a plain string: there is genuinely
+ * no target glyph present, so nothing is marked.
+ * If glyph appears more than once, only the first occurrence gets the target
+ * hook; later occurrences render as context — not reachable with current
+ * catalog data.
  */
 function renderWordBase(displayBase: string, glyph: string): ReactElement | string {
-  if (displayBase === glyph) return glyph;
   const idx = displayBase.indexOf(glyph);
   if (idx === -1) return displayBase;
   const before = displayBase.slice(0, idx);
@@ -33,7 +41,8 @@ function renderWordBase(displayBase: string, glyph: string): ReactElement | stri
  * decision L3), recognition-only. Rendering is driven entirely by the real
  * {@link a2KanjiAssistancePolicy}, keyed off `exposure.stage` — never by the
  * learner's global `script` preference — so an `assessed` exposure always
- * renders the bare glyph with no furigana or romaji, in every recognition
+ * renders the contextual word with the taught glyph emphasised and with no
+ * furigana or romaji, in every recognition
  * mode and even when the learner's script setting is `"romaji"`. `script`
  * only ever controls whether a *permitted* romaji hint is exposed alongside
  * (never instead of) the glyph, at the earlier, still-supported stages.
@@ -60,11 +69,31 @@ function renderWordBase(displayBase: string, glyph: string): ReactElement | stri
  *   the `<ruby>` gets an explicit `aria-label` pinned to the word base —
  *   otherwise the browser's default ruby accessible-name computation would
  *   concatenate base+rt into a duplicated "word+reading" string.
- * - `assessed` (furigana "hidden", romaji "not-shown"): the 交ぜ書き word base, no
+ * - `assessed` (furigana "hidden", romaji "not-shown"): the word base, no
  *   `<ruby>`/`<rt>` element at all, and no romaji hint, unconditionally —
  *   plus a visible explanation caption sourced from the caller-supplied
  *   `assessedExplanation` copy (key `a2-kanji-why-visible`), tagged with a
  *   `data-copy-id` so its provenance is inspectable.
+ *
+ * Limits of the taught-glyph disambiguation (read before touching the
+ * `.kanji-ruby__word-target` rules in course.css):
+ *  1. The glyph/context distinction carried by those CSS rules is
+ *     presentational only — it is NOT conveyed to assistive technology; the
+ *     accessibility tree exposes no glyph-vs-context relationship.
+ *  2. It backs BOTH non-assessed render paths — the visible path here (gloss
+ *     rendered on `meaning` alone, no reveal gate, `<rt>` aria-hidden, no
+ *     `aria-label`) and `RevealableKanjiRuby` (gloss gated on
+ *     `revealed && meaning`). In both, the gloss describes only the glyph, and
+ *     only the visual emphasis says which glyph — for sighted users.
+ *  3. At `assessed` there is no ruby and no gloss, so the emphasis is not
+ *     scoping a gloss: it identifies the item under test. Weakening or removing
+ *     those rules there does not merely reduce clarity — it removes the
+ *     question. The non-visual equivalent is that `assessedExplanation` names
+ *     the glyph in its text, so the caption must keep interpolating it.
+ *  4. This does NOT fix the gloss ambiguity for assistive-tech users: at the
+ *     supported/revealable stages the gloss still has no programmatic
+ *     association with the glyph. The ambiguity is resolved for sighted users
+ *     only; the AT gap is a separate, owner-tracked item.
  */
 export interface KanjiRubyTextProps {
   readonly glyph: string;
@@ -86,8 +115,15 @@ export interface KanjiRubyTextProps {
    * Optional: when absent, no meaning element is rendered at all.
    */
   readonly meaning?: string;
-  /** Localized copy for key `a2-kanji-why-visible`, shown at the assessed stage. */
-  readonly assessedExplanation: string;
+  /**
+   * Localized copy for key `a2-kanji-why-visible`, shown at the assessed stage.
+   * A function of the taught glyph: the assessed stage shows no ruby and no
+   * gloss, so the caption names the character under test in the text itself
+   * (e.g. "Su 毎 …"). That is the one cue of *which* glyph is being assessed
+   * that does not depend on perceiving weight/colour. See the docstring above
+   * for the limits of the visual emphasis this backstops.
+   */
+  readonly assessedExplanation: (glyph: string) => string;
   /**
    * Localized copy for key `a2-kanji-reveal-show`: the reveal toggle's
    * accessible name (`aria-label`) while the reading is still hidden. There
@@ -102,7 +138,7 @@ export interface KanjiRubyTextProps {
    * reading. Same no-hardcoded-fallback guarantee as {@link revealShowLabel}.
    */
   readonly revealHideLabel: string;
-  /** The contextual word this glyph lives in (交ぜ書き). When set, the ruby base shows the word with the target glyph emphasized. */
+  /** The contextual word this glyph lives in. When set, the ruby base shows the whole word with the target glyph emphasised apart from its context characters. */
   readonly word?: string;
   /** The whole-word kana reading (for the ruby annotation). */
   readonly wordKana?: string;
@@ -127,15 +163,20 @@ export function KanjiRubyText({
   const displayReading = wordKana ?? reading;
 
   if (exposure.stage === "assessed") {
-    // Assessed: bare glyph only. No furigana, no romaji, and — deliberately —
+    // Assessed: the word base (not the glyph alone — displayBase is the whole
+    // contextual word, and renderWordBase emits all of it, with the taught
+    // glyph in its emphasis hook). No furigana, no romaji, and — deliberately —
     // no semantic gloss either: if meaning is the recognition target, surfacing
     // it here would leak the answer, so the safest stage-aware behavior is to
-    // withhold it entirely (spec-fix ISSUE 2).
+    // withhold it entirely (spec-fix ISSUE 2). Because there is no ruby and no
+    // gloss at this stage, the emphasis is not scoping a gloss — it identifies
+    // the item under test. The explanation caption names that glyph in its text
+    // so the "which kanji?" question is answerable without perceiving emphasis.
     return (
       <span className="kanji-ruby kanji-ruby--assessed">
         <span lang="ja">{renderWordBase(displayBase, glyph)}</span>
         <span className="kanji-why" data-copy-id="a2-kanji-why-visible">
-          {assessedExplanation}
+          {assessedExplanation(glyph)}
         </span>
       </span>
     );

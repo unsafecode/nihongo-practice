@@ -223,7 +223,8 @@ for (const lesson of LESSONS) {
  * reflow coverage above onto the runtime level selector, the A2 course map and
  * its per-level review/checkpoint/Can-do surfaces, a representative deep A2
  * lesson, and the two contextual-kanji states unique to A2 (the revealable
- * reveal control and the assessed bare glyph). Every scenario runs on BOTH
+ * reveal control and the assessed contextual word with its taught glyph
+ * emphasised). Every scenario runs on BOTH
  * configured projects (desktop-1440 + mobile-390 → 1440×1000 and 390×844) via
  * the same `applyBrowserZoom`/`assertZoomApplied` mechanism the suite above
  * documents. A dedicated 320px block additionally proves the WCAG SC 1.4.10
@@ -312,7 +313,7 @@ test.describe(`A2 lesson ${A2_LESSON.moduleId}/${A2_LESSON.lessonId} at 200% zoo
 });
 
 test.describe(`A2 assessed kanji ${A2_ASSESSED_LESSON.lessonId} at 200% zoom`, () => {
-  test("the assessed bare glyph and its why-caption stay visible with no romaji leak and no overflow", async ({
+  test("the assessed contextual word and its why-caption stay visible with no romaji leak and no overflow", async ({
     page,
   }) => {
     const observers = await setupPageObservers(page);

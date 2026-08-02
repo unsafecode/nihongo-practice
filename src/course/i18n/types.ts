@@ -132,7 +132,15 @@ export interface CourseCopy {
   kanji: {
     sectionHeading: string;
     sectionIntro: string;
-    assessedExplanation: string;
+    /**
+     * `a2-kanji-why-visible`. Parameterised on the taught glyph: the assessed
+     * stage shows no ruby and no gloss, so the explanation names the character
+     * under test in the copy itself (e.g. "Su 毎 …") — the one non-visual cue
+     * of *which* glyph is being assessed. Naming the glyph cannot leak the
+     * answer, which is its reading, not its identity. House idiom: a function
+     * taking the glyph, like `resetLevel(levelLabel)`.
+     */
+    assessedExplanation: (glyph: string) => string;
     revealShow: string;
     revealHide: string;
   };

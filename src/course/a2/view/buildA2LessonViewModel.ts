@@ -53,7 +53,7 @@ export interface A2KanjiExposureView {
   readonly meaningCopyId: string;
   readonly lexemeSenseId: string;
   readonly contextId: string;
-  /** The contextual word this glyph lives in, written 交ぜ書き. */
+  /** The contextual word this glyph lives in. */
   readonly word: string;
   /** The contextual word's full kana reading (for ruby). */
   readonly wordKana: string;

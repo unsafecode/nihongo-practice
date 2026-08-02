@@ -27,7 +27,8 @@ const LESSON_URL = routeUrls.lesson(
 // deep A2 lesson (the ている "ongoing" module, `sequencing-ongoing-3`, whose
 // rule section shows the staged contextual-kanji UI), and focused element
 // baselines for the two A2-only kanji states: the revealable glyph after its
-// reading is revealed, and the assessed bare glyph with its why-caption. Each
+// reading is revealed, and the assessed contextual word (taught glyph
+// emphasised) with its why-caption. Each
 // is captured at both approved reference viewports and reviewed before commit.
 const A2_MAP_URL = `${routeUrls.home}?livello=a2`;
 const A2_TEIRU_LESSON_URL = routeUrls.lesson("sequencing-ongoing", "sequencing-ongoing-3");

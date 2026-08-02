@@ -79,8 +79,8 @@ const itUi = {
     sectionHeading: "Kanji di questa lezione",
     sectionIntro:
       "Ogni kanji è mostrato dentro la parola a cui appartiene. Riconoscilo lì: le frasi di pratica restano in kana e non c'è nulla da scrivere.",
-    assessedExplanation:
-      "Su questo kanji sei in fase di verifica, quindi la lettura non è mostrata qui.",
+    assessedExplanation: (glyph: string) =>
+      `Su ${glyph} sei in fase di verifica, quindi la lettura non è mostrata qui.`,
     revealShow: "Mostra la lettura",
     revealHide: "Nascondi la lettura",
   },

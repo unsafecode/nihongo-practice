@@ -1031,3 +1031,152 @@ test.describe("speech block reviewed baselines (Slice D Task 4)", () => {
     assertLocalOnlyNetwork(observers);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Task 26c — computed-style assertions that the taught kanji glyph is visually
+// distinguishable from the surrounding characters of the word it lives in
+// (e.g. 毎 within 毎日). jsdom has no layout engine, so only a real browser can
+// confirm the CSS produces a visible difference; these assertions check
+// independent computed visual properties (font weight and a baseline rule),
+// not merely that a class name is present, so they fail if the CSS is removed.
+//
+// The distinction must survive greyscale and colour-vision deficiency
+// (WCAG 1.4.1), so it is carried by two non-colour cues — a heavier font
+// weight on the target and a border-bottom rule under it. The context
+// characters are real content the learner reads, so this suite also pins the
+// constraint that they are not dimmed below a 4.5:1 text-contrast ratio.
+// ---------------------------------------------------------------------------
+const A2_TEIRU_LESSON_URL_26C = routeUrls.lesson("sequencing-ongoing", "sequencing-ongoing-3");
+// connected-conversation-4 is where 何 is at the REVEALABLE stage (verified from
+// the catalog: 何 revealable=connected-conversation-4, assessed=plans-invitations-1).
+// A revealable single-glyph word renders the target hook with furigana hidden
+// behind the reveal toggle — the whole word IS the taught glyph, so there are no
+// context spans.
+const A2_REVEALABLE_SINGLE_GLYPH_LESSON_URL_26C = routeUrls.lesson(
+  "connected-conversation",
+  "connected-conversation-4",
+);
+// health-advice-4 genuinely ASSESSES single-glyph words 薬 (kusuri) and 体 (karada)
+// (verified from the catalog by joining A2_KANJI_ROWS.assessed to the contextual
+// word). The assessed stage is the riskier path: it shows no furigana, so the bare
+// glyph has no other cue distinguishing it — the emphasis hook is the only signal.
+const A2_ASSESSED_SINGLE_GLYPH_LESSON_URL_26C = routeUrls.lesson("health-advice", "health-advice-4");
+
+// These tests deliberately run in BOTH the desktop-1440 and mobile-390 projects,
+// even though the asserted values (font weight, border width, contrast) are
+// viewport-independent. course.css already scopes some rules by context, so a
+// future mobile-scoped media query that disabled or overrode this emphasis would
+// be a real regression caught only by the mobile project. Do not "optimise" this
+// down to a single project.
+test.describe("kanji glyph emphasis (Task 26c)", () => {
+  test("target glyph is emphasised by a heavier weight and a baseline rule", async ({ page }) => {
+    await setupPageObservers(page);
+    await gotoReady(page, A2_TEIRU_LESSON_URL_26C);
+
+    const target = page.locator(".kanji-ruby__word-target").first();
+    await expect(target).toBeVisible();
+
+    const ctx = page.locator(".kanji-ruby__word-ctx").first();
+    await expect(ctx).toBeVisible();
+
+    const targetStyle = await target.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return {
+        weight: Number(s.fontWeight),
+        borderWidth: Number.parseFloat(s.borderBottomWidth),
+      };
+    });
+    const ctxStyle = await ctx.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return {
+        weight: Number(s.fontWeight),
+        borderWidth: Number.parseFloat(s.borderBottomWidth),
+      };
+    });
+
+    // Non-colour cue #1: the target is visibly heavier than its context.
+    expect(targetStyle.weight).toBeGreaterThan(ctxStyle.weight);
+    expect(targetStyle.weight).toBeGreaterThanOrEqual(700);
+
+    // Non-colour cue #2: the target carries a baseline rule the context lacks.
+    expect(targetStyle.borderWidth).toBeGreaterThan(0);
+    expect(ctxStyle.borderWidth).toBe(0);
+  });
+
+  test("context characters stay legible (>= 4.5:1) and are not dimmed", async ({ page }) => {
+    await setupPageObservers(page);
+    await gotoReady(page, A2_TEIRU_LESSON_URL_26C);
+
+    const ctx = page.locator(".kanji-ruby__word-ctx").first();
+    await expect(ctx).toBeVisible();
+
+    // The context is emphasis-relative de-prioritised, but must remain real,
+    // readable content: full opacity and WCAG AA text contrast.
+    const ctxOpacity = await ctx.evaluate((el) => Number(getComputedStyle(el).opacity));
+    expect(ctxOpacity).toBe(1);
+
+    const { color, background } = await resolveColors(page, ".kanji-ruby__word-ctx");
+    expect(contrastRatio(color, background)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  test("a single-glyph word at the revealable stage still marks its taught glyph", async ({ page }) => {
+    await setupPageObservers(page);
+    await gotoReady(page, A2_REVEALABLE_SINGLE_GLYPH_LESSON_URL_26C);
+
+    // At connected-conversation-4, 何 is at the REVEALABLE stage: the whole word
+    // IS the single taught glyph, so it renders a target hook with no sibling
+    // context span. Without the fix it rendered bare, so the taught glyph
+    // appeared in the light/unruled vocabulary that means "context" — this
+    // locates exactly that shape, scoped to the revealable panel, and asserts it
+    // is emphasised.
+    const singleGlyphWord = page
+      .locator(".kanji-ruby--revealable .kanji-ruby__word")
+      .filter({ has: page.locator(".kanji-ruby__word-target") })
+      .filter({ hasNot: page.locator(".kanji-ruby__word-ctx") })
+      .first();
+    await expect(singleGlyphWord).toBeVisible();
+
+    const target = singleGlyphWord.locator(".kanji-ruby__word-target");
+    const style = await target.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return {
+        weight: Number(s.fontWeight),
+        borderWidth: Number.parseFloat(s.borderBottomWidth),
+      };
+    });
+
+    // Same emphasis vocabulary as a glyph that has context: heavy + ruled.
+    expect(style.weight).toBeGreaterThanOrEqual(700);
+    expect(style.borderWidth).toBeGreaterThan(0);
+  });
+
+  test("a single-glyph word at the assessed stage still marks its taught glyph", async ({ page }) => {
+    await setupPageObservers(page);
+    await gotoReady(page, A2_ASSESSED_SINGLE_GLYPH_LESSON_URL_26C);
+
+    // At health-advice-4, 薬 and 体 are genuinely ASSESSED single-glyph words.
+    // Assessed is the riskier path: no furigana is shown, so the bare glyph has
+    // no other cue — if the emphasis hook were missing, a taught glyph would be
+    // pixel-indistinguishable from a context character. Scope to the assessed
+    // panel and assert the single-glyph target still carries heavy + ruled.
+    const singleGlyphWord = page
+      .locator(".kanji-ruby--assessed .kanji-ruby__word")
+      .filter({ has: page.locator(".kanji-ruby__word-target") })
+      .filter({ hasNot: page.locator(".kanji-ruby__word-ctx") })
+      .first();
+    await expect(singleGlyphWord).toBeVisible();
+
+    const target = singleGlyphWord.locator(".kanji-ruby__word-target");
+    const style = await target.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return {
+        weight: Number(s.fontWeight),
+        borderWidth: Number.parseFloat(s.borderBottomWidth),
+      };
+    });
+
+    // Same emphasis vocabulary, no furigana to lean on: heavy + ruled.
+    expect(style.weight).toBeGreaterThanOrEqual(700);
+    expect(style.borderWidth).toBeGreaterThan(0);
+  });
+});

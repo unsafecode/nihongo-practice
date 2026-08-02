@@ -333,7 +333,7 @@ test.describe("A2 revealable kanji control on the built preview", () => {
 // 4. Assessed kanji no-bypass, even under the romaji script setting.
 // ---------------------------------------------------------------------------
 test.describe("A2 assessed kanji no-bypass on the built preview", () => {
-  test("keeps an assessed glyph bare with a why-caption and no rt/romaji/gloss leak even in romaji mode", async ({ page, viewport }) => {
+  test("keeps an assessed glyph within its contextual word, with a why-caption and no rt/romaji/gloss leak even in romaji mode", async ({ page, viewport }) => {
     const observers = await setupPageObservers(page);
     await gotoReady(page, routeUrls.home);
 
@@ -347,7 +347,7 @@ test.describe("A2 assessed kanji no-bypass on the built preview", () => {
     const assessed = page.locator('.a2-kanji__item[data-stage="assessed"]').first();
     await expect(assessed).toBeVisible();
 
-    // Bare glyph + a visible why-caption sourced from the assessed-explanation copy.
+    // Contextual word (taught glyph emphasised) + a visible why-caption sourced from the assessed-explanation copy.
     await expect(assessed.locator(".kanji-ruby--assessed")).toHaveCount(1);
     await expect(assessed.locator('.kanji-why[data-copy-id="a2-kanji-why-visible"]')).toBeVisible();
     // No furigana, no romaji hint, no gloss — nothing that leaks the reading.

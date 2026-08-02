@@ -805,6 +805,42 @@
   font-style: italic;
 }
 
+/*
+ * Contextual-word emphasis. The gloss below a contextual word describes only
+ * the taught glyph (see src/course/a2/kanji/kanjiMeanings.ts), so the glyph
+ * must be visually separable from the surrounding characters it shares the
+ * word with (e.g. 毎 within 毎日). The distinction is carried by two
+ * non-colour cues — a heavier font weight and a baseline rule under the target
+ * — so it survives greyscale and colour-vision deficiency (WCAG 1.4.1). The
+ * coral underline colour is a bonus, never the sole signal. Context characters
+ * keep the inherited ink colour and a normal (readable) weight — they are not
+ * dimmed, so they retain full text contrast.
+ *
+ * Limits of this emphasis (do not weaken these rules without re-reading):
+ *  1. It is presentational only and is NOT conveyed to assistive technology —
+ *     the accessibility tree carries no glyph-vs-context relationship.
+ *  2. It backs BOTH non-assessed render paths in KanjiRubyText.tsx; how each
+ *     gates and associates its gloss is that component's concern, not this
+ *     stylesheet's — see the `KanjiRubyText` docstring rather than restating
+ *     its internals here.
+ *  3. At the assessed stage there is no ruby and no gloss, so this emphasis
+ *     does not scope a gloss — it identifies the item under test. Removing or
+ *     weakening it there does not merely reduce clarity, it removes the
+ *     question. The non-visual equivalent is that the assessed caption copy
+ *     names the glyph in its text (see `assessedExplanation`).
+ *  4. This resolves the gloss ambiguity for sighted users only; the
+ *     assistive-tech gap (no programmatic gloss-to-glyph association) is a
+ *     separate, owner-tracked item and is deliberately not addressed here.
+ */
+.kanji-ruby__word-ctx {
+  font-weight: 400;
+}
+
+.kanji-ruby__word-target {
+  font-weight: 800;
+  border-bottom: 0.08em solid var(--course-coral);
+}
+
 .kanji-reveal {
   font-weight: 700;
   line-height: 1;

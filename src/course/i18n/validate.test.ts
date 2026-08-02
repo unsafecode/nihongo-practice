@@ -197,7 +197,17 @@ describe("A2 runtime copy (Phase 3 Task 8): level selector + kanji chrome", () =
 
   function kanjiStrings(copy: CourseCopy): string[] {
     const k = copy.kanji;
-    return [k.sectionHeading, k.sectionIntro, k.assessedExplanation, k.revealShow, k.revealHide];
+    // assessedExplanation interpolates the taught glyph at runtime; this gate
+    // guards the *template* only, so call it with a Latin sentinel (the idiom
+    // resetLevel("A1") already uses). The real glyph is runtime data and was
+    // never in scope for the no-Japanese assertion.
+    return [
+      k.sectionHeading,
+      k.sectionIntro,
+      k.assessedExplanation("KANJI"),
+      k.revealShow,
+      k.revealHide,
+    ];
   }
 
   it("declares the same courseLevels and kanji keys in both locales", () => {
