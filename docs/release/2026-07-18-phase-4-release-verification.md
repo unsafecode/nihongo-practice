@@ -262,7 +262,10 @@ reworded to name `ab0c078` by its role instead, so it needs no annotation.) The
 release has since deployed at **`426cee8`** — recorded under **Deployment** below
 (*Release identity* gives the deployed SHA; *Gate re-run at the deployed SHA*
 re-gates it), with the click-path regression corrected in *Post-deploy correction
-— Task 37* below. This corrects the **label only**: `react-router` is pinned at
+— Task 37* below and that fix **since redeployed at `0230db0`**, recorded under
+*Second deployment — Task 38* below; as of that redeploy record (`0230db0`,
+2026-08-02) the live deploy state is `0230db0`. This corrects the **label only**:
+`react-router` is pinned at
 `7.18.1` at `426cee8` as well (`git show 426cee8:package-lock.json` →
 `"version": "7.18.1"`), so the advisory exposure is unchanged and the override
 ruling in this item is **not** reopened.
@@ -760,7 +763,8 @@ to master. Master's tip therefore moves **one docs-only commit past the deployed
 SHA `426cee8`** — expected, and it changes nothing a learner downloads: this
 commit touches only `docs/`, and `dist/` is built from `src/`, `index.html`, and
 the build config, none of which a docs-only commit modifies. The served bytes
-remain those of `426cee8`, as Marker 1 proves.
+remain those of `426cee8`, as Marker 1 proves [as of deploy 1; the Task 37 fix was
+subsequently redeployed to `0230db0` — see *Second deployment — Task 38* below].
 
 - Deployed SHA: `426cee86fdf9d4d2ba7fdafbdab981355f806c67`.
 - Workflow run: <https://github.com/unsafecode/nihongo-practice/actions/runs/30751862964>.
@@ -987,7 +991,11 @@ checkpoint-anchor fix onto the live site. The first deployment (Task 36, SHA
 `426cee8`, recorded under **Deployment** above) shipped a Phase-4 regression that
 no gate caught and the post-deploy live check did; Task 37 fixed it out of plan;
 this is the deploy of that fix and its post-deploy verification. The **Deployment**
-section above is unchanged and remains true — it records deploy 1. Each figure
+section above is unchanged and remains true — it records deploy 1. This section
+**supersedes the deploy-state figure** named in the *Deploy-state correction (added
+post-deploy)* note under item 7: as of this record the live deploy state is
+`0230db0`, not `426cee8` (which deploy 1 did ship, and which remains true for
+deploy 1). Each figure
 below sits beside the command that produced it, and the one marker that disagreed
 is recorded as a disagreement that was resolved, not as a clean pass.
 
@@ -1040,13 +1048,20 @@ bytes, no working-tree drift — so the tripwire did not fire.
 
 Base URL: `https://unsafecode.github.io/nihongo-practice/` (call it `$BASE`).
 
-**Marker doctrine.** A marker does **not** assert `status == 200`; it asserts the
-**served bytes sha256-match the gated build**. A status check is insufficient in
-general: a site with a catch-all `404.html` answers every missing path with `200`,
-so `200` proves nothing about *which* bytes came back. It was separately measured
-that this site returns a **real 404** (`type=text/html`) for a missing asset, so
-absence is detectable here — but that is a property of this host, not a licence to
-trust status codes as integrity evidence.
+**Marker doctrine (scoped to integrity markers).** An *integrity* marker does
+**not** assert `status == 200`; it asserts the **served bytes sha256-match the
+gated build**. A status check is insufficient in general: a host with a catch-all
+**rewrite to `index.html`** (an SPA fallback) answers every missing path with
+`200`, so `200` proves nothing about *which* bytes came back — whereas a host that
+serves a static `404.html` returns it *with* a genuine `404` status, so it is the
+rewrite rule, not a custom error page, that produces the `200`-for-everything
+failure mode. It was separately measured that this site returns a **real 404**
+(`type=text/html`) for a missing asset, so absence is detectable here — but that is
+a property of this host, not a licence to trust status codes as integrity evidence.
+The *secondary* marker below is deliberately **not** an integrity check but a
+freshness check on the mutable `index.html` pointer: an immutable hashed asset
+cannot show that the entry document turned over, because its bytes — and therefore
+its hash — are identical whether or not the HTML around it refreshed.
 
 **The primary marker initially disagreed, and the disagreement was in the
 instrument, not the deployment.** Recorded in full because it is the load-bearing
@@ -1071,9 +1086,11 @@ shasum -a 256`.
 | `course-foundations-FFo7yljR.js` | `84c6b987580d57f2…` | byte-identical |
 | `CourseHome-CuAVB7sT.js` | `0a35ac2096d0ad55…` | byte-identical |
 
-A cache-busted re-fetch of the index — `curl -s "$BASE/?cb=$(date +%s)"` resolving
-to `index-CgnfrT-0.js` — returned the **same** hash `a6c7a127…`, so the match is
-not a caching artifact.
+A cache-busted re-fetch confirmed the match is not a caching artifact, in two
+steps: `curl -s "$BASE/?cb=$(date +%s)"` returned fresh index HTML that still
+resolved to `index-CgnfrT-0.js`, and re-fetching *that* chunk —
+`curl -s $BASE/assets/index-CgnfrT-0.js | shasum -a 256` — returned the **same**
+hash `a6c7a127…`.
 
 **Secondary marker — the HTML refreshed.** The served HTML's index reference moved
 `index-fgTHUphq.js` (deploy 1's index chunk) → `index-CgnfrT-0.js`. The immutable
@@ -1117,7 +1134,7 @@ here nothing did, and the primary-marker disagreement is the cost.
 **(c) The e2e gate destroys the artifact the marker references.** `npx playwright
 test` rebuilds `dist/` under a different configuration — roughly 21 per-route
 chunks such as `CourseHome-BsjD-mBv.js`, `LessonPage-DeIAunvg.js`, and
-`vendor-CjX24P0I.js` — replacing the production build's five chunks. So the first
+`vendor-CjX24P0I.js` — replacing the production build's chunks wholesale. So the first
 hash comparison, run against a `dist/` left behind by Playwright, failed with **"No
 such file or directory"**: the file the marker named no longer existed on disk.
 Anyone re-running this marker procedure must hash `dist/` **immediately after**
@@ -1145,9 +1162,14 @@ the thing the learner reads — the section scrolling into view is a convenience
 the banner telling them a section that exists does not exist was the harm.
 
 **What caught the deploy-1 regression: not a gate — this live check.** No gate
-could have caught it: the unit test at the time asserted the *presence* of the very
-attribute (`href="#can-do-summary"`) that constituted the bug, so a green gate was
-consistent with the defect being live. It was found by opening the deployed site in
+*then in place* could have caught it: the unit test at the time asserted the
+*presence* of the very attribute (`href="#can-do-summary"`) that constituted the
+bug, so the gate set that ran green at `426cee8` was consistent with the defect
+being live. That is a claim about the gate set as it stood at deploy 1, not a
+universal: Task 37 has since added four e2e assertions that activate the control by
+click and by keyboard across the two viewport projects (the +4 in the gate table
+above), and they catch exactly this class — the deploy-1 defect would fail a gate
+today. It was found by opening the deployed site in
 a browser — the class of check recorded here. That is the justification for this
 step existing at all, and it is recorded beside the marker results because the
 markers alone would not have caught the deploy-1 defect either.
