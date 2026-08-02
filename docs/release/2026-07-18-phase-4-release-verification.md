@@ -724,3 +724,174 @@ remain those of `426cee8`, as Marker 1 proves.
 - Workflow run: <https://github.com/unsafecode/nihongo-practice/actions/runs/30751862964>.
 - Live URL: <https://unsafecode.github.io/nihongo-practice/>.
 - Date: **2026-08-02**.
+
+---
+
+## Post-deploy correction — Task 37 (out of plan)
+
+Check 7 above ("CONCERN — the check is half-met") was not a pre-existing defect
+that survived into Phase 4 — it was a regression **Phase 4 itself introduced**.
+It is corrected here as **Task 37**, an out-of-plan corrective task, on commits
+`d1bbd47` → `3b46942` → `e8e1b37` → `3e3740c` → `1aa54dc` → `2156c0c` →
+`bbf565f`, which passed both a spec-compliance review and a code-quality review.
+This section records what happened, what is fixed, and what remains
+true-but-unfixed. No production behaviour beyond the checkpoint control changed.
+
+### The defect — precisely
+
+The checkpoint control on the course home rendered as `<a
+href="#can-do-summary">` — "Vedi le prove dei tuoi Can-do" / "See your Can-do
+evidence". (At the deployed SHA `426cee8`, `CheckpointState.tsx` declared
+`readonly linkHref: string` and rendered `<a className="checkpoint-state__link"
+href={linkHref}>`.)
+
+The app mounts a **`HashRouter`** (`src/App.tsx:41`), so the URL fragment **is**
+the route. Clicking set the hash; the router read path `/can-do-summary`; it
+matched no route; it fell to the `*` catch-all (`src/routing/routes.tsx:238`) →
+`InvalidRoute` (`src/routing/routes.tsx:118`), which issues `<Navigate replace
+to="/percorso" state={{ invalidPath: location.pathname }}>`. That one redirect
+has two consequences, both from the same `<Navigate>`:
+
+1. `RouteNotice` — mounted on the course home (`RouteNotice.tsx`, rendered at
+   `CourseHome.tsx:172`) — reads `location.state.invalidPath` and renders a
+   warning-styled banner (`<Notice tone="warning">`, `RouteNotice.tsx:29`):
+   - IT — "Pagina non trovata" / "La pagina “/can-do-summary” non esiste. Sei
+     tornato al percorso."
+   - EN — "Page not found" / "“/can-do-summary” does not exist. You are back at
+     the course."
+2. the route transition drives `RouteScrollManager` to reset scroll to the top —
+   the scroll-reset facet already recorded in Check 7. Both facets are the one
+   redirect; Check 7 saw the reset, this trace adds the banner.
+
+So clicking the site's own link told the learner, in **both languages**, in a
+warning banner, that a section rendered **on the very page they were viewing**
+does not exist. The `#can-do-summary` section is rendered directly above the
+control (`CourseHome.tsx:256-301`; the control at `:303`); it is present, not
+missing.
+
+Facts stated precisely, because each was verified and each is easy to get subtly
+wrong:
+
+- **Warning-styled, but politely announced — it does not interrupt.** The
+  container is `class="notice notice--warning"` with **`role="status"`**, not
+  `role="alert"`: `src/components/Notice.tsx:27` computes `const role = tone ===
+  "error" ? "alert" : "status"`, and this Notice is `tone="warning"`.
+  `role="status"` is a polite live region — announced, but it does not interrupt
+  the screen reader.
+- **The commit that shipped it.** The defect was introduced by **`a033a8c`**,
+  whose subject is *"fix(ui): describe how the checkpoint is actually met"*. The
+  commit that fixed a false learner-facing claim shipped a false learner-facing
+  claim — the sharpest instance of this release's own thesis.
+- **A test asserted the defect.** `src/course/components/CourseHome.test.ts:503`
+  (at the deployed SHA `426cee8`) asserted
+  `expect(html).toContain('href="#can-do-summary"')` — a test asserting the
+  presence of the very attribute that constitutes the defect. It was deleted
+  rather than adapted.
+- **Neither the gates nor the author caught it.** Every gate was green at
+  `426cee8`. It was found by the post-deploy live check (Check 7) — by opening
+  the deployed site in a browser. That check existed because someone judged
+  verifying the deployed artifact worth the trouble, and it paid for itself on
+  its first run.
+- **The URL was broken independent of the click.** Navigating cold to
+  `https://unsafecode.github.io/nihongo-practice/#can-do-summary`, with no click
+  at all, lands on `#/percorso` with the same banner — the same `InvalidRoute`
+  redirect, reached without a click (recorded as measured live; the mechanism is
+  the code path above).
+
+### The fix
+
+- The control is now a **`<button type="button">`**, not an anchor
+  (`CheckpointState.tsx:95-101`). Under a hash router the section has no URL, so
+  an `<a href>` advertised a destination that does not exist.
+- An earlier iteration (`d1bbd47`) kept the anchor and intercepted the click with
+  `preventDefault`. It was **withdrawn** (`2156c0c`), because `preventDefault`
+  intercepts a *click*, not an *href*: ⌘/middle-click, "copy link address",
+  bookmarking, and session restore all read the attribute and still land on the
+  false banner. React Router's own `Link` convention deliberately lets modified
+  clicks through so those affordances work; here that correct convention led only
+  to the broken URL, while swallowing modified clicks would have broken an
+  affordance users expect. When both branches of the convention are wrong, the
+  element is wrong.
+- The prop was narrowed from `linkHref: string` to `linkTargetId: string`
+  (`CheckpointState.tsx:28`): the component now takes an element id, never an
+  href, and renders a button, so the trap is closed **by the type** rather than
+  by handler logic — the next caller cannot re-arm it.
+- **Accessibility.** A native fragment link moves both viewport and focus. The
+  handler therefore scrolls the section into view **and** calls `.focus()` on it
+  (`CheckpointState.tsx:66-70`); the section carries `tabIndex={-1}` and
+  `aria-labelledby` (`CourseHome.tsx:257-260`), so focusing it announces its
+  heading. Without this the fix would have worked for a mouse and been inert for
+  keyboard and screen-reader users.
+
+### Disclosed residual — unreachable, not valid
+
+A button makes the broken URL **unreachable, not valid**. `#can-do-summary`
+typed by hand, or restored from a link shared during the deployment window,
+**still produces the banner**. That exposure is minutes wide and nobody holds
+such a link, so removing the href — the thing consumers copy, bookmark, and
+restore — is the right trade. But it is a residual, and it is disclosed rather
+than discovered. The complete fix is teaching the router to resolve the fragment;
+that is `RouteScrollManager` routing scope and was **explicitly declined twice,
+for the same reason both times** — out of scope for a corrective task. Declining
+it twice for the same reason is consistency, not timidity. Tracked as **D-7** in
+`docs/superpowers/backlog/2026-07-18-phase-4-deferred.md`.
+
+### Second disclosed limitation — the unit assertion is a proxy (found in review)
+
+The replacement unit assertion is `expect(html).not.toMatch(/href="#[^/]/)`
+(`src/course/components/CourseHome.test.ts:518`). It forbids a **bare** fragment
+(`#` not followed by `/`) and permits `#/…`, because under `HashRouter` a real
+route link renders `href="#/percorso"`. Measured on the deployed (pre-fix) course
+home: **68 anchors, 67 of the form `href="#/…"`, exactly one bare fragment —
+`#can-do-summary`** (the 67-real-links figure is corroborated by `bbf565f`'s
+commit message).
+
+The spec reviewer identified, and I confirmed, that this is a **proxy**: it
+enforces "no bare fragment" as a stand-in for "no non-route fragment", and the
+two diverge on one class — `href="#/<unknown-route>"` would detonate identically
+yet is admitted. It is backstopped by the component-level assertion
+`expect(html).not.toMatch(/href=/)` (`src/course/components/CheckpointState.test.tsx:33`),
+which forbids **any** href on the control itself and was not weakened. The
+assertion is recorded here as a proxy with a backstop, not presented as stronger
+than it is.
+
+Why the previous form was replaced: `not.toMatch(/href="#/)` passed only because
+the unit harness wraps in `MemoryRouter` (renders `href="/percorso"`) while
+production mounts `HashRouter` (renders `href="#/percorso"`). It would have
+failed against all 67 legitimate production links. An assertion that passes only
+because the harness differs from production is a trap: anyone later making the
+harness more faithful would see it fail for unrelated reasons and would weaken or
+delete it. (Corrected in `bbf565f`.)
+
+### Verification baselines at `bbf565f`
+
+Each figure beside the command that produced it, all re-run at `bbf565f`.
+
+| Gate | Command | Result (as measured) |
+|---|---|---|
+| Unit + property suite | `npx vitest run` | **199 files / 3759 tests** passed |
+| Typecheck | `npx tsc --noEmit` | clean — exit 0, no output |
+| Prebuild validator | `npm run prebuild` | **60 lessons, 15 modules, 59 Can-dos, 120 kanji (A2 only)**; **0** Japanese-literal violations |
+| Standard build | `npm run build` | ✓ |
+| Playwright suite | `npx playwright test` | **404 passed / 58 skipped / 0 failed** |
+
+**The Playwright count moved, and here is why — an unexplained change is exactly
+what a reader should challenge.** 404 is **+4** from the 400-passed baseline
+recorded above (item 4 and the Task 36 gate re-run at `426cee8`), not a silent
+drift. Task 37 added two new e2e tests to `tests/e2e/navigation.spec.ts` — a
+click-activation test (added in `d1bbd47`) and a keyboard-(Enter)-activation test
+(added in `bbf565f`) — each run across the two viewport projects (`desktop-1440`,
+`mobile-390`), i.e. 4 test instances: 400 → 402 after the click test, → 404 after
+the keyboard test. Skipped stays **58** (unchanged); 0 failed.
+
+**Unchanged invariants (checked, not assumed).**
+
+- Golden `src/course/a2/catalog/a2EditorialSurfaces.golden.json` sha256
+  `6ce32b1fd05ead0c10f494549e090d1cf7328734e2cc9041635f320270b2b38f` — unchanged.
+- 16 committed PNG baselines (12 in `tests/e2e/screenshots.spec.ts-snapshots/`,
+  4 in `tests/e2e/course-visuals.spec.ts-snapshots/`) — none moved, despite the
+  element-type change from `<a>` to `<button>`. `.checkpoint-state__link`
+  (`src/course/course.css:391-412`) resets native button chrome (`appearance:
+  none`, `border: 0`, `background: transparent`, `font: inherit`) and sets an
+  explicit `text-decoration: underline`, so the control renders pixel-identical
+  to the anchor it replaces.

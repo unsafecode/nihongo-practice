@@ -250,6 +250,45 @@ evidence. It exists so the *authorisation* has a holder and an address, and it
 closes only when that tracked artifact exists. Sequence it before or immediately
 after Task 36.
 
+### D-7. Router fragment resolution for in-page anchors
+
+Task 37 corrected the checkpoint evidence control from an `<a
+href="#can-do-summary">` to a `<button>`. Under the app's `HashRouter`
+(`src/App.tsx:41`) the URL fragment **is** the route, so a bare in-page fragment
+resolves to no route: it falls to the `*` catch-all (`src/routing/routes.tsx:238`)
+→ `InvalidRoute` (`src/routing/routes.tsx:118`), which redirects to `/percorso`
+and raises a warning "page not found" banner (`RouteNotice.tsx:29`). The button
+makes `#can-do-summary` **unreachable, not valid**: typed by hand, or restored
+from a link shared during the deploy window, it still produces the banner. This
+is the disclosed residual recorded in the Task 37 section of
+`docs/release/2026-07-18-phase-4-release-verification.md`, not a completed fix.
+
+The complete fix is teaching the router to resolve in-page fragments so
+`#can-do-summary` is a valid URL rather than merely unreachable. Deferred because
+it is `RouteScrollManager` routing scope, out of scope for a corrective task, and
+it was **declined twice, for the same reason both times** during Task 37.
+Declining it twice for the same reason is consistency, not timidity.
+
+### D-8. RouteScrollManager moves the viewport without moving focus
+
+`src/routing/RouteScrollManager.tsx:27` documents *"It never moves focus — a
+guided return may focus/label its section in a later task"*. This is a
+**deliberate, documented** design decision, not an oversight, and it is
+**pre-existing** — the docblock is present at the pre-Phase-4 live commit
+`ab0c078`, and `RouteScrollManager.tsx` was last touched on 2026-07-15, before
+Phase 4 began. It is **not** a gap Phase 4 introduced.
+
+Its validated-anchor callers therefore move the viewport without moving focus, so
+a keyboard or assistive-technology user's focus and reading position can be left
+where the scroll started while the page moves under them. Task 37's checkpoint
+control sidesteps this for its own case by scrolling **and** focusing in the
+component handler (`CheckpointState.tsx:66-70`) rather than routing through
+`RouteScrollManager`; the general scroll manager is unchanged. Recorded as a
+pre-existing gap for future consideration: if the router is later taught to move
+focus on validated anchors (see D-7), this is the place it belongs. Stated
+plainly as deliberate and pre-existing, so no reader mistakes it for a defect
+this phase created.
+
 ---
 
 ## Part 2 — Rejected — do not act on these
