@@ -6,6 +6,25 @@ this verification. No item is cross-referenced to another for its evidence.
 
 Verified at commit: `9e7894075ad6d73c3856ae697a5682ae9b058b3c` (full 40 characters)
 
+**Verified SHA vs. committing SHA — the gap, stated rather than hidden.**
+`9e7894075ad6d73c3856ae697a5682ae9b058b3c` is the SHA at which **every
+measurement in this document was taken**. A document that records tree state
+cannot contain the SHA of its own commit, so the two necessarily differ; this
+note names the gap instead of leaving it invisible. The commit that adds this
+document, and any follow-up that corrects this document, **touch only `docs/`
+and therefore cannot change the built artifact** — `dist/` is produced from
+`src/`, `index.html`, and the build config, none of which these commits modify.
+That invariant terminates the regress here rather than deferring it: no
+docs-only commit can move a byte a learner downloads. Concretely, item 11's
+"79 commits / 102 files changed" is measured at the verified SHA; the commit that
+added this document (`ed157e6`) shows **80 commits / 103 files**, and this
+correcting follow-up shows **81 commits / 103 files** (it edits the same `docs/`
+file, so the file count does not rise again). A reader reconciling item 11
+against `git` at the tip should expect those higher figures and the one extra
+`docs/` path. Finally, this document is **not** the last word on the deployed
+tree: **Task 36 re-runs every gate at the final deployed SHA**, and that run —
+not this one — certifies what is actually served.
+
 Environment: macOS (Darwin), Node v26, npm workspace at the repository root.
 `origin/master` is `ab0c0789236c53b754c591fa1c2cc43c86e4ad0e` and is an ancestor
 of HEAD. `dist/` is gitignored, so builds never dirty the tree.
@@ -180,7 +199,7 @@ asset URLs are hard-coded to `/nihongo-practice/...` — 404s every asset in a r
 browser even though a `curl` of the base path still returns 200 via SPA
 fallback. The preview must therefore be launched with `GITHUB_PAGES=true` for
 this item to be a true base-path test; the plan's Step 6 command omits that env
-var (see "Plan defects", below).
+var (recorded in full under "Plan defects found during verification", below).
 Verdict: **pass**
 
 ## 7. Production and full dependency audits
@@ -365,6 +384,45 @@ Supporting invariant (recorded here, measured this run): the A2 editorial golden
 `6ce32b1fd05ead0c10f494549e090d1cf7328734e2cc9041635f320270b2b38f` with **809**
 rows — unchanged, as required.
 Verdict: **pass**
+
+---
+
+## Plan defects found during verification
+
+Defects in the plan's own Section 21.4 step text, found while executing the
+eleven items. Each is a fault in the instructions, not in the code under test;
+every empirical measurement above stands.
+
+1. **Step 6's command is broken — a status-only check passes a completely
+   broken page.** The plan prescribes `npx vite preview --port 4173` with **no**
+   `GITHUB_PAGES=true`. The Pages-built `dist/index.html` hard-codes every asset
+   URL under `/nihongo-practice/`; `vite preview` without that env var serves at
+   base `/`, so **every asset 404s in a real browser**. A `curl` of
+   `http://localhost:<port>/nihongo-practice/` nonetheless returns **`200`**,
+   because vite's SPA fallback answers the navigation request with `index.html`
+   regardless of whether the assets it references exist. So the plan's prescribed
+   check — an HTTP status on the base path — reports success on a page that
+   renders nothing. I found this only by **loading the page** and observing the
+   asset 404s, not by trusting the 200. I re-ran the smoke test with
+   `GITHUB_PAGES=true` set on the preview server, and it then passed cleanly
+   (0 console errors, 0 page errors, 0 HTTP 404s), which is the result recorded
+   in item 6. Remedy: Step 6 must launch the preview with `GITHUB_PAGES=true`.
+
+2. **Step 2's baseline is stale.** The plan's Step 2 text cites "190 files /
+   3684 tests". The real figure at the verified SHA is **199 files / 3759
+   tests** (item 2). A floor set at 190/3684 would silently pass a run that had
+   lost nine test files or seventy-five tests to a regression; the gate must
+   assert the current totals, not the old ones.
+
+3. **Step 10's prose numbering disagrees with the template it hands you.** The
+   step text labels the final git-status review "Item 11", while the document
+   template it prescribes numbers standards-language review as item 10 and the
+   git review as item 11. I followed the template (standards = 10, git = 11),
+   which is the numbering Section 21.4 intends; the discrepancy is in the step's
+   prose, not the template. Recorded so a reader cross-checking step text against
+   section headings is not misled.
+
+No plan defect beyond these three was encountered while executing items 1–11.
 
 ---
 
