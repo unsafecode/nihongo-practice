@@ -405,7 +405,7 @@ querying another case a hypothesis predicts can only ever strengthen it.
 rather than the most plausible candidate — the first is actionable, the second
 stops the next reader.**
 
-
+**A change indistinguishable from a working one in the diff.** `aria-label` on a
 role-less span; `aria-describedby` landing in the description. Both look like
 fixes and may do nothing — the same shape as a golden file that re-freezes
 current output, or a gate that cannot fail. **Rule: prefer changes verifiable by
