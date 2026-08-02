@@ -379,13 +379,27 @@ test.describe("checkpoint evidence link is an in-page target, not a route", () =
     await link.click();
 
     // (1) The sharpest assertion: the invalid-route warning banner the learner
-    //     actually reads must be ABSENT. A scroll-only check would pass with
-    //     the banner still on screen.
+    //     actually reads must be ABSENT. Assert on the CLASS — never on
+    //     role="alert" (this Notice is tone="warning" => role="status", per
+    //     Notice.tsx, and would match nothing) and never on the role alone
+    //     (role="status" is shared by other non-error notices and by
+    //     .checkpoint-state__body). A scroll-only check would pass with the
+    //     banner still on screen.
     await expect(page.locator(".notice--warning")).toHaveCount(0);
+    // Belt-and-braces, pinned to *this* banner's copy so an unrelated future
+    // warning can't mask a regression. The e2e app renders in IT
+    // (documentElement.lang, App.tsx), so assert that first — otherwise a
+    // wrong-locale empty match would read as "absent" when it is really "I
+    // looked for the wrong string".
+    expect(await page.evaluate(() => document.documentElement.lang)).toMatch(/^it/);
+    await expect(page.getByText("Pagina non trovata")).toHaveCount(0);
     // The click stayed on the course route; it did not enter the catch-all.
     expect(page.url()).toContain("#/percorso");
 
-    // (2) The #can-do-summary section is in view after the click.
+    // (2) The #can-do-summary section is in view after the click. The live
+    //     section sits ~4171-4272px down a 720px viewport, so "in view" must be
+    //     a real viewport check — `toBeVisible()` is true for an element five
+    //     viewports below the fold and would pass against the broken build.
     await expect(page.locator("#can-do-summary")).toBeInViewport();
 
     await assertNoRuntimeErrors(page, observers);
