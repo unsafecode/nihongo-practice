@@ -977,3 +977,203 @@ the keyboard test. Skipped stays **58** (unchanged); 0 failed.
   none`, `border: 0`, `background: transparent`, `font: inherit`) and sets an
   explicit `text-decoration: underline`, so the control renders pixel-identical
   to the anchor it replaces.
+
+---
+
+## Second deployment — Task 38 (the Task 37 fix goes live)
+
+Executed as **Task 38** on **2026-08-02**, the redeploy that carries the Task 37
+checkpoint-anchor fix onto the live site. The first deployment (Task 36, SHA
+`426cee8`, recorded under **Deployment** above) shipped a Phase-4 regression that
+no gate caught and the post-deploy live check did; Task 37 fixed it out of plan;
+this is the deploy of that fix and its post-deploy verification. The **Deployment**
+section above is unchanged and remains true — it records deploy 1. Each figure
+below sits beside the command that produced it, and the one marker that disagreed
+is recorded as a disagreement that was resolved, not as a clean pass.
+
+### Release identity — fast-forward, and the dispatch is the deploying act
+
+- Release SHA (deployed): `0230db07deb92b2c814ea31d1d47326b8f865040` (full 40 characters).
+- Previous live SHA (deploy 1's served bytes): `426cee86fdf9d4d2ba7fdafbdab981355f806c67`.
+
+`git push origin HEAD:master` was a **fast-forward**: `dce5642..0230db0  HEAD ->
+master`. The range starts at `dce5642`, not `426cee8`, because `dce5642` ("docs:
+record the Phase 4 Pages deployment and live verification") was master's tip
+before this push — a docs-only descendant of the deploy-1 served SHA `426cee8`.
+Master's tip becomes *literally* the gated SHA, identity rather than a new merge
+commit.
+
+- Read-back: `git ls-remote origin master` → `0230db07deb92b2c814ea31d1d47326b8f865040`, equal to the release SHA exactly. Success is taken from this read-back, not inferred from the absence of an error message.
+
+**A push is not a deploy here.** `deploy-pages.yml` is `workflow_dispatch`-only,
+and its `validate-ref` job hard-fails unless `GITHUB_REF` is `refs/heads/master`
+(`.github/workflows/deploy-pages.yml:19-24`). So updating `master` moves the ref
+the workflow *will* build from; it does not build. The `gh workflow run` dispatch
+below is the act that deploys, and the read-back above only proves the ref is
+where the dispatch needs it.
+
+### Gate re-run at the deployed SHA `0230db0`
+
+All figures carry their referent, re-run at HEAD `0230db0`.
+
+| Gate | Command | Result (as measured) |
+|---|---|---|
+| Unit + property suite | `npx vitest run` | **199 files / 3759 tests** passed |
+| Typecheck | `npx tsc --noEmit` | clean — exit 0 |
+| Prebuild validator | `npm run prebuild` | **60 lessons, 15 modules, 59 Can-dos, 120 kanji (A2 only)**; **0** Japanese-literal violations |
+| Standard build | `npm run build` | succeeded |
+| Playwright suite | `npx playwright test` | **404 passed / 58 skipped / 0 failed** |
+| Editorial golden | `shasum -a 256 src/course/a2/catalog/a2EditorialSurfaces.golden.json` | `6ce32b1fd05ead0c10f494549e090d1cf7328734e2cc9041635f320270b2b38f` — unchanged |
+
+The **120 kanji** figure is A2-only; that is the referent, unchanged from the
+deploy-1 gate run. The Playwright figure is **404**, up from the **400** recorded
+at the deploy-1 gate re-run (`426cee8`); the +4 is Task 37's four new e2e
+assertions (click- and keyboard-activation of the checkpoint control, each across
+the two viewport projects), not drift — the same accounting given under Task 37's
+`bbf565f` baseline.
+
+**Tripwire — the speech baselines.** The 16 committed PNG baselines were not
+moved by this deploy, and `git status --porcelain` was **empty** — no snapshot
+bytes, no working-tree drift — so the tripwire did not fire.
+
+### Post-deploy markers — the doctrine, and the marker that disagreed
+
+Base URL: `https://unsafecode.github.io/nihongo-practice/` (call it `$BASE`).
+
+**Marker doctrine.** A marker does **not** assert `status == 200`; it asserts the
+**served bytes sha256-match the gated build**. A status check is insufficient in
+general: a site with a catch-all `404.html` answers every missing path with `200`,
+so `200` proves nothing about *which* bytes came back. It was separately measured
+that this site returns a **real 404** (`type=text/html`) for a missing asset, so
+absence is detectable here — but that is a property of this host, not a licence to
+trust status codes as integrity evidence.
+
+**The primary marker initially disagreed, and the disagreement was in the
+instrument, not the deployment.** Recorded in full because it is the load-bearing
+event of this deploy:
+
+1. The gate build (plain `npm run build`) produced `index-DeTaTjYJ.js`; the deployed HTML referenced `index-CgnfrT-0.js`. Different filenames — a hashed asset's name is a function of its bytes, so this is a byte difference, not a naming quirk.
+2. Local builds were verified **deterministic**: two consecutive `npm run build` runs produced identical output, ruling out local non-determinism as the cause.
+3. Diffing the served index against the local one, the first substantive difference was the base path: served `return "/nihongo-practice/" + e`, local `return "/" + e`. That is 17 characters, matching the 17-byte size delta exactly — served **265665** bytes vs local **265648**.
+4. Cause: `vite.config.ts:9` — `base: env.GITHUB_PAGES === "true" ? "/nihongo-practice/" : "/"` — and `.github/workflows/deploy-pages.yml:47-48` sets `GITHUB_PAGES: "true"`. The gate build had **omitted** the variable, so two differently-configured builds were being compared: a `/`-based local build against a `/nihongo-practice/`-based deployed build.
+5. Rebuilding as CI builds it — `GITHUB_PAGES=true npm run build` — produced `index-CgnfrT-0.js`, the deployed filename **exactly**.
+
+**Final marker results — served bytes vs. the correctly-configured
+(`GITHUB_PAGES=true`) build.** Command per file: `curl -s $BASE/assets/<file> |
+shasum -a 256`.
+
+| Served asset | served sha256 | vs gated build |
+|---|---|---|
+| `index-CgnfrT-0.js` | `a6c7a1274d6afa420c8bcd5f62e003111851c8dbe505ddc6e12c4874a05ef28b` | byte-identical |
+| `vendor-DrNfcWTL.js` | `76d8ceb3536841f9…` | byte-identical (disclosed invariant — unchanged by design) |
+| `course-a1-CikFG_zU.js` | `96c19f1b09db6a3e…` | byte-identical |
+| `course-a2-DRWLSAeA.js` | `7e24cd7a939b81d9…` | byte-identical |
+| `course-foundations-FFo7yljR.js` | `84c6b987580d57f2…` | byte-identical |
+| `CourseHome-CuAVB7sT.js` | `0a35ac2096d0ad55…` | byte-identical |
+
+A cache-busted re-fetch of the index — `curl -s "$BASE/?cb=$(date +%s)"` resolving
+to `index-CgnfrT-0.js` — returned the **same** hash `a6c7a127…`, so the match is
+not a caching artifact.
+
+**Secondary marker — the HTML refreshed.** The served HTML's index reference moved
+`index-fgTHUphq.js` (deploy 1's index chunk) → `index-CgnfrT-0.js`. The immutable
+hashed assets cannot tell you the HTML refreshed — only the mutable `index.html`
+pointer can, so this is the check that the *entry document* turned over.
+
+**A measurement that stopped reproducing — recorded, not explained away.** An
+earlier recorded value for the served index sha256,
+`b620507312c5e97566a3c6cfaf99144fefc18a0da7d941401dfa0f5f58fb0368`, **did not
+reproduce**: two fresh fetches (plain and cache-busted) both returned
+`a6c7a127…`. The earlier value is **superseded, not explained** — the most likely
+cause is a mis-piped or truncated fetch, but I did not capture the failing pipe,
+so I do not assert the mechanism. It is recorded because a measurement that stops
+reproducing is evidence about the instrument, and suppressing it would hide
+exactly the kind of instrument fault that produced the primary-marker disagreement
+above.
+
+### Three findings the marker process forced into the record
+
+**(a) On deploy 1 the primary marker passed for the wrong reason.** Deploy 1's
+primary marker was the three `course-*` chunks, and it passed — but it passed
+because `course-*` chunks are precisely the chunks that do **not** embed the base
+path, so they hash identically whether or not `GITHUB_PAGES` is set. The one
+marker class that *could* have detected a base-path misconfiguration was `index-*`,
+and on deploy 1 that was demoted to a secondary check (Marker 2 above). A marker
+that cannot fail on the property it is watching is not a marker; deploy 1's
+primary passed by artifact selection, not by the property holding. This deploy
+promotes `index-*` to the primary because it is the asset that *can* fail on the
+one thing this deploy needed to prove.
+
+**(b) The preventive fact was already in this document, and was not consulted.**
+The deploy-1 **Deployment** section already states, under *Deployment artifact —
+`GITHUB_PAGES=true`*, that `GITHUB_PAGES=true npm run build` "produces the artifact
+that actually ships … which changes the content — and therefore the content hash
+— of 12 of the 23 assets versus a plain `npm run build`." That passage had been
+through five implementer rounds and four review passes; it was correct, it was
+sufficient, and it was not read at the one moment it was load-bearing. A written
+procedure is a control only if something makes you read it at the point of use —
+here nothing did, and the primary-marker disagreement is the cost.
+
+**(c) The e2e gate destroys the artifact the marker references.** `npx playwright
+test` rebuilds `dist/` under a different configuration — roughly 21 per-route
+chunks such as `CourseHome-BsjD-mBv.js`, `LessonPage-DeIAunvg.js`, and
+`vendor-CjX24P0I.js` — replacing the production build's five chunks. So the first
+hash comparison, run against a `dist/` left behind by Playwright, failed with **"No
+such file or directory"**: the file the marker named no longer existed on disk.
+Anyone re-running this marker procedure must hash `dist/` **immediately after**
+`npm run build`, or run the production build **after** Playwright. This is a
+sequencing hazard in the procedure, not a fault in the deploy.
+
+### Live behavioural verification — the check that outranks the hashes
+
+Measured on the deployed site with a real browser, both locales, **reloading to a
+clean state before each** so that a stale notice could not be mistaken for a
+passing result. The hashes prove the gated bytes are served; this proves the
+learner-facing behaviour those bytes produce.
+
+- **English** (`document.documentElement.lang` = `en`), after activating "See your Can-do evidence":
+  - `.notice--warning` elements: **none** — the false "page not found" banner is absent.
+  - `document.activeElement`: `SECTION#can-do-summary` — focus moved to the section.
+  - section in view: yes — `window.scrollY` 0 → **4059**, section top at 0.
+  - the control is `BUTTON` `type=button`; `getAttribute("href")` → `null` (no href to copy, bookmark, or restore).
+- **Italian** (`document.documentElement.lang` = `it`), after activating "Vedi le prove dei tuoi Can-do":
+  - `.notice--warning`: **none**; `activeElement`: `SECTION#can-do-summary`; in view — `window.scrollY` 0 → **4171**.
+
+Assertion order, weakest last: banner absent, focus on the section, section in
+view. The **banner's absence is the sharpest** of the three, because the banner is
+the thing the learner reads — the section scrolling into view is a convenience;
+the banner telling them a section that exists does not exist was the harm.
+
+**What caught the deploy-1 regression: not a gate — this live check.** No gate
+could have caught it: the unit test at the time asserted the *presence* of the very
+attribute (`href="#can-do-summary"`) that constituted the bug, so a green gate was
+consistent with the defect being live. It was found by opening the deployed site in
+a browser — the class of check recorded here. That is the justification for this
+step existing at all, and it is recorded beside the marker results because the
+markers alone would not have caught the deploy-1 defect either.
+
+### Disclosed residual — unreachable, not valid (confirmed still present)
+
+The button removes the href that consumers copy, bookmark, and restore; it does
+**not** teach the router to resolve `#can-do-summary`. Navigating **cold** to
+`https://unsafecode.github.io/nihongo-practice/#can-do-summary` — no click —
+**still produces the warning banner**, measured text "Pagina non trovataLa pagina
+“/can-do-summary” non esiste. Sei tornato al percorso." The button makes the broken
+URL **unreachable, not valid**. Fully resolving it means teaching the router to
+resolve fragments — `RouteScrollManager` scope, **declined twice** for the same
+reason and tracked as **D-7** (see the Task 37 section above). This is a disclosed
+residual, recorded as still-present, not as "fixed".
+
+Honestly bounded: this cold-URL probe was observed **in Italian only** — the
+locale persists across reload — so the served bytes were exercised in one language
+on this run; the English text of the same banner was measured separately, earlier,
+by the release authoriser. The banner's container carries **`role="status"`**, not
+`role="alert"`: it is warning-styled but **politely announced** — surfaced to a
+screen reader without interrupting it. Calling it an interruption would be false.
+
+### Final state
+
+- Deployed SHA: `0230db07deb92b2c814ea31d1d47326b8f865040`.
+- Workflow run: `gh run list --workflow=deploy-pages.yml` → databaseId **30761711285**, event `workflow_dispatch`, headSha `0230db07deb92b2c814ea31d1d47326b8f865040` (equals the release SHA exactly), conclusion **success**, createdAt **2026-08-02T18:42:04Z**.
+- Live URL: <https://unsafecode.github.io/nihongo-practice/>.
+- Date: **2026-08-02**.
