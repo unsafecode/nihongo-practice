@@ -640,10 +640,12 @@ gh run watch <id>
 ```
 
 This path was **recorded but not exercised.** No marker or gate failed at the
-deploy, and the single live-check concern below (Check 7) is a pre-existing
-in-code defect present identically in the deployed bytes — rolling back would
-delete the whole Task 27 feature rather than fix it, and a wrong rollback is
-worse than a fix-forward.
+deploy, and the single live-check concern below (Check 7) is an in-code defect
+**pre-existing relative to the deployment** — present identically in the gated
+bytes, so a rollback of the deploy would not fix it (though it was introduced
+*earlier within Phase 4 itself*, by `a033a8c`; see *Post-deploy correction —
+Task 37* below). Rolling back would delete the whole Task 27 feature rather than
+fix it, and a wrong rollback is worse than a fix-forward.
 
 ### Dispatch and confirmation
 
@@ -707,7 +709,7 @@ actually rendered, not merely that the page loaded without error.
 4. **PASS (Task 15).** `travel-reservations-4`: the front desk is addressed as フロント (4 occurrences in the rendered lesson, measured live); 店員 and 店員さん appear **0** times.
 5. **PASS in both IT and EN (Task 26).** An A2 kanji panel shows each taught glyph inside its word with visible emphasis — `.kanji-ruby__word-target` renders at `font-weight: 800` with a 2px orange `rgb(228, 87, 46)` underline — and the intro copy no longer claims the kanji appear in the sentences. This was the release's most serious defect (a false learner-facing claim, live in both languages); it is fixed on the served site.
 6. **PASS (Task 28).** Rōmaji script mode at the revealable kanji stage (`sequencing-ongoing-3`): the revealable kanji (毎日 / 寝る / 起きる / 使う / 作る) show **no** reading until the ± control is used; taught kanji still show their readings.
-7. **CONCERN — the check is half-met (Task 27).** The checkpoint section *does* describe how the evidence accrues — "Your checkpoint is met automatically once every scenario lesson is consolidated. There is no separate test to sit." — and its link *does* target the Can-do breakdown (`href="#can-do-summary"`, whose section heading is "What you can do so far"). **But the link does not leave the learner at that breakdown.** Measured: with the link in view (`window.scrollY` 4788, link top 338 px), a real click scrolls natively to the section for one frame (`hashchange` → `#can-do-summary`, `window.scrollY` 4159), then the page immediately resets to the top — `window.scrollY` **0**, the Can-do section left at viewport-relative top 4159 px (out of a 720 px viewport), stable across a 1 s post-click wait and reproduced on a clean reload. Root cause, traced in the *deployed* code: a plain `<a href="#can-do-summary">` makes `HashRouter` parse `can-do-summary` as an unknown route → the catch-all `InvalidRoute` (`src/routing/routes.tsx:238`) issues `<Navigate replace to="/percorso">` (`src/routing/routes.tsx:118-127`), and that redirect drives `RouteScrollManager` — which honours only *validated lesson-section* anchors (`src/routing/scrollPlan.ts`) — to a "reset" plan that runs `window.scrollTo({ top: 0 })` (`src/routing/RouteScrollManager.tsx:69-71`), clobbering the native anchor scroll. This is a deterministic, in-code defect present identically in the gated bytes (Marker 1 proves the deploy shipped exactly those bytes), so it is **not a deployment fault and not a rollback trigger** — it is recorded here for a fix-forward on Task 27's link wiring.
+7. **Superseded in part — see *Post-deploy correction — Task 37* below.** Check 7 recorded only the scroll reset; the full harm — including a false "page not found" banner rendered in **both languages** — was traced afterwards, and the concern was then found to be a **Phase 4 regression** (introduced by `a033a8c`), not the pre-existing defect its placement here suggests. The measured observation below stands exactly as recorded; the supersession is added around it, not applied to it. **CONCERN — the check is half-met (Task 27).** The checkpoint section *does* describe how the evidence accrues — "Your checkpoint is met automatically once every scenario lesson is consolidated. There is no separate test to sit." — and its link *does* target the Can-do breakdown (`href="#can-do-summary"`, whose section heading is "What you can do so far"). **But the link does not leave the learner at that breakdown.** Measured: with the link in view (`window.scrollY` 4788, link top 338 px), a real click scrolls natively to the section for one frame (`hashchange` → `#can-do-summary`, `window.scrollY` 4159), then the page immediately resets to the top — `window.scrollY` **0**, the Can-do section left at viewport-relative top 4159 px (out of a 720 px viewport), stable across a 1 s post-click wait and reproduced on a clean reload. Root cause, traced in the *deployed* code: a plain `<a href="#can-do-summary">` makes `HashRouter` parse `can-do-summary` as an unknown route → the catch-all `InvalidRoute` (`src/routing/routes.tsx:238`) issues `<Navigate replace to="/percorso">` (`src/routing/routes.tsx:118-127`), and that redirect drives `RouteScrollManager` — which honours only *validated lesson-section* anchors (`src/routing/scrollPlan.ts`) — to a "reset" plan that runs `window.scrollTo({ top: 0 })` (`src/routing/RouteScrollManager.tsx:69-71`), clobbering the native anchor scroll. This is a deterministic, in-code defect present identically in the gated bytes (Marker 1 proves the deploy shipped exactly those bytes), so it is **not a deployment fault and not a rollback trigger** — it is recorded here for a fix-forward on Task 27's link wiring.
 8. **PASS (Section 20 privacy).** On reload, all **18** network requests (`browser_network_requests`) target the Pages origin `unsafecode.github.io` — the app chunks, the self-hosted Manrope `.woff2` fonts, and the favicon. **Zero** third-party requests of any kind.
 9. **PASS (Task 25).** Synthesis lesson `a2-synthesis-1` ("Bringing It Together 1") reads as a two-speaker scene: its sentence matrix attributes lines to two distinct speakers — "Me (the learner)" ("I'm planning to go to Kyoto this weekend.") and "A friend" ("Nice. I intend to meet a friend this weekend." / "Sora is planning to swim at the sea this weekend."). The friend's turn reads as a conversational reply, and both the Compare and Recap panels foreground "Who is speaking".
 
@@ -782,6 +784,19 @@ wrong:
   whose subject is *"fix(ui): describe how the checkpoint is actually met"*. The
   commit that fixed a false learner-facing claim shipped a false learner-facing
   claim — the sharpest instance of this release's own thesis.
+- **Against Check 5's "most serious defect."** This is the **same class** as the
+  kanji-intro claim at Check 5 above — a false learner-facing claim, live in both
+  languages — which that check calls *"the release's most serious defect."* The
+  two superlatives measure **different axes** and do not compete. Check 5 ranks
+  **reach**: the kanji claim sat in the A2 kanji panel's taught-content copy,
+  shown without any interaction; this banner misfires only when the one
+  checkpoint control is activated (or the fragment is cold-navigated), is
+  *politely* announced (`role="status"`), and leaves the named section visible on
+  the page. *"Sharpest instance of this release's own thesis"* ranks
+  **self-reference** — that the corrective commit `a033a8c` shipped the very
+  class it set out to fix. On reach this defect is **narrower** than Check 5's;
+  on self-reference it is the release's worst, and unlike Check 5's it cleared
+  every gate and was caught only post-deploy.
 - **A test asserted the defect.** `src/course/components/CourseHome.test.ts:503`
   (at the deployed SHA `426cee8`) asserted
   `expect(html).toContain('href="#can-do-summary"')` — a test asserting the
@@ -825,15 +840,42 @@ wrong:
 
 ### Disclosed residual — unreachable, not valid
 
-A button makes the broken URL **unreachable, not valid**. `#can-do-summary`
-typed by hand, or restored from a link shared during the deployment window,
-**still produces the banner**. That exposure is minutes wide and nobody holds
-such a link, so removing the href — the thing consumers copy, bookmark, and
-restore — is the right trade. But it is a residual, and it is disclosed rather
-than discovered. The complete fix is teaching the router to resolve the fragment;
-that is `RouteScrollManager` routing scope and was **explicitly declined twice,
-for the same reason both times** — out of scope for a corrective task. Declining
-it twice for the same reason is consistency, not timidity. Tracked as **D-7** in
+A button makes the broken URL **unreachable, not valid**: it removes the href
+that consumers copy, bookmark, and restore, but it does **not** make
+`#can-do-summary` resolve. Two vectors still reach the banner, and they differ in
+duration — "minutes wide" describes only one of them:
+
+- **Hand-typed or restored-by-fragment — permanent.** Anyone typing
+  `#can-do-summary` into the address bar, or restoring a bookmark or session that
+  holds that fragment, hits the same `InvalidRoute` redirect **indefinitely**,
+  even in the fixed state. Removing the href narrows *who* arrives here — no
+  in-app control emits the fragment any more — but it does not close the URL.
+- **Restored from a link shared during the deploy window — window-bounded.** A
+  link someone copied from the pre-fix control's `href` is reachable only for as
+  long as such a link exists; *that* vector is minutes wide. I cannot evidence
+  that **nobody** holds such a link, so I do not assert it — the checkable claim
+  is only that no in-app affordance now produces one and the copy window was
+  brief.
+
+Removing the href is still the right trade: it is the thing consumers copy,
+bookmark, and restore, and no learner-facing control needs it. But it is a
+residual, disclosed rather than discovered.
+
+**Deployment status (as of `f8fc4f1`, this commit).** This fix is **not yet
+deployed.** It is verified at `bbf565f` against the full verification-baseline
+gate set below, but the live site still serves `426cee8` — whose checkpoint
+control is still the pre-fix `<a href="#can-do-summary">` (the "Final git state"
+section above records that the served bytes remain `426cee8`'s, proven by
+Marker 1). So on the live site the click path **still exhibits the banner**; the
+button changes the served bytes only after the next deployment. That redeploy and
+its post-deploy markers will be recorded in a separate follow-up, in the same
+`docs/`-appended pattern as the `dce5642` deployment record — this section is not
+that record.
+
+The complete fix is teaching the router to resolve the fragment; that is
+`RouteScrollManager` routing scope and was **explicitly declined twice, for the
+same reason both times** — out of scope for a corrective task. Declining it twice
+for the same reason is consistency, not timidity. Tracked as **D-7** in
 `docs/superpowers/backlog/2026-07-18-phase-4-deferred.md`.
 
 ### Second disclosed limitation — the unit assertion is a proxy (found in review)

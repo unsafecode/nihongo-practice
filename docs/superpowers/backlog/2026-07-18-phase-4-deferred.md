@@ -258,16 +258,21 @@ href="#can-do-summary">` to a `<button>`. Under the app's `HashRouter`
 resolves to no route: it falls to the `*` catch-all (`src/routing/routes.tsx:238`)
 → `InvalidRoute` (`src/routing/routes.tsx:118`), which redirects to `/percorso`
 and raises a warning "page not found" banner (`RouteNotice.tsx:29`). The button
-makes `#can-do-summary` **unreachable, not valid**: typed by hand, or restored
-from a link shared during the deploy window, it still produces the banner. This
-is the disclosed residual recorded in the Task 37 section of
-`docs/release/2026-07-18-phase-4-release-verification.md`, not a completed fix.
+makes `#can-do-summary` **unreachable, not valid** — this is the **disclosed
+residual**, not a completed fix; the full account, including which vectors still
+reach the banner and for how long, is in the *Post-deploy correction — Task 37*
+section of `docs/release/2026-07-18-phase-4-release-verification.md`.
 
 The complete fix is teaching the router to resolve in-page fragments so
 `#can-do-summary` is a valid URL rather than merely unreachable. Deferred because
 it is `RouteScrollManager` routing scope, out of scope for a corrective task, and
 it was **declined twice, for the same reason both times** during Task 37.
-Declining it twice for the same reason is consistency, not timidity.
+
+Sizing and sequencing: a focused routing change in the validated-anchor path
+(`RouteScrollManager` / `src/routing/scrollPlan.ts`), not a catalogue-wide
+project like D-1; not release-blocking. Sequence it whenever an in-page fragment
+destination is next required, and take it together with D-8 (focus movement) if
+that is added at the same time.
 
 ### D-8. RouteScrollManager moves the viewport without moving focus
 
