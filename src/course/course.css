@@ -389,6 +389,9 @@
 }
 
 .checkpoint-state__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--action-target-min);
   color: var(--course-teal);
   font-size: var(--text-3);
 }

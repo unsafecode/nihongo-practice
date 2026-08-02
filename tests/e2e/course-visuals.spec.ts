@@ -870,7 +870,7 @@ test.describe("Slice C exercise + review surfaces", () => {
     await gotoReady(page, EXERCISE_LESSON_URL);
 
     await expect(page.locator(".lesson-exercise")).toHaveCount(10);
-    await expect(page.locator(".lesson-exercise__bank")).toHaveCount(2);
+    await expect(page.locator(".lesson-exercise__bank")).toHaveCount(4);
     await expect(page.locator(".lesson-exercise__radio").first()).toBeVisible();
     await expect(page.locator(".lesson-exercise__input").first()).toBeVisible();
     await expect(page.locator(".lesson-exercise__intent")).toHaveCount(1);

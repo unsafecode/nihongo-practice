@@ -619,22 +619,20 @@ test.describe("locale and script settings on the complete course (Slice B Task 5
 const EXERCISE_LESSON_URL = routeUrls.lesson("introductions", "introductions-1");
 const TRANSFORM_LESSON_URL = routeUrls.lesson("past-negative", "past-negative-1");
 
-/** The introductions-1-m3 tile-bank exercise's taught sentence, in its
- * correct order: みな は かいしゃいん です ("Everyone is a company employee").
- * introductions-1 samples two tile-ordering exercises (m3, m7); this test
- * suite pins to m3's exercise specifically via its heading id, since both
- * `tileCard`/`choiceCard` now match more than one exercise on this lesson
- * (2 tile-ordering + 2 choice exercises are sampled per the current A1
- * catalog's round-1 selection — confirmed live), so a bare class-based
- * locator is no longer unique. */
-const INTRO_TILE_ORDER = ["みな", "は", "かいしゃいん", "です"] as const;
+/** The introductions-1-m2 tile-bank exercise's taught sentence, in its
+ * correct order: けん は いしゃ です ("Ken is a doctor").
+ * introductions-1 samples 4 tile-ordering + 2 choice exercises in round 1,
+ * so a bare class-based locator matches more than one exercise on this
+ * lesson. Both `tileCard` and `choiceCard` therefore pin one specific
+ * variant via its heading id — m2 for the tile bank, m1 for the choice. */
+const INTRO_TILE_ORDER = ["けん", "は", "いしゃ", "です"] as const;
 
 function tileCard(page: import("@playwright/test").Page) {
-  return page.locator('.lesson-exercise[aria-labelledby*="introductions-1-m3"]');
+  return page.locator('.lesson-exercise[aria-labelledby*="introductions-1-m2"]');
 }
 
 function choiceCard(page: import("@playwright/test").Page) {
-  return page.locator('.lesson-exercise[aria-labelledby*="introductions-1-m2"]');
+  return page.locator('.lesson-exercise[aria-labelledby*="introductions-1-m1"]');
 }
 
 /** The choice exercise's radio `value` attributes are `"{sourceVariantId}#
@@ -657,11 +655,11 @@ test.describe("Slice C — deterministic exercises", () => {
     const observers = await setupPageObservers(page);
 
     await gotoReady(page, EXERCISE_LESSON_URL);
-    // introductions-1's round-1 samples 2 tile-ordering + 2 choice + 1
-    // constrained-construction + 5 plain-completion exercises (10 total,
+    // introductions-1 now samples 4 tile-ordering + 2 choice + 1
+    // constrained-construction + 3 plain-completion exercises (10 total,
     // confirmed live) — covering all four exercise kinds the current A1
     // release's `selectVariants` eligibility ever actually produces.
-    await expect(page.locator(".lesson-exercise__bank")).toHaveCount(2);
+    await expect(page.locator(".lesson-exercise__bank")).toHaveCount(4);
     await expect(page.locator(".lesson-exercise__radio").first()).toBeVisible();
     await expect(page.locator(".lesson-exercise__input").first()).toBeVisible();
     await expect(page.locator(".lesson-exercise__intent")).toHaveCount(1);
@@ -836,10 +834,10 @@ test.describe("Slice C — deterministic exercises", () => {
     await gotoReady(page, EXERCISE_LESSON_URL);
 
     const card = choiceCard(page);
-    // The correct option for introductions-1-m2 is prefixed by its own
-    // variant id ("introductions-1-m2#…"); any distractor from another
-    // variant (e.g. "introductions-1-m3#…") is a genuine wrong choice.
-    await distractorRadio(card, "introductions-1-m3").check();
+    // The correct option for introductions-1-m1 is prefixed by its own
+    // variant id ("introductions-1-m1#…"); any distractor from another
+    // variant (e.g. "introductions-1-m2#…") is a genuine wrong choice.
+    await distractorRadio(card, "introductions-1-m2").check();
     await card.locator("button[type=submit]").click();
 
     const feedback = card.locator(".lesson-exercise__feedback");
@@ -911,11 +909,11 @@ test.describe("Slice C — Da ripassare review resolution semantics", () => {
     // 1) Make a wrong choice, then immediately correct it inside the lesson.
     await gotoReady(page, EXERCISE_LESSON_URL);
     const card = choiceCard(page);
-    await distractorRadio(card, "introductions-1-m3").check();
+    await distractorRadio(card, "introductions-1-m2").check();
     await card.locator("button[type=submit]").click();
     await expect(card.locator(".lesson-exercise__feedback--retry")).toBeVisible();
     // Correct it in lesson mode — this must NOT silently resolve the review.
-    await correctRadio(card, "introductions-1-m2").check();
+    await correctRadio(card, "introductions-1-m1").check();
     await card.locator("button[type=submit]").click();
     await expect(card.locator(".lesson-exercise__feedback--accepted")).toBeVisible();
 
@@ -932,7 +930,7 @@ test.describe("Slice C — Da ripassare review resolution semantics", () => {
     // (confirmed live: identical radio values as the in-lesson card), so the
     // same own-variantId-prefix pattern locates the correct option here too.
     await page
-      .locator('.review-queue__practice input[type=radio][value^="introductions-1-m2#"]')
+      .locator('.review-queue__practice input[type=radio][value^="introductions-1-m1#"]')
       .check();
     await page.locator(".review-queue__practice button[type=submit]").click();
 
@@ -1155,7 +1153,7 @@ test.describe("semantic romaji boundaries (Phase 0 Task 5)", () => {
     const choiceSentence = choiceCard(page).locator(
       ".lesson-exercise__sentence:not(.lesson-exercise__sentence--secondary)",
     );
-    await expect(choiceSentence).toHaveText("ken ____ isha desu");
+    await expect(choiceSentence).toHaveText("yuki ____ gakusei desu");
 
     // A "transformation" prompt (the only other kind with its own distinct
     // romaji surface, `.lesson-exercise__source-romaji`) is never actually
@@ -1191,7 +1189,7 @@ test.describe("semantic romaji boundaries (Phase 0 Task 5)", () => {
     const placedGlyphs = await placed
       .locator(".lesson-exercise__glyph-primary")
       .allTextContents();
-    expect(placedGlyphs.join(" ")).toBe("mina wa kaishain desu");
+    expect(placedGlyphs.join(" ")).toBe("ken wa isha desu");
 
     await assertNoHorizontalOverflow(page);
     await assertNoRuntimeErrors(page, observers);

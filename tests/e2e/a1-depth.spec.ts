@@ -507,7 +507,7 @@ test.describe("capstones and checkpoint", () => {
     // seeded visited-only Can-do must render as "Visitato", never inflated.
     await gotoReady(page, routeUrls.home);
     await expect(page.locator(".checkpoint-state__body")).toContainText(
-      "Non hai ancora affrontato gli scenari della verifica A1.",
+      "La verifica si completa automaticamente quando ogni lezione scenario è consolidata.",
     );
     const actionsItem = page.locator('.can-do-summary__item[data-can-do-id="a1-can-do-actions"]');
     await expect(actionsItem.locator(".can-do-summary__tier-text")).toHaveText("Visitato");
@@ -523,7 +523,7 @@ test.describe("capstones and checkpoint", () => {
     );
     await gotoReady(page, routeUrls.home);
     await expect(page.locator(".checkpoint-state__body")).toContainText(
-      "Non hai ancora affrontato gli scenari della verifica A1.",
+      "La verifica si completa automaticamente quando ogni lezione scenario è consolidata.",
     );
 
     // 3) A single live, correct submission of the one missing exercise
@@ -544,7 +544,7 @@ test.describe("capstones and checkpoint", () => {
     // folded to "demonstrated" by the checkpoint-attempt evidence fold.
     await gotoReady(page, routeUrls.home);
     await expect(page.locator(".checkpoint-state__body")).toContainText(
-      "Hai affrontato gli scenari della verifica A1, con 40 esercizi accettati su 15 Can-do campionati.",
+      "Verifica completata: tutte le lezioni scenario sono consolidate.",
     );
     await expect(page.locator(".can-do-summary__count")).toContainText("15 di 15");
     await expect(actionsItem.locator(".can-do-summary__tier-text")).toHaveText("Dimostrato");
@@ -569,7 +569,7 @@ test.describe("capstones and checkpoint", () => {
     await page.reload({ waitUntil: "load" });
     await page.locator("#root >> main").first().waitFor({ state: "visible" });
     await expect(page.locator(".checkpoint-state__body")).toContainText(
-      "con 40 esercizi accettati su 15 Can-do campionati",
+      "Verifica completata: tutte le lezioni scenario sono consolidate.",
     );
     const afterReload = await readProgress(page);
     expect(afterReload.levels.a1.checkpointAttempts).toHaveLength(1);
