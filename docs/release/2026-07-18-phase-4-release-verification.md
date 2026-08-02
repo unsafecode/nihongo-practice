@@ -151,6 +151,7 @@ Verdict: **pass**
 
 ## 5. GITHUB_PAGES=true production build
 Command: `GITHUB_PAGES=true npm run build` then `grep -o 'src="[^"]*"' dist/index.html`
+and `grep -o 'href="[^"]*"' dist/index.html`
 (run immediately before item 6 so the preview serves this exact artifact)
 Output:
 ```
@@ -226,9 +227,24 @@ Both commands exited non-zero. Advisory **GHSA-qwww-vcr4-c8h2**, high, affects
 Verdict: **fail** — a high-severity advisory in the production audit blocks the
 release per Section 21.4.
 
-**Explicit, narrowly-scoped product-owner override:** deployment is authorised
-to proceed to Task 36 despite this fail, on the evidence below and nothing
-wider. The override covers only this advisory at this commit.
+**Explicit, narrowly-scoped product-owner override.** Deployment is authorised
+to proceed to Task 36 despite this fail, on the evidence below and nothing wider.
+
+- **Authoriser:** Riccardo Chiodaroli, repository owner and product owner. The
+  attribution is verifiable, not asserted: he is the git author of `ab0c078`, the
+  commit currently serving learners — `git --no-pager log -1 --format='%an <%ae>'
+  ab0c078` returns `Riccardo Chiodaroli <ricchi@microsoft.com>`.
+- **Date:** 2026-08-02, during the Phase 4 release-execution session.
+- **Scope, verbatim:** the override authorises "deploying *this* release with
+  *this* advisory outstanding"; it "is not a standing exemption for high-severity
+  production advisories." It covers only GHSA-qwww-vcr4-c8h2 at this commit.
+- **Disclosed weakness of this authorisation:** it was given conversationally
+  during release execution and is **not** recorded in a tracked issue or pull
+  request. That is this record's weakest link, stated rather than omitted: a
+  reader cannot today follow a link to the decision. Recommendation: before or
+  immediately after Task 36, ratify this override in a durable tracked artifact
+  (a GitHub issue or a decision record committed under `docs/`) so the
+  authorisation is pinned the way every other load-bearing fact here is.
 
 Why the override holds — measured, not argued from the manifest:
 
@@ -239,16 +255,59 @@ Why the override holds — measured, not argued from the manifest:
    `scheduler@0.23.2`. `cookie` and `set-cookie-parser` are react-router's own
    server-side helpers and sit **under** react-router in the tree.
 
-2. **The vulnerable code paths are tree-shaken out of the shipped bundle.**
-   Probes run against the built `dist/` after the item-5 build (each command
-   recorded beside its result):
+2. **No RSC/streaming or cookie-serialisation strings survive into the shipped
+   bundle, and no RSC runtime is installed at all.** The advisory is an RSC-mode
+   CSRF bypass, so the question is whether any RSC/server request-handling path
+   can reach a learner. Four independent checks, in descending order of strength,
+   each with the command that produced it (run this session against the item-5
+   `dist/`):
+
+   **(a) No RSC runtime is installed — strongest, and independent of the
+   bundler.** RSC requires a `react-server-dom-*` runtime
+   (`react-server-dom-webpack`, `-turbopack`, or equivalent). None exists in the
+   production closure: `npm ls --omit=dev --all | grep -i server-dom` returns
+   **nothing**; the closure is exactly the eight packages in point 1. This is a
+   statement about what is installed, not about what survived a grep, so
+   minification cannot weaken it. (This is not the discredited manifest argument —
+   that one was wrong because it undercounted the closure as three packages; this
+   one is about a specific package family being absent from the correct
+   eight-package closure.)
+
+   **(b) There is no server to attack — structural.** This is a static GitHub
+   Pages site with hash routing and no server process of any kind; an RSC-mode
+   CSRF has no request-handling code path to reach here.
+
+   **(c) Cookie-serialisation and RSC/streaming string literals are absent from
+   the shipped bytes — robust, because these are literals, not manglable
+   identifiers.** Property names and string literals survive this bundler (proven
+   by the control probe below), so a 0-file result here is real evidence of
+   absence:
    - `grep -rlE 'splitCookiesString|sameSite|set-cookie|maxAge|partitioned' dist/`
-     → **0 files** (the cookie helpers are in the closure but not in the artifact).
+     → **0 files** (cookie-serialiser option names — literals in the source).
    - `grep -rlE 'createStaticHandler|renderToPipeableStream|RSC' dist/`
-     → **0 files** (no server/static-handler or RSC API ships).
+     → **0 files**.
    - `grep -rlE 'renderToReadableStream|createFromFetch' dist/`
-     → **0 files** (no streaming/RSC-client API ships).
-   These are claims about the bytes a learner downloads, and each is re-runnable.
+     → **0 files**.
+
+   **(d) Identifier-name probes — weakest, and explicitly minification-limited.**
+   The vendor bundle is minified: local identifiers are mangled — the file opens
+   `var Ku={exports:{}},_r={},Yu={exports:{}},q={};` and defines functions such as
+   `function j(){`, `function ri(){`, `function rt(){`. A grep for a *function
+   name* returning 0 files therefore proves the **string** is absent, not that the
+   **code** is absent — a bundled function can be renamed to `j()`. These probes
+   are named here as the least conclusive evidence in the section precisely so the
+   stronger layers (a)–(c) carry the weight.
+
+   **Control probe (validates the method for layer (c)).** A negative grep is only
+   meaningful once the same method can produce a positive against the same
+   minified output. String literals and property names that we *expect* to be
+   present are:
+   - `grep -rl 'useState' dist/` → **9 files**
+   - `grep -rl 'createElement' dist/` → **2 files**
+   - `grep -rl 'Minified React error' dist/` → **1 file**
+
+   All present — so terser preserves string literals and property names here, and
+   the 0-file results in (c) are genuine absences rather than a broken probe.
 
 3. **Disclosed booby-trap:** `unstable_` **does** appear in
    `dist/assets/vendor-DrNfcWTL.js` — exactly **25** distinct identifiers, all
@@ -277,10 +336,25 @@ Why the override holds — measured, not argued from the manifest:
    for a later dependency-upgrade task.
 
 6. **Why the advisory was not caught earlier: no mechanism established.** Two
-   candidate explanations were proposed and both were falsified by direct
-   probing. We do not record a plausible-but-unverified theory in its place. The
-   honest state is that we do not know why, and the next person should treat that
-   as an open question rather than a closed one.
+   candidate explanations were proposed and both were falsified by direct probing,
+   and are recorded here so the falsification is reconfirmable — not to resurrect
+   either:
+   - **(a) "The advisory feed was ~7 days stale."** Falsified: the evidence
+     offered for it measured a different thing entirely — the version of a
+     TypeScript nightly build — which says nothing about advisory-feed latency.
+     The premise was not supported by what was actually measured.
+   - **(b) "Advisories only attach to versions in the `latest` dist-tag
+     lineage."** Falsified directly by `react-router@6.30.4`: it resolves under
+     the `version-6` dist-tag (`npm view react-router dist-tags` →
+     `version-6: 6.30.4`, `latest: 8.3.0`), was published 2026-05-29
+     (`npm view react-router@6.30.4 time` → `2026-05-29T19:41:45Z`), and was never
+     `latest`, yet it is correctly *excluded* from the advisory's `>=7.12.0`
+     range. Advisory attachment plainly does not track the `latest` lineage.
+
+   Both theories failed; neither was partly right. We do not record a
+   plausible-but-unverified replacement. The honest state is that we do not know
+   why, and the next person should treat that as an open question rather than a
+   closed one.
 
 ## 8. Generated per-lesson/module/level content QA reports
 Command: `npx vite-node scripts/generateContentReports.ts` ;
@@ -428,8 +502,10 @@ No plan defect beyond these three was encountered while executing items 1–11.
 
 ## Overall verdict
 
-**Release** — proceed to Task 36 (deploy), on the product owner's explicit,
-narrowly-scoped override of item 7 and nothing wider.
+**Release** — proceed to Task 36 (deploy), on Riccardo Chiodaroli's explicit,
+narrowly-scoped override of item 7 (authoriser, date, verbatim scope, and the
+disclosed weakness that it is not yet in a tracked artifact are recorded under
+item 7) and nothing wider.
 
 Ten of the eleven items pass on direct measurement: clean install (1), the full
 199-file / 3759-test unit+property suite (2), typecheck + standard build (3),
@@ -444,11 +520,12 @@ commits and 102 changed files all fall inside the plan's file map (11).
 
 Item 7 is a **fail** and is recorded as one: high-severity advisory
 GHSA-qwww-vcr4-c8h2 in the production audit. The override rests on measured, not
-asserted, evidence — the vulnerable RSC/cookie code paths are tree-shaken out of
-the shipped `dist/` (three probes, 0 files each; the 25 `unstable_` identifiers
-that remain are React scheduler / react-dom internals, none an RSC API), and
-`react-router` is locked at 7.18.1 at both the deployed commit `ab0c078` and
-HEAD, so shipping changes exposure by zero. The clean fix (react-router 8.3.0)
-requires a second major upgrade (react ≥ 19.2.7 vs. our 18.3.1) and is deferred.
-Why the advisory escaped earlier detection: **no mechanism established** — two
-theories were falsified and none is offered in their place.
+asserted, evidence — a four-layer argument (no RSC runtime installed → no server
+to attack → cookie/RSC string literals absent from the shipped bytes, with a
+control probe proving the method → minification-limited identifier probes), each
+check with its command, set out in full under **item 7** and deliberately not
+re-enumerated here so this summary cannot drift out of step with it. The
+load-bearing conclusion is that exposure is unchanged by this release. The clean
+fix (react-router 8.3.0) requires a second major upgrade (react ≥ 19.2.7 vs. our
+18.3.1) and is deferred. Why the advisory escaped earlier detection: **no
+mechanism established** — see item 7, point 6.
