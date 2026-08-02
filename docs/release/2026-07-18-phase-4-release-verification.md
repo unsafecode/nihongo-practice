@@ -37,7 +37,10 @@ not this one — certifies what is actually served.
 
 Environment: macOS (Darwin), Node v26, npm workspace at the repository root.
 `origin/master` is `ab0c0789236c53b754c591fa1c2cc43c86e4ad0e` and is an ancestor
-of HEAD. `dist/` is gitignored, so builds never dirty the tree.
+of HEAD [verification-time value; the ancestor relation still holds, but the ref
+has since advanced — `git rev-parse origin/master` now returns
+`dce56428ea9470e8d9dbb99c731f6faea8b317f0` (`dce5642`, the deploy record), itself
+still an ancestor of HEAD]. `dist/` is gitignored, so builds never dirty the tree.
 
 **Referents, stated once so no number below is ambiguous (Section 21.4: "No
 aggregate word, verb, lesson, or exercise count is sufficient by itself").**
@@ -249,12 +252,13 @@ installed and no server on a static Pages site (point 2a/2b). A reader can stop
 here for the conclusion; the full evidence, in descending strength, is in points
 1–6 below.
 
-**Deploy-state correction (added post-deploy).** Three places in this item — the
-*Bottom line* above, the *Authoriser* bullet immediately below, and point 4
-below — call `ab0c078` "the currently-deployed commit" / "the commit currently
-serving learners." Those were accurate **as of the override date, 2026-08-02,
-before this release was deployed**, when `ab0c078` was in fact the served commit;
-they are preserved as the point-in-time statements they were, not rewritten. The
+**Deploy-state correction (added post-deploy).** Two places in this item — the
+*Bottom line* above and point 4 below — call `ab0c078` "the currently-deployed
+commit." That was accurate **as of the override date, 2026-08-02, before this
+release was deployed**, when `ab0c078` was in fact the served commit; the phrasing
+is preserved as the point-in-time statement it was, not rewritten. (The
+*Authoriser* bullet below once carried the same label incidentally and has been
+reworded to name `ab0c078` by its role instead, so it needs no annotation.) The
 release has since deployed at **`426cee8`** — recorded under **Deployment** below
 (*Release identity* gives the deployed SHA; *Gate re-run at the deployed SHA*
 re-gates it), with the click-path regression corrected in *Post-deploy correction
@@ -264,9 +268,8 @@ re-gates it), with the click-path regression corrected in *Post-deploy correctio
 ruling in this item is **not** reopened.
 
 - **Authoriser:** Riccardo Chiodaroli, repository owner and product owner. The
-  attribution is verifiable, not asserted: he is the git author of `ab0c078`, the
-  commit currently serving learners [as of the override date, 2026-08-02,
-  pre-deploy; see the deploy-state correction above] — `git --no-pager log -1 --format='%an'
+  attribution is verifiable, not asserted: he is the git author of the
+  pre-release baseline `ab0c078` — `git --no-pager log -1 --format='%an'
   ab0c078` returns `Riccardo Chiodaroli`.
 - **Date:** 2026-08-02, during the Phase 4 release-execution session.
 - **Scope, verbatim:** the override authorises "deploying *this* release with
