@@ -73,6 +73,128 @@ Deferred because a linguistic review of A1 is the same size of undertaking as
 the A2 Phase 3 review; it would require the same four-reviewer protocol plus
 the adjudication step that separated genuine defects from inflated ones.
 
+### D-4. Gloss-to-glyph programmatic association (WCAG 1.3.1)
+
+`src/course/components/KanjiRubyText.tsx` renders a contextual word (e.g. 毎日)
+with the taught glyph (毎) visually emphasised and a semantic gloss beside it
+("ogni, ciascuno") that describes *only the taught glyph* — the contract stated
+at `src/course/a2/kanji/kanjiMeanings.ts:22` ("Each gloss describes the glyph's
+own meaning inside its taught lexeme"). Task 26c gave that
+`.kanji-ruby__word-target` emphasis real visual weight, so a sighted learner can
+see the gloss is glyph-scoped. Nothing conveys that scoping to assistive
+technology. The
+`.kanji-ruby__word-target` / `.kanji-ruby__word-ctx` spans carry no role and no
+ARIA; the `<ruby>`'s accessible name is the whole word (visible path: `<rt
+aria-hidden>`, no `aria-label`; revealable path once revealed:
+`aria-label={displayBase}`), and the `.kanji-ruby__meaning` gloss is an
+independent sibling span. A screen-reader or braille user therefore receives
+"毎日" and then "ogni, ciascuno" with nothing relating the second to one
+character of the first — a false pairing, since 毎日 is "every day", not "every".
+
+Scope is *both* non-assessed render paths, not only the revealed states. The
+visible/first-supported path renders the gloss on `meaning` alone with no reveal
+gate (`KanjiRubyText.tsx:211`); `RevealableKanjiRuby` gates it on `revealed &&
+meaning` (`:260`). Both are affected. The assessed stage is *not* affected — it
+renders no gloss, and Task 26c put the glyph's identity into the caption text.
+
+Design to implement (specified now, while the context is live): mark the visible
+gloss `aria-hidden="true"` and add a visually-hidden sibling carrying the scoped
+phrasing in words. That puts the text into the accessibility tree by ordinary
+reading order — relying on no ARIA name computation and no screen-reader
+verbosity setting — which is exactly what makes it verifiable by asserting DOM
+text rather than by trusting announcement behaviour.
+
+**Blocker, not a footnote.** `.sr-only` is defined in exactly one place,
+`src/syllabary/syllabary.css:46`, and course pages do not load that stylesheet
+(they import `course.css` / `foundation.css`; `syllabary.css` is imported only by
+`Syllabary.tsx`). The utility must be promoted to shared scope before this item
+can be built.
+
+Traps — recorded by name, or the next implementer rediscovers them in thirty
+seconds and they pass review:
+
+- **Do not put `aria-label` on the meaning span.** It is a role-less `<span>`;
+  ARIA name computation applies to elements with appropriate roles, so this is a
+  legitimate no-op — it would look exactly like a fix in the diff while doing
+  nothing.
+- **Do not use `aria-describedby`.** It moves the text into the *description*,
+  which screen readers may announce late, at reduced verbosity, or suppress
+  entirely by user setting. Whether the learner hears it becomes a user
+  preference, not a property of our code.
+- Both are instances of the general hazard this phase exists to eliminate: a
+  change indistinguishable from a working one in the diff.
+
+Fold the `lang` handling in here too. Task 26c's assessed caption interpolates a
+bare Japanese glyph into Italian/English prose in a container with no `lang="ja"`
+(`src/course/i18n/it.ts:83` "Su 毎 sei in fase di verifica…";
+`src/course/i18n/en.ts:83` "You are being assessed on 毎…"). Screen readers
+generally auto-detect CJK and switch voice, but that is a behaviour of the
+reader, not a property of our markup. This was a deliberate, owner-authorised
+trade at the release boundary: keeping the copy a plain string avoided turning a
+contained copy change into a markup change, and the benefit that mattered
+survives regardless of voice switching — the glyph is *present in the text*, so
+braille and character-by-character navigation resolve it. Availability was the
+defect; pronunciation is a refinement. Do the `lang` handling properly here,
+with the rest.
+
+Verification is against a real screen reader and is not inferrable from the DOM
+alone. That is precisely why it was not done at the release boundary — no screen
+reader was available.
+
+Status, because it is what makes this item survivable: Task 26c's disambiguation
+is **presentational and is not conveyed to assistive technology**. It fixes the
+gloss ambiguity **for sighted users only**. Anyone reading "fixed" and stopping
+is the failure mode this item exists to prevent.
+
+### D-5. react-router advisory GHSA-qwww-vcr4-c8h2 (RSC-Mode CSRF)
+
+Installed `react-router@7.18.1`, declared `^7.18.1`. `npm audit --omit=dev`
+reports one high-severity advisory — "React Router: RSC Mode CSRF Bypass Allows
+Action Execution Before 400 Response" (GHSA-qwww-vcr4-c8h2), affecting
+`7.12.0 – 8.2.0`. Released with an explicit, narrowly-scoped, owner-authorised
+exception. Two remediation branches, both real.
+
+**Branch A — `7.18.2` becomes resolvable.** Then the fix is a *no-op install*:
+`^7.18.1` already admits `7.18.2`, so it arrives on a plain `npm install`. Do not
+edit the version range — it was never wrong. Verify by installing, confirming
+`npm audit --omit=dev` is clean, and re-running the full release gate set
+including the Playwright acceptance suite and the twelve visual baselines.
+
+**Branch B — the major-version migration is its own piece of work with its own
+gates.** `react-router@8.3.0` *is* resolvable from this feed (it is the feed's
+`latest`, and the advisory's own fix target), but its peer range is `react` /
+`react-dom` `>= 19.2.7` against our `react@18.3.1`. That is two major upgrades at
+once — react-router 7→8 and react 18→19, with react 19's own removals.
+Considered and declined as the final commit before a public release, under a
+twelve-image visual baseline and a 3,759-test suite. Deferred, not dismissed.
+
+Three facts bound the exception, each independently checkable and each capable of
+killing it when it stops holding:
+
+1. The advisory is already live in `master` at `ab0c078` — the commit learners
+   are using now, which itself declares `^7.18.1` — so deploying changes exposure
+   by exactly zero and holding the release protects no one.
+2. The vulnerable codepath is unreachable here: production routing is
+   `HashRouter` only (`src/App.tsx`; `MemoryRouter` appears only in tests), there
+   are zero RSC imports, and the declared production dependencies are just three
+   — `react`, `react-dom`, `react-router`. (Its transitive production closure
+   adds `cookie` and `set-cookie-parser`, five packages in all; none touch the
+   RSC path.)
+3. `^7.18.1` already admits `7.18.2`.
+
+The mechanism is **not** established, and two proposed explanations were
+falsified — that matters more than the conclusion:
+
+- "The feed is ~7 days stale" — withdrawn. Its supporting evidence (a
+  typescript-nightly ingestion gap) measured the wrong thing.
+- "The feed ingests only the `latest` dist-tag lineage" — falsified:
+  `react-router@6.30.4` resolves from this feed, tagged `version-6`, published
+  2026-05-29, and was never `latest`. The feed *does* carry non-`latest`
+  backport lineage.
+- The only defensible statement: `react-router@7.18.2` does not resolve from
+  this feed (`npm view react-router@7.18.2` returns E404); the cause is not
+  established. Do not assert any mechanism.
+
 ---
 
 ## Part 2 — Rejected — do not act on these
@@ -174,9 +296,68 @@ author another tense twin, not weaken the gate.
 `package.json` defines `check:bundle: vite-node scripts/checkBundleBudget.ts`,
 but `prebuild` invokes only the two release validators and the Japanese-literal
 lint, `build` runs `tsc --noEmit && vite build`, and no `.github/` workflow
-references it. The budget check runs only if a human types it explicitly.
+references it. The budget check runs only if a human types it explicitly. The
+README's release set now documents `npm run check:bundle` as a manual
+verification step, so it is at least discoverable at release time; it remains
+wired to no automated pipeline, so this entry stands until it is.
 
 **Existence guards (lower severity).** `editorial.test.ts` lines 321 and 385
 check that superlative (13 variants) and synthesis (52 variants) categories are
 non-empty. These constrain category presence, not row content, and their margins
 are 12 and 51 respectively — not fragilities in the same sense as the above.
+
+**A false clause is camouflaged by its true neighbours.** `KanjiRubyText.tsx`
+carried *"Assessed: bare glyph only. No furigana, no romaji, and — deliberately —
+no semantic gloss either."* One false clause among three true ones: the assessed
+stage renders the whole contextual word (`displayBase = word ?? glyph`, then
+`renderWordBase` emits all of it), not the glyph alone. A reader checking the
+sentence finds three correct statements, takes the signal "this comment is
+accurate", and stops. It survived every prior review of that file, including two
+in this phase. **Rule: verify comments clause by clause, not sentence by
+sentence.**
+
+**A corrective pass corrects what it is pointed at, not the class of defect.**
+After that comment was fixed by name, a repo sweep found nine further live
+instances of the same falsehood across five other files — including a Playwright
+test *name* that printed the falsehood in the passing output of the very commit
+that fixed its sibling. Measured: at `connected-conversation-4` every assessed
+base is multi-character (話す / 言う / 聞く / 友だち); corpus-wide 107 of 120
+assessed bases are multi-character, so "bare glyph" was wrong for 89% of the
+corpus. **Rule: when a false comment is found, sweep for its class before
+closing — a named instance is a sample, not the population.**
+
+**A sweep can itself be scoped by imagination rather than by meaning.** That
+sweep used a regex enumerating the phrasings its author could think of (`bare
+glyph`, `glyph alone`, `only the glyph`) and missed a tenth instance reading
+"assessed glyph **bare**" — a different word order, caught only by an independent
+reviewer. The correct method searches the *subject* — every whole-word use of
+`bare` near the kanji renderer (108 hits, hand-classified) — and resolves each
+clause by clause: one instance (`tests/e2e/course-visuals.spec.ts:1158`, where 薬
+and 体 genuinely are 2 of the 13 single-glyph bases) is **true**, so a blanket
+find-and-replace would have introduced a fresh falsehood while removing others.
+
+**The mechanism is generative, not merely historical.** The commit whose stated
+purpose was deleting comments that assert behaviour the code does not produce
+introduced a new one of its own. Plausible-sounding prose about behaviour gets
+written faster than it gets checked — including by a process built to remove
+exactly that.
+
+**A change indistinguishable from a working one in the diff.** `aria-label` on a
+role-less span; `aria-describedby` landing in the description. Both look like
+fixes and may do nothing — the same shape as a golden file that re-freezes
+current output, or a gate that cannot fail. **Rule: prefer changes verifiable by
+asserting DOM text over changes that depend on consumer behaviour.**
+
+**Independent confirmation requires independent provenance.** `npm audit` and
+`gh api /advisories/{ghsa}` agreeing looked like corroboration, but both consume
+the same coarsened mirror, which flattens the advisory's affected ranges into one
+(`7.12.0 – 8.2.0`) and erases exactly the backport distinction under
+investigation. The primary record is `gh api
+/repos/{owner}/{repo}/security-advisories`. Same tool, same auth, one call apart
+— and nothing signals that a choice is being made.
+
+**Plausibility certifies rather than checks.** A gloss audit declared all 120
+entries clean by asking "is this plausible polysemy?" instead of "does this
+satisfy the standard this file states?" (`src/course/a2/kanji/kanjiMeanings.ts:22`).
+Plausibility is a test almost any wrong answer passes. **Rule: make the standard
+explicit before judging against it.**
