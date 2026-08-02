@@ -113,7 +113,7 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
     line("travel-reservations-1-m3", "a2-family-make-reservation", "a2-value-resv-hitori-desu", TRAVEL, L("It's for one person.", "È per una persona."), { speakerRole: "a2-role-friend" }),
     line("travel-reservations-1-m4", "a2-family-make-reservation", "a2-value-resv-yoyaku-shitai", TRAVEL, L("Excuse me, I'd like to reserve a room.", "Scusi, vorrei prenotare una stanza."), { subjectReferent: "a2-referent-frontdesk", subjectRealization: "vocative", speakerRole: "a2-role-learner" }),
     line("travel-reservations-1-m5", "a2-family-make-reservation", "a2-value-resv-heya-arimasuka", TRAVEL, L("Excuse me, do you have a room available?", "Scusi, avete una stanza disponibile?"), { subjectReferent: "a2-referent-frontdesk", subjectRealization: "vocative", speakerRole: "a2-role-colleague" }),
-    line("travel-reservations-1-m6", "a2-family-make-reservation", "a2-value-resv-heya-arimasuka", OUTING, L("Sora, do you have a room available?", "Sora, c'è una stanza disponibile?"), { subjectReferent: "a2-referent-sora", subjectRealization: "vocative", speakerRole: "a2-role-teacher" }),
+    line("travel-reservations-1-m6", "a2-family-make-reservation", "a2-value-resv-hitori-desu", TRAVEL, L("Excuse me, it's for one person.", "Scusi, è per una persona."), { subjectReferent: "a2-referent-frontdesk", subjectRealization: "vocative", speakerRole: "a2-role-teacher" }),
     line("travel-reservations-1-m7", "a2-family-make-reservation", "a2-value-resv-yoyaku-shitai", OUTING, L("Sora, I'd like to reserve a room.", "Sora, vorrei prenotare una stanza."), { subjectReferent: "a2-referent-sora", subjectRealization: "vocative", speakerRole: "a2-role-learner" }),
     line("travel-reservations-1-m8", "a2-family-make-reservation", "a2-value-resv-heya-arimasuka", OUTING, L("Emi, do you have a room available?", "Emi, c'è una stanza disponibile?"), { subjectReferent: "a2-referent-emi", subjectRealization: "vocative", speakerRole: "a2-role-learner" }),
     // m9/m10: the two supporting-Can-do families must also be MODELED
@@ -133,7 +133,7 @@ const lesson1: A2BuiltLesson = buildA2InstructionalLesson({
     line("travel-reservations-1-t2", "a2-family-possibility", "a2-value-possibility-tsukau", TRAVEL, L("You can use a card.", "Si può usare la carta."), { object: "a2-value-obj-kaado", speakerRole: "a2-role-clerk" }),
     line("travel-reservations-1-t3", "a2-family-make-reservation", "a2-value-resv-hitori-desu", TRAVEL, L("Sora, it's for one person.", "Sora, è per una persona."), { subjectReferent: "a2-referent-sora", subjectRealization: "vocative", speakerRole: "a2-role-friend" }),
     line("travel-reservations-1-t4", "a2-family-make-reservation", "a2-value-resv-hitori-desu", TRAVEL, L("Emi, it's for one person.", "Emi, è per una persona."), { subjectReferent: "a2-referent-emi", subjectRealization: "vocative", speakerRole: "a2-role-colleague" }),
-    line("travel-reservations-1-t5", "a2-family-make-reservation", "a2-value-resv-hitori-desu", TRAVEL, L("Excuse me, it's for one person.", "Scusi, è per una persona."), { subjectReferent: "a2-referent-frontdesk", subjectRealization: "vocative", speakerRole: "a2-role-teacher" }),
+    line("travel-reservations-1-t5", "a2-family-make-reservation", "a2-value-resv-yoyaku-shitai", TRAVEL, L("Emi, I'd like to reserve a room.", "Emi, vorrei prenotare una stanza."), { subjectReferent: "a2-referent-emi", subjectRealization: "vocative", speakerRole: "a2-role-teacher" }),
   ],
 });
 

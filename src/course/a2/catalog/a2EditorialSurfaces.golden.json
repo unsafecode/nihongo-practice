@@ -9530,10 +9530,10 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "そらさん、へやはありますか",
-    "romaji": "sora san, heya wa arimasu ka",
-    "en": "Sora, do you have a room available?",
-    "it": "Sora, c'è una stanza disponibile?"
+    "jp": "フロントさん、ひとりです",
+    "romaji": "furonto san, hitori desu",
+    "en": "Excuse me, it's for one person.",
+    "it": "Scusi, è per una persona."
   },
   {
     "id": "travel-reservations-1-m7",
@@ -9658,10 +9658,10 @@
     "polarity": "affirmative",
     "tense": "present",
     "interrogative": false,
-    "jp": "フロントさん、ひとりです",
-    "romaji": "furonto san, hitori desu",
-    "en": "Excuse me, it's for one person.",
-    "it": "Scusi, è per una persona."
+    "jp": "えみさん、へやのよやくをおねがいします",
+    "romaji": "emi san, heya no yoyaku o onegaishimasu",
+    "en": "Emi, I'd like to reserve a room.",
+    "it": "Emi, vorrei prenotare una stanza."
   },
   {
     "id": "travel-reservations-2-m1",
