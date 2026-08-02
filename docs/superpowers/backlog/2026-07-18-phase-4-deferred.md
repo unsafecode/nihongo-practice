@@ -158,7 +158,7 @@ exception. Two remediation branches, both real.
 `^7.18.1` already admits `7.18.2`, so it arrives on a plain `npm install`. Do not
 edit the version range — it was never wrong. Verify by installing, confirming
 `npm audit --omit=dev` is clean, and re-running the full release gate set
-including the Playwright acceptance suite and the twelve visual baselines.
+including the Playwright acceptance suite and all sixteen visual baselines.
 
 **Branch B — the major-version migration is its own piece of work with its own
 gates.** `react-router@8.3.0` *is* resolvable from this feed (it is the feed's
@@ -166,7 +166,7 @@ gates.** `react-router@8.3.0` *is* resolvable from this feed (it is the feed's
 `react-dom` `>= 19.2.7` against our `react@18.3.1`. That is two major upgrades at
 once — react-router 7→8 and react 18→19, with react 19's own removals.
 Considered and declined as the final commit before a public release, under a
-twelve-image visual baseline and a 3,759-test suite. Deferred, not dismissed.
+sixteen-image visual baseline and a 3,759-test suite. Deferred, not dismissed.
 
 Three facts bound the exception, each independently checkable and each capable of
 killing it when it stops holding:
@@ -174,16 +174,37 @@ killing it when it stops holding:
 1. The advisory is already live in `master` at `ab0c078` — the commit learners
    are using now, which itself declares `^7.18.1` — so deploying changes exposure
    by exactly zero and holding the release protects no one.
-2. The vulnerable codepath is unreachable here: production routing is
-   `HashRouter` only (`src/App.tsx`; `MemoryRouter` appears only in tests), there
-   are zero RSC imports, and the declared production dependencies are just three
-   — `react`, `react-dom`, `react-router`. The full transitive production
-   closure (`npm ls --omit=dev --all`) is **eight**: those three plus `cookie`
-   and `set-cookie-parser` under `react-router`, and `loose-envify`,
-   `js-tokens` and `scheduler` under `react`/`react-dom`. None touch the RSC
-   path. Quote the eight-package figure, not the three-package one — "three"
-   is the *declared direct* count and describes a smaller surface than the one
-   actually shipped.
+2. The vulnerable codepath is unreachable here, and the strongest form of that
+   claim is a measurement of the shipped bytes rather than an argument about the
+   manifest. Production routing is `HashRouter` only (`src/App.tsx`;
+   `MemoryRouter` appears only in tests). The full transitive production closure
+   (`npm ls --omit=dev --all`) is **eight**: `react`, `react-dom`,
+   `react-router`, plus `cookie` and `set-cookie-parser` under `react-router`,
+   plus `loose-envify`, `js-tokens` and `scheduler` under `react`/`react-dom`.
+   Quote the eight-package figure, not the three-package one — "three" is the
+   *declared direct* count and describes a smaller surface than the one actually
+   shipped. Two of the eight are react-router's own server-side cookie helpers,
+   so an auditor reading only the manifest will reasonably ask why they are
+   present. They are tree-shaken out. Measured against `dist/` after
+   `npm run build`:
+
+   ```
+   grep -rl 'splitCookiesString\|sameSite\|set-cookie\|maxAge\|partitioned' dist/assets/*.js   → 0 files
+   grep -rl 'createStaticHandler\|renderToPipeableStream\|RSC' dist/assets/*.js                → 0 files
+   grep -rl 'renderToReadableStream\|createFromFetch' dist/assets/*.js                         → 0 files
+   ```
+
+   So `cookie` and `set-cookie-parser` are in the dependency closure and absent
+   from the built artifact, and no RSC API appears in it either. That is a claim
+   about the bytes learners download, and anyone can re-run it.
+
+   **Documented non-finding, recorded here so it is not mistaken for one:**
+   `unstable_` *does* appear in the bundle — one file,
+   `dist/assets/vendor-*.js`, carrying 25 identifiers including `unstable_now`,
+   `unstable_scheduleCallback`, `unstable_batchedUpdates`,
+   `unstable_renderSubtreeIntoContainer` and the five scheduler priority
+   constants. Every one is React's own scheduler or react-dom internals. None
+   relate to RSC. Anyone grepping for RSC surface will hit these first.
 3. `^7.18.1` already admits `7.18.2`.
 
 The mechanism is **not** established, and two proposed explanations were
@@ -357,6 +378,29 @@ as more credible than the original precisely because it arrived labelled as a
 correction. **Rule: a correction carries no more authority than the claim it
 replaces, and needs the same measurement. Record the command that produced the
 figure next to the figure.**
+
+A third instance closed the loop. The commit that added the three fragilities
+below deleted the bold lead-in of the entry immediately following them, leaving
+it headless and beginning mid-sentence — so the edit that recorded "a corrective
+pass introduces new defects" introduced one, in the paragraph adjacent to the
+words. It was caught by review, not by the author, which is the same detection
+path as every other instance here. **Rule: after an insertion, read the
+paragraph on each side of the seam — the damage from a bad edit lands on its
+neighbours, not on the text you were writing.**
+
+**A number true of one referent, reused for another.** This document twice
+described the release guardrail as "a twelve-image visual baseline". Twelve is
+correct for the baselines *changed and reviewed during this phase*
+(`screenshots.spec.ts`, 6 screenshots × 2 Playwright projects) and is exactly
+the set the product owner approved. But the release gate validates **sixteen**:
+those twelve plus four speech-block baselines in
+`course-visuals.spec.ts-snapshots/`, which were untouched since `ab0c078` and
+therefore never entered review. Both numbers are true; they are true of
+different things, and the smaller one was used where the larger was meant. The
+same trap sits in `npm run prebuild`, whose "60 lessons, 15 modules, 59 Can-dos,
+120 kanji" is **A2 only** — the corpus totals are 108 lessons and 27 modules —
+and it has already produced one factual error in this phase's records. **Rule:
+write the referent next to the number, not just the number.**
 
 **A reviewed commit that is amended leaves the review pointing at nothing.**
 Task 26c's final review verdicts were recorded against `dbc85ff`. Actioning one
