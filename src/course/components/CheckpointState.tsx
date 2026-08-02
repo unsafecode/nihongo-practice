@@ -47,23 +47,22 @@ export function CheckpointState({
   met,
 }: CheckpointStateProps): ReactElement {
   function handleEvidenceLinkActivation(): void {
-    // This is a <button>, not an anchor, so there is no default navigation to
-    // guard: no href to fall through to, and therefore no modifier-key branch
-    // (⌘/middle-click would only ever have led to the broken URL). A button
-    // dispatches this handler for both mouse and keyboard (Enter/Space)
-    // activation, so the keyboard path is covered without special-casing.
+    // A <button> dispatches this handler for both mouse and keyboard
+    // (Enter/Space) activation, so the keyboard path is covered without any
+    // special-casing — and there is no href for a modified click to reach.
     if (typeof document === "undefined") return;
     const target = document.getElementById(linkTargetId);
     if (!target) return;
     // Keep this an in-page move: scroll to the section AND move focus to it,
-    // exactly as the Syllabary group jumps do (Syllabary.tsx `focusGroup`) —
-    // a native fragment link moves both viewport and focus, so scrolling alone
-    // would leave a keyboard/AT user's focus and reading position stranded on
-    // this control while the page scrolls out from under them. The section is
-    // `tabIndex={-1}` (programmatically focusable, not tab-stop) and carries
-    // `aria-labelledby`, so focusing it announces its heading. Reuse the shared
-    // reduced-motion helper so the preference is resolved in exactly one place
-    // (RouteScrollManager and the Syllabary jumps use the same one).
+    // exactly as the Syllabary group jumps do (src/syllabary/Syllabary.tsx
+    // `focusGroup`) — a native fragment link moves both viewport and focus, so
+    // scrolling alone would leave a keyboard/AT user's focus and reading
+    // position stranded on this control while the page scrolls out from under
+    // them. The section is `tabIndex={-1}` (programmatically focusable, not
+    // tab-stop) and carries `aria-labelledby`, so focusing it announces its
+    // heading. Reuse the shared reduced-motion helper so the preference is
+    // resolved in exactly one place (RouteScrollManager and the Syllabary jumps
+    // use the same one).
     target.scrollIntoView({
       behavior: resolveScrollBehavior(prefersReducedMotion()),
       block: "start",
@@ -71,17 +70,16 @@ export function CheckpointState({
     target.focus({ preventScroll: true });
   }
 
-  // DISCLOSED RESIDUAL (not "fixed"): rendering a <button> makes the broken URL
-  // `#can-do-summary` *unreachable*, not *valid*. Because the section has no
-  // route under HashRouter, `#can-do-summary` typed by hand, or restored from a
-  // link shared during today's deploy window, still lands on the false "page
-  // not found" banner. That exposure is a few minutes wide and nobody holds
-  // such a link, so removing the href (the thing consumers copy, bookmark, and
-  // restore) is the right trade — but it is a disclosed residual. The complete
-  // fix is teaching the router to resolve the fragment to this section; that is
-  // the RouteScrollManager scope (documented "never moves focus", see below),
-  // deliberately not authorised for this corrective task and filed for the
-  // backlog rather than widened into here.
+  // DISCLOSED RESIDUAL (not "fixed"): a <button> makes the broken fragment
+  // `#can-do-summary` *unreachable*, not *valid* — hand-typed, or restored from
+  // a link shared during today's deploy window, it still lands on the false
+  // "page not found" banner (the prop docblock explains why the fragment has no
+  // route). That exposure is minutes wide and nobody holds such a link, so
+  // removing the href — the thing consumers copy, bookmark, and restore — is the
+  // right trade. The complete fix is teaching the router to resolve the fragment
+  // to this section: the RouteScrollManager scope (documented "never moves
+  // focus", see RouteScrollManager.tsx:27), deliberately not authorised for this
+  // corrective task and filed for the backlog.
   return (
     <section
       className="checkpoint-state"

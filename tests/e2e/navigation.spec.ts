@@ -360,7 +360,8 @@ test.describe("checkpoint evidence link is an in-page target, not a route", () =
   // path `/can-do-summary`, matched nothing, fell to the `*` catch-all, and
   // redirected the learner to the home with a false amber "page does not
   // exist" warning — about `#can-do-summary`, a section rendered on that very
-  // page. The fix intercepts the click and scrolls to the section in-page.
+  // page. The fix renders the control as a `<button>` (no href for the router
+  // to see) whose handler scrolls the section into view and moves focus to it.
   test("clicking it reveals #can-do-summary and never shows the false 'page not found' warning", async ({ page }) => {
     const observers = await setupPageObservers(page);
     await gotoReady(page, routeUrls.home);
@@ -414,10 +415,10 @@ test.describe("checkpoint evidence link is an in-page target, not a route", () =
     // (1) The sharpest, learner-facing assertion: the invalid-route warning
     //     banner must be ABSENT. Assert on the CLASS and the COPY — never on
     //     role="alert" (this Notice is tone="warning" => role="status" per
-    //     Notice.tsx: warning-styled but *politely* announced, so it would
-    //     match nothing) and never on the role alone (role="status" is shared
-    //     by other non-error notices and by .checkpoint-state__body). The copy
-    //     check is IT-locale-gated (documentElement.lang, App.tsx) so a
+    //     src/components/Notice.tsx:27: warning-styled but *politely* announced,
+    //     so it would match nothing) and never on the role alone (role="status"
+    //     is shared by other non-error notices and by .checkpoint-state__body).
+    //     The copy check is IT-locale-gated (documentElement.lang, App.tsx) so a
     //     wrong-locale empty match can't read as "absent".
     expect(await page.evaluate(() => document.documentElement.lang)).toMatch(/^it/);
     await expect(page.locator(".notice--warning")).toHaveCount(0);
@@ -450,6 +451,38 @@ test.describe("checkpoint evidence link is an in-page target, not a route", () =
       .evaluate((el) => el.getBoundingClientRect().top);
     expect(sectionTop).toBeGreaterThanOrEqual(-16);
     expect(sectionTop).toBeLessThanOrEqual(16);
+
+    await assertNoRuntimeErrors(page, observers);
+  });
+
+  test("activating it with the keyboard (Enter) reveals #can-do-summary and moves focus to it", async ({ page }) => {
+    // The component comment claims the keyboard path is covered because a
+    // <button> dispatches its click handler on Enter/Space. Exercise it rather
+    // than merely asserting it: a native button routes Enter and Space through
+    // the same synthetic click, so Enter is representative of both. This is the
+    // path a keyboard/AT user actually takes, and it must land focus on the
+    // section (not just scroll) and never show the false banner.
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, routeUrls.home);
+
+    const link = page.locator(".checkpoint-state__link");
+    await link.focus();
+    await expect(link).toBeFocused();
+    await page.keyboard.press("Enter");
+
+    await page.waitForFunction(() => {
+      if (document.activeElement?.id === "can-do-summary") return true;
+      if (document.querySelector(".notice--warning") !== null) return true;
+      const section = document.getElementById("can-do-summary");
+      if (!section) return false;
+      const rect = section.getBoundingClientRect();
+      return rect.top < window.innerHeight && rect.bottom > 0;
+    });
+
+    expect(await page.evaluate(() => document.documentElement.lang)).toMatch(/^it/);
+    await expect(page.locator(".notice--warning")).toHaveCount(0);
+    await expect(page.getByText("Pagina non trovata")).toHaveCount(0);
+    await expect(page.locator("#can-do-summary")).toBeFocused();
 
     await assertNoRuntimeErrors(page, observers);
   });

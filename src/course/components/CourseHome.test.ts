@@ -498,18 +498,24 @@ describe("CourseHome: checkpoint evidence state (Phase 4 Task 27 — automatic a
     expect(html).not.toContain(escapeHtmlText(itCopy.checkpoint.notMet));
   });
 
-  it("reveals the on-page can-do-summary section without any fragment anchor (in-page action, not a route)", () => {
+  it("reveals the on-page can-do-summary section without any bare-fragment anchor (in-page action, not a route)", () => {
     const html = renderHome(makeProgressValue());
     // The evidence control reveals a section this very page renders, by its
     // element id. Under the app's HashRouter that section has no URL, so it must
     // NOT be exposed as an anchor: a fragment href is read by ⌘/middle-click,
     // copy-link, bookmark, and session restore, all of which detonate the
-    // router into the false "page not found" warning. Assert the whole rendered
-    // home carries NO anchor pointing at a fragment — a property of the output,
-    // not of one string, that the next caller cannot violate silently — while
-    // the target section, its evidence copy, and the click-time scroll + focus
-    // (tests/e2e/navigation.spec.ts) remain intact.
-    expect(html).not.toMatch(/href="#/);
+    // router into the false "page not found" warning.
+    //
+    // The invariant is precise: under HashRouter a legitimate route link renders
+    // `href="#/percorso"` — a `#` followed by `/` — whereas a bare in-page
+    // fragment renders `href="#can-do-summary"` — a `#` NOT followed by `/`. Only
+    // the latter has no route and detonates. So assert no anchor's href is a bare
+    // fragment (`#` then a non-`/`), NOT merely any `href="#"` (which this test's
+    // MemoryRouter never emits but production's HashRouter puts on every real
+    // link, so that laxer form would be an artifact of the harness rather than a
+    // statement about the danger). This regex is correct under both routers and
+    // survives someone making the harness more faithful.
+    expect(html).not.toMatch(/href="#[^/]/);
     expect(html).toContain('id="can-do-summary"');
     expect(html).toContain(escapeHtmlText(itCopy.checkpoint.evidenceLink));
   });
