@@ -60,15 +60,23 @@ describe("LevelSelector — accessible two-option level control (Phase 3 Task 8)
     expect(html).toContain(`>${copy.selectorLabel}<`);
   });
 
-  it("labels the nav landmark via aria-labelledby referencing an element that exists in the output", () => {
+  it("labels the nav landmark via aria-labelledby referencing an element whose visible text is the label", () => {
     const html = renderStatic("a1", false);
     // The nav uses aria-labelledby, not a free-standing aria-label.
-    expect(html).toContain('aria-labelledby="level-selector-label"');
     expect(html).not.toContain(`aria-label="${copy.selectorLabel}"`);
-    // The referenced element is present and its text content is the selector label.
-    expect(html).toContain('id="level-selector-label"');
+    // Extract the aria-labelledby value from the rendered nav.
+    const labelledByMatch = html.match(/aria-labelledby="([^"]*)"/);
+    expect(labelledByMatch).not.toBeNull();
+    const labelledBy = labelledByMatch![1];
+    // The id must be non-empty — an empty string would trivially satisfy equality.
+    expect(labelledBy).not.toBe("");
+    // Extract the id of the element whose text content is the selector label.
     const escapedLabel = copy.selectorLabel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    expect(html).toMatch(new RegExp(`id="level-selector-label"[^>]*>${escapedLabel}<`));
+    const idMatch = html.match(new RegExp(`id="([^"]*)"[^>]*>${escapedLabel}<`));
+    expect(idMatch).not.toBeNull();
+    const labelElementId = idMatch![1];
+    // The association is wired: the nav points at the labelling element.
+    expect(labelledBy).toBe(labelElementId);
   });
 });
 
