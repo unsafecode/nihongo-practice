@@ -242,15 +242,31 @@ to proceed to Task 36 despite this fail, on the evidence below and nothing wider
 
 **Bottom line, before the apparatus:** the two decisive facts are that this
 release changes exposure by **zero** — `react-router` is pinned at `7.18.1` at
-both the currently-deployed commit `ab0c078` and HEAD (point 4) — and that the
+both the currently-deployed commit `ab0c078` [as of the override date; see the
+deploy-state correction below] and HEAD (point 4) — and that the
 advisory's RSC-mode codepath cannot execute here, there being no RSC runtime
 installed and no server on a static Pages site (point 2a/2b). A reader can stop
 here for the conclusion; the full evidence, in descending strength, is in points
 1–6 below.
 
+**Deploy-state correction (added post-deploy).** Three places in this item — the
+*Bottom line* above, the *Authoriser* bullet immediately below, and point 4
+below — call `ab0c078` "the currently-deployed commit" / "the commit currently
+serving learners." Those were accurate **as of the override date, 2026-08-02,
+before this release was deployed**, when `ab0c078` was in fact the served commit;
+they are preserved as the point-in-time statements they were, not rewritten. The
+release has since deployed at **`426cee8`** — recorded under **Deployment** below
+(*Release identity* gives the deployed SHA; *Gate re-run at the deployed SHA*
+re-gates it), with the click-path regression corrected in *Post-deploy correction
+— Task 37* below. This corrects the **label only**: `react-router` is pinned at
+`7.18.1` at `426cee8` as well (`git show 426cee8:package-lock.json` →
+`"version": "7.18.1"`), so the advisory exposure is unchanged and the override
+ruling in this item is **not** reopened.
+
 - **Authoriser:** Riccardo Chiodaroli, repository owner and product owner. The
   attribution is verifiable, not asserted: he is the git author of `ab0c078`, the
-  commit currently serving learners — `git --no-pager log -1 --format='%an'
+  commit currently serving learners [as of the override date, 2026-08-02,
+  pre-deploy; see the deploy-state correction above] — `git --no-pager log -1 --format='%an'
   ab0c078` returns `Riccardo Chiodaroli`.
 - **Date:** 2026-08-02, during the Phase 4 release-execution session.
 - **Scope, verbatim:** the override authorises "deploying *this* release with
@@ -359,7 +375,8 @@ Why the override holds — measured, not argued from the manifest:
 
 4. **Exposure change from shipping this release is zero.** `react-router` is
    locked at `7.18.1` in `package-lock.json` at **both** `ab0c078` (the
-   currently-deployed commit) and HEAD. The advisory is already live in
+   currently-deployed commit) [as of the override date; see the deploy-state
+   correction above] and HEAD. The advisory is already live in
    production; this release neither adds nor removes it.
 
 5. **The fix was evaluated and declined.** `npm audit fix --force` would install
