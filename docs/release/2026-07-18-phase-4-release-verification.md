@@ -861,7 +861,7 @@ Removing the href is still the right trade: it is the thing consumers copy,
 bookmark, and restore, and no learner-facing control needs it. But it is a
 residual, disclosed rather than discovered.
 
-**Deployment status (as of `f8fc4f1`, this commit).** This fix is **not yet
+**Deployment status (as of the Task 37 record `f8fc4f1`).** This fix is **not yet
 deployed.** It is verified at `bbf565f` against the full verification-baseline
 gate set below, but the live site still serves `426cee8` — whose checkpoint
 control is still the pre-fix `<a href="#can-do-summary">` (the "Final git state"
