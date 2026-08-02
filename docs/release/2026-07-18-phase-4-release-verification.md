@@ -232,8 +232,8 @@ to proceed to Task 36 despite this fail, on the evidence below and nothing wider
 
 - **Authoriser:** Riccardo Chiodaroli, repository owner and product owner. The
   attribution is verifiable, not asserted: he is the git author of `ab0c078`, the
-  commit currently serving learners — `git --no-pager log -1 --format='%an <%ae>'
-  ab0c078` returns `Riccardo Chiodaroli <ricchi@microsoft.com>`.
+  commit currently serving learners — `git --no-pager log -1 --format='%an'
+  ab0c078` returns `Riccardo Chiodaroli`.
 - **Date:** 2026-08-02, during the Phase 4 release-execution session.
 - **Scope, verbatim:** the override authorises "deploying *this* release with
   *this* advisory outstanding"; it "is not a standing exemption for high-severity
