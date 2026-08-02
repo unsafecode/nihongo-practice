@@ -220,6 +220,36 @@ falsified — that matters more than the conclusion:
   this feed (`npm view react-router@7.18.2` returns E404); the cause is not
   established. Do not assert any mechanism.
 
+### D-6. Ratify the GHSA-qwww-vcr4-c8h2 override in a tracked artifact
+
+D-5 defers the *advisory remediation*. This entry is the distinct *governance*
+obligation it created: the high-severity advisory was shipped under an explicit,
+narrowly-scoped, owner-authorised exception (item 7 of the Phase 4 release
+verification), and that exception is **sound but under-recorded**. It was
+authorised conversationally during the release-execution session, and its only
+durable trace today is the verification document itself —
+`docs/release/2026-07-18-phase-4-release-verification.md`, item 7. A
+release-blocking exception whose sole record is a prose paragraph in the document
+it authorises is a governance gap, not a documentation one: there is no issue or
+pull request an auditor can open to see who signed off, when, and on what terms.
+
+Ratify it in a tracked artifact — a GitHub issue or a decision record committed
+under `docs/` — capturing, at minimum:
+
+- **Authoriser:** Riccardo Chiodaroli, repository owner and product owner
+  (verifiable as the git author of `ab0c078` via `git log -1 --format='%an'
+  ab0c078`).
+- **Date:** 2026-08-02, during the Phase 4 release-execution session.
+- **Scope, verbatim:** authorises "deploying *this* release with *this* advisory
+  outstanding"; "not a standing exemption for high-severity production
+  advisories." Covers only GHSA-qwww-vcr4-c8h2 at the release commit.
+- **Current sole record:** the verification document named above.
+
+This entry does not re-argue whether the override was correct — D-5 carries that
+evidence. It exists so the *authorisation* has a holder and an address, and it
+closes only when that tracked artifact exists. Sequence it before or immediately
+after Task 36.
+
 ---
 
 ## Part 2 — Rejected — do not act on these

@@ -230,6 +230,14 @@ release per Section 21.4.
 **Explicit, narrowly-scoped product-owner override.** Deployment is authorised
 to proceed to Task 36 despite this fail, on the evidence below and nothing wider.
 
+**Bottom line, before the apparatus:** the two decisive facts are that this
+release changes exposure by **zero** — `react-router` is pinned at `7.18.1` at
+both the currently-deployed commit `ab0c078` and HEAD (point 4) — and that the
+advisory's RSC-mode codepath cannot execute here, there being no RSC runtime
+installed and no server on a static Pages site (point 2a/2b). A reader can stop
+here for the conclusion; the full evidence, in descending strength, is in points
+1–6 below.
+
 - **Authoriser:** Riccardo Chiodaroli, repository owner and product owner. The
   attribution is verifiable, not asserted: he is the git author of `ab0c078`, the
   commit currently serving learners — `git --no-pager log -1 --format='%an'
@@ -244,7 +252,9 @@ to proceed to Task 36 despite this fail, on the evidence below and nothing wider
   reader cannot today follow a link to the decision. Recommendation: before or
   immediately after Task 36, ratify this override in a durable tracked artifact
   (a GitHub issue or a decision record committed under `docs/`) so the
-  authorisation is pinned the way every other load-bearing fact here is.
+  authorisation is pinned the way every other load-bearing fact here is. This IOU
+  now has a holder: it is tracked as **D-6** in
+  `docs/superpowers/backlog/2026-07-18-phase-4-deferred.md`.
 
 Why the override holds — measured, not argued from the manifest:
 
@@ -258,45 +268,57 @@ Why the override holds — measured, not argued from the manifest:
 2. **No RSC/streaming or cookie-serialisation strings survive into the shipped
    bundle, and no RSC runtime is installed at all.** The advisory is an RSC-mode
    CSRF bypass, so the question is whether any RSC/server request-handling path
-   can reach a learner. Four independent checks, in descending order of strength,
-   each with the command that produced it (run this session against the item-5
-   `dist/`):
+   can reach a learner. The checks below run in descending order of strength —
+   (a) and (b) do not depend on grep at all; (c) is a robust literal probe;
+   (c′) is a weaker corroborating identifier probe; (d) records the minification
+   that makes (c′) weaker than (c) — each with the command that produced it (run
+   this session against the item-5 `dist/`):
 
-   **(a) No RSC runtime is installed — strongest, and independent of the
-   bundler.** RSC requires a `react-server-dom-*` runtime
-   (`react-server-dom-webpack`, `-turbopack`, or equivalent). None exists in the
-   production closure: `npm ls --omit=dev --all | grep -i server-dom` returns
-   **nothing**; the closure is exactly the eight packages in point 1. This is a
-   statement about what is installed, not about what survived a grep, so
-   minification cannot weaken it. (This is not the discredited manifest argument —
-   that one was wrong because it undercounted the closure as three packages; this
-   one is about a specific package family being absent from the correct
-   eight-package closure.)
+   **(a) No RSC runtime is installed anywhere in the tree — strongest, and
+   independent of the bundler.** RSC requires a `react-server-dom-*` runtime
+   (`react-server-dom-webpack`, `-turbopack`, or equivalent). None is installed,
+   in production or in dev: `npm ls --all | grep -i server-dom` (the whole tree,
+   dev dependencies included) returns **nothing**, and so does the production-only
+   `npm ls --omit=dev --all | grep -i server-dom`; the production closure is
+   exactly the eight packages in point 1. The dev-inclusive check matters because
+   a dev-only RSC runtime could still reach `dist/` through the bundler — but there
+   is none, and the bundler is not configured for RSC either: `vite.config.ts`
+   uses plain `@vitejs/plugin-react` (`plugins: [react()]`) with no RSC bundler
+   plugin and no `@react-router/dev`. These are statements about what is installed
+   and configured, not about what survived a grep, so minification cannot weaken
+   them. (This is not the discredited manifest argument — that one was wrong
+   because it undercounted the closure as three packages; this one is about a
+   specific package family being absent from the correct eight-package closure and
+   from the whole tree.)
 
    **(b) There is no server to attack — structural.** This is a static GitHub
    Pages site with hash routing and no server process of any kind; an RSC-mode
    CSRF has no request-handling code path to reach here.
 
-   **(c) Cookie-serialisation and RSC/streaming string literals are absent from
-   the shipped bytes — robust, because these are literals, not manglable
-   identifiers.** Property names and string literals survive this bundler (proven
-   by the control probe below), so a 0-file result here is real evidence of
-   absence:
-   - `grep -rlE 'splitCookiesString|sameSite|set-cookie|maxAge|partitioned' dist/`
+   **(c) Cookie-serialisation option literals are absent from the shipped bytes —
+   robust.** These four tokens are option *property names* / header literals — the
+   same class the control probe below validates — so a minifier preserves them and
+   a 0-file result is real evidence of absence:
+   - `grep -rlE 'sameSite|set-cookie|maxAge|partitioned' dist/`
      → **0 files** (cookie-serialiser option names — literals in the source).
-   - `grep -rlE 'createStaticHandler|renderToPipeableStream|RSC' dist/`
-     → **0 files**.
-   - `grep -rlE 'renderToReadableStream|createFromFetch' dist/`
+
+   **(c′) RSC/streaming/cookie *function and export names* are absent too — but
+   this is corroboration, not robust proof.** These are identifiers, and a
+   minifier *can* rename them, so a 0-file result here is weaker than in (c). They
+   are recorded without the robustness claim; their categorical exclusion is
+   already delivered by layers (a) and (b), which do not depend on grep at all, so
+   demoting them costs nothing:
+   - `grep -rlE 'splitCookiesString|createStaticHandler|renderToPipeableStream|renderToReadableStream|createFromFetch|RSC' dist/`
      → **0 files**.
 
-   **(d) Identifier-name probes — weakest, and explicitly minification-limited.**
-   The vendor bundle is minified: local identifiers are mangled — the file opens
-   `var Ku={exports:{}},_r={},Yu={exports:{}},q={};` and defines functions such as
-   `function j(){`, `function ri(){`, `function rt(){`. A grep for a *function
-   name* returning 0 files therefore proves the **string** is absent, not that the
-   **code** is absent — a bundled function can be renamed to `j()`. These probes
-   are named here as the least conclusive evidence in the section precisely so the
-   stronger layers (a)–(c) carry the weight.
+   **(d) Evidence that the bundle is minified — the basis for treating (c′) as
+   weak and (c) as robust.** The vendor bundle is minified: local identifiers are
+   mangled — the file opens `var Ku={exports:{}},_r={},Yu={exports:{}},q={};` and
+   defines functions such as `function j(){`, `function ri(){`, `function rt(){`.
+   This is why an identifier grep like (c′) returning 0 files proves only that the
+   *string* is absent, not that the code is — a bundled function can be renamed to
+   `j()` — whereas a property-literal grep like (c) is trustworthy. Layers (a) and
+   (b), which do not grep at all, are what carry the weight.
 
    **Control probe (validates the method for layer (c)).** A negative grep is only
    meaningful once the same method can produce a positive against the same
