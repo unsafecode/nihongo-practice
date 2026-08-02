@@ -53,7 +53,7 @@ export const A2_KANJI_MEANINGS: Readonly<Record<string, KanjiMeaningGloss>> = {
   "a2-kanji-konshuu-shuu-meaning": { en: "week", it: "settimana" },
   "a2-kanji-shuumatsu-meaning": { en: "end, close", it: "fine, termine" },
   "a2-kanji-machimasu-meaning": { en: "to wait", it: "aspettare" },
-  "a2-kanji-yakusoku-meaning": { en: "promise, appointment", it: "promessa, impegno" },
+  "a2-kanji-yakusoku-meaning": { en: "promise", it: "promessa" },
   "a2-kanji-raigetsu-rai-meaning": { en: "to come, next", it: "venire, prossimo" },
   "a2-kanji-raigetsu-getsu-meaning": { en: "month, moon", it: "mese, luna" },
 
@@ -105,7 +105,7 @@ export const A2_KANJI_MEANINGS: Readonly<Record<string, KanjiMeaningGloss>> = {
   "a2-kanji-ginkou-gin-meaning": { en: "silver", it: "argento" },
   "a2-kanji-ginkou-kou-meaning": { en: "to go, line", it: "andare, riga" },
   "a2-kanji-yuubinkyoku-meaning": { en: "office, bureau", it: "ufficio" },
-  "a2-kanji-benri-meaning": { en: "convenience, mail service", it: "comodità, servizio postale" },
+  "a2-kanji-benri-meaning": { en: "convenience", it: "comodità" },
   "a2-kanji-toshokan-to-meaning": { en: "diagram, plan", it: "mappa, schema" },
   "a2-kanji-toshokan-kan-meaning": { en: "hall, large building", it: "sala, edificio" },
 
@@ -123,7 +123,7 @@ export const A2_KANJI_MEANINGS: Readonly<Record<string, KanjiMeaningGloss>> = {
   "a2-kanji-kau-meaning": { en: "to buy", it: "comprare" },
   "a2-kanji-mise-meaning": { en: "shop, store", it: "negozio" },
   "a2-kanji-senen-en-meaning": { en: "yen, circle", it: "yen, cerchio" },
-  "a2-kanji-ichiban-meaning": { en: "number, turn, most", it: "numero, turno" },
+  "a2-kanji-ichiban-meaning": { en: "number, turn", it: "numero, turno" },
   "a2-kanji-senen-sen-meaning": { en: "thousand", it: "mille" },
   "a2-kanji-ichiman-meaning": { en: "ten thousand", it: "diecimila" },
   "a2-kanji-yasui-meaning": { en: "cheap, inexpensive", it: "economico, a buon mercato" },
@@ -136,7 +136,7 @@ export const A2_KANJI_MEANINGS: Readonly<Record<string, KanjiMeaningGloss>> = {
   "a2-kanji-karada-meaning": { en: "body", it: "corpo" },
   "a2-kanji-atama-meaning": { en: "head", it: "testa" },
   "a2-kanji-itai-meaning": { en: "pain, painful", it: "dolore, dolente" },
-  "a2-kanji-genki-meaning": { en: "origin, energy, health", it: "origine, energia" },
+  "a2-kanji-genki-meaning": { en: "origin, source", it: "origine" },
   "a2-kanji-yasumu-meaning": { en: "to rest, to take a break", it: "riposare" },
 
   // ── Module 11 — work-study-messages ────────────────────────────────────
