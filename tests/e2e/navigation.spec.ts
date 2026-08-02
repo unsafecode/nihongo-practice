@@ -396,7 +396,15 @@ test.describe("checkpoint evidence link is an in-page target, not a route", () =
     // The click stayed on the course route; it did not enter the catch-all.
     expect(page.url()).toContain("#/percorso");
 
-    // (2) The #can-do-summary section is in view after the click. The live
+    // (2) Focus — not just the viewport — must land on the section. A native
+    //     fragment link moves both; a preventDefault+scrollIntoView that forgot
+    //     focus would scroll the page for a mouse user yet strand a keyboard/AT
+    //     user's focus and reading position on this link. document.activeElement
+    //     being the section is a plain DOM fact (no screen reader needed) and is
+    //     the assertion that distinguishes a genuine fix from a mouse-only one.
+    await expect(page.locator("#can-do-summary")).toBeFocused();
+
+    // (3) The #can-do-summary section is in view after the click. The live
     //     section sits ~4171-4272px down a 720px viewport, so "in view" must be
     //     a real viewport check — `toBeVisible()` is true for an element five
     //     viewports below the fold and would pass against the broken build.

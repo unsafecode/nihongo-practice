@@ -63,8 +63,13 @@ export function CheckpointState({
     if (typeof document === "undefined") return;
     const target = document.getElementById(linkTargetId);
     if (!target) return;
-    // Keep this an in-page move: scroll to the section ourselves instead of
-    // letting the fragment reach HashRouter's route matcher. Reuse the shared
+    // Keep this an in-page move: scroll to the section AND move focus to it,
+    // exactly as the Syllabary group jumps do (Syllabary.tsx `focusGroup`) —
+    // a native fragment link moves both viewport and focus, so scrolling alone
+    // would leave a keyboard/AT user's focus and reading position stranded on
+    // this link while the page scrolls out from under them. The section is
+    // `tabIndex={-1}` (programmatically focusable, not tab-stop) and carries
+    // `aria-labelledby`, so focusing it announces its heading. Reuse the shared
     // reduced-motion helper so the preference is resolved in exactly one place
     // (RouteScrollManager and the Syllabary jumps use the same one).
     event.preventDefault();
@@ -72,6 +77,7 @@ export function CheckpointState({
       behavior: resolveScrollBehavior(prefersReducedMotion()),
       block: "start",
     });
+    target.focus({ preventScroll: true });
   }
 
   return (

@@ -253,7 +253,12 @@ export function CourseHome(): ReactElement {
 
       <CourseMap model={model} />
 
-      <section id="can-do-summary" className="can-do-summary" aria-labelledby="can-do-summary-heading">
+      <section
+        id="can-do-summary"
+        className="can-do-summary"
+        aria-labelledby="can-do-summary-heading"
+        tabIndex={-1}
+      >
         <h2 id="can-do-summary-heading" className="can-do-summary__heading">
           {copy.canDoSummary.heading}
         </h2>
