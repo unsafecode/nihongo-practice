@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { A2_LESSON_IDS } from "../manifest";
+import { a2FoundationCatalogs } from "../catalog/catalog";
 import {
   buildA2LessonViewModel,
   resolveA2KanjiExposureViews,
@@ -79,6 +80,52 @@ describe("buildA2LessonViewModel — every A2 lesson resolves fail-closed", () =
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.code).toBe("unknown-lesson");
+  });
+
+  it("gives all 60 A2 matrices locale-independent ordered comparison IDs in authored order", () => {
+    expect(A2_LESSON_IDS).toHaveLength(60);
+
+    for (const lessonId of A2_LESSON_IDS) {
+      const lesson = a2FoundationCatalogs.lessons.find(
+        (candidate) => candidate.id === lessonId,
+      );
+      if (!lesson) throw new Error(`missing A2 lesson ${lessonId}`);
+
+      const en = buildA2LessonViewModel(lessonId, "en");
+      const it = buildA2LessonViewModel(lessonId, "it");
+      if (!en.ok || !it.ok) {
+        throw new Error(`expected A2 lesson ${lessonId} to resolve`);
+      }
+
+      const enRows = en.model.foundation.matrix.rows;
+      const itRows = it.model.foundation.matrix.rows;
+      expect(enRows.map((row) => row.variantId)).toEqual(
+        lesson.modelVariantIds,
+      );
+      expect(itRows.map((row) => row.variantId)).toEqual(
+        lesson.modelVariantIds,
+      );
+      expect(itRows.map((row) => row.comparisonTokenIds)).toEqual(
+        enRows.map((row) => row.comparisonTokenIds),
+      );
+
+      for (const row of enRows) {
+        expect(row.comparisonTokenIds.length, row.variantId).toBeGreaterThan(0);
+        const tokenIndexById = new Map(
+          row.tokens.map((token, index) => [token.id, index]),
+        );
+        const positions = row.comparisonTokenIds.map(
+          (tokenId) => tokenIndexById.get(tokenId) ?? -1,
+        );
+        expect(
+          positions.every((position) => position >= 0),
+          row.variantId,
+        ).toBe(true);
+        expect(positions, row.variantId).toEqual(
+          [...positions].sort((a, b) => a - b),
+        );
+      }
+    }
   });
 });
 
