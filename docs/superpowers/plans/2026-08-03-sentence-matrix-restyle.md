@@ -6,7 +6,7 @@
 
 **Architecture:** `buildLessonViewModel.ts` remains the single source of localized matrix rows and derives ordered comparison token IDs strictly from family-slot source metadata. `SentenceMatrix.tsx` consumes that view-model field through the existing Japanese segment renderer and `RomajiSequence` highlighting API, while `foundation.css` provides the presentation-only rail, surfaces, hierarchy, badges, and non-color-only emphasis. Vitest locks the data and DOM contracts; Playwright locks computed emphasis, responsive/zoom behavior, metadata safety, and the two reviewed visual baselines.
 
-**Tech Stack:** TypeScript, React 19, Vitest with jsdom, CSS custom properties, Playwright Chromium, Vite
+**Tech Stack:** TypeScript, React 18.3, Vitest with jsdom, CSS custom properties, Playwright Chromium, Vite
 
 ---
 
@@ -18,6 +18,7 @@
 | `src/course/foundations/foundationViewModel.ts` | Re-export `foundationComparisonTokenIds` beside the existing fixture-facing view-model helpers. |
 | `src/course/foundations/foundationViewModel.test.ts` | Prove exact metadata-only derivation, multi-fragment ordering, exclusions, surface-string independence, fixture coverage, locale parity, and unchanged guided behavior. |
 | `src/course/a1/a1LessonViewModel.test.ts` | Exercise all 44 production semantic A1 lessons so every authored matrix row receives safe comparison IDs in authored order for IT and EN. This directly related test is added even though it was not listed in the spec's expected-file summary because fixture-only coverage cannot prove the production catalog contract. |
+| `src/course/a2/view/buildA2LessonViewModel.test.ts` | Exercise all 60 production A2 lessons so the shared matrix contract is exhaustive across both shipping levels, authored order is preserved, and comparison IDs are non-empty, ordered, subset-safe, and locale-independent. |
 | `src/course/foundations/SentenceMatrix.tsx` | Render Japanese marks with the established `FamilyGuidedConstruction` pattern, pass IDs to `RomajiSequence`, and add the presentation-only romaji modifier. |
 | `src/course/foundations/SentenceMatrix.test.ts` | Parse rendered DOM and prove Japanese/romaji mark text, count, order, spacing, semantics, collapsed order, metadata safety, and romaji-only behavior. |
 | `src/course/foundations/foundation.css` | Implement the unnumbered vertical rail, markers, card surfaces, phrase hierarchy, secondary badges, tertiary omission note, comparison emphasis, and narrow-screen stacking. |
@@ -74,6 +75,7 @@ The test oracle boundary is equally strict:
 **Files:**
 - Modify: `src/course/foundations/foundationViewModel.test.ts:1-25, 81-110, 176-223`
 - Modify: `src/course/a1/a1LessonViewModel.test.ts:18-76`
+- Modify: `src/course/a2/view/buildA2LessonViewModel.test.ts:1-83`
 - Modify: `src/course/foundations/buildLessonViewModel.ts:78-94, 302-340, 478-499`
 - Modify: `src/course/foundations/foundationViewModel.ts:44-53`
 
@@ -276,6 +278,13 @@ In the existing `builds an 8-row localized sentence matrix for %s` row loop in `
         expect(
           row.comparisonTokenIds.every((tokenId) => rowTokenIds.has(tokenId)),
         ).toBe(true);
+        const tokenIndexById = new Map(
+          row.tokens.map((token, index) => [token.id, index]),
+        );
+        const positions = row.comparisonTokenIds.map(
+          (tokenId) => tokenIndexById.get(tokenId) ?? -1,
+        );
+        expect(positions).toEqual([...positions].sort((a, b) => a - b));
 ```
 
 In the existing locale-invariance test, after the matrix variant-order assertion, append:
@@ -290,6 +299,8 @@ In `src/course/a1/a1LessonViewModel.test.ts`, add this test before the closing `
 
 ```ts
   it("gives every production matrix row locale-independent comparison IDs in authored order", () => {
+    expect(SEMANTIC_LESSON_IDS).toHaveLength(44);
+
     for (const lessonId of SEMANTIC_LESSON_IDS) {
       const lesson = a1FoundationCatalogs.lessons.find(
         (candidate) => candidate.id === lessonId,
@@ -317,6 +328,74 @@ In `src/course/a1/a1LessonViewModel.test.ts`, add this test before the closing `
           row.comparisonTokenIds.every((tokenId) => rowTokenIds.has(tokenId)),
           row.variantId,
         ).toBe(true);
+        const tokenIndexById = new Map(
+          row.tokens.map((token, index) => [token.id, index]),
+        );
+        const positions = row.comparisonTokenIds.map(
+          (tokenId) => tokenIndexById.get(tokenId) ?? -1,
+        );
+        expect(positions, row.variantId).toEqual(
+          [...positions].sort((a, b) => a - b),
+        );
+      }
+    }
+  });
+```
+
+In `src/course/a2/view/buildA2LessonViewModel.test.ts`, add this import after
+the Vitest import:
+
+```ts
+import { a2FoundationCatalogs } from "../catalog/catalog";
+```
+
+Then add this test inside
+`describe("buildA2LessonViewModel — every A2 lesson resolves fail-closed", ...)`,
+after the existing all-60-lessons resolution test:
+
+```ts
+  it("gives all 60 A2 matrices locale-independent ordered comparison IDs in authored order", () => {
+    expect(A2_LESSON_IDS).toHaveLength(60);
+
+    for (const lessonId of A2_LESSON_IDS) {
+      const lesson = a2FoundationCatalogs.lessons.find(
+        (candidate) => candidate.id === lessonId,
+      );
+      if (!lesson) throw new Error(`missing A2 lesson ${lessonId}`);
+
+      const en = buildA2LessonViewModel(lessonId, "en");
+      const it = buildA2LessonViewModel(lessonId, "it");
+      if (!en.ok || !it.ok) {
+        throw new Error(`expected A2 lesson ${lessonId} to resolve`);
+      }
+
+      const enRows = en.model.foundation.matrix.rows;
+      const itRows = it.model.foundation.matrix.rows;
+      expect(enRows.map((row) => row.variantId)).toEqual(
+        lesson.modelVariantIds,
+      );
+      expect(itRows.map((row) => row.variantId)).toEqual(
+        lesson.modelVariantIds,
+      );
+      expect(itRows.map((row) => row.comparisonTokenIds)).toEqual(
+        enRows.map((row) => row.comparisonTokenIds),
+      );
+
+      for (const row of enRows) {
+        expect(row.comparisonTokenIds.length, row.variantId).toBeGreaterThan(0);
+        const tokenIndexById = new Map(
+          row.tokens.map((token, index) => [token.id, index]),
+        );
+        const positions = row.comparisonTokenIds.map(
+          (tokenId) => tokenIndexById.get(tokenId) ?? -1,
+        );
+        expect(
+          positions.every((position) => position >= 0),
+          row.variantId,
+        ).toBe(true);
+        expect(positions, row.variantId).toEqual(
+          [...positions].sort((a, b) => a - b),
+        );
       }
     }
   });
@@ -327,7 +406,10 @@ In `src/course/a1/a1LessonViewModel.test.ts`, add this test before the closing `
 Run:
 
 ```bash
-npm test -- src/course/foundations/foundationViewModel.test.ts src/course/a1/a1LessonViewModel.test.ts
+npm test -- \
+  src/course/foundations/foundationViewModel.test.ts \
+  src/course/a1/a1LessonViewModel.test.ts \
+  src/course/a2/view/buildA2LessonViewModel.test.ts
 ```
 
 Expected: FAIL at TypeScript transform/collection because `foundationComparisonTokenIds` and `FoundationLocalizedRow.comparisonTokenIds` do not exist yet.
@@ -372,48 +454,83 @@ export function foundationComparisonTokenIds(
 }
 ```
 
-Inside `foundationGuidedDelta`, replace both parser calls so valid guided output uses the same strict parser:
+Replace the complete current `foundationGuidedDelta` function with the version
+below. It preserves the existing `changedSlots`/axis algorithm exactly and
+changes only the target-token parser call; it does not introduce initial-token
+input or any Japanese-surface comparison:
 
 ```ts
-  const initialBySlot = new Map<string, string[]>();
-  for (const token of initialTokens) {
-    const slotId = authoredFamilySlotId(token, initial.id);
-    if (!slotId) continue;
-    const values = initialBySlot.get(slotId) ?? [];
-    values.push(token.jp);
-    initialBySlot.set(slotId, values);
+export function foundationGuidedDelta(
+  family: SentenceFamily,
+  initial: SentenceVariant,
+  target: SentenceVariant,
+  targetTokens: readonly AssembledToken[],
+): {
+  readonly activeAxes: readonly VariationAxis[];
+  readonly changedTokenIds: readonly string[];
+} {
+  const changedSlots = new Set<string>();
+  const axes = new Set<VariationAxis>();
+  for (const slot of family.slotSchema) {
+    if (initial.slotValues[slot.id] !== target.slotValues[slot.id]) {
+      changedSlots.add(slot.id);
+      axes.add(slot.axis);
+    }
   }
-
-  const changed: string[] = [];
-  for (const token of targetTokens) {
-    const slotId = authoredFamilySlotId(token, target.id);
-    if (!slotId || !changedSlotIds.has(slotId)) continue;
-    const initialJp = initialBySlot.get(slotId) ?? [];
-    if (!initialJp.includes(token.jp)) changed.push(token.id);
+  if (formKey(initial) !== formKey(target)) axes.add("polarity-tense-form");
+  if (initial.contextId !== target.contextId) axes.add("context");
+  if (
+    initial.discourse.subjectRealization !== target.discourse.subjectRealization
+  ) {
+    axes.add("speaker-person");
   }
+  const changedTokenIds = targetTokens
+    .filter((token) => {
+      const slot = authoredFamilySlotId(token, target.id);
+      return slot !== undefined && changedSlots.has(slot);
+    })
+    .map((token) => token.id);
+  return { activeAxes: [...axes], changedTokenIds };
+}
 ```
 
 - [ ] **Step 5: Wire the approved helper into `rowFor` using the existing index**
 
-In `rowFor`, preserve the initial sentence/variant guard, then add the family lookup:
+Replace the complete current `rowFor` closure with this source-accurate version:
 
 ```ts
-  const sentence = realizedById.get(variantId);
-  const variant = index.variantById.get(variantId);
-  if (!sentence || !variant) return null;
-  const family = index.familyById.get(variant.sentenceFamilyId);
-  if (!family) return null;
-```
-
-Add the field to the returned row immediately after `tokens`:
-
-```ts
-    tokens: sentence.tokens,
-    comparisonTokenIds: foundationComparisonTokenIds(
-      family,
-      variant,
-      sentence.tokens,
-    ),
+  const rowFor = (variantId: string): FoundationLocalizedRow | null => {
+    const sentence = sentenceById.get(variantId);
+    const variant = index.variantById.get(variantId);
+    if (!sentence || !variant) return null;
+    const family = index.familyById.get(variant.sentenceFamilyId);
+    if (!family) return null;
+    const role = index.roleById.get(sentence.discourse.speakerRoleId);
+    const context = index.contextById.get(sentence.contextId);
+    return {
+      variantId,
+      familyId: sentence.familyId,
+      contextId: sentence.contextId,
+      speakerRoleId: sentence.discourse.speakerRoleId,
+      subjectRealization: sentence.discourse.subjectRealization,
+      semanticFingerprint: sentence.semanticFingerprint,
+      predicateSenseId: sentence.predicateSenseId,
+      pedagogicalUse: sentence.pedagogicalUse,
+      tokens: sentence.tokens,
+      comparisonTokenIds: foundationComparisonTokenIds(
+        family,
+        variant,
+        sentence.tokens,
+      ),
+      translation: copyFor(
+        copy,
+        locale,
+        variantTranslationCopyId(variantId),
+      ),
+      speaker: role ? copyFor(copy, locale, role.labelCopyId) : "",
+      context: context ? copyFor(copy, locale, context.labelCopyId) : "",
+    };
+  };
 ```
 
 This keeps missing family/variant/sentence on the existing `rowFor -> null -> realization-failed` path; do not add a success-shaped fallback.
@@ -446,10 +563,16 @@ Do not add a redundant re-export to `a1LessonViewModel.ts`; production tests con
 Run:
 
 ```bash
-npm test -- src/course/foundations/foundationViewModel.test.ts src/course/a1/a1LessonViewModel.test.ts
+npm test -- \
+  src/course/foundations/foundationViewModel.test.ts \
+  src/course/a1/a1LessonViewModel.test.ts \
+  src/course/a2/view/buildA2LessonViewModel.test.ts
 ```
 
-Expected: PASS for both files. The existing `builds an honest same-family guided construction` cases remain green, proving valid guided delta behavior did not change.
+Expected: PASS for all three files. All 44 A1 and all 60 A2 production lessons
+satisfy the row contract, and the existing
+`builds an honest same-family guided construction` cases remain green, proving
+valid guided delta behavior did not change.
 
 - [ ] **Step 8: Commit the coherent view-model change**
 
@@ -458,17 +581,18 @@ git add \
   src/course/foundations/buildLessonViewModel.ts \
   src/course/foundations/foundationViewModel.ts \
   src/course/foundations/foundationViewModel.test.ts \
-  src/course/a1/a1LessonViewModel.test.ts
+  src/course/a1/a1LessonViewModel.test.ts \
+  src/course/a2/view/buildA2LessonViewModel.test.ts
 git commit \
   -m "feat: derive sentence matrix comparison tokens" \
   -m "Co-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>" \
-  -m "Copilot-Session: 9cdcd583-f46d-4ffa-b83e-4ade4e9b94d3"
+  -m "Copilot-Session: 00ce510c-997d-4930-bef7-b054a4faa489"
 ```
 
 ### Task 2: Render comparison marks in Japanese and romaji
 
 **Files:**
-- Modify: `src/course/foundations/SentenceMatrix.test.ts:1-92`
+- Modify: `src/course/foundations/SentenceMatrix.test.ts:1-148`
 - Modify: `src/course/foundations/SentenceMatrix.tsx:1-127`
 - Reference only: `src/course/foundations/FamilyGuidedConstruction.tsx:38-62`
 - Reference only: `src/romaji/RomajiSequence.tsx:23-64`
@@ -476,13 +600,22 @@ git commit \
 
 - [ ] **Step 1: Add DOM and visible-Japanese helpers beside the existing SSR helpers**
 
-In `src/course/foundations/SentenceMatrix.test.ts`, add:
+At line 1 of `src/course/foundations/SentenceMatrix.test.ts`, before the React
+import, add:
+
+```ts
+/** @vitest-environment jsdom */
+```
+
+With the existing imports, add:
 
 ```ts
 import { formatRomaji } from "../../romaji/formatRomaji";
 ```
 
-Keep the existing `a1Rows`, `textOnly`, and `render` helpers because the current
+The repository's default Vitest environment is `node`, so `DOMParser` is
+otherwise unavailable. Keep the existing `a1Rows`, `textOnly`, and `render`
+helpers because the current
 translation/metadata/localization assertions still use them. Add these helpers
 after `render`:
 
@@ -689,7 +822,7 @@ function JapaneseRow({
   row,
 }: {
   readonly row: FoundationLocalizedRow;
-}) {
+}): ReactElement {
   const highlighted = new Set(row.comparisonTokenIds);
 
   return (
@@ -718,15 +851,26 @@ Do not replace `JapaneseSegmentText` and do not copy its ruby logic.
 
 - [ ] **Step 5: Wire the existing romaji highlight API and presentation modifier**
 
-Replace the section opening tag with:
+In `SentenceMatrix`, replace the declarations from `generatedId` through the
+opening `<h3>` with this complete block so `titleId` is defined once and used by
+both sides of the labelling relationship:
 
 ```tsx
+  const generatedId = useId();
+  const regionId = `${idBase}-${generatedId}-rows`;
+  const titleId = `${regionId}-title`;
+  const visible = visibleMatrixRows(rows, initialVariantIds, expanded);
+
+  return (
     <section
       className={`foundation-matrix${
         script === "romaji" ? " foundation-matrix--romaji" : ""
       }`}
       aria-labelledby={titleId}
     >
+      <h3 className="foundation-matrix__title" id={titleId}>
+        {copy.matrixTitle}
+      </h3>
 ```
 
 Replace the matrix `RomajiSequence` call with:
@@ -763,7 +907,7 @@ git add \
 git commit \
   -m "feat: mark sentence matrix comparison phrases" \
   -m "Co-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>" \
-  -m "Copilot-Session: 9cdcd583-f46d-4ffa-b83e-4ade4e9b94d3"
+  -m "Copilot-Session: 00ce510c-997d-4930-bef7-b054a4faa489"
 ```
 
 ### Task 3: Build the transformation rail and responsive acceptance coverage
@@ -1460,13 +1604,13 @@ git add \
 git commit \
   -m "feat: restyle sentence matrix as transformation rail" \
   -m "Co-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>" \
-  -m "Copilot-Session: 9cdcd583-f46d-4ffa-b83e-4ade4e9b94d3"
+  -m "Copilot-Session: 00ce510c-997d-4930-bef7-b054a4faa489"
 ```
 
 ### Task 4: Add and review the two expanded-matrix visual baselines
 
 **Files:**
-- Modify: `tests/e2e/screenshots.spec.ts:1-37, 37-51`
+- Modify: `tests/e2e/screenshots.spec.ts:1-51`
 - Create: `tests/e2e/screenshots.spec.ts-snapshots/foundation-matrix-expanded-desktop-1440-darwin.png`
 - Create: `tests/e2e/screenshots.spec.ts-snapshots/foundation-matrix-expanded-mobile-390-darwin.png`
 
@@ -1532,15 +1676,29 @@ Expected: PASS with 2 tests passed and exactly the two baseline PNGs created und
 
 - [ ] **Step 5: Review both images before accepting them**
 
-Run on the repository's Darwin baseline platform:
+First identify the absolute repository root:
 
 ```bash
-open \
-  tests/e2e/screenshots.spec.ts-snapshots/foundation-matrix-expanded-desktop-1440-darwin.png \
-  tests/e2e/screenshots.spec.ts-snapshots/foundation-matrix-expanded-mobile-390-darwin.png
+git rev-parse --show-toplevel
 ```
 
-Expected visual review:
+Expected: one absolute path to the current worktree.
+
+Then use the execution environment's image-viewing tool on **both** PNGs,
+one tool call per image; a shell file listing or `open` command is not review
+evidence:
+
+```text
+tests/e2e/screenshots.spec.ts-snapshots/foundation-matrix-expanded-desktop-1440-darwin.png
+tests/e2e/screenshots.spec.ts-snapshots/foundation-matrix-expanded-mobile-390-darwin.png
+```
+
+For Copilot CLI, invoke the `view` tool with each absolute path formed from the
+verified repository root and the exact relative paths above. For an environment
+with a dedicated image viewer, invoke that viewer twice instead. Inspect the
+rendered pixels, not base64 text, filenames, or snapshot test success.
+
+Compare each rendered image against all six criteria:
 
 - one vertical coral rail, no numbers and no timeline/step labels;
 - eight rows in authored order;
@@ -1549,7 +1707,25 @@ Expected visual review:
 - soft-coral marked slot fragments remain legible through background, weight, and underline;
 - mobile badges stack without clipping, horizontal scroll, or fixed-width truncation.
 
-If either image fails any item, fix `foundation.css`, rerun Task 3's focused tests, regenerate both snapshots, and review again before continuing.
+Record an explicit verdict in the implementation-session task log or final
+validation notes, without creating another repository file. A passing review
+must state `Desktop baseline: PASS` and `Mobile baseline: PASS`, followed in
+each case by concrete observations covering rail/numbering, row count/order,
+marker alignment, content hierarchy, mark legibility, and clipping/wrapping.
+For a failure, state `Desktop baseline: FAIL` or `Mobile baseline: FAIL` and
+name every failed criterion. Do not commit while either verdict is `FAIL`. If
+either image fails any criterion, fix `foundation.css`, rerun Task 3's focused
+tests, regenerate both snapshots, view both images again, and record new
+verdicts before continuing.
+
+Optional human convenience on Darwin, after the tool-based review has been
+recorded:
+
+```bash
+open \
+  tests/e2e/screenshots.spec.ts-snapshots/foundation-matrix-expanded-desktop-1440-darwin.png \
+  tests/e2e/screenshots.spec.ts-snapshots/foundation-matrix-expanded-mobile-390-darwin.png
+```
 
 - [ ] **Step 6: Re-run the snapshots without update**
 
@@ -1571,7 +1747,7 @@ git add \
 git commit \
   -m "test: baseline expanded sentence matrix" \
   -m "Co-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>" \
-  -m "Copilot-Session: 9cdcd583-f46d-4ffa-b83e-4ade4e9b94d3"
+  -m "Copilot-Session: 00ce510c-997d-4930-bef7-b054a4faa489"
 ```
 
 ### Task 5: Run focused and full release validation
@@ -1585,11 +1761,12 @@ git commit \
 npm test -- \
   src/course/foundations/foundationViewModel.test.ts \
   src/course/a1/a1LessonViewModel.test.ts \
+  src/course/a2/view/buildA2LessonViewModel.test.ts \
   src/course/foundations/SentenceMatrix.test.ts \
   src/course/foundations/foundation.css.test.ts
 ```
 
-Expected: PASS with all tests in all four files green.
+Expected: PASS with all tests in all five files green.
 
 - [ ] **Step 2: Build the production bundle and type-check the exact signatures**
 
@@ -1599,7 +1776,17 @@ npm run build
 
 Expected: exit 0; TypeScript and Vite complete without missing `comparisonTokenIds`, invalid helper signatures, or CSS import errors.
 
-- [ ] **Step 3: Run the three focused Playwright surfaces together**
+- [ ] **Step 3: Run the existing JavaScript bundle-budget release check**
+
+```bash
+npm run check:bundle
+```
+
+Expected: exit 0 with all existing JavaScript budget checks passing. The CSS
+and PNG additions do not count toward those JavaScript budgets; this command is
+still a separate release gate and is not covered by `npm run build`.
+
+- [ ] **Step 4: Run the three focused Playwright surfaces together**
 
 ```bash
 npm run test:e2e -- \
@@ -1610,7 +1797,7 @@ npm run test:e2e -- \
 
 Expected: PASS on both configured Chromium projects with no runtime, local-network, overflow, zoom, computed-style, or snapshot failures.
 
-- [ ] **Step 4: Run the full unit suite**
+- [ ] **Step 5: Run the full unit suite**
 
 ```bash
 npm test
@@ -1618,7 +1805,7 @@ npm test
 
 Expected: PASS.
 
-- [ ] **Step 5: Run the full Playwright suite**
+- [ ] **Step 6: Run the full Playwright suite**
 
 ```bash
 npm run test:e2e
@@ -1626,7 +1813,7 @@ npm run test:e2e
 
 Expected: PASS on both `desktop-1440` and `mobile-390`.
 
-- [ ] **Step 6: Verify scope and commit hygiene**
+- [ ] **Step 7: Verify scope and commit hygiene**
 
 ```bash
 git status --short
