@@ -125,6 +125,11 @@ describe("foundation harness CSS contract", () => {
     expect(marker).toMatch(/height:\s*0\.75rem/);
     expect(marker).toMatch(/border:\s*3px solid var\(--course-coral\)/);
     expect(marker).toMatch(/border-radius:\s*999px/);
+    // The marker is centered on the rail: its inline inset must compensate
+    // for the row's own 2px border, or the marker renders 2px off-center.
+    expect(marker).toMatch(
+      /inset-inline-start:\s*calc\(-1 \* var\(--space-6\) - 2px\)/,
+    );
   });
 
   it("gives rows strong token-based surfaces and a phrase-first vertical hierarchy", () => {
@@ -170,5 +175,10 @@ describe("foundation harness CSS contract", () => {
     expect(block).toMatch(/\.foundation-matrix__rows[\s\S]*padding-inline-start:\s*var\(--space-5\)/);
     expect(block).toMatch(/\.foundation-matrix__row[\s\S]*padding:\s*var\(--space-4\)/);
     expect(block).toMatch(/\.foundation-matrix__meta[\s\S]*flex-direction:\s*column/);
+    // The narrow-breakpoint marker override must also compensate for the
+    // row's 2px border, matching the base rule's compensation.
+    expect(block).toMatch(
+      /\.foundation-matrix__row::before[\s\S]*inset-inline-start:\s*calc\(-1 \* var\(--space-5\) - 2px\)/,
+    );
   });
 });

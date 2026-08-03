@@ -73,7 +73,7 @@
   content: "";
   position: absolute;
   inset-block-start: calc(var(--space-5) + 0.5625rem);
-  inset-inline-start: calc(-1 * var(--space-6));
+  inset-inline-start: calc(-1 * var(--space-6) - 2px);
   width: 0.75rem;
   height: 0.75rem;
   border: 3px solid var(--course-coral);
@@ -307,7 +307,7 @@
   .foundation-matrix__row { padding: var(--space-4); }
   .foundation-matrix__row::before {
     inset-block-start: calc(var(--space-4) + 0.5625rem);
-    inset-inline-start: calc(-1 * var(--space-5));
+    inset-inline-start: calc(-1 * var(--space-5) - 2px);
   }
   .foundation-matrix__meta {
     flex-direction: column;
