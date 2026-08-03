@@ -301,11 +301,9 @@ describe("SentenceMatrix markup", () => {
         for (const token of row.tokens) {
           expect(metadataValues).not.toContain(token.jp);
           expect(metadataValues).not.toContain(token.romaji);
-          if (row.comparisonTokenIds.includes(token.id)) {
-            expect(
-              attributes.some(({ value }) => value === token.id),
-            ).toBe(false);
-          }
+          expect(
+            attributes.some(({ value }) => value === token.id),
+          ).toBe(false);
         }
       }
     }
