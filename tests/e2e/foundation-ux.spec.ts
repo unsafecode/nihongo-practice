@@ -10,6 +10,7 @@ import {
 } from "./helpers";
 import { buildFoundationLessonViewModel } from "../../src/course/foundations/foundationViewModel";
 import { getCourseCopy } from "../../src/course/i18n/catalog";
+import { formatRomaji } from "../../src/romaji/formatRomaji";
 
 /**
  * Phase 1 Task 6 — foundation UX acceptance (design spec §10.3, §11, §16, §19,
@@ -94,6 +95,67 @@ async function targetOrder(page: Page): Promise<(string | null)[]> {
   );
 }
 
+/**
+ * The independent oracle for one row's expected comparison-emphasis
+ * fragments in both scripts, recomputed straight from the pure view model
+ * (never read back out of the DOM): the exact ordered Japanese glyph
+ * fragments and the exact ordered romaji run fragments for that row's
+ * `comparisonTokenIds`.
+ */
+function expectedComparisonText(
+  row: ViewModel["matrix"]["rows"][number],
+): { readonly japanese: readonly string[]; readonly romaji: readonly string[] } {
+  const selected = new Set(row.comparisonTokenIds);
+  const formatted = formatRomaji(row.tokens);
+  if (!formatted.ok) throw new Error(`invalid romaji for ${row.variantId}`);
+  return {
+    japanese: row.tokens
+      .filter((token) => selected.has(token.id))
+      .map((token) => token.jp),
+    romaji: formatted.runs
+      .filter((run) => selected.has(run.tokenId))
+      .map((run) => run.text),
+  };
+}
+
+/** The visible (ruby-reading-stripped) text of every marked comparison
+ * fragment in a row's Japanese line, in DOM order. */
+async function visibleJapaneseMarkText(row: Locator): Promise<string[]> {
+  return row
+    .locator(".foundation-matrix__jp mark.foundation-matrix__comparison-token")
+    .evaluateAll((marks) =>
+      marks.map((mark) => {
+        const clone = mark.cloneNode(true) as Element;
+        clone.querySelectorAll("rt").forEach((reading) => reading.remove());
+        return clone.textContent ?? "";
+      }),
+    );
+}
+
+/**
+ * Proves the comparison mark's computed style genuinely carries the
+ * background + weight + underline emphasis relative to its containing
+ * phrase — a real browser-computed-style oracle, not a source-CSS regex
+ * match, so it also proves the emphasis actually renders.
+ */
+async function expectComparisonEmphasis(mark: Locator, phrase: Locator): Promise<void> {
+  const markStyle = await mark.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      background: style.backgroundColor,
+      weight: Number(style.fontWeight),
+      decoration: style.textDecorationLine,
+    };
+  });
+  const phraseWeight = await phrase.evaluate((element) =>
+    Number(getComputedStyle(element).fontWeight),
+  );
+  expect(markStyle.background).not.toBe("transparent");
+  expect(markStyle.background).not.toBe("rgba(0, 0, 0, 0)");
+  expect(markStyle.weight).toBeGreaterThan(phraseWeight);
+  expect(markStyle.decoration.split(" ")).toContain("underline");
+}
+
 for (const fixtureId of FIXTURE_IDS) {
   const model: ViewModel = loadModel(fixtureId, "it");
   const modelEn: ViewModel = loadModel(fixtureId, "en");
@@ -155,9 +217,10 @@ for (const fixtureId of FIXTURE_IDS) {
       assertLocalOnlyNetwork(observers);
     });
 
-    // ---- (2) matrix disclosure: 3 → 8, keyboard, aria, authored order, adjacency ----
-    test("matrix discloses from exactly 3 to exactly 8 with correct aria and order", async ({
+    // ---- (2) matrix disclosure: 3 → 8, semantic badges, emphasized comparison ----
+    test("matrix discloses 3 to 8 authored rows with semantic badges and emphasized comparison tokens in both scripts", async ({
       page,
+      viewport,
     }) => {
       const observers = await setupPageObservers(page);
       await gotoReady(page, url);
@@ -172,23 +235,6 @@ for (const fixtureId of FIXTURE_IDS) {
       await expect(toggle).toHaveAttribute("aria-expanded", "false");
       expect(await toggle.getAttribute("aria-controls")).toBe(regionId);
 
-      // Every collapsed row places its Japanese, whole-sentence romaji,
-      // translation, and speaker/context meta adjacently within the same row.
-      for (let i = 0; i < 3; i += 1) {
-        const row = rows.nth(i);
-        await expect(row.locator(".foundation-matrix__jp")).toHaveCount(1);
-        await expect(row.locator(".foundation-matrix__romaji")).toHaveCount(1);
-        await expect(
-          row.locator(".foundation-matrix__translation"),
-        ).toHaveCount(1);
-        await expect(
-          row.locator(".foundation-matrix__meta .foundation-matrix__meta-pair"),
-        ).toHaveCount(2);
-        await expect(row.locator("dl.foundation-matrix__meta dd")).toHaveCount(
-          2,
-        );
-      }
-
       // Keyboard: focus the disclosure and press Enter to expand.
       await toggle.focus();
       await page.keyboard.press("Enter");
@@ -197,11 +243,80 @@ for (const fixtureId of FIXTURE_IDS) {
       await expect(toggle).toHaveAttribute("aria-expanded", "true");
       expect(await variantOrder(page)).toEqual(authoredVariantOrder);
 
+      // Every expanded row places its Japanese, whole-sentence romaji, exact
+      // translation, exact comparison-marked fragments (in both scripts), and
+      // exactly two semantic speaker/context badges adjacently in the row —
+      // every expectation recomputed from the pure view model, never read
+      // back out of the DOM.
+      for (let index = 0; index < model.matrix.rows.length; index += 1) {
+        const rowModel = model.matrix.rows[index];
+        const row = rows.nth(index);
+        const expectedText = expectedComparisonText(rowModel);
+        await expect(row.locator(".foundation-matrix__jp")).toHaveCount(1);
+        await expect(row.locator(".foundation-matrix__romaji")).toHaveCount(1);
+        await expect(row.locator(".foundation-matrix__translation")).toHaveText(
+          rowModel.translation,
+        );
+        expect(await visibleJapaneseMarkText(row)).toEqual(expectedText.japanese);
+        await expect(
+          row.locator(".foundation-matrix__romaji mark.foundation-matrix__comparison-token"),
+        ).toHaveText([...expectedText.romaji]);
+        const pairs = row.locator("dl.foundation-matrix__meta > .foundation-matrix__meta-pair");
+        await expect(pairs).toHaveCount(2);
+        for (let pairIndex = 0; pairIndex < 2; pairIndex += 1) {
+          await expect(pairs.nth(pairIndex).locator(":scope > dt")).toHaveCount(1);
+          await expect(pairs.nth(pairIndex).locator(":scope > dd")).toHaveCount(1);
+        }
+      }
+
       // The omitted-subject note is present exactly on the pro-dropped rows.
       await expect(page.locator(".foundation-matrix__omitted")).toHaveCount(
         omittedCount,
       );
       expect(omittedCount).toBeGreaterThan(0);
+
+      // The comparison mark's computed style genuinely carries the
+      // background + weight + underline emphasis over its containing phrase.
+      await expectComparisonEmphasis(
+        rows.first().locator(".foundation-matrix__jp mark.foundation-matrix__comparison-token").first(),
+        rows.first().locator(".foundation-matrix__jp"),
+      );
+      await expectComparisonEmphasis(
+        rows.first().locator(".foundation-matrix__romaji mark.foundation-matrix__comparison-token").first(),
+        rows.first().locator(".foundation-matrix__romaji"),
+      );
+
+      await assertNoHorizontalOverflow(page);
+
+      // Switch to Rōmaji: the same 8 authored rows, no Japanese line, exact
+      // marked romaji runs, intact whitespace, and the same computed
+      // emphasis — proven again in romaji-only mode.
+      const settings = await openSettings(page, viewport ?? null);
+      await settings.locator(".scripttoggle button", { hasText: "Rōmaji" }).click();
+      await closeSettings(page, viewport ?? null);
+
+      await expect(page.locator(".foundation-matrix")).toHaveClass(
+        /foundation-matrix--romaji/,
+      );
+      await expect(page.locator(".foundation-matrix__jp")).toHaveCount(0);
+      await expect(rows).toHaveCount(8);
+      expect(await variantOrder(page)).toEqual(authoredVariantOrder);
+
+      for (let index = 0; index < model.matrix.rows.length; index += 1) {
+        const expectedText = expectedComparisonText(model.matrix.rows[index]);
+        const row = rows.nth(index);
+        await expect(
+          row.locator(".foundation-matrix__romaji mark.foundation-matrix__comparison-token"),
+        ).toHaveText([...expectedText.romaji]);
+        expect(
+          /\s/.test((await row.locator(".foundation-matrix__romaji").textContent()) ?? ""),
+        ).toBe(true);
+      }
+
+      await expectComparisonEmphasis(
+        rows.first().locator(".foundation-matrix__romaji mark.foundation-matrix__comparison-token").first(),
+        rows.first().locator(".foundation-matrix__romaji"),
+      );
 
       await assertNoHorizontalOverflow(page);
       await assertNoRuntimeErrors(page, observers);
@@ -391,10 +506,11 @@ for (const fixtureId of FIXTURE_IDS) {
         expect(matrixFingerprints.has(fp as string)).toBe(false);
       }
 
-      // No answer/canonical/jp/romaji attribute and no Japanese in any data-*.
+      // No answer/canonical/jp/romaji/comparison/token-id attribute name and no
+      // Japanese in any data-* value, anywhere on the whole fixture page.
       const offenders = await page.$$eval(".foundation-page *", (els) => {
         const bad: { name: string; value: string }[] = [];
-        const banned = /(answer|canonical|jp|romaji)/i;
+        const banned = /(answer|canonical|jp|romaji|comparison|token.?id)/i;
         for (const el of els) {
           for (const attr of Array.from(el.attributes)) {
             if (!attr.name.startsWith("data-")) continue;
@@ -419,6 +535,72 @@ for (const fixtureId of FIXTURE_IDS) {
         return bad;
       });
       expect(jpInData, JSON.stringify(jpInData)).toEqual([]);
+
+      // The matrix specifically: every attribute on every element (not just
+      // data-*) is scanned for the banned names or a Japanese value, since
+      // the matrix is the one surface whose per-row Japanese/romaji answer
+      // text and comparison token ids must never leak into any attribute at
+      // all — legitimate `data-variant-id`/`data-family-id`/`data-context-id`/
+      // `data-speaker-role-id`/`data-semantic-fingerprint` are unaffected
+      // because none of those names or their opaque id values match either
+      // predicate.
+      const matrixOffenders = await page.$$eval(".foundation-matrix *", (els) => {
+        const bad: { name: string; value: string }[] = [];
+        const banned = /(answer|canonical|jp|romaji|comparison|token.?id)/i;
+        const jp = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff66-\uff9f]/u;
+        for (const el of els) {
+          for (const attr of Array.from(el.attributes)) {
+            if (banned.test(attr.name) || jp.test(attr.value)) {
+              bad.push({ name: attr.name, value: attr.value });
+            }
+          }
+        }
+        return bad;
+      });
+      expect(matrixOffenders, JSON.stringify(matrixOffenders)).toEqual([]);
+
+      // No comparisonTokenIds value is ever serialized into any matrix
+      // attribute, under any attribute name.
+      const matrixAttributes = await page.$$eval(".foundation-matrix *", (els) =>
+        els.flatMap((el) =>
+          Array.from(el.attributes).map((attr) => ({
+            name: attr.name,
+            value: attr.value,
+          })),
+        ),
+      );
+      const allComparisonTokenIds = model.matrix.rows.flatMap(
+        (row) => row.comparisonTokenIds,
+      );
+      for (const tokenId of allComparisonTokenIds) {
+        expect(
+          matrixAttributes.some((attribute) => attribute.value === tokenId),
+        ).toBe(false);
+      }
+
+      // No row's Japanese or romaji token surface ever appears in a
+      // metadata-carrying attribute (data-*, aria-*, title/value/name) —
+      // legitimate visible text content (the rendered matrix rows
+      // themselves) is untouched by this check.
+      const metadataValues = matrixAttributes
+        .filter(
+          ({ name }) =>
+            name.startsWith("data-") ||
+            name.startsWith("aria-") ||
+            ["title", "value", "name"].includes(name),
+        )
+        .map(({ value }) => value);
+      for (const row of model.matrix.rows) {
+        for (const token of row.tokens) {
+          expect(metadataValues).not.toContain(token.jp);
+          expect(metadataValues).not.toContain(token.romaji);
+        }
+      }
+
+      // Legitimate matrix identity metadata still survives all the checks
+      // above: opaque authored variant ids and target ids remain intact.
+      expect(await variantOrder(page)).toEqual(initialVariantIds);
+      expect(await targetOrder(page)).toEqual(allTargetIds);
 
       await assertNoRuntimeErrors(page, observers);
       assertLocalOnlyNetwork(observers);
