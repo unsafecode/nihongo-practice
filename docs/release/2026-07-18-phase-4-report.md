@@ -15,8 +15,9 @@ is written in is therefore a substantive teaching decision, and it is the subjec
 below.
 
 Every project figure below carries the thing it counts and, where the number is load-bearing, the
-command that produced it. Figures taken from a committed document rather than re-measured today are
-marked **[recorded]** with their source. Common-knowledge definitions — such as the paragraph above —
+command that produced it, with any commit range pinned to an explicit SHA rather than to a moving
+ref. Figures taken from a committed document rather than re-measured on 2026-08-03 are marked
+**[recorded]** with their source. Common-knowledge definitions — such as the paragraph above —
 are not project claims and carry no command.
 
 ---
@@ -45,7 +46,7 @@ It is now:
 > stay in kana, and there is no writing to do."
 
 ```
-grep -n -A3 'sectionHeading' src/course/i18n/en.ts   # → line 80-81, current text
+grep -n -A3 'sectionHeading' src/course/i18n/en.ts   # → line 80-81 at abb6b11
 git --no-pager show ab0c078:src/course/i18n/en.ts    # → line 84-85, the false text
 ```
 
@@ -59,15 +60,20 @@ correct from inside.
 
 ### What else changed
 
-`git --no-pager diff --shortstat ab0c078..master` → **103 files changed, 10,181 insertions,
-796 deletions**, across **103 commits** (`git --no-pager log --oneline ab0c078..master | wc -l` —
-the two 103s are a coincidence, not a transcription error).
+```
+git --no-pager diff --shortstat ab0c078..abb6b11      # 103 files, 10,181 insertions, 796 deletions
+git --no-pager log --oneline ab0c078..abb6b11 | wc -l # 103
+```
+
+The range is pinned to `abb6b11`, the last commit before this report, **not** to `master`. That is
+deliberate and the reason is in §5: a range ending at a moving ref is falsified by the act of
+committing the document that reports it. The two 103s are a coincidence, not a transcription error.
 
 By commit type — 35 docs, 28 fix, 23 test, 3 feat, 2 style, 2 refactor, 2 chore, and 8 without a
 conventional prefix:
 
 ```
-git --no-pager log ab0c078..master --oneline | sed 's/^[a-f0-9]* //' \
+git --no-pager log ab0c078..abb6b11 --oneline | sed 's/^[a-f0-9]* //' \
   | sed 's/(.*//' | awk -F: '{print $1}' | sort | uniq -c | sort -rn
 ```
 
@@ -86,7 +92,7 @@ Grouped by what a learner would notice:
 
 ### Verification
 
-- `npx vitest run` → **199 test files, 3,759 tests, all passing** (measured today on `abb6b11`).
+- `npx vitest run` → **199 test files, 3,759 tests, all passing** (measured 2026-08-03 at `abb6b11`).
 - `npm run prebuild` → A1 catalog valid, A2 catalog valid, **0 Japanese-literal violations**.
 - Two deployments, both `success` (`gh run list --workflow=deploy-pages.yml`):
   `426cee8` (run `30751862964`) and `0230db0` (run `30761711285`).
@@ -210,6 +216,14 @@ drift lock, not an oracle.** It proves output has not changed since someone wrot
 It cannot prove the baseline was ever right. That is precisely how the false claim survived — it was
 frozen, faithfully, in both languages. When adding a check, prefer one that asserts an independent
 property over one that re-records current output.
+
+And one rule about the commands themselves, learned the hard way twice in this document. An
+uncopyable command is worse than no command, because it cannot be checked. But **a command that
+copies cleanly and returns different numbers is worse still** — a reader who runs it and gets a
+different answer does not conclude the document is one commit out of date. They conclude it is
+unreliable, and they conclude it from whichever figure they happened to check first. So: pin every
+range to an explicit SHA, and date every measurement. `master`, `HEAD`, "today", "current" are all
+referents that expire.
 
 ---
 
@@ -377,7 +391,37 @@ beside it.
 
 That is the fourth instance, and it is the one that should settle the question of whether these
 mechanisms are historical. A document cannot be written *about* this failure mode carefully enough
-to be immune to it. The only thing that reliably catches it is a second reader who runs the command.
+to be immune to it.
+
+**And a fifth, which is the sharpest of all, because it required no error by anyone.** The first
+version of this report printed its headline figures as `git --no-pager diff --shortstat
+ab0c078..master`, with the commit count from `git --no-pager log --oneline ab0c078..master | wc -l`
+beside it. Those measurements were taken at `abb6b11` and were correct when taken. Then the report
+was committed — and the commit added one file and 474 lines to the very range the commands report on.
+Run afterwards, they returned **104 files, 10,655 insertions and 104 commits** against a document
+saying 103, 10,181 and 103. Three of its four headline figures had gone stale.
+
+Nobody stopped early, copied a number, or trusted a correction. **The act of filing the document
+falsified it.** Any document that reports `ab0c078..master` and is then committed to `master` is
+necessarily wrong by at least itself, from the moment it becomes official. It was the one artifact in
+the phase that could not have been right.
+
+Two details make it the best specimen in this collection. First, the document's own rule was applied
+*unevenly, and the unevenness landed exactly where it mattered*: the test count carried its SHA
+("measured at `abb6b11`") and is still true, while the diff figures — the ones that change with every
+single commit — carried none. The rule was applied to the stable number and omitted from the volatile
+one. Second, the camouflage: **796 deletions is still correct**, sitting inside the same bracket as
+three stale figures, and it is correct precisely because a report only adds lines, so it was the one
+figure that *could not* be falsified. The unfalsifiable member of the set was lending its credibility
+to the three that had already expired — §4.1, operating one last time, on the sentence reporting the
+size of the phase.
+
+The obvious repair recreates the defect: recounting to 104 and committing that makes it 105. The fix
+is to pin the range, which is what §1 now does.
+
+It was found by the product owner running the printed command against a clean tree — not by either
+reviewer, and not by me. Which is the section's conclusion, demonstrated rather than asserted: **the
+only thing that reliably catches this is a second reader who runs the command.**
 
 ---
 
@@ -449,7 +493,7 @@ failing, provided the live check that found it keeps running.
 | | |
 |---|---|
 | Live site | `0230db0` — deploy run `30761711285`, `success` |
-| Repository tip (`master`, pushed) | `abb6b11` — four documentation commits ahead of live |
+| Repository tip when measured | `abb6b11` — four documentation commits ahead of live. This report and any corrections to it are later commits; the tip has moved since. |
 | Difference | Documentation only. Bundle verified byte-identical to the deployed build. |
 | Baseline replaced | `ab0c078` |
 | Tests | 199 files, 3,759 tests, green |
