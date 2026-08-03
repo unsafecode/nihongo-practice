@@ -5,6 +5,7 @@ import {
   routeUrls,
   setupPageObservers,
 } from "./helpers";
+import { PREVIEW_BASE_PATH, PREVIEW_ORIGIN } from "../../playwright.config";
 
 /**
  * Task B — the reviewed screenshot gate. Full-page baselines for the course
@@ -21,6 +22,9 @@ const LESSON_URL = routeUrls.lesson(
   REPRESENTATIVE_LESSON.moduleId,
   REPRESENTATIVE_LESSON.lessonId,
 );
+
+const FOUNDATION_MATRIX_URL =
+  `${PREVIEW_ORIGIN}${PREVIEW_BASE_PATH}#/__fixtures__/foundation/fixture-a1-personal-details`;
 
 // Phase 3 Task 9 — reviewed A2 release baselines. The A2 course map (level
 // selector + module grid + per-level evidence surfaces), a representative
@@ -47,6 +51,29 @@ test.describe("reviewed full-page baselines", () => {
     await setupPageObservers(page);
     await gotoReady(page, LESSON_URL);
     await expect(page).toHaveScreenshot("lesson-time-past.png", { fullPage: true });
+  });
+});
+
+/** During a focused component capture, drop the sticky app header to `static`
+ * so it cannot float over the matrix's own content once the element exceeds
+ * one viewport height. This changes no document flow (sticky already occupies
+ * its flow position), so the matrix's own layout is untouched — it only
+ * removes the scroll overlay. Mirrors the established
+ * `NEUTRALIZE_STICKY_CHROME` pattern used for the reviewed speech-block
+ * baselines (course-visuals.spec.ts). */
+const NEUTRALIZE_STICKY_HEADER = ".header { position: static !important; }";
+
+test.describe("reviewed foundation matrix baselines", () => {
+  test("expanded sentence matrix", async ({ page }) => {
+    await setupPageObservers(page);
+    await gotoReady(page, FOUNDATION_MATRIX_URL);
+
+    const matrix = page.locator(".foundation-matrix");
+    await matrix.locator(".foundation-matrix__toggle").click();
+    await expect(matrix.locator(".foundation-matrix__row")).toHaveCount(8);
+    await matrix.scrollIntoViewIfNeeded();
+    await page.addStyleTag({ content: NEUTRALIZE_STICKY_HEADER });
+    await expect(matrix).toHaveScreenshot("foundation-matrix-expanded.png");
   });
 });
 
