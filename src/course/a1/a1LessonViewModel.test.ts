@@ -73,4 +73,47 @@ describe("buildA1LessonViewModel", () => {
       expect(result.model.canDoDescriptor).not.toMatch(/[\u3040-\u30ff\u4e00-\u9faf]/);
     }
   });
+
+  it("gives every production matrix row locale-independent comparison IDs in authored order", () => {
+    expect(SEMANTIC_LESSON_IDS).toHaveLength(44);
+
+    for (const lessonId of SEMANTIC_LESSON_IDS) {
+      const lesson = a1FoundationCatalogs.lessons.find(
+        (candidate) => candidate.id === lessonId,
+      );
+      if (!lesson) throw new Error(`missing lesson ${lessonId}`);
+
+      const en = buildA1LessonViewModel(lessonId, "en");
+      const it = buildA1LessonViewModel(lessonId, "it");
+      if (!en.ok || !it.ok) throw new Error(`expected ${lessonId} to resolve`);
+
+      expect(en.model.matrix.rows.map((row) => row.variantId)).toEqual(
+        lesson.modelVariantIds,
+      );
+      expect(it.model.matrix.rows.map((row) => row.variantId)).toEqual(
+        lesson.modelVariantIds,
+      );
+      expect(
+        it.model.matrix.rows.map((row) => row.comparisonTokenIds),
+      ).toEqual(en.model.matrix.rows.map((row) => row.comparisonTokenIds));
+
+      for (const row of en.model.matrix.rows) {
+        expect(row.comparisonTokenIds.length, row.variantId).toBeGreaterThan(0);
+        const rowTokenIds = new Set(row.tokens.map((token) => token.id));
+        expect(
+          row.comparisonTokenIds.every((tokenId) => rowTokenIds.has(tokenId)),
+          row.variantId,
+        ).toBe(true);
+        const tokenIndexById = new Map(
+          row.tokens.map((token, index) => [token.id, index]),
+        );
+        const positions = row.comparisonTokenIds.map(
+          (tokenId) => tokenIndexById.get(tokenId) ?? -1,
+        );
+        expect(positions, row.variantId).toEqual(
+          [...positions].sort((a, b) => a - b),
+        );
+      }
+    }
+  });
 });

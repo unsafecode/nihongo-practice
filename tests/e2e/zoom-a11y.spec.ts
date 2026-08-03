@@ -98,19 +98,57 @@ for (const lesson of LESSONS) {
         await expect(page.locator(".a1-phonetic-item__jp").first()).toBeVisible();
       } else {
         const toggle = page.locator(".foundation-matrix__toggle");
+        const rows = page.locator(".foundation-matrix__row");
         await expect(toggle).toBeVisible();
-        await expect(page.locator(".foundation-matrix__row").first()).toBeVisible();
+        await expect(rows.first()).toBeVisible();
         await expect(page.locator(".foundation-matrix__jp").first()).toBeVisible();
         await expect(page.locator(".foundation-matrix__romaji").first()).toBeVisible();
+        await expect(rows).toHaveCount(3);
 
         // The matrix disclosure toggle stays genuinely operable (not just
         // visible) at 200% zoom: it still expands the curated 3-row subset
         // to all 8 authored rows via a real keyboard activation (see
         // `activate()` above for why keyboard rather than pointer click).
-        await expect(page.locator(".foundation-matrix__row")).toHaveCount(3);
         await activate(toggle);
-        await expect(page.locator(".foundation-matrix__row")).toHaveCount(8);
+        await expect(rows).toHaveCount(8);
         await expect(toggle).toHaveAttribute("aria-expanded", "true");
+        await assertNoHorizontalOverflow(page);
+
+        // Switching to Rōmaji at 200% zoom stays genuinely operable too —
+        // via keyboard, through whichever real settings surface is actually
+        // visible after the zoom. This deliberately checks the rendered
+        // surface rather than branching on `evidence.mode`: this app's own
+        // header breakpoint (`max-width: 980px` in styles.css) sits *above*
+        // the desktop-1440 project's reflowed 720px width (1440 / 2), so a
+        // genuine 200% zoom of this specific 1440px-nominal viewport already
+        // drops below that breakpoint and shows the same mobile settings
+        // drawer as the always-narrow mobile-390 project's pinch-zoom —
+        // asserting on `evidence.mode === "reflow"` here would click a
+        // `display: none` desktop control that never receives the
+        // interaction, silently no-op, and give a false pass.
+        const desktopSettings = page.locator(".header__settings--desktop");
+        let romajiButton: Locator;
+        if (await desktopSettings.isVisible()) {
+          romajiButton = desktopSettings.locator(".scripttoggle button", {
+            hasText: "Rōmaji",
+          });
+        } else {
+          await activate(page.locator(".header__settings-trigger"));
+          const panel = page.locator(".settings-drawer__panel");
+          await expect(panel).toBeVisible();
+          romajiButton = panel.locator(".scripttoggle button", {
+            hasText: "Rōmaji",
+          });
+        }
+        await activate(romajiButton);
+        if (!(await desktopSettings.isVisible())) {
+          await activate(page.locator(".settings-drawer__close"));
+        }
+
+        await expect(page.locator(".foundation-matrix__jp")).toHaveCount(0);
+        await expect(page.locator(".foundation-matrix__romaji")).toHaveCount(8);
+        await expect(rows).toHaveCount(8);
+        await assertNoHorizontalOverflow(page);
       }
 
       const exercises = page.locator(".lesson-exercise");

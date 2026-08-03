@@ -47,6 +47,7 @@ export function buildFoundationLessonViewModel(
 export {
   foundationAxisLabel,
   foundationAxisLabels,
+  foundationComparisonTokenIds,
   foundationGuidedDelta,
   foundationInstructionCopy,
   variantTranslationCopyId,

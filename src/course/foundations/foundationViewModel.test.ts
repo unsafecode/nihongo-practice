@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { Locale } from "../../i18n/LocaleContext";
-import { buildFoundationLessonViewModel } from "./foundationViewModel";
+import type { AssembledToken } from "../../romaji/types";
+import {
+  buildFoundationLessonViewModel,
+  foundationComparisonTokenIds,
+} from "./foundationViewModel";
 import {
   buildLessonViewModel,
   type FoundationCopy,
@@ -23,6 +27,136 @@ const CATALOG_VERSION = "phase1-foundation-fixture-v1";
 const LESSON_IDS = FOUNDATION_FIXTURE_LESSON_IDS;
 const LOCALES: readonly Locale[] = ["en", "it"];
 const SEEDS: readonly string[] = [SEED, "phase1-foundation-preview-alt-seed"];
+
+function comparisonToken(
+  id: string,
+  jp: string,
+  romaji: string,
+  kind: AssembledToken["kind"],
+  domain: AssembledToken["source"]["domain"],
+  referenceId: string,
+): AssembledToken {
+  return {
+    id,
+    jp,
+    romaji,
+    kind,
+    boundaryBefore: "attach",
+    source: { domain, referenceId },
+  };
+}
+
+function comparisonFixture() {
+  const variant = foundationCatalogs.sentenceVariants.find(
+    (candidate) => candidate.id === "fixture-a1-yuki-student-meeting",
+  );
+  if (!variant) throw new Error("missing comparison fixture variant");
+  const family = foundationCatalogs.sentenceFamilies.find(
+    (candidate) => candidate.id === variant.sentenceFamilyId,
+  );
+  if (!family) throw new Error("missing comparison fixture family");
+
+  const variantWithoutObject = {
+    ...variant,
+    slotValues: {
+      subject: "fixture-value-yuki",
+      predicate: "fixture-a1-value-be",
+    },
+  };
+  const prefix = variant.id;
+  const tokens = [
+    comparisonToken(
+      "slot-subject-1",
+      "わた",
+      "wata",
+      "lexical",
+      "family",
+      `${prefix}/subject`,
+    ),
+    comparisonToken(
+      "rule-particle",
+      "は",
+      "wa",
+      "particle",
+      "family",
+      `${prefix}/rule/topic`,
+    ),
+    comparisonToken(
+      "slot-subject-2",
+      "し",
+      "shi",
+      "lexical",
+      "family",
+      `${prefix}/subject`,
+    ),
+    comparisonToken(
+      "slot-predicate",
+      "です",
+      "desu",
+      "morpheme",
+      "family",
+      `${prefix}/predicate`,
+    ),
+    comparisonToken(
+      "absent-authored-slot",
+      "がくせい",
+      "gakusei",
+      "lexical",
+      "family",
+      `${prefix}/object`,
+    ),
+    comparisonToken(
+      "rule-ending",
+      "ます",
+      "masu",
+      "morpheme",
+      "family",
+      `${prefix}/rule/ending`,
+    ),
+    comparisonToken(
+      "rule-punctuation",
+      "。",
+      ".",
+      "punctuation",
+      "family",
+      `${prefix}/rule/punctuation`,
+    ),
+    comparisonToken(
+      "different-variant",
+      "けん",
+      "ken",
+      "lexical",
+      "family",
+      "fixture-a1-ken-doctor-meeting/subject",
+    ),
+    comparisonToken(
+      "unknown-slot",
+      "なぞ",
+      "nazo",
+      "lexical",
+      "family",
+      `${prefix}/unknown`,
+    ),
+    comparisonToken(
+      "malformed-reference",
+      "こわれた",
+      "kowareta",
+      "lexical",
+      "family",
+      `${prefix}/subject/extra`,
+    ),
+    comparisonToken(
+      "non-family-source",
+      "こてい",
+      "kotei",
+      "lexical",
+      "catalog",
+      `${prefix}/subject`,
+    ),
+  ] as const;
+
+  return { family, variant: variantWithoutObject, tokens };
+}
 
 function lessonById(id: string) {
   const lesson = foundationLessons.find((l) => l.id === id);
@@ -75,6 +209,45 @@ function reorderedCopy(copy: FoundationCopy): FoundationCopy {
   return { en: revKeys(copy.en), it: revKeys(copy.it) };
 }
 
+describe("foundationComparisonTokenIds", () => {
+  it("returns exactly authored family-slot fragments in realized token order", () => {
+    const { family, variant, tokens } = comparisonFixture();
+
+    expect(foundationComparisonTokenIds(family, variant, tokens)).toEqual([
+      "slot-subject-1",
+      "slot-subject-2",
+      "slot-predicate",
+    ]);
+  });
+
+  it("uses source metadata only, never Japanese or romaji surface strings", () => {
+    const { family, variant, tokens } = comparisonFixture();
+    const changedSurfaces = tokens.map((token) => ({
+      ...token,
+      jp: `changed-jp-${token.id}`,
+      romaji: `changed-romaji-${token.id}`,
+    }));
+    const changedMetadata = changedSurfaces.map((token) =>
+      token.id === "slot-subject-1"
+        ? {
+            ...token,
+            source: {
+              domain: "catalog" as const,
+              referenceId: token.source.referenceId,
+            },
+          }
+        : token,
+    );
+
+    expect(
+      foundationComparisonTokenIds(family, variant, changedSurfaces),
+    ).toEqual(["slot-subject-1", "slot-subject-2", "slot-predicate"]);
+    expect(
+      foundationComparisonTokenIds(family, variant, changedMetadata),
+    ).toEqual(["slot-subject-2", "slot-predicate"]);
+  });
+});
+
 describe("buildFoundationLessonViewModel", () => {
   it.each(LESSON_IDS)("returns a complete success model for %s", (lessonId) => {
     const result = buildFoundationLessonViewModel(lessonId, "en", SEED);
@@ -102,6 +275,18 @@ describe("buildFoundationLessonViewModel", () => {
         expect(row.translation.trim().length).toBeGreaterThan(0);
         expect(row.speaker.trim().length).toBeGreaterThan(0);
         expect(row.context.trim().length).toBeGreaterThan(0);
+        expect(row.comparisonTokenIds.length).toBeGreaterThan(0);
+        const rowTokenIds = new Set(row.tokens.map((token) => token.id));
+        expect(
+          row.comparisonTokenIds.every((tokenId) => rowTokenIds.has(tokenId)),
+        ).toBe(true);
+        const tokenIndexById = new Map(
+          row.tokens.map((token, index) => [token.id, index]),
+        );
+        const positions = row.comparisonTokenIds.map(
+          (tokenId) => tokenIndexById.get(tokenId) ?? -1,
+        );
+        expect(positions).toEqual([...positions].sort((a, b) => a - b));
       }
       expect(matrix.initialVariantIds).toEqual(
         lessonById(lessonId).modelVariantIds.slice(0, 3),
@@ -187,6 +372,9 @@ describe("buildFoundationLessonViewModel", () => {
       expect(it.model.matrix.rows.map((r) => r.variantId)).toEqual(
         en.model.matrix.rows.map((r) => r.variantId),
       );
+      expect(
+        it.model.matrix.rows.map((row) => row.comparisonTokenIds),
+      ).toEqual(en.model.matrix.rows.map((row) => row.comparisonTokenIds));
       // Localized copy actually changes between locales.
       expect(it.model.canDoDescriptor).not.toBe(en.model.canDoDescriptor);
     },

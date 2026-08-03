@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { Fragment, useId, useState } from "react";
 import type { ReactElement } from "react";
 
 import { RomajiSequence } from "../../romaji/RomajiSequence";
@@ -39,15 +39,25 @@ function JapaneseRow({
 }: {
   readonly row: FoundationLocalizedRow;
 }): ReactElement {
+  const highlighted = new Set(row.comparisonTokenIds);
+
   return (
     <span className="foundation-matrix__jp" lang="ja">
-      {row.tokens.map((token) => (
-        <JapaneseSegmentText
-          key={token.id}
-          jp={token.jp}
-          reading={token.reading}
-        />
-      ))}
+      {row.tokens.map((token) => {
+        const glyph = (
+          <JapaneseSegmentText jp={token.jp} reading={token.reading} />
+        );
+        return highlighted.has(token.id) ? (
+          <mark
+            key={token.id}
+            className="foundation-matrix__comparison-token"
+          >
+            {glyph}
+          </mark>
+        ) : (
+          <Fragment key={token.id}>{glyph}</Fragment>
+        );
+      })}
     </span>
   );
 }
@@ -71,11 +81,17 @@ export function SentenceMatrix({
   const [expanded, setExpanded] = useState(false);
   const generatedId = useId();
   const regionId = `${idBase}-${generatedId}-rows`;
+  const titleId = `${regionId}-title`;
   const visible = visibleMatrixRows(rows, initialVariantIds, expanded);
 
   return (
-    <section className="foundation-matrix" aria-labelledby={`${regionId}-title`}>
-      <h3 className="foundation-matrix__title" id={`${regionId}-title`}>
+    <section
+      className={`foundation-matrix${
+        script === "romaji" ? " foundation-matrix--romaji" : ""
+      }`}
+      aria-labelledby={titleId}
+    >
+      <h3 className="foundation-matrix__title" id={titleId}>
         {copy.matrixTitle}
       </h3>
       <p className="foundation-matrix__intro">{copy.matrixIntro}</p>
@@ -93,7 +109,12 @@ export function SentenceMatrix({
             <div className="foundation-matrix__sentence">
               {script === "hiragana" ? <JapaneseRow row={row} /> : null}
               <span className="foundation-matrix__romaji">
-                <RomajiSequence tokens={row.tokens} errorText={errorText} />
+                <RomajiSequence
+                  tokens={row.tokens}
+                  highlightedTokenIds={row.comparisonTokenIds}
+                  highlightClassName="foundation-matrix__comparison-token"
+                  errorText={errorText}
+                />
               </span>
             </div>
             <p className="foundation-matrix__translation">{row.translation}</p>

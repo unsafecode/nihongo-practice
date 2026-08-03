@@ -1,9 +1,11 @@
+/** @vitest-environment jsdom */
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { en as enCopy } from "../i18n/en";
 import { it as itCopy } from "../i18n/it";
+import { formatRomaji } from "../../romaji/formatRomaji";
 import { buildFoundationLessonViewModel } from "./foundationViewModel";
 import type { FoundationLocalizedRow } from "./foundationViewModel";
 import { SentenceMatrix, visibleMatrixRows } from "./SentenceMatrix";
@@ -53,6 +55,30 @@ function render(
   );
 }
 
+function renderDocument(
+  locale: "en" | "it",
+  script: "hiragana" | "romaji" = "hiragana",
+): Document {
+  return new DOMParser().parseFromString(render(locale, script), "text/html");
+}
+
+function visibleJapaneseText(element: Element): string {
+  const clone = element.cloneNode(true) as Element;
+  clone.querySelectorAll("rt").forEach((reading) => reading.remove());
+  return clone.textContent ?? "";
+}
+
+function expectedRomajiMarks(
+  row: FoundationLocalizedRow,
+): readonly string[] {
+  const formatted = formatRomaji(row.tokens);
+  if (!formatted.ok) throw new Error(`invalid romaji for ${row.variantId}`);
+  const selected = new Set(row.comparisonTokenIds);
+  return formatted.runs
+    .filter((run) => selected.has(run.tokenId))
+    .map((run) => run.text);
+}
+
 describe("visibleMatrixRows (pure reducer)", () => {
   it("shows exactly the three curated rows when collapsed", () => {
     const { rows, initialVariantIds } = a1Rows();
@@ -70,6 +96,40 @@ describe("visibleMatrixRows (pure reducer)", () => {
 });
 
 describe("SentenceMatrix markup", () => {
+  it("renders a labelled section, semantic list, metadata, and collapsed authored order", () => {
+    const { initialVariantIds } = a1Rows("en");
+    const document = renderDocument("en");
+    const section = document.querySelector("section.foundation-matrix");
+    expect(section).not.toBeNull();
+    const titleId = section?.getAttribute("aria-labelledby");
+    expect(titleId).toBeTruthy();
+    expect(document.getElementById(titleId ?? "")?.textContent).toBe(
+      enCopy.foundation.matrixTitle,
+    );
+
+    const list = section?.querySelector("ul.foundation-matrix__rows");
+    const items = list?.querySelectorAll(
+      ":scope > li.foundation-matrix__row",
+    );
+    expect(items).toHaveLength(3);
+    expect(
+      [...(items ?? [])].map((item) => item.getAttribute("data-variant-id")),
+    ).toEqual(initialVariantIds);
+    expect(section?.querySelectorAll("ol")).toHaveLength(0);
+    expect(section?.querySelectorAll("dl.foundation-matrix__meta")).toHaveLength(
+      3,
+    );
+    expect(
+      section?.querySelectorAll(".foundation-matrix__meta-pair > dt"),
+    ).toHaveLength(6);
+    expect(
+      section?.querySelectorAll(".foundation-matrix__meta-pair > dd"),
+    ).toHaveLength(6);
+    expect(section?.querySelectorAll("button[aria-expanded='false']")).toHaveLength(
+      1,
+    );
+  });
+
   it("renders a semantic section with heading and list of three collapsed rows", () => {
     const html = render("en");
     expect(html).toContain("<section");
@@ -143,6 +203,109 @@ describe("SentenceMatrix markup", () => {
         (m) => m[1],
       );
       expect(found).toEqual(order);
+    }
+  });
+
+  it("marks the view-model comparison fragments in order in both hiragana lines", () => {
+    const { rows } = a1Rows("en");
+    const document = renderDocument("en", "hiragana");
+    const renderedRows = document.querySelectorAll(
+      ".foundation-matrix__row",
+    );
+
+    rows.slice(0, 3).forEach((row, index) => {
+      const renderedRow = renderedRows[index];
+      const selected = new Set(row.comparisonTokenIds);
+      const expectedJapanese = row.tokens
+        .filter((token) => selected.has(token.id))
+        .map((token) => token.jp);
+      const japaneseMarks = [
+        ...renderedRow.querySelectorAll(
+          ".foundation-matrix__jp mark.foundation-matrix__comparison-token",
+        ),
+      ].map(visibleJapaneseText);
+      const romajiMarks = [
+        ...renderedRow.querySelectorAll(
+          ".foundation-matrix__romaji mark.foundation-matrix__comparison-token",
+        ),
+      ].map((mark) => mark.textContent ?? "");
+
+      expect(japaneseMarks).toEqual(expectedJapanese);
+      expect(romajiMarks).toEqual(expectedRomajiMarks(row));
+      expect(
+        renderedRow.querySelectorAll(
+          ".foundation-matrix__jp mark, .foundation-matrix__romaji mark",
+        ),
+      ).toHaveLength(row.comparisonTokenIds.length * 2);
+    });
+  });
+
+  it("renders romaji-only hierarchy with the same marked runs and intact spacing", () => {
+    const { rows } = a1Rows("en");
+    const document = renderDocument("en", "romaji");
+    const section = document.querySelector("section.foundation-matrix");
+    const renderedRows = document.querySelectorAll(
+      ".foundation-matrix__row",
+    );
+
+    expect(section?.classList.contains("foundation-matrix--romaji")).toBe(true);
+    expect(section?.querySelectorAll(".foundation-matrix__jp")).toHaveLength(0);
+    expect(section?.querySelectorAll("ul > li")).toHaveLength(3);
+    expect(section?.querySelectorAll("dl > div > dt")).toHaveLength(6);
+    expect(section?.querySelectorAll("dl > div > dd")).toHaveLength(6);
+
+    rows.slice(0, 3).forEach((row, index) => {
+      const renderedRow = renderedRows[index];
+      const marks = [
+        ...renderedRow.querySelectorAll(
+          ".foundation-matrix__romaji mark.foundation-matrix__comparison-token",
+        ),
+      ].map((mark) => mark.textContent ?? "");
+      expect(marks).toEqual(expectedRomajiMarks(row));
+      expect(
+        renderedRow.querySelector(".foundation-matrix__romaji")?.textContent,
+      ).toMatch(/\s/);
+    });
+  });
+
+  it("never serializes answer text or comparison token IDs into DOM metadata", () => {
+    const { rows } = a1Rows("en");
+    for (const script of ["hiragana", "romaji"] as const) {
+      const document = renderDocument("en", script);
+      const attributes = [...document.querySelectorAll("*")].flatMap((element) =>
+        [...element.attributes].map((attribute) => ({
+          name: attribute.name,
+          value: attribute.value,
+        })),
+      );
+      const metadataValues = attributes
+        .filter(
+          ({ name }) =>
+            name.startsWith("data-") ||
+            name.startsWith("aria-") ||
+            ["title", "value", "name"].includes(name),
+        )
+        .map(({ value }) => value);
+
+      expect(
+        attributes.filter(({ name }) =>
+          /(answer|canonical|jp|romaji|comparison|token.?id)/i.test(name),
+        ),
+      ).toEqual([]);
+      expect(
+        attributes.filter(({ value }) =>
+          /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff66-\uff9f]/u.test(value),
+        ),
+      ).toEqual([]);
+      for (const row of rows.slice(0, 3)) {
+        for (const token of row.tokens) {
+          expect(metadataValues).not.toContain(token.jp);
+          expect(metadataValues).not.toContain(token.romaji);
+          expect(
+            attributes.some(({ value }) => value === token.id),
+          ).toBe(false);
+        }
+      }
     }
   });
 });

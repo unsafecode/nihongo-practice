@@ -109,4 +109,81 @@ describe("foundation harness CSS contract", () => {
     const css = readFoundationCss();
     expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)/);
   });
+
+  it("draws one unnumbered coral rail with shape-based row markers", () => {
+    const css = readFoundationCss();
+    const rows = findRule(css, ".foundation-matrix__rows");
+    const rail = findRule(css, ".foundation-matrix__rows::before");
+    const marker = findRule(css, ".foundation-matrix__row::before");
+
+    expect(rows).toMatch(/position:\s*relative/);
+    expect(rows).toMatch(/padding-inline-start:\s*var\(--space-6\)/);
+    expect(rail).toMatch(/content:\s*""/);
+    expect(rail).toMatch(/width:\s*3px/);
+    expect(rail).toMatch(/background:\s*var\(--course-coral\)/);
+    expect(marker).toMatch(/width:\s*0\.75rem/);
+    expect(marker).toMatch(/height:\s*0\.75rem/);
+    expect(marker).toMatch(/border:\s*3px solid var\(--course-coral\)/);
+    expect(marker).toMatch(/border-radius:\s*999px/);
+    // The marker is centered on the rail: its inline inset must compensate
+    // for the row's own 2px border, or the marker renders 2px off-center.
+    expect(marker).toMatch(
+      /inset-inline-start:\s*calc\(-1 \* var\(--space-6\) - 2px\)/,
+    );
+    // The global `*` border-box reset does not select pseudo-elements, so
+    // the marker must declare its own border-box sizing: otherwise its
+    // width/height are the content box and the 3px border adds 6px to the
+    // rendered diameter, throwing the marker off-center from the rail.
+    expect(marker).toMatch(/box-sizing:\s*border-box/);
+  });
+
+  it("gives rows strong token-based surfaces and a phrase-first vertical hierarchy", () => {
+    const css = readFoundationCss();
+    const row = findRule(css, ".foundation-matrix__row");
+    const sentence = findRule(css, ".foundation-matrix__sentence");
+    const romajiOnly = findRule(css, ".foundation-matrix--romaji .foundation-matrix__romaji");
+
+    expect(row).toMatch(/padding:\s*var\(--space-5\)/);
+    expect(row).toMatch(/border:\s*2px solid var\(--course-line\)/);
+    expect(row).toMatch(/border-radius:\s*var\(--radius\)/);
+    expect(row).toMatch(/background:\s*var\(--course-surface\)/);
+    expect(row).toMatch(/box-shadow:\s*var\(--shadow-sm\)/);
+    expect(sentence).toMatch(/flex-direction:\s*column/);
+    expect(romajiOnly).toMatch(/font-size:\s*var\(--text-3\)/);
+    expect(romajiOnly).toMatch(/font-weight:\s*700/);
+  });
+
+  it("styles metadata as wrapping secondary badges and omission as tertiary copy", () => {
+    const css = readFoundationCss();
+    const pair = findRule(css, ".foundation-matrix__meta-pair");
+    const omitted = findRule(css, ".foundation-matrix__omitted");
+
+    expect(pair).toMatch(/display:\s*inline-flex/);
+    expect(pair).toMatch(/border:\s*1px solid var\(--course-line\)/);
+    expect(pair).toMatch(/border-radius:\s*999px/);
+    expect(pair).toMatch(/padding:\s*var\(--space-1\) var\(--space-3\)/);
+    expect(omitted).toMatch(/font-size:\s*var\(--text-1\)/);
+    expect(omitted).toMatch(/color:\s*var\(--course-muted\)/);
+  });
+
+  it("uses background, weight, and underline for comparison emphasis", () => {
+    const mark = findRule(readFoundationCss(), ".foundation-matrix__comparison-token");
+    expect(mark).toMatch(/background:\s*var\(--course-coral-soft\)/);
+    expect(mark).toMatch(/font-weight:\s*800/);
+    expect(mark).toMatch(/text-decoration-line:\s*underline/);
+    expect(mark).toMatch(/text-decoration-thickness:\s*0\.15em/);
+    expect(mark).toMatch(/text-underline-offset:\s*0\.12em/);
+  });
+
+  it("reduces the rail inset and stacks metadata at the existing narrow breakpoint", () => {
+    const block = findMediaBlock(readFoundationCss(), "@media (max-width: 700px)");
+    expect(block).toMatch(/\.foundation-matrix__rows[\s\S]*padding-inline-start:\s*var\(--space-5\)/);
+    expect(block).toMatch(/\.foundation-matrix__row[\s\S]*padding:\s*var\(--space-4\)/);
+    expect(block).toMatch(/\.foundation-matrix__meta[\s\S]*flex-direction:\s*column/);
+    // The narrow-breakpoint marker override must also compensate for the
+    // row's 2px border, matching the base rule's compensation.
+    expect(block).toMatch(
+      /\.foundation-matrix__row::before[\s\S]*inset-inline-start:\s*calc\(-1 \* var\(--space-5\) - 2px\)/,
+    );
+  });
 });

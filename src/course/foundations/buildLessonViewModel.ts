@@ -85,6 +85,7 @@ export interface FoundationLocalizedRow {
   readonly predicateSenseId: string;
   readonly pedagogicalUse: string;
   readonly tokens: readonly AssembledToken[];
+  readonly comparisonTokenIds: readonly string[];
   /** Localized natural translation (never a Japanese literal). */
   readonly translation: string;
   /** Localized speaker/role label. */
@@ -299,13 +300,45 @@ function formKey(variant: SentenceVariant): string {
   return `${f.polarity}|${f.tense}|${f.formality}`;
 }
 
-/** Parses the slot id a realized token belongs to from its source reference
- * `${variantId}/${slotId}`; rule/ending tokens (`${variantId}/rule/...`) have
- * no single slot segment and resolve to undefined. Honest — derived from the
- * token's own source reference, never from guessing on the surface string. */
-function slotIdOfToken(token: AssembledToken): string | undefined {
-  const parts = token.source.referenceId.split("/");
-  return parts.length === 2 ? parts[1] : undefined;
+/** Parses the authored family slot id a realized token belongs to from its
+ * source reference `${variantId}/${slotId}`, requiring the token's source
+ * domain to be `family` and the reference's variant segment to match the
+ * given variant id. Rule/ending/punctuation tokens
+ * (`${variantId}/rule/...`), tokens from a different variant, and tokens from
+ * any non-family domain resolve to undefined. Honest — derived strictly from
+ * the token's own source metadata, never from guessing on the surface
+ * string. */
+function authoredFamilySlotId(
+  token: AssembledToken,
+  variantId: string,
+): string | undefined {
+  if (token.source.domain !== "family") return undefined;
+  const segments = token.source.referenceId.split("/");
+  if (segments.length !== 2 || segments[0] !== variantId) return undefined;
+  return segments[1] || undefined;
+}
+
+/** Ordered, locale-independent comparison token ids for one realized row:
+ * exactly the tokens whose source metadata identifies them as belonging to
+ * an authored slot on `family.slotSchema` for this `variant`, and that slot
+ * actually has an authored value in `variant.slotValues` — in realized token
+ * order. Pure; never inspects Japanese/romaji surface strings. */
+export function foundationComparisonTokenIds(
+  family: SentenceFamily,
+  variant: SentenceVariant,
+  tokens: readonly AssembledToken[],
+): readonly string[] {
+  const familySlotIds = new Set(family.slotSchema.map((slot) => slot.id));
+  return tokens
+    .filter((token) => {
+      const slotId = authoredFamilySlotId(token, variant.id);
+      return (
+        slotId !== undefined &&
+        familySlotIds.has(slotId) &&
+        Object.prototype.hasOwnProperty.call(variant.slotValues, slotId)
+      );
+    })
+    .map((token) => token.id);
 }
 
 /** The semantic axes that change between two same-family variants, and the
@@ -333,7 +366,7 @@ export function foundationGuidedDelta(
   }
   const changedTokenIds = targetTokens
     .filter((token) => {
-      const slot = slotIdOfToken(token);
+      const slot = authoredFamilySlotId(token, target.id);
       return slot !== undefined && changedSlots.has(slot);
     })
     .map((token) => token.id);
@@ -480,6 +513,8 @@ export function buildLessonViewModel(
     const sentence = sentenceById.get(variantId);
     const variant = index.variantById.get(variantId);
     if (!sentence || !variant) return null;
+    const family = index.familyById.get(variant.sentenceFamilyId);
+    if (!family) return null;
     const role = index.roleById.get(sentence.discourse.speakerRoleId);
     const context = index.contextById.get(sentence.contextId);
     return {
@@ -492,6 +527,11 @@ export function buildLessonViewModel(
       predicateSenseId: sentence.predicateSenseId,
       pedagogicalUse: sentence.pedagogicalUse,
       tokens: sentence.tokens,
+      comparisonTokenIds: foundationComparisonTokenIds(
+        family,
+        variant,
+        sentence.tokens,
+      ),
       translation: copyFor(copy, locale, variantTranslationCopyId(variantId)),
       speaker: role ? copyFor(copy, locale, role.labelCopyId) : "",
       context: context ? copyFor(copy, locale, context.labelCopyId) : "",
