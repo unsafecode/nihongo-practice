@@ -130,6 +130,11 @@ describe("foundation harness CSS contract", () => {
     expect(marker).toMatch(
       /inset-inline-start:\s*calc\(-1 \* var\(--space-6\) - 2px\)/,
     );
+    // The global `*` border-box reset does not select pseudo-elements, so
+    // the marker must declare its own border-box sizing: otherwise its
+    // width/height are the content box and the 3px border adds 6px to the
+    // rendered diameter, throwing the marker off-center from the rail.
+    expect(marker).toMatch(/box-sizing:\s*border-box/);
   });
 
   it("gives rows strong token-based surfaces and a phrase-first vertical hierarchy", () => {
