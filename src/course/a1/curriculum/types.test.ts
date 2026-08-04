@@ -334,6 +334,15 @@ describe("A1 instructional curriculum contracts", () => {
     ).toThrow(/vocabulary exception.*new lexeme/i);
   });
 
+  it("requires a vocabulary exception when no new lexemes are introduced", () => {
+    expect(() =>
+      defineA1LessonContent({
+        ...introductionsOneContent(),
+        newLexemeIds: [],
+      }),
+    ).toThrow(/no new lexemes.*vocabulary exception/i);
+  });
+
   it("rejects duplicate new lexeme ids", () => {
     expect(() =>
       defineA1LessonContent({

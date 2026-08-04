@@ -197,6 +197,10 @@ export function defineA1LessonContent(input: A1LessonContent): A1LessonContent {
   assertVariantIds(input.workedExampleVariantIds, "worked example");
   assertBilingual(input.retrievalCue, "Retrieval cue");
 
+  if (input.newLexemeIds.length === 0 && input.vocabularyException === undefined) {
+    throw new Error("Lessons with no new lexemes require an explicit synthesis vocabulary exception.");
+  }
+
   if (input.vocabularyException !== undefined) {
     if (input.newLexemeIds.length > 0) {
       throw new Error("A vocabulary exception cannot be present with new lexeme ids.");
