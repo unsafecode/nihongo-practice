@@ -118,6 +118,18 @@ describe("A1 learner note catalog", () => {
     expect(A1_CONCEPT_IDS.filter((conceptId) => !explainedConceptIds.has(conceptId))).toEqual([]);
   });
 
+  it("explains the location particle through both action-place and destination uses", () => {
+    const explainerIds = new Set(
+      a1LearningNotes
+        .filter(({ explainedConceptIds }) => explainedConceptIds.includes("a1-concept-location-particle"))
+        .map(({ id }) => id),
+    );
+
+    expect([...explainerIds]).toEqual(
+      expect.arrayContaining(["a1-note-particle-de", "a1-note-particle-ni-destination"]),
+    );
+  });
+
   it("freezes catalog entries and exposes a frozen plain-record index", () => {
     expect(Object.isFrozen(a1LearningNotes)).toBe(true);
     expect(Object.isFrozen(a1LearningNoteById)).toBe(true);

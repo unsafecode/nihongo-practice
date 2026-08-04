@@ -696,7 +696,7 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
   defineA1LearningNote({
     id: "a1-note-particle-ni-destination",
     kind: "grammar",
-    explainedConceptIds: [],
+    explainedConceptIds: ["a1-concept-location-particle"],
     requiredConceptIds: [],
     title: { en: "Use に for an arrival destination", it: "Usa に per una destinazione di arrivo" },
     meaning: {
