@@ -5,6 +5,7 @@ import { orderedReviewQueue } from "../progress/reviewQueue";
 import type { GeneratedExercise } from "./lessonExerciseModel";
 import type { ExercisePrompt } from "../exercises/types";
 import { getLessonExercises } from "./lessonExerciseModel";
+import { a1LessonContentById } from "../a1/curriculum/catalog";
 import {
   validateReviewRetrievalPair,
   type A1ReviewRetrievalTarget,
@@ -79,6 +80,11 @@ export interface ReviewQueueItem {
   /** Post-submit feedback for the generated exercise rendered in review. */
   readonly feedback: GeneratedExercise["feedback"];
   readonly mistakeCount: number;
+  /**
+   * The stored attempt evidence, deliberately left unchanged. Retrieval
+   * compatibility is normalized only while selecting the alternate; the
+   * alternate prompt exposes its current assessed IDs separately.
+   */
   readonly targetConceptIds: readonly string[];
   readonly targetLexemeIds: readonly string[];
 }
@@ -115,6 +121,26 @@ function assessedIdsFor(exercise: GeneratedExercise): readonly string[] {
   return [...exercise.prompt.assessedConceptIds, ...exercise.prompt.assessedLexemeIds];
 }
 
+/**
+ * Reconstructs enough transient source metadata to retrieve a safe alternate
+ * for entries recorded before Task 10 added lesson-level assessment metadata.
+ * It never changes the persisted entry or the evidence surfaced to the UI.
+ */
+function normalizedSourceAssessedIds(
+  entry: ReviewQueueEntry,
+  original: GeneratedExercise,
+): readonly string[] {
+  const learningNoteId = a1LessonContentById[entry.lessonId]?.learningNoteId;
+  return [
+    ...new Set([
+      ...entry.targetConceptIds,
+      ...entry.targetLexemeIds,
+      ...assessedIdsFor(original),
+      ...(learningNoteId ? [learningNoteId] : []),
+    ]),
+  ];
+}
+
 function reviewTargetFor(
   exercise: GeneratedExercise,
   assessedIds = assessedIdsFor(exercise),
@@ -142,9 +168,19 @@ export function stableReviewCandidateHash(input: string): number {
 
 function compareA1ReviewCandidates(
   reviewKey: string,
+  genuineSourceAssessedIds: readonly string[],
   left: GeneratedExercise,
   right: GeneratedExercise,
 ): number {
+  const leftSharesGenuineAssessment = assessedIdsFor(left).some((id) =>
+    genuineSourceAssessedIds.includes(id),
+  );
+  const rightSharesGenuineAssessment = assessedIdsFor(right).some((id) =>
+    genuineSourceAssessedIds.includes(id),
+  );
+  if (leftSharesGenuineAssessment !== rightSharesGenuineAssessment) {
+    return leftSharesGenuineAssessment ? -1 : 1;
+  }
   const leftRank = stableReviewCandidateHash(
     `${A1_RELEASE_CATALOG_VERSION}|${reviewKey}|${left.definitionId}`,
   );
@@ -162,11 +198,15 @@ function alternateA1ExerciseFor(
   entry: ReviewQueueEntry,
   original: GeneratedExercise,
 ): GeneratedExercise | undefined {
-  const source = reviewTargetFor(original, [
-    ...entry.targetConceptIds,
-    ...entry.targetLexemeIds,
-  ]);
+  const learningNoteId = a1LessonContentById[entry.lessonId]?.learningNoteId;
+  const source = reviewTargetFor(
+    original,
+    normalizedSourceAssessedIds(entry, original),
+  );
   if (!source) return undefined;
+  const genuineSourceAssessedIds = assessedIdsFor(original).filter(
+    (id) => id !== learningNoteId,
+  );
 
   const candidates = (getLessonExercises(entry.lessonId)?.exercises ?? [])
     .filter((candidate) => candidate.definitionId !== original.definitionId)
@@ -174,7 +214,14 @@ function alternateA1ExerciseFor(
       const target = reviewTargetFor(candidate);
       return target !== undefined && validateReviewRetrievalPair(source, target) === undefined;
     })
-    .sort((left, right) => compareA1ReviewCandidates(entry.reviewKey, left, right));
+    .sort((left, right) =>
+      compareA1ReviewCandidates(
+        entry.reviewKey,
+        genuineSourceAssessedIds,
+        left,
+        right,
+      ),
+    );
   return candidates[0];
 }
 

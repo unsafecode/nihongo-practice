@@ -43,12 +43,23 @@ const FALLBACK_CONCEPT: Readonly<Record<Locale, string>> = {
   it: "Lo schema studiato",
 };
 
-function answerSafeConceptTitle(title: string, locale: Locale): string {
-  const safe = title
-    .replace(/[\u3040-\u30ff\u3400-\u9fff々〆ヶ]/gu, "")
-    .replace(/\s+/g, " ")
-    .trim();
-  return safe || FALLBACK_CONCEPT[locale];
+export function feedbackConceptTitle(
+  title: string,
+  forbiddenFullTargets: readonly string[],
+  locale: Locale,
+): string {
+  const fullTitle = title.trim();
+  if (!fullTitle) return FALLBACK_CONCEPT[locale];
+
+  const normalizedTitle = fullTitle.normalize("NFC");
+  const containsForbiddenFullTarget = forbiddenFullTargets.some((target) => {
+    const fullTarget = target.trim();
+    return (
+      fullTarget.length > 0 &&
+      normalizedTitle.includes(fullTarget.normalize("NFC"))
+    );
+  });
+  return containsForbiddenFullTarget ? FALLBACK_CONCEPT[locale] : fullTitle;
 }
 
 /**
@@ -59,6 +70,7 @@ export function buildA1PracticeFeedback(
   lessonId: string,
   practiceFunction: A1PracticeFunction,
   assessedLexemeIds: readonly string[],
+  forbiddenFullTargets: readonly string[],
 ): Readonly<Record<Locale, A1ExerciseFeedback>> | undefined {
   const content = a1LessonContentById[lessonId];
   const note = content ? a1LearningNoteById[content.learningNoteId] : undefined;
@@ -77,7 +89,11 @@ export function buildA1PracticeFeedback(
   for (const locale of ["en", "it"] as const) {
     const meaning =
       lexeme?.meaning[locale].trim() || FALLBACK_MEANING[locale];
-    const concept = answerSafeConceptTitle(note.title[locale], locale);
+    const concept = feedbackConceptTitle(
+      note.title[locale],
+      forbiddenFullTargets,
+      locale,
+    );
     const form = FORM_CUE[locale][practiceFunction];
     feedback[locale] = {
       accepted:

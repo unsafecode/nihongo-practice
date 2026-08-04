@@ -226,6 +226,7 @@ function buildSemanticModel(
             lessonId,
             activity.function,
             generated.prompt.assessedLexemeIds,
+            [generated.visibleTargetKey],
           )
         : undefined;
       if (!generated || !feedback || target.prompt.kind !== activity.interactionKind) {

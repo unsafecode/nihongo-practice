@@ -84,12 +84,10 @@ describe("buildA1PracticeModel — selected semantic targets", () => {
             .find((candidate) => candidate !== undefined);
         for (const locale of ["en", "it"] as const) {
           const feedback = exercise.feedback[locale];
-          const answerSafeNoteTitle = note.title[locale]
-            .replace(/[\u3040-\u30ff\u3400-\u9fff々〆ヶ]/gu, "")
-            .replace(/\s+/g, " ")
-            .trim();
-          const canonicalJapanese =
-            "canonicalAnswer" in exercise.prompt
+          const expectedNoteTitle = note.title[locale].trim();
+          const fullCanonicalJapanese =
+            "canonicalAnswer" in exercise.prompt &&
+            exercise.prompt.canonicalAnswer === exercise.visibleTargetKey
               ? exercise.prompt.canonicalAnswer
               : null;
           expect(feedback.accepted.trim(), `${content.lessonId} accepted ${locale}`).not.toBe("");
@@ -97,17 +95,17 @@ describe("buildA1PracticeModel — selected semantic targets", () => {
           expect(feedback.accepted, `${content.lessonId} distinct ${locale}`).not.toBe(
             feedback.retry,
           );
-          expect(feedback.accepted).toContain(answerSafeNoteTitle);
-          expect(feedback.retry).toContain(answerSafeNoteTitle);
+          expect(feedback.accepted).toContain(expectedNoteTitle);
+          expect(feedback.retry).toContain(expectedNoteTitle);
           if (lexeme) {
             expect(feedback.accepted).toContain(lexeme.meaning[locale]);
             expect(feedback.retry).toContain(lexeme.meaning[locale]);
           }
           expect(feedback.accepted).not.toContain(exercise.visibleTargetKey);
           expect(feedback.retry).not.toContain(exercise.visibleTargetKey);
-          if (canonicalJapanese !== null) {
-            expect(feedback.accepted).not.toContain(canonicalJapanese);
-            expect(feedback.retry).not.toContain(canonicalJapanese);
+          if (fullCanonicalJapanese !== null) {
+            expect(feedback.accepted).not.toContain(fullCanonicalJapanese);
+            expect(feedback.retry).not.toContain(fullCanonicalJapanese);
           }
         }
       }

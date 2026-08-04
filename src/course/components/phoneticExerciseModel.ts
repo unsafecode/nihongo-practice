@@ -281,6 +281,7 @@ function buildPhoneticExercise(
       lessonId,
       activity.function,
       prompt.assessedLexemeIds,
+      [item.glyph],
     );
     if (!feedback) {
       return {
@@ -342,6 +343,7 @@ function buildPhoneticExercise(
     lessonId,
     activity.function,
     prompt.assessedLexemeIds,
+    [item.glyph],
   );
   if (!feedback) {
     return {

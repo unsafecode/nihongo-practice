@@ -5,6 +5,7 @@ import { reviewKeyFor } from "../progress/reviewQueue";
 import { getLessonExercises } from "./lessonExerciseModel";
 import { buildReviewQueueView } from "./reviewQueueModel";
 import { a1FoundationCatalogs } from "../a1/catalog/catalog";
+import { a1LessonContentById } from "../a1/curriculum/catalog";
 import { courseModulesByLevel } from "../data/course";
 import { validateReviewRetrievalPair } from "../a1/curriculum/validateA1Curriculum";
 
@@ -134,6 +135,31 @@ describe("buildReviewQueueView — empty and populated", () => {
     return [...entry.targetConceptIds, ...entry.targetLexemeIds];
   }
 
+  function legacyReviewEntryFor(
+    lessonId: string,
+    exerciseDefinitionId: string,
+  ): ReviewQueueEntry {
+    const source = getLessonExercises(lessonId)?.exercises.find(
+      (exercise) => exercise.definitionId === exerciseDefinitionId,
+    );
+    const content = a1LessonContentById[lessonId];
+    if (!source || !content) {
+      throw new Error(`fixture assumption failed: ${lessonId}:${exerciseDefinitionId}`);
+    }
+    const legacyPhonetic = lessonId.startsWith("sounds-");
+    return {
+      ...reviewEntryFor(lessonId, exerciseDefinitionId),
+      targetConceptIds: legacyPhonetic
+        ? []
+        : source.prompt.assessedConceptIds.filter(
+            (id) => id !== content.learningNoteId,
+          ),
+      targetLexemeIds: legacyPhonetic
+        ? []
+        : [...source.prompt.assessedLexemeIds],
+    };
+  }
+
   describe("buildReviewQueueView — varied A1 retrieval", () => {
     it("replaces a failed A1 meaning choice with a different, overlapping retrieval task", () => {
       const source = getLessonExercises("sounds-1")!.exercises.find(
@@ -207,6 +233,135 @@ describe("buildReviewQueueView — empty and populated", () => {
       }
     });
 
+    it("finds safe alternates for all 192 legacy-shaped A1 entries without rewriting stored evidence", () => {
+      const lessonIds = courseModulesByLevel.a1.flatMap((module) =>
+        module.lessons.map((lesson) => lesson.id),
+      );
+      const sources = lessonIds.flatMap((lessonId) =>
+        getLessonExercises(lessonId)!.exercises.map((exercise) => ({
+          lessonId,
+          exercise,
+        })),
+      );
+      expect(sources).toHaveLength(192);
+
+      for (const { lessonId, exercise: source } of sources) {
+        const content = a1LessonContentById[lessonId]!;
+        const entry = legacyReviewEntryFor(lessonId, source.definitionId);
+        const view = buildReviewQueueView(
+          { reviewQueue: [entry], orphanedReviewKeys: [] },
+          "a1",
+        );
+
+        expect(view.unresolvableKeys, `${lessonId}:${source.definitionId}`).toEqual([]);
+        expect(view.items, `${lessonId}:${source.definitionId}`).toHaveLength(1);
+        const [alternate] = view.items;
+        expect(alternate.sourceExerciseDefinitionId).toBe(source.definitionId);
+        expect(alternate.exerciseDefinitionId).not.toBe(source.definitionId);
+        expect(alternate.practiceFunction).not.toBe(source.practiceFunction);
+        expect(alternate.visibleTargetKey).not.toBe(source.visibleTargetKey);
+        // Retrieval normalization is transient; the review item keeps exactly
+        // what the learner's stored attempt originally recorded.
+        expect(alternate.targetConceptIds).toEqual(entry.targetConceptIds);
+        expect(alternate.targetLexemeIds).toEqual(entry.targetLexemeIds);
+
+        const normalizedSourceIds = new Set([
+          ...assessedIds(entry),
+          ...source.prompt.assessedConceptIds,
+          ...source.prompt.assessedLexemeIds,
+          content.learningNoteId,
+        ]);
+        const alternateIds = [
+          ...alternate.prompt.assessedConceptIds,
+          ...alternate.prompt.assessedLexemeIds,
+        ];
+        const normalizedSource = {
+          id: source.definitionId,
+          function: source.practiceFunction!,
+          visibleTargetKey: source.visibleTargetKey,
+          assessedIds: [...normalizedSourceIds],
+        };
+        expect(
+          validateReviewRetrievalPair(
+            normalizedSource,
+            {
+              id: alternate.exerciseDefinitionId,
+              function: alternate.practiceFunction!,
+              visibleTargetKey: alternate.visibleTargetKey,
+              assessedIds: alternateIds,
+            },
+          ),
+          `${lessonId}:${source.definitionId}`,
+        ).toBeUndefined();
+
+        if (lessonId.startsWith("sounds-")) {
+          expect(entry.targetConceptIds, `${lessonId}:${source.definitionId}`).toEqual([]);
+          expect(entry.targetLexemeIds, `${lessonId}:${source.definitionId}`).toEqual([]);
+          expect(alternate.prompt.assessedConceptIds).toContain(content.learningNoteId);
+          continue;
+        }
+
+        const genuineSourceIds = [
+          ...source.prompt.assessedConceptIds.filter(
+            (id) => id !== content.learningNoteId,
+          ),
+          ...source.prompt.assessedLexemeIds,
+        ];
+        const exercises = getLessonExercises(lessonId)!.exercises;
+        const genuineSafeAlternateExists = exercises.some((candidate) => {
+          if (
+            candidate.definitionId === source.definitionId ||
+            candidate.practiceFunction === source.practiceFunction
+          ) {
+            return false;
+          }
+          const candidateIds = [
+            ...candidate.prompt.assessedConceptIds,
+            ...candidate.prompt.assessedLexemeIds,
+          ];
+          return (
+            candidate.visibleTargetKey !== source.visibleTargetKey &&
+            candidateIds.some((id) => genuineSourceIds.includes(id)) &&
+            validateReviewRetrievalPair(
+              normalizedSource,
+              {
+                id: candidate.definitionId,
+                function: candidate.practiceFunction!,
+                visibleTargetKey: candidate.visibleTargetKey,
+                assessedIds: candidateIds,
+              },
+            ) === undefined
+          );
+        });
+        if (genuineSafeAlternateExists) {
+          expect(
+            alternateIds.some((id) => genuineSourceIds.includes(id)),
+            `${lessonId}:${source.definitionId}`,
+          ).toBe(true);
+        }
+      }
+    });
+
+    it("keeps a legacy-shaped entry unresolvable when its original no longer exists", () => {
+      const entry: ReviewQueueEntry = {
+        reviewKey: "sounds-1:retired-exercise",
+        lessonId: "sounds-1",
+        exerciseDefinitionId: "retired-exercise",
+        targetConceptIds: [],
+        targetLexemeIds: [],
+        mistakeCount: 1,
+        lastMistakeAt: "2026-01-01T00:00:00.000Z",
+      };
+
+      const view = buildReviewQueueView(
+        { reviewQueue: [entry], orphanedReviewKeys: [] },
+        "a1",
+      );
+
+      expect(view.items).toEqual([]);
+      expect(view.unresolvableKeys).toEqual([entry.reviewKey]);
+    });
+
     it("chooses the same alternates for repeated calls and reordered stored entries", () => {
       const entries = [
         reviewEntryFor("sounds-1", getLessonExercises("sounds-1")!.exercises[0]!.definitionId),
@@ -219,7 +374,7 @@ describe("buildReviewQueueView — empty and populated", () => {
       expect(buildReviewQueueView(source, "a1")).toEqual(buildReviewQueueView(reordered, "a1"));
     });
 
-    it("marks a known A1 original unresolvable when its stored assessed IDs have no safe alternate", () => {
+    it("re-derives current source metadata when a known A1 entry has stale stored assessments", () => {
       const source = getLessonExercises("sounds-1")!.exercises[0]!;
       const entry: ReviewQueueEntry = {
         ...reviewEntryFor("sounds-1", source.definitionId),
@@ -229,8 +384,14 @@ describe("buildReviewQueueView — empty and populated", () => {
 
       const view = buildReviewQueueView({ reviewQueue: [entry], orphanedReviewKeys: [] }, "a1");
 
-      expect(view.items).toEqual([]);
-      expect(view.unresolvableKeys).toEqual([entry.reviewKey]);
+      expect(view.unresolvableKeys).toEqual([]);
+      expect(view.items).toHaveLength(1);
+      const [alternate] = view.items;
+      expect(alternate.exerciseDefinitionId).not.toBe(source.definitionId);
+      expect(alternate.practiceFunction).not.toBe(source.practiceFunction);
+      expect(alternate.visibleTargetKey).not.toBe(source.visibleTargetKey);
+      expect(alternate.targetConceptIds).toEqual(entry.targetConceptIds);
+      expect(alternate.targetLexemeIds).toEqual(entry.targetLexemeIds);
     });
   });
 
