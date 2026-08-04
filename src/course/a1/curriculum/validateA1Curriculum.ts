@@ -22,7 +22,11 @@ import {
   A1_RELEASE_CATALOG_VERSION,
   A1_RELEASE_SEED,
 } from "../releaseIdentity";
-import { a1LearningNoteById, type A1LearningNote } from "./grammar";
+import {
+  a1ConceptFirstTeachingNoteId,
+  a1LearningNoteById,
+  type A1LearningNote,
+} from "./grammar";
 import { a1LessonContents } from "./catalog";
 import { a1LexemeById } from "./lexicon";
 import {
@@ -366,9 +370,6 @@ export function validateA1Curriculum(
   const semanticLessonById = new Map(
     input.foundationCatalogs.lessons.map((lesson) => [lesson.id, lesson]),
   );
-  const lessonRecipeById = new Map(
-    input.lessonRecipes.map((recipe) => [recipe.id, recipe]),
-  );
   const allConceptIds = input.foundationCatalogs.sentenceFamilies.flatMap(
     (family) => family.requiredConceptIds,
   );
@@ -458,8 +459,7 @@ export function validateA1Curriculum(
   }
 
   const availableLexemeIds = new Set<string>();
-  const introducedGrammarConceptIds = new Set<string>();
-  const explainedGrammarConceptIds = new Set<string>();
+  const canonicallyTaughtGrammarConceptIds = new Set<string>();
   const explainedVerbFormKeys = new Set<string>();
   const reportedConceptUses = new Set<string>();
   const reportedVerbFormUses = new Set<string>();
@@ -555,19 +555,8 @@ export function validateA1Curriculum(
         dimension: "learning-note",
       });
     } else {
-      const currentIntroductions = new Set<string>(content.prerequisiteConceptIds);
-      // The recipe's introduced concepts are the authored instructional
-      // sequence, distinct from a note's learner-facing explanation.
-      for (const conceptId of lessonRecipeById.get(lessonId)?.introducedConceptIds ?? []) {
-        currentIntroductions.add(conceptId);
-      }
       for (const conceptId of note.requiredConceptIds) {
-        if (
-          !introducedGrammarConceptIds.has(conceptId) &&
-          !explainedGrammarConceptIds.has(conceptId) &&
-          !currentIntroductions.has(conceptId) &&
-          !note.explainedConceptIds.includes(conceptId)
-        ) {
+        if (!canonicallyTaughtGrammarConceptIds.has(conceptId)) {
           push({
             code: "grammar-prerequisite-order",
             stage: "grammar",
@@ -577,14 +566,18 @@ export function validateA1Curriculum(
           });
         }
       }
-      for (const conceptId of note.explainedConceptIds) {
-        explainedGrammarConceptIds.add(conceptId);
+      for (const [conceptId, firstTeachingNoteId] of Object.entries(
+        a1ConceptFirstTeachingNoteId,
+      )) {
+        if (
+          content.learningNoteId === firstTeachingNoteId &&
+          note.explainedConceptIds.includes(conceptId)
+        ) {
+          canonicallyTaughtGrammarConceptIds.add(conceptId);
+        }
       }
       for (const explainedForm of formExplanations(note)) {
         explainedVerbFormKeys.add(explainedForm);
-      }
-      for (const conceptId of currentIntroductions) {
-        introducedGrammarConceptIds.add(conceptId);
       }
     }
 
@@ -697,7 +690,10 @@ export function validateA1Curriculum(
       if (!variant || !family) return;
       for (const conceptId of requiredConceptsForVariant(family, variant)) {
         const errorKey = `${lessonId}\u0000${conceptId}`;
-        if (!explainedGrammarConceptIds.has(conceptId) && !reportedConceptUses.has(errorKey)) {
+        if (
+          !canonicallyTaughtGrammarConceptIds.has(conceptId) &&
+          !reportedConceptUses.has(errorKey)
+        ) {
           reportedConceptUses.add(errorKey);
           push({
             code: "grammar-explanation-missing",

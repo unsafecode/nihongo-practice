@@ -28,7 +28,7 @@ describe("A1 learner curriculum invariants", () => {
     expect(result.errors).toEqual([]);
     expect(result.reports.byLesson).toHaveLength(48);
     expect(result.reports.byLesson.map((row) => row.lessonId)).toEqual(A1_LESSON_IDS);
-    expect(result.reports.byLesson.reduce((total, row) => total + row.newLexemeCount, 0)).toBe(182);
+    expect(result.reports.byLesson.reduce((total, row) => total + row.newLexemeCount, 0)).toBe(186);
   });
 
   it("keeps the 4–6 / capstone-zero introduction contract and first-use closure", () => {

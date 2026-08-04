@@ -25,7 +25,6 @@ import {
   A1_CONCEPT_NOMINATIVE_GA,
   A1_CONCEPT_OBJECT_WO,
   A1_CONCEPT_RECIPIENT_NI,
-  A1_CONCEPT_COMPANION_TO,
   A1_CONCEPT_TIME_SCHEDULE,
   A1_CONCEPT_TOPIC_WA,
   buildA1InstructionalLesson,
@@ -43,7 +42,6 @@ const OBJ = "a1-family-object-action";
 const LOCF = "a1-family-location-action";
 const NOM = "a1-family-nominative-action";
 const REC = "a1-family-recipient-action";
-const COMP = "a1-family-companion-action";
 const SCHED = "a1-family-schedule-action";
 const ADV = "a1-family-adverbial-time-action";
 const COP = "a1-family-topic-copular";
@@ -54,7 +52,6 @@ const THING = "a1-referent-thing";
 
 const obj = (subject: string, predicate: string, object: string) => ({ subject, predicate, object });
 const loc = (subject: string, predicate: string, location: string) => ({ subject, predicate, location });
-const comp = (subject: string, companion: string) => ({ subject, predicate: "a1-value-accompany", companion });
 const ask = (subject: string, recipient: string) => ({ subject, predicate: "a1-value-ask", object: recipient });
 const timed = (subject: string, predicate: string, time: string) => ({ subject, predicate, time });
 const cop = (subject: string, object: string) => ({ subject, predicate: "a1-value-be", object });
@@ -69,14 +66,14 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
   order: 1,
   primaryCanDoId: "a1-can-do-daily-life",
   supportingCanDoIds: ["a1-can-do-actions"],
-  introducedConceptIds: [A1_CONCEPT_TOPIC_WA, A1_CONCEPT_OBJECT_WO, A1_CONCEPT_COMPANION_TO, A1_CONCEPT_TIME_SCHEDULE],
-  introducedSenseIds: ["a1-sense-eat", "a1-sense-do", "a1-sense-buy", "a1-sense-write", "a1-sense-accompany", "a1-sense-wake", "a1-sense-sleep", "a1-sense-return"],
+  introducedConceptIds: [A1_CONCEPT_TOPIC_WA, A1_CONCEPT_OBJECT_WO, A1_CONCEPT_RECIPIENT_NI, A1_CONCEPT_TIME_SCHEDULE],
+  introducedSenseIds: ["a1-sense-eat", "a1-sense-do", "a1-sense-buy", "a1-sense-write", "a1-sense-ask", "a1-sense-wake", "a1-sense-sleep", "a1-sense-return"],
   models: [
     { id: "past-negative-1-m1", family: OBJ, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", form: A1_AFFIRMATIVE_PAST_POLITE, slots: obj(WATASHI, "a1-value-eat", "a1-value-obj-apple"), translation: L("I ate an apple.", "Ho mangiato una mela.") },
     { id: "past-negative-1-m2", family: OBJ, context: "a1-context-classroom", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", form: A1_AFFIRMATIVE_PAST_POLITE, slots: obj("a1-value-yuki", "a1-value-do", "a1-value-obj-homework"), translation: L("Yuki did the homework.", "Yuki ha fatto i compiti.") },
     { id: "past-negative-1-m3", family: OBJ, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", form: A1_AFFIRMATIVE_PAST_POLITE, slots: obj(WATASHI, "a1-value-buy", "a1-value-obj-water"), translation: L("I bought water.", "Ho comprato dell'acqua.") },
     { id: "past-negative-1-m4", family: OBJ, context: "a1-context-classroom", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", form: A1_AFFIRMATIVE_PAST_POLITE, slots: obj("a1-value-ken", "a1-value-write", "a1-value-obj-letter"), translation: L("Ken wrote a letter.", "Ken ha scritto una lettera.") },
-    { id: "past-negative-1-m5", family: COMP, context: "a1-context-first-meeting", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", form: A1_AFFIRMATIVE_PAST_POLITE, slots: comp("a1-value-mina", "a1-value-companion-classmate"), translation: L("Mina went with a classmate.", "Mina è andata con un compagno di classe.") },
+    { id: "past-negative-1-m5", family: LOCF, context: "a1-context-town", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", form: A1_AFFIRMATIVE_PAST_POLITE, slots: loc("a1-value-mina", "a1-value-go", "a1-value-loc-school"), translation: L("Mina went to school.", "Mina è andata a scuola.") },
     { id: "past-negative-1-m6", family: SCHED, context: "a1-context-home", subjectReferent: SELF, subjectRealization: "omitted", form: A1_AFFIRMATIVE_PAST_POLITE, slots: timed(WATASHI, "a1-value-wake", "a1-value-time-7"), translation: L("I woke up at seven.", "Mi sono svegliato alle sette.") },
     { id: "past-negative-1-m7", family: SCHED, context: "a1-context-home", subjectReferent: SELF, subjectRealization: "omitted", form: A1_AFFIRMATIVE_PAST_POLITE, slots: timed(WATASHI, "a1-value-sleep", "a1-value-time-11"), translation: L("I went to bed at eleven.", "Sono andato a letto alle undici.") },
     { id: "past-negative-1-m8", family: SCHED, context: "a1-context-town", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", form: A1_AFFIRMATIVE_PAST_POLITE, slots: timed("a1-value-ken", "a1-value-return", "a1-value-day-tuesday"), translation: L("Ken came home on Tuesday.", "Ken è tornato a casa martedì.") },
@@ -84,7 +81,7 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
   transfers: [
     { id: "past-negative-1-t1", family: OBJ, context: "a1-context-cafe", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", form: A1_AFFIRMATIVE_PAST_POLITE, slots: obj("a1-value-ken", "a1-value-eat", "a1-value-obj-apple"), translation: L("Ken ate an apple.", "Ken ha mangiato una mela.") },
     { id: "past-negative-1-t2", family: OBJ, context: "a1-context-shop", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", form: A1_AFFIRMATIVE_PAST_POLITE, slots: obj("a1-value-mina", "a1-value-buy", "a1-value-obj-water"), translation: L("Mina bought water.", "Mina ha comprato dell'acqua.") },
-    { id: "past-negative-1-t3", family: COMP, context: "a1-context-first-meeting", subjectReferent: SELF, subjectRealization: "omitted", form: A1_AFFIRMATIVE_PAST_POLITE, slots: comp(WATASHI, "a1-value-companion-classmate"), translation: L("I went with a classmate.", "Sono andato con un compagno di classe.") },
+    { id: "past-negative-1-t3", family: SCHED, context: "a1-context-home", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", form: A1_AFFIRMATIVE_PAST_POLITE, slots: timed("a1-value-yuki", "a1-value-wake", "a1-value-time-7"), translation: L("Yuki woke up at seven.", "Yuki si è svegliata alle sette.") },
     { id: "past-negative-1-t4", family: SCHED, context: "a1-context-home", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", form: A1_AFFIRMATIVE_PAST_POLITE, slots: timed("a1-value-yuki", "a1-value-wake", "a1-value-time-7"), translation: L("Yuki woke up at seven.", "Yuki si è svegliata alle sette.") },
     { id: "past-negative-1-t5", family: SCHED, context: "a1-context-town", subjectReferent: SELF, subjectRealization: "omitted", form: A1_AFFIRMATIVE_PAST_POLITE, slots: timed(WATASHI, "a1-value-return", "a1-value-day-tuesday"), translation: L("I came home on Tuesday.", "Sono tornato a casa martedì.") },
   ],
@@ -136,8 +133,8 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
   models: [
     { id: "past-negative-3-m1", family: OBJ, context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", form: A1_NEGATIVE_PAST_POLITE, slots: obj(WATASHI, "a1-value-study", "a1-value-obj-english"), translation: L("I didn't study English.", "Non ho studiato l'inglese.") },
     { id: "past-negative-3-m2", family: OBJ, context: "a1-context-classroom", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", form: A1_NEGATIVE_PAST_POLITE, slots: obj("a1-value-yuki", "a1-value-read", "a1-value-obj-italian"), translation: L("Yuki didn't read Italian.", "Yuki non ha letto l'italiano.") },
-    { id: "past-negative-3-m3", family: SCHED, context: "a1-context-home", subjectReferent: SELF, subjectRealization: "omitted", form: A1_NEGATIVE_PAST_POLITE, slots: timed(WATASHI, "a1-value-wake", "a1-value-time-7"), translation: L("I didn't wake up at seven.", "Non mi sono svegliato alle sette.") },
-    { id: "past-negative-3-m4", family: SCHED, context: "a1-context-home", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", form: A1_NEGATIVE_PAST_POLITE, slots: timed("a1-value-ken", "a1-value-sleep", "a1-value-time-11"), translation: L("Ken didn't go to bed at eleven.", "Ken non è andato a letto alle undici.") },
+    { id: "past-negative-3-m3", family: ADV, context: "a1-context-home", subjectReferent: SELF, subjectRealization: "omitted", form: A1_NEGATIVE_PAST_POLITE, slots: timed(WATASHI, "a1-value-wake", "a1-value-seq-noon"), translation: L("I didn't wake up at noon.", "Non mi sono svegliato a mezzogiorno.") },
+    { id: "past-negative-3-m4", family: ADV, context: "a1-context-home", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", form: A1_NEGATIVE_PAST_POLITE, slots: timed("a1-value-ken", "a1-value-sleep", "a1-value-seq-afternoon"), translation: L("Ken didn't sleep in the afternoon.", "Ken non ha dormito nel pomeriggio.") },
     { id: "past-negative-3-m5", family: SCHED, context: "a1-context-town", subjectReferent: SELF, subjectRealization: "omitted", form: A1_NEGATIVE_PAST_POLITE, slots: timed(WATASHI, "a1-value-go-out", "a1-value-time-8"), translation: L("I didn't go out at eight.", "Non sono uscito alle otto.") },
     { id: "past-negative-3-m6", family: SCHED, context: "a1-context-weekday-study", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", form: A1_NEGATIVE_PAST_POLITE, slots: timed("a1-value-mina", "a1-value-study-routine", "a1-value-day-monday"), translation: L("Mina didn't study on Monday.", "Mina non ha studiato il lunedì.") },
     { id: "past-negative-3-m7", family: ADV, context: "a1-context-evening-reading", subjectReferent: SELF, subjectRealization: "omitted", form: A1_NEGATIVE_PAST_POLITE, slots: timed(WATASHI, "a1-value-read-routine", "a1-value-seq-night"), translation: L("I didn't read at night.", "Non ho letto la sera.") },
@@ -146,7 +143,7 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
   transfers: [
     { id: "past-negative-3-t1", family: OBJ, context: "a1-context-classroom", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", form: A1_NEGATIVE_PAST_POLITE, slots: obj("a1-value-yuki", "a1-value-study", "a1-value-obj-english"), translation: L("Yuki didn't study English.", "Yuki non ha studiato l'inglese.") },
     { id: "past-negative-3-t2", family: OBJ, context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", form: A1_NEGATIVE_PAST_POLITE, slots: obj(WATASHI, "a1-value-read", "a1-value-obj-italian"), translation: L("I didn't read Italian.", "Non ho letto l'italiano.") },
-    { id: "past-negative-3-t3", family: SCHED, context: "a1-context-home", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", form: A1_NEGATIVE_PAST_POLITE, slots: timed("a1-value-mina", "a1-value-wake", "a1-value-time-7"), translation: L("Mina didn't wake up at seven.", "Mina non si è svegliata alle sette.") },
+    { id: "past-negative-3-t3", family: ADV, context: "a1-context-home", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", form: A1_NEGATIVE_PAST_POLITE, slots: timed("a1-value-mina", "a1-value-wake", "a1-value-seq-noon"), translation: L("Mina didn't wake up at noon.", "Mina non si è svegliata a mezzogiorno.") },
     { id: "past-negative-3-t4", family: SCHED, context: "a1-context-weekday-study", subjectReferent: SELF, subjectRealization: "omitted", form: A1_NEGATIVE_PAST_POLITE, slots: timed(WATASHI, "a1-value-study-routine", "a1-value-day-monday"), translation: L("I didn't study on Monday.", "Non ho studiato il lunedì.") },
     { id: "past-negative-3-t5", family: ADV, context: "a1-context-evening-reading", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", form: A1_NEGATIVE_PAST_POLITE, slots: timed("a1-value-ken", "a1-value-read-routine", "a1-value-seq-night"), translation: L("Ken didn't read at night.", "Ken non ha letto la sera.") },
   ],

@@ -65,6 +65,7 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-context-weekday-study-label": "Weekday study routine",
     "a1-context-mealtime-routine-label": "Daily mealtime routine",
     "a1-context-evening-reading-label": "Evening reading routine",
+    "a1-context-social-outing-label": "A social outing",
     "a1-role-creature-label": "An animal",
     "a1-referent-creature-label": "The animal",
     "a1-can-do-sounds-descriptor": "I can hear and read the basic sounds of Japanese.",
@@ -129,6 +130,7 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-context-weekday-study-label": "Routine di studio infrasettimanale",
     "a1-context-mealtime-routine-label": "Routine dei pasti quotidiani",
     "a1-context-evening-reading-label": "Routine di lettura serale",
+    "a1-context-social-outing-label": "Un'uscita sociale",
     "a1-role-creature-label": "Un animale",
     "a1-referent-creature-label": "L'animale",
     "a1-can-do-sounds-descriptor": "So sentire e leggere i suoni di base del giapponese.",
@@ -349,6 +351,10 @@ export const A1_CONTEXT_SCENARIO: Readonly<Record<string, Bilingual>> = deepFree
   "a1-context-evening-reading": {
     en: "You are describing your habit of reading in the evening.",
     it: "Descrivi la tua abitudine di leggere la sera.",
+  },
+  "a1-context-social-outing": {
+    en: "You are arranging a simple outing with someone you know.",
+    it: "Stai organizzando una semplice uscita con una persona che conosci.",
   },
 });
 

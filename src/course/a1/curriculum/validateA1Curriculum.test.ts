@@ -287,6 +287,39 @@ describe("validateA1Curriculum — attributed broken fixtures", () => {
     });
   });
 
+  it("does not let an incidental early object explanation unlock use before actions-1", () => {
+    const notes = clone(a1LearningNotes);
+    const note = notes.find(
+      (entry) => entry.id === "a1-note-sentence-shape-omission",
+    )! as Mutable<A1LearningNote>;
+    note.explainedConceptIds = [...note.explainedConceptIds, "a1-concept-object-wo"];
+    const catalogs = clone(a1FoundationCatalogs);
+    const earlyObjectVariant = catalogs.sentenceVariants.find(
+      (entry) => entry.id === "introductions-4-m7",
+    ) as unknown as {
+      sentenceFamilyId: string;
+      slotValues: Record<string, string>;
+    };
+    earlyObjectVariant.sentenceFamilyId = "a1-family-object-action";
+    earlyObjectVariant.slotValues = {
+      subject: "a1-value-watashi",
+      predicate: "a1-value-do",
+      object: "a1-value-obj-homework",
+    };
+
+    const result = validateA1Curriculum({
+      learningNotes: notes,
+      foundationCatalogs: catalogs,
+    });
+
+    expectAttributed(result, "grammar-explanation-missing", {
+      lessonId: "introductions-4",
+      id: "introductions-4-m7",
+      referenceId: "a1-concept-object-wo",
+      stage: "grammar",
+    });
+  });
+
   it("reports future-content-in-example for a real owned example changed to a later value", () => {
     const catalogs = clone(a1FoundationCatalogs);
     const variant = catalogs.sentenceVariants.find((entry) => entry.id === "introductions-1-m1")!;

@@ -221,6 +221,15 @@ export interface InstructionalLessonKitConfig<TRecipe> {
   readonly defineLesson: (candidate: KitLessonRecipeCandidate) => TRecipe;
 }
 
+/**
+ * A deliberate, per-lesson relaxation for a focused foundation lesson. It can
+ * only lower the normal floor, so omitting it preserves every level's defaults.
+ */
+export interface InstructionalLessonDiversityOverride {
+  readonly minFamilies?: number;
+  readonly minPredicates?: number;
+}
+
 /** Referent → its person-role, resolved from the level's config. */
 function referentRole(
   referentId: string,
@@ -310,6 +319,7 @@ export interface InstructionalLessonInput {
   readonly supportingCanDoIds: readonly string[];
   readonly introducedConceptIds: readonly string[];
   readonly introducedSenseIds: readonly string[];
+  readonly diversityOverride?: InstructionalLessonDiversityOverride;
   readonly models: readonly KitLineSpec[];
   readonly transfers: readonly KitLineSpec[];
 }
@@ -321,15 +331,35 @@ export interface BuiltInstructionalLesson<TRecipe> {
   readonly it: Readonly<Record<string, string>>;
 }
 
+function resolveDiversityFloor(
+  lessonId: string,
+  label: "minFamilies" | "minPredicates",
+  defaultFloor: number,
+  override: number | undefined,
+): number {
+  if (override === undefined) return defaultFloor;
+  if (
+    !Number.isInteger(override) ||
+    override < 1 ||
+    override > defaultFloor
+  ) {
+    throw new Error(
+      `Instructional lesson "${lessonId}" ${label} override must be an integer from 1 to ${defaultFloor}.`,
+    );
+  }
+  return override;
+}
+
 /**
  * Expand an instructional lesson's models and transfers into a validated
  * recipe (via the level's own `config.defineLesson`), its frozen variants,
  * and the merged EN/IT translation+scenario copy. Diversity floors follow
- * the level's configured model/exercise-count ranges plus the fixed depth
+ * the level's configured model/exercise-count ranges plus the default depth
  * contract every A1/A2 instructional lesson shares: ≥3 predicates, ≥3 roles,
  * ≥2 contexts, level-declared visible-target diversity, reuse ≤2, the
  * transfer round's declared target count as transfer-exercise floor, controlled
- * construction required. `minFamilies` is
+ * construction required. An explicit per-lesson override may only lower the
+ * predicate or family floor. `minFamilies` is
  * hand-declared by the kit config (never derived from the models being
  * validated — a derived floor can only ever compare `n < n`).
  */
@@ -341,12 +371,24 @@ export function buildInstructionalLesson<TRecipe>(
   const transferBuilt = input.transfers.map((t) => lineToBuiltVariant(t, "transfer", config));
   const modelIds = modelBuilt.map((b) => b.variant.id);
   const transferIds = transferBuilt.map((b) => b.variant.id);
+  const minFamilies = resolveDiversityFloor(
+    input.id,
+    "minFamilies",
+    config.minFamilies,
+    input.diversityOverride?.minFamilies,
+  );
+  const minPredicates = resolveDiversityFloor(
+    input.id,
+    "minPredicates",
+    3,
+    input.diversityOverride?.minPredicates,
+  );
 
   const diversityConstraints: LessonDiversityConstraints = {
     modelCountRange: config.modelCountRange,
     exerciseCountRange: config.exerciseCountRange,
-    minFamilies: config.minFamilies,
-    minPredicates: 3,
+    minFamilies,
+    minPredicates,
     minRoles: config.minRoles ?? 3,
     minContexts: 2,
     minUniqueTargets: config.minUniqueTargets,

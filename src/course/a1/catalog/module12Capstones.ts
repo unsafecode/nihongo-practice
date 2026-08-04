@@ -55,6 +55,7 @@ const QUANT = "a1-family-quantified-action";
 const REQ = "a1-family-request";
 const DESC = "a1-family-description";
 const EXIST = "a1-family-existence";
+const COMPF = "a1-family-companion-action";
 
 // Referents reused from Modules 2, 7, 9 and 11.
 const SELF = "a1-referent-self";
@@ -97,6 +98,11 @@ const req = (object: string, quantity?: string): Record<string, string> =>
     : { subject: WATASHI, predicate: "a1-value-request", object, quantity };
 const exist = (subject: string, predicate: string, location?: string): Record<string, string> =>
   location === undefined ? { subject, predicate } : { subject, predicate, location };
+const comp = (subject: string, companion: string) => ({
+  subject,
+  predicate: "a1-value-accompany",
+  companion,
+});
 
 // ---------------------------------------------------------------------------
 // Lesson capstones-1 — self-introduction + reciprocal question (scenario-1)
@@ -117,7 +123,7 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
     { id: "capstones-1-m3", family: OBJ, context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", slots: study(WATASHI, "a1-value-obj-japanese"), translation: L("I study Japanese.", "Studio il giapponese.") },
     { id: "capstones-1-m4", family: DESC, context: "a1-context-home", subjectReferent: THING, subjectRealization: "explicit", speakerRole: YUKI_ROLE, slots: desc("a1-value-heya", "a1-value-big"), translation: L("The room is big.", "La stanza è grande.") },
     { id: "capstones-1-m5", family: DESC, context: "a1-context-town", subjectReferent: THING, subjectRealization: "explicit", speakerRole: KEN_ROLE, slots: desc("a1-value-machi", "a1-value-small"), translation: L("The town is small.", "La città è piccola.") },
-    { id: "capstones-1-m6", family: NOM, context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", slots: understand(WATASHI, "a1-value-obj-japanese"), translation: L("I understand Japanese.", "Capisco il giapponese.") },
+    { id: "capstones-1-m6", family: COMPF, context: "a1-context-social-outing", subjectReferent: SELF, subjectRealization: "omitted", slots: comp(WATASHI, "a1-value-companion-friend"), translation: L("I go with a friend.", "Vado con un amico.") },
     { id: "capstones-1-m7", family: OBJ, context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: CLASSMATE, addresseeRole: LEARNER, interrogative: true, slots: actQ(WATASHI, "a1-value-do", "a1-value-q-nani"), translation: L("What do you do?", "Cosa fai?") },
     { id: "capstones-1-m8", family: NOM, context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: TEACHER, addresseeRole: LEARNER, interrogative: true, slots: actQ(WATASHI, "a1-value-understand", "a1-value-q-nani"), translation: L("What do you understand?", "Cosa capisci?") },
   ],

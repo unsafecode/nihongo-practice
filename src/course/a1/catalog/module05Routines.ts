@@ -123,7 +123,7 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
     { id: "routines-2-m4", family: ADV, context: "a1-context-mealtime-routine", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: timed("a1-value-mina", "a1-value-eat-routine", "a1-value-seq-morning"), translation: L("Mina eats in the morning.", "Mina mangia la mattina.") },
     { id: "routines-2-m5", family: ADV, context: "a1-context-evening-reading", subjectReferent: SELF, subjectRealization: "omitted", slots: timed(WATASHI, "a1-value-read-routine", "a1-value-seq-morning"), translation: L("I read in the morning.", "Leggo la mattina.") },
     { id: "routines-2-m6", family: SCHED, context: "a1-context-evening-reading", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: timed("a1-value-ken", "a1-value-read-routine", "a1-value-day-sunday"), translation: L("Ken reads on Sunday.", "Ken legge la domenica.") },
-    { id: "routines-2-m7", family: SCHED, context: "a1-context-town", subjectReferent: SELF, subjectRealization: "omitted", slots: timed(WATASHI, "a1-value-go-out", "a1-value-day-monday"), translation: L("I go out on Monday.", "Esco il lunedì.") },
+    { id: "routines-2-m7", family: SCHED, context: "a1-context-town", subjectReferent: SELF, subjectRealization: "omitted", slots: timed(WATASHI, "a1-value-go-out", "a1-value-day-thursday"), translation: L("I go out on Thursday.", "Esco il giovedì.") },
     { id: "routines-2-m8", family: ADV, context: "a1-context-home", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: timed("a1-value-mina", "a1-value-wake", "a1-value-seq-morning"), translation: L("Mina wakes up in the morning.", "Mina si sveglia la mattina.") },
   ],
   transfers: [

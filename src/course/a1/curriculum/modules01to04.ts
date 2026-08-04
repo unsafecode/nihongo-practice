@@ -141,16 +141,16 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
   defineA1LessonContent({
     lessonId: "introductions-2",
     situation: {
-      en: "You explain where you work and what language you understand.",
-      it: "Spieghi dove lavori e quale lingua capisci.",
+      en: "You say which familiar languages different people understand.",
+      it: "Dici quali lingue familiari capiscono persone diverse.",
     },
     prerequisiteLessonIds: ["introductions-1"],
     prerequisiteConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
     newLexemeIds: [
-      "a1-lexeme-hataraku",
-      "a1-lexeme-kaisha",
       "a1-lexeme-wakaru",
       "a1-lexeme-nihongo",
+      "a1-lexeme-eigo",
+      "a1-lexeme-itaria-go",
     ],
     learningNoteId: "a1-note-particle-ga",
     workedExampleVariantIds: ["introductions-2-m1", "introductions-2-m4"],
@@ -160,8 +160,8 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       "transformation",
     ),
     retrievalCue: {
-      en: "Set the topic first, then finish the polite statement with です or the action.",
-      it: "Imposta prima il tema, poi completa l'affermazione cortese con です o con l'azione.",
+      en: "Keep the language before が, then finish with the polite action.",
+      it: "Tieni la lingua prima di が, poi completa con l'azione cortese.",
     },
   }),
   defineA1LessonContent({
@@ -204,9 +204,9 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     prerequisiteConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
     newLexemeIds: [
       "a1-lexeme-enjinia",
-      "a1-lexeme-suru",
-      "a1-lexeme-shukudai",
       "a1-lexeme-kaishain",
+      "a1-lexeme-ano-hito",
+      "a1-lexeme-sono-hito",
     ],
     learningNoteId: "a1-note-personal-reference",
     workedExampleVariantIds: [
@@ -273,8 +273,8 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       "a1-lexeme-toire",
       "a1-lexeme-doko",
       "a1-lexeme-eki",
-      "a1-lexeme-ano-hito",
       "a1-lexeme-dare",
+      "a1-lexeme-kurasumeeto",
     ],
     learningNoteId: "a1-note-question-ka-words",
     workedExampleVariantIds: [
@@ -334,8 +334,8 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     newLexemeIds: [
       "a1-lexeme-are",
       "a1-lexeme-dono-hon",
-      "a1-lexeme-sono-hito",
       "a1-lexeme-dore",
+      "a1-lexeme-kodomo",
     ],
     learningNoteId: "a1-note-particle-ga",
     workedExampleVariantIds: [
@@ -356,8 +356,8 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
   defineA1LessonContent({
     lessonId: "actions-1",
     situation: {
-      en: "You say what you eat, drink, and read during a normal day.",
-      it: "Dici che cosa mangi, bevi e leggi in una giornata normale.",
+      en: "You say what you eat, drink, read, or do during a normal day.",
+      it: "Dici che cosa mangi, bevi, leggi o fai in una giornata normale.",
     },
     prerequisiteLessonIds: ["essential-questions-4"],
     prerequisiteConceptIds: ["a1-concept-topic-wa"],
@@ -366,6 +366,8 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       "a1-lexeme-nomu",
       "a1-lexeme-yomu",
       "a1-lexeme-hon",
+      "a1-lexeme-suru",
+      "a1-lexeme-shukudai",
     ],
     learningNoteId: "a1-note-particle-o",
     workedExampleVariantIds: ["actions-1-m1", "actions-1-m3", "actions-1-m5"],
@@ -392,12 +394,14 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       "a1-lexeme-kuru",
       "a1-lexeme-toshokan",
       "a1-lexeme-kafe",
+      "a1-lexeme-hataraku",
+      "a1-lexeme-kaisha",
     ],
     learningNoteId: "a1-note-location-ni-de-contrast",
-    workedExampleVariantIds: ["actions-2-m1", "actions-2-m3", "actions-2-m8"],
+    workedExampleVariantIds: ["actions-2-m1", "actions-2-m3", "actions-2-m7"],
     practiceBlueprint: semanticBlueprint(
       "actions-2",
-      "actions-2-m8",
+      "actions-2-m7",
       "transformation",
     ),
     retrievalCue: {
@@ -408,16 +412,16 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
   defineA1LessonContent({
     lessonId: "actions-3",
     situation: {
-      en: "You ask a clerk for help or say whom you go with while leaving words out naturally.",
-      it: "Chiedi aiuto a un commesso o dici con chi vai, omettendo parole in modo naturale.",
+      en: "You ask a clerk for help or say who studies and buys familiar things.",
+      it: "Chiedi aiuto a un commesso o dici chi studia e compra cose familiari.",
     },
     prerequisiteLessonIds: ["actions-2"],
     prerequisiteConceptIds: ["a1-concept-location-particle"],
     newLexemeIds: [
-      "a1-lexeme-kurasumeeto",
       "a1-lexeme-kiku",
       "a1-lexeme-tenin",
       "a1-lexeme-kau",
+      "a1-lexeme-benkyou-suru",
     ],
     learningNoteId: "a1-note-particle-ni",
     workedExampleVariantIds: ["actions-3-m2", "actions-3-m4", "actions-3-m5"],
@@ -427,8 +431,8 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       "contextual-response",
     ),
     retrievalCue: {
-      en: "Name the recipient or goal before に, then omit yourself when the situation makes it clear.",
-      it: "Nomina il destinatario o la meta prima di に, poi ometti te stesso quando la situazione è chiara.",
+      en: "Name the recipient before に; keep Japanese before を when you study it.",
+      it: "Nomina il destinatario prima di に; tieni il giapponese prima di を quando lo studi.",
     },
   }),
   defineA1LessonContent({

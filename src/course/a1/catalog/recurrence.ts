@@ -25,6 +25,7 @@ import { withA1LaterUses } from "./shared";
 import { module2VerbUseRecords } from "./module02Introductions";
 import { module4VerbUseRecords } from "./module04Actions";
 import { module5VerbUseRecords } from "./module05Routines";
+import { module8VerbUseRecords } from "./module08People";
 import { module9VerbUseRecords } from "./module09Descriptions";
 import { module10VerbUseRecords } from "./module10Shopping";
 import { module11VerbUseRecords } from "./module11ExistenceNeeds";
@@ -80,8 +81,8 @@ const LATER_USES_BY_SENSE: Readonly<
     { lessonId: "places-1", variantId: "places-1-m3" },
   ],
   "a1-sense-accompany": [
-    { lessonId: "past-negative-1", variantId: "past-negative-1-m5" },
-    { lessonId: "people-3", variantId: "people-3-m1" },
+    { lessonId: "people-4", variantId: "people-4-m1" },
+    { lessonId: "capstones-1", variantId: "capstones-1-m6" },
   ],
   "a1-sense-ask": [
     { lessonId: "past-negative-2", variantId: "past-negative-2-m4" },
@@ -89,7 +90,7 @@ const LATER_USES_BY_SENSE: Readonly<
   ],
   "a1-sense-buy": [
     { lessonId: "past-negative-1", variantId: "past-negative-1-m3" },
-    { lessonId: "people-4", variantId: "people-4-m1" },
+    { lessonId: "people-4", variantId: "people-4-m4" },
   ],
   "a1-sense-see": [
     { lessonId: "past-negative-2", variantId: "past-negative-2-m5" },
@@ -235,8 +236,9 @@ const deepModuleRawRecords: readonly VerbUseRecord[] = [
   ...module5VerbUseRecords,
 ];
 
-/** The raw Modules 9/10/11 introduction records (later uses land in capstones). */
+/** The people companion plus Modules 9/10/11 records (later uses land in capstones). */
 const descriptiveModuleRawRecords: readonly VerbUseRecord[] = [
+  ...module8VerbUseRecords,
   ...module9VerbUseRecords,
   ...module10VerbUseRecords,
   ...module11VerbUseRecords,
@@ -244,15 +246,15 @@ const descriptiveModuleRawRecords: readonly VerbUseRecord[] = [
 
 // `LATER_USES_BY_SENSE` is a single map shared by both raw-record groups
 // above, so the stale-key check runs once, at module load, over their
-// union — never per-group, which would wrongly flag every Module 9/10/11 key
-// while validating only the Modules 2/4/5 group (and vice versa).
+// union — never per-group, which would wrongly flag a later group while
+// validating only the Modules 2/4/5 group.
 assertNoStaleLaterUseKeys(LATER_USES_BY_SENSE, [
   ...deepModuleRawRecords,
   ...descriptiveModuleRawRecords,
 ]);
 
 /**
- * The 24 Modules 2/4/5 productive verb records, augmented with their authored
+ * The 23 Modules 2/4/5 productive verb records, augmented with their authored
  * later, spaced reuses across Modules 4-8. This is the Task-3 recurrence view:
  * it resolves entirely within the Modules 2-8 catalog, so the deep-authoring
  * suite can assert it in isolation. Non-mutating — the source arrays remain
@@ -263,8 +265,9 @@ export const a1AugmentedVerbUseRecords: readonly VerbUseRecord[] = Object.freeze
 );
 
 /**
- * The full A1 release recurrence view: the 24 deep-module records plus the 13
- * Modules 9/10/11 senses whose spaced reuses are the four capstone syntheses.
+ * The full A1 release recurrence view: the 23 deep-module records plus the
+ * companion and 13 Modules 9/10/11 senses whose spaced reuses are the four
+ * capstone syntheses.
  * Consumers assembling the whole 48-lesson level (catalog / release validator)
  * import this so every productive sense — early and late — resolves its timeline.
  */

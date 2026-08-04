@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { A1_CONCEPT_IDS } from "../catalog/a1SemanticCatalog";
 import {
+  a1ConceptFirstTeachingNoteId,
   a1LearningNoteById,
   a1LearningNotes,
   defineA1LearningNote,
@@ -117,6 +118,36 @@ describe("A1 learner note catalog", () => {
     }
 
     expect(A1_CONCEPT_IDS.filter((conceptId) => !explainedConceptIds.has(conceptId))).toEqual([]);
+  });
+
+  it("assigns every A1 concept one immutable substantive first-teaching note", () => {
+    const firstTeachingNoteId = a1ConceptFirstTeachingNoteId;
+
+    expect(Object.isFrozen(firstTeachingNoteId)).toBe(true);
+    expect(firstTeachingNoteId).not.toBeInstanceOf(Map);
+    expect(Object.keys(firstTeachingNoteId).sort()).toEqual([...A1_CONCEPT_IDS].sort());
+    for (const conceptId of A1_CONCEPT_IDS) {
+      const noteId = firstTeachingNoteId[conceptId];
+      expect(noteId, conceptId).toEqual(expect.any(String));
+      expect(a1LearningNoteById[noteId]?.explainedConceptIds).toContain(conceptId);
+    }
+    expect(firstTeachingNoteId).toMatchObject({
+      "a1-concept-object-wo": "a1-note-particle-o",
+      "a1-concept-preference-ga": "a1-note-preference-ga",
+      "a1-concept-companion-to": "a1-note-companion-to",
+      "a1-concept-recipient-ni": "a1-note-particle-ni",
+      "a1-concept-location-particle": "a1-note-location-ni-de-contrast",
+      "a1-concept-interrogative-ka": "a1-note-question-ka-words",
+      "a1-concept-direction-he": "a1-note-particle-ni-destination",
+      "a1-concept-topic-wa": "a1-note-sentence-shape-omission",
+      "a1-concept-copula-desu": "a1-note-sentence-shape-omission",
+    });
+  });
+
+  it("keeps the sentence-shape note out of later particle teaching", () => {
+    expect(
+      a1LearningNoteById["a1-note-sentence-shape-omission"]?.explainedConceptIds,
+    ).toEqual(["a1-concept-topic-wa", "a1-concept-copula-desu"]);
   });
 
   it("explains the location particle through both action-place and destination uses", () => {

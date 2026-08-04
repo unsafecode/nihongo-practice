@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { buildA1LessonViewModel } from "../a1LessonViewModel";
 import { phoneticBlueprint, semanticBlueprint } from "./lessonContentHelpers";
 
 describe("A1 lesson content blueprints", () => {
@@ -16,54 +15,89 @@ describe("A1 lesson content blueprints", () => {
     ).toThrow(/unique phonetic item ids/i);
   });
 
-  it("uses the semantic learner order and contextual fourth activity", () => {
-    const blueprint = semanticBlueprint(
-      "introductions-1",
-      "introductions-1-m4",
-      "contextual-response",
-    );
-    const built = buildA1LessonViewModel("introductions-1", "en");
-    if (!built.ok) throw new Error("production lesson should build");
-
-    expect(blueprint.activities.map((activity) => activity.function)).toEqual([
-      "meaning-comprehension",
-      "form-discrimination",
-      "controlled-production",
-      "contextual-response",
-      "listening-speaking",
-    ]);
-    for (const activity of blueprint.activities.slice(0, 4)) {
-      if ("spokenVariantId" in activity.targetRef) continue;
-      const round =
-        activity.targetRef.round === "one"
-          ? built.model.rounds[0]
-          : built.model.rounds[1];
-      expect(activity.interactionKind).toBe(
-        round.targets[activity.targetRef.index]?.prompt.kind,
-      );
-    }
-    expect(blueprint.activities[4]).toMatchObject({
-      id: "introductions-1-spoken",
-      function: "listening-speaking",
-      interactionKind: "spoken",
-      targetRef: { spokenVariantId: expect.any(String) },
+  it("pins introductions-1's contextual learner path and collision-free spoken target", () => {
+    expect(
+      semanticBlueprint(
+        "introductions-1",
+        "introductions-1-m4",
+        "contextual-response",
+      ),
+    ).toEqual({
+      activities: [
+        {
+          id: "introductions-1-meaning",
+          function: "meaning-comprehension",
+          interactionKind: "tile-ordering",
+          targetRef: { round: "one", index: 1 },
+        },
+        {
+          id: "introductions-1-form",
+          function: "form-discrimination",
+          interactionKind: "constrained-construction",
+          targetRef: { round: "two", index: 0 },
+        },
+        {
+          id: "introductions-1-production",
+          function: "controlled-production",
+          interactionKind: "completion",
+          targetRef: { round: "one", index: 0 },
+        },
+        {
+          id: "introductions-1-transfer",
+          function: "contextual-response",
+          interactionKind: "tile-ordering",
+          targetRef: { round: "two", index: 1 },
+        },
+        {
+          id: "introductions-1-spoken",
+          function: "listening-speaking",
+          interactionKind: "spoken",
+          targetRef: { spokenVariantId: "introductions-1-m4" },
+        },
+      ],
     });
   });
 
-  it("maps a transformation function to the selected production prompt kind", () => {
-    const activity = semanticBlueprint(
-      "introductions-2",
-      "introductions-2-m4",
-      "transformation",
-    ).activities[3];
-    const built = buildA1LessonViewModel("introductions-2", "en");
-    if (!built.ok) throw new Error("production lesson should build");
-
-    expect(activity).toMatchObject({
-      id: "introductions-2-transfer",
-      function: "transformation",
-      targetRef: { round: "two", index: 1 },
+  it("pins introductions-2's transformation path and collision-free spoken target", () => {
+    expect(
+      semanticBlueprint(
+        "introductions-2",
+        "introductions-2-m4",
+        "transformation",
+      ),
+    ).toEqual({
+      activities: [
+        {
+          id: "introductions-2-meaning",
+          function: "meaning-comprehension",
+          interactionKind: "choice",
+          targetRef: { round: "one", index: 1 },
+        },
+        {
+          id: "introductions-2-form",
+          function: "form-discrimination",
+          interactionKind: "constrained-construction",
+          targetRef: { round: "two", index: 0 },
+        },
+        {
+          id: "introductions-2-production",
+          function: "controlled-production",
+          interactionKind: "tile-ordering",
+          targetRef: { round: "one", index: 0 },
+        },
+        {
+          id: "introductions-2-transfer",
+          function: "transformation",
+          interactionKind: "completion",
+          targetRef: { round: "two", index: 1 },
+        },
+        {
+          id: "introductions-2-spoken",
+          function: "listening-speaking",
+          interactionKind: "spoken",
+          targetRef: { spokenVariantId: "introductions-2-m1" },
+        },
+      ],
     });
-    expect(activity.interactionKind).toBe(built.model.rounds[1].targets[1]?.prompt.kind);
   });
 });

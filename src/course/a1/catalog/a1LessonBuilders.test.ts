@@ -19,6 +19,8 @@ import {
 } from "./catalog";
 import { A1_RELEASE_CATALOG_VERSION, A1_RELEASE_SEED } from "../releaseIdentity";
 import { A1_INSTRUCTIONAL_KIT_CONFIG } from "./a1LessonBuilders";
+import { module2Lessons } from "./module02Introductions";
+import { module4Lessons } from "./module04Actions";
 
 // ---------------------------------------------------------------------------
 // declared model-family floor — production-path proof (D8)
@@ -30,6 +32,21 @@ describe("A1 builder: production-path family-diversity gate (D8)", () => {
   const L = (en: string, it: string) => ({ en, it });
   const obj = (subject: string, predicate: string, object: string) => ({
     subject, predicate, object,
+  });
+
+  describe("A1 builder: scoped diversity overrides", () => {
+    it("lowers the predicate floor only for the focused introductions foundation", () => {
+      const introductions1 = module2Lessons.find(
+        ({ recipe }) => recipe.id === "introductions-1",
+      )?.recipe;
+      const actions1 = module4Lessons.find(({ recipe }) => recipe.id === "actions-1")?.recipe;
+
+      expect(introductions1?.diversityConstraints).toMatchObject({
+        minFamilies: 1,
+        minPredicates: 1,
+      });
+      expect(actions1?.diversityConstraints.minPredicates).toBe(3);
+    });
   });
 
   const raisedConfig = { ...A1_INSTRUCTIONAL_KIT_CONFIG, minFamilies: 2 };

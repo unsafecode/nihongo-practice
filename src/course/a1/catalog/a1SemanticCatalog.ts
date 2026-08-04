@@ -107,6 +107,7 @@ export const a1Contexts: readonly Context[] = deepFreeze([
   { id: "a1-context-weekday-study", labelCopyId: "a1-context-weekday-study-label" },
   { id: "a1-context-mealtime-routine", labelCopyId: "a1-context-mealtime-routine-label" },
   { id: "a1-context-evening-reading", labelCopyId: "a1-context-evening-reading-label" },
+  { id: "a1-context-social-outing", labelCopyId: "a1-context-social-outing-label" },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -352,6 +353,7 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-recipient-friend", kind: "object", tokenFragments: [frag("ともだち", "tomodachi")] },
   { id: "a1-value-companion-teacher", kind: "object", tokenFragments: [frag("せんせい", "sensei")] },
   { id: "a1-value-companion-child", kind: "object", tokenFragments: [frag("こども", "kodomo")] },
+  { id: "a1-value-companion-colleague", kind: "object", tokenFragments: [frag("どうりょう", "douryou")] },
   { id: "a1-value-recipient-person", kind: "object", tokenFragments: [frag("ひと", "hito")] },
   { id: "a1-value-companion-family", kind: "object", tokenFragments: [frag("かぞく", "kazoku")] },
   // Module 7 means-of-transport nouns (で adjunct; object-kind, distinct from
@@ -421,6 +423,7 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   // Day-part sequence adverbs (bare — no particle).
   { id: "a1-value-seq-morning", kind: "time", tokenFragments: [frag("あさ", "asa")] },
   { id: "a1-value-seq-noon", kind: "time", tokenFragments: [frag("ひる", "hiru")] },
+  { id: "a1-value-seq-afternoon", kind: "time", tokenFragments: [frag("ごご", "gogo")] },
   { id: "a1-value-seq-night", kind: "time", tokenFragments: [frag("よる", "yoru")] },
   { id: "a1-value-seq-evening", kind: "time", tokenFragments: [frag("ばん", "ban")] },
   // Frequency adverbs (bare — a case-marking particle here would be

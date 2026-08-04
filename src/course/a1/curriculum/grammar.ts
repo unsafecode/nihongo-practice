@@ -274,13 +274,7 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
   defineA1LearningNote({
     id: "a1-note-sentence-shape-omission",
     kind: "grammar",
-    explainedConceptIds: [
-      "a1-concept-topic-wa",
-      "a1-concept-copula-desu",
-      "a1-concept-location-particle",
-      "a1-concept-object-wo",
-      "a1-concept-preference-ga",
-    ],
+    explainedConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
     requiredConceptIds: [],
     title: { en: "Put the predicate last", it: "Metti il predicato alla fine" },
     meaning: {
@@ -292,12 +286,12 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
       it: "Quando ascolti o costruisci una frase, individua prima il verbo, l'aggettivo o la copula finale.",
     },
     construction: {
-      en: "Place the topic before は; put a direct object before を or a place before に; then close with the predicate. A liked thing takes が before すきです.",
-      it: "Metti il tema prima di は; metti un oggetto diretto prima di を o un luogo prima di に; poi chiudi con il predicato. Una cosa che piace prende が prima di すきです.",
+      en: "Place the topic before は when it is stated, put the other information before the final predicate, and close a polite identification with です.",
+      it: "Metti il tema prima di は quando è espresso, metti le altre informazioni prima del predicato finale e chiudi un'identificazione cortese con です.",
     },
     typicalMistake: {
-      en: "Do not keep English word order or place the predicate before its object.",
-      it: "Non mantenere l'ordine delle parole inglese né mettere il predicato prima del suo oggetto.",
+      en: "Do not keep English word order or put the predicate before the information it completes.",
+      it: "Non mantenere l'ordine delle parole inglese né mettere il predicato prima delle informazioni che completa.",
     },
     pattern: [
       token("slot", "topic", "topic, if stated", "tema, se espresso"),
@@ -1238,3 +1232,60 @@ function buildLearningNoteIndex(notes: readonly A1LearningNote[]): LearningNoteI
 }
 
 export const a1LearningNoteById: LearningNoteIndex = buildLearningNoteIndex(a1LearningNotes);
+
+/**
+ * The one substantive note that first teaches each grammar concept. Later
+ * mentions may reinforce a concept, but never unlock it for curriculum use.
+ */
+export const a1ConceptFirstTeachingNoteId: Readonly<Record<string, string>> = deepFreeze({
+  "a1-concept-topic-wa": "a1-note-sentence-shape-omission",
+  "a1-concept-copula-desu": "a1-note-sentence-shape-omission",
+  "a1-concept-interrogative-ka": "a1-note-question-ka-words",
+  "a1-concept-location-particle": "a1-note-location-ni-de-contrast",
+  "a1-concept-object-wo": "a1-note-particle-o",
+  "a1-concept-nominative-ga": "a1-note-particle-ga",
+  "a1-concept-recipient-ni": "a1-note-particle-ni",
+  "a1-concept-companion-to": "a1-note-companion-to",
+  "a1-concept-time-schedule": "a1-note-time-ni",
+  "a1-concept-frequency": "a1-note-frequency",
+  "a1-concept-direction-he": "a1-note-particle-ni-destination",
+  "a1-concept-source-limit": "a1-note-source-limit",
+  "a1-concept-transport-de": "a1-note-particle-de-transport",
+  "a1-concept-adjective": "a1-note-adjectives",
+  "a1-concept-preference-ga": "a1-note-preference-ga",
+  "a1-concept-comparison-yori": "a1-note-comparison-yori",
+  "a1-concept-quantity": "a1-note-quantity",
+  "a1-concept-request-kudasai": "a1-note-request-kudasai",
+  "a1-concept-existence-aru-iru": "a1-note-existence-aru-iru",
+});
+
+function validateA1ConceptFirstTeachingNoteIds(
+  firstTeachingNoteId: Readonly<Record<string, string>>,
+): void {
+  const knownConceptIds = new Set(A1_CONCEPT_IDS);
+
+  for (const [conceptId, noteId] of Object.entries(firstTeachingNoteId)) {
+    if (!knownConceptIds.has(conceptId)) {
+      throw new Error(`A1 first-teaching map contains unknown concept "${conceptId}".`);
+    }
+    const note = a1LearningNoteById[noteId];
+    if (!note) {
+      throw new Error(
+        `A1 first-teaching map assigns "${conceptId}" to missing note "${noteId}".`,
+      );
+    }
+    if (!note.explainedConceptIds.includes(conceptId)) {
+      throw new Error(
+        `A1 first-teaching map assigns "${conceptId}" to note "${noteId}" that does not explain it.`,
+      );
+    }
+  }
+
+  for (const conceptId of A1_CONCEPT_IDS) {
+    if (firstTeachingNoteId[conceptId] === undefined) {
+      throw new Error(`A1 first-teaching map is missing concept "${conceptId}".`);
+    }
+  }
+}
+
+validateA1ConceptFirstTeachingNoteIds(a1ConceptFirstTeachingNoteId);

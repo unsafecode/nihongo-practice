@@ -57,7 +57,7 @@ export const a1Modules05to08LessonContent: readonly A1LessonContent[] = [
     "routines-1",
     [
       "a1-lexeme-getsuyoubi",
-      "a1-lexeme-benkyou-suru",
+      "a1-lexeme-mokuyoubi",
       "a1-lexeme-suiyoubi",
       "a1-lexeme-nichiyoubi",
     ],
@@ -163,8 +163,8 @@ export const a1Modules05to08LessonContent: readonly A1LessonContent[] = [
     "past-negative-3",
     "past-negative-2",
     [
-      "a1-lexeme-eigo",
-      "a1-lexeme-itaria-go",
+      "a1-lexeme-hiru",
+      "a1-lexeme-gogo",
       "a1-lexeme-hachiji",
       "a1-lexeme-yoru",
     ],
@@ -334,7 +334,7 @@ export const a1Modules05to08LessonContent: readonly A1LessonContent[] = [
     "people-2",
     [
       "a1-lexeme-tomodachi",
-      "a1-lexeme-kodomo",
+      "a1-lexeme-douryou",
       "a1-lexeme-hito",
       "a1-lexeme-kazoku",
     ],

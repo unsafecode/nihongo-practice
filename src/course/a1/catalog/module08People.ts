@@ -5,11 +5,11 @@
  * them: kin copula (own-family plain 母/父 vs other-family honorific お母さん/
  * お父さん — never the reverse), roles and personal info with shared family
  * routines, shared actions and invitations (companion と, person-target に), and
- * reciprocal social details. No new verb senses are introduced — every line
- * reuses an already-productive sense (be / live / drink / study / do / write /
- * the routine framings / accompany / ask / buy / see / listen), so the module
- * closes the A1 recurrence timeline. The own/other honorific split lives in the
- * kin subject value (plain vs -hon), never in a misapplied honorific verb.
+ * reciprocal social details. The companion sense first appears here with its
+ * dedicated と note; other lines reuse already productive senses (be / live /
+ * drink / study / do / write / the routine framings / ask / buy / see /
+ * listen). The own/other honorific split lives in the kin subject value (plain
+ * vs -hon), never in a misapplied honorific verb.
  */
 
 import { A1_MODULE_MANIFEST } from "../manifest";
@@ -22,6 +22,7 @@ import {
   A1_CONCEPT_RECIPIENT_NI,
   A1_CONCEPT_TIME_SCHEDULE,
   A1_CONCEPT_TOPIC_WA,
+  a1VerbUseRecord,
   buildA1InstructionalLesson,
   type A1BuiltLesson,
   type Bilingual,
@@ -130,18 +131,18 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
   introducedConceptIds: [A1_CONCEPT_TOPIC_WA, A1_CONCEPT_COMPANION_TO, A1_CONCEPT_RECIPIENT_NI, A1_CONCEPT_OBJECT_WO],
   introducedSenseIds: ["a1-sense-accompany", "a1-sense-ask", "a1-sense-see"],
   models: [
-    { id: "people-3-m1", family: COMPF, context: "a1-context-town", subjectReferent: SELF, subjectRealization: "omitted", slots: comp(WATASHI, "a1-value-companion-friend"), translation: L("I go with a friend.", "Vado con un amico.") },
-    { id: "people-3-m2", family: COMPF, context: "a1-context-town", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: comp("a1-value-yuki", "a1-value-companion-child"), translation: L("Yuki goes with a child.", "Yuki va con un bambino.") },
+    { id: "people-3-m1", family: COMPF, context: "a1-context-social-outing", subjectReferent: SELF, subjectRealization: "omitted", slots: comp(WATASHI, "a1-value-companion-friend"), translation: L("I go with a friend.", "Vado con un amico.") },
+    { id: "people-3-m2", family: COMPF, context: "a1-context-social-outing", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: comp("a1-value-yuki", "a1-value-companion-colleague"), translation: L("Yuki goes with a colleague.", "Yuki va con un collega.") },
     { id: "people-3-m3", family: RECF, context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", slots: ask(WATASHI, "a1-value-recipient-person"), translation: L("I ask someone.", "Chiedo a qualcuno.") },
     { id: "people-3-m4", family: RECF, context: "a1-context-town", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: ask("a1-value-ken", "a1-value-recipient-friend"), translation: L("Ken asks a friend.", "Ken chiede a un amico.") },
-    { id: "people-3-m5", family: COMPF, context: "a1-context-classroom", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: comp("a1-value-mina", "a1-value-companion-family"), translation: L("Mina goes with her family.", "Mina va con la sua famiglia.") },
+    { id: "people-3-m5", family: COMPF, context: "a1-context-social-outing", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: comp("a1-value-mina", "a1-value-companion-family"), translation: L("Mina goes with her family.", "Mina va con la sua famiglia.") },
     { id: "people-3-m6", family: OBJ, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-see", "a1-value-obj-movie"), translation: L("I watch a movie.", "Guardo un film.") },
     { id: "people-3-m7", family: OBJ, context: "a1-context-cafe", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: obj("a1-value-yuki", "a1-value-see", "a1-value-obj-movie"), translation: L("Yuki watches a movie.", "Yuki guarda un film.") },
     { id: "people-3-m8", family: RECF, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", slots: ask(WATASHI, "a1-value-recipient-clerk"), translation: L("I ask the clerk.", "Chiedo al commesso.") },
   ],
   transfers: [
-    { id: "people-3-t1", family: COMPF, context: "a1-context-town", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: comp("a1-value-ken", "a1-value-companion-friend"), translation: L("Ken goes with a friend.", "Ken va con un amico.") },
-    { id: "people-3-t2", family: COMPF, context: "a1-context-town", subjectReferent: SELF, subjectRealization: "omitted", slots: comp(WATASHI, "a1-value-companion-child"), translation: L("I go with a child.", "Vado con un bambino.") },
+    { id: "people-3-t1", family: COMPF, context: "a1-context-social-outing", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: comp("a1-value-ken", "a1-value-companion-friend"), translation: L("Ken goes with a friend.", "Ken va con un amico.") },
+    { id: "people-3-t2", family: COMPF, context: "a1-context-social-outing", subjectReferent: SELF, subjectRealization: "omitted", slots: comp(WATASHI, "a1-value-companion-colleague"), translation: L("I go with a colleague.", "Vado con un collega.") },
     { id: "people-3-t3", family: RECF, context: "a1-context-classroom", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: ask("a1-value-mina", "a1-value-recipient-person"), translation: L("Mina asks someone.", "Mina chiede a qualcuno.") },
     { id: "people-3-t4", family: RECF, context: "a1-context-town", subjectReferent: SELF, subjectRealization: "omitted", slots: ask(WATASHI, "a1-value-recipient-friend"), translation: L("I ask a friend.", "Chiedo a un amico.") },
     { id: "people-3-t5", family: RECF, context: "a1-context-shop", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: ask("a1-value-ken", "a1-value-recipient-clerk"), translation: L("Ken asks the clerk.", "Ken chiede al commesso.") },
@@ -161,27 +162,27 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
   introducedConceptIds: [A1_CONCEPT_TOPIC_WA, A1_CONCEPT_OBJECT_WO],
   introducedSenseIds: ["a1-sense-buy", "a1-sense-see", "a1-sense-listen"],
   models: [
-    { id: "people-4-m1", family: OBJ, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-buy", "a1-value-obj-ramen"), translation: L("I buy ramen.", "Compro il ramen.") },
+    { id: "people-4-m1", family: COMPF, context: "a1-context-social-outing", subjectReferent: SELF, subjectRealization: "omitted", slots: comp(WATASHI, "a1-value-companion-friend"), translation: L("I go with a friend.", "Vado con un amico.") },
     { id: "people-4-m2", family: OBJ, context: "a1-context-shop", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: obj("a1-value-yuki", "a1-value-buy", "a1-value-obj-ticket"), translation: L("Yuki buys a ticket.", "Yuki compra un biglietto.") },
     { id: "people-4-m3", family: OBJ, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-see", "a1-value-obj-movie"), translation: L("I watch a movie.", "Guardo un film.") },
-    { id: "people-4-m4", family: OBJ, context: "a1-context-home", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: obj("a1-value-ken", "a1-value-see", "a1-value-obj-tv"), translation: L("Ken watches TV.", "Ken guarda la TV.") },
+    { id: "people-4-m4", family: OBJ, context: "a1-context-shop", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: obj("a1-value-mina", "a1-value-buy", "a1-value-obj-ramen"), translation: L("Mina buys ramen.", "Mina compra il ramen.") },
     { id: "people-4-m5", family: OBJ, context: "a1-context-cafe", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: obj("a1-value-mina", "a1-value-listen", "a1-value-obj-music"), translation: L("Mina listens to music.", "Mina ascolta la musica.") },
     { id: "people-4-m6", family: OBJ, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-listen", "a1-value-obj-music"), translation: L("I listen to music.", "Ascolto la musica.") },
     { id: "people-4-m7", family: OBJ, context: "a1-context-shop", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: obj("a1-value-yuki", "a1-value-buy", "a1-value-obj-bag"), translation: L("Yuki buys a bag.", "Yuki compra una borsa.") },
     { id: "people-4-m8", family: OBJ, context: "a1-context-cafe", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: obj("a1-value-mina", "a1-value-see", "a1-value-obj-photo"), translation: L("Mina looks at a photo.", "Mina guarda una foto.") },
   ],
   transfers: [
-    { id: "people-4-t1", family: OBJ, context: "a1-context-shop", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: obj("a1-value-ken", "a1-value-buy", "a1-value-obj-ramen"), translation: L("Ken buys ramen.", "Ken compra il ramen.") },
-    { id: "people-4-t2", family: OBJ, context: "a1-context-home", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-see", "a1-value-obj-tv"), translation: L("I watch TV.", "Guardo la TV.") },
+    { id: "people-4-t1", family: OBJ, context: "a1-context-shop", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: obj("a1-value-yuki", "a1-value-buy", "a1-value-obj-ramen"), translation: L("Yuki buys ramen.", "Yuki compra il ramen.") },
+    { id: "people-4-t2", family: OBJ, context: "a1-context-home", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-see", "a1-value-obj-movie"), translation: L("I watch a movie.", "Guardo un film.") },
     { id: "people-4-t3", family: OBJ, context: "a1-context-cafe", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: obj("a1-value-yuki", "a1-value-listen", "a1-value-obj-music"), translation: L("Yuki listens to music.", "Yuki ascolta la musica.") },
     { id: "people-4-t4", family: OBJ, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-buy", "a1-value-obj-bag"), translation: L("I buy a bag.", "Compro una borsa.") },
-    { id: "people-4-t5", family: OBJ, context: "a1-context-cafe", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: obj("a1-value-ken", "a1-value-listen", "a1-value-obj-music"), translation: L("Ken listens to music.", "Ken ascolta la musica.") },
+    { id: "people-4-t5", family: OBJ, context: "a1-context-cafe", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: obj("a1-value-yuki", "a1-value-listen", "a1-value-obj-music"), translation: L("Yuki listens to music.", "Yuki ascolta la musica.") },
   ],
 });
 
 // ---------------------------------------------------------------------------
-// Module recipe and aggregates. Module 8 introduces no new senses; the closing
-// reuse timeline is authored in `recurrence.ts`.
+// Module recipe and aggregates. The companion record's later-use timeline is
+// authored in `recurrence.ts`.
 // ---------------------------------------------------------------------------
 
 export const module8Lessons: readonly A1BuiltLesson[] = [lesson1, lesson2, lesson3, lesson4];
@@ -194,4 +195,6 @@ export const module8Recipe: A1ModuleRecipe = defineA1Module({
   outcomeCopyId: A1_MODULE_MANIFEST[MODULE_ID].outcomeCopyId,
 });
 
-export const module8VerbUseRecords: readonly VerbUseRecord[] = [];
+export const module8VerbUseRecords: readonly VerbUseRecord[] = [
+  a1VerbUseRecord({ senseId: "a1-sense-accompany", introductionLessonId: "people-3", introductionVariantIds: ["people-3-m1", "people-3-m2"], exerciseRoundId: "people-3-round-1", exerciseKind: "tile-ordering", exerciseTargetVariantId: "people-3-m1" }),
+];

@@ -306,6 +306,41 @@ describe("buildInstructionalLesson", () => {
     });
   });
 
+  it("applies an explicit per-lesson predicate override without changing the default", () => {
+    const focused = buildInstructionalLesson(FAKE_CONFIG, {
+      id: "fake-lesson-focused",
+      moduleId: "fake-module",
+      order: 1,
+      primaryCanDoId: "fake-can-do-one",
+      supportingCanDoIds: [],
+      introducedConceptIds: [],
+      introducedSenseIds: [],
+      diversityOverride: { minPredicates: 1 },
+      models: eightModels("fake-lesson-focused"),
+      transfers: fiveTransfers("fake-lesson-focused"),
+    });
+
+    expect(focused.recipe.diversityConstraints.minPredicates).toBe(1);
+    expect(built.recipe.diversityConstraints.minPredicates).toBe(3);
+  });
+
+  it("rejects a diversity override outside the default floor", () => {
+    expect(() =>
+      buildInstructionalLesson(FAKE_CONFIG, {
+        id: "fake-lesson-invalid-override",
+        moduleId: "fake-module",
+        order: 1,
+        primaryCanDoId: "fake-can-do-one",
+        supportingCanDoIds: [],
+        introducedConceptIds: [],
+        introducedSenseIds: [],
+        diversityOverride: { minPredicates: 0, minFamilies: 2 },
+        models: eightModels("fake-lesson-invalid-override"),
+        transfers: fiveTransfers("fake-lesson-invalid-override"),
+      }),
+    ).toThrow(/minFamilies|minPredicates override/i);
+  });
+
   it("passes the level's own defineLesson the exact candidate shape and returns its result as `recipe`", () => {
     expect(built.recipe.frozenMarker).toBe(true);
     expect(built.recipe.id).toBe("fake-lesson-1");

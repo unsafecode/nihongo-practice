@@ -300,7 +300,7 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["capstones-1-m3", "にほんごをべんきょうします", "nihongo o benkyoushimasu"],
   ["capstones-1-m4", "へやはおおきいです", "heya wa ookii desu"],
   ["capstones-1-m5", "まちはちいさいです", "machi wa chiisai desu"],
-  ["capstones-1-m6", "にほんごがわかります", "nihongo ga wakarimasu"],
+  ["capstones-1-m6", "ともだちといきます", "tomodachi to ikimasu"],
   ["capstones-1-m7", "なにをしますか", "nani o shimasu ka"],
   ["capstones-1-m8", "なにがわかりますか", "nani ga wakarimasu ka"],
   ["capstones-1-t1", "おおきいです", "ookii desu"],
