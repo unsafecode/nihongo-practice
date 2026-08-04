@@ -173,6 +173,22 @@ describe("locale parity", () => {
   });
 });
 
+describe("A1 audio copy", () => {
+  it("keeps audio status keys in parity across locales", () => {
+    expect(Object.keys(itCopy.a1Lesson.audio).sort()).toEqual(
+      Object.keys(enCopy.a1Lesson.audio).sort(),
+    );
+  });
+
+  it.each([
+    [enCopy, "Audio playback failed. Try again."],
+    [itCopy, "La riproduzione audio non è riuscita. Riprova."],
+  ] as const)("provides a non-empty localized failure status", (copy, failed) => {
+    expect(copy.a1Lesson.audio.failed).toBe(failed);
+    expect(copy.a1Lesson.audio.failed.trim().length).toBeGreaterThan(0);
+  });
+});
+
 describe("A2 runtime copy (Phase 3 Task 8): level selector + kanji chrome", () => {
   // Any CJK / kana character — copy values are IT/EN UI text only, never
   // Japanese (the prebuild no-Japanese lint gate enforces the same rule).

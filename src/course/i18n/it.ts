@@ -223,6 +223,7 @@ const itUi = {
       play: "Ascolta",
       playing: "In riproduzione…",
       unavailable: "L'audio giapponese non è disponibile in questo browser.",
+      failed: "La riproduzione audio non è riuscita. Riprova.",
       statusLabel: "Stato dell'audio",
     },
     recap: {

@@ -271,6 +271,7 @@ export interface CourseCopy {
       play: string;
       playing: string;
       unavailable: string;
+      failed: string;
       statusLabel: string;
     };
     recap: {

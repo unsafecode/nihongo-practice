@@ -11,9 +11,7 @@ export interface A1AudioButtonProps {
 }
 
 /**
- * One truthful, Japanese-only playback control. The page-level SpeechNotice
- * remains the single global failure notice; this local status names the
- * unavailable or playing state for the control itself.
+ * One truthful, Japanese-only playback control with its own status.
  */
 export function A1AudioButton({
   text,
@@ -26,6 +24,7 @@ export function A1AudioButton({
     supported,
     japaneseVoiceAvailable,
     speakingKey,
+    playbackFailed,
     speak,
   } = useSpeech();
   const statusId = useId();
@@ -33,9 +32,11 @@ export function A1AudioButton({
   const playing = speakingKey === audioKey;
   const status = unavailable
     ? copy.unavailable
-    : playing
-      ? copy.playing
-      : "";
+    : playbackFailed
+      ? copy.failed
+      : playing
+        ? copy.playing
+        : "";
 
   return (
     <span className="a1-audio-button">

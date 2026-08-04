@@ -221,6 +221,7 @@ const enUi = {
       play: "Play audio",
       playing: "Playing…",
       unavailable: "Japanese audio is unavailable in this browser.",
+      failed: "Audio playback failed. Try again.",
       statusLabel: "Audio status",
     },
     recap: {
