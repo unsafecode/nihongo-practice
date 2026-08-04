@@ -101,6 +101,23 @@ describe("buildA1PracticeModel — selected semantic targets", () => {
 });
 
 describe("buildA1PracticeModel — phonetic targets", () => {
+  it("does not build a semantic foundation for phonetic lessons", () => {
+    let semanticBuilds = 0;
+    const countingBuilder = (
+      ...args: Parameters<typeof buildA1LessonViewModel>
+    ) => {
+      semanticBuilds += 1;
+      return buildA1LessonViewModel(...args);
+    };
+
+    const result = buildA1PracticeModel(module1Lessons[0]!.id, {
+      buildA1LessonViewModel: countingBuilder,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(semanticBuilds).toBe(0);
+  });
+
   it("uses exactly the four selected practice refs and a separate fifth spoken item", () => {
     for (const lesson of module1Lessons) {
       const content = a1LessonContentById[lesson.id]!;
@@ -127,6 +144,29 @@ describe("buildA1PracticeModel — phonetic targets", () => {
 });
 
 describe("buildA1PracticeModel — fail-closed target matching", () => {
+  it("builds one semantic foundation while preserving the realized activities", () => {
+    let semanticBuilds = 0;
+    const countingBuilder = (
+      ...args: Parameters<typeof buildA1LessonViewModel>
+    ) => {
+      semanticBuilds += 1;
+      return buildA1LessonViewModel(...args);
+    };
+
+    const result = buildA1PracticeModel("introductions-1", {
+      buildA1LessonViewModel: countingBuilder,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.model.activities.map((activity) => activity.id)).toEqual(
+      a1LessonContentById["introductions-1"]!.practiceBlueprint.activities.map(
+        (activity) => activity.id,
+      ),
+    );
+    expect(semanticBuilds).toBe(1);
+  });
+
   it("returns an explicit unknown-lesson error rather than an empty practice model", () => {
     const result = buildA1PracticeModel("not-a-real-lesson");
     expect(result.ok).toBe(false);

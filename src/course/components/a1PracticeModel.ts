@@ -48,9 +48,13 @@ export type A1PracticeModelResult =
 
 export interface A1PracticeModelDependencies {
   readonly getLessonExercises: (lessonId: string) => LessonExercisesModel | undefined;
+  readonly buildA1LessonViewModel: typeof buildA1LessonViewModel;
 }
 
-const DEFAULT_DEPS: A1PracticeModelDependencies = { getLessonExercises };
+const DEFAULT_DEPS: A1PracticeModelDependencies = {
+  getLessonExercises,
+  buildA1LessonViewModel,
+};
 
 function fail(
   code: A1PracticeModelErrorCode,
@@ -67,11 +71,10 @@ function isSpokenTarget(
 }
 
 function expectedSemanticExerciseId(
-  lessonId: string,
   activity: A1PracticeActivity,
+  built: ReturnType<typeof buildA1LessonViewModel>,
 ): string | undefined {
   if (isSpokenTarget(activity.targetRef)) return undefined;
-  const built = buildA1LessonViewModel(lessonId, "en");
   if (!built.ok) return undefined;
   const round =
     activity.targetRef.round === "one"
@@ -101,6 +104,9 @@ export function buildA1PracticeModel(
   }
 
   const phoneticItems = module1ItemsByLesson[lessonId];
+  const semanticFoundation = phoneticItems
+    ? undefined
+    : deps.buildA1LessonViewModel(lessonId, "en");
   const activities: A1PracticeActivityModel[] = [];
   for (const activity of content.practiceBlueprint.activities) {
     if (isSpokenTarget(activity.targetRef)) {
@@ -130,7 +136,9 @@ export function buildA1PracticeModel(
 
     const expectedId = phoneticItems
       ? phoneticItemForPracticeTarget(phoneticItems, activity.targetRef)?.exerciseRefId
-      : expectedSemanticExerciseId(lessonId, activity);
+      : semanticFoundation
+        ? expectedSemanticExerciseId(activity, semanticFoundation)
+        : undefined;
     if (!expectedId) {
       return fail("unresolved-exercise", lessonId, activity.id);
     }
