@@ -311,6 +311,7 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-obj-letter", kind: "object", tokenFragments: [frag("てがみ", "tegami")] },
   { id: "a1-value-obj-newspaper", kind: "object", tokenFragments: [frag("しんぶん", "shinbun")] },
   { id: "a1-value-obj-movie", kind: "object", tokenFragments: [frag("えいが", "eiga")] },
+  { id: "a1-value-obj-photo", kind: "object", tokenFragments: [frag("しゃしん", "shashin")] },
   { id: "a1-value-obj-music", kind: "object", tokenFragments: [frag("おんがく", "ongaku")] },
   { id: "a1-value-obj-tv", kind: "object", tokenFragments: [frag("テレビ", "terebi")] },
   { id: "a1-value-obj-homework", kind: "object", tokenFragments: [frag("しゅくだい", "shukudai")] },
@@ -379,6 +380,7 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-loc-airport", kind: "location", tokenFragments: [frag("くうこう", "kuukou")] },
   { id: "a1-value-loc-bank", kind: "location", tokenFragments: [frag("ぎんこう", "ginkou")] },
   { id: "a1-value-loc-hospital", kind: "location", tokenFragments: [frag("びょういん", "byouin")] },
+  { id: "a1-value-loc-hotel", kind: "location", tokenFragments: [frag("ホテル", "hoteru")] },
   { id: "a1-value-loc-room", kind: "location", tokenFragments: [frag("へや", "heya")] },
   { id: "a1-value-loc-town", kind: "location", tokenFragments: [frag("まち", "machi")] },
 

@@ -249,7 +249,7 @@ export const a1Modules05to08LessonContent: readonly A1LessonContent[] = [
     "places-2",
     [
       "a1-lexeme-ie",
-      "a1-lexeme-heya",
+      "a1-lexeme-hoteru",
       "a1-lexeme-machi",
       "a1-lexeme-eki-no-chikaku",
     ],
@@ -357,7 +357,7 @@ export const a1Modules05to08LessonContent: readonly A1LessonContent[] = [
       "a1-lexeme-raamen",
       "a1-lexeme-kippu",
       "a1-lexeme-kaban",
-      "a1-lexeme-okane",
+      "a1-lexeme-shashin",
     ],
     "a1-note-synthesis-recombine",
     ["people-4-m2", "people-4-m4", "people-4-m5"],

@@ -133,6 +133,7 @@ export const a1Lexemes: readonly A1Lexeme[] = deepFreeze([
   defineA1Lexeme({ id: "a1-lexeme-tegami", valueIds: ["a1-value-obj-letter"], kana: "てがみ", romaji: "tegami", category: "noun", meaning: { en: "letter", it: "lettera" } }),
   defineA1Lexeme({ id: "a1-lexeme-shinbun", valueIds: ["a1-value-obj-newspaper"], kana: "しんぶん", romaji: "shinbun", category: "noun", meaning: { en: "newspaper", it: "giornale" } }),
   defineA1Lexeme({ id: "a1-lexeme-eiga", valueIds: ["a1-value-obj-movie"], kana: "えいが", romaji: "eiga", category: "noun", meaning: { en: "movie", it: "film" } }),
+  defineA1Lexeme({ id: "a1-lexeme-shashin", valueIds: ["a1-value-obj-photo"], kana: "しゃしん", romaji: "shashin", category: "noun", meaning: { en: "photo; photograph", it: "foto; fotografia" } }),
   defineA1Lexeme({ id: "a1-lexeme-ongaku", valueIds: ["a1-value-obj-music"], kana: "おんがく", romaji: "ongaku", category: "noun", meaning: { en: "music", it: "musica" } }),
   defineA1Lexeme({ id: "a1-lexeme-terebi", valueIds: ["a1-value-obj-tv"], kana: "テレビ", romaji: "terebi", category: "noun", meaning: { en: "television; TV", it: "televisione; TV" } }),
   defineA1Lexeme({ id: "a1-lexeme-shukudai", valueIds: ["a1-value-obj-homework"], kana: "しゅくだい", romaji: "shukudai", category: "noun", meaning: { en: "homework", it: "compiti" } }),
@@ -170,6 +171,7 @@ export const a1Lexemes: readonly A1Lexeme[] = deepFreeze([
   defineA1Lexeme({ id: "a1-lexeme-kuukou", valueIds: ["a1-value-loc-airport"], kana: "くうこう", romaji: "kuukou", category: "noun", meaning: { en: "airport", it: "aeroporto" } }),
   defineA1Lexeme({ id: "a1-lexeme-ginkou", valueIds: ["a1-value-loc-bank"], kana: "ぎんこう", romaji: "ginkou", category: "noun", meaning: { en: "bank", it: "banca" } }),
   defineA1Lexeme({ id: "a1-lexeme-byouin", valueIds: ["a1-value-loc-hospital"], kana: "びょういん", romaji: "byouin", category: "noun", meaning: { en: "hospital", it: "ospedale" } }),
+  defineA1Lexeme({ id: "a1-lexeme-hoteru", valueIds: ["a1-value-loc-hotel"], kana: "ホテル", romaji: "hoteru", category: "noun", meaning: { en: "hotel", it: "hotel; albergo" } }),
 
   defineA1Lexeme({ id: "a1-lexeme-haha", valueIds: ["a1-value-kin-mother"], kana: "はは", romaji: "haha", category: "person", meaning: { en: "my mother", it: "mia madre" } }),
   defineA1Lexeme({ id: "a1-lexeme-chichi", valueIds: ["a1-value-kin-father"], kana: "ちち", romaji: "chichi", category: "person", meaning: { en: "my father", it: "mio padre" } }),

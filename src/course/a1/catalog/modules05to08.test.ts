@@ -254,7 +254,7 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["places-3-m1", "とうきょうからおおさかまでいきます", "toukyou kara oosaka made ikimasu"],
   ["places-3-m2", "ゆきはおおさかからきょうとまでいきます", "yuki wa oosaka kara kyouto made ikimasu"],
   ["places-3-m3", "いえからえきまできます", "ie kara eki made kimasu"],
-  ["places-3-m4", "けんはへやからまちまでいきます", "ken wa heya kara machi made ikimasu"],
+  ["places-3-m4", "けんはホテルからまちまでいきます", "ken wa hoteru kara machi made ikimasu"],
   ["places-3-m5", "えきのちかくからがっこうまできます", "eki no chikaku kara gakkou made kimasu"],
   ["places-3-m6", "みなはいえからかいしゃまでいきます", "mina wa ie kara kaisha made ikimasu"],
   ["places-3-m7", "とうきょうにすみます", "toukyou ni sumimasu"],
@@ -323,7 +323,7 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["people-4-m5", "みなはおんがくをききます", "mina wa ongaku o kikimasu"],
   ["people-4-m6", "おんがくをききます", "ongaku o kikimasu"],
   ["people-4-m7", "ゆきはかばんをかいます", "yuki wa kaban o kaimasu"],
-  ["people-4-m8", "みなはおかねをみます", "mina wa okane o mimasu"],
+  ["people-4-m8", "みなはしゃしんをみます", "mina wa shashin o mimasu"],
   ["people-4-t1", "けんはラーメンをかいます", "ken wa raamen o kaimasu"],
   ["people-4-t2", "テレビをみます", "terebi o mimasu"],
   ["people-4-t3", "ゆきはおんがくをききます", "yuki wa ongaku o kikimasu"],
@@ -449,6 +449,26 @@ describe("A1 modules 5–8 · conjugation & case-frame regressions", () => {
     expect(romajiFor("people-3-m1")).toBe("tomodachi to ikimasu");
     expect(jpOf("people-3-m3")).toBe("ひとにききます");
     expect(romajiFor("people-3-m3")).toBe("hito ni kikimasu");
+  });
+
+  it("uses practical hotel and photo exemplars instead of the unnatural route and money models", () => {
+    expect(jpOf("places-3-m4")).toBe("けんはホテルからまちまでいきます");
+    expect(romajiFor("places-3-m4")).toBe("ken wa hoteru kara machi made ikimasu");
+    expect(a1CopyEn["places-3-m4-translation"]).toBe("Ken goes from the hotel into town.");
+    expect(a1CopyIt["places-3-m4-translation"]).toBe("Ken va dall'hotel in città.");
+
+    expect(jpOf("people-4-m8")).toBe("みなはしゃしんをみます");
+    expect(romajiFor("people-4-m8")).toBe("mina wa shashin o mimasu");
+    expect(a1CopyEn["people-4-m8-translation"]).toBe("Mina looks at a photo.");
+    expect(a1CopyIt["people-4-m8-translation"]).toBe("Mina guarda una foto.");
+
+    const productionModelJapanese = deepBuilt
+      .flatMap((built) => built.variants)
+      .filter((variant) => variant.pedagogicalUse === "model")
+      .map(realize)
+      .map((sentence) => sentence.canonicalJapanese);
+    expect(productionModelJapanese.some((sentence) => sentence.includes("へやからまちまで"))).toBe(false);
+    expect(productionModelJapanese.some((sentence) => sentence.includes("おかねをみます"))).toBe(false);
   });
 
   it("uses plain kin terms for own family and honorific for others', with copula は", () => {

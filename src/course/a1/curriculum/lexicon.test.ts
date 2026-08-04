@@ -53,6 +53,31 @@ describe("A1 canonical lexicon", () => {
     });
   });
 
+  it("provides canonical hotel and photo lexemes that own their semantic values", () => {
+    expect(a1LexemeById["a1-lexeme-hoteru"]).toMatchObject({
+      id: "a1-lexeme-hoteru",
+      valueIds: ["a1-value-loc-hotel"],
+      kana: "ホテル",
+      romaji: "hoteru",
+      category: "noun",
+      meaning: { en: "hotel", it: "hotel; albergo" },
+    });
+    expect(a1LexemeById["a1-lexeme-shashin"]).toMatchObject({
+      id: "a1-lexeme-shashin",
+      valueIds: ["a1-value-obj-photo"],
+      kana: "しゃしん",
+      romaji: "shashin",
+      category: "noun",
+      meaning: { en: "photo; photograph", it: "foto; fotografia" },
+    });
+    expect(a1LexemeByValueId["a1-value-loc-hotel"]).toBe(
+      a1LexemeById["a1-lexeme-hoteru"],
+    );
+    expect(a1LexemeByValueId["a1-value-obj-photo"]).toBe(
+      a1LexemeById["a1-lexeme-shashin"],
+    );
+  });
+
   it("gives every entry nonempty learner-facing fields and a unique id", () => {
     const ids = new Set<string>();
 

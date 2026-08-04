@@ -204,6 +204,39 @@ describe("A1 modules 05–08 lesson content", () => {
     expect(violations).toEqual([]);
   });
 
+  it("introduces the practical route and photo lexemes through their own lesson models", () => {
+    const lessons = ["places-3", "people-4"] as const;
+    const expectedNewLexemeIds = {
+      "places-3": [
+        "a1-lexeme-ie",
+        "a1-lexeme-hoteru",
+        "a1-lexeme-machi",
+        "a1-lexeme-eki-no-chikaku",
+      ],
+      "people-4": [
+        "a1-lexeme-raamen",
+        "a1-lexeme-kippu",
+        "a1-lexeme-kaban",
+        "a1-lexeme-shashin",
+      ],
+    } as const;
+
+    for (const lessonId of lessons) {
+      const content = a1Modules05to08LessonContent.find(
+        (candidate) => candidate.lessonId === lessonId,
+      );
+      expect(content?.newLexemeIds).toEqual(expectedNewLexemeIds[lessonId]);
+
+      const actualLexemeIds = authoredModelLexemeIds(
+        lessonId,
+        content?.dialogue?.turnVariantIds,
+      );
+      for (const lexemeId of expectedNewLexemeIds[lessonId]) {
+        expect(actualLexemeIds.has(lexemeId), `${lessonId} realizes ${lexemeId}`).toBe(true);
+      }
+    }
+  });
+
   it("keeps worked examples and dialogue within cumulative lexical closure", () => {
     const availableLexemeIds = new Set(a1Modules01to04LessonContent.flatMap(({ newLexemeIds }) => newLexemeIds));
 
