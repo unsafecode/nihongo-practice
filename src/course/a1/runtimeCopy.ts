@@ -14,11 +14,11 @@
  * release needs (no legacy source ever named these 12 modules or 48 lessons).
  * Twelve short, honest module titles are authored by hand below; all 48
  * lesson titles are derived mechanically as "<Module title> <position in
- * module>" (e.g. "Sounds 1", "Descriptions 3") rather than fabricating a
- * distinct content claim per lesson — the actual "what this lesson teaches"
- * claim is already carried honestly by the lesson's Can-do objective copy
- * (`copy.objectives[...]`), shown alongside the title everywhere titles
- * appear.
+ * module>" (e.g. "Sounds 1", "Descriptions 3") except for the four staged
+ * Foundations lessons, whose titles state their distinct progression. The
+ * actual "what this lesson teaches" claim is also carried honestly by the
+ * lesson's Can-do objective copy (`copy.objectives[...]`), shown alongside the
+ * title everywhere titles appear.
  *
  * Can-do descriptor (`objectives`) and module-outcome (`outcomes`) text is
  * already authored in `a1/catalog/a1CopyGloss.ts` (`a1SharedCopy`) and
@@ -45,7 +45,7 @@ type Locale = "en" | "it";
 const A1_MODULE_TITLES: Readonly<Record<Locale, Readonly<Record<string, string>>>> = {
   en: {
     sounds: "Sounds",
-    introductions: "Introductions",
+    introductions: "Foundations: sentences and introductions",
     "essential-questions": "Essential Questions",
     actions: "Actions",
     routines: "Routines",
@@ -59,7 +59,7 @@ const A1_MODULE_TITLES: Readonly<Record<Locale, Readonly<Record<string, string>>
   },
   it: {
     sounds: "Suoni",
-    introductions: "Presentazioni",
+    introductions: "Fondamenta: frasi e presentazioni",
     "essential-questions": "Domande essenziali",
     actions: "Azioni",
     routines: "Routine",
@@ -71,6 +71,23 @@ const A1_MODULE_TITLES: Readonly<Record<Locale, Readonly<Record<string, string>>
     "existence-needs": "Esistenza e bisogni",
     capstones: "Mettere tutto insieme",
   },
+};
+
+const A1_INTRODUCTION_LESSON_TITLES: Readonly<
+  Record<Locale, readonly [string, string, string, string]>
+> = {
+  en: [
+    "Sentence shape and identity",
+    "Topics, copula, origins and roles",
+    "Dictionary and polite verbs",
+    "Natural personal reference and exchange",
+  ],
+  it: [
+    "Struttura della frase e identità",
+    "Tema, copula, origine e ruolo",
+    "Verbi: forma dizionario e forma cortese",
+    "Riferimenti personali naturali e scambi",
+  ],
 };
 
 function moduleTitle(locale: Locale, moduleId: string): string {
@@ -91,16 +108,21 @@ export function a1RuntimeModuleCopy(locale: Locale): Record<string, ModuleCopy> 
 }
 
 /**
- * `CourseCopy["lessons"]` — one title per A1 lesson id, derived mechanically
- * as "<module title> <position in module>" (never a fabricated per-lesson
- * content claim; see module doc comment).
+ * `CourseCopy["lessons"]` — one title per A1 lesson id. The four Foundations
+ * lessons use their staged authored titles; all others derive mechanically as
+ * "<module title> <position in module>".
  */
 export function a1RuntimeLessonCopy(locale: Locale): Record<string, LessonCopy> {
   const out: Record<string, LessonCopy> = {};
   for (const moduleId of A1_MODULE_IDS) {
     const title = moduleTitle(locale, moduleId);
     A1_MODULE_MANIFEST[moduleId].lessonIds.forEach((lessonId, index) => {
-      out[lessonId] = { title: `${title} ${index + 1}` };
+      out[lessonId] = {
+        title:
+          moduleId === "introductions"
+            ? A1_INTRODUCTION_LESSON_TITLES[locale][index]!
+            : `${title} ${index + 1}`,
+      };
     });
   }
   return out;

@@ -25,7 +25,7 @@
  */
 
 /** The stable catalog version for the release's deterministic selection. */
-export const A1_RELEASE_CATALOG_VERSION = "a1-release-v1" as const;
+export const A1_RELEASE_CATALOG_VERSION = "a1-release-v2" as const;
 
 /**
  * The fixed deterministic seed every real lesson page, exercise-model

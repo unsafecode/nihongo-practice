@@ -47,7 +47,7 @@ describe("A1 lesson content blueprints", () => {
         {
           id: "introductions-1-meaning",
           function: "meaning-comprehension",
-          interactionKind: "tile-ordering",
+          interactionKind: "completion",
           targetRef: { round: "one", index: 1 },
         },
         {
@@ -59,7 +59,7 @@ describe("A1 lesson content blueprints", () => {
         {
           id: "introductions-1-production",
           function: "controlled-production",
-          interactionKind: "completion",
+          interactionKind: "tile-ordering",
           targetRef: { round: "one", index: 0 },
         },
         {
@@ -72,7 +72,7 @@ describe("A1 lesson content blueprints", () => {
           id: "introductions-1-spoken",
           function: "listening-speaking",
           interactionKind: "spoken",
-          targetRef: { spokenVariantId: "introductions-1-m4" },
+          targetRef: { spokenVariantId: "introductions-1-m1" },
         },
       ],
     });
@@ -102,13 +102,13 @@ describe("A1 lesson content blueprints", () => {
         {
           id: "introductions-2-production",
           function: "controlled-production",
-          interactionKind: "tile-ordering",
+          interactionKind: "choice",
           targetRef: { round: "one", index: 0 },
         },
         {
           id: "introductions-2-transfer",
           function: "transformation",
-          interactionKind: "completion",
+          interactionKind: "tile-ordering",
           targetRef: { round: "two", index: 1 },
         },
         {

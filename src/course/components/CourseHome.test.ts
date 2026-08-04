@@ -32,6 +32,20 @@ const allLessons = courseModules.flatMap((courseModule) =>
 const totalLessons = allLessons.length;
 const firstLesson = allLessons[0];
 const lastLesson = allLessons[allLessons.length - 1];
+const a1ModuleIdsInLearnerOrder = [
+  "sounds",
+  "introductions",
+  "essential-questions",
+  "actions",
+  "routines",
+  "past-negative",
+  "places",
+  "people",
+  "descriptions",
+  "shopping",
+  "existence-needs",
+  "capstones",
+];
 
 function makeProgressValue(
   overrides: Partial<ProgressContextValue> = {},
@@ -209,6 +223,39 @@ describe("CourseHome hero: primary and secondary actions (Task 1 Action primitiv
 });
 
 describe("CourseHome: renders the flat, single-path CourseMap, never the old chapter grid", () => {
+  it("keeps the visible A1 path in learner order, with navigable lessons and the sounds prerequisite for Foundations", () => {
+    expect(courseModules.map((courseModule) => courseModule.id)).toEqual(
+      a1ModuleIdsInLearnerOrder,
+    );
+
+    const html = renderHome(makeProgressValue());
+    let previousTitleIndex = -1;
+    for (const moduleId of a1ModuleIdsInLearnerOrder) {
+      const courseModule = courseModules.find((item) => item.id === moduleId);
+      if (!courseModule) throw new Error(`missing expected module ${moduleId}`);
+
+      const title = itCopy.modules[moduleId]!.title;
+      const titleIndex = html.indexOf(
+        `<h3 class="module-card__title">${escapeHtmlText(title)}</h3>`,
+      );
+      expect(titleIndex, moduleId).toBeGreaterThan(previousTitleIndex);
+      previousTitleIndex = titleIndex;
+
+      for (const lesson of courseModule.lessons) {
+        expect(html, lesson.id).toContain(
+          `href="${lessonPath(courseModule.id, lesson.id)}"`,
+        );
+      }
+    }
+
+    expect(primaryActionHref(html)).toBe(lessonPath("sounds", "sounds-1"));
+    expect(html).toContain(
+      escapeHtmlText(
+        itCopy.courseMap.prerequisites([itCopy.modules.sounds.title]),
+      ),
+    );
+  });
+
   it("renders the course map heading and every real module title", () => {
     const html = renderHome(makeProgressValue());
     expect(html).toContain(`class="course-map"`);

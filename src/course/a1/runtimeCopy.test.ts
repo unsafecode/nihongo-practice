@@ -17,6 +17,30 @@ import {
  */
 describe("A1 runtime copy", () => {
   const locales = ["en", "it"] as const;
+  const foundationsTitles = {
+    en: {
+      module: "Foundations: sentences and introductions",
+      outcome:
+        "Build simple sentences by learning sentence shape, natural subject omission, the topic-and-copula pattern, and your first polite verbs for introductions and everyday exchanges.",
+      lessons: [
+        "Sentence shape and identity",
+        "Topics, copula, origins and roles",
+        "Dictionary and polite verbs",
+        "Natural personal reference and exchange",
+      ],
+    },
+    it: {
+      module: "Fondamenta: frasi e presentazioni",
+      outcome:
+        "Costruisci frasi semplici imparando la struttura della frase, l'omissione naturale del soggetto, il modello tema-copula e i primi verbi cortesi per le presentazioni e gli scambi quotidiani.",
+      lessons: [
+        "Struttura della frase e identità",
+        "Tema, copula, origine e ruolo",
+        "Verbi: forma dizionario e forma cortese",
+        "Riferimenti personali naturali e scambi",
+      ],
+    },
+  } as const;
 
   it("names all 12 modules with non-blank text, distinct per module", () => {
     for (const locale of locales) {
@@ -34,7 +58,7 @@ describe("A1 runtime copy", () => {
     }
   });
 
-  it("titles all 48 lessons as '<module title> <position>', non-blank", () => {
+  it("titles all 48 lessons with stable, localized text", () => {
     for (const locale of locales) {
       const modules = a1RuntimeModuleCopy(locale);
       const lessons = a1RuntimeLessonCopy(locale);
@@ -42,11 +66,30 @@ describe("A1 runtime copy", () => {
       expect(Object.keys(lessons).sort()).toEqual([...allLessonIds].sort());
       for (const module of courseModules) {
         module.lessons.forEach((lesson, index) => {
-          expect(lessons[lesson.id]?.title).toBe(
-            `${modules[module.id]!.title} ${index + 1}`,
-          );
+          const expected =
+            module.id === "introductions"
+              ? foundationsTitles[locale].lessons[index]
+              : `${modules[module.id]!.title} ${index + 1}`;
+          expect(lessons[lesson.id]?.title).toBe(expected);
         });
       }
+    }
+  });
+
+  it("names the introductions module as staged Foundations, with exact localized outcomes and lesson titles", () => {
+    for (const locale of locales) {
+      const expected = foundationsTitles[locale];
+      expect(a1RuntimeModuleCopy(locale).introductions).toEqual({
+        title: expected.module,
+      });
+      expect(
+        a1RuntimeOutcomeCopy(locale)["a1-module-outcome-introductions"],
+      ).toBe(expected.outcome);
+      expect(
+        ["introductions-1", "introductions-2", "introductions-3", "introductions-4"].map(
+          (lessonId) => a1RuntimeLessonCopy(locale)[lessonId]?.title,
+        ),
+      ).toEqual(expected.lessons);
     }
   });
 

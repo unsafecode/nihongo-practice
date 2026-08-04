@@ -173,6 +173,52 @@ describe("locale parity", () => {
   });
 });
 
+describe("A1 runtime copy integrity", () => {
+  const JAPANESE = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff66-\uff9f]/;
+  const a1Modules = courseModulesByLevel.a1;
+  const a1Keys = {
+    modules: new Set(a1Modules.map((module) => module.id)),
+    lessons: new Set(
+      a1Modules.flatMap((module) =>
+        module.lessons.map((lesson) => lesson.titleCopyId),
+      ),
+    ),
+    objectives: new Set(
+      a1Modules.flatMap((module) =>
+        module.lessons.flatMap((lesson) => lesson.objectiveCopyIds),
+      ),
+    ),
+    outcomes: new Set(
+      a1Modules.flatMap((module) => module.outcomeCopyIds),
+    ),
+  };
+
+  it.each([
+    ["en", enCopy],
+    ["it", itCopy],
+  ] as const)(
+    "covers every A1 runtime key with non-Japanese learner-facing copy (%s)",
+    (_locale, copy) => {
+      const dictionaries: Array<
+        readonly [string, ReadonlySet<string>, (key: string) => string | undefined]
+      > = [
+        ["modules", a1Keys.modules, (key) => copy.modules[key]?.title],
+        ["lessons", a1Keys.lessons, (key) => copy.lessons[key]?.title],
+        ["objectives", a1Keys.objectives, (key) => copy.objectives[key]],
+        ["outcomes", a1Keys.outcomes, (key) => copy.outcomes[key]],
+      ];
+      for (const [dictionaryName, keys, resolve] of dictionaries) {
+        for (const key of keys) {
+          const value = resolve(key);
+          expect(value, `${dictionaryName}:${key}`).toBeTruthy();
+          expect(value?.trim().length ?? 0, `${dictionaryName}:${key}`).toBeGreaterThan(0);
+          expect(value, `${dictionaryName}:${key}`).not.toMatch(JAPANESE);
+        }
+      }
+    },
+  );
+});
+
 describe("A1 audio copy", () => {
   it("keeps audio status keys in parity across locales", () => {
     expect(Object.keys(itCopy.a1Lesson.audio).sort()).toEqual(

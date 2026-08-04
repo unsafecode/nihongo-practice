@@ -406,7 +406,7 @@ describe("recommendContinuationLessonId (real course data)", () => {
 function v4FixtureFromV3(v3: CourseProgressV3): CourseProgressV4 {
   return {
     schemaVersion: 4,
-    catalogVersion: "a1-a2-v1",
+    catalogVersion: "a1-a2-v2",
     levels: {
       a1: {
         lessons: v3.lessons,
@@ -460,7 +460,7 @@ describe("progress storage lifecycle", () => {
   it("round-trips progress through working storage", () => {
     const storage = memoryStorage();
     const progress = v4FixtureFromV3(
-      markLessonVisited(emptyProgress(), "sounds-core"),
+      markLessonVisited(emptyProgress(), "sounds-1"),
     );
 
     expect(persistProgress(storage, progress)).toEqual({ status: "saved" });

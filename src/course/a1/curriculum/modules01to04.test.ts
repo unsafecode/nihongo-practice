@@ -342,7 +342,7 @@ describe("A1 modules 01–04 lesson content", () => {
     ]);
     expect(
       byLessonId.get("actions-2")?.practiceBlueprint.activities.at(-1)?.targetRef,
-    ).toEqual({ spokenVariantId: "actions-2-m7" });
+    ).toEqual({ spokenVariantId: "actions-2-m1" });
     expect(byLessonId.get("actions-3")?.learningNoteId).toBe("a1-note-particle-ni");
     expect(byLessonId.get("actions-4")?.learningNoteId).not.toBe("a1-note-particle-ni");
 
