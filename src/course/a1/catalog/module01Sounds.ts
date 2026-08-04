@@ -205,7 +205,7 @@ function phoneticLesson(
     primaryCanDoId: "a1-can-do-sounds",
     supportingCanDoIds: [],
     contrastiveItemIds: items.map((i) => i.id),
-    practiceTargetRefs: items.map((i) => i.exerciseRefId),
+    practiceTargetRefs: items.slice(0, 4).map((i) => i.exerciseRefId),
     outcomeCopyId: `a1-phonetic-outcome-${id}`,
   });
 }

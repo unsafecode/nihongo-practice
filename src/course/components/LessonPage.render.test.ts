@@ -161,10 +161,10 @@ describe("LessonPage — explore section renders practice + the optional spoken 
     expect(html).toContain("spoken-attempt");
   });
 
-  it("renders the 10 real phonetic exercises and the optional spoken attempt for a phonetic lesson (I1)", () => {
+  it("renders the four selected phonetic exercises and the optional spoken attempt for a phonetic lesson", () => {
     const html = render(TOOL_LESSON);
     expect(html).toContain("spoken-attempt");
-    expect((html.match(/class="lesson-exercise"/g) ?? []).length).toBe(10);
+    expect((html.match(/class="lesson-exercise"/g) ?? []).length).toBe(4);
   });
 });
 

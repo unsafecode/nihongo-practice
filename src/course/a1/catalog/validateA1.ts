@@ -793,7 +793,7 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
       }
     }
     const itemIds = items.map((item) => item.id).join(",");
-    const refIds = items.map((item) => item.exerciseRefId).join(",");
+    const refIds = items.slice(0, 4).map((item) => item.exerciseRefId).join(",");
     if (lessonRecipe.contrastiveItemIds.join(",") !== itemIds) {
       push({ code: "phonetic-lesson-mismatch", id: lessonRecipe.id, dimension: "contrastive-items" });
     }

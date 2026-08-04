@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import { courseModules } from "../data/course";
 import { a1FoundationCatalogs } from "../a1/catalog/catalog";
 import { buildA1LessonViewModel } from "../a1/a1LessonViewModel";
-import { module1ItemsByLesson } from "../a1/catalog/module01Sounds";
+import { a1LessonContentById } from "../a1/curriculum/catalog";
+import {
+  module1ItemsByLesson,
+  module1Lessons,
+} from "../a1/catalog/module01Sounds";
 import { A2_LESSON_IDS } from "../a2/manifest";
 import { buildA2FoundationViewModel } from "../a2/view/buildA2LessonViewModel";
 import {
@@ -15,8 +19,9 @@ import {
  * The pure lesson-exercise model (Phase 2 Task 6; design spec §10.1). It
  * resolves the A1 release's 44 semantic lessons' authored practice targets
  * into deterministic engine prompts, and separately resolves each of the
- * four phonetic (`sounds-*`) lessons' 10 authored `A1PhoneticItem`s into
- * deterministic choice/tile-ordering prompts (I1) — exposing the derived
+ * four phonetic (`sounds-*`) lessons' four selected `A1PhoneticItem`s into
+ * deterministic choice/tile-ordering prompts plus their separate spoken
+ * blueprint activity — exposing the derived
  * romaji + per-locale instruction/intent copy the UI needs without ever
  * reconstructing a canonical answer in the component layer.
  */
@@ -30,12 +35,12 @@ const phoneticLessonIds = allLessonIds.filter(
 );
 
 describe("getLessonExercises — deterministic prompt generation for every semantic lesson", () => {
-  it("generates the two-round practice set with no errors for every semantic lesson", () => {
+  it("generates the four blueprint-selected prompts with no errors for every semantic lesson", () => {
     for (const lessonId of semanticLessonIds) {
       const model = getLessonExercises(lessonId);
       expect(model, `model for ${lessonId}`).toBeDefined();
       expect(model!.errors, `errors for ${lessonId}`).toEqual([]);
-      expect(model!.exercises.length, `count for ${lessonId}`).toBeGreaterThan(0);
+      expect(model!.exercises, `count for ${lessonId}`).toHaveLength(4);
     }
   });
 
@@ -52,33 +57,46 @@ describe("getLessonExercises — deterministic prompt generation for every seman
     }
   });
 
-  it("generates exactly 10 error-free runtime exercises for every phonetic (sounds-*) lesson (I1)", () => {
+  it("generates exactly four error-free runtime exercises for every phonetic (sounds-*) lesson", () => {
     expect(phoneticLessonIds.length).toBe(4);
     for (const lessonId of phoneticLessonIds) {
       const model = getLessonExercises(lessonId);
       expect(model, `model for ${lessonId}`).toBeDefined();
       expect(model!.errors, `errors for ${lessonId}`).toEqual([]);
-      expect(model!.exercises.length, `count for ${lessonId}`).toBe(10);
+      expect(model!.exercises.length, `count for ${lessonId}`).toBe(4);
     }
   });
 
-  it("names at least 5 unique visible targets per phonetic lesson, one exercise per authored item, from the module01Sounds catalog", () => {
+  it("uses the four ordered phonetic practice refs without reducing the 10-item roster", () => {
     for (const lessonId of phoneticLessonIds) {
       const items = module1ItemsByLesson[lessonId]!;
+      const recipe = module1Lessons.find((lesson) => lesson.id === lessonId)!;
       const model = getLessonExercises(lessonId)!;
-      expect(model.exercises.map((e) => e.definitionId).sort()).toEqual(
-        items.map((i) => i.exerciseRefId).sort(),
+      expect(items).toHaveLength(10);
+      expect(model.exercises.map((exercise) => exercise.definitionId)).toEqual(
+        recipe.practiceTargetRefs,
       );
       const targets = new Set(model.exercises.map((e) => e.prompt.assessedConceptIds[0]));
-      expect(targets.size).toBeGreaterThanOrEqual(5);
+      expect(targets.size).toBe(4);
     }
   });
 
-  it("gives every phonetic exercise the guided-controlled practicePurpose and a null intent, never fabricated", () => {
+  it("carries phonetic blueprint functions, round purposes, and null intents", () => {
     for (const lessonId of phoneticLessonIds) {
       const model = getLessonExercises(lessonId)!;
+      expect(model.exercises.map((exercise) => exercise.practiceFunction)).toEqual([
+        "meaning-comprehension",
+        "form-discrimination",
+        "controlled-production",
+        "contextual-response",
+      ]);
+      expect(model.exercises.map((exercise) => exercise.practicePurpose)).toEqual([
+        "guided-controlled",
+        "guided-controlled",
+        "guided-controlled",
+        "transfer",
+      ]);
       for (const exercise of model.exercises) {
-        expect(exercise.practicePurpose).toBe("guided-controlled");
         expect(exercise.intentText.en).toBeNull();
         expect(exercise.intentText.it).toBeNull();
       }
@@ -103,14 +121,59 @@ describe("getLessonExercises — deterministic prompt generation for every seman
     expect(model.exercises.some((e) => e.practicePurpose === "transfer")).toBe(true);
   });
 
-  it("preserves the release builder's authored target order and ids for a lesson", () => {
+  it("maps every semantic lesson's four generated exercises to its exact blueprint functions and target order", () => {
+    for (const lessonId of semanticLessonIds) {
+      const content = a1LessonContentById[lessonId]!;
+      const built = buildA1LessonViewModel(lessonId, "en");
+      if (!built.ok) throw new Error(`expected A1 foundation model for ${lessonId}`);
+      const expected = content.practiceBlueprint.activities
+        .filter((activity) => activity.interactionKind !== "spoken")
+        .map((activity) => {
+          if ("spokenVariantId" in activity.targetRef) throw new Error("unexpected spoken target");
+          const round =
+            activity.targetRef.round === "one"
+              ? built.model.rounds[0]
+              : built.model.rounds[1];
+          const target = round.targets[activity.targetRef.index];
+          if (!target) throw new Error(`missing target for ${lessonId}`);
+          return {
+            definitionId: target.targetId,
+            function: activity.function,
+            kind: activity.interactionKind,
+          };
+        });
+      expect(
+        getLessonExercises(lessonId)!.exercises.map((exercise) => ({
+          definitionId: exercise.definitionId,
+          function: exercise.practiceFunction,
+          kind: exercise.prompt.kind,
+        })),
+        lessonId,
+      ).toEqual(expected);
+    }
+  });
+
+  it("orders A1 semantic exercises by the authored practice blueprint rather than raw round order", () => {
     const built = buildA1LessonViewModel("introductions-1", "en");
     if (!built.ok) throw new Error("expected ok");
-    const expectedIds = built.model.rounds.flatMap((round) =>
-      round.targets.map((target) => target.targetId),
-    );
+    const content = a1LessonContentById["introductions-1"]!;
+    const expectedIds = content.practiceBlueprint.activities
+      .filter((activity) => activity.interactionKind !== "spoken")
+      .map((activity) => {
+        if ("spokenVariantId" in activity.targetRef) throw new Error("unexpected spoken target");
+        const round =
+          activity.targetRef.round === "one"
+            ? built.model.rounds[0]
+            : built.model.rounds[1];
+        return round.targets[activity.targetRef.index]?.targetId;
+      });
     const model = getLessonExercises("introductions-1")!;
     expect(model.exercises.map((e) => e.definitionId)).toEqual(expectedIds);
+    expect(model.exercises.map((exercise) => exercise.practiceFunction)).toEqual(
+      content.practiceBlueprint.activities
+        .filter((activity) => activity.interactionKind !== "spoken")
+        .map((activity) => activity.function),
+    );
   });
 
   it("covers multiple exercise kinds across the course (tile-ordering, choice, completion, constrained-construction)", () => {
@@ -155,6 +218,21 @@ describe("getLessonExercises — deterministic prompt generation for every seman
     for (const exercise of model.exercises) {
       expect(exercise.instruction.en.trim().length, exercise.definitionId).toBeGreaterThan(0);
       expect(exercise.instruction.it.trim().length, exercise.definitionId).toBeGreaterThan(0);
+    }
+  });
+
+  it("gives every A1 exercise localized explanatory feedback without embedding its canonical target", () => {
+    for (const lessonId of allLessonIds) {
+      const model = getLessonExercises(lessonId)!;
+      for (const exercise of model.exercises) {
+        expect(exercise.practiceFunction, `${lessonId} ${exercise.definitionId}`).not.toBeNull();
+        for (const locale of ["en", "it"] as const) {
+          expect(exercise.feedback[locale].accepted.trim()).not.toBe("");
+          expect(exercise.feedback[locale].retry.trim()).not.toBe("");
+          expect(exercise.feedback[locale].accepted).not.toContain(exercise.visibleTargetKey);
+          expect(exercise.feedback[locale].retry).not.toContain(exercise.visibleTargetKey);
+        }
+      }
     }
   });
 
@@ -262,7 +340,10 @@ describe("exampleTokens — the full ordered token list for an example id", () =
   it("resolves every phonetic lesson's exercise target tokens, keyed by the item's own id (I1)", () => {
     for (const lessonId of phoneticLessonIds) {
       const items = module1ItemsByLesson[lessonId]!;
-      for (const item of items) {
+      const selectedRefs = module1Lessons.find(
+        (lesson) => lesson.id === lessonId,
+      )!.practiceTargetRefs;
+      for (const item of items.filter((item) => selectedRefs.includes(item.exerciseRefId))) {
         const tokens = exampleTokens(item.id);
         expect(tokens, `${lessonId} ${item.id}`).toBeDefined();
         expect(tokens!.length).toBeGreaterThan(0);
@@ -286,12 +367,12 @@ describe("exampleTokens — the full ordered token list for an example id", () =
  * serves both levels.
  */
 describe("getLessonExercises — A2 lessons resolve through the same model", () => {
-  it("generates an error-free, non-empty exercise set for every A2 lesson", () => {
+  it("generates exactly ten error-free exercise prompts for every A2 lesson", () => {
     for (const lessonId of A2_LESSON_IDS) {
       const model = getLessonExercises(lessonId);
       expect(model, `model for ${lessonId}`).toBeDefined();
       expect(model!.errors, `errors for ${lessonId}`).toEqual([]);
-      expect(model!.exercises.length, `count for ${lessonId}`).toBeGreaterThan(0);
+      expect(model!.exercises.length, `count for ${lessonId}`).toBe(10);
     }
   });
 
@@ -307,6 +388,41 @@ describe("getLessonExercises — A2 lessons resolve through the same model", () 
     }
   });
 
+  it("keeps A2 target order, ids, prompts, instruction, and intent unchanged while leaving A1-only fields null", () => {
+    for (const lessonId of ["sequencing-ongoing-3", "plans-invitations-1", "a2-synthesis-4"]) {
+      const en = buildA2FoundationViewModel(lessonId, "en");
+      const it = buildA2FoundationViewModel(lessonId, "it");
+      if (!en.ok || !it.ok) throw new Error(`expected A2 foundation model for ${lessonId}`);
+      const expected = en.model.rounds.flatMap((round, roundIndex) =>
+        round.targets.map((target, targetIndex) => {
+          const italian = it.model.rounds[roundIndex]!.targets[targetIndex]!;
+          return {
+            definitionId: target.targetId,
+            targetExampleId: target.targetExampleId,
+            prompt: target.prompt,
+            instruction: { en: target.instruction, it: italian.instruction },
+            intentText: { en: target.intentText, it: italian.intentText },
+            practicePurpose: round.purpose,
+            visibleTargetKey: target.visibleTargetKey,
+          };
+        }),
+      );
+      const actual = getLessonExercises(lessonId)!.exercises.map((exercise) => ({
+        definitionId: exercise.definitionId,
+        targetExampleId: exercise.targetExampleId,
+        prompt: exercise.prompt,
+        instruction: exercise.instruction,
+        intentText: exercise.intentText,
+        practicePurpose: exercise.practicePurpose,
+        visibleTargetKey: exercise.visibleTargetKey,
+      }));
+      expect(actual).toEqual(expected);
+      for (const exercise of getLessonExercises(lessonId)!.exercises) {
+        expect(exercise.practiceFunction).toBeNull();
+      }
+    }
+  });
+
   it("resolves in-sentence tokens for an A2 exercise so its romaji renders from real tokens", () => {
     const model = getLessonExercises("sequencing-ongoing-3");
     expect(model).toBeDefined();
@@ -314,5 +430,18 @@ describe("getLessonExercises — A2 lessons resolve through the same model", () 
       (exercise) => exampleTokens(exercise.targetExampleId) !== undefined,
     );
     expect(withExample, "at least one A2 exercise resolves its example tokens").toBeDefined();
+  });
+});
+
+describe("getLessonExercises — complete release coverage", () => {
+  it("returns error-free generated exercise models for all 108 A1 and A2 routes", () => {
+    const allRouteIds = [...allLessonIds, ...A2_LESSON_IDS];
+    expect(allRouteIds).toHaveLength(108);
+    for (const lessonId of allRouteIds) {
+      const model = getLessonExercises(lessonId);
+      expect(model, lessonId).toBeDefined();
+      expect(model?.errors, lessonId).toEqual([]);
+      expect(model?.exercises.length, lessonId).toBeGreaterThan(0);
+    }
   });
 });

@@ -88,6 +88,14 @@ const NOOP: ExerciseViewHandlers = {
   onClear: vi.fn(),
 };
 
+const COMPAT_GENERATED_EXERCISE_FIELDS = {
+  practiceFunction: null,
+  feedback: {
+    en: { accepted: "Accepted.", retry: "Try again." },
+    it: { accepted: "Accettato.", retry: "Riprova." },
+  },
+} as const;
+
 function a1ExerciseOfKind(kind: ExercisePrompt["kind"]): GeneratedExercise {
   for (const lesson of a1FoundationCatalogs.lessons) {
     const found = getLessonExercises(lesson.id)?.exercises.find(
@@ -130,6 +138,7 @@ if (!legacyTransformResult.ok) {
   throw new Error("legacy transformation fixture failed to generate");
 }
 const transformEx: GeneratedExercise = {
+  ...COMPAT_GENERATED_EXERCISE_FIELDS,
   definitionId: legacyTransformDefinition.id,
   targetExampleId: legacyTransformDefinition.targetExampleId,
   visibleTargetKey: legacyTransformDefinition.targetExampleId,
@@ -491,14 +500,14 @@ describe("LessonExercises — renders a lesson's 3-5 exercises", () => {
   });
 });
 
-describe("LessonExercises — renders a phonetic lesson's 10 real exercises (I1)", () => {
-  it("renders one card per authored phonetic item, not an empty section", () => {
+describe("LessonExercises — renders a phonetic lesson's four selected exercises", () => {
+  it("renders one card per selected generated target, not an empty section", () => {
     const html = renderLessonExercises("sounds-1");
     const model = getLessonExercises("sounds-1")!;
-    expect(model.exercises.length).toBe(10);
+    expect(model.exercises.length).toBe(4);
     expect(html).toContain(itCopy.exercises.heading);
-    expect((html.match(/class="lesson-exercise"/g) ?? []).length).toBe(10);
-    expect((html.match(/type="submit"/g) ?? []).length).toBe(10);
+    expect((html.match(/class="lesson-exercise"/g) ?? []).length).toBe(4);
+    expect((html.match(/type="submit"/g) ?? []).length).toBe(4);
   });
 });
 

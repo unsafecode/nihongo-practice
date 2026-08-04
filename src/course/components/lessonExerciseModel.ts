@@ -2,6 +2,9 @@ import type { Locale } from "../../i18n/LocaleContext";
 import type { AssembledToken } from "../../romaji/types";
 import { buildA1LessonViewModel } from "../a1/a1LessonViewModel";
 import { a1FoundationCatalogs } from "../a1/catalog/catalog";
+import { a1LessonContentById } from "../a1/curriculum/catalog";
+import { buildA1PracticeFeedback } from "../a1/curriculum/a1PracticeFeedback";
+import type { A1PracticeFunction } from "../a1/curriculum/types";
 import { a2FoundationCatalogs } from "../a2/catalog/catalog";
 import { buildA2FoundationViewModel } from "../a2/view/buildA2LessonViewModel";
 import { courseModulesByLevel } from "../data/course";
@@ -79,6 +82,15 @@ export interface GeneratedExercise {
    * reaching a recipe, let alone the DOM, in un-hashed form).
    */
   readonly visibleTargetKey: string;
+  /**
+   * The authored A1 practice purpose, or null for A2 where exercise selection
+   * continues to expose only its existing round semantics.
+   */
+  readonly practiceFunction: A1PracticeFunction | null;
+  /** Post-submit copy. It is not rendered until the future practice UI uses it. */
+  readonly feedback: Readonly<
+    Record<Locale, Readonly<{ accepted: string; retry: string }>>
+  >;
 }
 
 export interface LessonExerciseModelError {
@@ -94,6 +106,17 @@ export interface LessonExercisesModel {
 }
 
 const LOCALES: readonly Locale[] = ["en", "it"];
+
+const GENERIC_FEEDBACK: GeneratedExercise["feedback"] = {
+  en: {
+    accepted: "That works for this practice step.",
+    retry: "Try the practice step again.",
+  },
+  it: {
+    accepted: "Va bene per questo passaggio di pratica.",
+    retry: "Riprova questo passaggio di pratica.",
+  },
+};
 
 /** A catalog-neutral lesson-view-model builder (A1 or A2), used by
  * {@link buildSemanticModel} so both levels' sentence lessons resolve their
@@ -172,8 +195,51 @@ function buildSemanticModel(
         // any locale's narration), so it is safe to read from the `en`
         // build alone rather than re-validating it per locale above.
         visibleTargetKey: enTarget.visibleTargetKey,
+        practiceFunction: null,
+        feedback: GENERIC_FEEDBACK,
       });
     }
+  }
+
+  const content = a1LessonContentById[lessonId];
+  if (content) {
+    const byDefinitionId = new Map(
+      exercises.map((exercise) => [exercise.definitionId, exercise] as const),
+    );
+    const selected: GeneratedExercise[] = [];
+    for (const activity of content.practiceBlueprint.activities) {
+      if ("spokenVariantId" in activity.targetRef) continue;
+      const round =
+        activity.targetRef.round === "one" ? en.rounds[0] : en.rounds[1];
+      const target = round.targets[activity.targetRef.index];
+      if (!target) {
+        return errorModel(
+          lessonId,
+          "a1-practice-target-unresolved",
+          `${activity.targetRef.round}:${activity.targetRef.index}`,
+        );
+      }
+      const generated = byDefinitionId.get(target.targetId);
+      const feedback = generated
+        ? buildA1PracticeFeedback(
+            lessonId,
+            activity.function,
+            generated.prompt.assessedLexemeIds,
+          )
+        : undefined;
+      if (!generated || !feedback || target.prompt.kind !== activity.interactionKind) {
+        return errorModel(lessonId, "a1-practice-target-unresolved", activity.id);
+      }
+      selected.push({
+        ...generated,
+        practiceFunction: activity.function,
+        feedback,
+      });
+    }
+    if (selected.length !== 4) {
+      return errorModel(lessonId, "a1-practice-target-unresolved", lessonId);
+    }
+    return { lessonId, exercises: selected, errors: [] };
   }
   return { lessonId, exercises, errors: [] };
 }

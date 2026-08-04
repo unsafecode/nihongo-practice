@@ -155,6 +155,8 @@ export function ReviewQueue({ level = "a1" }: ReviewQueueProps): ReactElement {
                           instruction: item.instruction,
                           intentText: item.intentText,
                           practicePurpose: item.practicePurpose,
+                          practiceFunction: item.practiceFunction,
+                          feedback: item.feedback,
                         }}
                         index={1}
                         total={1}

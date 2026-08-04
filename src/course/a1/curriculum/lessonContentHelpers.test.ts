@@ -15,6 +15,26 @@ describe("A1 lesson content blueprints", () => {
     ).toThrow(/unique phonetic item ids/i);
   });
 
+  it("uses the first four phonetic items for generated activities and reserves the fifth for spoken", () => {
+    expect(
+      phoneticBlueprint("sounds-1", [
+        "snd1-a",
+        "snd1-i",
+        "snd1-u",
+        "snd1-e",
+        "snd1-o",
+      ]),
+    ).toMatchObject({
+      activities: [
+        { targetRef: { round: "one", index: 0 } },
+        { targetRef: { round: "one", index: 1 } },
+        { targetRef: { round: "one", index: 2 } },
+        { targetRef: { round: "two", index: 0 } },
+        { targetRef: { spokenVariantId: "snd1-o" } },
+      ],
+    });
+  });
+
   it("pins introductions-1's contextual learner path and collision-free spoken target", () => {
     expect(
       semanticBlueprint(

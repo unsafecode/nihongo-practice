@@ -423,7 +423,7 @@ function phoneticRecipe(
       (_, i) => `${id}-contrast-${i + 1}`,
     ),
     practiceTargetRefs: Array.from(
-      { length: 10 },
+      { length: 4 },
       (_, i) => `${id}-target-${i + 1}`,
     ),
     outcomeCopyId: `a1-outcome-${id}`,
@@ -625,16 +625,16 @@ describe("defineA1PhoneticLesson — gates and thresholds", () => {
     }
   });
 
-  it("exposes the practice-ref thresholds (8-12, ≥5 unique, ≤2 reuse)", () => {
-    expect(A1_PHONETIC_PRACTICE_MIN).toBe(8);
-    expect(A1_PHONETIC_PRACTICE_MAX).toBe(12);
-    expect(A1_PHONETIC_PRACTICE_MIN_UNIQUE).toBe(5);
-    expect(A1_PHONETIC_PRACTICE_MAX_REUSE).toBe(2);
+  it("exposes the exact four, unique generated-practice target contract", () => {
+    expect(A1_PHONETIC_PRACTICE_MIN).toBe(4);
+    expect(A1_PHONETIC_PRACTICE_MAX).toBe(4);
+    expect(A1_PHONETIC_PRACTICE_MIN_UNIQUE).toBe(4);
+    expect(A1_PHONETIC_PRACTICE_MAX_REUSE).toBe(1);
   });
 
-  it("rejects fewer than eight practice target refs", () => {
+  it("rejects fewer than four practice target refs", () => {
     const few = phoneticRecipe({
-      practiceTargetRefs: Array.from({ length: 7 }, (_, i) => `t-${i}`),
+      practiceTargetRefs: Array.from({ length: 3 }, (_, i) => `t-${i}`),
     });
     try {
       defineA1PhoneticLesson(few);
@@ -644,9 +644,9 @@ describe("defineA1PhoneticLesson — gates and thresholds", () => {
     }
   });
 
-  it("rejects more than twelve practice target refs", () => {
+  it("rejects more than four practice target refs", () => {
     const many = phoneticRecipe({
-      practiceTargetRefs: Array.from({ length: 13 }, (_, i) => `t-${i}`),
+      practiceTargetRefs: Array.from({ length: 5 }, (_, i) => `t-${i}`),
     });
     try {
       defineA1PhoneticLesson(many);
@@ -656,10 +656,8 @@ describe("defineA1PhoneticLesson — gates and thresholds", () => {
     }
   });
 
-  it("rejects fewer than five unique practice target refs", () => {
-    // Eight refs, four distinct glyphs each used twice: count and reuse are
-    // both legal, only the unique-shortfall gate should fire.
-    const refs = ["a", "a", "b", "b", "c", "c", "d", "d"];
+  it("rejects repeated generated-practice target refs", () => {
+    const refs = ["a", "a", "b", "c"];
     try {
       defineA1PhoneticLesson(phoneticRecipe({ practiceTargetRefs: refs }));
       throw new Error("expected throw");
@@ -668,20 +666,8 @@ describe("defineA1PhoneticLesson — gates and thresholds", () => {
     }
   });
 
-  it("rejects a practice target ref reused more than twice", () => {
-    // Eight refs with six distinct glyphs (≥5 unique) but one used three times.
-    const refs = ["a", "a", "a", "b", "c", "d", "e", "f"];
-    try {
-      defineA1PhoneticLesson(phoneticRecipe({ practiceTargetRefs: refs }));
-      throw new Error("expected throw");
-    } catch (error) {
-      expect((error as AuthoringError).code).toBe("practice-ref-reuse");
-    }
-  });
-
-  it("accepts practice target refs reused up to twice (no blanket uniqueness)", () => {
-    // Ten refs, eight distinct, two used twice: within all three thresholds.
-    const refs = ["a", "a", "b", "b", "c", "d", "e", "f", "g", "h"];
+  it("accepts exactly four unique generated-practice target refs", () => {
+    const refs = ["a", "b", "c", "d"];
     const defined = defineA1PhoneticLesson(
       phoneticRecipe({ practiceTargetRefs: refs }),
     );

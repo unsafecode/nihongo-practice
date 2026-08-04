@@ -149,10 +149,10 @@ describe("A1LessonSection — phonetic lesson (sounds-1)", () => {
     }
   });
 
-  it("explore: renders the 10 real phonetic exercises and the optional spoken attempt (I1)", () => {
+  it("explore: renders the four selected phonetic exercises and the optional spoken attempt", () => {
     const html = renderSection(PHONETIC_LESSON, "explore");
     expect(html).toContain(itCopy.exercises.heading);
-    expect((html.match(/class="lesson-exercise"/g) ?? []).length).toBe(10);
+    expect((html.match(/class="lesson-exercise"/g) ?? []).length).toBe(4);
     expect(html).toContain("spoken-attempt");
   });
 

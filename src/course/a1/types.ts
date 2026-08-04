@@ -81,8 +81,9 @@ export interface A1LessonRecipe {
 /**
  * A phonetic lesson recipe (module 1, `sounds`). Deliberately has no sentence
  * models, predicates, or discourse roles: it declares 8-12 contrastive item
- * IDs and matching practice target references plus a locale-independent
- * outcome copy ID. No fake predicate/role fiction is invented for kana drills.
+ * IDs plus exactly four selected generated-practice target references and a
+ * locale-independent outcome copy ID. The fifth blueprint activity is spoken.
+ * No fake predicate/role fiction is invented for kana drills.
  */
 export interface A1PhoneticLessonRecipe {
   readonly id: LessonId;

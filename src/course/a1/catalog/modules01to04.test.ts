@@ -615,21 +615,24 @@ describe("A1 productive verbs · structural intro diversity", () => {
 // ---------------------------------------------------------------------------
 
 describe("A1 module 1 · phonetic contract", () => {
-  it("has four lessons with 10–12 contrastive items and matching practice refs", () => {
+  it("keeps the 8–12 item contrast roster while selecting four unique practice refs", () => {
     expect(module1Lessons.length).toBe(4);
     expect(module1Recipe.lessonIds).toEqual([
       "sounds-1", "sounds-2", "sounds-3", "sounds-4",
     ]);
     for (const lesson of module1Lessons) {
       expect(lesson.contract).toBe("phonetic");
-      expect(lesson.contrastiveItemIds.length).toBeGreaterThanOrEqual(10);
+      expect(lesson.contrastiveItemIds.length).toBeGreaterThanOrEqual(8);
       expect(lesson.contrastiveItemIds.length).toBeLessThanOrEqual(12);
-      expect(lesson.practiceTargetRefs.length).toBe(lesson.contrastiveItemIds.length);
+      expect(lesson.practiceTargetRefs).toHaveLength(4);
       expect(new Set(lesson.contrastiveItemIds).size).toBe(lesson.contrastiveItemIds.length);
       expect(new Set(lesson.practiceTargetRefs).size).toBe(lesson.practiceTargetRefs.length);
 
       const items = module1ItemsByLesson[lesson.id];
       expect(items.length).toBe(lesson.contrastiveItemIds.length);
+      expect(lesson.practiceTargetRefs).toEqual(
+        items.slice(0, 4).map((item) => item.exerciseRefId),
+      );
       const glyphs = items.map((i) => i.glyph);
       expect(new Set(glyphs).size).toBeGreaterThanOrEqual(5);
       const glyphReuse = new Map<string, number>();

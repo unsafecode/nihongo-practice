@@ -48,15 +48,14 @@ export const A1_PHONETIC_CONTRASTIVE_MIN = 8;
 export const A1_PHONETIC_CONTRASTIVE_MAX = 12;
 
 /**
- * A phonetic lesson declares between 8 and 12 practice target references
- * (inclusive) — one per practice exercise. At least five must be distinct so a
- * drill is never four items padded by repeats, and no single target may be
- * reused more than twice, so spaced repetition never collapses onto one glyph.
+ * A phonetic lesson retains its 8-12-item contrast roster, but selects exactly
+ * four distinct generated practice targets. The fifth blueprint activity is a
+ * separate spoken item, not a generated exercise reference.
  */
-export const A1_PHONETIC_PRACTICE_MIN = 8;
-export const A1_PHONETIC_PRACTICE_MAX = 12;
-export const A1_PHONETIC_PRACTICE_MIN_UNIQUE = 5;
-export const A1_PHONETIC_PRACTICE_MAX_REUSE = 2;
+export const A1_PHONETIC_PRACTICE_MIN = 4;
+export const A1_PHONETIC_PRACTICE_MAX = 4;
+export const A1_PHONETIC_PRACTICE_MIN_UNIQUE = 4;
+export const A1_PHONETIC_PRACTICE_MAX_REUSE = 1;
 
 // ---------------------------------------------------------------------------
 // Structured authoring error
@@ -218,10 +217,9 @@ export function defineA1Lesson(recipe: A1LessonRecipe): A1LessonRecipe {
 /**
  * Validate and deep-freeze a phonetic lesson recipe. Enforces the 8-12
  * contrastive-item threshold and unique contrastive items, then the practice
- * target-ref contract: 8-12 refs, at least five distinct, and each reused at
- * most twice. There is deliberately *no* blanket uniqueness on the practice
- * refs — that would forbid the allowed up-to-twice spaced reuse. No
- * predicate/role fiction is invented for a kana drill.
+ * target-ref contract: exactly four distinct refs. The fifth spoken activity
+ * deliberately stays outside this generated-exercise list. No predicate/role
+ * fiction is invented for a kana drill.
  */
 export function defineA1PhoneticLesson(
   recipe: A1PhoneticLessonRecipe,

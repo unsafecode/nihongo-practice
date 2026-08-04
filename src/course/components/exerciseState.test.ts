@@ -39,6 +39,14 @@ const choiceEx = a1ExerciseOfKind("choice");
 const completeEx = a1ExerciseOfKind("completion");
 const constructEx = a1ExerciseOfKind("constrained-construction");
 
+const COMPAT_GENERATED_EXERCISE_FIELDS = {
+  practiceFunction: null,
+  feedback: {
+    en: { accepted: "Accepted.", retry: "Try again." },
+    it: { accepted: "Accettato.", retry: "Riprova." },
+  },
+} as const;
+
 /**
  * The A1 release's round-target authoring (`a1LessonBuilders.ts`) only ever
  * emits `tile-ordering`/`choice`/`completion`/`constrained-construction`
@@ -50,6 +58,7 @@ const constructEx = a1ExerciseOfKind("constrained-construction");
  * against a synthetic, hand-built prompt rather than a real lesson's data.
  */
 const transformEx: GeneratedExercise = {
+  ...COMPAT_GENERATED_EXERCISE_FIELDS,
   definitionId: "test-transformation-fixture",
   targetExampleId: "test-transformation-fixture-target",
   visibleTargetKey: "test-transformation-fixture-visible",

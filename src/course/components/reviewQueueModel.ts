@@ -66,6 +66,10 @@ export interface ReviewQueueItem {
   readonly intentText: Readonly<Record<Locale, string | null>>;
   /** The exercise's original round purpose, for `Exercise`'s prop contract. */
   readonly practicePurpose: "guided-controlled" | "transfer";
+  /** A1-only blueprint function, null for unchanged A2 exercises. */
+  readonly practiceFunction: GeneratedExercise["practiceFunction"];
+  /** Post-submit feedback carried from the original generated exercise. */
+  readonly feedback: GeneratedExercise["feedback"];
   readonly mistakeCount: number;
   readonly targetConceptIds: readonly string[];
   readonly targetLexemeIds: readonly string[];
@@ -125,6 +129,8 @@ export function buildReviewQueueView(
       instruction: exercise.instruction,
       intentText: exercise.intentText,
       practicePurpose: exercise.practicePurpose,
+      practiceFunction: exercise.practiceFunction,
+      feedback: exercise.feedback,
       mistakeCount: entry.mistakeCount,
       targetConceptIds: entry.targetConceptIds,
       targetLexemeIds: entry.targetLexemeIds,

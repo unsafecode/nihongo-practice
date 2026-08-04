@@ -6,6 +6,10 @@ import {
   type A1PhoneticExerciseKind,
   type A1PhoneticItem,
 } from "../a1/catalog/module01Sounds";
+import { buildA1PracticeFeedback } from "../a1/curriculum/a1PracticeFeedback";
+import { a1LessonContentById } from "../a1/curriculum/catalog";
+import { phoneticItemForPracticeTarget } from "../a1/curriculum/lessonContentHelpers";
+import type { A1PracticeActivity } from "../a1/curriculum/types";
 import type {
   ChoicePrompt,
   ExerciseChoiceOption,
@@ -31,7 +35,8 @@ import type {
  * (`LessonExercises`, `ExerciseView`, `ProgressContext`) render, evaluate,
  * and record them exactly like any semantic exercise.
  *
- * One exercise per authored item (exactly 10 per lesson, one target each):
+ * Four generated exercises per lesson, selected by its learner blueprint while
+ * retaining the full 10-item contrast roster for rule/comparison work:
  *   - `minimal-pair-listening` → a 2-option choice between the item and its
  *     authored `contrastWithId` partner (the same pair the recap/comparison
  *     view already displays, per `A1LessonPage.tsx`'s `PhoneticSection`).
@@ -256,15 +261,33 @@ interface PhoneticExerciseBuild {
 function buildPhoneticExercise(
   lessonId: string,
   item: A1PhoneticItem,
+  activity: A1PracticeActivity,
   itemsById: ReadonlyMap<string, A1PhoneticItem>,
   readingChoiceSubgroup: readonly A1PhoneticItem[],
   readingChoiceIndexById: ReadonlyMap<string, number>,
 ): PhoneticExerciseBuild | { readonly error: LessonExerciseModelError } {
   const instruction = instructionFor(item.exerciseKind);
-  const practicePurpose = "guided-controlled" as const;
+  const practicePurpose =
+    "spokenVariantId" in activity.targetRef || activity.targetRef.round === "one"
+      ? ("guided-controlled" as const)
+      : ("transfer" as const);
 
   if (item.exerciseKind === "mora-tiling") {
     const { prompt, tokens } = buildTileOrderingPrompt(item);
+    const feedback = buildA1PracticeFeedback(
+      lessonId,
+      activity.function,
+      prompt.assessedLexemeIds,
+    );
+    if (!feedback) {
+      return {
+        error: {
+          code: "phonetic-exercise-feedback-unresolved",
+          lessonId,
+          detail: item.id,
+        },
+      };
+    }
     return {
       exercise: {
         definitionId: item.exerciseRefId,
@@ -280,6 +303,8 @@ function buildPhoneticExercise(
         // check tautological rather than a real check on what a learner
         // sees).
         visibleTargetKey: item.glyph,
+        practiceFunction: activity.function,
+        feedback,
       },
       tokenEntries: tokens.map((token) => [token.id, token] as const),
       exampleTokenEntries: [[item.id, tokens]],
@@ -310,6 +335,20 @@ function buildPhoneticExercise(
   }
 
   const prompt = buildChoicePrompt(item, distractors);
+  const feedback = buildA1PracticeFeedback(
+    lessonId,
+    activity.function,
+    prompt.assessedLexemeIds,
+  );
+  if (!feedback) {
+    return {
+      error: {
+        code: "phonetic-exercise-feedback-unresolved",
+        lessonId,
+        detail: item.id,
+      },
+    };
+  }
   const ownToken = assembledTokenForPhoneticItem(item);
   const tokenEntries: (readonly [string, AssembledToken])[] = [
     [item.id, ownToken],
@@ -327,6 +366,8 @@ function buildPhoneticExercise(
       intentText: NULL_INTENT,
       practicePurpose,
       visibleTargetKey: item.glyph,
+      practiceFunction: activity.function,
+      feedback,
     },
     tokenEntries,
     exampleTokenEntries: [[item.id, [ownToken]]],
@@ -356,7 +397,7 @@ function emptyBuild(lessonId: string): PhoneticLessonBuild {
 }
 
 /** The deterministic runtime exercise model for one phonetic lesson: exactly
- * 10 exercises (one per authored item), plus the real `AssembledToken`s every
+ * four generated exercises selected by its blueprint, plus the real `AssembledToken`s every
  * option/tile resolves to — fail-closed to an empty exercise list (with a
  * `LessonExerciseModelError`) if any item's distractor set cannot be
  * resolved, never a partial or silently-wrong exercise set. */
@@ -375,10 +416,53 @@ export function buildPhoneticLessonModel(lessonId: string): PhoneticLessonBuild 
   const tokenByTileId = new Map<string, AssembledToken>();
   const tokensByExampleId = new Map<string, readonly AssembledToken[]>();
 
-  for (const item of items) {
+  const content = a1LessonContentById[lessonId];
+  if (!content) {
+    return {
+      model: {
+        lessonId,
+        exercises: [],
+        errors: [{ code: "phonetic-practice-content-unresolved", lessonId }],
+      },
+      tokenByTileId,
+      tokensByExampleId,
+    };
+  }
+
+  const generatedActivities = content.practiceBlueprint.activities.filter(
+    (activity) => !("spokenVariantId" in activity.targetRef),
+  );
+  if (generatedActivities.length !== 4) {
+    errors.push({
+      code: "phonetic-exercise-target-unresolved",
+      lessonId,
+      detail: "expected-four-generated-activities",
+    });
+  }
+  for (const activity of generatedActivities) {
+    if ("spokenVariantId" in activity.targetRef) continue;
+    const item = phoneticItemForPracticeTarget(items, activity.targetRef);
+    if (!item) {
+      errors.push({
+        code: "phonetic-exercise-target-unresolved",
+        lessonId,
+        detail: `${activity.targetRef.round}:${activity.targetRef.index}`,
+      });
+      continue;
+    }
+    const expectedKind = item.exerciseKind === "mora-tiling" ? "tile-ordering" : "choice";
+    if (activity.interactionKind !== expectedKind) {
+      errors.push({
+        code: "phonetic-exercise-kind-mismatch",
+        lessonId,
+        detail: activity.id,
+      });
+      continue;
+    }
     const built = buildPhoneticExercise(
       lessonId,
       item,
+      activity,
       itemsById,
       readingChoiceSubgroup,
       readingChoiceIndexById,

@@ -1,9 +1,18 @@
 import type { Locale } from "../../i18n/LocaleContext";
+import type {
+  SemanticValue,
+  SentenceFamily,
+  SentenceVariant,
+} from "../foundations/types";
 import {
   buildLessonViewModel,
   type FoundationLessonViewModelResult,
 } from "../foundations/buildLessonViewModel";
-import { a1FoundationCatalogs, a1FoundationCopy } from "./catalog/catalog";
+import {
+  a1FoundationCatalogs,
+  a1FoundationCopy,
+  a1SemanticBuiltLessons,
+} from "./catalog/catalog";
 import {
   A1_RELEASE_CATALOG_VERSION,
   A1_RELEASE_SEED,
@@ -44,6 +53,41 @@ export function buildA1LessonViewModel(
     catalogVersion: A1_RELEASE_CATALOG_VERSION,
     seed: A1_RELEASE_SEED,
   });
+}
+
+/**
+ * The structural source for a realized A1 variant. Curriculum view models use
+ * this alongside the production-built tokens to resolve lexical glosses by
+ * semantic value, never by parsing Japanese or translating a whole sentence.
+ */
+export interface A1LessonVariantSource {
+  readonly variant: SentenceVariant;
+  readonly family: SentenceFamily;
+  readonly semanticValues: readonly SemanticValue[];
+}
+
+const semanticLessonById = new Map(
+  a1SemanticBuiltLessons.map((lesson) => [lesson.recipe.id, lesson] as const),
+);
+const familyById = new Map(
+  a1FoundationCatalogs.sentenceFamilies.map((family) => [family.id, family] as const),
+);
+
+/** Resolves a variant only when it belongs to the requested semantic lesson. */
+export function resolveA1LessonVariantSource(
+  lessonId: string,
+  variantId: string,
+): A1LessonVariantSource | undefined {
+  const lesson = semanticLessonById.get(lessonId);
+  const variant = lesson?.variants.find((candidate) => candidate.id === variantId);
+  if (!variant) return undefined;
+  const family = familyById.get(variant.sentenceFamilyId);
+  if (!family) return undefined;
+  return {
+    variant,
+    family,
+    semanticValues: a1FoundationCatalogs.semanticValues,
+  };
 }
 
 // Re-export the catalog-neutral view-model shapes, error contract, guided

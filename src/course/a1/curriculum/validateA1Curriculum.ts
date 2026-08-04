@@ -42,6 +42,7 @@ import {
   type A1CurriculumReports,
   type A1LessonCurriculumReport,
 } from "./reports";
+import { phoneticItemForPracticeTarget } from "./lessonContentHelpers";
 
 export { A1_CURRICULUM_ERROR_CODES } from "../types";
 export type {
@@ -880,8 +881,7 @@ function resolvePracticeTargets(
           itemId: item.id,
         }];
       }
-      const offset = targetRef.round === "one" ? 0 : 3;
-      const item = items[targetRef.index + offset];
+      const item = phoneticItemForPracticeTarget(items, targetRef);
       if (!item) {
         push({
           code: "missing-instructional-content",

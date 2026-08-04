@@ -1,8 +1,32 @@
-import type { A1PracticeBlueprint } from "./types";
+import type {
+  A1PracticeActivity,
+  A1PracticeBlueprint,
+} from "./types";
 import { buildA1LessonViewModel } from "../a1LessonViewModel";
-import { module1ItemsByLesson } from "../catalog/module01Sounds";
+import {
+  module1ItemsByLesson,
+  type A1PhoneticItem,
+} from "../catalog/module01Sounds";
 
 type PhoneticItemIds = readonly [string, string, string, string, string];
+
+type GeneratedPhoneticTargetRef = Extract<
+  A1PracticeActivity["targetRef"],
+  Readonly<{ round: "one" | "two"; index: number }>
+>;
+
+/**
+ * Resolves the one phonetic catalog item a generated blueprint activity
+ * targets. This is shared by the runtime exercise model and the curriculum
+ * validator so their round/index semantics cannot drift.
+ */
+export function phoneticItemForPracticeTarget(
+  items: readonly A1PhoneticItem[],
+  targetRef: GeneratedPhoneticTargetRef,
+): A1PhoneticItem | undefined {
+  const offset = targetRef.round === "one" ? 0 : 3;
+  return items[targetRef.index + offset];
+}
 
 export function semanticBlueprint(
   lessonId: string,
@@ -110,8 +134,7 @@ export function phoneticBlueprint(
     round: "one" | "two",
     index: number,
   ): Exclude<A1PracticeBlueprint["activities"][number]["interactionKind"], "spoken"> => {
-    const offset = round === "one" ? 0 : 3;
-    const item = items[index + offset];
+    const item = phoneticItemForPracticeTarget(items, { round, index });
     if (!item) {
       throw new Error(`A1 phonetic practice blueprint cannot resolve ${lessonId}:${round}:${index}.`);
     }
@@ -141,14 +164,14 @@ export function phoneticBlueprint(
       {
         id: `${lessonId}-transfer`,
         function: "contextual-response",
-        interactionKind: interactionFor("two", 1),
-        targetRef: { round: "two", index: 1 },
+        interactionKind: interactionFor("two", 0),
+        targetRef: { round: "two", index: 0 },
       },
       {
         id: `${lessonId}-spoken`,
         function: "listening-speaking",
         interactionKind: "spoken",
-        targetRef: { spokenVariantId: itemIds[3] },
+        targetRef: { spokenVariantId: itemIds[4] },
       },
     ],
   };
