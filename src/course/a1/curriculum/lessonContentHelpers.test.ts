@@ -62,7 +62,7 @@ describe("A1 lesson content blueprints", () => {
     expect(
       semanticBlueprint(
         "introductions-2",
-        "introductions-2-m4",
+        "introductions-2-m7",
         "transformation",
       ),
     ).toEqual({
@@ -70,7 +70,7 @@ describe("A1 lesson content blueprints", () => {
         {
           id: "introductions-2-meaning",
           function: "meaning-comprehension",
-          interactionKind: "choice",
+          interactionKind: "completion",
           targetRef: { round: "one", index: 1 },
         },
         {
@@ -95,7 +95,7 @@ describe("A1 lesson content blueprints", () => {
           id: "introductions-2-spoken",
           function: "listening-speaking",
           interactionKind: "spoken",
-          targetRef: { spokenVariantId: "introductions-2-m1" },
+          targetRef: { spokenVariantId: "introductions-2-m7" },
         },
       ],
     });

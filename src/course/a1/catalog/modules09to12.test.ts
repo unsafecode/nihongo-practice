@@ -20,7 +20,7 @@
  *     targets, reuse ≤2, ≥2 constructing transfers) in EN and IT;
  *   • the four capstones introduce NO new content — every value, sense,
  *     concept, form, role and context is drawn from the modules 1–11 prior set;
- *   • the 37-record release recurrence table (each sense reused ≥2× later);
+ *   • the 40-record release recurrence table (each sense reused ≥2× later);
  *   • bilingual copy parity/coverage with no Japanese and no cert language;
  *   • a Modules 2–8 realization regression (prior content unchanged).
  */
@@ -878,17 +878,17 @@ describe("A1 modules 9–12 · capstone required scenario coverage", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 7. Release recurrence — 37 sense records, each reused ≥2× later.
+// 7. Release recurrence — 40 sense records, each reused ≥2× later.
 // ---------------------------------------------------------------------------
 
 describe("A1 modules 9–12 · release recurrence completeness", () => {
-  it("wires every productive sense to ≥2 later uses (37 records)", () => {
-    expect(a1ReleaseVerbUseRecords.length).toBe(37);
+  it("wires every productive sense to ≥2 later uses (40 records)", () => {
+    expect(a1ReleaseVerbUseRecords.length).toBe(40);
     for (const record of a1ReleaseVerbUseRecords) {
       expect(record.laterUses.length, record.id).toBeGreaterThanOrEqual(2);
     }
     const ids = new Set(a1ReleaseVerbUseRecords.map((r) => r.id));
-    expect(ids.size, "record ids unique").toBe(37);
+    expect(ids.size, "record ids unique").toBe(40);
   });
 });
 

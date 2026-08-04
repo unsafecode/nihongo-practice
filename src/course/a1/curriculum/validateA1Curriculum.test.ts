@@ -264,7 +264,7 @@ describe("validateA1Curriculum — attributed broken fixtures", () => {
     const result = validateA1Curriculum({ learningNotes: notes });
 
     expectAttributed(result, "grammar-prerequisite-order", {
-      lessonId: "introductions-2",
+      lessonId: "essential-questions-4",
       id: "a1-note-particle-ga",
       referenceId: "a1-concept-transport-de",
       stage: "grammar",

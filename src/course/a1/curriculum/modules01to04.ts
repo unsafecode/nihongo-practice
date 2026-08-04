@@ -141,36 +141,10 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
   defineA1LessonContent({
     lessonId: "introductions-2",
     situation: {
-      en: "You say which familiar languages different people understand.",
-      it: "Dici quali lingue familiari capiscono persone diverse.",
+      en: "You reinforce who people are and where they are from in a first conversation.",
+      it: "Rafforzi chi sono le persone e da dove vengono in una prima conversazione.",
     },
     prerequisiteLessonIds: ["introductions-1"],
-    prerequisiteConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
-    newLexemeIds: [
-      "a1-lexeme-wakaru",
-      "a1-lexeme-nihongo",
-      "a1-lexeme-eigo",
-      "a1-lexeme-itaria-go",
-    ],
-    learningNoteId: "a1-note-particle-ga",
-    workedExampleVariantIds: ["introductions-2-m1", "introductions-2-m4"],
-    practiceBlueprint: semanticBlueprint(
-      "introductions-2",
-      "introductions-2-m4",
-      "transformation",
-    ),
-    retrievalCue: {
-      en: "Keep the language before が, then finish with the polite action.",
-      it: "Tieni la lingua prima di が, poi completa con l'azione cortese.",
-    },
-  }),
-  defineA1LessonContent({
-    lessonId: "introductions-3",
-    situation: {
-      en: "You compare where classmates are from in a first conversation.",
-      it: "Confronti la provenienza dei compagni in una prima conversazione.",
-    },
-    prerequisiteLessonIds: ["introductions-2"],
     prerequisiteConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
     newLexemeIds: [
       "a1-lexeme-mina",
@@ -178,20 +152,42 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       "a1-lexeme-itaria-jin",
       "a1-lexeme-amerika-jin",
     ],
-    learningNoteId: "a1-note-dictionary-masu-classes",
-    workedExampleVariantIds: [
-      "introductions-3-m1",
-      "introductions-3-m2",
-      "introductions-3-m3",
-    ],
+    learningNoteId: "a1-note-topic-wa-copula-desu",
+    workedExampleVariantIds: ["introductions-2-m1", "introductions-2-m7"],
     practiceBlueprint: semanticBlueprint(
-      "introductions-3",
-      "introductions-3-m3",
+      "introductions-2",
+      "introductions-2-m7",
       "transformation",
     ),
     retrievalCue: {
-      en: "Name the dictionary form you would look up, then use the polite form you need.",
-      it: "Nomina la forma di dizionario da cercare, poi usa la forma cortese che ti serve.",
+      en: "State the topic once with は, then finish the origin or role with です.",
+      it: "Indica il tema una volta con は, poi completa l'origine o il ruolo con です.",
+    },
+  }),
+  defineA1LessonContent({
+    lessonId: "introductions-3",
+    situation: {
+      en: "You match a dictionary form to the polite action you say in class or at work.",
+      it: "Colleghi una forma di dizionario all'azione cortese che dici in classe o al lavoro.",
+    },
+    prerequisiteLessonIds: ["introductions-2"],
+    prerequisiteConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
+    newLexemeIds: [
+      "a1-lexeme-hataraku",
+      "a1-lexeme-benkyou-suru",
+      "a1-lexeme-suru",
+      "a1-lexeme-ano-hito",
+    ],
+    learningNoteId: "a1-note-dictionary-masu-classes",
+    workedExampleVariantIds: ["introductions-3-m1", "introductions-3-m2", "introductions-3-m3"],
+    practiceBlueprint: semanticBlueprint(
+      "introductions-3",
+      "introductions-3-m2",
+      "transformation",
+    ),
+    retrievalCue: {
+      en: "Use the dictionary form to look up the verb, then say the polite ます form in the sentence.",
+      it: "Usa la forma di dizionario per cercare il verbo, poi usa nella frase la forma cortese in ます.",
     },
   }),
   defineA1LessonContent({
@@ -205,25 +201,25 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     newLexemeIds: [
       "a1-lexeme-enjinia",
       "a1-lexeme-kaishain",
-      "a1-lexeme-ano-hito",
       "a1-lexeme-sono-hito",
+      "a1-lexeme-kurasumeeto",
     ],
     learningNoteId: "a1-note-personal-reference",
     workedExampleVariantIds: [
       "introductions-4-m2",
-      "introductions-4-m7",
+      "introductions-4-m5",
       "introductions-4-m8",
     ],
     dialogue: {
       turnVariantIds: [
         "introductions-4-m2",
-        "introductions-4-m7",
+        "introductions-4-m5",
         "introductions-4-m8",
       ],
     },
     practiceBlueprint: semanticBlueprint(
       "introductions-4",
-      "introductions-4-m7",
+      "introductions-4-m5",
       "contextual-response",
     ),
     retrievalCue: {
@@ -244,6 +240,7 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       "a1-lexeme-sore",
       "a1-lexeme-nan",
       "a1-lexeme-nani",
+      "a1-lexeme-dono-hon",
     ],
     learningNoteId: "a1-note-question-ka-words",
     workedExampleVariantIds: [
@@ -274,13 +271,13 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       "a1-lexeme-doko",
       "a1-lexeme-eki",
       "a1-lexeme-dare",
-      "a1-lexeme-kurasumeeto",
+      "a1-lexeme-kodomo",
     ],
     learningNoteId: "a1-note-question-ka-words",
     workedExampleVariantIds: [
       "essential-questions-2-m1",
       "essential-questions-2-m2",
-      "essential-questions-2-m3",
+      "essential-questions-2-m5",
     ],
     practiceBlueprint: semanticBlueprint(
       "essential-questions-2",
@@ -288,8 +285,8 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       "transformation",
     ),
     retrievalCue: {
-      en: "Use だれ for a person and どこ for a place, then keep か final.",
-      it: "Usa だれ per una persona e どこ per un luogo, poi tieni か alla fine.",
+      en: "Use だれ for a person and どこ for a place, then keep か final in the familiar copular question.",
+      it: "Usa だれ per una persona e どこ per un luogo, poi tieni か finale nella domanda copulare familiare.",
     },
   }),
   defineA1LessonContent({
@@ -306,12 +303,13 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       "a1-lexeme-ikura",
       "a1-lexeme-mikan",
       "a1-lexeme-ikutsu",
+      "a1-lexeme-dore",
     ],
     learningNoteId: "a1-note-question-ka-words",
     workedExampleVariantIds: [
       "essential-questions-3-m1",
       "essential-questions-3-m2",
-      "essential-questions-3-m4",
+      "essential-questions-3-m6",
     ],
     practiceBlueprint: semanticBlueprint(
       "essential-questions-3",
@@ -326,31 +324,31 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
   defineA1LessonContent({
     lessonId: "essential-questions-4",
     situation: {
-      en: "You clarify which person or item a partner means and notice the focus.",
-      it: "Chiarisci quale persona o oggetto intende un compagno e noti il fuoco della frase.",
+      en: "You ask and answer which familiar language someone understands, noticing the focused information.",
+      it: "Chiedi e rispondi quale lingua familiare qualcuno capisce, notando l'informazione a fuoco.",
     },
     prerequisiteLessonIds: ["essential-questions-3"],
     prerequisiteConceptIds: ["a1-concept-interrogative-ka", "a1-concept-topic-wa"],
     newLexemeIds: [
-      "a1-lexeme-are",
-      "a1-lexeme-dono-hon",
-      "a1-lexeme-dore",
-      "a1-lexeme-kodomo",
+      "a1-lexeme-wakaru",
+      "a1-lexeme-nihongo",
+      "a1-lexeme-eigo",
+      "a1-lexeme-itaria-go",
     ],
     learningNoteId: "a1-note-particle-ga",
     workedExampleVariantIds: [
       "essential-questions-4-m1",
       "essential-questions-4-m2",
-      "essential-questions-4-m4",
+      "essential-questions-4-m5",
     ],
     practiceBlueprint: semanticBlueprint(
       "essential-questions-4",
-      "essential-questions-4-m5",
+      "essential-questions-4-m1",
       "contextual-response",
     ),
     retrievalCue: {
-      en: "Clarify the person or item first; use が when the answer itself is the focus.",
-      it: "Chiarisci prima la persona o l'oggetto; usa が quando la risposta stessa è il fuoco.",
+      en: "Keep the language before が; use the same shape to ask and to give the focused answer.",
+      it: "Tieni la lingua prima di が; usa la stessa struttura per chiedere e per dare la risposta a fuoco.",
     },
   }),
   defineA1LessonContent({
@@ -366,7 +364,6 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       "a1-lexeme-nomu",
       "a1-lexeme-yomu",
       "a1-lexeme-hon",
-      "a1-lexeme-suru",
       "a1-lexeme-shukudai",
     ],
     learningNoteId: "a1-note-particle-o",
@@ -394,7 +391,6 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       "a1-lexeme-kuru",
       "a1-lexeme-toshokan",
       "a1-lexeme-kafe",
-      "a1-lexeme-hataraku",
       "a1-lexeme-kaisha",
     ],
     learningNoteId: "a1-note-location-ni-de-contrast",
@@ -421,7 +417,7 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       "a1-lexeme-kiku",
       "a1-lexeme-tenin",
       "a1-lexeme-kau",
-      "a1-lexeme-benkyou-suru",
+      "a1-lexeme-are",
     ],
     learningNoteId: "a1-note-particle-ni",
     workedExampleVariantIds: ["actions-3-m2", "actions-3-m4", "actions-3-m5"],

@@ -32,7 +32,7 @@ import {
   a1TranslationCopyId,
 } from "./shared";
 import { module2Lessons, module2Recipe, module2VerbUseRecords } from "./module02Introductions";
-import { module3Lessons, module3Recipe } from "./module03Questions";
+import { module3Lessons, module3Recipe, module3VerbUseRecords } from "./module03Questions";
 import { module4Lessons, module4Recipe, module4VerbUseRecords } from "./module04Actions";
 import {
   module1PhoneticItems,
@@ -58,7 +58,11 @@ const allVariants: SentenceVariant[] = instructionalBuilt.flatMap((b) => [...b.v
 const catalogs = assembleA1FoundationCatalogs({
   lessons: instructionalBuilt.map((b) => b.recipe),
   variants: allVariants,
-  verbUseRecords: [...module2VerbUseRecords, ...module4VerbUseRecords],
+  verbUseRecords: [
+    ...module2VerbUseRecords,
+    ...module3VerbUseRecords,
+    ...module4VerbUseRecords,
+  ],
 });
 const copy = { en: a1CopyEn, it: a1CopyIt };
 
@@ -119,97 +123,97 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
     ["introductions-1-t3", "ゆきはせんせいです", "yuki wa sensei desu"],
     ["introductions-1-t4", "ゆきはがくせいです", "yuki wa gakusei desu"],
     ["introductions-1-t5", "わたしはせんせいです", "watashi wa sensei desu"],
-    ["introductions-2-m1", "ゆきはにほんごがわかります", "yuki wa nihongo ga wakarimasu"],
-    ["introductions-2-m2", "けんはえいごがわかります", "ken wa eigo ga wakarimasu"],
-    ["introductions-2-m3", "わたしはイタリアごがわかります", "watashi wa itariago ga wakarimasu"],
-    ["introductions-2-m4", "けんはにほんごがわかります", "ken wa nihongo ga wakarimasu"],
-    ["introductions-2-m5", "えいごがわかります", "eigo ga wakarimasu"],
-    ["introductions-2-m6", "イタリアごがわかります", "itariago ga wakarimasu"],
-    ["introductions-2-m7", "ゆきはえいごがわかります", "yuki wa eigo ga wakarimasu"],
-    ["introductions-2-m8", "けんはイタリアごがわかります", "ken wa itariago ga wakarimasu"],
-    ["introductions-2-t1", "ゆきはイタリアごがわかります", "yuki wa itariago ga wakarimasu"],
-    ["introductions-2-t2", "けんはにほんごがわかります", "ken wa nihongo ga wakarimasu"],
-    ["introductions-2-t3", "えいごがわかります", "eigo ga wakarimasu"],
-    ["introductions-2-t4", "にほんごがわかります", "nihongo ga wakarimasu"],
-    ["introductions-2-t5", "けんはえいごがわかります", "ken wa eigo ga wakarimasu"],
-    ["introductions-3-m1", "ゆきはにほんじんです", "yuki wa nihonjin desu"],
-    ["introductions-3-m2", "けんはイタリアじんです", "ken wa itariajin desu"],
-    ["introductions-3-m3", "みなはアメリカじんです", "mina wa amerikajin desu"],
-    ["introductions-3-m4", "にほんごがわかります", "nihongo ga wakarimasu"],
-    ["introductions-3-m5", "ゆきはえいごがわかります", "yuki wa eigo ga wakarimasu"],
-    ["introductions-3-m6", "イタリアごがわかります", "itariago ga wakarimasu"],
-    ["introductions-3-m7", "けんはにほんごがわかります", "ken wa nihongo ga wakarimasu"],
-    ["introductions-3-m8", "ゆきはイタリアごがわかります", "yuki wa itariago ga wakarimasu"],
-    ["introductions-3-t1", "みなはにほんじんです", "mina wa nihonjin desu"],
-    ["introductions-3-t2", "みなはにほんごがわかります", "mina wa nihongo ga wakarimasu"],
-    ["introductions-3-t3", "ゆきはえいごがわかります", "yuki wa eigo ga wakarimasu"],
-    ["introductions-3-t4", "けんはアメリカじんです", "ken wa amerikajin desu"],
-    ["introductions-3-t5", "イタリアごがわかります", "itariago ga wakarimasu"],
+    ["introductions-2-m1", "みなはにほんじんです", "mina wa nihonjin desu"],
+    ["introductions-2-m2", "けんはイタリアじんです", "ken wa itariajin desu"],
+    ["introductions-2-m3", "ゆきはアメリカじんです", "yuki wa amerikajin desu"],
+    ["introductions-2-m4", "わたしはにほんじんです", "watashi wa nihonjin desu"],
+    ["introductions-2-m5", "イタリアじんです", "itariajin desu"],
+    ["introductions-2-m6", "みなはアメリカじんです", "mina wa amerikajin desu"],
+    ["introductions-2-m7", "けんはせんせいです", "ken wa sensei desu"],
+    ["introductions-2-m8", "ゆきはがくせいです", "yuki wa gakusei desu"],
+    ["introductions-2-t1", "みなはイタリアじんです", "mina wa itariajin desu"],
+    ["introductions-2-t2", "けんはアメリカじんです", "ken wa amerikajin desu"],
+    ["introductions-2-t3", "にほんじんです", "nihonjin desu"],
+    ["introductions-2-t4", "ゆきはにほんじんです", "yuki wa nihonjin desu"],
+    ["introductions-2-t5", "みなはがくせいです", "mina wa gakusei desu"],
+    ["introductions-3-m1", "ゆきははたらきます", "yuki wa hatarakimasu"],
+    ["introductions-3-m2", "べんきょうします", "benkyoushimasu"],
+    ["introductions-3-m3", "けんはします", "ken wa shimasu"],
+    ["introductions-3-m4", "はたらきます", "hatarakimasu"],
+    ["introductions-3-m5", "あのひとはべんきょうします", "ano hito wa benkyoushimasu"],
+    ["introductions-3-m6", "します", "shimasu"],
+    ["introductions-3-m7", "みなははたらきます", "mina wa hatarakimasu"],
+    ["introductions-3-m8", "ゆきはべんきょうします", "yuki wa benkyoushimasu"],
+    ["introductions-3-t1", "みなはべんきょうします", "mina wa benkyoushimasu"],
+    ["introductions-3-t2", "けんははたらきます", "ken wa hatarakimasu"],
+    ["introductions-3-t3", "します", "shimasu"],
+    ["introductions-3-t4", "あのひとははたらきます", "ano hito wa hatarakimasu"],
+    ["introductions-3-t5", "べんきょうします", "benkyoushimasu"],
     ["introductions-4-m1", "ゆきはがくせいです", "yuki wa gakusei desu"],
     ["introductions-4-m2", "けんはエンジニアです", "ken wa enjinia desu"],
     ["introductions-4-m3", "ゆきはかいしゃいんです", "yuki wa kaishain desu"],
     ["introductions-4-m4", "そのひとはエンジニアです", "sono hito wa enjinia desu"],
-    ["introductions-4-m5", "あのひとはにほんごがわかります", "ano hito wa nihongo ga wakarimasu"],
-    ["introductions-4-m6", "えいごがわかります", "eigo ga wakarimasu"],
-    ["introductions-4-m7", "けんはイタリアごがわかります", "ken wa itariago ga wakarimasu"],
-    ["introductions-4-m8", "にほんごがわかります", "nihongo ga wakarimasu"],
-    ["introductions-4-t1", "みなはにほんごがわかります", "mina wa nihongo ga wakarimasu"],
-    ["introductions-4-t2", "ゆきはえいごがわかります", "yuki wa eigo ga wakarimasu"],
-    ["introductions-4-t3", "けんはイタリアごがわかります", "ken wa itariago ga wakarimasu"],
-    ["introductions-4-t4", "にほんごがわかります", "nihongo ga wakarimasu"],
-    ["introductions-4-t5", "えいごがわかります", "eigo ga wakarimasu"],
+    ["introductions-4-m5", "クラスメートはべんきょうします", "kurasumeeto wa benkyoushimasu"],
+    ["introductions-4-m6", "はたらきます", "hatarakimasu"],
+    ["introductions-4-m7", "けんはします", "ken wa shimasu"],
+    ["introductions-4-m8", "べんきょうします", "benkyoushimasu"],
+    ["introductions-4-t1", "みなはかいしゃいんです", "mina wa kaishain desu"],
+    ["introductions-4-t2", "そのひとははたらきます", "sono hito wa hatarakimasu"],
+    ["introductions-4-t3", "クラスメートはがくせいです", "kurasumeeto wa gakusei desu"],
+    ["introductions-4-t4", "します", "shimasu"],
+    ["introductions-4-t5", "ゆきはべんきょうします", "yuki wa benkyoushimasu"],
     ["essential-questions-1-m1", "これはなんですか", "kore wa nan desu ka"],
     ["essential-questions-1-m2", "それはなんですか", "sore wa nan desu ka"],
-    ["essential-questions-1-m3", "ゆきはなにがわかりますか", "yuki wa nani ga wakarimasu ka"],
-    ["essential-questions-1-m4", "けんはなにがわかりますか", "ken wa nani ga wakarimasu ka"],
-    ["essential-questions-1-m5", "なにがわかりますか", "nani ga wakarimasu ka"],
-    ["essential-questions-1-m6", "わたしはなにがわかりますか", "watashi wa nani ga wakarimasu ka"],
-    ["essential-questions-1-m7", "ゆきはなにがわかりますか", "yuki wa nani ga wakarimasu ka"],
-    ["essential-questions-1-m8", "せんせいはなにがわかりますか", "sensei wa nani ga wakarimasu ka"],
-    ["essential-questions-1-t1", "それはせんせいですか", "sore wa sensei desu ka"],
-    ["essential-questions-1-t2", "がくせいですか", "gakusei desu ka"],
-    ["essential-questions-1-t3", "けんはなにがわかりますか", "ken wa nani ga wakarimasu ka"],
-    ["essential-questions-1-t4", "せんせいはなにがわかりますか", "sensei wa nani ga wakarimasu ka"],
-    ["essential-questions-1-t5", "みなはなにがわかりますか", "mina wa nani ga wakarimasu ka"],
+    ["essential-questions-1-m3", "これはなにですか", "kore wa nani desu ka"],
+    ["essential-questions-1-m4", "それはなにですか", "sore wa nani desu ka"],
+    ["essential-questions-1-m5", "これはどのほんですか", "kore wa dono hon desu ka"],
+    ["essential-questions-1-m6", "これはせんせいですか", "kore wa sensei desu ka"],
+    ["essential-questions-1-m7", "それはがくせいですか", "sore wa gakusei desu ka"],
+    ["essential-questions-1-m8", "これはいしゃですか", "kore wa isha desu ka"],
+    ["essential-questions-1-t1", "それはどのほんですか", "sore wa dono hon desu ka"],
+    ["essential-questions-1-t2", "これはがくせいですか", "kore wa gakusei desu ka"],
+    ["essential-questions-1-t3", "それはせんせいですか", "sore wa sensei desu ka"],
+    ["essential-questions-1-t4", "それはいしゃですか", "sore wa isha desu ka"],
+    ["essential-questions-1-t5", "これはなんですか", "kore wa nan desu ka"],
     ["essential-questions-2-m1", "トイレはどこですか", "toire wa doko desu ka"],
     ["essential-questions-2-m2", "えきはどこですか", "eki wa doko desu ka"],
     ["essential-questions-2-m3", "あのひとはだれですか", "ano hito wa dare desu ka"],
     ["essential-questions-2-m4", "クラスメートはだれですか", "kurasumeeto wa dare desu ka"],
-    ["essential-questions-2-m5", "なにがわかりますか", "nani ga wakarimasu ka"],
-    ["essential-questions-2-m6", "なにがわかりますか", "nani ga wakarimasu ka"],
-    ["essential-questions-2-m7", "せんせいはなにがわかりますか", "sensei wa nani ga wakarimasu ka"],
-    ["essential-questions-2-m8", "けんはなにがわかりますか", "ken wa nani ga wakarimasu ka"],
-    ["essential-questions-2-t1", "それはなんですか", "sore wa nan desu ka"],
-    ["essential-questions-2-t2", "なんですか", "nan desu ka"],
-    ["essential-questions-2-t3", "ゆきはなにがわかりますか", "yuki wa nani ga wakarimasu ka"],
-    ["essential-questions-2-t4", "みなはなにがわかりますか", "mina wa nani ga wakarimasu ka"],
-    ["essential-questions-2-t5", "みなはがくせいですか", "mina wa gakusei desu ka"],
+    ["essential-questions-2-m5", "あのひとはこどもですか", "ano hito wa kodomo desu ka"],
+    ["essential-questions-2-m6", "クラスメートはがくせいですか", "kurasumeeto wa gakusei desu ka"],
+    ["essential-questions-2-m7", "そのひとはだれですか", "sono hito wa dare desu ka"],
+    ["essential-questions-2-m8", "そのひとはせんせいですか", "sono hito wa sensei desu ka"],
+    ["essential-questions-2-t1", "そのひとはがくせいですか", "sono hito wa gakusei desu ka"],
+    ["essential-questions-2-t2", "あのひとはがくせいですか", "ano hito wa gakusei desu ka"],
+    ["essential-questions-2-t3", "クラスメートはだれですか", "kurasumeeto wa dare desu ka"],
+    ["essential-questions-2-t4", "そのひとはこどもですか", "sono hito wa kodomo desu ka"],
+    ["essential-questions-2-t5", "あのひとはこどもですか", "ano hito wa kodomo desu ka"],
     ["essential-questions-3-m1", "パーティーはいつですか", "paatii wa itsu desu ka"],
     ["essential-questions-3-m2", "これはいくらですか", "kore wa ikura desu ka"],
     ["essential-questions-3-m3", "それはいくらですか", "sore wa ikura desu ka"],
     ["essential-questions-3-m4", "みかんはいくつですか", "mikan wa ikutsu desu ka"],
-    ["essential-questions-3-m5", "これはいくらですか", "kore wa ikura desu ka"],
-    ["essential-questions-3-m6", "なにがわかりますか", "nani ga wakarimasu ka"],
-    ["essential-questions-3-m7", "なにがわかりますか", "nani ga wakarimasu ka"],
-    ["essential-questions-3-m8", "けんはなにがわかりますか", "ken wa nani ga wakarimasu ka"],
-    ["essential-questions-3-t1", "これはいくつですか", "kore wa ikutsu desu ka"],
-    ["essential-questions-3-t2", "ゆきはなにがわかりますか", "yuki wa nani ga wakarimasu ka"],
-    ["essential-questions-3-t3", "けんはなにがわかりますか", "ken wa nani ga wakarimasu ka"],
-    ["essential-questions-3-t4", "みなはなにがわかりますか", "mina wa nani ga wakarimasu ka"],
-    ["essential-questions-3-t5", "みかんはいくらですか", "mikan wa ikura desu ka"],
-    ["essential-questions-4-m1", "あれはどのほんですか", "are wa dono hon desu ka"],
-    ["essential-questions-4-m2", "あのひとはこどもですか", "ano hito wa kodomo desu ka"],
-    ["essential-questions-4-m3", "トイレはどこですか", "toire wa doko desu ka"],
-    ["essential-questions-4-m4", "みかんはどれですか", "mikan wa dore desu ka"],
-    ["essential-questions-4-m5", "ゆきはなにがわかりますか", "yuki wa nani ga wakarimasu ka"],
-    ["essential-questions-4-m6", "なにがわかりますか", "nani ga wakarimasu ka"],
-    ["essential-questions-4-m7", "けんはなにがわかりますか", "ken wa nani ga wakarimasu ka"],
-    ["essential-questions-4-m8", "ゆきはがくせいですか", "yuki wa gakusei desu ka"],
-    ["essential-questions-4-t1", "それはなんですか", "sore wa nan desu ka"],
-    ["essential-questions-4-t2", "あのひとはだれですか", "ano hito wa dare desu ka"],
-    ["essential-questions-4-t3", "えきはどこですか", "eki wa doko desu ka"],
-    ["essential-questions-4-t4", "みかんはいくつですか", "mikan wa ikutsu desu ka"],
-    ["essential-questions-4-t5", "ゆきはなにがわかりますか", "yuki wa nani ga wakarimasu ka"],
+    ["essential-questions-3-m5", "これはいくつですか", "kore wa ikutsu desu ka"],
+    ["essential-questions-3-m6", "それはどれですか", "sore wa dore desu ka"],
+    ["essential-questions-3-m7", "みかんはいくらですか", "mikan wa ikura desu ka"],
+    ["essential-questions-3-m8", "それはいつですか", "sore wa itsu desu ka"],
+    ["essential-questions-3-t1", "これはどれですか", "kore wa dore desu ka"],
+    ["essential-questions-3-t2", "パーティーはいつですか", "paatii wa itsu desu ka"],
+    ["essential-questions-3-t3", "それはいくつですか", "sore wa ikutsu desu ka"],
+    ["essential-questions-3-t4", "みかんはいくらですか", "mikan wa ikura desu ka"],
+    ["essential-questions-3-t5", "これはいくらですか", "kore wa ikura desu ka"],
+    ["essential-questions-4-m1", "にほんごがわかりますか", "nihongo ga wakarimasu ka"],
+    ["essential-questions-4-m2", "ゆきはえいごがわかりますか", "yuki wa eigo ga wakarimasu ka"],
+    ["essential-questions-4-m3", "けんはイタリアごがわかりますか", "ken wa itariago ga wakarimasu ka"],
+    ["essential-questions-4-m4", "みなはにほんごがわかりますか", "mina wa nihongo ga wakarimasu ka"],
+    ["essential-questions-4-m5", "にほんごがわかります", "nihongo ga wakarimasu"],
+    ["essential-questions-4-m6", "ゆきはえいごがわかります", "yuki wa eigo ga wakarimasu"],
+    ["essential-questions-4-m7", "けんはイタリアごがわかります", "ken wa itariago ga wakarimasu"],
+    ["essential-questions-4-m8", "みなはにほんごがわかります", "mina wa nihongo ga wakarimasu"],
+    ["essential-questions-4-t1", "みなはイタリアごがわかりますか", "mina wa itariago ga wakarimasu ka"],
+    ["essential-questions-4-t2", "みなはイタリアごがわかります", "mina wa itariago ga wakarimasu"],
+    ["essential-questions-4-t3", "ゆきはにほんごがわかりますか", "yuki wa nihongo ga wakarimasu ka"],
+    ["essential-questions-4-t4", "けんはえいごがわかります", "ken wa eigo ga wakarimasu"],
+    ["essential-questions-4-t5", "えいごがわかります", "eigo ga wakarimasu"],
     ["actions-1-m1", "ゆきはすしをたべます", "yuki wa sushi o tabemasu"],
     ["actions-1-m2", "みかんをたべます", "mikan o tabemasu"],
     ["actions-1-m3", "コーヒーをのみます", "koohii o nomimasu"],
@@ -241,7 +245,7 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
     ["actions-3-m3", "みなはせんせいにききます", "mina wa sensei ni kikimasu"],
     ["actions-3-m4", "てんいんにききます", "ten'in ni kikimasu"],
     ["actions-3-m5", "けんはほんをかいます", "ken wa hon o kaimasu"],
-    ["actions-3-m6", "パンをかいます", "pan o kaimasu"],
+    ["actions-3-m6", "あれをかいます", "are o kaimasu"],
     ["actions-3-m7", "にほんごをべんきょうします", "nihongo o benkyoushimasu"],
     ["actions-3-m8", "クラスメートはコーヒーをかいます", "kurasumeeto wa koohii o kaimasu"],
     ["actions-3-t1", "みなはにほんごをべんきょうします", "mina wa nihongo o benkyoushimasu"],
@@ -288,17 +292,30 @@ describe("A1 modules 2–4 · exact realized sentences", () => {
     },
   );
 
-  it("uses みかん as the natural subject for the どれ question", () => {
-    const variant = variantById.get("essential-questions-4-m4");
-    expect(variant?.slotValues.subject).toBe("a1-value-mikan-subject");
-    expect(realize(variant as SentenceVariant).canonicalJapanese).toBe("みかんはどれですか");
-    expect(copy.en["essential-questions-4-m4-translation"]).toBe(
-      "Which one is the tangerine?",
+  it("uses nominative が substantively in the final questions lesson", () => {
+    const question = variantById.get("essential-questions-4-m1");
+    const answer = variantById.get("essential-questions-4-m5");
+    expect(question?.sentenceFamilyId).toBe("a1-family-nominative-action");
+    expect(answer?.sentenceFamilyId).toBe("a1-family-nominative-action");
+    expect(realize(question as SentenceVariant).canonicalJapanese).toBe(
+      "にほんごがわかりますか",
     );
-    expect(copy.it["essential-questions-4-m4-translation"]).toBe("Qual è il mandarino?");
-    expect(allVariants.map((candidate) => realize(candidate).canonicalJapanese)).not.toContain(
-      "これはどれですか",
+    expect(realize(answer as SentenceVariant).canonicalJapanese).toBe(
+      "にほんごがわかります",
     );
+    expect(copy.en["essential-questions-4-m1-translation"]).toBe(
+      "Do you understand Japanese?",
+    );
+    expect(copy.it["essential-questions-4-m5-translation"]).toBe(
+      "Capisco il giapponese.",
+    );
+    for (const variant of module3Lessons.find(
+      (lesson) => lesson.recipe.id === "essential-questions-4",
+    )?.variants ?? []) {
+      const sentence = realize(variant);
+      expect(sentence.canonicalJapanese).toContain("が");
+      expect(sentence.canonicalJapanese).not.toContain("を");
+    }
   });
 
   it("compares every one of the 156 instructional rows through the shared formatter", () => {
@@ -356,7 +373,7 @@ describe("A1 modules 2–4 · exact realized sentences", () => {
     }
     // This literal pins the expected corpus count; a broad nonzero check would
     // let accidental model churn silently weaken the copula-boundary regression.
-    expect(copularRows).toBe(49);
+    expect(copularRows).toBe(71);
   });
 });
 
@@ -536,12 +553,17 @@ describe("A1 modules 2–4 · demonstrative/referent prompts are unambiguous", (
 // ---------------------------------------------------------------------------
 
 describe("A1 productive verbs · structural intro diversity", () => {
-  const records = [...module2VerbUseRecords, ...module4VerbUseRecords];
+  const records = [
+    ...module2VerbUseRecords,
+    ...module3VerbUseRecords,
+    ...module4VerbUseRecords,
+  ];
 
   it("declares at least the module 2 & 4 productive senses", () => {
     const senseIds = new Set(records.map((r) => r.senseId));
     for (const s of [
       "a1-sense-be", "a1-sense-live", "a1-sense-study", "a1-sense-work",
+      "a1-sense-work-bare", "a1-sense-study-bare", "a1-sense-do-bare",
       "a1-sense-understand", "a1-sense-do", "a1-sense-eat", "a1-sense-drink",
       "a1-sense-read", "a1-sense-go", "a1-sense-come",
       "a1-sense-ask", "a1-sense-buy", "a1-sense-see", "a1-sense-listen",
@@ -554,7 +576,11 @@ describe("A1 productive verbs · structural intro diversity", () => {
   });
 
   it.each(
-    [...module2VerbUseRecords, ...module4VerbUseRecords].map((r) => [r.senseId, r] as const),
+    [
+      ...module2VerbUseRecords,
+      ...module3VerbUseRecords,
+      ...module4VerbUseRecords,
+    ].map((r) => [r.senseId, r] as const),
   )("%s has ≥2 structurally distinct intro variants", (_senseId, record) => {
     expect(record.introductionVariantIds.length).toBeGreaterThanOrEqual(2);
     const structures = new Set(
@@ -568,6 +594,19 @@ describe("A1 productive verbs · structural intro diversity", () => {
     // Later spaced reuse is a future slice — never pre-claimed here.
     expect(record.laterUses.length).toBe(0);
     expect(record.learningUse).toBe("productive");
+  });
+
+  it("keeps bare action senses attached to their canonical learner lexemes", () => {
+    const senseById = new Map(a1LearningTargetSenses.map((sense) => [sense.id, sense]));
+    expect(senseById.get("a1-sense-work-bare")?.lexemeId).toBe(
+      "a1-lexeme-hataraku",
+    );
+    expect(senseById.get("a1-sense-study-bare")?.lexemeId).toBe(
+      "a1-lexeme-benkyou-suru",
+    );
+    expect(senseById.get("a1-sense-do-bare")?.lexemeId).toBe(
+      "a1-lexeme-suru",
+    );
   });
 });
 

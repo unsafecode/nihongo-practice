@@ -39,7 +39,7 @@ import {
   a1StructureKey,
 } from "./shared";
 import { module2Lessons, module2Recipe, module2VerbUseRecords } from "./module02Introductions";
-import { module3Lessons, module3Recipe } from "./module03Questions";
+import { module3Lessons, module3Recipe, module3VerbUseRecords } from "./module03Questions";
 import { module4Lessons, module4Recipe, module4VerbUseRecords } from "./module04Actions";
 import { module5Lessons, module5Recipe, module5VerbUseRecords } from "./module05Routines";
 import { module6Lessons, module6Recipe } from "./module06TensePolarity";
@@ -160,18 +160,18 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["routines-3-t3", "けんはよくたべます", "ken wa yoku tabemasu"],
   ["routines-3-t4", "よくでかけます", "yoku dekakemasu"],
   ["routines-3-t5", "ゆきはまいにちおきます", "yuki wa mainichi okimasu"],
-  ["routines-4-m1", "ゆきはすしをたべます", "yuki wa sushi o tabemasu"],
-  ["routines-4-m2", "ろくじにおきます", "rokuji ni okimasu"],
-  ["routines-4-m3", "がっこうにいきます", "gakkou ni ikimasu"],
+  ["routines-4-m1", "ゆきははたらきます", "yuki wa hatarakimasu"],
+  ["routines-4-m2", "べんきょうします", "benkyoushimasu"],
+  ["routines-4-m3", "します", "shimasu"],
   ["routines-4-m4", "まいあさおきます", "maiasa okimasu"],
   ["routines-4-m5", "ゆきはしんぶんをよみます", "yuki wa shinbun o yomimasu"],
   ["routines-4-m6", "けんはがっこうにきます", "ken wa gakkou ni kimasu"],
   ["routines-4-m7", "じゅういちじにねます", "juuichiji ni nemasu"],
   ["routines-4-m8", "みなはすしをたべます", "mina wa sushi o tabemasu"],
   ["routines-4-t1", "しんぶんをよみます", "shinbun o yomimasu"],
-  ["routines-4-t2", "みなはがっこうにいきます", "mina wa gakkou ni ikimasu"],
+  ["routines-4-t2", "みなはします", "mina wa shimasu"],
   ["routines-4-t3", "けんはすしをたべます", "ken wa sushi o tabemasu"],
-  ["routines-4-t4", "ゆきはろくじにおきます", "yuki wa rokuji ni okimasu"],
+  ["routines-4-t4", "ゆきはじゅういちじにねます", "yuki wa juuichiji ni nemasu"],
   ["routines-4-t5", "がっこうにきます", "gakkou ni kimasu"],
   ["past-negative-1-m1", "りんごをたべました", "ringo o tabemashita"],
   ["past-negative-1-m2", "ゆきはしゅくだいをしました", "yuki wa shukudai o shimashita"],
@@ -572,6 +572,9 @@ function positionOf(lessonId: string): number {
 /** The authoritative expected recurrence assignment (senseId → later lessons). */
 const EXPECTED_RECURRENCE: Readonly<Record<string, readonly string[]>> = {
   "a1-sense-be": ["past-negative-4", "people-1"],
+  "a1-sense-work-bare": ["introductions-4", "routines-4"],
+  "a1-sense-study-bare": ["introductions-4", "routines-4"],
+  "a1-sense-do-bare": ["introductions-4", "routines-4"],
   "a1-sense-live": ["people-1", "places-3"],
   "a1-sense-study": ["past-negative-3", "people-2"],
   "a1-sense-work": ["past-negative-2", "places-2"],
@@ -580,7 +583,7 @@ const EXPECTED_RECURRENCE: Readonly<Record<string, readonly string[]>> = {
   "a1-sense-eat": ["routines-4", "past-negative-1"],
   "a1-sense-drink": ["past-negative-2", "people-1"],
   "a1-sense-read": ["routines-4", "past-negative-3"],
-  "a1-sense-go": ["routines-4", "places-1"],
+  "a1-sense-go": ["places-1", "places-2"],
   "a1-sense-come": ["routines-4", "places-1"],
   "a1-sense-ask": ["past-negative-2", "people-3"],
   "a1-sense-buy": ["past-negative-1", "people-4"],
@@ -597,16 +600,21 @@ const EXPECTED_RECURRENCE: Readonly<Record<string, readonly string[]>> = {
 };
 
 describe("A1 productive-verb recurrence (§9.3 rules 3-5)", () => {
-  it("covers every productive sense introduced in Modules 2, 4 and 5", () => {
+  it("covers every productive sense introduced in Modules 2 through 5", () => {
     const augmentedSenses = new Set(a1AugmentedVerbUseRecords.map((r) => r.senseId));
-    expect(augmentedSenses.size).toBe(23);
+    expect(augmentedSenses.size).toBe(26);
     for (const senseId of Object.keys(EXPECTED_RECURRENCE)) {
       expect(augmentedSenses.has(senseId), senseId).toBe(true);
     }
   });
 
   it("keeps the RAW module records at laterUses: [] (intro timeline untouched)", () => {
-    for (const raw of [...module2VerbUseRecords, ...module4VerbUseRecords, ...module5VerbUseRecords]) {
+    for (const raw of [
+      ...module2VerbUseRecords,
+      ...module3VerbUseRecords,
+      ...module4VerbUseRecords,
+      ...module5VerbUseRecords,
+    ]) {
       expect(raw.laterUses.length, raw.senseId).toBe(0);
       expect(raw.learningUse).toBe("productive");
     }

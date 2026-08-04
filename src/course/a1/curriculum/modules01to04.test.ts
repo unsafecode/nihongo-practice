@@ -301,7 +301,7 @@ describe("A1 modules 01–04 lesson content", () => {
       expect.any(String),
     ]);
     expect(byLessonId.get("introductions-2")?.learningNoteId).toBe(
-      "a1-note-particle-ga",
+      "a1-note-topic-wa-copula-desu",
     );
     expect(byLessonId.get("introductions-3")?.learningNoteId).toBe(
       "a1-note-dictionary-masu-classes",
@@ -360,6 +360,79 @@ describe("A1 modules 01–04 lesson content", () => {
         `${lessonId} claims every action particle at once`,
       ).toBe(false);
     }
+  });
+
+  it("pins the approved note progression from introductions through actions", () => {
+    const noteIds = a1Modules01to04LessonContent
+      .slice(4)
+      .map(({ learningNoteId }) => learningNoteId);
+
+    expect(noteIds).toEqual([
+      "a1-note-sentence-shape-omission",
+      "a1-note-topic-wa-copula-desu",
+      "a1-note-dictionary-masu-classes",
+      "a1-note-personal-reference",
+      "a1-note-question-ka-words",
+      "a1-note-question-ka-words",
+      "a1-note-question-ka-words",
+      "a1-note-particle-ga",
+      "a1-note-particle-o",
+      "a1-note-location-ni-de-contrast",
+      "a1-note-particle-ni",
+      "a1-note-particle-o",
+    ]);
+  });
+
+  it("does not use nominative が before its substantive questions lesson or を before actions-1", () => {
+    const variantsByLessonId = new Map(
+      a1SemanticBuiltLessons.map((lesson) => [
+        lesson.recipe.id,
+        lesson.variants,
+      ]),
+    );
+    const familyById = new Map(
+      a1SentenceFamilies.map((family) => [family.id, family]),
+    );
+    const variantsUsing = (lessonIds: readonly string[], conceptId: string) =>
+      lessonIds.flatMap((lessonId) =>
+        (variantsByLessonId.get(lessonId) ?? [])
+          .filter((variant) =>
+            familyById
+              .get(variant.sentenceFamilyId)
+              ?.requiredConceptIds.includes(conceptId),
+          )
+          .map((variant) => variant.id),
+      );
+
+    expect(
+      variantsUsing(
+        [
+          "introductions-1",
+          "introductions-2",
+          "introductions-3",
+          "introductions-4",
+          "essential-questions-1",
+          "essential-questions-2",
+          "essential-questions-3",
+        ],
+        "a1-concept-nominative-ga",
+      ),
+    ).toEqual([]);
+    expect(
+      variantsUsing(
+        [
+          "introductions-1",
+          "introductions-2",
+          "introductions-3",
+          "introductions-4",
+          "essential-questions-1",
+          "essential-questions-2",
+          "essential-questions-3",
+          "essential-questions-4",
+        ],
+        "a1-concept-object-wo",
+      ),
+    ).toEqual([]);
   });
 
   it("models every new actions-2 lexeme while contrasting destination に and action-place で", () => {

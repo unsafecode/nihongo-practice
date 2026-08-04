@@ -1,7 +1,7 @@
 /**
  * A1 productive-verb recurrence wiring (§9.3 rules 3-5).
  *
- * Modules 2, 4 and 5 introduce productive verb senses with `laterUses: []` in
+ * Modules 2–5 introduce productive verb senses with `laterUses: []` in
  * their raw {@link VerbUseRecord} arrays — those records stay frozen and empty
  * so the Modules 1-4 regression suite keeps asserting a clean introduction
  * timeline. This module performs a *non-mutating* immutable merge: for every
@@ -23,6 +23,7 @@
 import type { VerbLaterUse, VerbUseRecord } from "../../foundations/types";
 import { withA1LaterUses } from "./shared";
 import { module2VerbUseRecords } from "./module02Introductions";
+import { module3VerbUseRecords } from "./module03Questions";
 import { module4VerbUseRecords } from "./module04Actions";
 import { module5VerbUseRecords } from "./module05Routines";
 import { module8VerbUseRecords } from "./module08People";
@@ -38,6 +39,18 @@ const LATER_USES_BY_SENSE: Readonly<
   "a1-sense-be": [
     { lessonId: "past-negative-4", variantId: "past-negative-4-m1" },
     { lessonId: "people-1", variantId: "people-1-m1" },
+  ],
+  "a1-sense-work-bare": [
+    { lessonId: "introductions-4", variantId: "introductions-4-m6" },
+    { lessonId: "routines-4", variantId: "routines-4-m1" },
+  ],
+  "a1-sense-study-bare": [
+    { lessonId: "introductions-4", variantId: "introductions-4-m5" },
+    { lessonId: "routines-4", variantId: "routines-4-m2" },
+  ],
+  "a1-sense-do-bare": [
+    { lessonId: "introductions-4", variantId: "introductions-4-m7" },
+    { lessonId: "routines-4", variantId: "routines-4-m3" },
   ],
   "a1-sense-live": [
     { lessonId: "people-1", variantId: "people-1-m7" },
@@ -73,8 +86,8 @@ const LATER_USES_BY_SENSE: Readonly<
     { lessonId: "past-negative-3", variantId: "past-negative-3-m2" },
   ],
   "a1-sense-go": [
-    { lessonId: "routines-4", variantId: "routines-4-m3" },
     { lessonId: "places-1", variantId: "places-1-m1" },
+    { lessonId: "places-2", variantId: "places-2-m2" },
   ],
   "a1-sense-come": [
     { lessonId: "routines-4", variantId: "routines-4-m6" },
@@ -229,9 +242,10 @@ export function assertNoStaleLaterUseKeys(
   }
 }
 
-/** The raw Modules 2/4/5 introduction records (later uses land in Modules 4-8). */
+/** The raw Modules 2–5 introduction records (later uses land in Modules 4-8). */
 const deepModuleRawRecords: readonly VerbUseRecord[] = [
   ...module2VerbUseRecords,
+  ...module3VerbUseRecords,
   ...module4VerbUseRecords,
   ...module5VerbUseRecords,
 ];
@@ -247,14 +261,14 @@ const descriptiveModuleRawRecords: readonly VerbUseRecord[] = [
 // `LATER_USES_BY_SENSE` is a single map shared by both raw-record groups
 // above, so the stale-key check runs once, at module load, over their
 // union — never per-group, which would wrongly flag a later group while
-// validating only the Modules 2/4/5 group.
+// validating only the Modules 2–5 group.
 assertNoStaleLaterUseKeys(LATER_USES_BY_SENSE, [
   ...deepModuleRawRecords,
   ...descriptiveModuleRawRecords,
 ]);
 
 /**
- * The 23 Modules 2/4/5 productive verb records, augmented with their authored
+ * The 26 Modules 2–5 productive verb records, augmented with their authored
  * later, spaced reuses across Modules 4-8. This is the Task-3 recurrence view:
  * it resolves entirely within the Modules 2-8 catalog, so the deep-authoring
  * suite can assert it in isolation. Non-mutating — the source arrays remain
@@ -265,7 +279,7 @@ export const a1AugmentedVerbUseRecords: readonly VerbUseRecord[] = Object.freeze
 );
 
 /**
- * The full A1 release recurrence view: the 23 deep-module records plus the
+ * The full A1 release recurrence view: the 26 deep-module records plus the
  * companion and 13 Modules 9/10/11 senses whose spaced reuses are the four
  * capstone syntheses.
  * Consumers assembling the whole 48-lesson level (catalog / release validator)

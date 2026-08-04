@@ -39,6 +39,7 @@ const SCHED = "a1-family-schedule-action";
 const ADV = "a1-family-adverbial-time-action";
 const OBJ = "a1-family-object-action";
 const LOC = "a1-family-location-action";
+const BARE = "a1-family-bare-action";
 
 const WATASHI = "a1-value-watashi";
 const SELF = "a1-referent-self";
@@ -59,6 +60,10 @@ const loc = (subject: string, predicate: string, location: string) => ({
   subject,
   predicate,
   location,
+});
+const bare = (subject: string, predicate: string) => ({
+  subject,
+  predicate,
 });
 
 // ---------------------------------------------------------------------------
@@ -202,9 +207,9 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
     "a1-sense-come",
   ],
   models: [
-    { id: "routines-4-m1", family: OBJ, context: "a1-context-home", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: obj("a1-value-yuki", "a1-value-eat", "a1-value-obj-sushi"), translation: L("Yuki eats sushi.", "Yuki mangia il sushi.") },
-    { id: "routines-4-m2", family: SCHED, context: "a1-context-home", subjectReferent: SELF, subjectRealization: "omitted", slots: timed(WATASHI, "a1-value-wake", "a1-value-time-6"), translation: L("I wake up at six.", "Mi sveglio alle sei.") },
-    { id: "routines-4-m3", family: LOC, context: "a1-context-station", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-go", "a1-value-loc-school"), translation: L("I go to school.", "Vado a scuola.") },
+    { id: "routines-4-m1", family: BARE, context: "a1-context-workplace", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: bare("a1-value-yuki", "a1-value-work-bare"), translation: L("Yuki works.", "Yuki lavora.") },
+    { id: "routines-4-m2", family: BARE, context: "a1-context-home", subjectReferent: SELF, subjectRealization: "omitted", slots: bare(WATASHI, "a1-value-study-bare"), translation: L("I study.", "Studio.") },
+    { id: "routines-4-m3", family: BARE, context: "a1-context-workplace", subjectReferent: SELF, subjectRealization: "omitted", slots: bare(WATASHI, "a1-value-do-bare"), translation: L("I'll do it.", "Lo farò.") },
     { id: "routines-4-m4", family: ADV, context: "a1-context-weekday-study", subjectReferent: SELF, subjectRealization: "omitted", slots: timed(WATASHI, "a1-value-wake", "a1-value-freq-every-morning"), translation: L("I wake up every morning.", "Mi sveglio ogni mattina.") },
     { id: "routines-4-m5", family: OBJ, context: "a1-context-home", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: obj("a1-value-yuki", "a1-value-read", "a1-value-obj-newspaper"), translation: L("Yuki reads the newspaper.", "Yuki legge il giornale.") },
     { id: "routines-4-m6", family: LOC, context: "a1-context-home", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: loc("a1-value-ken", "a1-value-come", "a1-value-loc-school"), translation: L("Ken comes to school.", "Ken viene a scuola.") },
@@ -213,9 +218,9 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
   ],
   transfers: [
     { id: "routines-4-t1", family: OBJ, context: "a1-context-home", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-read", "a1-value-obj-newspaper"), translation: L("I read the newspaper.", "Leggo il giornale.") },
-    { id: "routines-4-t2", family: LOC, context: "a1-context-station", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: loc("a1-value-mina", "a1-value-go", "a1-value-loc-school"), translation: L("Mina goes to school.", "Mina va a scuola.") },
+    { id: "routines-4-t2", family: BARE, context: "a1-context-workplace", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: bare("a1-value-mina", "a1-value-do-bare"), translation: L("Mina will do it.", "Mina lo farà.") },
     { id: "routines-4-t3", family: OBJ, context: "a1-context-home", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: obj("a1-value-ken", "a1-value-eat", "a1-value-obj-sushi"), translation: L("Ken eats sushi.", "Ken mangia il sushi.") },
-    { id: "routines-4-t4", family: SCHED, context: "a1-context-home", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: timed("a1-value-yuki", "a1-value-wake", "a1-value-time-6"), translation: L("Yuki wakes up at six.", "Yuki si sveglia alle sei.") },
+    { id: "routines-4-t4", family: SCHED, context: "a1-context-home", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: timed("a1-value-yuki", "a1-value-sleep", "a1-value-time-11"), translation: L("Yuki goes to bed at eleven.", "Yuki va a letto alle undici.") },
     { id: "routines-4-t5", family: LOC, context: "a1-context-home", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-come", "a1-value-loc-school"), translation: L("I come to school.", "Vengo a scuola.") },
   ],
 });

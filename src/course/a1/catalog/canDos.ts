@@ -52,14 +52,20 @@ export const A1_SOUND_LESSON_IDS: readonly LessonId[] = Object.freeze([
 const CANDO_LESSONS: Readonly<Record<string, readonly LessonId[]>> = {
   "a1-can-do-sounds": A1_SOUND_LESSON_IDS,
   "a1-can-do-identity": ["introductions-1", "introductions-2", "introductions-4"],
-  "a1-can-do-origins": ["introductions-3"],
+  "a1-can-do-origins": ["introductions-2"],
   "a1-can-do-questions": [
     "essential-questions-1",
     "essential-questions-2",
     "essential-questions-3",
     "essential-questions-4",
   ],
-  "a1-can-do-actions": ["actions-1", "actions-2", "actions-3", "actions-4"],
+  "a1-can-do-actions": [
+    "introductions-3",
+    "actions-1",
+    "actions-2",
+    "actions-3",
+    "actions-4",
+  ],
   "a1-can-do-daily-life": [
     "routines-1",
     "routines-2",

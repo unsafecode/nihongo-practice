@@ -121,7 +121,7 @@ export interface ValidateA1Input {
   readonly phoneticItemsByLesson?: Readonly<Record<string, readonly A1PhoneticItem[]>>;
   /** The phonetic lesson recipes (contrastive item / practice-ref contract). */
   readonly phoneticLessons?: readonly A1PhoneticLessonRecipe[];
-  /** The 37 release verb-use records (24 deep + 13 descriptive senses). */
+  /** The 40 release verb-use records, including bare-action sense recurrences. */
   readonly releaseVerbUseRecords?: readonly VerbUseRecord[];
   /** The manifest spec whose route/alias shape the level must match. */
   readonly manifestSpec?: A1ManifestSpec;

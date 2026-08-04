@@ -507,8 +507,8 @@ describe("validateA1 – capstone required-scenario coverage", () => {
 // ---------------------------------------------------------------------------
 
 describe("validateA1 – recurrence completeness", () => {
-  it("baseline: all 37 release verb-use records carry >= 2 later uses", () => {
-    expect(a1ReleaseVerbUseRecords.length).toBe(37);
+  it("baseline: all 40 release verb-use records carry >= 2 later uses", () => {
+    expect(a1ReleaseVerbUseRecords.length).toBe(40);
     for (const record of a1ReleaseVerbUseRecords) {
       expect(record.laterUses.length).toBeGreaterThanOrEqual(2);
     }
