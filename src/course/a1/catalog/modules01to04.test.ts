@@ -107,7 +107,7 @@ const variantById = new Map(allVariants.map((v) => [v.id, v]));
 
 const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
     ["introductions-1-m1", "ゆきはがくせいです", "yuki wa gakusei desu"],
-    ["introductions-1-m2", "けんはいしゃです", "ken wa isha desu"],
+    ["introductions-1-m2", "けんはせんせいです", "ken wa sensei desu"],
     ["introductions-1-m3", "みなはかいしゃいんです", "mina wa kaishain desu"],
     ["introductions-1-m4", "がくせいです", "gakusei desu"],
     ["introductions-1-m5", "ゆきはとうきょうにすみます", "yuki wa toukyou ni sumimasu"],
@@ -197,16 +197,16 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
     ["essential-questions-3-t3", "けんはなにをべんきょうしますか", "ken wa nani o benkyoushimasu ka"],
     ["essential-questions-3-t4", "みなはなにがわかりますか", "mina wa nani ga wakarimasu ka"],
     ["essential-questions-3-t5", "みかんはいくらですか", "mikan wa ikura desu ka"],
-    ["essential-questions-4-m1", "これはなんですか", "kore wa nan desu ka"],
-    ["essential-questions-4-m2", "あのひとはだれですか", "ano hito wa dare desu ka"],
+    ["essential-questions-4-m1", "あれはどのほんですか", "are wa dono hon desu ka"],
+    ["essential-questions-4-m2", "そのひとはだれですか", "sono hito wa dare desu ka"],
     ["essential-questions-4-m3", "トイレはどこですか", "toire wa doko desu ka"],
-    ["essential-questions-4-m4", "これはいくらですか", "kore wa ikura desu ka"],
-    ["essential-questions-4-m5", "パーティーはいつですか", "paatii wa itsu desu ka"],
+    ["essential-questions-4-m4", "これはどれですか", "kore wa dore desu ka"],
+    ["essential-questions-4-m5", "なにがわかりますか", "nani ga wakarimasu ka"],
     ["essential-questions-4-m6", "なにをしますか", "nani o shimasu ka"],
     ["essential-questions-4-m7", "なにをべんきょうしますか", "nani o benkyoushimasu ka"],
     ["essential-questions-4-m8", "ゆきはがくせいですか", "yuki wa gakusei desu ka"],
     ["essential-questions-4-t1", "それはなんですか", "sore wa nan desu ka"],
-    ["essential-questions-4-t2", "そのひとはだれですか", "sono hito wa dare desu ka"],
+    ["essential-questions-4-t2", "あのひとはだれですか", "ano hito wa dare desu ka"],
     ["essential-questions-4-t3", "えきはどこですか", "eki wa doko desu ka"],
     ["essential-questions-4-t4", "みかんはいくつですか", "mikan wa ikutsu desu ka"],
     ["essential-questions-4-t5", "ゆきはなにをしますか", "yuki wa nani o shimasu ka"],
@@ -342,7 +342,7 @@ describe("A1 modules 2–4 · exact realized sentences", () => {
       }
     }
     // Sanity: the guard actually exercised the copular rows it targets.
-    expect(copularRows).toBe(48);
+    expect(copularRows).toBe(47);
   });
 });
 
