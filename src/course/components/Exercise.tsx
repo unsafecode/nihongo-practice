@@ -61,6 +61,12 @@ export function Exercise({
 
   const instruction = exercise.instruction[locale];
   const intentText = exercise.intentText[locale];
+  const feedbackDetail =
+    state.status === "accepted"
+      ? exercise.feedback[locale].accepted
+      : state.status === "retry"
+        ? exercise.feedback[locale].retry
+        : null;
   // The only DOM-visible trace of the exercise's real target: an opaque,
   // non-reversible hash (never the raw Japanese `visibleTargetKey`) so an
   // e2e semantic-diversity audit can genuinely tell two `.lesson-exercise`
@@ -69,6 +75,9 @@ export function Exercise({
   // through this shared container).
   const itemData: ExerciseItemData = {
     "visible-target-key": opaqueTargetKey(exercise.visibleTargetKey),
+    ...(exercise.practiceFunction === null
+      ? {}
+      : { "practice-function": exercise.practiceFunction }),
   };
 
   return (
@@ -86,6 +95,7 @@ export function Exercise({
       tokenForTile={segmentToken}
       tokensForExample={exampleTokens}
       errorText={getCourseCopy(locale).lesson.contentFormattingError}
+      feedbackDetail={feedbackDetail}
       itemData={itemData}
       headerSupplement={headerSupplement}
       handlers={{

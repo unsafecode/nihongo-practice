@@ -168,6 +168,13 @@ describe("A1 curriculum section renderers", () => {
     for (const activity of model.practice.activities) {
       expect(html).toContain(`data-practice-function="${activity.function}"`);
     }
+    for (const activity of generated) {
+      expect(html).toMatch(
+        new RegExp(
+          `<li class="lesson-exercise"[^>]*data-practice-function="${activity.function}"`,
+        ),
+      );
+    }
     const functions = model.practice.activities.map((activity) =>
       html.indexOf(`data-practice-function="${activity.function}"`),
     );

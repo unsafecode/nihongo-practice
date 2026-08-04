@@ -16,6 +16,21 @@ type GeneratedPhoneticTargetRef = Extract<
 >;
 
 /**
+ * Adds the lesson's authored learning-note id to an exercise's semantic
+ * assessment metadata. Every generated retrieval task in a lesson reinforces
+ * that same taught focus, so the id gives review selection an honest shared
+ * concept without carrying any answer text.
+ */
+export function reviewRetrievalConceptIds(
+  assessedConceptIds: readonly string[],
+  learningNoteId: string,
+): readonly string[] {
+  return assessedConceptIds.includes(learningNoteId)
+    ? assessedConceptIds
+    : [...assessedConceptIds, learningNoteId];
+}
+
+/**
  * Resolves the one phonetic catalog item a generated blueprint activity
  * targets. This is shared by the runtime exercise model and the curriculum
  * validator so their round/index semantics cannot drift.

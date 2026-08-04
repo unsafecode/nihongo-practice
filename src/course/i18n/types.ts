@@ -469,6 +469,8 @@ export interface CourseCopy {
     mistakes: (n: number) => string;
     practice: string;
     openLesson: string;
+    /** Small label for A1's safe alternate retrieval task. */
+    variedTask: string;
     /** Announced (polite live region) when a review-mode acceptance resolves. */
     resolved: string;
     orphaned: (n: number) => string;

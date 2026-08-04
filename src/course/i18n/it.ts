@@ -288,6 +288,7 @@ const itUi = {
     mistakes: (n: number) => (n === 1 ? "1 errore" : `${n} errori`),
     practice: "Ripassa ora",
     openLesson: "Apri la lezione",
+    variedTask: "Un compito di richiamo diverso sullo stesso focus della lezione.",
     resolved: "Ripassato: rimosso dalla tua lista.",
     orphaned: (n: number) =>
       n === 1

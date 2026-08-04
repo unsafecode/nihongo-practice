@@ -84,16 +84,31 @@ describe("buildA1PracticeModel — selected semantic targets", () => {
             .find((candidate) => candidate !== undefined);
         for (const locale of ["en", "it"] as const) {
           const feedback = exercise.feedback[locale];
+          const answerSafeNoteTitle = note.title[locale]
+            .replace(/[\u3040-\u30ff\u3400-\u9fff々〆ヶ]/gu, "")
+            .replace(/\s+/g, " ")
+            .trim();
+          const canonicalJapanese =
+            "canonicalAnswer" in exercise.prompt
+              ? exercise.prompt.canonicalAnswer
+              : null;
           expect(feedback.accepted.trim(), `${content.lessonId} accepted ${locale}`).not.toBe("");
           expect(feedback.retry.trim(), `${content.lessonId} retry ${locale}`).not.toBe("");
-          expect(feedback.accepted).toContain(note.title[locale]);
-          expect(feedback.retry).toContain(note.title[locale]);
+          expect(feedback.accepted, `${content.lessonId} distinct ${locale}`).not.toBe(
+            feedback.retry,
+          );
+          expect(feedback.accepted).toContain(answerSafeNoteTitle);
+          expect(feedback.retry).toContain(answerSafeNoteTitle);
           if (lexeme) {
             expect(feedback.accepted).toContain(lexeme.meaning[locale]);
             expect(feedback.retry).toContain(lexeme.meaning[locale]);
           }
           expect(feedback.accepted).not.toContain(exercise.visibleTargetKey);
           expect(feedback.retry).not.toContain(exercise.visibleTargetKey);
+          if (canonicalJapanese !== null) {
+            expect(feedback.accepted).not.toContain(canonicalJapanese);
+            expect(feedback.retry).not.toContain(canonicalJapanese);
+          }
         }
       }
     }

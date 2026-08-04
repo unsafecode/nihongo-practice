@@ -5,6 +5,11 @@ import { orderedReviewQueue } from "../progress/reviewQueue";
 import type { GeneratedExercise } from "./lessonExerciseModel";
 import type { ExercisePrompt } from "../exercises/types";
 import { getLessonExercises } from "./lessonExerciseModel";
+import {
+  validateReviewRetrievalPair,
+  type A1ReviewRetrievalTarget,
+} from "../a1/curriculum/validateA1Curriculum";
+import { A1_RELEASE_CATALOG_VERSION } from "../a1/releaseIdentity";
 
 /**
  * The pure `Da ripassare` review-queue view-model (Slice C plan Task 4 step 4;
@@ -50,6 +55,9 @@ export interface ReviewQueueItem {
   readonly reviewKey: string;
   readonly lessonId: string;
   readonly moduleId: string;
+  /** Original stored definition that owns the review key and progress evidence. */
+  readonly sourceExerciseDefinitionId: string;
+  /** The task rendered for this review; A1 uses a safe alternate, A2 the source. */
   readonly exerciseDefinitionId: string;
   /** The shared target example, for deriving in-sentence romaji in review mode. */
   readonly targetExampleId: string;
@@ -68,7 +76,7 @@ export interface ReviewQueueItem {
   readonly practicePurpose: "guided-controlled" | "transfer";
   /** A1-only blueprint function, null for unchanged A2 exercises. */
   readonly practiceFunction: GeneratedExercise["practiceFunction"];
-  /** Post-submit feedback carried from the original generated exercise. */
+  /** Post-submit feedback for the generated exercise rendered in review. */
   readonly feedback: GeneratedExercise["feedback"];
   readonly mistakeCount: number;
   readonly targetConceptIds: readonly string[];
@@ -103,6 +111,73 @@ function exerciseFor(
   );
 }
 
+function assessedIdsFor(exercise: GeneratedExercise): readonly string[] {
+  return [...exercise.prompt.assessedConceptIds, ...exercise.prompt.assessedLexemeIds];
+}
+
+function reviewTargetFor(
+  exercise: GeneratedExercise,
+  assessedIds = assessedIdsFor(exercise),
+): A1ReviewRetrievalTarget | undefined {
+  if (exercise.practiceFunction === null) return undefined;
+  return {
+    id: exercise.definitionId,
+    function: exercise.practiceFunction,
+    visibleTargetKey: exercise.visibleTargetKey,
+    assessedIds,
+  };
+}
+
+/**
+ * A small locale-independent FNV-1a hash used only to stably rank otherwise
+ * valid A1 review alternates. It is not an identity or security primitive.
+ */
+export function stableReviewCandidateHash(input: string): number {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < input.length; index += 1) {
+    hash = Math.imul(hash ^ input.charCodeAt(index), 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+function compareA1ReviewCandidates(
+  reviewKey: string,
+  left: GeneratedExercise,
+  right: GeneratedExercise,
+): number {
+  const leftRank = stableReviewCandidateHash(
+    `${A1_RELEASE_CATALOG_VERSION}|${reviewKey}|${left.definitionId}`,
+  );
+  const rightRank = stableReviewCandidateHash(
+    `${A1_RELEASE_CATALOG_VERSION}|${reviewKey}|${right.definitionId}`,
+  );
+  if (leftRank !== rightRank) return leftRank < rightRank ? -1 : 1;
+  if (left.definitionId !== right.definitionId) {
+    return left.definitionId < right.definitionId ? -1 : 1;
+  }
+  return 0;
+}
+
+function alternateA1ExerciseFor(
+  entry: ReviewQueueEntry,
+  original: GeneratedExercise,
+): GeneratedExercise | undefined {
+  const source = reviewTargetFor(original, [
+    ...entry.targetConceptIds,
+    ...entry.targetLexemeIds,
+  ]);
+  if (!source) return undefined;
+
+  const candidates = (getLessonExercises(entry.lessonId)?.exercises ?? [])
+    .filter((candidate) => candidate.definitionId !== original.definitionId)
+    .filter((candidate) => {
+      const target = reviewTargetFor(candidate);
+      return target !== undefined && validateReviewRetrievalPair(source, target) === undefined;
+    })
+    .sort((left, right) => compareA1ReviewCandidates(entry.reviewKey, left, right));
+  return candidates[0];
+}
+
 export function buildReviewQueueView(
   source: ReviewQueueSource,
   level: CourseLevelId = "a1",
@@ -113,8 +188,14 @@ export function buildReviewQueueView(
 
   for (const entry of orderedReviewQueue(source.reviewQueue)) {
     const moduleId = moduleIdByLesson.get(entry.lessonId);
-    const exercise = exerciseFor(entry.lessonId, entry.exerciseDefinitionId);
-    if (moduleId === undefined || exercise === undefined) {
+    const original = exerciseFor(entry.lessonId, entry.exerciseDefinitionId);
+    if (moduleId === undefined || original === undefined) {
+      unresolvableKeys.push(entry.reviewKey);
+      continue;
+    }
+    const exercise =
+      level === "a1" ? alternateA1ExerciseFor(entry, original) : original;
+    if (exercise === undefined) {
       unresolvableKeys.push(entry.reviewKey);
       continue;
     }
@@ -122,7 +203,8 @@ export function buildReviewQueueView(
       reviewKey: entry.reviewKey,
       lessonId: entry.lessonId,
       moduleId,
-      exerciseDefinitionId: entry.exerciseDefinitionId,
+      sourceExerciseDefinitionId: entry.exerciseDefinitionId,
+      exerciseDefinitionId: exercise.definitionId,
       targetExampleId: exercise.targetExampleId,
       visibleTargetKey: exercise.visibleTargetKey,
       prompt: exercise.prompt,

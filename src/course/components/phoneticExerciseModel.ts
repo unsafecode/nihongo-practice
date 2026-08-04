@@ -8,7 +8,10 @@ import {
 } from "../a1/catalog/module01Sounds";
 import { buildA1PracticeFeedback } from "../a1/curriculum/a1PracticeFeedback";
 import { a1LessonContentById } from "../a1/curriculum/catalog";
-import { phoneticItemForPracticeTarget } from "../a1/curriculum/lessonContentHelpers";
+import {
+  phoneticItemForPracticeTarget,
+  reviewRetrievalConceptIds,
+} from "../a1/curriculum/lessonContentHelpers";
 import type { A1PracticeActivity } from "../a1/curriculum/types";
 import type {
   ChoicePrompt,
@@ -471,7 +474,16 @@ export function buildPhoneticLessonModel(lessonId: string): PhoneticLessonBuild 
       errors.push(built.error);
       continue;
     }
-    exercises.push(built.exercise);
+    exercises.push({
+      ...built.exercise,
+      prompt: {
+        ...built.exercise.prompt,
+        assessedConceptIds: reviewRetrievalConceptIds(
+          built.exercise.prompt.assessedConceptIds,
+          content.learningNoteId,
+        ),
+      },
+    });
     for (const [id, token] of built.tokenEntries) tokenByTileId.set(id, token);
     for (const [id, tokens] of built.exampleTokenEntries) tokensByExampleId.set(id, tokens);
   }

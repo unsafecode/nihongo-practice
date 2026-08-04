@@ -42,7 +42,10 @@ import {
   type A1CurriculumReports,
   type A1LessonCurriculumReport,
 } from "./reports";
-import { phoneticItemForPracticeTarget } from "./lessonContentHelpers";
+import {
+  phoneticItemForPracticeTarget,
+  reviewRetrievalConceptIds,
+} from "./lessonContentHelpers";
 
 export { A1_CURRICULUM_ERROR_CODES } from "../types";
 export type {
@@ -876,7 +879,7 @@ function resolvePracticeTargets(
           activity,
           generated: false,
           visibleTargetKey: item.glyph,
-          assessedIds: [`phonetic:${lessonId}`, item.id],
+          assessedIds: reviewRetrievalConceptIds([item.id], content.learningNoteId),
           expectedInteractionKind: "spoken",
           itemId: item.id,
         }];
@@ -896,7 +899,7 @@ function resolvePracticeTargets(
         activity,
         generated: true,
         visibleTargetKey: item.glyph,
-        assessedIds: [`phonetic:${lessonId}`, item.id],
+        assessedIds: reviewRetrievalConceptIds([item.id], content.learningNoteId),
         expectedInteractionKind:
           item.exerciseKind === "mora-tiling" ? "tile-ordering" : "choice",
         itemId: item.id,
@@ -979,7 +982,13 @@ function resolvePracticeTargets(
       activity,
       generated: true,
       visibleTargetKey: target.visibleTargetKey,
-      assessedIds: [...target.prompt.assessedConceptIds, ...target.prompt.assessedLexemeIds],
+      assessedIds: [
+        ...reviewRetrievalConceptIds(
+          target.prompt.assessedConceptIds,
+          content.learningNoteId,
+        ),
+        ...target.prompt.assessedLexemeIds,
+      ],
       expectedInteractionKind: target.prompt.kind as GeneratedInteractionKind,
       variantId: target.variantId,
     }];
@@ -1063,14 +1072,17 @@ function validatePracticeBlueprint(
       visibleTargetKey: source.visibleTargetKey,
       assessedIds: source.assessedIds,
     };
-    const alternate = activityTargets.find((candidate) =>
-      validateReviewRetrievalPair(sourceTarget, {
-        id: candidate.activity.id,
-        function: candidate.activity.function,
-        visibleTargetKey: candidate.visibleTargetKey,
-        assessedIds: candidate.assessedIds,
-      }) === undefined,
-    );
+    const alternate = activityTargets
+      .filter((candidate) => candidate.generated)
+      .find(
+        (candidate) =>
+          validateReviewRetrievalPair(sourceTarget, {
+            id: candidate.activity.id,
+            function: candidate.activity.function,
+            visibleTargetKey: candidate.visibleTargetKey,
+            assessedIds: candidate.assessedIds,
+          }) === undefined,
+      );
     if (!alternate) {
       push({
         code: "review-retrieval-clone",

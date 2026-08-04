@@ -214,12 +214,16 @@ describe("CourseHome — level-scoped reset on the A2 view (ISSUE 3)", () => {
 });
 
 function reviewEntry(lessonId: string, exerciseDefinitionId: string, at: string): ReviewQueueEntry {
+  const exercise = getLessonExercises(lessonId)?.exercises.find(
+    (candidate) => candidate.definitionId === exerciseDefinitionId,
+  );
+  if (!exercise) throw new Error(`fixture assumption failed: ${lessonId}:${exerciseDefinitionId}`);
   return {
     reviewKey: reviewKeyFor(lessonId, exerciseDefinitionId),
     lessonId,
     exerciseDefinitionId,
-    targetConceptIds: [],
-    targetLexemeIds: [],
+    targetConceptIds: [...exercise.prompt.assessedConceptIds],
+    targetLexemeIds: [...exercise.prompt.assessedLexemeIds],
     mistakeCount: 1,
     lastMistakeAt: at,
   };

@@ -38,9 +38,22 @@ const FALLBACK_MEANING: Readonly<Record<Locale, string>> = {
   it: "il significato valutato",
 };
 
+const FALLBACK_CONCEPT: Readonly<Record<Locale, string>> = {
+  en: "The taught pattern",
+  it: "Lo schema studiato",
+};
+
+function answerSafeConceptTitle(title: string, locale: Locale): string {
+  const safe = title
+    .replace(/[\u3040-\u30ff\u3400-\u9fff々〆ヶ]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return safe || FALLBACK_CONCEPT[locale];
+}
+
 /**
- * Localized post-submit explanation for an A1 generated exercise. It draws the
- * note title and a canonical lexeme meaning, never a realized target string.
+ * Localized post-submit explanation for an A1 generated exercise. It draws an
+ * answer-safe note label and a lexeme meaning, never a realized target string.
  */
 export function buildA1PracticeFeedback(
   lessonId: string,
@@ -64,7 +77,7 @@ export function buildA1PracticeFeedback(
   for (const locale of ["en", "it"] as const) {
     const meaning =
       lexeme?.meaning[locale].trim() || FALLBACK_MEANING[locale];
-    const concept = note.title[locale];
+    const concept = answerSafeConceptTitle(note.title[locale], locale);
     const form = FORM_CUE[locale][practiceFunction];
     feedback[locale] = {
       accepted:

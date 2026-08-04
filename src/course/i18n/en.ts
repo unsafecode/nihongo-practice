@@ -286,6 +286,7 @@ const enUi = {
     mistakes: (n: number) => (n === 1 ? "1 miss" : `${n} misses`),
     practice: "Review now",
     openLesson: "Open lesson",
+    variedTask: "A different retrieval task for the same lesson focus.",
     resolved: "Reviewed — removed from your list.",
     orphaned: (n: number) =>
       n === 1

@@ -4,6 +4,7 @@ import { buildA1LessonViewModel } from "../a1/a1LessonViewModel";
 import { a1FoundationCatalogs } from "../a1/catalog/catalog";
 import { a1LessonContentById } from "../a1/curriculum/catalog";
 import { buildA1PracticeFeedback } from "../a1/curriculum/a1PracticeFeedback";
+import { reviewRetrievalConceptIds } from "../a1/curriculum/lessonContentHelpers";
 import type { A1PracticeFunction } from "../a1/curriculum/types";
 import { a2FoundationCatalogs } from "../a2/catalog/catalog";
 import { buildA2FoundationViewModel } from "../a2/view/buildA2LessonViewModel";
@@ -232,6 +233,13 @@ function buildSemanticModel(
       }
       selected.push({
         ...generated,
+        prompt: {
+          ...generated.prompt,
+          assessedConceptIds: reviewRetrievalConceptIds(
+            generated.prompt.assessedConceptIds,
+            content.learningNoteId,
+          ),
+        },
         practiceFunction: activity.function,
         feedback,
       });
