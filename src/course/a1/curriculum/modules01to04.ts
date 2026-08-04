@@ -382,8 +382,8 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
   defineA1LessonContent({
     lessonId: "actions-2",
     situation: {
-      en: "You describe where an activity happens and separate the place from the action.",
-      it: "Descrivi dove avviene un'attività e separi il luogo dall'azione.",
+      en: "You contrast a destination for going or coming with the place where an activity happens.",
+      it: "Confronti la destinazione di andare o venire con il luogo in cui avviene un'attività.",
     },
     prerequisiteLessonIds: ["actions-1"],
     prerequisiteConceptIds: ["a1-concept-object-wo"],
@@ -393,16 +393,16 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       "a1-lexeme-toshokan",
       "a1-lexeme-kafe",
     ],
-    learningNoteId: "a1-note-particle-de",
-    workedExampleVariantIds: ["actions-2-m7", "actions-2-m8"],
+    learningNoteId: "a1-note-location-ni-de-contrast",
+    workedExampleVariantIds: ["actions-2-m1", "actions-2-m3", "actions-2-m8"],
     practiceBlueprint: semanticBlueprint(
       "actions-2",
       "actions-2-m8",
       "transformation",
     ),
     retrievalCue: {
-      en: "Ask where the action happens, then put that place before で.",
-      it: "Chiediti dove avviene l'azione, poi metti quel luogo prima di で.",
+      en: "For going or coming, put the destination before に; for an activity such as work, put its setting before で.",
+      it: "Per andare o venire, metti la destinazione prima di に; per un'attività come lavorare, metti il luogo prima di で.",
     },
   }),
   defineA1LessonContent({

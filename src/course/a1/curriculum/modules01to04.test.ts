@@ -3,10 +3,19 @@ import { describe, expect, it } from "vitest";
 import { A1_LESSON_MANIFEST } from "../manifest";
 import { a1AllVariants, a1SemanticBuiltLessons } from "../catalog/catalog";
 import { module1ItemsByLesson } from "../catalog/module01Sounds";
-import { A1_CONCEPT_IDS } from "../catalog/a1SemanticCatalog";
+import {
+  A1_CONCEPT_IDS,
+  a1Contexts,
+  a1LearningTargetSenses,
+  a1PersonRoles,
+  a1Referents,
+  a1SemanticValues,
+  a1SentenceFamilies,
+} from "../catalog/a1SemanticCatalog";
 import { a1LearningNoteById } from "./grammar";
 import { a1LexemeById, a1LexemeByValueId } from "./lexicon";
 import { a1Modules01to04LessonContent } from "./modules01to04";
+import { realizeVariant } from "../../foundations/realizeFamily";
 import type { A1PracticeActivity } from "./types";
 
 const EXPECTED_LESSON_IDS = [
@@ -35,6 +44,16 @@ const variantById = new Map(a1AllVariants.map((variant) => [variant.id, variant]
 const semanticLessonById = new Map(
   a1SemanticBuiltLessons.map((lesson) => [lesson.recipe.id, lesson]),
 );
+const sentenceFamilyById = new Map(
+  a1SentenceFamilies.map((family) => [family.id, family]),
+);
+const realizeCatalogs = {
+  contexts: a1Contexts,
+  personRoles: a1PersonRoles,
+  referents: a1Referents,
+  semanticValues: a1SemanticValues,
+  learningTargetSenses: a1LearningTargetSenses,
+};
 
 function phoneticItemForTarget(
   lessonId: PhoneticLessonId,
@@ -70,6 +89,20 @@ function assertVariantLexemesAreAvailable(
       ).toBe(true);
     }
   }
+}
+
+function realizedJapanese(variantId: string): string {
+  const variant = variantById.get(variantId);
+  expect(variant, `variant ${variantId}`).toBeDefined();
+  const family = sentenceFamilyById.get(variant?.sentenceFamilyId ?? "");
+  expect(family, `family for ${variantId}`).toBeDefined();
+  const result = realizeVariant(family!, variant!, realizeCatalogs, {
+    availableConceptIds: [...family!.requiredConceptIds],
+  });
+  if (!result.ok) {
+    throw new Error(`Could not realize ${variantId}: ${JSON.stringify(result.errors)}`);
+  }
+  return result.sentence.canonicalJapanese;
 }
 
 describe("A1 modules 01–04 lesson content", () => {
@@ -302,9 +335,12 @@ describe("A1 modules 01–04 lesson content", () => {
     );
 
     expect(byLessonId.get("actions-1")?.learningNoteId).toBe("a1-note-particle-o");
-    expect(byLessonId.get("actions-2")?.learningNoteId).toBe("a1-note-particle-de");
+    expect(byLessonId.get("actions-2")?.learningNoteId).toBe(
+      "a1-note-location-ni-de-contrast",
+    );
     expect(byLessonId.get("actions-2")?.workedExampleVariantIds).toEqual([
-      "actions-2-m7",
+      "actions-2-m1",
+      "actions-2-m3",
       "actions-2-m8",
     ]);
     expect(
@@ -327,5 +363,30 @@ describe("A1 modules 01–04 lesson content", () => {
         `${lessonId} claims every action particle at once`,
       ).toBe(false);
     }
+  });
+
+  it("models every new actions-2 lexeme while contrasting destination に and action-place で", () => {
+    const content = a1Modules01to04LessonContent.find(
+      ({ lessonId }) => lessonId === "actions-2",
+    );
+    expect(content).toBeDefined();
+
+    const workedValueIds = new Set(
+      content?.workedExampleVariantIds.flatMap(
+        (variantId) => Object.values(variantById.get(variantId)?.slotValues ?? {}),
+      ),
+    );
+    for (const lexemeId of content?.newLexemeIds ?? []) {
+      const lexeme = a1LexemeById[lexemeId];
+      expect(lexeme, lexemeId).toBeDefined();
+      expect(
+        lexeme?.valueIds.some((valueId) => workedValueIds.has(valueId)),
+        `${lexemeId} must appear in an actions-2 worked example`,
+      ).toBe(true);
+    }
+
+    const workedJapanese = content?.workedExampleVariantIds.map(realizedJapanese) ?? [];
+    expect(workedJapanese.some((sentence) => sentence.includes("に"))).toBe(true);
+    expect(workedJapanese.some((sentence) => sentence.includes("で"))).toBe(true);
   });
 });

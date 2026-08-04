@@ -465,6 +465,42 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
       token("particle", "で", "action-place or means particle", "particella del luogo d'azione o del mezzo"),
       token("slot", "action", "final action", "azione finale"),
     ],
+    nearestContrastId: "a1-note-location-ni-de-contrast",
+  }),
+  defineA1LearningNote({
+    id: "a1-note-location-ni-de-contrast",
+    kind: "grammar",
+    explainedConceptIds: ["a1-concept-location-particle"],
+    requiredConceptIds: [],
+    title: {
+      en: "Contrast destination に and action place で",
+      it: "Confronta la destinazione に e il luogo dell'azione で",
+    },
+    meaning: {
+      en: "After a place, に marks the destination for going or coming; で marks the setting where an activity happens.",
+      it: "Dopo un luogo, に segna la destinazione con andare o venire; で segna il contesto in cui avviene un'attività.",
+    },
+    use: {
+      en: "Ask whether the place answers “where to?” or “where does the activity happen?”",
+      it: "Chiediti se il luogo risponde a «dove si va?» o a «dove avviene l'attività?».",
+    },
+    construction: {
+      en: "Place + に + go or come; place + で + an activity such as work.",
+      it: "Luogo + に + andare o venire; luogo + で + un'attività come lavorare.",
+    },
+    typicalMistake: {
+      en: "Do not say *placeでいきます for a destination or *placeに働きます for an activity setting.",
+      it: "Non dire *luogoでいきます per una destinazione o *luogoに働きます per il luogo di un'attività.",
+    },
+    pattern: [
+      token("slot", "destination", "destination", "destinazione"),
+      token("particle", "に", "destination particle for go or come", "particella di destinazione con andare o venire"),
+      token("slot", "go／come", "final movement verb", "verbo di movimento finale"),
+      token("punctuation", "／", "contrast with an action place", "confronta con un luogo dell'azione"),
+      token("slot", "action place", "setting where an activity happens", "luogo in cui avviene un'attività"),
+      token("particle", "で", "action-place particle", "particella del luogo dell'azione"),
+      token("slot", "activity (e.g. work)", "final activity", "attività finale (per esempio lavorare)"),
+    ],
     nearestContrastId: "a1-note-particle-ni-destination",
   }),
   defineA1LearningNote({
@@ -720,7 +756,7 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
       token("particle", "に", "destination particle", "particella di destinazione"),
       token("slot", "movement verb", "final movement verb", "verbo di movimento finale"),
     ],
-    nearestContrastId: "a1-note-particle-he",
+    nearestContrastId: "a1-note-location-ni-de-contrast",
   }),
   defineA1LearningNote({
     id: "a1-note-particle-he-contrast",

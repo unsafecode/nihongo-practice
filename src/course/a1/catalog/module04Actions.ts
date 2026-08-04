@@ -112,7 +112,7 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
     { id: "actions-2-m5", family: "a1-family-location-action", context: "a1-context-station", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: loc("a1-value-ken", "a1-value-go", "a1-value-loc-shop"), translation: L("Ken goes to the shop.", "Ken va al negozio.") },
     { id: "actions-2-m6", family: "a1-family-location-action", context: "a1-context-station", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-come", "a1-value-loc-park"), translation: L("I come to the park.", "Vengo al parco.") },
     { id: "actions-2-m7", family: "a1-family-location-action", context: "a1-context-workplace", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: loc("a1-value-ken", "a1-value-work", "a1-value-loc-company"), translation: L("Ken works at the company.", "Ken lavora in azienda.") },
-    { id: "actions-2-m8", family: "a1-family-location-action", context: "a1-context-workplace", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-work", "a1-value-loc-restaurant"), translation: L("I work at a restaurant.", "Lavoro in un ristorante.") },
+    { id: "actions-2-m8", family: "a1-family-location-action", context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-work", "a1-value-loc-cafe"), translation: L("I work at a café.", "Lavoro in un caffè.") },
   ],
   transfers: [
     { id: "actions-2-t1", family: "a1-family-location-action", context: "a1-context-station", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-go", "a1-value-loc-shop"), translation: L("I go to the shop.", "Vado al negozio.") },

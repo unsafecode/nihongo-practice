@@ -200,7 +200,7 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
     ["essential-questions-4-m1", "あれはどのほんですか", "are wa dono hon desu ka"],
     ["essential-questions-4-m2", "そのひとはだれですか", "sono hito wa dare desu ka"],
     ["essential-questions-4-m3", "トイレはどこですか", "toire wa doko desu ka"],
-    ["essential-questions-4-m4", "これはどれですか", "kore wa dore desu ka"],
+    ["essential-questions-4-m4", "みかんはどれですか", "mikan wa dore desu ka"],
     ["essential-questions-4-m5", "なにがわかりますか", "nani ga wakarimasu ka"],
     ["essential-questions-4-m6", "なにをしますか", "nani o shimasu ka"],
     ["essential-questions-4-m7", "なにをべんきょうしますか", "nani o benkyoushimasu ka"],
@@ -230,7 +230,7 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
     ["actions-2-m5", "けんはみせにいきます", "ken wa mise ni ikimasu"],
     ["actions-2-m6", "こうえんにきます", "kouen ni kimasu"],
     ["actions-2-m7", "けんはかいしゃではたらきます", "ken wa kaisha de hatarakimasu"],
-    ["actions-2-m8", "レストランではたらきます", "resutoran de hatarakimasu"],
+    ["actions-2-m8", "カフェではたらきます", "kafe de hatarakimasu"],
     ["actions-2-t1", "みせにいきます", "mise ni ikimasu"],
     ["actions-2-t2", "ゆきはとしょかんにきます", "yuki wa toshokan ni kimasu"],
     ["actions-2-t3", "みなはえきにいきます", "mina wa eki ni ikimasu"],
@@ -287,6 +287,19 @@ describe("A1 modules 2–4 · exact realized sentences", () => {
       expect(romajiOf(sentence.tokens)).toBe(expectedRomaji);
     },
   );
+
+  it("uses みかん as the natural subject for the どれ question", () => {
+    const variant = variantById.get("essential-questions-4-m4");
+    expect(variant?.slotValues.subject).toBe("a1-value-mikan-subject");
+    expect(realize(variant as SentenceVariant).canonicalJapanese).toBe("みかんはどれですか");
+    expect(copy.en["essential-questions-4-m4-translation"]).toBe(
+      "Which one is the tangerine?",
+    );
+    expect(copy.it["essential-questions-4-m4-translation"]).toBe("Qual è il mandarino?");
+    expect(allVariants.map((candidate) => realize(candidate).canonicalJapanese)).not.toContain(
+      "これはどれですか",
+    );
+  });
 
   it("compares every one of the 156 instructional rows through the shared formatter", () => {
     expect(EXPECTED_SENTENCES.length).toBe(156);

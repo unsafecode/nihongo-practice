@@ -17,6 +17,7 @@ const REQUIRED_NOTE_IDS = [
   "a1-note-particle-ga",
   "a1-note-particle-o",
   "a1-note-particle-de",
+  "a1-note-location-ni-de-contrast",
   "a1-note-particle-ni",
   "a1-note-particle-he",
   "a1-note-masu-masen",
@@ -126,7 +127,89 @@ describe("A1 learner note catalog", () => {
     );
 
     expect([...explainerIds]).toEqual(
-      expect.arrayContaining(["a1-note-particle-de", "a1-note-particle-ni-destination"]),
+      expect.arrayContaining([
+        "a1-note-particle-de",
+        "a1-note-location-ni-de-contrast",
+        "a1-note-particle-ni-destination",
+      ]),
+    );
+  });
+
+  it("contrasts destination に with an action place で without introducing unrelated roles", () => {
+    const note = a1LearningNoteById["a1-note-location-ni-de-contrast"];
+
+    expect(note).toMatchObject({
+      id: "a1-note-location-ni-de-contrast",
+      kind: "grammar",
+      explainedConceptIds: ["a1-concept-location-particle"],
+      requiredConceptIds: [],
+      title: {
+        en: "Contrast destination に and action place で",
+        it: "Confronta la destinazione に e il luogo dell'azione で",
+      },
+      meaning: {
+        en: "After a place, に marks the destination for going or coming; で marks the setting where an activity happens.",
+        it: "Dopo un luogo, に segna la destinazione con andare o venire; で segna il contesto in cui avviene un'attività.",
+      },
+      use: {
+        en: expect.stringMatching(/where to.*where.*activity happen/i),
+        it: expect.stringMatching(/dove si va.*dove avviene l'attività/i),
+      },
+      construction: {
+        en: expect.stringMatching(/place.*に.*go.*come.*place.*で.*work/i),
+        it: expect.stringMatching(/luogo.*に.*andare.*venire.*luogo.*で.*lavorare/i),
+      },
+      typicalMistake: {
+        en: expect.stringContaining("*placeでいきます"),
+        it: expect.stringContaining("*luogoでいきます"),
+      },
+      nearestContrastId: "a1-note-particle-ni-destination",
+    });
+    expect(note?.typicalMistake.en).toContain("*placeに働きます");
+    expect(note?.typicalMistake.it).toContain("*luogoに働きます");
+    expect(note?.pattern).toEqual([
+      expect.objectContaining({
+        kind: "slot",
+        text: "destination",
+      }),
+      expect.objectContaining({
+        kind: "particle",
+        text: "に",
+        label: {
+          en: "destination particle for go or come",
+          it: "particella di destinazione con andare o venire",
+        },
+      }),
+      expect.objectContaining({
+        kind: "slot",
+        text: "go／come",
+      }),
+      expect.objectContaining({
+        kind: "punctuation",
+        text: "／",
+      }),
+      expect.objectContaining({
+        kind: "slot",
+        text: "action place",
+      }),
+      expect.objectContaining({
+        kind: "particle",
+        text: "で",
+        label: {
+          en: "action-place particle",
+          it: "particella del luogo dell'azione",
+        },
+      }),
+      expect.objectContaining({
+        kind: "slot",
+        text: "activity (e.g. work)",
+      }),
+    ]);
+    expect(a1LearningNoteById["a1-note-particle-de"]?.nearestContrastId).toBe(
+      "a1-note-location-ni-de-contrast",
+    );
+    expect(a1LearningNoteById["a1-note-particle-ni-destination"]?.nearestContrastId).toBe(
+      "a1-note-location-ni-de-contrast",
     );
   });
 
