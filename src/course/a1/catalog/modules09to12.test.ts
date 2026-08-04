@@ -821,11 +821,11 @@ describe("A1 modules 9–12 · bilingual copy hygiene", () => {
 // ---------------------------------------------------------------------------
 
 describe("A1 modules 9–12 · prior-module regression", () => {
-  it("keeps a spot-check of Modules 2–8 realizations unchanged", () => {
+  it("keeps a spot-check of Modules 2–8 realizations stable", () => {
     expect(jpOf("routines-1-m1")).toBe("ゆきはろくじにおきます");
     expect(romajiFor("routines-1-m1")).toBe("yuki wa rokuji ni okimasu");
-    expect(jpOf("places-1-m2")).toBe("ゆきはえきへいきます");
-    expect(romajiFor("places-1-m2")).toBe("yuki wa eki e ikimasu");
+    expect(jpOf("places-1-m2")).toBe("ゆきはくうこうへいきます");
+    expect(romajiFor("places-1-m2")).toBe("yuki wa kuukou e ikimasu");
     expect(jpOf("people-1-m1")).toBe("はははせんせいです");
     expect(romajiFor("people-1-m1")).toBe("haha wa sensei desu");
   });

@@ -347,6 +347,9 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   // reason (companion vs. recipient candidate pools must never cross).
   { id: "a1-value-recipient-friend", kind: "object", tokenFragments: [frag("ともだち", "tomodachi")] },
   { id: "a1-value-companion-teacher", kind: "object", tokenFragments: [frag("せんせい", "sensei")] },
+  { id: "a1-value-companion-child", kind: "object", tokenFragments: [frag("こども", "kodomo")] },
+  { id: "a1-value-recipient-person", kind: "object", tokenFragments: [frag("ひと", "hito")] },
+  { id: "a1-value-companion-family", kind: "object", tokenFragments: [frag("かぞく", "kazoku")] },
   // Module 7 means-of-transport nouns (で adjunct; object-kind, distinct from
   // the action-place で of `work`).
   { id: "a1-value-transport-train", kind: "object", tokenFragments: [frag("でんしゃ", "densha")] },
@@ -354,6 +357,9 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-transport-car", kind: "object", tokenFragments: [frag("くるま", "kuruma")] },
   { id: "a1-value-transport-bicycle", kind: "object", tokenFragments: [frag("じてんしゃ", "jitensha")] },
   { id: "a1-value-transport-subway", kind: "object", tokenFragments: [frag("ちかてつ", "chikatetsu")] },
+  { id: "a1-value-transport-taxi", kind: "object", tokenFragments: [frag("タクシー", "takushii")] },
+  { id: "a1-value-transport-airplane", kind: "object", tokenFragments: [frag("ひこうき", "hikouki")] },
+  { id: "a1-value-transport-ship", kind: "object", tokenFragments: [frag("ふね", "fune")] },
 
   // --- location-kind (に/で per governing sense) ---
   { id: "a1-value-loc-tokyo", kind: "location", tokenFragments: [frag("とうきょう", "toukyou")] },
@@ -373,6 +379,8 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-loc-airport", kind: "location", tokenFragments: [frag("くうこう", "kuukou")] },
   { id: "a1-value-loc-bank", kind: "location", tokenFragments: [frag("ぎんこう", "ginkou")] },
   { id: "a1-value-loc-hospital", kind: "location", tokenFragments: [frag("びょういん", "byouin")] },
+  { id: "a1-value-loc-room", kind: "location", tokenFragments: [frag("へや", "heya")] },
+  { id: "a1-value-loc-town", kind: "location", tokenFragments: [frag("まち", "machi")] },
 
   // --- referent-kind kin subjects (Module 8) ---
   // Own-family plain forms — used when the speaker talks about their OWN family

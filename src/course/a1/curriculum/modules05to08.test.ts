@@ -89,6 +89,29 @@ function modelVariantIds(lessonId: string): ReadonlySet<string> {
   return new Set(lessonById.get(lessonId)?.recipe.modelVariantIds);
 }
 
+/**
+ * Derives lesson vocabulary from the semantic values used by every authored
+ * model, rather than trusting the lesson's declarative vocabulary list.
+ */
+function authoredModelLexemeIds(
+  lessonId: string,
+  dialogueVariantIds: readonly string[] = [],
+): ReadonlySet<string> {
+  const lexemeIds = new Set<string>();
+  const variantIds = new Set([...modelVariantIds(lessonId), ...dialogueVariantIds]);
+
+  for (const variantId of variantIds) {
+    const variant = variantById.get(variantId);
+    if (variant === undefined) continue;
+    for (const valueId of Object.values(variant.slotValues)) {
+      const lexeme = a1LexemeByValueId[valueId];
+      if (lexeme !== undefined) lexemeIds.add(lexeme.id);
+    }
+  }
+
+  return lexemeIds;
+}
+
 function isSpokenTarget(
   targetRef: A1PracticeActivity["targetRef"],
 ): targetRef is Readonly<{ spokenVariantId: string }> {
@@ -158,6 +181,27 @@ describe("A1 modules 05–08 lesson content", () => {
       }
     }
     expect(new Set(sliceLexemes).size).toBe(sliceLexemes.length);
+  });
+
+  it("declares only lexemes realized by each lesson's authored models or dialogue", () => {
+    const violations = a1Modules05to08LessonContent.flatMap((content) => {
+      const actualLexemeIds = authoredModelLexemeIds(
+        content.lessonId,
+        content.dialogue?.turnVariantIds,
+      );
+      const absentLexemeIds = content.newLexemeIds.filter(
+        (lexemeId) => !actualLexemeIds.has(lexemeId),
+      );
+      if (absentLexemeIds.length === 0) return [];
+
+      return [
+        `${content.lessonId}: declared=[${content.newLexemeIds.join(", ")}]; ` +
+          `actual=[${[...actualLexemeIds].sort().join(", ")}]; ` +
+          `absent=[${absentLexemeIds.join(", ")}]`,
+      ];
+    });
+
+    expect(violations).toEqual([]);
   });
 
   it("keeps worked examples and dialogue within cumulative lexical closure", () => {
@@ -269,6 +313,19 @@ describe("A1 modules 05–08 lesson content", () => {
     expect(visibleJapanese("places-4").some((line) => line.includes("で"))).toBe(true);
     expect(visibleJapanese("people-3").some((line) => line.includes("と"))).toBe(true);
     expect(visibleJapanese("people-3").some((line) => line.includes("に"))).toBe(true);
+  });
+
+  it("makes each places particle note visible in its worked examples", () => {
+    const workedJapanese = (lessonId: string) => {
+      const lesson = a1Modules05to08LessonContent.find((content) => content.lessonId === lessonId);
+      return lesson?.workedExampleVariantIds.map(japanese) ?? [];
+    };
+
+    expect(workedJapanese("places-1").some((line) => line.includes("に"))).toBe(true);
+    expect(workedJapanese("places-2").some((line) => line.includes("へ"))).toBe(true);
+    expect(
+      workedJapanese("places-3").some((line) => line.includes("から") && line.includes("まで")),
+    ).toBe(true);
   });
 
   it("keeps dialogue and adjacent worked models natural by never repeating あなた", () => {
