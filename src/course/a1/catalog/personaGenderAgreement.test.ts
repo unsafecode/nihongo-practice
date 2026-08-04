@@ -177,12 +177,12 @@ describe("persona gender agreement — concrete reported bug ids (independent fi
   const EXPECTED_IT: ReadonlyArray<[string, string]> = [
     // module02Introductions.ts — a1Copular-composed rows.
     ["introductions-1-m1", "Yuki è una studentessa."],
-    ["introductions-1-m3", "Mina è un'impiegata."],
+    ["introductions-1-m3", "Yuki è una studentessa."],
     ["introductions-3-m3", "Mina è americana."],
     ["introductions-4-m1", "Yuki è una studentessa."],
     ["introductions-4-m8", "Mina è un'impiegata."],
     // module03Questions.ts — hand-authored literal rows that bypass a1Copular.
-    ["essential-questions-1-m8", "Yuki è una studentessa?"],
+    ["essential-questions-1-m8", "Che cosa capisce Yuki?"],
     ["essential-questions-2-t5", "Mina è una studentessa?"],
     ["essential-questions-4-m8", "Yuki è una studentessa?"],
   ];

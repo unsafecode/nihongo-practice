@@ -235,27 +235,27 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["shopping-4-m3", "けしごむはたかいです", "keshigomu wa takai desu"],
   ["shopping-4-m4", "レシートをください", "reshiito o kudasai"],
   ["shopping-4-m5", "きっぷをふたつかいます", "kippu o futatsu kaimasu"],
-  ["shopping-4-m6", "ほんはひゃくえんです", "hon wa hyaku en desu"],
+  ["shopping-4-m6", "ほんはやすいです", "hon wa yasui desu"],
   ["shopping-4-m7", "ゆきはざっしをひとつかいます", "yuki wa zasshi o hitotsu kaimasu"],
   ["shopping-4-m8", "ペンはやすいです", "pen wa yasui desu"],
   ["shopping-4-t1", "ざっしをください", "zasshi o kudasai"],
   ["shopping-4-t2", "わたしはけしごむをひとつかいます", "watashi wa keshigomu o hitotsu kaimasu"],
   ["shopping-4-t3", "ペンはたかいです", "pen wa takai desu"],
-  ["shopping-4-t4", "けしごむをください", "keshigomu o kudasai"],
+  ["shopping-4-t4", "けしごむをひとつかいます", "keshigomu o hitotsu kaimasu"],
   ["shopping-4-t5", "ほんはやすいです", "hon wa yasui desu"],
   ["existence-needs-1-m1", "ほんがあります", "hon ga arimasu"],
-  ["existence-needs-1-m2", "ほんがつくえのうえにあります", "hon ga tsukue no ue ni arimasu"],
+  ["existence-needs-1-m2", "ほんががっこうにあります", "hon ga gakkou ni arimasu"],
   ["existence-needs-1-m3", "ねこがいます", "neko ga imasu"],
-  ["existence-needs-1-m4", "ねこがいすのしたにいます", "neko ga isu no shita ni imasu"],
+  ["existence-needs-1-m4", "ねこがカフェにいます", "neko ga kafe ni imasu"],
   ["existence-needs-1-m5", "はながあります", "hana ga arimasu"],
   ["existence-needs-1-m6", "いぬがいます", "inu ga imasu"],
   ["existence-needs-1-m7", "まちはおおきいです", "machi wa ookii desu"],
   ["existence-needs-1-m8", "とりがいます", "tori ga imasu"],
-  ["existence-needs-1-t1", "ほんがいすのしたにあります", "hon ga isu no shita ni arimasu"],
-  ["existence-needs-1-t2", "ねこがつくえのうえにいます", "neko ga tsukue no ue ni imasu"],
-  ["existence-needs-1-t3", "はながつくえのうえにあります", "hana ga tsukue no ue ni arimasu"],
-  ["existence-needs-1-t4", "いぬがいすのしたにいます", "inu ga isu no shita ni imasu"],
-  ["existence-needs-1-t5", "とりがいすのしたにいます", "tori ga isu no shita ni imasu"],
+  ["existence-needs-1-t1", "ほんがカフェにあります", "hon ga kafe ni arimasu"],
+  ["existence-needs-1-t2", "ねこがカフェにいます", "neko ga kafe ni imasu"],
+  ["existence-needs-1-t3", "はなががっこうにあります", "hana ga gakkou ni arimasu"],
+  ["existence-needs-1-t4", "いぬがカフェにいます", "inu ga kafe ni imasu"],
+  ["existence-needs-1-t5", "とりががっこうにいます", "tori ga gakkou ni imasu"],
   ["existence-needs-2-m1", "ほんがつくえのうえにあります", "hon ga tsukue no ue ni arimasu"],
   ["existence-needs-2-m2", "ペンがかばんのなかにあります", "pen ga kaban no naka ni arimasu"],
   ["existence-needs-2-m3", "ねこがいすのしたにいます", "neko ga isu no shita ni imasu"],
@@ -276,7 +276,7 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["existence-needs-3-m5", "わたしはコーヒーがすきです", "watashi wa koohii ga suki desu"],
   ["existence-needs-3-m6", "けんはすしがすきです", "ken wa sushi ga suki desu"],
   ["existence-needs-3-m7", "わたしはみずがきらいです", "watashi wa mizu ga kirai desu"],
-  ["existence-needs-3-m8", "ほんがあります", "hon ga arimasu"],
+  ["existence-needs-3-m8", "ゆきはパスポートがほしいですか", "yuki wa pasupooto ga hoshii desu ka"],
   ["existence-needs-3-t1", "わたしはくすりがほしいです", "watashi wa kusuri ga hoshii desu"],
   ["existence-needs-3-t2", "コーヒーがほしいです", "koohii ga hoshii desu"],
   ["existence-needs-3-t3", "わたしはりんごがすきです", "watashi wa ringo ga suki desu"],
@@ -311,14 +311,14 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["capstones-2-m1", "しちじにおきます", "shichiji ni okimasu"],
   ["capstones-2-m2", "ほんはたかいです", "hon wa takai desu"],
   ["capstones-2-m3", "ペンはやすいです", "pen wa yasui desu"],
-  ["capstones-2-m4", "けんはレストランではたらきます", "ken wa resutoran de hatarakimasu"],
+  ["capstones-2-m4", "けんはくじにおきます", "ken wa kuji ni okimasu"],
   ["capstones-2-m5", "きっぷをふたつください", "kippu o futatsu kudasai"],
   ["capstones-2-m6", "わたしはコーヒーがすきです", "watashi wa koohii ga suki desu"],
   ["capstones-2-m7", "わたしはりんごをみっつかいます", "watashi wa ringo o mittsu kaimasu"],
-  ["capstones-2-m8", "コーヒーをください", "koohii o kudasai"],
+  ["capstones-2-m8", "レストランではたらきます", "resutoran de hatarakimasu"],
   ["capstones-2-t1", "けんはしちじにおきます", "ken wa shichiji ni okimasu"],
   ["capstones-2-t2", "やすいです", "yasui desu"],
-  ["capstones-2-t3", "レストランではたらきます", "resutoran de hatarakimasu"],
+  ["capstones-2-t3", "コーヒーをください", "koohii o kudasai"],
   ["capstones-2-t4", "けんはコーヒーがすきです", "ken wa koohii ga suki desu"],
   ["capstones-2-t5", "けんはりんごをみっつかいます", "ken wa ringo o mittsu kaimasu"],
   ["capstones-3-m1", "えきにいきます", "eki ni ikimasu"],
@@ -336,7 +336,7 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["capstones-3-t5", "ゆきはとうきょうからおおさかまでいきます", "yuki wa toukyou kara oosaka made ikimasu"],
   ["capstones-4-m1", "がくせいです", "gakusei desu"],
   ["capstones-4-m2", "イタリアじんです", "itariajin desu"],
-  ["capstones-4-m3", "すしをたべます", "sushi o tabemasu"],
+  ["capstones-4-m3", "せんせいです", "sensei desu"],
   ["capstones-4-m4", "にほんごをべんきょうします", "nihongo o benkyoushimasu"],
   ["capstones-4-m5", "きょうはあついです", "kyou wa atsui desu"],
   ["capstones-4-m6", "へやはさむいです", "heya wa samui desu"],
@@ -554,11 +554,11 @@ describe("A1 modules 9–12 · existence, position & needs", () => {
     expect(romajiFor("existence-needs-1-m3")).toBe("neko ga imasu");
   });
 
-  it("realizes a location-relation frame with の <relation> に", () => {
-    expect(jpOf("existence-needs-1-m2")).toBe("ほんがつくえのうえにあります");
-    expect(romajiFor("existence-needs-1-m2")).toBe("hon ga tsukue no ue ni arimasu");
-    expect(jpOf("existence-needs-1-m4")).toBe("ねこがいすのしたにいます");
-    expect(romajiFor("existence-needs-1-m4")).toBe("neko ga isu no shita ni imasu");
+  it("realizes a location-relation frame with の <relation> に after its lexical introduction", () => {
+    expect(jpOf("existence-needs-2-m1")).toBe("ほんがつくえのうえにあります");
+    expect(romajiFor("existence-needs-2-m1")).toBe("hon ga tsukue no ue ni arimasu");
+    expect(jpOf("existence-needs-2-m3")).toBe("ねこがいすのしたにいます");
+    expect(romajiFor("existence-needs-2-m3")).toBe("neko ga isu no shita ni imasu");
   });
 
   it("marks the desired object of ほしい/すき with が, and the experiencer with は", () => {

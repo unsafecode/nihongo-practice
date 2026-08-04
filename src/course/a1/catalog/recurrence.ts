@@ -40,7 +40,7 @@ const LATER_USES_BY_SENSE: Readonly<
   ],
   "a1-sense-live": [
     { lessonId: "people-1", variantId: "people-1-m7" },
-    { lessonId: "people-2", variantId: "people-2-m1" },
+    { lessonId: "places-3", variantId: "places-3-m7" },
   ],
   "a1-sense-study": [
     { lessonId: "past-negative-3", variantId: "past-negative-3-m1" },
@@ -60,7 +60,7 @@ const LATER_USES_BY_SENSE: Readonly<
   ],
   // --- Module 4 senses (actions) ---
   "a1-sense-eat": [
-    { lessonId: "routines-4", variantId: "routines-4-m2" },
+    { lessonId: "routines-4", variantId: "routines-4-m8" },
     { lessonId: "past-negative-1", variantId: "past-negative-1-m1" },
   ],
   "a1-sense-drink": [
@@ -171,8 +171,8 @@ const LATER_USES_BY_SENSE: Readonly<
     { lessonId: "capstones-2", variantId: "capstones-2-t2" },
   ],
   "a1-sense-request": [
-    { lessonId: "capstones-2", variantId: "capstones-2-m8" },
     { lessonId: "capstones-2", variantId: "capstones-2-m5" },
+    { lessonId: "capstones-2", variantId: "capstones-2-t3" },
   ],
   // --- Module 11 senses (existence & needs) — reused across the capstones ---
   "a1-sense-exist-inanimate": [

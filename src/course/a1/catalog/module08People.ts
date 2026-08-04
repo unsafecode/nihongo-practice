@@ -73,16 +73,16 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
     { id: "people-1-m3", family: COP, context: "a1-context-family", subjectReferent: PERSON, subjectRealization: "explicit", speakerRole: R_YUKI, slots: cop("a1-value-kin-mother-hon", "a1-value-obj-teacher"), translation: L("Your mother is a teacher.", "Tua madre è insegnante.") },
     { id: "people-1-m4", family: COP, context: "a1-context-family", subjectReferent: PERSON, subjectRealization: "explicit", speakerRole: R_KEN, slots: cop("a1-value-kin-father-hon", "a1-value-obj-office-worker"), translation: L("Your father is an office worker.", "Tuo padre è un impiegato.") },
     { id: "people-1-m5", family: OBJ, context: "a1-context-home", subjectReferent: PERSON, subjectRealization: "explicit", slots: obj("a1-value-kin-mother", "a1-value-drink", "a1-value-obj-coffee"), translation: L("My mother drinks coffee.", "Mia madre beve il caffè.") },
-    { id: "people-1-m6", family: OBJ, context: "a1-context-home", subjectReferent: PERSON, subjectRealization: "explicit", speakerRole: R_MINA, slots: obj("a1-value-kin-older-brother", "a1-value-drink", "a1-value-obj-tea"), translation: L("My older brother drinks tea.", "Mio fratello maggiore beve il tè.") },
+    { id: "people-1-m6", family: OBJ, context: "a1-context-home", subjectReferent: PERSON, subjectRealization: "explicit", speakerRole: R_MINA, slots: obj("a1-value-kin-father", "a1-value-drink", "a1-value-obj-coffee"), translation: L("My father drinks coffee.", "Mio padre beve il caffè.") },
     { id: "people-1-m7", family: LOCF, context: "a1-context-home", subjectReferent: PERSON, subjectRealization: "explicit", slots: loc("a1-value-kin-father", "a1-value-live", "a1-value-loc-tokyo"), translation: L("My father lives in Tokyo.", "Mio padre vive a Tokyo.") },
-    { id: "people-1-m8", family: LOCF, context: "a1-context-home", subjectReferent: PERSON, subjectRealization: "explicit", slots: loc("a1-value-kin-older-sister", "a1-value-live", "a1-value-loc-osaka"), translation: L("My older sister lives in Osaka.", "Mia sorella maggiore vive a Osaka.") },
+    { id: "people-1-m8", family: LOCF, context: "a1-context-home", subjectReferent: PERSON, subjectRealization: "explicit", slots: loc("a1-value-kin-mother", "a1-value-live", "a1-value-loc-osaka"), translation: L("My mother lives in Osaka.", "Mia madre vive a Osaka.") },
   ],
   transfers: [
     { id: "people-1-t1", family: COP, context: "a1-context-family", subjectReferent: PERSON, subjectRealization: "explicit", slots: cop("a1-value-kin-father", "a1-value-obj-teacher"), translation: L("My father is a teacher.", "Mio padre è insegnante.") },
     { id: "people-1-t2", family: COP, context: "a1-context-family", subjectReferent: PERSON, subjectRealization: "explicit", speakerRole: R_YUKI, slots: cop("a1-value-kin-mother-hon", "a1-value-obj-doctor"), translation: L("Your mother is a doctor.", "Tua madre è medico.") },
-    { id: "people-1-t3", family: OBJ, context: "a1-context-home", subjectReferent: PERSON, subjectRealization: "explicit", slots: obj("a1-value-kin-older-brother", "a1-value-drink", "a1-value-obj-coffee"), translation: L("My older brother drinks coffee.", "Mio fratello maggiore beve il caffè.") },
+    { id: "people-1-t3", family: OBJ, context: "a1-context-home", subjectReferent: PERSON, subjectRealization: "explicit", slots: obj("a1-value-kin-father", "a1-value-drink", "a1-value-obj-coffee"), translation: L("My father drinks coffee.", "Mio padre beve il caffè.") },
     { id: "people-1-t4", family: LOCF, context: "a1-context-home", subjectReferent: PERSON, subjectRealization: "explicit", slots: loc("a1-value-kin-mother", "a1-value-live", "a1-value-loc-tokyo"), translation: L("My mother lives in Tokyo.", "Mia madre vive a Tokyo.") },
-    { id: "people-1-t5", family: COP, context: "a1-context-family", subjectReferent: PERSON, subjectRealization: "explicit", slots: cop("a1-value-kin-older-sister", "a1-value-obj-office-worker"), translation: L("My older sister is an office worker.", "Mia sorella maggiore è un'impiegata.") },
+    { id: "people-1-t5", family: COP, context: "a1-context-home", subjectReferent: PERSON, subjectRealization: "explicit", slots: cop("a1-value-kin-mother", "a1-value-obj-teacher"), translation: L("My mother is a teacher.", "Mia madre è insegnante.") },
   ],
 });
 
@@ -99,7 +99,7 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
   introducedConceptIds: [A1_CONCEPT_TOPIC_WA, A1_CONCEPT_LOCATION_PARTICLE, A1_CONCEPT_OBJECT_WO, A1_CONCEPT_TIME_SCHEDULE, A1_CONCEPT_FREQUENCY],
   introducedSenseIds: ["a1-sense-live", "a1-sense-study", "a1-sense-do", "a1-sense-write", "a1-sense-study-routine", "a1-sense-eat-routine", "a1-sense-read-routine"],
   models: [
-    { id: "people-2-m1", family: LOCF, context: "a1-context-home", subjectReferent: PERSON, subjectRealization: "explicit", slots: loc("a1-value-kin-father", "a1-value-live", "a1-value-loc-tokyo"), translation: L("My father lives in Tokyo.", "Mio padre vive a Tokyo.") },
+    { id: "people-2-m1", family: OBJ, context: "a1-context-home", subjectReferent: PERSON, subjectRealization: "explicit", slots: obj("a1-value-kin-father", "a1-value-do", "a1-value-obj-homework"), translation: L("My father does the homework.", "Mio padre fa i compiti.") },
     { id: "people-2-m2", family: OBJ, context: "a1-context-classroom", subjectReferent: PERSON, subjectRealization: "explicit", slots: obj("a1-value-kin-mother", "a1-value-study", "a1-value-obj-japanese"), translation: L("My mother studies Japanese.", "Mia madre studia il giapponese.") },
     { id: "people-2-m3", family: OBJ, context: "a1-context-classroom", subjectReferent: PERSON, subjectRealization: "explicit", speakerRole: R_YUKI, slots: obj("a1-value-kin-older-brother", "a1-value-do", "a1-value-obj-homework"), translation: L("My older brother does the homework.", "Mio fratello maggiore fa i compiti.") },
     { id: "people-2-m4", family: OBJ, context: "a1-context-home", subjectReferent: PERSON, subjectRealization: "explicit", slots: obj("a1-value-kin-older-sister", "a1-value-write", "a1-value-obj-letter"), translation: L("My older sister writes a letter.", "Mia sorella maggiore scrive una lettera.") },
@@ -109,7 +109,7 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
     { id: "people-2-m8", family: OBJ, context: "a1-context-home", subjectReferent: PERSON, subjectRealization: "explicit", slots: obj("a1-value-kin-mother", "a1-value-write", "a1-value-obj-letter"), translation: L("My mother writes a letter.", "Mia madre scrive una lettera.") },
   ],
   transfers: [
-    { id: "people-2-t1", family: LOCF, context: "a1-context-home", subjectReferent: PERSON, subjectRealization: "explicit", slots: loc("a1-value-kin-mother", "a1-value-live", "a1-value-loc-tokyo"), translation: L("My mother lives in Tokyo.", "Mia madre vive a Tokyo.") },
+    { id: "people-2-t1", family: OBJ, context: "a1-context-home", subjectReferent: PERSON, subjectRealization: "explicit", slots: obj("a1-value-kin-mother", "a1-value-do", "a1-value-obj-homework"), translation: L("My mother does the homework.", "Mia madre fa i compiti.") },
     { id: "people-2-t2", family: OBJ, context: "a1-context-classroom", subjectReferent: PERSON, subjectRealization: "explicit", slots: obj("a1-value-kin-father", "a1-value-study", "a1-value-obj-japanese"), translation: L("My father studies Japanese.", "Mio padre studia il giapponese.") },
     { id: "people-2-t3", family: OBJ, context: "a1-context-home", subjectReferent: PERSON, subjectRealization: "explicit", slots: obj("a1-value-kin-older-sister", "a1-value-do", "a1-value-obj-homework"), translation: L("My older sister does the homework.", "Mia sorella maggiore fa i compiti.") },
     { id: "people-2-t4", family: ADV, context: "a1-context-mealtime-routine", subjectReferent: PERSON, subjectRealization: "explicit", speakerRole: R_KEN, slots: timed("a1-value-kin-younger-brother", "a1-value-eat-routine", "a1-value-seq-morning"), translation: L("My younger brother eats in the morning.", "Mio fratello minore mangia la mattina.") },
@@ -144,7 +144,7 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
     { id: "people-3-t2", family: COMPF, context: "a1-context-town", subjectReferent: SELF, subjectRealization: "omitted", slots: comp(WATASHI, "a1-value-companion-child"), translation: L("I go with a child.", "Vado con un bambino.") },
     { id: "people-3-t3", family: RECF, context: "a1-context-classroom", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: ask("a1-value-mina", "a1-value-recipient-person"), translation: L("Mina asks someone.", "Mina chiede a qualcuno.") },
     { id: "people-3-t4", family: RECF, context: "a1-context-town", subjectReferent: SELF, subjectRealization: "omitted", slots: ask(WATASHI, "a1-value-recipient-friend"), translation: L("I ask a friend.", "Chiedo a un amico.") },
-    { id: "people-3-t5", family: OBJ, context: "a1-context-cafe", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: obj("a1-value-ken", "a1-value-see", "a1-value-obj-movie"), translation: L("Ken watches a movie.", "Ken guarda un film.") },
+    { id: "people-3-t5", family: RECF, context: "a1-context-shop", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: ask("a1-value-ken", "a1-value-recipient-clerk"), translation: L("Ken asks the clerk.", "Ken chiede al commesso.") },
   ],
 });
 

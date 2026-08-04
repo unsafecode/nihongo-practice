@@ -232,19 +232,16 @@ describe("A1 modules 01–04 lesson content", () => {
           expect.objectContaining({
             id: `${content.lessonId}-meaning`,
             function: "meaning-comprehension",
-            interactionKind: "choice",
             targetRef: { round: "one", index: 1 },
           }),
           expect.objectContaining({
             id: `${content.lessonId}-form`,
             function: "form-discrimination",
-            interactionKind: "completion",
             targetRef: { round: "two", index: 0 },
           }),
           expect.objectContaining({
             id: `${content.lessonId}-production`,
             function: "controlled-production",
-            interactionKind: "tile-ordering",
             targetRef: { round: "one", index: 0 },
           }),
           expect.objectContaining({
@@ -304,7 +301,7 @@ describe("A1 modules 01–04 lesson content", () => {
       expect.any(String),
     ]);
     expect(byLessonId.get("introductions-2")?.learningNoteId).toBe(
-      "a1-note-topic-wa-copula-desu",
+      "a1-note-particle-ga",
     );
     expect(byLessonId.get("introductions-3")?.learningNoteId).toBe(
       "a1-note-dictionary-masu-classes",
@@ -345,7 +342,7 @@ describe("A1 modules 01–04 lesson content", () => {
     ]);
     expect(
       byLessonId.get("actions-2")?.practiceBlueprint.activities.at(-1)?.targetRef,
-    ).toEqual({ spokenVariantId: "actions-2-m8" });
+    ).toEqual({ spokenVariantId: "actions-2-m2" });
     expect(byLessonId.get("actions-3")?.learningNoteId).toBe("a1-note-particle-ni");
     expect(byLessonId.get("actions-4")?.learningNoteId).not.toBe("a1-note-particle-ni");
 

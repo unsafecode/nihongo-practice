@@ -101,10 +101,10 @@ const sounds1Seeds: readonly ItemSeed[] = [
   { id: "snd1-e", glyph: "え", kana: "え", roman: "e", contrastWithId: "snd1-i", contrastFeature: "vowel-quality", kind: "minimal-pair-listening", hint: L("The mid vowel /e/.", "La vocale media /e/.") },
   { id: "snd1-o", glyph: "お", kana: "お", roman: "o", contrastWithId: "snd1-u", contrastFeature: "vowel-quality", kind: "minimal-pair-listening", hint: L("The rounded /o/.", "La /o/ arrotondata.") },
   { id: "snd1-ka", glyph: "か", kana: "か", roman: "ka", contrastWithId: "snd1-a", contrastFeature: "consonant-onset", kind: "reading-choice", hint: L("k-row: consonant + /a/.", "Riga k: consonante + /a/.") },
-  { id: "snd1-ki", glyph: "き", kana: "き", roman: "ki", contrastWithId: "snd1-ka", contrastFeature: "vowel-quality", kind: "reading-choice", hint: L("k-row: consonant + /i/.", "Riga k: consonante + /i/.") },
-  { id: "snd1-sa", glyph: "さ", kana: "さ", roman: "sa", contrastWithId: "snd1-ka", contrastFeature: "consonant-place", kind: "reading-choice", hint: L("s-row: consonant + /a/.", "Riga s: consonante + /a/.") },
-  { id: "snd1-su", glyph: "す", kana: "す", roman: "su", contrastWithId: "snd1-u", contrastFeature: "consonant-onset", kind: "reading-choice", hint: L("s-row: consonant + /u/.", "Riga s: consonante + /u/.") },
-  { id: "snd1-se", glyph: "せ", kana: "せ", roman: "se", contrastWithId: "snd1-e", contrastFeature: "consonant-onset", kind: "reading-choice", hint: L("s-row: consonant + /e/.", "Riga s: consonante + /e/.") },
+  { id: "snd1-ki", glyph: "すき", kana: "すき", roman: "suki", contrastWithId: "snd1-sumu", contrastFeature: "word-final-mora", kind: "reading-choice", hint: L("Read the familiar word su-ki in two morae.", "Leggi la parola familiare su-ki in due more.") },
+  { id: "snd1-se", glyph: "あさ", kana: "あさ", roman: "asa", contrastWithId: "snd1-sushi", contrastFeature: "word-length", kind: "reading-choice", hint: L("Read a-sa as two morae.", "Leggi a-sa come due more.") },
+  { id: "snd1-sumu", glyph: "すむ", kana: "すむ", roman: "sumu", contrastWithId: "snd1-ki", contrastFeature: "word-final-mora", kind: "reading-choice", hint: L("Read su-mu with two clear morae.", "Leggi su-mu con due more chiare.") },
+  { id: "snd1-sushi", glyph: "すし", kana: "すし", roman: "sushi", contrastWithId: "snd1-se", contrastFeature: "word-length", kind: "reading-choice", hint: L("Read su-shi with two clear morae.", "Leggi su-shi con due more chiare.") },
 ];
 const sounds1Items = seed(sounds1Seeds);
 
@@ -117,12 +117,12 @@ const sounds2Seeds: readonly ItemSeed[] = [
   { id: "snd2-ga", glyph: "が", kana: "が", roman: "ga", contrastWithId: "snd2-ka", contrastFeature: "voicing", kind: "minimal-pair-listening", hint: L("Dakuten voices ka to ga.", "Il dakuten sonorizza ka in ga.") },
   { id: "snd2-ki", glyph: "き", kana: "き", roman: "ki", contrastWithId: "snd2-gi", contrastFeature: "voicing", kind: "minimal-pair-listening", hint: L("Voiceless ki.", "Ki sorda.") },
   { id: "snd2-gi", glyph: "ぎ", kana: "ぎ", roman: "gi", contrastWithId: "snd2-ki", contrastFeature: "voicing", kind: "minimal-pair-listening", hint: L("Dakuten voices ki to gi.", "Il dakuten sonorizza ki in gi.") },
-  { id: "snd2-sa", glyph: "さ", kana: "さ", roman: "sa", contrastWithId: "snd2-za", contrastFeature: "voicing", kind: "minimal-pair-listening", hint: L("Voiceless sa.", "Sa sorda.") },
-  { id: "snd2-za", glyph: "ざ", kana: "ざ", roman: "za", contrastWithId: "snd2-sa", contrastFeature: "voicing", kind: "minimal-pair-listening", hint: L("Dakuten voices sa to za.", "Il dakuten sonorizza sa in za.") },
   { id: "snd2-kya", glyph: "きゃ", kana: "きゃ", roman: "kya", contrastWithId: "snd2-ki", contrastFeature: "palatalization", kind: "reading-choice", hint: L("Yōon ki + small ya makes one mora kya.", "Yōon ki + ya piccola formano una mora kya.") },
-  { id: "snd2-kyu", glyph: "きゅ", kana: "きゅ", roman: "kyu", contrastWithId: "snd2-kya", contrastFeature: "glide-vowel", kind: "reading-choice", hint: L("Yōon ki + small yu makes kyu.", "Yōon ki + yu piccola formano kyu.") },
+  { id: "snd2-kyu", glyph: "きょうと", kana: "きょうと", roman: "kyouto", contrastWithId: "snd2-sha", contrastFeature: "word-rhythm", kind: "reading-choice", hint: L("Read kyo-u-to in three morae.", "Leggi kyo-u-to in tre more.") },
   { id: "snd2-kyo", glyph: "きょ", kana: "きょ", roman: "kyo", contrastWithId: "snd2-kya", contrastFeature: "glide-vowel", kind: "reading-choice", hint: L("Yōon ki + small yo makes kyo.", "Yōon ki + yo piccola formano kyo.") },
-  { id: "snd2-sha", glyph: "しゃ", kana: "しゃ", roman: "sha", contrastWithId: "snd2-sa", contrastFeature: "palatalization", kind: "reading-choice", hint: L("Yōon shi + small ya makes sha.", "Yōon shi + ya piccola formano sha.") },
+  { id: "snd2-sha", glyph: "いしゃ", kana: "いしゃ", roman: "isha", contrastWithId: "snd2-kyu", contrastFeature: "word-rhythm", kind: "reading-choice", hint: L("Read i-sha with the yōon sound as one mora.", "Leggi i-sha con il suono yōon come una mora.") },
+  { id: "snd2-shizuka", glyph: "しずか", kana: "しずか", roman: "shizuka", contrastWithId: "snd2-goji", contrastFeature: "word-rhythm", kind: "reading-choice", hint: L("Read shi-zu-ka in three morae.", "Leggi shi-zu-ka in tre more.") },
+  { id: "snd2-goji", glyph: "ごじ", kana: "ごじ", roman: "goji", contrastWithId: "snd2-shizuka", contrastFeature: "word-rhythm", kind: "reading-choice", hint: L("Read go-ji in two morae.", "Leggi go-ji in due more.") },
 ];
 const sounds2Items = seed(sounds2Seeds);
 
@@ -137,10 +137,10 @@ const sounds3Seeds: readonly ItemSeed[] = [
   { id: "snd3-obaasan", glyph: "おばあさん", kana: "おばあさん", roman: "obaasan", contrastWithId: "snd3-obasan", contrastFeature: "vowel-length", kind: "minimal-pair-listening", hint: L("Long aa: obaasan (grandmother).", "aa lunga: obaasan (nonna).") },
   { id: "snd3-koko", glyph: "ここ", kana: "ここ", roman: "koko", contrastWithId: "snd3-koukou", contrastFeature: "vowel-length", kind: "mora-tiling", hint: L("Two short mora: ko-ko.", "Due mora brevi: ko-ko.") },
   { id: "snd3-koukou", glyph: "こうこう", kana: "こうこう", roman: "koukou", contrastWithId: "snd3-koko", contrastFeature: "vowel-length", kind: "mora-tiling", hint: L("Long o written as ou: kou-kou.", "o lunga scritta ou: kou-kou.") },
-  { id: "snd3-e", glyph: "え", kana: "え", roman: "e", contrastWithId: "snd3-ee", contrastFeature: "vowel-length", kind: "minimal-pair-listening", hint: L("Single mora e.", "Una sola mora e.") },
-  { id: "snd3-ee", glyph: "ええ", kana: "ええ", roman: "ee", contrastWithId: "snd3-e", contrastFeature: "vowel-length", kind: "minimal-pair-listening", hint: L("Long ee (casual yes).", "ee lunga (sì informale).") },
-  { id: "snd3-to", glyph: "と", kana: "と", roman: "to", contrastWithId: "snd3-tou", contrastFeature: "vowel-length", kind: "mora-tiling", hint: L("Single mora to.", "Una sola mora to.") },
-  { id: "snd3-tou", glyph: "とう", kana: "とう", roman: "tou", contrastWithId: "snd3-to", contrastFeature: "vowel-length", kind: "mora-tiling", hint: L("Long o written as ou: tou.", "o lunga scritta ou: tou.") },
+  { id: "snd3-ee", glyph: "がっこう", kana: "がっこう", roman: "gakkou", contrastWithId: "snd3-tou", contrastFeature: "word-rhythm", kind: "minimal-pair-listening", hint: L("Count ga-k-ko-u, including the small tsu beat.", "Conta ga-k-ko-u, compresa la mora del piccolo tsu.") },
+  { id: "snd3-tou", glyph: "こうえん", kana: "こうえん", roman: "kouen", contrastWithId: "snd3-ee", contrastFeature: "word-rhythm", kind: "minimal-pair-listening", hint: L("Count ko-u-e-n, keeping the long vowel.", "Conta ko-u-e-n, mantenendo la vocale lunga.") },
+  { id: "snd3-toukyou", glyph: "とうきょう", kana: "とうきょう", roman: "toukyou", contrastWithId: "snd3-oosaka", contrastFeature: "word-rhythm", kind: "reading-choice", hint: L("Read to-u-kyo-u in four morae.", "Leggi to-u-kyo-u in quattro more.") },
+  { id: "snd3-oosaka", glyph: "おおさか", kana: "おおさか", roman: "oosaka", contrastWithId: "snd3-toukyou", contrastFeature: "word-rhythm", kind: "reading-choice", hint: L("Read o-o-sa-ka in four morae.", "Leggi o-o-sa-ka in quattro more.") },
 ];
 const sounds3Items = seed(sounds3Seeds);
 
@@ -290,6 +290,9 @@ const CONTRAST_FEATURE_LABELS: Record<string, Bilingual> = {
   "consonant-place": L("Consonant place", "Punto di articolazione"),
   "small-kana-combo": L("Small-kana combination", "Combinazione con kana piccolo"),
   "katakana-word": L("Katakana loanword", "Prestito in katakana"),
+  "word-final-mora": L("Final mora contrast", "Contrasto della mora finale"),
+  "word-length": L("Word-length contrast", "Contrasto della lunghezza della parola"),
+  "word-rhythm": L("Word rhythm", "Ritmo della parola"),
 };
 
 const CONTRAST_FEATURE_COPY: Record<string, Bilingual> = Object.fromEntries(

@@ -243,6 +243,64 @@ export type A1AuthoringErrorCode =
   | "module-lesson-count";
 
 // ---------------------------------------------------------------------------
+// Learner-curriculum validation result vocabulary (Phase 2 Task 7)
+// ---------------------------------------------------------------------------
+
+/**
+ * The structured failure codes emitted by the A1 learner-contract validator.
+ * This tuple is also spread into the canonical release vocabulary below, so a
+ * curriculum failure keeps its exact diagnostic code all the way to prebuild.
+ */
+export const A1_CURRICULUM_ERROR_CODES = [
+  "missing-instructional-content",
+  "missing-locale-copy",
+  "invalid-new-word-count",
+  "invalid-vocabulary-exception",
+  "duplicate-lexeme-introduction",
+  "unintroduced-lexeme-use",
+  "unglossed-lexeme-use",
+  "verb-form-unexplained",
+  "grammar-prerequisite-order",
+  "grammar-explanation-missing",
+  "future-content-in-example",
+  "future-content-in-dialogue",
+  "invalid-practice-count",
+  "insufficient-practice-functions",
+  "missing-practice-function",
+  "consecutive-practice-function",
+  "duplicate-practice-target",
+  "practice-kind-mismatch",
+  "invalid-worked-example-count",
+  "worked-example-unresolvable",
+  "invalid-section-order",
+  "review-retrieval-clone",
+] as const;
+
+export type A1CurriculumErrorCode = (typeof A1_CURRICULUM_ERROR_CODES)[number];
+
+export type A1CurriculumValidationStage =
+  | "catalog"
+  | "locale"
+  | "lexical"
+  | "grammar"
+  | "realization"
+  | "practice"
+  | "review"
+  | "sections";
+
+/** One attributed learner-contract failure. */
+export interface A1CurriculumValidationError {
+  readonly code: A1CurriculumErrorCode;
+  readonly stage: A1CurriculumValidationStage;
+  readonly lessonId?: string;
+  readonly id?: string;
+  readonly referenceId?: string;
+  readonly expected?: string | number;
+  readonly actual?: string | number;
+  readonly dimension?: string;
+}
+
+// ---------------------------------------------------------------------------
 // Whole-level release validation result vocabulary (Phase 2 Task 4)
 // ---------------------------------------------------------------------------
 
@@ -295,12 +353,18 @@ export const A1_RELEASE_ERROR_CODES = [
   "phonetic-duplicate-exercise",
   "phonetic-item-incomplete",
   "phonetic-lesson-mismatch",
+  // learner-contract curriculum gate (Phase 2 Task 7)
+  ...A1_CURRICULUM_ERROR_CODES,
 ] as const;
 
 export type A1ReleaseErrorCode = (typeof A1_RELEASE_ERROR_CODES)[number];
 
 export interface A1ReleaseValidationError {
   readonly code: A1ReleaseErrorCode;
+  /** Curriculum validator stage, when this is an instructional-content error. */
+  readonly stage?: A1CurriculumValidationStage;
+  /** Owning lesson for an attributed curriculum error. */
+  readonly lessonId?: string;
   readonly id?: string;
   readonly referenceId?: string;
   readonly dimension?: string;

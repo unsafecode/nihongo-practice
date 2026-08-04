@@ -101,6 +101,31 @@ describe("validateA1 – baseline release", () => {
     // The foundation report exists and carries per-lesson coverage rows.
     expect(Object.keys(result.foundationReport.reports.byLesson).length).toBe(44);
   });
+
+  it("preserves attributed curriculum failures as exact canonical release codes", () => {
+    const result = validateA1({
+      curriculumInput: {
+        semanticSectionOrder: [
+          "rule",
+          "grammar",
+          "vocabulary",
+          "comparison",
+          "explore",
+          "recap",
+        ],
+      },
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "invalid-section-order",
+          stage: "sections",
+        }),
+      ]),
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

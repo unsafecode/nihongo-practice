@@ -40,7 +40,7 @@ const EXPECTED_LESSON_IDS = [
 
 const EXPECTED_NOTES: Readonly<Record<(typeof EXPECTED_LESSON_IDS)[number], string>> = {
   "routines-1": "a1-note-time-ni",
-  "routines-2": "a1-note-time-ni",
+  "routines-2": "a1-note-frequency",
   "routines-3": "a1-note-frequency",
   "routines-4": "a1-note-synthesis-recombine",
   "past-negative-1": "a1-note-mashita",
@@ -48,7 +48,7 @@ const EXPECTED_NOTES: Readonly<Record<(typeof EXPECTED_LESSON_IDS)[number], stri
   "past-negative-3": "a1-note-mashita-masen-deshita",
   "past-negative-4": "a1-note-copula-tense-polarity",
   "places-1": "a1-note-particle-ni-destination",
-  "places-2": "a1-note-particle-he-contrast",
+  "places-2": "a1-note-particle-de-transport",
   "places-3": "a1-note-source-limit",
   "places-4": "a1-note-synthesis-recombine",
   "people-1": "a1-note-personal-reference",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { buildA1LessonViewModel } from "../a1LessonViewModel";
 import { phoneticBlueprint, semanticBlueprint } from "./lessonContentHelpers";
 
 describe("A1 lesson content blueprints", () => {
@@ -16,58 +17,53 @@ describe("A1 lesson content blueprints", () => {
   });
 
   it("uses the semantic learner order and contextual fourth activity", () => {
-    expect(
-      semanticBlueprint(
-        "introductions-1",
-        "introductions-1-m4",
-        "contextual-response",
-      ),
-    ).toEqual({
-      activities: [
-        expect.objectContaining({
-          id: "introductions-1-meaning",
-          function: "meaning-comprehension",
-          interactionKind: "choice",
-          targetRef: { round: "one", index: 1 },
-        }),
-        expect.objectContaining({
-          id: "introductions-1-form",
-          function: "form-discrimination",
-          interactionKind: "completion",
-          targetRef: { round: "two", index: 0 },
-        }),
-        expect.objectContaining({
-          id: "introductions-1-production",
-          function: "controlled-production",
-          interactionKind: "tile-ordering",
-          targetRef: { round: "one", index: 0 },
-        }),
-        expect.objectContaining({
-          id: "introductions-1-transfer",
-          function: "contextual-response",
-          interactionKind: "constrained-construction",
-          targetRef: { round: "two", index: 1 },
-        }),
-        expect.objectContaining({
-          id: "introductions-1-spoken",
-          function: "listening-speaking",
-          interactionKind: "spoken",
-          targetRef: { spokenVariantId: "introductions-1-m4" },
-        }),
-      ],
+    const blueprint = semanticBlueprint(
+      "introductions-1",
+      "introductions-1-m4",
+      "contextual-response",
+    );
+    const built = buildA1LessonViewModel("introductions-1", "en");
+    if (!built.ok) throw new Error("production lesson should build");
+
+    expect(blueprint.activities.map((activity) => activity.function)).toEqual([
+      "meaning-comprehension",
+      "form-discrimination",
+      "controlled-production",
+      "contextual-response",
+      "listening-speaking",
+    ]);
+    for (const activity of blueprint.activities.slice(0, 4)) {
+      if ("spokenVariantId" in activity.targetRef) continue;
+      const round =
+        activity.targetRef.round === "one"
+          ? built.model.rounds[0]
+          : built.model.rounds[1];
+      expect(activity.interactionKind).toBe(
+        round.targets[activity.targetRef.index]?.prompt.kind,
+      );
+    }
+    expect(blueprint.activities[4]).toMatchObject({
+      id: "introductions-1-spoken",
+      function: "listening-speaking",
+      interactionKind: "spoken",
+      targetRef: { spokenVariantId: expect.any(String) },
     });
   });
 
-  it("maps an explicit transformation fourth activity to its original interaction", () => {
-    expect(
-      semanticBlueprint("introductions-2", "introductions-2-m4", "transformation").activities[3],
-    ).toEqual(
-      expect.objectContaining({
-        id: "introductions-2-transfer",
-        function: "transformation",
-        interactionKind: "transformation",
-        targetRef: { round: "two", index: 1 },
-      }),
-    );
+  it("maps a transformation function to the selected production prompt kind", () => {
+    const activity = semanticBlueprint(
+      "introductions-2",
+      "introductions-2-m4",
+      "transformation",
+    ).activities[3];
+    const built = buildA1LessonViewModel("introductions-2", "en");
+    if (!built.ok) throw new Error("production lesson should build");
+
+    expect(activity).toMatchObject({
+      id: "introductions-2-transfer",
+      function: "transformation",
+      targetRef: { round: "two", index: 1 },
+    });
+    expect(activity.interactionKind).toBe(built.model.rounds[1].targets[1]?.prompt.kind);
   });
 });

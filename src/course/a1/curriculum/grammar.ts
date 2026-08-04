@@ -1,12 +1,20 @@
 import { deepFreeze } from "../../foundations/deepFreeze";
+import type { FormSelection } from "../../foundations/types";
 import { A1_CONCEPT_IDS } from "../catalog/a1SemanticCatalog";
 import type { Bilingual } from "./types";
+
+/** A learner-facing explanation for one realized polite verb form. */
+export type A1ExplainedVerbForm = Readonly<
+  Pick<FormSelection, "polarity" | "tense" | "formality">
+>;
 
 export interface A1LearningNote {
   readonly id: string;
   readonly kind: "grammar" | "phonetic" | "synthesis";
   readonly explainedConceptIds: readonly string[];
   readonly requiredConceptIds: readonly string[];
+  /** Explicitly explained forms; validators compare these with `variant.form`. */
+  readonly explainedVerbForms?: readonly A1ExplainedVerbForm[];
   readonly title: Bilingual;
   readonly meaning: Bilingual;
   readonly use: Bilingual;
@@ -62,6 +70,36 @@ function assertUniqueIds(ids: unknown, label: string): asserts ids is readonly s
   }
 }
 
+function formKey(form: A1ExplainedVerbForm): string {
+  return `${form.polarity}:${form.tense}:${form.formality}`;
+}
+
+function assertExplainedVerbForms(
+  forms: unknown,
+): asserts forms is readonly A1ExplainedVerbForm[] {
+  if (forms === undefined) return;
+  if (!Array.isArray(forms)) {
+    throw new Error("Explained verb forms must be an array.");
+  }
+  const seen = new Set<string>();
+  for (const form of forms) {
+    if (
+      form === null ||
+      typeof form !== "object" ||
+      !["affirmative", "negative"].includes((form as A1ExplainedVerbForm).polarity) ||
+      !["present", "past"].includes((form as A1ExplainedVerbForm).tense) ||
+      (form as A1ExplainedVerbForm).formality !== "polite"
+    ) {
+      throw new Error("Explained verb form must be a polite polarity/tense form.");
+    }
+    const key = formKey(form as A1ExplainedVerbForm);
+    if (seen.has(key)) {
+      throw new Error(`Duplicate explained verb form "${key}".`);
+    }
+    seen.add(key);
+  }
+}
+
 function assertPattern(
   pattern: unknown,
 ): asserts pattern is A1LearningNote["pattern"] {
@@ -90,6 +128,7 @@ export function defineA1LearningNote(input: A1LearningNote): A1LearningNote {
   }
   assertUniqueIds(input.explainedConceptIds, "explained concept");
   assertUniqueIds(input.requiredConceptIds, "required concept");
+  assertExplainedVerbForms(input.explainedVerbForms);
   assertBilingual(input.title, "Learning note title");
   assertBilingual(input.meaning, "Learning note meaning");
   assertBilingual(input.use, "Learning note use");
@@ -235,20 +274,26 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
   defineA1LearningNote({
     id: "a1-note-sentence-shape-omission",
     kind: "grammar",
-    explainedConceptIds: [],
+    explainedConceptIds: [
+      "a1-concept-topic-wa",
+      "a1-concept-copula-desu",
+      "a1-concept-location-particle",
+      "a1-concept-object-wo",
+      "a1-concept-preference-ga",
+    ],
     requiredConceptIds: [],
     title: { en: "Put the predicate last", it: "Metti il predicato alla fine" },
     meaning: {
-      en: "Japanese normally finishes the clause with its predicate. Context can supply an unspoken subject or object.",
-      it: "Il giapponese normalmente conclude la frase con il predicato. Il contesto può fornire un soggetto o un oggetto non espresso.",
+      en: "Japanese normally finishes the clause with its predicate. は sets a topic, です closes a polite identification, and context can supply an unspoken subject or object.",
+      it: "Il giapponese normalmente conclude la frase con il predicato. は imposta un tema, です chiude un'identificazione cortese e il contesto può fornire un soggetto o un oggetto non espresso.",
     },
     use: {
       en: "Find the final verb, adjective, or copula first when you listen or build a sentence.",
       it: "Quando ascolti o costruisci una frase, individua prima il verbo, l'aggettivo o la copula finale.",
     },
     construction: {
-      en: "Place topic and other information before the predicate; the predicate closes the clause.",
-      it: "Metti il tema e le altre informazioni prima del predicato; il predicato chiude la frase.",
+      en: "Place the topic before は; put a direct object before を or a place before に; then close with the predicate. A liked thing takes が before すきです.",
+      it: "Metti il tema prima di は; metti un oggetto diretto prima di を o un luogo prima di に; poi chiudi con il predicato. Una cosa che piace prende が prima di すきです.",
     },
     typicalMistake: {
       en: "Do not keep English word order or place the predicate before its object.",
@@ -506,20 +551,20 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
   defineA1LearningNote({
     id: "a1-note-particle-ni",
     kind: "grammar",
-    explainedConceptIds: ["a1-concept-recipient-ni"],
+    explainedConceptIds: ["a1-concept-recipient-ni", "a1-concept-companion-to"],
     requiredConceptIds: [],
     title: { en: "Use に for a recipient", it: "Usa に per un destinatario" },
     meaning: {
-      en: "に has several roles. Here it marks the recipient of an action; time and destination uses are learned separately.",
-      it: "に ha vari ruoli. Qui segna il destinatario di un'azione; gli usi di tempo e destinazione si imparano separatamente.",
+      en: "に has several roles. Here it marks the recipient of an action; と instead marks a companion. Time and destination uses are learned separately.",
+      it: "に ha vari ruoli. Qui segna il destinatario di un'azione; と invece segna un compagno. Gli usi di tempo e destinazione si imparano separatamente.",
     },
     use: {
       en: "Use it with actions such as giving, writing, or asking someone.",
       it: "Usala con azioni come dare, scrivere o chiedere a qualcuno.",
     },
     construction: {
-      en: "Put the recipient before に; keep the thing or message and the verb in their usual positions.",
-      it: "Metti il destinatario prima di に; mantieni la cosa o il messaggio e il verbo nelle loro posizioni abituali.",
+      en: "Put the recipient before に; put a companion before と; keep the action final.",
+      it: "Metti il destinatario prima di に; metti un compagno prima di と; mantieni l'azione finale.",
     },
     typicalMistake: {
       en: "Do not assume every に means 'to': check whether it marks a recipient, time, or destination.",
@@ -622,6 +667,7 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
     kind: "grammar",
     explainedConceptIds: [],
     requiredConceptIds: [],
+    explainedVerbForms: [{ polarity: "affirmative", tense: "past", formality: "polite" }],
     title: { en: "Use ました for a polite past action", it: "Usa ました per un'azione passata cortese" },
     meaning: {
       en: "ました is the polite affirmative past ending for taught verbs.",
@@ -650,6 +696,7 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
     kind: "grammar",
     explainedConceptIds: [],
     requiredConceptIds: [],
+    explainedVerbForms: [{ polarity: "negative", tense: "present", formality: "polite" }],
     title: { en: "Choose ます or ません", it: "Scegli ます o ません" },
     meaning: {
       en: "ます is polite nonpast affirmative; ません is polite nonpast negative.",
@@ -678,6 +725,7 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
     kind: "grammar",
     explainedConceptIds: [],
     requiredConceptIds: [],
+    explainedVerbForms: [{ polarity: "negative", tense: "past", formality: "polite" }],
     title: { en: "Make the polite past negative", it: "Forma il negativo passato cortese" },
     meaning: {
       en: "ました is polite past affirmative, while ませんでした is polite past negative.",
@@ -732,20 +780,20 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
   defineA1LearningNote({
     id: "a1-note-particle-ni-destination",
     kind: "grammar",
-    explainedConceptIds: ["a1-concept-location-particle"],
+    explainedConceptIds: ["a1-concept-location-particle", "a1-concept-direction-he"],
     requiredConceptIds: [],
     title: { en: "Use に for an arrival destination", it: "Usa に per una destinazione di arrivo" },
     meaning: {
-      en: "With movement verbs, に can mark the destination or arrival point.",
-      it: "Con i verbi di movimento, に può segnare la destinazione o il punto di arrivo.",
+      en: "With movement verbs, に can mark the destination or arrival point; へ marks direction toward that destination and is read e.",
+      it: "Con i verbi di movimento, に può segnare la destinazione o il punto di arrivo; へ segna la direzione verso quella destinazione e si legge e.",
     },
     use: {
       en: "Use it when the arrival destination matters with going, coming, or returning.",
       it: "Usala quando conta la destinazione di arrivo con andare, venire o tornare.",
     },
     construction: {
-      en: "Put the destination before に and finish with a movement verb.",
-      it: "Metti la destinazione prima di に e termina con un verbo di movimento.",
+      en: "Put the destination before に for arrival, or before へ for direction, then finish with a movement verb.",
+      it: "Metti la destinazione prima di に per l'arrivo, oppure prima di へ per la direzione, poi termina con un verbo di movimento.",
     },
     typicalMistake: {
       en: "Do not use destination に for the place where an action happens; use で for that action place.",
@@ -761,8 +809,8 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
   defineA1LearningNote({
     id: "a1-note-particle-he-contrast",
     kind: "grammar",
-    explainedConceptIds: [],
-    requiredConceptIds: ["a1-concept-direction-he"],
+    explainedConceptIds: ["a1-concept-direction-he"],
+    requiredConceptIds: [],
     title: { en: "Compare destination に and direction へ", it: "Confronta il に di destinazione e il へ di direzione" },
     meaning: {
       en: "に presents a destination or arrival point; へ emphasizes direction toward it and is read e.",

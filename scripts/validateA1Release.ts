@@ -32,6 +32,8 @@ if (!result.valid) {
   );
   for (const error of result.errors) {
     const parts = [error.code];
+    if (error.stage) parts.push(`stage=${error.stage}`);
+    if (error.lessonId) parts.push(`lesson=${error.lessonId}`);
     if (error.id) parts.push(`id=${error.id}`);
     if (error.dimension) parts.push(`dimension=${error.dimension}`);
     if (error.referenceId) parts.push(`ref=${error.referenceId}`);
@@ -40,6 +42,13 @@ if (!result.valid) {
   process.exit(1);
 }
 
+const curriculum = result.curriculumReport?.reports;
+const lessonCount = curriculum?.byLesson.length ?? 0;
+const functionSummary = Object.entries(curriculum?.practiceFunctionDistribution ?? {})
+  .sort(([left], [right]) => left.localeCompare(right))
+  .map(([name, count]) => `${name}=${count}`)
+  .join(", ");
+
 console.log(
-  `validateA1Release: OK — the A1 release catalog is content-valid (0 errors).`,
+  `validateA1Release: OK — the A1 release catalog is content-valid (0 errors; ${lessonCount} lessons; practice functions: ${functionSummary || "none"}).`,
 );

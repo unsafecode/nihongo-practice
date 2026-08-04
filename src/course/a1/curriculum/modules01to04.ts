@@ -31,7 +31,7 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       "a1-lexeme-suki",
     ],
     learningNoteId: "a1-note-sounds-mora-vowels",
-    workedExampleVariantIds: ["snd1-a", "snd1-ka", "snd1-su"],
+    workedExampleVariantIds: ["snd1-a", "snd1-ka", "snd1-sushi"],
     practiceBlueprint: phoneticBlueprint("sounds-1", phoneticItems("sounds-1")),
     retrievalCue: {
       en: "Tap the beats in a, i, u, e, o, then read a short word slowly.",
@@ -152,7 +152,7 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       "a1-lexeme-wakaru",
       "a1-lexeme-nihongo",
     ],
-    learningNoteId: "a1-note-topic-wa-copula-desu",
+    learningNoteId: "a1-note-particle-ga",
     workedExampleVariantIds: ["introductions-2-m1", "introductions-2-m4"],
     practiceBlueprint: semanticBlueprint(
       "introductions-2",

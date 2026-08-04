@@ -61,7 +61,7 @@ export const a1Modules05to08LessonContent: readonly A1LessonContent[] = [
       "a1-lexeme-suiyoubi",
       "a1-lexeme-nichiyoubi",
     ],
-    "a1-note-time-ni",
+    "a1-note-frequency",
     ["routines-2-m1", "routines-2-m2", "routines-2-m6"],
     "transformation",
     {
@@ -231,7 +231,7 @@ export const a1Modules05to08LessonContent: readonly A1LessonContent[] = [
       "a1-lexeme-kuruma",
       "a1-lexeme-jitensha",
     ],
-    "a1-note-particle-he-contrast",
+    "a1-note-particle-de-transport",
     ["places-2-m1", "places-2-m8"],
     "transformation",
     {
