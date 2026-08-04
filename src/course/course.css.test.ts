@@ -296,3 +296,57 @@ describe("A2 level selector + kanji CSS contract (Phase 3 Task 8)", () => {
     expect(findRule(readCourseCss(), ".a2-kanji__list")).toMatch(/flex-wrap:\s*wrap/);
   });
 });
+
+describe("A1 curriculum section CSS contract", () => {
+  it("uses min-content-safe grids and wrap-safe text for vocabulary and examples", () => {
+    const css = readCourseCss();
+    expect(findRule(css, ".a1-vocabulary__item")).toMatch(
+      /grid-template-columns:\s*minmax\(0,\s*1fr\)/,
+    );
+    expect(findRule(css, ".a1-worked-examples__glosses")).toMatch(
+      /overflow-wrap:\s*anywhere/,
+    );
+    expect(findRule(css, ".a1-worked-examples__card")).toMatch(
+      /min-width:\s*0/,
+    );
+  });
+
+  it("keeps new audio and meaning controls touch-sized with visible keyboard focus", () => {
+    expect(findRule(readCourseCss(), ".a1-audio-button__control")).toMatch(
+      /min-height:\s*var\(--action-target-min\)/,
+    );
+    expect(
+      findRule(readCourseCss(), ".a1-audio-button__control:focus-visible"),
+    ).toMatch(/outline:/);
+    expect(
+      findRule(readCourseCss(), ".a1-vocabulary__meaning-toggle:focus-visible"),
+    ).toMatch(/outline:/);
+  });
+
+  it("collapses vocabulary and worked-example metadata to one column on narrow screens", () => {
+    const block = findMediaBlock(readCourseCss(), "@media (max-width: 680px)");
+    expect(block).toMatch(
+      /\.a1-vocabulary__item\s*{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/,
+    );
+    expect(block).toMatch(
+      /\.a1-worked-examples__glosses\s*{[^}]*grid-template-columns:\s*1fr/,
+    );
+  });
+
+  it("contains mobile rail overflow and disables new section transitions for reduced motion", () => {
+    const mobile = findMediaBlock(readCourseCss(), "@media (max-width: 720px)");
+    expect(mobile).toMatch(
+      /\.lesson-rail-mobile\s*{[^}]*max-width:\s*100%/,
+    );
+    expect(mobile).toMatch(
+      /\.lesson-rail-mobile\s*{[^}]*min-width:\s*0/,
+    );
+    const reduced = findMediaBlock(
+      readCourseCss(),
+      "@media (prefers-reduced-motion: reduce)",
+    );
+    expect(reduced).toMatch(
+      /\.a1-vocabulary__meaning-toggle\s*,[\s\S]*?transition:\s*none/,
+    );
+  });
+});

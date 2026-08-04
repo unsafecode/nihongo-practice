@@ -4,7 +4,7 @@ import { classifyNaturalness } from "../../lab/engine/naturalness";
 import { buildJapaneseSentence } from "../../lab/engine/japanese";
 import { formatRomaji } from "../../romaji/formatRomaji";
 import type { AssembledToken } from "../../romaji/types";
-import { LESSON_SECTION_IDS } from "../../routing/lessonSections";
+import { A2_LESSON_SECTION_IDS } from "../../routing/lessonSections";
 import { lessonPath } from "../../routing/routePaths";
 import { createRouteTarget } from "../../routing/routeTarget";
 import { exampleSegmentToAssembledToken } from "./romajiTokens";
@@ -823,8 +823,8 @@ export function validateCourse(
 
       const sectionIds = (lesson.sections ?? []).map((section) => section.id);
       const sectionsValid =
-        sectionIds.length === LESSON_SECTION_IDS.length &&
-        sectionIds.every((id, index) => id === LESSON_SECTION_IDS[index]);
+        sectionIds.length === A2_LESSON_SECTION_IDS.length &&
+        sectionIds.every((id, index) => id === A2_LESSON_SECTION_IDS[index]);
       if (!sectionsValid) {
         errors.push(`invalid sections:${lesson.id}`);
       }

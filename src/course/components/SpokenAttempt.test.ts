@@ -648,7 +648,7 @@ function renderLesson(path: string): string {
   );
 }
 
-describe("SpokenAttempt — integrated once per lesson, after exercises, before recap", () => {
+describe("SpokenAttempt — integrated once per A1 lesson, after practice, before recap", () => {
   it.each([
     ["/percorso/sounds/sounds-1", "tool exploration"],
     ["/percorso/actions/actions-1", "transformation exploration"],
@@ -659,21 +659,21 @@ describe("SpokenAttempt — integrated once per lesson, after exercises, before 
     expect(blocks.length).toBe(1);
   });
 
-  it("places the block after the exercises and before the recap section", () => {
+  it("places the fifth spoken activity after four exercises and before recap", () => {
     const html = renderLesson("/percorso/actions/actions-1");
     const spoken = html.indexOf("spoken-attempt");
-    const exercises = html.indexOf("lesson-exercises");
+    const exercises = html.match(/class="lesson-exercise"/g) ?? [];
     const recap = html.indexOf('id="lesson-section-recap"');
-    expect(exercises).toBeGreaterThan(-1);
-    expect(spoken).toBeGreaterThan(exercises);
+    expect(exercises).toHaveLength(4);
+    expect(spoken).toBeGreaterThan(html.lastIndexOf('class="lesson-exercise"'));
     expect(recap).toBeGreaterThan(spoken);
   });
 
-  it("keeps exactly four lesson section anchors (no new route anchor)", () => {
+  it("keeps the spoken attempt inside A1's six lesson section anchors", () => {
     const html = renderLesson("/percorso/actions/actions-1");
     const sections = html.match(
       /class="lesson-section lesson-section-anchor"/g,
     );
-    expect(sections).toHaveLength(4);
+    expect(sections).toHaveLength(6);
   });
 });

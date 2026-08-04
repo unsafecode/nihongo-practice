@@ -1,9 +1,13 @@
 import { Link } from "react-router";
 import { Icon } from "../../components/icons/Icon";
 import { useLocale } from "../../i18n/LocaleContext";
-import type { LessonSectionId } from "../../routing/lessonSections";
+import {
+  isA1LessonSectionId,
+  isA2LessonSectionId,
+  type LessonSectionId,
+} from "../../routing/lessonSections";
 import { lessonSectionTarget } from "../../routing/lessonSectionTarget";
-import { courseModules } from "../data/course";
+import { courseModulesByLevel } from "../data/course";
 import type { LessonId, ModuleId } from "../data/types";
 import { getCourseCopy } from "../i18n/catalog";
 
@@ -13,6 +17,7 @@ import { getCourseCopy } from "../i18n/catalog";
  * icon) so it can never disagree with the page it navigates.
  */
 export interface LessonRailProps {
+  readonly level: "a1" | "a2";
   readonly moduleId: ModuleId;
   readonly lessonId: LessonId;
   readonly sections: readonly LessonSectionId[];
@@ -20,14 +25,15 @@ export interface LessonRailProps {
 }
 
 /**
- * Lesson rail / scrollspy navigation (design spec §5.4/§6.1, Task D). The same
- * four rule/comparison/explore/recap labels drive both a desktop sticky rail
- * and a mobile sticky context bar; the active step carries
+ * Lesson rail / scrollspy navigation. A1's six vocabulary-first labels and
+ * A2's established four labels each drive both a desktop sticky rail and a
+ * mobile sticky context bar; the active step carries
  * `aria-current="step"`, every step is a router-safe link built through the
  * shared `lessonSectionTarget` helper (so a link and `RouteScrollManager` can
  * never disagree), and the module's semantic icon is shown for orientation.
  */
 export function LessonRail({
+  level,
   moduleId,
   lessonId,
   sections,
@@ -35,12 +41,19 @@ export function LessonRail({
 }: LessonRailProps) {
   const { locale } = useLocale();
   const copy = getCourseCopy(locale);
-  const courseModule = courseModules.find((item) => item.id === moduleId);
+  const courseModule = courseModulesByLevel[level].find(
+    (item) => item.id === moduleId,
+  );
 
   const steps = sections.map((sectionId, index) => ({
     sectionId,
     index: index + 1,
-    label: copy.lesson.sections[sectionId],
+    label:
+      level === "a1" && isA1LessonSectionId(sectionId)
+        ? copy.a1Lesson.sections[sectionId]
+        : isA2LessonSectionId(sectionId)
+          ? copy.lesson.sections[sectionId]
+          : "",
     target: lessonSectionTarget(moduleId, lessonId, sectionId),
   }));
 

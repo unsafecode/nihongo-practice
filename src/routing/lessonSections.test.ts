@@ -1,25 +1,43 @@
 import { describe, expect, it } from "vitest";
+import * as sectionContract from "./lessonSections";
 import {
   isLessonSectionId,
   LESSON_SECTION_ANCHOR_CLASS,
   LESSON_SECTION_IDS,
   lessonSectionAnchorId,
-  type LessonSectionId,
 } from "./lessonSections";
 
 describe("LessonSectionId contract", () => {
-  it("declares exactly the four stable section ids in lesson order", () => {
-    expect(LESSON_SECTION_IDS).toEqual([
+  it("declares the A1 six-section and A2 four-section contracts independently", () => {
+    const contract = sectionContract as unknown as {
+      readonly A1_LESSON_SECTION_IDS: readonly string[];
+      readonly A2_LESSON_SECTION_IDS: readonly string[];
+    };
+
+    expect(contract.A1_LESSON_SECTION_IDS).toEqual([
+      "rule",
+      "vocabulary",
+      "grammar",
+      "comparison",
+      "explore",
+      "recap",
+    ]);
+    expect(contract.A2_LESSON_SECTION_IDS).toEqual([
       "rule",
       "comparison",
       "explore",
       "recap",
     ]);
+    // Existing route helpers still use the A1 alias until their callers can
+    // choose a level-specific section list.
+    expect(LESSON_SECTION_IDS).toEqual(contract.A1_LESSON_SECTION_IDS);
   });
 
-  it("accepts only the four declared section ids", () => {
-    const valid: LessonSectionId[] = [
+  it("accepts every declared A1 or A2 section id", () => {
+    const valid = [
       "rule",
+      "vocabulary",
+      "grammar",
       "comparison",
       "explore",
       "recap",
@@ -40,6 +58,10 @@ describe("LessonSectionId contract", () => {
 
   it("builds a deterministic, collision-free DOM anchor id per section", () => {
     expect(lessonSectionAnchorId("rule")).toBe("lesson-section-rule");
+    expect(lessonSectionAnchorId("vocabulary")).toBe(
+      "lesson-section-vocabulary",
+    );
+    expect(lessonSectionAnchorId("grammar")).toBe("lesson-section-grammar");
     expect(lessonSectionAnchorId("comparison")).toBe(
       "lesson-section-comparison",
     );

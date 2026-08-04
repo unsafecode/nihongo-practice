@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { useLocale } from "../../i18n/LocaleContext";
 import { useScript } from "../../settings/ScriptContext";
 import { opaqueTargetKey } from "../foundations/opaqueTargetKey";
@@ -40,6 +40,8 @@ export interface ExerciseProps {
     outcome: Exclude<AttemptOutcome, null>,
     exercise: GeneratedExercise,
   ) => void;
+  /** Optional visible activity label supplied by a host practice sequence. */
+  readonly headerSupplement?: ReactNode;
 }
 
 export function Exercise({
@@ -48,6 +50,7 @@ export function Exercise({
   total,
   idBase,
   onAttempt,
+  headerSupplement,
 }: ExerciseProps): ReactElement {
   const { locale } = useLocale();
   const { script } = useScript();
@@ -84,6 +87,7 @@ export function Exercise({
       tokensForExample={exampleTokens}
       errorText={getCourseCopy(locale).lesson.contentFormattingError}
       itemData={itemData}
+      headerSupplement={headerSupplement}
       handlers={{
         onPlaceTile: (tileId) => setState((s) => placeTile(s, tileId)),
         onUnplaceTile: (tileId) => setState((s) => unplaceTile(s, tileId)),

@@ -4,22 +4,15 @@ import { MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
 import { LocaleProvider } from "../../i18n/LocaleContext";
 import { ScriptProvider } from "../../settings/ScriptContext";
-import { it as itCopy } from "../i18n/it";
-import { buildA1LessonViewModel } from "../a1/a1LessonViewModel";
-import { module1ItemsByLesson } from "../a1/catalog/module01Sounds";
 import { ProgressProvider } from "../progress/ProgressContext";
 import { SpeechRecognitionProvider } from "../speech/SpeechRecognitionContext";
-import { A1LessonSection, distinctLexicalTokens, PhoneticSection } from "./A1LessonPage";
-import { getCourseCopy } from "../i18n/catalog";
+import {
+  A1LessonSection,
+  distinctLexicalTokens,
+  getCachedA1CurriculumViewModel,
+} from "./A1LessonPage";
 
-/**
- * `A1LessonSection`'s focused contract (Phase 2 Task 6, master task point 2).
- * Every assertion checks *real* rendered content resolved from the validated
- * release catalog/foundation view model — never a legacy fixture string —
- * proving the rule/comparison/explore/recap anchors each carry the honest
- * content the plan requires for both a semantic and a phonetic lesson.
- */
-function renderSection(lessonId: string, sectionId: "rule" | "comparison" | "explore" | "recap"): string {
+function renderSection(lessonId: string): string {
   return renderToStaticMarkup(
     createElement(
       MemoryRouter,
@@ -36,7 +29,7 @@ function renderSection(lessonId: string, sectionId: "rule" | "comparison" | "exp
             createElement(
               SpeechRecognitionProvider,
               null,
-              createElement(A1LessonSection, { lessonId, sectionId }),
+              createElement(A1LessonSection, { lessonId, sectionId: "rule" }),
             ),
           ),
         ),
@@ -45,162 +38,47 @@ function renderSection(lessonId: string, sectionId: "rule" | "comparison" | "exp
   );
 }
 
-const SEMANTIC_LESSON = "introductions-1";
-const PHONETIC_LESSON = "sounds-1";
+describe("A1LessonSection curriculum realization cache", () => {
+  it("reuses one immutable result for repeated lesson and locale requests", () => {
+    const first = getCachedA1CurriculumViewModel("introductions-1", "it");
+    const second = getCachedA1CurriculumViewModel("introductions-1", "it");
 
-describe("A1LessonSection — semantic lesson (introductions-1)", () => {
-  const model = buildA1LessonViewModel(SEMANTIC_LESSON, "it");
-  if (!model.ok) throw new Error("fixture assumption failed: introductions-1 must resolve");
-
-  it("rule: shows the Can-do descriptor and the eight-model sentence matrix", () => {
-    const html = renderSection(SEMANTIC_LESSON, "rule");
-    expect(html).toContain(model.model.canDoDescriptor);
-    expect(html).toContain("foundation-matrix");
-    // Italian locale is the LocaleProvider default; the matrix disclosure
-    // label proves real foundation copy resolved, not a stub.
-    expect(html).toContain(itCopy.foundation.showAll);
+    expect(first).toBe(second);
+    expect(Object.isFrozen(first)).toBe(true);
+    if (first.ok) expect(Object.isFrozen(first.model)).toBe(true);
   });
 
-  it("comparison: shows the same-family guided construction board", () => {
-    const html = renderSection(SEMANTIC_LESSON, "comparison");
-    expect(html).toContain("foundation-guided");
-    expect(html).toContain(itCopy.foundation.initialLabel);
-    expect(html).toContain(itCopy.foundation.targetLabel);
-  });
+  it("keeps locale-specific results isolated", () => {
+    const italian = getCachedA1CurriculumViewModel("introductions-1", "it");
+    const english = getCachedA1CurriculumViewModel("introductions-1", "en");
 
-  it("explore: renders the practice exercises and the optional spoken attempt", () => {
-    const html = renderSection(SEMANTIC_LESSON, "explore");
-    expect(html).toContain(itCopy.exercises.heading);
-    expect(html).toContain("spoken-attempt");
-  });
-
-  it("recap: restates the Can-do, lists what varied, lists real vocabulary, and notes the next-retrieval behavior", () => {
-    const html = renderSection(SEMANTIC_LESSON, "recap");
-    expect(html).toContain(model.model.canDoDescriptor);
-    expect(html).toContain(itCopy.lesson.recap.canDoLabel);
-    expect(html).toContain(itCopy.lesson.recap.vocabLabel);
-    expect(html).toContain(itCopy.lesson.recap.nextRetrievalTitle);
-    expect(html).toContain(itCopy.lesson.recap.nextRetrievalBody);
-    const vocab = distinctLexicalTokens(model.model.matrix.rows);
-    expect(vocab.length).toBeGreaterThan(0);
-    for (const token of vocab) {
-      expect(html).toContain(token.romaji);
-    }
-  });
-
-  it("recap: nests the variation/vocab subheadings one level under the section's own h2 (M1) — h3, never h4", () => {
-    const html = renderSection(SEMANTIC_LESSON, "recap");
-    expect(html).toContain(`<h3>${itCopy.lesson.recap.variationLabel}</h3>`);
-    expect(html).toContain(`<h3>${itCopy.lesson.recap.vocabLabel}</h3>`);
-    expect(html).not.toContain(`<h4>${itCopy.lesson.recap.variationLabel}</h4>`);
-    expect(html).not.toContain(`<h4>${itCopy.lesson.recap.vocabLabel}</h4>`);
-  });
-
-  it("never states a pronunciation grade, score, or percentage in any anchor", () => {
-    for (const sectionId of ["rule", "comparison", "explore", "recap"] as const) {
-      const html = renderSection(SEMANTIC_LESSON, sectionId);
-      expect(html.toLowerCase()).not.toMatch(
-        /pronunciation|accent|fluency|phoneme|score|grade|%/,
+    expect(italian).not.toBe(english);
+    expect(italian.ok).toBe(true);
+    expect(english.ok).toBe(true);
+    if (italian.ok && english.ok) {
+      expect(italian.model.overview.canDo).not.toBe(english.model.overview.canDo);
+      expect(italian.model.vocabulary[0]?.meaning).not.toBe(
+        english.model.vocabulary[0]?.meaning,
       );
     }
   });
-});
 
-describe("A1LessonSection — phonetic lesson (sounds-1)", () => {
-  const items = module1ItemsByLesson[PHONETIC_LESSON]!;
-
-  it("rule: shows every item's glyph, romaji, and localized hint", () => {
-    const html = renderSection(PHONETIC_LESSON, "rule");
-    for (const item of items) {
-      expect(html).toContain(item.roman);
-      expect(html).toContain(`data-item-id="${item.id}"`);
-      expect(html).toContain(itCopy.phonetics[item.hintCopyId]);
-    }
-  });
-
-  it("comparison: shows each item's contrast partner and a real feature label", () => {
-    const html = renderSection(PHONETIC_LESSON, "comparison");
-    for (const item of items) {
-      expect(html).toContain(`data-contrast-with-id="${item.contrastWithId}"`);
-    }
-  });
-
-  it("comparison: fails closed with a visible localized notice (never a silently dropped row) when a contrastWithId cannot be resolved within the lesson's own roster (I2 fix — defense-in-depth for validateA1's release gate)", () => {
-    const brokenItems = items.map((item, index) =>
-      index === 0 ? { ...item, contrastWithId: "no-such-item-in-this-lesson" } : item,
-    );
-    const html = renderToStaticMarkup(
-      createElement(PhoneticSection, {
-        lessonId: PHONETIC_LESSON,
-        sectionId: "comparison",
-        items: brokenItems,
-        script: "romaji",
-        copy: getCourseCopy("it"),
-      }),
-    );
-    // The row for the broken item must still exist (not silently vanished)
-    // and must surface the same localized formatting-error text the rest of
-    // the app uses for an unresolved token, not a blank void.
-    expect(html).toContain(`data-item-id="${brokenItems[0].id}"`);
-    expect(html).toContain(itCopy.lesson.contentFormattingError);
-    // Every *other* item, whose contrast still resolves, renders normally.
-    for (const item of items.slice(1)) {
-      expect(html).toContain(`data-contrast-with-id="${item.contrastWithId}"`);
-    }
-  });
-
-  it("explore: renders the four selected phonetic exercises and the optional spoken attempt", () => {
-    const html = renderSection(PHONETIC_LESSON, "explore");
-    expect(html).toContain(itCopy.exercises.heading);
-    expect((html.match(/class="lesson-exercise"/g) ?? []).length).toBe(4);
-    expect(html).toContain("spoken-attempt");
-  });
-
-  it("recap: shows the phonetic outcome, the distinct contrast features, and the item roster", () => {
-    const html = renderSection(PHONETIC_LESSON, "recap");
-    expect(html).toContain(itCopy.phonetics["a1-phonetic-outcome-sounds-1"]);
-    expect(html).toContain(itCopy.lesson.recap.nextRetrievalTitle);
-    for (const item of items) {
-      expect(html).toContain(item.roman);
-    }
-  });
-
-  it("recap: nests the variation/vocab subheadings one level under the section's own h2 (M1) — h3, never h4", () => {
-    const html = renderSection(PHONETIC_LESSON, "recap");
-    expect(html).toContain(`<h3>${itCopy.lesson.recap.variationLabel}</h3>`);
-    expect(html).toContain(`<h3>${itCopy.lesson.recap.vocabLabel}</h3>`);
-    expect(html).not.toContain(`<h4>${itCopy.lesson.recap.variationLabel}</h4>`);
-    expect(html).not.toContain(`<h4>${itCopy.lesson.recap.vocabLabel}</h4>`);
-  });
-
-  it("never states a pronunciation grade, score, or percentage in any anchor", () => {
-    for (const sectionId of ["rule", "comparison", "explore", "recap"] as const) {
-      const html = renderSection(PHONETIC_LESSON, sectionId);
-      expect(html.toLowerCase()).not.toMatch(
-        /pronunciation|accent|fluency|phoneme|score|grade|%/,
-      );
-    }
-  });
-});
-
-describe("A1LessonSection — unavailable content", () => {
-  it("renders the localized unavailable notice for an unknown lesson id, never partial content", () => {
-    const html = renderSection("no-such-lesson", "rule");
-    expect(html).toContain(itCopy.foundation.unavailableTitle);
-    expect(html).toContain(itCopy.foundation.unavailableBody);
+  it("renders a localized unavailable notice rather than partial content for an unknown lesson", () => {
+    const html = renderSection("no-such-lesson");
+    expect(html).toContain("Non è stato possibile preparare questa lezione");
   });
 });
 
 describe("distinctLexicalTokens", () => {
-  it("de-duplicates repeated lexical tokens by written form across rows", () => {
-    const model = buildA1LessonViewModel(SEMANTIC_LESSON, "en");
-    if (!model.ok) throw new Error("fixture assumption failed");
-    const vocab = distinctLexicalTokens(model.model.matrix.rows);
-    const keys = vocab.map((token) => `${token.jp}\u0000${token.romaji}`);
-    expect(new Set(keys).size).toBe(keys.length);
-    // Never includes a particle/ending/punctuation token as "vocabulary".
-    for (const token of vocab) {
-      expect(token.kind).toBe("lexical");
+  it("de-duplicates repeated lexical tokens while excluding grammar tokens", () => {
+    const result = getCachedA1CurriculumViewModel("introductions-1", "it");
+    if (!result.ok || result.model.optionalPattern === null) {
+      throw new Error("fixture assumption failed");
     }
+    const vocab = distinctLexicalTokens(result.model.optionalPattern.rows);
+    const keys = vocab.map((token) => `${token.jp}\u0000${token.romaji}`);
+
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(vocab.every((token) => token.kind === "lexical")).toBe(true);
   });
 });

@@ -143,6 +143,94 @@ const itUi = {
         "Tutto ciò che non hai indovinato qui tornerà nella coda di ripasso, così potrai riprovare.",
     },
   },
+  a1Lesson: {
+    sections: {
+      rule: "Obiettivo",
+      vocabulary: "Parole nuove",
+      grammar: "Grammatica",
+      comparison: "Esempi",
+      explore: "Pratica",
+      recap: "Ripasso",
+    },
+    overview: {
+      canDoLabel: "Can-do",
+      situationLabel: "Situazione",
+      prerequisitesLabel: "Si basa su",
+    },
+    vocabulary: {
+      newWordsHeading: "Parole nuove",
+      reviewWordsHeading: "Parole già note da riusare",
+      reviewBadge: "Ripasso",
+      reviewExceptionLabel: "Nota di ripasso",
+      showMeanings: "Mostra i significati",
+      hideMeanings: "Nascondi i significati",
+      meaningLabel: "Significato",
+      categoryLabel: "Categoria",
+      categories: {
+        pronoun: "Pronome",
+        person: "Persona",
+        noun: "Nome",
+        verb: "Verbo",
+        adjective: "Aggettivo",
+        "question-word": "Parola interrogativa",
+        time: "Tempo",
+        expression: "Espressione",
+      },
+      verbFormsLabel: "Forme del verbo",
+      dictionaryLabel: "Forma dizionario",
+      politeLabel: "Forma cortese",
+      classLabel: "Classe verbale",
+      verbClasses: {
+        godan: "Godan",
+        ichidan: "Ichidan",
+        irregular: "Irregolare",
+      },
+    },
+    learningNote: {
+      kindLabel: "Tipo di nota",
+      kinds: {
+        grammar: "Nota di grammatica",
+        phonetic: "Nota sui suoni",
+        synthesis: "Nota di sintesi",
+      },
+      meaningLabel: "Significato",
+      useLabel: "Uso",
+      constructionLabel: "Costruzione",
+      typicalMistakeLabel: "Errore tipico",
+      subjectOmissionLabel: "Omissione del soggetto",
+      nearestContrastLabel: "Contrasto più vicino",
+      patternLabel: "Schema",
+    },
+    examples: {
+      translationLabel: "Traduzione naturale",
+      glossesLabel: "Parola per parola",
+      dialogueLabel: "Breve dialogo",
+      turnLabel: (position: number) => `Turno ${position}`,
+      optionalPattern: "Esplora lo schema",
+    },
+    practice: {
+      functionLabel: "Funzione di pratica",
+      functions: {
+        "meaning-comprehension": "Capisci il significato",
+        "form-discrimination": "Riconosci la forma",
+        "controlled-production": "Costruisci la forma",
+        transformation: "Trasforma lo schema",
+        "contextual-response": "Rispondi nel contesto",
+        "listening-speaking": "Ascolta e parla",
+      },
+    },
+    audio: {
+      play: "Ascolta",
+      playing: "In riproduzione…",
+      unavailable: "L'audio giapponese non è disponibile in questo browser.",
+      statusLabel: "Stato dell'audio",
+    },
+    recap: {
+      meaningsAndFormsLabel: "Significati e forme",
+      retrievalCueLabel: "Richiamo per il ripasso",
+      reviewExceptionLabel: "Nota di ripasso",
+    },
+  },
   practice: {
     eyebrow: "Pratica libera",
     title: "Esplora senza perdere il filo.",
@@ -287,7 +375,7 @@ const itUi = {
     helpBody:
       "Una versione precedente di questo percorso teneva traccia dei progressi in modo diverso. Quando la struttura è cambiata, ogni visita a una lezione che corrisponde in modo sicuro alla nuova struttura viene mantenuta automaticamente. I tentativi di pratica, gli elementi di ripasso salvati e i risultati delle verifiche legati agli esercizi rinnovati potrebbero dover essere completati di nuovo, perché non corrispondono più esattamente ai nuovi esercizi. Ogni vecchia visita senza una corrispondenza sicura nella nuova struttura è conservata come dati di recupero, senza essere considerata una lezione visitata equivalente.",
   },
-} satisfies Pick<CourseCopy, "home" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
+} satisfies Pick<CourseCopy, "home" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "a1Lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
 
 const itCourseMap: CourseCopy["courseMap"] = {
   heading: "Il percorso",

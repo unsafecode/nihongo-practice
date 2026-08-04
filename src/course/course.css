@@ -480,9 +480,9 @@
   padding: clamp(1.5rem, 4vw, 3rem) 0 5rem;
 }
 
-/* Desktop sticky four-step rail (design spec §5.4/§6.1). The rail width lives
-   on the shell grid column above, kept independent of the reading measure. It
-   sticks with the shared sticky-offset token — no bespoke pixel offset. */
+/* Desktop sticky lesson rail. A1 has six steps while A2 retains four; the rail
+   width lives on the shell grid column above, independent of the reading
+   measure, and sticks with the shared sticky-offset token. */
 .lesson-rail {
   position: sticky;
   top: var(--sticky-offset);
@@ -1004,6 +1004,8 @@
     top: var(--sticky-offset);
     z-index: 5;
     display: flex;
+    min-width: 0;
+    max-width: 100%;
     gap: 0.6rem;
     align-items: center;
     overflow-x: auto;
@@ -1990,4 +1992,460 @@
 
 @media (max-width: 680px) {
   .level-selector__options { flex-direction: column; align-items: stretch; }
+}
+
+/* ── A1 vocabulary-first curriculum sections ─────────────────────────── */
+
+.a1-lesson-overview,
+.a1-vocabulary,
+.a1-learning-note,
+.a1-worked-examples,
+.a1-practice-ladder,
+.a1-curriculum-recap {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-4);
+}
+
+.a1-lesson-overview__details,
+.a1-learning-note__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.a1-lesson-overview__details > div,
+.a1-learning-note__fields > div {
+  min-width: 0;
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  background: var(--course-surface);
+}
+
+.a1-lesson-overview dt,
+.a1-learning-note dt,
+.a1-vocabulary dt,
+.a1-vocabulary__verbs h4,
+.a1-curriculum-recap__vocabulary h3,
+.a1-curriculum-recap__cue h3 {
+  margin: 0;
+  color: var(--course-muted);
+  font-size: var(--text-1);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.a1-lesson-overview dd,
+.a1-learning-note dd,
+.a1-vocabulary dd {
+  min-width: 0;
+  margin: var(--space-1) 0 0;
+  overflow-wrap: anywhere;
+}
+
+.a1-lesson-overview__prerequisites {
+  display: grid;
+  gap: var(--space-2);
+  border-left: 3px solid var(--course-line);
+  padding-left: var(--space-3);
+}
+
+.a1-lesson-overview__prerequisites h3,
+.a1-vocabulary__head h3,
+.a1-learning-note__head h3,
+.a1-worked-examples__dialogue h3,
+.a1-practice-ladder__head h3 {
+  margin: 0;
+  font-size: var(--text-3);
+}
+
+.a1-lesson-overview__prerequisites ul,
+.a1-learning-note__pattern ul,
+.a1-vocabulary__list,
+.a1-worked-examples__list,
+.a1-worked-examples__dialogue ol,
+.a1-practice-ladder__list,
+.a1-curriculum-recap__vocabulary ul {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.a1-lesson-overview__prerequisites a {
+  display: inline-flex;
+  min-height: var(--action-target-min);
+  align-items: center;
+  overflow-wrap: anywhere;
+}
+
+.a1-vocabulary__head,
+.a1-practice-ladder__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.a1-vocabulary__review-badge,
+.a1-curriculum-recap__review-badge {
+  display: inline-flex;
+  margin: var(--space-1) 0 0;
+  border: 1px solid var(--course-line);
+  border-radius: 999px;
+  padding: 0.1rem var(--space-2);
+  color: var(--course-ink);
+  font-size: var(--text-1);
+  font-weight: 800;
+}
+
+.a1-vocabulary__exception,
+.a1-curriculum-recap__review-note {
+  margin: 0;
+  border-left: 3px solid var(--course-coral);
+  padding-left: var(--space-3);
+  overflow-wrap: anywhere;
+}
+
+.a1-vocabulary__list {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+}
+
+.a1-vocabulary__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  min-width: 0;
+  gap: var(--space-3);
+  align-items: start;
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  background: var(--card);
+}
+
+.a1-vocabulary__word {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.a1-vocabulary__kana {
+  font-family: var(--font-jp);
+  font-size: var(--text-4);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.a1-vocabulary__romaji,
+.a1-worked-examples__romaji {
+  color: var(--course-muted);
+  overflow-wrap: anywhere;
+}
+
+.a1-vocabulary__metadata,
+.a1-vocabulary__verb-forms {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+}
+
+.a1-vocabulary__verbs {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  border-top: 1px solid var(--course-line);
+  padding-top: var(--space-3);
+}
+
+.a1-vocabulary__verb-forms > div {
+  display: grid;
+  grid-template-columns: minmax(0, 8rem) minmax(0, 1fr);
+  gap: var(--space-2);
+}
+
+.a1-vocabulary__meaning-toggle,
+.a1-audio-button__control {
+  min-width: var(--action-target-min);
+  min-height: var(--action-target-min);
+}
+
+.a1-vocabulary__meaning-toggle:focus-visible {
+  outline: 3px solid var(--time);
+  outline-offset: 2px;
+}
+
+.a1-audio-button__control:focus-visible {
+  outline: 3px solid var(--time);
+  outline-offset: 2px;
+}
+
+.a1-audio-button {
+  display: inline-flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.a1-audio-button__status {
+  color: var(--course-muted);
+  font-size: var(--text-1);
+  overflow-wrap: anywhere;
+}
+
+.a1-audio-button__status:empty {
+  display: none;
+}
+
+.a1-learning-note {
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  background: var(--course-surface);
+}
+
+.a1-learning-note__head > p,
+.a1-learning-note__pattern h4,
+.a1-worked-examples__turn,
+.a1-practice-ladder__intro,
+.a1-practice-ladder__status {
+  margin: 0;
+}
+
+.a1-learning-note__head > p,
+.a1-worked-examples__turn,
+.a1-practice-ladder__function {
+  color: var(--course-muted);
+  font-size: var(--text-1);
+  font-weight: 800;
+}
+
+.a1-learning-note__pattern {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.a1-learning-note__pattern li {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--course-line);
+  border-radius: 999px;
+  padding: var(--space-1) var(--space-3);
+  background: var(--card);
+}
+
+.a1-learning-note__pattern-text {
+  font-family: var(--font-jp);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.a1-learning-note__pattern-label {
+  overflow-wrap: anywhere;
+}
+
+.a1-worked-examples__list,
+.a1-worked-examples__dialogue ol {
+  gap: var(--space-4);
+}
+
+.a1-worked-examples__card {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-2);
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  background: var(--card);
+}
+
+.a1-worked-examples__japanese,
+.a1-worked-examples__romaji,
+.a1-worked-examples__translation {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.a1-worked-examples__japanese {
+  font-family: var(--font-jp);
+  font-size: var(--text-4);
+  line-height: 1.4;
+}
+
+.a1-worked-examples__glosses {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.a1-worked-examples__glosses > div {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+  border-left: 2px solid var(--course-line);
+  padding-left: var(--space-2);
+}
+
+.a1-worked-examples__glosses dt,
+.a1-worked-examples__glosses dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.a1-worked-examples__glosses dt {
+  font-family: var(--font-jp);
+  font-weight: 800;
+}
+
+.a1-worked-examples__role {
+  display: block;
+  color: var(--course-muted);
+  font-size: var(--text-1);
+}
+
+.a1-worked-examples__gloss {
+  display: block;
+}
+
+.a1-worked-examples__dialogue,
+.a1-worked-examples__pattern {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.a1-worked-examples__pattern {
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  background: var(--course-surface);
+}
+
+.a1-worked-examples__pattern > summary {
+  min-height: var(--action-target-min);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.a1-practice-ladder {
+  border-top: 1px solid var(--course-line);
+  padding-top: var(--space-5);
+}
+
+.a1-practice-ladder__list {
+  gap: var(--space-4);
+}
+
+.a1-practice-ladder__function {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.a1-practice-ladder__spoken {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  list-style: none;
+}
+
+.a1-practice-ladder__spoken .spoken-attempt {
+  margin-top: 0;
+}
+
+.a1-curriculum-recap {
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  background: var(--course-teal-soft);
+}
+
+.a1-curriculum-recap__vocabulary,
+.a1-curriculum-recap__cue {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.a1-curriculum-recap__vocabulary li {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-2);
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  background: var(--course-surface);
+}
+
+.a1-curriculum-recap__word {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-family: var(--font-jp);
+  font-size: var(--text-3);
+  overflow-wrap: anywhere;
+}
+
+.a1-curriculum-recap__word > span:nth-child(2) {
+  font-family: var(--font-sans);
+  color: var(--course-muted);
+  font-size: var(--text-1);
+}
+
+.a1-curriculum-recap__vocabulary p,
+.a1-curriculum-recap__cue p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 680px) {
+  .a1-lesson-overview__details,
+  .a1-learning-note__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .a1-vocabulary__item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .a1-vocabulary__verbs {
+    grid-column: auto;
+  }
+
+  .a1-vocabulary__verb-forms > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .a1-worked-examples__glosses {
+    grid-template-columns: 1fr;
+  }
+
+  .a1-vocabulary__head,
+  .a1-practice-ladder__head {
+    align-items: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .a1-vocabulary__meaning-toggle,
+  .a1-audio-button__control,
+  .a1-worked-examples__pattern > summary {
+    transition: none;
+  }
 }
