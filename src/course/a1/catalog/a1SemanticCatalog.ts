@@ -450,6 +450,12 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-obj-kore", kind: "object", tokenFragments: [frag("これ", "kore")] },
   { id: "a1-value-obj-sore", kind: "object", tokenFragments: [frag("それ", "sore")] },
   { id: "a1-value-obj-are", kind: "object", tokenFragments: [frag("あれ", "are")] },
+  { id: "a1-value-obj-cup", kind: "object", tokenFragments: [frag("コップ", "koppu")] },
+  // Weather conditions are nominal forecast complements: "きょうは はれ です".
+  { id: "a1-value-weather-sunny", kind: "object", tokenFragments: [frag("はれ", "hare")] },
+  { id: "a1-value-weather-cloudy", kind: "object", tokenFragments: [frag("くもり", "kumori")] },
+  { id: "a1-value-weather-rain", kind: "object", tokenFragments: [frag("あめ", "ame")] },
+  { id: "a1-value-weather-snow", kind: "object", tokenFragments: [frag("ゆき", "yuki")] },
 
   // === Phase 2 Module 10 — prices, quantities, request ====================
   // Price copular complements (object-kind; "…えん" split so romaji spaces).
@@ -466,6 +472,15 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-obj-ticket", kind: "object", tokenFragments: [frag("きっぷ", "kippu")] },
   { id: "a1-value-obj-bag", kind: "object", tokenFragments: [frag("かばん", "kaban")] },
   { id: "a1-value-obj-money", kind: "object", tokenFragments: [frag("おかね", "okane")] },
+  { id: "a1-value-obj-juice", kind: "object", tokenFragments: [frag("ジュース", "juusu")] },
+  { id: "a1-value-obj-onigiri", kind: "object", tokenFragments: [frag("おにぎり", "onigiri")] },
+  { id: "a1-value-obj-sandwich", kind: "object", tokenFragments: [frag("サンドイッチ", "sandoicchi")] },
+  { id: "a1-value-obj-shopping-bag", kind: "object", tokenFragments: [frag("ふくろ", "fukuro")] },
+  { id: "a1-value-obj-receipt", kind: "object", tokenFragments: [frag("レシート", "reshiito")] },
+  { id: "a1-value-obj-magazine", kind: "object", tokenFragments: [frag("ざっし", "zasshi")] },
+  { id: "a1-value-obj-eraser", kind: "object", tokenFragments: [frag("けしごむ", "keshigomu")] },
+  { id: "a1-value-ex-pencil", kind: "referent", animacy: "inanimate", tokenFragments: [frag("えんぴつ", "enpitsu")] },
+  { id: "a1-value-ex-eraser", kind: "referent", animacy: "inanimate", tokenFragments: [frag("けしごむ", "keshigomu")] },
   // Floating quantifiers (bare — no particle; quantity-kind).
   { id: "a1-value-qty-1", kind: "quantity", tokenFragments: [frag("ひとつ", "hitotsu")] },
   { id: "a1-value-qty-2", kind: "quantity", tokenFragments: [frag("ふたつ", "futatsu")] },
@@ -481,10 +496,18 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-ex-pen", kind: "referent", animacy: "inanimate", tokenFragments: [frag("ペン", "pen")] },
   { id: "a1-value-ex-key", kind: "referent", animacy: "inanimate", tokenFragments: [frag("かぎ", "kagi")] },
   { id: "a1-value-ex-money", kind: "referent", animacy: "inanimate", tokenFragments: [frag("おかね", "okane")] },
+  { id: "a1-value-ex-flower", kind: "referent", animacy: "inanimate", tokenFragments: [frag("はな", "hana")] },
+  { id: "a1-value-ex-umbrella", kind: "referent", animacy: "inanimate", tokenFragments: [frag("かさ", "kasa")] },
+  { id: "a1-value-ex-phone", kind: "referent", animacy: "inanimate", tokenFragments: [frag("けいたいでんわ", "keitaidenwa")] },
   { id: "a1-value-ex-cat", kind: "referent", animacy: "animate", tokenFragments: [frag("ねこ", "neko")] },
   { id: "a1-value-ex-dog", kind: "referent", animacy: "animate", tokenFragments: [frag("いぬ", "inu")] },
+  { id: "a1-value-ex-bird", kind: "referent", animacy: "animate", tokenFragments: [frag("とり", "tori")] },
   { id: "a1-value-ex-child", kind: "referent", animacy: "animate", tokenFragments: [frag("こども", "kodomo")] },
   { id: "a1-value-ex-person", kind: "referent", animacy: "animate", tokenFragments: [frag("ひと", "hito")] },
+  { id: "a1-value-obj-medicine", kind: "object", tokenFragments: [frag("くすり", "kusuri")] },
+  { id: "a1-value-obj-passport", kind: "object", tokenFragments: [frag("パスポート", "pasupooto")] },
+  { id: "a1-value-obj-map", kind: "object", tokenFragments: [frag("ちず", "chizu")] },
+  { id: "a1-value-obj-dictionary", kind: "object", tokenFragments: [frag("じしょ", "jisho")] },
   // Position location nouns (に-marked; multi-fragment → spaced romaji).
   { id: "a1-value-loc-on-desk", kind: "location", tokenFragments: [frag("つくえ", "tsukue"), frag("の", "no"), frag("うえ", "ue")] },
   { id: "a1-value-loc-in-bag", kind: "location", tokenFragments: [frag("かばん", "kaban"), frag("の", "no"), frag("なか", "naka")] },

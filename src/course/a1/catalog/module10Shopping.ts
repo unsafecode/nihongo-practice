@@ -61,16 +61,16 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
   introducedSenseIds: ["a1-sense-expensive", "a1-sense-cheap"],
   models: [
     { id: "shopping-1-m1", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-learner", slots: desc("a1-value-ex-book", "a1-value-expensive"), translation: L("The book is expensive.", "Il libro è caro.") },
-    { id: "shopping-1-m3", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-yuki", slots: desc("a1-value-ex-pen", "a1-value-cheap"), translation: L("The pen is cheap.", "La penna è economica.") },
+    { id: "shopping-1-m3", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-yuki", slots: desc("a1-value-ex-pencil", "a1-value-cheap"), translation: L("The pencil is cheap.", "La matita è economica.") },
     { id: "shopping-1-m2", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "omitted", speakerRole: "a1-role-clerk", slots: desc("a1-value-ex-book", "a1-value-expensive"), translation: L("It's expensive.", "È caro.") },
-    { id: "shopping-1-m4", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: desc("a1-value-ex-pen", "a1-value-cheap"), translation: L("It's cheap.", "È economica.") },
+    { id: "shopping-1-m4", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: desc("a1-value-ex-pencil", "a1-value-cheap"), translation: L("It's cheap.", "È economica.") },
     { id: "shopping-1-m5", family: COP, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-clerk", slots: price("a1-value-ex-book", "a1-value-price-100"), translation: L("The book is 100 yen.", "Il libro costa 100 yen.") },
     { id: "shopping-1-m6", family: COP, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-learner", slots: price("a1-value-ex-key", "a1-value-price-500"), translation: L("The key is 500 yen.", "La chiave costa 500 yen.") },
     { id: "shopping-1-m7", family: DESC, context: "a1-context-cafe", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-mina", slots: desc("a1-value-ex-key", "a1-value-expensive"), translation: L("The key is expensive.", "La chiave è cara.") },
-    { id: "shopping-1-m8", family: COP, context: "a1-context-cafe", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-teacher", slots: price("a1-value-ex-pen", "a1-value-price-100"), translation: L("The pen is 100 yen.", "La penna costa 100 yen.") },
+    { id: "shopping-1-m8", family: COP, context: "a1-context-cafe", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-teacher", slots: price("a1-value-ex-pencil", "a1-value-price-100"), translation: L("The pencil is 100 yen.", "La matita costa 100 yen.") },
   ],
   transfers: [
-    { id: "shopping-1-t1", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-learner", slots: desc("a1-value-ex-pen", "a1-value-expensive"), translation: L("The pen is expensive.", "La penna è cara.") },
+    { id: "shopping-1-t1", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-learner", slots: desc("a1-value-ex-pencil", "a1-value-expensive"), translation: L("The pencil is expensive.", "La matita è cara.") },
     { id: "shopping-1-t2", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-friend", slots: desc("a1-value-ex-book", "a1-value-cheap"), translation: L("The book is cheap.", "Il libro è economico.") },
     { id: "shopping-1-t3", family: COP, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-clerk", slots: price("a1-value-ex-key", "a1-value-price-100"), translation: L("The key is 100 yen.", "La chiave costa 100 yen.") },
     { id: "shopping-1-t4", family: COP, context: "a1-context-cafe", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-learner", slots: price("a1-value-ex-book", "a1-value-price-500"), translation: L("The book is 500 yen.", "Il libro costa 500 yen.") },
@@ -122,9 +122,9 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
   introducedConceptIds: [A1_CONCEPT_REQUEST],
   introducedSenseIds: ["a1-sense-request"],
   models: [
-    { id: "shopping-3-m1", family: REQ, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-water"), translation: L("Water, please.", "Dell'acqua, per favore.") },
-    { id: "shopping-3-m2", family: REQ, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-apple", "a1-value-qty-3"), translation: L("Three apples, please.", "Tre mele, per favore.") },
-    { id: "shopping-3-m3", family: REQ, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-coffee"), translation: L("Coffee, please.", "Un caffè, per favore.") },
+    { id: "shopping-3-m1", family: REQ, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-juice"), translation: L("Juice, please.", "Un succo, per favore.") },
+    { id: "shopping-3-m2", family: REQ, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-onigiri", "a1-value-qty-3"), translation: L("Three rice balls, please.", "Tre polpette di riso, per favore.") },
+    { id: "shopping-3-m3", family: REQ, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-sandwich"), translation: L("A sandwich, please.", "Un panino, per favore.") },
     { id: "shopping-3-m4", family: REQ, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-ticket", "a1-value-qty-2"), translation: L("Two tickets, please.", "Due biglietti, per favore.") },
     { id: "shopping-3-m5", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-clerk", slots: desc("a1-value-ex-book", "a1-value-expensive"), translation: L("The book is expensive.", "Il libro è caro.") },
     { id: "shopping-3-m6", family: REQ, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-mikan", "a1-value-qty-5"), translation: L("Five tangerines, please.", "Cinque mandarini, per favore.") },
@@ -133,15 +133,15 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
   ],
   transfers: [
     { id: "shopping-3-t1", family: REQ, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-mikan"), translation: L("Tangerines, please.", "Dei mandarini, per favore.") },
-    { id: "shopping-3-t2", family: REQ, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-coffee", "a1-value-qty-2"), translation: L("Two coffees, please.", "Due caffè, per favore.") },
+    { id: "shopping-3-t2", family: REQ, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-sandwich", "a1-value-qty-2"), translation: L("Two sandwiches, please.", "Due panini, per favore.") },
     { id: "shopping-3-t3", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-learner", slots: desc("a1-value-ex-pen", "a1-value-expensive"), translation: L("The pen is expensive.", "La penna è cara.") },
-    { id: "shopping-3-t4", family: REQ, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-apple"), translation: L("Apples, please.", "Delle mele, per favore.") },
+    { id: "shopping-3-t4", family: REQ, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-onigiri"), translation: L("Rice balls, please.", "Delle polpette di riso, per favore.") },
     { id: "shopping-3-t5", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-clerk", slots: desc("a1-value-ex-book", "a1-value-cheap"), translation: L("The book is cheap.", "Il libro è economico.") },
   ],
 });
 
 // ---------------------------------------------------------------------------
-// Lesson shopping-4 — transaction recap (reuse only; no new content)
+// Lesson shopping-4 — transaction resolution with practical shop items
 // ---------------------------------------------------------------------------
 
 const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
@@ -153,20 +153,20 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
   introducedConceptIds: [],
   introducedSenseIds: [],
   models: [
-    { id: "shopping-4-m1", family: REQ, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-apple", "a1-value-qty-3"), translation: L("Three apples, please.", "Tre mele, per favore.") },
-    { id: "shopping-4-m2", family: QUANT, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "explicit", slots: qa("a1-value-watashi", "a1-value-buy", "a1-value-obj-mikan", "a1-value-qty-2"), translation: L("I buy two tangerines.", "Compro due mandarini.") },
-    { id: "shopping-4-m3", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-clerk", slots: desc("a1-value-ex-book", "a1-value-expensive"), translation: L("The book is expensive.", "Il libro è caro.") },
-    { id: "shopping-4-m4", family: REQ, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-water"), translation: L("Water, please.", "Dell'acqua, per favore.") },
+    { id: "shopping-4-m1", family: REQ, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-shopping-bag"), translation: L("A shopping bag, please.", "Un sacchetto, per favore.") },
+    { id: "shopping-4-m2", family: QUANT, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "explicit", slots: qa("a1-value-watashi", "a1-value-buy", "a1-value-obj-eraser", "a1-value-qty-2"), translation: L("I buy two erasers.", "Compro due gomme.") },
+    { id: "shopping-4-m3", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-clerk", slots: desc("a1-value-ex-eraser", "a1-value-expensive"), translation: L("The eraser is expensive.", "La gomma è cara.") },
+    { id: "shopping-4-m4", family: REQ, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-receipt"), translation: L("A receipt, please.", "Lo scontrino, per favore.") },
     { id: "shopping-4-m5", family: QUANT, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", slots: qa("a1-value-watashi", "a1-value-buy", "a1-value-obj-ticket", "a1-value-qty-2"), translation: L("I buy two tickets.", "Compro due biglietti.") },
     { id: "shopping-4-m6", family: COP, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-clerk", slots: price("a1-value-ex-book", "a1-value-price-100"), translation: L("The book is 100 yen.", "Il libro costa 100 yen.") },
-    { id: "shopping-4-m7", family: QUANT, context: "a1-context-cafe", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: qa("a1-value-yuki", "a1-value-drink", "a1-value-obj-coffee", "a1-value-qty-1"), translation: L("Yuki drinks one coffee.", "Yuki beve un caffè.") },
+    { id: "shopping-4-m7", family: QUANT, context: "a1-context-cafe", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: qa("a1-value-yuki", "a1-value-buy", "a1-value-obj-magazine", "a1-value-qty-1"), translation: L("Yuki buys one magazine.", "Yuki compra una rivista.") },
     { id: "shopping-4-m8", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-mina", slots: desc("a1-value-ex-pen", "a1-value-cheap"), translation: L("The pen is cheap.", "La penna è economica.") },
   ],
   transfers: [
-    { id: "shopping-4-t1", family: REQ, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-mikan"), translation: L("Tangerines, please.", "Dei mandarini, per favore.") },
-    { id: "shopping-4-t2", family: QUANT, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "explicit", slots: qa("a1-value-watashi", "a1-value-buy", "a1-value-obj-apple", "a1-value-qty-2"), translation: L("I buy two apples.", "Compro due mele.") },
+    { id: "shopping-4-t1", family: REQ, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-magazine"), translation: L("A magazine, please.", "Una rivista, per favore.") },
+    { id: "shopping-4-t2", family: QUANT, context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "explicit", slots: qa("a1-value-watashi", "a1-value-buy", "a1-value-obj-eraser", "a1-value-qty-1"), translation: L("I buy one eraser.", "Compro una gomma.") },
     { id: "shopping-4-t3", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-learner", slots: desc("a1-value-ex-pen", "a1-value-expensive"), translation: L("The pen is expensive.", "La penna è cara.") },
-    { id: "shopping-4-t4", family: REQ, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-coffee"), translation: L("Coffee, please.", "Un caffè, per favore.") },
+    { id: "shopping-4-t4", family: REQ, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", speakerRole: "a1-role-learner", slots: req("a1-value-obj-eraser"), translation: L("An eraser, please.", "Una gomma, per favore.") },
     { id: "shopping-4-t5", family: DESC, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-clerk", slots: desc("a1-value-ex-book", "a1-value-cheap"), translation: L("The book is cheap.", "Il libro è economico.") },
   ],
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { A1_LESSON_MANIFEST } from "../manifest";
+import { A1_LESSON_IDS, A1_LESSON_MANIFEST } from "../manifest";
 import { a1AllVariants, a1SemanticBuiltLessons } from "../catalog/catalog";
 import {
   A1_CONCEPT_IDS,
@@ -97,6 +97,17 @@ function modelLexemeIds(content: A1LessonContent): ReadonlySet<string> {
   return lexemeIds;
 }
 
+function visibleLexemeIds(content: A1LessonContent): ReadonlySet<string> {
+  const lexemeIds = new Set<string>();
+  for (const variantId of variantsFor(content)) {
+    for (const valueId of Object.values(variantById.get(variantId)?.slotValues ?? {})) {
+      const lexeme = a1LexemeByValueId[valueId];
+      if (lexeme !== undefined) lexemeIds.add(lexeme.id);
+    }
+  }
+  return lexemeIds;
+}
+
 function japanese(variantId: string): string {
   const variant = variantById.get(variantId);
   expect(variant, variantId).toBeDefined();
@@ -179,28 +190,57 @@ describe("A1 modules 09–12 lesson content", () => {
     ).toEqual(expectedPrerequisites.map((lessonId) => [lessonId]));
   });
 
-  it("uses real, own-model vocabulary for every instructional lesson", () => {
-    const earlierLexemes = new Set([
-      ...a1Modules01to04LessonContent.flatMap(({ newLexemeIds }) => newLexemeIds),
-      ...a1Modules05to08LessonContent.flatMap(({ newLexemeIds }) => newLexemeIds),
-    ]);
+  it("introduces lexemes only once in canonical A1 lesson order", () => {
+    const firstLessonByLexemeId = new Map<string, string>();
+    const duplicateIntroductions: string[] = [];
+    const canonicalLessons = [
+      ...a1Modules01to04LessonContent,
+      ...a1Modules05to08LessonContent,
+      ...a1Modules09to12LessonContent,
+    ];
+    expect(canonicalLessons.map(({ lessonId }) => lessonId)).toEqual(A1_LESSON_IDS);
 
-    for (const content of a1Modules09to12LessonContent.slice(0, 12)) {
+    for (const content of canonicalLessons) {
+      const isCapstone = content.lessonId.startsWith("capstones-");
+      if (isCapstone) {
+        expect(content.newLexemeIds, content.lessonId).toEqual([]);
+        expect(content.vocabularyException?.kind, content.lessonId).toBe("synthesis");
+        continue;
+      }
+
       expect(content.newLexemeIds.length, content.lessonId).toBeGreaterThanOrEqual(4);
       expect(content.newLexemeIds.length, content.lessonId).toBeLessThanOrEqual(6);
       expect(new Set(content.newLexemeIds).size, content.lessonId).toBe(
         content.newLexemeIds.length,
       );
 
-      const ownModelLexemes = modelLexemeIds(content);
       for (const lexemeId of content.newLexemeIds) {
-        expect(
-          earlierLexemes.has(lexemeId),
-          `${content.lessonId} reintroduces ${lexemeId} from modules 01–08`,
-        ).toBe(false);
+        const firstLessonId = firstLessonByLexemeId.get(lexemeId);
+        if (firstLessonId === undefined) {
+          firstLessonByLexemeId.set(lexemeId, content.lessonId);
+        } else {
+          duplicateIntroductions.push(
+            `${content.lessonId} reintroduces ${lexemeId}; first introduced in ${firstLessonId}`,
+          );
+        }
+      }
+    }
+
+    expect(duplicateIntroductions).toEqual([]);
+  });
+
+  it("uses declared scenario vocabulary in its own models and visible examples", () => {
+    for (const content of a1Modules09to12LessonContent.slice(0, 12)) {
+      const ownModelLexemes = modelLexemeIds(content);
+      const visibleLexemes = visibleLexemeIds(content);
+      for (const lexemeId of content.newLexemeIds) {
         expect(
           ownModelLexemes.has(lexemeId),
           `${content.lessonId} declares dead vocabulary ${lexemeId}`,
+        ).toBe(true);
+        expect(
+          visibleLexemes.has(lexemeId),
+          `${content.lessonId} does not use central vocabulary ${lexemeId} in a worked example or dialogue`,
         ).toBe(true);
       }
     }
