@@ -62,7 +62,7 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
     { id: "existence-needs-1-m4", family: EXIST, context: "a1-context-home", subjectReferent: CREATURE, subjectRealization: "explicit", speakerRole: "a1-role-learner", slots: exist("a1-value-ex-cat", IRU, "a1-value-loc-under-chair"), translation: L("There is a cat under the chair.", "C'è un gatto sotto la sedia.") },
     { id: "existence-needs-1-m5", family: EXIST, context: "a1-context-classroom", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-ken", slots: exist("a1-value-ex-key", ARU), translation: L("There is a key.", "C'è una chiave.") },
     { id: "existence-needs-1-m6", family: EXIST, context: "a1-context-town", subjectReferent: CREATURE, subjectRealization: "explicit", speakerRole: "a1-role-mina", slots: exist("a1-value-ex-dog", IRU), translation: L("There is a dog.", "C'è un cane.") },
-    { id: "existence-needs-1-m7", family: DESC, context: "a1-context-home", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-teacher", slots: desc("a1-value-heya", "a1-value-big"), translation: L("The room is big.", "La stanza è grande.") },
+    { id: "existence-needs-1-m7", family: DESC, context: "a1-context-town", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-teacher", slots: desc("a1-value-machi", "a1-value-big"), translation: L("The town is big.", "La città è grande.") },
     { id: "existence-needs-1-m8", family: EXIST, context: "a1-context-classroom", subjectReferent: CREATURE, subjectRealization: "explicit", speakerRole: "a1-role-learner", slots: exist("a1-value-ex-child", IRU), translation: L("There is a child.", "C'è un bambino.") },
   ],
   transfers: [

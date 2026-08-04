@@ -40,8 +40,8 @@ import type {
 /** Every instructional/synthesis A1 lesson carries exactly eight models (§9.1). */
 export const A1_INSTRUCTIONAL_MODEL_COUNT = 8;
 
-/** Each of the two practice rounds selects exactly five targets (§11.1). */
-export const A1_ROUND_TARGET_COUNT = 5;
+/** The guided and transfer rounds each select two targets (§11.1). */
+export const A1_ROUND_TARGET_COUNTS: readonly [number, number] = deepFreeze([2, 2]);
 
 /** A phonetic lesson declares between 8 and 12 contrastive items (inclusive). */
 export const A1_PHONETIC_CONTRASTIVE_MIN = 8;
@@ -161,11 +161,12 @@ function assertUniqueIds(
 }
 
 function assertRoundShape(practice: LessonPracticeDefinition): void {
-  for (const round of [practice.roundOne, practice.roundTwo]) {
-    if (round.targetCount !== A1_ROUND_TARGET_COUNT) {
+  for (const [index, round] of [practice.roundOne, practice.roundTwo].entries()) {
+    const expectedTargetCount = A1_ROUND_TARGET_COUNTS[index];
+    if (round.targetCount !== expectedTargetCount) {
       throw new AuthoringError(
         "round-shape",
-        `Round "${round.id}" must select exactly ${A1_ROUND_TARGET_COUNT} targets, has ${round.targetCount}.`,
+        `Round "${round.id}" must select exactly ${expectedTargetCount} targets, has ${round.targetCount}.`,
         round.id,
       );
     }

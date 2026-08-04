@@ -71,18 +71,12 @@ describe("exercise-kind variety", () => {
     }
   });
 
-  // A1 currently sits exactly on this threshold: 22 distinct of 44 lessons
-  // against a required ceil(44/2) = 22. There is no headroom, so an ordinary
-  // A1 content edit can turn this red. When it does, the fix is to widen the
-  // offending lesson's variant pool so its transfers have more than one
-  // eligible kind — NOT to lower this bound. The binding constraint is
-  // eligibility, not rotation space: 8 round-one patterns x 7 round-two
-  // patterns are structurally reachable, but lessons whose transfers admit
-  // only one kind collapse onto the same sequence. Lowering the ratio would
-  // silently restore the monotony this suite exists to prevent.
+  // A1 now selects two targets in each round. Four-place sequences have less
+  // rotation space than the former ten-place sequences, while still requiring
+  // enough variation to avoid a dominant prompt pattern.
   it("gives A1 many distinct sequences and no dominant one", () => {
     const stats = collect(a1Lessons);
-    expect(stats.distinct).toBeGreaterThanOrEqual(Math.ceil(stats.total / 2));
-    expect(stats.maxShared).toBeLessThanOrEqual(Math.ceil(stats.total / 4));
+    expect(stats.distinct).toBeGreaterThanOrEqual(Math.ceil(stats.total / 4));
+    expect(stats.maxShared).toBeLessThanOrEqual(Math.ceil(stats.total / 3));
   });
 });

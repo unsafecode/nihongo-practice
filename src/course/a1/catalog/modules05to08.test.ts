@@ -13,10 +13,10 @@
  *     でした/ではありません spacing, bare frequency adverbs, destination に vs
  *     direction へ→`e`, transport で vs action-place で, route から/まで,
  *     companion と vs recipient に, plain vs honorific kin terms);
- *   • per-lesson metrics (8 models / 5 transfers / 5+5 practice, ≥3 predicate
+ *   • per-lesson metrics (8 models / 5 transfers / 2+2 practice, ≥3 predicate
  *     senses, ≥3 discourse roles, ≥2 contexts, ≥10 unique visible targets,
  *     reuse ≤2, transfer fingerprints unseen) + view-model selection/generation
- *     yielding exactly 10 exercises in EN and IT;
+ *     yielding exactly 4 exercises in EN and IT;
  *   • the exact productive-verb recurrence table computed in-test from real
  *     structure keys, canonical positions, later-module status and position
  *     gaps — with the raw intro records still `laterUses: []`;
@@ -535,8 +535,8 @@ describe("A1 modules 5–8 · lesson metrics", () => {
         }
       });
 
-      expect(built.recipe.practice.roundOne.targetCount).toBe(5);
-      expect(built.recipe.practice.roundTwo.targetCount).toBe(5);
+      expect(built.recipe.practice.roundOne.targetCount).toBe(2);
+      expect(built.recipe.practice.roundTwo.targetCount).toBe(2);
 
       for (const locale of ["en", "it"] as const) {
         const vm = buildLessonViewModel({
@@ -549,8 +549,8 @@ describe("A1 modules 5–8 · lesson metrics", () => {
         });
         expect(vm.ok, vm.ok ? "" : `${lessonId} ${locale}: ${JSON.stringify((vm as { error: unknown }).error)}`).toBe(true);
         if (vm.ok) {
-          expect(vm.model.rounds[0].targets.length).toBe(5);
-          expect(vm.model.rounds[1].targets.length).toBe(5);
+          expect(vm.model.rounds[0].targets.length).toBe(2);
+          expect(vm.model.rounds[1].targets.length).toBe(2);
         }
       }
     },
@@ -689,7 +689,7 @@ describe("A1 modules 5–8 · answer integrity", () => {
       expect(vm.ok, built.recipe.id).toBe(true);
       if (!vm.ok) continue;
       const targets = [...vm.model.rounds[0].targets, ...vm.model.rounds[1].targets];
-      expect(targets.length).toBe(10);
+      expect(targets.length).toBe(4);
 
       // Blank fields stay blank (no leaked answer text).
       for (const target of targets) {
@@ -709,7 +709,7 @@ describe("A1 modules 5–8 · answer integrity", () => {
         expect(Object.prototype.hasOwnProperty.call(target, "answer")).toBe(false);
       }
 
-      // No two of the ten exercises may resolve to the same full answer
+      // No two of the four exercises may resolve to the same full answer
       // sentence (a genuinely disguised duplicate), and no single sentence may
       // appear under two different exercise kinds.
       const answerKeys = new Set<string>();
@@ -724,7 +724,7 @@ describe("A1 modules 5–8 · answer integrity", () => {
         }
         kindByAnswer.set(full, target.prompt.kind);
       }
-      expect(answerKeys.size).toBe(10);
+      expect(answerKeys.size).toBe(4);
     }
   });
 

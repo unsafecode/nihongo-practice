@@ -33,6 +33,7 @@ import { curriculumExamples } from "../catalog/examples";
 import { curriculumExercises } from "../catalog/exercises";
 import { assembledExamples } from "../catalog/assembleCourse";
 import { exampleSegmentToAssembledToken } from "../data/romajiTokens";
+import { a1FoundationCatalogs } from "../a1/catalog/catalog";
 
 /** Strip HTML tags so assertions read the actual visible/announced text
  * content in document order, independent of internal gear/mark wrappers. */
@@ -87,15 +88,14 @@ const NOOP: ExerciseViewHandlers = {
   onClear: vi.fn(),
 };
 
-function exerciseOfKind(
-  lessonId: string,
-  kind: ExercisePrompt["kind"],
-): GeneratedExercise {
-  const found = getLessonExercises(lessonId)?.exercises.find(
-    (e) => e.prompt.kind === kind,
-  );
-  if (!found) throw new Error(`no ${kind} in ${lessonId}`);
-  return found;
+function a1ExerciseOfKind(kind: ExercisePrompt["kind"]): GeneratedExercise {
+  for (const lesson of a1FoundationCatalogs.lessons) {
+    const found = getLessonExercises(lesson.id)?.exercises.find(
+      (exercise) => exercise.prompt.kind === kind,
+    );
+    if (found !== undefined) return found;
+  }
+  throw new Error(`no A1 ${kind} exercise`);
 }
 
 /**
@@ -240,10 +240,10 @@ function renderView(
   );
 }
 
-const tileEx = exerciseOfKind("introductions-1", "tile-ordering");
-const choiceEx = exerciseOfKind("introductions-1", "choice");
-const completeEx = exerciseOfKind("introductions-1", "completion");
-const constructEx = exerciseOfKind("introductions-1", "constrained-construction");
+const tileEx = a1ExerciseOfKind("tile-ordering");
+const choiceEx = a1ExerciseOfKind("choice");
+const completeEx = a1ExerciseOfKind("completion");
+const constructEx = a1ExerciseOfKind("constrained-construction");
 // transformEx is the legacy fixture defined above (A1 never generates this kind).
 
 describe("ExerciseView — common structure and accessibility", () => {

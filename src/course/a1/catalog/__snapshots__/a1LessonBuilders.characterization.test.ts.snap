@@ -5,16 +5,16 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
   {
     "diversityConstraints": {
       "exerciseCountRange": [
-        10,
-        10,
+        4,
+        4,
       ],
       "maxTargetReuse": 2,
       "minContexts": 2,
       "minFamilies": 1,
       "minPredicates": 3,
       "minRoles": 3,
-      "minTransferExercises": 5,
-      "minUniqueTargets": 5,
+      "minTransferExercises": 2,
+      "minUniqueTargets": 4,
       "modelCountRange": [
         8,
         8,
@@ -60,7 +60,7 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
         "id": "introductions-1-round-1",
         "purpose": "guided-controlled",
         "selectionPolicyId": "a1-selection-default",
-        "targetCount": 5,
+        "targetCount": 2,
       },
       "roundTwo": {
         "candidateVariantIds": [
@@ -79,7 +79,7 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
         "id": "introductions-1-round-2",
         "purpose": "transfer",
         "selectionPolicyId": "a1-selection-default",
-        "targetCount": 5,
+        "targetCount": 2,
       },
     },
     "primaryCanDoId": "a1-can-do-identity",
@@ -90,16 +90,16 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
   {
     "diversityConstraints": {
       "exerciseCountRange": [
-        10,
-        10,
+        4,
+        4,
       ],
       "maxTargetReuse": 2,
       "minContexts": 2,
       "minFamilies": 1,
       "minPredicates": 3,
       "minRoles": 3,
-      "minTransferExercises": 5,
-      "minUniqueTargets": 5,
+      "minTransferExercises": 2,
+      "minUniqueTargets": 4,
       "modelCountRange": [
         8,
         8,
@@ -145,7 +145,7 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
         "id": "introductions-2-round-1",
         "purpose": "guided-controlled",
         "selectionPolicyId": "a1-selection-default",
-        "targetCount": 5,
+        "targetCount": 2,
       },
       "roundTwo": {
         "candidateVariantIds": [
@@ -164,7 +164,7 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
         "id": "introductions-2-round-2",
         "purpose": "transfer",
         "selectionPolicyId": "a1-selection-default",
-        "targetCount": 5,
+        "targetCount": 2,
       },
     },
     "primaryCanDoId": "a1-can-do-identity",
@@ -175,16 +175,16 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
   {
     "diversityConstraints": {
       "exerciseCountRange": [
-        10,
-        10,
+        4,
+        4,
       ],
       "maxTargetReuse": 2,
       "minContexts": 2,
       "minFamilies": 1,
       "minPredicates": 3,
       "minRoles": 3,
-      "minTransferExercises": 5,
-      "minUniqueTargets": 5,
+      "minTransferExercises": 2,
+      "minUniqueTargets": 4,
       "modelCountRange": [
         8,
         8,
@@ -230,7 +230,7 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
         "id": "introductions-3-round-1",
         "purpose": "guided-controlled",
         "selectionPolicyId": "a1-selection-default",
-        "targetCount": 5,
+        "targetCount": 2,
       },
       "roundTwo": {
         "candidateVariantIds": [
@@ -249,7 +249,7 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
         "id": "introductions-3-round-2",
         "purpose": "transfer",
         "selectionPolicyId": "a1-selection-default",
-        "targetCount": 5,
+        "targetCount": 2,
       },
     },
     "primaryCanDoId": "a1-can-do-origins",
@@ -260,16 +260,16 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
   {
     "diversityConstraints": {
       "exerciseCountRange": [
-        10,
-        10,
+        4,
+        4,
       ],
       "maxTargetReuse": 2,
       "minContexts": 2,
       "minFamilies": 1,
       "minPredicates": 3,
       "minRoles": 3,
-      "minTransferExercises": 5,
-      "minUniqueTargets": 5,
+      "minTransferExercises": 2,
+      "minUniqueTargets": 4,
       "modelCountRange": [
         8,
         8,
@@ -316,7 +316,7 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
         "id": "introductions-4-round-1",
         "purpose": "guided-controlled",
         "selectionPolicyId": "a1-selection-default",
-        "targetCount": 5,
+        "targetCount": 2,
       },
       "roundTwo": {
         "candidateVariantIds": [
@@ -335,7 +335,7 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
         "id": "introductions-4-round-2",
         "purpose": "transfer",
         "selectionPolicyId": "a1-selection-default",
-        "targetCount": 5,
+        "targetCount": 2,
       },
     },
     "primaryCanDoId": "a1-can-do-identity",
@@ -1248,16 +1248,16 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
     "contract": "instructional",
     "diversityConstraints": {
       "exerciseCountRange": [
-        10,
-        10,
+        4,
+        4,
       ],
       "maxTargetReuse": 2,
       "minContexts": 2,
       "minFamilies": 1,
       "minPredicates": 3,
       "minRoles": 3,
-      "minTransferExercises": 5,
-      "minUniqueTargets": 5,
+      "minTransferExercises": 2,
+      "minUniqueTargets": 4,
       "modelCountRange": [
         8,
         8,
@@ -1313,7 +1313,7 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
         "id": "introductions-1-round-1",
         "purpose": "guided-controlled",
         "selectionPolicyId": "a1-selection-default",
-        "targetCount": 5,
+        "targetCount": 2,
       },
       "roundTwo": {
         "candidateVariantIds": [
@@ -1332,7 +1332,7 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
         "id": "introductions-1-round-2",
         "purpose": "transfer",
         "selectionPolicyId": "a1-selection-default",
-        "targetCount": 5,
+        "targetCount": 2,
       },
     },
     "primaryCanDoId": "a1-can-do-identity",
@@ -1345,16 +1345,16 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
     "contract": "instructional",
     "diversityConstraints": {
       "exerciseCountRange": [
-        10,
-        10,
+        4,
+        4,
       ],
       "maxTargetReuse": 2,
       "minContexts": 2,
       "minFamilies": 1,
       "minPredicates": 3,
       "minRoles": 3,
-      "minTransferExercises": 5,
-      "minUniqueTargets": 5,
+      "minTransferExercises": 2,
+      "minUniqueTargets": 4,
       "modelCountRange": [
         8,
         8,
@@ -1409,7 +1409,7 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
         "id": "introductions-2-round-1",
         "purpose": "guided-controlled",
         "selectionPolicyId": "a1-selection-default",
-        "targetCount": 5,
+        "targetCount": 2,
       },
       "roundTwo": {
         "candidateVariantIds": [
@@ -1428,7 +1428,7 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
         "id": "introductions-2-round-2",
         "purpose": "transfer",
         "selectionPolicyId": "a1-selection-default",
-        "targetCount": 5,
+        "targetCount": 2,
       },
     },
     "primaryCanDoId": "a1-can-do-identity",
@@ -1441,16 +1441,16 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
     "contract": "instructional",
     "diversityConstraints": {
       "exerciseCountRange": [
-        10,
-        10,
+        4,
+        4,
       ],
       "maxTargetReuse": 2,
       "minContexts": 2,
       "minFamilies": 1,
       "minPredicates": 3,
       "minRoles": 3,
-      "minTransferExercises": 5,
-      "minUniqueTargets": 5,
+      "minTransferExercises": 2,
+      "minUniqueTargets": 4,
       "modelCountRange": [
         8,
         8,
@@ -1504,7 +1504,7 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
         "id": "introductions-3-round-1",
         "purpose": "guided-controlled",
         "selectionPolicyId": "a1-selection-default",
-        "targetCount": 5,
+        "targetCount": 2,
       },
       "roundTwo": {
         "candidateVariantIds": [
@@ -1523,7 +1523,7 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
         "id": "introductions-3-round-2",
         "purpose": "transfer",
         "selectionPolicyId": "a1-selection-default",
-        "targetCount": 5,
+        "targetCount": 2,
       },
     },
     "primaryCanDoId": "a1-can-do-origins",
@@ -1536,16 +1536,16 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
     "contract": "instructional",
     "diversityConstraints": {
       "exerciseCountRange": [
-        10,
-        10,
+        4,
+        4,
       ],
       "maxTargetReuse": 2,
       "minContexts": 2,
       "minFamilies": 1,
       "minPredicates": 3,
       "minRoles": 3,
-      "minTransferExercises": 5,
-      "minUniqueTargets": 5,
+      "minTransferExercises": 2,
+      "minUniqueTargets": 4,
       "modelCountRange": [
         8,
         8,
@@ -1602,7 +1602,7 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
         "id": "introductions-4-round-1",
         "purpose": "guided-controlled",
         "selectionPolicyId": "a1-selection-default",
-        "targetCount": 5,
+        "targetCount": 2,
       },
       "roundTwo": {
         "candidateVariantIds": [
@@ -1621,7 +1621,7 @@ exports[`A1 characterization baseline · module 2 (introductions) — pre-kit-ex
         "id": "introductions-4-round-2",
         "purpose": "transfer",
         "selectionPolicyId": "a1-selection-default",
-        "targetCount": 5,
+        "targetCount": 2,
       },
     },
     "primaryCanDoId": "a1-can-do-identity",

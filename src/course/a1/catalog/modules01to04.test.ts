@@ -5,7 +5,7 @@
  * single foundation catalog from the release data (never the Phase-1 fixtures),
  * realizes every instructional variant, and asserts:
  *   • every realized sentence's exact natural Japanese + rōmaji (full table);
- *   • per-lesson metrics (8 models / 5 transfers / 5+5 practice, ≥3 predicate
+ *   • per-lesson metrics (8 models / 5 transfers / 2+2 practice, ≥3 predicate
  *     senses, ≥3 discourse roles, ≥2 contexts, ≥10 unique visible targets,
  *     reuse ≤2, and transfer fingerprints absent from the model set);
  *   • ≥2 structurally-distinct intro variants per productive verb;
@@ -437,11 +437,11 @@ describe("A1 modules 2–4 · lesson metrics", () => {
         expect(modelFingerprints.has(t.semanticFingerprint), `${lessonId} transfer ${t.variantId}`).toBe(false);
       }
 
-      // Practice rounds: 5 guided + 5 transfer targets.
-      expect(built.recipe.practice.roundOne.targetCount).toBe(5);
-      expect(built.recipe.practice.roundTwo.targetCount).toBe(5);
+      // Practice rounds: 2 guided + 2 transfer targets.
+      expect(built.recipe.practice.roundOne.targetCount).toBe(2);
+      expect(built.recipe.practice.roundTwo.targetCount).toBe(2);
 
-      // View model: selection + generation succeed → exactly 10 exercises.
+      // View model: selection + generation succeed → exactly 4 exercises.
       const vm = buildLessonViewModel({
         catalogs,
         copy,
@@ -453,17 +453,17 @@ describe("A1 modules 2–4 · lesson metrics", () => {
       expect(vm.ok, vm.ok ? "" : JSON.stringify((vm as { error: unknown }).error)).toBe(true);
       if (vm.ok) {
         const exercises = vm.model.rounds[0].targets.length + vm.model.rounds[1].targets.length;
-        expect(exercises).toBe(10);
-        expect(vm.model.rounds[0].targets.length).toBe(5);
-        expect(vm.model.rounds[1].targets.length).toBe(5);
+        expect(exercises).toBe(4);
+        expect(vm.model.rounds[0].targets.length).toBe(2);
+        expect(vm.model.rounds[1].targets.length).toBe(2);
       }
 
       metricsByLesson.set(lessonId, {
         lessonId,
         models: models.length,
         transfers: transfers.length,
-        roundOne: 5,
-        roundTwo: 5,
+        roundOne: 2,
+        roundTwo: 2,
         predicateSenses: predicateSenses.size,
         discourseRoles: discourseRoles.size,
         contexts: contexts.size,

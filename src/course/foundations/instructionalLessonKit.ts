@@ -209,8 +209,10 @@ export interface InstructionalLessonKitConfig<TRecipe> {
    */
   readonly minRoles?: number;
   readonly exerciseCountRange: readonly [number, number];
-  /** Each of the two practice rounds selects this many targets. */
-  readonly roundTargetCount: number;
+  /** The guided and transfer rounds select independently declared target counts. */
+  readonly roundTargetCounts: readonly [roundOne: number, roundTwo: number];
+  /** Minimum distinct visible targets across both rounds, supplied by the level. */
+  readonly minUniqueTargets: number;
   readonly roundOneExerciseKinds: readonly ExerciseKind[];
   readonly roundTwoExerciseKinds: readonly ExerciseKind[];
   readonly selectionPolicyId: string;
@@ -325,8 +327,9 @@ export interface BuiltInstructionalLesson<TRecipe> {
  * and the merged EN/IT translation+scenario copy. Diversity floors follow
  * the level's configured model/exercise-count ranges plus the fixed depth
  * contract every A1/A2 instructional lesson shares: ≥3 predicates, ≥3 roles,
- * ≥2 contexts, ≥5 unique targets per round, reuse ≤2, `roundTargetCount`
- * transfer exercises, controlled construction required. `minFamilies` is
+ * ≥2 contexts, level-declared visible-target diversity, reuse ≤2, the
+ * transfer round's declared target count as transfer-exercise floor, controlled
+ * construction required. `minFamilies` is
  * hand-declared by the kit config (never derived from the models being
  * validated — a derived floor can only ever compare `n < n`).
  */
@@ -346,9 +349,9 @@ export function buildInstructionalLesson<TRecipe>(
     minPredicates: 3,
     minRoles: config.minRoles ?? 3,
     minContexts: 2,
-    minUniqueTargets: 5,
+    minUniqueTargets: config.minUniqueTargets,
     maxTargetReuse: 2,
-    minTransferExercises: config.roundTargetCount,
+    minTransferExercises: config.roundTargetCounts[1],
     requireControlledConstruction: true,
   };
 
@@ -360,7 +363,7 @@ export function buildInstructionalLesson<TRecipe>(
       candidateVariantIds: modelIds,
       selectionPolicyId: config.selectionPolicyId,
       exerciseKinds: [...config.roundOneExerciseKinds],
-      targetCount: config.roundTargetCount,
+      targetCount: config.roundTargetCounts[0],
     },
     roundTwo: {
       id: `${input.id}-round-2`,
@@ -368,7 +371,7 @@ export function buildInstructionalLesson<TRecipe>(
       candidateVariantIds: transferIds,
       selectionPolicyId: config.selectionPolicyId,
       exerciseKinds: [...config.roundTwoExerciseKinds],
-      targetCount: config.roundTargetCount,
+      targetCount: config.roundTargetCounts[1],
     },
   };
 

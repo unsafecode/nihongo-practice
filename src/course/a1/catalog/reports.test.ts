@@ -35,8 +35,8 @@ describe("buildA1Reports – exact level metrics", () => {
       moduleCount: 12,
       lessonCount: 48,
       modelCount: 352,
-      exerciseCount: 480,
-      transferCount: 220,
+      exerciseCount: 216,
+      transferCount: 88,
       phoneticItemCount: 40,
       verbRecordCount: 37,
       complete: true,
@@ -74,7 +74,7 @@ describe("buildA1Reports – exact level metrics", () => {
   it("gives every semantic lesson eight models and no phonetic block", () => {
     for (const row of reports.byLesson.filter((r) => r.kind === "semantic")) {
       expect(row.modelCount).toBe(8);
-      expect(row.transferCount).toBe(5);
+      expect(row.transferCount).toBe(2);
       expect(row.phonetic).toBeUndefined();
     }
   });

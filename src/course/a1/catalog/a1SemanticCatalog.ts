@@ -315,6 +315,9 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-obj-music", kind: "object", tokenFragments: [frag("おんがく", "ongaku")] },
   { id: "a1-value-obj-tv", kind: "object", tokenFragments: [frag("テレビ", "terebi")] },
   { id: "a1-value-obj-homework", kind: "object", tokenFragments: [frag("しゅくだい", "shukudai")] },
+  { id: "a1-value-obj-cat", kind: "object", tokenFragments: [frag("ねこ", "neko")] },
+  { id: "a1-value-obj-dog", kind: "object", tokenFragments: [frag("いぬ", "inu")] },
+  { id: "a1-value-obj-evening", kind: "object", tokenFragments: [frag("ばん", "ban")] },
   // question-word complements (object-kind)
   { id: "a1-value-q-nan", kind: "object", tokenFragments: [frag("なん", "nan")] },
   { id: "a1-value-q-nani", kind: "object", tokenFragments: [frag("なに", "nani")] },

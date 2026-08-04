@@ -13,6 +13,7 @@ import {
   unplaceTile,
 } from "./exerciseState";
 import type { ExercisePrompt } from "../exercises/types";
+import { a1FoundationCatalogs } from "../a1/catalog/catalog";
 
 /**
  * The pure single-exercise interaction state machine (Slice C plan Task 4,
@@ -23,20 +24,20 @@ import type { ExercisePrompt } from "../exercises/types";
  * React component stays a thin renderer.
  */
 
-function exerciseOfKind(
-  lessonId: string,
-  kind: ExercisePrompt["kind"],
-): GeneratedExercise {
-  const model = getLessonExercises(lessonId);
-  const found = model?.exercises.find((e) => e.prompt.kind === kind);
-  if (!found) throw new Error(`no ${kind} exercise in ${lessonId}`);
-  return found;
+function a1ExerciseOfKind(kind: ExercisePrompt["kind"]): GeneratedExercise {
+  for (const lesson of a1FoundationCatalogs.lessons) {
+    const found = getLessonExercises(lesson.id)?.exercises.find(
+      (exercise) => exercise.prompt.kind === kind,
+    );
+    if (found !== undefined) return found;
+  }
+  throw new Error(`no A1 ${kind} exercise`);
 }
 
-const tileEx = exerciseOfKind("introductions-1", "tile-ordering");
-const choiceEx = exerciseOfKind("introductions-1", "choice");
-const completeEx = exerciseOfKind("introductions-1", "completion");
-const constructEx = exerciseOfKind("introductions-1", "constrained-construction");
+const tileEx = a1ExerciseOfKind("tile-ordering");
+const choiceEx = a1ExerciseOfKind("choice");
+const completeEx = a1ExerciseOfKind("completion");
+const constructEx = a1ExerciseOfKind("constrained-construction");
 
 /**
  * The A1 release's round-target authoring (`a1LessonBuilders.ts`) only ever

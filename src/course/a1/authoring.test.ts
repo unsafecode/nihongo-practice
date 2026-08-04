@@ -25,7 +25,7 @@ import {
   A1_PHONETIC_PRACTICE_MAX_REUSE,
   A1_PHONETIC_PRACTICE_MIN,
   A1_PHONETIC_PRACTICE_MIN_UNIQUE,
-  A1_ROUND_TARGET_COUNT,
+  A1_ROUND_TARGET_COUNTS,
   assembleA1Slice,
   AuthoringError,
   defineA1Lesson,
@@ -348,12 +348,12 @@ const FORM: FormSelection = {
 
 const DIVERSITY: LessonDiversityConstraints = {
   modelCountRange: [8, 8],
-  exerciseCountRange: [10, 10],
+  exerciseCountRange: [4, 4],
   minFamilies: 1,
   minPredicates: 3,
   minRoles: 3,
   minContexts: 2,
-  minUniqueTargets: 5,
+  minUniqueTargets: 4,
   maxTargetReuse: 2,
   minTransferExercises: 2,
   requireControlledConstruction: true,
@@ -372,7 +372,7 @@ function practice(lessonId: string): LessonPracticeDefinition {
       candidateVariantIds: models(`${lessonId}-r1`, 6),
       selectionPolicyId: "a1-policy",
       exerciseKinds: ["completion", "choice"],
-      targetCount: 5,
+      targetCount: 2,
     },
     roundTwo: {
       id: `${lessonId}-round-2`,
@@ -380,7 +380,7 @@ function practice(lessonId: string): LessonPracticeDefinition {
       candidateVariantIds: models(`${lessonId}-r2`, 6),
       selectionPolicyId: "a1-policy",
       exerciseKinds: ["constrained-construction", "transformation"],
-      targetCount: 5,
+      targetCount: 2,
     },
   };
 }
@@ -506,11 +506,11 @@ describe("defineA1Lesson — gates", () => {
     }
   });
 
-  it("rejects a round whose target count is not five", () => {
+  it("rejects a round whose target count does not match its configured round", () => {
     const p = practice("introductions-1");
     const broken: LessonPracticeDefinition = {
       ...p,
-      roundTwo: { ...p.roundTwo, targetCount: 4 },
+      roundTwo: { ...p.roundTwo, targetCount: 3 },
     };
     try {
       defineA1Lesson(instructionalRecipe({ practice: broken }));
@@ -518,7 +518,7 @@ describe("defineA1Lesson — gates", () => {
     } catch (error) {
       expect((error as AuthoringError).code).toBe("round-shape");
     }
-    expect(A1_ROUND_TARGET_COUNT).toBe(5);
+    expect(A1_ROUND_TARGET_COUNTS).toEqual([2, 2]);
   });
 
   it("rejects duplicate candidate target refs within a round", () => {

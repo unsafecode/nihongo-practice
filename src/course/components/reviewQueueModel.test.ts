@@ -4,6 +4,7 @@ import type { CourseProgressV3, ExerciseEvidence, ReviewQueueEntry } from "../pr
 import { reviewKeyFor } from "../progress/reviewQueue";
 import { getLessonExercises } from "./lessonExerciseModel";
 import { buildReviewQueueView } from "./reviewQueueModel";
+import { a1FoundationCatalogs } from "../a1/catalog/catalog";
 
 /**
  * The pure `Da ripassare` review-queue view-model (Slice C plan Task 4 step 4;
@@ -17,10 +18,21 @@ function requiredExerciseIds(lessonId: string): readonly string[] {
   return getLessonExercises(lessonId)?.exercises.map((e) => e.definitionId) ?? [];
 }
 
-/** A real choice-kind exercise definition id from introductions-1's own A1 practice set. */
-const introductionsChoiceId = getLessonExercises("introductions-1")!.exercises.find(
-  (e) => e.prompt.kind === "choice",
-)!.definitionId;
+const a1ChoiceExercise = (() => {
+  for (const lesson of a1FoundationCatalogs.lessons) {
+    const exercise = getLessonExercises(lesson.id)?.exercises.find(
+      (candidate) => candidate.prompt.kind === "choice",
+    );
+    if (exercise !== undefined) {
+      return {
+        lessonId: lesson.id,
+        moduleId: lesson.moduleId,
+        definitionId: exercise.definitionId,
+      };
+    }
+  }
+  throw new Error("no A1 choice exercise");
+})();
 /** A real exercise definition id from past-negative-1's own A1 practice set. */
 const pastNegativeExerciseId = getLessonExercises("past-negative-1")!.exercises[0]!.definitionId;
 
@@ -59,13 +71,17 @@ describe("buildReviewQueueView — empty and populated", () => {
 
   it("resolves each stored mistake to a lesson, module, and engine prompt", () => {
     const view = buildReviewQueueView(
-      withMistakes(["introductions-1", introductionsChoiceId, "2026-01-01T00:00:00.000Z"]),
+      withMistakes([
+        a1ChoiceExercise.lessonId,
+        a1ChoiceExercise.definitionId,
+        "2026-01-01T00:00:00.000Z",
+      ]),
     );
     expect(view.items).toHaveLength(1);
     const [item] = view.items;
-    expect(item.lessonId).toBe("introductions-1");
-    expect(item.moduleId).toBe("introductions");
-    expect(item.exerciseDefinitionId).toBe(introductionsChoiceId);
+    expect(item.lessonId).toBe(a1ChoiceExercise.lessonId);
+    expect(item.moduleId).toBe(a1ChoiceExercise.moduleId);
+    expect(item.exerciseDefinitionId).toBe(a1ChoiceExercise.definitionId);
     expect(item.prompt.kind).toBe("choice");
     expect(item.mistakeCount).toBe(1);
   });
@@ -73,21 +89,33 @@ describe("buildReviewQueueView — empty and populated", () => {
   it("orders items most-recent-first with stable review-key tie-breaking", () => {
     const view = buildReviewQueueView(
       withMistakes(
-        ["introductions-1", introductionsChoiceId, "2026-01-01T00:00:00.000Z"],
+        [
+          a1ChoiceExercise.lessonId,
+          a1ChoiceExercise.definitionId,
+          "2026-01-01T00:00:00.000Z",
+        ],
         ["past-negative-1", pastNegativeExerciseId, "2026-01-02T00:00:00.000Z"],
       ),
     );
     expect(view.items.map((i) => i.exerciseDefinitionId)).toEqual([
       pastNegativeExerciseId,
-      introductionsChoiceId,
+      a1ChoiceExercise.definitionId,
     ]);
   });
 
   it("de-duplicates repeated mistakes on the same exercise into one item with an incremented count", () => {
     const view = buildReviewQueueView(
       withMistakes(
-        ["introductions-1", introductionsChoiceId, "2026-01-01T00:00:00.000Z"],
-        ["introductions-1", introductionsChoiceId, "2026-01-03T00:00:00.000Z"],
+        [
+          a1ChoiceExercise.lessonId,
+          a1ChoiceExercise.definitionId,
+          "2026-01-01T00:00:00.000Z",
+        ],
+        [
+          a1ChoiceExercise.lessonId,
+          a1ChoiceExercise.definitionId,
+          "2026-01-03T00:00:00.000Z",
+        ],
       ),
     );
     expect(view.items).toHaveLength(1);
@@ -132,7 +160,11 @@ describe("buildReviewQueueView — orphan and unresolvable buckets", () => {
 describe("buildReviewQueueView — determinism", () => {
   it("produces structurally identical output for identical input", () => {
     const progress = withMistakes(
-      ["introductions-1", introductionsChoiceId, "2026-01-01T00:00:00.000Z"],
+      [
+        a1ChoiceExercise.lessonId,
+        a1ChoiceExercise.definitionId,
+        "2026-01-01T00:00:00.000Z",
+      ],
       ["past-negative-1", pastNegativeExerciseId, "2026-01-02T00:00:00.000Z"],
     );
     expect(JSON.stringify(buildReviewQueueView(progress))).toEqual(
@@ -187,7 +219,11 @@ describe("buildReviewQueueView — level-aware A2 resolution (Phase 3 Task 8 spe
 
   it("defaults to the a1 level (byte-compatible with the existing single-arg call)", () => {
     const progress = withMistakes(
-      ["introductions-1", introductionsChoiceId, "2026-01-01T00:00:00.000Z"],
+      [
+        a1ChoiceExercise.lessonId,
+        a1ChoiceExercise.definitionId,
+        "2026-01-01T00:00:00.000Z",
+      ],
     );
     expect(JSON.stringify(buildReviewQueueView(progress))).toEqual(
       JSON.stringify(buildReviewQueueView(progress, "a1")),

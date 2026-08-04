@@ -15,7 +15,7 @@
  *   • counter/price readings & particles, the standalone `… を ください`
  *     boundary, existence あります/います animacy + position frames, and the
  *     `… が ほしい/すき です` object-subject case are exact and natural;
- *   • per-lesson metrics (8 models / 5 transfers / 10 selected exercises,
+ *   • per-lesson metrics (8 models / 5 transfers / 4 selected exercises,
  *     ≥3 predicate senses, ≥3 discourse roles, ≥2 contexts, ≥5 unique visible
  *     targets, reuse ≤2, ≥2 constructing transfers) in EN and IT;
  *   • the four capstones introduce NO new content — every value, sense,
@@ -128,53 +128,53 @@ const romajiFor = (id: string): string => romajiOf(realize(variantById.get(id) a
 const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["descriptions-1-m1", "きょうはあついです", "kyou wa atsui desu"],
   ["descriptions-1-m2", "あついです", "atsui desu"],
-  ["descriptions-1-m3", "へやはさむいです", "heya wa samui desu"],
-  ["descriptions-1-m4", "さむいです", "samui desu"],
+  ["descriptions-1-m3", "このひとはしずかです", "kono hito wa shizuka desu"],
+  ["descriptions-1-m4", "しずかです", "shizuka desu"],
   ["descriptions-1-m5", "まちはしずかです", "machi wa shizuka desu"],
   ["descriptions-1-m6", "しずかです", "shizuka desu"],
   ["descriptions-1-m7", "きょうはさむいです", "kyou wa samui desu"],
-  ["descriptions-1-m8", "へやはしずかです", "heya wa shizuka desu"],
-  ["descriptions-1-t1", "へやはあついです", "heya wa atsui desu"],
+  ["descriptions-1-m8", "きょうはあついです", "kyou wa atsui desu"],
+  ["descriptions-1-t1", "まちはあついです", "machi wa atsui desu"],
   ["descriptions-1-t2", "まちはさむいです", "machi wa samui desu"],
   ["descriptions-1-t3", "きょうはしずかです", "kyou wa shizuka desu"],
   ["descriptions-1-t4", "あついです", "atsui desu"],
   ["descriptions-1-t5", "まちはしずかです", "machi wa shizuka desu"],
   ["descriptions-2-m1", "わたしはコーヒーがすきです", "watashi wa koohii ga suki desu"],
   ["descriptions-2-m2", "すしがすきです", "sushi ga suki desu"],
-  ["descriptions-2-m3", "ゆきはおんがくがすきです", "yuki wa ongaku ga suki desu"],
+  ["descriptions-2-m3", "ゆきはねこがすきです", "yuki wa neko ga suki desu"],
   ["descriptions-2-m4", "りんごがすきです", "ringo ga suki desu"],
   ["descriptions-2-m5", "わたしはみずがきらいです", "watashi wa mizu ga kirai desu"],
-  ["descriptions-2-m6", "ラーメンがきらいです", "raamen ga kirai desu"],
-  ["descriptions-2-m7", "けんはほんがきらいです", "ken wa hon ga kirai desu"],
-  ["descriptions-2-m8", "へやはあついです", "heya wa atsui desu"],
-  ["descriptions-2-t1", "わたしはおんがくがすきです", "watashi wa ongaku ga suki desu"],
+  ["descriptions-2-m6", "いぬがきらいです", "inu ga kirai desu"],
+  ["descriptions-2-m7", "けんはばんがすきです", "ken wa ban ga suki desu"],
+  ["descriptions-2-m8", "きょうはあついです", "kyou wa atsui desu"],
+  ["descriptions-2-t1", "わたしはねこがすきです", "watashi wa neko ga suki desu"],
   ["descriptions-2-t2", "すしがきらいです", "sushi ga kirai desu"],
   ["descriptions-2-t3", "けんはコーヒーがすきです", "ken wa koohii ga suki desu"],
-  ["descriptions-2-t4", "ほんがすきです", "hon ga suki desu"],
-  ["descriptions-2-t5", "わたしはラーメンがきらいです", "watashi wa raamen ga kirai desu"],
+  ["descriptions-2-t4", "ばんがすきです", "ban ga suki desu"],
+  ["descriptions-2-t5", "わたしはねこがきらいです", "watashi wa neko ga kirai desu"],
   ["descriptions-3-m1", "ねこはりんごよりおおきいです", "neko wa ringo yori ookii desu"],
-  ["descriptions-3-m2", "りんごよりおおきいです", "ringo yori ookii desu"],
+  ["descriptions-3-m2", "それよりおおきいです", "sore yori ookii desu"],
   ["descriptions-3-m3", "ほんはかばんよりちいさいです", "hon wa kaban yori chiisai desu"],
   ["descriptions-3-m4", "かばんよりちいさいです", "kaban yori chiisai desu"],
-  ["descriptions-3-m5", "へやはあれよりさむいです", "heya wa are yori samui desu"],
+  ["descriptions-3-m5", "まちはあれよりさむいです", "machi wa are yori samui desu"],
   ["descriptions-3-m6", "あれよりさむいです", "are yori samui desu"],
   ["descriptions-3-m7", "いぬはかばんよりおおきいです", "inu wa kaban yori ookii desu"],
   ["descriptions-3-m8", "ペンはみかんよりちいさいです", "pen wa mikan yori chiisai desu"],
   ["descriptions-3-t1", "ほんはりんごよりおおきいです", "hon wa ringo yori ookii desu"],
   ["descriptions-3-t2", "ペンはかばんよりちいさいです", "pen wa kaban yori chiisai desu"],
-  ["descriptions-3-t3", "へやはあれよりさむいです", "heya wa are yori samui desu"],
+  ["descriptions-3-t3", "まちはそれよりさむいです", "machi wa sore yori samui desu"],
   ["descriptions-3-t4", "みかんよりちいさいです", "mikan yori chiisai desu"],
   ["descriptions-3-t5", "ペンはみかんよりちいさいです", "pen wa mikan yori chiisai desu"],
   ["descriptions-4-m1", "きょうはあついです", "kyou wa atsui desu"],
   ["descriptions-4-m2", "さむいです", "samui desu"],
   ["descriptions-4-m3", "まちはしずかです", "machi wa shizuka desu"],
-  ["descriptions-4-m4", "へやはおおきいです", "heya wa ookii desu"],
-  ["descriptions-4-m5", "へやはちいさいです", "heya wa chiisai desu"],
-  ["descriptions-4-m6", "まちはおおきいです", "machi wa ookii desu"],
+  ["descriptions-4-m4", "まちはおおきいです", "machi wa ookii desu"],
+  ["descriptions-4-m5", "まちはちいさいです", "machi wa chiisai desu"],
+  ["descriptions-4-m6", "きょうはしずかです", "kyou wa shizuka desu"],
   ["descriptions-4-m7", "あついです", "atsui desu"],
-  ["descriptions-4-m8", "へやはしずかです", "heya wa shizuka desu"],
+  ["descriptions-4-m8", "まちはしずかです", "machi wa shizuka desu"],
   ["descriptions-4-t1", "きょうはさむいです", "kyou wa samui desu"],
-  ["descriptions-4-t2", "へやはおおきいです", "heya wa ookii desu"],
+  ["descriptions-4-t2", "まちはおおきいです", "machi wa ookii desu"],
   ["descriptions-4-t3", "まちはちいさいです", "machi wa chiisai desu"],
   ["descriptions-4-t4", "ちいさいです", "chiisai desu"],
   ["descriptions-4-t5", "まちはさむいです", "machi wa samui desu"],
@@ -194,14 +194,14 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["shopping-2-m1", "わたしはりんごをみっつかいます", "watashi wa ringo o mittsu kaimasu"],
   ["shopping-2-m2", "りんごをふたつかいます", "ringo o futatsu kaimasu"],
   ["shopping-2-m3", "ゆきはみかんをいつつかいます", "yuki wa mikan o itsutsu kaimasu"],
-  ["shopping-2-m4", "みずをふたつのみます", "mizu o futatsu nomimasu"],
+  ["shopping-2-m4", "きっぷをひとつかいます", "kippu o hitotsu kaimasu"],
   ["shopping-2-m5", "けんはコーヒーをひとつのみます", "ken wa koohii o hitotsu nomimasu"],
   ["shopping-2-m6", "すしをよっつたべます", "sushi o yottsu tabemasu"],
   ["shopping-2-m7", "みなはりんごをひとつたべます", "mina wa ringo o hitotsu tabemasu"],
   ["shopping-2-m8", "わたしはきっぷをふたつかいます", "watashi wa kippu o futatsu kaimasu"],
   ["shopping-2-t1", "わたしはみかんをふたつかいます", "watashi wa mikan o futatsu kaimasu"],
   ["shopping-2-t2", "りんごをいつつたべます", "ringo o itsutsu tabemasu"],
-  ["shopping-2-t3", "ゆきはコーヒーをふたつのみます", "yuki wa koohii o futatsu nomimasu"],
+  ["shopping-2-t3", "ゆきはきっぷをふたつかいます", "yuki wa kippu o futatsu kaimasu"],
   ["shopping-2-t4", "きっぷをみっつかいます", "kippu o mittsu kaimasu"],
   ["shopping-2-t5", "けんはすしをひとつたべます", "ken wa sushi o hitotsu tabemasu"],
   ["shopping-3-m1", "みずをください", "mizu o kudasai"],
@@ -236,7 +236,7 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["existence-needs-1-m4", "ねこがいすのしたにいます", "neko ga isu no shita ni imasu"],
   ["existence-needs-1-m5", "かぎがあります", "kagi ga arimasu"],
   ["existence-needs-1-m6", "いぬがいます", "inu ga imasu"],
-  ["existence-needs-1-m7", "へやはおおきいです", "heya wa ookii desu"],
+  ["existence-needs-1-m7", "まちはおおきいです", "machi wa ookii desu"],
   ["existence-needs-1-m8", "こどもがいます", "kodomo ga imasu"],
   ["existence-needs-1-t1", "ほんがいすのしたにあります", "hon ga isu no shita ni arimasu"],
   ["existence-needs-1-t2", "ねこがつくえのうえにいます", "neko ga tsukue no ue ni imasu"],
@@ -450,6 +450,11 @@ describe("A1 modules 9–12 · counters, prices & polite requests", () => {
       expect(romaji.includes(" ga "), variantId).toBe(false);
     }
   });
+
+  it("uses countable purchase items instead of an uncountable quantity filler", () => {
+    expect(jpOf("shopping-2-m4")).toBe("きっぷをひとつかいます");
+    expect(romajiFor("shopping-2-m4")).toBe("kippu o hitotsu kaimasu");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -542,9 +547,9 @@ describe("A1 modules 9–12 · lesson metrics", () => {
       }
     });
 
-    // View-model selection yields exactly 10 exercises (5 + 5) in EN and IT.
-    expect(b.recipe.practice.roundOne.targetCount).toBe(5);
-    expect(b.recipe.practice.roundTwo.targetCount).toBe(5);
+    // View-model selection yields exactly 4 exercises (2 + 2) in EN and IT.
+    expect(b.recipe.practice.roundOne.targetCount).toBe(2);
+    expect(b.recipe.practice.roundTwo.targetCount).toBe(2);
     for (const locale of ["en", "it"] as const) {
       const vm = buildLessonViewModel({
         catalogs,
@@ -556,8 +561,8 @@ describe("A1 modules 9–12 · lesson metrics", () => {
       });
       expect(vm.ok, vm.ok ? "" : `${lessonId} ${locale}: ${JSON.stringify((vm as { error: unknown }).error)}`).toBe(true);
       if (vm.ok) {
-        expect(vm.model.rounds[0].targets.length).toBe(5);
-        expect(vm.model.rounds[1].targets.length).toBe(5);
+        expect(vm.model.rounds[0].targets.length).toBe(2);
+        expect(vm.model.rounds[1].targets.length).toBe(2);
       }
     }
   });

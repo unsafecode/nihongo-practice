@@ -366,8 +366,9 @@ export const A1_INSTRUCTIONAL_KIT_CONFIG: InstructionalLessonKitConfig<A1LessonR
   buildVariant: a1Variant,
   modelCountRange: [8, 8],
   minFamilies: 1,
-  exerciseCountRange: [10, 10],
-  roundTargetCount: 5,
+  exerciseCountRange: [4, 4],
+  roundTargetCounts: [2, 2],
+  minUniqueTargets: 4,
   roundOneExerciseKinds: A1_ROUND_ONE_KINDS,
   roundTwoExerciseKinds: A1_ROUND_TWO_KINDS,
   selectionPolicyId: "a1-selection-default",
@@ -378,9 +379,9 @@ export const A1_INSTRUCTIONAL_KIT_CONFIG: InstructionalLessonKitConfig<A1LessonR
  * Expand an instructional lesson's eight models and five transfers into a
  * validated {@link A1LessonRecipe} (via {@link defineA1Lesson}), its frozen
  * variants, and the merged EN/IT translation+scenario copy. Diversity floors
- * are fixed to the A1 depth contract: eight models, ten exercises, ≥3
- * predicates, ≥3 roles, ≥2 contexts, five unique targets per round, reuse ≤2,
- * five transfer exercises, controlled construction required. `minFamilies` is
+ * are fixed to the A1 depth contract: eight models, four exercises, ≥3
+ * predicates, ≥3 roles, ≥2 contexts, four unique targets, reuse ≤2, two
+ * transfer exercises, controlled construction required. `minFamilies` is
  * declared as 1 (the honest floor — 10 of 44 A1 lessons genuinely teach a single
  * family). Delegates
  * every level-agnostic assembly step to the shared
