@@ -277,7 +277,7 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["existence-needs-3-m6", "けんはすしがすきです", "ken wa sushi ga suki desu"],
   ["existence-needs-3-m7", "わたしはみずがきらいです", "watashi wa mizu ga kirai desu"],
   ["existence-needs-3-m8", "ほんがあります", "hon ga arimasu"],
-  ["existence-needs-3-t1", "わたしはおかねがほしいです", "watashi wa okane ga hoshii desu"],
+  ["existence-needs-3-t1", "わたしはくすりがほしいです", "watashi wa kusuri ga hoshii desu"],
   ["existence-needs-3-t2", "コーヒーがほしいです", "koohii ga hoshii desu"],
   ["existence-needs-3-t3", "わたしはりんごがすきです", "watashi wa ringo ga suki desu"],
   ["existence-needs-3-t4", "わたしはすしがきらいです", "watashi wa sushi ga kirai desu"],
@@ -419,7 +419,7 @@ describe("A1 bare ほしい scope", () => {
   });
 
   it("pins the corrected speaker-desire surfaces and translations", () => {
-    expect(["existence-needs-3-m3", "capstones-3-t4"].map((id) => ({
+    expect(["existence-needs-3-m3", "existence-needs-3-t1", "capstones-3-t4"].map((id) => ({
       id,
       jp: jpOf(id),
       en: copy.en[`${id}-translation`],
@@ -430,6 +430,12 @@ describe("A1 bare ほしい scope", () => {
         jp: "わたしはパスポートがほしいです",
         en: "I want a passport.",
         it: "Voglio un passaporto.",
+      },
+      {
+        id: "existence-needs-3-t1",
+        jp: "わたしはくすりがほしいです",
+        en: "I want medicine.",
+        it: "Voglio della medicina.",
       },
       {
         id: "capstones-3-t4",
@@ -560,6 +566,13 @@ describe("A1 modules 9–12 · existence, position & needs", () => {
     expect(romajiFor("existence-needs-3-m5")).toBe("watashi wa koohii ga suki desu");
     expect(jpOf("existence-needs-3-m1")).toBe("わたしはおかねがほしいです");
     expect(romajiFor("existence-needs-3-m1")).toBe("watashi wa okane ga hoshii desu");
+  });
+
+  it("keeps every existence-needs-3 model and transfer Japanese surface unique", () => {
+    const surfaces = allVariants
+      .filter((variant) => variant.id.startsWith("existence-needs-3-"))
+      .map((variant) => realize(variant).canonicalJapanese);
+    expect(new Set(surfaces).size).toBe(surfaces.length);
   });
 
   it("marks the existing subject with が, never を", () => {

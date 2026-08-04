@@ -128,7 +128,7 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
     { id: "existence-needs-3-m8", family: EXIST, context: "a1-context-shop", subjectReferent: THING, subjectRealization: "explicit", speakerRole: "a1-role-mina", slots: exist("a1-value-ex-book", ARU), translation: L("There is a book.", "C'è un libro.") },
   ],
   transfers: [
-    { id: "existence-needs-3-t1", family: PREF, context: "a1-context-station", subjectReferent: SELF, subjectRealization: "explicit", slots: pref("a1-value-watashi", "a1-value-want", "a1-value-obj-money"), translation: L("I want money.", "Voglio dei soldi.") },
+    { id: "existence-needs-3-t1", family: PREF, context: "a1-context-station", subjectReferent: SELF, subjectRealization: "explicit", slots: pref("a1-value-watashi", "a1-value-want", "a1-value-obj-medicine"), translation: L("I want medicine.", "Voglio della medicina.") },
     { id: "existence-needs-3-t2", family: PREF, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", slots: pref("a1-value-watashi", "a1-value-want", "a1-value-obj-coffee"), translation: L("I want coffee.", "Voglio del caffè.") },
     { id: "existence-needs-3-t3", family: PREF, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "explicit", slots: pref("a1-value-watashi", "a1-value-like", "a1-value-obj-apple"), translation: L("I like apples.", "Mi piacciono le mele.") },
     { id: "existence-needs-3-t4", family: PREF, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "explicit", slots: pref("a1-value-watashi", "a1-value-dislike", "a1-value-obj-sushi"), translation: L("I dislike sushi.", "Non mi piace il sushi.") },
