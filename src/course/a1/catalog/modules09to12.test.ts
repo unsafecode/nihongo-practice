@@ -119,6 +119,19 @@ const variantById = new Map(allVariants.map((v) => [v.id, v]));
 const jpOf = (id: string): string => realize(variantById.get(id) as SentenceVariant).canonicalJapanese;
 const romajiFor = (id: string): string => romajiOf(realize(variantById.get(id) as SentenceVariant).tokens);
 
+function violatesBareWantScope(
+  variant: Pick<SentenceVariant, "form" | "discourse" | "slotValues">,
+): boolean {
+  return (
+    Object.values(variant.slotValues).includes("a1-value-want") &&
+    !variant.form.interrogative &&
+    variant.form.polarity === "affirmative" &&
+    variant.form.tense === "present" &&
+    variant.discourse.subjectRealization === "explicit" &&
+    variant.discourse.subjectReferentId !== "a1-referent-self"
+  );
+}
+
 // ---------------------------------------------------------------------------
 // 1. The exact realized-sentence table — every Modules 9–12 variant.
 // [variantId, canonicalJapanese, rōmaji]. Authored from realized output and
@@ -258,15 +271,15 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["existence-needs-2-t5", "かぎがつくえのうえにあります", "kagi ga tsukue no ue ni arimasu"],
   ["existence-needs-3-m1", "わたしはおかねがほしいです", "watashi wa okane ga hoshii desu"],
   ["existence-needs-3-m2", "くすりがほしいです", "kusuri ga hoshii desu"],
-  ["existence-needs-3-m3", "ゆきはパスポートがほしいです", "yuki wa pasupooto ga hoshii desu"],
+  ["existence-needs-3-m3", "わたしはパスポートがほしいです", "watashi wa pasupooto ga hoshii desu"],
   ["existence-needs-3-m4", "わたしはりんごがほしいです", "watashi wa ringo ga hoshii desu"],
   ["existence-needs-3-m5", "わたしはコーヒーがすきです", "watashi wa koohii ga suki desu"],
   ["existence-needs-3-m6", "けんはすしがすきです", "ken wa sushi ga suki desu"],
   ["existence-needs-3-m7", "わたしはみずがきらいです", "watashi wa mizu ga kirai desu"],
   ["existence-needs-3-m8", "ほんがあります", "hon ga arimasu"],
-  ["existence-needs-3-t1", "わたしはパスポートがほしいです", "watashi wa pasupooto ga hoshii desu"],
+  ["existence-needs-3-t1", "わたしはおかねがほしいです", "watashi wa okane ga hoshii desu"],
   ["existence-needs-3-t2", "コーヒーがほしいです", "koohii ga hoshii desu"],
-  ["existence-needs-3-t3", "ゆきはりんごがすきです", "yuki wa ringo ga suki desu"],
+  ["existence-needs-3-t3", "わたしはりんごがすきです", "watashi wa ringo ga suki desu"],
   ["existence-needs-3-t4", "わたしはすしがきらいです", "watashi wa sushi ga kirai desu"],
   ["existence-needs-3-t5", "わたしはおかねがすきです", "watashi wa okane ga suki desu"],
   ["existence-needs-4-m1", "かさがつくえのうえにあります", "kasa ga tsukue no ue ni arimasu"],
@@ -319,7 +332,7 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["capstones-3-t1", "わたしはみずがきらいです", "watashi wa mizu ga kirai desu"],
   ["capstones-3-t2", "かぎがあります", "kagi ga arimasu"],
   ["capstones-3-t3", "いぬがいます", "inu ga imasu"],
-  ["capstones-3-t4", "ゆきはきっぷがほしいです", "yuki wa kippu ga hoshii desu"],
+  ["capstones-3-t4", "きっぷがほしいです", "kippu ga hoshii desu"],
   ["capstones-3-t5", "ゆきはとうきょうからおおさかまでいきます", "yuki wa toukyou kara oosaka made ikimasu"],
   ["capstones-4-m1", "がくせいです", "gakusei desu"],
   ["capstones-4-m2", "イタリアじんです", "itariajin desu"],
@@ -359,6 +372,72 @@ describe("A1 modules 9–12 · exact realized-sentence table", () => {
     for (const [variantId, , expectedRomaji] of EXPECTED_SENTENCES) {
       expect(romajiFor(variantId), variantId).toBe(expectedRomaji);
     }
+  });
+});
+
+describe("A1 bare ほしい scope", () => {
+  it("limits affirmative declarative want variants to the speaker while preserving permitted forms", () => {
+    const wantValue = a1SemanticValues.find(({ id }) => id === "a1-value-want");
+    expect(wantValue).toMatchObject({ kind: "predicate-sense", senseId: "a1-sense-want" });
+
+    const wantVariants = allVariants.filter((variant) =>
+      Object.values(variant.slotValues).includes("a1-value-want"),
+    );
+    const invalidNamedThirdPersonDeclaratives = allVariants
+      .filter(violatesBareWantScope)
+      .map(({ id }) => id);
+    expect(invalidNamedThirdPersonDeclaratives).toEqual([]);
+
+    const explicitSelf = wantVariants.find((variant) =>
+      variant.discourse.subjectReferentId === "a1-referent-self" &&
+      variant.discourse.subjectRealization === "explicit",
+    );
+    const omittedSelf = wantVariants.find((variant) =>
+      variant.discourse.subjectReferentId === "a1-referent-self" &&
+      variant.discourse.subjectRealization === "omitted",
+    );
+    expect(explicitSelf).toBeDefined();
+    expect(omittedSelf).toBeDefined();
+    expect(violatesBareWantScope(explicitSelf!)).toBe(false);
+    expect(violatesBareWantScope(omittedSelf!)).toBe(false);
+    expect(violatesBareWantScope({
+      ...omittedSelf!,
+      form: { ...omittedSelf!.form, interrogative: true },
+      discourse: {
+        ...omittedSelf!.discourse,
+        subjectReferentId: "a1-referent-classmate",
+        addresseeRoleId: "a1-role-classmate",
+      },
+    })).toBe(false);
+    expect(violatesBareWantScope({
+      ...explicitSelf!,
+      discourse: {
+        ...explicitSelf!.discourse,
+        subjectReferentId: "a1-referent-yuki",
+      },
+    })).toBe(true);
+  });
+
+  it("pins the corrected speaker-desire surfaces and translations", () => {
+    expect(["existence-needs-3-m3", "capstones-3-t4"].map((id) => ({
+      id,
+      jp: jpOf(id),
+      en: copy.en[`${id}-translation`],
+      it: copy.it[`${id}-translation`],
+    }))).toEqual([
+      {
+        id: "existence-needs-3-m3",
+        jp: "わたしはパスポートがほしいです",
+        en: "I want a passport.",
+        it: "Voglio un passaporto.",
+      },
+      {
+        id: "capstones-3-t4",
+        jp: "きっぷがほしいです",
+        en: "I want a ticket.",
+        it: "Voglio un biglietto.",
+      },
+    ]);
   });
 });
 

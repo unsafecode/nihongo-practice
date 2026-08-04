@@ -190,7 +190,7 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
     { id: "capstones-3-t1", family: PREF, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "explicit", slots: pref(WATASHI, "a1-value-dislike", "a1-value-obj-water"), translation: L("I dislike water.", "Non mi piace l'acqua.") },
     { id: "capstones-3-t2", family: EXIST, context: "a1-context-station", subjectReferent: THING, subjectRealization: "explicit", slots: exist("a1-value-ex-key", "a1-value-exist-inanimate"), translation: L("There is a key.", "C'è una chiave.") },
     { id: "capstones-3-t3", family: EXIST, context: "a1-context-station", subjectReferent: CREATURE, subjectRealization: "explicit", slots: exist("a1-value-ex-dog", "a1-value-exist-animate"), translation: L("There is a dog.", "C'è un cane.") },
-    { id: "capstones-3-t4", family: PREF, context: "a1-context-station", subjectReferent: YUKI_REF, subjectRealization: "explicit", slots: pref("a1-value-yuki", "a1-value-want", "a1-value-obj-ticket"), translation: L("Yuki wants a ticket.", "Yuki vuole un biglietto.") },
+    { id: "capstones-3-t4", family: PREF, context: "a1-context-station", subjectReferent: SELF, subjectRealization: "omitted", slots: pref(WATASHI, "a1-value-want", "a1-value-obj-ticket"), translation: L("I want a ticket.", "Voglio un biglietto.") },
     { id: "capstones-3-t5", family: ROUTE, context: "a1-context-station", subjectReferent: YUKI_REF, subjectRealization: "explicit", slots: route("a1-value-yuki", "a1-value-go", "a1-value-loc-tokyo", "a1-value-loc-osaka"), translation: L("Yuki goes from Tokyo to Osaka.", "Yuki va da Tokyo a Osaka.") },
   ],
 });

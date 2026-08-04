@@ -1089,20 +1089,20 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
     requiredConceptIds: ["a1-concept-preference-ga"],
     title: { en: "Say what you want with ほしい", it: "Di' ciò che vuoi con ほしい" },
     meaning: {
-      en: "ほしい describes something wanted; in this basic pattern, the wanted thing is marked by が.",
-      it: "ほしい descrive qualcosa che si desidera; in questa struttura di base, la cosa desiderata è segnata da が.",
+      en: "In this basic pattern, ほしい describes what the speaker wants; the wanted thing takes が.",
+      it: "In questa struttura di base, ほしい descrive ciò che vuole chi parla; la cosa desiderata prende が.",
     },
     use: {
-      en: "Use it for a simple wish or need when the person who wants it is clear from context or stated as topic.",
-      it: "Usalo per un desiderio o un bisogno semplice quando la persona che lo desidera è chiara dal contesto o espressa come tema.",
+      en: "Use it for your own simple wish or need. To ask what the addressee wants, use a question.",
+      it: "Usalo per un tuo semplice desiderio o bisogno. Per chiedere che cosa vuole l'interlocutore, usa una domanda.",
     },
     construction: {
-      en: "State the person as topic when needed, then the wanted thing plus が, then ほしいです.",
-      it: "Indica la persona come tema quando serve, poi la cosa desiderata più が, quindi ほしいです.",
+      en: "State わたし as topic when needed, then the wanted thing + が + ほしいです.",
+      it: "Se serve, indica わたし come tema, poi la cosa desiderata + が + ほしいです.",
     },
     typicalMistake: {
-      en: "Do not automatically use を after the wanted thing in this basic ほしい pattern.",
-      it: "Non usare automaticamente を dopo la cosa desiderata in questa struttura di base con ほしい.",
+      en: "Do not use bare ほしいです to state another person's desire; later patterns or quoting are required and are outside this A1 lesson. Do not use を after the wanted thing.",
+      it: "Non usare ほしいです da solo per dire il desiderio di un'altra persona; servono strutture successive o il discorso riportato, fuori da questa lezione A1. Non usare を dopo la cosa desiderata.",
     },
     pattern: [
       token("slot", "person", "person or topic", "persona o tema"),

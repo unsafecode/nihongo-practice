@@ -135,6 +135,27 @@ describe("A1 learner note catalog", () => {
     );
   });
 
+  it("scopes basic bare ほしい to the speaker and preserves the が warning", () => {
+    expect(a1LearningNoteById["a1-note-needs-wants"]).toMatchObject({
+      meaning: {
+        en: "In this basic pattern, ほしい describes what the speaker wants; the wanted thing takes が.",
+        it: "In questa struttura di base, ほしい descrive ciò che vuole chi parla; la cosa desiderata prende が.",
+      },
+      use: {
+        en: "Use it for your own simple wish or need. To ask what the addressee wants, use a question.",
+        it: "Usalo per un tuo semplice desiderio o bisogno. Per chiedere che cosa vuole l'interlocutore, usa una domanda.",
+      },
+      construction: {
+        en: "State わたし as topic when needed, then the wanted thing + が + ほしいです.",
+        it: "Se serve, indica わたし come tema, poi la cosa desiderata + が + ほしいです.",
+      },
+      typicalMistake: {
+        en: "Do not use bare ほしいです to state another person's desire; later patterns or quoting are required and are outside this A1 lesson. Do not use を after the wanted thing.",
+        it: "Non usare ほしいです da solo per dire il desiderio di un'altra persona; servono strutture successive o il discorso riportato, fuori da questa lezione A1. Non usare を dopo la cosa desiderata.",
+      },
+    });
+  });
+
   it("contrasts destination に with an action place で without introducing unrelated roles", () => {
     const note = a1LearningNoteById["a1-note-location-ni-de-contrast"];
 
