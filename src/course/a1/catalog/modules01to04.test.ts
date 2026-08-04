@@ -117,7 +117,7 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
     ["introductions-1-t1", "けんはがくせいです", "ken wa gakusei desu"],
     ["introductions-1-t2", "とうきょうにすみます", "toukyou ni sumimasu"],
     ["introductions-1-t3", "みなはにほんごをべんきょうします", "mina wa nihongo o benkyoushimasu"],
-    ["introductions-1-t4", "みなはいしゃです", "mina wa isha desu"],
+    ["introductions-1-t4", "みなはせんせいです", "mina wa sensei desu"],
     ["introductions-1-t5", "クラスメートはとうきょうにすみます", "kurasumeeto wa toukyou ni sumimasu"],
     ["introductions-2-m1", "けんはかいしゃではたらきます", "ken wa kaisha de hatarakimasu"],
     ["introductions-2-m2", "みなはかいしゃではたらきます", "mina wa kaisha de hatarakimasu"],
@@ -366,6 +366,30 @@ interface LessonMetrics {
 const metricsByLesson = new Map<string, LessonMetrics>();
 
 describe("A1 modules 2–4 · lesson metrics", () => {
+  it("uses only model-introduced values in introductions-1 transfers", () => {
+    const introductions1 = module2Lessons.find(
+      (built) => built.recipe.id === "introductions-1",
+    );
+    expect(introductions1).toBeDefined();
+
+    const modelValueIds = new Set(
+      introductions1!.variants
+        .filter((variant) => variant.pedagogicalUse === "model")
+        .flatMap((variant) => Object.values(variant.slotValues)),
+    );
+    const transfers = introductions1!.variants.filter(
+      (variant) => variant.pedagogicalUse === "transfer",
+    );
+
+    expect(transfers).toHaveLength(5);
+    for (const transfer of transfers) {
+      expect(
+        Object.values(transfer.slotValues).filter((valueId) => !modelValueIds.has(valueId)),
+        `${transfer.id} uses a value absent from introductions-1 models`,
+      ).toEqual([]);
+    }
+  });
+
   it.each(instructionalBuilt.map((b) => [b.recipe.id, b] as const))(
     "%s satisfies the A1 depth contract",
     (lessonId, built) => {

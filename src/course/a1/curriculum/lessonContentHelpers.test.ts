@@ -16,7 +16,13 @@ describe("A1 lesson content blueprints", () => {
   });
 
   it("uses the semantic learner order and contextual fourth activity", () => {
-    expect(semanticBlueprint("introductions-1", "introductions-1-m4", true)).toEqual({
+    expect(
+      semanticBlueprint(
+        "introductions-1",
+        "introductions-1-m4",
+        "contextual-response",
+      ),
+    ).toEqual({
       activities: [
         expect.objectContaining({
           id: "introductions-1-meaning",
@@ -50,5 +56,18 @@ describe("A1 lesson content blueprints", () => {
         }),
       ],
     });
+  });
+
+  it("maps an explicit transformation fourth activity to its original interaction", () => {
+    expect(
+      semanticBlueprint("introductions-2", "introductions-2-m4", "transformation").activities[3],
+    ).toEqual(
+      expect.objectContaining({
+        id: "introductions-2-transfer",
+        function: "transformation",
+        interactionKind: "transformation",
+        targetRef: { round: "two", index: 1 },
+      }),
+    );
   });
 });

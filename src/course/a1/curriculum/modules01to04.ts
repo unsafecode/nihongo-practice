@@ -128,7 +128,11 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
         "introductions-1-m2",
       ],
     },
-    practiceBlueprint: semanticBlueprint("introductions-1", "introductions-1-m4", true),
+    practiceBlueprint: semanticBlueprint(
+      "introductions-1",
+      "introductions-1-m4",
+      "contextual-response",
+    ),
     retrievalCue: {
       en: "Say who you are, then say it again without わたし when the context is clear.",
       it: "Dici chi sei, poi ripetilo senza わたし quando il contesto è chiaro.",
@@ -150,7 +154,11 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     ],
     learningNoteId: "a1-note-topic-wa-copula-desu",
     workedExampleVariantIds: ["introductions-2-m1", "introductions-2-m4"],
-    practiceBlueprint: semanticBlueprint("introductions-2", "introductions-2-m4", false),
+    practiceBlueprint: semanticBlueprint(
+      "introductions-2",
+      "introductions-2-m4",
+      "transformation",
+    ),
     retrievalCue: {
       en: "Set the topic first, then finish the polite statement with です or the action.",
       it: "Imposta prima il tema, poi completa l'affermazione cortese con です o con l'azione.",
@@ -176,7 +184,11 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       "introductions-3-m2",
       "introductions-3-m3",
     ],
-    practiceBlueprint: semanticBlueprint("introductions-3", "introductions-3-m3", false),
+    practiceBlueprint: semanticBlueprint(
+      "introductions-3",
+      "introductions-3-m3",
+      "transformation",
+    ),
     retrievalCue: {
       en: "Name the dictionary form you would look up, then use the polite form you need.",
       it: "Nomina la forma di dizionario da cercare, poi usa la forma cortese che ti serve.",
@@ -209,7 +221,11 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
         "introductions-4-m8",
       ],
     },
-    practiceBlueprint: semanticBlueprint("introductions-4", "introductions-4-m7", true),
+    practiceBlueprint: semanticBlueprint(
+      "introductions-4",
+      "introductions-4-m7",
+      "contextual-response",
+    ),
     retrievalCue: {
       en: "Answer about yourself, then ask back and omit a personal word when the partner is clear.",
       it: "Rispondi su di te, poi chiedi a tua volta e ometti una parola personale quando il partner è chiaro.",
@@ -238,7 +254,7 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     practiceBlueprint: semanticBlueprint(
       "essential-questions-1",
       "essential-questions-1-m5",
-      true,
+      "contextual-response",
     ),
     retrievalCue: {
       en: "Keep what in the information slot and let か make the question at the end.",
@@ -269,7 +285,7 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     practiceBlueprint: semanticBlueprint(
       "essential-questions-2",
       "essential-questions-2-m3",
-      false,
+      "transformation",
     ),
     retrievalCue: {
       en: "Use だれ for a person and どこ for a place, then keep か final.",
@@ -300,7 +316,7 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     practiceBlueprint: semanticBlueprint(
       "essential-questions-3",
       "essential-questions-3-m2",
-      false,
+      "transformation",
     ),
     retrievalCue: {
       en: "Choose the question word for time, price, or number; the polite question shape stays familiar.",
@@ -330,7 +346,7 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     practiceBlueprint: semanticBlueprint(
       "essential-questions-4",
       "essential-questions-4-m5",
-      true,
+      "contextual-response",
     ),
     retrievalCue: {
       en: "Clarify the person or item first; use が when the answer itself is the focus.",
@@ -353,7 +369,11 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     ],
     learningNoteId: "a1-note-particle-o",
     workedExampleVariantIds: ["actions-1-m1", "actions-1-m3", "actions-1-m5"],
-    practiceBlueprint: semanticBlueprint("actions-1", "actions-1-m3", true),
+    practiceBlueprint: semanticBlueprint(
+      "actions-1",
+      "actions-1-m3",
+      "contextual-response",
+    ),
     retrievalCue: {
       en: "Name the thing first, add を, and finish with the polite action.",
       it: "Nomina prima la cosa, aggiungi を e termina con l'azione cortese.",
@@ -375,7 +395,11 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     ],
     learningNoteId: "a1-note-particle-de",
     workedExampleVariantIds: ["actions-2-m7", "actions-2-m8"],
-    practiceBlueprint: semanticBlueprint("actions-2", "actions-2-m8", false),
+    practiceBlueprint: semanticBlueprint(
+      "actions-2",
+      "actions-2-m8",
+      "transformation",
+    ),
     retrievalCue: {
       en: "Ask where the action happens, then put that place before で.",
       it: "Chiediti dove avviene l'azione, poi metti quel luogo prima di で.",
@@ -397,7 +421,11 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     ],
     learningNoteId: "a1-note-particle-ni",
     workedExampleVariantIds: ["actions-3-m2", "actions-3-m4", "actions-3-m5"],
-    practiceBlueprint: semanticBlueprint("actions-3", "actions-3-m4", true),
+    practiceBlueprint: semanticBlueprint(
+      "actions-3",
+      "actions-3-m4",
+      "contextual-response",
+    ),
     retrievalCue: {
       en: "Name the recipient or goal before に, then omit yourself when the situation makes it clear.",
       it: "Nomina il destinatario o la meta prima di に, poi ometti te stesso quando la situazione è chiara.",
@@ -420,7 +448,11 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     ],
     learningNoteId: "a1-note-particle-o",
     workedExampleVariantIds: ["actions-4-m1", "actions-4-m3", "actions-4-m5"],
-    practiceBlueprint: semanticBlueprint("actions-4", "actions-4-m3", true),
+    practiceBlueprint: semanticBlueprint(
+      "actions-4",
+      "actions-4-m3",
+      "contextual-response",
+    ),
     retrievalCue: {
       en: "Reuse object plus を plus action, changing only the action and the thing.",
       it: "Riusa oggetto più を più azione, cambiando solo l'azione e la cosa.",

@@ -5,7 +5,7 @@ type PhoneticItemIds = readonly [string, string, string, string, string];
 export function semanticBlueprint(
   lessonId: string,
   spokenVariantId: string,
-  fourth: boolean,
+  fourth: "transformation" | "contextual-response",
 ): A1PracticeBlueprint {
   return {
     activities: [
@@ -27,7 +27,7 @@ export function semanticBlueprint(
         interactionKind: "tile-ordering",
         targetRef: { round: "one", index: 0 },
       },
-      fourth
+      fourth === "contextual-response"
         ? {
             id: `${lessonId}-transfer`,
             function: "contextual-response",
