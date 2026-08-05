@@ -20,6 +20,9 @@ import {
 
 const INTRODUCTION = { moduleId: "introductions", lessonId: "introductions-1" } as const;
 const SOUND_BRIDGE = { moduleId: "sounds", lessonId: "sounds-4" } as const;
+const SOUND_BRIDGE_TILE_TARGET = ["レ", "ス", "ト", "ラ", "ン"] as const;
+const TILE_EXERCISE_COPY = getCourseCopy("it").exercises;
+const CHECKPOINT_COPY = getCourseCopy("it").checkpoint;
 
 function isMobile(width: number): boolean {
   return width < 700;
@@ -40,6 +43,34 @@ async function closeMobileSettings(page: Page): Promise<void> {
     await page.keyboard.press("Escape");
     await expect(drawer).toHaveCount(0);
   }
+}
+
+async function currentTileExerciseCard(page: Page, visibleFirstTile: string): Promise<Locator> {
+  const cards = page
+    .locator(".lesson-exercise")
+    .filter({
+      has: page.getByRole("list", {
+        name: TILE_EXERCISE_COPY.bankLabel,
+        exact: true,
+      }),
+    })
+    .filter({
+      has: page.getByRole("button", {
+        name: TILE_EXERCISE_COPY.addTile(visibleFirstTile),
+        exact: true,
+      }),
+    });
+  await expect(cards, "the current A1 lesson has one live tile-ordering card").toHaveCount(1);
+  const headingId = await cards.getAttribute("aria-labelledby");
+  if (!headingId) throw new Error("Tile-ordering card needs an accessible heading reference");
+  return page.locator(`.lesson-exercise[aria-labelledby="${headingId}"]`);
+}
+
+async function expectActiveControl(page: Page, control: Locator): Promise<void> {
+  const id = await control.getAttribute("id");
+  if (!id) throw new Error("Tile control needs a stable DOM id");
+  await expect(control).toBeFocused();
+  expect(await page.evaluate(() => document.activeElement?.id ?? null)).toBe(id);
 }
 
 function generatedActivities(lessonId: string) {
@@ -240,6 +271,106 @@ test.describe("A1 foundation lesson navigation and current practice", () => {
     assertLocalOnlyNetwork(observers);
   });
 
+  test("keyboard tile ordering follows focus through moves, removal, and an accepted current A1 answer", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, routeUrls.lesson(SOUND_BRIDGE.moduleId, SOUND_BRIDGE.lessonId));
+
+    const rosterItem = page
+      .locator(".a1-vocabulary__item")
+      .filter({ hasText: "レストラン" });
+    await expect(rosterItem, "the target word is visible in the current A1 lesson").toHaveCount(1);
+    const card = await currentTileExerciseCard(page, SOUND_BRIDGE_TILE_TARGET[0]);
+    const add = (tile: string) =>
+      card.getByRole("button", {
+        name: TILE_EXERCISE_COPY.addTile(tile),
+        exact: true,
+      });
+    const remove = (tile: string) =>
+      card.getByRole("button", {
+        name: TILE_EXERCISE_COPY.removeTile(tile),
+        exact: true,
+      });
+    const moveBack = (tile: string) =>
+      card.getByRole("button", {
+        name: TILE_EXERCISE_COPY.moveTileBack(tile),
+        exact: true,
+      });
+    const moveForward = (tile: string) =>
+      card.getByRole("button", {
+        name: TILE_EXERCISE_COPY.moveTileForward(tile),
+        exact: true,
+      });
+
+    // The target word is learner-visible in the current production exercise;
+    // this deliberately locates the card by its accessible bank, not card order.
+    for (const tile of ["ス", "レ", "ン", "ト", "ラ"] as const) {
+      const control = add(tile);
+      await expect(control).toBeVisible();
+      await control.focus();
+      await expectActiveControl(page, control);
+      await page.keyboard.press("Enter");
+    }
+    await expect(card.getByRole("list", { name: TILE_EXERCISE_COPY.bankLabel })).toBeEmpty();
+    await expectActiveControl(page, remove("ラ"));
+
+    // Moving a middle tile to the first boundary leaves focus on its enabled
+    // forward control; returning it to the middle leaves focus on move-back.
+    await moveBack("レ").focus();
+    await page.keyboard.press("Enter");
+    await expect(moveBack("レ")).toBeDisabled();
+    await expectActiveControl(page, moveForward("レ"));
+    await page.keyboard.press("Enter");
+    await expectActiveControl(page, moveBack("レ"));
+
+    // Moving a middle tile to the last boundary similarly follows the tile.
+    await moveForward("ト").focus();
+    await page.keyboard.press("Enter");
+    await expect(moveForward("ト")).toBeDisabled();
+    await expectActiveControl(page, moveBack("ト"));
+    await page.keyboard.press("Enter");
+    await expectActiveControl(page, moveForward("ト"));
+
+    // Removing a focused tile restores focus to its bank control, then keyboard
+    // re-addition can continue the same non-pointer path.
+    await remove("ス").focus();
+    await page.keyboard.press("Enter");
+    await expectActiveControl(page, add("ス"));
+    await page.keyboard.press("Enter");
+    await expectActiveControl(page, remove("ス"));
+
+    for (let index = 0; index < 3; index += 1) {
+      await moveBack("ス").focus();
+      await page.keyboard.press("Enter");
+      await expectActiveControl(page, moveForward("ス"));
+    }
+    for (let index = 0; index < 2; index += 1) {
+      await moveForward("ン").focus();
+      await page.keyboard.press("Enter");
+      await expectActiveControl(page, moveBack("ン"));
+    }
+
+    expect(
+      await card.locator(".lesson-exercise__placed").evaluateAll((tiles) =>
+        tiles.map((tile) => tile.querySelector(".lesson-exercise__glyph-primary")?.textContent?.trim()),
+      ),
+    ).toEqual(SOUND_BRIDGE_TILE_TARGET);
+
+    const submit = card.getByRole("button", {
+      name: TILE_EXERCISE_COPY.submit,
+      exact: true,
+    });
+    await submit.focus();
+    await page.keyboard.press("Enter");
+    await expect(card.locator(".lesson-exercise__feedback")).toHaveClass(
+      /lesson-exercise__feedback--accepted/,
+    );
+
+    await assertNoHorizontalOverflow(page);
+    await assertNoRuntimeErrors(page, observers);
+  });
+
   test("four generated activities plus one spoken attempt give text feedback and preserve a failed review", async ({
     page,
   }) => {
@@ -309,4 +440,59 @@ test.describe("A1 foundation lesson navigation and current practice", () => {
     await assertNoRuntimeErrors(page, observers);
     assertLocalOnlyNetwork(observers);
   });
+});
+
+test.describe("checkpoint evidence link", () => {
+  for (const activation of ["pointer", "keyboard Enter"] as const) {
+    test(`${activation} activation reveals and focuses the current A1 Can-do evidence`, async ({
+      page,
+      viewport,
+    }) => {
+      const observers = await setupPageObservers(page);
+      if (viewport) await page.setViewportSize({ width: viewport.width, height: 420 });
+      await gotoReady(page, routeUrls.home);
+
+      expect(
+        await page.evaluate(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches),
+      ).toBe(true);
+      const button = page.getByRole("button", {
+        name: CHECKPOINT_COPY.evidenceLink,
+        exact: true,
+      });
+      const target = page.locator("#can-do-summary");
+      const route = page.url();
+      await expect(button).toBeVisible();
+
+      // Start below the summary so an activation must perform the actual reveal,
+      // rather than passing merely because the target happened to be visible.
+      await button.scrollIntoViewIfNeeded();
+      await page.evaluate(() => {
+        const summary = document.getElementById("can-do-summary");
+        if (!summary) return;
+        const { bottom } = summary.getBoundingClientRect();
+        if (bottom > 0) window.scrollBy(0, bottom + 24);
+      });
+      expect(
+        await target.evaluate((element) => {
+          const rect = element.getBoundingClientRect();
+          return rect.top < window.innerHeight && rect.bottom > 0;
+        }),
+      ).toBe(false);
+
+      if (activation === "pointer") {
+        await button.click();
+      } else {
+        await button.focus();
+        await expect(button).toBeFocused();
+        await page.keyboard.press("Enter");
+      }
+
+      await expect(target).toBeInViewport();
+      await expect(target).toBeFocused();
+      expect(page.url()).toBe(route);
+      await expect(page.locator(".notice--warning")).toHaveCount(0);
+      await assertNoHorizontalOverflow(page);
+      await assertNoRuntimeErrors(page, observers);
+    });
+  }
 });

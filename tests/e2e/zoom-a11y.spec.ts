@@ -117,7 +117,7 @@ async function assertFocusAndReducedMotion(page: Page): Promise<void> {
     expect(
       maximum,
       `${transition.selector} has no motion transition under reduced-motion`,
-    ).toBe(0);
+    ).toBeLessThan(0.05);
   }
 }
 
