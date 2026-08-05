@@ -3,10 +3,10 @@
  *
  * A single declarative {@link A1ManifestSpec} is the source of truth; every
  * exported array and map is derived from it and deep-frozen. The manifest
- * encodes the plan's fixed lesson table: twelve modules in order, exactly four
- * lessons each (48 total), canonical positions 1-48, four synthesis capstones
- * in positions 45-48, a phonetic module 1, instructional modules 2-11, and the
- * single reviewed legacy alias `sounds-5` → `sounds-4`.
+ * encodes the fixed Foundations lesson table: sixteen modules in order, exactly
+ * four lessons each (64 total), canonical positions 1-64, four synthesis
+ * capstones in positions 61-64, a phonetic module 1, instructional modules
+ * 2-15, and the single reviewed legacy alias `sounds-5` → `sounds-4`.
  *
  * Outcome copy IDs are locale-independent ASCII identifiers; the manifest never
  * carries learner-visible text.
@@ -31,6 +31,10 @@ export type { A1ManifestSpec } from "./types";
 
 const MODULE_ORDER: readonly ModuleId[] = [
   "sounds",
+  "sentence-foundations",
+  "topic-questions",
+  "polite-verbs",
+  "time-movement",
   "introductions",
   "essential-questions",
   "actions",

@@ -49,13 +49,17 @@ import type {
 } from "../foundations/types";
 
 // ---------------------------------------------------------------------------
-// Manifest: exact shape from the plan table
+// Manifest: exact Foundations-area shape
 // ---------------------------------------------------------------------------
 
-describe("A1 manifest — exact 12×4 shape", () => {
-  it("has exactly twelve modules in the plan order", () => {
+describe("A1 manifest — exact 16×4 shape", () => {
+  it("has exactly sixteen modules in the Foundations order", () => {
     expect(A1_MODULE_IDS).toEqual([
       "sounds",
+      "sentence-foundations",
+      "topic-questions",
+      "polite-verbs",
+      "time-movement",
       "introductions",
       "essential-questions",
       "actions",
@@ -68,25 +72,51 @@ describe("A1 manifest — exact 12×4 shape", () => {
       "existence-needs",
       "capstones",
     ]);
-    expect(A1_MODULE_IDS).toHaveLength(12);
+    expect(A1_MODULE_IDS).toHaveLength(16);
   });
 
-  it("has exactly 48 lessons, four per module", () => {
-    expect(A1_LESSON_IDS).toHaveLength(48);
+  it("has exactly 64 lessons, four per module", () => {
+    expect(A1_LESSON_IDS).toHaveLength(64);
     for (const moduleId of A1_MODULE_IDS) {
-      expect(A1_LESSON_IDS_BY_MODULE[moduleId]).toHaveLength(4);
+      expect(A1_LESSON_IDS_BY_MODULE[moduleId]).toEqual(
+        Array.from({ length: 4 }, (_, index) => `${moduleId}-${index + 1}`),
+      );
     }
     // Flattening the per-module lists reproduces the canonical order.
     const flattened = A1_MODULE_IDS.flatMap((m) => A1_LESSON_IDS_BY_MODULE[m]);
     expect(flattened).toEqual(A1_LESSON_IDS);
   });
 
-  it("encodes the exact lesson ids from the plan table", () => {
+  it("encodes the exact lesson ids for every Foundations module", () => {
     expect(A1_LESSON_IDS_BY_MODULE["sounds"]).toEqual([
       "sounds-1",
       "sounds-2",
       "sounds-3",
       "sounds-4",
+    ]);
+    expect(A1_LESSON_IDS_BY_MODULE["sentence-foundations"]).toEqual([
+      "sentence-foundations-1",
+      "sentence-foundations-2",
+      "sentence-foundations-3",
+      "sentence-foundations-4",
+    ]);
+    expect(A1_LESSON_IDS_BY_MODULE["topic-questions"]).toEqual([
+      "topic-questions-1",
+      "topic-questions-2",
+      "topic-questions-3",
+      "topic-questions-4",
+    ]);
+    expect(A1_LESSON_IDS_BY_MODULE["polite-verbs"]).toEqual([
+      "polite-verbs-1",
+      "polite-verbs-2",
+      "polite-verbs-3",
+      "polite-verbs-4",
+    ]);
+    expect(A1_LESSON_IDS_BY_MODULE["time-movement"]).toEqual([
+      "time-movement-1",
+      "time-movement-2",
+      "time-movement-3",
+      "time-movement-4",
     ]);
     expect(A1_LESSON_IDS_BY_MODULE["introductions"]).toEqual([
       "introductions-1",
@@ -124,13 +154,16 @@ describe("A1 manifest — exact 12×4 shape", () => {
     expect(A1_LESSON_IDS_BY_MODULE["capstones"]).toEqual(A1_CAPSTONE_LESSON_IDS);
   });
 
-  it("assigns canonical positions 1..48 in module-then-lesson order", () => {
+  it("assigns canonical positions 1..64 in module-then-lesson order", () => {
     const positions = A1_LESSON_IDS.map((id) => A1_CANONICAL_POSITIONS[id]);
-    expect(positions).toEqual(Array.from({ length: 48 }, (_, i) => i + 1));
+    expect(positions).toEqual(Array.from({ length: 64 }, (_, i) => i + 1));
+    expect(A1_CANONICAL_POSITIONS["sentence-foundations-1"]).toBe(5);
+    expect(A1_CANONICAL_POSITIONS["introductions-1"]).toBe(21);
     // Capstones occupy the final four positions.
     expect(A1_CAPSTONE_LESSON_IDS.map((id) => A1_CANONICAL_POSITIONS[id])).toEqual([
-      45, 46, 47, 48,
+      61, 62, 63, 64,
     ]);
+    expect(A1_CANONICAL_POSITIONS["capstones-4"]).toBe(64);
   });
 
   it("assigns the right contract to every lesson", () => {
@@ -140,7 +173,7 @@ describe("A1 manifest — exact 12×4 shape", () => {
     for (const id of A1_CAPSTONE_LESSON_IDS) {
       expect(A1_LESSON_MANIFEST[id].contract).toBe("synthesis");
     }
-    const instructionalModules = A1_MODULE_IDS.slice(1, 11);
+    const instructionalModules = A1_MODULE_IDS.slice(1, 15);
     for (const moduleId of instructionalModules) {
       for (const id of A1_LESSON_IDS_BY_MODULE[moduleId]) {
         expect(A1_LESSON_MANIFEST[id].contract).toBe("instructional");
@@ -200,7 +233,7 @@ describe("A1 manifest — published preservation and aliases", () => {
     }
   });
 
-  it("introduces exactly the nine new depth-gap lesson ids", () => {
+  it("introduces exactly the twenty-five new Foundations lesson ids", () => {
     expect([...A1_NEW_LESSON_IDS].sort()).toEqual(
       [
         "actions-4",
@@ -210,32 +243,48 @@ describe("A1 manifest — published preservation and aliases", () => {
         "introductions-4",
         "past-negative-4",
         "people-4",
+        "polite-verbs-1",
+        "polite-verbs-2",
+        "polite-verbs-3",
+        "polite-verbs-4",
         "routines-4",
+        "sentence-foundations-1",
+        "sentence-foundations-2",
+        "sentence-foundations-3",
+        "sentence-foundations-4",
         "shopping-4",
+        "time-movement-1",
+        "time-movement-2",
+        "time-movement-3",
+        "time-movement-4",
+        "topic-questions-1",
+        "topic-questions-2",
+        "topic-questions-3",
+        "topic-questions-4",
       ].sort(),
     );
-    expect(A1_NEW_LESSON_IDS).toHaveLength(9);
-    // None of the nine new ids was previously published.
+    expect(A1_NEW_LESSON_IDS).toHaveLength(25);
+    // None of the new ids was previously published.
     for (const id of A1_NEW_LESSON_IDS) {
       expect(A1_LEGACY_PUBLISHED_LESSON_IDS).not.toContain(id);
       expect(A1_LESSON_IDS).toContain(id);
     }
   });
 
-  it("partitions the 48 lessons into retained + new + renumbered capstones", () => {
+  it("partitions the 64 lessons into retained + new + renumbered capstones", () => {
     expect(A1_RETAINED_PUBLISHED_LESSON_IDS).toHaveLength(35);
     expect(
       A1_RETAINED_PUBLISHED_LESSON_IDS.length +
         A1_NEW_LESSON_IDS.length +
         A1_CAPSTONE_LESSON_IDS.length,
-    ).toBe(48);
+    ).toBe(64);
     // The three partitions are disjoint and cover every canonical lesson.
     const union = new Set([
       ...A1_RETAINED_PUBLISHED_LESSON_IDS,
       ...A1_NEW_LESSON_IDS,
       ...A1_CAPSTONE_LESSON_IDS,
     ]);
-    expect(union.size).toBe(48);
+    expect(union.size).toBe(64);
     for (const id of A1_LESSON_IDS) expect(union.has(id)).toBe(true);
   });
 });

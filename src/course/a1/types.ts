@@ -2,7 +2,7 @@
  * A1 release authoring contracts (Phase 2 Task 1).
  *
  * These types describe the *shape* of an authored A1 release: the exact
- * 12-module / 48-lesson manifest, the per-lesson recipes (instructional,
+ * 16-module / 64-lesson manifest, the per-lesson recipes (instructional,
  * synthesis, and phonetic), the module recipe, the A1 checkpoint, and the
  * structured error/result vocabulary used by the manifest validator and the
  * module-local slice assembler.
@@ -155,6 +155,47 @@ export interface A1ModuleManifestEntry {
   readonly lessonIds: readonly LessonId[];
   readonly outcomeCopyId: CopyId;
 }
+
+// ---------------------------------------------------------------------------
+// Course-area shapes
+// ---------------------------------------------------------------------------
+
+/**
+ * The four ordered learner-facing A1 areas. Areas group manifest modules for
+ * navigation and copy, without adding another source of module order.
+ */
+export type A1AreaId = "sounds" | "foundations" | "situations" | "synthesis";
+
+/** One ordered, localized group of A1 modules. */
+export interface A1CourseArea {
+  readonly id: A1AreaId;
+  readonly moduleIds: readonly ModuleId[];
+  readonly titleCopyId: CopyId;
+  readonly descriptionCopyId: CopyId;
+}
+
+/** The structured failure codes emitted by the A1 area-contract validator. */
+export type A1AreaValidationErrorCode =
+  | "area-count"
+  | "area-order"
+  | "duplicate-area-id"
+  | "unknown-area-id"
+  | "missing-area-id"
+  | "empty-area"
+  | "duplicate-module-membership"
+  | "unknown-module-membership"
+  | "missing-module-membership"
+  | "module-union-order";
+
+export interface A1AreaValidationError {
+  readonly code: A1AreaValidationErrorCode;
+  readonly message: string;
+  readonly detail?: string;
+}
+
+export type A1AreaValidationResult =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly errors: readonly A1AreaValidationError[] };
 
 /**
  * The declarative source-of-truth spec the manifest derives every array/map
