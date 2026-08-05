@@ -227,7 +227,6 @@ export interface ComplementGloss extends Bilingual {
 
 /** Copular-complement glosses (occupations, nationalities). */
 export const A1_COMPLEMENT_GLOSS: Readonly<Record<string, ComplementGloss>> = deepFreeze({
-  "a1-value-obj-name": { en: "a name", it: "un nome" },
   "a1-value-obj-student": { en: "a student", it: "uno studente", itFeminine: "una studentessa" },
   "a1-value-obj-teacher": { en: "a teacher", it: "un insegnante" },
   "a1-value-obj-doctor": { en: "a doctor", it: "un medico" },

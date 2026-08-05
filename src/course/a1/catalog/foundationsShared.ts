@@ -9,7 +9,12 @@
 
 import { deepFreeze } from "../../foundations/deepFreeze";
 import type { A1Lexeme } from "../curriculum/types";
-import { a1LexemeById } from "../curriculum/lexicon";
+import {
+  a1LexemeById,
+  a1Lexemes,
+  defineA1Lexeme,
+} from "../curriculum/lexicon";
+import { a1CanonicalSemanticValues } from "./a1SemanticCatalog";
 import { A1_EXPANDED_LESSON_IDS_BY_MODULE } from "../manifest";
 
 /** The four staged module ids, in their planned authoring order. */
@@ -137,6 +142,73 @@ export const FOUNDATIONS_LEXEME_IDS_BY_LESSON: Readonly<
 /** Alias for consumers that name the staged lexical allocation as vocabulary. */
 export const FOUNDATIONS_VOCABULARY_BY_LESSON = FOUNDATIONS_LEXEME_IDS_BY_LESSON;
 
+type ExpandedFoundationsLexemeIndex = Readonly<Record<string, A1Lexeme | undefined>>;
+
+const publishedYasumu = a1LexemeById["a1-lexeme-yasumu"];
+if (!publishedYasumu) {
+  throw new Error('Published A1 lexicon is missing "a1-lexeme-yasumu".');
+}
+
+const expandedFoundationsYasumu = defineA1Lexeme({
+  ...publishedYasumu,
+  valueIds: ["a1-value-rest-bare", "a1-value-rest-routine"],
+});
+
+/**
+ * Canonical lexemes for staged Foundations authoring. The published lexicon
+ * deliberately remains limited to published semantic values until Task5
+ * promotes the rest-routine value and its lesson atomically.
+ */
+export const a1ExpandedFoundationsLexemes: readonly A1Lexeme[] = deepFreeze(
+  a1Lexemes.map((lexeme) =>
+    lexeme.id === expandedFoundationsYasumu.id ? expandedFoundationsYasumu : lexeme,
+  ),
+);
+
+function buildExpandedFoundationsLexemeIndexes(
+  lexemes: readonly A1Lexeme[],
+): Readonly<{
+  byId: ExpandedFoundationsLexemeIndex;
+  byValueId: ExpandedFoundationsLexemeIndex;
+}> {
+  const canonicalValueIds = new Set(a1CanonicalSemanticValues.map((value) => value.id));
+  const byId: Record<string, A1Lexeme | undefined> = {};
+  const byValueId: Record<string, A1Lexeme | undefined> = {};
+
+  for (const lexeme of lexemes) {
+    if (byId[lexeme.id] !== undefined) {
+      throw new Error(`Duplicate expanded Foundations lexeme id "${lexeme.id}".`);
+    }
+    byId[lexeme.id] = lexeme;
+
+    for (const valueId of lexeme.valueIds) {
+      if (!canonicalValueIds.has(valueId)) {
+        throw new Error(
+          `Expanded Foundations lexeme "${lexeme.id}" references missing canonical semantic value "${valueId}".`,
+        );
+      }
+      if (byValueId[valueId] !== undefined) {
+        throw new Error(
+          `Semantic value "${valueId}" has more than one expanded Foundations lexeme owner.`,
+        );
+      }
+      byValueId[valueId] = lexeme;
+    }
+  }
+
+  return deepFreeze({ byId, byValueId });
+}
+
+const a1ExpandedFoundationsLexemeIndexes = buildExpandedFoundationsLexemeIndexes(
+  a1ExpandedFoundationsLexemes,
+);
+
+/** Canonical staged lookup, including the future rest-routine association. */
+export const a1ExpandedFoundationsLexemeById: ExpandedFoundationsLexemeIndex =
+  a1ExpandedFoundationsLexemeIndexes.byId;
+export const a1ExpandedFoundationsLexemeByValueId: ExpandedFoundationsLexemeIndex =
+  a1ExpandedFoundationsLexemeIndexes.byValueId;
+
 /** The one staged Can-do each expanded Foundations module will teach. */
 export const FOUNDATIONS_CANDO_IDS_BY_MODULE: Readonly<
   Record<string, readonly string[]>
@@ -179,7 +251,7 @@ function resolveLessonLexemes(
 
   for (const [lessonId, lexemeIds] of Object.entries(lexemeIdsByLesson)) {
     resolved[lessonId] = lexemeIds.map((lexemeId) => {
-      const lexeme = a1LexemeById[lexemeId];
+      const lexeme = a1ExpandedFoundationsLexemeById[lexemeId];
       if (!lexeme) {
         throw new Error(
           `Foundations vocabulary references missing lexeme "${lexemeId}" in "${lessonId}".`,

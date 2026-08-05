@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   a1CanonicalLearningTargetSenses,
   a1CanonicalSemanticValues,
+  a1SemanticValues,
 } from "../catalog/a1SemanticCatalog";
 import {
   a1LexemeById,
@@ -112,7 +113,7 @@ describe("A1 canonical lexicon", () => {
       meaning: { en: "French person", it: "francese" },
     });
     expect(a1LexemeById["a1-lexeme-yasumu"]).toMatchObject({
-      valueIds: ["a1-value-rest-bare", "a1-value-rest-routine"],
+      valueIds: ["a1-value-rest-bare"],
       kana: "やすむ",
       romaji: "yasumu",
       category: "verb",
@@ -203,9 +204,9 @@ describe("A1 canonical lexicon", () => {
     }).toThrow();
   });
 
-  it("maps every learner-visible lexical semantic value and no missing value id", () => {
-    const semanticValueIds = new Set(a1CanonicalSemanticValues.map((value) => value.id));
-    const lexicalValueIds = a1CanonicalSemanticValues
+  it("maps every published lexical semantic value and no staged value id", () => {
+    const semanticValueIds = new Set(a1SemanticValues.map((value) => value.id));
+    const lexicalValueIds = a1SemanticValues
       .filter((value) => value.tokenFragments.some((fragment) => fragment.kind === "lexical"))
       .map((value) => value.id);
 
@@ -213,6 +214,7 @@ describe("A1 canonical lexicon", () => {
     expect(
       a1Lexemes.flatMap((lexeme) => lexeme.valueIds).filter((valueId) => !semanticValueIds.has(valueId)),
     ).toEqual([]);
+    expect(a1LexemeByValueId["a1-value-rest-routine"]).toBeUndefined();
   });
 
   it("keeps each lexeme form structurally aligned with its semantic fragments", () => {

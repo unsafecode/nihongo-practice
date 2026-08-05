@@ -1,5 +1,5 @@
 import { deepFreeze } from "../../foundations/deepFreeze";
-import { a1CanonicalSemanticValues } from "../catalog/a1SemanticCatalog";
+import { a1SemanticValues } from "../catalog/a1SemanticCatalog";
 import type { A1Lexeme, Bilingual } from "./types";
 
 const LEXEME_CATEGORIES = new Set<A1Lexeme["category"]>([
@@ -104,7 +104,7 @@ export const a1Lexemes: readonly A1Lexeme[] = deepFreeze([
   defineA1Lexeme({ id: "a1-lexeme-benkyou-suru", valueIds: ["a1-value-study", "a1-value-study-bare", "a1-value-study-routine"], kana: "べんきょうする", romaji: "benkyou suru", category: "verb", meaning: { en: "to study", it: "studiare" }, verb: { dictionary: { kana: "べんきょうする", romaji: "benkyou suru" }, polite: { kana: "べんきょうします", romaji: "benkyou shimasu" }, class: "irregular" } }),
   defineA1Lexeme({ id: "a1-lexeme-wakaru", valueIds: ["a1-value-understand"], kana: "わかる", romaji: "wakaru", category: "verb", meaning: { en: "to understand", it: "capire" }, verb: { dictionary: { kana: "わかる", romaji: "wakaru" }, polite: { kana: "わかります", romaji: "wakarimasu" }, class: "godan" } }),
   defineA1Lexeme({ id: "a1-lexeme-suru", valueIds: ["a1-value-do", "a1-value-do-bare"], kana: "する", romaji: "suru", category: "verb", meaning: { en: "to do", it: "fare" }, verb: { dictionary: { kana: "する", romaji: "suru" }, polite: { kana: "します", romaji: "shimasu" }, class: "irregular" } }),
-  defineA1Lexeme({ id: "a1-lexeme-yasumu", valueIds: ["a1-value-rest-bare", "a1-value-rest-routine"], kana: "やすむ", romaji: "yasumu", category: "verb", meaning: { en: "to rest; take a break", it: "riposarsi; fare una pausa" }, verb: { dictionary: { kana: "やすむ", romaji: "yasumu" }, polite: { kana: "やすみます", romaji: "yasumimasu" }, class: "godan" } }),
+  defineA1Lexeme({ id: "a1-lexeme-yasumu", valueIds: ["a1-value-rest-bare"], kana: "やすむ", romaji: "yasumu", category: "verb", meaning: { en: "to rest; take a break", it: "riposarsi; fare una pausa" }, verb: { dictionary: { kana: "やすむ", romaji: "yasumu" }, polite: { kana: "やすみます", romaji: "yasumimasu" }, class: "godan" } }),
   defineA1Lexeme({ id: "a1-lexeme-iku", valueIds: ["a1-value-go", "a1-value-accompany"], kana: "いく", romaji: "iku", category: "verb", meaning: { en: "to go", it: "andare" }, verb: { dictionary: { kana: "いく", romaji: "iku" }, polite: { kana: "いきます", romaji: "ikimasu" }, class: "godan" } }),
   defineA1Lexeme({ id: "a1-lexeme-kuru", valueIds: ["a1-value-come"], kana: "くる", romaji: "kuru", category: "verb", meaning: { en: "to come", it: "venire" }, verb: { dictionary: { kana: "くる", romaji: "kuru" }, polite: { kana: "きます", romaji: "kimasu" }, class: "irregular" } }),
   defineA1Lexeme({ id: "a1-lexeme-nomu", valueIds: ["a1-value-drink"], kana: "のむ", romaji: "nomu", category: "verb", meaning: { en: "to drink", it: "bere" }, verb: { dictionary: { kana: "のむ", romaji: "nomu" }, polite: { kana: "のみます", romaji: "nomimasu" }, class: "godan" } }),
@@ -285,7 +285,7 @@ function buildLexemeIndexes(lexemes: readonly A1Lexeme[]): Readonly<{
   byId: LexemeIndex;
   byValueId: LexemeIndex;
 }> {
-  const knownValueIds = new Set(a1CanonicalSemanticValues.map((value) => value.id));
+  const knownValueIds = new Set(a1SemanticValues.map((value) => value.id));
   const byId: Record<string, A1Lexeme | undefined> = {};
   const byValueId: Record<string, A1Lexeme | undefined> = {};
 

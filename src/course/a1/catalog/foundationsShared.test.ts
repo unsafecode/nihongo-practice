@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { a1LexemeById } from "../curriculum/lexicon";
+import { a1LexemeById, a1LexemeByValueId } from "../curriculum/lexicon";
 import { A1_EXPANDED_LESSON_IDS_BY_MODULE } from "../manifest";
 import {
   FOUNDATIONS_CANDO_IDS_BY_MODULE,
+  a1ExpandedFoundationsLexemeByValueId,
+  a1ExpandedFoundationsLexemes,
   FOUNDATIONS_LEXEME_IDS_BY_LESSON,
   FOUNDATIONS_LEXEMES_BY_LESSON,
   FOUNDATIONS_VOCABULARY_BY_LESSON,
@@ -166,5 +168,21 @@ describe("staged Foundations shared authoring data", () => {
         lexemeIds,
       );
     }
+  });
+
+  it("keeps staged routine rest ownership in the expanded canonical lexicon only", () => {
+    const stagedYasumu = a1ExpandedFoundationsLexemeByValueId["a1-value-rest-routine"];
+
+    expect(a1LexemeByValueId["a1-value-rest-routine"]).toBeUndefined();
+    expect(stagedYasumu).toMatchObject({
+      id: "a1-lexeme-yasumu",
+      valueIds: ["a1-value-rest-bare", "a1-value-rest-routine"],
+    });
+    expect(a1ExpandedFoundationsLexemes).toContain(stagedYasumu);
+    expect(
+      FOUNDATIONS_LEXEMES_BY_LESSON["polite-verbs-1"]?.find(
+        ({ id }) => id === "a1-lexeme-yasumu",
+      ),
+    ).toBe(stagedYasumu);
   });
 });
