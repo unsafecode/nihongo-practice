@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { LocaleProvider } from "../../i18n/LocaleContext";
 import { lessonPath } from "../../routing/routes";
 import { it as itCopy } from "../i18n/it";
-import { courseModules } from "../data/course";
+import { courseModules, courseModulesByLevel } from "../data/course";
 import { A1_AREAS } from "../a1/areas";
 import { buildCourseMapModel } from "./courseMapModel";
 import { CourseMap } from "./CourseMap";
@@ -60,6 +60,27 @@ function lessonsInFirstModules(count: number): string[] {
 }
 
 describe("CourseMap: canonical module order and A1 areas", () => {
+  it("nests module headings below A1 area headings while keeping flat A2 module headings at h3", () => {
+    const a1Html = renderMap([], null);
+    expect(a1Html).toMatch(
+      /<h2 class="course-map__heading">.*?<\/h2>.*?<h3 id="course-area-sounds" class="course-area__heading">.*?<\/h3>.*?<h4 class="module-card__title">.*?<\/h4>/,
+    );
+    expect(a1Html).not.toContain('<h3 class="module-card__title">');
+
+    const a2Model = buildCourseMapModel(courseModulesByLevel.a2, [], null);
+    const a2Html = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(LocaleProvider, null, createElement(CourseMap, { model: a2Model })),
+      ),
+    );
+    expect(a2Html).toMatch(
+      /<h2 class="course-map__heading">.*?<\/h2>.*?<h3 class="module-card__title">.*?<\/h3>/,
+    );
+    expect(a2Html).not.toContain('<h4 class="module-card__title">');
+  });
+
   it("renders four labelled A1 area sections in canonical order, with all sixteen Foundations lesson links before Presentations", () => {
     const html = renderMap([], null);
     const expectedAreas = [
@@ -112,7 +133,7 @@ describe("CourseMap: canonical module order and A1 areas", () => {
     const situationsStart = html.indexOf('id="course-area-situations"');
     const foundationMarkup = html.slice(foundationStart, situationsStart);
     const presentationsTitle = html.indexOf(
-      `<h3 class="module-card__title">${escapeHtmlText(itCopy.modules.introductions.title)}</h3>`,
+      `<h4 class="module-card__title">${escapeHtmlText(itCopy.modules.introductions.title)}</h4>`,
     );
     expect(finalFoundationLink).toBeGreaterThanOrEqual(0);
     for (const href of foundationLessonLinks) {
@@ -131,7 +152,7 @@ describe("CourseMap: canonical module order and A1 areas", () => {
     const titleIndices = allModuleIdsInOrder.map((moduleId) => {
       const title = itCopy.modules[moduleId as keyof typeof itCopy.modules].title;
       const index = html.indexOf(
-        `<h3 class="module-card__title">${escapeHtmlText(title)}</h3>`,
+        `<h4 class="module-card__title">${escapeHtmlText(title)}</h4>`,
       );
       expect(index).toBeGreaterThanOrEqual(0);
       return index;

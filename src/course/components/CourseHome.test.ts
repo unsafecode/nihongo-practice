@@ -272,7 +272,7 @@ describe("CourseHome: renders the area-grouped CourseMap, never the old chapter 
 
       const title = itCopy.modules[moduleId]!.title;
       const titleIndex = html.indexOf(
-        `<h3 class="module-card__title">${escapeHtmlText(title)}</h3>`,
+        `<h4 class="module-card__title">${escapeHtmlText(title)}</h4>`,
       );
       expect(titleIndex, moduleId).toBeGreaterThan(previousTitleIndex);
       previousTitleIndex = titleIndex;

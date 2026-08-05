@@ -19,11 +19,15 @@ export function CourseMap({ model }: CourseMapProps): ReactElement {
   const { locale } = useLocale();
   const copy = getCourseCopy(locale);
   const expandedModuleId = model.recommendedModuleId ?? model.currentModuleId;
-  const renderModuleCards = (entries: typeof model.modules): ReactElement[] =>
+  const renderModuleCards = (
+    entries: typeof model.modules,
+    headingLevel: 3 | 4,
+  ): ReactElement[] =>
     entries.map((entry) => (
       <ModuleCard
         key={entry.module.id}
         entry={entry}
+        headingLevel={headingLevel}
         initiallyExpanded={entry.module.id === expandedModuleId}
         recommendedLessonId={model.recommendedLessonId}
       />
@@ -65,12 +69,12 @@ export function CourseMap({ model }: CourseMapProps): ReactElement {
                   <p className="course-area__description">{areaCopy.description}</p>
                 </div>
               </div>
-              <div className="course-area__modules">{renderModuleCards(modules)}</div>
+              <div className="course-area__modules">{renderModuleCards(modules, 4)}</div>
             </section>
           );
         })
       ) : (
-        <div className="course-map__modules">{renderModuleCards(model.modules)}</div>
+        <div className="course-map__modules">{renderModuleCards(model.modules, 3)}</div>
       )}
     </section>
   );
