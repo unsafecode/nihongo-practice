@@ -152,11 +152,30 @@ describe("A1 canonical lexicon", () => {
       argumentParticleByRole: {},
     });
     expect(sensesById["a1-sense-rest-routine"]).toMatchObject({
-      lexemeId: "a1-lexeme-yasumu-routine",
+      lexemeId: "a1-lexeme-yasumu",
       semanticFrameId: "a1-frame-rest-routine",
       argumentRoles: ["agent", "time"],
       argumentParticleByRole: {},
     });
+  });
+
+  it("keeps the expanded bare and routine senses on their shared published lexemes", () => {
+    const sensesById = Object.fromEntries(
+      a1CanonicalLearningTargetSenses.map((sense) => [sense.id, sense]),
+    );
+
+    expect(sensesById["a1-sense-study-bare"]?.lexemeId).toBe(
+      "a1-lexeme-benkyou-suru",
+    );
+    expect(sensesById["a1-sense-study-routine"]?.lexemeId).toBe(
+      "a1-lexeme-benkyou-suru",
+    );
+    expect(sensesById["a1-sense-rest-routine"]?.lexemeId).toBe(
+      "a1-lexeme-yasumu",
+    );
+    expect(sensesById["a1-sense-return-bare"]?.lexemeId).toBe(
+      "a1-lexeme-kaeru",
+    );
   });
 
   it("gives every entry nonempty learner-facing fields and a unique id", () => {
@@ -223,6 +242,10 @@ describe("A1 canonical lexicon", () => {
     for (const lexeme of a1Lexemes) {
       for (const valueId of lexeme.valueIds) {
         const surface = lexicalSurface(valueId);
+        if (surface.kana === "" && surface.romaji === "") {
+          expect(lexeme.id).toBe("a1-lexeme-desu");
+          continue;
+        }
         if (lexeme.category === "verb") {
           expect(lexeme.verb?.polite.kana.slice(0, -"ます".length)).toBe(surface.kana);
           expect(lexeme.verb?.polite.romaji.replace(/ /g, "").slice(0, -"masu".length)).toBe(
@@ -238,6 +261,28 @@ describe("A1 canonical lexicon", () => {
       }
     }
   });
+
+  it.each([
+    [
+      "a1-value-obj-brazilian-person",
+      "a1-lexeme-burazirujin",
+      "ブラジルじん",
+      "burajirujin",
+    ],
+    ["a1-value-q-pass", "a1-lexeme-passu", "パス", "pasu"],
+    [
+      "a1-value-transport-scooter",
+      "a1-lexeme-sukutaa",
+      "スクーター",
+      "sukuutaa",
+    ],
+  ] as const)(
+    "uses the established Hepburn doubled-vowel romaji for %s",
+    (valueId, lexemeId, kana, romaji) => {
+      expect(lexicalSurface(valueId)).toEqual({ kana, romaji });
+      expect(a1LexemeById[lexemeId]).toMatchObject({ kana, romaji });
+    },
+  );
 
   it("gives every verb dictionary and polite forms with a valid class", () => {
     for (const lexeme of a1Lexemes.filter(({ category }) => category === "verb")) {

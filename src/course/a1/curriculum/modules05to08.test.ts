@@ -309,7 +309,7 @@ describe("A1 modules 05–08 lesson content", () => {
     }
   });
 
-  it("uses two or three same-lesson semantic models and complete lexicon metadata for their verbs", () => {
+  it("uses two or three same-lesson semantic models and complete predicate lexicon metadata", () => {
     for (const content of a1Modules05to08LessonContent) {
       const models = modelVariantIds(content.lessonId);
       for (const variantId of content.workedExampleVariantIds) {
@@ -324,8 +324,13 @@ describe("A1 modules 05–08 lesson content", () => {
         const sense = senseById.get(realized.sentence.predicateSenseId);
         const lexeme = a1LexemeById[sense?.lexemeId ?? ""];
         if (lexeme !== undefined) {
-          expect(lexeme.category, `${variantId} verb category`).toBe("verb");
-          expect(lexeme.verb, `${variantId} verb metadata`).toBeDefined();
+          if (sense?.id === "a1-sense-be") {
+            expect(lexeme.category, `${variantId} copula category`).toBe("expression");
+            expect(lexeme.verb, `${variantId} copula verb metadata`).toBeUndefined();
+          } else {
+            expect(lexeme.category, `${variantId} verb category`).toBe("verb");
+            expect(lexeme.verb, `${variantId} verb metadata`).toBeDefined();
+          }
         }
       }
     }

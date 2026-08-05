@@ -244,7 +244,7 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["places-2-m4", "けんはくるまでえきにきます", "ken wa kuruma de eki ni kimasu"],
   ["places-2-m5", "かいしゃではたらきます", "kaisha de hatarakimasu"],
   ["places-2-m6", "みなはレストランではたらきます", "mina wa resutoran de hatarakimasu"],
-  ["places-2-m7", "スクーターでがっこうにいきます", "sukutaa de gakkou ni ikimasu"],
+  ["places-2-m7", "スクーターでがっこうにいきます", "sukuutaa de gakkou ni ikimasu"],
   ["places-2-m8", "ゆきはがっこうへいきます", "yuki wa gakkou e ikimasu"],
   ["places-2-t1", "けんはでんしゃでえきにいきます", "ken wa densha de eki ni ikimasu"],
   ["places-2-t2", "フェリーでがっこうにきます", "ferii de gakkou ni kimasu"],

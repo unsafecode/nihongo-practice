@@ -2,7 +2,7 @@
  * Deprecated Foundations preview recurrence names.
  *
  * The records are now assembled by the published recurrence timeline; these
- * identity aliases preserve imports from the staged authoring slices.
+ * identity aliases preserve imports from the legacy authoring slices.
  */
 
 import {

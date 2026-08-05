@@ -86,8 +86,8 @@ export const A1_MANIFEST_SPEC: A1ManifestSpec = deepFreeze(
 
 /**
  * @deprecated The Foundations plan is now canonical. This identity alias is
- * retained for downstream authoring integrations that still import the old
- * staged name; it must never diverge from {@link A1_MANIFEST_SPEC}.
+ * retained for downstream authoring integrations that still import the legacy
+ * expanded name; it must never diverge from {@link A1_MANIFEST_SPEC}.
  */
 export const A1_EXPANDED_MANIFEST_SPEC = A1_MANIFEST_SPEC;
 
@@ -124,7 +124,7 @@ export const A1_CANONICAL_POSITIONS: Readonly<Record<LessonId, number>> =
   );
 
 // ---------------------------------------------------------------------------
-// Deprecated staged names
+// Deprecated expanded names
 // ---------------------------------------------------------------------------
 
 /** @deprecated Use {@link A1_MODULE_IDS}; this is the same frozen array. */

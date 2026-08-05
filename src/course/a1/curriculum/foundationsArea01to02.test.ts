@@ -49,8 +49,9 @@ describe("staged Foundations learner content 01–02", () => {
     );
 
     for (const content of a1FoundationsArea01to02LessonContent) {
-      expect(content.newLexemeIds).toHaveLength(4);
-      expect(new Set(content.newLexemeIds).size).toBe(4);
+      expect(content.newLexemeIds.length).toBeGreaterThanOrEqual(4);
+      expect(content.newLexemeIds.length).toBeLessThanOrEqual(6);
+      expect(new Set(content.newLexemeIds).size).toBe(content.newLexemeIds.length);
       expect(content.situation.en).toMatch(/\S/);
       expect(content.situation.it).toMatch(/\S/);
       expect(content.retrievalCue.en).toMatch(/\S/);

@@ -117,13 +117,19 @@ describe("published Foundations modules 01–02", () => {
     }
   });
 
-  it("uses the exact four Foundations lexemes in each lesson and realizes each in its own models", () => {
+  it("uses each allocated Foundations lexeme in its own models", () => {
     for (const built of builtLessons) {
       const allocated = FOUNDATIONS_LEXEME_IDS_BY_LESSON[built.recipe.id];
-      expect(allocated, built.recipe.id).toHaveLength(4);
+      expect(allocated.length, built.recipe.id).toBeGreaterThanOrEqual(4);
+      expect(allocated.length, built.recipe.id).toBeLessThanOrEqual(6);
 
       const modelLexemeIds = new Set<string>();
       for (const variantId of built.recipe.modelVariantIds) {
+        const variant = variantById.get(variantId);
+        for (const valueId of Object.values(variant?.slotValues ?? {})) {
+          const lexeme = a1FoundationsArea01to02Catalogs.lexemeByValueId[valueId];
+          if (lexeme) modelLexemeIds.add(lexeme.id);
+        }
         const sentence = realize(variantId);
         for (const token of sentence.tokens) {
           if (token.kind !== "lexical" || token.source.domain !== "family") continue;

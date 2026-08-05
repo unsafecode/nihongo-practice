@@ -162,8 +162,8 @@ export interface A1ModuleManifestEntry {
 // ---------------------------------------------------------------------------
 
 /**
- * The four ordered next-release A1 authoring areas. Areas group the expanded
- * manifest modules for future navigation and copy without adding another
+ * The four ordered canonical A1 course areas. Areas group the canonical
+ * manifest modules for navigation and copy without adding another
  * source of module order.
  */
 export type A1AreaId = "sounds" | "foundations" | "situations" | "synthesis";

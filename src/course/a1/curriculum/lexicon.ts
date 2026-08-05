@@ -74,6 +74,7 @@ export function defineA1Lexeme(input: A1Lexeme): A1Lexeme {
 }
 
 export const a1Lexemes: readonly A1Lexeme[] = deepFreeze([
+  defineA1Lexeme({ id: "a1-lexeme-desu", valueIds: ["a1-value-be"], kana: "です", romaji: "desu", category: "expression", meaning: { en: "to be", it: "essere" } }),
   defineA1Lexeme({ id: "a1-lexeme-watashi", valueIds: ["a1-value-watashi"], kana: "わたし", romaji: "watashi", category: "pronoun", meaning: { en: "I; me", it: "io; me" } }),
   defineA1Lexeme({ id: "a1-lexeme-namae", valueIds: ["a1-value-obj-name", "a1-value-name-subject"], kana: "なまえ", romaji: "namae", category: "noun", meaning: { en: "name", it: "nome" } }),
   defineA1Lexeme({ id: "a1-lexeme-gakusei", valueIds: ["a1-value-obj-student", "a1-value-student-subject"], kana: "がくせい", romaji: "gakusei", category: "person", meaning: { en: "student", it: "studente; studentessa" } }),
@@ -287,7 +288,7 @@ export const a1Lexemes: readonly A1Lexeme[] = deepFreeze([
   defineA1Lexeme({ id: "a1-lexeme-shefu", valueIds: ["a1-value-obj-chef"], kana: "シェフ", romaji: "shefu", category: "person", meaning: { en: "chef", it: "cuoco; cuoca" } }),
   defineA1Lexeme({ id: "a1-lexeme-dezainaa", valueIds: ["a1-value-obj-designer"], kana: "デザイナー", romaji: "dezainaa", category: "person", meaning: { en: "designer", it: "designer" } }),
   defineA1Lexeme({ id: "a1-lexeme-kenkyuusha", valueIds: ["a1-value-obj-researcher"], kana: "けんきゅうしゃ", romaji: "kenkyuusha", category: "person", meaning: { en: "researcher", it: "ricercatore; ricercatrice" } }),
-  defineA1Lexeme({ id: "a1-lexeme-burazirujin", valueIds: ["a1-value-obj-brazilian-person"], kana: "ブラジルじん", romaji: "burazirujin", category: "person", meaning: { en: "Brazilian person", it: "persona brasiliana" } }),
+  defineA1Lexeme({ id: "a1-lexeme-burazirujin", valueIds: ["a1-value-obj-brazilian-person"], kana: "ブラジルじん", romaji: "burajirujin", category: "person", meaning: { en: "Brazilian person", it: "persona brasiliana" } }),
   defineA1Lexeme({ id: "a1-lexeme-kanadajin", valueIds: ["a1-value-obj-canadian-person"], kana: "カナダじん", romaji: "kanadajin", category: "person", meaning: { en: "Canadian person", it: "persona canadese" } }),
   defineA1Lexeme({ id: "a1-lexeme-kankokujin", valueIds: ["a1-value-obj-korean-person"], kana: "かんこくじん", romaji: "kankokujin", category: "person", meaning: { en: "Korean person", it: "persona coreana" } }),
   defineA1Lexeme({ id: "a1-lexeme-supeinjin", valueIds: ["a1-value-obj-spanish-person"], kana: "スペインじん", romaji: "supeinjin", category: "person", meaning: { en: "Spanish person", it: "persona spagnola" } }),
@@ -298,7 +299,7 @@ export const a1Lexemes: readonly A1Lexeme[] = deepFreeze([
   defineA1Lexeme({ id: "a1-lexeme-taichi", valueIds: ["a1-value-taichi"], kana: "たいち", romaji: "taichi", category: "person", meaning: { en: "Taichi", it: "Taichi" } }),
   defineA1Lexeme({ id: "a1-lexeme-mei", valueIds: ["a1-value-mei"], kana: "めい", romaji: "mei", category: "person", meaning: { en: "Mei", it: "Mei" } }),
   defineA1Lexeme({ id: "a1-lexeme-haru", valueIds: ["a1-value-haru"], kana: "はる", romaji: "haru", category: "person", meaning: { en: "Haru", it: "Haru" } }),
-  defineA1Lexeme({ id: "a1-lexeme-passu", valueIds: ["a1-value-q-pass"], kana: "パス", romaji: "passu", category: "noun", meaning: { en: "pass", it: "pass" } }),
+  defineA1Lexeme({ id: "a1-lexeme-passu", valueIds: ["a1-value-q-pass"], kana: "パス", romaji: "pasu", category: "noun", meaning: { en: "pass", it: "pass" } }),
   defineA1Lexeme({ id: "a1-lexeme-menyuu", valueIds: ["a1-value-q-menu"], kana: "メニュー", romaji: "menyuu", category: "noun", meaning: { en: "menu", it: "menu" } }),
   defineA1Lexeme({ id: "a1-lexeme-posutaa", valueIds: ["a1-value-q-poster"], kana: "ポスター", romaji: "posutaa", category: "noun", meaning: { en: "poster", it: "poster" } }),
   defineA1Lexeme({ id: "a1-lexeme-raberu", valueIds: ["a1-value-q-label"], kana: "ラベル", romaji: "raberu", category: "noun", meaning: { en: "label", it: "etichetta" } }),
@@ -330,7 +331,7 @@ export const a1Lexemes: readonly A1Lexeme[] = deepFreeze([
   defineA1Lexeme({ id: "a1-lexeme-yuube", valueIds: ["a1-value-time-last-night"], kana: "ゆうべ", romaji: "yuube", category: "time", meaning: { en: "last night", it: "ieri sera" } }),
   defineA1Lexeme({ id: "a1-lexeme-romendensha", valueIds: ["a1-value-transport-tram"], kana: "ろめんでんしゃ", romaji: "romendensha", category: "noun", meaning: { en: "tram", it: "tram" } }),
   defineA1Lexeme({ id: "a1-lexeme-ferii", valueIds: ["a1-value-transport-ferry"], kana: "フェリー", romaji: "ferii", category: "noun", meaning: { en: "ferry", it: "traghetto" } }),
-  defineA1Lexeme({ id: "a1-lexeme-sukutaa", valueIds: ["a1-value-transport-scooter"], kana: "スクーター", romaji: "sukutaa", category: "noun", meaning: { en: "scooter", it: "scooter" } }),
+  defineA1Lexeme({ id: "a1-lexeme-sukutaa", valueIds: ["a1-value-transport-scooter"], kana: "スクーター", romaji: "sukuutaa", category: "noun", meaning: { en: "scooter", it: "scooter" } }),
   defineA1Lexeme({ id: "a1-lexeme-niwa", valueIds: ["a1-value-garden"], kana: "にわ", romaji: "niwa", category: "noun", meaning: { en: "garden", it: "giardino" } }),
   defineA1Lexeme({ id: "a1-lexeme-kawa", valueIds: ["a1-value-river"], kana: "かわ", romaji: "kawa", category: "noun", meaning: { en: "river", it: "fiume" } }),
   defineA1Lexeme({ id: "a1-lexeme-kamera", valueIds: ["a1-value-obj-camera"], kana: "カメラ", romaji: "kamera", category: "noun", meaning: { en: "camera", it: "fotocamera" } }),

@@ -24,6 +24,8 @@ import { a1ReleaseVerbUseRecords } from "./recurrence";
 import { module1ItemsByLesson, module1Lessons, type A1PhoneticItem } from "./module01Sounds";
 import { A1_MANIFEST_SPEC } from "../manifest";
 import { A1_RELEASE_ERROR_CODES, type A1ReleaseErrorCode } from "../types";
+import { a1LearningTargetSenses } from "./a1SemanticCatalog";
+import { a1LexemeById } from "../curriculum/lexicon";
 
 type Clonable = <T>(value: T) => T;
 const clone: Clonable = (value) => structuredClone(value);
@@ -94,6 +96,39 @@ describe("validateA1 – baseline release", () => {
       (error) => error.code === "conflated-sense-context",
     );
     expect(conflations).toEqual([]);
+  });
+
+  it("keeps real shared lexeme senses contextually distinct and resolvable", () => {
+    const realLexemeIdBySense = {
+      "a1-sense-study-bare": "a1-lexeme-benkyou-suru",
+      "a1-sense-study-routine": "a1-lexeme-benkyou-suru",
+      "a1-sense-rest-routine": "a1-lexeme-yasumu",
+      "a1-sense-return-bare": "a1-lexeme-kaeru",
+    } as const;
+    const semantic = semanticClone();
+
+    for (const [senseId, lexemeId] of Object.entries(realLexemeIdBySense)) {
+      const sense = semantic.learningTargetSenses.find(
+        (candidate) => candidate.id === senseId,
+      );
+      expect(sense, senseId).toBeDefined();
+      (sense as { lexemeId: string }).lexemeId = lexemeId;
+    }
+
+    const groupedByRealLexeme = validateA1({ semanticCatalogs: semantic });
+    expect(
+      groupedByRealLexeme.foundationReport.errors.filter(
+        (error) => error.code === "conflated-sense-context",
+      ),
+    ).toEqual([]);
+    expect(
+      validateA1().foundationReport.errors.filter(
+        (error) => error.code === "conflated-sense-context",
+      ),
+    ).toEqual([]);
+    for (const sense of a1LearningTargetSenses) {
+      expect(a1LexemeById[sense.lexemeId], sense.id).toBeDefined();
+    }
   });
 
   it("wraps validateFoundations at the fixed release version and seed", () => {

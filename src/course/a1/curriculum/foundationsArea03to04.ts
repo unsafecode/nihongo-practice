@@ -471,7 +471,7 @@ export const a1FoundationsArea03to04Lexemes =
   a1ExpandedFoundationsLexemes;
 
 /**
- * The all-sixteen-lesson staged catalog. It exists solely for authoring tests
+ * The all-sixteen-lesson Foundations compatibility catalog. It exists solely for authoring tests
  * and previews; neither the published A1 catalog nor routes import it.
  */
 export const a1AllStagedFoundationsBuiltLessons = deepFreeze([

@@ -1,5 +1,5 @@
 /**
- * Staged Foundations module 3 — polite nonpast verbs and place particles.
+ * Foundations module 3 — polite nonpast verbs and place particles.
  *
  * This authoring slice is part of the published Foundations area.
  */
@@ -64,7 +64,7 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "polite-verbs-1-m2",
       family: BARE,
-      context: "a1-context-classroom",
+      context: "a1-context-bare-study-conversation",
       subjectReferent: SELF,
       subjectRealization: "omitted",
       slots: bare(WATASHI, "a1-value-study-bare"),
@@ -100,7 +100,7 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "polite-verbs-1-m6",
       family: BARE,
-      context: "a1-context-classroom",
+      context: "a1-context-bare-study-conversation",
       subjectReferent: "a1-referent-ken",
       subjectRealization: "explicit",
       slots: bare("a1-value-ken", "a1-value-study-bare"),
@@ -138,7 +138,7 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "polite-verbs-1-t2",
       family: BARE,
-      context: "a1-context-classroom",
+      context: "a1-context-bare-study-conversation",
       subjectReferent: "a1-referent-yuki",
       subjectRealization: "explicit",
       slots: bare("a1-value-yuki", "a1-value-study-bare"),
@@ -358,7 +358,7 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "polite-verbs-3-m4",
       family: BARE,
-      context: "a1-context-home",
+      context: "a1-context-bare-return-response",
       subjectReferent: "a1-referent-mina",
       subjectRealization: "explicit",
       form: { polarity: "negative", tense: "present", formality: "polite" },
@@ -398,7 +398,7 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "polite-verbs-3-m8",
       family: BARE,
-      context: "a1-context-home",
+      context: "a1-context-bare-return-response",
       subjectReferent: SELF,
       subjectRealization: "omitted",
       form: { polarity: "negative", tense: "present", formality: "polite" },
@@ -420,7 +420,7 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "polite-verbs-3-t2",
       family: BARE,
-      context: "a1-context-classroom",
+      context: "a1-context-bare-study-conversation",
       subjectReferent: "a1-referent-yuki",
       subjectRealization: "explicit",
       form: { polarity: "negative", tense: "present", formality: "polite" },
@@ -617,7 +617,7 @@ export const modulePoliteVerbsRecipe: A1ModuleRecipe = defineA1Module({
   outcomeCopyId: "a1-module-outcome-polite-verbs",
 });
 
-/** Staged only; Task 5 owns promotion into the release recurrence timeline. */
+/** Canonical recurrence records for the published polite-verbs lessons. */
 export const modulePoliteVerbsVerbUseRecords: readonly VerbUseRecord[] = [
   a1VerbUseRecord({
     senseId: "a1-sense-work-bare",

@@ -1,7 +1,7 @@
 /**
- * Staged Foundations module 4 — time, past forms, and movement.
+ * Foundations module 4 — time, past forms, and movement.
  *
- * Nothing in this file is wired into the published runtime before Task 5.
+ * This authoring slice is part of the published Foundations area.
  */
 
 import { defineA1Module } from "../authoring";
@@ -66,13 +66,17 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
   primaryCanDoId: "a1-can-do-time-movement",
   supportingCanDoIds: ["a1-can-do-polite-verbs"],
   introducedConceptIds: [A1_CONCEPT_TIME_SCHEDULE],
-  introducedSenseIds: ["a1-sense-study-routine", "a1-sense-return"],
+  introducedSenseIds: [
+    "a1-sense-study-routine",
+    "a1-sense-rest-routine",
+    "a1-sense-return",
+  ],
   diversityOverride: { minPredicates: 2 },
   models: [
     {
       id: "time-movement-1-m1",
       family: SCHEDULE,
-      context: "a1-context-home",
+      context: "a1-context-routine-study-schedule",
       subjectReferent: SELF,
       subjectRealization: "omitted",
       slots: timed(WATASHI, "a1-value-study-routine", "a1-value-time-6"),
@@ -81,7 +85,7 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "time-movement-1-m2",
       family: SCHEDULE,
-      context: "a1-context-classroom",
+      context: "a1-context-routine-study-schedule",
       subjectReferent: "a1-referent-yuki",
       subjectRealization: "explicit",
       slots: timed("a1-value-yuki", "a1-value-study-routine", "a1-value-time-7"),
@@ -108,7 +112,7 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "time-movement-1-m5",
       family: SCHEDULE,
-      context: "a1-context-classroom",
+      context: "a1-context-routine-study-schedule",
       subjectReferent: SELF,
       subjectRealization: "omitted",
       slots: timed(WATASHI, "a1-value-study-routine", "a1-value-time-8"),
@@ -126,11 +130,11 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "time-movement-1-m7",
       family: SCHEDULE,
-      context: "a1-context-home",
+      context: "a1-context-rest-routine",
       subjectReferent: "a1-referent-ken",
       subjectRealization: "explicit",
-      slots: timed("a1-value-ken", "a1-value-study-routine", "a1-value-time-9"),
-      translation: L("Ken studies at nine.", "Ken studia alle nove."),
+      slots: timed("a1-value-ken", "a1-value-rest-routine", "a1-value-time-9"),
+      translation: L("Ken takes a break at nine.", "Ken fa una pausa alle nove."),
     },
     {
       id: "time-movement-1-m8",
@@ -146,7 +150,7 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "time-movement-1-t1",
       family: SCHEDULE,
-      context: "a1-context-home",
+      context: "a1-context-routine-study-schedule",
       subjectReferent: "a1-referent-yuki",
       subjectRealization: "explicit",
       slots: timed("a1-value-yuki", "a1-value-study-routine", "a1-value-time-6"),
@@ -155,7 +159,7 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "time-movement-1-t2",
       family: SCHEDULE,
-      context: "a1-context-classroom",
+      context: "a1-context-routine-study-schedule",
       subjectReferent: "a1-referent-ken",
       subjectRealization: "explicit",
       slots: timed("a1-value-ken", "a1-value-study-routine", "a1-value-time-7"),
@@ -182,7 +186,7 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "time-movement-1-t5",
       family: SCHEDULE,
-      context: "a1-context-classroom",
+      context: "a1-context-routine-study-schedule",
       subjectReferent: SELF,
       subjectRealization: "omitted",
       slots: timed(WATASHI, "a1-value-study-routine", "a1-value-time-9"),
@@ -204,7 +208,7 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "time-movement-2-m1",
       family: TIME,
-      context: "a1-context-home",
+      context: "a1-context-routine-study-schedule",
       subjectReferent: SELF,
       subjectRealization: "omitted",
       form: A1_AFFIRMATIVE_PAST_POLITE,
@@ -224,7 +228,7 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "time-movement-2-m3",
       family: TIME,
-      context: "a1-context-home",
+      context: "a1-context-routine-study-schedule",
       subjectReferent: "a1-referent-ken",
       subjectRealization: "explicit",
       form: A1_AFFIRMATIVE_PAST_POLITE,
@@ -254,7 +258,7 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "time-movement-2-m6",
       family: TIME,
-      context: "a1-context-home",
+      context: "a1-context-routine-study-schedule",
       subjectReferent: "a1-referent-yuki",
       subjectRealization: "explicit",
       form: A1_AFFIRMATIVE_PAST_POLITE,
@@ -274,7 +278,7 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "time-movement-2-m8",
       family: TIME,
-      context: "a1-context-classroom",
+      context: "a1-context-routine-study-schedule",
       subjectReferent: "a1-referent-mina",
       subjectRealization: "explicit",
       form: A1_AFFIRMATIVE_PAST_POLITE,
@@ -286,7 +290,7 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "time-movement-2-t1",
       family: TIME,
-      context: "a1-context-home",
+      context: "a1-context-routine-study-schedule",
       subjectReferent: "a1-referent-yuki",
       subjectRealization: "explicit",
       form: A1_AFFIRMATIVE_PAST_POLITE,
@@ -306,7 +310,7 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "time-movement-2-t3",
       family: TIME,
-      context: "a1-context-home",
+      context: "a1-context-routine-study-schedule",
       subjectReferent: SELF,
       subjectRealization: "omitted",
       form: A1_AFFIRMATIVE_PAST_POLITE,
@@ -326,7 +330,7 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "time-movement-2-t5",
       family: TIME,
-      context: "a1-context-classroom",
+      context: "a1-context-routine-study-schedule",
       subjectReferent: "a1-referent-ken",
       subjectRealization: "explicit",
       form: A1_AFFIRMATIVE_PAST_POLITE,
@@ -348,7 +352,7 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "time-movement-3-m1",
       family: TIME,
-      context: "a1-context-home",
+      context: "a1-context-routine-study-schedule",
       subjectReferent: SELF,
       subjectRealization: "omitted",
       form: A1_NEGATIVE_PAST_POLITE,
@@ -368,7 +372,7 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "time-movement-3-m3",
       family: TIME,
-      context: "a1-context-home",
+      context: "a1-context-routine-study-schedule",
       subjectReferent: "a1-referent-ken",
       subjectRealization: "explicit",
       form: A1_NEGATIVE_PAST_POLITE,
@@ -395,7 +399,7 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "time-movement-3-m5",
       family: BARE,
-      context: "a1-context-home",
+      context: "a1-context-bare-return-response",
       subjectReferent: SELF,
       subjectRealization: "omitted",
       form: A1_NEGATIVE_PAST_POLITE,
@@ -447,7 +451,7 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "time-movement-3-t2",
       family: BARE,
-      context: "a1-context-classroom",
+      context: "a1-context-bare-study-conversation",
       subjectReferent: "a1-referent-yuki",
       subjectRealization: "explicit",
       form: A1_NEGATIVE_PAST_POLITE,
@@ -467,7 +471,7 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
     {
       id: "time-movement-3-t4",
       family: BARE,
-      context: "a1-context-home",
+      context: "a1-context-bare-return-response",
       subjectReferent: SELF,
       subjectRealization: "explicit",
       form: A1_NEGATIVE_PAST_POLITE,
@@ -696,7 +700,7 @@ export const moduleTimeMovementRecipe: A1ModuleRecipe = defineA1Module({
   outcomeCopyId: "a1-module-outcome-time-movement",
 });
 
-/** Staged only; Task 5 owns promotion into the release recurrence timeline. */
+/** Canonical recurrence records for the published time-movement lessons. */
 export const moduleTimeMovementVerbUseRecords: readonly VerbUseRecord[] = [
   a1VerbUseRecord({
     senseId: "a1-sense-study-routine",

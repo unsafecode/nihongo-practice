@@ -36,6 +36,7 @@ export const FOUNDATIONS_LEXEME_IDS_BY_LESSON: Readonly<
   Record<string, readonly string[]>
 > = deepFreeze({
   "sentence-foundations-1": [
+    "a1-lexeme-desu",
     "a1-lexeme-watashi",
     "a1-lexeme-kore",
     "a1-lexeme-gakusei",
@@ -142,7 +143,7 @@ export const FOUNDATIONS_VOCABULARY_BY_LESSON = FOUNDATIONS_LEXEME_IDS_BY_LESSON
 
 /**
  * @deprecated The Foundations lexicon is now part of the published A1 lexicon.
- * Retained as an identity alias for staged-authoring consumers.
+ * Retained as an identity alias for legacy authoring consumers.
  */
 export const a1ExpandedFoundationsLexemes = a1Lexemes;
 /** @deprecated Use {@link a1LexemeById}; this is the same index. */

@@ -1502,7 +1502,7 @@ export const a1LearningNoteById: LearningNoteIndex =
 
 /**
  * @deprecated Use {@link a1LearningNoteById}; this is the same published
- * lookup retained for staged-authoring consumers.
+ * lookup retained for legacy authoring consumers.
  */
 export const a1CanonicalFoundationLearningNoteById = a1LearningNoteById;
 

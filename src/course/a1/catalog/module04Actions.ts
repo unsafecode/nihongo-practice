@@ -3,7 +3,7 @@
  *
  * Four instructional lessons that make the productive action verbs speakable:
  * present-tense object actions (を), action place (で) and destination (に),
- * recipients (に), and the object-transfer verbs. Companion と is staged later
+ * recipients (に), and the object-transfer verbs. Companion と is introduced later
  * with the people vocabulary. Subjects
  * are dropped whenever Japanese would drop them (pro-drop first person) and
  * named only when a third party is introduced — never pronoun-stuffed.

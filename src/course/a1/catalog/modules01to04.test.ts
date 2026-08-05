@@ -625,7 +625,7 @@ describe("A1 productive verbs · structural intro diversity", () => {
       "a1-lexeme-hataraku",
     );
     expect(senseById.get("a1-sense-study-bare")?.lexemeId).toBe(
-      "a1-lexeme-benkyou-suru-bare",
+      "a1-lexeme-benkyou-suru",
     );
     expect(senseById.get("a1-sense-do-bare")?.lexemeId).toBe(
       "a1-lexeme-suru",

@@ -67,6 +67,10 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-context-evening-reading-label": "Evening reading routine",
     "a1-context-social-outing-label": "A social outing",
     "a1-context-unidentified-addressee-label": "Addressing an unidentified person",
+    "a1-context-bare-study-conversation-label": "A general study conversation",
+    "a1-context-routine-study-schedule-label": "A study schedule",
+    "a1-context-rest-routine-label": "A regular break",
+    "a1-context-bare-return-response-label": "A simple reply about returning",
     "a1-role-creature-label": "An animal",
     "a1-role-unidentified-addressee-label": "An unidentified addressee",
     "a1-referent-creature-label": "The animal",
@@ -148,6 +152,10 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-context-evening-reading-label": "Routine di lettura serale",
     "a1-context-social-outing-label": "Un'uscita sociale",
     "a1-context-unidentified-addressee-label": "Rivolgersi a una persona non identificata",
+    "a1-context-bare-study-conversation-label": "Una conversazione generale sullo studio",
+    "a1-context-routine-study-schedule-label": "Un programma di studio",
+    "a1-context-rest-routine-label": "Una pausa regolare",
+    "a1-context-bare-return-response-label": "Una semplice risposta sul tornare",
     "a1-role-creature-label": "Un animale",
     "a1-role-unidentified-addressee-label": "Un interlocutore non identificato",
     "a1-referent-creature-label": "L'animale",
@@ -395,6 +403,22 @@ export const A1_CONTEXT_SCENARIO: Readonly<Record<string, Bilingual>> = deepFree
   "a1-context-unidentified-addressee": {
     en: "You must distinguish an unidentified addressee when no name or title is available.",
     it: "Devi distinguere un interlocutore non identificato quando non è disponibile un nome né un titolo.",
+  },
+  "a1-context-bare-study-conversation": {
+    en: "You are talking about whether someone studies, without discussing a schedule.",
+    it: "Stai parlando del fatto che qualcuno studi, senza discutere un programma.",
+  },
+  "a1-context-routine-study-schedule": {
+    en: "You are discussing a study schedule and when someone studies.",
+    it: "Stai discutendo di un programma di studio e di quando qualcuno studia.",
+  },
+  "a1-context-rest-routine": {
+    en: "You are describing when someone takes a regular break.",
+    it: "Descrivi quando qualcuno fa una pausa regolare.",
+  },
+  "a1-context-bare-return-response": {
+    en: "You are answering whether someone returns, without giving a time or destination.",
+    it: "Rispondi se qualcuno torna, senza indicare un orario o una destinazione.",
   },
 });
 

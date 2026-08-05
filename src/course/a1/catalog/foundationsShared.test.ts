@@ -27,6 +27,7 @@ import {
 
 const EXPECTED_LEXEME_IDS_BY_LESSON = {
   "sentence-foundations-1": [
+    "a1-lexeme-desu",
     "a1-lexeme-watashi",
     "a1-lexeme-kore",
     "a1-lexeme-gakusei",
@@ -142,12 +143,14 @@ describe("published Foundations shared authoring data", () => {
     );
 
     const lexemeIds = Object.values(FOUNDATIONS_LEXEME_IDS_BY_LESSON).flat();
-    expect(lexemeIds).toHaveLength(65);
-    expect(new Set(lexemeIds)).toHaveLength(65);
+    expect(lexemeIds).toHaveLength(66);
+    expect(new Set(lexemeIds)).toHaveLength(66);
     for (const [lessonId, ids] of Object.entries(
       FOUNDATIONS_LEXEME_IDS_BY_LESSON,
     )) {
-      expect(ids).toHaveLength(lessonId === "polite-verbs-3" ? 5 : 4);
+      expect(ids).toHaveLength(
+        ["sentence-foundations-1", "polite-verbs-3"].includes(lessonId) ? 5 : 4,
+      );
       for (const id of ids) {
         expect(id.startsWith("a1-lexeme-")).toBe(true);
         expect(FOUNDATIONS_LEXEMES_BY_LESSON[lessonId]?.some((lexeme) => lexeme.id === id)).toBe(

@@ -102,4 +102,24 @@ describe("buildA1PracticeFeedback", () => {
       expect(feedback?.it.retry).not.toContain(fullVisibleTarget);
     }
   });
+
+  it.each([
+    ["a1-sense-study-bare", "to study", "studiare"],
+    ["a1-sense-study-routine", "to study", "studiare"],
+    ["a1-sense-rest-routine", "to rest; take a break", "riposarsi; fare una pausa"],
+    ["a1-sense-return-bare", "to return; go home", "tornare"],
+  ] as const)(
+    "resolves the published lexeme meaning for %s",
+    (senseId, englishMeaning, italianMeaning) => {
+      const feedback = buildA1PracticeFeedback(
+        "polite-verbs-1",
+        "meaning-comprehension",
+        [senseId],
+        [],
+      );
+
+      expect(feedback?.en.accepted).toContain(englishMeaning);
+      expect(feedback?.it.accepted).toContain(italianMeaning);
+    },
+  );
 });

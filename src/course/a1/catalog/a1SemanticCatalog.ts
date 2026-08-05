@@ -110,11 +110,27 @@ const a1BaseContexts: readonly Context[] = deepFreeze([
   { id: "a1-context-social-outing", labelCopyId: "a1-context-social-outing-label" },
 ]);
 
-/** Foundations context added to the canonical release. */
+/** Additional canonical contexts used by the published Foundations lessons. */
 export const a1ExpandedFoundationContexts: readonly Context[] = deepFreeze([
   {
     id: "a1-context-unidentified-addressee",
     labelCopyId: "a1-context-unidentified-addressee-label",
+  },
+  {
+    id: "a1-context-bare-study-conversation",
+    labelCopyId: "a1-context-bare-study-conversation-label",
+  },
+  {
+    id: "a1-context-routine-study-schedule",
+    labelCopyId: "a1-context-routine-study-schedule-label",
+  },
+  {
+    id: "a1-context-rest-routine",
+    labelCopyId: "a1-context-rest-routine-label",
+  },
+  {
+    id: "a1-context-bare-return-response",
+    labelCopyId: "a1-context-bare-return-response-label",
   },
 ]);
 
@@ -188,7 +204,7 @@ const a1BaseReferents: readonly Referent[] = deepFreeze([
   { id: "a1-referent-creature", personRoleId: "a1-role-creature", animacy: "animate", labelCopyId: "a1-referent-creature-label" },
 ]);
 
-/** The corresponding staged referent for an unidentified addressee. */
+/** The corresponding canonical referent for an unidentified addressee. */
 export const a1ExpandedFoundationReferents: readonly Referent[] = deepFreeze([
   {
     id: "a1-referent-unidentified-addressee",
@@ -226,7 +242,7 @@ const a1BaseLearningTargetSenses: readonly LearningTargetSense[] = deepFreeze([
   { id: "a1-sense-understand", lexemeId: "a1-lexeme-wakaru", learningUse: "productive", semanticFrameId: "a1-frame-understand", predicate: "understand", argumentRoles: ["agent", "theme"], argumentParticleByRole: {} },
   { id: "a1-sense-do", lexemeId: "a1-lexeme-suru", learningUse: "productive", semanticFrameId: "a1-frame-do-activity", predicate: "do", argumentRoles: ["agent", "theme"], argumentParticleByRole: {} },
   { id: "a1-sense-work-bare", lexemeId: "a1-lexeme-hataraku", learningUse: "productive", semanticFrameId: "a1-frame-work-bare", predicate: "work", argumentRoles: ["agent"], argumentParticleByRole: {} },
-  { id: "a1-sense-study-bare", lexemeId: "a1-lexeme-benkyou-suru-bare", learningUse: "productive", semanticFrameId: "a1-frame-study-bare", predicate: "study", argumentRoles: ["agent"], argumentParticleByRole: {} },
+  { id: "a1-sense-study-bare", lexemeId: "a1-lexeme-benkyou-suru", learningUse: "productive", semanticFrameId: "a1-frame-study-bare", predicate: "study", argumentRoles: ["agent"], argumentParticleByRole: {} },
   { id: "a1-sense-do-bare", lexemeId: "a1-lexeme-suru", learningUse: "productive", semanticFrameId: "a1-frame-do-bare", predicate: "do", argumentRoles: ["agent"], argumentParticleByRole: {} },
   { id: "a1-sense-rest-bare", lexemeId: "a1-lexeme-yasumu", learningUse: "productive", semanticFrameId: "a1-frame-rest-bare", predicate: "rest", argumentRoles: ["agent"], argumentParticleByRole: {} },
   { id: "a1-sense-go", lexemeId: "a1-lexeme-iku", learningUse: "productive", semanticFrameId: "a1-frame-go", predicate: "go", argumentRoles: ["agent", "location"], argumentParticleByRole: { location: "ni" } },
@@ -250,7 +266,7 @@ const a1BaseLearningTargetSenses: readonly LearningTargetSense[] = deepFreeze([
   { id: "a1-sense-sleep", lexemeId: "a1-lexeme-neru", learningUse: "productive", semanticFrameId: "a1-frame-sleep", predicate: "sleep", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
   { id: "a1-sense-go-out", lexemeId: "a1-lexeme-dekakeru", learningUse: "productive", semanticFrameId: "a1-frame-go-out", predicate: "go-out", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
   { id: "a1-sense-return", lexemeId: "a1-lexeme-kaeru", learningUse: "productive", semanticFrameId: "a1-frame-return", predicate: "return", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
-  { id: "a1-sense-study-routine", lexemeId: "a1-lexeme-benkyou-suru-routine", learningUse: "productive", semanticFrameId: "a1-frame-study-routine", predicate: "study", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
+  { id: "a1-sense-study-routine", lexemeId: "a1-lexeme-benkyou-suru", learningUse: "productive", semanticFrameId: "a1-frame-study-routine", predicate: "study", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
   { id: "a1-sense-eat-routine", lexemeId: "a1-lexeme-taberu", learningUse: "productive", semanticFrameId: "a1-frame-eat-routine", predicate: "eat", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
   { id: "a1-sense-read-routine", lexemeId: "a1-lexeme-yomu", learningUse: "productive", semanticFrameId: "a1-frame-read-routine", predicate: "read", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
   // --- Module 9 description senses: predicate adjectives. Each carries its
@@ -286,7 +302,7 @@ export const a1ExpandedFoundationLearningTargetSenses: readonly LearningTargetSe
   deepFreeze([
     {
       id: "a1-sense-rest-routine",
-      lexemeId: "a1-lexeme-yasumu-routine",
+      lexemeId: "a1-lexeme-yasumu",
       learningUse: "productive",
       semanticFrameId: "a1-frame-rest-routine",
       predicate: "rest",
@@ -304,7 +320,7 @@ export const a1ExpandedFoundationLearningTargetSenses: readonly LearningTargetSe
     },
     {
       id: "a1-sense-return-bare",
-      lexemeId: "a1-lexeme-kaeru-bare",
+      lexemeId: "a1-lexeme-kaeru",
       learningUse: "productive",
       semanticFrameId: "a1-frame-return-bare",
       predicate: "return",
@@ -654,7 +670,7 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-obj-chef", kind: "object", tokenFragments: [frag("シェフ", "shefu")] },
   { id: "a1-value-obj-designer", kind: "object", tokenFragments: [frag("デザイナー", "dezainaa")] },
   { id: "a1-value-obj-researcher", kind: "object", tokenFragments: [frag("けんきゅうしゃ", "kenkyuusha")] },
-  { id: "a1-value-obj-brazilian-person", kind: "object", tokenFragments: [frag("ブラジルじん", "burazirujin")] },
+  { id: "a1-value-obj-brazilian-person", kind: "object", tokenFragments: [frag("ブラジルじん", "burajirujin")] },
   { id: "a1-value-obj-canadian-person", kind: "object", tokenFragments: [frag("カナダじん", "kanadajin")] },
   { id: "a1-value-obj-korean-person", kind: "object", tokenFragments: [frag("かんこくじん", "kankokujin")] },
   { id: "a1-value-obj-spanish-person", kind: "object", tokenFragments: [frag("スペインじん", "supeinjin")] },
@@ -665,7 +681,7 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-taichi", kind: "referent", animacy: "animate", tokenFragments: [frag("たいち", "taichi")] },
   { id: "a1-value-mei", kind: "referent", animacy: "animate", tokenFragments: [frag("めい", "mei")] },
   { id: "a1-value-haru", kind: "referent", animacy: "animate", tokenFragments: [frag("はる", "haru")] },
-  { id: "a1-value-q-pass", kind: "referent", animacy: "inanimate", tokenFragments: [frag("パス", "passu")] },
+  { id: "a1-value-q-pass", kind: "referent", animacy: "inanimate", tokenFragments: [frag("パス", "pasu")] },
   { id: "a1-value-q-menu", kind: "referent", animacy: "inanimate", tokenFragments: [frag("メニュー", "menyuu")] },
   { id: "a1-value-q-poster", kind: "referent", animacy: "inanimate", tokenFragments: [frag("ポスター", "posutaa")] },
   { id: "a1-value-q-label", kind: "referent", animacy: "inanimate", tokenFragments: [frag("ラベル", "raberu")] },
@@ -697,7 +713,7 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-time-last-night", kind: "time", tokenFragments: [frag("ゆうべ", "yuube")] },
   { id: "a1-value-transport-tram", kind: "object", tokenFragments: [frag("ろめんでんしゃ", "romendensha")] },
   { id: "a1-value-transport-ferry", kind: "object", tokenFragments: [frag("フェリー", "ferii")] },
-  { id: "a1-value-transport-scooter", kind: "object", tokenFragments: [frag("スクーター", "sukutaa")] },
+  { id: "a1-value-transport-scooter", kind: "object", tokenFragments: [frag("スクーター", "sukuutaa")] },
   { id: "a1-value-garden", kind: "referent", animacy: "inanimate", tokenFragments: [frag("にわ", "niwa")] },
   { id: "a1-value-river", kind: "referent", animacy: "inanimate", tokenFragments: [frag("かわ", "kawa")] },
   { id: "a1-value-obj-camera", kind: "object", tokenFragments: [frag("カメラ", "kamera")] },
