@@ -28,7 +28,11 @@ import {
   a1ReleaseVerbUseRecords,
   a1StagedFoundationsArea01to02VerbUseRecords,
 } from "./recurrence";
-import { a1StagedFoundationsArea03to04VerbUseRecords } from "./foundationsRecurrence03to04";
+import * as publishedRecurrence from "./recurrence";
+import {
+  a1ExpandedFoundationsVerbUseRecords,
+  a1StagedFoundationsArea03to04VerbUseRecords,
+} from "./foundationsRecurrence03to04";
 import {
   a1SemanticBuiltLessons,
   a1SemanticFoundationCatalogs,
@@ -84,6 +88,16 @@ describe("assertNoStaleLaterUseKeys", () => {
           record.introductionLessonId.startsWith("sentence-foundations-"),
         ),
       ).toBe(false);
+    });
+
+    it("exports the all-four staged timeline only from its dedicated staging module", () => {
+      expect(publishedRecurrence).not.toHaveProperty(
+        "a1ExpandedFoundationsVerbUseRecords",
+      );
+      expect(a1ExpandedFoundationsVerbUseRecords).toEqual([
+        ...a1StagedFoundationsArea01to02VerbUseRecords,
+        ...a1StagedFoundationsArea03to04VerbUseRecords,
+      ]);
     });
 
     it("keeps final-module records staged, spaced, and tied to variants that realize the cited sense", () => {

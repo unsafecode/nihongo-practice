@@ -109,8 +109,9 @@ describe("staged Foundations learner content 03–04", () => {
     );
 
     for (const content of a1FoundationsArea03to04LessonContent) {
-      expect(content.newLexemeIds).toHaveLength(4);
-      expect(new Set(content.newLexemeIds).size).toBe(4);
+      const expectedLexemeCount = content.lessonId === "polite-verbs-3" ? 5 : 4;
+      expect(content.newLexemeIds).toHaveLength(expectedLexemeCount);
+      expect(new Set(content.newLexemeIds).size).toBe(expectedLexemeCount);
       expect(content.situation.en).toMatch(/\S/);
       expect(content.situation.it).toMatch(/\S/);
       expect(content.retrievalCue.en).toMatch(/\S/);

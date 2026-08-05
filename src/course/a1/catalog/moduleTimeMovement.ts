@@ -67,7 +67,7 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
   supportingCanDoIds: ["a1-can-do-polite-verbs"],
   introducedConceptIds: [A1_CONCEPT_TIME_SCHEDULE],
   introducedSenseIds: ["a1-sense-study-routine", "a1-sense-return"],
-  diversityOverride: { minPredicates: 1 },
+  diversityOverride: { minPredicates: 2 },
   models: [
     {
       id: "time-movement-1-m1",
@@ -199,7 +199,7 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
   supportingCanDoIds: ["a1-can-do-polite-verbs"],
   introducedConceptIds: [],
   introducedSenseIds: [],
-  diversityOverride: { minPredicates: 1 },
+  diversityOverride: { minPredicates: 2 },
   models: [
     {
       id: "time-movement-2-m1",
@@ -344,7 +344,6 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
   supportingCanDoIds: ["a1-can-do-polite-verbs"],
   introducedConceptIds: [],
   introducedSenseIds: [],
-  diversityOverride: { minPredicates: 1 },
   models: [
     {
       id: "time-movement-3-m1",
@@ -383,8 +382,15 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
       subjectReferent: "a1-referent-mina",
       subjectRealization: "explicit",
       form: A1_NEGATIVE_PAST_POLITE,
-      slots: timed("a1-value-mina", "a1-value-return", "a1-value-freq-everyday"),
-      translation: L("Mina did not return every day.", "Mina non tornava ogni giorno."),
+      slots: timed(
+        "a1-value-mina",
+        "a1-value-return",
+        "a1-value-time-day-before-yesterday",
+      ),
+      translation: L(
+        "Mina did not return the day before yesterday.",
+        "Mina non è tornata l'altro ieri.",
+      ),
     },
     {
       id: "time-movement-3-m5",
@@ -403,8 +409,8 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
       subjectReferent: "a1-referent-yuki",
       subjectRealization: "explicit",
       form: A1_NEGATIVE_PAST_POLITE,
-      slots: bare("a1-value-yuki", "a1-value-return-bare"),
-      translation: L("Yuki did not return.", "Yuki non è tornata."),
+      slots: bare("a1-value-yuki", "a1-value-go-bare"),
+      translation: L("Yuki did not go.", "Yuki non è andata."),
     },
     {
       id: "time-movement-3-m7",
@@ -465,8 +471,8 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
       subjectReferent: SELF,
       subjectRealization: "explicit",
       form: A1_NEGATIVE_PAST_POLITE,
-      slots: bare(WATASHI, "a1-value-rest-bare"),
-      translation: L("I did not take a break.", "Non ho fatto una pausa."),
+      slots: bare(WATASHI, "a1-value-return-bare"),
+      translation: L("I did not return.", "Non sono tornato."),
     },
     {
       id: "time-movement-3-t5",
@@ -475,8 +481,8 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
       subjectReferent: "a1-referent-ken",
       subjectRealization: "explicit",
       form: A1_NEGATIVE_PAST_POLITE,
-      slots: bare("a1-value-ken", "a1-value-return-bare"),
-      translation: L("Ken did not return.", "Ken non è tornato."),
+      slots: bare("a1-value-ken", "a1-value-go-bare"),
+      translation: L("Ken did not go.", "Ken non è andato."),
     },
   ],
 });
@@ -489,7 +495,7 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
   supportingCanDoIds: ["a1-can-do-polite-verbs"],
   introducedConceptIds: [A1_CONCEPT_DIRECTION_HE, A1_CONCEPT_TRANSPORT_DE],
   introducedSenseIds: [],
-  diversityOverride: { minPredicates: 1 },
+  diversityOverride: { minPredicates: 2 },
   models: [
     {
       id: "time-movement-4-m1",
@@ -500,8 +506,8 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
       form: PAST_QUESTION,
       speakerRole: "a1-role-learner",
       addresseeRole: "a1-role-teacher",
-      slots: location("a1-value-anata", "a1-value-return-location", "a1-value-loc-doko"),
-      translation: L("Where did you return to?", "Dove sei tornato?"),
+      slots: location("a1-value-anata", "a1-value-go", "a1-value-loc-doko"),
+      translation: L("Where did you go?", "Dove sei andato?"),
     },
     {
       id: "time-movement-4-m2",
@@ -514,11 +520,11 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
       addresseeRole: "a1-role-learner",
       slots: transport(
         WATASHI,
-        "a1-value-return-location",
+        "a1-value-go",
         "a1-value-transport-train",
         "a1-value-loc-station",
       ),
-      translation: L("I returned to the station by train.", "Sono tornato alla stazione in treno."),
+      translation: L("I went to the station by train.", "Sono andato alla stazione in treno."),
     },
     {
       id: "time-movement-4-m3",
@@ -544,11 +550,11 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
       form: A1_AFFIRMATIVE_PAST_POLITE,
       slots: transport(
         "a1-value-ken",
-        "a1-value-return-location",
+        "a1-value-go",
         "a1-value-transport-bicycle",
         "a1-value-loc-school",
       ),
-      translation: L("Ken returned to school by bicycle.", "Ken è tornato a scuola in bicicletta."),
+      translation: L("Ken went to school by bicycle.", "Ken è andato a scuola in bicicletta."),
     },
     {
       id: "time-movement-4-m5",
@@ -557,8 +563,8 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
       subjectReferent: SELF,
       subjectRealization: "omitted",
       form: A1_AFFIRMATIVE_PAST_POLITE,
-      slots: location(WATASHI, "a1-value-return-location", "a1-value-loc-library"),
-      translation: L("I returned toward the library.", "Sono tornato verso la biblioteca."),
+      slots: location(WATASHI, "a1-value-go", "a1-value-loc-library"),
+      translation: L("I went toward the library.", "Sono andato verso la biblioteca."),
     },
     {
       id: "time-movement-4-m6",
@@ -569,11 +575,11 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
       form: A1_AFFIRMATIVE_PAST_POLITE,
       slots: transport(
         "a1-value-mina",
-        "a1-value-return-location",
+        "a1-value-go",
         "a1-value-transport-train",
         "a1-value-loc-cafe",
       ),
-      translation: L("Mina returned to the cafe by train.", "Mina è tornata al bar in treno."),
+      translation: L("Mina went to the cafe by train.", "Mina è andata al bar in treno."),
     },
     {
       id: "time-movement-4-m7",
@@ -584,11 +590,11 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
       form: A1_AFFIRMATIVE_PAST_POLITE,
       slots: transport(
         WATASHI,
-        "a1-value-return-location",
+        "a1-value-go",
         "a1-value-transport-bus",
         "a1-value-loc-library",
       ),
-      translation: L("I returned to the library by bus.", "Sono tornato in biblioteca in autobus."),
+      translation: L("I went to the library by bus.", "Sono andato in biblioteca in autobus."),
     },
     {
       id: "time-movement-4-m8",
@@ -614,8 +620,8 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
       subjectReferent: "a1-referent-ken",
       subjectRealization: "explicit",
       form: A1_AFFIRMATIVE_PAST_POLITE,
-      slots: location("a1-value-ken", "a1-value-return-location", "a1-value-loc-station"),
-      translation: L("Ken returned toward the station.", "Ken è tornato verso la stazione."),
+      slots: location("a1-value-ken", "a1-value-go", "a1-value-loc-station"),
+      translation: L("Ken went toward the station.", "Ken è andato verso la stazione."),
     },
     {
       id: "time-movement-4-t2",
@@ -641,11 +647,11 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
       form: A1_AFFIRMATIVE_PAST_POLITE,
       slots: transport(
         "a1-value-mina",
-        "a1-value-return-location",
+        "a1-value-go",
         "a1-value-transport-bus",
         "a1-value-loc-school",
       ),
-      translation: L("Mina returned to school by bus.", "Mina è tornata a scuola in autobus."),
+      translation: L("Mina went to school by bus.", "Mina è andata a scuola in autobus."),
     },
     {
       id: "time-movement-4-t4",
@@ -656,11 +662,11 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
       form: A1_AFFIRMATIVE_PAST_POLITE,
       slots: transport(
         "a1-value-ken",
-        "a1-value-return-location",
+        "a1-value-go",
         "a1-value-transport-bicycle",
         "a1-value-loc-library",
       ),
-      translation: L("Ken returned to the library by bicycle.", "Ken è tornato in biblioteca in bicicletta."),
+      translation: L("Ken went to the library by bicycle.", "Ken è andato in biblioteca in bicicletta."),
     },
     {
       id: "time-movement-4-t5",
@@ -669,8 +675,8 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
       subjectReferent: SELF,
       subjectRealization: "omitted",
       form: A1_AFFIRMATIVE_PAST_POLITE,
-      slots: location(WATASHI, "a1-value-return-location", "a1-value-loc-cafe"),
-      translation: L("I returned toward the cafe.", "Sono tornato verso il bar."),
+      slots: location(WATASHI, "a1-value-go", "a1-value-loc-cafe"),
+      translation: L("I went toward the cafe.", "Sono andato verso il bar."),
     },
   ],
 });

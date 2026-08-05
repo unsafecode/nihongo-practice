@@ -313,7 +313,3 @@ export const a1StagedFoundationsArea01to02VerbUseRecords: readonly VerbUseRecord
     ),
     ...moduleTopicQuestionsVerbUseRecords,
   ]);
-
-/** Alias naming the staged expanded-area timeline without publishing it. */
-export const a1ExpandedFoundationsVerbUseRecords =
-  a1StagedFoundationsArea01to02VerbUseRecords;

@@ -109,6 +109,7 @@ export const FOUNDATIONS_LEXEME_IDS_BY_LESSON: Readonly<
     "a1-lexeme-kiku",
     "a1-lexeme-kau",
     "a1-lexeme-kaeru",
+    "a1-lexeme-iku",
   ],
   "polite-verbs-4": [
     "a1-lexeme-kaisha",
@@ -132,7 +133,7 @@ export const FOUNDATIONS_LEXEME_IDS_BY_LESSON: Readonly<
     "a1-lexeme-kinou",
     "a1-lexeme-kyou",
     "a1-lexeme-senshuu",
-    "a1-lexeme-mainichi",
+    "a1-lexeme-ototoi",
   ],
   "time-movement-4": [
     "a1-lexeme-eki",
@@ -168,6 +169,11 @@ const expandedFoundationsLexemeOverrides: Readonly<Record<string, A1Lexeme>> =
       "a1-value-return",
       "a1-value-return-bare",
       "a1-value-return-location",
+    ]),
+    "a1-lexeme-iku": withExpandedValueIds("a1-lexeme-iku", [
+      "a1-value-go",
+      "a1-value-accompany",
+      "a1-value-go-bare",
     ]),
     "a1-lexeme-doko": withExpandedValueIds("a1-lexeme-doko", [
       "a1-value-q-doko",
@@ -209,6 +215,15 @@ const expandedFoundationsLastWeekLexeme = defineA1Lexeme({
   meaning: { en: "last week", it: "la settimana scorsa" },
 });
 
+const expandedFoundationsDayBeforeYesterdayLexeme = defineA1Lexeme({
+  id: "a1-lexeme-ototoi",
+  valueIds: ["a1-value-time-day-before-yesterday"],
+  kana: "おととい",
+  romaji: "ototoi",
+  category: "time",
+  meaning: { en: "the day before yesterday", it: "l'altro ieri" },
+});
+
 /**
  * Canonical lexemes for staged Foundations authoring. The published lexicon
  * deliberately remains limited to published semantic values until Task5
@@ -221,6 +236,7 @@ export const a1ExpandedFoundationsLexemes: readonly A1Lexeme[] = deepFreeze(
     ),
     expandedFoundationsFrenchLanguageLexeme,
     expandedFoundationsLastWeekLexeme,
+    expandedFoundationsDayBeforeYesterdayLexeme,
   ],
 );
 
@@ -341,8 +357,8 @@ function assertFoundationsTableIntegrity(): void {
   for (const [lessonId, lexemeIds] of Object.entries(
     FOUNDATIONS_LEXEME_IDS_BY_LESSON,
   )) {
-    if (lexemeIds.length !== 4) {
-      throw new Error(`Foundations lesson "${lessonId}" must contain exactly four lexemes.`);
+    if (lexemeIds.length < 4 || lexemeIds.length > 6) {
+      throw new Error(`Foundations lesson "${lessonId}" must contain four to six lexemes.`);
     }
     for (const lexemeId of lexemeIds) {
       if (!lexemeId.startsWith("a1-lexeme-")) {

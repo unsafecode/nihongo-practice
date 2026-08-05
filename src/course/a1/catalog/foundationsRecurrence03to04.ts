@@ -60,15 +60,23 @@ const LATER_USES_BY_SENSE: Readonly<Record<string, readonly VerbLaterUse[]>> =
     ],
     "a1-sense-return-bare": [
       { lessonId: "time-movement-3", variantId: "time-movement-3-m5" },
+      { lessonId: "time-movement-3", variantId: "time-movement-3-t4" },
+    ],
+    "a1-sense-go-bare": [
       { lessonId: "time-movement-3", variantId: "time-movement-3-m6" },
+      { lessonId: "time-movement-3", variantId: "time-movement-3-t5" },
     ],
     "a1-sense-work": [
       { lessonId: "past-negative-2", variantId: "past-negative-2-m2" },
       { lessonId: "places-2", variantId: "places-2-m5" },
     ],
     "a1-sense-return-location": [
-      { lessonId: "time-movement-4", variantId: "time-movement-4-m2" },
       { lessonId: "time-movement-4", variantId: "time-movement-4-m3" },
+      { lessonId: "time-movement-4", variantId: "time-movement-4-m8" },
+    ],
+    "a1-sense-go": [
+      { lessonId: "time-movement-4", variantId: "time-movement-4-m2" },
+      { lessonId: "time-movement-4", variantId: "time-movement-4-m4" },
     ],
     "a1-sense-study-routine": [
       { lessonId: "time-movement-3", variantId: "time-movement-3-m3" },

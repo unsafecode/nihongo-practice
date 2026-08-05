@@ -288,6 +288,15 @@ export const a1ExpandedFoundationLearningTargetSenses: readonly LearningTargetSe
       argumentParticleByRole: {},
     },
     {
+      id: "a1-sense-go-bare",
+      lexemeId: "a1-lexeme-iku",
+      learningUse: "productive",
+      semanticFrameId: "a1-frame-go-bare",
+      predicate: "go",
+      argumentRoles: ["agent"],
+      argumentParticleByRole: {},
+    },
+    {
       id: "a1-sense-return-bare",
       lexemeId: "a1-lexeme-kaeru",
       learningUse: "productive",
@@ -645,6 +654,12 @@ export const a1ExpandedFoundationSemanticValues: readonly SemanticValue[] =
       tokenFragments: [frag("やすみ", "yasumi")],
     }),
     defineA1SemanticValue({
+      id: "a1-value-go-bare",
+      kind: "predicate-sense",
+      senseId: "a1-sense-go-bare",
+      tokenFragments: [frag("いき", "iki")],
+    }),
+    defineA1SemanticValue({
       id: "a1-value-return-bare",
       kind: "predicate-sense",
       senseId: "a1-sense-return-bare",
@@ -660,6 +675,11 @@ export const a1ExpandedFoundationSemanticValues: readonly SemanticValue[] =
       id: "a1-value-time-last-week",
       kind: "time",
       tokenFragments: [frag("せんしゅう", "senshuu")],
+    }),
+    defineA1SemanticValue({
+      id: "a1-value-time-day-before-yesterday",
+      kind: "time",
+      tokenFragments: [frag("おととい", "ototoi")],
     }),
     defineA1SemanticValue({
       id: "a1-value-time-today",

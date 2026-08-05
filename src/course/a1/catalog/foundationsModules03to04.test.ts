@@ -81,6 +81,14 @@ function modelSentences(lessonId: string) {
   return lesson.recipe.modelVariantIds.map(realize);
 }
 
+function translation(variantId: string, locale: "en" | "it") {
+  const lesson = builtLessons.find(({ variants }) =>
+    variants.some(({ id }) => id === variantId),
+  );
+  if (!lesson) throw new Error(`Missing staged variant ${variantId}.`);
+  return lesson[locale][`${variantId}-translation`];
+}
+
 describe("staged Foundations modules 03–04", () => {
   it("keeps both modules in expanded order without publishing either one", () => {
     expect(modulePoliteVerbsRecipe).toMatchObject({
@@ -225,6 +233,68 @@ describe("staged Foundations modules 03–04", () => {
     const tm4 = modelSentences("time-movement-4");
     expect(tm4.some(({ tokens }) => tokens.some(({ kind, jp }) => kind === "particle" && jp === "へ"))).toBe(true);
     expect(tm4.some(({ tokens }) => tokens.some(({ kind, jp }) => kind === "particle" && jp === "で"))).toBe(true);
+    expect(
+      moduleTimeMovementLessons.map(
+        ({ recipe }) => recipe.diversityConstraints.minPredicates,
+      ),
+    ).toEqual([2, 2, 3, 2]);
+    expect(
+      modulePoliteVerbsLessons.slice(2).map(
+        ({ recipe }) => recipe.diversityConstraints.minPredicates,
+      ),
+    ).toEqual([3, 3]);
+  });
+
+  it("uses natural movement, time, and object-action models", () => {
+    expect(realize("polite-verbs-2-m8").canonicalJapanese).toBe(
+      "なまえをかきます",
+    );
+    expect(realize("polite-verbs-3-m5").canonicalJapanese).toBe(
+      "ゆきはいきません",
+    );
+    expect(realize("polite-verbs-3-m6").canonicalJapanese).toBe(
+      "おんがくをききません",
+    );
+    expect(realize("time-movement-3-m4").canonicalJapanese).toBe(
+      "みなはおとといかえりませんでした",
+    );
+    expect(translation("time-movement-3-m4", "en")).toBe(
+      "Mina did not return the day before yesterday.",
+    );
+    expect(translation("time-movement-3-m4", "it")).toBe(
+      "Mina non è tornata l'altro ieri.",
+    );
+    expect(
+      modelSentences("time-movement-3").map(
+        ({ canonicalJapanese }) => canonicalJapanese,
+      ),
+    ).not.toContain("みなはまいにちかえりませんでした");
+
+    const stagedSentences = builtLessons.flatMap(({ variants }) =>
+      variants.map(({ id }) => realize(id).canonicalJapanese),
+    );
+    expect(stagedSentences).not.toContain("テレビをききません");
+    expect(stagedSentences).not.toContain("しゅくだいをかきます");
+
+    const destinationSentences = builtLessons
+      .filter(({ recipe }) =>
+        ["polite-verbs-4", "time-movement-4"].includes(recipe.id),
+      )
+      .flatMap(({ variants }) =>
+        variants.map(({ id }) => realize(id).canonicalJapanese),
+      );
+    const publicDestinationSentences = destinationSentences.filter((japanese) =>
+      /(えき|としょかん|カフェ|がっこう)(に|へ)/.test(japanese),
+    );
+
+    expect(publicDestinationSentences).not.toHaveLength(0);
+    for (const japanese of publicDestinationSentences) {
+      expect(japanese).not.toMatch(/(えき|としょかん|カフェ|がっこう)(に|へ)かえ/);
+      expect(japanese).toMatch(/(えき|としょかん|カフェ|がっこう)(に|へ)いき/);
+    }
+    expect(destinationSentences.some((japanese) => /かいしゃにかえ/.test(japanese))).toBe(
+      true,
+    );
   });
 
   it("realizes representative natural targets through the staged semantic catalog", () => {
@@ -236,7 +306,8 @@ describe("staged Foundations modules 03–04", () => {
       ["time-movement-1-m1", "ろくじにべんきょうします", "rokuji ni benkyoushimasu"],
       ["time-movement-2-m1", "あさべんきょうしました", "asa benkyoushimashita"],
       ["time-movement-3-m1", "きのうべんきょうしませんでした", "kinou benkyoushimasen deshita"],
-      ["time-movement-4-m2", "でんしゃでえきにかえりました", "densha de eki ni kaerimashita"],
+      ["time-movement-3-m4", "みなはおとといかえりませんでした", "mina wa ototoi kaerimasen deshita"],
+      ["time-movement-4-m2", "でんしゃでえきにいきました", "densha de eki ni ikimashita"],
     ] as const;
 
     for (const [variantId, japanese, romaji] of expected) {

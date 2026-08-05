@@ -4,6 +4,8 @@ import { a1LexemeById, a1LexemeByValueId } from "../curriculum/lexicon";
 import { A1_EXPANDED_LESSON_IDS_BY_MODULE } from "../manifest";
 import {
   a1CanonicalContexts,
+  a1CanonicalLearningTargetSenses,
+  a1LearningTargetSenses,
   a1CanonicalPersonRoles,
   a1CanonicalReferents,
   a1CanonicalSemanticValues,
@@ -89,6 +91,7 @@ const EXPECTED_LEXEME_IDS_BY_LESSON = {
     "a1-lexeme-kiku",
     "a1-lexeme-kau",
     "a1-lexeme-kaeru",
+    "a1-lexeme-iku",
   ],
   "polite-verbs-4": [
     "a1-lexeme-kaisha",
@@ -112,7 +115,7 @@ const EXPECTED_LEXEME_IDS_BY_LESSON = {
     "a1-lexeme-kinou",
     "a1-lexeme-kyou",
     "a1-lexeme-senshuu",
-    "a1-lexeme-mainichi",
+    "a1-lexeme-ototoi",
   ],
   "time-movement-4": [
     "a1-lexeme-eki",
@@ -130,7 +133,7 @@ const EXPANDED_FOUNDATION_LESSON_IDS = [
 ];
 
 describe("staged Foundations shared authoring data", () => {
-  it("uses the exact ordered four-lexeme vocabulary allocation for all expanded Foundations lessons", () => {
+  it("uses the exact ordered 4–6 lexeme vocabulary allocation for all expanded Foundations lessons", () => {
     expect(FOUNDATIONS_LEXEME_IDS_BY_LESSON).toEqual(
       EXPECTED_LEXEME_IDS_BY_LESSON,
     );
@@ -139,12 +142,12 @@ describe("staged Foundations shared authoring data", () => {
     );
 
     const lexemeIds = Object.values(FOUNDATIONS_LEXEME_IDS_BY_LESSON).flat();
-    expect(lexemeIds).toHaveLength(64);
-    expect(new Set(lexemeIds)).toHaveLength(64);
+    expect(lexemeIds).toHaveLength(65);
+    expect(new Set(lexemeIds)).toHaveLength(65);
     for (const [lessonId, ids] of Object.entries(
       FOUNDATIONS_LEXEME_IDS_BY_LESSON,
     )) {
-      expect(ids).toHaveLength(4);
+      expect(ids).toHaveLength(lessonId === "polite-verbs-3" ? 5 : 4);
       for (const id of ids) {
         expect(id.startsWith("a1-lexeme-")).toBe(true);
         expect(FOUNDATIONS_LEXEMES_BY_LESSON[lessonId]?.some((lexeme) => lexeme.id === id)).toBe(
@@ -226,18 +229,59 @@ describe("staged Foundations shared authoring data", () => {
     ).toBe(stagedYasumu);
   });
 
-  it("stages last week as the past-compatible time allocation without publishing it", () => {
+  it("keeps the public go frame intact while staging a bare first use for polite verbs", () => {
+    expect(a1LexemeById["a1-lexeme-iku"]).toMatchObject({
+      valueIds: ["a1-value-go", "a1-value-accompany"],
+    });
+    expect(a1ExpandedFoundationsLexemeById["a1-lexeme-iku"]).toMatchObject({
+      valueIds: ["a1-value-go", "a1-value-accompany", "a1-value-go-bare"],
+    });
+    expect(a1LearningTargetSenses.some(({ id }) => id === "a1-sense-go-bare")).toBe(
+      false,
+    );
+    expect(
+      a1CanonicalLearningTargetSenses.some(({ id }) => id === "a1-sense-go-bare"),
+    ).toBe(true);
+    expect(a1SemanticValues.some(({ id }) => id === "a1-value-go-bare")).toBe(
+      false,
+    );
+    expect(
+      a1CanonicalSemanticValues.some(({ id }) => id === "a1-value-go-bare"),
+    ).toBe(true);
+  });
+
+  it("stages past-compatible day words without taking every day from routines", () => {
     expect(a1LexemeById["a1-lexeme-senshuu"]).toBeUndefined();
     expect(a1ExpandedFoundationsLexemeById["a1-lexeme-senshuu"]).toMatchObject({
       valueIds: ["a1-value-time-last-week"],
       kana: "せんしゅう",
       romaji: "senshuu",
     });
+    expect(a1LexemeById["a1-lexeme-ototoi"]).toBeUndefined();
+    expect(a1ExpandedFoundationsLexemeById["a1-lexeme-ototoi"]).toMatchObject({
+      valueIds: ["a1-value-time-day-before-yesterday"],
+      kana: "おととい",
+      romaji: "ototoi",
+    });
+    expect(
+      FOUNDATIONS_LEXEME_IDS_BY_LESSON["time-movement-3"],
+    ).not.toContain("a1-lexeme-mainichi");
+    expect(a1LexemeById["a1-lexeme-mainichi"]).toMatchObject({
+      valueIds: ["a1-value-freq-everyday"],
+    });
     expect(
       a1SemanticValues.some(({ id }) => id === "a1-value-time-last-week"),
     ).toBe(false);
     expect(
       a1CanonicalSemanticValues.some(({ id }) => id === "a1-value-time-last-week"),
+    ).toBe(true);
+    expect(
+      a1SemanticValues.some(({ id }) => id === "a1-value-time-day-before-yesterday"),
+    ).toBe(false);
+    expect(
+      a1CanonicalSemanticValues.some(
+        ({ id }) => id === "a1-value-time-day-before-yesterday",
+      ),
     ).toBe(true);
   });
 

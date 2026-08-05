@@ -311,8 +311,8 @@ const lessonContent = [
   defineA1LessonContent({
     lessonId: "polite-verbs-4",
     situation: {
-      en: "You distinguish the place where someone works from the destination where they return.",
-      it: "Distingui il luogo in cui qualcuno lavora dalla destinazione in cui torna.",
+      en: "You distinguish where someone works from a public destination they go to and a home-base they return to.",
+      it: "Distingui dove qualcuno lavora da una destinazione pubblica in cui va e da una base a cui torna.",
     },
     prerequisiteLessonIds: ["polite-verbs-3"],
     prerequisiteConceptIds: ["a1-concept-object-wo"],
@@ -337,8 +337,8 @@ const lessonContent = [
       "transformation",
     ),
     retrievalCue: {
-      en: "Ask whether a place is where the action happens or where the person is heading.",
-      it: "Chiediti se un luogo indica dove avviene l'azione o dove la persona è diretta.",
+      en: "Use go for public destinations and reserve return for a home-base such as the company.",
+      it: "Usa andare per le destinazioni pubbliche e riserva tornare a una base come l'azienda.",
     },
   }),
   defineA1LessonContent({
@@ -396,8 +396,8 @@ const lessonContent = [
   defineA1LessonContent({
     lessonId: "time-movement-3",
     situation: {
-      en: "You say what did not happen yesterday, today, last week, or as a repeated past habit.",
-      it: "Dici ciò che non è avvenuto ieri, oggi, la settimana scorsa o come abitudine passata ripetuta.",
+      en: "You say what did not happen yesterday, today, last week, or the day before yesterday.",
+      it: "Dici ciò che non è avvenuto ieri, oggi, la settimana scorsa o l'altro ieri.",
     },
     prerequisiteLessonIds: ["time-movement-2"],
     prerequisiteConceptIds: ["a1-concept-time-schedule"],
@@ -422,8 +422,8 @@ const lessonContent = [
   defineA1LessonContent({
     lessonId: "time-movement-4",
     situation: {
-      en: "You ask about a return trip, then give its destination and transport in a short exchange.",
-      it: "Chiedi di un viaggio di ritorno, poi indichi destinazione e mezzo in un breve scambio.",
+      en: "You ask about a trip, then give its destination and transport in a short exchange.",
+      it: "Chiedi di uno spostamento, poi indichi destinazione e mezzo in un breve scambio.",
     },
     prerequisiteLessonIds: ["time-movement-3"],
     prerequisiteConceptIds: ["a1-concept-location-particle"],
@@ -448,8 +448,8 @@ const lessonContent = [
       "transformation",
     ),
     retrievalCue: {
-      en: "Keep destination and transport roles separate: use the destination or direction marker, then the transport marker.",
-      it: "Tieni separati i ruoli di destinazione e mezzo: usa la particella di destinazione o direzione, poi quella del mezzo.",
+      en: "Keep destination and transport roles separate, using go for public destinations and return for a home-base.",
+      it: "Tieni separati i ruoli di destinazione e mezzo, usando andare per le destinazioni pubbliche e tornare per una base.",
     },
   }),
 ];
