@@ -39,10 +39,14 @@ import type { CourseModule, Lesson } from "./types";
 
 /**
  * Exactly one icon per module, in module order — a purely decorative 1:1
- * mapping over the runtime's fixed 12-icon set (never a content claim).
+ * mapping over the runtime's fixed icon set (never a content claim).
  */
 const MODULE_ICON_IDS: Readonly<Record<string, SemanticIconId>> = {
   sounds: "sounds",
+  "sentence-foundations": "sentence",
+  "topic-questions": "questions",
+  "polite-verbs": "ordering",
+  "time-movement": "time",
   introductions: "identity",
   "essential-questions": "questions",
   actions: "ordering",

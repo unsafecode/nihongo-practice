@@ -1,10 +1,10 @@
 /**
  * Whole-level QA reports for the assembled A1 catalog (§16, Phase 2 Task 4).
  *
- * This module combines the 44 semantic lesson rows already computed by
+ * This module combines the 60 semantic lesson rows already computed by
  * `validateFoundations` (surfaced through `validateA1`) with the four phonetic
  * sounds lessons — which carry no sentence variants and therefore need their
- * own phonetic-specific fields — into a single 48-row release view, and adds
+ * own phonetic-specific fields — into a single 64-row release view, and adds
  * the module, level, verb-recurrence, Can-do, checkpoint and alias tables a
  * reviewer needs to sign off on the level. Everything here is a *computed*
  * actual, never an authored aggregate: the row order is canonical (by lesson
@@ -42,7 +42,7 @@ export interface A1PhoneticLessonFields {
   readonly glyphs: readonly string[];
 }
 
-/** One row of the combined 48-lesson coverage table. */
+/** One row of the combined 64-lesson coverage table. */
 export interface A1LessonReportRow {
   readonly lessonId: string;
   readonly moduleId: string;
@@ -63,7 +63,7 @@ export interface A1LessonReportRow {
   readonly complete: boolean;
 }
 
-/** One row of the 12-module coverage table. */
+/** One row of the 16-module coverage table. */
 export interface A1ModuleReportRow {
   readonly moduleId: string;
   readonly order: number;
@@ -140,7 +140,7 @@ function phoneticFields(items: readonly A1PhoneticItem[]): A1PhoneticLessonField
 }
 
 /**
- * Builds the combined 48-lesson release report from a `validateA1` result
+ * Builds the combined 64-lesson release report from a `validateA1` result
  * (defaulting to the frozen release view). The semantic rows come verbatim from
  * the wrapped foundation report; the phonetic rows are computed from the sounds
  * module items.
@@ -149,7 +149,7 @@ export function buildA1Reports(result: ValidateA1Result = validateA1()): A1Cover
   const foundation: FoundationCoverageReports = result.foundationReport.reports;
   const positionByLesson = new Map(a1AllLessonPositions.map((record) => [record.lessonId, record]));
 
-  // --- 48 lesson rows ------------------------------------------------------
+  // --- 64 lesson rows ------------------------------------------------------
   const lessonRows: A1LessonReportRow[] = [];
 
   for (const [lessonId, row] of Object.entries(foundation.byLesson)) {

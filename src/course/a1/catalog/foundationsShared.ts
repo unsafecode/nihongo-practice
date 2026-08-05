@@ -1,23 +1,17 @@
 /**
- * Staged shared authoring data for the four expanded Foundations modules.
- *
- * This module is intentionally not imported by the published A1 catalog. It
- * gives later authoring tasks one frozen vocabulary, Can-do, and learning-note
- * source without adding incomplete lessons to the 12-module / 48-lesson
- * runtime.
+ * Shared authored data for the four published Foundations modules.
  */
 
 import { deepFreeze } from "../../foundations/deepFreeze";
 import type { A1Lexeme } from "../curriculum/types";
 import {
   a1LexemeById,
+  a1LexemeByValueId,
   a1Lexemes,
-  defineA1Lexeme,
 } from "../curriculum/lexicon";
-import { a1CanonicalSemanticValues } from "./a1SemanticCatalog";
-import { A1_EXPANDED_LESSON_IDS_BY_MODULE } from "../manifest";
+import { A1_LESSON_IDS_BY_MODULE } from "../manifest";
 
-/** The four staged module ids, in their planned authoring order. */
+/** The four Foundations module ids, in canonical order. */
 export const FOUNDATIONS_MODULE_IDS: readonly string[] = deepFreeze([
   "sentence-foundations",
   "topic-questions",
@@ -25,25 +19,25 @@ export const FOUNDATIONS_MODULE_IDS: readonly string[] = deepFreeze([
   "time-movement",
 ]);
 
-/** The sixteen staged lesson ids, derived from the expanded manifest in order. */
+/** The sixteen Foundations lesson ids, derived from the canonical manifest. */
 export const FOUNDATIONS_LESSON_IDS: readonly string[] = deepFreeze([
-  ...A1_EXPANDED_LESSON_IDS_BY_MODULE["sentence-foundations"],
-  ...A1_EXPANDED_LESSON_IDS_BY_MODULE["topic-questions"],
-  ...A1_EXPANDED_LESSON_IDS_BY_MODULE["polite-verbs"],
-  ...A1_EXPANDED_LESSON_IDS_BY_MODULE["time-movement"],
+  ...A1_LESSON_IDS_BY_MODULE["sentence-foundations"],
+  ...A1_LESSON_IDS_BY_MODULE["topic-questions"],
+  ...A1_LESSON_IDS_BY_MODULE["polite-verbs"],
+  ...A1_LESSON_IDS_BY_MODULE["time-movement"],
 ]);
 
 /**
  * Exact Foundations lesson-to-vocabulary table. Existing canonical IDs retain
  * their established spellings (including `benkyou-suru`); no alias lexeme IDs
- * are introduced for the staged plan.
+ * are introduced for the published Foundations sequence.
  */
 export const FOUNDATIONS_LEXEME_IDS_BY_LESSON: Readonly<
   Record<string, readonly string[]>
 > = deepFreeze({
   "sentence-foundations-1": [
     "a1-lexeme-watashi",
-    "a1-lexeme-namae",
+    "a1-lexeme-kore",
     "a1-lexeme-gakusei",
     "a1-lexeme-sensei",
   ],
@@ -51,7 +45,7 @@ export const FOUNDATIONS_LEXEME_IDS_BY_LESSON: Readonly<
     "a1-lexeme-yuki",
     "a1-lexeme-ken",
     "a1-lexeme-mina",
-    "a1-lexeme-tomodachi",
+    "a1-lexeme-namae",
   ],
   "sentence-foundations-3": [
     "a1-lexeme-anata",
@@ -87,10 +81,10 @@ export const FOUNDATIONS_LEXEME_IDS_BY_LESSON: Readonly<
     "a1-lexeme-doko",
   ],
   "topic-questions-4": [
-    "a1-lexeme-kore",
     "a1-lexeme-sore",
     "a1-lexeme-are",
     "a1-lexeme-dore",
+    "a1-lexeme-koppu",
   ],
   "polite-verbs-1": [
     "a1-lexeme-hataraku",
@@ -143,148 +137,20 @@ export const FOUNDATIONS_LEXEME_IDS_BY_LESSON: Readonly<
   ],
 });
 
-/** Alias for consumers that name the staged lexical allocation as vocabulary. */
+/** Alias for consumers that name the Foundations lexical allocation as vocabulary. */
 export const FOUNDATIONS_VOCABULARY_BY_LESSON = FOUNDATIONS_LEXEME_IDS_BY_LESSON;
 
-type ExpandedFoundationsLexemeIndex = Readonly<Record<string, A1Lexeme | undefined>>;
-
-function withExpandedValueIds(
-  lexemeId: string,
-  valueIds: readonly string[],
-): A1Lexeme {
-  const publishedLexeme = a1LexemeById[lexemeId];
-  if (!publishedLexeme) {
-    throw new Error(`Published A1 lexicon is missing "${lexemeId}".`);
-  }
-  return defineA1Lexeme({ ...publishedLexeme, valueIds });
-}
-
-const expandedFoundationsLexemeOverrides: Readonly<Record<string, A1Lexeme>> =
-  deepFreeze({
-    "a1-lexeme-yasumu": withExpandedValueIds("a1-lexeme-yasumu", [
-      "a1-value-rest-bare",
-      "a1-value-rest-routine",
-    ]),
-    "a1-lexeme-kaeru": withExpandedValueIds("a1-lexeme-kaeru", [
-      "a1-value-return",
-      "a1-value-return-bare",
-      "a1-value-return-location",
-    ]),
-    "a1-lexeme-iku": withExpandedValueIds("a1-lexeme-iku", [
-      "a1-value-go",
-      "a1-value-accompany",
-      "a1-value-go-bare",
-    ]),
-    "a1-lexeme-doko": withExpandedValueIds("a1-lexeme-doko", [
-      "a1-value-q-doko",
-      "a1-value-loc-doko",
-    ]),
-    "a1-lexeme-kyou": withExpandedValueIds("a1-lexeme-kyou", [
-      "a1-value-today",
-      "a1-value-time-today",
-    ]),
-    "a1-lexeme-namae": withExpandedValueIds("a1-lexeme-namae", [
-      "a1-value-obj-name",
-      "a1-value-name-subject",
-    ]),
-    "a1-lexeme-gakusei": withExpandedValueIds("a1-lexeme-gakusei", [
-      "a1-value-obj-student",
-      "a1-value-student-subject",
-    ]),
-    "a1-lexeme-dore": withExpandedValueIds("a1-lexeme-dore", [
-      "a1-value-q-dore",
-      "a1-value-dore",
-    ]),
-  });
-
-const expandedFoundationsFrenchLanguageLexeme = defineA1Lexeme({
-  id: "a1-lexeme-furansugo",
-  valueIds: ["a1-value-obj-french-language"],
-  kana: "フランスご",
-  romaji: "furansugo",
-  category: "noun",
-  meaning: { en: "French language", it: "lingua francese" },
-});
-
-const expandedFoundationsLastWeekLexeme = defineA1Lexeme({
-  id: "a1-lexeme-senshuu",
-  valueIds: ["a1-value-time-last-week"],
-  kana: "せんしゅう",
-  romaji: "senshuu",
-  category: "time",
-  meaning: { en: "last week", it: "la settimana scorsa" },
-});
-
-const expandedFoundationsDayBeforeYesterdayLexeme = defineA1Lexeme({
-  id: "a1-lexeme-ototoi",
-  valueIds: ["a1-value-time-day-before-yesterday"],
-  kana: "おととい",
-  romaji: "ototoi",
-  category: "time",
-  meaning: { en: "the day before yesterday", it: "l'altro ieri" },
-});
-
 /**
- * Canonical lexemes for staged Foundations authoring. The published lexicon
- * deliberately remains limited to published semantic values until Task5
- * promotes the staged value associations and their lessons atomically.
+ * @deprecated The Foundations lexicon is now part of the published A1 lexicon.
+ * Retained as an identity alias for staged-authoring consumers.
  */
-export const a1ExpandedFoundationsLexemes: readonly A1Lexeme[] = deepFreeze(
-  [
-    ...a1Lexemes.map(
-      (lexeme) => expandedFoundationsLexemeOverrides[lexeme.id] ?? lexeme,
-    ),
-    expandedFoundationsFrenchLanguageLexeme,
-    expandedFoundationsLastWeekLexeme,
-    expandedFoundationsDayBeforeYesterdayLexeme,
-  ],
-);
+export const a1ExpandedFoundationsLexemes = a1Lexemes;
+/** @deprecated Use {@link a1LexemeById}; this is the same index. */
+export const a1ExpandedFoundationsLexemeById = a1LexemeById;
+/** @deprecated Use {@link a1LexemeByValueId}; this is the same index. */
+export const a1ExpandedFoundationsLexemeByValueId = a1LexemeByValueId;
 
-function buildExpandedFoundationsLexemeIndexes(
-  lexemes: readonly A1Lexeme[],
-): Readonly<{
-  byId: ExpandedFoundationsLexemeIndex;
-  byValueId: ExpandedFoundationsLexemeIndex;
-}> {
-  const canonicalValueIds = new Set(a1CanonicalSemanticValues.map((value) => value.id));
-  const byId: Record<string, A1Lexeme | undefined> = {};
-  const byValueId: Record<string, A1Lexeme | undefined> = {};
-
-  for (const lexeme of lexemes) {
-    if (byId[lexeme.id] !== undefined) {
-      throw new Error(`Duplicate expanded Foundations lexeme id "${lexeme.id}".`);
-    }
-    byId[lexeme.id] = lexeme;
-
-    for (const valueId of lexeme.valueIds) {
-      if (!canonicalValueIds.has(valueId)) {
-        throw new Error(
-          `Expanded Foundations lexeme "${lexeme.id}" references missing canonical semantic value "${valueId}".`,
-        );
-      }
-      if (byValueId[valueId] !== undefined) {
-        throw new Error(
-          `Semantic value "${valueId}" has more than one expanded Foundations lexeme owner.`,
-        );
-      }
-      byValueId[valueId] = lexeme;
-    }
-  }
-
-  return deepFreeze({ byId, byValueId });
-}
-
-const a1ExpandedFoundationsLexemeIndexes = buildExpandedFoundationsLexemeIndexes(
-  a1ExpandedFoundationsLexemes,
-);
-
-/** Canonical staged lookup, including all staged Foundations value associations. */
-export const a1ExpandedFoundationsLexemeById: ExpandedFoundationsLexemeIndex =
-  a1ExpandedFoundationsLexemeIndexes.byId;
-export const a1ExpandedFoundationsLexemeByValueId: ExpandedFoundationsLexemeIndex =
-  a1ExpandedFoundationsLexemeIndexes.byValueId;
-
-/** The one staged Can-do each expanded Foundations module will teach. */
+/** The one Can-do each Foundations module teaches. */
 export const FOUNDATIONS_CANDO_IDS_BY_MODULE: Readonly<
   Record<string, readonly string[]>
 > = deepFreeze({
@@ -295,8 +161,7 @@ export const FOUNDATIONS_CANDO_IDS_BY_MODULE: Readonly<
 });
 
 /**
- * Planned learner-note focus by Foundations lesson. These references are staged
- * only: existing lesson content and first-teaching assignments remain unchanged.
+ * Learner-note focus by Foundations lesson.
  */
 export const FOUNDATIONS_LEARNING_NOTE_IDS_BY_LESSON: Readonly<
   Record<string, string>
@@ -339,7 +204,7 @@ function resolveLessonLexemes(
   return deepFreeze(resolved);
 }
 
-/** Resolved canonical lexemes for staged authoring; never a mutable Map. */
+/** Resolved canonical lexemes for Foundations authoring; never a mutable Map. */
 export const FOUNDATIONS_LEXEMES_BY_LESSON = resolveLessonLexemes(
   FOUNDATIONS_LEXEME_IDS_BY_LESSON,
 );

@@ -1,5 +1,5 @@
 /**
- * Whole-level coverage report contract. Asserts the combined 48-lesson release
+ * Whole-level coverage report contract. Asserts the combined 64-lesson release
  * view exposes exact structural metrics, that every table is deterministically
  * ordered, that the rendered Markdown is byte-stable across rebuilds, and that
  * the printed report is gated behind `A1_REPORT=1`.
@@ -15,16 +15,16 @@ import { buildA1Reports, a1ReportMarkdown } from "./reports";
 const reports = buildA1Reports();
 
 describe("buildA1Reports – exact level metrics", () => {
-  it("combines 44 semantic + 4 phonetic lessons into 48 routed rows", () => {
-    expect(reports.byLesson.length).toBe(48);
-    expect(reports.byLesson.filter((row) => row.kind === "semantic").length).toBe(44);
+  it("combines 60 semantic + 4 phonetic lessons into 64 routed rows", () => {
+    expect(reports.byLesson.length).toBe(64);
+    expect(reports.byLesson.filter((row) => row.kind === "semantic").length).toBe(60);
     expect(reports.byLesson.filter((row) => row.kind === "phonetic").length).toBe(4);
   });
 
-  it("reports 12 modules, one level row, 40 verb records, 15 Can-dos, 1 checkpoint, 1 alias", () => {
-    expect(reports.byModule.length).toBe(12);
-    expect(reports.verbUse.length).toBe(40);
-    expect(reports.canDos.length).toBe(15);
+  it("reports 16 modules, one level row, 44 verb records, 19 Can-dos, 1 checkpoint, 1 alias", () => {
+    expect(reports.byModule.length).toBe(16);
+    expect(reports.verbUse.length).toBe(44);
+    expect(reports.canDos.length).toBe(19);
     expect(reports.checkpoints.length).toBe(1);
     expect(reports.aliases.length).toBe(1);
   });
@@ -32,13 +32,13 @@ describe("buildA1Reports – exact level metrics", () => {
   it("aggregates the exact level totals", () => {
     expect(reports.level).toEqual({
       level: "a1",
-      moduleCount: 12,
-      lessonCount: 48,
-      modelCount: 352,
-      exerciseCount: 216,
-      transferCount: 88,
+      moduleCount: 16,
+      lessonCount: 64,
+      modelCount: 480,
+      exerciseCount: 280,
+      transferCount: 120,
       phoneticItemCount: 40,
-      verbRecordCount: 40,
+      verbRecordCount: 44,
       complete: true,
     });
   });
@@ -50,8 +50,8 @@ describe("buildA1Reports – exact level metrics", () => {
     expect(reports.validation.foundationDiagnostics).toEqual([]);
   });
 
-  it("classifies Can-dos as 11 module + 4 scenario", () => {
-    expect(reports.canDos.filter((row) => row.scope === "module").length).toBe(11);
+  it("classifies Can-dos as 15 module + 4 scenario", () => {
+    expect(reports.canDos.filter((row) => row.scope === "module").length).toBe(15);
     expect(reports.canDos.filter((row) => row.scope === "scenario").length).toBe(4);
   });
 
@@ -81,14 +81,14 @@ describe("buildA1Reports – exact level metrics", () => {
 });
 
 describe("buildA1Reports – deterministic ordering", () => {
-  it("orders lessons by strictly ascending position 1..48", () => {
+  it("orders lessons by strictly ascending position 1..64", () => {
     const positions = reports.byLesson.map((row) => row.position);
-    expect(positions).toEqual(Array.from({ length: 48 }, (_, index) => index + 1));
+    expect(positions).toEqual(Array.from({ length: 64 }, (_, index) => index + 1));
   });
 
-  it("orders modules by ascending order 1..12", () => {
+  it("orders modules by ascending order 1..16", () => {
     const orders = reports.byModule.map((row) => row.order);
-    expect(orders).toEqual(Array.from({ length: 12 }, (_, index) => index + 1));
+    expect(orders).toEqual(Array.from({ length: 16 }, (_, index) => index + 1));
   });
 
   it("keeps a stable build: two independent builds are deeply equal", () => {
@@ -120,7 +120,7 @@ describe("a1ReportMarkdown – stable rendering", () => {
     ]) {
       expect(markdown).toContain(heading);
     }
-    // 48 lesson rows + 12 module rows must all appear.
+    // 64 lesson rows + 16 module rows must all appear.
     for (const row of reports.byLesson) {
       expect(markdown).toContain(`| ${row.lessonId} |`);
     }

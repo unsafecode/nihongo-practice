@@ -41,8 +41,62 @@ describe("A1 runtime copy", () => {
       ],
     },
   } as const;
+  const foundationLessonTitles = {
+    en: {
+      "sentence-foundations": [
+        "Predicate-final identity",
+        "Names and recoverable omission",
+        "Natural person reference",
+        "An identity exchange",
+      ],
+      "topic-questions": [
+        "Topics and polite identity",
+        "Focused answers with ga",
+        "Who, what, and where",
+        "This, that, and which",
+      ],
+      "polite-verbs": [
+        "Dictionary forms and masu",
+        "Objects with o",
+        "Polite negative actions",
+        "Places for movement and action",
+      ],
+      "time-movement": [
+        "Clock time with ni",
+        "Day parts and routines",
+        "Past and negative time",
+        "Direction and transport",
+      ],
+    },
+    it: {
+      "sentence-foundations": [
+        "Identità con predicato finale",
+        "Nomi e omissione ricavabile",
+        "Riferimenti personali naturali",
+        "Uno scambio d'identità",
+      ],
+      "topic-questions": [
+        "Temi e identità cortese",
+        "Risposte in fuoco con ga",
+        "Chi, che cosa e dove",
+        "Questo, quello e quale",
+      ],
+      "polite-verbs": [
+        "Forme dizionario e masu",
+        "Oggetti con o",
+        "Azioni cortesi negative",
+        "Luoghi per movimento e azione",
+      ],
+      "time-movement": [
+        "L'ora con ni",
+        "Parti della giornata e routine",
+        "Tempo passato e negativo",
+        "Direzione e trasporto",
+      ],
+    },
+  } as const;
 
-  it("names all 12 modules with non-blank text, distinct per module", () => {
+  it("names all 16 modules with non-blank text, distinct per module", () => {
     for (const locale of locales) {
       const modules = a1RuntimeModuleCopy(locale);
       expect(Object.keys(modules).sort()).toEqual(
@@ -58,7 +112,7 @@ describe("A1 runtime copy", () => {
     }
   });
 
-  it("titles all 48 lessons with stable, localized text", () => {
+  it("titles all 64 lessons with stable, localized text", () => {
     for (const locale of locales) {
       const modules = a1RuntimeModuleCopy(locale);
       const lessons = a1RuntimeLessonCopy(locale);
@@ -67,9 +121,12 @@ describe("A1 runtime copy", () => {
       for (const module of courseModules) {
         module.lessons.forEach((lesson, index) => {
           const expected =
-            module.id === "introductions"
+            foundationLessonTitles[locale][
+              module.id as keyof (typeof foundationLessonTitles)[typeof locale]
+            ]?.[index] ??
+            (module.id === "introductions"
               ? foundationsTitles[locale].lessons[index]
-              : `${modules[module.id]!.title} ${index + 1}`;
+              : `${modules[module.id]!.title} ${index + 1}`);
           expect(lessons[lesson.id]?.title).toBe(expected);
         });
       }

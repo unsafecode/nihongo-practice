@@ -36,7 +36,7 @@ describe("A1 canonical lexicon", () => {
     });
     expect(a1LexemeById["a1-lexeme-gakusei"]).toMatchObject({
       id: "a1-lexeme-gakusei",
-      valueIds: ["a1-value-obj-student"],
+      valueIds: ["a1-value-obj-student", "a1-value-student-subject"],
       kana: "がくせい",
       romaji: "gakusei",
       category: "person",
@@ -83,9 +83,9 @@ describe("A1 canonical lexicon", () => {
     );
   });
 
-  it("adds the staged Foundations-only canonical lexemes with accurate forms and ownership", () => {
+  it("includes the published Foundations lexemes with accurate forms and ownership", () => {
     expect(a1LexemeById["a1-lexeme-namae"]).toMatchObject({
-      valueIds: ["a1-value-obj-name"],
+      valueIds: ["a1-value-obj-name", "a1-value-name-subject"],
       kana: "なまえ",
       romaji: "namae",
       category: "noun",
@@ -113,7 +113,7 @@ describe("A1 canonical lexicon", () => {
       meaning: { en: "French person", it: "francese" },
     });
     expect(a1LexemeById["a1-lexeme-yasumu"]).toMatchObject({
-      valueIds: ["a1-value-rest-bare"],
+      valueIds: ["a1-value-rest-bare", "a1-value-rest-routine"],
       kana: "やすむ",
       romaji: "yasumu",
       category: "verb",
@@ -152,7 +152,7 @@ describe("A1 canonical lexicon", () => {
       argumentParticleByRole: {},
     });
     expect(sensesById["a1-sense-rest-routine"]).toMatchObject({
-      lexemeId: "a1-lexeme-yasumu",
+      lexemeId: "a1-lexeme-yasumu-routine",
       semanticFrameId: "a1-frame-rest-routine",
       argumentRoles: ["agent", "time"],
       argumentParticleByRole: {},
@@ -204,7 +204,7 @@ describe("A1 canonical lexicon", () => {
     }).toThrow();
   });
 
-  it("maps every published lexical semantic value and no staged value id", () => {
+  it("maps every published lexical semantic value", () => {
     const semanticValueIds = new Set(a1SemanticValues.map((value) => value.id));
     const lexicalValueIds = a1SemanticValues
       .filter((value) => value.tokenFragments.some((fragment) => fragment.kind === "lexical"))
@@ -214,7 +214,9 @@ describe("A1 canonical lexicon", () => {
     expect(
       a1Lexemes.flatMap((lexeme) => lexeme.valueIds).filter((valueId) => !semanticValueIds.has(valueId)),
     ).toEqual([]);
-    expect(a1LexemeByValueId["a1-value-rest-routine"]).toBeUndefined();
+    expect(a1LexemeByValueId["a1-value-rest-routine"]).toBe(
+      a1LexemeById["a1-lexeme-yasumu"],
+    );
   });
 
   it("keeps each lexeme form structurally aligned with its semantic fragments", () => {

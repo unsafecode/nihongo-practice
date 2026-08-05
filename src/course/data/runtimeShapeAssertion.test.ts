@@ -41,10 +41,10 @@ function validModule(overrides: Partial<CourseModule> = {}): CourseModule {
 describe("assertA1CourseShape — the always-bundled runtime structural gate (I3)", () => {
   it("passes silently for the real deployed A1 runtime course", () => {
     expect(courseModulesByLevel.a1).toBe(courseModules);
-    expect(courseModules).toHaveLength(12);
+    expect(courseModules).toHaveLength(16);
     expect(
       courseModules.flatMap((courseModule) => courseModule.lessons),
-    ).toHaveLength(48);
+    ).toHaveLength(64);
     expect(() => assertA1CourseShape(courseModules)).not.toThrow();
   });
 
@@ -120,7 +120,7 @@ describe("assertA1CourseShape — the always-bundled runtime structural gate (I3
 
   it("throws when the total lesson/module count drifts from the known release totals", () => {
     // A structurally valid single module/lesson is still a corrupted release
-    // shape (the real release always has 12 modules / 48 lessons) — this
+    // shape (the real release always has 16 modules / 64 lessons) — this
     // catches a manifest/build regression that silently drops content.
     const modules = [validModule()];
     expect(() => assertA1CourseShape(modules)).toThrow(A1CourseShapeError);

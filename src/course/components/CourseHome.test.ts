@@ -34,6 +34,10 @@ const firstLesson = allLessons[0];
 const lastLesson = allLessons[allLessons.length - 1];
 const a1ModuleIdsInLearnerOrder = [
   "sounds",
+  "sentence-foundations",
+  "topic-questions",
+  "polite-verbs",
+  "time-movement",
   "introductions",
   "essential-questions",
   "actions",
@@ -157,11 +161,11 @@ describe("CourseHome hero: editoriale mnemonico", () => {
     expect(html).toContain(itCopy.home.lessonsProgress(visited.length, totalLessons));
   });
 
-  it("shows the A1/JF-CEFR alignment badge and the exact fixed course shape (12 modules, 48 lessons)", () => {
+  it("shows the A1/JF-CEFR alignment badge and the exact fixed course shape (16 modules, 64 lessons)", () => {
     const html = renderHome(makeProgressValue());
     expect(html).toContain(itCopy.home.levelBadge);
-    expect(courseModules.length).toBe(12);
-    expect(totalLessons).toBe(48);
+    expect(courseModules.length).toBe(16);
+    expect(totalLessons).toBe(64);
     expect(html).toContain(itCopy.home.courseShape(courseModules.length, totalLessons));
   });
 });

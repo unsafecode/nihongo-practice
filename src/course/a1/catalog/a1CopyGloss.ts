@@ -92,6 +92,14 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-can-do-scenario-4-descriptor": "I can say who I am and what I do, describe things around me, and ask for clarification when I change topic.",
     "a1-module-outcome-introductions":
       "You can build simple sentences, introduce yourself, and use polite verbs with natural subject omission.",
+    "a1-module-outcome-sentence-foundations":
+      "You can build short predicate-final identity sentences and omit a known topic.",
+    "a1-module-outcome-topic-questions":
+      "You can set a topic, focus an identity with ga, and ask simple clarification questions.",
+    "a1-module-outcome-polite-verbs":
+      "You can use basic polite nonpast actions with objects, places, and clear subject omission.",
+    "a1-module-outcome-time-movement":
+      "You can say when an action happened and describe a short trip with direction and transport.",
     "a1-module-outcome-essential-questions": "You can ask and recognize the everyday questions that keep a conversation going.",
     "a1-module-outcome-actions": "You can say what you and others do with everyday things, places, and people.",
     "a1-module-outcome-routines": "You can describe your daily routine using times, days, and how often you do things.",
@@ -165,6 +173,14 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-can-do-scenario-4-descriptor": "So dire chi sono e cosa faccio, descrivere le cose intorno a me e chiedere chiarimenti quando cambio argomento.",
     "a1-module-outcome-introductions":
       "Sai costruire frasi semplici, presentarti e usare verbi cortesi con l'omissione naturale del soggetto.",
+    "a1-module-outcome-sentence-foundations":
+      "Sai costruire brevi frasi d'identità con predicato finale e omettere un tema noto.",
+    "a1-module-outcome-topic-questions":
+      "Sai impostare un tema, mettere a fuoco un'identità con ga e fare semplici domande di chiarimento.",
+    "a1-module-outcome-polite-verbs":
+      "Sai usare azioni cortesi non-passate con oggetti, luoghi e un'omissione chiara del soggetto.",
+    "a1-module-outcome-time-movement":
+      "Sai dire quando è avvenuta un'azione e descrivere un breve spostamento con direzione e trasporto.",
     "a1-module-outcome-essential-questions": "Sai fare e riconoscere le domande quotidiane che tengono viva una conversazione.",
     "a1-module-outcome-actions": "Sai dire cosa fai tu e gli altri con le cose, i luoghi e le persone di ogni giorno.",
     "a1-module-outcome-routines": "Sai descrivere la tua giornata usando orari, giorni e con quale frequenza fai le cose.",

@@ -1,15 +1,8 @@
 /**
- * Immutable A1 manifests for the published release and the next-release plan.
- *
- * The canonical exports in this file describe the deployed 12-module /
- * 48-lesson release. The separately named `A1_EXPANDED_*` exports preserve the
- * planned 16-module / 64-lesson authoring structure without making it available
- * to runtime course, catalog, or build consumers before Task 5 promotes it
- * atomically. Every exported array and map is derived from its declarative spec
- * and deep-frozen.
- *
- * Outcome copy IDs are locale-independent ASCII identifiers; neither manifest
- * carries learner-visible text.
+ * Immutable canonical A1 manifest for the published 16-module / 64-lesson
+ * release. Every exported array and map is derived from its declarative source
+ * and deep-frozen. Outcome copy IDs are locale-independent ASCII identifiers;
+ * the manifest carries no learner-visible text.
  */
 
 import { deepFreeze } from "../foundations/deepFreeze";
@@ -29,27 +22,8 @@ export type { A1ManifestSpec } from "./types";
 // Declarative source of truth
 // ---------------------------------------------------------------------------
 
-/**
- * The deployed module order. Existing runtime IDs, URLs, positions, and
- * lesson-ID-keyed progress remain stable during staging.
- */
-const PUBLISHED_MODULE_ORDER: readonly ModuleId[] = [
-  "sounds",
-  "introductions",
-  "essential-questions",
-  "actions",
-  "routines",
-  "past-negative",
-  "places",
-  "people",
-  "descriptions",
-  "shopping",
-  "existence-needs",
-  "capstones",
-];
-
-/** The planned next-release module order. This is authoring-only until Task 5. */
-const EXPANDED_MODULE_ORDER: readonly ModuleId[] = [
+/** Canonical module order. Lesson IDs, URLs, and progress keys remain stable. */
+const CANONICAL_MODULE_ORDER: readonly ModuleId[] = [
   "sounds",
   "sentence-foundations",
   "topic-questions",
@@ -105,19 +79,17 @@ function buildManifestSpec(
   };
 }
 
-/** The deep-frozen published release spec: the only A1 runtime source of truth. */
+/** The deep-frozen canonical A1 release spec. */
 export const A1_MANIFEST_SPEC: A1ManifestSpec = deepFreeze(
-  buildManifestSpec(PUBLISHED_MODULE_ORDER),
+  buildManifestSpec(CANONICAL_MODULE_ORDER),
 );
 
 /**
- * The deep-frozen planned 16-module authoring spec. It is deliberately
- * separately named so incomplete next-release content cannot enter runtime
- * assembly before Task 5's atomic promotion.
+ * @deprecated The Foundations plan is now canonical. This identity alias is
+ * retained for downstream authoring integrations that still import the old
+ * staged name; it must never diverge from {@link A1_MANIFEST_SPEC}.
  */
-export const A1_EXPANDED_MANIFEST_SPEC: A1ManifestSpec = deepFreeze(
-  buildManifestSpec(EXPANDED_MODULE_ORDER),
-);
+export const A1_EXPANDED_MANIFEST_SPEC = A1_MANIFEST_SPEC;
 
 // ---------------------------------------------------------------------------
 // Published release derived ID arrays and maps
@@ -152,43 +124,17 @@ export const A1_CANONICAL_POSITIONS: Readonly<Record<LessonId, number>> =
   );
 
 // ---------------------------------------------------------------------------
-// Planned next-release authoring IDs and positions (not runtime data)
+// Deprecated staged names
 // ---------------------------------------------------------------------------
 
-export const A1_EXPANDED_MODULE_IDS: readonly ModuleId[] = deepFreeze([
-  ...A1_EXPANDED_MANIFEST_SPEC.moduleIds,
-]);
-
-export const A1_EXPANDED_LESSON_IDS_BY_MODULE: Readonly<
-  Record<ModuleId, readonly LessonId[]>
-> = deepFreeze(
-  Object.fromEntries(
-    A1_EXPANDED_MODULE_IDS.map((moduleId) => [
-      moduleId,
-      [...A1_EXPANDED_MANIFEST_SPEC.lessonIdsByModule[moduleId]],
-    ]),
-  ),
-);
-
-export const A1_EXPANDED_LESSON_IDS: readonly LessonId[] = deepFreeze(
-  A1_EXPANDED_MODULE_IDS.flatMap(
-    (moduleId) => [...A1_EXPANDED_LESSON_IDS_BY_MODULE[moduleId]],
-  ),
-);
-
-/**
- * Planned positions for the next release. They intentionally differ from
- * published positions where the new modules precede existing ones; only Task 5
- * may promote these positions into the canonical runtime export. Progress
- * remains keyed by lesson ID, not these planned positions.
- */
-export const A1_EXPANDED_CANONICAL_POSITIONS: Readonly<
-  Record<LessonId, number>
-> = deepFreeze(
-  Object.fromEntries(
-    A1_EXPANDED_LESSON_IDS.map((id, index) => [id, index + 1]),
-  ),
-);
+/** @deprecated Use {@link A1_MODULE_IDS}; this is the same frozen array. */
+export const A1_EXPANDED_MODULE_IDS = A1_MODULE_IDS;
+/** @deprecated Use {@link A1_LESSON_IDS_BY_MODULE}; this is the same frozen map. */
+export const A1_EXPANDED_LESSON_IDS_BY_MODULE = A1_LESSON_IDS_BY_MODULE;
+/** @deprecated Use {@link A1_LESSON_IDS}; this is the same frozen array. */
+export const A1_EXPANDED_LESSON_IDS = A1_LESSON_IDS;
+/** @deprecated Use {@link A1_CANONICAL_POSITIONS}; this is the same frozen map. */
+export const A1_EXPANDED_CANONICAL_POSITIONS = A1_CANONICAL_POSITIONS;
 
 export const A1_LEGACY_LESSON_ALIASES: Readonly<Record<LessonId, LessonId>> =
   deepFreeze({ ...A1_MANIFEST_SPEC.aliases });

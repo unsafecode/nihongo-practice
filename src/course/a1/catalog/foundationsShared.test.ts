@@ -28,7 +28,7 @@ import {
 const EXPECTED_LEXEME_IDS_BY_LESSON = {
   "sentence-foundations-1": [
     "a1-lexeme-watashi",
-    "a1-lexeme-namae",
+    "a1-lexeme-kore",
     "a1-lexeme-gakusei",
     "a1-lexeme-sensei",
   ],
@@ -36,7 +36,7 @@ const EXPECTED_LEXEME_IDS_BY_LESSON = {
     "a1-lexeme-yuki",
     "a1-lexeme-ken",
     "a1-lexeme-mina",
-    "a1-lexeme-tomodachi",
+    "a1-lexeme-namae",
   ],
   "sentence-foundations-3": [
     "a1-lexeme-anata",
@@ -69,10 +69,10 @@ const EXPECTED_LEXEME_IDS_BY_LESSON = {
     "a1-lexeme-doko",
   ],
   "topic-questions-4": [
-    "a1-lexeme-kore",
     "a1-lexeme-sore",
     "a1-lexeme-are",
     "a1-lexeme-dore",
+    "a1-lexeme-koppu",
   ],
   "polite-verbs-1": [
     "a1-lexeme-hataraku",
@@ -132,8 +132,8 @@ const EXPANDED_FOUNDATION_LESSON_IDS = [
   ...A1_EXPANDED_LESSON_IDS_BY_MODULE["time-movement"],
 ];
 
-describe("staged Foundations shared authoring data", () => {
-  it("uses the exact ordered 4–6 lexeme vocabulary allocation for all expanded Foundations lessons", () => {
+describe("published Foundations shared authoring data", () => {
+  it("uses the exact ordered 4–6 lexeme vocabulary allocation for all Foundations lessons", () => {
     expect(FOUNDATIONS_LEXEME_IDS_BY_LESSON).toEqual(
       EXPECTED_LEXEME_IDS_BY_LESSON,
     );
@@ -213,10 +213,10 @@ describe("staged Foundations shared authoring data", () => {
     }
   });
 
-  it("keeps staged routine rest ownership in the expanded canonical lexicon only", () => {
+  it("publishes routine rest ownership in the canonical lexicon", () => {
     const stagedYasumu = a1ExpandedFoundationsLexemeByValueId["a1-value-rest-routine"];
 
-    expect(a1LexemeByValueId["a1-value-rest-routine"]).toBeUndefined();
+    expect(a1LexemeByValueId["a1-value-rest-routine"]).toBe(stagedYasumu);
     expect(stagedYasumu).toMatchObject({
       id: "a1-lexeme-yasumu",
       valueIds: ["a1-value-rest-bare", "a1-value-rest-routine"],
@@ -229,35 +229,35 @@ describe("staged Foundations shared authoring data", () => {
     ).toBe(stagedYasumu);
   });
 
-  it("keeps the public go frame intact while staging a bare first use for polite verbs", () => {
+  it("publishes the bare first use for polite verbs", () => {
     expect(a1LexemeById["a1-lexeme-iku"]).toMatchObject({
-      valueIds: ["a1-value-go", "a1-value-accompany"],
+      valueIds: ["a1-value-go", "a1-value-accompany", "a1-value-go-bare"],
     });
     expect(a1ExpandedFoundationsLexemeById["a1-lexeme-iku"]).toMatchObject({
       valueIds: ["a1-value-go", "a1-value-accompany", "a1-value-go-bare"],
     });
     expect(a1LearningTargetSenses.some(({ id }) => id === "a1-sense-go-bare")).toBe(
-      false,
+      true,
     );
     expect(
       a1CanonicalLearningTargetSenses.some(({ id }) => id === "a1-sense-go-bare"),
     ).toBe(true);
     expect(a1SemanticValues.some(({ id }) => id === "a1-value-go-bare")).toBe(
-      false,
+      true,
     );
     expect(
       a1CanonicalSemanticValues.some(({ id }) => id === "a1-value-go-bare"),
     ).toBe(true);
   });
 
-  it("stages past-compatible day words without taking every day from routines", () => {
-    expect(a1LexemeById["a1-lexeme-senshuu"]).toBeUndefined();
+  it("publishes past-compatible day words without taking every day from routines", () => {
+    expect(a1LexemeById["a1-lexeme-senshuu"]).toBeDefined();
     expect(a1ExpandedFoundationsLexemeById["a1-lexeme-senshuu"]).toMatchObject({
       valueIds: ["a1-value-time-last-week"],
       kana: "せんしゅう",
       romaji: "senshuu",
     });
-    expect(a1LexemeById["a1-lexeme-ototoi"]).toBeUndefined();
+    expect(a1LexemeById["a1-lexeme-ototoi"]).toBeDefined();
     expect(a1ExpandedFoundationsLexemeById["a1-lexeme-ototoi"]).toMatchObject({
       valueIds: ["a1-value-time-day-before-yesterday"],
       kana: "おととい",
@@ -271,13 +271,13 @@ describe("staged Foundations shared authoring data", () => {
     });
     expect(
       a1SemanticValues.some(({ id }) => id === "a1-value-time-last-week"),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       a1CanonicalSemanticValues.some(({ id }) => id === "a1-value-time-last-week"),
     ).toBe(true);
     expect(
       a1SemanticValues.some(({ id }) => id === "a1-value-time-day-before-yesterday"),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       a1CanonicalSemanticValues.some(
         ({ id }) => id === "a1-value-time-day-before-yesterday",
@@ -285,7 +285,7 @@ describe("staged Foundations shared authoring data", () => {
     ).toBe(true);
   });
 
-  it("keeps Foundations-only referent forms and French language ownership out of published indexes", () => {
+  it("publishes Foundations referent forms and French language ownership", () => {
     const stagedValueIds = [
       "a1-value-name-subject",
       "a1-value-student-subject",
@@ -294,25 +294,25 @@ describe("staged Foundations shared authoring data", () => {
     ];
 
     for (const valueId of stagedValueIds) {
-      expect(a1SemanticValues.some((value) => value.id === valueId)).toBe(false);
+      expect(a1SemanticValues.some((value) => value.id === valueId)).toBe(true);
       expect(a1CanonicalSemanticValues.some((value) => value.id === valueId)).toBe(true);
     }
-    expect(a1LexemeById["a1-lexeme-furansugo"]).toBeUndefined();
-    expect(a1LexemeByValueId["a1-value-obj-french-language"]).toBeUndefined();
+    expect(a1LexemeById["a1-lexeme-furansugo"]).toBeDefined();
+    expect(a1LexemeByValueId["a1-value-obj-french-language"]).toBeDefined();
     expect(a1ExpandedFoundationsLexemeByValueId["a1-value-obj-french-language"]).toMatchObject({
       id: "a1-lexeme-furansugo",
       kana: "フランスご",
     });
   });
 
-  it("keeps the no-name/no-title addressee context, role, and referent staged", () => {
+  it("publishes the no-name/no-title addressee context, role, and referent", () => {
     const stagedContextId = "a1-context-unidentified-addressee";
     const stagedRoleId = "a1-role-unidentified-addressee";
     const stagedReferentId = "a1-referent-unidentified-addressee";
 
-    expect(a1Contexts.some(({ id }) => id === stagedContextId)).toBe(false);
-    expect(a1PersonRoles.some(({ id }) => id === stagedRoleId)).toBe(false);
-    expect(a1Referents.some(({ id }) => id === stagedReferentId)).toBe(false);
+    expect(a1Contexts.some(({ id }) => id === stagedContextId)).toBe(true);
+    expect(a1PersonRoles.some(({ id }) => id === stagedRoleId)).toBe(true);
+    expect(a1Referents.some(({ id }) => id === stagedReferentId)).toBe(true);
     expect(a1CanonicalContexts.some(({ id }) => id === stagedContextId)).toBe(true);
     expect(a1CanonicalPersonRoles.some(({ id }) => id === stagedRoleId)).toBe(true);
     expect(a1CanonicalReferents.some(({ id }) => id === stagedReferentId)).toBe(true);

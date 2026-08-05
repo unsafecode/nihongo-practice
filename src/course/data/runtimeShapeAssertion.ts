@@ -24,13 +24,10 @@ import type { CourseModule } from "./types";
  */
 
 /**
- * The A1 runtime shape gate stays pinned to the last complete 12-module /
- * 48-lesson boundary while the expanded 16-module manifest awaits authored
- * content. These values must move with the runtime assembly, never by exposing
- * incomplete manifest modules as routes.
+ * The published A1 runtime has sixteen modules and sixty-four lessons.
  */
-const EXPECTED_A1_RUNTIME_MODULE_COUNT = 12;
-const EXPECTED_A1_RUNTIME_LESSON_COUNT = 48;
+const EXPECTED_A1_RUNTIME_MODULE_COUNT = 16;
+const EXPECTED_A1_RUNTIME_LESSON_COUNT = 64;
 
 /** The fixed A2 release totals (Phase 3 Task 8): 15 modules × 4 lessons. */
 const EXPECTED_A2_MODULE_COUNT = 15;
@@ -141,10 +138,8 @@ function assertCourseShapeCore(
 /**
  * Throws {@link A1CourseShapeError} unless `modules` is a structurally sane,
  * non-empty course: every module/lesson id present and unique, every count
- * positive, and the last complete runtime's fixed module/lesson totals
- * (12 modules, 48 lessons — 44 semantic + 4 phonetic) still hold. The
- * expanded manifest intentionally does not change this assertion until its
- * complete authored content is ready for runtime assembly.
+ * positive, and the published runtime's fixed module/lesson totals
+ * (16 modules, 64 lessons — 60 semantic + 4 phonetic) hold.
  */
 export function assertA1CourseShape(
   modules: readonly CourseModule[],

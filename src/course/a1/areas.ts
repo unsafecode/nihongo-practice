@@ -1,10 +1,8 @@
 /**
- * Immutable A1 expanded-area authoring contracts.
+ * Immutable A1 area authoring contracts.
  *
- * Areas partition the planned next-release manifest's module order for
- * authoring and future navigation. The published 12-module runtime remains
- * separate until Task 5 atomically promotes the expanded manifest; this file
- * does not make any planned module available to current course consumers.
+ * Areas partition the canonical manifest's module order for authoring. Course
+ * map presentation and progress grouping remain separate runtime concerns.
  */
 
 import { deepFreeze } from "../foundations/deepFreeze";
@@ -16,7 +14,7 @@ import type {
   A1CourseArea,
 } from "./types";
 
-/** The only valid A1 area IDs, in planned next-release navigation order. */
+/** The only valid A1 area IDs, in canonical navigation order. */
 export const A1_AREA_IDS: readonly A1AreaId[] = deepFreeze([
   "sounds",
   "foundations",
@@ -25,7 +23,7 @@ export const A1_AREA_IDS: readonly A1AreaId[] = deepFreeze([
 ]);
 
 /**
- * The exact expanded A1 area partition for next-release authoring. Copy IDs
+ * The exact canonical A1 area partition. Copy IDs
  * deliberately remain stable, locale-independent identifiers; localized copy
  * is resolved elsewhere.
  */
@@ -73,7 +71,7 @@ export const A1_AREAS: readonly A1CourseArea[] = deepFreeze([
 ]);
 
 /**
- * Validate an arbitrary expanded-area partition without normalizing it. Each
+ * Validate an arbitrary A1 area partition without normalizing it. Each
  * diagnostic preserves the authored ID/order problem so callers can report
  * every defect.
  */

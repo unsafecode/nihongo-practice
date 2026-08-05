@@ -355,11 +355,15 @@ describe("buildCourseMapModel: defensive edge cases", () => {
 });
 
 describe("buildCourseMapModel: real course data", () => {
-  it("keeps the real twelve modules in their canonical order and recommends the first lesson when nothing is visited", () => {
+  it("keeps the real sixteen modules in their canonical order and recommends the first lesson when nothing is visited", () => {
     const model = buildCourseMapModel(courseModules, [], null);
 
     expect(model.modules.map((e) => e.module.id)).toEqual([
       "sounds",
+      "sentence-foundations",
+      "topic-questions",
+      "polite-verbs",
+      "time-movement",
       "introductions",
       "essential-questions",
       "actions",

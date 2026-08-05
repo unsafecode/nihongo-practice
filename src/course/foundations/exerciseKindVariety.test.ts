@@ -76,7 +76,7 @@ describe("exercise-kind variety", () => {
   // enough variation to avoid a dominant prompt pattern.
   it("gives A1 many distinct sequences and no dominant one", () => {
     const stats = collect(a1Lessons);
-    expect(stats.total).toBe(44);
+    expect(stats.total).toBe(60);
     expect(stats.distinct).toBeGreaterThanOrEqual(Math.ceil(stats.total / 4));
     expect(stats.maxShared).toBeLessThanOrEqual(Math.ceil(stats.total / 4));
   });

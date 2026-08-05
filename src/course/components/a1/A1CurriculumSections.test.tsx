@@ -120,7 +120,7 @@ describe("A1 curriculum section renderers", () => {
     expect(html).toContain('class="a1-worked-examples"');
     for (const example of model.examples) {
       expect(html).toContain(example.spokenJapanese);
-      expect(html).toContain(example.translation);
+      expect(html).toContain(escapeHtmlText(example.translation));
       expect(html).toContain(`data-audio-key="a1-example-${example.variantId}"`);
       for (const token of example.tokens) {
         expect(html).toContain(`data-token-id="${token.token.id}"`);
@@ -142,8 +142,8 @@ describe("A1 curriculum section renderers", () => {
   });
 
   it("shows dictionary, polite, and class labels for every verb vocabulary entry", () => {
-    const model = modelFor("actions-1");
-    const html = renderSection("actions-1", "vocabulary");
+    const model = modelFor("polite-verbs-2");
+    const html = renderSection("polite-verbs-2", "vocabulary");
     const verbs = model.vocabulary.filter((item) => item.verb);
 
     expect(verbs.length).toBeGreaterThan(0);

@@ -1,8 +1,7 @@
 /**
  * Staged Foundations module 2 — topics, focus, and identity questions.
  *
- * These recipes remain outside the published A1 catalog until Task 5 promotes
- * the entire expanded Foundations sequence.
+ * These recipes are part of the published Foundations sequence.
  */
 
 import { defineA1Module } from "../authoring";
@@ -72,10 +71,10 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
       id: "topic-questions-1-m4",
       family: "a1-family-foundation-topic-copular",
       context: "a1-context-classroom",
-      subjectReferent: "a1-referent-friend",
+      subjectReferent: "a1-referent-mina",
       subjectRealization: "explicit",
-      slots: cop("a1-value-friend-subject", "a1-value-obj-french-person"),
-      translation: L("The friend is French.", "L'amico è francese."),
+      slots: cop("a1-value-mina", "a1-value-obj-french-person"),
+      translation: L("Mina is French.", "Mina è francese."),
     },
     {
       id: "topic-questions-1-m5",
@@ -108,10 +107,10 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
       id: "topic-questions-1-m8",
       family: "a1-family-foundation-topic-copular",
       context: "a1-context-classroom",
-      subjectReferent: "a1-referent-friend",
+      subjectReferent: "a1-referent-mina",
       subjectRealization: "omitted",
-      slots: cop("a1-value-friend-subject", "a1-value-obj-french-person"),
-      translation: L("The friend is French.", "L'amico è francese."),
+      slots: cop("a1-value-mina", "a1-value-obj-french-person"),
+      translation: L("Mina is French.", "Mina è francese."),
     },
   ],
   transfers: [
@@ -146,10 +145,10 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
       id: "topic-questions-1-t4",
       family: "a1-family-foundation-topic-copular",
       context: "a1-context-workplace",
-      subjectReferent: "a1-referent-friend",
+      subjectReferent: "a1-referent-mina",
       subjectRealization: "omitted",
-      slots: cop("a1-value-friend-subject", "a1-value-obj-american-person"),
-      translation: L("The friend is American.", "L'amico è americano."),
+      slots: cop("a1-value-mina", "a1-value-obj-american-person"),
+      translation: L("Mina is American.", "Mina è americana."),
     },
     {
       id: "topic-questions-1-t5",
@@ -311,6 +310,7 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-classroom",
       subjectReferent: "a1-referent-person",
       subjectRealization: "explicit",
+      speakerRole: "a1-role-learner",
       slots: cop("a1-value-student-subject", "a1-value-q-dare"),
       translation: L("Who is the student?", "Chi è lo studente?"),
     }),
@@ -320,6 +320,7 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-first-meeting",
       subjectReferent: "a1-referent-thing",
       subjectRealization: "explicit",
+      speakerRole: "a1-role-teacher",
       slots: cop("a1-value-name-subject", "a1-value-q-nan"),
       translation: L("What is the name?", "Qual è il nome?"),
     }),
@@ -329,6 +330,7 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-workplace",
       subjectReferent: "a1-referent-thing",
       subjectRealization: "omitted",
+      speakerRole: "a1-role-yuki",
       slots: cop("a1-value-kore", "a1-value-q-nan"),
       translation: L("What is it?", "Che cos'è?"),
     }),
@@ -375,10 +377,10 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
       id: "topic-questions-3-m8",
       family: "a1-family-foundation-question-copular",
       context: "a1-context-first-meeting",
-      subjectReferent: "a1-referent-friend",
+      subjectReferent: "a1-referent-teacher",
       subjectRealization: "explicit",
-      slots: cop("a1-value-friend-subject", "a1-value-q-dare"),
-      translation: L("Who is the friend?", "Chi è l'amico?"),
+      slots: cop("a1-value-teacher-subject", "a1-value-q-dare"),
+      translation: L("Who is the teacher?", "Chi è l'insegnante?"),
     }),
   ],
   transfers: [
@@ -424,8 +426,8 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-first-meeting",
       subjectReferent: "a1-referent-friend",
       subjectRealization: "explicit",
-      slots: cop("a1-value-friend-subject", "a1-value-q-doko"),
-      translation: L("Where is the friend?", "Dov'è l'amico?"),
+      slots: cop("a1-value-teacher-subject", "a1-value-q-doko"),
+      translation: L("Where is the teacher?", "Dov'è l'insegnante?"),
     }),
   ],
 });
@@ -446,6 +448,7 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-shop",
       subjectReferent: "a1-referent-thing",
       subjectRealization: "explicit",
+      speakerRole: "a1-role-learner",
       slots: cop("a1-value-kore", "a1-value-obj-bread"),
       translation: L("Is this bread?", "Questo è pane?"),
     }),
@@ -455,8 +458,9 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-shop",
       subjectReferent: "a1-referent-thing",
       subjectRealization: "explicit",
-      slots: cop("a1-value-sore", "a1-value-obj-bread"),
-      translation: L("That is bread.", "Quello è pane."),
+      speakerRole: "a1-role-teacher",
+      slots: cop("a1-value-sore", "a1-value-obj-cup"),
+      translation: L("That is a cup.", "Quello è un bicchiere."),
     },
     question({
       id: "topic-questions-4-m3",
@@ -464,6 +468,7 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-shop",
       subjectReferent: "a1-referent-thing",
       subjectRealization: "explicit",
+      speakerRole: "a1-role-yuki",
       slots: cop("a1-value-are", "a1-value-obj-bread"),
       translation: L("Is that over there bread?", "Quello laggiù è pane?"),
     }),
@@ -482,8 +487,8 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-cafe",
       subjectReferent: "a1-referent-thing",
       subjectRealization: "explicit",
-      slots: cop("a1-value-kore", "a1-value-obj-bread"),
-      translation: L("This is bread.", "Questo è pane."),
+      slots: cop("a1-value-kore", "a1-value-obj-cup"),
+      translation: L("This is a cup.", "Questo è un bicchiere."),
     },
     question({
       id: "topic-questions-4-m6",

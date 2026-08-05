@@ -1,8 +1,7 @@
 /**
  * Staged Foundations module 1 — predicate-final identity sentences.
  *
- * This module is intentionally absent from the published 12-module catalog.
- * Task 5 promotes it with the rest of the expanded Foundations area.
+ * This module is part of the published 16-module Foundations area.
  */
 
 import { defineA1Module } from "../authoring";
@@ -61,9 +60,9 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
       family: "a1-family-foundation-topic-copular",
       context: "a1-context-classroom",
       subjectReferent: "a1-referent-thing",
-      subjectRealization: "omitted",
-      slots: cop("a1-value-kore", "a1-value-obj-name"),
-      translation: L("It is a name.", "È un nome."),
+      subjectRealization: "explicit",
+      slots: cop("a1-value-kore", "a1-value-obj-student"),
+      translation: L("This is a student.", "Questo è uno studente."),
       speakerRole: "a1-role-classmate",
     },
     {
@@ -80,10 +79,10 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
       id: "sentence-foundations-1-m5",
       family: "a1-family-foundation-topic-copular",
       context: "a1-context-workplace",
-      subjectReferent: "a1-referent-self",
-      subjectRealization: "omitted",
-      slots: cop("a1-value-watashi", "a1-value-obj-teacher"),
-      translation: L("I am a teacher.", "Sono un insegnante."),
+      subjectReferent: "a1-referent-teacher",
+      subjectRealization: "explicit",
+      slots: cop("a1-value-teacher-subject", "a1-value-obj-student"),
+      translation: L("The teacher is a student.", "L'insegnante è uno studente."),
       speakerRole: "a1-role-teacher",
     },
     {
@@ -111,9 +110,9 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
       family: "a1-family-foundation-topic-copular",
       context: "a1-context-classroom",
       subjectReferent: "a1-referent-thing",
-      subjectRealization: "omitted",
-      slots: cop("a1-value-kore", "a1-value-obj-name"),
-      translation: L("It is a name.", "È un nome."),
+      subjectRealization: "explicit",
+      slots: cop("a1-value-kore", "a1-value-obj-teacher"),
+      translation: L("This is a teacher.", "Questo è un insegnante."),
       speakerRole: "a1-role-learner",
     },
   ],
@@ -144,8 +143,8 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-classroom",
       subjectReferent: "a1-referent-thing",
       subjectRealization: "omitted",
-      slots: cop("a1-value-kore", "a1-value-obj-name"),
-      translation: L("It is a name.", "È un nome."),
+      slots: cop("a1-value-kore", "a1-value-obj-student"),
+      translation: L("This is a student.", "Questo è uno studente."),
       speakerRole: "a1-role-friend",
     },
     {
@@ -212,10 +211,10 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
       id: "sentence-foundations-2-m4",
       family: "a1-family-foundation-topic-copular",
       context: "a1-context-classroom",
-      subjectReferent: "a1-referent-friend",
+      subjectReferent: "a1-referent-thing",
       subjectRealization: "explicit",
-      slots: cop("a1-value-friend-subject", "a1-value-obj-student"),
-      translation: L("The friend is a student.", "L'amico è uno studente."),
+      slots: cop("a1-value-kore", "a1-value-obj-name"),
+      translation: L("This is a name.", "Questo è un nome."),
     },
     {
       id: "sentence-foundations-2-m5",
@@ -248,10 +247,10 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
       id: "sentence-foundations-2-m8",
       family: "a1-family-foundation-topic-copular",
       context: "a1-context-workplace",
-      subjectReferent: "a1-referent-friend",
+      subjectReferent: "a1-referent-thing",
       subjectRealization: "omitted",
-      slots: cop("a1-value-friend-subject", "a1-value-obj-student"),
-      translation: L("The friend is a student.", "L'amico è uno studente."),
+      slots: cop("a1-value-kore", "a1-value-obj-name"),
+      translation: L("This is a name.", "Questo è un nome."),
     },
   ],
   transfers: [
@@ -286,10 +285,10 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
       id: "sentence-foundations-2-t4",
       family: "a1-family-foundation-topic-copular",
       context: "a1-context-first-meeting",
-      subjectReferent: "a1-referent-friend",
+      subjectReferent: "a1-referent-thing",
       subjectRealization: "omitted",
-      slots: cop("a1-value-friend-subject", "a1-value-obj-teacher"),
-      translation: L("The friend is a teacher.", "L'amico è un insegnante."),
+      slots: cop("a1-value-kore", "a1-value-obj-name"),
+      translation: L("This is a name.", "Questo è un nome."),
     },
     {
       id: "sentence-foundations-2-t5",
@@ -599,7 +598,7 @@ export const moduleSentenceFoundationsVerbUseRecords: readonly VerbUseRecord[] =
     introductionLessonId: "sentence-foundations-1",
     introductionVariantIds: [
       "sentence-foundations-1-m1",
-      "sentence-foundations-1-m3",
+      "sentence-foundations-1-m4",
     ],
     exerciseRoundId: "sentence-foundations-1-round-1",
     exerciseKind: "tile-ordering",

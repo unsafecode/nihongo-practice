@@ -152,7 +152,7 @@ const token = (
   it: string,
 ) => ({ kind, text, label: { en, it } } as const);
 
-export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
+const a1BaseLearningNotes: readonly A1LearningNote[] = deepFreeze([
   defineA1LearningNote({
     id: "a1-note-sounds-mora-vowels",
     kind: "phonetic",
@@ -335,8 +335,8 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
   defineA1LearningNote({
     id: "a1-note-sentence-chunks",
     kind: "grammar",
-    explainedConceptIds: [],
-    requiredConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
+    explainedConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
+    requiredConceptIds: [],
     title: {
       en: "Build sentences from chunks",
       it: "Costruisci frasi a blocchi",
@@ -1411,12 +1411,8 @@ function buildLearningNoteIndex(notes: readonly A1LearningNote[]): LearningNoteI
   return deepFreeze(byId);
 }
 
-export const a1LearningNoteById: LearningNoteIndex = buildLearningNoteIndex(a1LearningNotes);
-
 /**
- * Next-release-only composite notes. They keep the published A1 note index
- * stable while letting the staged Foundations preview teach combined forms
- * honestly before Task 5 promotes the whole area.
+ * Composite notes added by the Foundations modules.
  */
 export const a1ExpandedFoundationLearningNotes: readonly A1LearningNote[] =
   deepFreeze([
@@ -1495,31 +1491,39 @@ export const a1ExpandedFoundationLearningNotes: readonly A1LearningNote[] =
     }),
   ]);
 
-/** Complete note lookup for staged Foundations authoring; not the published view. */
-export const a1CanonicalFoundationLearningNoteById: LearningNoteIndex =
-  buildLearningNoteIndex([
-    ...a1LearningNotes,
-    ...a1ExpandedFoundationLearningNotes,
-  ]);
+/** Complete published A1 learner-note catalog. */
+export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
+  ...a1BaseLearningNotes,
+  ...a1ExpandedFoundationLearningNotes,
+]);
+
+export const a1LearningNoteById: LearningNoteIndex =
+  buildLearningNoteIndex(a1LearningNotes);
+
+/**
+ * @deprecated Use {@link a1LearningNoteById}; this is the same published
+ * lookup retained for staged-authoring consumers.
+ */
+export const a1CanonicalFoundationLearningNoteById = a1LearningNoteById;
 
 /**
  * The one substantive note that first teaches each grammar concept. Later
  * mentions may reinforce a concept, but never unlock it for curriculum use.
  */
 export const a1ConceptFirstTeachingNoteId: Readonly<Record<string, string>> = deepFreeze({
-  "a1-concept-topic-wa": "a1-note-sentence-shape-omission",
-  "a1-concept-copula-desu": "a1-note-sentence-shape-omission",
+  "a1-concept-topic-wa": "a1-note-sentence-chunks",
+  "a1-concept-copula-desu": "a1-note-sentence-chunks",
   "a1-concept-interrogative-ka": "a1-note-question-ka-words",
   "a1-concept-location-particle": "a1-note-location-ni-de-contrast",
-  "a1-concept-object-wo": "a1-note-particle-o",
+  "a1-concept-object-wo": "a1-note-masu-object-o",
   "a1-concept-nominative-ga": "a1-note-particle-ga",
   "a1-concept-recipient-ni": "a1-note-particle-ni",
   "a1-concept-companion-to": "a1-note-companion-to",
   "a1-concept-time-schedule": "a1-note-time-ni",
   "a1-concept-frequency": "a1-note-frequency",
-  "a1-concept-direction-he": "a1-note-particle-ni-destination",
+  "a1-concept-direction-he": "a1-note-direction-transport-dialogue",
   "a1-concept-source-limit": "a1-note-source-limit",
-  "a1-concept-transport-de": "a1-note-particle-de-transport",
+  "a1-concept-transport-de": "a1-note-direction-transport-dialogue",
   "a1-concept-adjective": "a1-note-adjectives",
   "a1-concept-preference-ga": "a1-note-preference-ga",
   "a1-concept-comparison-yori": "a1-note-comparison-yori",

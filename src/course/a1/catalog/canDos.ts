@@ -12,7 +12,7 @@
  * explicitly (`sourceNote`) rather than implying a certification.
  *
  * Two views are exported:
- *   • `a1CanDosAuthored` — all fifteen Can-dos (the eleven module outcomes plus
+ *   • `a1CanDosAuthored` — all nineteen Can-dos (the fifteen module outcomes plus
  *     the four capstone-scenario outcomes) for the level/checkpoint/report.
  *   • `a1NonPhoneticCanDos` — the same set minus `a1-can-do-sounds`, for the
  *     foundation-wrap catalog whose transfer-coverage gate cannot see the
@@ -34,7 +34,11 @@ import { module9Lessons } from "./module09Descriptions";
 import { module10Lessons } from "./module10Shopping";
 import { module11Lessons } from "./module11ExistenceNeeds";
 import { module12Lessons } from "./module12Capstones";
-import { A1_EXPANDED_LESSON_IDS_BY_MODULE } from "../manifest";
+import { moduleSentenceFoundationsLessons } from "./moduleSentenceFoundations";
+import { moduleTopicQuestionsLessons } from "./moduleTopicQuestions";
+import { modulePoliteVerbsLessons } from "./modulePoliteVerbs";
+import { moduleTimeMovementLessons } from "./moduleTimeMovement";
+import { A1_LESSON_IDS_BY_MODULE } from "../manifest";
 
 /** The phonetic module's lesson ids (no sentence variants; contexts stay []). */
 export const A1_SOUND_LESSON_IDS: readonly LessonId[] = Object.freeze([
@@ -52,6 +56,11 @@ export const A1_SOUND_LESSON_IDS: readonly LessonId[] = Object.freeze([
  */
 const CANDO_LESSONS: Readonly<Record<string, readonly LessonId[]>> = {
   "a1-can-do-sounds": A1_SOUND_LESSON_IDS,
+  "a1-can-do-sentence-foundations":
+    A1_LESSON_IDS_BY_MODULE["sentence-foundations"],
+  "a1-can-do-topic-questions": A1_LESSON_IDS_BY_MODULE["topic-questions"],
+  "a1-can-do-polite-verbs": A1_LESSON_IDS_BY_MODULE["polite-verbs"],
+  "a1-can-do-time-movement": A1_LESSON_IDS_BY_MODULE["time-movement"],
   "a1-can-do-identity": ["introductions-1", "introductions-2", "introductions-4"],
   "a1-can-do-origins": ["introductions-2"],
   "a1-can-do-questions": [
@@ -101,6 +110,10 @@ const CANDO_LESSONS: Readonly<Record<string, readonly LessonId[]>> = {
 // Every semantic (non-phonetic) built lesson, keyed by lesson id, so context
 // coverage can be read straight from the variants each lesson actually teaches.
 const semanticBuilt: readonly A1BuiltLesson[] = [
+  ...moduleSentenceFoundationsLessons,
+  ...moduleTopicQuestionsLessons,
+  ...modulePoliteVerbsLessons,
+  ...moduleTimeMovementLessons,
   ...module2Lessons,
   ...module3Lessons,
   ...module4Lessons,
@@ -136,7 +149,7 @@ function contextsForCanDo(lessonIds: readonly LessonId[]): readonly ContextId[] 
 }
 
 /**
- * The fifteen authored Can-dos, in the canonical stub order, each enriched with
+ * The nineteen authored Can-dos, in the canonical stub order, each enriched with
  * its lesson mapping, computed context coverage, and the JF/CEFR alignment note.
  */
 export const a1CanDosAuthored: readonly CanDo[] = deepFreeze(
@@ -168,7 +181,7 @@ export const a1NonPhoneticCanDos: readonly CanDo[] = deepFreeze(
   a1CanDosAuthored.filter((canDo) => canDo.id !== "a1-can-do-sounds"),
 );
 
-/** The eleven module (non-scenario) outcome ids, in catalogue order. */
+/** The fifteen module (non-scenario) outcome ids, in catalogue order. */
 export const A1_MODULE_CANDO_IDS: readonly string[] = Object.freeze(
   a1CanDosAuthored
     .map((canDo) => canDo.id)
@@ -183,16 +196,8 @@ export const A1_SCENARIO_CANDO_IDS: readonly string[] = Object.freeze([
   "a1-can-do-scenario-4",
 ]);
 
-// ---------------------------------------------------------------------------
-// Staged next-release Foundations Can-dos
-//
-// These exports deliberately stay outside `a1CanDosAuthored`: the published
-// 12-module / 48-lesson catalog cannot reference lessons that Task 5 has not
-// promoted yet.
-// ---------------------------------------------------------------------------
-
-/** The four staged Can-dos for the expanded Foundations modules, in order. */
-export const A1_EXPANDED_FOUNDATION_CANDO_IDS: readonly string[] = deepFreeze([
+/** The four published Foundations Can-dos, in module order. */
+export const A1_FOUNDATION_CANDO_IDS: readonly string[] = deepFreeze([
   "a1-can-do-sentence-foundations",
   "a1-can-do-topic-questions",
   "a1-can-do-polite-verbs",
@@ -200,61 +205,14 @@ export const A1_EXPANDED_FOUNDATION_CANDO_IDS: readonly string[] = deepFreeze([
 ]);
 
 /**
- * Next-release Can-dos mapped to the planned four-lesson module slices. They
- * have no current context coverage because the planned lesson variants are not
- * authored until their later task.
+ * Foundations Can-dos projected from the published registry. Their lesson and
+ * context membership is computed from the real authored variants above.
  */
-export const a1ExpandedFoundationCanDos: readonly CanDo[] = deepFreeze([
-  {
-    id: "a1-can-do-sentence-foundations",
-    level: "a1",
-    domain: "spoken-production",
-    descriptorCopyId: "a1-can-do-sentence-foundations-descriptor",
-    contextIds: [],
-    lessonIds: A1_EXPANDED_LESSON_IDS_BY_MODULE["sentence-foundations"],
-    checkpointEvidenceRule: {
-      evidenceKind: "checkpoint-sampled",
-      minAcceptedTransferTargets: 3,
-    },
-    sourceNote: "product-authored-jf-cefr-aligned",
-  },
-  {
-    id: "a1-can-do-topic-questions",
-    level: "a1",
-    domain: "interaction",
-    descriptorCopyId: "a1-can-do-topic-questions-descriptor",
-    contextIds: [],
-    lessonIds: A1_EXPANDED_LESSON_IDS_BY_MODULE["topic-questions"],
-    checkpointEvidenceRule: {
-      evidenceKind: "checkpoint-sampled",
-      minAcceptedTransferTargets: 3,
-    },
-    sourceNote: "product-authored-jf-cefr-aligned",
-  },
-  {
-    id: "a1-can-do-polite-verbs",
-    level: "a1",
-    domain: "spoken-production",
-    descriptorCopyId: "a1-can-do-polite-verbs-descriptor",
-    contextIds: [],
-    lessonIds: A1_EXPANDED_LESSON_IDS_BY_MODULE["polite-verbs"],
-    checkpointEvidenceRule: {
-      evidenceKind: "checkpoint-sampled",
-      minAcceptedTransferTargets: 3,
-    },
-    sourceNote: "product-authored-jf-cefr-aligned",
-  },
-  {
-    id: "a1-can-do-time-movement",
-    level: "a1",
-    domain: "spoken-production",
-    descriptorCopyId: "a1-can-do-time-movement-descriptor",
-    contextIds: [],
-    lessonIds: A1_EXPANDED_LESSON_IDS_BY_MODULE["time-movement"],
-    checkpointEvidenceRule: {
-      evidenceKind: "checkpoint-sampled",
-      minAcceptedTransferTargets: 3,
-    },
-    sourceNote: "product-authored-jf-cefr-aligned",
-  },
-]);
+export const a1FoundationCanDos: readonly CanDo[] = deepFreeze(
+  a1CanDosAuthored.filter((canDo) => A1_FOUNDATION_CANDO_IDS.includes(canDo.id)),
+);
+
+/** @deprecated Use {@link A1_FOUNDATION_CANDO_IDS}; this is the same IDs. */
+export const A1_EXPANDED_FOUNDATION_CANDO_IDS = A1_FOUNDATION_CANDO_IDS;
+/** @deprecated Use {@link a1FoundationCanDos}; this is the same Can-dos. */
+export const a1ExpandedFoundationCanDos = a1FoundationCanDos;

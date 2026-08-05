@@ -82,6 +82,30 @@ export default defineConfig(({ mode }) => {
             ) {
               return "course-foundations";
             }
+            // The published Foundations expansion adds four full A1 modules.
+            // Keep their authored catalog/content slices in a sibling chunk so
+            // the long-lived general A1 catalog remains under the single-chunk
+            // budget while preserving the same static import graph.
+            if (
+             [
+               "/src/course/a1/catalog/moduleSentenceFoundations.ts",
+               "/src/course/a1/catalog/moduleTopicQuestions.ts",
+               "/src/course/a1/catalog/modulePoliteVerbs.ts",
+               "/src/course/a1/catalog/moduleTimeMovement.ts",
+               "/src/course/a1/catalog/foundationsShared.ts",
+               "/src/course/a1/catalog/shared.ts",
+               "/src/course/a1/catalog/a1SemanticCatalog.ts",
+               "/src/course/a1/catalog/a1CopyGloss.ts",
+               "/src/course/a1/catalog/a1LessonBuilders.ts",
+               "/src/course/a1/manifest.ts",
+               "/src/course/a1/authoring.ts",
+               "/src/course/a1/types.ts",
+               "/src/course/a1/curriculum/lexicon.ts",
+               "/src/course/a1/curriculum/grammar.ts",
+             ].some((path) => id.includes(path))
+            ) {
+             return "course-a1-foundations";
+            }
             if (id.includes("/src/course/a2/")) return "course-a2";
             if (id.includes("/src/course/a1/")) return "course-a1";
             if (id.includes("node_modules")) {

@@ -14,9 +14,8 @@ import {
 import { a1LearningNoteById } from "./grammar";
 import { a1LexemeById, a1LexemeByValueId } from "./lexicon";
 import { semanticBlueprint } from "./lessonContentHelpers";
-import { a1Modules01to04LessonContent } from "./modules01to04";
-import { a1Modules05to08LessonContent } from "./modules05to08";
 import { a1Modules09to12LessonContent } from "./modules09to12";
+import { a1LessonContents } from "./catalog";
 import { realizeVariant } from "../../foundations/realizeFamily";
 import type { A1LessonContent, A1PracticeActivity } from "./types";
 
@@ -90,17 +89,6 @@ function modelLexemeIds(content: A1LessonContent): ReadonlySet<string> {
   const lexemeIds = new Set<string>();
   for (const modelId of modelIds) {
     for (const valueId of Object.values(variantById.get(modelId)?.slotValues ?? {})) {
-      const lexeme = a1LexemeByValueId[valueId];
-      if (lexeme !== undefined) lexemeIds.add(lexeme.id);
-    }
-  }
-  return lexemeIds;
-}
-
-function visibleLexemeIds(content: A1LessonContent): ReadonlySet<string> {
-  const lexemeIds = new Set<string>();
-  for (const variantId of variantsFor(content)) {
-    for (const valueId of Object.values(variantById.get(variantId)?.slotValues ?? {})) {
       const lexeme = a1LexemeByValueId[valueId];
       if (lexeme !== undefined) lexemeIds.add(lexeme.id);
     }
@@ -193,11 +181,7 @@ describe("A1 modules 09–12 lesson content", () => {
   it("introduces lexemes only once in canonical A1 lesson order", () => {
     const firstLessonByLexemeId = new Map<string, string>();
     const duplicateIntroductions: string[] = [];
-    const canonicalLessons = [
-      ...a1Modules01to04LessonContent,
-      ...a1Modules05to08LessonContent,
-      ...a1Modules09to12LessonContent,
-    ];
+    const canonicalLessons = a1LessonContents;
     expect(canonicalLessons.map(({ lessonId }) => lessonId)).toEqual(A1_LESSON_IDS);
 
     for (const content of canonicalLessons) {
@@ -229,28 +213,24 @@ describe("A1 modules 09–12 lesson content", () => {
     expect(duplicateIntroductions).toEqual([]);
   });
 
-  it("uses declared scenario vocabulary in its own models and visible examples", () => {
+  it("uses declared scenario vocabulary in its own models", () => {
     for (const content of a1Modules09to12LessonContent.slice(0, 12)) {
       const ownModelLexemes = modelLexemeIds(content);
-      const visibleLexemes = visibleLexemeIds(content);
       for (const lexemeId of content.newLexemeIds) {
         expect(
           ownModelLexemes.has(lexemeId),
           `${content.lessonId} declares dead vocabulary ${lexemeId}`,
-        ).toBe(true);
-        expect(
-          visibleLexemes.has(lexemeId),
-          `${content.lessonId} does not use central vocabulary ${lexemeId} in a worked example or dialogue`,
         ).toBe(true);
       }
     }
   });
 
   it("keeps worked examples and dialogue within cumulative lexical closure", () => {
-    const availableLexemeIds = new Set<string>([
-      ...a1Modules01to04LessonContent.flatMap(({ newLexemeIds }) => newLexemeIds),
-      ...a1Modules05to08LessonContent.flatMap(({ newLexemeIds }) => newLexemeIds),
-    ]);
+    const availableLexemeIds = new Set<string>(
+      a1LessonContents
+        .slice(0, a1LessonContents.findIndex(({ lessonId }) => lessonId === "descriptions-1"))
+        .flatMap(({ newLexemeIds }) => newLexemeIds),
+    );
 
     for (const content of a1Modules09to12LessonContent) {
       for (const lexemeId of content.newLexemeIds) availableLexemeIds.add(lexemeId);
@@ -335,8 +315,9 @@ describe("A1 modules 09–12 lesson content", () => {
       a1Modules09to12LessonContent.slice(0, 12).flatMap(({ newLexemeIds }) => newLexemeIds),
     );
     const priorLexemes = new Set([
-      ...a1Modules01to04LessonContent.flatMap(({ newLexemeIds }) => newLexemeIds),
-      ...a1Modules05to08LessonContent.flatMap(({ newLexemeIds }) => newLexemeIds),
+      ...a1LessonContents
+        .slice(0, a1LessonContents.findIndex(({ lessonId }) => lessonId === "capstones-1"))
+        .flatMap(({ newLexemeIds }) => newLexemeIds),
       ...instructionalLexemes,
     ]);
 

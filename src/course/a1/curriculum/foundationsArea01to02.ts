@@ -1,6 +1,6 @@
 /**
- * Staged learner content and catalog assembly for the first two Foundations
- * modules. Nothing here is imported by the published 12-module A1 runtime.
+ * Compatibility preview exports for the first two published Foundations
+ * modules. Every value is derived from the canonical release data.
  */
 
 import { deepFreeze } from "../../foundations/deepFreeze";
@@ -8,7 +8,8 @@ import {
   buildLessonPositionRecords,
   toFoundationLessonDefinition,
 } from "../../foundations/instructionalLessonKit";
-import { buildLessonViewModel } from "../../foundations/buildLessonViewModel";
+import { buildA1LessonViewModel } from "../a1LessonViewModel";
+import { a1FoundationCatalogs } from "../catalog/catalog";
 import type {
   FoundationCatalogs,
   FoundationModule,
@@ -41,9 +42,6 @@ import {
 import { a1StagedFoundationsArea01to02VerbUseRecords } from "../catalog/recurrence";
 import { A1_EXPANDED_CANONICAL_POSITIONS } from "../manifest";
 import { defineA1LessonContent, type A1PracticeBlueprint } from "./types";
-
-const STAGED_CATALOG_VERSION = "a1-foundations-staged-01to02";
-const STAGED_SEED = "a1-foundations-staged-01to02";
 
 export const a1FoundationsArea01to02BuiltLessons = deepFreeze([
   ...moduleSentenceFoundationsLessons,
@@ -91,9 +89,8 @@ export interface A1FoundationsArea01to02Catalogs extends FoundationCatalogs {
 }
 
 /**
- * A complete, catalog-neutral staging input. It is intentionally separate from
- * `a1FoundationCatalogs`, so previewing and testing these lessons cannot add a
- * route or a lesson to the current published runtime.
+ * A catalog-neutral compatibility preview for focused lesson tests. It does
+ * not alter canonical routes or runtime assembly.
  */
 export const a1FoundationsArea01to02Catalogs: A1FoundationsArea01to02Catalogs =
   deepFreeze({
@@ -156,17 +153,10 @@ function semanticBlueprint(
   spokenVariantId: string,
   fourth: "transformation" | "contextual-response",
 ): A1PracticeBlueprint {
-  const built = buildLessonViewModel({
-    catalogs: a1FoundationsArea01to02Catalogs,
-    copy: a1FoundationsArea01to02Copy,
-    lessonId,
-    locale: "en",
-    catalogVersion: STAGED_CATALOG_VERSION,
-    seed: STAGED_SEED,
-  });
+  const built = buildA1LessonViewModel(lessonId, "en");
   if (!built.ok) {
     throw new Error(
-      `Staged Foundations practice blueprint cannot resolve "${lessonId}": ${built.error.code}.`,
+      `Foundations practice blueprint cannot resolve "${lessonId}": ${built.error.code}.`,
     );
   }
 
@@ -177,11 +167,30 @@ function semanticBlueprint(
     const target = built.model.rounds[round === "one" ? 0 : 1].targets[index];
     if (!target) {
       throw new Error(
-        `Staged Foundations practice blueprint cannot resolve ${lessonId}:${round}:${index}.`,
+        `Foundations practice blueprint cannot resolve ${lessonId}:${round}:${index}.`,
       );
     }
     return target.prompt.kind;
   };
+
+  const selectedVisibleTargets = new Set(
+    built.model.rounds.flatMap((round) =>
+      round.targets.map((target) => target.visibleTargetKey),
+    ),
+  );
+  const candidateVariantIds = a1FoundationCatalogs.lessons
+    .find((lesson) => lesson.id === lessonId)
+    ?.practice.roundOne.candidateVariantIds.concat(
+      a1FoundationCatalogs.lessons.find((lesson) => lesson.id === lessonId)
+        ?.practice.roundTwo.candidateVariantIds ?? [],
+    ) ?? [];
+  const spoken =
+    candidateVariantIds.find((variantId) => {
+      const surface = built.model.tokensForExample(variantId)
+        ?.map((token) => token.jp)
+        .join("");
+      return surface !== undefined && !selectedVisibleTargets.has(surface);
+    }) ?? spokenVariantId;
 
   return {
     activities: [
@@ -213,7 +222,7 @@ function semanticBlueprint(
         id: `${lessonId}-spoken`,
         function: "listening-speaking",
         interactionKind: "spoken",
-        targetRef: { spokenVariantId },
+        targetRef: { spokenVariantId: spoken },
       },
     ],
   };

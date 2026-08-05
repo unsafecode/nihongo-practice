@@ -9,22 +9,22 @@ import { courseModules, courseModulesByLevel } from "./course";
 /**
  * The runtime course source (Phase 2 Task 6, design spec §5/§6/§17): once the
  * A1 release catalog is validated, `courseModules` derives from it directly —
- * exactly 12 modules / 48 lessons with stable manifest ids, never a partial or
+ * exactly 16 modules / 64 lessons with stable manifest ids, never a partial or
  * legacy A0→A1 assembly.
  */
 describe("courseModules — A1 runtime source", () => {
-  it("publishes exactly 12 modules and 48 lessons with stable manifest ids", () => {
-    expect(courseModules).toHaveLength(12);
+  it("publishes exactly 16 modules and 64 lessons with stable manifest ids", () => {
+    expect(courseModules).toHaveLength(16);
     const lessonIds = courseModules.flatMap((m) => m.lessons.map((l) => l.id));
-    expect(lessonIds).toHaveLength(48);
-    expect(new Set(lessonIds).size).toBe(48);
+    expect(lessonIds).toHaveLength(64);
+    expect(new Set(lessonIds).size).toBe(64);
     expect(courseModules.map((m) => m.id)).toEqual([...A1_MODULE_IDS]);
     expect(lessonIds.sort()).toEqual([...A1_LESSON_IDS].sort());
   });
 
-  it("orders modules 1 through 12 matching the manifest", () => {
+  it("orders modules 1 through 16 matching the manifest", () => {
     expect(courseModules.map((m) => m.order)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
     ]);
   });
 
@@ -60,13 +60,18 @@ describe("courseModules — A1 runtime source", () => {
     }
   });
 
-  it("gives every module a valid, distinct semantic icon id", () => {
-    const seen = new Set<string>();
+  it("gives every module a valid semantic icon id and reuses the Foundations icons intentionally", () => {
     for (const courseModule of courseModules) {
       expect(semanticIconIds).toContain(courseModule.iconId);
-      expect(seen.has(courseModule.iconId)).toBe(false);
-      seen.add(courseModule.iconId);
     }
+    expect(
+      Object.fromEntries(courseModules.map((courseModule) => [courseModule.id, courseModule.iconId])),
+    ).toMatchObject({
+      "sentence-foundations": "sentence",
+      "topic-questions": "questions",
+      "polite-verbs": "ordering",
+      "time-movement": "time",
+    });
   });
 
   it("uses the lesson id itself as the title copy id (stable, unambiguous)", () => {

@@ -90,7 +90,7 @@ describe("ModuleCard: advisory prerequisites", () => {
   it("shows the localized prerequisite module name for a module that has one", () => {
     const html = renderCard(entryFor("introductions"), { initiallyExpanded: false });
     expect(html).toContain(
-      itCopy.courseMap.prerequisites([itCopy.modules.sounds.title]),
+      itCopy.courseMap.prerequisites([itCopy.modules["time-movement"].title]),
     );
   });
 });

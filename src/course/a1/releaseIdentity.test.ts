@@ -35,7 +35,7 @@ import {
  * literals.
  */
 
-/** The 44 semantic (non-phonetic) lesson ids both builders resolve. */
+/** The 60 semantic (non-phonetic) lesson ids both builders resolve. */
 const SEMANTIC_LESSON_IDS = a1FoundationCatalogs.lessons.map(
   (lesson) => lesson.id,
 );
@@ -61,7 +61,7 @@ describe("A1 release/runtime selection identity", () => {
     expect(RUNTIME_SEED).toBe(SHARED_SEED);
   });
 
-  it("selects the exact same transfer-round target ids for every one of the 44 semantic lessons", () => {
+  it("selects the exact same transfer-round target ids for every one of the 60 semantic lessons", () => {
     const releaseResult = validateA1();
     expect(releaseResult.foundationReport.valid).toBe(true);
 
@@ -101,7 +101,7 @@ describe("A1 release/runtime selection identity", () => {
     expect(mismatches).toEqual([]);
   });
 
-  it("selects the exact same combined round-one + round-two visible-target distribution for every one of the 44 semantic lessons", () => {
+  it("selects the exact same combined round-one + round-two visible-target distribution for every one of the 60 semantic lessons", () => {
     // Round one (guided-controlled) has more eligible candidates than it
     // selects, so — unlike the always-fully-selected transfer round — its
     // chosen subset genuinely depends on the `fnv1a32` ranking, which is a

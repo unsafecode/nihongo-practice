@@ -63,7 +63,7 @@ function makeProgressValue(
     levelSummary: {
       level: "a1",
       visitedLessonCount: 0,
-      totalLessonCount: 48,
+      totalLessonCount: 64,
       visitedPercent: 0,
       recommendedContinuationLessonId: null,
     },
@@ -75,7 +75,7 @@ function makeProgressValue(
     levelSummaryFor: (level) => ({
       level,
       visitedLessonCount: 0,
-      totalLessonCount: level === "a1" ? 48 : 60,
+      totalLessonCount: level === "a1" ? 64 : 60,
       visitedPercent: 0,
       recommendedContinuationLessonId: null,
     }),
@@ -145,7 +145,7 @@ describe("CourseHome — A2 level view via ?livello=a2 (Phase 3 Task 8)", () => 
     const a1 = renderAt("/percorso");
     expect(a1).toContain(itCopy.home.levelBadge);
     expect(a1).toContain(itCopy.modules.sounds.title);
-    expect(a1).toContain(itCopy.home.courseShape(12, 48));
+    expect(a1).toContain(itCopy.home.courseShape(16, 64));
   });
 });
 

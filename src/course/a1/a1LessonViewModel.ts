@@ -29,7 +29,7 @@ import {
  * §M1), so a target's `targetId`/`prompt` stay identical across every
  * render and across the exercise catalog, the UI, and the release validator.
  *
- * Only the 44 semantic (non-phonetic) lessons resolve through this builder —
+ * Only the 60 semantic (non-phonetic) lessons resolve through this builder —
  * the sounds module carries no sentence variants (see `catalog/catalog.ts`)
  * and is rendered from `catalog/module01Sounds.ts`'s phonetic item catalog
  * instead (`A1LessonPage.tsx`).

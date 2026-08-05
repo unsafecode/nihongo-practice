@@ -71,8 +71,8 @@ function realize(variantId: string) {
   return result.sentence;
 }
 
-describe("staged Foundations modules 01–02", () => {
-  it("keeps the two new modules in expanded order without publishing them", () => {
+describe("published Foundations modules 01–02", () => {
+  it("keeps the two new modules in canonical published order", () => {
     expect(moduleSentenceFoundationsRecipe).toMatchObject({
       id: "sentence-foundations",
       order: 2,
@@ -94,13 +94,13 @@ describe("staged Foundations modules 01–02", () => {
     expect(
       a1FoundationsArea01to02Catalogs.lessonPositions.map(({ position }) => position),
     ).toEqual([5, 6, 7, 8, 9, 10, 11, 12]);
-    expect(a1FoundationCatalogs.modules).toHaveLength(12);
-    expect(a1FoundationCatalogs.lessonPositions).toHaveLength(48);
+    expect(a1FoundationCatalogs.modules).toHaveLength(16);
+    expect(a1FoundationCatalogs.lessonPositions).toHaveLength(64);
     expect(
       a1FoundationCatalogs.lessonPositions.some(({ lessonId }) =>
         lessonId.startsWith("sentence-foundations-"),
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("authors exactly eight models and five transfers for every lesson", () => {
@@ -117,7 +117,7 @@ describe("staged Foundations modules 01–02", () => {
     }
   });
 
-  it("uses the exact four staged lexemes in each lesson and realizes each in its own models", () => {
+  it("uses the exact four Foundations lexemes in each lesson and realizes each in its own models", () => {
     for (const built of builtLessons) {
       const allocated = FOUNDATIONS_LEXEME_IDS_BY_LESSON[built.recipe.id];
       expect(allocated, built.recipe.id).toHaveLength(4);

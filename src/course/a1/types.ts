@@ -1,10 +1,9 @@
 /**
  * A1 release authoring contracts (Phase 2 Task 1).
  *
- * These types describe the shape of the deployed 12-module / 48-lesson A1
- * release and the separately staged 16-module / 64-lesson next-release
- * authoring manifest. The latter does not become runtime course data until
- * Task 5 promotes it atomically. They also define the per-lesson recipes
+ * These types describe the shape of the deployed 16-module / 64-lesson A1
+ * release. Deprecated `A1_EXPANDED_*` aliases remain source-compatible with
+ * the canonical manifest. They also define the per-lesson recipes
  * (instructional, synthesis, and phonetic), the module recipe, the A1
  * checkpoint, and the structured error/result vocabulary used by the manifest
  * validator and the module-local slice assembler.
@@ -22,7 +21,7 @@
  * (`A1SliceErrorCode`), authoring-time gates (`A1AuthoringErrorCode`), and the
  * whole-level release validator (`A1ReleaseErrorCode`, covering manifest
  * agreement, the phonetic contract, capstone no-new-content, level-scope
- * introduction order, route/copy id resolution, and the exact 12×4/48 release
+ * introduction order, route/copy id resolution, and the exact 16×4/64 release
  * counts). Consumers such as `validateA1` re-export these names for backward
  * compatibility, but never redeclare the underlying literal union — this
  * keeps exactly one source of truth per failure vocabulary.
@@ -360,7 +359,7 @@ export interface A1CurriculumValidationError {
  * `A1ValidationErrorCode` — it never redeclares its own copy.
  */
 export const A1_RELEASE_ERROR_CODES = [
-  // structural shape (exact 12 modules × 4 lessons = 48 routes)
+  // structural shape (exact 16 modules × 4 lessons = 64 routes)
   "module-count",
   "lessons-per-module",
   "route-count",

@@ -120,11 +120,11 @@ describe("buildA1CurriculumViewModel — introductions-1", () => {
           category: canonical?.category,
         });
       }
-      expect(model.vocabulary.find((entry) => entry.id === "a1-lexeme-watashi")).toMatchObject({
-        kana: "わたし",
-        romaji: "watashi",
-        meaning: a1LexemeById["a1-lexeme-watashi"]?.meaning[locale],
-        category: "pronoun",
+      expect(model.vocabulary.find((entry) => entry.id === "a1-lexeme-aatisuto")).toMatchObject({
+        kana: "アーティスト",
+        romaji: "aatisuto",
+        meaning: a1LexemeById["a1-lexeme-aatisuto"]?.meaning[locale],
+        category: "person",
       });
 
       expect(model.note).toMatchObject({
@@ -198,7 +198,7 @@ describe("buildA1CurriculumViewModel — introductions-1", () => {
 });
 
 describe("buildA1CurriculumViewModel — verb, phonetic, and capstone contracts", () => {
-  it.each(["introductions-3", "actions-1"])(
+  it.each(["polite-verbs-1", "polite-verbs-2"])(
     "carries canonical dictionary, polite, and class metadata for verb vocabulary in %s",
     (lessonId) => {
       const model = expectOk(lessonId, "en");
@@ -263,7 +263,7 @@ describe("buildA1CurriculumViewModel — verb, phonetic, and capstone contracts"
 });
 
 describe("buildA1CurriculumViewModel — complete A1 coverage", () => {
-  it("resolves every one of the 48 curriculum rows in both locales without a partial model", () => {
+  it("resolves every one of the 64 curriculum rows in both locales without a partial model", () => {
     for (const locale of LOCALES) {
       for (const content of Object.values(a1LessonContentById)) {
         if (!content) continue;

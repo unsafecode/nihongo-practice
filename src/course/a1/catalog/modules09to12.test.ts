@@ -48,6 +48,7 @@ import { module10Lessons } from "./module10Shopping";
 import { module11Lessons } from "./module11ExistenceNeeds";
 import { module12Lessons } from "./module12Capstones";
 import { a1ReleaseVerbUseRecords } from "./recurrence";
+import { a1SemanticBuiltLessons } from "./catalog";
 import { a1CopyEn } from "../copy/en";
 import { a1CopyIt } from "../copy/it";
 import { realizeVariant } from "../../foundations/realizeFamily";
@@ -141,18 +142,18 @@ function violatesBareWantScope(
 const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["descriptions-1-m1", "きょうはあついです", "kyou wa atsui desu"],
   ["descriptions-1-m2", "あついです", "atsui desu"],
-  ["descriptions-1-m3", "このひとはしずかです", "kono hito wa shizuka desu"],
+  ["descriptions-1-m3", "にわはしずかです", "niwa wa shizuka desu"],
   ["descriptions-1-m4", "しずかです", "shizuka desu"],
-  ["descriptions-1-m5", "まちはしずかです", "machi wa shizuka desu"],
+  ["descriptions-1-m5", "かわはしずかです", "kawa wa shizuka desu"],
   ["descriptions-1-m6", "しずかです", "shizuka desu"],
   ["descriptions-1-m7", "きょうはさむいです", "kyou wa samui desu"],
-  ["descriptions-1-m8", "きょうはあついです", "kyou wa atsui desu"],
+  ["descriptions-1-m8", "えきはしずかです", "eki wa shizuka desu"],
   ["descriptions-1-t1", "まちはあついです", "machi wa atsui desu"],
   ["descriptions-1-t2", "まちはさむいです", "machi wa samui desu"],
   ["descriptions-1-t3", "きょうはしずかです", "kyou wa shizuka desu"],
   ["descriptions-1-t4", "あついです", "atsui desu"],
   ["descriptions-1-t5", "まちはしずかです", "machi wa shizuka desu"],
-  ["descriptions-2-m1", "わたしはコーヒーがすきです", "watashi wa koohii ga suki desu"],
+  ["descriptions-2-m1", "わたしはカメラがすきです", "watashi wa kamera ga suki desu"],
   ["descriptions-2-m2", "すしがすきです", "sushi ga suki desu"],
   ["descriptions-2-m3", "ゆきはねこがすきです", "yuki wa neko ga suki desu"],
   ["descriptions-2-m4", "りんごがすきです", "ringo ga suki desu"],
@@ -162,12 +163,12 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["descriptions-2-m8", "きょうはあついです", "kyou wa atsui desu"],
   ["descriptions-2-t1", "わたしはねこがすきです", "watashi wa neko ga suki desu"],
   ["descriptions-2-t2", "すしがきらいです", "sushi ga kirai desu"],
-  ["descriptions-2-t3", "けんはコーヒーがすきです", "ken wa koohii ga suki desu"],
+  ["descriptions-2-t3", "けんはカメラがすきです", "ken wa kamera ga suki desu"],
   ["descriptions-2-t4", "ばんがすきです", "ban ga suki desu"],
   ["descriptions-2-t5", "わたしはねこがきらいです", "watashi wa neko ga kirai desu"],
   ["descriptions-3-m1", "ねこはりんごよりおおきいです", "neko wa ringo yori ookii desu"],
   ["descriptions-3-m2", "それよりおおきいです", "sore yori ookii desu"],
-  ["descriptions-3-m3", "ほんはかばんよりちいさいです", "hon wa kaban yori chiisai desu"],
+  ["descriptions-3-m3", "ほんはリュックよりちいさいです", "hon wa ryukku yori chiisai desu"],
   ["descriptions-3-m4", "かばんよりちいさいです", "kaban yori chiisai desu"],
   ["descriptions-3-m5", "まちはあれよりさむいです", "machi wa are yori samui desu"],
   ["descriptions-3-m6", "あれよりさむいです", "are yori samui desu"],
@@ -480,22 +481,22 @@ describe("A1 modules 9–12 · adjective morphology (generic realizer)", () => {
   });
 
   it("conjugates a na-adjective through the polite copula cells", () => {
-    // descriptions-1-m5 = 町は静かです (na-adjective, adjectiveClass "na").
+    // descriptions-1-m5 = 川は静かです (na-adjective, adjectiveClass "na").
     expect(conjugate("descriptions-1-m5", "affirmative", "present")).toEqual({
-      jp: "まちはしずかです",
-      romaji: "machi wa shizuka desu",
+      jp: "かわはしずかです",
+      romaji: "kawa wa shizuka desu",
     });
     expect(conjugate("descriptions-1-m5", "negative", "present")).toEqual({
-      jp: "まちはしずかではありません",
-      romaji: "machi wa shizuka dewa arimasen",
+      jp: "かわはしずかではありません",
+      romaji: "kawa wa shizuka dewa arimasen",
     });
     expect(conjugate("descriptions-1-m5", "affirmative", "past")).toEqual({
-      jp: "まちはしずかでした",
-      romaji: "machi wa shizuka deshita",
+      jp: "かわはしずかでした",
+      romaji: "kawa wa shizuka deshita",
     });
     expect(conjugate("descriptions-1-m5", "negative", "past")).toEqual({
-      jp: "まちはしずかではありませんでした",
-      romaji: "machi wa shizuka dewa arimasen deshita",
+      jp: "かわはしずかではありませんでした",
+      romaji: "kawa wa shizuka dewa arimasen deshita",
     });
   });
 
@@ -679,7 +680,7 @@ describe("A1 modules 9–12 · capstone no-new-content synthesis", () => {
       context: new Set<string>(),
     };
     const capstones: SentenceVariant[] = [];
-    for (const v of allVariants) {
+    for (const v of a1SemanticBuiltLessons.flatMap((built) => built.variants)) {
       if (isCapstone(v.id)) {
         capstones.push(v);
         continue;
@@ -878,17 +879,17 @@ describe("A1 modules 9–12 · capstone required scenario coverage", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 7. Release recurrence — 40 sense records, each reused ≥2× later.
+// 7. Release recurrence — 44 sense records, each reused ≥2× later.
 // ---------------------------------------------------------------------------
 
 describe("A1 modules 9–12 · release recurrence completeness", () => {
-  it("wires every productive sense to ≥2 later uses (40 records)", () => {
-    expect(a1ReleaseVerbUseRecords.length).toBe(40);
+  it("wires every productive sense to ≥2 later uses (44 records)", () => {
+    expect(a1ReleaseVerbUseRecords.length).toBe(44);
     for (const record of a1ReleaseVerbUseRecords) {
       expect(record.laterUses.length, record.id).toBeGreaterThanOrEqual(2);
     }
     const ids = new Set(a1ReleaseVerbUseRecords.map((r) => r.id));
-    expect(ids.size, "record ids unique").toBe(40);
+    expect(ids.size, "record ids unique").toBe(44);
   });
 });
 
@@ -919,8 +920,8 @@ describe("A1 modules 9–12 · bilingual copy hygiene", () => {
 
 describe("A1 modules 9–12 · prior-module regression", () => {
   it("keeps a spot-check of Modules 2–8 realizations stable", () => {
-    expect(jpOf("routines-1-m1")).toBe("ゆきはろくじにおきます");
-    expect(romajiFor("routines-1-m1")).toBe("yuki wa rokuji ni okimasu");
+    expect(jpOf("routines-1-m1")).toBe("ゆきはろくじはんにおきます");
+    expect(romajiFor("routines-1-m1")).toBe("yuki wa rokuji han ni okimasu");
     expect(jpOf("places-1-m2")).toBe("ゆきはくうこうへいきます");
     expect(romajiFor("places-1-m2")).toBe("yuki wa kuukou e ikimasu");
     expect(jpOf("people-1-m1")).toBe("はははせんせいです");

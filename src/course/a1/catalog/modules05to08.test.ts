@@ -121,9 +121,9 @@ const variantById = new Map(allVariants.map((v) => [v.id, v]));
 // ---------------------------------------------------------------------------
 
 const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
-  ["routines-1-m1", "ゆきはろくじにおきます", "yuki wa rokuji ni okimasu"],
-  ["routines-1-m2", "くじにおきます", "kuji ni okimasu"],
-  ["routines-1-m3", "けんはくじにでかけます", "ken wa kuji ni dekakemasu"],
+  ["routines-1-m1", "ゆきはろくじはんにおきます", "yuki wa rokuji han ni okimasu"],
+  ["routines-1-m2", "しちじはんにおきます", "shichiji han ni okimasu"],
+  ["routines-1-m3", "けんははちじはんにでかけます", "ken wa hachiji han ni dekakemasu"],
   ["routines-1-m4", "くじにでかけます", "kuji ni dekakemasu"],
   ["routines-1-m5", "みなはろくじにかえります", "mina wa rokuji ni kaerimasu"],
   ["routines-1-m6", "ごじにかえります", "goji ni kaerimasu"],
@@ -178,13 +178,13 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["past-negative-1-m3", "みずをかいました", "mizu o kaimashita"],
   ["past-negative-1-m4", "けんはてがみをかきました", "ken wa tegami o kakimashita"],
   ["past-negative-1-m5", "みなはがっこうにいきました", "mina wa gakkou ni ikimashita"],
-  ["past-negative-1-m6", "しちじにおきました", "shichiji ni okimashita"],
+  ["past-negative-1-m6", "じゅうじはんにおきました", "juuji han ni okimashita"],
   ["past-negative-1-m7", "じゅういちじにねました", "juuichiji ni nemashita"],
   ["past-negative-1-m8", "けんはかようびにかえりました", "ken wa kayoubi ni kaerimashita"],
   ["past-negative-1-t1", "けんはりんごをたべました", "ken wa ringo o tabemashita"],
   ["past-negative-1-t2", "みなはみずをかいました", "mina wa mizu o kaimashita"],
-  ["past-negative-1-t3", "ゆきはしちじにおきました", "yuki wa shichiji ni okimashita"],
-  ["past-negative-1-t4", "ゆきはしちじにおきました", "yuki wa shichiji ni okimashita"],
+  ["past-negative-1-t3", "ゆきはじゅうじはんにおきました", "yuki wa juuji han ni okimashita"],
+  ["past-negative-1-t4", "ゆきはじゅうじはんにおきました", "yuki wa juuji han ni okimashita"],
   ["past-negative-1-t5", "かようびにかえりました", "kayoubi ni kaerimashita"],
   ["past-negative-2-m1", "おちゃをのみません", "ocha o nomimasen"],
   ["past-negative-2-m2", "ゆきはスーパーではたらきません", "yuki wa suupaa de hatarakimasen"],
@@ -201,17 +201,17 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["past-negative-2-t5", "じゅうじにかえりません", "juuji ni kaerimasen"],
   ["past-negative-3-m1", "えいごをべんきょうしませんでした", "eigo o benkyoushimasen deshita"],
   ["past-negative-3-m2", "ゆきはイタリアごをよみませんでした", "yuki wa itariago o yomimasen deshita"],
-  ["past-negative-3-m3", "ひるおきませんでした", "hiru okimasen deshita"],
+  ["past-negative-3-m3", "きのうのあさおきませんでした", "kinou no asa okimasen deshita"],
   ["past-negative-3-m4", "けんはごごねませんでした", "ken wa gogo nemasen deshita"],
-  ["past-negative-3-m5", "はちじにでかけませんでした", "hachiji ni dekakemasen deshita"],
+  ["past-negative-3-m5", "きのうのごごでかけませんでした", "kinou no gogo dekakemasen deshita"],
   ["past-negative-3-m6", "みなはげつようびにべんきょうしませんでした", "mina wa getsuyoubi ni benkyoushimasen deshita"],
-  ["past-negative-3-m7", "よるよみませんでした", "yoru yomimasen deshita"],
+  ["past-negative-3-m7", "ゆうべよみませんでした", "yuube yomimasen deshita"],
   ["past-negative-3-m8", "ゆきはあさたべませんでした", "yuki wa asa tabemasen deshita"],
   ["past-negative-3-t1", "ゆきはえいごをべんきょうしませんでした", "yuki wa eigo o benkyoushimasen deshita"],
   ["past-negative-3-t2", "イタリアごをよみませんでした", "itariago o yomimasen deshita"],
-  ["past-negative-3-t3", "みなはひるおきませんでした", "mina wa hiru okimasen deshita"],
+  ["past-negative-3-t3", "みなはきのうのあさおきませんでした", "mina wa kinou no asa okimasen deshita"],
   ["past-negative-3-t4", "げつようびにべんきょうしませんでした", "getsuyoubi ni benkyoushimasen deshita"],
-  ["past-negative-3-t5", "けんはよるよみませんでした", "ken wa yoru yomimasen deshita"],
+  ["past-negative-3-t5", "けんはゆうべよみませんでした", "ken wa yuube yomimasen deshita"],
   ["past-negative-4-m1", "ほんはひゃくえんでした", "hon wa hyaku en deshita"],
   ["past-negative-4-m2", "みかんはさんびゃくえんでした", "mikan wa sanbyaku en deshita"],
   ["past-negative-4-m3", "これはごひゃくえんではありません", "kore wa gohyaku en dewa arimasen"],
@@ -238,16 +238,16 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["places-1-t3", "みなはがっこうにいきます", "mina wa gakkou ni ikimasu"],
   ["places-1-t4", "けんはとうきょうにすみます", "ken wa toukyou ni sumimasu"],
   ["places-1-t5", "がっこうへきます", "gakkou e kimasu"],
-  ["places-2-m1", "でんしゃでえきにいきます", "densha de eki ni ikimasu"],
-  ["places-2-m2", "ゆきはバスでがっこうにいきます", "yuki wa basu de gakkou ni ikimasu"],
+  ["places-2-m1", "ろめんでんしゃでえきにいきます", "romendensha de eki ni ikimasu"],
+  ["places-2-m2", "ゆきはフェリーでがっこうにいきます", "yuki wa ferii de gakkou ni ikimasu"],
   ["places-2-m3", "でんしゃでがっこうにきます", "densha de gakkou ni kimasu"],
   ["places-2-m4", "けんはくるまでえきにきます", "ken wa kuruma de eki ni kimasu"],
   ["places-2-m5", "かいしゃではたらきます", "kaisha de hatarakimasu"],
   ["places-2-m6", "みなはレストランではたらきます", "mina wa resutoran de hatarakimasu"],
-  ["places-2-m7", "じてんしゃでがっこうにいきます", "jitensha de gakkou ni ikimasu"],
+  ["places-2-m7", "スクーターでがっこうにいきます", "sukutaa de gakkou ni ikimasu"],
   ["places-2-m8", "ゆきはがっこうへいきます", "yuki wa gakkou e ikimasu"],
   ["places-2-t1", "けんはでんしゃでえきにいきます", "ken wa densha de eki ni ikimasu"],
-  ["places-2-t2", "バスでがっこうにきます", "basu de gakkou ni kimasu"],
+  ["places-2-t2", "フェリーでがっこうにきます", "ferii de gakkou ni kimasu"],
   ["places-2-t3", "みなはかいしゃではたらきます", "mina wa kaisha de hatarakimasu"],
   ["places-2-t4", "くるまでえきにいきます", "kuruma de eki ni ikimasu"],
   ["places-2-t5", "ゆきはレストランではたらきます", "yuki wa resutoran de hatarakimasu"],
@@ -323,7 +323,7 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["people-4-m5", "みなはおんがくをききます", "mina wa ongaku o kikimasu"],
   ["people-4-m6", "おんがくをききます", "ongaku o kikimasu"],
   ["people-4-m7", "ゆきはかばんをかいます", "yuki wa kaban o kaimasu"],
-  ["people-4-m8", "みなはしゃしんをみます", "mina wa shashin o mimasu"],
+  ["people-4-m8", "みなはおみやげをみます", "mina wa omiyage o mimasu"],
   ["people-4-t1", "ゆきはラーメンをかいます", "yuki wa raamen o kaimasu"],
   ["people-4-t2", "えいがをみます", "eiga o mimasu"],
   ["people-4-t3", "ゆきはおんがくをききます", "yuki wa ongaku o kikimasu"],
@@ -415,7 +415,7 @@ describe("A1 modules 5–8 · conjugation & case-frame regressions", () => {
 
   it("marks time-of-clock and day with に but bare time-of-day frames without", () => {
     // Clock/day take に; あさ/よる (time-of-day) are bare adverbials.
-    expect(jpOf("routines-1-m2")).toBe("くじにおきます");
+    expect(jpOf("routines-1-m2")).toBe("しちじはんにおきます");
     expect(jpOf("routines-2-m1")).toBe("げつようびにべんきょうします");
     expect(jpOf("routines-2-m3")).toBe("あさたべます");
     expect(jpOf("routines-2-m3")).not.toMatch(/あさ(に|は|を)/);
@@ -435,10 +435,10 @@ describe("A1 modules 5–8 · conjugation & case-frame regressions", () => {
   });
 
   it("keeps transport で and action-place で as distinct case frames", () => {
-    // Means-of-transport で (densha de …) precedes a destination clause;
+    // Means-of-transport で (romendensha de …) precedes a destination clause;
     // action-place で (kaisha de hatarakimasu) marks where the action happens.
-    expect(jpOf("places-2-m1")).toBe("でんしゃでえきにいきます");
-    expect(romajiFor("places-2-m1")).toBe("densha de eki ni ikimasu");
+    expect(jpOf("places-2-m1")).toBe("ろめんでんしゃでえきにいきます");
+    expect(romajiFor("places-2-m1")).toBe("romendensha de eki ni ikimasu");
     expect(jpOf("places-2-m5")).toBe("かいしゃではたらきます");
     expect(romajiFor("places-2-m5")).toBe("kaisha de hatarakimasu");
   });
@@ -451,16 +451,16 @@ describe("A1 modules 5–8 · conjugation & case-frame regressions", () => {
     expect(romajiFor("people-3-m3")).toBe("hito ni kikimasu");
   });
 
-  it("uses practical hotel and photo exemplars instead of the unnatural route and money models", () => {
+  it("uses practical hotel and souvenir exemplars instead of unnatural route and money models", () => {
     expect(jpOf("places-3-m4")).toBe("けんはホテルからまちまでいきます");
     expect(romajiFor("places-3-m4")).toBe("ken wa hoteru kara machi made ikimasu");
     expect(a1CopyEn["places-3-m4-translation"]).toBe("Ken goes from the hotel into town.");
     expect(a1CopyIt["places-3-m4-translation"]).toBe("Ken va dall'hotel in città.");
 
-    expect(jpOf("people-4-m8")).toBe("みなはしゃしんをみます");
-    expect(romajiFor("people-4-m8")).toBe("mina wa shashin o mimasu");
-    expect(a1CopyEn["people-4-m8-translation"]).toBe("Mina looks at a photo.");
-    expect(a1CopyIt["people-4-m8-translation"]).toBe("Mina guarda una foto.");
+    expect(jpOf("people-4-m8")).toBe("みなはおみやげをみます");
+    expect(romajiFor("people-4-m8")).toBe("mina wa omiyage o mimasu");
+    expect(a1CopyEn["people-4-m8-translation"]).toBe("Mina looks at a souvenir.");
+    expect(a1CopyIt["people-4-m8-translation"]).toBe("Mina guarda un souvenir.");
 
     const productionModelJapanese = deepBuilt
       .flatMap((built) => built.variants)
@@ -599,11 +599,27 @@ const EXPECTED_RECURRENCE: Readonly<Record<string, readonly string[]>> = {
   "a1-sense-read-routine": ["past-negative-3", "people-2"],
 };
 
+const EXPECTED_AUGMENTED_RECURRENCE = Object.fromEntries(
+  [
+    "a1-sense-live",
+    "a1-sense-study",
+    "a1-sense-understand",
+    "a1-sense-do",
+    "a1-sense-come",
+    "a1-sense-ask",
+    "a1-sense-wake",
+    "a1-sense-sleep",
+    "a1-sense-go-out",
+    "a1-sense-eat-routine",
+    "a1-sense-read-routine",
+  ].map((senseId) => [senseId, EXPECTED_RECURRENCE[senseId]!]),
+);
+
 describe("A1 productive-verb recurrence (§9.3 rules 3-5)", () => {
-  it("covers every productive sense introduced in Modules 2 through 5", () => {
+  it("covers every productive sense still first introduced after Foundations", () => {
     const augmentedSenses = new Set(a1AugmentedVerbUseRecords.map((r) => r.senseId));
-    expect(augmentedSenses.size).toBe(26);
-    for (const senseId of Object.keys(EXPECTED_RECURRENCE)) {
+    expect(augmentedSenses.size).toBe(11);
+    for (const senseId of Object.keys(EXPECTED_AUGMENTED_RECURRENCE)) {
       expect(augmentedSenses.has(senseId), senseId).toBe(true);
     }
   });
@@ -660,7 +676,7 @@ describe("A1 productive-verb recurrence (§9.3 rules 3-5)", () => {
 
       // Exact assignment table.
       const laterLessons = record.laterUses.map((u) => u.lessonId);
-      expect(laterLessons, senseId).toEqual(EXPECTED_RECURRENCE[senseId]);
+      expect(laterLessons, senseId).toEqual(EXPECTED_AUGMENTED_RECURRENCE[senseId]);
     },
   );
 
@@ -796,8 +812,7 @@ describe("A1 modules 5–8 · copy parity & coverage", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 6. Modules 2–4 realization regression — prior content unchanged by the
-// realizer/catalog extensions this task introduced.
+// 6. Modules 2–4 realization regression — reallocated content remains valid.
 // ---------------------------------------------------------------------------
 
 describe("A1 modules 2–4 · realization regression", () => {
@@ -820,10 +835,10 @@ describe("A1 modules 2–4 · realization regression", () => {
     }
   });
 
-  it("preserves canonical prior rows (spot check)", () => {
-    expect(jpOf("introductions-1-m1")).toBe("ゆきはがくせいです");
-    expect(jpOf("actions-1-m2")).toBe("みかんをたべます");
-    expect(jpOf("essential-questions-1-m1")).toBe("これはなんですか");
+  it("preserves canonical reallocated rows (spot check)", () => {
+    expect(jpOf("introductions-1-m1")).toBe("ゆきはアーティストです");
+    expect(jpOf("actions-1-m2")).toBe("ケーキをたべます");
+    expect(jpOf("essential-questions-1-m1")).toBe("パスはなんですか");
   });
 
   it("keeps the manifest lesson order and recipe ids for all eight modules", () => {

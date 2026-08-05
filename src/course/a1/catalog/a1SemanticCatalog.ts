@@ -90,7 +90,7 @@ export const A1_CONCEPT_IDS: readonly string[] = deepFreeze([
 // Contexts
 // ---------------------------------------------------------------------------
 
-export const a1Contexts: readonly Context[] = deepFreeze([
+const a1BaseContexts: readonly Context[] = deepFreeze([
   { id: "a1-context-first-meeting", labelCopyId: "a1-context-first-meeting-label" },
   { id: "a1-context-classroom", labelCopyId: "a1-context-classroom-label" },
   { id: "a1-context-workplace", labelCopyId: "a1-context-workplace-label" },
@@ -110,7 +110,7 @@ export const a1Contexts: readonly Context[] = deepFreeze([
   { id: "a1-context-social-outing", labelCopyId: "a1-context-social-outing-label" },
 ]);
 
-/** Contexts reserved for staged Foundations authoring only. */
+/** Foundations context added to the canonical release. */
 export const a1ExpandedFoundationContexts: readonly Context[] = deepFreeze([
   {
     id: "a1-context-unidentified-addressee",
@@ -118,11 +118,14 @@ export const a1ExpandedFoundationContexts: readonly Context[] = deepFreeze([
   },
 ]);
 
-/** Full context pool for staged Foundations catalogs; never the published view. */
-export const a1CanonicalContexts: readonly Context[] = deepFreeze([
-  ...a1Contexts,
+/** Complete published A1 context pool. */
+export const a1Contexts: readonly Context[] = deepFreeze([
+  ...a1BaseContexts,
   ...a1ExpandedFoundationContexts,
 ]);
+
+/** @deprecated Use {@link a1Contexts}; it is the same frozen pool. */
+export const a1CanonicalContexts = a1Contexts;
 
 // ---------------------------------------------------------------------------
 // Person roles
@@ -135,7 +138,7 @@ export const a1CanonicalContexts: readonly Context[] = deepFreeze([
 // roles (learner, teacher, classmate, friend, clerk, person, thing,
 // creature) intentionally omit `gender`: the course never establishes a
 // real-world gender for them, so callers must not guess one.
-export const a1PersonRoles: readonly PersonRole[] = deepFreeze([
+const a1BasePersonRoles: readonly PersonRole[] = deepFreeze([
   { id: "a1-role-learner", kind: "learner", labelCopyId: "a1-role-learner-label" },
   { id: "a1-role-yuki", kind: "persona", labelCopyId: "a1-role-yuki-label", gender: "feminine" },
   { id: "a1-role-ken", kind: "persona", labelCopyId: "a1-role-ken-label", gender: "masculine" },
@@ -158,17 +161,20 @@ export const a1ExpandedFoundationPersonRoles: readonly PersonRole[] = deepFreeze
   },
 ]);
 
-/** Full role pool for staged Foundations catalogs; never the published view. */
-export const a1CanonicalPersonRoles: readonly PersonRole[] = deepFreeze([
-  ...a1PersonRoles,
+/** Complete published A1 role pool. */
+export const a1PersonRoles: readonly PersonRole[] = deepFreeze([
+  ...a1BasePersonRoles,
   ...a1ExpandedFoundationPersonRoles,
 ]);
+
+/** @deprecated Use {@link a1PersonRoles}; it is the same frozen pool. */
+export const a1CanonicalPersonRoles = a1PersonRoles;
 
 // ---------------------------------------------------------------------------
 // Referents
 // ---------------------------------------------------------------------------
 
-export const a1Referents: readonly Referent[] = deepFreeze([
+const a1BaseReferents: readonly Referent[] = deepFreeze([
   { id: "a1-referent-self", personRoleId: "a1-role-learner", animacy: "animate", labelCopyId: "a1-referent-self-label" },
   { id: "a1-referent-yuki", personRoleId: "a1-role-yuki", animacy: "animate", labelCopyId: "a1-referent-yuki-label" },
   { id: "a1-referent-ken", personRoleId: "a1-role-ken", animacy: "animate", labelCopyId: "a1-referent-ken-label" },
@@ -192,11 +198,14 @@ export const a1ExpandedFoundationReferents: readonly Referent[] = deepFreeze([
   },
 ]);
 
-/** Full referent pool for staged Foundations catalogs; never the published view. */
-export const a1CanonicalReferents: readonly Referent[] = deepFreeze([
-  ...a1Referents,
+/** Complete published A1 referent pool. */
+export const a1Referents: readonly Referent[] = deepFreeze([
+  ...a1BaseReferents,
   ...a1ExpandedFoundationReferents,
 ]);
+
+/** @deprecated Use {@link a1Referents}; it is the same frozen pool. */
+export const a1CanonicalReferents = a1Referents;
 
 // ---------------------------------------------------------------------------
 // Learning target senses (case frames)
@@ -209,7 +218,7 @@ export const a1CanonicalReferents: readonly Referent[] = deepFreeze([
 // governing rules (を vs に), so recurrence is tracked per-sense, never per
 // spelling.
 
-export const a1LearningTargetSenses: readonly LearningTargetSense[] = deepFreeze([
+const a1BaseLearningTargetSenses: readonly LearningTargetSense[] = deepFreeze([
   { id: "a1-sense-be", lexemeId: "a1-lexeme-desu", learningUse: "productive", semanticFrameId: "a1-frame-identity", predicate: "be", argumentRoles: ["topic"], argumentParticleByRole: {} },
   { id: "a1-sense-live", lexemeId: "a1-lexeme-sumu", learningUse: "productive", semanticFrameId: "a1-frame-residence", predicate: "live", argumentRoles: ["agent", "location"], argumentParticleByRole: { location: "ni" } },
   { id: "a1-sense-work", lexemeId: "a1-lexeme-hataraku", learningUse: "productive", semanticFrameId: "a1-frame-work-place", predicate: "work", argumentRoles: ["agent", "location"], argumentParticleByRole: { location: "de" } },
@@ -217,7 +226,7 @@ export const a1LearningTargetSenses: readonly LearningTargetSense[] = deepFreeze
   { id: "a1-sense-understand", lexemeId: "a1-lexeme-wakaru", learningUse: "productive", semanticFrameId: "a1-frame-understand", predicate: "understand", argumentRoles: ["agent", "theme"], argumentParticleByRole: {} },
   { id: "a1-sense-do", lexemeId: "a1-lexeme-suru", learningUse: "productive", semanticFrameId: "a1-frame-do-activity", predicate: "do", argumentRoles: ["agent", "theme"], argumentParticleByRole: {} },
   { id: "a1-sense-work-bare", lexemeId: "a1-lexeme-hataraku", learningUse: "productive", semanticFrameId: "a1-frame-work-bare", predicate: "work", argumentRoles: ["agent"], argumentParticleByRole: {} },
-  { id: "a1-sense-study-bare", lexemeId: "a1-lexeme-benkyou-suru", learningUse: "productive", semanticFrameId: "a1-frame-study-bare", predicate: "study", argumentRoles: ["agent"], argumentParticleByRole: {} },
+  { id: "a1-sense-study-bare", lexemeId: "a1-lexeme-benkyou-suru-bare", learningUse: "productive", semanticFrameId: "a1-frame-study-bare", predicate: "study", argumentRoles: ["agent"], argumentParticleByRole: {} },
   { id: "a1-sense-do-bare", lexemeId: "a1-lexeme-suru", learningUse: "productive", semanticFrameId: "a1-frame-do-bare", predicate: "do", argumentRoles: ["agent"], argumentParticleByRole: {} },
   { id: "a1-sense-rest-bare", lexemeId: "a1-lexeme-yasumu", learningUse: "productive", semanticFrameId: "a1-frame-rest-bare", predicate: "rest", argumentRoles: ["agent"], argumentParticleByRole: {} },
   { id: "a1-sense-go", lexemeId: "a1-lexeme-iku", learningUse: "productive", semanticFrameId: "a1-frame-go", predicate: "go", argumentRoles: ["agent", "location"], argumentParticleByRole: { location: "ni" } },
@@ -241,7 +250,7 @@ export const a1LearningTargetSenses: readonly LearningTargetSense[] = deepFreeze
   { id: "a1-sense-sleep", lexemeId: "a1-lexeme-neru", learningUse: "productive", semanticFrameId: "a1-frame-sleep", predicate: "sleep", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
   { id: "a1-sense-go-out", lexemeId: "a1-lexeme-dekakeru", learningUse: "productive", semanticFrameId: "a1-frame-go-out", predicate: "go-out", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
   { id: "a1-sense-return", lexemeId: "a1-lexeme-kaeru", learningUse: "productive", semanticFrameId: "a1-frame-return", predicate: "return", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
-  { id: "a1-sense-study-routine", lexemeId: "a1-lexeme-benkyou-suru", learningUse: "productive", semanticFrameId: "a1-frame-study-routine", predicate: "study", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
+  { id: "a1-sense-study-routine", lexemeId: "a1-lexeme-benkyou-suru-routine", learningUse: "productive", semanticFrameId: "a1-frame-study-routine", predicate: "study", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
   { id: "a1-sense-eat-routine", lexemeId: "a1-lexeme-taberu", learningUse: "productive", semanticFrameId: "a1-frame-eat-routine", predicate: "eat", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
   { id: "a1-sense-read-routine", lexemeId: "a1-lexeme-yomu", learningUse: "productive", semanticFrameId: "a1-frame-read-routine", predicate: "read", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
   // --- Module 9 description senses: predicate adjectives. Each carries its
@@ -271,16 +280,13 @@ export const a1LearningTargetSenses: readonly LearningTargetSense[] = deepFreeze
   { id: "a1-sense-want", lexemeId: "a1-lexeme-hoshii", learningUse: "productive", semanticFrameId: "a1-frame-want", predicate: "want", argumentRoles: ["topic", "theme"], argumentParticleByRole: {}, adjectiveClass: "i" },
 ]);
 
-/**
- * A next-release-only sense remains outside the published learning-target
- * collection until its scheduled Foundations lessons are authored. Keeping it
- * separate prevents an unpracticed time frame from entering the 12/48 runtime.
- */
+/** Additional published Foundations senses retained under the deprecated
+ * expanded export name for source compatibility. */
 export const a1ExpandedFoundationLearningTargetSenses: readonly LearningTargetSense[] =
   deepFreeze([
     {
       id: "a1-sense-rest-routine",
-      lexemeId: "a1-lexeme-yasumu",
+      lexemeId: "a1-lexeme-yasumu-routine",
       learningUse: "productive",
       semanticFrameId: "a1-frame-rest-routine",
       predicate: "rest",
@@ -298,7 +304,7 @@ export const a1ExpandedFoundationLearningTargetSenses: readonly LearningTargetSe
     },
     {
       id: "a1-sense-return-bare",
-      lexemeId: "a1-lexeme-kaeru",
+      lexemeId: "a1-lexeme-kaeru-bare",
       learningUse: "productive",
       semanticFrameId: "a1-frame-return-bare",
       predicate: "return",
@@ -316,12 +322,14 @@ export const a1ExpandedFoundationLearningTargetSenses: readonly LearningTargetSe
     },
   ]);
 
-/** Full canonical pool for staged authoring; never used by published runtime. */
-export const a1CanonicalLearningTargetSenses: readonly LearningTargetSense[] =
-  deepFreeze([
-    ...a1LearningTargetSenses,
-    ...a1ExpandedFoundationLearningTargetSenses,
-  ]);
+/** Complete published A1 learning-target sense pool. */
+export const a1LearningTargetSenses: readonly LearningTargetSense[] = deepFreeze([
+  ...a1BaseLearningTargetSenses,
+  ...a1ExpandedFoundationLearningTargetSenses,
+]);
+
+/** @deprecated Use {@link a1LearningTargetSenses}; it is the same frozen pool. */
+export const a1CanonicalLearningTargetSenses = a1LearningTargetSenses;
 
 // ---------------------------------------------------------------------------
 // Semantic values (the ONLY place Japanese/romaji lexical content is authored)
@@ -634,17 +642,75 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   // Existence predicate stems (normal ます-stems: あり / い).
   { id: "a1-value-exist-inanimate", kind: "predicate-sense", senseId: "a1-sense-exist-inanimate", tokenFragments: [frag("あり", "ari")] },
   { id: "a1-value-exist-animate", kind: "predicate-sense", senseId: "a1-sense-exist-animate", tokenFragments: [frag("い", "i")] },
+  // Phonetic-only words introduced by the sounds sequence. They remain
+  // available for later reuse without pretending to be sentence targets.
+  { id: "a1-value-phonetic-umi", kind: "referent", animacy: "inanimate", tokenFragments: [frag("うみ", "umi")] },
+  { id: "a1-value-phonetic-happa", kind: "referent", animacy: "inanimate", tokenFragments: [frag("はっぱ", "happa")] },
+  // Fresh scenario vocabulary used when the former early lesson allocations
+  // move into Foundations. These remain ordinary semantic values, never
+  // display-only placeholders.
+  { id: "a1-value-obj-artist", kind: "object", tokenFragments: [frag("アーティスト", "aatisuto")] },
+  { id: "a1-value-obj-nurse", kind: "object", tokenFragments: [frag("かんごし", "kangoshi")] },
+  { id: "a1-value-obj-chef", kind: "object", tokenFragments: [frag("シェフ", "shefu")] },
+  { id: "a1-value-obj-designer", kind: "object", tokenFragments: [frag("デザイナー", "dezainaa")] },
+  { id: "a1-value-obj-researcher", kind: "object", tokenFragments: [frag("けんきゅうしゃ", "kenkyuusha")] },
+  { id: "a1-value-obj-brazilian-person", kind: "object", tokenFragments: [frag("ブラジルじん", "burazirujin")] },
+  { id: "a1-value-obj-canadian-person", kind: "object", tokenFragments: [frag("カナダじん", "kanadajin")] },
+  { id: "a1-value-obj-korean-person", kind: "object", tokenFragments: [frag("かんこくじん", "kankokujin")] },
+  { id: "a1-value-obj-spanish-person", kind: "object", tokenFragments: [frag("スペインじん", "supeinjin")] },
+  { id: "a1-value-obj-librarian", kind: "object", tokenFragments: [frag("ししょ", "shisho")] },
+  { id: "a1-value-obj-musician", kind: "object", tokenFragments: [frag("おんがくか", "ongakuka")] },
+  { id: "a1-value-obj-writer", kind: "object", tokenFragments: [frag("さっか", "sakka")] },
+  { id: "a1-value-rina", kind: "referent", animacy: "animate", tokenFragments: [frag("りな", "rina")] },
+  { id: "a1-value-taichi", kind: "referent", animacy: "animate", tokenFragments: [frag("たいち", "taichi")] },
+  { id: "a1-value-mei", kind: "referent", animacy: "animate", tokenFragments: [frag("めい", "mei")] },
+  { id: "a1-value-haru", kind: "referent", animacy: "animate", tokenFragments: [frag("はる", "haru")] },
+  { id: "a1-value-q-pass", kind: "referent", animacy: "inanimate", tokenFragments: [frag("パス", "passu")] },
+  { id: "a1-value-q-menu", kind: "referent", animacy: "inanimate", tokenFragments: [frag("メニュー", "menyuu")] },
+  { id: "a1-value-q-poster", kind: "referent", animacy: "inanimate", tokenFragments: [frag("ポスター", "posutaa")] },
+  { id: "a1-value-q-label", kind: "referent", animacy: "inanimate", tokenFragments: [frag("ラベル", "raberu")] },
+  { id: "a1-value-q-counter", kind: "referent", animacy: "inanimate", tokenFragments: [frag("カウンター", "kauntaa")] },
+  { id: "a1-value-q-exit", kind: "referent", animacy: "inanimate", tokenFragments: [frag("でぐち", "deguchi")] },
+  { id: "a1-value-q-locker", kind: "referent", animacy: "inanimate", tokenFragments: [frag("ロッカー", "rokkaa")] },
+  { id: "a1-value-obj-korean-language", kind: "object", tokenFragments: [frag("かんこくご", "kankokugo")] },
+  { id: "a1-value-obj-spanish-language", kind: "object", tokenFragments: [frag("スペインご", "supeingo")] },
+  { id: "a1-value-obj-german-language", kind: "object", tokenFragments: [frag("ドイツご", "doitsugo")] },
+  { id: "a1-value-obj-chinese-language", kind: "object", tokenFragments: [frag("ちゅうごくご", "chuugokugo")] },
+  { id: "a1-value-obj-salad", kind: "object", tokenFragments: [frag("サラダ", "sarada")] },
+  { id: "a1-value-obj-cake", kind: "object", tokenFragments: [frag("ケーキ", "keeki")] },
+  { id: "a1-value-obj-soup", kind: "object", tokenFragments: [frag("スープ", "suupu")] },
+  { id: "a1-value-loc-museum", kind: "location", tokenFragments: [frag("はくぶつかん", "hakubutsukan")] },
+  { id: "a1-value-loc-post-office", kind: "location", tokenFragments: [frag("ゆうびんきょく", "yuubinkyoku")] },
+  { id: "a1-value-loc-gym", kind: "location", tokenFragments: [frag("ジム", "jimu")] },
+  { id: "a1-value-loc-university", kind: "location", tokenFragments: [frag("だいがく", "daigaku")] },
+  { id: "a1-value-obj-guidebook", kind: "object", tokenFragments: [frag("ガイドブック", "gaidobukku")] },
+  { id: "a1-value-obj-bento", kind: "object", tokenFragments: [frag("べんとう", "bentou")] },
+  { id: "a1-value-obj-postcard", kind: "object", tokenFragments: [frag("はがき", "hagaki")] },
+  { id: "a1-value-obj-podcast", kind: "object", tokenFragments: [frag("ポッドキャスト", "poddokyasuto")] },
+  { id: "a1-value-obj-email", kind: "object", tokenFragments: [frag("メール", "meeru")] },
+  { id: "a1-value-time-630", kind: "time", tokenFragments: [frag("ろくじはん", "rokuji han")] },
+  { id: "a1-value-time-730", kind: "time", tokenFragments: [frag("しちじはん", "shichiji han")] },
+  { id: "a1-value-time-830", kind: "time", tokenFragments: [frag("はちじはん", "hachiji han")] },
+  { id: "a1-value-time-1030", kind: "time", tokenFragments: [frag("じゅうじはん", "juuji han")] },
+  { id: "a1-value-time-yesterday-morning", kind: "time", tokenFragments: [frag("きのう", "kinou"), frag("の", "no"), frag("あさ", "asa")] },
+  { id: "a1-value-time-yesterday-afternoon", kind: "time", tokenFragments: [frag("きのう", "kinou"), frag("の", "no"), frag("ごご", "gogo")] },
+  { id: "a1-value-time-last-night", kind: "time", tokenFragments: [frag("ゆうべ", "yuube")] },
+  { id: "a1-value-transport-tram", kind: "object", tokenFragments: [frag("ろめんでんしゃ", "romendensha")] },
+  { id: "a1-value-transport-ferry", kind: "object", tokenFragments: [frag("フェリー", "ferii")] },
+  { id: "a1-value-transport-scooter", kind: "object", tokenFragments: [frag("スクーター", "sukutaa")] },
+  { id: "a1-value-garden", kind: "referent", animacy: "inanimate", tokenFragments: [frag("にわ", "niwa")] },
+  { id: "a1-value-river", kind: "referent", animacy: "inanimate", tokenFragments: [frag("かわ", "kawa")] },
+  { id: "a1-value-obj-camera", kind: "object", tokenFragments: [frag("カメラ", "kamera")] },
+  { id: "a1-value-obj-backpack", kind: "object", tokenFragments: [frag("リュック", "ryukku")] },
+  { id: "a1-value-obj-souvenir", kind: "object", tokenFragments: [frag("おみやげ", "omiyage")] },
 ];
 
-export const a1SemanticValues: readonly SemanticValue[] = deepFreeze([
+const a1BaseSemanticValues: readonly SemanticValue[] = deepFreeze([
   a1CopulaValue,
   ...a1AuthoredValues.map((value) => defineA1SemanticValue(value)),
 ]);
 
-/**
- * Values reserved for staged Foundations lessons. They remain outside the
- * published semantic catalog until the complete expanded area is promoted.
- */
+/** Additional values used by the Foundations modules. */
 export const a1ExpandedFoundationSemanticValues: readonly SemanticValue[] =
   deepFreeze([
     defineA1SemanticValue({
@@ -719,21 +785,31 @@ export const a1ExpandedFoundationSemanticValues: readonly SemanticValue[] =
     }),
   ]);
 
-/** Complete canonical semantic pool available to staged Foundations authoring. */
-export const a1CanonicalSemanticValues: readonly SemanticValue[] = deepFreeze([
-  ...a1SemanticValues,
+/** Complete published A1 semantic-value pool. */
+export const a1SemanticValues: readonly SemanticValue[] = deepFreeze([
+  ...a1BaseSemanticValues,
   ...a1ExpandedFoundationSemanticValues,
 ]);
+
+/** @deprecated Use {@link a1SemanticValues}; it is the same frozen pool. */
+export const a1CanonicalSemanticValues = a1SemanticValues;
 
 // ---------------------------------------------------------------------------
 // Sentence families (reference the realizer's stable semantic rule ids)
 // ---------------------------------------------------------------------------
 
-export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
+const a1BaseSentenceFamilies: readonly SentenceFamily[] = deepFreeze([
   {
     id: "a1-family-topic-copular",
     level: "a1",
-    canDoIds: ["a1-can-do-identity", "a1-can-do-origins", "a1-can-do-people", "a1-can-do-scenario-1"],
+    canDoIds: [
+      "a1-can-do-identity",
+      "a1-can-do-origins",
+      "a1-can-do-people",
+      "a1-can-do-sentence-foundations",
+      "a1-can-do-topic-questions",
+      "a1-can-do-scenario-1",
+    ],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -746,7 +822,7 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
   {
     id: "a1-family-location-action",
     level: "a1",
-    canDoIds: ["a1-can-do-identity", "a1-can-do-actions"],
+    canDoIds: ["a1-can-do-identity", "a1-can-do-actions", "a1-can-do-polite-verbs"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -759,7 +835,7 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
   {
     id: "a1-family-object-action",
     level: "a1",
-    canDoIds: ["a1-can-do-actions", "a1-can-do-questions"],
+    canDoIds: ["a1-can-do-actions", "a1-can-do-questions", "a1-can-do-polite-verbs"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -824,7 +900,7 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     // Module 5: verb + に-marked clock time / named day ("しちじにおきます").
     id: "a1-family-schedule-action",
     level: "a1",
-    canDoIds: ["a1-can-do-daily-life"],
+    canDoIds: ["a1-can-do-daily-life", "a1-can-do-time-movement"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -854,7 +930,7 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     // Module 7: verb + へ-marked direction ("えきへいきます").
     id: "a1-family-direction-action",
     level: "a1",
-    canDoIds: ["a1-can-do-places"],
+    canDoIds: ["a1-can-do-places", "a1-can-do-time-movement"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -868,7 +944,7 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     // Module 7: verb + から source + まで limit ("とうきょうからおおさかまでいきます").
     id: "a1-family-route-action",
     level: "a1",
-    canDoIds: ["a1-can-do-places"],
+    canDoIds: ["a1-can-do-places", "a1-can-do-time-movement"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -883,7 +959,7 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     // Module 7: verb + で transport + に destination ("でんしゃでえきにいきます").
     id: "a1-family-transport-action",
     level: "a1",
-    canDoIds: ["a1-can-do-places"],
+    canDoIds: ["a1-can-do-places", "a1-can-do-time-movement"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
@@ -992,11 +1068,7 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
   },
 ]);
 
-/**
- * Next-release-only sentence families for the expanded Foundations modules.
- * They reuse stable realization rules while keeping their grammar requirements
- * out of the published family catalog until Task 5.
- */
+/** Sentence families used by the Foundations modules. */
 export const a1ExpandedFoundationSentenceFamilies: readonly SentenceFamily[] =
   deepFreeze([
     {
@@ -1186,11 +1258,14 @@ export const a1ExpandedFoundationSentenceFamilies: readonly SentenceFamily[] =
     },
   ]);
 
-/** Full family pool for staged Foundations authoring only. */
-export const a1CanonicalSentenceFamilies: readonly SentenceFamily[] = deepFreeze([
-  ...a1SentenceFamilies,
+/** Complete published A1 sentence-family pool. */
+export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
+  ...a1BaseSentenceFamilies,
   ...a1ExpandedFoundationSentenceFamilies,
 ]);
+
+/** @deprecated Use {@link a1SentenceFamilies}; it is the same frozen pool. */
+export const a1CanonicalSentenceFamilies = a1SentenceFamilies;
 
 // ---------------------------------------------------------------------------
 // Can-do stubs (stable ids; Task 4 authors the full entries)
@@ -1198,6 +1273,10 @@ export const a1CanonicalSentenceFamilies: readonly SentenceFamily[] = deepFreeze
 
 export const a1CanDos: readonly CanDo[] = deepFreeze([
   { id: "a1-can-do-sounds", level: "a1", domain: "listening", descriptorCopyId: "a1-can-do-sounds-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
+  { id: "a1-can-do-sentence-foundations", level: "a1", domain: "spoken-production", descriptorCopyId: "a1-can-do-sentence-foundations-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
+  { id: "a1-can-do-topic-questions", level: "a1", domain: "interaction", descriptorCopyId: "a1-can-do-topic-questions-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
+  { id: "a1-can-do-polite-verbs", level: "a1", domain: "spoken-production", descriptorCopyId: "a1-can-do-polite-verbs-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
+  { id: "a1-can-do-time-movement", level: "a1", domain: "spoken-production", descriptorCopyId: "a1-can-do-time-movement-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
   { id: "a1-can-do-identity", level: "a1", domain: "interaction", descriptorCopyId: "a1-can-do-identity-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
   { id: "a1-can-do-origins", level: "a1", domain: "interaction", descriptorCopyId: "a1-can-do-origins-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },
   { id: "a1-can-do-questions", level: "a1", domain: "interaction", descriptorCopyId: "a1-can-do-questions-descriptor", contextIds: [], lessonIds: [], checkpointEvidenceRule: { evidenceKind: "checkpoint-sampled", minAcceptedTransferTargets: 3 } },

@@ -24,9 +24,13 @@ function renderMap(
 
 import { escapeHtmlText } from "./renderTestUtils";
 
-/** All twelve real module ids, in their authored (approved) order. */
+/** All sixteen real module ids, in their authored (approved) order. */
 const allModuleIdsInOrder = [
   "sounds",
+  "sentence-foundations",
+  "topic-questions",
+  "polite-verbs",
+  "time-movement",
   "introductions",
   "essential-questions",
   "actions",
@@ -57,7 +61,9 @@ describe("CourseMap: flat module order", () => {
     const html = renderMap([], null);
     const titleIndices = allModuleIdsInOrder.map((moduleId) => {
       const title = itCopy.modules[moduleId as keyof typeof itCopy.modules].title;
-      const index = html.indexOf(title);
+      const index = html.indexOf(
+        `<h3 class="module-card__title">${escapeHtmlText(title)}</h3>`,
+      );
       expect(index).toBeGreaterThanOrEqual(0);
       return index;
     });
@@ -78,17 +84,17 @@ describe("CourseMap: initial expansion follows the recommendation", () => {
     const html = renderMap([], null);
     expect(html).toContain('id="module-lessons-sounds" class="module-card__lessons">');
     const hiddenCount = (html.match(/ hidden=""/g) ?? []).length;
-    expect(hiddenCount).toBe(11);
+    expect(hiddenCount).toBe(15);
   });
 
   it("moves the expanded module as the recommendation advances through met prerequisites", () => {
-    // Fully visit the first three modules (orient phase); with no recognized
+    // Fully visit the first three modules; with no recognized
     // last-visited lesson, §7.3 rule 2 advances to the first unvisited lesson
-    // whose prerequisites are met: the first lesson of "actions" (module 4).
+    // whose prerequisites are met: the first lesson of "polite-verbs" (module 4).
     const html = renderMap(lessonsInFirstModules(3), null);
     const hiddenCount = (html.match(/ hidden=""/g) ?? []).length;
-    expect(hiddenCount).toBe(11);
-    expect(html).toContain('id="module-lessons-actions" class="module-card__lessons">');
+    expect(hiddenCount).toBe(15);
+    expect(html).toContain('id="module-lessons-polite-verbs" class="module-card__lessons">');
   });
 
   it("resumes and expands the module of a recognized last-visited lesson, even past earlier skipped lessons", () => {
@@ -97,7 +103,7 @@ describe("CourseMap: initial expansion follows the recommendation", () => {
     const html = renderMap(["sounds-1", "places-1"], "places-1");
     // §7.3 rule 1: resume "places", not an earlier unvisited module.
     const hiddenCount = (html.match(/ hidden=""/g) ?? []).length;
-    expect(hiddenCount).toBe(11);
+    expect(hiddenCount).toBe(15);
     expect(html).toContain('id="module-lessons-places" class="module-card__lessons">');
   });
 });
@@ -110,7 +116,7 @@ describe("CourseMap: all-visited fallback", () => {
     expect(html).toContain(escapeHtmlText(itCopy.courseMap.revisitBody));
     expect(html).toContain('id="module-lessons-capstones" class="module-card__lessons">');
     const hiddenCount = (html.match(/ hidden=""/g) ?? []).length;
-    expect(hiddenCount).toBe(11);
+    expect(hiddenCount).toBe(15);
   });
 
   it("does not show the revisit notice while any lesson remains unvisited", () => {

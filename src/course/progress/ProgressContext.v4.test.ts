@@ -123,7 +123,7 @@ describe("ProgressContext V4 exposure (Phase 2 Task 6)", () => {
       expect(value.canDoEvidence).toEqual({});
       expect(value.checkpointAttempts).toEqual([]);
       expect(value.levelSummary.level).toBe("a1");
-      expect(value.levelSummary.totalLessonCount).toBe(48);
+      expect(value.levelSummary.totalLessonCount).toBe(64);
       expect(value.levelSummary.visitedLessonCount).toBe(0);
     });
   });

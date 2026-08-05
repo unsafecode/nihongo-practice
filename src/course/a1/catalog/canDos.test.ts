@@ -19,8 +19,8 @@ const EXPECTED_CANDO_IDS = [
   "a1-can-do-time-movement",
 ];
 
-describe("staged expanded Foundations Can-dos", () => {
-  it("maps every expanded Foundations module to one practical, bilingual staged Can-do", () => {
+describe("published Foundations Can-dos", () => {
+  it("maps every Foundations module to one practical, bilingual Can-do", () => {
     expect(A1_EXPANDED_FOUNDATION_CANDO_IDS).toEqual(EXPECTED_CANDO_IDS);
     expect(checkpointCanDoIds).toBe(A1_EXPANDED_FOUNDATION_CANDO_IDS);
     expect(a1ExpandedFoundationCanDos).toEqual([
@@ -47,7 +47,7 @@ describe("staged expanded Foundations Can-dos", () => {
     ]);
 
     for (const canDo of a1ExpandedFoundationCanDos) {
-      expect(canDo.contextIds).toEqual([]);
+      expect(canDo.contextIds.length).toBeGreaterThan(0);
       expect(canDo.sourceNote).toBe("product-authored-jf-cefr-aligned");
       expect(canDo.checkpointEvidenceRule).toEqual({
         evidenceKind: "checkpoint-sampled",
@@ -58,13 +58,13 @@ describe("staged expanded Foundations Can-dos", () => {
     }
   });
 
-  it("keeps staged Can-dos and their checkpoint fragment out of the published release", () => {
+  it("includes Foundations Can-dos and their checkpoint coverage in the published release", () => {
     const publishedIds = a1CanDosAuthored.map(({ id }) => id);
 
-    expect(publishedIds).not.toEqual(
+    expect(publishedIds).toEqual(
       expect.arrayContaining([...A1_EXPANDED_FOUNDATION_CANDO_IDS]),
     );
-    expect(a1Checkpoint.sampledCanDoIds).not.toEqual(
+    expect(a1Checkpoint.sampledCanDoIds).toEqual(
       expect.arrayContaining([...A1_EXPANDED_FOUNDATION_CANDO_IDS]),
     );
   });

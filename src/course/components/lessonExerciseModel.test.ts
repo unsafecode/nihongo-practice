@@ -195,7 +195,7 @@ describe("getLessonExercises — deterministic prompt generation for every seman
     expect(JSON.stringify(a)).toEqual(JSON.stringify(b));
   });
 
-  it("returns undefined for an unknown lesson id (not one of the 48 published lessons)", () => {
+  it("returns undefined for an unknown lesson id (not one of the 64 published lessons)", () => {
     expect(getLessonExercises("not-a-real-lesson")).toBeUndefined();
   });
 
@@ -434,9 +434,9 @@ describe("getLessonExercises — A2 lessons resolve through the same model", () 
 });
 
 describe("getLessonExercises — complete release coverage", () => {
-  it("returns error-free generated exercise models for all 108 A1 and A2 routes", () => {
+  it("returns error-free generated exercise models for all 124 A1 and A2 routes", () => {
     const allRouteIds = [...allLessonIds, ...A2_LESSON_IDS];
-    expect(allRouteIds).toHaveLength(108);
+    expect(allRouteIds).toHaveLength(124);
     for (const lessonId of allRouteIds) {
       const model = getLessonExercises(lessonId);
       expect(model, lessonId).toBeDefined();

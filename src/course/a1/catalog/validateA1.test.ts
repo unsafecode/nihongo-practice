@@ -99,7 +99,7 @@ describe("validateA1 – baseline release", () => {
   it("wraps validateFoundations at the fixed release version and seed", () => {
     const result = validateA1();
     // The foundation report exists and carries per-lesson coverage rows.
-    expect(Object.keys(result.foundationReport.reports.byLesson).length).toBe(44);
+    expect(Object.keys(result.foundationReport.reports.byLesson).length).toBe(60);
   });
 
   it("preserves attributed curriculum failures as exact canonical release codes", () => {
@@ -507,8 +507,8 @@ describe("validateA1 – capstone required-scenario coverage", () => {
 // ---------------------------------------------------------------------------
 
 describe("validateA1 – recurrence completeness", () => {
-  it("baseline: all 40 release verb-use records carry >= 2 later uses", () => {
-    expect(a1ReleaseVerbUseRecords.length).toBe(40);
+  it("baseline: all 44 release verb-use records carry >= 2 later uses", () => {
+    expect(a1ReleaseVerbUseRecords.length).toBe(44);
     for (const record of a1ReleaseVerbUseRecords) {
       expect(record.laterUses.length).toBeGreaterThanOrEqual(2);
     }

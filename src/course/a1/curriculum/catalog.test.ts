@@ -11,8 +11,8 @@ import {
 import { a1LexemeById } from "./lexicon";
 
 describe("A1 curriculum catalog", () => {
-  it("assembles all 48 lessons in exact canonical order", () => {
-    expect(a1LessonContents).toHaveLength(48);
+  it("assembles all 64 lessons in exact canonical order", () => {
+    expect(a1LessonContents).toHaveLength(64);
     expect(a1LessonContents.map(({ lessonId }) => lessonId)).toEqual(A1_LESSON_IDS);
   });
 

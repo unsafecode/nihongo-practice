@@ -11,11 +11,11 @@
  * orphan/coverage checks in `i18n/validate.test.ts` stay meaningful.
  *
  * Module and lesson *titles* are the one piece of genuinely new copy this
- * release needs (no legacy source ever named these 12 modules or 48 lessons).
- * Twelve short, honest module titles are authored by hand below; all 48
+ * release needs (no legacy source ever named these 16 modules or 64 lessons).
+ * Sixteen short, honest module titles are authored by hand below; all
  * lesson titles are derived mechanically as "<Module title> <position in
- * module>" (e.g. "Sounds 1", "Descriptions 3") except for the four staged
- * Foundations lessons, whose titles state their distinct progression. The
+ * module>" (e.g. "Sounds 1", "Descriptions 3") except for the Foundations
+ * lessons, whose titles state their distinct progression. The
  * actual "what this lesson teaches" claim is also carried honestly by the
  * lesson's Can-do objective copy (`copy.objectives[...]`), shown alongside the
  * title everywhere titles appear.
@@ -45,6 +45,10 @@ type Locale = "en" | "it";
 const A1_MODULE_TITLES: Readonly<Record<Locale, Readonly<Record<string, string>>>> = {
   en: {
     sounds: "Sounds",
+    "sentence-foundations": "Sentence Foundations",
+    "topic-questions": "Topics & Questions",
+    "polite-verbs": "Polite Verbs",
+    "time-movement": "Time & Movement",
     introductions: "Foundations: sentences and introductions",
     "essential-questions": "Essential Questions",
     actions: "Actions",
@@ -59,6 +63,10 @@ const A1_MODULE_TITLES: Readonly<Record<Locale, Readonly<Record<string, string>>
   },
   it: {
     sounds: "Suoni",
+    "sentence-foundations": "Fondamenti della frase",
+    "topic-questions": "Temi e domande",
+    "polite-verbs": "Verbi cortesi",
+    "time-movement": "Tempo e movimento",
     introductions: "Fondamenta: frasi e presentazioni",
     "essential-questions": "Domande essenziali",
     actions: "Azioni",
@@ -90,6 +98,63 @@ const A1_INTRODUCTION_LESSON_TITLES: Readonly<
   ],
 };
 
+const A1_FOUNDATIONS_LESSON_TITLES: Readonly<
+  Record<Locale, Readonly<Record<string, readonly [string, string, string, string]>>>
+> = {
+  en: {
+    "sentence-foundations": [
+      "Predicate-final identity",
+      "Names and recoverable omission",
+      "Natural person reference",
+      "An identity exchange",
+    ],
+    "topic-questions": [
+      "Topics and polite identity",
+      "Focused answers with ga",
+      "Who, what, and where",
+      "This, that, and which",
+    ],
+    "polite-verbs": [
+      "Dictionary forms and masu",
+      "Objects with o",
+      "Polite negative actions",
+      "Places for movement and action",
+    ],
+    "time-movement": [
+      "Clock time with ni",
+      "Day parts and routines",
+      "Past and negative time",
+      "Direction and transport",
+    ],
+  },
+  it: {
+    "sentence-foundations": [
+      "Identità con predicato finale",
+      "Nomi e omissione ricavabile",
+      "Riferimenti personali naturali",
+      "Uno scambio d'identità",
+    ],
+    "topic-questions": [
+      "Temi e identità cortese",
+      "Risposte in fuoco con ga",
+      "Chi, che cosa e dove",
+      "Questo, quello e quale",
+    ],
+    "polite-verbs": [
+      "Forme dizionario e masu",
+      "Oggetti con o",
+      "Azioni cortesi negative",
+      "Luoghi per movimento e azione",
+    ],
+    "time-movement": [
+      "L'ora con ni",
+      "Parti della giornata e routine",
+      "Tempo passato e negativo",
+      "Direzione e trasporto",
+    ],
+  },
+};
+
 function moduleTitle(locale: Locale, moduleId: string): string {
   const title = A1_MODULE_TITLES[locale][moduleId];
   if (!title) {
@@ -108,8 +173,8 @@ export function a1RuntimeModuleCopy(locale: Locale): Record<string, ModuleCopy> 
 }
 
 /**
- * `CourseCopy["lessons"]` — one title per A1 lesson id. The four Foundations
- * lessons use their staged authored titles; all others derive mechanically as
+ * `CourseCopy["lessons"]` — one title per A1 lesson id. Foundations lessons
+ * use authored progression titles; all others derive mechanically as
  * "<module title> <position in module>".
  */
 export function a1RuntimeLessonCopy(locale: Locale): Record<string, LessonCopy> {
@@ -117,11 +182,13 @@ export function a1RuntimeLessonCopy(locale: Locale): Record<string, LessonCopy> 
   for (const moduleId of A1_MODULE_IDS) {
     const title = moduleTitle(locale, moduleId);
     A1_MODULE_MANIFEST[moduleId].lessonIds.forEach((lessonId, index) => {
+      const foundationTitles = A1_FOUNDATIONS_LESSON_TITLES[locale][moduleId];
       out[lessonId] = {
         title:
-          moduleId === "introductions"
+          foundationTitles?.[index] ??
+          (moduleId === "introductions"
             ? A1_INTRODUCTION_LESSON_TITLES[locale][index]!
-            : `${title} ${index + 1}`,
+            : `${title} ${index + 1}`),
       };
     });
   }
@@ -133,7 +200,7 @@ function copySource(locale: Locale): Readonly<Record<string, string>> {
 }
 
 /**
- * `CourseCopy["objectives"]` — exactly the fifteen authored Can-do
+ * `CourseCopy["objectives"]` — exactly the nineteen authored Can-do
  * descriptor strings `data/course.ts` assigns as lesson objective copy, never
  * the full aggregated superset (which would leak unrelated exercise copy).
  */
@@ -153,7 +220,7 @@ export function a1RuntimeObjectiveCopy(locale: Locale): Record<string, string> {
 }
 
 /**
- * `CourseCopy["outcomes"]` — exactly the twelve authored module-outcome
+ * `CourseCopy["outcomes"]` — exactly the sixteen authored module-outcome
  * strings `data/course.ts` assigns as module outcome copy.
  */
 export function a1RuntimeOutcomeCopy(locale: Locale): Record<string, string> {

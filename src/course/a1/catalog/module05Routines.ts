@@ -84,9 +84,9 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
     "a1-sense-return",
   ],
   models: [
-    { id: "routines-1-m1", family: SCHED, context: "a1-context-home", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: timed("a1-value-yuki", "a1-value-wake", "a1-value-time-6"), translation: L("Yuki wakes up at six.", "Yuki si sveglia alle sei.") },
-    { id: "routines-1-m2", family: SCHED, context: "a1-context-home", subjectReferent: SELF, subjectRealization: "omitted", slots: timed(WATASHI, "a1-value-wake", "a1-value-time-9"), translation: L("I wake up at nine.", "Mi sveglio alle nove.") },
-    { id: "routines-1-m3", family: SCHED, context: "a1-context-town", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: timed("a1-value-ken", "a1-value-go-out", "a1-value-time-9"), translation: L("Ken goes out at nine.", "Ken esce alle nove.") },
+    { id: "routines-1-m1", family: SCHED, context: "a1-context-home", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: timed("a1-value-yuki", "a1-value-wake", "a1-value-time-630"), translation: L("Yuki wakes up at six thirty.", "Yuki si sveglia alle sei e mezza.") },
+    { id: "routines-1-m2", family: SCHED, context: "a1-context-home", subjectReferent: SELF, subjectRealization: "omitted", slots: timed(WATASHI, "a1-value-wake", "a1-value-time-730"), translation: L("I wake up at seven thirty.", "Mi sveglio alle sette e mezza.") },
+    { id: "routines-1-m3", family: SCHED, context: "a1-context-town", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: timed("a1-value-ken", "a1-value-go-out", "a1-value-time-830"), translation: L("Ken goes out at eight thirty.", "Ken esce alle otto e mezza.") },
     { id: "routines-1-m4", family: SCHED, context: "a1-context-town", subjectReferent: SELF, subjectRealization: "omitted", slots: timed(WATASHI, "a1-value-go-out", "a1-value-time-9"), translation: L("I go out at nine.", "Esco alle nove.") },
     { id: "routines-1-m5", family: SCHED, context: "a1-context-town", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: timed("a1-value-mina", "a1-value-return", "a1-value-time-6"), translation: L("Mina comes home at six.", "Mina torna a casa alle sei.") },
     { id: "routines-1-m6", family: SCHED, context: "a1-context-town", subjectReferent: SELF, subjectRealization: "omitted", slots: timed(WATASHI, "a1-value-return", "a1-value-time-5"), translation: L("I come home at five.", "Torno a casa alle cinque.") },

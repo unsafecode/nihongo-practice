@@ -25,6 +25,7 @@ import {
 } from "./a1SemanticCatalog";
 import {
   assertNoStaleLaterUseKeys,
+  a1FoundationsVerbUseRecords,
   a1ReleaseVerbUseRecords,
   a1StagedFoundationsArea01to02VerbUseRecords,
 } from "./recurrence";
@@ -65,8 +66,8 @@ describe("assertNoStaleLaterUseKeys", () => {
     );
   });
 
-  describe("staged Foundations recurrence", () => {
-    it("keeps the new copula timeline separate from the published recurrence view", () => {
+  describe("published Foundations recurrence", () => {
+    it("includes the new copula timeline in the published recurrence view", () => {
       expect(a1StagedFoundationsArea01to02VerbUseRecords).toEqual([
         expect.objectContaining({
           senseId: "a1-sense-be",
@@ -87,10 +88,10 @@ describe("assertNoStaleLaterUseKeys", () => {
         a1ReleaseVerbUseRecords.some((record) =>
           record.introductionLessonId.startsWith("sentence-foundations-"),
         ),
-      ).toBe(false);
+      ).toBe(true);
     });
 
-    it("exports the all-four staged timeline only from its dedicated staging module", () => {
+    it("keeps legacy preview aliases equal to the canonical Foundations timeline", () => {
       expect(publishedRecurrence).not.toHaveProperty(
         "a1ExpandedFoundationsVerbUseRecords",
       );
@@ -98,9 +99,10 @@ describe("assertNoStaleLaterUseKeys", () => {
         ...a1StagedFoundationsArea01to02VerbUseRecords,
         ...a1StagedFoundationsArea03to04VerbUseRecords,
       ]);
+      expect(a1ExpandedFoundationsVerbUseRecords).toBe(a1FoundationsVerbUseRecords);
     });
 
-    it("keeps final-module records staged, spaced, and tied to variants that realize the cited sense", () => {
+    it("keeps final-module records published, spaced, and tied to variants that realize the cited sense", () => {
       const allBuilt = [
         ...a1AllStagedFoundationsBuiltLessons,
         ...a1SemanticBuiltLessons,
@@ -124,7 +126,7 @@ describe("assertNoStaleLaterUseKeys", () => {
           record.introductionLessonId.startsWith("polite-verbs-") ||
           record.introductionLessonId.startsWith("time-movement-"),
         ),
-      ).toBe(false);
+      ).toBe(true);
 
       for (const record of a1StagedFoundationsArea03to04VerbUseRecords) {
         const introductionPosition =

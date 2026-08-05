@@ -33,11 +33,7 @@ import {
   A1_SCENARIO_CANDO_IDS,
 } from "./canDos";
 
-/**
- * Staged checkpoint membership for the four expanded Foundations Can-dos.
- * It is intentionally not merged into `a1Checkpoint.sampledCanDoIds` until
- * Task 5 promotes the expanded manifest and authored lessons together.
- */
+/** @deprecated Use {@link A1_FOUNDATION_CANDO_IDS} from `canDos`. */
 export { A1_EXPANDED_FOUNDATION_CANDO_IDS } from "./canDos";
 
 /** The level's stable id. */
@@ -56,6 +52,10 @@ export const A1_CHECKPOINT_MIN_TRANSFER_TARGETS = 8;
  */
 const MODULE_CANDO_IDS: Readonly<Record<ModuleId, readonly CanDoId[]>> = {
   sounds: ["a1-can-do-sounds"],
+  "sentence-foundations": ["a1-can-do-sentence-foundations"],
+  "topic-questions": ["a1-can-do-topic-questions"],
+  "polite-verbs": ["a1-can-do-polite-verbs"],
+  "time-movement": ["a1-can-do-time-movement"],
   introductions: ["a1-can-do-identity", "a1-can-do-origins"],
   "essential-questions": ["a1-can-do-questions"],
   actions: ["a1-can-do-actions"],
@@ -69,7 +69,7 @@ const MODULE_CANDO_IDS: Readonly<Record<ModuleId, readonly CanDoId[]>> = {
   capstones: [...A1_SCENARIO_CANDO_IDS],
 };
 
-/** The twelve A1 modules, in canonical order, with manifest-derived lessons. */
+/** The sixteen A1 modules, in canonical order, with manifest-derived lessons. */
 export const a1Modules: readonly FoundationModule[] = deepFreeze(
   A1_MODULE_IDS.map((moduleId, index): FoundationModule => {
     const canDoIds = MODULE_CANDO_IDS[moduleId];
@@ -86,7 +86,7 @@ export const a1Modules: readonly FoundationModule[] = deepFreeze(
   }),
 );
 
-/** The A1 course level: all twelve modules, all fifteen Can-dos. */
+/** The A1 course level: all sixteen modules, all nineteen Can-dos. */
 export const a1Level: CourseLevel = deepFreeze({
   id: A1_LEVEL_ID,
   alignmentCopyId: "a1-level-a1-alignment",
@@ -95,7 +95,7 @@ export const a1Level: CourseLevel = deepFreeze({
 });
 
 /**
- * The level checkpoint. Samples all fifteen taught Can-dos (eleven module
+ * The level checkpoint. Samples all nineteen taught Can-dos (fifteen module
  * outcomes + four capstone scenarios); evidence is drawn from the four capstone
  * scenario lessons, which is why the scenario Can-dos and every module Can-do
  * appear together in `sampledCanDoIds`.
@@ -116,13 +116,13 @@ export const A1_CHECKPOINT_SCENARIO_LESSON_IDS: readonly LessonId[] =
 //
 // The phonetic module has no sentence variants, so its lessons cannot satisfy
 // the foundation validator's transfer-coverage / diversity gates. The
-// foundation wrap therefore sees only the eleven semantic modules and their
-// fourteen Can-dos; these derived views keep that subset perfectly consistent
+// foundation wrap therefore sees only the fifteen semantic modules and their
+// eighteen Can-dos; these derived views keep that subset perfectly consistent
 // (module → Can-do, level → module/Can-do, checkpoint sample) with the full
 // definitions above.
 // ---------------------------------------------------------------------------
 
-/** The eleven semantic modules (everything except `sounds`). */
+/** The fifteen semantic modules (everything except `sounds`). */
 export const a1SemanticModules: readonly FoundationModule[] = deepFreeze(
   a1Modules.filter((module) => module.id !== "sounds"),
 );
@@ -134,7 +134,7 @@ export const a1LevelNonPhonetic: CourseLevel = deepFreeze({
   canDoIds: a1Level.canDoIds.filter((id) => id !== "a1-can-do-sounds"),
 });
 
-/** The checkpoint restricted to the fourteen semantic Can-dos it samples. */
+/** The checkpoint restricted to the eighteen semantic Can-dos it samples. */
 export const a1CheckpointNonPhonetic: CheckpointDefinition = deepFreeze({
   ...a1Checkpoint,
   sampledCanDoIds: a1Checkpoint.sampledCanDoIds.filter(

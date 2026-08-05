@@ -1,8 +1,7 @@
 /**
  * Staged Foundations module 3 — polite nonpast verbs and place particles.
  *
- * This authoring slice deliberately stays outside the published 12-module A1
- * catalog until Task 5 promotes the complete Foundations area.
+ * This authoring slice is part of the published Foundations area.
  */
 
 import { defineA1Module } from "../authoring";
@@ -195,8 +194,8 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-cafe",
       subjectReferent: SELF,
       subjectRealization: "omitted",
-      slots: object(WATASHI, "a1-value-eat", "a1-value-obj-bread"),
-      translation: L("I eat bread.", "Mangio pane."),
+      slots: object(WATASHI, "a1-value-eat", "a1-value-obj-sushi"),
+      translation: L("I eat sushi.", "Mangio sushi."),
     },
     {
       id: "polite-verbs-2-m2",
@@ -204,8 +203,8 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-cafe",
       subjectReferent: "a1-referent-yuki",
       subjectRealization: "explicit",
-      slots: object("a1-value-yuki", "a1-value-drink", "a1-value-obj-water"),
-      translation: L("Yuki drinks water.", "Yuki beve acqua."),
+      slots: object("a1-value-yuki", "a1-value-drink", "a1-value-obj-coffee"),
+      translation: L("Yuki drinks coffee.", "Yuki beve caffè."),
     },
     {
       id: "polite-verbs-2-m3",
@@ -213,8 +212,8 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-classroom",
       subjectReferent: "a1-referent-ken",
       subjectRealization: "explicit",
-      slots: object("a1-value-ken", "a1-value-read", "a1-value-obj-book"),
-      translation: L("Ken reads a book.", "Ken legge un libro."),
+      slots: object("a1-value-ken", "a1-value-read", "a1-value-obj-japanese"),
+      translation: L("Ken reads Japanese.", "Ken legge in giapponese."),
     },
     {
       id: "polite-verbs-2-m4",
@@ -222,8 +221,8 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-classroom",
       subjectReferent: "a1-referent-mina",
       subjectRealization: "explicit",
-      slots: object("a1-value-mina", "a1-value-write", "a1-value-obj-letter"),
-      translation: L("Mina writes a letter.", "Mina scrive una lettera."),
+      slots: object("a1-value-mina", "a1-value-write", "a1-value-obj-name"),
+      translation: L("Mina writes a name.", "Mina scrive un nome."),
     },
     {
       id: "polite-verbs-2-m5",
@@ -240,8 +239,8 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-cafe",
       subjectReferent: SELF,
       subjectRealization: "omitted",
-      slots: object(WATASHI, "a1-value-drink", "a1-value-obj-tea"),
-      translation: L("I drink tea.", "Bevo tè."),
+      slots: object(WATASHI, "a1-value-drink", "a1-value-obj-coffee"),
+      translation: L("I drink coffee.", "Bevo caffè."),
     },
     {
       id: "polite-verbs-2-m7",
@@ -249,8 +248,8 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-classroom",
       subjectReferent: "a1-referent-yuki",
       subjectRealization: "omitted",
-      slots: object("a1-value-yuki", "a1-value-read", "a1-value-obj-newspaper"),
-      translation: L("Yuki reads a newspaper.", "Yuki legge un giornale."),
+      slots: object("a1-value-yuki", "a1-value-read", "a1-value-obj-english"),
+      translation: L("Yuki reads English.", "Yuki legge in inglese."),
     },
     {
       id: "polite-verbs-2-m8",
@@ -269,8 +268,8 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-cafe",
       subjectReferent: "a1-referent-mina",
       subjectRealization: "explicit",
-      slots: object("a1-value-mina", "a1-value-eat", "a1-value-obj-ramen"),
-      translation: L("Mina eats ramen.", "Mina mangia ramen."),
+      slots: object("a1-value-mina", "a1-value-eat", "a1-value-obj-sushi"),
+      translation: L("Mina eats sushi.", "Mina mangia sushi."),
     },
     {
       id: "polite-verbs-2-t2",
@@ -287,8 +286,8 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-classroom",
       subjectReferent: "a1-referent-yuki",
       subjectRealization: "explicit",
-      slots: object("a1-value-yuki", "a1-value-read", "a1-value-obj-letter"),
-      translation: L("Yuki reads a letter.", "Yuki legge una lettera."),
+      slots: object("a1-value-yuki", "a1-value-read", "a1-value-obj-english"),
+      translation: L("Yuki reads English.", "Yuki legge in inglese."),
     },
     {
       id: "polite-verbs-2-t4",
@@ -296,8 +295,8 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-classroom",
       subjectReferent: SELF,
       subjectRealization: "omitted",
-      slots: object(WATASHI, "a1-value-write", "a1-value-obj-book"),
-      translation: L("I write a book.", "Scrivo un libro."),
+      slots: object(WATASHI, "a1-value-write", "a1-value-obj-name"),
+      translation: L("I write a name.", "Scrivo un nome."),
     },
     {
       id: "polite-verbs-2-t5",
@@ -305,8 +304,8 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-cafe",
       subjectReferent: "a1-referent-ken",
       subjectRealization: "explicit",
-      slots: object("a1-value-ken", "a1-value-eat", "a1-value-obj-bread"),
-      translation: L("Ken eats bread.", "Ken mangia pane."),
+      slots: object("a1-value-ken", "a1-value-eat", "a1-value-obj-sushi"),
+      translation: L("Ken eats sushi.", "Ken mangia sushi."),
     },
   ],
 });
@@ -333,8 +332,8 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
       subjectReferent: SELF,
       subjectRealization: "omitted",
       form: { polarity: "negative", tense: "present", formality: "polite" },
-      slots: object(WATASHI, "a1-value-see", "a1-value-obj-movie"),
-      translation: L("I do not watch a movie.", "Non guardo un film."),
+      slots: object(WATASHI, "a1-value-see", "a1-value-obj-kore"),
+      translation: L("I do not look at this.", "Non guardo questo."),
     },
     {
       id: "polite-verbs-3-m2",
@@ -343,8 +342,8 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
       subjectReferent: "a1-referent-yuki",
       subjectRealization: "explicit",
       form: { polarity: "negative", tense: "present", formality: "polite" },
-      slots: object("a1-value-yuki", "a1-value-listen", "a1-value-obj-music"),
-      translation: L("Yuki does not listen to music.", "Yuki non ascolta la musica."),
+      slots: object("a1-value-yuki", "a1-value-listen", "a1-value-obj-sore"),
+      translation: L("Yuki does not listen to that.", "Yuki non ascolta quello."),
     },
     {
       id: "polite-verbs-3-m3",
@@ -353,8 +352,8 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
       subjectReferent: "a1-referent-ken",
       subjectRealization: "explicit",
       form: { polarity: "negative", tense: "present", formality: "polite" },
-      slots: object("a1-value-ken", "a1-value-buy", "a1-value-obj-bag"),
-      translation: L("Ken does not buy a bag.", "Ken non compra una borsa."),
+      slots: object("a1-value-ken", "a1-value-buy", "a1-value-obj-coffee"),
+      translation: L("Ken does not buy coffee.", "Ken non compra caffè."),
     },
     {
       id: "polite-verbs-3-m4",
@@ -383,8 +382,8 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
       subjectReferent: "a1-referent-ken",
       subjectRealization: "omitted",
       form: { polarity: "negative", tense: "present", formality: "polite" },
-      slots: object("a1-value-ken", "a1-value-listen", "a1-value-obj-music"),
-      translation: L("Ken does not listen to music.", "Ken non ascolta la musica."),
+      slots: object("a1-value-ken", "a1-value-listen", "a1-value-obj-english"),
+      translation: L("Ken does not listen to English.", "Ken non ascolta l'inglese."),
     },
     {
       id: "polite-verbs-3-m7",
@@ -393,8 +392,8 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
       subjectReferent: "a1-referent-mina",
       subjectRealization: "omitted",
       form: { polarity: "negative", tense: "present", formality: "polite" },
-      slots: object("a1-value-mina", "a1-value-buy", "a1-value-obj-water"),
-      translation: L("Mina does not buy water.", "Mina non compra acqua."),
+      slots: object("a1-value-mina", "a1-value-buy", "a1-value-obj-sushi"),
+      translation: L("Mina does not buy sushi.", "Mina non compra sushi."),
     },
     {
       id: "polite-verbs-3-m8",
@@ -445,8 +444,8 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
       subjectReferent: "a1-referent-yuki",
       subjectRealization: "explicit",
       form: { polarity: "negative", tense: "present", formality: "polite" },
-      slots: object("a1-value-yuki", "a1-value-see", "a1-value-obj-photo"),
-      translation: L("Yuki does not look at a photo.", "Yuki non guarda una foto."),
+      slots: object("a1-value-yuki", "a1-value-see", "a1-value-obj-sore"),
+      translation: L("Yuki does not look at that.", "Yuki non guarda quello."),
     },
     {
       id: "polite-verbs-3-t5",

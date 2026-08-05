@@ -176,10 +176,10 @@ describe("persona gender agreement — concrete reported bug ids (independent fi
   // is unambiguous, on top of the exhaustive sweep above.
   const EXPECTED_IT: ReadonlyArray<[string, string]> = [
     // module02Introductions.ts — a1Copular-composed rows.
-    ["introductions-1-m1", "Yuki è una studentessa."],
-    ["introductions-2-m3", "Yuki è americana."],
+    ["introductions-1-m1", "Yuki è un'artista."],
+    ["introductions-2-m3", "Yuki è coreana."],
     ["introductions-4-m1", "Yuki è una studentessa."],
-    ["introductions-4-m3", "Yuki è un'impiegata."],
+    ["introductions-4-m3", "Yuki è una musicista."],
   ];
 
   for (const [variantId, expectedIt] of EXPECTED_IT) {
@@ -193,7 +193,7 @@ describe("persona gender agreement — concrete reported bug ids (independent fi
   // feminization of every persona.
   const KEN_STAYS: ReadonlyArray<[string, string]> = [
     ["introductions-1-t1", "Ken è uno studente."],
-    ["introductions-2-m2", "Ken è italiano."],
+    ["introductions-2-m2", "Ken è canadese."],
   ];
 
   for (const [variantId, expectedIt] of KEN_STAYS) {

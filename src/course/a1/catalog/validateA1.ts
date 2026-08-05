@@ -4,14 +4,14 @@
  * `validateA1` is a thin, deterministic release gate layered on top of the
  * Phase-1 `validateFoundations` oracle. It does three things:
  *
- *   1. **Wraps** `validateFoundations` over the 44 non-phonetic lessons with a
+ *   1. **Wraps** `validateFoundations` over the 60 non-phonetic lessons with a
  *      fixed catalog version and seed, and surfaces that full report verbatim as
  *      {@link ValidateA1Result.foundationReport} (its errors are *preserved*, so
  *      a reviewer sees every lesson-local diagnostic the oracle produces).
  *   2. Adds the four **phonetic contracts** the oracle cannot express (the sounds
  *      module carries no sentence variants).
  *   3. Checks the whole-level **release** invariants that only exist once all
- *      twelve modules are assembled: exact route/module/lesson shape, manifest
+ *      sixteen modules are assembled: exact route/module/lesson shape, manifest
  *      agreement, level-scope introduce-before-use, the capstones' *no-new-content*
  *      contract computed from the real prior modules, productive/receptive
  *      recurrence completeness, Can-do / checkpoint alignment, copy parity, the
@@ -91,9 +91,9 @@ import {
 export { A1_RELEASE_CATALOG_VERSION, A1_RELEASE_SEED };
 
 /** Exact structural totals the assembled A1 level must exhibit. */
-export const A1_EXPECTED_MODULE_COUNT = 12 as const;
+export const A1_EXPECTED_MODULE_COUNT = 16 as const;
 export const A1_EXPECTED_LESSONS_PER_MODULE = 4 as const;
-export const A1_EXPECTED_ROUTE_COUNT = 48 as const;
+export const A1_EXPECTED_ROUTE_COUNT = 64 as const;
 
 // ---------------------------------------------------------------------------
 // Error contract
@@ -108,9 +108,9 @@ export type A1ValidationErrorCode = A1ReleaseErrorCode;
 export type A1ValidationError = A1ReleaseValidationError;
 
 export interface ValidateA1Input {
-  /** The full 48-lesson level view (12 modules, 15 Can-dos, all positions). */
+  /** The full 64-lesson level view (16 modules, 19 Can-dos, all positions). */
   readonly fullCatalogs?: FoundationCatalogs;
-  /** The 44 non-phonetic lessons handed to `validateFoundations`. */
+  /** The 60 non-phonetic lessons handed to `validateFoundations`. */
   readonly semanticCatalogs?: FoundationCatalogs;
   /** Aggregated bilingual copy (shared + phonetic + every lesson). */
   readonly foundationCopy?: {
@@ -121,7 +121,7 @@ export interface ValidateA1Input {
   readonly phoneticItemsByLesson?: Readonly<Record<string, readonly A1PhoneticItem[]>>;
   /** The phonetic lesson recipes (contrastive item / practice-ref contract). */
   readonly phoneticLessons?: readonly A1PhoneticLessonRecipe[];
-  /** The 40 release verb-use records, including bare-action sense recurrences. */
+  /** The complete published release verb-use records. */
   readonly releaseVerbUseRecords?: readonly VerbUseRecord[];
   /** The manifest spec whose route/alias shape the level must match. */
   readonly manifestSpec?: A1ManifestSpec;
@@ -297,7 +297,7 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
     availableContentByLesson,
   });
 
-  // --- 1. Structural shape: 12 modules × 4 lessons = 48 routes -------------
+  // --- 1. Structural shape: 16 modules × 4 lessons = 64 routes -------------
   if (full.modules.length !== A1_EXPECTED_MODULE_COUNT) {
     push({ code: "module-count", expected: A1_EXPECTED_MODULE_COUNT, actual: full.modules.length });
   }

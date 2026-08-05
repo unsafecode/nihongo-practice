@@ -169,7 +169,7 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
     { id: "people-4-m5", family: OBJ, context: "a1-context-cafe", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: obj("a1-value-mina", "a1-value-listen", "a1-value-obj-music"), translation: L("Mina listens to music.", "Mina ascolta la musica.") },
     { id: "people-4-m6", family: OBJ, context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-listen", "a1-value-obj-music"), translation: L("I listen to music.", "Ascolto la musica.") },
     { id: "people-4-m7", family: OBJ, context: "a1-context-shop", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: obj("a1-value-yuki", "a1-value-buy", "a1-value-obj-bag"), translation: L("Yuki buys a bag.", "Yuki compra una borsa.") },
-    { id: "people-4-m8", family: OBJ, context: "a1-context-cafe", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: obj("a1-value-mina", "a1-value-see", "a1-value-obj-photo"), translation: L("Mina looks at a photo.", "Mina guarda una foto.") },
+    { id: "people-4-m8", family: OBJ, context: "a1-context-cafe", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: obj("a1-value-mina", "a1-value-see", "a1-value-obj-souvenir"), translation: L("Mina looks at a souvenir.", "Mina guarda un souvenir.") },
   ],
   transfers: [
     { id: "people-4-t1", family: OBJ, context: "a1-context-shop", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: obj("a1-value-yuki", "a1-value-buy", "a1-value-obj-ramen"), translation: L("Yuki buys ramen.", "Yuki compra il ramen.") },
