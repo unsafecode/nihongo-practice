@@ -49,7 +49,7 @@ const A1_MODULE_TITLES: Readonly<Record<Locale, Readonly<Record<string, string>>
     "topic-questions": "Topics & Questions",
     "polite-verbs": "Polite Verbs",
     "time-movement": "Time & Movement",
-    introductions: "Foundations: sentences and introductions",
+    introductions: "Introductions",
     "essential-questions": "Essential Questions",
     actions: "Actions",
     routines: "Routines",
@@ -67,7 +67,7 @@ const A1_MODULE_TITLES: Readonly<Record<Locale, Readonly<Record<string, string>>
     "topic-questions": "Temi e domande",
     "polite-verbs": "Verbi cortesi",
     "time-movement": "Tempo e movimento",
-    introductions: "Fondamenta: frasi e presentazioni",
+    introductions: "Presentazioni",
     "essential-questions": "Domande essenziali",
     actions: "Azioni",
     routines: "Routine",
@@ -85,16 +85,16 @@ const A1_INTRODUCTION_LESSON_TITLES: Readonly<
   Record<Locale, readonly [string, string, string, string]>
 > = {
   en: [
-    "Sentence shape and identity",
-    "Topics, copula, origins and roles",
-    "Dictionary and polite verbs",
-    "Natural personal reference and exchange",
+    "Meeting and introducing yourself",
+    "Where you are from and what you do",
+    "Talking about languages and work",
+    "A natural first conversation",
   ],
   it: [
-    "Struttura della frase e identità",
-    "Tema, copula, origine e ruolo",
-    "Verbi: forma dizionario e forma cortese",
-    "Riferimenti personali naturali e scambi",
+    "Conoscersi e presentarsi",
+    "Da dove vieni e cosa fai",
+    "Lingue e lavoro",
+    "Una prima conversazione naturale",
   ],
 };
 

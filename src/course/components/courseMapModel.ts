@@ -18,14 +18,26 @@ export interface CourseMapLessonOutline {
  * `entry.module` is the complete, richly-typed `CourseModule` — no cast
  * needed — while tests can still build tiny synthetic fixtures.
  *
- * The A1 release catalog has no phase concept (design spec §6, Phase 2
- * Task 6): the map is a single ordered path of twelve modules, not four
- * phase bands, so this outline intentionally carries no `phase` field.
+ * A1's explicit course areas are separate from the retired phase concept, so
+ * this outline carries no `phase` field. A2 can remain flat by omitting areas.
  */
 export interface CourseMapModuleOutline {
   readonly id: string;
+  /** Optional shared course-area membership. A2 intentionally leaves this unset. */
+  readonly areaId?: string;
   readonly prerequisiteIds: readonly string[];
   readonly lessons: readonly CourseMapLessonOutline[];
+}
+
+/**
+ * An explicitly authored, ordered course-map group. Levels without an area
+ * catalog retain the existing flat map.
+ */
+export interface CourseMapAreaOutline {
+  readonly id: string;
+  readonly moduleIds: readonly string[];
+  readonly titleCopyId: string;
+  readonly descriptionCopyId: string;
 }
 
 export interface ModuleMapEntry<M extends CourseMapModuleOutline> {
@@ -63,9 +75,22 @@ export interface CourseMapLessonEvidence {
   readonly consolidatedAt: string | null;
 }
 
-export interface CourseMapModel<M extends CourseMapModuleOutline> {
+export interface CourseAreaMapEntry<
+  M extends CourseMapModuleOutline,
+  A extends CourseMapAreaOutline = CourseMapAreaOutline,
+> {
+  readonly area: A;
+  readonly modules: readonly ModuleMapEntry<M>[];
+}
+
+export interface CourseMapModel<
+  M extends CourseMapModuleOutline,
+  A extends CourseMapAreaOutline = CourseMapAreaOutline,
+> {
   /** Every module, in the given (course) order — a single path, not phase bands. */
   readonly modules: readonly ModuleMapEntry<M>[];
+  /** Explicit named groups, or none for the behavior-preserving flat map. */
+  readonly areas: readonly CourseAreaMapEntry<M, A>[];
   readonly allVisited: boolean;
   readonly recommendedModuleId: string | null;
   readonly recommendedLessonId: string | null;
@@ -97,15 +122,88 @@ export interface CourseMapModel<M extends CourseMapModuleOutline> {
  *   it does not blank the recommendation. Even when everything is visited
  *   the recommendation is the valid last-visited lesson, or the first
  *   lesson fallback.
- * - The A1 release has no phase concept: modules are returned as a single
- *   ordered list (course order), not grouped into phase bands.
+ * - Explicit area catalogs are validated against the module list rather than
+ *   inferred from order. A malformed catalog throws instead of silently
+ *   dropping a module; absent catalogs deliberately retain a flat map.
  */
-export function buildCourseMapModel<M extends CourseMapModuleOutline>(
+function buildCourseAreaEntries<
+  M extends CourseMapModuleOutline,
+  A extends CourseMapAreaOutline,
+>(
+  modules: readonly M[],
+  moduleEntries: readonly ModuleMapEntry<M>[],
+  areas: readonly A[],
+): readonly CourseAreaMapEntry<M, A>[] {
+  if (areas.length === 0) return [];
+
+  const entryByModuleId = new Map(
+    moduleEntries.map((entry) => [entry.module.id, entry]),
+  );
+  const encounteredAreaIds = new Set<string>();
+  const encounteredModuleIds = new Set<string>();
+  const areaModuleIds: string[] = [];
+
+  const entries = areas.map((area) => {
+    if (encounteredAreaIds.has(area.id)) {
+      throw new Error(`course map: duplicate area "${area.id}".`);
+    }
+    encounteredAreaIds.add(area.id);
+    if (area.moduleIds.length === 0) {
+      throw new Error(`course map: area "${area.id}" has no modules.`);
+    }
+
+    const areaModules = area.moduleIds.map((moduleId) => {
+      if (encounteredModuleIds.has(moduleId)) {
+        throw new Error(`course map: module "${moduleId}" belongs to more than one area.`);
+      }
+      const entry = entryByModuleId.get(moduleId);
+      if (!entry) {
+        throw new Error(
+          `course map: area "${area.id}" references unknown module "${moduleId}".`,
+        );
+      }
+      if (entry.module.areaId !== area.id) {
+        throw new Error(
+          `course map: module "${moduleId}" declares area "${entry.module.areaId}", not "${area.id}".`,
+        );
+      }
+      encounteredModuleIds.add(moduleId);
+      areaModuleIds.push(moduleId);
+      return entry;
+    });
+
+    return { area, modules: areaModules };
+  });
+
+  const canonicalModuleIds = modules.map((module) => module.id);
+  const missingModuleIds = canonicalModuleIds.filter(
+    (moduleId) => !encounteredModuleIds.has(moduleId),
+  );
+  if (missingModuleIds.length > 0) {
+    throw new Error(
+      `course map: area catalog omits module(s) "${missingModuleIds.join('", "')}".`,
+    );
+  }
+  if (
+    areaModuleIds.length !== canonicalModuleIds.length ||
+    areaModuleIds.some((moduleId, index) => moduleId !== canonicalModuleIds[index])
+  ) {
+    throw new Error("course map: area module order must match canonical course order.");
+  }
+
+  return entries;
+}
+
+export function buildCourseMapModel<
+  M extends CourseMapModuleOutline,
+  A extends CourseMapAreaOutline = CourseMapAreaOutline,
+>(
   modules: readonly M[],
   visitedLessonIds: readonly string[],
   lastVisitedLessonId: string | null,
   lessonEvidence: Readonly<Record<string, CourseMapLessonEvidence>> = {},
-): CourseMapModel<M> {
+  areas: readonly A[] = [],
+): CourseMapModel<M, A> {
   const orderedLessons = modules.flatMap((courseModule) => courseModule.lessons);
   const knownLessonIds = new Set(orderedLessons.map((lessonItem) => lessonItem.id));
   const visitedSet = new Set(
@@ -197,9 +295,11 @@ export function buildCourseMapModel<M extends CourseMapModuleOutline>(
       demonstratedCount: demonstratedHere.size,
     };
   });
+  const areaEntries = buildCourseAreaEntries(modules, moduleEntries, areas);
 
   return {
     modules: moduleEntries,
+    areas: areaEntries,
     allVisited,
     recommendedModuleId,
     recommendedLessonId,

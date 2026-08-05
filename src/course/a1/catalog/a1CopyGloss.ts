@@ -95,7 +95,7 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-can-do-scenario-3-descriptor": "I can get around, asking where a place is and saying how I'll get there and what I need.",
     "a1-can-do-scenario-4-descriptor": "I can say who I am and what I do, describe things around me, and ask for clarification when I change topic.",
     "a1-module-outcome-introductions":
-      "You can build simple sentences, introduce yourself, and use polite verbs with natural subject omission.",
+      "You can introduce yourself, share practical personal details, and keep a first conversation going.",
     "a1-module-outcome-sentence-foundations":
       "You can build short predicate-final identity sentences and omit a known topic.",
     "a1-module-outcome-topic-questions":
@@ -180,7 +180,7 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-can-do-scenario-3-descriptor": "So muovermi, chiedendo dove si trova un luogo e dicendo come ci arrivo e di cosa ho bisogno.",
     "a1-can-do-scenario-4-descriptor": "So dire chi sono e cosa faccio, descrivere le cose intorno a me e chiedere chiarimenti quando cambio argomento.",
     "a1-module-outcome-introductions":
-      "Sai costruire frasi semplici, presentarti e usare verbi cortesi con l'omissione naturale del soggetto.",
+      "Sai presentarti, condividere informazioni personali pratiche e portare avanti una prima conversazione.",
     "a1-module-outcome-sentence-foundations":
       "Sai costruire brevi frasi d'identità con predicato finale e omettere un tema noto.",
     "a1-module-outcome-topic-questions":

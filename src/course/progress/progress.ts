@@ -65,11 +65,11 @@ export interface CourseProgressV3 {
   updatedAt: string;
 }
 
-// ── V4: level-aware progress (A1/A2), visited-only migration ──────────────
+// ── Schema V4: level-aware progress (A1/A2), visited-only schema migration ─
 //
-// Phase 2 Task 5 replaces the single-level v3 schema with a level-aware v4
-// schema (design spec §17). v3 predates the A1/A2 split entirely, so there is
-// no lossless "same shape, more fields" migration path: v3→v4 is a
+// Phase 2 Task 5 replaces the single-level schema-v3 with level-aware schema-v4
+// (design spec §17). Schema-v3 predates the A1/A2 split entirely, so there is
+// no lossless "same shape, more fields" migration path: schema-v3→schema-v4 is a
 // deliberate, one-way, visited-only migration. Only `visitedAt` transfers for
 // a small explicit, reviewed map of v3 A1 lesson ids (`A1_V3_LESSON_ID_MAP`)
 // — every other kind of evidence (practiced/consolidated timestamps,
@@ -137,7 +137,7 @@ export interface LevelProgress {
 }
 
 /**
- * Records that a v3→v4 migration happened and exactly what it did, so the UI
+ * Records that a schema-v3→schema-v4 migration happened and exactly what it did, so the UI
  * can show a truthful, dismissible one-time notice (design spec §17, Phase 2
  * Task 5 step 5). `acknowledgedAt` starts `null` and is set once the learner
  * dismisses the notice — acknowledging never deletes this record, so the
@@ -150,14 +150,18 @@ export interface ProgressMigrationNotice {
   readonly acknowledgedAt: string | null;
 }
 
-/** The catalog revision written by every current V4 progress record. */
-export const CURRENT_COURSE_PROGRESS_CATALOG_VERSION = "a1-a2-v2" as const;
+/** The catalog revision written by every current schema-V4 progress record. */
+export const CURRENT_COURSE_PROGRESS_CATALOG_VERSION = "a1-a2-v3" as const;
 
-/** The prior V4 catalog revision accepted only for deterministic normalization. */
+/** The first schema-V4 catalog revision accepted for deterministic normalization. */
 export const LEGACY_COURSE_PROGRESS_CATALOG_VERSION = "a1-a2-v1" as const;
+
+/** The prior schema-V4 catalog revision accepted for deterministic normalization. */
+export const PREVIOUS_COURSE_PROGRESS_CATALOG_VERSION = "a1-a2-v2" as const;
 
 type SupportedCourseProgressCatalogVersion =
   | typeof LEGACY_COURSE_PROGRESS_CATALOG_VERSION
+  | typeof PREVIOUS_COURSE_PROGRESS_CATALOG_VERSION
   | typeof CURRENT_COURSE_PROGRESS_CATALOG_VERSION;
 
 export interface CourseProgressV4 {
@@ -169,8 +173,9 @@ export interface CourseProgressV4 {
 }
 
 /**
- * The structurally valid V4 payload shapes accepted from storage. Only the
- * legacy v1 catalog is migratable; arbitrary catalog strings fail closed.
+ * The structurally valid schema-V4 payload shapes accepted from storage.
+ * Catalog v1 and v2 normalize to catalog v3; arbitrary catalog strings fail
+ * closed.
  */
 export type StoredCourseProgressV4 = Omit<CourseProgressV4, "catalogVersion"> & {
   readonly catalogVersion: SupportedCourseProgressCatalogVersion;
@@ -215,7 +220,7 @@ export function emptyProgressV4(): CourseProgressV4 {
  * (`../catalog/lessonPlans.ts`'s `lessonPlans`) and the assembled runtime
  * catalog (`../data/course.ts`'s `courseModules`), so a catalog id rename
  * fails that test instead of quietly changing what this migration does. It
- * includes this v3 schema's own real named capstone ids
+ * includes this schema-v3's own real named capstone ids
  * (`capstones-orientation`, `capstones-self-introduction`,
  * `capstones-everyday-outing`, `capstones-travel-day`) exactly as shipped;
  * the *numbered* `capstones-1..4` ids never existed in v3 — they are v4 A1
@@ -310,10 +315,10 @@ function hasStrongerEvidence(lesson: LessonProgressV3): boolean {
 }
 
 /**
- * Deterministically migrates a v3 payload into v4 (design spec §17, Phase 2
+ * Deterministically migrates a schema-v3 payload into schema-v4 (design spec §17, Phase 2
  * Task 5 steps 2-3). Visited-only: only `visitedAt` transfers for the
  * reviewed `A1_V3_LESSON_ID_MAP`, dropping every other kind of evidence.
- * It writes the current V4 catalog revision directly, so a migrated schema-v3
+ * It writes the current schema-V4 catalog revision directly, so a migrated schema-v3
  * record never first lands on the retired V4 catalog revision.
  * Iterates `A1_V4_DESTINATION_LESSON_IDS` — the map's destinations in
  * canonical (not payload-encounter) order — so the result never depends on
@@ -489,6 +494,7 @@ function isSupportedCatalogVersion(
 ): value is SupportedCourseProgressCatalogVersion {
   return (
     value === LEGACY_COURSE_PROGRESS_CATALOG_VERSION ||
+    value === PREVIOUS_COURSE_PROGRESS_CATALOG_VERSION ||
     value === CURRENT_COURSE_PROGRESS_CATALOG_VERSION
   );
 }
@@ -527,7 +533,13 @@ function reconcileV4LevelCatalog(
   knownReviewKeys: ReadonlySet<string> | undefined,
   knownLessonIds: ReadonlySet<string> | undefined,
 ): LevelProgress {
-  let orphanedLessonIds = level.orphanedLessonIds;
+  const dedupedOrphanedLessonIds = dedupeInEncounterOrder(level.orphanedLessonIds);
+  let orphanedLessonIds = sameIdList(
+    dedupedOrphanedLessonIds,
+    level.orphanedLessonIds,
+  )
+    ? level.orphanedLessonIds
+    : dedupedOrphanedLessonIds;
   if (knownLessonIds) {
     const knownOrphans = new Set(orphanedLessonIds);
     const newlyOrphanedLessonIds = Object.keys(level.lessons)
@@ -566,7 +578,7 @@ function reconcileV4LevelCatalog(
 }
 
 /**
- * Normalizes a structurally valid V4 catalog into the current revision.
+ * Normalizes a structurally valid schema-V4 catalog into catalog v3.
  *
  * The V4 shape is unchanged, so this does not reset any lesson timestamps,
  * attempted/accepted definition ids, Can-do evidence, checkpoint attempts,
@@ -575,7 +587,7 @@ function reconcileV4LevelCatalog(
  * they determine only which active review keys remain actionable and which
  * unknown lesson records are also listed as orphans.
  *
- * A current V2 record with nothing to reconcile is returned by reference.
+ * A current catalog-v3 record with nothing to reconcile is returned by reference.
  */
 export function migrateV4Catalog(
   progress: StoredCourseProgressV4,
@@ -628,7 +640,7 @@ export function emptyProgress(): CourseProgressV3 {
   };
 }
 
-function dedupeInEncounterOrder(ids: string[]): string[] {
+function dedupeInEncounterOrder(ids: readonly string[]): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
   for (const id of ids) {
@@ -768,9 +780,9 @@ export function migrateV2ToV3(
  * Parses raw stored text into current-schema (v4) progress.
  * Explicit, non-throwing behavior for every payload shape:
  * - `null` (nothing stored yet) -> empty v4 progress, not corrupted.
- * - valid current v4 -> passed through unchanged, by direct reference when its
+ * - valid current catalog-v3 schema-v4 -> passed through unchanged, by direct reference when its
  *   runtime catalog reconciliation is already current.
- * - valid legacy v4 catalog v1 -> normalized to catalog v2 without resetting
+ * - valid legacy schema-v4 catalog v1/v2 -> normalized to catalog v3 without resetting
  *   evidence; injected runtime sets reconcile active review entries.
  * - valid v3 -> migrated to v4 via migrateV3ToV4 (visited-only, Phase 2 Task 5).
  * - valid v2 -> migrated to v3 via migrateV2ToV3, then to v4.

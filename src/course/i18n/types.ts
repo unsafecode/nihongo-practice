@@ -26,6 +26,11 @@ export interface LessonCopy {
   title: string;
 }
 
+export interface CourseAreaCopy {
+  title: string;
+  description: string;
+}
+
 export interface CourseCopy {
   home: {
     eyebrow: string;
@@ -479,11 +484,10 @@ export interface CourseCopy {
     unavailable: string;
   };
   /**
-   * Copy for the flat, single-path course map (A1 release, Phase 2 Task 6):
-   * per-module prerequisite/state text and the revisit/capstone state shown
-   * once every known lesson is visited. The A1 release has no phase-band
-   * concept and no fabricated per-module time estimate or verb/vocabulary
-   * coverage count, so this copy never claims either.
+   * Per-module course-map copy: prerequisite/state text and the revisit state
+   * shown once every known lesson is visited. A1 area headings/descriptions
+   * live in `courseAreas`; no map copy claims a fabricated module time estimate
+   * or verb/vocabulary coverage count.
    */
   courseMap: {
     heading: string;
@@ -505,8 +509,10 @@ export interface CourseCopy {
     revisitTitle: string;
     revisitBody: string;
   };
+  /** Named course-map groups. A1 supplies four explicit areas; A2 stays flat. */
+  courseAreas: Record<string, CourseAreaCopy>;
   /**
-   * Copy for the one-time v3→v4 progress migration notice and its
+   * Copy for the one-time schema-v3→schema-v4 progress migration notice and its
    * always-available explanation (design spec §17, Phase 2 Task 5). Truthful
    * only: it is static, locale-level text shown for every v1/v2/v3
    * migration, so it must never assert a reset or an orphan as a guaranteed

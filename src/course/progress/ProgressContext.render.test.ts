@@ -19,7 +19,7 @@ import { emptyProgressV4 } from "./progress";
  * Real regression coverage for the Phase 2 Task 5 quality-review minors
  * #4/#5: `ProgressProvider`'s lazy `useState` initializer must never write to
  * storage during render (a React purity violation, dangerous under
- * StrictMode/concurrent rendering), and a migrated v1/v2/v3 payload must be
+ * StrictMode/concurrent rendering), and a migrated schema-v1/v2/v3 payload must be
  * written back to storage exactly once on mount — never twice (once from the
  * old render-phase `loadProgress` call, once more from the always-running
  * mount effect).
@@ -112,7 +112,7 @@ function appElement(onValue: (value: ProgressContextValue) => void) {
 
 describe("ProgressProvider initialization — side effects (Phase 2 Task 5 quality-review minors #4/#5)", () => {
   it.each([
-    ["a migrated v3 payload", { [STORAGE_KEY]: rawV3Payload() }],
+    ["a migrated schema-v3 payload", { [STORAGE_KEY]: rawV3Payload() }],
     ["a corrupted payload", { [STORAGE_KEY]: "{not json" }],
     ["a current v4 payload", { [STORAGE_KEY]: JSON.stringify(emptyProgressV4()) }],
     ["no stored value at all", {}],
@@ -127,7 +127,7 @@ describe("ProgressProvider initialization — side effects (Phase 2 Task 5 quali
     },
   );
 
-  it("commits exactly one write-back after mount for a migrated v3 payload, never a duplicate", async () => {
+  it("commits exactly one write-back after mount for a migrated schema-v3 payload, never a duplicate", async () => {
     const { storage, calls } = instrumentedStorage({
       [STORAGE_KEY]: rawV3Payload(),
     });

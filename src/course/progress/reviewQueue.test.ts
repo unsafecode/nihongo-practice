@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   lessonHasOpenReview,
   orderedReviewQueue,
+  reconcileReviewQueueEntries,
   reconcileReviewQueue,
   resolveReviewEntry,
   reviewKeyFor,
@@ -143,5 +144,23 @@ describe("reviewQueue — catalog reconciliation preserves orphans", () => {
     };
     const reconciled = reconcileReviewQueue(progress, new Set(["known:known-x1"]));
     expect(reconciled).toBe(progress);
+  });
+
+  it("keeps the raw queue and orphan arrays by reference when no reconciliation is needed", () => {
+    const queue = upsertReviewMistake(
+      [],
+      mistake({ lessonId: "known", exerciseDefinitionId: "known-x1" }),
+    );
+    const orphanedReviewKeys = ["legacy:legacy-x1"];
+
+    const reconciled = reconcileReviewQueueEntries(
+      queue,
+      orphanedReviewKeys,
+      new Set(["known:known-x1"]),
+    );
+
+    expect(reconciled.changed).toBe(false);
+    expect(reconciled.reviewQueue).toBe(queue);
+    expect(reconciled.orphanedReviewKeys).toBe(orphanedReviewKeys);
   });
 });

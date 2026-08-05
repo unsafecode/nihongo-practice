@@ -394,10 +394,32 @@ const enCourseMap: CourseCopy["courseMap"] = {
     "You can revisit any lesson whenever you like — there's no final finish line to reach.",
 };
 
+const enCourseAreas: CourseCopy["courseAreas"] = {
+  sounds: {
+    title: "Sounds",
+    description: "Learn sound and kana foundations.",
+  },
+  foundations: {
+    title: "Foundations",
+    description:
+      "Build sentence structure, natural reference, polite verbs, particles, and basic time forms before scenario practice.",
+  },
+  situations: {
+    title: "Everyday situations",
+    description:
+      "Apply foundations in conversations, routines, places, people, shopping, and needs.",
+  },
+  synthesis: {
+    title: "Synthesis",
+    description: "Combine known content in supported dialogues.",
+  },
+};
+
 
 export const en = {
   ...enUi,
   courseMap: enCourseMap,
+  courseAreas: enCourseAreas,
   // Module/lesson titles and Can-do objective/module-outcome copy are
   // resolved from the validated A1 release catalog's own copy ids (Phase 2
   // Task 6) — never from the legacy, disjoint curriculum catalog. `blocks`

@@ -127,6 +127,14 @@ export function reconcileReviewQueueEntries(
   orphanedReviewKeys: string[];
   changed: boolean;
 } {
+  const dedupe = (keys: readonly string[]): string[] => {
+    const seen = new Set<string>();
+    return keys.filter((key) => {
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
   const active: ReviewQueueEntry[] = [];
   const newlyOrphaned: string[] = [];
   for (const entry of reviewQueue) {
@@ -136,21 +144,25 @@ export function reconcileReviewQueueEntries(
       newlyOrphaned.push(entry.reviewKey);
     }
   }
+  const normalizedOrphanedReviewKeys = dedupe(orphanedReviewKeys);
+  const existingOrphansChanged =
+    normalizedOrphanedReviewKeys.length !== orphanedReviewKeys.length;
   if (newlyOrphaned.length === 0) {
+    if (!existingOrphansChanged) {
+      return {
+        reviewQueue: reviewQueue as ReviewQueueEntry[],
+        orphanedReviewKeys: orphanedReviewKeys as string[],
+        changed: false,
+      };
+    }
     return {
       reviewQueue: active,
-      orphanedReviewKeys: [...orphanedReviewKeys],
-      changed: false,
+      orphanedReviewKeys: normalizedOrphanedReviewKeys,
+      changed: true,
     };
   }
 
-  const merged: string[] = [];
-  const seen = new Set<string>();
-  for (const key of [...orphanedReviewKeys, ...newlyOrphaned]) {
-    if (seen.has(key)) continue;
-    seen.add(key);
-    merged.push(key);
-  }
+  const merged = dedupe([...normalizedOrphanedReviewKeys, ...newlyOrphaned]);
   return { reviewQueue: active, orphanedReviewKeys: merged, changed: true };
 }
 

@@ -52,7 +52,7 @@ function writeBlockedMemoryStorage(initial: Readonly<Record<string, string>> = {
   };
 }
 
-function catalogV1Payload(): string {
+function catalogV2Payload(): string {
   const currentDefinitionId =
     getLessonExercises("introductions-1")!.exercises[0]!.definitionId;
   const removedDefinitionId = "introductions-1-round-1-8";
@@ -76,7 +76,7 @@ function catalogV1Payload(): string {
   };
   return JSON.stringify({
     schemaVersion: 4,
-    catalogVersion: "a1-a2-v1",
+    catalogVersion: "a1-a2-v2",
     levels: {
       a1: {
         lessons: {
@@ -139,19 +139,19 @@ describe("progress persistence results", () => {
     expect(loadProgress(storage).loadStatus).toBe("migrated");
   });
 
-  it("normalizes a stored v4 catalog-v1 payload to v2 and persists the reconciled result", () => {
-    const rawV1 = catalogV1Payload();
+  it("normalizes a stored v4 catalog-v2 payload to v3 and persists the reconciled result", () => {
+    const rawV2 = catalogV2Payload();
     const storage = memoryStorage();
-    storage.setItem(STORAGE_KEY, rawV1);
+    storage.setItem(STORAGE_KEY, rawV2);
 
     const loaded = loadProgress(storage);
 
     expect(loaded.corrupted).toBe(false);
     expect(loaded.migrated).toBe(true);
     expect(loaded.persistenceAvailable).toBe(true);
-    expect(loaded.progress.catalogVersion).toBe("a1-a2-v2");
+    expect(loaded.progress.catalogVersion).toBe("a1-a2-v3");
     expect(loaded.progress.levels.a1.lessons["introductions-1"]?.attemptedExerciseIds).toEqual(
-      JSON.parse(rawV1).levels.a1.lessons["introductions-1"].attemptedExerciseIds,
+      JSON.parse(rawV2).levels.a1.lessons["introductions-1"].attemptedExerciseIds,
     );
     expect(loaded.progress.levels.a1.reviewQueue).toHaveLength(1);
     expect(loaded.progress.levels.a1.orphanedReviewKeys).toEqual([
@@ -159,21 +159,21 @@ describe("progress persistence results", () => {
       reviewKeyFor("introductions-1", "introductions-1-round-1-8"),
     ]);
     expect(JSON.parse(storage.getItem(STORAGE_KEY)!).catalogVersion).toBe(
-      "a1-a2-v2",
+      "a1-a2-v3",
     );
   });
 
-  it("keeps the normalized v4 catalog result in memory and raw catalog-v1 bytes on disk when write-back fails", () => {
-    const rawV1 = catalogV1Payload();
-    const storage = writeBlockedMemoryStorage({ [STORAGE_KEY]: rawV1 });
+  it("keeps the normalized v4 catalog result in memory and raw catalog-v2 bytes on disk when write-back fails", () => {
+    const rawV2 = catalogV2Payload();
+    const storage = writeBlockedMemoryStorage({ [STORAGE_KEY]: rawV2 });
 
     const loaded = loadProgress(storage);
 
     expect(loaded.corrupted).toBe(false);
     expect(loaded.migrated).toBe(true);
     expect(loaded.persistenceAvailable).toBe(false);
-    expect(loaded.progress.catalogVersion).toBe("a1-a2-v2");
-    expect(storage.getItem(STORAGE_KEY)).toBe(rawV1);
+    expect(loaded.progress.catalogVersion).toBe("a1-a2-v3");
+    expect(storage.getItem(STORAGE_KEY)).toBe(rawV2);
   });
 
   it("keeps raw v3 storage untouched and migrated progress in memory when the write-back after migration fails", () => {
@@ -226,7 +226,7 @@ describe("progress persistence results", () => {
   });
 
   it("reconciles an obsolete stored review entry into orphaned metadata on load", () => {
-    // A raw v3 payload is always migrated to v4 on load (Phase 2 Task 5), and
+    // A raw schema-v3 payload is always migrated to schema-v4 on load (Phase 2 Task 5), and
     // migration clears the review queue entirely regardless of whether its
     // keys are still recognised — so this exercises reconciliation the way it
     // actually still matters post-migration: a *stored v4* payload whose
@@ -263,9 +263,9 @@ describe("progress persistence results", () => {
       "ghost-lesson:ghost-lesson-x1",
     ]);
     // Catalog reconciliation is a normalization, so the existing migration
-    // persistence path writes the usable V2 result back to storage.
+    // persistence path writes the usable catalog-v3 result back to storage.
     expect(JSON.parse(storage.getItem("nihongo.course.progress")!)).toMatchObject({
-      catalogVersion: "a1-a2-v2",
+      catalogVersion: "a1-a2-v3",
       levels: {
         a1: {
           reviewQueue: [],

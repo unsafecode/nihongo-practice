@@ -364,6 +364,11 @@ export interface Lesson {
 export interface CourseModule {
   id: ModuleId;
   /**
+   * Optional, locale-independent course-map area. A1 supplies an explicit area
+   * for every module; levels without an area model deliberately leave it unset.
+   */
+  areaId?: string;
+  /**
    * The legacy four-phase grouping (design spec §4.2). Only the legacy
    * phase-graded curriculum sets this; the A1 release catalog has no phase
    * concept and leaves it unset rather than inventing one (Phase 2 Task 6).

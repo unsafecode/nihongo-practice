@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { A1_LESSON_IDS, A1_MODULE_IDS, A1_MODULE_MANIFEST } from "../a1/manifest";
+import { A1_AREAS } from "../a1/areas";
 import { a1CanDoById } from "../a1/catalog/canDos";
 import { semanticIconIds } from "../../components/icons/Icon";
 import { A2_LESSON_IDS, A2_MODULE_IDS, A2_MODULE_MANIFEST } from "../a2/manifest";
@@ -13,6 +14,19 @@ import { courseModules, courseModulesByLevel } from "./course";
  * legacy A0→A1 assembly.
  */
 describe("courseModules — A1 runtime source", () => {
+  it("assigns every A1 module to its explicit canonical course area", () => {
+    expect(
+      courseModules.map((courseModule) => ({
+        id: courseModule.id,
+        areaId: Reflect.get(courseModule, "areaId"),
+      })),
+    ).toEqual(
+      A1_AREAS.flatMap((area) =>
+        area.moduleIds.map((id) => ({ id, areaId: area.id })),
+      ),
+    );
+  });
+
   it("publishes exactly 16 modules and 64 lessons with stable manifest ids", () => {
     expect(courseModules).toHaveLength(16);
     const lessonIds = courseModules.flatMap((m) => m.lessons.map((l) => l.id));
@@ -126,6 +140,12 @@ describe("courseModulesByLevel — level-aware runtime source", () => {
     expect(new Set(lessonIds).size).toBe(60);
     expect(a2.map((m) => m.id)).toEqual([...A2_MODULE_IDS]);
     expect(lessonIds.slice().sort()).toEqual([...A2_LESSON_IDS].slice().sort());
+  });
+
+  it("leaves A2 modules outside the A1-only area model", () => {
+    for (const courseModule of courseModulesByLevel.a2) {
+      expect(courseModule.areaId).toBeUndefined();
+    }
   });
 
   it("orders A2 modules 1..15 and gives every module its manifest lessons in order", () => {

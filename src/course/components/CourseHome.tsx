@@ -6,6 +6,7 @@ import { useLocale } from "../../i18n/LocaleContext";
 import { lessonPath, routePaths } from "../../routing/routes";
 import { courseLevelFromParam, courseLevelParam } from "../../routing/routePaths";
 import { a1CanDosAuthored } from "../a1/catalog/canDos";
+import { A1_AREAS } from "../a1/areas";
 import { a2CanDoDescriptorCopy } from "../a2/catalog/canDos";
 import { a2CanDosAuthored } from "../a2/catalog/catalog";
 import { courseModulesByLevel } from "../data/course";
@@ -50,8 +51,9 @@ const CAN_DO_TIER_GLYPH: Partial<Record<keyof typeof canDoEvidenceTierCopyKey, s
  * by Phase 3 Task 8). It reads the `livello` URL search param (missing/invalid
  * defaults to A1, so every bare `/percorso` A1 URL and its output stay stable),
  * renders the accessible {@link LevelSelector}, and shows the *selected*
- * level's own heading, flat CourseMap, truthful Can-do evidence summary, and
- * checkpoint attempt-state section. A1 and A2 evidence never cross-contaminate:
+ * level's own heading, area-aware/flat CourseMap as appropriate, truthful
+ * Can-do evidence summary, and checkpoint attempt-state section. A1 and A2
+ * evidence never cross-contaminate:
  * A1 reads the v3-compat `progress`/`canDoEvidence`/`checkpointAttempts`
  * surfaces (unchanged), while A2 reads its own `progressV4.levels.a2`. Nothing
  * here locks or blocks navigation to any level or lesson, or claims
@@ -113,6 +115,7 @@ export function CourseHome(): ReactElement {
     visitedIds,
     lastVisitedLessonId,
     lessonEvidenceMap,
+    levelIsA1 ? A1_AREAS : [],
   );
 
   const canDos = levelIsA1 ? a1CanDosAuthored : a2CanDosAuthored;

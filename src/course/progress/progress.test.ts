@@ -406,7 +406,7 @@ describe("recommendContinuationLessonId (real course data)", () => {
 function v4FixtureFromV3(v3: CourseProgressV3): CourseProgressV4 {
   return {
     schemaVersion: 4,
-    catalogVersion: "a1-a2-v2",
+    catalogVersion: "a1-a2-v3",
     levels: {
       a1: {
         lessons: v3.lessons,

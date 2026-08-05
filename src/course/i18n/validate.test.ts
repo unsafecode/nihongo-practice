@@ -12,6 +12,7 @@ import { it as itCopy } from "./it";
 import { en as enCopy } from "./en";
 import type { CourseCopy } from "./types";
 import { A1_LESSON_SECTION_IDS } from "../../routing/lessonSections";
+import { A1_AREAS } from "../a1/areas";
 
 /** Every runtime course module across both levels (A1 + A2) — the merged copy
  * catalog (Phase 3 Task 8) covers both, so the coverage/orphan checks below
@@ -55,6 +56,7 @@ describe.each([itCopy, enCopy])("course locale", (copy) => {
       exercises: copy.exercises,
       review: copy.review,
       courseMap: copy.courseMap,
+      courseAreas: copy.courseAreas,
       modules: copy.modules,
       lessons: copy.lessons,
       objectives: copy.objectives,
@@ -161,6 +163,69 @@ describe("locale parity", () => {
       const enKeys = Object.keys(enCopy[key]).sort();
       expect(itKeys).toEqual(enKeys);
     }
+  });
+
+  describe("A1 course-area copy", () => {
+    const JAPANESE = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff66-\uff9f]/;
+
+    it("covers exactly the four authored A1 area ids in both locales", () => {
+      const ids = A1_AREAS.map((area) => area.id).sort();
+      expect(Object.keys(enCopy.courseAreas).sort()).toEqual(ids);
+      expect(Object.keys(itCopy.courseAreas).sort()).toEqual(ids);
+    });
+
+    it("uses the approved, concise English and Italian area titles and descriptions", () => {
+      expect(enCopy.courseAreas).toEqual({
+        sounds: {
+          title: "Sounds",
+          description: "Learn sound and kana foundations.",
+        },
+        foundations: {
+          title: "Foundations",
+          description:
+            "Build sentence structure, natural reference, polite verbs, particles, and basic time forms before scenario practice.",
+        },
+        situations: {
+          title: "Everyday situations",
+          description:
+            "Apply foundations in conversations, routines, places, people, shopping, and needs.",
+        },
+        synthesis: {
+          title: "Synthesis",
+          description: "Combine known content in supported dialogues.",
+        },
+      });
+      expect(itCopy.courseAreas).toEqual({
+        sounds: {
+          title: "Suoni",
+          description: "Impara le basi dei suoni e dei kana.",
+        },
+        foundations: {
+          title: "Fondamentali",
+          description:
+            "Costruisci la struttura della frase, riferimenti naturali, verbi cortesi, particelle e forme temporali di base prima della pratica negli scenari.",
+        },
+        situations: {
+          title: "Situazioni quotidiane",
+          description:
+            "Applica le basi in conversazioni, routine, luoghi, persone, acquisti e bisogni.",
+        },
+        synthesis: {
+          title: "Sintesi",
+          description: "Combina ciò che conosci in dialoghi guidati.",
+        },
+      });
+    });
+
+    it("keeps every area string non-empty and Japanese-free", () => {
+      for (const copy of [enCopy, itCopy]) {
+        for (const area of Object.values(copy.courseAreas)) {
+          expect(area.title.trim().length).toBeGreaterThan(0);
+          expect(area.description.trim().length).toBeGreaterThan(0);
+          expect(`${area.title} ${area.description}`).not.toMatch(JAPANESE);
+        }
+      }
+    });
   });
 
   it("keeps the shared content-formatting error in both locales", () => {
@@ -402,7 +467,7 @@ describe("foundation UX copy", () => {
   });
 });
 
-describe("progress migration copy (v3→v4, Phase 2 Task 5)", () => {
+describe("progress migration copy (schema-v3→schema-v4, Phase 2 Task 5)", () => {
   const PROGRESS_MIGRATION_KEYS = [
     "noticeTitle",
     "noticeBody",
@@ -513,7 +578,7 @@ describe("progress migration copy (v3→v4, Phase 2 Task 5)", () => {
 
   it("never asserts that a reset, evidence loss, or unmatched-lesson orphaning definitely happened — only ever describes them as conditional, scoped to whichever lessons/evidence actually apply (Phase 2 Task 5 quality-review Important fix)", () => {
     // This notice/help copy is static, locale-level text shown for *every*
-    // v1/v2/v3→v4 migration — including a v1/v2 migration (which never had
+    // schema-v1/v2/v3→schema-v4 migration — including a schema-v1/v2 migration (which never had
     // any practice/checkpoint evidence to reset in the first place) and any
     // v3 migration with zero orphaned lessons and zero reset-evidence
     // lessons (see progress.v4.test.ts for those conditions). Phrasing these

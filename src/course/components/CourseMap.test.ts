@@ -3,8 +3,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
 import { LocaleProvider } from "../../i18n/LocaleContext";
+import { lessonPath } from "../../routing/routes";
 import { it as itCopy } from "../i18n/it";
 import { courseModules } from "../data/course";
+import { A1_AREAS } from "../a1/areas";
 import { buildCourseMapModel } from "./courseMapModel";
 import { CourseMap } from "./CourseMap";
 
@@ -12,7 +14,13 @@ function renderMap(
   visitedLessonIds: string[],
   lastVisitedLessonId: string | null,
 ): string {
-  const model = buildCourseMapModel(courseModules, visitedLessonIds, lastVisitedLessonId);
+  const model = buildCourseMapModel(
+    courseModules,
+    visitedLessonIds,
+    lastVisitedLessonId,
+    {},
+    A1_AREAS,
+  );
   return renderToStaticMarkup(
     createElement(
       MemoryRouter,
@@ -51,7 +59,68 @@ function lessonsInFirstModules(count: number): string[] {
     .flatMap((module) => module.lessons.map((lesson) => lesson.id));
 }
 
-describe("CourseMap: flat module order", () => {
+describe("CourseMap: canonical module order and A1 areas", () => {
+  it("renders four labelled A1 area sections in canonical order, with all sixteen Foundations lesson links before Presentations", () => {
+    const html = renderMap([], null);
+    const expectedAreas = [
+      ["sounds", "Suoni", 1],
+      ["foundations", "Fondamentali", 4],
+      ["situations", "Situazioni quotidiane", 10],
+      ["synthesis", "Sintesi", 1],
+    ] as const;
+
+    expect(
+      (html.match(/class="course-area(?: course-area--[a-z-]+)?"/g) ?? []),
+    ).toHaveLength(4);
+    expect(html).toContain(
+      '<section class="course-area" aria-labelledby="course-area-sounds">',
+    );
+    expect(html).toContain(
+      '<section class="course-area course-area--foundations" aria-labelledby="course-area-foundations">',
+    );
+
+    let previousAreaIndex = -1;
+    for (const [areaPosition, [id, title, moduleCount]] of expectedAreas.entries()) {
+      const areaIndex = html.indexOf(`id="course-area-${id}"`);
+      expect(areaIndex, id).toBeGreaterThan(previousAreaIndex);
+      expect(html).toContain(`>${title}</h3>`);
+      const nextAreaId = expectedAreas[areaPosition + 1]?.[0];
+      const nextAreaIndex = nextAreaId
+        ? html.indexOf(`id="course-area-${nextAreaId}"`)
+        : -1;
+      const areaMarkup = html.slice(
+        areaIndex,
+        nextAreaIndex === -1 ? html.length : nextAreaIndex,
+      );
+      expect(
+        (areaMarkup.match(/<article class="module-card/g) ?? []).length,
+        id,
+      ).toBe(moduleCount);
+      previousAreaIndex = areaIndex;
+    }
+
+    const foundationLessonLinks = courseModules
+      .filter((module) => module.areaId === "foundations")
+      .flatMap((module) => module.lessons.map((lesson) => lessonPath(module.id, lesson.id)));
+    expect(foundationLessonLinks).toHaveLength(16);
+    for (const href of foundationLessonLinks) expect(html).toContain(`href="${href}"`);
+
+    const finalFoundationLink = html.lastIndexOf(
+      `href="${lessonPath("time-movement", "time-movement-4")}"`,
+    );
+    const foundationStart = html.indexOf('id="course-area-foundations"');
+    const situationsStart = html.indexOf('id="course-area-situations"');
+    const foundationMarkup = html.slice(foundationStart, situationsStart);
+    const presentationsTitle = html.indexOf(
+      `<h3 class="module-card__title">${escapeHtmlText(itCopy.modules.introductions.title)}</h3>`,
+    );
+    expect(finalFoundationLink).toBeGreaterThanOrEqual(0);
+    for (const href of foundationLessonLinks) {
+      expect(foundationMarkup).toContain(`href="${href}"`);
+    }
+    expect(presentationsTitle).toBeGreaterThan(finalFoundationLink);
+  });
+
   it("renders as a single vertical path, not a card grid", () => {
     const html = renderMap([], null);
     expect(html).toContain('class="course-map"');

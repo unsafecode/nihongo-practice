@@ -94,6 +94,13 @@ function progressWithVisited(lessonIds: string[]): CourseProgressV3 {
   return lessonIds.reduce(markLessonVisited, emptyProgress());
 }
 
+function progressWithVisitsButNoLastVisited(lessonIds: string[]): CourseProgressV3 {
+  return {
+    ...progressWithVisited(lessonIds),
+    lastVisitedLessonId: null,
+  };
+}
+
 function renderHome(
   progressValue: ProgressContextValue,
   initialEntries: Array<string | { pathname: string; state?: unknown }> = [
@@ -189,6 +196,31 @@ describe("CourseHome hero: primary and secondary actions (Task 1 Action primitiv
     expect(html).toMatch(/class="action action--primary[^"]*"[^>]*>Continua</);
   });
 
+  it("keeps a returning learner on an existing Presentations lesson after Foundations was inserted before it", () => {
+    const html = renderHome(
+      makeProgressValue({
+        progress: progressWithVisited(["sounds-1", "introductions-1"]),
+      }),
+    );
+
+    expect(primaryActionHref(html)).toBe(
+      lessonPath("introductions", "introductions-1"),
+    );
+  });
+
+  it("recommends the first Foundations lesson after every Sounds lesson is visited without a last-visited lesson", () => {
+    const soundsLessonIds = courseModules[0]!.lessons.map((lesson) => lesson.id);
+    const html = renderHome(
+      makeProgressValue({
+        progress: progressWithVisitsButNoLastVisited(soundsLessonIds),
+      }),
+    );
+
+    expect(primaryActionHref(html)).toBe(
+      lessonPath("sentence-foundations", "sentence-foundations-1"),
+    );
+  });
+
   it("labels the primary action review and resumes the last-visited lesson once everything is visited", () => {
     const allIds = allLessons.map((lesson) => lesson.id);
     const html = renderHome(
@@ -226,7 +258,7 @@ describe("CourseHome hero: primary and secondary actions (Task 1 Action primitiv
   });
 });
 
-describe("CourseHome: renders the flat, single-path CourseMap, never the old chapter grid", () => {
+describe("CourseHome: renders the area-grouped CourseMap, never the old chapter grid", () => {
   it("keeps the visible A1 path in learner order, with navigable lessons and the sounds prerequisite for Foundations", () => {
     expect(courseModules.map((courseModule) => courseModule.id)).toEqual(
       a1ModuleIdsInLearnerOrder,
@@ -369,7 +401,7 @@ const sampleMigrationNotice: ProgressMigrationNotice = {
   acknowledgedAt: null,
 };
 
-describe("CourseHome: v3→v4 migration notice (design spec §17, Phase 2 Task 6)", () => {
+describe("CourseHome: schema-v3→schema-v4 migration notice (design spec §17, Phase 2 Task 6)", () => {
   it("omits the migration notice entirely when there is nothing to migrate", () => {
     const html = renderHome(makeProgressValue());
     expect(html).not.toContain(itCopy.progressMigration.noticeTitle);

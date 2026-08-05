@@ -1,5 +1,6 @@
 import type { SemanticIconId } from "../../components/icons/Icon";
 import { a1CanDosAuthored } from "../a1/catalog/canDos";
+import { A1_AREAS } from "../a1/areas";
 import { A1_MODULE_IDS, A1_MODULE_MANIFEST } from "../a1/manifest";
 import { a2CanDosAuthored, a2SemanticBuiltLessons } from "../a2/catalog/catalog";
 import { A2_MODULE_IDS, A2_MODULE_MANIFEST } from "../a2/manifest";
@@ -60,6 +61,10 @@ const MODULE_ICON_IDS: Readonly<Record<string, SemanticIconId>> = {
   capstones: "capstone",
 };
 
+const A1_AREA_ID_BY_MODULE_ID = new Map(
+  A1_AREAS.flatMap((area) => area.moduleIds.map((moduleId) => [moduleId, area.id])),
+);
+
 /**
  * Every lesson names exactly one authored Can-do (`canDos.ts`'s
  * `CANDO_LESSONS` table, validated by the release gate's Can-do checks), so
@@ -94,11 +99,16 @@ function buildLesson(lessonId: string, moduleId: string, order: number): Lesson 
 function buildModule(moduleId: string): CourseModule {
   const manifestEntry = A1_MODULE_MANIFEST[moduleId];
   const iconId = MODULE_ICON_IDS[moduleId];
+  const areaId = A1_AREA_ID_BY_MODULE_ID.get(moduleId);
   if (!iconId) {
     throw new Error(`data/course: no semantic icon mapped for module "${moduleId}".`);
   }
+  if (!areaId) {
+    throw new Error(`data/course: no A1 area mapped for module "${moduleId}".`);
+  }
   return {
     id: moduleId,
+    areaId,
     order: manifestEntry.order,
     prerequisiteIds: [...manifestEntry.prerequisiteIds],
     outcomeCopyIds: [manifestEntry.outcomeCopyId],

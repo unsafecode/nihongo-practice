@@ -55,6 +55,36 @@ describe("course map CSS contract: vertical phase path, never a card grid", () =
     expect(css).not.toMatch(/\.chapter-card/);
   });
 
+  describe("course map CSS contract: explicit course areas", () => {
+    it("uses a responsive minmax grid for area modules while keeping the area itself shrink-safe", () => {
+      const css = readCourseCss();
+      const area = findRule(css, ".course-area");
+      const modules = findRule(css, ".course-area__modules");
+      expect(area).toMatch(/min-width:\s*0/);
+      expect(modules).toMatch(/display:\s*grid/);
+      expect(modules).toMatch(/grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(/);
+      expect(modules).toMatch(/min-width:\s*0/);
+    });
+
+    it("makes Foundations visibly distinct through a border, background, heading treatment, and icon", () => {
+      const css = readCourseCss();
+      const foundations = findRule(css, ".course-area--foundations");
+      const heading = findRule(css, ".course-area--foundations .course-area__heading");
+      const icon = findRule(css, ".course-area--foundations .course-area__icon");
+      expect(foundations).toMatch(/border:\s*2px solid/);
+      expect(foundations).toMatch(/background:/);
+      expect(heading).toMatch(/text-decoration:\s*underline/);
+      expect(icon).toMatch(/border|background|color/);
+    });
+
+    it("collapses area modules to one column on mobile", () => {
+      const block = findMediaBlock(readCourseCss(), "@media (max-width: 720px)");
+      expect(block).toMatch(
+        /\.course-area__modules\s*{[^}]*grid-template-columns:\s*1fr/,
+      );
+    });
+  });
+
   it("lays out each phase's modules as a flex column, not a grid", () => {
     const rule = findRule(readCourseCss(), ".course-phase__modules");
     expect(rule).toBeDefined();

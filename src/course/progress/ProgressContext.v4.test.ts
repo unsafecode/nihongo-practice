@@ -219,7 +219,7 @@ describe("ProgressContext V4 exposure (Phase 2 Task 6)", () => {
     });
   });
 
-  it("exposes a truthful, dismissible migration notice for a migrated v3 payload, never auto-clearing it", async () => {
+  it("exposes a truthful, dismissible migration notice for a migrated schema-v3 payload, never auto-clearing it", async () => {
     const rawV3 = JSON.stringify({
       schemaVersion: 3,
       catalogVersion: "a0-a1-v1",

@@ -121,6 +121,21 @@ describe("resolveLessonRoute: canonical match", () => {
     expect(result.courseModule.id).toBe("sounds");
     expect(result.lesson.id).toBe("sounds-1");
   });
+
+  it("resolves every canonical A1 module/lesson route, including all 64 expanded lessons", () => {
+    const routes = courseModules.flatMap((courseModule) =>
+      courseModule.lessons.map((lesson) => ({
+        moduleId: courseModule.id,
+        lessonId: lesson.id,
+      })),
+    );
+
+    expect(routes).toHaveLength(64);
+    for (const route of routes) {
+      const result = resolveLessonRoute(route.moduleId, route.lessonId, courseModules);
+      expect(result.kind, `${route.moduleId}/${route.lessonId}`).toBe("match");
+    }
+  });
 });
 
 describe("resolveLessonRoute: legacy aliases", () => {
