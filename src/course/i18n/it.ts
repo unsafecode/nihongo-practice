@@ -397,10 +397,32 @@ const itCourseMap: CourseCopy["courseMap"] = {
     "Puoi rivedere qualunque lezione quando vuoi: non c'è un traguardo finale da raggiungere.",
 };
 
+const itCourseAreas: CourseCopy["courseAreas"] = {
+  sounds: {
+    title: "Suoni",
+    description: "Impara le basi dei suoni e dei kana.",
+  },
+  foundations: {
+    title: "Fondamentali",
+    description:
+      "Costruisci la struttura della frase, riferimenti naturali, verbi cortesi, particelle e forme temporali di base prima della pratica negli scenari.",
+  },
+  situations: {
+    title: "Situazioni quotidiane",
+    description:
+      "Applica le basi in conversazioni, routine, luoghi, persone, acquisti e bisogni.",
+  },
+  synthesis: {
+    title: "Sintesi",
+    description: "Combina ciò che conosci in dialoghi guidati.",
+  },
+};
+
 
 export const it = {
   ...itUi,
   courseMap: itCourseMap,
+  courseAreas: itCourseAreas,
   // Module/lesson titles and Can-do objective/module-outcome copy are
   // resolved from the validated A1 release catalog's own copy ids (Phase 2
   // Task 6) — never from the legacy, disjoint curriculum catalog. `blocks`

@@ -187,9 +187,9 @@ describe("course progress v3 — evidence-based practiced/consolidated transitio
     expect(second.lessons.l1.attemptedExerciseIds).toEqual(first.lessons.l1.attemptedExerciseIds);
   });
 
-  it("migrates accumulated v3 evidence via the v3→v4 visited-only migration on reload (l1 is not a reviewed A1 id, so it is orphaned)", () => {
+  it("migrates accumulated schema-v3 evidence via the schema-v3→schema-v4 visited-only migration on reload (l1 is not a reviewed A1 id, so it is orphaned)", () => {
     // Phase 2 Task 5: schemaVersion 3 is no longer the current schema, so a
-    // previously-stored, fully-formed v3 payload always migrates to v4 on
+    // previously-stored, fully-formed schema-v3 payload always migrates to schema-v4 on
     // load. "l1" (this describe block's fixture lesson id) is not one of
     // the explicit reviewed A1 v3 lesson ids, so — correctly — none of its
     // evidence transfers, not even `visitedAt`; it becomes an A1 orphan.
@@ -218,10 +218,10 @@ describe("course progress v3 — evidence-based practiced/consolidated transitio
 describe("course progress schema v3", () => {
   // "sounds-1" is both a v1/v2-era known lesson id (for this test's catalog
   // stand-in) AND one of the explicit reviewed A1 v3 lesson ids preserved by
-  // the v3→v4 migration (Phase 2 Task 5), so it demonstrates the
+  // schema-v3→schema-v4 migration (Phase 2 Task 5), so it demonstrates the
   // "preserved" path end-to-end. "sounds-core" remains a fixture for ids
   // that were known at the v1/v2 stage but are NOT part of the reviewed v3
-  // set, demonstrating the "orphaned by the v3→v4 migration" path.
+  // set, demonstrating the "orphaned by the schema-v3→schema-v4 migration" path.
   const knownLessonIdsWithReviewed = new Set(["sounds-1", "sounds-special"]);
 
   it("migrates v2 visits, preserving a reviewed id's visit and orphaning both an unmapped-but-known id and a never-known id", () => {
@@ -238,7 +238,7 @@ describe("course progress schema v3", () => {
     ).toEqual({
       progress: {
         schemaVersion: 4,
-        catalogVersion: "a1-a2-v2",
+        catalogVersion: "a1-a2-v3",
         levels: {
           a1: {
             lessons: {
@@ -291,7 +291,7 @@ describe("course progress schema v3", () => {
     });
   });
 
-  it("migrates a valid v3 payload into v4, preserving only the visit timestamp for a reviewed lesson", () => {
+  it("migrates a valid schema-v3 payload into schema-v4, preserving only the visit timestamp for a reviewed lesson", () => {
     const progress = markLessonVisited(emptyProgress(), "sounds-1");
     const parsed = parseProgress(
       JSON.stringify(progress),

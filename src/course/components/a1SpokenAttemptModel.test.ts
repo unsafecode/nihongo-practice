@@ -7,9 +7,9 @@ import { getA1SpokenAttemptModel } from "./a1SpokenAttemptModel";
 
 /**
  * The A1-native spoken-attempt model contract (Phase 2 Task 6, master task
- * point 4). Every one of the release's 48 lessons must resolve to a complete
+ * point 4). Every one of the release's 64 lessons must resolve to a complete
  * `SpokenAttemptModel`, or a structured error — never a partial model, and
- * never a legacy example-catalog lookup. The 44 semantic lessons resolve
+ * never a legacy example-catalog lookup. The 60 semantic lessons resolve
  * from their guided-construction target's realized tokens; the 4 phonetic
  * `sounds-*` lessons resolve from their first authored phonetic item, so
  * that every lesson has a target or an explicit phonetic listen/repeat
@@ -20,12 +20,12 @@ const allLessonIds = courseModules.flatMap((courseModule) =>
 );
 
 describe("getA1SpokenAttemptModel — every release lesson resolves", () => {
-  it("names exactly 48 lessons across 12 modules", () => {
-    expect(allLessonIds).toHaveLength(48);
+  it("names exactly 64 lessons across 16 modules", () => {
+    expect(allLessonIds).toHaveLength(64);
   });
 
   for (const locale of ["en", "it"] as const) {
-    it(`builds a complete model for all 48 lessons (${locale})`, () => {
+    it(`builds a complete model for all 64 lessons (${locale})`, () => {
       for (const lessonId of allLessonIds) {
         const result = getA1SpokenAttemptModel(lessonId, locale);
         if (!result.ok) {

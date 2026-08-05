@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { semanticIconIds } from "../../components/icons/Icon";
 import { lessonPath } from "../../routing/routePaths";
 import { courseModules } from "./course";
+import { A1_LESSON_IDS } from "../a1/manifest";
 import { courseModules as legacyCourseModules } from "../catalog/assembleCourse";
 import { examples } from "./examples";
 import type {
@@ -569,10 +570,10 @@ describe("validateCourse (synthetic fixtures)", () => {
 });
 
 describe("course data invariants (real data)", () => {
-  it("contains 12 modules and 48 lessons (the validated A1 release)", () => {
-    expect(courseModules).toHaveLength(12);
+  it("contains 16 modules and 64 lessons (the validated A1 release)", () => {
+    expect(courseModules).toHaveLength(16);
     expect(courseModules.flatMap((courseModule) => courseModule.lessons)).toHaveLength(
-      48,
+      64,
     );
   });
 
@@ -580,15 +581,15 @@ describe("course data invariants (real data)", () => {
     expect(validateCourse(legacyCourseModules, examples)).toEqual([]);
   });
 
-  it("orders modules 1 through 12", () => {
+  it("orders modules 1 through 16", () => {
     expect(courseModules.map((courseModule) => courseModule.order)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
     ]);
   });
 
   it("gives every module exactly four lessons (the approved A1 uniform budget)", () => {
     expect(courseModules.map((courseModule) => courseModule.lessons.length)).toEqual([
-      4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+      4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
     ]);
   });
 
@@ -614,35 +615,20 @@ describe("course data invariants (real data)", () => {
     ).toBeNull();
   });
 
-  it("publishes exactly the approved 48 lesson IDs, including the consolidated sounds-4 (no sounds-5) and renumbered capstones-1..4", () => {
+  it("publishes exactly the approved 64 lesson IDs, including Foundations, sounds-4, and renumbered capstones", () => {
     const lessonIds = courseModules
       .flatMap((courseModule) => courseModule.lessons)
       .map((lesson) => lesson.id)
       .sort();
-    expect(lessonIds).toEqual(
-      [
-        "sounds-1", "sounds-2", "sounds-3", "sounds-4",
-        "introductions-1", "introductions-2", "introductions-3", "introductions-4",
-        "essential-questions-1", "essential-questions-2", "essential-questions-3", "essential-questions-4",
-        "actions-1", "actions-2", "actions-3", "actions-4",
-        "routines-1", "routines-2", "routines-3", "routines-4",
-        "past-negative-1", "past-negative-2", "past-negative-3", "past-negative-4",
-        "places-1", "places-2", "places-3", "places-4",
-        "people-1", "people-2", "people-3", "people-4",
-        "descriptions-1", "descriptions-2", "descriptions-3", "descriptions-4",
-        "shopping-1", "shopping-2", "shopping-3", "shopping-4",
-        "existence-needs-1", "existence-needs-2", "existence-needs-3", "existence-needs-4",
-        "capstones-1", "capstones-2", "capstones-3", "capstones-4",
-      ].sort(),
-    );
+    expect(lessonIds).toEqual([...A1_LESSON_IDS].sort());
   });
 
-  it("makes module 12 the capstones module: four renumbered capstone lessons", () => {
+  it("makes module 16 the capstones module: four renumbered capstone lessons", () => {
     const capstones = courseModules.find(
       (courseModule) => courseModule.id === "capstones",
     );
     expect(capstones).toBeDefined();
-    expect(capstones!.order).toBe(12);
+    expect(capstones!.order).toBe(16);
     expect(capstones!.lessons.map((lesson) => lesson.id)).toEqual([
       "capstones-1",
       "capstones-2",
@@ -657,4 +643,3 @@ describe("course data invariants (real data)", () => {
     }
   });
 });
-

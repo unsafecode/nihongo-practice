@@ -1,15 +1,8 @@
 /**
- * The exact, immutable A1 release manifest (Phase 2 Task 1).
- *
- * A single declarative {@link A1ManifestSpec} is the source of truth; every
- * exported array and map is derived from it and deep-frozen. The manifest
- * encodes the plan's fixed lesson table: twelve modules in order, exactly four
- * lessons each (48 total), canonical positions 1-48, four synthesis capstones
- * in positions 45-48, a phonetic module 1, instructional modules 2-11, and the
- * single reviewed legacy alias `sounds-5` → `sounds-4`.
- *
- * Outcome copy IDs are locale-independent ASCII identifiers; the manifest never
- * carries learner-visible text.
+ * Immutable canonical A1 manifest for the published 16-module / 64-lesson
+ * release. Every exported array and map is derived from its declarative source
+ * and deep-frozen. Outcome copy IDs are locale-independent ASCII identifiers;
+ * the manifest carries no learner-visible text.
  */
 
 import { deepFreeze } from "../foundations/deepFreeze";
@@ -29,8 +22,13 @@ export type { A1ManifestSpec } from "./types";
 // Declarative source of truth
 // ---------------------------------------------------------------------------
 
-const MODULE_ORDER: readonly ModuleId[] = [
+/** Canonical module order. Lesson IDs, URLs, and progress keys remain stable. */
+const CANONICAL_MODULE_ORDER: readonly ModuleId[] = [
   "sounds",
+  "sentence-foundations",
+  "topic-questions",
+  "polite-verbs",
+  "time-movement",
   "introductions",
   "essential-questions",
   "actions",
@@ -51,15 +49,17 @@ function fourLessons(moduleId: ModuleId): LessonId[] {
   return [1, 2, 3, 4].map((n) => `${moduleId}-${n}`);
 }
 
-function buildCanonicalSpec(): A1ManifestSpec {
+function buildManifestSpec(
+  moduleOrder: readonly ModuleId[],
+): A1ManifestSpec {
   const lessonIdsByModule: Record<ModuleId, LessonId[]> = {};
   const modulePrerequisites: Record<ModuleId, ModuleId[]> = {};
   const moduleContracts: Record<ModuleId, A1LessonContract> = {};
 
-  MODULE_ORDER.forEach((moduleId, index) => {
+  moduleOrder.forEach((moduleId, index) => {
     lessonIdsByModule[moduleId] = fourLessons(moduleId);
     modulePrerequisites[moduleId] =
-      index === 0 ? [] : [MODULE_ORDER[index - 1]];
+      index === 0 ? [] : [moduleOrder[index - 1]];
     if (moduleId === CAPSTONE_MODULE_ID) {
       moduleContracts[moduleId] = "synthesis";
     } else if (index === 0) {
@@ -70,7 +70,7 @@ function buildCanonicalSpec(): A1ManifestSpec {
   });
 
   return {
-    moduleIds: [...MODULE_ORDER],
+    moduleIds: [...moduleOrder],
     lessonIdsByModule,
     modulePrerequisites,
     moduleContracts,
@@ -79,11 +79,20 @@ function buildCanonicalSpec(): A1ManifestSpec {
   };
 }
 
-/** The canonical manifest spec, deep-frozen (the runtime source of truth). */
-export const A1_MANIFEST_SPEC: A1ManifestSpec = deepFreeze(buildCanonicalSpec());
+/** The deep-frozen canonical A1 release spec. */
+export const A1_MANIFEST_SPEC: A1ManifestSpec = deepFreeze(
+  buildManifestSpec(CANONICAL_MODULE_ORDER),
+);
+
+/**
+ * @deprecated The Foundations plan is now canonical. This identity alias is
+ * retained for downstream authoring integrations that still import the legacy
+ * expanded name; it must never diverge from {@link A1_MANIFEST_SPEC}.
+ */
+export const A1_EXPANDED_MANIFEST_SPEC = A1_MANIFEST_SPEC;
 
 // ---------------------------------------------------------------------------
-// Derived ID arrays and maps
+// Published release derived ID arrays and maps
 // ---------------------------------------------------------------------------
 
 export const A1_MODULE_IDS: readonly ModuleId[] = deepFreeze([
@@ -113,6 +122,19 @@ export const A1_CANONICAL_POSITIONS: Readonly<Record<LessonId, number>> =
   deepFreeze(
     Object.fromEntries(A1_LESSON_IDS.map((id, index) => [id, index + 1])),
   );
+
+// ---------------------------------------------------------------------------
+// Deprecated expanded names
+// ---------------------------------------------------------------------------
+
+/** @deprecated Use {@link A1_MODULE_IDS}; this is the same frozen array. */
+export const A1_EXPANDED_MODULE_IDS = A1_MODULE_IDS;
+/** @deprecated Use {@link A1_LESSON_IDS_BY_MODULE}; this is the same frozen map. */
+export const A1_EXPANDED_LESSON_IDS_BY_MODULE = A1_LESSON_IDS_BY_MODULE;
+/** @deprecated Use {@link A1_LESSON_IDS}; this is the same frozen array. */
+export const A1_EXPANDED_LESSON_IDS = A1_LESSON_IDS;
+/** @deprecated Use {@link A1_CANONICAL_POSITIONS}; this is the same frozen map. */
+export const A1_EXPANDED_CANONICAL_POSITIONS = A1_CANONICAL_POSITIONS;
 
 export const A1_LEGACY_LESSON_ALIASES: Readonly<Record<LessonId, LessonId>> =
   deepFreeze({ ...A1_MANIFEST_SPEC.aliases });

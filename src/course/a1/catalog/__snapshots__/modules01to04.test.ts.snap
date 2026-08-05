@@ -1,0 +1,786 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`A1 modules 2–4 · exact realized sentences > characterizes every realized Japanese and rōmaji row 1`] = `
+[
+  [
+    "introductions-1-m1",
+    "ゆきはアーティストです",
+    "yuki wa aatisuto desu",
+  ],
+  [
+    "introductions-1-m2",
+    "けんはかんごしです",
+    "ken wa kangoshi desu",
+  ],
+  [
+    "introductions-1-m3",
+    "わたしはシェフです",
+    "watashi wa shefu desu",
+  ],
+  [
+    "introductions-1-m4",
+    "デザイナーです",
+    "dezainaa desu",
+  ],
+  [
+    "introductions-1-m5",
+    "せんせいはけんきゅうしゃです",
+    "sensei wa kenkyuusha desu",
+  ],
+  [
+    "introductions-1-m6",
+    "わたしはいしゃです",
+    "watashi wa isha desu",
+  ],
+  [
+    "introductions-1-m7",
+    "ゆきはいしゃです",
+    "yuki wa isha desu",
+  ],
+  [
+    "introductions-1-m8",
+    "がくせいです",
+    "gakusei desu",
+  ],
+  [
+    "introductions-1-t1",
+    "けんはがくせいです",
+    "ken wa gakusei desu",
+  ],
+  [
+    "introductions-1-t2",
+    "いしゃです",
+    "isha desu",
+  ],
+  [
+    "introductions-1-t3",
+    "ゆきはアーティストです",
+    "yuki wa aatisuto desu",
+  ],
+  [
+    "introductions-1-t4",
+    "ゆきはがくせいです",
+    "yuki wa gakusei desu",
+  ],
+  [
+    "introductions-1-t5",
+    "わたしはかんごしです",
+    "watashi wa kangoshi desu",
+  ],
+  [
+    "introductions-2-m1",
+    "みなはブラジルじんです",
+    "mina wa burajirujin desu",
+  ],
+  [
+    "introductions-2-m2",
+    "けんはカナダじんです",
+    "ken wa kanadajin desu",
+  ],
+  [
+    "introductions-2-m3",
+    "ゆきはかんこくじんです",
+    "yuki wa kankokujin desu",
+  ],
+  [
+    "introductions-2-m4",
+    "わたしはスペインじんです",
+    "watashi wa supeinjin desu",
+  ],
+  [
+    "introductions-2-m5",
+    "イタリアじんです",
+    "itariajin desu",
+  ],
+  [
+    "introductions-2-m6",
+    "みなはアメリカじんです",
+    "mina wa amerikajin desu",
+  ],
+  [
+    "introductions-2-m7",
+    "けんはせんせいです",
+    "ken wa sensei desu",
+  ],
+  [
+    "introductions-2-m8",
+    "ゆきはがくせいです",
+    "yuki wa gakusei desu",
+  ],
+  [
+    "introductions-2-t1",
+    "みなはイタリアじんです",
+    "mina wa itariajin desu",
+  ],
+  [
+    "introductions-2-t2",
+    "けんはアメリカじんです",
+    "ken wa amerikajin desu",
+  ],
+  [
+    "introductions-2-t3",
+    "にほんじんです",
+    "nihonjin desu",
+  ],
+  [
+    "introductions-2-t4",
+    "ゆきはにほんじんです",
+    "yuki wa nihonjin desu",
+  ],
+  [
+    "introductions-2-t5",
+    "みなはがくせいです",
+    "mina wa gakusei desu",
+  ],
+  [
+    "introductions-3-m1",
+    "りなははたらきます",
+    "rina wa hatarakimasu",
+  ],
+  [
+    "introductions-3-m2",
+    "たいちはべんきょうします",
+    "taichi wa benkyoushimasu",
+  ],
+  [
+    "introductions-3-m3",
+    "めいはします",
+    "mei wa shimasu",
+  ],
+  [
+    "introductions-3-m4",
+    "はるははたらきます",
+    "haru wa hatarakimasu",
+  ],
+  [
+    "introductions-3-m5",
+    "あのひとはべんきょうします",
+    "ano hito wa benkyoushimasu",
+  ],
+  [
+    "introductions-3-m6",
+    "します",
+    "shimasu",
+  ],
+  [
+    "introductions-3-m7",
+    "みなははたらきます",
+    "mina wa hatarakimasu",
+  ],
+  [
+    "introductions-3-m8",
+    "ゆきはべんきょうします",
+    "yuki wa benkyoushimasu",
+  ],
+  [
+    "introductions-3-t1",
+    "みなはべんきょうします",
+    "mina wa benkyoushimasu",
+  ],
+  [
+    "introductions-3-t2",
+    "けんははたらきます",
+    "ken wa hatarakimasu",
+  ],
+  [
+    "introductions-3-t3",
+    "します",
+    "shimasu",
+  ],
+  [
+    "introductions-3-t4",
+    "あのひとははたらきます",
+    "ano hito wa hatarakimasu",
+  ],
+  [
+    "introductions-3-t5",
+    "べんきょうします",
+    "benkyoushimasu",
+  ],
+  [
+    "introductions-4-m1",
+    "ゆきはがくせいです",
+    "yuki wa gakusei desu",
+  ],
+  [
+    "introductions-4-m2",
+    "けんはししょです",
+    "ken wa shisho desu",
+  ],
+  [
+    "introductions-4-m3",
+    "ゆきはおんがくかです",
+    "yuki wa ongakuka desu",
+  ],
+  [
+    "introductions-4-m4",
+    "そのひとはさっかです",
+    "sono hito wa sakka desu",
+  ],
+  [
+    "introductions-4-m5",
+    "クラスメートはべんきょうします",
+    "kurasumeeto wa benkyoushimasu",
+  ],
+  [
+    "introductions-4-m6",
+    "はたらきます",
+    "hatarakimasu",
+  ],
+  [
+    "introductions-4-m7",
+    "けんはします",
+    "ken wa shimasu",
+  ],
+  [
+    "introductions-4-m8",
+    "べんきょうします",
+    "benkyoushimasu",
+  ],
+  [
+    "introductions-4-t1",
+    "みなはかいしゃいんです",
+    "mina wa kaishain desu",
+  ],
+  [
+    "introductions-4-t2",
+    "そのひとははたらきます",
+    "sono hito wa hatarakimasu",
+  ],
+  [
+    "introductions-4-t3",
+    "クラスメートはがくせいです",
+    "kurasumeeto wa gakusei desu",
+  ],
+  [
+    "introductions-4-t4",
+    "します",
+    "shimasu",
+  ],
+  [
+    "introductions-4-t5",
+    "ゆきはべんきょうします",
+    "yuki wa benkyoushimasu",
+  ],
+  [
+    "essential-questions-1-m1",
+    "パスはなんですか",
+    "pasu wa nan desu ka",
+  ],
+  [
+    "essential-questions-1-m2",
+    "メニューはなんですか",
+    "menyuu wa nan desu ka",
+  ],
+  [
+    "essential-questions-1-m3",
+    "ポスターはなにですか",
+    "posutaa wa nani desu ka",
+  ],
+  [
+    "essential-questions-1-m4",
+    "ラベルはなにですか",
+    "raberu wa nani desu ka",
+  ],
+  [
+    "essential-questions-1-m5",
+    "これはどのほんですか",
+    "kore wa dono hon desu ka",
+  ],
+  [
+    "essential-questions-1-m6",
+    "これはせんせいですか",
+    "kore wa sensei desu ka",
+  ],
+  [
+    "essential-questions-1-m7",
+    "それはがくせいですか",
+    "sore wa gakusei desu ka",
+  ],
+  [
+    "essential-questions-1-m8",
+    "これはいしゃですか",
+    "kore wa isha desu ka",
+  ],
+  [
+    "essential-questions-1-t1",
+    "それはどのほんですか",
+    "sore wa dono hon desu ka",
+  ],
+  [
+    "essential-questions-1-t2",
+    "これはがくせいですか",
+    "kore wa gakusei desu ka",
+  ],
+  [
+    "essential-questions-1-t3",
+    "それはせんせいですか",
+    "sore wa sensei desu ka",
+  ],
+  [
+    "essential-questions-1-t4",
+    "それはいしゃですか",
+    "sore wa isha desu ka",
+  ],
+  [
+    "essential-questions-1-t5",
+    "これはなんですか",
+    "kore wa nan desu ka",
+  ],
+  [
+    "essential-questions-2-m1",
+    "カウンターはどこですか",
+    "kauntaa wa doko desu ka",
+  ],
+  [
+    "essential-questions-2-m2",
+    "でぐちはどこですか",
+    "deguchi wa doko desu ka",
+  ],
+  [
+    "essential-questions-2-m3",
+    "ロッカーはどこですか",
+    "rokkaa wa doko desu ka",
+  ],
+  [
+    "essential-questions-2-m4",
+    "トイレはどこですか",
+    "toire wa doko desu ka",
+  ],
+  [
+    "essential-questions-2-m5",
+    "あのひとはこどもですか",
+    "ano hito wa kodomo desu ka",
+  ],
+  [
+    "essential-questions-2-m6",
+    "クラスメートはがくせいですか",
+    "kurasumeeto wa gakusei desu ka",
+  ],
+  [
+    "essential-questions-2-m7",
+    "そのひとはだれですか",
+    "sono hito wa dare desu ka",
+  ],
+  [
+    "essential-questions-2-m8",
+    "そのひとはせんせいですか",
+    "sono hito wa sensei desu ka",
+  ],
+  [
+    "essential-questions-2-t1",
+    "そのひとはがくせいですか",
+    "sono hito wa gakusei desu ka",
+  ],
+  [
+    "essential-questions-2-t2",
+    "あのひとはがくせいですか",
+    "ano hito wa gakusei desu ka",
+  ],
+  [
+    "essential-questions-2-t3",
+    "クラスメートはだれですか",
+    "kurasumeeto wa dare desu ka",
+  ],
+  [
+    "essential-questions-2-t4",
+    "そのひとはこどもですか",
+    "sono hito wa kodomo desu ka",
+  ],
+  [
+    "essential-questions-2-t5",
+    "あのひとはこどもですか",
+    "ano hito wa kodomo desu ka",
+  ],
+  [
+    "essential-questions-3-m1",
+    "パーティーはいつですか",
+    "paatii wa itsu desu ka",
+  ],
+  [
+    "essential-questions-3-m2",
+    "これはいくらですか",
+    "kore wa ikura desu ka",
+  ],
+  [
+    "essential-questions-3-m3",
+    "それはいくらですか",
+    "sore wa ikura desu ka",
+  ],
+  [
+    "essential-questions-3-m4",
+    "みかんはいくつですか",
+    "mikan wa ikutsu desu ka",
+  ],
+  [
+    "essential-questions-3-m5",
+    "これはいくつですか",
+    "kore wa ikutsu desu ka",
+  ],
+  [
+    "essential-questions-3-m6",
+    "それはどれですか",
+    "sore wa dore desu ka",
+  ],
+  [
+    "essential-questions-3-m7",
+    "みかんはいくらですか",
+    "mikan wa ikura desu ka",
+  ],
+  [
+    "essential-questions-3-m8",
+    "それはいつですか",
+    "sore wa itsu desu ka",
+  ],
+  [
+    "essential-questions-3-t1",
+    "これはどれですか",
+    "kore wa dore desu ka",
+  ],
+  [
+    "essential-questions-3-t2",
+    "パーティーはいつですか",
+    "paatii wa itsu desu ka",
+  ],
+  [
+    "essential-questions-3-t3",
+    "それはいくつですか",
+    "sore wa ikutsu desu ka",
+  ],
+  [
+    "essential-questions-3-t4",
+    "みかんはいくらですか",
+    "mikan wa ikura desu ka",
+  ],
+  [
+    "essential-questions-3-t5",
+    "これはいくらですか",
+    "kore wa ikura desu ka",
+  ],
+  [
+    "essential-questions-4-m1",
+    "かんこくごがわかりますか",
+    "kankokugo ga wakarimasu ka",
+  ],
+  [
+    "essential-questions-4-m2",
+    "ゆきはスペインごがわかりますか",
+    "yuki wa supeingo ga wakarimasu ka",
+  ],
+  [
+    "essential-questions-4-m3",
+    "けんはドイツごがわかりますか",
+    "ken wa doitsugo ga wakarimasu ka",
+  ],
+  [
+    "essential-questions-4-m4",
+    "みなはちゅうごくごがわかりますか",
+    "mina wa chuugokugo ga wakarimasu ka",
+  ],
+  [
+    "essential-questions-4-m5",
+    "にほんごがわかります",
+    "nihongo ga wakarimasu",
+  ],
+  [
+    "essential-questions-4-m6",
+    "ゆきはえいごがわかります",
+    "yuki wa eigo ga wakarimasu",
+  ],
+  [
+    "essential-questions-4-m7",
+    "けんはイタリアごがわかります",
+    "ken wa itariago ga wakarimasu",
+  ],
+  [
+    "essential-questions-4-m8",
+    "みなはにほんごがわかります",
+    "mina wa nihongo ga wakarimasu",
+  ],
+  [
+    "essential-questions-4-t1",
+    "みなはイタリアごがわかりますか",
+    "mina wa itariago ga wakarimasu ka",
+  ],
+  [
+    "essential-questions-4-t2",
+    "みなはイタリアごがわかります",
+    "mina wa itariago ga wakarimasu",
+  ],
+  [
+    "essential-questions-4-t3",
+    "ゆきはにほんごがわかりますか",
+    "yuki wa nihongo ga wakarimasu ka",
+  ],
+  [
+    "essential-questions-4-t4",
+    "けんはえいごがわかります",
+    "ken wa eigo ga wakarimasu",
+  ],
+  [
+    "essential-questions-4-t5",
+    "えいごがわかります",
+    "eigo ga wakarimasu",
+  ],
+  [
+    "actions-1-m1",
+    "ゆきはサラダをたべます",
+    "yuki wa sarada o tabemasu",
+  ],
+  [
+    "actions-1-m2",
+    "ケーキをたべます",
+    "keeki o tabemasu",
+  ],
+  [
+    "actions-1-m3",
+    "スープをのみます",
+    "suupu o nomimasu",
+  ],
+  [
+    "actions-1-m4",
+    "みなはコーヒーをのみます",
+    "mina wa koohii o nomimasu",
+  ],
+  [
+    "actions-1-m5",
+    "ゆきはほんをよみます",
+    "yuki wa hon o yomimasu",
+  ],
+  [
+    "actions-1-m6",
+    "ほんをよみます",
+    "hon o yomimasu",
+  ],
+  [
+    "actions-1-m7",
+    "ゆきはしゅくだいをします",
+    "yuki wa shukudai o shimasu",
+  ],
+  [
+    "actions-1-m8",
+    "しゅくだいをします",
+    "shukudai o shimasu",
+  ],
+  [
+    "actions-1-t1",
+    "みなはほんをよみます",
+    "mina wa hon o yomimasu",
+  ],
+  [
+    "actions-1-t2",
+    "すしをたべます",
+    "sushi o tabemasu",
+  ],
+  [
+    "actions-1-t3",
+    "けんはコーヒーをのみます",
+    "ken wa koohii o nomimasu",
+  ],
+  [
+    "actions-1-t4",
+    "ほんをよみます",
+    "hon o yomimasu",
+  ],
+  [
+    "actions-1-t5",
+    "みなはケーキをたべます",
+    "mina wa keeki o tabemasu",
+  ],
+  [
+    "actions-2-m1",
+    "ゆきははくぶつかんにいきます",
+    "yuki wa hakubutsukan ni ikimasu",
+  ],
+  [
+    "actions-2-m2",
+    "ゆうびんきょくにいきます",
+    "yuubinkyoku ni ikimasu",
+  ],
+  [
+    "actions-2-m3",
+    "みなはジムにきます",
+    "mina wa jimu ni kimasu",
+  ],
+  [
+    "actions-2-m4",
+    "だいがくにきます",
+    "daigaku ni kimasu",
+  ],
+  [
+    "actions-2-m5",
+    "ゆきはとうきょうにすみます",
+    "yuki wa toukyou ni sumimasu",
+  ],
+  [
+    "actions-2-m6",
+    "おおさかにすみます",
+    "oosaka ni sumimasu",
+  ],
+  [
+    "actions-2-m7",
+    "けんはかいしゃではたらきます",
+    "ken wa kaisha de hatarakimasu",
+  ],
+  [
+    "actions-2-m8",
+    "カフェではたらきます",
+    "kafe de hatarakimasu",
+  ],
+  [
+    "actions-2-t1",
+    "がっこうにいきます",
+    "gakkou ni ikimasu",
+  ],
+  [
+    "actions-2-t2",
+    "ゆきはとしょかんにきます",
+    "yuki wa toshokan ni kimasu",
+  ],
+  [
+    "actions-2-t3",
+    "みなはとしょかんにいきます",
+    "mina wa toshokan ni ikimasu",
+  ],
+  [
+    "actions-2-t4",
+    "カフェにいきます",
+    "kafe ni ikimasu",
+  ],
+  [
+    "actions-2-t5",
+    "みなはかいしゃではたらきます",
+    "mina wa kaisha de hatarakimasu",
+  ],
+  [
+    "actions-3-m1",
+    "ゆきはガイドブックをべんきょうします",
+    "yuki wa gaidobukku o benkyoushimasu",
+  ],
+  [
+    "actions-3-m2",
+    "せんせいにききます",
+    "sensei ni kikimasu",
+  ],
+  [
+    "actions-3-m3",
+    "みなはせんせいにききます",
+    "mina wa sensei ni kikimasu",
+  ],
+  [
+    "actions-3-m4",
+    "てんいんにききます",
+    "ten'in ni kikimasu",
+  ],
+  [
+    "actions-3-m5",
+    "けんはべんとうをかいます",
+    "ken wa bentou o kaimasu",
+  ],
+  [
+    "actions-3-m6",
+    "はがきをかいます",
+    "hagaki o kaimasu",
+  ],
+  [
+    "actions-3-m7",
+    "にほんごをべんきょうします",
+    "nihongo o benkyoushimasu",
+  ],
+  [
+    "actions-3-m8",
+    "クラスメートはコーヒーをかいます",
+    "kurasumeeto wa koohii o kaimasu",
+  ],
+  [
+    "actions-3-t1",
+    "みなはにほんごをべんきょうします",
+    "mina wa nihongo o benkyoushimasu",
+  ],
+  [
+    "actions-3-t2",
+    "せんせいにききます",
+    "sensei ni kikimasu",
+  ],
+  [
+    "actions-3-t3",
+    "みなはほんをかいます",
+    "mina wa hon o kaimasu",
+  ],
+  [
+    "actions-3-t4",
+    "てんいんにききます",
+    "ten'in ni kikimasu",
+  ],
+  [
+    "actions-3-t5",
+    "ほんをかいます",
+    "hon o kaimasu",
+  ],
+  [
+    "actions-4-m1",
+    "ゆきはえいがをみます",
+    "yuki wa eiga o mimasu",
+  ],
+  [
+    "actions-4-m2",
+    "テレビをみます",
+    "terebi o mimasu",
+  ],
+  [
+    "actions-4-m3",
+    "みなはポッドキャストをききます",
+    "mina wa poddokyasuto o kikimasu",
+  ],
+  [
+    "actions-4-m4",
+    "おんがくをききます",
+    "ongaku o kikimasu",
+  ],
+  [
+    "actions-4-m5",
+    "けんはメールをかきます",
+    "ken wa meeru o kakimasu",
+  ],
+  [
+    "actions-4-m6",
+    "てがみをかきます",
+    "tegami o kakimasu",
+  ],
+  [
+    "actions-4-m7",
+    "ゆきはほんをよみます",
+    "yuki wa hon o yomimasu",
+  ],
+  [
+    "actions-4-m8",
+    "えいがをみます",
+    "eiga o mimasu",
+  ],
+  [
+    "actions-4-t1",
+    "けんはおんがくをききます",
+    "ken wa ongaku o kikimasu",
+  ],
+  [
+    "actions-4-t2",
+    "みなはテレビをみます",
+    "mina wa terebi o mimasu",
+  ],
+  [
+    "actions-4-t3",
+    "ゆきはてがみをかきます",
+    "yuki wa tegami o kakimasu",
+  ],
+  [
+    "actions-4-t4",
+    "ほんをよみます",
+    "hon o yomimasu",
+  ],
+  [
+    "actions-4-t5",
+    "みなはえいがをみます",
+    "mina wa eiga o mimasu",
+  ],
+]
+`;

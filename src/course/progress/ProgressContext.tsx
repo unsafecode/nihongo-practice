@@ -362,7 +362,7 @@ export interface ProgressContextValue {
    * at.
    */
   clearLevel: (level: CourseLevelId) => void;
-  /** Non-null exactly once for a learner whose v3 progress migrated to v4 (spec §17). */
+  /** Non-null exactly once for a learner whose schema-v3 progress migrated to schema-v4 (spec §17). */
   migrationNotice: ProgressMigrationNotice | null;
   /** Stamps `migrationNotice.acknowledgedAt` — never deletes the record (its "what changed" copy stays available). */
   acknowledgeMigrationNotice: () => void;
@@ -448,7 +448,7 @@ export function loadProgress(storage: Storage | null): InitialProgress {
   }
 
   if (migrated) {
-    // A legacy schema-v1/v2/v3 payload, legacy V4 catalog, or stale V4 catalog
+    // A legacy schema-v1/v2/v3 payload, legacy schema-v4 catalog, or stale schema-v4 catalog
     // reconciliation is normalized once and written straight back. Every later
     // load then sees current schema/catalog data by reference, without
     // re-stamping evidence or migration timestamps. If the write fails, the

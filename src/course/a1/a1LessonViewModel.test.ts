@@ -10,13 +10,13 @@ import {
 
 const LOCALES: readonly Locale[] = ["en", "it"];
 
-/** The 44 semantic (non-phonetic) lesson ids the release builder resolves. */
+/** The 60 semantic (non-phonetic) lesson ids the release builder resolves. */
 const SEMANTIC_LESSON_IDS = a1FoundationCatalogs.lessons.map(
   (lesson) => lesson.id,
 );
 
 describe("buildA1LessonViewModel", () => {
-  it("resolves every one of the 44 semantic A1 lessons in both locales with no error", () => {
+  it("resolves every one of the 60 semantic A1 lessons in both locales with no error", () => {
     for (const locale of LOCALES) {
       for (const lessonId of SEMANTIC_LESSON_IDS) {
         const result = buildA1LessonViewModel(lessonId, locale);

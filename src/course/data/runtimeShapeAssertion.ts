@@ -23,8 +23,11 @@ import type { CourseModule } from "./types";
  * sanity) instead of both living in one always-bundled call.
  */
 
-const EXPECTED_MODULE_COUNT = 12;
-const EXPECTED_LESSON_COUNT = 48;
+/**
+ * The published A1 runtime has sixteen modules and sixty-four lessons.
+ */
+const EXPECTED_A1_RUNTIME_MODULE_COUNT = 16;
+const EXPECTED_A1_RUNTIME_LESSON_COUNT = 64;
 
 /** The fixed A2 release totals (Phase 3 Task 8): 15 modules × 4 lessons. */
 const EXPECTED_A2_MODULE_COUNT = 15;
@@ -135,16 +138,16 @@ function assertCourseShapeCore(
 /**
  * Throws {@link A1CourseShapeError} unless `modules` is a structurally sane,
  * non-empty course: every module/lesson id present and unique, every count
- * positive, and the release's known fixed module/lesson totals (12 modules,
- * 48 lessons — 44 semantic + 4 phonetic) still hold.
+ * positive, and the published runtime's fixed module/lesson totals
+ * (16 modules, 64 lessons — 60 semantic + 4 phonetic) hold.
  */
 export function assertA1CourseShape(
   modules: readonly CourseModule[],
 ): asserts modules is readonly CourseModule[] {
   assertCourseShapeCore(
     modules,
-    EXPECTED_MODULE_COUNT,
-    EXPECTED_LESSON_COUNT,
+    EXPECTED_A1_RUNTIME_MODULE_COUNT,
+    EXPECTED_A1_RUNTIME_LESSON_COUNT,
     (message) => new A1CourseShapeError(message),
   );
 }

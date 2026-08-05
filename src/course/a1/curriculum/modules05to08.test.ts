@@ -14,8 +14,8 @@ import {
 import { a1LearningNoteById } from "./grammar";
 import { a1LexemeById, a1LexemeByValueId } from "./lexicon";
 import { semanticBlueprint } from "./lessonContentHelpers";
-import { a1Modules01to04LessonContent } from "./modules01to04";
 import { a1Modules05to08LessonContent } from "./modules05to08";
+import { a1LessonContents } from "./catalog";
 import { realizeVariant } from "../../foundations/realizeFamily";
 import type { A1PracticeActivity } from "./types";
 
@@ -169,7 +169,11 @@ describe("A1 modules 05–08 lesson content", () => {
   });
 
   it("introduces four to six non-repeated lexemes that are not relisted from modules 01–04", () => {
-    const earlierLexemes = new Set(a1Modules01to04LessonContent.flatMap(({ newLexemeIds }) => newLexemeIds));
+    const earlierLexemes = new Set(
+      a1LessonContents
+        .slice(0, a1LessonContents.findIndex(({ lessonId }) => lessonId === "routines-1"))
+        .flatMap(({ newLexemeIds }) => newLexemeIds),
+    );
     const sliceLexemes = a1Modules05to08LessonContent.flatMap(({ newLexemeIds }) => newLexemeIds);
 
     for (const { lessonId, newLexemeIds } of a1Modules05to08LessonContent) {
@@ -204,7 +208,7 @@ describe("A1 modules 05–08 lesson content", () => {
     expect(violations).toEqual([]);
   });
 
-  it("introduces the practical route and photo lexemes through their own lesson models", () => {
+  it("introduces practical route and souvenir lexemes through their own lesson models", () => {
     const lessons = ["places-3", "people-4"] as const;
     const expectedNewLexemeIds = {
       "places-3": [
@@ -217,7 +221,7 @@ describe("A1 modules 05–08 lesson content", () => {
         "a1-lexeme-raamen",
         "a1-lexeme-kippu",
         "a1-lexeme-kaban",
-        "a1-lexeme-shashin",
+        "a1-lexeme-souvenir",
       ],
     } as const;
 
@@ -238,7 +242,11 @@ describe("A1 modules 05–08 lesson content", () => {
   });
 
   it("keeps worked examples and dialogue within cumulative lexical closure", () => {
-    const availableLexemeIds = new Set(a1Modules01to04LessonContent.flatMap(({ newLexemeIds }) => newLexemeIds));
+    const availableLexemeIds = new Set(
+      a1LessonContents
+        .slice(0, a1LessonContents.findIndex(({ lessonId }) => lessonId === "routines-1"))
+        .flatMap(({ newLexemeIds }) => newLexemeIds),
+    );
 
     for (const content of a1Modules05to08LessonContent) {
       for (const lexemeId of content.newLexemeIds) availableLexemeIds.add(lexemeId);
@@ -301,7 +309,7 @@ describe("A1 modules 05–08 lesson content", () => {
     }
   });
 
-  it("uses two or three same-lesson semantic models and complete lexicon metadata for their verbs", () => {
+  it("uses two or three same-lesson semantic models and complete predicate lexicon metadata", () => {
     for (const content of a1Modules05to08LessonContent) {
       const models = modelVariantIds(content.lessonId);
       for (const variantId of content.workedExampleVariantIds) {
@@ -316,8 +324,13 @@ describe("A1 modules 05–08 lesson content", () => {
         const sense = senseById.get(realized.sentence.predicateSenseId);
         const lexeme = a1LexemeById[sense?.lexemeId ?? ""];
         if (lexeme !== undefined) {
-          expect(lexeme.category, `${variantId} verb category`).toBe("verb");
-          expect(lexeme.verb, `${variantId} verb metadata`).toBeDefined();
+          if (sense?.id === "a1-sense-be") {
+            expect(lexeme.category, `${variantId} copula category`).toBe("expression");
+            expect(lexeme.verb, `${variantId} copula verb metadata`).toBeUndefined();
+          } else {
+            expect(lexeme.category, `${variantId} verb category`).toBe("verb");
+            expect(lexeme.verb, `${variantId} verb metadata`).toBeDefined();
+          }
         }
       }
     }

@@ -2,9 +2,14 @@ import { deepFreeze } from "../../foundations/deepFreeze";
 import { A1_LESSON_IDS } from "../manifest";
 import { a1LearningNoteById as sourceLearningNoteById } from "./grammar";
 import { a1LexemeById as sourceLexemeById } from "./lexicon";
-import { a1Modules01to04LessonContent } from "./modules01to04";
+import {
+  a1SoundsLessonContent,
+  a1Situations01to04LessonContent,
+} from "./modules01to04";
 import { a1Modules05to08LessonContent } from "./modules05to08";
 import { a1Modules09to12LessonContent } from "./modules09to12";
+import { a1FoundationsArea01to02LessonContent } from "./foundationsArea01to02";
+import { a1FoundationsArea03to04LessonContent } from "./foundationsArea03to04";
 import type { A1LessonContent, A1Lexeme } from "./types";
 
 type LessonContentIndex = Readonly<Record<string, A1LessonContent | undefined>>;
@@ -31,7 +36,10 @@ function indexById<T extends Readonly<{ id?: string; lessonId?: string }>>(
 
 function assembleLessonContents(): readonly A1LessonContent[] {
   const contents = [
-    ...a1Modules01to04LessonContent,
+    ...a1SoundsLessonContent,
+    ...a1FoundationsArea01to02LessonContent,
+    ...a1FoundationsArea03to04LessonContent,
+    ...a1Situations01to04LessonContent,
     ...a1Modules05to08LessonContent,
     ...a1Modules09to12LessonContent,
   ];

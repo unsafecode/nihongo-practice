@@ -26,7 +26,7 @@ import { getA1SpokenAttemptModel } from "./a1SpokenAttemptModel";
  * network access.
  *
  * When the model cannot resolve (a defensive branch the validated release
- * catalog never hits for any of the 48 live lesson ids), it renders nothing
+ * catalog never hits for any of the 64 live lesson ids), it renders nothing
  * so the rest of the lesson stays complete without a spoken attempt.
  */
 export function A1SpokenAttempt({

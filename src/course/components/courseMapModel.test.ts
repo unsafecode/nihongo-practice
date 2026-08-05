@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildCourseMapModel, type CourseMapModuleOutline } from "./courseMapModel";
+import {
+  buildCourseMapModel,
+  type CourseMapAreaOutline,
+  type CourseMapModuleOutline,
+} from "./courseMapModel";
 import { courseModules } from "../data/course";
+import { A1_AREAS } from "../a1/areas";
 
 /**
  * Minimal synthetic fixtures (mirrors the `ModuleOutline` convention in
@@ -9,9 +14,8 @@ import { courseModules } from "../data/course";
  * is generic, so the real `CourseModule[]` (see the "real course data"
  * describe block) satisfies the same input type with no cast.
  *
- * The A1 release (Phase 2 Task 6) has no phase-band concept — its twelve
- * modules are one linear path — so `CourseMapModel` exposes a flat, ordered
- * `modules` array rather than phase groups.
+ * The model always exposes a canonical flat module order for recommendation and
+ * counting; A1 may additionally expose authored area entries for rendering.
  */
 function moduleFixture(
   overrides: Partial<CourseMapModuleOutline> & Pick<CourseMapModuleOutline, "id">,
@@ -28,6 +32,17 @@ function lessons(ids: string[]): { id: string }[] {
 }
 
 describe("buildCourseMapModel: flat module order", () => {
+  it("keeps a level without an authored area catalog flat", () => {
+    const model = buildCourseMapModel(
+      [moduleFixture({ id: "a2-module", lessons: lessons(["a2-lesson"]) })],
+      [],
+      null,
+    );
+
+    expect(model.areas).toEqual([]);
+    expect(model.modules.map((entry) => entry.module.id)).toEqual(["a2-module"]);
+  });
+
   it("keeps every module in the given array order (not alphabetical/id order)", () => {
     const modules = [
       moduleFixture({ id: "m-b", lessons: lessons(["b1"]) }),
@@ -42,6 +57,64 @@ describe("buildCourseMapModel: flat module order", () => {
       "m-a",
       "m-c",
     ]);
+  });
+
+  describe("buildCourseMapModel: explicit area validation", () => {
+    const modules = [
+      moduleFixture({ id: "sounds", areaId: "sounds", lessons: lessons(["sounds-1"]) }),
+      moduleFixture({
+        id: "foundation",
+        areaId: "foundations",
+        lessons: lessons(["foundation-1"]),
+      }),
+    ];
+
+    function area(
+      id: string,
+      moduleIds: readonly string[],
+    ): CourseMapAreaOutline {
+      return {
+        id,
+        moduleIds,
+        titleCopyId: `${id}-title`,
+        descriptionCopyId: `${id}-description`,
+      };
+    }
+
+    it("fails closed when an explicit area catalog drops a module", () => {
+      expect(() =>
+        buildCourseMapModel(modules, [], null, {}, [area("sounds", ["sounds"])]),
+      ).toThrow('area catalog omits module(s) "foundation"');
+    });
+
+    it("fails closed when a module is assigned to two areas", () => {
+      expect(() =>
+        buildCourseMapModel(modules, [], null, {}, [
+          area("sounds", ["sounds"]),
+          area("foundations", ["sounds", "foundation"]),
+        ]),
+      ).toThrow('module "sounds" belongs to more than one area');
+    });
+
+    it("fails closed when a module area disagrees with the authored module membership", () => {
+      expect(() =>
+        buildCourseMapModel(modules, [], null, {}, [
+          area("foundations", ["sounds", "foundation"]),
+        ]),
+      ).toThrow('module "sounds" declares area "sounds", not "foundations"');
+    });
+
+    it("fails closed when an area-rendered module has no authored area id", () => {
+      const withoutArea = [
+        moduleFixture({ id: "sounds", lessons: lessons(["sounds-1"]) }),
+      ];
+
+      expect(() =>
+        buildCourseMapModel(withoutArea, [], null, {}, [
+          area("sounds", ["sounds"]),
+        ]),
+      ).toThrow('module "sounds" declares area "undefined", not "sounds"');
+    });
   });
 
   it("omits no module: every input module appears in the flat list exactly once", () => {
@@ -355,11 +428,28 @@ describe("buildCourseMapModel: defensive edge cases", () => {
 });
 
 describe("buildCourseMapModel: real course data", () => {
-  it("keeps the real twelve modules in their canonical order and recommends the first lesson when nothing is visited", () => {
+  it("groups the real A1 modules into the canonical, exhaustive course areas", () => {
+    const model = buildCourseMapModel(courseModules, [], null, {}, A1_AREAS);
+
+    expect(
+      model.areas.map((entry) => ({
+        id: entry.area.id,
+        moduleIds: entry.modules.map((module) => module.module.id),
+      })),
+    ).toEqual(
+      A1_AREAS.map((area) => ({ id: area.id, moduleIds: area.moduleIds })),
+    );
+  });
+
+  it("keeps the real sixteen modules in their canonical order and recommends the first lesson when nothing is visited", () => {
     const model = buildCourseMapModel(courseModules, [], null);
 
     expect(model.modules.map((e) => e.module.id)).toEqual([
       "sounds",
+      "sentence-foundations",
+      "topic-questions",
+      "polite-verbs",
+      "time-movement",
       "introductions",
       "essential-questions",
       "actions",

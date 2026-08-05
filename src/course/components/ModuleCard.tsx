@@ -27,6 +27,8 @@ const LESSON_EVIDENCE_GLYPH = {
 
 export interface ModuleCardProps {
   entry: ModuleMapEntry<CourseModule>;
+  /** Heading level supplied by the containing course-map structure. */
+  headingLevel?: 3 | 4;
   /** Whether this card's lesson list starts expanded (§5.3/Task 4 item 4).
    * Purely a starting point: the card keeps its own override once a user
    * toggles the disclosure, so this can change on later renders (as the
@@ -48,6 +50,7 @@ export interface ModuleCardProps {
  */
 export function ModuleCard({
   entry,
+  headingLevel = 3,
   initiallyExpanded,
   recommendedLessonId,
 }: ModuleCardProps): ReactElement {
@@ -103,6 +106,7 @@ export function ModuleCard({
   ]
     .filter(Boolean)
     .join(" ");
+  const Heading = headingLevel === 3 ? "h3" : "h4";
 
   return (
     <article className={stateClassNames}>
@@ -111,7 +115,7 @@ export function ModuleCard({
       </div>
       <div className="module-card__body">
         <div className="module-card__head">
-          <h3 className="module-card__title">{moduleCopy.title}</h3>
+          <Heading className="module-card__title">{moduleCopy.title}</Heading>
           <ActionButton
             variant="icon"
             className="module-card__disclosure"

@@ -14,6 +14,7 @@ import {
 } from "../catalog/a1SemanticCatalog";
 import { a1LearningNoteById } from "./grammar";
 import { a1LexemeById, a1LexemeByValueId } from "./lexicon";
+import { a1LessonContents } from "./catalog";
 import { a1Modules01to04LessonContent } from "./modules01to04";
 import { realizeVariant } from "../../foundations/realizeFamily";
 import type { A1PracticeActivity } from "./types";
@@ -116,7 +117,7 @@ describe("A1 modules 01–04 lesson content", () => {
   });
 
   it("freezes and resolves every catalog, manifest, and practice reference", () => {
-    for (const content of a1Modules01to04LessonContent) {
+    for (const content of a1LessonContents) {
       const manifest = A1_LESSON_MANIFEST[content.lessonId];
       expect(Object.isFrozen(content), content.lessonId).toBe(true);
       expect(manifest, `${content.lessonId} manifest`).toBeDefined();
@@ -261,7 +262,7 @@ describe("A1 modules 01–04 lesson content", () => {
   it("keeps worked examples and dialogue within cumulative lexeme availability", () => {
     const availableLexemeIds = new Set<string>();
 
-    for (const content of a1Modules01to04LessonContent) {
+    for (const content of a1LessonContents) {
       for (const lexemeId of content.newLexemeIds) {
         availableLexemeIds.add(lexemeId);
       }
@@ -289,16 +290,16 @@ describe("A1 modules 01–04 lesson content", () => {
       prerequisiteLessonIds: ["sounds-4"],
       learningNoteId: "a1-note-sentence-shape-omission",
       newLexemeIds: expect.arrayContaining([
-        "a1-lexeme-watashi",
-        "a1-lexeme-gakusei",
-        "a1-lexeme-sensei",
+        "a1-lexeme-aatisuto",
+        "a1-lexeme-kangoshi",
+        "a1-lexeme-shefu",
       ]),
     });
     expect(byLessonId.get("introductions-1")?.newLexemeIds.slice(0, 4)).toEqual([
-      "a1-lexeme-watashi",
-      "a1-lexeme-gakusei",
-      "a1-lexeme-sensei",
-      expect.any(String),
+      "a1-lexeme-aatisuto",
+      "a1-lexeme-kangoshi",
+      "a1-lexeme-shefu",
+      "a1-lexeme-dezainaa",
     ]);
     expect(byLessonId.get("introductions-2")?.learningNoteId).toBe(
       "a1-note-topic-wa-copula-desu",
@@ -316,13 +317,13 @@ describe("A1 modules 01–04 lesson content", () => {
       "a1-note-question-ka-words",
     );
     expect(byLessonId.get("essential-questions-1")?.newLexemeIds).toEqual(
-      expect.arrayContaining(["a1-lexeme-nan", "a1-lexeme-nani"]),
+      expect.arrayContaining(["a1-lexeme-passu", "a1-lexeme-menyuu"]),
     );
     expect(byLessonId.get("essential-questions-2")?.learningNoteId).toBe(
       "a1-note-question-ka-words",
     );
     expect(byLessonId.get("essential-questions-2")?.newLexemeIds).toEqual(
-      expect.arrayContaining(["a1-lexeme-dare", "a1-lexeme-doko"]),
+      expect.arrayContaining(["a1-lexeme-kauntaa", "a1-lexeme-deguchi"]),
     );
     expect(byLessonId.get("essential-questions-3")?.learningNoteId).toBe(
       "a1-note-question-ka-words",
@@ -442,9 +443,11 @@ describe("A1 modules 01–04 lesson content", () => {
     expect(content).toBeDefined();
 
     const workedValueIds = new Set(
-      content?.workedExampleVariantIds.flatMap(
-        (variantId) => Object.values(variantById.get(variantId)?.slotValues ?? {}),
-      ),
+      semanticLessonById
+        .get("actions-2")
+        ?.recipe.modelVariantIds.flatMap(
+          (variantId) => Object.values(variantById.get(variantId)?.slotValues ?? {}),
+        ),
     );
     for (const lexemeId of content?.newLexemeIds ?? []) {
       const lexeme = a1LexemeById[lexemeId];

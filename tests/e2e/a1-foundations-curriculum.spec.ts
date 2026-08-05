@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
+  A1_MODULE_IDS,
   A1_LESSON_IDS,
   A1_LESSON_MANIFEST,
 } from "../../src/course/a1/manifest";
@@ -28,6 +29,8 @@ const IT = getCourseCopy("it");
 const EN = getCourseCopy("en");
 const A1_ROUTE_ENTRIES = A1_LESSON_IDS.map((lessonId) => A1_LESSON_MANIFEST[lessonId]);
 const REPRESENTATIVES = [
+  { moduleId: "sentence-foundations", lessonId: "sentence-foundations-1" },
+  { moduleId: "time-movement", lessonId: "time-movement-4" },
   { moduleId: "introductions", lessonId: "introductions-1" },
   { moduleId: "shopping", lessonId: "shopping-4" },
 ] as const;
@@ -199,6 +202,18 @@ async function assertCurriculumRoute(page: Page, lessonId: string): Promise<void
     ]);
     expect(order[1], "optional pattern follows the examples").toBeGreaterThan(order[0]);
   }
+  const dialogue = page.locator(".a1-worked-examples__dialogue");
+  await expect(dialogue).toHaveCount(model.dialogue ? 1 : 0);
+  if (model.dialogue) {
+    await expect(dialogue.locator(".a1-worked-examples__turn")).toHaveCount(
+      model.dialogue.length,
+    );
+    await nonEmptyTexts(
+      dialogue.locator(
+        ".a1-worked-examples__japanese, .a1-worked-examples__romaji, .a1-worked-examples__translation",
+      ),
+    );
+  }
   await expect(page.locator("#lesson-section-rule .foundation-matrix")).toHaveCount(0);
 
   const activities = page.locator(".a1-practice-ladder__list > li");
@@ -315,6 +330,10 @@ function reviewScenario(lessonId: string) {
     activity.generatedExercise ? [activity.generatedExercise] : [],
   );
   for (const source of exercises) {
+    // A one-tile answer to a multi-tile ordering task is intentionally
+    // structurally invalid, so it cannot create review evidence. Select a
+    // choice/text task where this test can submit a valid-but-wrong answer.
+    if (source.prompt.kind === "tile-ordering") continue;
     const view = buildReviewQueueView({
       reviewQueue: [
         {
@@ -349,7 +368,19 @@ async function assertRailScroll(page: Page, sectionId: string): Promise<void> {
 }
 
 test.describe("A1 foundations curriculum — exhaustive production routes", () => {
-  test.skip(({ viewport }) => !viewport || viewport.width < 700, "the 48-route contract runs once on desktop");
+  test.skip(
+    ({ viewport }) => !viewport || viewport.width < 700,
+    "the 64-route contract runs once on desktop",
+  );
+
+  test("imports the complete 16-module / 64-route A1 manifest before exercising it", () => {
+    expect(A1_MODULE_IDS).toHaveLength(16);
+    expect(A1_ROUTE_ENTRIES).toHaveLength(64);
+    expect(new Set(A1_ROUTE_ENTRIES.map((entry) => entry.lessonId)).size).toBe(64);
+    expect(A1_ROUTE_ENTRIES.map((entry) => entry.moduleId)).toEqual(
+      A1_MODULE_IDS.flatMap((moduleId) => Array.from({ length: 4 }, () => moduleId)),
+    );
+  });
 
   for (const entry of A1_ROUTE_ENTRIES) {
     test(`${entry.moduleId}/${entry.lessonId}: six-section A1 learning contract`, async ({ page }) => {
@@ -508,6 +539,10 @@ test.describe("A1 foundations curriculum — representative learner behavior", (
         IT.a1Lesson.audio.failed,
       );
       await expect(firstAudio).toBeEnabled();
+      await queueSpeechSynthesisOutcome(page, { kind: "ended" });
+      await firstAudio.click();
+      await expect(firstAudio.locator("xpath=following-sibling::*[@role='status']")).toHaveText("");
+      await expect(firstAudio).toHaveText(IT.a1Lesson.audio.play);
 
       const attempt = attemptActivity(lesson.lessonId);
       const card = page.locator(".lesson-exercise").nth(attempt.index);
@@ -597,7 +632,7 @@ test.describe("A1 foundations curriculum — representative learner behavior", (
       assertLocalOnlyNetwork(observers);
     });
 
-    test(`${lesson.lessonId}: unsupported speech is nonblocking and v2 visit evidence persists across reload`, async ({
+    test(`${lesson.lessonId}: unsupported speech is nonblocking and v3 visit evidence persists across reload`, async ({
       page,
     }) => {
       const observers = await setupPageObservers(page);
@@ -613,7 +648,7 @@ test.describe("A1 foundations curriculum — representative learner behavior", (
       const beforeReload = await page.evaluate(() => localStorage.getItem("nihongo.course.progress"));
       expect(beforeReload).not.toBeNull();
       const parsed = JSON.parse(beforeReload!);
-      expect(parsed.catalogVersion).toBe("a1-a2-v2");
+      expect(parsed.catalogVersion).toBe("a1-a2-v3");
       expect(parsed.levels.a1.lessons[lesson.lessonId].visitedAt).toMatch(/\S/);
       await page.addInitScript((stored: string) => {
         localStorage.setItem("nihongo.course.progress", stored);

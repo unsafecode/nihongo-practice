@@ -22,7 +22,7 @@ import type {
  * `SpeechPromptCatalogEntry` against the legacy shared example catalog:
  * `ResolvedSpeechPrompt` is built by hand, directly from the realized
  * `AssembledToken`s the A1 release catalog already produced for the lesson
- * (its guided-construction target for the 44 semantic lessons; its single
+ * (its guided-construction target for the 60 semantic lessons; its single
  * phonetic item for the 4 `sounds-*` lessons) — exactly "shared realized
  * variant tokens", never a second authored copy of the Japanese. Both
  * branches converge on the same `SpokenAttemptModel`/`ResolvedSpeechPrompt`
@@ -255,7 +255,7 @@ function buildPhoneticModel(
 /**
  * The complete A1 spoken-attempt model for a lesson in a locale, or a
  * structured error — never a partial model. Every one of the release's 48
- * lessons resolves through this: the 44 semantic lessons via their guided
+ * lessons resolves through this: the 60 semantic lessons via their guided
  * target's realized tokens, the 4 phonetic `sounds-*` lessons via their
  * first authored phonetic item, so every lesson has a target or an explicit
  * phonetic listen/repeat equivalent (master task point 4).

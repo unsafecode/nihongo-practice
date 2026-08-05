@@ -152,7 +152,7 @@ const token = (
   it: string,
 ) => ({ kind, text, label: { en, it } } as const);
 
-export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
+const a1BaseLearningNotes: readonly A1LearningNote[] = deepFreeze([
   defineA1LearningNote({
     id: "a1-note-sounds-mora-vowels",
     kind: "phonetic",
@@ -333,6 +333,186 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
     ],
   }),
   defineA1LearningNote({
+    id: "a1-note-sentence-chunks",
+    kind: "grammar",
+    explainedConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
+    requiredConceptIds: [],
+    title: {
+      en: "Build sentences from chunks",
+      it: "Costruisci frasi a blocchi",
+    },
+    meaning: {
+      en: "Japanese places the predicate at the end. Keep topic, information, and final predicate as chunks instead of translating one word at a time.",
+      it: "Il giapponese mette il predicato alla fine. Tieni tema, informazione e predicato finale come blocchi invece di tradurre una parola alla volta.",
+    },
+    use: {
+      en: "Use chunks to listen for the final predicate and to assemble a short polite sentence.",
+      it: "Usa i blocchi per riconoscere il predicato finale e per comporre una breve frase cortese.",
+    },
+    construction: {
+      en: "State a topic when useful, add its information, and finish with the learned polite predicate.",
+      it: "Esprimi un tema quando è utile, aggiungi la sua informazione e termina con il predicato cortese imparato.",
+    },
+    typicalMistake: {
+      en: "Do not put the predicate in the middle just to copy English or Italian word order.",
+      it: "Non mettere il predicato in mezzo solo per copiare l'ordine delle parole inglese o italiano.",
+    },
+    pattern: [
+      token("slot", "topic", "topic, if stated", "tema, se espresso"),
+      token("particle", "は", "topic particle", "particella del tema"),
+      token("slot", "information", "identity or other information", "identità o altra informazione"),
+      token("ending", "です", "final polite predicate", "predicato cortese finale"),
+    ],
+    nearestContrastId: "a1-note-topic-wa-copula-desu",
+  }),
+  defineA1LearningNote({
+    id: "a1-note-recoverable-omission",
+    kind: "grammar",
+    explainedConceptIds: [],
+    requiredConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
+    title: {
+      en: "Omit only what context recovers",
+      it: "Ometti solo ciò che il contesto recupera",
+    },
+    meaning: {
+      en: "A topic or subject can be left unsaid when the listener can recover it from the situation or the previous turn.",
+      it: "Un tema o soggetto può restare non detto quando chi ascolta lo ricava dalla situazione o dal turno precedente.",
+    },
+    use: {
+      en: "Name the person or topic once, then omit it in a following sentence only when the reference stays clear.",
+      it: "Nomina una volta la persona o il tema, poi omettilo nella frase seguente solo quando il riferimento resta chiaro.",
+    },
+    construction: {
+      en: "Use the known context for the omitted topic, then say the information and final predicate.",
+      it: "Usa il contesto noto per il tema omesso, poi di' l'informazione e il predicato finale.",
+    },
+    typicalMistake: {
+      en: "Do not omit a person or topic when the listener could reasonably choose the wrong one.",
+      it: "Non omettere una persona o un tema quando chi ascolta potrebbe ragionevolmente scegliere quello sbagliato.",
+    },
+    subjectOmissionNote: {
+      en: "Omission is natural only when the intended topic or subject is recoverable from context.",
+      it: "L'omissione è naturale solo quando il tema o soggetto previsto è ricavabile dal contesto.",
+    },
+    pattern: [
+      token("slot", "known context", "known topic or subject", "tema o soggetto noto"),
+      token("punctuation", "→", "allows omission in the next turn", "permette l'omissione nel turno seguente"),
+      token("slot", "information", "information about that known topic", "informazione su quel tema noto"),
+      token("ending", "predicate", "final predicate", "predicato finale"),
+    ],
+    nearestContrastId: "a1-note-personal-reference",
+  }),
+  defineA1LearningNote({
+    id: "a1-note-anata-limited",
+    kind: "grammar",
+    explainedConceptIds: [],
+    requiredConceptIds: ["a1-concept-topic-wa"],
+    title: {
+      en: "Treat あなた as limited, not everyday you",
+      it: "Tratta あなた come limitato, non come il tu quotidiano",
+    },
+    meaning: {
+      en: "あなた can mean “you”, but it is not the everyday equivalent of English “you”.",
+      it: "あなた può significare «tu» o «lei», ma non è l'equivalente quotidiano dell'inglese «you».",
+    },
+    use: {
+      en: "Prefer わたし for yourself, names, titles, or omit the addressee when it is clear; use あなた only when another reference is unavoidable.",
+      it: "Preferisci わたし per te stesso, nomi, titoli o ometti l'interlocutore quando è chiaro; usa あなた solo quando un altro riferimento è inevitabile.",
+    },
+    construction: {
+      en: "Choose a name, title, or omission first; if あなた is unavoidable, place it in the ordinary topic or subject position.",
+      it: "Scegli prima un nome, un titolo o l'omissione; se あなた è inevitabile, mettilo nella normale posizione di tema o soggetto.",
+    },
+    typicalMistake: {
+      en: "Do not call あなた the everyday equivalent of English “you” or put it into every sentence.",
+      it: "Non chiamare あなた l'equivalente quotidiano dell'inglese «you» e non inserirlo in ogni frase.",
+    },
+    pattern: [
+      token("slot", "name／title／omission", "preferred addressee reference", "riferimento preferito all'interlocutore"),
+      token("punctuation", "／", "use あなた only when unavoidable", "usa あなた solo quando è inevitabile"),
+      token("slot", "information", "information for the addressee", "informazione per l'interlocutore"),
+      token("ending", "predicate", "final predicate", "predicato finale"),
+    ],
+    nearestContrastId: "a1-note-personal-reference",
+  }),
+  defineA1LearningNote({
+    id: "a1-note-identity-dialogue",
+    kind: "synthesis",
+    explainedConceptIds: [],
+    requiredConceptIds: [
+      "a1-concept-topic-wa",
+      "a1-concept-copula-desu",
+    ],
+    title: {
+      en: "Combine known identity references in dialogue",
+      it: "Combina riferimenti d'identità già noti nel dialogo",
+    },
+    meaning: {
+      en: "This is synthesis, not new grammar: combine known people, identity information, polite predicates, and recoverable omission.",
+      it: "Questa è sintesi, non grammatica nuova: combina persone note, informazioni d'identità, predicati cortesi e omissione ricavabile dal contesto.",
+    },
+    use: {
+      en: "Use it to introduce people, then omit a reference only after the listener can recover it.",
+      it: "Usalo per presentare persone, poi ometti un riferimento solo quando chi ascolta può ricavarlo.",
+    },
+    construction: {
+      en: "Choose a known topic, keep the predicate final, and use the known polite statement ending.",
+      it: "Scegli un tema noto, mantieni finale il predicato e usa la finale affermativa cortese nota.",
+    },
+    typicalMistake: {
+      en: "Do not invent a new identity pattern or repeat a pronoun when the reference is already clear.",
+      it: "Non inventare una nuova struttura d'identità né ripetere un pronome quando il riferimento è già chiaro.",
+    },
+    pattern: [
+      token("slot", "known person", "known identity reference", "riferimento d'identità noto"),
+      token("particle", "は", "topic particle when a topic is stated", "particella del tema quando il tema è espresso"),
+      token("slot", "known identity information", "known identity information", "informazione d'identità nota"),
+      token("ending", "です", "known polite statement ending", "finale affermativa cortese nota"),
+    ],
+    nearestContrastId: "a1-note-synthesis-recombine",
+  }),
+  defineA1LearningNote({
+    id: "a1-note-question-dialogue",
+    kind: "synthesis",
+    explainedConceptIds: [],
+    requiredConceptIds: [
+      "a1-concept-topic-wa",
+      "a1-concept-copula-desu",
+      "a1-concept-nominative-ga",
+      "a1-concept-interrogative-ka",
+    ],
+    title: {
+      en: "Clarify a known item in dialogue",
+      it: "Chiarisci un oggetto noto nel dialogo",
+    },
+    meaning: {
+      en: "This is synthesis, not new grammar: combine known this/that words, a focused which one, and polite identity questions.",
+      it: "Questa è sintesi, non grammatica nuova: combina parole note per questo/quello, quale in fuoco e domande d'identità cortesi.",
+    },
+    use: {
+      en: "Use it to check an item, identify it, and ask which item fits when a choice is still unclear.",
+      it: "Usalo per verificare un oggetto, identificarlo e chiedere quale oggetto va bene quando una scelta non è ancora chiara.",
+    },
+    construction: {
+      en: "Use a known item with は for a statement or question; use どれ with が when the chosen item is the focus.",
+      it: "Usa un oggetto noto con は per un'affermazione o una domanda; usa どれ con が quando l'oggetto scelto è in fuoco.",
+    },
+    typicalMistake: {
+      en: "Do not use a literal this-is-which-one pattern when you mean to ask which item is the known thing.",
+      it: "Non usare una struttura letterale questo-è-quale quando vuoi chiedere quale oggetto è la cosa nota.",
+    },
+    pattern: [
+      token("slot", "known item", "this, that, or that over there", "questo, quello o quello laggiù"),
+      token("particle", "は", "topic particle for the known item", "particella del tema per l'oggetto noto"),
+      token("slot", "identity", "known identity information", "informazione d'identità nota"),
+      token("ending", "です／か", "polite statement or question ending", "finale cortese per affermazione o domanda"),
+      token("punctuation", "／", "or", "oppure"),
+      token("slot", "どれ", "which one in focus", "quale in fuoco"),
+      token("particle", "が", "focused-subject particle", "particella del soggetto in fuoco"),
+    ],
+    nearestContrastId: "a1-note-question-ka-words",
+  }),
+  defineA1LearningNote({
     id: "a1-note-topic-wa-copula-desu",
     kind: "grammar",
     explainedConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
@@ -373,8 +553,8 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
       it: "か alla fine della frase rende cortese una domanda; だれ, なに・なん e どこ chiedono chi, che cosa e dove.",
     },
     use: {
-      en: "Keep the question word in the information slot and put か at the end.",
-      it: "Tieni la parola interrogativa nello spazio dell'informazione e metti か alla fine.",
+      en: "Use なん before です for a neutral “what?” and なに when you deliberately stress “what exactly?”; keep the question word in the information slot and put か at the end.",
+      it: "Usa なん prima di です per un neutro «che cosa?» e なに quando vuoi sottolineare «che cos'è esattamente?»; tieni la parola interrogativa nello spazio dell'informazione e metti か alla fine.",
     },
     construction: {
       en: "Use a question word or known information before the final polite predicate plus か.",
@@ -528,8 +708,8 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
       it: "Luogo + に + andare o venire; luogo + で + un'attività come lavorare.",
     },
     typicalMistake: {
-      en: "Do not say *placeでいきます for a destination or *placeに働きます for an activity setting.",
-      it: "Non dire *luogoでいきます per una destinazione o *luogoに働きます per il luogo di un'attività.",
+      en: "Do not say *placeでいきます for a destination or *placeにはたらきます for an activity setting.",
+      it: "Non dire *luogoでいきます per una destinazione o *luogoにはたらきます per il luogo di un'attività.",
     },
     pattern: [
       token("slot", "destination", "destination", "destinazione"),
@@ -1231,26 +1411,119 @@ function buildLearningNoteIndex(notes: readonly A1LearningNote[]): LearningNoteI
   return deepFreeze(byId);
 }
 
-export const a1LearningNoteById: LearningNoteIndex = buildLearningNoteIndex(a1LearningNotes);
+/**
+ * Composite notes added by the Foundations modules.
+ */
+export const a1ExpandedFoundationLearningNotes: readonly A1LearningNote[] =
+  deepFreeze([
+    defineA1LearningNote({
+      id: "a1-note-masu-object-o",
+      kind: "grammar",
+      explainedConceptIds: ["a1-concept-object-wo"],
+      requiredConceptIds: [],
+      explainedVerbForms: [
+        { polarity: "affirmative", tense: "present", formality: "polite" },
+      ],
+      title: {
+        en: "Use ます with a direct object",
+        it: "Usa ます con un oggetto diretto",
+      },
+      meaning: {
+        en: "ます is the polite nonpast affirmative ending, and を marks the thing the action affects.",
+        it: "ます è la finale affermativa cortese non-passata e を segna la cosa su cui agisce l'azione.",
+      },
+      use: {
+        en: "Use this shape when you politely say what you eat, drink, read, or write.",
+        it: "Usa questa struttura quando dici con cortesia che cosa mangi, bevi, leggi o scrivi.",
+      },
+      construction: {
+        en: "Put the object before を, then add ます to the learned polite verb stem.",
+        it: "Metti l'oggetto prima di を, poi aggiungi ます al tema verbale cortese imparato.",
+      },
+      typicalMistake: {
+        en: "Do not put を after the verb or use a dictionary form where the polite ます form is required.",
+        it: "Non mettere を dopo il verbo e non usare la forma di dizionario quando serve la forma cortese in ます.",
+      },
+      pattern: [
+        token("slot", "object", "direct object", "oggetto diretto"),
+        token("particle", "を", "direct-object particle; read o", "particella dell'oggetto diretto; si legge o"),
+        token("slot", "verb stem", "learned polite verb stem", "tema verbale cortese imparato"),
+        token("ending", "ます", "polite nonpast affirmative ending", "finale affermativa cortese non-passata"),
+      ],
+      nearestContrastId: "a1-note-masu-masen",
+    }),
+    defineA1LearningNote({
+      id: "a1-note-direction-transport-dialogue",
+      kind: "synthesis",
+      explainedConceptIds: [
+        "a1-concept-direction-he",
+        "a1-concept-transport-de",
+      ],
+      requiredConceptIds: ["a1-concept-location-particle"],
+      title: {
+        en: "Combine direction and transport in a travel exchange",
+        it: "Combina direzione e trasporto in uno scambio di viaggio",
+      },
+      meaning: {
+        en: "に marks an arrival destination, へ points toward a destination, and で marks the means of travel.",
+        it: "に segna una destinazione di arrivo, へ indica la direzione verso una destinazione e で segna il mezzo di trasporto.",
+      },
+      use: {
+        en: "Use the destination particle and the transport phrase together when a short travel exchange needs both details.",
+        it: "Usa insieme la particella di destinazione e la frase di trasporto quando un breve scambio di viaggio richiede entrambi i dettagli.",
+      },
+      construction: {
+        en: "Put the transport before で, the destination before に or へ, and keep the polite movement verb final.",
+        it: "Metti il mezzo prima di で, la destinazione prima di に o へ e mantieni finale il verbo di movimento cortese.",
+      },
+      typicalMistake: {
+        en: "Do not use transport で as an action place, or use へ for the place where an activity happens.",
+        it: "Non usare il で del trasporto come luogo dell'azione e non usare へ per il luogo in cui avviene un'attività.",
+      },
+      pattern: [
+        token("slot", "transport", "means of transport", "mezzo di trasporto"),
+        token("particle", "で", "transport-means particle", "particella del mezzo di trasporto"),
+        token("slot", "destination", "arrival point or direction", "punto di arrivo o direzione"),
+        token("particle", "に／へ", "destination or direction particle", "particella di destinazione o direzione"),
+        token("slot", "movement verb", "final polite movement verb", "verbo di movimento cortese finale"),
+      ],
+      nearestContrastId: "a1-note-particle-he-contrast",
+    }),
+  ]);
+
+/** Complete published A1 learner-note catalog. */
+export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
+  ...a1BaseLearningNotes,
+  ...a1ExpandedFoundationLearningNotes,
+]);
+
+export const a1LearningNoteById: LearningNoteIndex =
+  buildLearningNoteIndex(a1LearningNotes);
+
+/**
+ * @deprecated Use {@link a1LearningNoteById}; this is the same published
+ * lookup retained for legacy authoring consumers.
+ */
+export const a1CanonicalFoundationLearningNoteById = a1LearningNoteById;
 
 /**
  * The one substantive note that first teaches each grammar concept. Later
  * mentions may reinforce a concept, but never unlock it for curriculum use.
  */
 export const a1ConceptFirstTeachingNoteId: Readonly<Record<string, string>> = deepFreeze({
-  "a1-concept-topic-wa": "a1-note-sentence-shape-omission",
-  "a1-concept-copula-desu": "a1-note-sentence-shape-omission",
+  "a1-concept-topic-wa": "a1-note-sentence-chunks",
+  "a1-concept-copula-desu": "a1-note-sentence-chunks",
   "a1-concept-interrogative-ka": "a1-note-question-ka-words",
   "a1-concept-location-particle": "a1-note-location-ni-de-contrast",
-  "a1-concept-object-wo": "a1-note-particle-o",
+  "a1-concept-object-wo": "a1-note-masu-object-o",
   "a1-concept-nominative-ga": "a1-note-particle-ga",
   "a1-concept-recipient-ni": "a1-note-particle-ni",
   "a1-concept-companion-to": "a1-note-companion-to",
   "a1-concept-time-schedule": "a1-note-time-ni",
   "a1-concept-frequency": "a1-note-frequency",
-  "a1-concept-direction-he": "a1-note-particle-ni-destination",
+  "a1-concept-direction-he": "a1-note-direction-transport-dialogue",
   "a1-concept-source-limit": "a1-note-source-limit",
-  "a1-concept-transport-de": "a1-note-particle-de-transport",
+  "a1-concept-transport-de": "a1-note-direction-transport-dialogue",
   "a1-concept-adjective": "a1-note-adjectives",
   "a1-concept-preference-ga": "a1-note-preference-ga",
   "a1-concept-comparison-yori": "a1-note-comparison-yori",

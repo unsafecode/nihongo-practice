@@ -21,8 +21,16 @@ const REQUIRED_NOTE_IDS = [
   "a1-note-location-ni-de-contrast",
   "a1-note-particle-ni",
   "a1-note-particle-he",
+  "a1-note-particle-he-contrast",
+  "a1-note-time-ni",
+  "a1-note-mashita",
   "a1-note-masu-masen",
   "a1-note-mashita-masen-deshita",
+  "a1-note-sentence-chunks",
+  "a1-note-recoverable-omission",
+  "a1-note-anata-limited",
+  "a1-note-identity-dialogue",
+  "a1-note-question-dialogue",
 ] as const;
 
 function validNote(): A1LearningNote {
@@ -132,15 +140,15 @@ describe("A1 learner note catalog", () => {
       expect(a1LearningNoteById[noteId]?.explainedConceptIds).toContain(conceptId);
     }
     expect(firstTeachingNoteId).toMatchObject({
-      "a1-concept-object-wo": "a1-note-particle-o",
+      "a1-concept-object-wo": "a1-note-masu-object-o",
       "a1-concept-preference-ga": "a1-note-preference-ga",
       "a1-concept-companion-to": "a1-note-companion-to",
       "a1-concept-recipient-ni": "a1-note-particle-ni",
       "a1-concept-location-particle": "a1-note-location-ni-de-contrast",
       "a1-concept-interrogative-ka": "a1-note-question-ka-words",
-      "a1-concept-direction-he": "a1-note-particle-ni-destination",
-      "a1-concept-topic-wa": "a1-note-sentence-shape-omission",
-      "a1-concept-copula-desu": "a1-note-sentence-shape-omission",
+      "a1-concept-direction-he": "a1-note-direction-transport-dialogue",
+      "a1-concept-topic-wa": "a1-note-sentence-chunks",
+      "a1-concept-copula-desu": "a1-note-sentence-chunks",
     });
   });
 
@@ -217,8 +225,9 @@ describe("A1 learner note catalog", () => {
       },
       nearestContrastId: "a1-note-particle-ni-destination",
     });
-    expect(note?.typicalMistake.en).toContain("*placeに働きます");
-    expect(note?.typicalMistake.it).toContain("*luogoに働きます");
+    expect(note?.typicalMistake.en).toContain("*placeにはたらきます");
+    expect(note?.typicalMistake.it).toContain("*luogoにはたらきます");
+    expect(`${note?.typicalMistake.en}\n${note?.typicalMistake.it}`).not.toContain("働");
     expect(note?.pattern).toEqual([
       expect.objectContaining({
         kind: "slot",
@@ -314,6 +323,66 @@ describe("A1 learner note catalog", () => {
         expect.objectContaining({ text: "information", label: { en: "information", it: "informazione" } }),
         expect.objectContaining({ kind: "ending", text: "です", label: { en: "polite copula", it: "copula cortese" } }),
       ],
+    });
+
+  });
+
+  it("marks あなた as limited rather than an everyday equivalent of English you", () => {
+    const note = a1LearningNoteById["a1-note-anata-limited"];
+
+    expect(note).toMatchObject({
+      kind: "grammar",
+      requiredConceptIds: ["a1-concept-topic-wa"],
+      nearestContrastId: "a1-note-personal-reference",
+    });
+    expect(note?.meaning.en).toMatch(/not.*everyday.*equivalent.*English.*you/i);
+    expect(note?.meaning.it).toMatch(/non.*equivalente.*quotidiano.*you/i);
+    expect(note?.use.en).toMatch(/わたし.*names.*titles.*omit/i);
+    expect(note?.use.it).toMatch(/わたし.*nomi.*titoli.*ometti/i);
+    expect(note?.typicalMistake.en).toMatch(/do not.*everyday.*equivalent/i);
+    expect(note?.pattern).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "slot",
+          label: { en: expect.any(String), it: expect.any(String) },
+        }),
+      ]),
+    );
+  });
+
+  it("publishes Foundations notes and assigns their first teaching honestly", () => {
+    expect(a1LearningNoteById["a1-note-sentence-chunks"]).toMatchObject({
+      kind: "grammar",
+      explainedConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
+      requiredConceptIds: [],
+      nearestContrastId: "a1-note-topic-wa-copula-desu",
+    });
+    expect(a1LearningNoteById["a1-note-recoverable-omission"]).toMatchObject({
+      kind: "grammar",
+      requiredConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
+      nearestContrastId: "a1-note-personal-reference",
+    });
+    expect(a1LearningNoteById["a1-note-identity-dialogue"]).toMatchObject({
+      kind: "synthesis",
+      requiredConceptIds: [
+        "a1-concept-topic-wa",
+        "a1-concept-copula-desu",
+      ],
+      nearestContrastId: "a1-note-synthesis-recombine",
+    });
+    expect(a1LearningNoteById["a1-note-question-dialogue"]).toMatchObject({
+      kind: "synthesis",
+      requiredConceptIds: [
+        "a1-concept-topic-wa",
+        "a1-concept-copula-desu",
+        "a1-concept-nominative-ga",
+        "a1-concept-interrogative-ka",
+      ],
+      nearestContrastId: "a1-note-question-ka-words",
+    });
+    expect(a1ConceptFirstTeachingNoteId).toMatchObject({
+      "a1-concept-topic-wa": "a1-note-sentence-chunks",
+      "a1-concept-copula-desu": "a1-note-sentence-chunks",
     });
   });
 

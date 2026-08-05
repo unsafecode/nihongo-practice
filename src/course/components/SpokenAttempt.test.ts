@@ -225,9 +225,9 @@ describe("SpokenAttemptView — respects the script setting and ruby conventions
 describe("SpokenAttemptView — the visible target reads as one real semantic sequence", () => {
   it("shows the exact readable romaji target for introductions-1, never a run-on concatenation", () => {
     const html = renderView({ state: IDLE, viewModel: modelFor("introductions-1") });
-    expect(targetRomajiReading(html)).toBe("ken wa sensei desu");
+    expect(targetRomajiReading(html)).toBe("ken wa kangoshi desu");
     expect(targetSentenceHtml(html)).not.toContain("kenwa");
-    expect(targetSentenceHtml(html)).not.toContain("senseidesu");
+    expect(targetSentenceHtml(html)).not.toContain("kangoshidesu");
   });
 
   it("uses the model's own targetRomaji as the same sequence the target line renders", () => {

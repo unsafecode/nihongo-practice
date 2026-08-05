@@ -1,20 +1,20 @@
 /**
  * The immutable, fully-assembled A1 release catalog (§6, §15).
  *
- * This module deep-freezes the complete A1 level: the fourteen semantic
- * Can-dos wired to their lessons, the twelve modules, the level and its
+ * This module deep-freezes the complete A1 level: the eighteen semantic
+ * Can-dos wired to their lessons, the sixteen modules, the level and its
  * checkpoint, and every semantic (non-phonetic) instructional/synthesis lesson
  * with its authored sentence variants and recurrence-complete verb-use records.
  * The phonetic module (M1) is deliberately kept *out* of the validated
  * `FoundationCatalogs` — it carries no sentence variants — but its four lessons
  * still appear in `lessonPositions` and in the module/level membership so the
- * full 48-lesson route set is representable.
+ * full 64-lesson route set is representable.
  *
  * Two `FoundationCatalogs` are exported:
- *   • {@link a1FoundationCatalogs} — the full level view (all 12 modules, 15
- *     Can-dos, 48 lesson positions) used by reporting and for structural
+ *   • {@link a1FoundationCatalogs} — the full level view (all 16 modules, 19
+ *     Can-dos, 64 lesson positions) used by reporting and for structural
  *     inspection of the whole level.
- *   • {@link a1SemanticFoundationCatalogs} — the 44 non-phonetic lessons wired
+ *   • {@link a1SemanticFoundationCatalogs} — the 60 non-phonetic lessons wired
  *     to the semantic modules / Can-dos / checkpoint, ready to hand straight to
  *     `validateFoundations` (whose transfer/diversity gates the phonetic lessons
  *     cannot meet).
@@ -44,6 +44,10 @@ import { module9Lessons } from "./module09Descriptions";
 import { module10Lessons } from "./module10Shopping";
 import { module11Lessons } from "./module11ExistenceNeeds";
 import { module12Lessons } from "./module12Capstones";
+import { moduleSentenceFoundationsLessons } from "./moduleSentenceFoundations";
+import { moduleTopicQuestionsLessons } from "./moduleTopicQuestions";
+import { modulePoliteVerbsLessons } from "./modulePoliteVerbs";
+import { moduleTimeMovementLessons } from "./moduleTimeMovement";
 import { a1ReleaseVerbUseRecords } from "./recurrence";
 import { a1CanDosAuthored, a1NonPhoneticCanDos } from "./canDos";
 import {
@@ -63,11 +67,15 @@ import { a1CopyEn } from "../copy/en";
 import { a1CopyIt } from "../copy/it";
 
 // ---------------------------------------------------------------------------
-// Semantic (non-phonetic) lessons and their variants — modules 2-12.
+// Semantic (non-phonetic) lessons and their variants — Foundations + modules 2-12.
 // ---------------------------------------------------------------------------
 
 /** Every built semantic lesson, in canonical module/position order. */
 export const a1SemanticBuiltLessons: readonly A1BuiltLesson[] = [
+  ...moduleSentenceFoundationsLessons,
+  ...moduleTopicQuestionsLessons,
+  ...modulePoliteVerbsLessons,
+  ...moduleTimeMovementLessons,
   ...module2Lessons,
   ...module3Lessons,
   ...module4Lessons,
@@ -85,7 +93,7 @@ export const a1SemanticBuiltLessons: readonly A1BuiltLesson[] = [
 export const a1AllVariants: readonly SentenceVariant[] =
   a1SemanticBuiltLessons.flatMap((built) => [...built.variants]);
 
-// The shared assembler wires the 44 semantic lessons, their variants, their
+// The shared assembler wires the 60 semantic lessons, their variants, their
 // canonical positions and the recurrence-complete verb records. We then layer
 // the authored level/module/Can-do/checkpoint definitions on top.
 const semanticBase = assembleA1FoundationCatalogs({
@@ -106,7 +114,7 @@ const phoneticPositions: readonly LessonPositionRecord[] =
     position: A1_CANONICAL_POSITIONS[lessonId],
   }));
 
-/** All 48 lesson positions, ordered by canonical position. */
+/** All 64 lesson positions, ordered by canonical position. */
 export const a1AllLessonPositions: readonly LessonPositionRecord[] = [
   ...phoneticPositions,
   ...semanticBase.lessonPositions,
@@ -117,8 +125,8 @@ export const a1AllLessonPositions: readonly LessonPositionRecord[] = [
 // ---------------------------------------------------------------------------
 
 /**
- * The semantic (non-phonetic) release catalog: 44 lessons wired to the eleven
- * semantic modules, fourteen Can-dos, the semantic level view and the checkpoint
+ * The semantic (non-phonetic) release catalog: 60 lessons wired to the fifteen
+ * semantic modules, eighteen Can-dos, the semantic level view and the checkpoint
  * (sounds Can-do removed). This is the catalog `validateFoundations` runs over.
  */
 export const a1SemanticFoundationCatalogs: FoundationCatalogs = deepFreeze({
@@ -130,8 +138,8 @@ export const a1SemanticFoundationCatalogs: FoundationCatalogs = deepFreeze({
 });
 
 /**
- * The full A1 level catalog: all twelve modules, fifteen Can-dos, the level, its
- * checkpoint, and all 48 lesson positions (phonetic lessons present as positions
+ * The full A1 level catalog: all sixteen modules, nineteen Can-dos, the level, its
+ * checkpoint, and all 64 lesson positions (phonetic lessons present as positions
  * and module/level members only — they contribute no sentence variants).
  */
 export const a1FoundationCatalogs: FoundationCatalogs = deepFreeze({

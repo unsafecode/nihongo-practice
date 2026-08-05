@@ -66,8 +66,15 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-context-mealtime-routine-label": "Daily mealtime routine",
     "a1-context-evening-reading-label": "Evening reading routine",
     "a1-context-social-outing-label": "A social outing",
+    "a1-context-unidentified-addressee-label": "Addressing an unidentified person",
+    "a1-context-bare-study-conversation-label": "A general study conversation",
+    "a1-context-routine-study-schedule-label": "A study schedule",
+    "a1-context-rest-routine-label": "A regular break",
+    "a1-context-bare-return-response-label": "A simple reply about returning",
     "a1-role-creature-label": "An animal",
+    "a1-role-unidentified-addressee-label": "An unidentified addressee",
     "a1-referent-creature-label": "The animal",
+    "a1-referent-unidentified-addressee-label": "The unidentified addressee",
     "a1-can-do-sounds-descriptor": "I can hear and read the basic sounds of Japanese.",
     "a1-can-do-identity-descriptor": "I can say who I am and give a few personal details.",
     "a1-can-do-origins-descriptor": "I can say where I am from and what languages I use.",
@@ -79,12 +86,24 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-can-do-descriptions-descriptor": "I can describe things and say what I like using simple adjectives.",
     "a1-can-do-shopping-descriptor": "I can ask prices, say how many I want, and make a simple purchase.",
     "a1-can-do-existence-descriptor": "I can say what there is, where it is, and what I need.",
+    "a1-can-do-sentence-foundations-descriptor": "I can build and say short polite sentences about identity and people.",
+    "a1-can-do-topic-questions-descriptor": "I can ask and answer simple questions about people, languages, and things.",
+    "a1-can-do-polite-verbs-descriptor": "I can say what I do in simple polite statements.",
+    "a1-can-do-time-movement-descriptor": "I can say when everyday actions happen and how I move around.",
     "a1-can-do-scenario-1-descriptor": "I can introduce myself and both ask and answer simple personal questions.",
     "a1-can-do-scenario-2-descriptor": "I can talk through a typical day — my routine, a place, what I like, and what I want to buy.",
     "a1-can-do-scenario-3-descriptor": "I can get around, asking where a place is and saying how I'll get there and what I need.",
     "a1-can-do-scenario-4-descriptor": "I can say who I am and what I do, describe things around me, and ask for clarification when I change topic.",
     "a1-module-outcome-introductions":
-      "You can build simple sentences, introduce yourself, and use polite verbs with natural subject omission.",
+      "You can introduce yourself, share practical personal details, and keep a first conversation going.",
+    "a1-module-outcome-sentence-foundations":
+      "You can build short predicate-final identity sentences and omit a known topic.",
+    "a1-module-outcome-topic-questions":
+      "You can set a topic, focus an identity with ga, and ask simple clarification questions.",
+    "a1-module-outcome-polite-verbs":
+      "You can use basic polite nonpast actions with objects, places, and clear subject omission.",
+    "a1-module-outcome-time-movement":
+      "You can say when an action happened and describe a short trip with direction and transport.",
     "a1-module-outcome-essential-questions": "You can ask and recognize the everyday questions that keep a conversation going.",
     "a1-module-outcome-actions": "You can say what you and others do with everyday things, places, and people.",
     "a1-module-outcome-routines": "You can describe your daily routine using times, days, and how often you do things.",
@@ -132,8 +151,15 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-context-mealtime-routine-label": "Routine dei pasti quotidiani",
     "a1-context-evening-reading-label": "Routine di lettura serale",
     "a1-context-social-outing-label": "Un'uscita sociale",
+    "a1-context-unidentified-addressee-label": "Rivolgersi a una persona non identificata",
+    "a1-context-bare-study-conversation-label": "Una conversazione generale sullo studio",
+    "a1-context-routine-study-schedule-label": "Un programma di studio",
+    "a1-context-rest-routine-label": "Una pausa regolare",
+    "a1-context-bare-return-response-label": "Una semplice risposta sul tornare",
     "a1-role-creature-label": "Un animale",
+    "a1-role-unidentified-addressee-label": "Un interlocutore non identificato",
     "a1-referent-creature-label": "L'animale",
+    "a1-referent-unidentified-addressee-label": "L'interlocutore non identificato",
     "a1-can-do-sounds-descriptor": "So sentire e leggere i suoni di base del giapponese.",
     "a1-can-do-identity-descriptor": "So dire chi sono e dare alcuni dati personali.",
     "a1-can-do-origins-descriptor": "So dire da dove vengo e quali lingue uso.",
@@ -145,12 +171,24 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-can-do-descriptions-descriptor": "So descrivere le cose e dire cosa mi piace con aggettivi semplici.",
     "a1-can-do-shopping-descriptor": "So chiedere i prezzi, dire quanti ne voglio e fare un semplice acquisto.",
     "a1-can-do-existence-descriptor": "So dire cosa c'è, dove si trova e di cosa ho bisogno.",
+    "a1-can-do-sentence-foundations-descriptor": "So costruire e dire brevi frasi cortesi su identità e persone.",
+    "a1-can-do-topic-questions-descriptor": "So fare e rispondere a semplici domande su persone, lingue e cose.",
+    "a1-can-do-polite-verbs-descriptor": "So dire che cosa faccio in semplici frasi cortesi.",
+    "a1-can-do-time-movement-descriptor": "So dire quando avvengono le azioni quotidiane e come mi sposto.",
     "a1-can-do-scenario-1-descriptor": "So presentarmi e sia fare sia rispondere a semplici domande personali.",
     "a1-can-do-scenario-2-descriptor": "So raccontare una giornata tipica: la mia routine, un luogo, cosa mi piace e cosa voglio comprare.",
     "a1-can-do-scenario-3-descriptor": "So muovermi, chiedendo dove si trova un luogo e dicendo come ci arrivo e di cosa ho bisogno.",
     "a1-can-do-scenario-4-descriptor": "So dire chi sono e cosa faccio, descrivere le cose intorno a me e chiedere chiarimenti quando cambio argomento.",
     "a1-module-outcome-introductions":
-      "Sai costruire frasi semplici, presentarti e usare verbi cortesi con l'omissione naturale del soggetto.",
+      "Sai presentarti, condividere informazioni personali pratiche e portare avanti una prima conversazione.",
+    "a1-module-outcome-sentence-foundations":
+      "Sai costruire brevi frasi d'identità con predicato finale e omettere un tema noto.",
+    "a1-module-outcome-topic-questions":
+      "Sai impostare un tema, mettere a fuoco un'identità con ga e fare semplici domande di chiarimento.",
+    "a1-module-outcome-polite-verbs":
+      "Sai usare azioni cortesi non-passate con oggetti, luoghi e un'omissione chiara del soggetto.",
+    "a1-module-outcome-time-movement":
+      "Sai dire quando è avvenuta un'azione e descrivere un breve spostamento con direzione e trasporto.",
     "a1-module-outcome-essential-questions": "Sai fare e riconoscere le domande quotidiane che tengono viva una conversazione.",
     "a1-module-outcome-actions": "Sai dire cosa fai tu e gli altri con le cose, i luoghi e le persone di ogni giorno.",
     "a1-module-outcome-routines": "Sai descrivere la tua giornata usando orari, giorni e con quale frequenza fai le cose.",
@@ -176,6 +214,7 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
 
 export const A1_SUBJECT_GLOSS: Readonly<Record<string, Bilingual>> = deepFreeze({
   "a1-value-watashi": { en: "I", it: "Io" },
+  "a1-value-anata": { en: "You", it: "Tu; Lei" },
   "a1-value-yuki": { en: "Yuki", it: "Yuki" },
   "a1-value-ken": { en: "Ken", it: "Ken" },
   "a1-value-mina": { en: "Mina", it: "Mina" },
@@ -223,10 +262,12 @@ export const A1_COMPLEMENT_GLOSS: Readonly<Record<string, ComplementGloss>> = de
   "a1-value-obj-doctor": { en: "a doctor", it: "un medico" },
   "a1-value-obj-office-worker": { en: "an office worker", it: "un impiegato", itFeminine: "un'impiegata" },
   "a1-value-obj-engineer": { en: "an engineer", it: "un ingegnere" },
+  "a1-value-obj-classmate-peer": { en: "a classmate; peer", it: "un compagno o una compagna di corso" },
   "a1-value-obj-clerk": { en: "a shop clerk", it: "un commesso" },
   "a1-value-obj-japanese-person": { en: "Japanese", it: "giapponese" },
   "a1-value-obj-italian-person": { en: "Italian", it: "italiano", itFeminine: "italiana" },
   "a1-value-obj-american-person": { en: "American", it: "americano", itFeminine: "americana" },
+  "a1-value-obj-french-person": { en: "French", it: "francese" },
 });
 
 // ---------------------------------------------------------------------------
@@ -266,6 +307,7 @@ function a1SubjectGender(subjectValueId: string): "masculine" | "feminine" | und
 
 /** Verb-object (theme) glosses, article baked in for natural target text. */
 export const A1_OBJECT_GLOSS: Readonly<Record<string, Bilingual>> = deepFreeze({
+  "a1-value-obj-name": { en: "a name", it: "un nome" },
   "a1-value-obj-japanese": { en: "Japanese", it: "il giapponese" },
   "a1-value-obj-english": { en: "English", it: "l'inglese" },
   "a1-value-obj-italian": { en: "Italian", it: "l'italiano" },
@@ -357,6 +399,26 @@ export const A1_CONTEXT_SCENARIO: Readonly<Record<string, Bilingual>> = deepFree
   "a1-context-social-outing": {
     en: "You are arranging a simple outing with someone you know.",
     it: "Stai organizzando una semplice uscita con una persona che conosci.",
+  },
+  "a1-context-unidentified-addressee": {
+    en: "You must distinguish an unidentified addressee when no name or title is available.",
+    it: "Devi distinguere un interlocutore non identificato quando non è disponibile un nome né un titolo.",
+  },
+  "a1-context-bare-study-conversation": {
+    en: "You are talking about whether someone studies, without discussing a schedule.",
+    it: "Stai parlando del fatto che qualcuno studi, senza discutere un programma.",
+  },
+  "a1-context-routine-study-schedule": {
+    en: "You are discussing a study schedule and when someone studies.",
+    it: "Stai discutendo di un programma di studio e di quando qualcuno studia.",
+  },
+  "a1-context-rest-routine": {
+    en: "You are describing when someone takes a regular break.",
+    it: "Descrivi quando qualcuno fa una pausa regolare.",
+  },
+  "a1-context-bare-return-response": {
+    en: "You are answering whether someone returns, without giving a time or destination.",
+    it: "Rispondi se qualcuno torna, senza indicare un orario o una destinazione.",
   },
 });
 

@@ -23,6 +23,13 @@
  * the rest of the app without a separate build step of its own.
  */
 import { validateA1Release } from "../src/course/a1/catalog/validateA1";
+import { A1_AREAS } from "../src/course/a1/areas";
+import {
+  A1_CAPSTONE_LESSON_IDS,
+  A1_LESSON_IDS,
+  A1_LESSON_IDS_BY_MODULE,
+  A1_MODULE_IDS,
+} from "../src/course/a1/manifest";
 
 const result = validateA1Release();
 
@@ -37,6 +44,7 @@ if (!result.valid) {
     if (error.id) parts.push(`id=${error.id}`);
     if (error.dimension) parts.push(`dimension=${error.dimension}`);
     if (error.referenceId) parts.push(`ref=${error.referenceId}`);
+    if (error.underlyingCode) parts.push(`underlying=${error.underlyingCode}`);
     console.error(`  - ${parts.join(" ")}`);
   }
   process.exit(1);
@@ -48,7 +56,9 @@ const functionSummary = Object.entries(curriculum?.practiceFunctionDistribution 
   .sort(([left], [right]) => left.localeCompare(right))
   .map(([name, count]) => `${name}=${count}`)
   .join(", ");
+const phoneticLessonCount = A1_LESSON_IDS_BY_MODULE.sounds.length;
+const semanticLessonCount = A1_LESSON_IDS.length - phoneticLessonCount;
 
 console.log(
-  `validateA1Release: OK — the A1 release catalog is content-valid (0 errors; ${lessonCount} lessons; practice functions: ${functionSummary || "none"}).`,
+  `validateA1Release: OK — the A1 release catalog is content-valid (0 errors; areas=${A1_AREAS.length}; modules=${A1_MODULE_IDS.length}; lessons=${lessonCount}; semantic=${semanticLessonCount}; phonetic=${phoneticLessonCount}; capstones=${A1_CAPSTONE_LESSON_IDS.length}; practice functions: ${functionSummary || "none"}).`,
 );

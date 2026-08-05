@@ -34,6 +34,10 @@ const firstLesson = allLessons[0];
 const lastLesson = allLessons[allLessons.length - 1];
 const a1ModuleIdsInLearnerOrder = [
   "sounds",
+  "sentence-foundations",
+  "topic-questions",
+  "polite-verbs",
+  "time-movement",
   "introductions",
   "essential-questions",
   "actions",
@@ -88,6 +92,13 @@ function makeProgressValue(
 
 function progressWithVisited(lessonIds: string[]): CourseProgressV3 {
   return lessonIds.reduce(markLessonVisited, emptyProgress());
+}
+
+function progressWithVisitsButNoLastVisited(lessonIds: string[]): CourseProgressV3 {
+  return {
+    ...progressWithVisited(lessonIds),
+    lastVisitedLessonId: null,
+  };
 }
 
 function renderHome(
@@ -157,11 +168,11 @@ describe("CourseHome hero: editoriale mnemonico", () => {
     expect(html).toContain(itCopy.home.lessonsProgress(visited.length, totalLessons));
   });
 
-  it("shows the A1/JF-CEFR alignment badge and the exact fixed course shape (12 modules, 48 lessons)", () => {
+  it("shows the A1/JF-CEFR alignment badge and the exact fixed course shape (16 modules, 64 lessons)", () => {
     const html = renderHome(makeProgressValue());
     expect(html).toContain(itCopy.home.levelBadge);
-    expect(courseModules.length).toBe(12);
-    expect(totalLessons).toBe(48);
+    expect(courseModules.length).toBe(16);
+    expect(totalLessons).toBe(64);
     expect(html).toContain(itCopy.home.courseShape(courseModules.length, totalLessons));
   });
 });
@@ -183,6 +194,31 @@ describe("CourseHome hero: primary and secondary actions (Task 1 Action primitiv
     const resumeLesson = allLessons[1];
     expect(primaryActionHref(html)).toBe(lessonPath(resumeLesson.moduleId, resumeLesson.id));
     expect(html).toMatch(/class="action action--primary[^"]*"[^>]*>Continua</);
+  });
+
+  it("keeps a returning learner on an existing Presentations lesson after Foundations was inserted before it", () => {
+    const html = renderHome(
+      makeProgressValue({
+        progress: progressWithVisited(["sounds-1", "introductions-1"]),
+      }),
+    );
+
+    expect(primaryActionHref(html)).toBe(
+      lessonPath("introductions", "introductions-1"),
+    );
+  });
+
+  it("recommends the first Foundations lesson after every Sounds lesson is visited without a last-visited lesson", () => {
+    const soundsLessonIds = courseModules[0]!.lessons.map((lesson) => lesson.id);
+    const html = renderHome(
+      makeProgressValue({
+        progress: progressWithVisitsButNoLastVisited(soundsLessonIds),
+      }),
+    );
+
+    expect(primaryActionHref(html)).toBe(
+      lessonPath("sentence-foundations", "sentence-foundations-1"),
+    );
   });
 
   it("labels the primary action review and resumes the last-visited lesson once everything is visited", () => {
@@ -222,7 +258,7 @@ describe("CourseHome hero: primary and secondary actions (Task 1 Action primitiv
   });
 });
 
-describe("CourseHome: renders the flat, single-path CourseMap, never the old chapter grid", () => {
+describe("CourseHome: renders the area-grouped CourseMap, never the old chapter grid", () => {
   it("keeps the visible A1 path in learner order, with navigable lessons and the sounds prerequisite for Foundations", () => {
     expect(courseModules.map((courseModule) => courseModule.id)).toEqual(
       a1ModuleIdsInLearnerOrder,
@@ -236,7 +272,7 @@ describe("CourseHome: renders the flat, single-path CourseMap, never the old cha
 
       const title = itCopy.modules[moduleId]!.title;
       const titleIndex = html.indexOf(
-        `<h3 class="module-card__title">${escapeHtmlText(title)}</h3>`,
+        `<h4 class="module-card__title">${escapeHtmlText(title)}</h4>`,
       );
       expect(titleIndex, moduleId).toBeGreaterThan(previousTitleIndex);
       previousTitleIndex = titleIndex;
@@ -365,7 +401,7 @@ const sampleMigrationNotice: ProgressMigrationNotice = {
   acknowledgedAt: null,
 };
 
-describe("CourseHome: v3→v4 migration notice (design spec §17, Phase 2 Task 6)", () => {
+describe("CourseHome: schema-v3→schema-v4 migration notice (design spec §17, Phase 2 Task 6)", () => {
   it("omits the migration notice entirely when there is nothing to migrate", () => {
     const html = renderHome(makeProgressValue());
     expect(html).not.toContain(itCopy.progressMigration.noticeTitle);

@@ -74,10 +74,31 @@ describe("ModuleCard: core content", () => {
     expect(html.toLowerCase()).not.toMatch(/\bmin\b|verb|vocabolar|parole/);
   });
 
-  it("renders its title as an h3 (M1) — CourseMap wraps every card in its own h2, so h4 would skip a level", () => {
+  it("defaults its title to h3 for flat course maps", () => {
     const html = renderCard(entryFor("sounds"), { initiallyExpanded: false });
     expect(html).toContain(`<h3 class="module-card__title">${itCopy.modules.sounds.title}</h3>`);
     expect(html).not.toContain(`<h4 class="module-card__title">`);
+  });
+
+  it("renders its title as h4 when nested under a course-area heading", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(
+          LocaleProvider,
+          null,
+          createElement(ModuleCard, {
+            entry: entryFor("sounds"),
+            initiallyExpanded: false,
+            recommendedLessonId: model.recommendedLessonId,
+            headingLevel: 4,
+          }),
+        ),
+      ),
+    );
+    expect(html).toContain(`<h4 class="module-card__title">${itCopy.modules.sounds.title}</h4>`);
+    expect(html).not.toContain(`<h3 class="module-card__title">`);
   });
 });
 
@@ -90,7 +111,7 @@ describe("ModuleCard: advisory prerequisites", () => {
   it("shows the localized prerequisite module name for a module that has one", () => {
     const html = renderCard(entryFor("introductions"), { initiallyExpanded: false });
     expect(html).toContain(
-      itCopy.courseMap.prerequisites([itCopy.modules.sounds.title]),
+      itCopy.courseMap.prerequisites([itCopy.modules["time-movement"].title]),
     );
   });
 });

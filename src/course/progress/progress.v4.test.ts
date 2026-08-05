@@ -3,6 +3,7 @@ import { lessonPlans } from "../catalog/lessonPlans";
 import { courseModules as legacyAssembledCourseModules } from "../catalog/assembleCourse";
 import { courseModulesByLevel } from "../data/course";
 import { getLessonExercises } from "../components/lessonExerciseModel";
+import { A1_LESSON_IDS } from "../a1/manifest";
 import {
   A1_V3_LESSON_ID_MAP,
   A1_V3_PUBLISHED_LESSON_IDS,
@@ -124,6 +125,16 @@ function reviewEntry(
 }
 
 describe("A1_V3_PUBLISHED_LESSON_IDS / A1_V3_SAFE_SOURCE_LESSON_IDS / A1_V3_LESSON_ID_MAP / A1_V4_DESTINATION_LESSON_IDS", () => {
+  it("keeps the current A1 runtime destination catalog at the exact 16-module / 64-lesson manifest shape", () => {
+    const current = currentCatalogSets();
+
+    expect(courseModulesByLevel.a1).toHaveLength(16);
+    expect(current.knownLessonIdsByLevel.a1).toHaveLength(64);
+    expect([...current.knownLessonIdsByLevel.a1].sort()).toEqual(
+      [...A1_LESSON_IDS].sort(),
+    );
+  });
+
   it("matches the exact real published a0-a1-v1 catalog (src/course/catalog/lessonPlans.ts), so a future lesson-id rename in that catalog fails this test instead of silently orphaning real visits", () => {
     // This is the load-bearing regression guard for the Phase 2 Task 5
     // spec-review blocker: the migration's reviewed source-id list must be
@@ -532,7 +543,7 @@ describe("migrateV3ToV4 — deterministic visited-only migration", () => {
   });
 });
 
-describe("v4 catalog v1 → v2 normalization", () => {
+describe("v4 catalog v1/v2 → v3 normalization", () => {
   function v1Fixture(): StoredCourseProgressV4 {
     const currentA1ExerciseIds = exerciseIds("introductions-1");
     const currentPhoneticExerciseIds = exerciseIds("sounds-1");
@@ -690,7 +701,7 @@ describe("v4 catalog v1 → v2 normalization", () => {
       current.knownLessonIdsByLevel,
     );
 
-    expect(migrated.catalogVersion).toBe("a1-a2-v2");
+    expect(migrated.catalogVersion).toBe("a1-a2-v3");
     expect(migrated.updatedAt).toBe(source.updatedAt);
     expect(migrated.migrationNotice).toEqual(source.migrationNotice);
     expect(migrated.levels.a1.lessons).toEqual(source.levels.a1.lessons);
@@ -731,7 +742,134 @@ describe("v4 catalog v1 → v2 normalization", () => {
     expect(source).toEqual(before);
   });
 
-  it("is deterministic and returns the same current-v2 reference when reconciliation has nothing to change", () => {
+  it("migrates a realistic v2 catalog to v3 without resetting evidence, while reconciling only removed active reviews", () => {
+    const source = {
+      ...v1Fixture(),
+      catalogVersion: "a1-a2-v2" as const,
+    };
+    const before = JSON.parse(JSON.stringify(source));
+    const current = currentCatalogSets();
+
+    const migrated = migrateV4Catalog(
+      source,
+      current.knownReviewKeysByLevel,
+      current.knownLessonIdsByLevel,
+    );
+
+    expect(migrated.catalogVersion).toBe("a1-a2-v3");
+    expect(migrated.updatedAt).toBe(source.updatedAt);
+    expect(migrated.migrationNotice).toEqual(source.migrationNotice);
+    expect(migrated.levels.a1.lessons).toEqual(source.levels.a1.lessons);
+    expect(migrated.levels.a2).toEqual(source.levels.a2);
+    expect(migrated.levels.a1.canDos).toEqual(source.levels.a1.canDos);
+    expect(migrated.levels.a1.checkpointAttempts).toEqual(
+      source.levels.a1.checkpointAttempts,
+    );
+    expect(migrated.levels.a1.lastVisitedLessonId).toBe(
+      source.levels.a1.lastVisitedLessonId,
+    );
+    expect(migrated.levels.a1.reviewQueue).toEqual([
+      source.levels.a1.reviewQueue[0],
+    ]);
+    expect(migrated.levels.a1.orphanedLessonIds).toEqual([
+      "existing-a1-orphan",
+      "missing-a1-lesson",
+    ]);
+    expect(migrated.levels.a1.orphanedReviewKeys).toEqual([
+      "existing-a1-review-orphan",
+      source.levels.a1.reviewQueue[1]!.reviewKey,
+      source.levels.a1.reviewQueue[2]!.reviewKey,
+    ]);
+    for (const module of courseModulesByLevel.a1.filter(
+      (courseModule) => courseModule.areaId === "foundations",
+    )) {
+      for (const lesson of module.lessons) {
+        expect(migrated.levels.a1.lessons[lesson.id], lesson.id).toBeUndefined();
+      }
+    }
+    expect(source).toEqual(before);
+
+    const repeated = migrateV4Catalog(
+      source,
+      current.knownReviewKeysByLevel,
+      current.knownLessonIdsByLevel,
+    );
+    expect(repeated).toEqual(migrated);
+  });
+
+  it("deduplicates legacy orphan ledgers in encounter order while retaining unknown lesson evidence", () => {
+    const legacy = v1Fixture();
+    const source = {
+      ...legacy,
+      catalogVersion: "a1-a2-v2" as const,
+      levels: {
+        ...legacy.levels,
+        a1: {
+          ...legacy.levels.a1,
+          orphanedLessonIds: [
+            "existing-a1-orphan",
+            "existing-a1-orphan",
+            "missing-a1-lesson",
+          ],
+          orphanedReviewKeys: [
+            "existing-a1-review-orphan",
+            "existing-a1-review-orphan",
+          ],
+        },
+      },
+    };
+    const current = currentCatalogSets();
+
+    const migrated = migrateV4Catalog(
+      source,
+      current.knownReviewKeysByLevel,
+      current.knownLessonIdsByLevel,
+    );
+
+    expect(migrated.levels.a1.lessons["missing-a1-lesson"]).toEqual(
+      source.levels.a1.lessons["missing-a1-lesson"],
+    );
+    expect(migrated.levels.a1.orphanedLessonIds).toEqual([
+      "existing-a1-orphan",
+      "missing-a1-lesson",
+    ]);
+    expect(migrated.levels.a1.orphanedReviewKeys).toEqual([
+      "existing-a1-review-orphan",
+      source.levels.a1.reviewQueue[1]!.reviewKey,
+      source.levels.a1.reviewQueue[2]!.reviewKey,
+    ]);
+  });
+
+  it("accepts catalog v2 through parseProgress and keeps an already reconciled catalog-v3 record by reference", () => {
+    const legacy = {
+      ...v1Fixture(),
+      catalogVersion: "a1-a2-v2" as const,
+    };
+    const current = currentCatalogSets();
+    const parsed = parseProgress(
+      JSON.stringify(legacy),
+      current.knownLessonIdsByLevel.a1,
+      current.knownReviewKeysByLevel,
+      current.knownLessonIdsByLevel,
+    );
+
+    expect(parsed).toMatchObject({
+      corrupted: false,
+      migrated: true,
+      progress: { catalogVersion: "a1-a2-v3" },
+    });
+
+    const currentV3 = emptyProgressV4();
+    expect(
+      migrateV4Catalog(
+        currentV3,
+        current.knownReviewKeysByLevel,
+        current.knownLessonIdsByLevel,
+      ),
+    ).toBe(currentV3);
+  });
+
+  it("is deterministic and returns the same current-v3 reference when reconciliation has nothing to change", () => {
     const source = v1Fixture();
     const current = currentCatalogSets();
     const once = migrateV4Catalog(
@@ -766,7 +904,7 @@ describe("v4 catalog v1 → v2 normalization", () => {
 
     expect(parsed.corrupted).toBe(false);
     expect(parsed.migrated).toBe(true);
-    expect(parsed.progress.catalogVersion).toBe("a1-a2-v2");
+    expect(parsed.progress.catalogVersion).toBe("a1-a2-v3");
     expect(parsed.progress.levels.a1.orphanedReviewKeys).toContain(
       source.levels.a1.reviewQueue[1]!.reviewKey,
     );

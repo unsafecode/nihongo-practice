@@ -1,4 +1,5 @@
 import { module1ItemsByLesson } from "../catalog/module01Sounds";
+import { deepFreeze } from "../../foundations/deepFreeze";
 import { defineA1LessonContent, type A1LessonContent } from "./types";
 import { phoneticBlueprint, semanticBlueprint } from "./lessonContentHelpers";
 
@@ -15,7 +16,8 @@ const phoneticItems = (
   ];
 };
 
-export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
+/** The four phonetic lessons, kept independently orderable around Foundations. */
+export const a1SoundsLessonContent: readonly A1LessonContent[] = [
   defineA1LessonContent({
     lessonId: "sounds-1",
     situation: {
@@ -25,7 +27,7 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     prerequisiteLessonIds: [],
     prerequisiteConceptIds: [],
     newLexemeIds: [
-      "a1-lexeme-asa",
+      "a1-lexeme-umi",
       "a1-lexeme-sumu",
       "a1-lexeme-sushi",
       "a1-lexeme-suki",
@@ -48,7 +50,7 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     prerequisiteConceptIds: [],
     newLexemeIds: [
       "a1-lexeme-kyouto",
-      "a1-lexeme-isha",
+      "a1-lexeme-shashin",
       "a1-lexeme-shizuka",
       "a1-lexeme-goji",
     ],
@@ -69,7 +71,7 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     prerequisiteLessonIds: ["sounds-2"],
     prerequisiteConceptIds: [],
     newLexemeIds: [
-      "a1-lexeme-gakkou",
+      "a1-lexeme-happa",
       "a1-lexeme-kouen",
       "a1-lexeme-toukyou",
       "a1-lexeme-oosaka",
@@ -104,6 +106,10 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       it: "Individua la barra della vocale lunga, poi leggi tutta la parola katakana a more.",
     },
   }),
+];
+
+/** Existing introductions-through-actions learner content. */
+export const a1Situations01to04LessonContent: readonly A1LessonContent[] = [
   defineA1LessonContent({
     lessonId: "introductions-1",
     situation: {
@@ -113,11 +119,11 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     prerequisiteLessonIds: ["sounds-4"],
     prerequisiteConceptIds: [],
     newLexemeIds: [
-      "a1-lexeme-watashi",
-      "a1-lexeme-gakusei",
-      "a1-lexeme-sensei",
-      "a1-lexeme-yuki",
-      "a1-lexeme-ken",
+      "a1-lexeme-aatisuto",
+      "a1-lexeme-kangoshi",
+      "a1-lexeme-shefu",
+      "a1-lexeme-dezainaa",
+      "a1-lexeme-kenkyuusha",
     ],
     learningNoteId: "a1-note-sentence-shape-omission",
     workedExampleVariantIds: ["introductions-1-m1", "introductions-1-m4"],
@@ -147,10 +153,10 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     prerequisiteLessonIds: ["introductions-1"],
     prerequisiteConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
     newLexemeIds: [
-      "a1-lexeme-mina",
-      "a1-lexeme-nihonjin",
-      "a1-lexeme-itaria-jin",
-      "a1-lexeme-amerika-jin",
+      "a1-lexeme-burazirujin",
+      "a1-lexeme-kanadajin",
+      "a1-lexeme-kankokujin",
+      "a1-lexeme-supeinjin",
     ],
     learningNoteId: "a1-note-topic-wa-copula-desu",
     workedExampleVariantIds: ["introductions-2-m1", "introductions-2-m7"],
@@ -173,10 +179,10 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     prerequisiteLessonIds: ["introductions-2"],
     prerequisiteConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
     newLexemeIds: [
-      "a1-lexeme-hataraku",
-      "a1-lexeme-benkyou-suru",
-      "a1-lexeme-suru",
-      "a1-lexeme-ano-hito",
+      "a1-lexeme-rina",
+      "a1-lexeme-taichi",
+      "a1-lexeme-mei",
+      "a1-lexeme-haru",
     ],
     learningNoteId: "a1-note-dictionary-masu-classes",
     workedExampleVariantIds: ["introductions-3-m1", "introductions-3-m2", "introductions-3-m3"],
@@ -199,10 +205,10 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     prerequisiteLessonIds: ["introductions-3"],
     prerequisiteConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
     newLexemeIds: [
-      "a1-lexeme-enjinia",
-      "a1-lexeme-kaishain",
-      "a1-lexeme-sono-hito",
       "a1-lexeme-kurasumeeto",
+      "a1-lexeme-shisho",
+      "a1-lexeme-ongakuka",
+      "a1-lexeme-sakka",
     ],
     learningNoteId: "a1-note-personal-reference",
     workedExampleVariantIds: [
@@ -236,11 +242,11 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     prerequisiteLessonIds: ["introductions-4"],
     prerequisiteConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
     newLexemeIds: [
-      "a1-lexeme-kore",
-      "a1-lexeme-sore",
-      "a1-lexeme-nan",
-      "a1-lexeme-nani",
       "a1-lexeme-dono-hon",
+      "a1-lexeme-passu",
+      "a1-lexeme-menyuu",
+      "a1-lexeme-posutaa",
+      "a1-lexeme-raberu",
     ],
     learningNoteId: "a1-note-question-ka-words",
     workedExampleVariantIds: [
@@ -268,10 +274,10 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     prerequisiteConceptIds: ["a1-concept-interrogative-ka"],
     newLexemeIds: [
       "a1-lexeme-toire",
-      "a1-lexeme-doko",
-      "a1-lexeme-eki",
-      "a1-lexeme-dare",
       "a1-lexeme-kodomo",
+      "a1-lexeme-kauntaa",
+      "a1-lexeme-deguchi",
+      "a1-lexeme-rokkaa",
     ],
     learningNoteId: "a1-note-question-ka-words",
     workedExampleVariantIds: [
@@ -303,7 +309,6 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
       "a1-lexeme-ikura",
       "a1-lexeme-mikan",
       "a1-lexeme-ikutsu",
-      "a1-lexeme-dore",
     ],
     learningNoteId: "a1-note-question-ka-words",
     workedExampleVariantIds: [
@@ -331,9 +336,10 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     prerequisiteConceptIds: ["a1-concept-interrogative-ka", "a1-concept-topic-wa"],
     newLexemeIds: [
       "a1-lexeme-wakaru",
-      "a1-lexeme-nihongo",
-      "a1-lexeme-eigo",
-      "a1-lexeme-itaria-go",
+      "a1-lexeme-kankokugo",
+      "a1-lexeme-supeingo",
+      "a1-lexeme-doitsugo",
+      "a1-lexeme-chuugokugo",
     ],
     learningNoteId: "a1-note-particle-ga",
     workedExampleVariantIds: [
@@ -360,11 +366,11 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     prerequisiteLessonIds: ["essential-questions-4"],
     prerequisiteConceptIds: ["a1-concept-topic-wa"],
     newLexemeIds: [
-      "a1-lexeme-taberu",
-      "a1-lexeme-nomu",
-      "a1-lexeme-yomu",
       "a1-lexeme-hon",
       "a1-lexeme-shukudai",
+      "a1-lexeme-sarada",
+      "a1-lexeme-keeki",
+      "a1-lexeme-suupu",
     ],
     learningNoteId: "a1-note-particle-o",
     workedExampleVariantIds: ["actions-1-m1", "actions-1-m3", "actions-1-m5"],
@@ -387,11 +393,11 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     prerequisiteLessonIds: ["actions-1"],
     prerequisiteConceptIds: ["a1-concept-object-wo"],
     newLexemeIds: [
-      "a1-lexeme-iku",
       "a1-lexeme-kuru",
-      "a1-lexeme-toshokan",
-      "a1-lexeme-kafe",
-      "a1-lexeme-kaisha",
+      "a1-lexeme-hakubutsukan",
+      "a1-lexeme-yuubinkyoku",
+      "a1-lexeme-jimu",
+      "a1-lexeme-daigaku",
     ],
     learningNoteId: "a1-note-location-ni-de-contrast",
     workedExampleVariantIds: ["actions-2-m1", "actions-2-m3", "actions-2-m7"],
@@ -414,10 +420,10 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     prerequisiteLessonIds: ["actions-2"],
     prerequisiteConceptIds: ["a1-concept-location-particle"],
     newLexemeIds: [
-      "a1-lexeme-kiku",
       "a1-lexeme-tenin",
-      "a1-lexeme-kau",
-      "a1-lexeme-are",
+      "a1-lexeme-gaidobukku",
+      "a1-lexeme-bentou",
+      "a1-lexeme-hagaki",
     ],
     learningNoteId: "a1-note-particle-ni",
     workedExampleVariantIds: ["actions-3-m2", "actions-3-m4", "actions-3-m5"],
@@ -440,11 +446,11 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     prerequisiteLessonIds: ["actions-3"],
     prerequisiteConceptIds: ["a1-concept-recipient-ni"],
     newLexemeIds: [
-      "a1-lexeme-miru",
       "a1-lexeme-eiga",
       "a1-lexeme-ongaku",
-      "a1-lexeme-kaku",
       "a1-lexeme-tegami",
+      "a1-lexeme-poddokyasuto",
+      "a1-lexeme-meeru",
     ],
     learningNoteId: "a1-note-particle-o",
     workedExampleVariantIds: ["actions-4-m1", "actions-4-m3", "actions-4-m5"],
@@ -459,3 +465,9 @@ export const a1Modules01to04LessonContent: readonly A1LessonContent[] = [
     },
   }),
 ];
+
+/** @deprecated Use the named sounds and situations arrays for canonical assembly. */
+export const a1Modules01to04LessonContent: readonly A1LessonContent[] = deepFreeze([
+  ...a1SoundsLessonContent,
+  ...a1Situations01to04LessonContent,
+]);

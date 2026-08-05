@@ -39,7 +39,7 @@ describe("scripts/validateA1Release — the prebuild content-validation gate (I3
     vi.resetModules();
   });
 
-  it("exits cleanly and prints an OK message when validateA1Release() reports valid", async () => {
+  it("exits cleanly and prints the compact canonical area/module/lesson summary when validateA1Release() reports valid", async () => {
     vi.doMock(VALIDATE_A1_MODULE_PATH, () => ({
       validateA1Release: () => ({
         valid: true,
@@ -47,10 +47,10 @@ describe("scripts/validateA1Release — the prebuild content-validation gate (I3
         foundationReport: {},
         curriculumReport: {
           reports: {
-            byLesson: Array.from({ length: 48 }, (_, index) => ({ lessonId: `lesson-${index}` })),
+            byLesson: Array.from({ length: 64 }, (_, index) => ({ lessonId: `lesson-${index}` })),
             practiceFunctionDistribution: {
-              "meaning-comprehension": 48,
-              "listening-speaking": 48,
+              "meaning-comprehension": 64,
+              "listening-speaking": 64,
             },
           },
         },
@@ -65,8 +65,16 @@ describe("scripts/validateA1Release — the prebuild content-validation gate (I3
     expect(exitCode).toBeUndefined();
     expect(errorSpy).not.toHaveBeenCalled();
     expect(logSpy.mock.calls.flat().join(" ")).toMatch(/OK/);
-    expect(logSpy.mock.calls.flat().join(" ")).toMatch(/48 lessons/);
-    expect(logSpy.mock.calls.flat().join(" ")).toMatch(/meaning-comprehension=48/);
+    const output = logSpy.mock.calls.flat().join(" ");
+    expect(logSpy).toHaveBeenCalledTimes(1);
+    expect(output.length).toBeLessThan(500);
+    expect(output).toMatch(/areas=4/);
+    expect(output).toMatch(/modules=16/);
+    expect(output).toMatch(/lessons=64/);
+    expect(output).toMatch(/semantic=60/);
+    expect(output).toMatch(/phonetic=4/);
+    expect(output).toMatch(/capstones=4/);
+    expect(output).toMatch(/meaning-comprehension=64/);
   });
 
   it("refuses the build — exits non-zero and prints every structured error — when validateA1Release() reports invalid", async () => {
@@ -80,6 +88,13 @@ describe("scripts/validateA1Release — the prebuild content-validation gate (I3
             lessonId: "introductions-1",
             stage: "sections",
             referenceId: "rule,vocabulary,grammar,comparison,explore,recap",
+          },
+          {
+            code: "area-copy-parity",
+            id: "sounds",
+            referenceId: "a1-area-sounds-title",
+            dimension: "en:title",
+            underlyingCode: "missing-en-area-title",
           },
         ],
         foundationReport: {},
@@ -96,5 +111,7 @@ describe("scripts/validateA1Release — the prebuild content-validation gate (I3
     expect(allErrorText).toContain("invalid-section-order");
     expect(allErrorText).toContain("lesson=introductions-1");
     expect(allErrorText).toContain("stage=sections");
+    expect(allErrorText).toContain("area-copy-parity");
+    expect(allErrorText).toContain("underlying=missing-en-area-title");
   });
 });

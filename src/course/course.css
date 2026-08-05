@@ -91,10 +91,7 @@
   }
 }
 
-/* ---------- Course map: vertical phase path ----------
-   Replaces the old uniform eight-card chapter grid. The whole map is a
-   single vertical timeline: four phase bands, each a flex column of its
-   modules — never a responsive equal-card grid. */
+/* ---------- Course map ---------- */
 .course-map {
   display: flex;
   flex-direction: column;
@@ -105,6 +102,74 @@
 .course-map__heading {
   margin: 0 0 var(--space-6);
   font-size: var(--text-4);
+}
+
+.course-area {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  border: 1px solid var(--course-line);
+  border-radius: 1rem;
+  padding: var(--space-5);
+  background: color-mix(in srgb, var(--course-surface) 88%, transparent);
+}
+
+.course-area__header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.course-area__header > div {
+  min-width: 0;
+}
+
+.course-area__heading {
+  margin: 0;
+  color: var(--course-ink);
+  font-size: var(--text-3);
+}
+
+.course-area__description {
+  max-width: 48rem;
+  margin: var(--space-1) 0 0;
+  color: var(--course-muted);
+  line-height: 1.5;
+}
+
+.course-area__icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border: 2px solid currentColor;
+  border-radius: 999px;
+}
+
+.course-area--foundations {
+  border: 2px solid var(--course-teal);
+  background: var(--course-teal-soft);
+}
+
+.course-area--foundations .course-area__heading {
+  text-decoration: underline;
+  text-decoration-thickness: 0.14em;
+  text-underline-offset: 0.18em;
+}
+
+.course-area--foundations .course-area__icon {
+  color: var(--course-teal);
+  background: var(--course-surface);
+}
+
+.course-area__modules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: var(--space-4);
+  min-width: 0;
 }
 
 .course-phase {
@@ -346,6 +411,14 @@
 }
 
 @media (max-width: 720px) {
+  .course-area {
+    padding: var(--space-4);
+  }
+
+  .course-area__modules {
+    grid-template-columns: 1fr;
+  }
+
   .module-card {
     flex-direction: column;
   }

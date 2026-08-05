@@ -385,7 +385,7 @@ export const A1_INSTRUCTIONAL_KIT_CONFIG: InstructionalLessonKitConfig<A1LessonR
  * unique targets, reuse ≤2, two transfer exercises, and controlled
  * construction. A focused foundation lesson may explicitly lower its predicate
  * floor through `diversityOverride`; defaults remain unchanged. `minFamilies`
- * is declared as 1 (the honest floor — 10 of 44 A1 lessons genuinely teach a
+ * is declared as 1 (the honest floor — some A1 lessons genuinely teach a
  * single family). Delegates
  * every level-agnostic assembly step to the shared
  * `instructionalLessonKit.buildInstructionalLesson`.

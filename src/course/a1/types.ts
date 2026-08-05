@@ -1,11 +1,12 @@
 /**
  * A1 release authoring contracts (Phase 2 Task 1).
  *
- * These types describe the *shape* of an authored A1 release: the exact
- * 12-module / 48-lesson manifest, the per-lesson recipes (instructional,
- * synthesis, and phonetic), the module recipe, the A1 checkpoint, and the
- * structured error/result vocabulary used by the manifest validator and the
- * module-local slice assembler.
+ * These types describe the shape of the deployed 16-module / 64-lesson A1
+ * release. Deprecated `A1_EXPANDED_*` aliases remain source-compatible with
+ * the canonical manifest. They also define the per-lesson recipes
+ * (instructional, synthesis, and phonetic), the module recipe, the A1
+ * checkpoint, and the structured error/result vocabulary used by the manifest
+ * validator and the module-local slice assembler.
  *
  * The A1 layer reuses the Phase 1 foundation *data* contracts (discourse,
  * form, practice, diversity, semantic values) by importing them directly —
@@ -20,7 +21,7 @@
  * (`A1SliceErrorCode`), authoring-time gates (`A1AuthoringErrorCode`), and the
  * whole-level release validator (`A1ReleaseErrorCode`, covering manifest
  * agreement, the phonetic contract, capstone no-new-content, level-scope
- * introduction order, route/copy id resolution, and the exact 12×4/48 release
+ * introduction order, route/copy id resolution, and the exact 16×4/64 release
  * counts). Consumers such as `validateA1` re-export these names for backward
  * compatibility, but never redeclare the underlying literal union — this
  * keeps exactly one source of truth per failure vocabulary.
@@ -155,6 +156,48 @@ export interface A1ModuleManifestEntry {
   readonly lessonIds: readonly LessonId[];
   readonly outcomeCopyId: CopyId;
 }
+
+// ---------------------------------------------------------------------------
+// Course-area shapes
+// ---------------------------------------------------------------------------
+
+/**
+ * The four ordered canonical A1 course areas. Areas group the canonical
+ * manifest modules for navigation and copy without adding another
+ * source of module order.
+ */
+export type A1AreaId = "sounds" | "foundations" | "situations" | "synthesis";
+
+/** One ordered, localized group of A1 modules. */
+export interface A1CourseArea {
+  readonly id: A1AreaId;
+  readonly moduleIds: readonly ModuleId[];
+  readonly titleCopyId: CopyId;
+  readonly descriptionCopyId: CopyId;
+}
+
+/** The structured failure codes emitted by the A1 area-contract validator. */
+export type A1AreaValidationErrorCode =
+  | "area-count"
+  | "area-order"
+  | "duplicate-area-id"
+  | "unknown-area-id"
+  | "missing-area-id"
+  | "empty-area"
+  | "duplicate-module-membership"
+  | "unknown-module-membership"
+  | "missing-module-membership"
+  | "module-union-order";
+
+export interface A1AreaValidationError {
+  readonly code: A1AreaValidationErrorCode;
+  readonly message: string;
+  readonly detail?: string;
+}
+
+export type A1AreaValidationResult =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly errors: readonly A1AreaValidationError[] };
 
 /**
  * The declarative source-of-truth spec the manifest derives every array/map
@@ -309,17 +352,22 @@ export interface A1CurriculumValidationError {
  * The structured failure codes the whole-level `validateA1` release gate can
  * report (plan §Task 1 Step 3 / Task 4): manifest agreement, the phonetic
  * contract, capstone no-new-content, level-scope introduction order,
- * route/copy id resolution, and the exact 12×4/48 release counts. This is a
+ * route/copy id resolution, and the exact 16×4/64 release counts. This is a
  * runtime-checkable `readonly` tuple, not merely a compile-time alias, so
  * consumers (and tests) can prove membership rather than assert a type
  * compiles. `validateA1` imports and re-exports this exact vocabulary as
  * `A1ValidationErrorCode` — it never redeclares its own copy.
  */
 export const A1_RELEASE_ERROR_CODES = [
-  // structural shape (exact 12 modules × 4 lessons = 48 routes)
+  // structural shape (exact 16 modules × 4 lessons = 64 routes)
   "module-count",
   "lessons-per-module",
   "route-count",
+  // area partition / runtime-map / localized area-copy agreement
+  "area-count",
+  "area-module-membership",
+  "area-order",
+  "area-copy-parity",
   // route id resolution
   "unknown-lesson-id",
   "duplicate-lesson-id",

@@ -15,9 +15,32 @@
 import { describe, expect, it } from "vitest";
 
 import { a1VerbUseRecord } from "./shared";
-import { assertNoStaleLaterUseKeys, a1ReleaseVerbUseRecords } from "./recurrence";
-import { a1SemanticFoundationCatalogs } from "./catalog";
+import {
+  a1CanonicalContexts,
+  a1CanonicalLearningTargetSenses,
+  a1CanonicalPersonRoles,
+  a1CanonicalReferents,
+  a1CanonicalSemanticValues,
+  a1CanonicalSentenceFamilies,
+} from "./a1SemanticCatalog";
+import {
+  assertNoStaleLaterUseKeys,
+  a1FoundationsVerbUseRecords,
+  a1ReleaseVerbUseRecords,
+  a1StagedFoundationsArea01to02VerbUseRecords,
+} from "./recurrence";
+import * as publishedRecurrence from "./recurrence";
+import {
+  a1ExpandedFoundationsVerbUseRecords,
+  a1StagedFoundationsArea03to04VerbUseRecords,
+} from "./foundationsRecurrence03to04";
+import {
+  a1SemanticBuiltLessons,
+  a1SemanticFoundationCatalogs,
+} from "./catalog";
 import { realizeVariant, type RealizeVariantCatalogs } from "../../foundations/realizeFamily";
+import { a1AllStagedFoundationsBuiltLessons } from "../curriculum/foundationsArea03to04";
+import { A1_EXPANDED_CANONICAL_POSITIONS } from "../manifest";
 
 function fakeRecord(senseId: string) {
   return a1VerbUseRecord({
@@ -41,6 +64,106 @@ describe("assertNoStaleLaterUseKeys", () => {
     expect(() => assertNoStaleLaterUseKeys(laterUsesBySense, records)).toThrowError(
       /a1-sense-stale-typo/,
     );
+  });
+
+  describe("published Foundations recurrence", () => {
+    it("includes the new copula timeline in the published recurrence view", () => {
+      expect(a1StagedFoundationsArea01to02VerbUseRecords).toEqual([
+        expect.objectContaining({
+          senseId: "a1-sense-be",
+          introductionLessonId: "sentence-foundations-1",
+          laterUses: [
+            {
+              lessonId: "sentence-foundations-3",
+              variantId: "sentence-foundations-3-m2",
+            },
+            {
+              lessonId: "topic-questions-1",
+              variantId: "topic-questions-1-m1",
+            },
+          ],
+        }),
+      ]);
+      expect(
+        a1ReleaseVerbUseRecords.some((record) =>
+          record.introductionLessonId.startsWith("sentence-foundations-"),
+        ),
+      ).toBe(true);
+    });
+
+    it("keeps legacy preview aliases equal to the canonical Foundations timeline", () => {
+      expect(publishedRecurrence).not.toHaveProperty(
+        "a1ExpandedFoundationsVerbUseRecords",
+      );
+      expect(a1ExpandedFoundationsVerbUseRecords).toEqual([
+        ...a1StagedFoundationsArea01to02VerbUseRecords,
+        ...a1StagedFoundationsArea03to04VerbUseRecords,
+      ]);
+      expect(a1ExpandedFoundationsVerbUseRecords).toBe(a1FoundationsVerbUseRecords);
+    });
+
+    it("keeps final-module records published, spaced, and tied to variants that realize the cited sense", () => {
+      const allBuilt = [
+        ...a1AllStagedFoundationsBuiltLessons,
+        ...a1SemanticBuiltLessons,
+      ];
+      const variantById = new Map(
+        allBuilt.flatMap(({ variants }) => variants).map((variant) => [variant.id, variant]),
+      );
+      const familyById = new Map(
+        a1CanonicalSentenceFamilies.map((family) => [family.id, family]),
+      );
+      const catalogs: RealizeVariantCatalogs = {
+        contexts: a1CanonicalContexts,
+        personRoles: a1CanonicalPersonRoles,
+        referents: a1CanonicalReferents,
+        semanticValues: a1CanonicalSemanticValues,
+        learningTargetSenses: a1CanonicalLearningTargetSenses,
+      };
+
+      expect(
+        a1ReleaseVerbUseRecords.some((record) =>
+          record.introductionLessonId.startsWith("polite-verbs-") ||
+          record.introductionLessonId.startsWith("time-movement-"),
+        ),
+      ).toBe(true);
+
+      for (const record of a1StagedFoundationsArea03to04VerbUseRecords) {
+        const introductionPosition =
+          A1_EXPANDED_CANONICAL_POSITIONS[record.introductionLessonId];
+        expect(introductionPosition, record.senseId).toBeDefined();
+        expect(record.laterUses.length, record.senseId).toBeGreaterThanOrEqual(2);
+        let hasLaterModuleUse = false;
+
+        for (const use of record.laterUses) {
+          const variant = variantById.get(use.variantId);
+          const family = variant
+            ? familyById.get(variant.sentenceFamilyId)
+            : undefined;
+          expect(variant, `${record.senseId}:${use.variantId}`).toBeDefined();
+          expect(family, `${record.senseId}:${use.variantId}`).toBeDefined();
+          const laterPosition = A1_EXPANDED_CANONICAL_POSITIONS[use.lessonId];
+          expect(laterPosition, `${record.senseId}:${use.lessonId}`).toBeDefined();
+          expect(laterPosition - introductionPosition).toBeGreaterThanOrEqual(2);
+          if (
+            use.lessonId.split("-").slice(0, -1).join("-") !==
+            record.introductionLessonId.split("-").slice(0, -1).join("-")
+          ) {
+            hasLaterModuleUse = true;
+          }
+
+          if (!variant || !family) continue;
+          const realized = realizeVariant(family, variant, catalogs, {
+            availableConceptIds: family.requiredConceptIds,
+          });
+          expect(realized.ok, `${record.senseId}:${use.variantId}`).toBe(true);
+          if (realized.ok) {
+            expect(realized.sentence.usedLexemeSenseIds).toContain(record.senseId);
+          }
+        }
+        expect(hasLaterModuleUse, record.senseId).toBe(true);
+      }
+    });
   });
 
   it("lists every stale key, sorted, when more than one is stale", () => {

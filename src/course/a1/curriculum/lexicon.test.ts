@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { a1SemanticValues } from "../catalog/a1SemanticCatalog";
+import {
+  a1CanonicalLearningTargetSenses,
+  a1CanonicalSemanticValues,
+  a1SemanticValues,
+} from "../catalog/a1SemanticCatalog";
 import {
   a1LexemeById,
   a1LexemeByValueId,
@@ -9,7 +13,7 @@ import {
 } from "./lexicon";
 
 function lexicalSurface(valueId: string): { readonly kana: string; readonly romaji: string } {
-  const value = a1SemanticValues.find((candidate) => candidate.id === valueId);
+  const value = a1CanonicalSemanticValues.find((candidate) => candidate.id === valueId);
   if (!value) {
     throw new Error(`Missing semantic value "${valueId}".`);
   }
@@ -32,7 +36,7 @@ describe("A1 canonical lexicon", () => {
     });
     expect(a1LexemeById["a1-lexeme-gakusei"]).toMatchObject({
       id: "a1-lexeme-gakusei",
-      valueIds: ["a1-value-obj-student"],
+      valueIds: ["a1-value-obj-student", "a1-value-student-subject"],
       kana: "がくせい",
       romaji: "gakusei",
       category: "person",
@@ -62,6 +66,7 @@ describe("A1 canonical lexicon", () => {
       category: "noun",
       meaning: { en: "hotel", it: "hotel; albergo" },
     });
+
     expect(a1LexemeById["a1-lexeme-shashin"]).toMatchObject({
       id: "a1-lexeme-shashin",
       valueIds: ["a1-value-obj-photo"],
@@ -75,6 +80,101 @@ describe("A1 canonical lexicon", () => {
     );
     expect(a1LexemeByValueId["a1-value-obj-photo"]).toBe(
       a1LexemeById["a1-lexeme-shashin"],
+    );
+  });
+
+  it("includes the published Foundations lexemes with accurate forms and ownership", () => {
+    expect(a1LexemeById["a1-lexeme-namae"]).toMatchObject({
+      valueIds: ["a1-value-obj-name", "a1-value-name-subject"],
+      kana: "なまえ",
+      romaji: "namae",
+      category: "noun",
+      meaning: { en: "name", it: "nome" },
+    });
+    expect(a1LexemeById["a1-lexeme-anata"]).toMatchObject({
+      valueIds: ["a1-value-anata"],
+      kana: "あなた",
+      romaji: "anata",
+      category: "pronoun",
+      meaning: { en: "you", it: "tu; lei" },
+    });
+    expect(a1LexemeById["a1-lexeme-doukyuusei"]).toMatchObject({
+      valueIds: ["a1-value-obj-classmate-peer"],
+      kana: "どうきゅうせい",
+      romaji: "doukyuusei",
+      category: "person",
+      meaning: { en: "classmate; peer", it: "compagno/a di corso" },
+    });
+    expect(a1LexemeById["a1-lexeme-furansujin"]).toMatchObject({
+      valueIds: ["a1-value-obj-french-person"],
+      kana: "フランスじん",
+      romaji: "furansujin",
+      category: "person",
+      meaning: { en: "French person", it: "francese" },
+    });
+    expect(a1LexemeById["a1-lexeme-yasumu"]).toMatchObject({
+      valueIds: ["a1-value-rest-bare", "a1-value-rest-routine"],
+      kana: "やすむ",
+      romaji: "yasumu",
+      category: "verb",
+      meaning: { en: "to rest; take a break", it: "riposarsi; fare una pausa" },
+      verb: {
+        dictionary: { kana: "やすむ", romaji: "yasumu" },
+        polite: { kana: "やすみます", romaji: "yasumimasu" },
+        class: "godan",
+      },
+    });
+    expect(a1LexemeById["a1-lexeme-kinou"]).toMatchObject({
+      valueIds: ["a1-value-time-yesterday"],
+      kana: "きのう",
+      romaji: "kinou",
+      category: "time",
+      meaning: { en: "yesterday", it: "ieri" },
+    });
+    expect(a1LexemeById["a1-lexeme-ashita"]).toMatchObject({
+      valueIds: ["a1-value-time-tomorrow"],
+      kana: "あした",
+      romaji: "ashita",
+      category: "time",
+      meaning: { en: "tomorrow", it: "domani" },
+    });
+  });
+
+  it("keeps the new rest values tied to distinct bare and time-anchored frames", () => {
+    const sensesById = Object.fromEntries(
+      a1CanonicalLearningTargetSenses.map((sense) => [sense.id, sense]),
+    );
+
+    expect(sensesById["a1-sense-rest-bare"]).toMatchObject({
+      lexemeId: "a1-lexeme-yasumu",
+      semanticFrameId: "a1-frame-rest-bare",
+      argumentRoles: ["agent"],
+      argumentParticleByRole: {},
+    });
+    expect(sensesById["a1-sense-rest-routine"]).toMatchObject({
+      lexemeId: "a1-lexeme-yasumu",
+      semanticFrameId: "a1-frame-rest-routine",
+      argumentRoles: ["agent", "time"],
+      argumentParticleByRole: {},
+    });
+  });
+
+  it("keeps the expanded bare and routine senses on their shared published lexemes", () => {
+    const sensesById = Object.fromEntries(
+      a1CanonicalLearningTargetSenses.map((sense) => [sense.id, sense]),
+    );
+
+    expect(sensesById["a1-sense-study-bare"]?.lexemeId).toBe(
+      "a1-lexeme-benkyou-suru",
+    );
+    expect(sensesById["a1-sense-study-routine"]?.lexemeId).toBe(
+      "a1-lexeme-benkyou-suru",
+    );
+    expect(sensesById["a1-sense-rest-routine"]?.lexemeId).toBe(
+      "a1-lexeme-yasumu",
+    );
+    expect(sensesById["a1-sense-return-bare"]?.lexemeId).toBe(
+      "a1-lexeme-kaeru",
     );
   });
 
@@ -123,7 +223,7 @@ describe("A1 canonical lexicon", () => {
     }).toThrow();
   });
 
-  it("maps every learner-visible lexical semantic value and no missing value id", () => {
+  it("maps every published lexical semantic value", () => {
     const semanticValueIds = new Set(a1SemanticValues.map((value) => value.id));
     const lexicalValueIds = a1SemanticValues
       .filter((value) => value.tokenFragments.some((fragment) => fragment.kind === "lexical"))
@@ -133,12 +233,19 @@ describe("A1 canonical lexicon", () => {
     expect(
       a1Lexemes.flatMap((lexeme) => lexeme.valueIds).filter((valueId) => !semanticValueIds.has(valueId)),
     ).toEqual([]);
+    expect(a1LexemeByValueId["a1-value-rest-routine"]).toBe(
+      a1LexemeById["a1-lexeme-yasumu"],
+    );
   });
 
   it("keeps each lexeme form structurally aligned with its semantic fragments", () => {
     for (const lexeme of a1Lexemes) {
       for (const valueId of lexeme.valueIds) {
         const surface = lexicalSurface(valueId);
+        if (surface.kana === "" && surface.romaji === "") {
+          expect(lexeme.id).toBe("a1-lexeme-desu");
+          continue;
+        }
         if (lexeme.category === "verb") {
           expect(lexeme.verb?.polite.kana.slice(0, -"ます".length)).toBe(surface.kana);
           expect(lexeme.verb?.polite.romaji.replace(/ /g, "").slice(0, -"masu".length)).toBe(
@@ -154,6 +261,28 @@ describe("A1 canonical lexicon", () => {
       }
     }
   });
+
+  it.each([
+    [
+      "a1-value-obj-brazilian-person",
+      "a1-lexeme-burazirujin",
+      "ブラジルじん",
+      "burajirujin",
+    ],
+    ["a1-value-q-pass", "a1-lexeme-passu", "パス", "pasu"],
+    [
+      "a1-value-transport-scooter",
+      "a1-lexeme-sukutaa",
+      "スクーター",
+      "sukuutaa",
+    ],
+  ] as const)(
+    "uses the established Hepburn doubled-vowel romaji for %s",
+    (valueId, lexemeId, kana, romaji) => {
+      expect(lexicalSurface(valueId)).toEqual({ kana, romaji });
+      expect(a1LexemeById[lexemeId]).toMatchObject({ kana, romaji });
+    },
+  );
 
   it("gives every verb dictionary and polite forms with a valid class", () => {
     for (const lexeme of a1Lexemes.filter(({ category }) => category === "verb")) {

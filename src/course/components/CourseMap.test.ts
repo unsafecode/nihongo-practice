@@ -3,8 +3,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
 import { LocaleProvider } from "../../i18n/LocaleContext";
+import { lessonPath } from "../../routing/routes";
 import { it as itCopy } from "../i18n/it";
-import { courseModules } from "../data/course";
+import { courseModules, courseModulesByLevel } from "../data/course";
+import { A1_AREAS } from "../a1/areas";
 import { buildCourseMapModel } from "./courseMapModel";
 import { CourseMap } from "./CourseMap";
 
@@ -12,7 +14,13 @@ function renderMap(
   visitedLessonIds: string[],
   lastVisitedLessonId: string | null,
 ): string {
-  const model = buildCourseMapModel(courseModules, visitedLessonIds, lastVisitedLessonId);
+  const model = buildCourseMapModel(
+    courseModules,
+    visitedLessonIds,
+    lastVisitedLessonId,
+    {},
+    A1_AREAS,
+  );
   return renderToStaticMarkup(
     createElement(
       MemoryRouter,
@@ -24,9 +32,13 @@ function renderMap(
 
 import { escapeHtmlText } from "./renderTestUtils";
 
-/** All twelve real module ids, in their authored (approved) order. */
+/** All sixteen real module ids, in their authored (approved) order. */
 const allModuleIdsInOrder = [
   "sounds",
+  "sentence-foundations",
+  "topic-questions",
+  "polite-verbs",
+  "time-movement",
   "introductions",
   "essential-questions",
   "actions",
@@ -47,7 +59,89 @@ function lessonsInFirstModules(count: number): string[] {
     .flatMap((module) => module.lessons.map((lesson) => lesson.id));
 }
 
-describe("CourseMap: flat module order", () => {
+describe("CourseMap: canonical module order and A1 areas", () => {
+  it("nests module headings below A1 area headings while keeping flat A2 module headings at h3", () => {
+    const a1Html = renderMap([], null);
+    expect(a1Html).toMatch(
+      /<h2 class="course-map__heading">.*?<\/h2>.*?<h3 id="course-area-sounds" class="course-area__heading">.*?<\/h3>.*?<h4 class="module-card__title">.*?<\/h4>/,
+    );
+    expect(a1Html).not.toContain('<h3 class="module-card__title">');
+
+    const a2Model = buildCourseMapModel(courseModulesByLevel.a2, [], null);
+    const a2Html = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(LocaleProvider, null, createElement(CourseMap, { model: a2Model })),
+      ),
+    );
+    expect(a2Html).toMatch(
+      /<h2 class="course-map__heading">.*?<\/h2>.*?<h3 class="module-card__title">.*?<\/h3>/,
+    );
+    expect(a2Html).not.toContain('<h4 class="module-card__title">');
+  });
+
+  it("renders four labelled A1 area sections in canonical order, with all sixteen Foundations lesson links before Presentations", () => {
+    const html = renderMap([], null);
+    const expectedAreas = [
+      ["sounds", "Suoni", 1],
+      ["foundations", "Fondamentali", 4],
+      ["situations", "Situazioni quotidiane", 10],
+      ["synthesis", "Sintesi", 1],
+    ] as const;
+
+    expect(
+      (html.match(/class="course-area(?: course-area--[a-z-]+)?"/g) ?? []),
+    ).toHaveLength(4);
+    expect(html).toContain(
+      '<section class="course-area" aria-labelledby="course-area-sounds">',
+    );
+    expect(html).toContain(
+      '<section class="course-area course-area--foundations" aria-labelledby="course-area-foundations">',
+    );
+
+    let previousAreaIndex = -1;
+    for (const [areaPosition, [id, title, moduleCount]] of expectedAreas.entries()) {
+      const areaIndex = html.indexOf(`id="course-area-${id}"`);
+      expect(areaIndex, id).toBeGreaterThan(previousAreaIndex);
+      expect(html).toContain(`>${title}</h3>`);
+      const nextAreaId = expectedAreas[areaPosition + 1]?.[0];
+      const nextAreaIndex = nextAreaId
+        ? html.indexOf(`id="course-area-${nextAreaId}"`)
+        : -1;
+      const areaMarkup = html.slice(
+        areaIndex,
+        nextAreaIndex === -1 ? html.length : nextAreaIndex,
+      );
+      expect(
+        (areaMarkup.match(/<article class="module-card/g) ?? []).length,
+        id,
+      ).toBe(moduleCount);
+      previousAreaIndex = areaIndex;
+    }
+
+    const foundationLessonLinks = courseModules
+      .filter((module) => module.areaId === "foundations")
+      .flatMap((module) => module.lessons.map((lesson) => lessonPath(module.id, lesson.id)));
+    expect(foundationLessonLinks).toHaveLength(16);
+    for (const href of foundationLessonLinks) expect(html).toContain(`href="${href}"`);
+
+    const finalFoundationLink = html.lastIndexOf(
+      `href="${lessonPath("time-movement", "time-movement-4")}"`,
+    );
+    const foundationStart = html.indexOf('id="course-area-foundations"');
+    const situationsStart = html.indexOf('id="course-area-situations"');
+    const foundationMarkup = html.slice(foundationStart, situationsStart);
+    const presentationsTitle = html.indexOf(
+      `<h4 class="module-card__title">${escapeHtmlText(itCopy.modules.introductions.title)}</h4>`,
+    );
+    expect(finalFoundationLink).toBeGreaterThanOrEqual(0);
+    for (const href of foundationLessonLinks) {
+      expect(foundationMarkup).toContain(`href="${href}"`);
+    }
+    expect(presentationsTitle).toBeGreaterThan(finalFoundationLink);
+  });
+
   it("renders as a single vertical path, not a card grid", () => {
     const html = renderMap([], null);
     expect(html).toContain('class="course-map"');
@@ -57,7 +151,9 @@ describe("CourseMap: flat module order", () => {
     const html = renderMap([], null);
     const titleIndices = allModuleIdsInOrder.map((moduleId) => {
       const title = itCopy.modules[moduleId as keyof typeof itCopy.modules].title;
-      const index = html.indexOf(title);
+      const index = html.indexOf(
+        `<h4 class="module-card__title">${escapeHtmlText(title)}</h4>`,
+      );
       expect(index).toBeGreaterThanOrEqual(0);
       return index;
     });
@@ -78,17 +174,17 @@ describe("CourseMap: initial expansion follows the recommendation", () => {
     const html = renderMap([], null);
     expect(html).toContain('id="module-lessons-sounds" class="module-card__lessons">');
     const hiddenCount = (html.match(/ hidden=""/g) ?? []).length;
-    expect(hiddenCount).toBe(11);
+    expect(hiddenCount).toBe(15);
   });
 
   it("moves the expanded module as the recommendation advances through met prerequisites", () => {
-    // Fully visit the first three modules (orient phase); with no recognized
+    // Fully visit the first three modules; with no recognized
     // last-visited lesson, §7.3 rule 2 advances to the first unvisited lesson
-    // whose prerequisites are met: the first lesson of "actions" (module 4).
+    // whose prerequisites are met: the first lesson of "polite-verbs" (module 4).
     const html = renderMap(lessonsInFirstModules(3), null);
     const hiddenCount = (html.match(/ hidden=""/g) ?? []).length;
-    expect(hiddenCount).toBe(11);
-    expect(html).toContain('id="module-lessons-actions" class="module-card__lessons">');
+    expect(hiddenCount).toBe(15);
+    expect(html).toContain('id="module-lessons-polite-verbs" class="module-card__lessons">');
   });
 
   it("resumes and expands the module of a recognized last-visited lesson, even past earlier skipped lessons", () => {
@@ -97,7 +193,7 @@ describe("CourseMap: initial expansion follows the recommendation", () => {
     const html = renderMap(["sounds-1", "places-1"], "places-1");
     // §7.3 rule 1: resume "places", not an earlier unvisited module.
     const hiddenCount = (html.match(/ hidden=""/g) ?? []).length;
-    expect(hiddenCount).toBe(11);
+    expect(hiddenCount).toBe(15);
     expect(html).toContain('id="module-lessons-places" class="module-card__lessons">');
   });
 });
@@ -110,7 +206,7 @@ describe("CourseMap: all-visited fallback", () => {
     expect(html).toContain(escapeHtmlText(itCopy.courseMap.revisitBody));
     expect(html).toContain('id="module-lessons-capstones" class="module-card__lessons">');
     const hiddenCount = (html.match(/ hidden=""/g) ?? []).length;
-    expect(hiddenCount).toBe(11);
+    expect(hiddenCount).toBe(15);
   });
 
   it("does not show the revisit notice while any lesson remains unvisited", () => {

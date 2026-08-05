@@ -203,9 +203,9 @@ describe("buildReviewQueueView — empty and populated", () => {
       const lessonIds = courseModulesByLevel.a1.flatMap((module) =>
         module.lessons.map((lesson) => lesson.id),
       );
-      expect(lessonIds).toHaveLength(48);
+      expect(lessonIds).toHaveLength(64);
       expect(lessonIds.filter((lessonId) => lessonId.startsWith("sounds-"))).toHaveLength(4);
-      expect(lessonIds.filter((lessonId) => !lessonId.startsWith("sounds-"))).toHaveLength(44);
+      expect(lessonIds.filter((lessonId) => !lessonId.startsWith("sounds-"))).toHaveLength(60);
 
       for (const lessonId of lessonIds) {
         const exercises = getLessonExercises(lessonId)!.exercises;
@@ -233,7 +233,7 @@ describe("buildReviewQueueView — empty and populated", () => {
       }
     });
 
-    it("finds safe alternates for all 192 legacy-shaped A1 entries without rewriting stored evidence", () => {
+    it("finds safe alternates for all 256 legacy-shaped A1 entries without rewriting stored evidence", () => {
       const lessonIds = courseModulesByLevel.a1.flatMap((module) =>
         module.lessons.map((lesson) => lesson.id),
       );
@@ -243,7 +243,7 @@ describe("buildReviewQueueView — empty and populated", () => {
           exercise,
         })),
       );
-      expect(sources).toHaveLength(192);
+      expect(sources).toHaveLength(256);
 
       for (const { lessonId, exercise: source } of sources) {
         const content = a1LessonContentById[lessonId]!;

@@ -49,6 +49,35 @@ function isRollupOutputArray(
 
 let jsChunks: OutputChunk[] = [];
 
+function circularChunkPaths(chunks: readonly OutputChunk[]): string[][] {
+  const chunksByFileName = new Map(chunks.map((chunk) => [chunk.fileName, chunk]));
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+  const stack: string[] = [];
+  const cycles: string[][] = [];
+
+  const visit = (fileName: string): void => {
+    if (visiting.has(fileName)) {
+      const start = stack.indexOf(fileName);
+      cycles.push([...stack.slice(start), fileName]);
+      return;
+    }
+    if (visited.has(fileName)) return;
+
+    const chunk = chunksByFileName.get(fileName);
+    if (!chunk) return;
+    visiting.add(fileName);
+    stack.push(fileName);
+    for (const dependency of chunk.imports) visit(dependency);
+    stack.pop();
+    visiting.delete(fileName);
+    visited.add(fileName);
+  };
+
+  for (const chunk of chunks) visit(chunk.fileName);
+  return cycles;
+}
+
 describe("production bundle — validator tree-shaking + chunk-splitting gate (I3)", () => {
   beforeAll(async () => {
     const result = await build({
@@ -103,5 +132,8 @@ describe("production bundle — validator tree-shaking + chunk-splitting gate (I
     // loadable JS files, not a single monolith.
     expect(jsChunks.length).toBeGreaterThan(5);
   });
-});
 
+  it("emits an acyclic static chunk graph so first paint cannot hit a temporal-dead-zone", () => {
+    expect(circularChunkPaths(jsChunks)).toEqual([]);
+  });
+});

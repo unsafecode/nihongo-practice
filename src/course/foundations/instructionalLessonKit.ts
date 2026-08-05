@@ -195,8 +195,8 @@ export interface InstructionalLessonKitConfig<TRecipe> {
    * validated — deriving it made `checkModelDiversity` compare `n < n`, so the
    * gate could not fire on any lesson in either level.
    *
-   * Both shipped levels declare `1`: 26 of 60 A2 lessons and 10 of 44 A1
-   * lessons genuinely teach a single family, because family count is not this
+   * Both shipped levels declare `1`: some A1 and A2 lessons genuinely teach a
+   * single family, because family count is not this
    * course's diversity lever. Predicate, role, context and unique-visible-
    * target diversity are, and those gates carry real margin.
    */

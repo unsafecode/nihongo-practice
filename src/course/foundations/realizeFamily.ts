@@ -175,6 +175,16 @@ const REALIZATION_RULES: Readonly<Record<string, RealizationRuleDefinition>> = {
     objectRole: "copular-complement",
     contentSlots: [{ slotId: "object", particle: { kind: "none" } }],
   },
+  // Focused nominal identification "X が Y です". This is distinct from the
+  // topic-copular rule because the explicit subject is marked が while the
+  // predicate remains the same nominal copula.
+  "rule-focus-copular": {
+    id: "rule-focus-copular",
+    predicateKind: "copula",
+    objectRole: "copular-complement",
+    subjectParticle: "ga",
+    contentSlots: [{ slotId: "object", particle: { kind: "none" } }],
+  },
   // Verb + a に/で location argument whose particle is read from the sense's
   // own case frame (`live` → に, `work`/`go`/`come` → に/で per sense).
   "rule-location-action": {

@@ -23,10 +23,18 @@ import { module9Lessons } from "../catalog/module09Descriptions";
 import { module10Lessons } from "../catalog/module10Shopping";
 import { module11Lessons } from "../catalog/module11ExistenceNeeds";
 import { module12Lessons } from "../catalog/module12Capstones";
+import { moduleSentenceFoundationsLessons } from "../catalog/moduleSentenceFoundations";
+import { moduleTopicQuestionsLessons } from "../catalog/moduleTopicQuestions";
+import { modulePoliteVerbsLessons } from "../catalog/modulePoliteVerbs";
+import { moduleTimeMovementLessons } from "../catalog/moduleTimeMovement";
 
 function buildEn(): Record<string, string> {
   const out: Record<string, string> = { ...a1SharedCopy.en, ...module1Copy.en };
   for (const lessons of [
+    moduleSentenceFoundationsLessons,
+    moduleTopicQuestionsLessons,
+    modulePoliteVerbsLessons,
+    moduleTimeMovementLessons,
     module2Lessons,
     module3Lessons,
     module4Lessons,

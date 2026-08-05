@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { lessonPath } from "../../routing/routePaths";
+import { A1_LESSON_IDS, A1_MODULE_IDS } from "../a1/manifest";
 import { courseModules } from "../data/course";
 import type { CourseModule, Lesson, LessonSections } from "../data/types";
 import {
@@ -120,6 +121,25 @@ describe("resolveLessonRoute: canonical match", () => {
     if (result.kind !== "match") throw new Error("expected match");
     expect(result.courseModule.id).toBe("sounds");
     expect(result.lesson.id).toBe("sounds-1");
+  });
+
+  it("resolves every canonical A1 module/lesson route, including all 64 expanded lessons", () => {
+    const routes = courseModules.flatMap((courseModule) =>
+      courseModule.lessons.map((lesson) => ({
+        moduleId: courseModule.id,
+        lessonId: lesson.id,
+      })),
+    );
+
+    expect(routes).toHaveLength(64);
+    expect(routes.map((route) => route.moduleId)).toEqual(
+      A1_MODULE_IDS.flatMap((moduleId) => Array(4).fill(moduleId)),
+    );
+    expect(routes.map((route) => route.lessonId)).toEqual(A1_LESSON_IDS);
+    for (const route of routes) {
+      const result = resolveLessonRoute(route.moduleId, route.lessonId, courseModules);
+      expect(result.kind, `${route.moduleId}/${route.lessonId}`).toBe("match");
+    }
   });
 });
 

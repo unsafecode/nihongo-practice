@@ -17,32 +17,86 @@ import {
  */
 describe("A1 runtime copy", () => {
   const locales = ["en", "it"] as const;
-  const foundationsTitles = {
+  const introductionsTitles = {
     en: {
-      module: "Foundations: sentences and introductions",
+      module: "Introductions",
       outcome:
-        "You can build simple sentences, introduce yourself, and use polite verbs with natural subject omission.",
+        "You can introduce yourself, share practical personal details, and keep a first conversation going.",
       lessons: [
-        "Sentence shape and identity",
-        "Topics, copula, origins and roles",
-        "Dictionary and polite verbs",
-        "Natural personal reference and exchange",
+        "Meeting and introducing yourself",
+        "Where you are from and what you do",
+        "Talking about languages and work",
+        "A natural first conversation",
       ],
     },
     it: {
-      module: "Fondamenta: frasi e presentazioni",
+      module: "Presentazioni",
       outcome:
-        "Sai costruire frasi semplici, presentarti e usare verbi cortesi con l'omissione naturale del soggetto.",
+        "Sai presentarti, condividere informazioni personali pratiche e portare avanti una prima conversazione.",
       lessons: [
-        "Struttura della frase e identità",
-        "Tema, copula, origine e ruolo",
-        "Verbi: forma dizionario e forma cortese",
-        "Riferimenti personali naturali e scambi",
+        "Conoscersi e presentarsi",
+        "Da dove vieni e cosa fai",
+        "Lingue e lavoro",
+        "Una prima conversazione naturale",
+      ],
+    },
+  } as const;
+  const foundationLessonTitles = {
+    en: {
+      "sentence-foundations": [
+        "Predicate-final identity",
+        "Names and recoverable omission",
+        "Natural person reference",
+        "An identity exchange",
+      ],
+      "topic-questions": [
+        "Topics and polite identity",
+        "Focused answers with ga",
+        "Who, what, and where",
+        "This, that, and which",
+      ],
+      "polite-verbs": [
+        "Dictionary forms and masu",
+        "Objects with o",
+        "Polite negative actions",
+        "Places for movement and action",
+      ],
+      "time-movement": [
+        "Clock time with ni",
+        "Day parts and routines",
+        "Past and negative time",
+        "Direction and transport",
+      ],
+    },
+    it: {
+      "sentence-foundations": [
+        "Identità con predicato finale",
+        "Nomi e omissione ricavabile",
+        "Riferimenti personali naturali",
+        "Uno scambio d'identità",
+      ],
+      "topic-questions": [
+        "Temi e identità cortese",
+        "Risposte in fuoco con ga",
+        "Chi, che cosa e dove",
+        "Questo, quello e quale",
+      ],
+      "polite-verbs": [
+        "Forme dizionario e masu",
+        "Oggetti con o",
+        "Azioni cortesi negative",
+        "Luoghi per movimento e azione",
+      ],
+      "time-movement": [
+        "L'ora con ni",
+        "Parti della giornata e routine",
+        "Tempo passato e negativo",
+        "Direzione e trasporto",
       ],
     },
   } as const;
 
-  it("names all 12 modules with non-blank text, distinct per module", () => {
+  it("names all 16 modules with non-blank text, distinct per module", () => {
     for (const locale of locales) {
       const modules = a1RuntimeModuleCopy(locale);
       expect(Object.keys(modules).sort()).toEqual(
@@ -58,7 +112,65 @@ describe("A1 runtime copy", () => {
     }
   });
 
-  it("titles all 48 lessons with stable, localized text", () => {
+  it("uses the approved concise titles and outcomes for every new Foundations module", () => {
+    const expected = {
+      en: {
+        "sentence-foundations": {
+          title: "Sentence Foundations",
+          outcome:
+            "You can build short predicate-final identity sentences and omit a known topic.",
+        },
+        "topic-questions": {
+          title: "Topics & Questions",
+          outcome:
+            "You can set a topic, focus an identity with ga, and ask simple clarification questions.",
+        },
+        "polite-verbs": {
+          title: "Polite Verbs",
+          outcome:
+            "You can use basic polite nonpast actions with objects, places, and clear subject omission.",
+        },
+        "time-movement": {
+          title: "Time & Movement",
+          outcome:
+            "You can say when an action happened and describe a short trip with direction and transport.",
+        },
+      },
+      it: {
+        "sentence-foundations": {
+          title: "Fondamenti della frase",
+          outcome:
+            "Sai costruire brevi frasi d'identità con predicato finale e omettere un tema noto.",
+        },
+        "topic-questions": {
+          title: "Temi e domande",
+          outcome:
+            "Sai impostare un tema, mettere a fuoco un'identità con ga e fare semplici domande di chiarimento.",
+        },
+        "polite-verbs": {
+          title: "Verbi cortesi",
+          outcome:
+            "Sai usare azioni cortesi non-passate con oggetti, luoghi e un'omissione chiara del soggetto.",
+        },
+        "time-movement": {
+          title: "Tempo e movimento",
+          outcome:
+            "Sai dire quando è avvenuta un'azione e descrivere un breve spostamento con direzione e trasporto.",
+        },
+      },
+    } as const;
+
+    for (const locale of locales) {
+      const modules = a1RuntimeModuleCopy(locale);
+      const outcomes = a1RuntimeOutcomeCopy(locale);
+      for (const [moduleId, copy] of Object.entries(expected[locale])) {
+        expect(modules[moduleId]).toEqual({ title: copy.title });
+        expect(outcomes[`a1-module-outcome-${moduleId}`]).toBe(copy.outcome);
+      }
+    }
+  });
+
+  it("titles all 64 lessons with stable, localized text", () => {
     for (const locale of locales) {
       const modules = a1RuntimeModuleCopy(locale);
       const lessons = a1RuntimeLessonCopy(locale);
@@ -67,18 +179,21 @@ describe("A1 runtime copy", () => {
       for (const module of courseModules) {
         module.lessons.forEach((lesson, index) => {
           const expected =
-            module.id === "introductions"
-              ? foundationsTitles[locale].lessons[index]
-              : `${modules[module.id]!.title} ${index + 1}`;
+            foundationLessonTitles[locale][
+              module.id as keyof (typeof foundationLessonTitles)[typeof locale]
+            ]?.[index] ??
+            (module.id === "introductions"
+              ? introductionsTitles[locale].lessons[index]
+              : `${modules[module.id]!.title} ${index + 1}`);
           expect(lessons[lesson.id]?.title).toBe(expected);
         });
       }
     }
   });
 
-  it("names the introductions module as staged Foundations, with exact localized outcomes and lesson titles", () => {
+  it("restores introductions as applied scenario practice, with exact localized outcomes and lesson titles", () => {
     for (const locale of locales) {
-      const expected = foundationsTitles[locale];
+      const expected = introductionsTitles[locale];
       expect(a1RuntimeModuleCopy(locale).introductions).toEqual({
         title: expected.module,
       });

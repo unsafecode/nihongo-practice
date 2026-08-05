@@ -1,9 +1,24 @@
 import { describe, expect, it } from "vitest";
 
 import { buildA1LessonViewModel } from "../a1LessonViewModel";
-import { a1FoundationCatalogs } from "../catalog/catalog";
-import { A1_CAPSTONE_LESSON_IDS, A1_LESSON_IDS } from "../manifest";
-import { a1LessonContents } from "./catalog";
+import {
+  a1AllVariants,
+  a1FoundationCatalogs,
+  a1FoundationCopy,
+} from "../catalog/catalog";
+import { a1TranslationCopyId } from "../catalog/shared";
+import {
+  A1_CAPSTONE_LESSON_IDS,
+  A1_LESSON_IDS,
+  A1_LESSON_MANIFEST,
+} from "../manifest";
+import { buildA1PracticeModel } from "../../components/a1PracticeModel";
+import { courseModulesByLevel } from "../../data/course";
+import {
+  a1LessonContentById,
+  a1LessonContents,
+} from "./catalog";
+import { buildA1CurriculumViewModel } from "./buildA1CurriculumViewModel";
 import { a1LearningNotes } from "./grammar";
 import { a1Lexemes } from "./lexicon";
 import { validateA1Curriculum } from "./validateA1Curriculum";
@@ -20,15 +35,60 @@ function expectBilingual(value: { readonly en: string; readonly it: string }): v
   expect(value.it.trim()).not.toBe("");
 }
 
+function productionVocabularySequence(): readonly Readonly<{
+  lessonId: string;
+  usedLexemeIds: readonly string[];
+  introducedLexemeIds: readonly string[];
+}>[] {
+  return courseModulesByLevel.a1.flatMap((module) => module.lessons).map((lesson) => {
+    const view = buildA1CurriculumViewModel(lesson.id, "en");
+    if (!view.ok) throw new Error(`expected production view for ${lesson.id}`);
+    const usedLexemeIds = view.model.vocabulary.map((entry) => entry.id);
+    return {
+      lessonId: lesson.id,
+      usedLexemeIds,
+      introducedLexemeIds: view.model.vocabulary
+        .filter((entry) => entry.isReview !== true)
+        .map((entry) => entry.id),
+    };
+  });
+}
+
 describe("A1 learner curriculum invariants", () => {
-  it("certifies all 48 canonical curriculum rows without an empty success", () => {
+  it("derives the report's ordered first-use sequence from learner-facing production content", () => {
     const result = validateA1Curriculum();
+    const productionVocabulary = productionVocabularySequence();
+    const productionIntroductions = productionVocabulary.map(
+      ({ lessonId, introducedLexemeIds }) => ({ lessonId, introducedLexemeIds }),
+    );
+    const reportedIntroductions = result.reports.byLesson.map((row) => ({
+      lessonId: row.lessonId,
+      introducedLexemeIds: row.introducedLexemeIds,
+    }));
+    const reportedFirstUses = reportedIntroductions.flatMap(
+      (row) => row.introducedLexemeIds,
+    );
 
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual([]);
-    expect(result.reports.byLesson).toHaveLength(48);
+    expect(result.reports.byLesson).toHaveLength(64);
     expect(result.reports.byLesson.map((row) => row.lessonId)).toEqual(A1_LESSON_IDS);
-    expect(result.reports.byLesson.reduce((total, row) => total + row.newLexemeCount, 0)).toBe(186);
+    expect(reportedIntroductions).toEqual(productionIntroductions);
+    // This reviewed inventory changes only with an intentional editorial
+    // vocabulary review, not when report assembly happens to change.
+    expect(reportedFirstUses).toHaveLength(252);
+    expect(
+      result.reports.byLesson.reduce((total, row) => total + row.newLexemeCount, 0),
+    ).toBe(252);
+    expect(new Set(reportedFirstUses).size).toBe(252);
+    for (const [index, row] of result.reports.byLesson.entries()) {
+      const production = productionVocabulary[index]!;
+      expect(production.lessonId).toBe(row.lessonId);
+      expect(new Set(row.usedLexemeIds).size, row.lessonId).toBe(row.usedLexemeIds.length);
+      expect(row.usedLexemeIds, row.lessonId).toEqual(
+        expect.arrayContaining([...production.usedLexemeIds]),
+      );
+    }
   });
 
   it("keeps the 4–6 / capstone-zero introduction contract and first-use closure", () => {
@@ -86,6 +146,36 @@ describe("A1 learner curriculum invariants", () => {
     }
   });
 
+  it("only omits a named dialogue subject when the immediately prior turn explicitly establishes it across all 64 lessons", () => {
+    const variantById = new Map(
+      a1AllVariants.map((variant) => [variant.id, variant]),
+    );
+    const namedPeople = ["Yuki", "Ken", "Mina"];
+    const violations = a1LessonContents.flatMap((content) =>
+      (content.dialogue?.turnVariantIds ?? []).flatMap((variantId, index, turns) => {
+        const variant = variantById.get(variantId);
+        const translation = a1FoundationCopy.en[a1TranslationCopyId(variantId)] ?? "";
+        const namesAPerson = namedPeople.some((name) => translation.includes(name));
+        if (
+          !namesAPerson ||
+          variant?.pedagogicalUse !== "model" ||
+          variant.discourse.subjectRealization !== "omitted"
+        ) {
+          return [];
+        }
+
+        const prior = variantById.get(turns[index - 1] ?? "");
+        return prior?.discourse.subjectReferentId === variant.discourse.subjectReferentId &&
+          prior.discourse.subjectRealization === "explicit"
+          ? []
+          : [`${content.lessonId}:${variantId}`];
+      }),
+    );
+
+    expect(a1LessonContents).toHaveLength(64);
+    expect(violations).toEqual([]);
+  });
+
   it("builds every production semantic lesson rather than treating an empty model as success", () => {
     for (const lesson of a1FoundationCatalogs.lessons) {
       const built = buildA1LessonViewModel(lesson.id, "en");
@@ -93,6 +183,82 @@ describe("A1 learner curriculum invariants", () => {
       if (!built.ok) continue;
       expect(built.model.matrix.rows.length, lesson.id).toBeGreaterThan(0);
       expect(built.model.rounds.flatMap((round) => round.targets).length, lesson.id).toBe(4);
+    }
+  });
+
+  it("builds every canonical A1 learner view in both locales and every real practice model without partial success", () => {
+    const capstones = new Set<string>(A1_CAPSTONE_LESSON_IDS);
+
+    for (const lessonId of A1_LESSON_IDS) {
+      const content = a1LessonContentById[lessonId];
+      expect(content, lessonId).toBeDefined();
+      if (!content) continue;
+
+      for (const locale of ["en", "it"] as const) {
+        const view = buildA1CurriculumViewModel(lessonId, locale);
+        expect(view.ok, `${lessonId} ${locale}`).toBe(true);
+        if (!view.ok) continue;
+
+        const { model } = view;
+        expect(model.lessonId).toBe(lessonId);
+        expect(model.overview.canDo.trim(), `${lessonId} ${locale} Can-do`).not.toBe("");
+        expect(model.overview.situation.trim(), `${lessonId} ${locale} situation`).not.toBe("");
+        expect(model.note.id).toBe(content.learningNoteId);
+        expect(model.note.title.trim(), `${lessonId} ${locale} note`).not.toBe("");
+        expect(model.examples.map((example) => example.variantId)).toEqual(
+          content.workedExampleVariantIds,
+        );
+        expect(model.examples.length, `${lessonId} ${locale} examples`).toBeGreaterThanOrEqual(2);
+        expect(model.examples.length, `${lessonId} ${locale} examples`).toBeLessThanOrEqual(3);
+        expect(model.practice.activities).toEqual(content.practiceBlueprint.activities);
+        expect(model.practice.activities).toHaveLength(5);
+        expect(model.practice.activities.slice(0, 4)).toHaveLength(4);
+        expect(model.practice.activities[4]).toMatchObject({
+          function: "listening-speaking",
+          interactionKind: "spoken",
+        });
+        expect(model.recap.retrievalCue.trim(), `${lessonId} ${locale} recap`).not.toBe("");
+
+        if (content.dialogue === undefined) {
+          expect(model.dialogue).toBeNull();
+        } else {
+          expect(model.dialogue?.map((example) => example.variantId)).toEqual(
+            content.dialogue.turnVariantIds,
+          );
+        }
+
+        if (capstones.has(lessonId)) {
+          expect(content.newLexemeIds).toEqual([]);
+          expect(model.note.kind).toBe("synthesis");
+          expect(model.vocabulary.length).toBeGreaterThanOrEqual(4);
+          expect(model.vocabulary.length).toBeLessThanOrEqual(6);
+          expect(model.vocabulary.every((entry) => entry.isReview === true)).toBe(true);
+        } else {
+          expect(model.vocabulary.map((entry) => entry.id)).toEqual(content.newLexemeIds);
+          expect(model.vocabulary.length).toBeGreaterThanOrEqual(4);
+          expect(model.vocabulary.length).toBeLessThanOrEqual(6);
+          expect(model.vocabulary.every((entry) => entry.isReview !== true)).toBe(true);
+          if (A1_LESSON_MANIFEST[lessonId]!.contract === "phonetic") {
+            expect(model.note.kind).toBe("phonetic");
+          } else {
+            expect(model.note.kind).not.toBe("phonetic");
+          }
+        }
+      }
+
+      const practice = buildA1PracticeModel(lessonId);
+      expect(practice.ok, `${lessonId} practice`).toBe(true);
+      if (!practice.ok) continue;
+      expect(practice.model.activities.map((activity) => activity.id)).toEqual(
+        content.practiceBlueprint.activities.map((activity) => activity.id),
+      );
+      expect(practice.model.activities).toHaveLength(5);
+      expect(
+        practice.model.activities.filter(
+          (activity) => activity.generatedExercise !== undefined,
+        ),
+      ).toHaveLength(4);
+      expect(practice.model.activities[4]?.spokenVariantId).toBeDefined();
     }
   });
 });

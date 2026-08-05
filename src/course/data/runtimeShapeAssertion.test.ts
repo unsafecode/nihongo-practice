@@ -13,9 +13,9 @@ import {
  * 6, finding I3). Unlike `validateA1.test.ts` (which exercises the full
  * content-cross-referencing `validateA1Release()` gate that only the
  * `prebuild` script and the test suite still run), this proves the *always-
- * bundled* runtime counterpart genuinely throws on a malformed shape and
- * genuinely passes on the real release course — never a partial or silently
- * wrong `courseModules` export.
+ * bundled* runtime counterpart genuinely throws on malformed fixtures and
+ * accepts the real deployed runtime export — never a partial or silently wrong
+ * `courseModules` export.
  */
 
 function validModule(overrides: Partial<CourseModule> = {}): CourseModule {
@@ -39,7 +39,12 @@ function validModule(overrides: Partial<CourseModule> = {}): CourseModule {
 }
 
 describe("assertA1CourseShape — the always-bundled runtime structural gate (I3)", () => {
-  it("passes silently for the real, validated release course", () => {
+  it("passes silently for the real deployed A1 runtime course", () => {
+    expect(courseModulesByLevel.a1).toBe(courseModules);
+    expect(courseModules).toHaveLength(16);
+    expect(
+      courseModules.flatMap((courseModule) => courseModule.lessons),
+    ).toHaveLength(64);
     expect(() => assertA1CourseShape(courseModules)).not.toThrow();
   });
 
@@ -115,7 +120,7 @@ describe("assertA1CourseShape — the always-bundled runtime structural gate (I3
 
   it("throws when the total lesson/module count drifts from the known release totals", () => {
     // A structurally valid single module/lesson is still a corrupted release
-    // shape (the real release always has 12 modules / 48 lessons) — this
+    // shape (the real release always has 16 modules / 64 lessons) — this
     // catches a manifest/build regression that silently drops content.
     const modules = [validModule()];
     expect(() => assertA1CourseShape(modules)).toThrow(A1CourseShapeError);
@@ -139,11 +144,12 @@ function validA2Module(overrides: Partial<CourseModule> = {}): CourseModule {
 }
 
 describe("assertA2CourseShape — the always-bundled A2 runtime structural gate", () => {
-  it("passes silently for the real, derived A2 runtime course (15 modules / 60 lessons)", () => {
-    expect(() => assertA2CourseShape(courseModulesByLevel.a2)).not.toThrow();
-    expect(courseModulesByLevel.a2).toHaveLength(15);
+  it("passes silently for the real derived A2 runtime course (15 modules / 60 lessons)", () => {
+    const modules = courseModulesByLevel.a2;
+    expect(() => assertA2CourseShape(modules)).not.toThrow();
+    expect(modules).toHaveLength(15);
     expect(
-      courseModulesByLevel.a2.flatMap((courseModule) => courseModule.lessons),
+      modules.flatMap((courseModule) => courseModule.lessons),
     ).toHaveLength(60);
   });
 
@@ -165,6 +171,8 @@ describe("assertA2CourseShape — the always-bundled A2 runtime structural gate"
   });
 
   it("does not accept the A1 course as a valid A2 shape (guards against a level mix-up)", () => {
-    expect(() => assertA2CourseShape(courseModules)).toThrow(A2CourseShapeError);
+    expect(() => assertA2CourseShape(courseModules)).toThrow(
+      A2CourseShapeError,
+    );
   });
 });
