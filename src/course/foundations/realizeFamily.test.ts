@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { formatRomaji } from "../../romaji/formatRomaji";
 import {
   a1Contexts,
+  a1ExpandedFoundationSentenceFamilies,
   a1LearningTargetSenses,
   a1PersonRoles,
   a1Referents,
@@ -202,6 +203,57 @@ describe("realizeVariant", () => {
         expect(romaji.ok).toBe(true);
         if (romaji.ok) expect(romaji.text).toBe("hatarakimasu");
       }
+    });
+
+    it("realizes a staged focused copular subject with が without changing topic-copular output", () => {
+      const family = a1ExpandedFoundationSentenceFamilies.find(
+        (candidate) => candidate.id === "a1-family-focus-copular",
+      );
+      expect(family).toBeDefined();
+      if (!family) return;
+
+      const base = fixtureVariant("fixture-a1-yuki-study-japanese");
+      const variant = withFixtureOverride(base, {
+        id: "test-a1-focus-copular-yuki",
+        sentenceFamilyId: family.id,
+        discourse: {
+          speakerRoleId: "a1-role-yuki",
+          addresseeRoleId: "a1-role-learner",
+          subjectReferentId: "a1-referent-yuki",
+          subjectRealization: "explicit",
+          scenarioNoteCopyId: "test-a1-focus-copular-yuki-scenario",
+        },
+        contextId: "a1-context-classroom",
+        slotValues: {
+          subject: "a1-value-yuki",
+          predicate: "a1-value-be",
+          object: "a1-value-obj-japanese-person",
+        },
+      });
+      const result = realizeVariant(
+        family,
+        variant,
+        {
+          contexts: a1Contexts,
+          personRoles: a1PersonRoles,
+          referents: a1Referents,
+          semanticValues: a1SemanticValues,
+          learningTargetSenses: a1LearningTargetSenses,
+        },
+        {
+          availableConceptIds: [
+            "a1-concept-copula-desu",
+            "a1-concept-nominative-ga",
+          ],
+        },
+      );
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sentence.canonicalJapanese).toBe("ゆきがにほんじんです");
+      const romaji = formatRomaji(result.sentence.tokens);
+      expect(romaji.ok).toBe(true);
+      if (romaji.ok) expect(romaji.text).toBe("yuki ga nihonjin desu");
     });
 
     it("realizes an omitted-subject A1 live sentence with に for the location", () => {

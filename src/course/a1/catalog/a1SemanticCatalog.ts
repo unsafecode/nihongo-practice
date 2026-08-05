@@ -110,6 +110,20 @@ export const a1Contexts: readonly Context[] = deepFreeze([
   { id: "a1-context-social-outing", labelCopyId: "a1-context-social-outing-label" },
 ]);
 
+/** Contexts reserved for staged Foundations authoring only. */
+export const a1ExpandedFoundationContexts: readonly Context[] = deepFreeze([
+  {
+    id: "a1-context-unidentified-addressee",
+    labelCopyId: "a1-context-unidentified-addressee-label",
+  },
+]);
+
+/** Full context pool for staged Foundations catalogs; never the published view. */
+export const a1CanonicalContexts: readonly Context[] = deepFreeze([
+  ...a1Contexts,
+  ...a1ExpandedFoundationContexts,
+]);
+
 // ---------------------------------------------------------------------------
 // Person roles
 // ---------------------------------------------------------------------------
@@ -135,6 +149,21 @@ export const a1PersonRoles: readonly PersonRole[] = deepFreeze([
   { id: "a1-role-creature", kind: "unnamed", labelCopyId: "a1-role-creature-label" },
 ]);
 
+/** A deliberate no-name/no-title addressee role for the limited あなた model. */
+export const a1ExpandedFoundationPersonRoles: readonly PersonRole[] = deepFreeze([
+  {
+    id: "a1-role-unidentified-addressee",
+    kind: "unnamed",
+    labelCopyId: "a1-role-unidentified-addressee-label",
+  },
+]);
+
+/** Full role pool for staged Foundations catalogs; never the published view. */
+export const a1CanonicalPersonRoles: readonly PersonRole[] = deepFreeze([
+  ...a1PersonRoles,
+  ...a1ExpandedFoundationPersonRoles,
+]);
+
 // ---------------------------------------------------------------------------
 // Referents
 // ---------------------------------------------------------------------------
@@ -151,6 +180,22 @@ export const a1Referents: readonly Referent[] = deepFreeze([
   { id: "a1-referent-person", personRoleId: "a1-role-person", animacy: "animate", labelCopyId: "a1-referent-person-label" },
   { id: "a1-referent-thing", personRoleId: "a1-role-thing", animacy: "inanimate", labelCopyId: "a1-referent-thing-label" },
   { id: "a1-referent-creature", personRoleId: "a1-role-creature", animacy: "animate", labelCopyId: "a1-referent-creature-label" },
+]);
+
+/** The corresponding staged referent for an unidentified addressee. */
+export const a1ExpandedFoundationReferents: readonly Referent[] = deepFreeze([
+  {
+    id: "a1-referent-unidentified-addressee",
+    personRoleId: "a1-role-unidentified-addressee",
+    animacy: "animate",
+    labelCopyId: "a1-referent-unidentified-addressee-label",
+  },
+]);
+
+/** Full referent pool for staged Foundations catalogs; never the published view. */
+export const a1CanonicalReferents: readonly Referent[] = deepFreeze([
+  ...a1Referents,
+  ...a1ExpandedFoundationReferents,
 ]);
 
 // ---------------------------------------------------------------------------
@@ -570,8 +615,8 @@ export const a1SemanticValues: readonly SemanticValue[] = deepFreeze([
 ]);
 
 /**
- * The time-anchored rest value is staged with its future sense rather than
- * added to the published semantic catalog before a corresponding lesson exists.
+ * Values reserved for staged Foundations lessons. They remain outside the
+ * published semantic catalog until the complete expanded area is promoted.
  */
 export const a1ExpandedFoundationSemanticValues: readonly SemanticValue[] =
   deepFreeze([
@@ -580,6 +625,32 @@ export const a1ExpandedFoundationSemanticValues: readonly SemanticValue[] =
       kind: "predicate-sense",
       senseId: "a1-sense-rest-routine",
       tokenFragments: [frag("やすみ", "yasumi")],
+    }),
+    // Staged alternate referent forms let the first two Foundations modules
+    // realize names, roles, and どれ naturally without widening the published
+    // lesson catalog before Task 5.
+    defineA1SemanticValue({
+      id: "a1-value-name-subject",
+      kind: "referent",
+      animacy: "inanimate",
+      tokenFragments: [frag("なまえ", "namae")],
+    }),
+    defineA1SemanticValue({
+      id: "a1-value-student-subject",
+      kind: "referent",
+      animacy: "animate",
+      tokenFragments: [frag("がくせい", "gakusei")],
+    }),
+    defineA1SemanticValue({
+      id: "a1-value-dore",
+      kind: "referent",
+      animacy: "inanimate",
+      tokenFragments: [frag("どれ", "dore")],
+    }),
+    defineA1SemanticValue({
+      id: "a1-value-obj-french-language",
+      kind: "object",
+      tokenFragments: [frag("フランスご", "furansugo")],
     }),
   ]);
 
@@ -854,6 +925,115 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     realizationRuleId: "rule-existence",
     requiredConceptIds: [A1_CONCEPT_EXISTENCE],
   },
+]);
+
+/**
+ * Next-release-only sentence families for the first two Foundations modules.
+ * They reuse the stable copular realization rule while keeping their grammar
+ * requirements out of the published family catalog until Task 5.
+ */
+export const a1ExpandedFoundationSentenceFamilies: readonly SentenceFamily[] =
+  deepFreeze([
+    {
+      id: "a1-family-foundation-topic-copular",
+      level: "a1",
+      canDoIds: [
+        "a1-can-do-sentence-foundations",
+        "a1-can-do-topic-questions",
+      ],
+      slotSchema: [
+        {
+          id: "subject",
+          axis: "speaker-person",
+          valueKind: "referent",
+          optional: false,
+        },
+        {
+          id: "predicate",
+          axis: "predicate-verb",
+          valueKind: "predicate-sense",
+          optional: false,
+        },
+        { id: "object", axis: "object", valueKind: "object", optional: false },
+      ],
+      permittedAxes: [
+        "speaker-person",
+        "predicate-verb",
+        "object",
+        "polarity-tense-form",
+        "context",
+      ],
+      realizationRuleId: "rule-topic-copular",
+      requiredConceptIds: [A1_CONCEPT_TOPIC_WA, A1_CONCEPT_COPULA_DESU],
+    },
+    {
+      id: "a1-family-foundation-question-copular",
+      level: "a1",
+      canDoIds: ["a1-can-do-topic-questions"],
+      slotSchema: [
+        {
+          id: "subject",
+          axis: "speaker-person",
+          valueKind: "referent",
+          optional: false,
+        },
+        {
+          id: "predicate",
+          axis: "predicate-verb",
+          valueKind: "predicate-sense",
+          optional: false,
+        },
+        { id: "object", axis: "object", valueKind: "object", optional: false },
+      ],
+      permittedAxes: [
+        "speaker-person",
+        "predicate-verb",
+        "object",
+        "polarity-tense-form",
+        "context",
+      ],
+      realizationRuleId: "rule-topic-copular",
+      requiredConceptIds: [
+        A1_CONCEPT_TOPIC_WA,
+        A1_CONCEPT_COPULA_DESU,
+        A1_CONCEPT_INTERROGATIVE_KA,
+      ],
+    },
+    {
+      id: "a1-family-focus-copular",
+      level: "a1",
+      canDoIds: ["a1-can-do-topic-questions"],
+      slotSchema: [
+        {
+          id: "subject",
+          axis: "speaker-person",
+          valueKind: "referent",
+          optional: false,
+        },
+        {
+          id: "predicate",
+          axis: "predicate-verb",
+          valueKind: "predicate-sense",
+          optional: false,
+        },
+        { id: "object", axis: "object", valueKind: "object", optional: false },
+      ],
+      permittedAxes: [
+        "speaker-person",
+        "predicate-verb",
+        "object",
+        "polarity-tense-form",
+        "context",
+      ],
+      realizationRuleId: "rule-focus-copular",
+      requiredConceptIds: [A1_CONCEPT_NOMINATIVE_GA, A1_CONCEPT_COPULA_DESU],
+    },
+  ]);
+
+/** Full family pool for staged Foundations authoring only. */
+export const a1CanonicalSentenceFamilies: readonly SentenceFamily[] = deepFreeze([
+  ...a1SentenceFamilies,
+  ...a1ExpandedFoundationSentenceFamilies,
 ]);
 
 // ---------------------------------------------------------------------------

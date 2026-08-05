@@ -30,6 +30,8 @@ import { module8VerbUseRecords } from "./module08People";
 import { module9VerbUseRecords } from "./module09Descriptions";
 import { module10VerbUseRecords } from "./module10Shopping";
 import { module11VerbUseRecords } from "./module11ExistenceNeeds";
+import { moduleSentenceFoundationsVerbUseRecords } from "./moduleSentenceFoundations";
+import { moduleTopicQuestionsVerbUseRecords } from "./moduleTopicQuestions";
 
 /** senseId → the later, spaced reuses authored across Modules 5-8. */
 const LATER_USES_BY_SENSE: Readonly<
@@ -289,3 +291,29 @@ export const a1ReleaseVerbUseRecords: readonly VerbUseRecord[] = Object.freeze([
   ...a1AugmentedVerbUseRecords,
   ...augment(descriptiveModuleRawRecords),
 ]);
+
+/**
+ * The first two Foundations modules' recurrence slice. It deliberately remains
+ * a separately named staged export: adding it to either published recurrence
+ * view would make the unpromoted lessons visible before Task 5.
+ */
+export const a1StagedFoundationsArea01to02VerbUseRecords: readonly VerbUseRecord[] =
+  Object.freeze([
+    ...moduleSentenceFoundationsVerbUseRecords.map((record) =>
+      withA1LaterUses(record, [
+        {
+          lessonId: "sentence-foundations-3",
+          variantId: "sentence-foundations-3-m2",
+        },
+        {
+          lessonId: "topic-questions-1",
+          variantId: "topic-questions-1-m1",
+        },
+      ]),
+    ),
+    ...moduleTopicQuestionsVerbUseRecords,
+  ]);
+
+/** Alias naming the staged expanded-area timeline without publishing it. */
+export const a1ExpandedFoundationsVerbUseRecords =
+  a1StagedFoundationsArea01to02VerbUseRecords;

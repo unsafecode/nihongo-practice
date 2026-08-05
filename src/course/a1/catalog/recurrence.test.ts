@@ -15,7 +15,11 @@
 import { describe, expect, it } from "vitest";
 
 import { a1VerbUseRecord } from "./shared";
-import { assertNoStaleLaterUseKeys, a1ReleaseVerbUseRecords } from "./recurrence";
+import {
+  assertNoStaleLaterUseKeys,
+  a1ReleaseVerbUseRecords,
+  a1StagedFoundationsArea01to02VerbUseRecords,
+} from "./recurrence";
 import { a1SemanticFoundationCatalogs } from "./catalog";
 import { realizeVariant, type RealizeVariantCatalogs } from "../../foundations/realizeFamily";
 
@@ -41,6 +45,32 @@ describe("assertNoStaleLaterUseKeys", () => {
     expect(() => assertNoStaleLaterUseKeys(laterUsesBySense, records)).toThrowError(
       /a1-sense-stale-typo/,
     );
+  });
+
+  describe("staged Foundations recurrence", () => {
+    it("keeps the new copula timeline separate from the published recurrence view", () => {
+      expect(a1StagedFoundationsArea01to02VerbUseRecords).toEqual([
+        expect.objectContaining({
+          senseId: "a1-sense-be",
+          introductionLessonId: "sentence-foundations-1",
+          laterUses: [
+            {
+              lessonId: "sentence-foundations-3",
+              variantId: "sentence-foundations-3-m2",
+            },
+            {
+              lessonId: "topic-questions-1",
+              variantId: "topic-questions-1-m1",
+            },
+          ],
+        }),
+      ]);
+      expect(
+        a1ReleaseVerbUseRecords.some((record) =>
+          record.introductionLessonId.startsWith("sentence-foundations-"),
+        ),
+      ).toBe(false);
+    });
   });
 
   it("lists every stale key, sorted, when more than one is stale", () => {

@@ -30,6 +30,7 @@ const REQUIRED_NOTE_IDS = [
   "a1-note-recoverable-omission",
   "a1-note-anata-limited",
   "a1-note-identity-dialogue",
+  "a1-note-question-dialogue",
 ] as const;
 
 function validNote(): A1LearningNote {
@@ -364,9 +365,18 @@ describe("A1 learner note catalog", () => {
       requiredConceptIds: [
         "a1-concept-topic-wa",
         "a1-concept-copula-desu",
-        "a1-concept-interrogative-ka",
       ],
       nearestContrastId: "a1-note-synthesis-recombine",
+    });
+    expect(a1LearningNoteById["a1-note-question-dialogue"]).toMatchObject({
+      kind: "synthesis",
+      requiredConceptIds: [
+        "a1-concept-topic-wa",
+        "a1-concept-copula-desu",
+        "a1-concept-nominative-ga",
+        "a1-concept-interrogative-ka",
+      ],
+      nearestContrastId: "a1-note-question-ka-words",
     });
     expect(a1ConceptFirstTeachingNoteId).toMatchObject({
       "a1-concept-topic-wa": "a1-note-sentence-shape-omission",

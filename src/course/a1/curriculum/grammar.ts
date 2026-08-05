@@ -442,35 +442,75 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
     requiredConceptIds: [
       "a1-concept-topic-wa",
       "a1-concept-copula-desu",
-      "a1-concept-interrogative-ka",
     ],
     title: {
       en: "Combine known identity references in dialogue",
       it: "Combina riferimenti d'identità già noti nel dialogo",
     },
     meaning: {
-      en: "This is synthesis, not new grammar: combine known people, identity information, polite predicates, and simple questions.",
-      it: "Questa è sintesi, non grammatica nuova: combina persone note, informazioni d'identità, predicati cortesi e domande semplici.",
+      en: "This is synthesis, not new grammar: combine known people, identity information, polite predicates, and recoverable omission.",
+      it: "Questa è sintesi, non grammatica nuova: combina persone note, informazioni d'identità, predicati cortesi e omissione ricavabile dal contesto.",
     },
     use: {
-      en: "Use it to introduce people, ask who someone is, and answer with the references already learned.",
-      it: "Usalo per presentare persone, chiedere chi è qualcuno e rispondere con i riferimenti già imparati.",
+      en: "Use it to introduce people, then omit a reference only after the listener can recover it.",
+      it: "Usalo per presentare persone, poi ometti un riferimento solo quando chi ascolta può ricavarlo.",
     },
     construction: {
-      en: "Choose a known topic or question word, keep the predicate final, and use a known polite ending.",
-      it: "Scegli un tema noto o una parola interrogativa, mantieni finale il predicato e usa una finale cortese nota.",
+      en: "Choose a known topic, keep the predicate final, and use the known polite statement ending.",
+      it: "Scegli un tema noto, mantieni finale il predicato e usa la finale affermativa cortese nota.",
     },
     typicalMistake: {
-      en: "Do not invent a new identity pattern or add a new pronoun just because the dialogue has two speakers.",
-      it: "Non inventare una nuova struttura d'identità né aggiungere un nuovo pronome solo perché il dialogo ha due parlanti.",
+      en: "Do not invent a new identity pattern or repeat a pronoun when the reference is already clear.",
+      it: "Non inventare una nuova struttura d'identità né ripetere un pronome quando il riferimento è già chiaro.",
     },
     pattern: [
-      token("slot", "known person or question word", "known identity reference", "riferimento d'identità noto"),
+      token("slot", "known person", "known identity reference", "riferimento d'identità noto"),
       token("particle", "は", "topic particle when a topic is stated", "particella del tema quando il tema è espresso"),
       token("slot", "known identity information", "known identity information", "informazione d'identità nota"),
-      token("ending", "です／か", "known polite statement or question ending", "finale cortese nota per affermazione o domanda"),
+      token("ending", "です", "known polite statement ending", "finale affermativa cortese nota"),
     ],
     nearestContrastId: "a1-note-synthesis-recombine",
+  }),
+  defineA1LearningNote({
+    id: "a1-note-question-dialogue",
+    kind: "synthesis",
+    explainedConceptIds: [],
+    requiredConceptIds: [
+      "a1-concept-topic-wa",
+      "a1-concept-copula-desu",
+      "a1-concept-nominative-ga",
+      "a1-concept-interrogative-ka",
+    ],
+    title: {
+      en: "Clarify a known item in dialogue",
+      it: "Chiarisci un oggetto noto nel dialogo",
+    },
+    meaning: {
+      en: "This is synthesis, not new grammar: combine known this/that words, a focused which one, and polite identity questions.",
+      it: "Questa è sintesi, non grammatica nuova: combina parole note per questo/quello, quale in fuoco e domande d'identità cortesi.",
+    },
+    use: {
+      en: "Use it to check an item, identify it, and ask which item fits when a choice is still unclear.",
+      it: "Usalo per verificare un oggetto, identificarlo e chiedere quale oggetto va bene quando una scelta non è ancora chiara.",
+    },
+    construction: {
+      en: "Use a known item with は for a statement or question; use どれ with が when the chosen item is the focus.",
+      it: "Usa un oggetto noto con は per un'affermazione o una domanda; usa どれ con が quando l'oggetto scelto è in fuoco.",
+    },
+    typicalMistake: {
+      en: "Do not use a literal this-is-which-one pattern when you mean to ask which item is the known thing.",
+      it: "Non usare una struttura letterale questo-è-quale quando vuoi chiedere quale oggetto è la cosa nota.",
+    },
+    pattern: [
+      token("slot", "known item", "this, that, or that over there", "questo, quello o quello laggiù"),
+      token("particle", "は", "topic particle for the known item", "particella del tema per l'oggetto noto"),
+      token("slot", "identity", "known identity information", "informazione d'identità nota"),
+      token("ending", "です／か", "polite statement or question ending", "finale cortese per affermazione o domanda"),
+      token("punctuation", "／", "or", "oppure"),
+      token("slot", "どれ", "which one in focus", "quale in fuoco"),
+      token("particle", "が", "focused-subject particle", "particella del soggetto in fuoco"),
+    ],
+    nearestContrastId: "a1-note-question-ka-words",
   }),
   defineA1LearningNote({
     id: "a1-note-topic-wa-copula-desu",

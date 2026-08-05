@@ -66,8 +66,11 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-context-mealtime-routine-label": "Daily mealtime routine",
     "a1-context-evening-reading-label": "Evening reading routine",
     "a1-context-social-outing-label": "A social outing",
+    "a1-context-unidentified-addressee-label": "Addressing an unidentified person",
     "a1-role-creature-label": "An animal",
+    "a1-role-unidentified-addressee-label": "An unidentified addressee",
     "a1-referent-creature-label": "The animal",
+    "a1-referent-unidentified-addressee-label": "The unidentified addressee",
     "a1-can-do-sounds-descriptor": "I can hear and read the basic sounds of Japanese.",
     "a1-can-do-identity-descriptor": "I can say who I am and give a few personal details.",
     "a1-can-do-origins-descriptor": "I can say where I am from and what languages I use.",
@@ -136,8 +139,11 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-context-mealtime-routine-label": "Routine dei pasti quotidiani",
     "a1-context-evening-reading-label": "Routine di lettura serale",
     "a1-context-social-outing-label": "Un'uscita sociale",
+    "a1-context-unidentified-addressee-label": "Rivolgersi a una persona non identificata",
     "a1-role-creature-label": "Un animale",
+    "a1-role-unidentified-addressee-label": "Un interlocutore non identificato",
     "a1-referent-creature-label": "L'animale",
+    "a1-referent-unidentified-addressee-label": "L'interlocutore non identificato",
     "a1-can-do-sounds-descriptor": "So sentire e leggere i suoni di base del giapponese.",
     "a1-can-do-identity-descriptor": "So dire chi sono e dare alcuni dati personali.",
     "a1-can-do-origins-descriptor": "So dire da dove vengo e quali lingue uso.",
@@ -369,6 +375,10 @@ export const A1_CONTEXT_SCENARIO: Readonly<Record<string, Bilingual>> = deepFree
   "a1-context-social-outing": {
     en: "You are arranging a simple outing with someone you know.",
     it: "Stai organizzando una semplice uscita con una persona che conosci.",
+  },
+  "a1-context-unidentified-addressee": {
+    en: "You must distinguish an unidentified addressee when no name or title is available.",
+    it: "Devi distinguere un interlocutore non identificato quando non è disponibile un nome né un titolo.",
   },
 });
 

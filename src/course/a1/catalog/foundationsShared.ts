@@ -71,11 +71,14 @@ export const FOUNDATIONS_LEXEME_IDS_BY_LESSON: Readonly<
     "a1-lexeme-amerika-jin",
     "a1-lexeme-furansujin",
   ],
+  // `wakaru` would force a polite verbal form before the polite-verb module.
+  // French supplies the fourth language item while this lesson teaches only
+  // nominal topic/focus copular patterns.
   "topic-questions-2": [
     "a1-lexeme-nihongo",
     "a1-lexeme-eigo",
     "a1-lexeme-itaria-go",
-    "a1-lexeme-wakaru",
+    "a1-lexeme-furansugo",
   ],
   "topic-questions-3": [
     "a1-lexeme-dare",
@@ -144,25 +147,58 @@ export const FOUNDATIONS_VOCABULARY_BY_LESSON = FOUNDATIONS_LEXEME_IDS_BY_LESSON
 
 type ExpandedFoundationsLexemeIndex = Readonly<Record<string, A1Lexeme | undefined>>;
 
-const publishedYasumu = a1LexemeById["a1-lexeme-yasumu"];
-if (!publishedYasumu) {
-  throw new Error('Published A1 lexicon is missing "a1-lexeme-yasumu".');
+function withExpandedValueIds(
+  lexemeId: string,
+  valueIds: readonly string[],
+): A1Lexeme {
+  const publishedLexeme = a1LexemeById[lexemeId];
+  if (!publishedLexeme) {
+    throw new Error(`Published A1 lexicon is missing "${lexemeId}".`);
+  }
+  return defineA1Lexeme({ ...publishedLexeme, valueIds });
 }
 
-const expandedFoundationsYasumu = defineA1Lexeme({
-  ...publishedYasumu,
-  valueIds: ["a1-value-rest-bare", "a1-value-rest-routine"],
+const expandedFoundationsLexemeOverrides: Readonly<Record<string, A1Lexeme>> =
+  deepFreeze({
+    "a1-lexeme-yasumu": withExpandedValueIds("a1-lexeme-yasumu", [
+      "a1-value-rest-bare",
+      "a1-value-rest-routine",
+    ]),
+    "a1-lexeme-namae": withExpandedValueIds("a1-lexeme-namae", [
+      "a1-value-obj-name",
+      "a1-value-name-subject",
+    ]),
+    "a1-lexeme-gakusei": withExpandedValueIds("a1-lexeme-gakusei", [
+      "a1-value-obj-student",
+      "a1-value-student-subject",
+    ]),
+    "a1-lexeme-dore": withExpandedValueIds("a1-lexeme-dore", [
+      "a1-value-q-dore",
+      "a1-value-dore",
+    ]),
+  });
+
+const expandedFoundationsFrenchLanguageLexeme = defineA1Lexeme({
+  id: "a1-lexeme-furansugo",
+  valueIds: ["a1-value-obj-french-language"],
+  kana: "フランスご",
+  romaji: "furansugo",
+  category: "noun",
+  meaning: { en: "French language", it: "lingua francese" },
 });
 
 /**
  * Canonical lexemes for staged Foundations authoring. The published lexicon
  * deliberately remains limited to published semantic values until Task5
- * promotes the rest-routine value and its lesson atomically.
+ * promotes the staged value associations and their lessons atomically.
  */
 export const a1ExpandedFoundationsLexemes: readonly A1Lexeme[] = deepFreeze(
-  a1Lexemes.map((lexeme) =>
-    lexeme.id === expandedFoundationsYasumu.id ? expandedFoundationsYasumu : lexeme,
-  ),
+  [
+    ...a1Lexemes.map(
+      (lexeme) => expandedFoundationsLexemeOverrides[lexeme.id] ?? lexeme,
+    ),
+    expandedFoundationsFrenchLanguageLexeme,
+  ],
 );
 
 function buildExpandedFoundationsLexemeIndexes(
@@ -203,7 +239,7 @@ const a1ExpandedFoundationsLexemeIndexes = buildExpandedFoundationsLexemeIndexes
   a1ExpandedFoundationsLexemes,
 );
 
-/** Canonical staged lookup, including the future rest-routine association. */
+/** Canonical staged lookup, including all staged Foundations value associations. */
 export const a1ExpandedFoundationsLexemeById: ExpandedFoundationsLexemeIndex =
   a1ExpandedFoundationsLexemeIndexes.byId;
 export const a1ExpandedFoundationsLexemeByValueId: ExpandedFoundationsLexemeIndex =
@@ -233,7 +269,7 @@ export const FOUNDATIONS_LEARNING_NOTE_IDS_BY_LESSON: Readonly<
   "topic-questions-1": "a1-note-topic-wa-copula-desu",
   "topic-questions-2": "a1-note-particle-ga",
   "topic-questions-3": "a1-note-question-ka-words",
-  "topic-questions-4": "a1-note-question-ka-words",
+  "topic-questions-4": "a1-note-question-dialogue",
   "polite-verbs-1": "a1-note-dictionary-masu-classes",
   "polite-verbs-2": "a1-note-particle-o",
   "polite-verbs-3": "a1-note-masu-masen",

@@ -3,6 +3,16 @@ import { describe, expect, it } from "vitest";
 import { a1LexemeById, a1LexemeByValueId } from "../curriculum/lexicon";
 import { A1_EXPANDED_LESSON_IDS_BY_MODULE } from "../manifest";
 import {
+  a1CanonicalContexts,
+  a1CanonicalPersonRoles,
+  a1CanonicalReferents,
+  a1CanonicalSemanticValues,
+  a1Contexts,
+  a1PersonRoles,
+  a1Referents,
+  a1SemanticValues,
+} from "./a1SemanticCatalog";
+import {
   FOUNDATIONS_CANDO_IDS_BY_MODULE,
   a1ExpandedFoundationsLexemeByValueId,
   a1ExpandedFoundationsLexemes,
@@ -46,7 +56,7 @@ const EXPECTED_LEXEME_IDS_BY_LESSON = {
     "a1-lexeme-nihongo",
     "a1-lexeme-eigo",
     "a1-lexeme-itaria-go",
-    "a1-lexeme-wakaru",
+    "a1-lexeme-furansugo",
   ],
   "topic-questions-3": [
     "a1-lexeme-dare",
@@ -129,11 +139,15 @@ describe("staged Foundations shared authoring data", () => {
     const lexemeIds = Object.values(FOUNDATIONS_LEXEME_IDS_BY_LESSON).flat();
     expect(lexemeIds).toHaveLength(64);
     expect(new Set(lexemeIds)).toHaveLength(64);
-    for (const ids of Object.values(FOUNDATIONS_LEXEME_IDS_BY_LESSON)) {
+    for (const [lessonId, ids] of Object.entries(
+      FOUNDATIONS_LEXEME_IDS_BY_LESSON,
+    )) {
       expect(ids).toHaveLength(4);
       for (const id of ids) {
         expect(id.startsWith("a1-lexeme-")).toBe(true);
-        expect(a1LexemeById[id]?.id).toBe(id);
+        expect(FOUNDATIONS_LEXEMES_BY_LESSON[lessonId]?.some((lexeme) => lexeme.id === id)).toBe(
+          true,
+        );
       }
     }
   });
@@ -184,5 +198,38 @@ describe("staged Foundations shared authoring data", () => {
         ({ id }) => id === "a1-lexeme-yasumu",
       ),
     ).toBe(stagedYasumu);
+  });
+
+  it("keeps Foundations-only referent forms and French language ownership out of published indexes", () => {
+    const stagedValueIds = [
+      "a1-value-name-subject",
+      "a1-value-student-subject",
+      "a1-value-dore",
+      "a1-value-obj-french-language",
+    ];
+
+    for (const valueId of stagedValueIds) {
+      expect(a1SemanticValues.some((value) => value.id === valueId)).toBe(false);
+      expect(a1CanonicalSemanticValues.some((value) => value.id === valueId)).toBe(true);
+    }
+    expect(a1LexemeById["a1-lexeme-furansugo"]).toBeUndefined();
+    expect(a1LexemeByValueId["a1-value-obj-french-language"]).toBeUndefined();
+    expect(a1ExpandedFoundationsLexemeByValueId["a1-value-obj-french-language"]).toMatchObject({
+      id: "a1-lexeme-furansugo",
+      kana: "フランスご",
+    });
+  });
+
+  it("keeps the no-name/no-title addressee context, role, and referent staged", () => {
+    const stagedContextId = "a1-context-unidentified-addressee";
+    const stagedRoleId = "a1-role-unidentified-addressee";
+    const stagedReferentId = "a1-referent-unidentified-addressee";
+
+    expect(a1Contexts.some(({ id }) => id === stagedContextId)).toBe(false);
+    expect(a1PersonRoles.some(({ id }) => id === stagedRoleId)).toBe(false);
+    expect(a1Referents.some(({ id }) => id === stagedReferentId)).toBe(false);
+    expect(a1CanonicalContexts.some(({ id }) => id === stagedContextId)).toBe(true);
+    expect(a1CanonicalPersonRoles.some(({ id }) => id === stagedRoleId)).toBe(true);
+    expect(a1CanonicalReferents.some(({ id }) => id === stagedReferentId)).toBe(true);
   });
 });
