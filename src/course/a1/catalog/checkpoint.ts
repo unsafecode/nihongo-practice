@@ -33,6 +33,13 @@ import {
   A1_SCENARIO_CANDO_IDS,
 } from "./canDos";
 
+/**
+ * Staged checkpoint membership for the four expanded Foundations Can-dos.
+ * It is intentionally not merged into `a1Checkpoint.sampledCanDoIds` until
+ * Task 5 promotes the expanded manifest and authored lessons together.
+ */
+export { A1_EXPANDED_FOUNDATION_CANDO_IDS } from "./canDos";
+
 /** The level's stable id. */
 export const A1_LEVEL_ID = "a1" as const;
 

@@ -79,6 +79,10 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-can-do-descriptions-descriptor": "I can describe things and say what I like using simple adjectives.",
     "a1-can-do-shopping-descriptor": "I can ask prices, say how many I want, and make a simple purchase.",
     "a1-can-do-existence-descriptor": "I can say what there is, where it is, and what I need.",
+    "a1-can-do-sentence-foundations-descriptor": "I can build and say short polite sentences about identity and people.",
+    "a1-can-do-topic-questions-descriptor": "I can ask and answer simple questions about people, languages, and things.",
+    "a1-can-do-polite-verbs-descriptor": "I can say what I do in simple polite statements.",
+    "a1-can-do-time-movement-descriptor": "I can say when everyday actions happen and how I move around.",
     "a1-can-do-scenario-1-descriptor": "I can introduce myself and both ask and answer simple personal questions.",
     "a1-can-do-scenario-2-descriptor": "I can talk through a typical day — my routine, a place, what I like, and what I want to buy.",
     "a1-can-do-scenario-3-descriptor": "I can get around, asking where a place is and saying how I'll get there and what I need.",
@@ -145,6 +149,10 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-can-do-descriptions-descriptor": "So descrivere le cose e dire cosa mi piace con aggettivi semplici.",
     "a1-can-do-shopping-descriptor": "So chiedere i prezzi, dire quanti ne voglio e fare un semplice acquisto.",
     "a1-can-do-existence-descriptor": "So dire cosa c'è, dove si trova e di cosa ho bisogno.",
+    "a1-can-do-sentence-foundations-descriptor": "So costruire e dire brevi frasi cortesi su identità e persone.",
+    "a1-can-do-topic-questions-descriptor": "So fare e rispondere a semplici domande su persone, lingue e cose.",
+    "a1-can-do-polite-verbs-descriptor": "So dire che cosa faccio in semplici frasi cortesi.",
+    "a1-can-do-time-movement-descriptor": "So dire quando avvengono le azioni quotidiane e come mi sposto.",
     "a1-can-do-scenario-1-descriptor": "So presentarmi e sia fare sia rispondere a semplici domande personali.",
     "a1-can-do-scenario-2-descriptor": "So raccontare una giornata tipica: la mia routine, un luogo, cosa mi piace e cosa voglio comprare.",
     "a1-can-do-scenario-3-descriptor": "So muovermi, chiedendo dove si trova un luogo e dicendo come ci arrivo e di cosa ho bisogno.",
@@ -176,6 +184,7 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
 
 export const A1_SUBJECT_GLOSS: Readonly<Record<string, Bilingual>> = deepFreeze({
   "a1-value-watashi": { en: "I", it: "Io" },
+  "a1-value-anata": { en: "You", it: "Tu; Lei" },
   "a1-value-yuki": { en: "Yuki", it: "Yuki" },
   "a1-value-ken": { en: "Ken", it: "Ken" },
   "a1-value-mina": { en: "Mina", it: "Mina" },
@@ -218,15 +227,18 @@ export interface ComplementGloss extends Bilingual {
 
 /** Copular-complement glosses (occupations, nationalities). */
 export const A1_COMPLEMENT_GLOSS: Readonly<Record<string, ComplementGloss>> = deepFreeze({
+  "a1-value-obj-name": { en: "a name", it: "un nome" },
   "a1-value-obj-student": { en: "a student", it: "uno studente", itFeminine: "una studentessa" },
   "a1-value-obj-teacher": { en: "a teacher", it: "un insegnante" },
   "a1-value-obj-doctor": { en: "a doctor", it: "un medico" },
   "a1-value-obj-office-worker": { en: "an office worker", it: "un impiegato", itFeminine: "un'impiegata" },
   "a1-value-obj-engineer": { en: "an engineer", it: "un ingegnere" },
+  "a1-value-obj-classmate-peer": { en: "a classmate; peer", it: "un compagno o una compagna di corso" },
   "a1-value-obj-clerk": { en: "a shop clerk", it: "un commesso" },
   "a1-value-obj-japanese-person": { en: "Japanese", it: "giapponese" },
   "a1-value-obj-italian-person": { en: "Italian", it: "italiano", itFeminine: "italiana" },
   "a1-value-obj-american-person": { en: "American", it: "americano", itFeminine: "americana" },
+  "a1-value-obj-french-person": { en: "French", it: "francese" },
 });
 
 // ---------------------------------------------------------------------------
@@ -266,6 +278,7 @@ function a1SubjectGender(subjectValueId: string): "masculine" | "feminine" | und
 
 /** Verb-object (theme) glosses, article baked in for natural target text. */
 export const A1_OBJECT_GLOSS: Readonly<Record<string, Bilingual>> = deepFreeze({
+  "a1-value-obj-name": { en: "a name", it: "un nome" },
   "a1-value-obj-japanese": { en: "Japanese", it: "il giapponese" },
   "a1-value-obj-english": { en: "English", it: "l'inglese" },
   "a1-value-obj-italian": { en: "Italian", it: "l'italiano" },

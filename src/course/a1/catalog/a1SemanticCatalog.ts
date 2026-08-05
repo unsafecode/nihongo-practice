@@ -174,6 +174,7 @@ export const a1LearningTargetSenses: readonly LearningTargetSense[] = deepFreeze
   { id: "a1-sense-work-bare", lexemeId: "a1-lexeme-hataraku", learningUse: "productive", semanticFrameId: "a1-frame-work-bare", predicate: "work", argumentRoles: ["agent"], argumentParticleByRole: {} },
   { id: "a1-sense-study-bare", lexemeId: "a1-lexeme-benkyou-suru", learningUse: "productive", semanticFrameId: "a1-frame-study-bare", predicate: "study", argumentRoles: ["agent"], argumentParticleByRole: {} },
   { id: "a1-sense-do-bare", lexemeId: "a1-lexeme-suru", learningUse: "productive", semanticFrameId: "a1-frame-do-bare", predicate: "do", argumentRoles: ["agent"], argumentParticleByRole: {} },
+  { id: "a1-sense-rest-bare", lexemeId: "a1-lexeme-yasumu", learningUse: "productive", semanticFrameId: "a1-frame-rest-bare", predicate: "rest", argumentRoles: ["agent"], argumentParticleByRole: {} },
   { id: "a1-sense-go", lexemeId: "a1-lexeme-iku", learningUse: "productive", semanticFrameId: "a1-frame-go", predicate: "go", argumentRoles: ["agent", "location"], argumentParticleByRole: { location: "ni" } },
   { id: "a1-sense-come", lexemeId: "a1-lexeme-kuru", learningUse: "productive", semanticFrameId: "a1-frame-come", predicate: "come", argumentRoles: ["agent", "location"], argumentParticleByRole: { location: "ni" } },
   { id: "a1-sense-accompany", lexemeId: "a1-lexeme-iku", learningUse: "productive", semanticFrameId: "a1-frame-accompany", predicate: "go", argumentRoles: ["agent", "companion"], argumentParticleByRole: {} },
@@ -225,6 +226,31 @@ export const a1LearningTargetSenses: readonly LearningTargetSense[] = deepFreeze
   { id: "a1-sense-want", lexemeId: "a1-lexeme-hoshii", learningUse: "productive", semanticFrameId: "a1-frame-want", predicate: "want", argumentRoles: ["topic", "theme"], argumentParticleByRole: {}, adjectiveClass: "i" },
 ]);
 
+/**
+ * A next-release-only sense remains outside the published learning-target
+ * collection until its scheduled Foundations lessons are authored. Keeping it
+ * separate prevents an unpracticed time frame from entering the 12/48 runtime.
+ */
+export const a1ExpandedFoundationLearningTargetSenses: readonly LearningTargetSense[] =
+  deepFreeze([
+    {
+      id: "a1-sense-rest-routine",
+      lexemeId: "a1-lexeme-yasumu",
+      learningUse: "productive",
+      semanticFrameId: "a1-frame-rest-routine",
+      predicate: "rest",
+      argumentRoles: ["agent", "time"],
+      argumentParticleByRole: {},
+    },
+  ]);
+
+/** Full canonical pool for staged authoring; never used by published runtime. */
+export const a1CanonicalLearningTargetSenses: readonly LearningTargetSense[] =
+  deepFreeze([
+    ...a1LearningTargetSenses,
+    ...a1ExpandedFoundationLearningTargetSenses,
+  ]);
+
 // ---------------------------------------------------------------------------
 // Semantic values (the ONLY place Japanese/romaji lexical content is authored)
 // ---------------------------------------------------------------------------
@@ -243,6 +269,7 @@ const a1CopulaValue: SemanticValue = deepFreeze({
 const a1AuthoredValues: readonly SemanticValue[] = [
   // --- referent-kind (subject surface forms) ---
   { id: "a1-value-watashi", kind: "referent", animacy: "animate", tokenFragments: [frag("わたし", "watashi")] },
+  { id: "a1-value-anata", kind: "referent", animacy: "animate", tokenFragments: [frag("あなた", "anata")] },
   { id: "a1-value-yuki", kind: "referent", animacy: "animate", tokenFragments: [frag("ゆき", "yuki")] },
   { id: "a1-value-ken", kind: "referent", animacy: "animate", tokenFragments: [frag("けん", "ken")] },
   { id: "a1-value-mina", kind: "referent", animacy: "animate", tokenFragments: [frag("みな", "mina")] },
@@ -273,6 +300,7 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-work-bare", kind: "predicate-sense", senseId: "a1-sense-work-bare", tokenFragments: [frag("はたらき", "hataraki")] },
   { id: "a1-value-study-bare", kind: "predicate-sense", senseId: "a1-sense-study-bare", tokenFragments: [frag("べんきょうし", "benkyoushi")] },
   { id: "a1-value-do-bare", kind: "predicate-sense", senseId: "a1-sense-do-bare", tokenFragments: [frag("し", "shi")] },
+  { id: "a1-value-rest-bare", kind: "predicate-sense", senseId: "a1-sense-rest-bare", tokenFragments: [frag("やすみ", "yasumi")] },
   { id: "a1-value-go", kind: "predicate-sense", senseId: "a1-sense-go", tokenFragments: [frag("いき", "iki")] },
   { id: "a1-value-come", kind: "predicate-sense", senseId: "a1-sense-come", tokenFragments: [frag("き", "ki")] },
   { id: "a1-value-accompany", kind: "predicate-sense", senseId: "a1-sense-accompany", tokenFragments: [frag("いき", "iki")] },
@@ -294,15 +322,18 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-read-routine", kind: "predicate-sense", senseId: "a1-sense-read-routine", tokenFragments: [frag("よみ", "yomi")] },
 
   // --- object-kind (copular complements: occupations / nationalities) ---
+  { id: "a1-value-obj-name", kind: "object", tokenFragments: [frag("なまえ", "namae")] },
   { id: "a1-value-obj-student", kind: "object", tokenFragments: [frag("がくせい", "gakusei")] },
   { id: "a1-value-obj-teacher", kind: "object", tokenFragments: [frag("せんせい", "sensei")] },
   { id: "a1-value-obj-doctor", kind: "object", tokenFragments: [frag("いしゃ", "isha")] },
   { id: "a1-value-obj-office-worker", kind: "object", tokenFragments: [frag("かいしゃいん", "kaishain")] },
   { id: "a1-value-obj-engineer", kind: "object", tokenFragments: [frag("エンジニア", "enjinia")] },
+  { id: "a1-value-obj-classmate-peer", kind: "object", tokenFragments: [frag("どうきゅうせい", "doukyuusei")] },
   { id: "a1-value-obj-clerk", kind: "object", tokenFragments: [frag("てんいん", "ten'in")] },
   { id: "a1-value-obj-japanese-person", kind: "object", tokenFragments: [frag("にほんじん", "nihonjin")] },
   { id: "a1-value-obj-italian-person", kind: "object", tokenFragments: [frag("イタリアじん", "itariajin")] },
   { id: "a1-value-obj-american-person", kind: "object", tokenFragments: [frag("アメリカじん", "amerikajin")] },
+  { id: "a1-value-obj-french-person", kind: "object", tokenFragments: [frag("フランスじん", "furansujin")] },
   // languages (を objects for study; が objects for understand)
   { id: "a1-value-obj-japanese", kind: "object", tokenFragments: [frag("にほんご", "nihongo")] },
   { id: "a1-value-obj-english", kind: "object", tokenFragments: [frag("えいご", "eigo")] },
@@ -439,6 +470,10 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-freq-often", kind: "time", tokenFragments: [frag("よく", "yoku")] },
   { id: "a1-value-freq-sometimes", kind: "time", tokenFragments: [frag("ときどき", "tokidoki")] },
   { id: "a1-value-freq-always", kind: "time", tokenFragments: [frag("いつも", "itsumo")] },
+  // Calendar-relative adverbs are bare time expressions, not に-marked
+  // schedule slots.
+  { id: "a1-value-time-yesterday", kind: "time", tokenFragments: [frag("きのう", "kinou")] },
+  { id: "a1-value-time-tomorrow", kind: "time", tokenFragments: [frag("あした", "ashita")] },
 
   // === Phase 2 Module 9 — description subjects & adjective stems ===========
   // Inanimate description subjects (topic は).
@@ -532,6 +567,26 @@ const a1AuthoredValues: readonly SemanticValue[] = [
 export const a1SemanticValues: readonly SemanticValue[] = deepFreeze([
   a1CopulaValue,
   ...a1AuthoredValues.map((value) => defineA1SemanticValue(value)),
+]);
+
+/**
+ * The time-anchored rest value is staged with its future sense rather than
+ * added to the published semantic catalog before a corresponding lesson exists.
+ */
+export const a1ExpandedFoundationSemanticValues: readonly SemanticValue[] =
+  deepFreeze([
+    defineA1SemanticValue({
+      id: "a1-value-rest-routine",
+      kind: "predicate-sense",
+      senseId: "a1-sense-rest-routine",
+      tokenFragments: [frag("やすみ", "yasumi")],
+    }),
+  ]);
+
+/** Complete canonical semantic pool available to staged Foundations authoring. */
+export const a1CanonicalSemanticValues: readonly SemanticValue[] = deepFreeze([
+  ...a1SemanticValues,
+  ...a1ExpandedFoundationSemanticValues,
 ]);
 
 // ---------------------------------------------------------------------------

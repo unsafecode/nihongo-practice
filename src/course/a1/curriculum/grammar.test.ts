@@ -21,8 +21,15 @@ const REQUIRED_NOTE_IDS = [
   "a1-note-location-ni-de-contrast",
   "a1-note-particle-ni",
   "a1-note-particle-he",
+  "a1-note-particle-he-contrast",
+  "a1-note-time-ni",
+  "a1-note-mashita",
   "a1-note-masu-masen",
   "a1-note-mashita-masen-deshita",
+  "a1-note-sentence-chunks",
+  "a1-note-recoverable-omission",
+  "a1-note-anata-limited",
+  "a1-note-identity-dialogue",
 ] as const;
 
 function validNote(): A1LearningNote {
@@ -314,6 +321,56 @@ describe("A1 learner note catalog", () => {
         expect.objectContaining({ text: "information", label: { en: "information", it: "informazione" } }),
         expect.objectContaining({ kind: "ending", text: "です", label: { en: "polite copula", it: "copula cortese" } }),
       ],
+    });
+
+  });
+
+  it("marks あなた as limited rather than an everyday equivalent of English you", () => {
+    const note = a1LearningNoteById["a1-note-anata-limited"];
+
+    expect(note).toMatchObject({
+      kind: "grammar",
+      requiredConceptIds: ["a1-concept-topic-wa"],
+      nearestContrastId: "a1-note-personal-reference",
+    });
+    expect(note?.meaning.en).toMatch(/not.*everyday.*equivalent.*English.*you/i);
+    expect(note?.meaning.it).toMatch(/non.*equivalente.*quotidiano.*you/i);
+    expect(note?.use.en).toMatch(/わたし.*names.*titles.*omit/i);
+    expect(note?.use.it).toMatch(/わたし.*nomi.*titoli.*ometti/i);
+    expect(note?.typicalMistake.en).toMatch(/do not.*everyday.*equivalent/i);
+    expect(note?.pattern).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "slot",
+          label: { en: expect.any(String), it: expect.any(String) },
+        }),
+      ]),
+    );
+  });
+
+  it("keeps staged Foundations notes distinct and leaves canonical first teaching unchanged", () => {
+    expect(a1LearningNoteById["a1-note-sentence-chunks"]).toMatchObject({
+      kind: "grammar",
+      requiredConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
+      nearestContrastId: "a1-note-topic-wa-copula-desu",
+    });
+    expect(a1LearningNoteById["a1-note-recoverable-omission"]).toMatchObject({
+      kind: "grammar",
+      requiredConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
+      nearestContrastId: "a1-note-personal-reference",
+    });
+    expect(a1LearningNoteById["a1-note-identity-dialogue"]).toMatchObject({
+      kind: "synthesis",
+      requiredConceptIds: [
+        "a1-concept-topic-wa",
+        "a1-concept-copula-desu",
+        "a1-concept-interrogative-ka",
+      ],
+      nearestContrastId: "a1-note-synthesis-recombine",
+    });
+    expect(a1ConceptFirstTeachingNoteId).toMatchObject({
+      "a1-concept-topic-wa": "a1-note-sentence-shape-omission",
+      "a1-concept-copula-desu": "a1-note-sentence-shape-omission",
     });
   });
 

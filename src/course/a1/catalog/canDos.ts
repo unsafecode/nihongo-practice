@@ -34,6 +34,7 @@ import { module9Lessons } from "./module09Descriptions";
 import { module10Lessons } from "./module10Shopping";
 import { module11Lessons } from "./module11ExistenceNeeds";
 import { module12Lessons } from "./module12Capstones";
+import { A1_EXPANDED_LESSON_IDS_BY_MODULE } from "../manifest";
 
 /** The phonetic module's lesson ids (no sentence variants; contexts stay []). */
 export const A1_SOUND_LESSON_IDS: readonly LessonId[] = Object.freeze([
@@ -180,4 +181,80 @@ export const A1_SCENARIO_CANDO_IDS: readonly string[] = Object.freeze([
   "a1-can-do-scenario-2",
   "a1-can-do-scenario-3",
   "a1-can-do-scenario-4",
+]);
+
+// ---------------------------------------------------------------------------
+// Staged next-release Foundations Can-dos
+//
+// These exports deliberately stay outside `a1CanDosAuthored`: the published
+// 12-module / 48-lesson catalog cannot reference lessons that Task 5 has not
+// promoted yet.
+// ---------------------------------------------------------------------------
+
+/** The four staged Can-dos for the expanded Foundations modules, in order. */
+export const A1_EXPANDED_FOUNDATION_CANDO_IDS: readonly string[] = deepFreeze([
+  "a1-can-do-sentence-foundations",
+  "a1-can-do-topic-questions",
+  "a1-can-do-polite-verbs",
+  "a1-can-do-time-movement",
+]);
+
+/**
+ * Next-release Can-dos mapped to the planned four-lesson module slices. They
+ * have no current context coverage because the planned lesson variants are not
+ * authored until their later task.
+ */
+export const a1ExpandedFoundationCanDos: readonly CanDo[] = deepFreeze([
+  {
+    id: "a1-can-do-sentence-foundations",
+    level: "a1",
+    domain: "spoken-production",
+    descriptorCopyId: "a1-can-do-sentence-foundations-descriptor",
+    contextIds: [],
+    lessonIds: A1_EXPANDED_LESSON_IDS_BY_MODULE["sentence-foundations"],
+    checkpointEvidenceRule: {
+      evidenceKind: "checkpoint-sampled",
+      minAcceptedTransferTargets: 3,
+    },
+    sourceNote: "product-authored-jf-cefr-aligned",
+  },
+  {
+    id: "a1-can-do-topic-questions",
+    level: "a1",
+    domain: "interaction",
+    descriptorCopyId: "a1-can-do-topic-questions-descriptor",
+    contextIds: [],
+    lessonIds: A1_EXPANDED_LESSON_IDS_BY_MODULE["topic-questions"],
+    checkpointEvidenceRule: {
+      evidenceKind: "checkpoint-sampled",
+      minAcceptedTransferTargets: 3,
+    },
+    sourceNote: "product-authored-jf-cefr-aligned",
+  },
+  {
+    id: "a1-can-do-polite-verbs",
+    level: "a1",
+    domain: "spoken-production",
+    descriptorCopyId: "a1-can-do-polite-verbs-descriptor",
+    contextIds: [],
+    lessonIds: A1_EXPANDED_LESSON_IDS_BY_MODULE["polite-verbs"],
+    checkpointEvidenceRule: {
+      evidenceKind: "checkpoint-sampled",
+      minAcceptedTransferTargets: 3,
+    },
+    sourceNote: "product-authored-jf-cefr-aligned",
+  },
+  {
+    id: "a1-can-do-time-movement",
+    level: "a1",
+    domain: "spoken-production",
+    descriptorCopyId: "a1-can-do-time-movement-descriptor",
+    contextIds: [],
+    lessonIds: A1_EXPANDED_LESSON_IDS_BY_MODULE["time-movement"],
+    checkpointEvidenceRule: {
+      evidenceKind: "checkpoint-sampled",
+      minAcceptedTransferTargets: 3,
+    },
+    sourceNote: "product-authored-jf-cefr-aligned",
+  },
 ]);

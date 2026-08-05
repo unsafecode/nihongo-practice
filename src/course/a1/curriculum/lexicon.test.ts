@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { a1SemanticValues } from "../catalog/a1SemanticCatalog";
+import {
+  a1CanonicalLearningTargetSenses,
+  a1CanonicalSemanticValues,
+} from "../catalog/a1SemanticCatalog";
 import {
   a1LexemeById,
   a1LexemeByValueId,
@@ -9,7 +12,7 @@ import {
 } from "./lexicon";
 
 function lexicalSurface(valueId: string): { readonly kana: string; readonly romaji: string } {
-  const value = a1SemanticValues.find((candidate) => candidate.id === valueId);
+  const value = a1CanonicalSemanticValues.find((candidate) => candidate.id === valueId);
   if (!value) {
     throw new Error(`Missing semantic value "${valueId}".`);
   }
@@ -62,6 +65,7 @@ describe("A1 canonical lexicon", () => {
       category: "noun",
       meaning: { en: "hotel", it: "hotel; albergo" },
     });
+
     expect(a1LexemeById["a1-lexeme-shashin"]).toMatchObject({
       id: "a1-lexeme-shashin",
       valueIds: ["a1-value-obj-photo"],
@@ -76,6 +80,82 @@ describe("A1 canonical lexicon", () => {
     expect(a1LexemeByValueId["a1-value-obj-photo"]).toBe(
       a1LexemeById["a1-lexeme-shashin"],
     );
+  });
+
+  it("adds the staged Foundations-only canonical lexemes with accurate forms and ownership", () => {
+    expect(a1LexemeById["a1-lexeme-namae"]).toMatchObject({
+      valueIds: ["a1-value-obj-name"],
+      kana: "なまえ",
+      romaji: "namae",
+      category: "noun",
+      meaning: { en: "name", it: "nome" },
+    });
+    expect(a1LexemeById["a1-lexeme-anata"]).toMatchObject({
+      valueIds: ["a1-value-anata"],
+      kana: "あなた",
+      romaji: "anata",
+      category: "pronoun",
+      meaning: { en: "you", it: "tu; lei" },
+    });
+    expect(a1LexemeById["a1-lexeme-doukyuusei"]).toMatchObject({
+      valueIds: ["a1-value-obj-classmate-peer"],
+      kana: "どうきゅうせい",
+      romaji: "doukyuusei",
+      category: "person",
+      meaning: { en: "classmate; peer", it: "compagno/a di corso" },
+    });
+    expect(a1LexemeById["a1-lexeme-furansujin"]).toMatchObject({
+      valueIds: ["a1-value-obj-french-person"],
+      kana: "フランスじん",
+      romaji: "furansujin",
+      category: "person",
+      meaning: { en: "French person", it: "francese" },
+    });
+    expect(a1LexemeById["a1-lexeme-yasumu"]).toMatchObject({
+      valueIds: ["a1-value-rest-bare", "a1-value-rest-routine"],
+      kana: "やすむ",
+      romaji: "yasumu",
+      category: "verb",
+      meaning: { en: "to rest; take a break", it: "riposarsi; fare una pausa" },
+      verb: {
+        dictionary: { kana: "やすむ", romaji: "yasumu" },
+        polite: { kana: "やすみます", romaji: "yasumimasu" },
+        class: "godan",
+      },
+    });
+    expect(a1LexemeById["a1-lexeme-kinou"]).toMatchObject({
+      valueIds: ["a1-value-time-yesterday"],
+      kana: "きのう",
+      romaji: "kinou",
+      category: "time",
+      meaning: { en: "yesterday", it: "ieri" },
+    });
+    expect(a1LexemeById["a1-lexeme-ashita"]).toMatchObject({
+      valueIds: ["a1-value-time-tomorrow"],
+      kana: "あした",
+      romaji: "ashita",
+      category: "time",
+      meaning: { en: "tomorrow", it: "domani" },
+    });
+  });
+
+  it("keeps the new rest values tied to distinct bare and time-anchored frames", () => {
+    const sensesById = Object.fromEntries(
+      a1CanonicalLearningTargetSenses.map((sense) => [sense.id, sense]),
+    );
+
+    expect(sensesById["a1-sense-rest-bare"]).toMatchObject({
+      lexemeId: "a1-lexeme-yasumu",
+      semanticFrameId: "a1-frame-rest-bare",
+      argumentRoles: ["agent"],
+      argumentParticleByRole: {},
+    });
+    expect(sensesById["a1-sense-rest-routine"]).toMatchObject({
+      lexemeId: "a1-lexeme-yasumu",
+      semanticFrameId: "a1-frame-rest-routine",
+      argumentRoles: ["agent", "time"],
+      argumentParticleByRole: {},
+    });
   });
 
   it("gives every entry nonempty learner-facing fields and a unique id", () => {
@@ -124,8 +204,8 @@ describe("A1 canonical lexicon", () => {
   });
 
   it("maps every learner-visible lexical semantic value and no missing value id", () => {
-    const semanticValueIds = new Set(a1SemanticValues.map((value) => value.id));
-    const lexicalValueIds = a1SemanticValues
+    const semanticValueIds = new Set(a1CanonicalSemanticValues.map((value) => value.id));
+    const lexicalValueIds = a1CanonicalSemanticValues
       .filter((value) => value.tokenFragments.some((fragment) => fragment.kind === "lexical"))
       .map((value) => value.id);
 

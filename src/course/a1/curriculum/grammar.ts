@@ -333,6 +333,146 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
     ],
   }),
   defineA1LearningNote({
+    id: "a1-note-sentence-chunks",
+    kind: "grammar",
+    explainedConceptIds: [],
+    requiredConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
+    title: {
+      en: "Build sentences from chunks",
+      it: "Costruisci frasi a blocchi",
+    },
+    meaning: {
+      en: "Japanese places the predicate at the end. Keep topic, information, and final predicate as chunks instead of translating one word at a time.",
+      it: "Il giapponese mette il predicato alla fine. Tieni tema, informazione e predicato finale come blocchi invece di tradurre una parola alla volta.",
+    },
+    use: {
+      en: "Use chunks to listen for the final predicate and to assemble a short polite sentence.",
+      it: "Usa i blocchi per riconoscere il predicato finale e per comporre una breve frase cortese.",
+    },
+    construction: {
+      en: "State a topic when useful, add its information, and finish with the learned polite predicate.",
+      it: "Esprimi un tema quando è utile, aggiungi la sua informazione e termina con il predicato cortese imparato.",
+    },
+    typicalMistake: {
+      en: "Do not put the predicate in the middle just to copy English or Italian word order.",
+      it: "Non mettere il predicato in mezzo solo per copiare l'ordine delle parole inglese o italiano.",
+    },
+    pattern: [
+      token("slot", "topic", "topic, if stated", "tema, se espresso"),
+      token("particle", "は", "topic particle", "particella del tema"),
+      token("slot", "information", "identity or other information", "identità o altra informazione"),
+      token("ending", "です", "final polite predicate", "predicato cortese finale"),
+    ],
+    nearestContrastId: "a1-note-topic-wa-copula-desu",
+  }),
+  defineA1LearningNote({
+    id: "a1-note-recoverable-omission",
+    kind: "grammar",
+    explainedConceptIds: [],
+    requiredConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],
+    title: {
+      en: "Omit only what context recovers",
+      it: "Ometti solo ciò che il contesto recupera",
+    },
+    meaning: {
+      en: "A topic or subject can be left unsaid when the listener can recover it from the situation or the previous turn.",
+      it: "Un tema o soggetto può restare non detto quando chi ascolta lo ricava dalla situazione o dal turno precedente.",
+    },
+    use: {
+      en: "Name the person or topic once, then omit it in a following sentence only when the reference stays clear.",
+      it: "Nomina una volta la persona o il tema, poi omettilo nella frase seguente solo quando il riferimento resta chiaro.",
+    },
+    construction: {
+      en: "Use the known context for the omitted topic, then say the information and final predicate.",
+      it: "Usa il contesto noto per il tema omesso, poi di' l'informazione e il predicato finale.",
+    },
+    typicalMistake: {
+      en: "Do not omit a person or topic when the listener could reasonably choose the wrong one.",
+      it: "Non omettere una persona o un tema quando chi ascolta potrebbe ragionevolmente scegliere quello sbagliato.",
+    },
+    subjectOmissionNote: {
+      en: "Omission is natural only when the intended topic or subject is recoverable from context.",
+      it: "L'omissione è naturale solo quando il tema o soggetto previsto è ricavabile dal contesto.",
+    },
+    pattern: [
+      token("slot", "known context", "known topic or subject", "tema o soggetto noto"),
+      token("punctuation", "→", "allows omission in the next turn", "permette l'omissione nel turno seguente"),
+      token("slot", "information", "information about that known topic", "informazione su quel tema noto"),
+      token("ending", "predicate", "final predicate", "predicato finale"),
+    ],
+    nearestContrastId: "a1-note-personal-reference",
+  }),
+  defineA1LearningNote({
+    id: "a1-note-anata-limited",
+    kind: "grammar",
+    explainedConceptIds: [],
+    requiredConceptIds: ["a1-concept-topic-wa"],
+    title: {
+      en: "Treat あなた as limited, not everyday you",
+      it: "Tratta あなた come limitato, non come il tu quotidiano",
+    },
+    meaning: {
+      en: "あなた can mean “you”, but it is not the everyday equivalent of English “you”.",
+      it: "あなた può significare «tu» o «lei», ma non è l'equivalente quotidiano dell'inglese «you».",
+    },
+    use: {
+      en: "Prefer わたし for yourself, names, titles, or omit the addressee when it is clear; use あなた only when another reference is unavoidable.",
+      it: "Preferisci わたし per te stesso, nomi, titoli o ometti l'interlocutore quando è chiaro; usa あなた solo quando un altro riferimento è inevitabile.",
+    },
+    construction: {
+      en: "Choose a name, title, or omission first; if あなた is unavoidable, place it in the ordinary topic or subject position.",
+      it: "Scegli prima un nome, un titolo o l'omissione; se あなた è inevitabile, mettilo nella normale posizione di tema o soggetto.",
+    },
+    typicalMistake: {
+      en: "Do not call あなた the everyday equivalent of English “you” or put it into every sentence.",
+      it: "Non chiamare あなた l'equivalente quotidiano dell'inglese «you» e non inserirlo in ogni frase.",
+    },
+    pattern: [
+      token("slot", "name／title／omission", "preferred addressee reference", "riferimento preferito all'interlocutore"),
+      token("punctuation", "／", "use あなた only when unavoidable", "usa あなた solo quando è inevitabile"),
+      token("slot", "information", "information for the addressee", "informazione per l'interlocutore"),
+      token("ending", "predicate", "final predicate", "predicato finale"),
+    ],
+    nearestContrastId: "a1-note-personal-reference",
+  }),
+  defineA1LearningNote({
+    id: "a1-note-identity-dialogue",
+    kind: "synthesis",
+    explainedConceptIds: [],
+    requiredConceptIds: [
+      "a1-concept-topic-wa",
+      "a1-concept-copula-desu",
+      "a1-concept-interrogative-ka",
+    ],
+    title: {
+      en: "Combine known identity references in dialogue",
+      it: "Combina riferimenti d'identità già noti nel dialogo",
+    },
+    meaning: {
+      en: "This is synthesis, not new grammar: combine known people, identity information, polite predicates, and simple questions.",
+      it: "Questa è sintesi, non grammatica nuova: combina persone note, informazioni d'identità, predicati cortesi e domande semplici.",
+    },
+    use: {
+      en: "Use it to introduce people, ask who someone is, and answer with the references already learned.",
+      it: "Usalo per presentare persone, chiedere chi è qualcuno e rispondere con i riferimenti già imparati.",
+    },
+    construction: {
+      en: "Choose a known topic or question word, keep the predicate final, and use a known polite ending.",
+      it: "Scegli un tema noto o una parola interrogativa, mantieni finale il predicato e usa una finale cortese nota.",
+    },
+    typicalMistake: {
+      en: "Do not invent a new identity pattern or add a new pronoun just because the dialogue has two speakers.",
+      it: "Non inventare una nuova struttura d'identità né aggiungere un nuovo pronome solo perché il dialogo ha due parlanti.",
+    },
+    pattern: [
+      token("slot", "known person or question word", "known identity reference", "riferimento d'identità noto"),
+      token("particle", "は", "topic particle when a topic is stated", "particella del tema quando il tema è espresso"),
+      token("slot", "known identity information", "known identity information", "informazione d'identità nota"),
+      token("ending", "です／か", "known polite statement or question ending", "finale cortese nota per affermazione o domanda"),
+    ],
+    nearestContrastId: "a1-note-synthesis-recombine",
+  }),
+  defineA1LearningNote({
     id: "a1-note-topic-wa-copula-desu",
     kind: "grammar",
     explainedConceptIds: ["a1-concept-topic-wa", "a1-concept-copula-desu"],

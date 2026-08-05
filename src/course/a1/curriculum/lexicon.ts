@@ -1,5 +1,5 @@
 import { deepFreeze } from "../../foundations/deepFreeze";
-import { a1SemanticValues } from "../catalog/a1SemanticCatalog";
+import { a1CanonicalSemanticValues } from "../catalog/a1SemanticCatalog";
 import type { A1Lexeme, Bilingual } from "./types";
 
 const LEXEME_CATEGORIES = new Set<A1Lexeme["category"]>([
@@ -75,12 +75,14 @@ export function defineA1Lexeme(input: A1Lexeme): A1Lexeme {
 
 export const a1Lexemes: readonly A1Lexeme[] = deepFreeze([
   defineA1Lexeme({ id: "a1-lexeme-watashi", valueIds: ["a1-value-watashi"], kana: "わたし", romaji: "watashi", category: "pronoun", meaning: { en: "I; me", it: "io; me" } }),
+  defineA1Lexeme({ id: "a1-lexeme-namae", valueIds: ["a1-value-obj-name"], kana: "なまえ", romaji: "namae", category: "noun", meaning: { en: "name", it: "nome" } }),
   defineA1Lexeme({ id: "a1-lexeme-gakusei", valueIds: ["a1-value-obj-student"], kana: "がくせい", romaji: "gakusei", category: "person", meaning: { en: "student", it: "studente; studentessa" } }),
   defineA1Lexeme({ id: "a1-lexeme-taberu", valueIds: ["a1-value-eat", "a1-value-eat-routine"], kana: "たべる", romaji: "taberu", category: "verb", meaning: { en: "to eat", it: "mangiare" }, verb: { dictionary: { kana: "たべる", romaji: "taberu" }, polite: { kana: "たべます", romaji: "tabemasu" }, class: "ichidan" } }),
 
   defineA1Lexeme({ id: "a1-lexeme-yuki", valueIds: ["a1-value-yuki"], kana: "ゆき", romaji: "yuki", category: "person", meaning: { en: "Yuki", it: "Yuki" } }),
   defineA1Lexeme({ id: "a1-lexeme-ken", valueIds: ["a1-value-ken"], kana: "けん", romaji: "ken", category: "person", meaning: { en: "Ken", it: "Ken" } }),
   defineA1Lexeme({ id: "a1-lexeme-mina", valueIds: ["a1-value-mina"], kana: "みな", romaji: "mina", category: "person", meaning: { en: "Mina", it: "Mina" } }),
+  defineA1Lexeme({ id: "a1-lexeme-anata", valueIds: ["a1-value-anata"], kana: "あなた", romaji: "anata", category: "pronoun", meaning: { en: "you", it: "tu; lei" } }),
   defineA1Lexeme({ id: "a1-lexeme-sensei", valueIds: ["a1-value-teacher-subject", "a1-value-obj-teacher", "a1-value-recipient-teacher", "a1-value-companion-teacher"], kana: "せんせい", romaji: "sensei", category: "person", meaning: { en: "teacher", it: "insegnante" } }),
   defineA1Lexeme({ id: "a1-lexeme-kurasumeeto", valueIds: ["a1-value-classmate-subject", "a1-value-companion-classmate"], kana: "クラスメート", romaji: "kurasumeeto", category: "person", meaning: { en: "classmate", it: "compagno; compagna di classe" } }),
   defineA1Lexeme({ id: "a1-lexeme-tomodachi", valueIds: ["a1-value-friend-subject", "a1-value-companion-friend", "a1-value-recipient-friend"], kana: "ともだち", romaji: "tomodachi", category: "person", meaning: { en: "friend", it: "amico; amica" } }),
@@ -102,6 +104,7 @@ export const a1Lexemes: readonly A1Lexeme[] = deepFreeze([
   defineA1Lexeme({ id: "a1-lexeme-benkyou-suru", valueIds: ["a1-value-study", "a1-value-study-bare", "a1-value-study-routine"], kana: "べんきょうする", romaji: "benkyou suru", category: "verb", meaning: { en: "to study", it: "studiare" }, verb: { dictionary: { kana: "べんきょうする", romaji: "benkyou suru" }, polite: { kana: "べんきょうします", romaji: "benkyou shimasu" }, class: "irregular" } }),
   defineA1Lexeme({ id: "a1-lexeme-wakaru", valueIds: ["a1-value-understand"], kana: "わかる", romaji: "wakaru", category: "verb", meaning: { en: "to understand", it: "capire" }, verb: { dictionary: { kana: "わかる", romaji: "wakaru" }, polite: { kana: "わかります", romaji: "wakarimasu" }, class: "godan" } }),
   defineA1Lexeme({ id: "a1-lexeme-suru", valueIds: ["a1-value-do", "a1-value-do-bare"], kana: "する", romaji: "suru", category: "verb", meaning: { en: "to do", it: "fare" }, verb: { dictionary: { kana: "する", romaji: "suru" }, polite: { kana: "します", romaji: "shimasu" }, class: "irregular" } }),
+  defineA1Lexeme({ id: "a1-lexeme-yasumu", valueIds: ["a1-value-rest-bare", "a1-value-rest-routine"], kana: "やすむ", romaji: "yasumu", category: "verb", meaning: { en: "to rest; take a break", it: "riposarsi; fare una pausa" }, verb: { dictionary: { kana: "やすむ", romaji: "yasumu" }, polite: { kana: "やすみます", romaji: "yasumimasu" }, class: "godan" } }),
   defineA1Lexeme({ id: "a1-lexeme-iku", valueIds: ["a1-value-go", "a1-value-accompany"], kana: "いく", romaji: "iku", category: "verb", meaning: { en: "to go", it: "andare" }, verb: { dictionary: { kana: "いく", romaji: "iku" }, polite: { kana: "いきます", romaji: "ikimasu" }, class: "godan" } }),
   defineA1Lexeme({ id: "a1-lexeme-kuru", valueIds: ["a1-value-come"], kana: "くる", romaji: "kuru", category: "verb", meaning: { en: "to come", it: "venire" }, verb: { dictionary: { kana: "くる", romaji: "kuru" }, polite: { kana: "きます", romaji: "kimasu" }, class: "irregular" } }),
   defineA1Lexeme({ id: "a1-lexeme-nomu", valueIds: ["a1-value-drink"], kana: "のむ", romaji: "nomu", category: "verb", meaning: { en: "to drink", it: "bere" }, verb: { dictionary: { kana: "のむ", romaji: "nomu" }, polite: { kana: "のみます", romaji: "nomimasu" }, class: "godan" } }),
@@ -118,9 +121,11 @@ export const a1Lexemes: readonly A1Lexeme[] = deepFreeze([
   defineA1Lexeme({ id: "a1-lexeme-isha", valueIds: ["a1-value-obj-doctor"], kana: "いしゃ", romaji: "isha", category: "person", meaning: { en: "doctor", it: "medico; dottoressa" } }),
   defineA1Lexeme({ id: "a1-lexeme-kaishain", valueIds: ["a1-value-obj-office-worker"], kana: "かいしゃいん", romaji: "kaishain", category: "person", meaning: { en: "company employee", it: "impiegato; impiegata" } }),
   defineA1Lexeme({ id: "a1-lexeme-enjinia", valueIds: ["a1-value-obj-engineer"], kana: "エンジニア", romaji: "enjinia", category: "person", meaning: { en: "engineer", it: "ingegnere; ingegnera" } }),
+  defineA1Lexeme({ id: "a1-lexeme-doukyuusei", valueIds: ["a1-value-obj-classmate-peer"], kana: "どうきゅうせい", romaji: "doukyuusei", category: "person", meaning: { en: "classmate; peer", it: "compagno/a di corso" } }),
   defineA1Lexeme({ id: "a1-lexeme-nihonjin", valueIds: ["a1-value-obj-japanese-person"], kana: "にほんじん", romaji: "nihonjin", category: "person", meaning: { en: "Japanese person", it: "persona giapponese" } }),
   defineA1Lexeme({ id: "a1-lexeme-itaria-jin", valueIds: ["a1-value-obj-italian-person"], kana: "イタリアじん", romaji: "itariajin", category: "person", meaning: { en: "Italian person", it: "persona italiana" } }),
   defineA1Lexeme({ id: "a1-lexeme-amerika-jin", valueIds: ["a1-value-obj-american-person"], kana: "アメリカじん", romaji: "amerikajin", category: "person", meaning: { en: "American person", it: "persona americana" } }),
+  defineA1Lexeme({ id: "a1-lexeme-furansujin", valueIds: ["a1-value-obj-french-person"], kana: "フランスじん", romaji: "furansujin", category: "person", meaning: { en: "French person", it: "francese" } }),
   defineA1Lexeme({ id: "a1-lexeme-nihongo", valueIds: ["a1-value-obj-japanese"], kana: "にほんご", romaji: "nihongo", category: "noun", meaning: { en: "Japanese language", it: "lingua giapponese" } }),
   defineA1Lexeme({ id: "a1-lexeme-eigo", valueIds: ["a1-value-obj-english"], kana: "えいご", romaji: "eigo", category: "noun", meaning: { en: "English language", it: "lingua inglese" } }),
   defineA1Lexeme({ id: "a1-lexeme-itaria-go", valueIds: ["a1-value-obj-italian"], kana: "イタリアご", romaji: "itariago", category: "noun", meaning: { en: "Italian language", it: "lingua italiana" } }),
@@ -211,6 +216,8 @@ export const a1Lexemes: readonly A1Lexeme[] = deepFreeze([
   defineA1Lexeme({ id: "a1-lexeme-itsumo", valueIds: ["a1-value-freq-always"], kana: "いつも", romaji: "itsumo", category: "time", meaning: { en: "always", it: "sempre" } }),
 
   defineA1Lexeme({ id: "a1-lexeme-kyou", valueIds: ["a1-value-today"], kana: "きょう", romaji: "kyou", category: "time", meaning: { en: "today", it: "oggi" } }),
+  defineA1Lexeme({ id: "a1-lexeme-kinou", valueIds: ["a1-value-time-yesterday"], kana: "きのう", romaji: "kinou", category: "time", meaning: { en: "yesterday", it: "ieri" } }),
+  defineA1Lexeme({ id: "a1-lexeme-ashita", valueIds: ["a1-value-time-tomorrow"], kana: "あした", romaji: "ashita", category: "time", meaning: { en: "tomorrow", it: "domani" } }),
   defineA1Lexeme({ id: "a1-lexeme-heya", valueIds: ["a1-value-heya", "a1-value-loc-room"], kana: "へや", romaji: "heya", category: "noun", meaning: { en: "room", it: "stanza" } }),
   defineA1Lexeme({ id: "a1-lexeme-machi", valueIds: ["a1-value-machi", "a1-value-loc-town"], kana: "まち", romaji: "machi", category: "noun", meaning: { en: "town", it: "città; paese" } }),
   defineA1Lexeme({ id: "a1-lexeme-atsui", valueIds: ["a1-value-hot"], kana: "あつい", romaji: "atsui", category: "adjective", meaning: { en: "hot", it: "caldo" } }),
@@ -278,7 +285,7 @@ function buildLexemeIndexes(lexemes: readonly A1Lexeme[]): Readonly<{
   byId: LexemeIndex;
   byValueId: LexemeIndex;
 }> {
-  const knownValueIds = new Set(a1SemanticValues.map((value) => value.id));
+  const knownValueIds = new Set(a1CanonicalSemanticValues.map((value) => value.id));
   const byId: Record<string, A1Lexeme | undefined> = {};
   const byValueId: Record<string, A1Lexeme | undefined> = {};
 
