@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { PREVIEW_BASE_PATH, PREVIEW_ORIGIN } from "../../playwright.config";
+import { CURRENT_COURSE_PROGRESS_CATALOG_VERSION } from "../../src/course/progress/progress";
 import {
   assertLocalOnlyNetwork,
   assertNoRuntimeErrors,
@@ -442,7 +443,7 @@ test.describe("A2 progress isolation and persistence on the built preview", () =
     const observers = await setupPageObservers(page);
     await seedProgress(page, {
       schemaVersion: 4,
-      catalogVersion: "a1-a2-v1",
+      catalogVersion: CURRENT_COURSE_PROGRESS_CATALOG_VERSION,
       levels: {
         a1: {
           ...emptyLevel(),

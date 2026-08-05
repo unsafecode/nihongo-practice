@@ -709,6 +709,8 @@ export const SPEECH_RECOGNIZER_KEY = "__nihongoSpeechRecognizer__";
 export const SPEECH_FAKE_KEY = "__nihongoSpeechFake__";
 /** The window key holding the recorded live-region announcement sequence. */
 export const SPEECH_STATUS_LOG_KEY = "__nihongoSpeechStatusLog__";
+/** The window key exposing the deterministic synthesis fake to A1 audio tests. */
+export const SPEECH_SYNTHESIS_FAKE_KEY = "__nihongoSpeechSynthesisFake__";
 
 /** The mapped recognition failures the fake can settle (mirrors the app union). */
 export type SpeechFakeFailure =
@@ -723,6 +725,12 @@ export type SpeechFakeFailure =
 export type SpeechFakeOutcome =
   | { readonly kind: "transcript"; readonly transcript: string }
   | { readonly kind: "failure"; readonly failure: SpeechFakeFailure };
+
+/** One deterministic outcome for an A1 word/example playback request. */
+export type SpeechSynthesisFakeOutcome =
+  | { readonly kind: "playing" }
+  | { readonly kind: "ended" }
+  | { readonly kind: "failure"; readonly error?: string };
 
 /** A recorded interaction snapshot read back from page memory. */
 export interface SpeechFakeStats {
@@ -859,6 +867,91 @@ export async function installSpeechFake(
       statusLogKey: SPEECH_STATUS_LOG_KEY,
       supported: config.supported ?? true,
     },
+  );
+}
+
+/**
+ * Installs a zero-I/O SpeechSynthesis replacement before application boot.
+ * The production hook observes a Japanese voice, then receives queued lifecycle
+ * callbacks exactly as it would from the browser API; no native audio is played.
+ */
+export async function installSpeechSynthesisFake(page: Page): Promise<void> {
+  await page.addInitScript((fakeKey: string) => {
+    type Outcome =
+      | { readonly kind: "playing" }
+      | { readonly kind: "ended" }
+      | { readonly kind: "failure"; readonly error?: string };
+    type FakeUtterance = {
+      readonly text: string;
+      lang: string;
+      rate: number;
+      voice: unknown;
+      onstart: (() => void) | null;
+      onend: (() => void) | null;
+      onerror: ((event: { readonly error: string }) => void) | null;
+    };
+
+    class DeterministicUtterance implements FakeUtterance {
+      lang = "";
+      rate = 1;
+      voice: unknown = null;
+      onstart: (() => void) | null = null;
+      onend: (() => void) | null = null;
+      onerror: ((event: { readonly error: string }) => void) | null = null;
+
+      constructor(readonly text: string) {}
+    }
+
+    const outcomes: Outcome[] = [];
+    const japaneseVoice = { lang: "ja-JP", name: "E2E Japanese voice" };
+    const synth = {
+      getVoices: () => [japaneseVoice],
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      cancel: () => undefined,
+      speak: (utterance: DeterministicUtterance) => {
+        const outcome = outcomes.shift() ?? { kind: "ended" as const };
+        queueMicrotask(() => {
+          if (outcome.kind === "failure") {
+            utterance.onerror?.({ error: outcome.error ?? "synthesis-failed" });
+            return;
+          }
+          utterance.onstart?.();
+          if (outcome.kind === "ended") queueMicrotask(() => utterance.onend?.());
+        });
+      },
+    };
+    Object.defineProperty(window, "speechSynthesis", {
+      configurable: true,
+      value: synth,
+    });
+    Object.defineProperty(window, "SpeechSynthesisUtterance", {
+      configurable: true,
+      value: DeterministicUtterance,
+    });
+    (window as unknown as Record<string, unknown>)[fakeKey] = {
+      queue(outcome: Outcome) {
+        outcomes.push(outcome);
+      },
+    };
+  }, SPEECH_SYNTHESIS_FAKE_KEY);
+}
+
+/** Queue the next lifecycle result for {@link installSpeechSynthesisFake}. */
+export async function queueSpeechSynthesisOutcome(
+  page: Page,
+  outcome: SpeechSynthesisFakeOutcome,
+): Promise<void> {
+  await page.evaluate(
+    ({ key, value }) => {
+      (
+        window as unknown as Record<
+          string,
+          { queue(next: SpeechSynthesisFakeOutcome): void }
+        >
+      )[key].queue(value);
+    },
+    { key: SPEECH_SYNTHESIS_FAKE_KEY, value: outcome },
   );
 }
 
