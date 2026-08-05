@@ -287,6 +287,24 @@ export const a1ExpandedFoundationLearningTargetSenses: readonly LearningTargetSe
       argumentRoles: ["agent", "time"],
       argumentParticleByRole: {},
     },
+    {
+      id: "a1-sense-return-bare",
+      lexemeId: "a1-lexeme-kaeru",
+      learningUse: "productive",
+      semanticFrameId: "a1-frame-return-bare",
+      predicate: "return",
+      argumentRoles: ["agent"],
+      argumentParticleByRole: {},
+    },
+    {
+      id: "a1-sense-return-location",
+      lexemeId: "a1-lexeme-kaeru",
+      learningUse: "productive",
+      semanticFrameId: "a1-frame-return-location",
+      predicate: "return",
+      argumentRoles: ["agent", "location"],
+      argumentParticleByRole: { location: "ni" },
+    },
   ]);
 
 /** Full canonical pool for staged authoring; never used by published runtime. */
@@ -626,6 +644,33 @@ export const a1ExpandedFoundationSemanticValues: readonly SemanticValue[] =
       senseId: "a1-sense-rest-routine",
       tokenFragments: [frag("やすみ", "yasumi")],
     }),
+    defineA1SemanticValue({
+      id: "a1-value-return-bare",
+      kind: "predicate-sense",
+      senseId: "a1-sense-return-bare",
+      tokenFragments: [frag("かえり", "kaeri")],
+    }),
+    defineA1SemanticValue({
+      id: "a1-value-return-location",
+      kind: "predicate-sense",
+      senseId: "a1-sense-return-location",
+      tokenFragments: [frag("かえり", "kaeri")],
+    }),
+    defineA1SemanticValue({
+      id: "a1-value-time-last-week",
+      kind: "time",
+      tokenFragments: [frag("せんしゅう", "senshuu")],
+    }),
+    defineA1SemanticValue({
+      id: "a1-value-time-today",
+      kind: "time",
+      tokenFragments: [frag("きょう", "kyou")],
+    }),
+    defineA1SemanticValue({
+      id: "a1-value-loc-doko",
+      kind: "location",
+      tokenFragments: [frag("どこ", "doko")],
+    }),
     // Staged alternate referent forms let the first two Foundations modules
     // realize names, roles, and どれ naturally without widening the published
     // lesson catalog before Task 5.
@@ -928,9 +973,9 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
 ]);
 
 /**
- * Next-release-only sentence families for the first two Foundations modules.
- * They reuse the stable copular realization rule while keeping their grammar
- * requirements out of the published family catalog until Task 5.
+ * Next-release-only sentence families for the expanded Foundations modules.
+ * They reuse stable realization rules while keeping their grammar requirements
+ * out of the published family catalog until Task 5.
  */
 export const a1ExpandedFoundationSentenceFamilies: readonly SentenceFamily[] =
   deepFreeze([
@@ -1027,6 +1072,97 @@ export const a1ExpandedFoundationSentenceFamilies: readonly SentenceFamily[] =
       ],
       realizationRuleId: "rule-focus-copular",
       requiredConceptIds: [A1_CONCEPT_NOMINATIVE_GA, A1_CONCEPT_COPULA_DESU],
+    },
+    {
+      id: "a1-family-foundation-bare-action",
+      level: "a1",
+      canDoIds: ["a1-can-do-polite-verbs"],
+      slotSchema: [
+        { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+        { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+      ],
+      permittedAxes: ["speaker-person", "predicate-verb", "polarity-tense-form", "context"],
+      realizationRuleId: "rule-bare-action",
+      requiredConceptIds: [A1_CONCEPT_TOPIC_WA],
+    },
+    {
+      id: "a1-family-foundation-object-action",
+      level: "a1",
+      canDoIds: ["a1-can-do-polite-verbs"],
+      slotSchema: [
+        { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+        { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+        { id: "object", axis: "object", valueKind: "object", optional: false },
+      ],
+      permittedAxes: ["speaker-person", "predicate-verb", "object", "polarity-tense-form", "context"],
+      realizationRuleId: "rule-object-action",
+      requiredConceptIds: [A1_CONCEPT_OBJECT_WO],
+    },
+    {
+      id: "a1-family-foundation-location-action",
+      level: "a1",
+      canDoIds: ["a1-can-do-polite-verbs"],
+      slotSchema: [
+        { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+        { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+        { id: "location", axis: "location", valueKind: "location", optional: false },
+      ],
+      permittedAxes: ["speaker-person", "predicate-verb", "location", "polarity-tense-form", "context"],
+      realizationRuleId: "rule-location-action",
+      requiredConceptIds: [A1_CONCEPT_LOCATION_PARTICLE],
+    },
+    {
+      id: "a1-family-foundation-schedule-action",
+      level: "a1",
+      canDoIds: ["a1-can-do-time-movement"],
+      slotSchema: [
+        { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+        { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+        { id: "time", axis: "time", valueKind: "time", optional: false },
+      ],
+      permittedAxes: ["speaker-person", "predicate-verb", "time", "polarity-tense-form", "context"],
+      realizationRuleId: "rule-schedule-action",
+      requiredConceptIds: [A1_CONCEPT_TIME_SCHEDULE],
+    },
+    {
+      id: "a1-family-foundation-time-action",
+      level: "a1",
+      canDoIds: ["a1-can-do-time-movement"],
+      slotSchema: [
+        { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+        { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+        { id: "time", axis: "time", valueKind: "time", optional: false },
+      ],
+      permittedAxes: ["speaker-person", "predicate-verb", "time", "polarity-tense-form", "context"],
+      realizationRuleId: "rule-time-action",
+      requiredConceptIds: [A1_CONCEPT_TOPIC_WA],
+    },
+    {
+      id: "a1-family-foundation-direction-action",
+      level: "a1",
+      canDoIds: ["a1-can-do-time-movement"],
+      slotSchema: [
+        { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+        { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+        { id: "location", axis: "location", valueKind: "location", optional: false },
+      ],
+      permittedAxes: ["speaker-person", "predicate-verb", "location", "polarity-tense-form", "context"],
+      realizationRuleId: "rule-direction-action",
+      requiredConceptIds: [A1_CONCEPT_DIRECTION_HE],
+    },
+    {
+      id: "a1-family-foundation-transport-action",
+      level: "a1",
+      canDoIds: ["a1-can-do-time-movement"],
+      slotSchema: [
+        { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+        { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+        { id: "transport", axis: "object", valueKind: "object", optional: false },
+        { id: "location", axis: "location", valueKind: "location", optional: false },
+      ],
+      permittedAxes: ["speaker-person", "predicate-verb", "object", "location", "polarity-tense-form", "context"],
+      realizationRuleId: "rule-transport-action",
+      requiredConceptIds: [A1_CONCEPT_LOCATION_PARTICLE, A1_CONCEPT_TRANSPORT_DE],
     },
   ]);
 

@@ -14,6 +14,8 @@ import {
 } from "./a1SemanticCatalog";
 import {
   FOUNDATIONS_CANDO_IDS_BY_MODULE,
+  FOUNDATIONS_LEARNING_NOTE_IDS_BY_LESSON,
+  a1ExpandedFoundationsLexemeById,
   a1ExpandedFoundationsLexemeByValueId,
   a1ExpandedFoundationsLexemes,
   FOUNDATIONS_LEXEME_IDS_BY_LESSON,
@@ -109,7 +111,7 @@ const EXPECTED_LEXEME_IDS_BY_LESSON = {
   "time-movement-3": [
     "a1-lexeme-kinou",
     "a1-lexeme-kyou",
-    "a1-lexeme-ashita",
+    "a1-lexeme-senshuu",
     "a1-lexeme-mainichi",
   ],
   "time-movement-4": [
@@ -150,6 +152,30 @@ describe("staged Foundations shared authoring data", () => {
         );
       }
     }
+  });
+
+  it("keeps the staged verb and movement note sequence honest about every form and particle", () => {
+    expect(
+      [
+        "polite-verbs-1",
+        "polite-verbs-2",
+        "polite-verbs-3",
+        "polite-verbs-4",
+        "time-movement-1",
+        "time-movement-2",
+        "time-movement-3",
+        "time-movement-4",
+      ].map((lessonId) => FOUNDATIONS_LEARNING_NOTE_IDS_BY_LESSON[lessonId]),
+    ).toEqual([
+      "a1-note-dictionary-masu-classes",
+      "a1-note-masu-object-o",
+      "a1-note-masu-masen",
+      "a1-note-location-ni-de-contrast",
+      "a1-note-time-ni",
+      "a1-note-mashita",
+      "a1-note-mashita-masen-deshita",
+      "a1-note-direction-transport-dialogue",
+    ]);
   });
 
   it("exposes frozen lexical and Can-do lookup tables without leaking mutable Maps", () => {
@@ -198,6 +224,21 @@ describe("staged Foundations shared authoring data", () => {
         ({ id }) => id === "a1-lexeme-yasumu",
       ),
     ).toBe(stagedYasumu);
+  });
+
+  it("stages last week as the past-compatible time allocation without publishing it", () => {
+    expect(a1LexemeById["a1-lexeme-senshuu"]).toBeUndefined();
+    expect(a1ExpandedFoundationsLexemeById["a1-lexeme-senshuu"]).toMatchObject({
+      valueIds: ["a1-value-time-last-week"],
+      kana: "せんしゅう",
+      romaji: "senshuu",
+    });
+    expect(
+      a1SemanticValues.some(({ id }) => id === "a1-value-time-last-week"),
+    ).toBe(false);
+    expect(
+      a1CanonicalSemanticValues.some(({ id }) => id === "a1-value-time-last-week"),
+    ).toBe(true);
   });
 
   it("keeps Foundations-only referent forms and French language ownership out of published indexes", () => {

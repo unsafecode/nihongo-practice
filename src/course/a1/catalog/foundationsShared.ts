@@ -131,7 +131,7 @@ export const FOUNDATIONS_LEXEME_IDS_BY_LESSON: Readonly<
   "time-movement-3": [
     "a1-lexeme-kinou",
     "a1-lexeme-kyou",
-    "a1-lexeme-ashita",
+    "a1-lexeme-senshuu",
     "a1-lexeme-mainichi",
   ],
   "time-movement-4": [
@@ -164,6 +164,19 @@ const expandedFoundationsLexemeOverrides: Readonly<Record<string, A1Lexeme>> =
       "a1-value-rest-bare",
       "a1-value-rest-routine",
     ]),
+    "a1-lexeme-kaeru": withExpandedValueIds("a1-lexeme-kaeru", [
+      "a1-value-return",
+      "a1-value-return-bare",
+      "a1-value-return-location",
+    ]),
+    "a1-lexeme-doko": withExpandedValueIds("a1-lexeme-doko", [
+      "a1-value-q-doko",
+      "a1-value-loc-doko",
+    ]),
+    "a1-lexeme-kyou": withExpandedValueIds("a1-lexeme-kyou", [
+      "a1-value-today",
+      "a1-value-time-today",
+    ]),
     "a1-lexeme-namae": withExpandedValueIds("a1-lexeme-namae", [
       "a1-value-obj-name",
       "a1-value-name-subject",
@@ -187,6 +200,15 @@ const expandedFoundationsFrenchLanguageLexeme = defineA1Lexeme({
   meaning: { en: "French language", it: "lingua francese" },
 });
 
+const expandedFoundationsLastWeekLexeme = defineA1Lexeme({
+  id: "a1-lexeme-senshuu",
+  valueIds: ["a1-value-time-last-week"],
+  kana: "せんしゅう",
+  romaji: "senshuu",
+  category: "time",
+  meaning: { en: "last week", it: "la settimana scorsa" },
+});
+
 /**
  * Canonical lexemes for staged Foundations authoring. The published lexicon
  * deliberately remains limited to published semantic values until Task5
@@ -198,6 +220,7 @@ export const a1ExpandedFoundationsLexemes: readonly A1Lexeme[] = deepFreeze(
       (lexeme) => expandedFoundationsLexemeOverrides[lexeme.id] ?? lexeme,
     ),
     expandedFoundationsFrenchLanguageLexeme,
+    expandedFoundationsLastWeekLexeme,
   ],
 );
 
@@ -271,13 +294,13 @@ export const FOUNDATIONS_LEARNING_NOTE_IDS_BY_LESSON: Readonly<
   "topic-questions-3": "a1-note-question-ka-words",
   "topic-questions-4": "a1-note-question-dialogue",
   "polite-verbs-1": "a1-note-dictionary-masu-classes",
-  "polite-verbs-2": "a1-note-particle-o",
+  "polite-verbs-2": "a1-note-masu-object-o",
   "polite-verbs-3": "a1-note-masu-masen",
   "polite-verbs-4": "a1-note-location-ni-de-contrast",
   "time-movement-1": "a1-note-time-ni",
-  "time-movement-2": "a1-note-time-ni",
+  "time-movement-2": "a1-note-mashita",
   "time-movement-3": "a1-note-mashita-masen-deshita",
-  "time-movement-4": "a1-note-particle-he-contrast",
+  "time-movement-4": "a1-note-direction-transport-dialogue",
 });
 
 function resolveLessonLexemes(

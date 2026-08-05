@@ -1414,6 +1414,95 @@ function buildLearningNoteIndex(notes: readonly A1LearningNote[]): LearningNoteI
 export const a1LearningNoteById: LearningNoteIndex = buildLearningNoteIndex(a1LearningNotes);
 
 /**
+ * Next-release-only composite notes. They keep the published A1 note index
+ * stable while letting the staged Foundations preview teach combined forms
+ * honestly before Task 5 promotes the whole area.
+ */
+export const a1ExpandedFoundationLearningNotes: readonly A1LearningNote[] =
+  deepFreeze([
+    defineA1LearningNote({
+      id: "a1-note-masu-object-o",
+      kind: "grammar",
+      explainedConceptIds: ["a1-concept-object-wo"],
+      requiredConceptIds: [],
+      explainedVerbForms: [
+        { polarity: "affirmative", tense: "present", formality: "polite" },
+      ],
+      title: {
+        en: "Use ます with a direct object",
+        it: "Usa ます con un oggetto diretto",
+      },
+      meaning: {
+        en: "ます is the polite nonpast affirmative ending, and を marks the thing the action affects.",
+        it: "ます è la finale affermativa cortese non-passata e を segna la cosa su cui agisce l'azione.",
+      },
+      use: {
+        en: "Use this shape when you politely say what you eat, drink, read, or write.",
+        it: "Usa questa struttura quando dici con cortesia che cosa mangi, bevi, leggi o scrivi.",
+      },
+      construction: {
+        en: "Put the object before を, then add ます to the learned polite verb stem.",
+        it: "Metti l'oggetto prima di を, poi aggiungi ます al tema verbale cortese imparato.",
+      },
+      typicalMistake: {
+        en: "Do not put を after the verb or use a dictionary form where the polite ます form is required.",
+        it: "Non mettere を dopo il verbo e non usare la forma di dizionario quando serve la forma cortese in ます.",
+      },
+      pattern: [
+        token("slot", "object", "direct object", "oggetto diretto"),
+        token("particle", "を", "direct-object particle; read o", "particella dell'oggetto diretto; si legge o"),
+        token("slot", "verb stem", "learned polite verb stem", "tema verbale cortese imparato"),
+        token("ending", "ます", "polite nonpast affirmative ending", "finale affermativa cortese non-passata"),
+      ],
+      nearestContrastId: "a1-note-masu-masen",
+    }),
+    defineA1LearningNote({
+      id: "a1-note-direction-transport-dialogue",
+      kind: "synthesis",
+      explainedConceptIds: [
+        "a1-concept-direction-he",
+        "a1-concept-transport-de",
+      ],
+      requiredConceptIds: ["a1-concept-location-particle"],
+      title: {
+        en: "Combine direction and transport in a travel exchange",
+        it: "Combina direzione e trasporto in uno scambio di viaggio",
+      },
+      meaning: {
+        en: "に marks an arrival destination, へ points toward a destination, and で marks the means of travel.",
+        it: "に segna una destinazione di arrivo, へ indica la direzione verso una destinazione e で segna il mezzo di trasporto.",
+      },
+      use: {
+        en: "Use the destination particle and the transport phrase together when a short travel exchange needs both details.",
+        it: "Usa insieme la particella di destinazione e la frase di trasporto quando un breve scambio di viaggio richiede entrambi i dettagli.",
+      },
+      construction: {
+        en: "Put the transport before で, the destination before に or へ, and keep the polite movement verb final.",
+        it: "Metti il mezzo prima di で, la destinazione prima di に o へ e mantieni finale il verbo di movimento cortese.",
+      },
+      typicalMistake: {
+        en: "Do not use transport で as an action place, or use へ for the place where an activity happens.",
+        it: "Non usare il で del trasporto come luogo dell'azione e non usare へ per il luogo in cui avviene un'attività.",
+      },
+      pattern: [
+        token("slot", "transport", "means of transport", "mezzo di trasporto"),
+        token("particle", "で", "transport-means particle", "particella del mezzo di trasporto"),
+        token("slot", "destination", "arrival point or direction", "punto di arrivo o direzione"),
+        token("particle", "に／へ", "destination or direction particle", "particella di destinazione o direzione"),
+        token("slot", "movement verb", "final polite movement verb", "verbo di movimento cortese finale"),
+      ],
+      nearestContrastId: "a1-note-particle-he-contrast",
+    }),
+  ]);
+
+/** Complete note lookup for staged Foundations authoring; not the published view. */
+export const a1CanonicalFoundationLearningNoteById: LearningNoteIndex =
+  buildLearningNoteIndex([
+    ...a1LearningNotes,
+    ...a1ExpandedFoundationLearningNotes,
+  ]);
+
+/**
  * The one substantive note that first teaches each grammar concept. Later
  * mentions may reinforce a concept, but never unlock it for curriculum use.
  */

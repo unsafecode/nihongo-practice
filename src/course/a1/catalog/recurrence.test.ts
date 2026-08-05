@@ -16,12 +16,26 @@ import { describe, expect, it } from "vitest";
 
 import { a1VerbUseRecord } from "./shared";
 import {
+  a1CanonicalContexts,
+  a1CanonicalLearningTargetSenses,
+  a1CanonicalPersonRoles,
+  a1CanonicalReferents,
+  a1CanonicalSemanticValues,
+  a1CanonicalSentenceFamilies,
+} from "./a1SemanticCatalog";
+import {
   assertNoStaleLaterUseKeys,
   a1ReleaseVerbUseRecords,
   a1StagedFoundationsArea01to02VerbUseRecords,
 } from "./recurrence";
-import { a1SemanticFoundationCatalogs } from "./catalog";
+import { a1StagedFoundationsArea03to04VerbUseRecords } from "./foundationsRecurrence03to04";
+import {
+  a1SemanticBuiltLessons,
+  a1SemanticFoundationCatalogs,
+} from "./catalog";
 import { realizeVariant, type RealizeVariantCatalogs } from "../../foundations/realizeFamily";
+import { a1AllStagedFoundationsBuiltLessons } from "../curriculum/foundationsArea03to04";
+import { A1_EXPANDED_CANONICAL_POSITIONS } from "../manifest";
 
 function fakeRecord(senseId: string) {
   return a1VerbUseRecord({
@@ -70,6 +84,69 @@ describe("assertNoStaleLaterUseKeys", () => {
           record.introductionLessonId.startsWith("sentence-foundations-"),
         ),
       ).toBe(false);
+    });
+
+    it("keeps final-module records staged, spaced, and tied to variants that realize the cited sense", () => {
+      const allBuilt = [
+        ...a1AllStagedFoundationsBuiltLessons,
+        ...a1SemanticBuiltLessons,
+      ];
+      const variantById = new Map(
+        allBuilt.flatMap(({ variants }) => variants).map((variant) => [variant.id, variant]),
+      );
+      const familyById = new Map(
+        a1CanonicalSentenceFamilies.map((family) => [family.id, family]),
+      );
+      const catalogs: RealizeVariantCatalogs = {
+        contexts: a1CanonicalContexts,
+        personRoles: a1CanonicalPersonRoles,
+        referents: a1CanonicalReferents,
+        semanticValues: a1CanonicalSemanticValues,
+        learningTargetSenses: a1CanonicalLearningTargetSenses,
+      };
+
+      expect(
+        a1ReleaseVerbUseRecords.some((record) =>
+          record.introductionLessonId.startsWith("polite-verbs-") ||
+          record.introductionLessonId.startsWith("time-movement-"),
+        ),
+      ).toBe(false);
+
+      for (const record of a1StagedFoundationsArea03to04VerbUseRecords) {
+        const introductionPosition =
+          A1_EXPANDED_CANONICAL_POSITIONS[record.introductionLessonId];
+        expect(introductionPosition, record.senseId).toBeDefined();
+        expect(record.laterUses.length, record.senseId).toBeGreaterThanOrEqual(2);
+        let hasLaterModuleUse = false;
+
+        for (const use of record.laterUses) {
+          const variant = variantById.get(use.variantId);
+          const family = variant
+            ? familyById.get(variant.sentenceFamilyId)
+            : undefined;
+          expect(variant, `${record.senseId}:${use.variantId}`).toBeDefined();
+          expect(family, `${record.senseId}:${use.variantId}`).toBeDefined();
+          const laterPosition = A1_EXPANDED_CANONICAL_POSITIONS[use.lessonId];
+          expect(laterPosition, `${record.senseId}:${use.lessonId}`).toBeDefined();
+          expect(laterPosition - introductionPosition).toBeGreaterThanOrEqual(2);
+          if (
+            use.lessonId.split("-").slice(0, -1).join("-") !==
+            record.introductionLessonId.split("-").slice(0, -1).join("-")
+          ) {
+            hasLaterModuleUse = true;
+          }
+
+          if (!variant || !family) continue;
+          const realized = realizeVariant(family, variant, catalogs, {
+            availableConceptIds: family.requiredConceptIds,
+          });
+          expect(realized.ok, `${record.senseId}:${use.variantId}`).toBe(true);
+          if (realized.ok) {
+            expect(realized.sentence.usedLexemeSenseIds).toContain(record.senseId);
+          }
+        }
+        expect(hasLaterModuleUse, record.senseId).toBe(true);
+      }
     });
   });
 
