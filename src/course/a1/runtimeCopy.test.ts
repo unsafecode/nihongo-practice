@@ -21,7 +21,7 @@ describe("A1 runtime copy", () => {
     en: {
       module: "Foundations: sentences and introductions",
       outcome:
-        "Build simple sentences by learning sentence shape, natural subject omission, the topic-and-copula pattern, and your first polite verbs for introductions and everyday exchanges.",
+        "You can build simple sentences, introduce yourself, and use polite verbs with natural subject omission.",
       lessons: [
         "Sentence shape and identity",
         "Topics, copula, origins and roles",
@@ -32,7 +32,7 @@ describe("A1 runtime copy", () => {
     it: {
       module: "Fondamenta: frasi e presentazioni",
       outcome:
-        "Costruisci frasi semplici imparando la struttura della frase, l'omissione naturale del soggetto, il modello tema-copula e i primi verbi cortesi per le presentazioni e gli scambi quotidiani.",
+        "Sai costruire frasi semplici, presentarti e usare verbi cortesi con l'omissione naturale del soggetto.",
       lessons: [
         "Struttura della frase e identità",
         "Tema, copula, origine e ruolo",
