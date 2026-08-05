@@ -369,11 +369,6 @@ export interface CourseModule {
    * concept and leaves it unset rather than inventing one (Phase 2 Task 6).
    */
   phase?: PhaseId;
-  /**
-   * Optional level-specific navigation grouping. This remains a plain string
-   * so the shared course contract does not depend on A1's area vocabulary.
-   */
-  areaId?: string;
   order: number;
   /** Earlier modules this one advisorily builds on; never enforced/blocking. */
   prerequisiteIds: ModuleId[];

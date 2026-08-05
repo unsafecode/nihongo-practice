@@ -1,11 +1,13 @@
 /**
  * A1 release authoring contracts (Phase 2 Task 1).
  *
- * These types describe the *shape* of an authored A1 release: the exact
- * 16-module / 64-lesson manifest, the per-lesson recipes (instructional,
- * synthesis, and phonetic), the module recipe, the A1 checkpoint, and the
- * structured error/result vocabulary used by the manifest validator and the
- * module-local slice assembler.
+ * These types describe the shape of the deployed 12-module / 48-lesson A1
+ * release and the separately staged 16-module / 64-lesson next-release
+ * authoring manifest. The latter does not become runtime course data until
+ * Task 5 promotes it atomically. They also define the per-lesson recipes
+ * (instructional, synthesis, and phonetic), the module recipe, the A1
+ * checkpoint, and the structured error/result vocabulary used by the manifest
+ * validator and the module-local slice assembler.
  *
  * The A1 layer reuses the Phase 1 foundation *data* contracts (discourse,
  * form, practice, diversity, semantic values) by importing them directly —
@@ -161,8 +163,9 @@ export interface A1ModuleManifestEntry {
 // ---------------------------------------------------------------------------
 
 /**
- * The four ordered learner-facing A1 areas. Areas group manifest modules for
- * navigation and copy, without adding another source of module order.
+ * The four ordered next-release A1 authoring areas. Areas group the expanded
+ * manifest modules for future navigation and copy without adding another
+ * source of module order.
  */
 export type A1AreaId = "sounds" | "foundations" | "situations" | "synthesis";
 

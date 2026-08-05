@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { A1_MODULE_IDS } from "./manifest";
+import { A1_EXPANDED_MODULE_IDS } from "./manifest";
 import {
   A1_AREAS,
   A1_AREA_IDS,
@@ -26,8 +26,12 @@ function expectAreaError(
   }
 }
 
+function missingAreaIdFixture(areaId: A1CourseArea["id"]): A1CourseArea[] {
+  return cloneAreas().filter((area) => area.id !== areaId);
+}
+
 describe("A1 areas", () => {
-  it("defines the exact ordered Foundations area contract", () => {
+  it("defines the exact ordered expanded Foundations authoring contract", () => {
     expect(A1_AREA_IDS).toEqual([
       "sounds",
       "foundations",
@@ -76,10 +80,12 @@ describe("A1 areas", () => {
         descriptionCopyId: "a1-area-synthesis-description",
       },
     ]);
-    expect(A1_AREAS.flatMap((area) => area.moduleIds)).toEqual(A1_MODULE_IDS);
+    expect(A1_AREAS.flatMap((area) => area.moduleIds)).toEqual(
+      A1_EXPANDED_MODULE_IDS,
+    );
   });
 
-  it("accepts the canonical area contract", () => {
+  it("accepts the expanded area authoring contract", () => {
     expect(validateA1Areas(A1_AREAS)).toEqual({ ok: true });
   });
 
@@ -106,6 +112,10 @@ describe("A1 areas", () => {
       id: "unknown" as A1CourseArea["id"],
     };
     expectAreaError(areas, "unknown-area-id");
+  });
+
+  it("rejects a required area ID missing from a dedicated fixture", () => {
+    expectAreaError(missingAreaIdFixture("foundations"), "missing-area-id");
   });
 
   it("rejects an empty area", () => {
@@ -135,7 +145,7 @@ describe("A1 areas", () => {
     expectAreaError(areas, "unknown-module-membership");
   });
 
-  it("rejects a missing canonical module", () => {
+  it("rejects a missing expanded module", () => {
     const areas = cloneAreas();
     areas[1] = {
       ...areas[1],
@@ -154,7 +164,7 @@ describe("A1 areas", () => {
     expectAreaError(areas, "module-union-order");
   });
 
-  it("deep-freezes the canonical area contract", () => {
+  it("deep-freezes the expanded area authoring contract", () => {
     expect(Object.isFrozen(A1_AREA_IDS)).toBe(true);
     expect(Object.isFrozen(A1_AREAS)).toBe(true);
     for (const area of A1_AREAS) {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { courseModules, courseModulesByLevel } from "./course";
 import type { CourseModule } from "./types";
 import {
   A1CourseShapeError,
@@ -12,10 +13,9 @@ import {
  * 6, finding I3). Unlike `validateA1.test.ts` (which exercises the full
  * content-cross-referencing `validateA1Release()` gate that only the
  * `prebuild` script and the test suite still run), this proves the *always-
- * bundled* runtime counterpart genuinely throws on a malformed shape and
- * accepts a complete runtime shape — never a partial or silently wrong export.
- * The planned 16-module A1 manifest remains intentionally separate until
- * complete A1 content can be assembled into runtime routes.
+ * bundled* runtime counterpart genuinely throws on malformed fixtures and
+ * accepts the real deployed runtime export — never a partial or silently wrong
+ * `courseModules` export.
  */
 
 function validModule(overrides: Partial<CourseModule> = {}): CourseModule {
@@ -38,27 +38,14 @@ function validModule(overrides: Partial<CourseModule> = {}): CourseModule {
   };
 }
 
-function completeA1RuntimeModules(): CourseModule[] {
-  return Array.from({ length: 12 }, (_, moduleIndex) => {
-    const moduleId = `a1-runtime-module-${moduleIndex + 1}`;
-    return validModule({
-      id: moduleId,
-      order: moduleIndex + 1,
-      areaId: moduleIndex === 0 ? "runtime-only-area" : undefined,
-      lessons: Array.from({ length: 4 }, (_, lessonIndex) => ({
-        id: `${moduleId}-lesson-${lessonIndex + 1}`,
-        moduleId,
-        order: lessonIndex + 1,
-        titleCopyId: `${moduleId}-lesson-${lessonIndex + 1}`,
-        objectiveCopyIds: [`${moduleId}-objective-${lessonIndex + 1}`],
-      })),
-    });
-  });
-}
-
 describe("assertA1CourseShape — the always-bundled runtime structural gate (I3)", () => {
-  it("passes silently for the last complete A1 runtime shape", () => {
-    expect(() => assertA1CourseShape(completeA1RuntimeModules())).not.toThrow();
+  it("passes silently for the real deployed A1 runtime course", () => {
+    expect(courseModulesByLevel.a1).toBe(courseModules);
+    expect(courseModules).toHaveLength(12);
+    expect(
+      courseModules.flatMap((courseModule) => courseModule.lessons),
+    ).toHaveLength(48);
+    expect(() => assertA1CourseShape(courseModules)).not.toThrow();
   });
 
   it("throws A1CourseShapeError for an empty module list", () => {
@@ -156,26 +143,9 @@ function validA2Module(overrides: Partial<CourseModule> = {}): CourseModule {
   };
 }
 
-function completeA2RuntimeModules(): CourseModule[] {
-  return Array.from({ length: 15 }, (_, moduleIndex) => {
-    const moduleId = `a2-runtime-module-${moduleIndex + 1}`;
-    return validA2Module({
-      id: moduleId,
-      order: moduleIndex + 1,
-      lessons: Array.from({ length: 4 }, (_, lessonIndex) => ({
-        id: `${moduleId}-lesson-${lessonIndex + 1}`,
-        moduleId,
-        order: lessonIndex + 1,
-        titleCopyId: `${moduleId}-lesson-${lessonIndex + 1}`,
-        objectiveCopyIds: [`${moduleId}-objective-${lessonIndex + 1}`],
-      })),
-    });
-  });
-}
-
 describe("assertA2CourseShape — the always-bundled A2 runtime structural gate", () => {
-  it("passes silently for a complete A2 runtime shape (15 modules / 60 lessons)", () => {
-    const modules = completeA2RuntimeModules();
+  it("passes silently for the real derived A2 runtime course (15 modules / 60 lessons)", () => {
+    const modules = courseModulesByLevel.a2;
     expect(() => assertA2CourseShape(modules)).not.toThrow();
     expect(modules).toHaveLength(15);
     expect(
@@ -201,7 +171,7 @@ describe("assertA2CourseShape — the always-bundled A2 runtime structural gate"
   });
 
   it("does not accept the A1 course as a valid A2 shape (guards against a level mix-up)", () => {
-    expect(() => assertA2CourseShape(completeA1RuntimeModules())).toThrow(
+    expect(() => assertA2CourseShape(courseModules)).toThrow(
       A2CourseShapeError,
     );
   });

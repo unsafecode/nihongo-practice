@@ -1,13 +1,14 @@
 /**
- * Immutable A1 area contracts.
+ * Immutable A1 expanded-area authoring contracts.
  *
- * Areas partition the canonical manifest's module order for learner-facing
- * navigation. The manifest remains the source of truth for module and lesson
- * identity; this file only declares the four ordered groups over that order.
+ * Areas partition the planned next-release manifest's module order for
+ * authoring and future navigation. The published 12-module runtime remains
+ * separate until Task 5 atomically promotes the expanded manifest; this file
+ * does not make any planned module available to current course consumers.
  */
 
 import { deepFreeze } from "../foundations/deepFreeze";
-import { A1_MODULE_IDS } from "./manifest";
+import { A1_EXPANDED_MODULE_IDS } from "./manifest";
 import type {
   A1AreaId,
   A1AreaValidationError,
@@ -15,7 +16,7 @@ import type {
   A1CourseArea,
 } from "./types";
 
-/** The only valid A1 area IDs, in learner-facing order. */
+/** The only valid A1 area IDs, in planned next-release navigation order. */
 export const A1_AREA_IDS: readonly A1AreaId[] = deepFreeze([
   "sounds",
   "foundations",
@@ -24,8 +25,9 @@ export const A1_AREA_IDS: readonly A1AreaId[] = deepFreeze([
 ]);
 
 /**
- * The canonical A1 area partition. Copy IDs deliberately remain stable,
- * locale-independent identifiers; localized copy is resolved elsewhere.
+ * The exact expanded A1 area partition for next-release authoring. Copy IDs
+ * deliberately remain stable, locale-independent identifiers; localized copy
+ * is resolved elsewhere.
  */
 export const A1_AREAS: readonly A1CourseArea[] = deepFreeze([
   {
@@ -71,8 +73,9 @@ export const A1_AREAS: readonly A1CourseArea[] = deepFreeze([
 ]);
 
 /**
- * Validate an arbitrary area partition without normalizing it. Each diagnostic
- * preserves the authored ID/order problem so callers can report every defect.
+ * Validate an arbitrary expanded-area partition without normalizing it. Each
+ * diagnostic preserves the authored ID/order problem so callers can report
+ * every defect.
  */
 export function validateA1Areas(
   areas: readonly A1CourseArea[],
@@ -87,13 +90,13 @@ export function validateA1Areas(
   if (areas.length !== A1_AREA_IDS.length) {
     push(
       "area-count",
-      `Expected exactly ${A1_AREA_IDS.length} A1 areas, received ${areas.length}.`,
+      `Expected exactly ${A1_AREA_IDS.length} expanded A1 areas, received ${areas.length}.`,
     );
   }
 
   const seenAreaIds = new Set<string>();
   const seenModuleIds = new Set<string>();
-  const canonicalModuleIds = new Set<string>(A1_MODULE_IDS);
+  const expandedModuleIds = new Set<string>(A1_EXPANDED_MODULE_IDS);
   const authoredModuleIds: string[] = [];
 
   for (const [index, area] of areas.entries()) {
@@ -133,10 +136,10 @@ export function validateA1Areas(
       }
       seenModuleIds.add(moduleId);
 
-      if (!canonicalModuleIds.has(moduleId)) {
+      if (!expandedModuleIds.has(moduleId)) {
         push(
           "unknown-module-membership",
-          `Area "${areaId}" includes unknown module "${moduleId}".`,
+          `Area "${areaId}" includes module "${moduleId}" outside the expanded A1 plan.`,
           moduleId,
         );
       }
@@ -149,25 +152,25 @@ export function validateA1Areas(
     }
   }
 
-  for (const moduleId of A1_MODULE_IDS) {
+  for (const moduleId of A1_EXPANDED_MODULE_IDS) {
     if (!seenModuleIds.has(moduleId)) {
       push(
         "missing-module-membership",
-        `Canonical module "${moduleId}" is not assigned to an A1 area.`,
+        `Expanded A1 module "${moduleId}" is not assigned to an area.`,
         moduleId,
       );
     }
   }
 
   if (
-    authoredModuleIds.length !== A1_MODULE_IDS.length ||
+    authoredModuleIds.length !== A1_EXPANDED_MODULE_IDS.length ||
     authoredModuleIds.some(
-      (moduleId, index) => moduleId !== A1_MODULE_IDS[index],
+      (moduleId, index) => moduleId !== A1_EXPANDED_MODULE_IDS[index],
     )
   ) {
     push(
       "module-union-order",
-      "A1 area module membership must equal A1_MODULE_IDS in canonical order.",
+      "A1 area module membership must equal A1_EXPANDED_MODULE_IDS in expanded order.",
     );
   }
 

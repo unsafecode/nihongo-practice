@@ -346,7 +346,7 @@ export function variantFromTuple(tuple: A1VariantTuple): SentenceVariant {
 
 /**
  * Assemble a *partial* A1 slice (one or more modules with their lessons) for
- * module-local authoring in later tasks, without pretending the full 64-lesson
+ * module-local authoring in later tasks, without pretending the full 48-lesson
  * release is valid. A partial slice may cover any subset of the canonical
  * modules/lessons, but within that subset it must be internally consistent:
  * no lesson or module ID is provided twice (never silently overwritten), every
