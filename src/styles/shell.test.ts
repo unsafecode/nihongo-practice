@@ -14,6 +14,24 @@ function findRule(css: string, selector: string): string | undefined {
   return match?.[1];
 }
 
+function findAtRuleBlock(css: string, atRule: string): string | undefined {
+  const start = css.indexOf(atRule);
+  if (start === -1) return undefined;
+
+  let depth = 0;
+  let blockStart = -1;
+  for (let index = start; index < css.length; index += 1) {
+    if (css[index] === "{") {
+      if (depth === 0) blockStart = index + 1;
+      depth += 1;
+    } else if (css[index] === "}") {
+      depth -= 1;
+      if (depth === 0) return css.slice(blockStart, index);
+    }
+  }
+  return undefined;
+}
+
 describe("application shell width", () => {
   it("no longer constrains .app to a single global max-width", () => {
     const rule = findRule(readStyles(), ".app");
@@ -35,6 +53,16 @@ describe("form control typography", () => {
     expect(normalized).toMatch(
       /button\s*,\s*input\s*,\s*select\s*,\s*textarea\s*,\s*summary\s*{[^}]*font:\s*inherit/,
     );
+  });
+});
+
+describe("reduced-motion timing", () => {
+  it("uses near-zero nonzero animation and transition durations", () => {
+    const block = findAtRuleBlock(readStyles(), "@media (prefers-reduced-motion: reduce)");
+
+    expect(block).toBeDefined();
+    expect(block).toMatch(/animation-duration\s*:\s*0\.01ms\s*!important/);
+    expect(block).toMatch(/transition-duration\s*:\s*0\.01ms\s*!important/);
   });
 });
 

@@ -1,10 +1,14 @@
+/** @vitest-environment jsdom */
+
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MemoryRouter, Route, Routes } from "react-router";
+import { HashRouter, MemoryRouter, Route, Routes } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "../../i18n/LocaleContext";
 import { ScriptProvider } from "../../settings/ScriptContext";
 import { ProgressProvider } from "../progress/ProgressContext";
+import { LEGACY_LESSON_ALIASES } from "../routing/lessonRouteResolution";
+import { lessonPath } from "../../routing/routes";
 import { LessonPage } from "./LessonPage";
 
 vi.mock("react-router", async () => {
@@ -59,6 +63,41 @@ function render(path: string): string {
   );
 }
 
+function renderHashPath(path: string): string {
+  const previousHash = window.location.hash;
+  window.location.hash = path;
+  try {
+    return renderToStaticMarkup(
+      createElement(
+        HashRouter,
+        null,
+        createElement(
+          LocaleProvider,
+          null,
+          createElement(
+            ScriptProvider,
+            null,
+            createElement(
+              ProgressProvider,
+              null,
+              createElement(
+                Routes,
+                null,
+                createElement(Route, {
+                  path: "/percorso/:moduleId/:lessonId",
+                  element: createElement(LessonPage),
+                }),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  } finally {
+    window.location.hash = previousHash;
+  }
+}
+
 describe("LessonPage legacy redirect navigation", () => {
   it("replaces a same-module alias without carrying a different-module notice state", () => {
     const html = render("/percorso/sounds/sounds-core");
@@ -76,5 +115,17 @@ describe("LessonPage legacy redirect navigation", () => {
     expect(html).toContain(
       'data-state="{&quot;legacyModuleRedirect&quot;:true}"',
     );
+  });
+
+  it("redirects every published legacy #/percorso deep link to its canonical current route", () => {
+    for (const alias of LEGACY_LESSON_ALIASES) {
+      const html = renderHashPath(
+        `#/percorso/${alias.legacyModuleId}/${alias.legacyLessonId}`,
+      );
+      expect(html, alias.legacyLessonId).toContain(
+        `data-to="${lessonPath(alias.moduleId, alias.lessonId)}"`,
+      );
+      expect(html, alias.legacyLessonId).toContain('data-replace="true"');
+    }
   });
 });

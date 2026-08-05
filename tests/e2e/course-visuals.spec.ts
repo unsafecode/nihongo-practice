@@ -1,5 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 import { PREVIEW_BASE_PATH, PREVIEW_ORIGIN } from "../../playwright.config";
+import { buildA1PracticeModel } from "../../src/course/components/a1PracticeModel";
+import { getA1SpokenAttemptModel } from "../../src/course/components/a1SpokenAttemptModel";
+import { CURRENT_COURSE_PROGRESS_CATALOG_VERSION } from "../../src/course/progress/progress";
+import { reviewKeyFor } from "../../src/course/progress/reviewQueue";
 import {
   assertLocalOnlyNetwork,
   assertNoHorizontalOverflow,
@@ -23,6 +27,18 @@ const LESSON_URL = routeUrls.lesson(
   REPRESENTATIVE_LESSON.moduleId,
   REPRESENTATIVE_LESSON.lessonId,
 );
+const A1_FOUNDATION_BASELINES = [
+  {
+    name: "introductions-1",
+    url: routeUrls.lesson("introductions", "introductions-1"),
+    snapshot: "a1-foundations-introductions-1.png",
+  },
+  {
+    name: "shopping-4",
+    url: routeUrls.lesson("shopping", "shopping-4"),
+    snapshot: "a1-migrated-scenario-shopping-4.png",
+  },
+] as const;
 
 /** The complete A0→A1 rebuild's 12 modules, in fixed phase order (design
  * spec §5.2/§6.2): 3 "orient", 3 "build", 5 "navigate", 1 "synthesize". */
@@ -228,6 +244,30 @@ for (const screen of SCREENS) {
     });
   });
 }
+
+test.describe("reviewed A1 foundations desktop baselines", () => {
+  test.skip(
+    ({ viewport }) => !viewport || viewport.width < 700,
+    "A1 full-page baselines are reviewed at the approved desktop viewport",
+  );
+
+  for (const baseline of A1_FOUNDATION_BASELINES) {
+    test(`${baseline.name}: Italian hiragana learning flow`, async ({ page }) => {
+      const observers = await setupPageObservers(page);
+      await installSpeechFake(page);
+      await gotoReady(page, baseline.url);
+
+      await expect(page.locator(".a1-vocabulary__meaning").first()).toContainText(/\S/);
+      await expect(page.locator(".a1-worked-examples__pattern:not([open])")).toHaveCount(1);
+      await expect(page.locator(".lesson-exercise")).toHaveCount(4);
+      await expect(page.locator(".spoken-attempt")).toHaveCount(1);
+      await expect(page).toHaveScreenshot(baseline.snapshot, { fullPage: true });
+
+      await assertNoRuntimeErrors(page, observers);
+      assertLocalOnlyNetwork(observers);
+    });
+  }
+});
 
 test.describe("naked-action audit is proven by computed style, not selectors", () => {
   // Regression guard for the Task 8 escape hatch: `.course-hero__actions` is a
@@ -448,12 +488,12 @@ test.describe("mobile header budget", () => {
 });
 
 test.describe("representative lesson visual system", () => {
-  test("primary body, action, notice, and dark-board delta states meet contrast", async ({ page }) => {
+  test("primary body, action, learning-note, and worked-example states meet contrast", async ({ page }) => {
     await setupPageObservers(page);
     await gotoReady(page, LESSON_URL);
 
     // Primary body copy — strict 4.5:1 normal-text minimum.
-    const body = await resolveColors(page, ".a1-lesson-rule__can-do");
+    const body = await resolveColors(page, ".a1-lesson-overview__details dd");
     expect(
       contrastRatio(body.color, body.background),
       `body copy contrast ${body.color} on ${body.background}`,
@@ -467,26 +507,28 @@ test.describe("representative lesson visual system", () => {
       `primary action contrast ${primary.color} on ${primary.background}`,
     ).toBeGreaterThanOrEqual(4.5);
 
-    // Dark guided-construction target-row state text.
-    const boardState = await resolveColors(page, ".foundation-guided__jp");
+    // Learning-note labels are explanatory text, never decorative/color-only
+    // hints, so they keep normal-text contrast.
+    const note = await resolveColors(page, ".a1-learning-note__pattern-label");
     expect(
-      contrastRatio(boardState.color, boardState.background),
-      `guided board state contrast ${boardState.color} on ${boardState.background}`,
+      contrastRatio(note.color, note.background),
+      `learning-note label contrast ${note.color} on ${note.background}`,
     ).toBeGreaterThanOrEqual(4.5);
 
-    // Highlighted "changed gear" delta chip on the guided-construction board.
-    const gear = await resolveColors(page, ".foundation-guided__changed");
+    // Worked examples pair Japanese, romaji, glosses and natural translations;
+    // the natural translation is ordinary readable instructional copy.
+    const translation = await resolveColors(page, ".a1-worked-examples__translation");
     expect(
-      contrastRatio(gear.color, gear.background),
-      `guided board delta gear contrast ${gear.color} on ${gear.background}`,
+      contrastRatio(translation.color, translation.background),
+      `natural translation contrast ${translation.color} on ${translation.background}`,
     ).toBeGreaterThanOrEqual(4.5);
   });
 
-  test("lesson Japanese comparison uses the system stack and does not wrap at desktop reading width", async ({ page, viewport }) => {
+  test("lesson Japanese worked examples use the system stack and do not clip at desktop reading width", async ({ page, viewport }) => {
     await setupPageObservers(page);
     await gotoReady(page, LESSON_URL);
 
-    const jp = page.locator(".foundation-guided__jp").first();
+    const jp = page.locator(".a1-worked-examples__japanese").first();
     await expect(jp).toBeVisible();
     const family = await jp.evaluate((el) => getComputedStyle(el).fontFamily);
     expect(family).toMatch(/Hiragino Sans/);
@@ -514,11 +556,11 @@ test.describe("representative lesson visual system", () => {
       };
     });
 
-    // The comparison clause must never be clipped horizontally at any viewport:
+    // The worked example must never be clipped horizontally at any viewport:
     // whatever wrapping happens stays inside the card's content box.
     expect(
       metrics.scrollWidth,
-      `comparison clipped horizontally (scrollWidth ${metrics.scrollWidth} > clientWidth ${metrics.clientWidth})`,
+      `worked example clipped horizontally (scrollWidth ${metrics.scrollWidth} > clientWidth ${metrics.clientWidth})`,
     ).toBeLessThanOrEqual(metrics.clientWidth + 1);
 
     if (viewport && !isMobile(viewport.width)) {
@@ -529,12 +571,12 @@ test.describe("representative lesson visual system", () => {
       if (metrics.naturalWidth <= metrics.clientWidth + 1) {
         expect(
           metrics.lines,
-          `desktop comparison wraps despite fitting (natural ${metrics.naturalWidth}px <= available ${metrics.clientWidth}px, height ${metrics.height}px)`,
+          `desktop worked example wraps despite fitting (natural ${metrics.naturalWidth}px <= available ${metrics.clientWidth}px, height ${metrics.height}px)`,
         ).toBe(1);
       } else {
         expect(
           metrics.lines,
-          `desktop comparison necessary-wrap line count (natural ${metrics.naturalWidth}px > available ${metrics.clientWidth}px)`,
+          `desktop worked-example necessary-wrap line count (natural ${metrics.naturalWidth}px > available ${metrics.clientWidth}px)`,
         ).toBeGreaterThanOrEqual(1);
       }
     } else {
@@ -752,31 +794,13 @@ test.describe("live complete A0→A1 course composition (Slice B Task 5)", () =>
     await setupPageObservers(page);
     await gotoReady(page, KATAKANA_BRIDGE_LESSON_URL);
 
-    // Note: the katakana-assist `<ruby>` annotation described in
-    // `JapaneseSegmentText`'s docblock is currently unreachable for every
-    // live A1 catalog item — `A1LessonPage`'s phonetic roster never passes a
-    // `reading` prop, and the recap vocab list's `token.reading` is always
-    // undefined (only the dead `catalog/lexicon.ts` pipeline ever populates
-    // one). This is a pre-existing, out-of-scope architectural gap, not a
-    // Task 7 regression — flagged in the release report. The contract this
-    // test can honestly assert today is: the roster shows authentic コーヒー
-    // as plain text with an adjacent (not superscript) romaji reading.
-    const items = await page.locator(".a1-phonetic-roster__item").evaluateAll((elements) =>
-      elements.map((el) => ({
-        jp: el.querySelector(".a1-phonetic-item__jp")?.textContent ?? "",
-        text: el.textContent ?? "",
-      })),
-    );
-    expect(items.length, "at least one phonetic roster item on this lesson").toBeGreaterThan(0);
-    const coffee = items.find((entry) => entry.jp === "コーヒー");
-    expect(
-      coffee,
-      `コーヒー must appear as an authentic roster item: ${JSON.stringify(items)}`,
-    ).toBeTruthy();
-    expect(coffee!.text, "コーヒー's adjacent romaji reading is present").toMatch(/koohii/i);
-
-    // No ruby-assist markup renders anywhere on the page today.
-    expect(await page.locator("ruby.katakana-assist").count()).toBe(0);
+    const coffee = page
+      .locator(".a1-vocabulary__item")
+      .filter({ has: page.locator(".a1-vocabulary__kana", { hasText: "コーヒー" }) });
+    await expect(coffee).toHaveCount(1);
+    await expect(coffee.locator(".a1-vocabulary__kana")).toHaveText("コーヒー");
+    await expect(coffee.locator(".a1-vocabulary__romaji")).toContainText(/koohii/i);
+    await expect(coffee.locator(".a1-vocabulary__meaning")).toContainText(/\S/);
   });
 
   test("serves under the GitHub Pages base path: routes and static assets resolve under /nihongo-practice/", async ({ page }) => {
@@ -821,9 +845,21 @@ const EXERCISE_LESSON_URL = routeUrls.lesson("introductions", "introductions-1")
 /** A valid v4 progress record carrying one active `Da ripassare` entry,
  * seeded directly in the current schema (not via V3 migration, which
  * unconditionally clears the whole review queue — see a1-depth.spec.ts). */
+const REVIEW_SOURCE = (() => {
+  const result = buildA1PracticeModel("introductions-1");
+  if (!result.ok) {
+    throw new Error(`Cannot build introductions-1 review fixture: ${result.error.code}`);
+  }
+  const source = result.model.activities.find(
+    (activity) => activity.generatedExercise !== undefined,
+  )?.generatedExercise;
+  if (!source) throw new Error("introductions-1 has no generated review source");
+  return source;
+})();
+
 const REVIEW_SEED = JSON.stringify({
   schemaVersion: 4,
-  catalogVersion: "a1-a2-v1",
+  catalogVersion: CURRENT_COURSE_PROGRESS_CATALOG_VERSION,
   levels: {
     a1: {
       lessons: {},
@@ -832,15 +868,11 @@ const REVIEW_SEED = JSON.stringify({
       lastVisitedLessonId: "introductions-1",
       reviewQueue: [
         {
-          reviewKey: "introductions-1:introductions-1-round-1::introductions-1-m2",
+          reviewKey: reviewKeyFor("introductions-1", REVIEW_SOURCE.definitionId),
           lessonId: "introductions-1",
-          exerciseDefinitionId: "introductions-1-round-1::introductions-1-m2",
-          targetConceptIds: [
-            "a1-concept-topic-wa",
-            "a1-concept-copula-desu",
-            "a1-concept-interrogative-ka",
-          ],
-          targetLexemeIds: ["a1-sense-be"],
+          exerciseDefinitionId: REVIEW_SOURCE.definitionId,
+          targetConceptIds: [...REVIEW_SOURCE.prompt.assessedConceptIds],
+          targetLexemeIds: [...REVIEW_SOURCE.prompt.assessedLexemeIds],
           mistakeCount: 1,
           lastMistakeAt: "2026-01-01T00:00:00.000Z",
         },
@@ -869,13 +901,23 @@ test.describe("Slice C exercise + review surfaces", () => {
     const observers = await setupPageObservers(page);
     await gotoReady(page, EXERCISE_LESSON_URL);
 
-    await expect(page.locator(".lesson-exercise")).toHaveCount(10);
-    await expect(page.locator(".lesson-exercise__bank")).toHaveCount(4);
-    await expect(page.locator(".lesson-exercise__radio").first()).toBeVisible();
-    await expect(page.locator(".lesson-exercise__input").first()).toBeVisible();
-    await expect(page.locator(".lesson-exercise__intent")).toHaveCount(1);
-    // Every exercise announces its result in a polite live region.
-    await expect(page.locator('.lesson-exercise__feedback[aria-live="polite"]')).toHaveCount(10);
+    await expect(page.locator(".lesson-exercise")).toHaveCount(4);
+    await expect(page.locator(".spoken-attempt")).toHaveCount(1);
+    await expect(page.locator(".a1-practice-ladder__list > li")).toHaveCount(5);
+    const functions = await page
+      .locator(".a1-practice-ladder__list > li")
+      .evaluateAll((items) => items.map((item) => item.getAttribute("data-practice-function")));
+    expect(new Set(functions).size).toBeGreaterThanOrEqual(4);
+    expect(functions).toEqual(
+      expect.arrayContaining([
+        "meaning-comprehension",
+        "form-discrimination",
+        "controlled-production",
+        "listening-speaking",
+      ]),
+    );
+    // Every generated card announces its result in a polite live region.
+    await expect(page.locator('.lesson-exercise__feedback[aria-live="polite"]')).toHaveCount(4);
 
     await assertNoHorizontalOverflow(page);
     expect(await auditTouchTargets(page)).toEqual([]);
@@ -944,7 +986,14 @@ test.describe("Slice C exercise + review surfaces", () => {
  * the default Italian + hiragana, and the matched result in English + rōmaji.
  */
 const SPEECH_VISUAL_LESSON_URL = routeUrls.lesson("introductions", "introductions-1");
-const SPEECH_VISUAL_TARGET = "けんはいしゃです";
+const SPEECH_VISUAL_MODEL = getA1SpokenAttemptModel("introductions-1", "en");
+if (!SPEECH_VISUAL_MODEL.ok) {
+  throw new Error(
+    `Cannot resolve the introductions-1 spoken visual fixture: ${SPEECH_VISUAL_MODEL.error.code}`,
+  );
+}
+const SPEECH_VISUAL_TARGET = SPEECH_VISUAL_MODEL.model.targetJp;
+const SPEECH_VISUAL_SEGMENT_COUNT = SPEECH_VISUAL_MODEL.model.segments.length;
 
 /** During a focused component capture, drop the sticky app chrome to `static` so
  * the header and the mobile section rail cannot float over the block's heading.
@@ -1018,7 +1067,9 @@ test.describe("speech block reviewed baselines (Slice D Task 4)", () => {
     await expect(block.locator(".spoken-attempt__status-text")).toHaveText(
       "Your browser recognized the sentence.",
     );
-    await expect(block.locator(".spoken-attempt__segment--matched")).toHaveCount(4);
+    await expect(block.locator(".spoken-attempt__segment--matched")).toHaveCount(
+      SPEECH_VISUAL_SEGMENT_COUNT,
+    );
     await block.scrollIntoViewIfNeeded();
     await page.evaluate(
       () => new Promise<void>((r) => requestAnimationFrame(() => r())),

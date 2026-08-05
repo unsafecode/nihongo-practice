@@ -16,6 +16,7 @@
 
 import {
   lessonHasOpenReview,
+  reconcileReviewQueueEntries,
   resolveReviewEntry,
   reviewKeyFor,
   upsertReviewMistake,
@@ -149,13 +150,41 @@ export interface ProgressMigrationNotice {
   readonly acknowledgedAt: string | null;
 }
 
+/** The catalog revision written by every current V4 progress record. */
+export const CURRENT_COURSE_PROGRESS_CATALOG_VERSION = "a1-a2-v2" as const;
+
+/** The prior V4 catalog revision accepted only for deterministic normalization. */
+export const LEGACY_COURSE_PROGRESS_CATALOG_VERSION = "a1-a2-v1" as const;
+
+type SupportedCourseProgressCatalogVersion =
+  | typeof LEGACY_COURSE_PROGRESS_CATALOG_VERSION
+  | typeof CURRENT_COURSE_PROGRESS_CATALOG_VERSION;
+
 export interface CourseProgressV4 {
   readonly schemaVersion: 4;
-  readonly catalogVersion: "a1-a2-v1";
+  readonly catalogVersion: typeof CURRENT_COURSE_PROGRESS_CATALOG_VERSION;
   readonly levels: Readonly<Record<CourseLevelId, LevelProgress>>;
   readonly migrationNotice: ProgressMigrationNotice | null;
   readonly updatedAt: string;
 }
+
+/**
+ * The structurally valid V4 payload shapes accepted from storage. Only the
+ * legacy v1 catalog is migratable; arbitrary catalog strings fail closed.
+ */
+export type StoredCourseProgressV4 = Omit<CourseProgressV4, "catalogVersion"> & {
+  readonly catalogVersion: SupportedCourseProgressCatalogVersion;
+};
+
+/** Current runtime catalog keys supplied by ProgressContext, never imported here. */
+export type KnownReviewKeysByLevel = Readonly<
+  Record<CourseLevelId, ReadonlySet<string>>
+>;
+
+/** Current runtime lesson ids supplied by ProgressContext, never imported here. */
+export type KnownLessonIdsByLevel = Readonly<
+  Record<CourseLevelId, ReadonlySet<string>>
+>;
 
 export function emptyLevelProgress(): LevelProgress {
   return {
@@ -172,7 +201,7 @@ export function emptyLevelProgress(): LevelProgress {
 export function emptyProgressV4(): CourseProgressV4 {
   return {
     schemaVersion: 4,
-    catalogVersion: "a1-a2-v1",
+    catalogVersion: CURRENT_COURSE_PROGRESS_CATALOG_VERSION,
     levels: { a1: emptyLevelProgress(), a2: emptyLevelProgress() },
     migrationNotice: null,
     updatedAt: new Date(0).toISOString(),
@@ -284,6 +313,8 @@ function hasStrongerEvidence(lesson: LessonProgressV3): boolean {
  * Deterministically migrates a v3 payload into v4 (design spec §17, Phase 2
  * Task 5 steps 2-3). Visited-only: only `visitedAt` transfers for the
  * reviewed `A1_V3_LESSON_ID_MAP`, dropping every other kind of evidence.
+ * It writes the current V4 catalog revision directly, so a migrated schema-v3
+ * record never first lands on the retired V4 catalog revision.
  * Iterates `A1_V4_DESTINATION_LESSON_IDS` — the map's destinations in
  * canonical (not payload-encounter) order — so the result never depends on
  * the source JSON's key ordering. When more than one source id maps to the
@@ -382,7 +413,7 @@ export function migrateV3ToV4(v3: CourseProgressV3): CourseProgressV4 {
 
   return {
     schemaVersion: 4,
-    catalogVersion: "a1-a2-v1",
+    catalogVersion: CURRENT_COURSE_PROGRESS_CATALOG_VERSION,
     levels: { a1, a2: emptyLevelProgress() },
     migrationNotice: {
       fromSchemaVersion: 3,
@@ -453,10 +484,21 @@ function isProgressMigrationNotice(
   );
 }
 
-function isValidV4Shape(value: Partial<CourseProgressV4>): value is CourseProgressV4 {
+function isSupportedCatalogVersion(
+  value: unknown,
+): value is SupportedCourseProgressCatalogVersion {
+  return (
+    value === LEGACY_COURSE_PROGRESS_CATALOG_VERSION ||
+    value === CURRENT_COURSE_PROGRESS_CATALOG_VERSION
+  );
+}
+
+function isValidV4Shape(
+  value: Partial<StoredCourseProgressV4>,
+): value is StoredCourseProgressV4 {
   return (
     value.schemaVersion === 4 &&
-    value.catalogVersion === "a1-a2-v1" &&
+    isSupportedCatalogVersion(value.catalogVersion) &&
     !!value.levels &&
     typeof value.levels === "object" &&
     Object.keys(value.levels).length === 2 &&
@@ -472,6 +514,99 @@ function isValidV4Shape(value: Partial<CourseProgressV4>): value is CourseProgre
     isProgressMigrationNotice(value.migrationNotice) &&
     typeof value.updatedAt === "string"
   );
+}
+
+/**
+ * Reconciles one V4 level against the current runtime catalog without touching
+ * learner evidence. Unknown lesson records stay intact as historical evidence
+ * and are additionally named in `orphanedLessonIds`; only active review entries
+ * whose original definition is absent move into the orphan-key ledger.
+ */
+function reconcileV4LevelCatalog(
+  level: LevelProgress,
+  knownReviewKeys: ReadonlySet<string> | undefined,
+  knownLessonIds: ReadonlySet<string> | undefined,
+): LevelProgress {
+  let orphanedLessonIds = level.orphanedLessonIds;
+  if (knownLessonIds) {
+    const knownOrphans = new Set(orphanedLessonIds);
+    const newlyOrphanedLessonIds = Object.keys(level.lessons)
+      .filter((lessonId) => !knownLessonIds.has(lessonId))
+      .sort()
+      .filter((lessonId) => !knownOrphans.has(lessonId));
+    if (newlyOrphanedLessonIds.length > 0) {
+      orphanedLessonIds = [...orphanedLessonIds, ...newlyOrphanedLessonIds];
+    }
+  }
+
+  const review = knownReviewKeys
+    ? reconcileReviewQueueEntries(
+        level.reviewQueue,
+        level.orphanedReviewKeys,
+        knownReviewKeys,
+      )
+    : null;
+  const reviewsChanged = review?.changed ?? false;
+  if (orphanedLessonIds === level.orphanedLessonIds && !reviewsChanged) {
+    return level;
+  }
+
+  return {
+    ...level,
+    ...(orphanedLessonIds === level.orphanedLessonIds
+      ? {}
+      : { orphanedLessonIds }),
+    ...(reviewsChanged
+      ? {
+          reviewQueue: review!.reviewQueue,
+          orphanedReviewKeys: review!.orphanedReviewKeys,
+        }
+      : {}),
+  };
+}
+
+/**
+ * Normalizes a structurally valid V4 catalog into the current revision.
+ *
+ * The V4 shape is unchanged, so this does not reset any lesson timestamps,
+ * attempted/accepted definition ids, Can-do evidence, checkpoint attempts,
+ * migration notice, or top-level timestamp. Runtime catalog sets are injected
+ * by `ProgressContext` to keep this storage module independent of components:
+ * they determine only which active review keys remain actionable and which
+ * unknown lesson records are also listed as orphans.
+ *
+ * A current V2 record with nothing to reconcile is returned by reference.
+ */
+export function migrateV4Catalog(
+  progress: StoredCourseProgressV4,
+  knownReviewKeysByLevel?: KnownReviewKeysByLevel,
+  knownLessonIdsByLevel?: KnownLessonIdsByLevel,
+): CourseProgressV4 {
+  let levels = progress.levels;
+  for (const levelId of ["a1", "a2"] as const) {
+    const currentLevel = levels[levelId];
+    const reconciled = reconcileV4LevelCatalog(
+      currentLevel,
+      knownReviewKeysByLevel?.[levelId],
+      knownLessonIdsByLevel?.[levelId],
+    );
+    if (reconciled !== currentLevel) {
+      levels = { ...levels, [levelId]: reconciled };
+    }
+  }
+
+  if (
+    progress.catalogVersion === CURRENT_COURSE_PROGRESS_CATALOG_VERSION &&
+    levels === progress.levels
+  ) {
+    return progress as CourseProgressV4;
+  }
+
+  return {
+    ...progress,
+    catalogVersion: CURRENT_COURSE_PROGRESS_CATALOG_VERSION,
+    levels,
+  };
 }
 
 export interface ProgressParseResult {
@@ -633,7 +768,10 @@ export function migrateV2ToV3(
  * Parses raw stored text into current-schema (v4) progress.
  * Explicit, non-throwing behavior for every payload shape:
  * - `null` (nothing stored yet) -> empty v4 progress, not corrupted.
- * - valid v4 -> passed through unchanged, by direct reference (no migration).
+ * - valid current v4 -> passed through unchanged, by direct reference when its
+ *   runtime catalog reconciliation is already current.
+ * - valid legacy v4 catalog v1 -> normalized to catalog v2 without resetting
+ *   evidence; injected runtime sets reconcile active review entries.
  * - valid v3 -> migrated to v4 via migrateV3ToV4 (visited-only, Phase 2 Task 5).
  * - valid v2 -> migrated to v3 via migrateV2ToV3, then to v4.
  * - valid v1 -> migrated to v2 via migrateV1ToV2, then to v3, then to v4.
@@ -646,6 +784,8 @@ export function migrateV2ToV3(
 export function parseProgress(
   raw: string | null,
   knownLessonIds?: ReadonlySet<string>,
+  knownReviewKeysByLevel?: KnownReviewKeysByLevel,
+  knownLessonIdsByLevel?: KnownLessonIdsByLevel,
 ): ProgressParseResult {
   if (raw === null) {
     return { progress: emptyProgressV4(), corrupted: false, migrated: false };
@@ -653,10 +793,20 @@ export function parseProgress(
   try {
     const value = JSON.parse(raw) as { schemaVersion?: unknown };
     if (value.schemaVersion === 4) {
-      const candidate = value as Partial<CourseProgressV4>;
-      return isValidV4Shape(candidate)
-        ? { progress: candidate, corrupted: false, migrated: false }
-        : { progress: emptyProgressV4(), corrupted: true, migrated: false };
+      const candidate = value as Partial<StoredCourseProgressV4>;
+      if (!isValidV4Shape(candidate)) {
+        return { progress: emptyProgressV4(), corrupted: true, migrated: false };
+      }
+      const progress = migrateV4Catalog(
+        candidate,
+        knownReviewKeysByLevel,
+        knownLessonIdsByLevel,
+      );
+      return {
+        progress,
+        corrupted: false,
+        migrated: progress !== candidate,
+      };
     }
     if (value.schemaVersion === 3) {
       const candidate = value as Partial<CourseProgressV3>;

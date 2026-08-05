@@ -177,14 +177,9 @@ describe("persona gender agreement — concrete reported bug ids (independent fi
   const EXPECTED_IT: ReadonlyArray<[string, string]> = [
     // module02Introductions.ts — a1Copular-composed rows.
     ["introductions-1-m1", "Yuki è una studentessa."],
-    ["introductions-1-m3", "Mina è un'impiegata."],
-    ["introductions-3-m3", "Mina è americana."],
+    ["introductions-2-m3", "Yuki è americana."],
     ["introductions-4-m1", "Yuki è una studentessa."],
-    ["introductions-4-m8", "Mina è un'impiegata."],
-    // module03Questions.ts — hand-authored literal rows that bypass a1Copular.
-    ["essential-questions-1-m8", "Yuki è una studentessa?"],
-    ["essential-questions-2-t5", "Mina è una studentessa?"],
-    ["essential-questions-4-m8", "Yuki è una studentessa?"],
+    ["introductions-4-m3", "Yuki è un'impiegata."],
   ];
 
   for (const [variantId, expectedIt] of EXPECTED_IT) {
@@ -198,8 +193,7 @@ describe("persona gender agreement — concrete reported bug ids (independent fi
   // feminization of every persona.
   const KEN_STAYS: ReadonlyArray<[string, string]> = [
     ["introductions-1-t1", "Ken è uno studente."],
-    ["introductions-3-t4", "Ken è americano."],
-    ["essential-questions-2-m8", "Ken è uno studente?"],
+    ["introductions-2-m2", "Ken è italiano."],
   ];
 
   for (const [variantId, expectedIt] of KEN_STAYS) {

@@ -2,7 +2,7 @@ import type { ReactElement } from "react";
 import { Notice } from "../../components/Notice";
 import { useLocale } from "../../i18n/LocaleContext";
 import { useScript } from "../../settings/ScriptContext";
-import type { LessonSectionId } from "../../routing/lessonSections";
+import type { A2LessonSectionId } from "../../routing/lessonSections";
 import { foundationAxisLabel } from "../foundations/buildLessonViewModel";
 import { FamilyGuidedConstruction } from "../foundations/FamilyGuidedConstruction";
 import { SentenceMatrix } from "../foundations/SentenceMatrix";
@@ -45,7 +45,7 @@ export function A2LessonSection({
   sectionId,
 }: {
   readonly lessonId: string;
-  readonly sectionId: LessonSectionId;
+  readonly sectionId: A2LessonSectionId;
 }): ReactElement | null {
   const { locale } = useLocale();
   const { script } = useScript();

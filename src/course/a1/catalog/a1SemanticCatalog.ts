@@ -107,6 +107,7 @@ export const a1Contexts: readonly Context[] = deepFreeze([
   { id: "a1-context-weekday-study", labelCopyId: "a1-context-weekday-study-label" },
   { id: "a1-context-mealtime-routine", labelCopyId: "a1-context-mealtime-routine-label" },
   { id: "a1-context-evening-reading", labelCopyId: "a1-context-evening-reading-label" },
+  { id: "a1-context-social-outing", labelCopyId: "a1-context-social-outing-label" },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -167,9 +168,12 @@ export const a1LearningTargetSenses: readonly LearningTargetSense[] = deepFreeze
   { id: "a1-sense-be", lexemeId: "a1-lexeme-desu", learningUse: "productive", semanticFrameId: "a1-frame-identity", predicate: "be", argumentRoles: ["topic"], argumentParticleByRole: {} },
   { id: "a1-sense-live", lexemeId: "a1-lexeme-sumu", learningUse: "productive", semanticFrameId: "a1-frame-residence", predicate: "live", argumentRoles: ["agent", "location"], argumentParticleByRole: { location: "ni" } },
   { id: "a1-sense-work", lexemeId: "a1-lexeme-hataraku", learningUse: "productive", semanticFrameId: "a1-frame-work-place", predicate: "work", argumentRoles: ["agent", "location"], argumentParticleByRole: { location: "de" } },
-  { id: "a1-sense-study", lexemeId: "a1-lexeme-benkyousuru", learningUse: "productive", semanticFrameId: "a1-frame-study", predicate: "study", argumentRoles: ["agent", "theme"], argumentParticleByRole: {} },
+  { id: "a1-sense-study", lexemeId: "a1-lexeme-benkyou-suru", learningUse: "productive", semanticFrameId: "a1-frame-study", predicate: "study", argumentRoles: ["agent", "theme"], argumentParticleByRole: {} },
   { id: "a1-sense-understand", lexemeId: "a1-lexeme-wakaru", learningUse: "productive", semanticFrameId: "a1-frame-understand", predicate: "understand", argumentRoles: ["agent", "theme"], argumentParticleByRole: {} },
   { id: "a1-sense-do", lexemeId: "a1-lexeme-suru", learningUse: "productive", semanticFrameId: "a1-frame-do-activity", predicate: "do", argumentRoles: ["agent", "theme"], argumentParticleByRole: {} },
+  { id: "a1-sense-work-bare", lexemeId: "a1-lexeme-hataraku", learningUse: "productive", semanticFrameId: "a1-frame-work-bare", predicate: "work", argumentRoles: ["agent"], argumentParticleByRole: {} },
+  { id: "a1-sense-study-bare", lexemeId: "a1-lexeme-benkyou-suru", learningUse: "productive", semanticFrameId: "a1-frame-study-bare", predicate: "study", argumentRoles: ["agent"], argumentParticleByRole: {} },
+  { id: "a1-sense-do-bare", lexemeId: "a1-lexeme-suru", learningUse: "productive", semanticFrameId: "a1-frame-do-bare", predicate: "do", argumentRoles: ["agent"], argumentParticleByRole: {} },
   { id: "a1-sense-go", lexemeId: "a1-lexeme-iku", learningUse: "productive", semanticFrameId: "a1-frame-go", predicate: "go", argumentRoles: ["agent", "location"], argumentParticleByRole: { location: "ni" } },
   { id: "a1-sense-come", lexemeId: "a1-lexeme-kuru", learningUse: "productive", semanticFrameId: "a1-frame-come", predicate: "come", argumentRoles: ["agent", "location"], argumentParticleByRole: { location: "ni" } },
   { id: "a1-sense-accompany", lexemeId: "a1-lexeme-iku", learningUse: "productive", semanticFrameId: "a1-frame-accompany", predicate: "go", argumentRoles: ["agent", "companion"], argumentParticleByRole: {} },
@@ -191,7 +195,7 @@ export const a1LearningTargetSenses: readonly LearningTargetSense[] = deepFreeze
   { id: "a1-sense-sleep", lexemeId: "a1-lexeme-neru", learningUse: "productive", semanticFrameId: "a1-frame-sleep", predicate: "sleep", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
   { id: "a1-sense-go-out", lexemeId: "a1-lexeme-dekakeru", learningUse: "productive", semanticFrameId: "a1-frame-go-out", predicate: "go-out", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
   { id: "a1-sense-return", lexemeId: "a1-lexeme-kaeru", learningUse: "productive", semanticFrameId: "a1-frame-return", predicate: "return", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
-  { id: "a1-sense-study-routine", lexemeId: "a1-lexeme-benkyousuru", learningUse: "productive", semanticFrameId: "a1-frame-study-routine", predicate: "study", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
+  { id: "a1-sense-study-routine", lexemeId: "a1-lexeme-benkyou-suru", learningUse: "productive", semanticFrameId: "a1-frame-study-routine", predicate: "study", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
   { id: "a1-sense-eat-routine", lexemeId: "a1-lexeme-taberu", learningUse: "productive", semanticFrameId: "a1-frame-eat-routine", predicate: "eat", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
   { id: "a1-sense-read-routine", lexemeId: "a1-lexeme-yomu", learningUse: "productive", semanticFrameId: "a1-frame-read-routine", predicate: "read", argumentRoles: ["agent", "time"], argumentParticleByRole: {} },
   // --- Module 9 description senses: predicate adjectives. Each carries its
@@ -266,6 +270,9 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-study", kind: "predicate-sense", senseId: "a1-sense-study", tokenFragments: [frag("べんきょうし", "benkyoushi")] },
   { id: "a1-value-understand", kind: "predicate-sense", senseId: "a1-sense-understand", tokenFragments: [frag("わかり", "wakari")] },
   { id: "a1-value-do", kind: "predicate-sense", senseId: "a1-sense-do", tokenFragments: [frag("し", "shi")] },
+  { id: "a1-value-work-bare", kind: "predicate-sense", senseId: "a1-sense-work-bare", tokenFragments: [frag("はたらき", "hataraki")] },
+  { id: "a1-value-study-bare", kind: "predicate-sense", senseId: "a1-sense-study-bare", tokenFragments: [frag("べんきょうし", "benkyoushi")] },
+  { id: "a1-value-do-bare", kind: "predicate-sense", senseId: "a1-sense-do-bare", tokenFragments: [frag("し", "shi")] },
   { id: "a1-value-go", kind: "predicate-sense", senseId: "a1-sense-go", tokenFragments: [frag("いき", "iki")] },
   { id: "a1-value-come", kind: "predicate-sense", senseId: "a1-sense-come", tokenFragments: [frag("き", "ki")] },
   { id: "a1-value-accompany", kind: "predicate-sense", senseId: "a1-sense-accompany", tokenFragments: [frag("いき", "iki")] },
@@ -311,9 +318,13 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-obj-letter", kind: "object", tokenFragments: [frag("てがみ", "tegami")] },
   { id: "a1-value-obj-newspaper", kind: "object", tokenFragments: [frag("しんぶん", "shinbun")] },
   { id: "a1-value-obj-movie", kind: "object", tokenFragments: [frag("えいが", "eiga")] },
+  { id: "a1-value-obj-photo", kind: "object", tokenFragments: [frag("しゃしん", "shashin")] },
   { id: "a1-value-obj-music", kind: "object", tokenFragments: [frag("おんがく", "ongaku")] },
   { id: "a1-value-obj-tv", kind: "object", tokenFragments: [frag("テレビ", "terebi")] },
   { id: "a1-value-obj-homework", kind: "object", tokenFragments: [frag("しゅくだい", "shukudai")] },
+  { id: "a1-value-obj-cat", kind: "object", tokenFragments: [frag("ねこ", "neko")] },
+  { id: "a1-value-obj-dog", kind: "object", tokenFragments: [frag("いぬ", "inu")] },
+  { id: "a1-value-obj-evening", kind: "object", tokenFragments: [frag("ばん", "ban")] },
   // question-word complements (object-kind)
   { id: "a1-value-q-nan", kind: "object", tokenFragments: [frag("なん", "nan")] },
   { id: "a1-value-q-nani", kind: "object", tokenFragments: [frag("なに", "nani")] },
@@ -347,6 +358,10 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   // reason (companion vs. recipient candidate pools must never cross).
   { id: "a1-value-recipient-friend", kind: "object", tokenFragments: [frag("ともだち", "tomodachi")] },
   { id: "a1-value-companion-teacher", kind: "object", tokenFragments: [frag("せんせい", "sensei")] },
+  { id: "a1-value-companion-child", kind: "object", tokenFragments: [frag("こども", "kodomo")] },
+  { id: "a1-value-companion-colleague", kind: "object", tokenFragments: [frag("どうりょう", "douryou")] },
+  { id: "a1-value-recipient-person", kind: "object", tokenFragments: [frag("ひと", "hito")] },
+  { id: "a1-value-companion-family", kind: "object", tokenFragments: [frag("かぞく", "kazoku")] },
   // Module 7 means-of-transport nouns (で adjunct; object-kind, distinct from
   // the action-place で of `work`).
   { id: "a1-value-transport-train", kind: "object", tokenFragments: [frag("でんしゃ", "densha")] },
@@ -354,6 +369,9 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-transport-car", kind: "object", tokenFragments: [frag("くるま", "kuruma")] },
   { id: "a1-value-transport-bicycle", kind: "object", tokenFragments: [frag("じてんしゃ", "jitensha")] },
   { id: "a1-value-transport-subway", kind: "object", tokenFragments: [frag("ちかてつ", "chikatetsu")] },
+  { id: "a1-value-transport-taxi", kind: "object", tokenFragments: [frag("タクシー", "takushii")] },
+  { id: "a1-value-transport-airplane", kind: "object", tokenFragments: [frag("ひこうき", "hikouki")] },
+  { id: "a1-value-transport-ship", kind: "object", tokenFragments: [frag("ふね", "fune")] },
 
   // --- location-kind (に/で per governing sense) ---
   { id: "a1-value-loc-tokyo", kind: "location", tokenFragments: [frag("とうきょう", "toukyou")] },
@@ -373,6 +391,9 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-loc-airport", kind: "location", tokenFragments: [frag("くうこう", "kuukou")] },
   { id: "a1-value-loc-bank", kind: "location", tokenFragments: [frag("ぎんこう", "ginkou")] },
   { id: "a1-value-loc-hospital", kind: "location", tokenFragments: [frag("びょういん", "byouin")] },
+  { id: "a1-value-loc-hotel", kind: "location", tokenFragments: [frag("ホテル", "hoteru")] },
+  { id: "a1-value-loc-room", kind: "location", tokenFragments: [frag("へや", "heya")] },
+  { id: "a1-value-loc-town", kind: "location", tokenFragments: [frag("まち", "machi")] },
 
   // --- referent-kind kin subjects (Module 8) ---
   // Own-family plain forms — used when the speaker talks about their OWN family
@@ -408,6 +429,7 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   // Day-part sequence adverbs (bare — no particle).
   { id: "a1-value-seq-morning", kind: "time", tokenFragments: [frag("あさ", "asa")] },
   { id: "a1-value-seq-noon", kind: "time", tokenFragments: [frag("ひる", "hiru")] },
+  { id: "a1-value-seq-afternoon", kind: "time", tokenFragments: [frag("ごご", "gogo")] },
   { id: "a1-value-seq-night", kind: "time", tokenFragments: [frag("よる", "yoru")] },
   { id: "a1-value-seq-evening", kind: "time", tokenFragments: [frag("ばん", "ban")] },
   // Frequency adverbs (bare — a case-marking particle here would be
@@ -437,6 +459,12 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-obj-kore", kind: "object", tokenFragments: [frag("これ", "kore")] },
   { id: "a1-value-obj-sore", kind: "object", tokenFragments: [frag("それ", "sore")] },
   { id: "a1-value-obj-are", kind: "object", tokenFragments: [frag("あれ", "are")] },
+  { id: "a1-value-obj-cup", kind: "object", tokenFragments: [frag("コップ", "koppu")] },
+  // Weather conditions are nominal forecast complements: "きょうは はれ です".
+  { id: "a1-value-weather-sunny", kind: "object", tokenFragments: [frag("はれ", "hare")] },
+  { id: "a1-value-weather-cloudy", kind: "object", tokenFragments: [frag("くもり", "kumori")] },
+  { id: "a1-value-weather-rain", kind: "object", tokenFragments: [frag("あめ", "ame")] },
+  { id: "a1-value-weather-snow", kind: "object", tokenFragments: [frag("ゆき", "yuki")] },
 
   // === Phase 2 Module 10 — prices, quantities, request ====================
   // Price copular complements (object-kind; "…えん" split so romaji spaces).
@@ -453,6 +481,15 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-obj-ticket", kind: "object", tokenFragments: [frag("きっぷ", "kippu")] },
   { id: "a1-value-obj-bag", kind: "object", tokenFragments: [frag("かばん", "kaban")] },
   { id: "a1-value-obj-money", kind: "object", tokenFragments: [frag("おかね", "okane")] },
+  { id: "a1-value-obj-juice", kind: "object", tokenFragments: [frag("ジュース", "juusu")] },
+  { id: "a1-value-obj-onigiri", kind: "object", tokenFragments: [frag("おにぎり", "onigiri")] },
+  { id: "a1-value-obj-sandwich", kind: "object", tokenFragments: [frag("サンドイッチ", "sandoicchi")] },
+  { id: "a1-value-obj-shopping-bag", kind: "object", tokenFragments: [frag("ふくろ", "fukuro")] },
+  { id: "a1-value-obj-receipt", kind: "object", tokenFragments: [frag("レシート", "reshiito")] },
+  { id: "a1-value-obj-magazine", kind: "object", tokenFragments: [frag("ざっし", "zasshi")] },
+  { id: "a1-value-obj-eraser", kind: "object", tokenFragments: [frag("けしごむ", "keshigomu")] },
+  { id: "a1-value-ex-pencil", kind: "referent", animacy: "inanimate", tokenFragments: [frag("えんぴつ", "enpitsu")] },
+  { id: "a1-value-ex-eraser", kind: "referent", animacy: "inanimate", tokenFragments: [frag("けしごむ", "keshigomu")] },
   // Floating quantifiers (bare — no particle; quantity-kind).
   { id: "a1-value-qty-1", kind: "quantity", tokenFragments: [frag("ひとつ", "hitotsu")] },
   { id: "a1-value-qty-2", kind: "quantity", tokenFragments: [frag("ふたつ", "futatsu")] },
@@ -468,10 +505,18 @@ const a1AuthoredValues: readonly SemanticValue[] = [
   { id: "a1-value-ex-pen", kind: "referent", animacy: "inanimate", tokenFragments: [frag("ペン", "pen")] },
   { id: "a1-value-ex-key", kind: "referent", animacy: "inanimate", tokenFragments: [frag("かぎ", "kagi")] },
   { id: "a1-value-ex-money", kind: "referent", animacy: "inanimate", tokenFragments: [frag("おかね", "okane")] },
+  { id: "a1-value-ex-flower", kind: "referent", animacy: "inanimate", tokenFragments: [frag("はな", "hana")] },
+  { id: "a1-value-ex-umbrella", kind: "referent", animacy: "inanimate", tokenFragments: [frag("かさ", "kasa")] },
+  { id: "a1-value-ex-phone", kind: "referent", animacy: "inanimate", tokenFragments: [frag("けいたいでんわ", "keitaidenwa")] },
   { id: "a1-value-ex-cat", kind: "referent", animacy: "animate", tokenFragments: [frag("ねこ", "neko")] },
   { id: "a1-value-ex-dog", kind: "referent", animacy: "animate", tokenFragments: [frag("いぬ", "inu")] },
+  { id: "a1-value-ex-bird", kind: "referent", animacy: "animate", tokenFragments: [frag("とり", "tori")] },
   { id: "a1-value-ex-child", kind: "referent", animacy: "animate", tokenFragments: [frag("こども", "kodomo")] },
   { id: "a1-value-ex-person", kind: "referent", animacy: "animate", tokenFragments: [frag("ひと", "hito")] },
+  { id: "a1-value-obj-medicine", kind: "object", tokenFragments: [frag("くすり", "kusuri")] },
+  { id: "a1-value-obj-passport", kind: "object", tokenFragments: [frag("パスポート", "pasupooto")] },
+  { id: "a1-value-obj-map", kind: "object", tokenFragments: [frag("ちず", "chizu")] },
+  { id: "a1-value-obj-dictionary", kind: "object", tokenFragments: [frag("じしょ", "jisho")] },
   // Position location nouns (に-marked; multi-fragment → spaced romaji).
   { id: "a1-value-loc-on-desk", kind: "location", tokenFragments: [frag("つくえ", "tsukue"), frag("の", "no"), frag("うえ", "ue")] },
   { id: "a1-value-loc-in-bag", kind: "location", tokenFragments: [frag("かばん", "kaban"), frag("の", "no"), frag("なか", "naka")] },
@@ -534,9 +579,21 @@ export const a1SentenceFamilies: readonly SentenceFamily[] = deepFreeze([
     requiredConceptIds: [A1_CONCEPT_OBJECT_WO],
   },
   {
+    id: "a1-family-bare-action",
+    level: "a1",
+    canDoIds: ["a1-can-do-identity", "a1-can-do-actions"],
+    slotSchema: [
+      { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
+      { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },
+    ],
+    permittedAxes: ["speaker-person", "predicate-verb", "polarity-tense-form", "context"],
+    realizationRuleId: "rule-bare-action",
+    requiredConceptIds: [A1_CONCEPT_TOPIC_WA],
+  },
+  {
     id: "a1-family-nominative-action",
     level: "a1",
-    canDoIds: ["a1-can-do-actions"],
+    canDoIds: ["a1-can-do-actions", "a1-can-do-questions"],
     slotSchema: [
       { id: "subject", axis: "speaker-person", valueKind: "referent", optional: false },
       { id: "predicate", axis: "predicate-verb", valueKind: "predicate-sense", optional: false },

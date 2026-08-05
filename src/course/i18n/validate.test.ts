@@ -11,6 +11,7 @@ import {
 import { it as itCopy } from "./it";
 import { en as enCopy } from "./en";
 import type { CourseCopy } from "./types";
+import { A1_LESSON_SECTION_IDS } from "../../routing/lessonSections";
 
 /** Every runtime course module across both levels (A1 + A2) — the merged copy
  * catalog (Phase 3 Task 8) covers both, so the coverage/orphan checks below
@@ -49,6 +50,7 @@ describe.each([itCopy, enCopy])("course locale", (copy) => {
     const staticCopy = collectStaticStrings({
       home: copy.home,
       lesson: copy.lesson,
+      a1Lesson: copy.a1Lesson,
       practice: copy.practice,
       exercises: copy.exercises,
       review: copy.review,
@@ -103,8 +105,8 @@ describe.each([itCopy, enCopy])("course locale", (copy) => {
     // `copy.blocks`/`copy.examples` are sourced from the legacy
     // `assembleCourse` pipeline (see i18n/en.ts, i18n/it.ts), not from the
     // live A1 `courseModules` — the live A1 lessons carry no `sections` at
-    // all (the rule/comparison/explore/recap body lives in `A1LessonPage`'s
-    // generic release view model instead). So their known-id sets are
+    // all (the vocabulary-first A1 body lives in `A1LessonPage`'s generic
+    // release view model instead). So their known-id sets are
     // derived from the legacy, fully-populated `courseModules` export.
     const knownBlockCopyIds = new Set(
       legacyCourseModules.flatMap((m) =>
@@ -168,6 +170,68 @@ describe("locale parity", () => {
     expect(itCopy.lesson.contentFormattingError).toBe(
       "Non è stato possibile mostrare questo esempio in giapponese.",
     );
+  });
+});
+
+describe("A1 runtime copy integrity", () => {
+  const JAPANESE = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff66-\uff9f]/;
+  const a1Modules = courseModulesByLevel.a1;
+  const a1Keys = {
+    modules: new Set(a1Modules.map((module) => module.id)),
+    lessons: new Set(
+      a1Modules.flatMap((module) =>
+        module.lessons.map((lesson) => lesson.titleCopyId),
+      ),
+    ),
+    objectives: new Set(
+      a1Modules.flatMap((module) =>
+        module.lessons.flatMap((lesson) => lesson.objectiveCopyIds),
+      ),
+    ),
+    outcomes: new Set(
+      a1Modules.flatMap((module) => module.outcomeCopyIds),
+    ),
+  };
+
+  it.each([
+    ["en", enCopy],
+    ["it", itCopy],
+  ] as const)(
+    "covers every A1 runtime key with non-Japanese learner-facing copy (%s)",
+    (_locale, copy) => {
+      const dictionaries: Array<
+        readonly [string, ReadonlySet<string>, (key: string) => string | undefined]
+      > = [
+        ["modules", a1Keys.modules, (key) => copy.modules[key]?.title],
+        ["lessons", a1Keys.lessons, (key) => copy.lessons[key]?.title],
+        ["objectives", a1Keys.objectives, (key) => copy.objectives[key]],
+        ["outcomes", a1Keys.outcomes, (key) => copy.outcomes[key]],
+      ];
+      for (const [dictionaryName, keys, resolve] of dictionaries) {
+        for (const key of keys) {
+          const value = resolve(key);
+          expect(value, `${dictionaryName}:${key}`).toBeTruthy();
+          expect(value?.trim().length ?? 0, `${dictionaryName}:${key}`).toBeGreaterThan(0);
+          expect(value, `${dictionaryName}:${key}`).not.toMatch(JAPANESE);
+        }
+      }
+    },
+  );
+});
+
+describe("A1 audio copy", () => {
+  it("keeps audio status keys in parity across locales", () => {
+    expect(Object.keys(itCopy.a1Lesson.audio).sort()).toEqual(
+      Object.keys(enCopy.a1Lesson.audio).sort(),
+    );
+  });
+
+  it.each([
+    [enCopy, "Audio playback failed. Try again."],
+    [itCopy, "La riproduzione audio non è riuscita. Riprova."],
+  ] as const)("provides a non-empty localized failure status", (copy, failed) => {
+    expect(copy.a1Lesson.audio.failed).toBe(failed);
+    expect(copy.a1Lesson.audio.failed.trim().length).toBeGreaterThan(0);
   });
 });
 
@@ -265,6 +329,54 @@ describe("foundation UX copy", () => {
     );
     expect(Object.keys(itCopy.foundation).sort()).toEqual(
       [...FOUNDATION_KEYS].sort(),
+    );
+  });
+
+  describe("A1 curriculum section copy", () => {
+    const JAPANESE = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff66-\uff9f]/;
+
+    it("provides the complete six-section label set in both locales", () => {
+      expect(Object.keys(enCopy.a1Lesson.sections)).toEqual([
+        ...A1_LESSON_SECTION_IDS,
+      ]);
+      expect(Object.keys(itCopy.a1Lesson.sections)).toEqual([
+        ...A1_LESSON_SECTION_IDS,
+      ]);
+      expect(enCopy.a1Lesson.sections).toEqual({
+        rule: "Goal",
+        vocabulary: "New words",
+        grammar: "Grammar",
+        comparison: "Examples",
+        explore: "Practice",
+        recap: "Recap",
+      });
+      expect(itCopy.a1Lesson.sections).toEqual({
+        rule: "Obiettivo",
+        vocabulary: "Parole nuove",
+        grammar: "Grammatica",
+        comparison: "Esempi",
+        explore: "Pratica",
+        recap: "Ripasso",
+      });
+    });
+
+    it.each([enCopy.a1Lesson, itCopy.a1Lesson])(
+      "has complete, Japanese-free surrounding UI copy (%#)",
+      (copy) => {
+        const staticStrings = collectStaticStrings(copy);
+        expect(staticStrings.length).toBeGreaterThan(0);
+        for (const value of [
+          ...staticStrings,
+          copy.examples.turnLabel(2),
+        ]) {
+          expect(value.trim().length).toBeGreaterThan(0);
+          expect(JAPANESE.test(value)).toBe(false);
+        }
+        expect(copy.audio.play).not.toBe(copy.audio.playing);
+        expect(copy.vocabulary.showMeanings).not.toBe(
+          copy.vocabulary.hideMeanings,
+        );
+      },
     );
   });
 

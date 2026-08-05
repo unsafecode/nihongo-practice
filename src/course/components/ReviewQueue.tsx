@@ -61,7 +61,7 @@ export function ReviewQueue({ level = "a1" }: ReviewQueueProps): ReactElement {
     if (outcome === "accepted") {
       resolveReview({
         lessonId: item.lessonId,
-        exerciseDefinitionId: item.exerciseDefinitionId,
+        exerciseDefinitionId: item.sourceExerciseDefinitionId,
         targetConceptIds: item.targetConceptIds,
         targetLexemeIds: item.targetLexemeIds,
       });
@@ -71,7 +71,7 @@ export function ReviewQueue({ level = "a1" }: ReviewQueueProps): ReactElement {
       // A wrong review attempt re-opens/increments the queue entry (spec §10.4).
       recordAttempt({
         lessonId: item.lessonId,
-        exerciseDefinitionId: item.exerciseDefinitionId,
+        exerciseDefinitionId: item.sourceExerciseDefinitionId,
         outcome: "retry",
         targetConceptIds: item.targetConceptIds,
         targetLexemeIds: item.targetLexemeIds,
@@ -111,6 +111,10 @@ export function ReviewQueue({ level = "a1" }: ReviewQueueProps): ReactElement {
             const open = openKey === item.reviewKey;
             const bodyId = `review-body-${item.reviewKey}`;
             const lessonTitle = copy.lessons[item.lessonId]?.title ?? item.lessonId;
+            const practiceFunctionLabel =
+              item.practiceFunction === null
+                ? null
+                : copy.a1Lesson.practice.functions[item.practiceFunction];
             return (
               <li key={item.reviewKey} className="review-queue__item">
                 <div className="review-queue__item-head">
@@ -121,6 +125,18 @@ export function ReviewQueue({ level = "a1" }: ReviewQueueProps): ReactElement {
                     <p className="review-queue__mistakes">
                       {reviewCopy.mistakes(item.mistakeCount)}
                     </p>
+                    {practiceFunctionLabel && item.practiceFunction ? (
+                      <p
+                        className="review-queue__practice-function"
+                        data-practice-function={item.practiceFunction}
+                      >
+                        <span>{copy.a1Lesson.practice.functionLabel}: </span>
+                        <span>{practiceFunctionLabel}</span>
+                      </p>
+                    ) : null}
+                    {item.sourceExerciseDefinitionId !== item.exerciseDefinitionId ? (
+                      <p className="review-queue__varied-task">{reviewCopy.variedTask}</p>
+                    ) : null}
                   </div>
                   <div className="review-queue__item-actions">
                     <ActionLink
@@ -155,6 +171,8 @@ export function ReviewQueue({ level = "a1" }: ReviewQueueProps): ReactElement {
                           instruction: item.instruction,
                           intentText: item.intentText,
                           practicePurpose: item.practicePurpose,
+                          practiceFunction: item.practiceFunction,
+                          feedback: item.feedback,
                         }}
                         index={1}
                         total={1}

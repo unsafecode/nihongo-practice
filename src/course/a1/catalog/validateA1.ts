@@ -33,6 +33,11 @@ import type {
   A1ReleaseValidationError,
 } from "../types";
 import {
+  validateA1Curriculum,
+  type A1CurriculumValidationOverrides,
+  type ValidateA1CurriculumResult,
+} from "../curriculum/validateA1Curriculum";
+import {
   A1_MANIFEST_SPEC,
   A1_MODULE_IDS,
   A1_LESSON_IDS,
@@ -116,7 +121,7 @@ export interface ValidateA1Input {
   readonly phoneticItemsByLesson?: Readonly<Record<string, readonly A1PhoneticItem[]>>;
   /** The phonetic lesson recipes (contrastive item / practice-ref contract). */
   readonly phoneticLessons?: readonly A1PhoneticLessonRecipe[];
-  /** The 37 release verb-use records (24 deep + 13 descriptive senses). */
+  /** The 40 release verb-use records, including bare-action sense recurrences. */
   readonly releaseVerbUseRecords?: readonly VerbUseRecord[];
   /** The manifest spec whose route/alias shape the level must match. */
   readonly manifestSpec?: A1ManifestSpec;
@@ -124,6 +129,8 @@ export interface ValidateA1Input {
   readonly checkpoint?: typeof a1Checkpoint;
   /** The authored Can-do set that must each carry transfer evidence. */
   readonly authoredCanDos?: readonly CanDo[];
+  /** Whole-catalog learner-contract overrides for release-gate fixtures. */
+  readonly curriculumInput?: A1CurriculumValidationOverrides;
 }
 
 export interface ValidateA1Result {
@@ -131,6 +138,8 @@ export interface ValidateA1Result {
   readonly errors: readonly A1ValidationError[];
   /** The wrapped `validateFoundations` report — diagnostic, never mutated. */
   readonly foundationReport: ValidateFoundationsResult;
+  /** Exhaustive learner-contract result over the same release catalogs. */
+  readonly curriculumReport: ValidateA1CurriculumResult;
 }
 
 // ---------------------------------------------------------------------------
@@ -170,11 +179,26 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
   const manifestSpec = input.manifestSpec ?? A1_MANIFEST_SPEC;
   const checkpoint = input.checkpoint ?? a1Checkpoint;
   const authoredCanDos = input.authoredCanDos ?? a1CanDosAuthored;
+  const curriculumOverrides = input.curriculumInput ?? {};
+  const curriculumReport = validateA1Curriculum({
+    ...curriculumOverrides,
+    foundationCatalogs:
+      curriculumOverrides.foundationCatalogs ?? input.semanticCatalogs ?? full,
+    foundationCopy: curriculumOverrides.foundationCopy ?? copy,
+  });
 
   const errors: A1ValidationError[] = [];
   const push = (error: A1ValidationError): void => {
     errors.push(error);
   };
+
+  // The learner-contract validator deliberately uses the exact canonical A1
+  // release error vocabulary. Preserve every attribution rather than wrapping
+  // it in a generic release error, so prebuild output names the lesson and
+  // underlying curriculum invariant directly.
+  for (const error of curriculumReport.errors) {
+    push(error);
+  }
 
   // --- Realization infrastructure over the semantic catalog ----------------
   const familyById = new Map<string, SentenceFamily>(
@@ -769,7 +793,7 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
       }
     }
     const itemIds = items.map((item) => item.id).join(",");
-    const refIds = items.map((item) => item.exerciseRefId).join(",");
+    const refIds = items.slice(0, 4).map((item) => item.exerciseRefId).join(",");
     if (lessonRecipe.contrastiveItemIds.join(",") !== itemIds) {
       push({ code: "phonetic-lesson-mismatch", id: lessonRecipe.id, dimension: "contrastive-items" });
     }
@@ -792,6 +816,7 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
     valid: sorted.length === 0 && foundationReport.valid,
     errors: sorted,
     foundationReport,
+    curriculumReport,
   };
 }
 
@@ -800,8 +825,8 @@ function cmp(left: string, right: string): number {
 }
 
 /** The default release view — validated over the frozen release catalogs. */
-export function validateA1Release(): ValidateA1Result {
-  return validateA1();
+export function validateA1Release(input: ValidateA1Input = {}): ValidateA1Result {
+  return validateA1(input);
 }
 
 /** Re-export for reports / tests that key off the same lesson-position order. */

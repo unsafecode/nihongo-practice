@@ -107,6 +107,8 @@ export interface ExerciseViewProps {
   ) => readonly AssembledToken[] | undefined;
   /** The exact localized `contentFormattingError` text for the shared renderer. */
   readonly errorText: string;
+  /** Localized post-submit explanation; only accepted/retry states may render it. */
+  readonly feedbackDetail?: string | null;
   readonly handlers: ExerciseViewHandlers;
   /**
    * Optional extra class(es) a host surface appends to the card's root `<li>`
@@ -115,7 +117,7 @@ export interface ExerciseViewProps {
    */
   readonly itemClassName?: string;
   /**
-   * Optional review-only metadata a host surface attaches to the root `<li>`
+   * Optional opaque metadata a host surface attaches to the root `<li>`
    * as `data-*` attributes. The key set is a closed union of opaque
    * identifiers/fingerprints — never answer text — so a host can neither inject
    * arbitrary attributes nor leak a canonical answer through the DOM.
@@ -130,7 +132,7 @@ export interface ExerciseViewProps {
 }
 
 /**
- * The closed set of review-only `data-*` attribute suffixes a host surface may
+ * The closed set of `data-*` attribute suffixes a host surface may
  * attach to an exercise card's root. Every value is an opaque id, an
  * enumerated tag, or a non-reversible fingerprint — an answer string is never
  * among them — which keeps {@link ExerciseView} from accepting arbitrary or
@@ -146,7 +148,8 @@ export type ExerciseItemDataKey =
   | "practice-purpose"
   | "pedagogical-use"
   | "semantic-fingerprint"
-  | "visible-target-key";
+  | "visible-target-key"
+  | "practice-function";
 
 /** A data-key-safe record of the closed {@link ExerciseItemDataKey} set. */
 export type ExerciseItemData = Readonly<
@@ -705,6 +708,7 @@ export function ExerciseView(props: ExerciseViewProps): ReactElement {
     tokenForTile,
     tokensForExample,
     errorText,
+    feedbackDetail,
     handlers,
     itemClassName,
     itemData,
@@ -715,6 +719,8 @@ export function ExerciseView(props: ExerciseViewProps): ReactElement {
   const instructionId = `${idBase}-instruction`;
   const feedbackId = `${idBase}-feedback`;
   const feedback = feedbackContent(state, copy);
+  const visibleFeedbackDetail =
+    state.status === "accepted" || state.status === "retry" ? feedbackDetail : null;
   const accepted = state.status === "accepted";
   const tileButtonRefs = useRef(new Map<string, HTMLButtonElement>());
   const tileFocusRequest = useRef<{
@@ -886,6 +892,12 @@ export function ExerciseView(props: ExerciseViewProps): ReactElement {
               {feedback.glyph}
             </span>
             <span className="lesson-exercise__feedback-text">{feedback.text}</span>
+            {visibleFeedbackDetail ? (
+              <span className="lesson-exercise__feedback-detail">
+                {" "}
+                {visibleFeedbackDetail}
+              </span>
+            ) : null}
           </>
         ) : null}
       </p>

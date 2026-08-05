@@ -41,6 +41,11 @@ const SEMANTIC_LESSON_IDS = a1FoundationCatalogs.lessons.map(
 );
 
 describe("A1 release/runtime selection identity", () => {
+  it("pins the rebuilt exercise catalog to release v2 while keeping its fixed seed explicit", () => {
+    expect(SHARED_CATALOG_VERSION).toBe("a1-release-v2");
+    expect(SHARED_SEED).toBe("a1-release-seed-v1");
+  });
+
   it("shares the exact same catalogVersion string between the validator and the runtime builder", () => {
     expect(VALIDATOR_CATALOG_VERSION).toBe(RUNTIME_CATALOG_VERSION);
   });

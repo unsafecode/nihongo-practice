@@ -37,6 +37,7 @@ import {
   translationCopyId as kitTranslationCopyId,
   verbUseRecord,
   withLaterUses,
+  type InstructionalLessonDiversityOverride,
   type InstructionalLessonKitConfig,
 } from "../../foundations/instructionalLessonKit";
 import type {
@@ -303,6 +304,7 @@ export interface A1InstructionalLessonInput {
   readonly supportingCanDoIds: readonly string[];
   readonly introducedConceptIds: readonly string[];
   readonly introducedSenseIds: readonly string[];
+  readonly diversityOverride?: InstructionalLessonDiversityOverride;
   readonly models: readonly A1LineSpec[];
   readonly transfers: readonly A1LineSpec[];
 }
@@ -366,8 +368,9 @@ export const A1_INSTRUCTIONAL_KIT_CONFIG: InstructionalLessonKitConfig<A1LessonR
   buildVariant: a1Variant,
   modelCountRange: [8, 8],
   minFamilies: 1,
-  exerciseCountRange: [10, 10],
-  roundTargetCount: 5,
+  exerciseCountRange: [4, 4],
+  roundTargetCounts: [2, 2],
+  minUniqueTargets: 4,
   roundOneExerciseKinds: A1_ROUND_ONE_KINDS,
   roundTwoExerciseKinds: A1_ROUND_TWO_KINDS,
   selectionPolicyId: "a1-selection-default",
@@ -377,12 +380,13 @@ export const A1_INSTRUCTIONAL_KIT_CONFIG: InstructionalLessonKitConfig<A1LessonR
 /**
  * Expand an instructional lesson's eight models and five transfers into a
  * validated {@link A1LessonRecipe} (via {@link defineA1Lesson}), its frozen
- * variants, and the merged EN/IT translation+scenario copy. Diversity floors
- * are fixed to the A1 depth contract: eight models, ten exercises, ≥3
- * predicates, ≥3 roles, ≥2 contexts, five unique targets per round, reuse ≤2,
- * five transfer exercises, controlled construction required. `minFamilies` is
- * declared as 1 (the honest floor — 10 of 44 A1 lessons genuinely teach a single
- * family). Delegates
+ * variants, and the merged EN/IT translation+scenario copy. A1 defaults to
+ * eight models, four exercises, ≥3 predicates, ≥3 roles, ≥2 contexts, four
+ * unique targets, reuse ≤2, two transfer exercises, and controlled
+ * construction. A focused foundation lesson may explicitly lower its predicate
+ * floor through `diversityOverride`; defaults remain unchanged. `minFamilies`
+ * is declared as 1 (the honest floor — 10 of 44 A1 lessons genuinely teach a
+ * single family). Delegates
  * every level-agnostic assembly step to the shared
  * `instructionalLessonKit.buildInstructionalLesson`.
  */

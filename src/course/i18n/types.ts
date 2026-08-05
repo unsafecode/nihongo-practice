@@ -1,5 +1,9 @@
-import type { LessonSectionId } from "../../routing/lessonSections";
+import type {
+  A1LessonSectionId,
+  A2LessonSectionId,
+} from "../../routing/lessonSections";
 import type { ContrastDimension, ModuleId } from "../data/types";
+import type { A1PracticeFunction } from "../a1/curriculum/types";
 
 export interface BlockCopy {
   eyebrow?: string;
@@ -159,12 +163,10 @@ export interface CourseCopy {
     legacyLessonConsolidatedNoticeTitle: string;
     legacyLessonConsolidatedNoticeBody: string;
     /**
-     * The four section landmark names (design spec §4.3). Used verbatim as the
-     * lesson rail's step labels, the mobile context bar's section name, and
-     * each `<section>`'s accessible label, so the rail and the page can never
-     * disagree on section identity.
+     * A2's four established section landmark names. Used verbatim as the A2
+     * lesson rail's step labels, mobile context bar labels, and landmarks.
      */
-    sections: Record<LessonSectionId, string>;
+    sections: Record<A2LessonSectionId, string>;
     /** Accessible name for the lesson rail / section navigation landmark. */
     railLabel: string;
     /** Accessible name for the mobile "jump to a section" control. */
@@ -203,6 +205,79 @@ export interface CourseCopy {
       vocabLabel: string;
       nextRetrievalTitle: string;
       nextRetrievalBody: string;
+    };
+  };
+  /**
+   * Localized chrome for A1's vocabulary-first six-section lesson experience.
+   * Japanese itself always comes from the curriculum view model; these values
+   * are surrounding UI labels only.
+   */
+  a1Lesson: {
+    sections: Record<A1LessonSectionId, string>;
+    overview: {
+      canDoLabel: string;
+      situationLabel: string;
+      prerequisitesLabel: string;
+    };
+    vocabulary: {
+      newWordsHeading: string;
+      reviewWordsHeading: string;
+      reviewBadge: string;
+      reviewExceptionLabel: string;
+      showMeanings: string;
+      hideMeanings: string;
+      meaningLabel: string;
+      categoryLabel: string;
+      categories: Record<
+        | "pronoun"
+        | "person"
+        | "noun"
+        | "verb"
+        | "adjective"
+        | "question-word"
+        | "time"
+        | "expression",
+        string
+      >;
+      verbFormsLabel: string;
+      dictionaryLabel: string;
+      politeLabel: string;
+      classLabel: string;
+      verbClasses: Record<"godan" | "ichidan" | "irregular", string>;
+    };
+    learningNote: {
+      kindLabel: string;
+      kinds: Record<"grammar" | "phonetic" | "synthesis", string>;
+      meaningLabel: string;
+      useLabel: string;
+      constructionLabel: string;
+      typicalMistakeLabel: string;
+      subjectOmissionLabel: string;
+      nearestContrastLabel: string;
+      patternLabel: string;
+    };
+    examples: {
+      translationLabel: string;
+      glossesLabel: string;
+      dialogueLabel: string;
+      turnLabel: (position: number) => string;
+      optionalPattern: string;
+    };
+    practice: {
+      functionLabel: string;
+      functions: Record<A1PracticeFunction, string>;
+    };
+    audio: {
+      play: string;
+      playing: string;
+      unavailable: string;
+      failed: string;
+      statusLabel: string;
+    };
+    recap: {
+      meaningsAndFormsLabel: string;
+      retrievalCueLabel: string;
+      reviewExceptionLabel: string;
     };
   };
   practice: {
@@ -394,6 +469,8 @@ export interface CourseCopy {
     mistakes: (n: number) => string;
     practice: string;
     openLesson: string;
+    /** Small label for A1's safe alternate retrieval task. */
+    variedTask: string;
     /** Announced (polite live region) when a review-mode acceptance resolves. */
     resolved: string;
     orphaned: (n: number) => string;
@@ -475,8 +552,8 @@ export interface CourseCopy {
    * lesson's `a1-phonetic-outcome-<lessonId>` copy id. Kept separate from
    * `blocks`/`objectives` because the phonetic catalog is not lesson-section
    * or Can-do content — it is the one-mora/one-glyph description shown
-   * alongside a phonetic lesson's rule/comparison/explore/recap content and
-   * its spoken listen/repeat equivalent.
+   * alongside a phonetic lesson's vocabulary-first A1 content and its spoken
+   * listen/repeat equivalent.
    */
   phonetics: Record<string, string>;
   /**

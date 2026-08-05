@@ -1,20 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { formatRomaji } from "../../romaji/formatRomaji";
-import { module1ItemsByLesson } from "../a1/catalog/module01Sounds";
+import {
+  module1ItemsByLesson,
+  module1Lessons,
+} from "../a1/catalog/module01Sounds";
 import { evaluateExercise } from "../exercises/engine";
 import {
   buildPhoneticLessonModel,
   phoneticLessonIds,
 } from "./phoneticExerciseModel";
-import type { LessonExercisesModel } from "./lessonExerciseModel";
 
 /**
  * Direct unit coverage for the phonetic runtime exercise builder (Phase 2
  * Task 6, finding I1). `getLessonExercises` previously routed every
  * `sounds-*` lesson through an honest empty model because the sentence
  * engine has no predicate/role for an isolated phonetic item — but the
- * master spec still requires each of the four phonetic lessons to carry
- * 8-12 real, evaluable exercises with genuine target breadth. This builder
+ * master spec keeps each lesson's 8-12-item contrastive roster, while its
+ * learner practice path selects four real, evaluable targets plus a separate
+ * spoken fifth activity. This builder
  * hand-assembles deterministic `ChoicePrompt`/`TileOrderingPrompt` values
  * directly from the validated `module01Sounds` item catalog (never a second,
  * hand-authored answer table) so the existing generic `evaluateExercise`,
@@ -24,16 +27,10 @@ import type { LessonExercisesModel } from "./lessonExerciseModel";
 
 const LESSON_IDS = ["sounds-1", "sounds-2", "sounds-3", "sounds-4"] as const;
 
-function distractorReuseCounts(model: LessonExercisesModel): Map<string, number> {
-  const counts = new Map<string, number>();
-  for (const exercise of model.exercises) {
-    if (exercise.prompt.kind !== "choice") continue;
-    for (const option of exercise.prompt.options) {
-      if (option.id === exercise.prompt.correctOptionId) continue;
-      counts.set(option.id, (counts.get(option.id) ?? 0) + 1);
-    }
-  }
-  return counts;
+function selectedItems(lessonId: (typeof LESSON_IDS)[number]) {
+  const refs = module1Lessons.find((lesson) => lesson.id === lessonId)?.practiceTargetRefs;
+  if (!refs) throw new Error(`missing phonetic recipe for ${lessonId}`);
+  return module1ItemsByLesson[lessonId]!.filter((item) => refs.includes(item.exerciseRefId));
 }
 
 describe("phoneticLessonIds", () => {
@@ -42,37 +39,28 @@ describe("phoneticLessonIds", () => {
   });
 });
 
-describe("buildPhoneticLessonModel — exactly 10 real exercises per phonetic lesson (I1)", () => {
-  it.each(LESSON_IDS)("generates 10 error-free exercises for %s, one per authored item", (lessonId) => {
+describe("buildPhoneticLessonModel — four selected exercises plus spoken activity", () => {
+  it.each(LESSON_IDS)("generates four error-free exercises for %s without reducing its contrast roster", (lessonId) => {
     const built = buildPhoneticLessonModel(lessonId);
     expect(built.model.errors).toEqual([]);
-    expect(built.model.exercises.length).toBe(10);
-    expect(built.model.exercises.length).toBeGreaterThanOrEqual(8);
-    expect(built.model.exercises.length).toBeLessThanOrEqual(12);
+    expect(built.model.exercises).toHaveLength(4);
+    expect(module1ItemsByLesson[lessonId]).toHaveLength(10);
   });
 
-  it.each(LESSON_IDS)("gives every exercise in %s a stable definitionId equal to its item's own exerciseRefId", (lessonId) => {
-    const items = module1ItemsByLesson[lessonId]!;
+  it.each(LESSON_IDS)("keeps %s's selected exercise refs in authored blueprint order", (lessonId) => {
+    const recipe = module1Lessons.find((lesson) => lesson.id === lessonId)!;
     const built = buildPhoneticLessonModel(lessonId);
-    expect(built.model.exercises.map((e) => e.definitionId).sort()).toEqual(
-      items.map((i) => i.exerciseRefId).sort(),
+    expect(built.model.exercises.map((exercise) => exercise.definitionId)).toEqual(
+      recipe.practiceTargetRefs,
     );
   });
 
-  it.each(LESSON_IDS)("names at least 5 unique visible (correct-answer) targets in %s, each used as the primary target exactly once", (lessonId) => {
+  it.each(LESSON_IDS)("uses four distinct primary targets in %s", (lessonId) => {
     const built = buildPhoneticLessonModel(lessonId);
     const primaryTargets = built.model.exercises.map((e) => e.prompt.assessedConceptIds[0]);
     const unique = new Set(primaryTargets);
-    expect(unique.size).toBeGreaterThanOrEqual(5);
-    expect(unique.size).toBe(built.model.exercises.length);
-  });
-
-  it.each(LESSON_IDS)("never reuses any one item as a distractor option more than twice within %s", (lessonId) => {
-    const built = buildPhoneticLessonModel(lessonId);
-    const reuse = distractorReuseCounts(built.model);
-    for (const [itemId, count] of reuse) {
-      expect(count, `${lessonId} ${itemId} reused as a distractor ${count} times`).toBeLessThanOrEqual(2);
-    }
+    expect(unique.size).toBe(4);
+    expect(primaryTargets).toEqual(selectedItems(lessonId).map((item) => item.id));
   });
 
   it.each(LESSON_IDS)("gives every exercise a non-empty localized instruction in both locales, and a null intent (no constrained-construction kind exists here)", (lessonId) => {
@@ -85,11 +73,20 @@ describe("buildPhoneticLessonModel — exactly 10 real exercises per phonetic le
     }
   });
 
-  it.each(LESSON_IDS)("gives every exercise the guided-controlled practicePurpose in %s (no transfer-round concept exists for phonetics)", (lessonId) => {
+  it.each(LESSON_IDS)("maps each selected exercise to its blueprint function and round purpose in %s", (lessonId) => {
     const built = buildPhoneticLessonModel(lessonId);
-    for (const exercise of built.model.exercises) {
-      expect(exercise.practicePurpose).toBe("guided-controlled");
-    }
+    expect(built.model.exercises.map((exercise) => exercise.practiceFunction)).toEqual([
+      "meaning-comprehension",
+      "form-discrimination",
+      "controlled-production",
+      "contextual-response",
+    ]);
+    expect(built.model.exercises.map((exercise) => exercise.practicePurpose)).toEqual([
+      "guided-controlled",
+      "guided-controlled",
+      "guided-controlled",
+      "transfer",
+    ]);
   });
 
   it("never embeds a raw duplicated Japanese answer literal in the model itself — choice options and tiles are only ever another item's own catalog id/glyph", () => {
@@ -125,9 +122,9 @@ describe("buildPhoneticLessonModel — exactly 10 real exercises per phonetic le
 });
 
 describe("buildPhoneticLessonModel — per-kind prompt shape (choice vs tile-ordering)", () => {
-  it("minimal-pair-listening: exactly 2 options (the item and its authored contrastWithId partner), correct option is the item itself", () => {
+  it("minimal-pair-listening: selected items keep exactly two options (the item and its contrast partner)", () => {
     const built = buildPhoneticLessonModel("sounds-1");
-    const items = module1ItemsByLesson["sounds-1"]!;
+    const items = selectedItems("sounds-1");
     for (const item of items.filter((i) => i.exerciseKind === "minimal-pair-listening")) {
       const exercise = built.model.exercises.find((e) => e.definitionId === item.exerciseRefId)!;
       expect(exercise.prompt.kind).toBe("choice");
@@ -140,9 +137,9 @@ describe("buildPhoneticLessonModel — per-kind prompt shape (choice vs tile-ord
     }
   });
 
-  it("reading-choice: exactly 3 options (the item and 2 same-kind distractors), correct option is the item itself", () => {
-    const built = buildPhoneticLessonModel("sounds-1");
-    const items = module1ItemsByLesson["sounds-1"]!;
+  it("reading-choice: selected items keep exactly three options (the item and two same-kind distractors)", () => {
+    const built = buildPhoneticLessonModel("sounds-4");
+    const items = selectedItems("sounds-4");
     for (const item of items.filter((i) => i.exerciseKind === "reading-choice")) {
       const exercise = built.model.exercises.find((e) => e.definitionId === item.exerciseRefId)!;
       expect(exercise.prompt.kind).toBe("choice");
@@ -153,9 +150,9 @@ describe("buildPhoneticLessonModel — per-kind prompt shape (choice vs tile-ord
     }
   });
 
-  it("mora-tiling: tiles are exactly the item's own characters, in the item's authored reading order as the correct answer", () => {
-    const built = buildPhoneticLessonModel("sounds-3");
-    const items = module1ItemsByLesson["sounds-3"]!;
+  it("mora-tiling: selected items preserve their own characters in authored reading order", () => {
+    const built = buildPhoneticLessonModel("sounds-4");
+    const items = selectedItems("sounds-4");
     for (const item of items.filter((i) => i.exerciseKind === "mora-tiling")) {
       const exercise = built.model.exercises.find((e) => e.definitionId === item.exerciseRefId)!;
       expect(exercise.prompt.kind).toBe("tile-ordering");
@@ -174,13 +171,14 @@ describe("buildPhoneticLessonModel — per-kind prompt shape (choice vs tile-ord
   });
 });
 
-describe("buildPhoneticLessonModel — per-mora romaji derivation for every real mora-tiling item (chōonpu-aware)", () => {
+describe("buildPhoneticLessonModel — per-mora romaji derivation for selected mora-tiling items", () => {
   it.each(
-    [...module1ItemsByLesson["sounds-3"]!, ...module1ItemsByLesson["sounds-4"]!].filter(
-      (item) => item.exerciseKind === "mora-tiling",
+    LESSON_IDS.flatMap((lessonId) =>
+      selectedItems(lessonId)
+        .filter((item) => item.exerciseKind === "mora-tiling")
+        .map((item) => ({ lessonId, item })),
     ),
-  )("reconstructs $roman by concatenating each mora tile's own derived romaji for $id", (item) => {
-    const lessonId = module1ItemsByLesson["sounds-3"]!.includes(item) ? "sounds-3" : "sounds-4";
+  )("reconstructs $item.roman by concatenating each mora tile's own derived romaji for $item.id", ({ lessonId, item }) => {
     const built = buildPhoneticLessonModel(lessonId);
     const exercise = built.model.exercises.find((e) => e.definitionId === item.exerciseRefId)!;
     if (exercise.prompt.kind !== "tile-ordering") throw new Error("kind");

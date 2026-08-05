@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { formatRomaji } from "../../romaji/formatRomaji";
 import {
+  a1Contexts,
+  a1LearningTargetSenses,
+  a1PersonRoles,
+  a1Referents,
+  a1SemanticValues,
+  a1SentenceFamilies,
+} from "../a1/catalog/a1SemanticCatalog";
+import {
   fixtureFamily,
   fixtureVariant,
   foundationCatalogs,
@@ -118,6 +126,82 @@ describe("realizeVariant", () => {
       expect(romaji.ok).toBe(true);
       if (!romaji.ok) return;
       expect(romaji.text).toBe("kaisha de hatarakimasu");
+    });
+
+    it("realizes explicit and omitted subjects through the A1 bare polite-action family", () => {
+      const family = a1SentenceFamilies.find(
+        (candidate) => candidate.id === "a1-family-bare-action",
+      );
+      expect(family).toBeDefined();
+      if (!family) return;
+
+      const a1Catalogs: RealizeVariantCatalogs = {
+        contexts: a1Contexts,
+        personRoles: a1PersonRoles,
+        referents: a1Referents,
+        semanticValues: a1SemanticValues,
+        learningTargetSenses: a1LearningTargetSenses,
+      };
+      const explicit = withFixtureOverride(
+        fixtureVariant("fixture-a1-yuki-study-japanese"),
+        {
+          id: "test-a1-bare-study-explicit",
+          sentenceFamilyId: family.id,
+          discourse: {
+            speakerRoleId: "a1-role-yuki",
+            addresseeRoleId: "a1-role-learner",
+            subjectReferentId: "a1-referent-yuki",
+            subjectRealization: "explicit",
+            scenarioNoteCopyId: "test-a1-bare-study-explicit-scenario",
+          },
+          contextId: "a1-context-classroom",
+          slotValues: {
+            subject: "a1-value-yuki",
+            predicate: "a1-value-study-bare",
+          },
+        },
+      );
+      const omitted = withFixtureOverride(
+        fixtureVariant("fixture-a1-yuki-study-japanese"),
+        {
+          id: "test-a1-bare-work-omitted",
+          sentenceFamilyId: family.id,
+          discourse: {
+            speakerRoleId: "a1-role-learner",
+            addresseeRoleId: "a1-role-teacher",
+            subjectReferentId: "a1-referent-self",
+            subjectRealization: "omitted",
+            scenarioNoteCopyId: "test-a1-bare-work-omitted-scenario",
+          },
+          contextId: "a1-context-workplace",
+          slotValues: {
+            subject: "a1-value-watashi",
+            predicate: "a1-value-work-bare",
+          },
+        },
+      );
+
+      const explicitResult = realizeVariant(family, explicit, a1Catalogs, {
+        availableConceptIds: ["a1-concept-topic-wa"],
+      });
+      expect(explicitResult.ok).toBe(true);
+      if (explicitResult.ok) {
+        expect(explicitResult.sentence.canonicalJapanese).toBe("ゆきはべんきょうします");
+        const romaji = formatRomaji(explicitResult.sentence.tokens);
+        expect(romaji.ok).toBe(true);
+        if (romaji.ok) expect(romaji.text).toBe("yuki wa benkyoushimasu");
+      }
+
+      const omittedResult = realizeVariant(family, omitted, a1Catalogs, {
+        availableConceptIds: ["a1-concept-topic-wa"],
+      });
+      expect(omittedResult.ok).toBe(true);
+      if (omittedResult.ok) {
+        expect(omittedResult.sentence.canonicalJapanese).toBe("はたらきます");
+        const romaji = formatRomaji(omittedResult.sentence.tokens);
+        expect(romaji.ok).toBe(true);
+        if (romaji.ok) expect(romaji.text).toBe("hatarakimasu");
+      }
     });
 
     it("realizes an omitted-subject A1 live sentence with に for the location", () => {

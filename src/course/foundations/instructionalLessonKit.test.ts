@@ -91,7 +91,8 @@ const FAKE_CONFIG: InstructionalLessonKitConfig<FakeRecipe> = {
   modelCountRange: [8, 12],
   minFamilies: 1,
   exerciseCountRange: [8, 12],
-  roundTargetCount: 5,
+  roundTargetCounts: [5, 5],
+  minUniqueTargets: 5,
   roundOneExerciseKinds: ["tile-ordering", "choice", "completion"],
   roundTwoExerciseKinds: ["constrained-construction", "completion", "tile-ordering"],
   selectionPolicyId: "fake-selection-default",
@@ -243,7 +244,7 @@ describe("buildInstructionalLesson", () => {
     expect(built.recipe.spokenVariantId).toBe("fake-lesson-1-m1");
   });
 
-  it("builds two practice rounds from the config's exercise kinds/target count", () => {
+  it("builds two practice rounds from the config's exercise kinds/target counts", () => {
     expect(built.recipe.practice.roundOne).toMatchObject({
       id: "fake-lesson-1-round-1",
       purpose: "guided-controlled",
@@ -262,6 +263,34 @@ describe("buildInstructionalLesson", () => {
     });
   });
 
+  it("uses independently configured two-target rounds and a matching four-exercise range", () => {
+    const compact = buildInstructionalLesson(
+      {
+        ...FAKE_CONFIG,
+        exerciseCountRange: [4, 4],
+        roundTargetCounts: [2, 2],
+        minUniqueTargets: 4,
+      },
+      {
+        id: "fake-lesson-compact",
+        moduleId: "fake-module",
+        order: 1,
+        primaryCanDoId: "fake-can-do-one",
+        supportingCanDoIds: [],
+        introducedConceptIds: [],
+        introducedSenseIds: [],
+        models: eightModels("fake-lesson-compact"),
+        transfers: fiveTransfers("fake-lesson-compact"),
+      },
+    );
+
+    expect(compact.recipe.practice.roundOne.targetCount).toBe(2);
+    expect(compact.recipe.practice.roundTwo.targetCount).toBe(2);
+    expect(compact.recipe.diversityConstraints.exerciseCountRange).toEqual([4, 4]);
+    expect(compact.recipe.diversityConstraints.minUniqueTargets).toBe(4);
+    expect(compact.recipe.diversityConstraints.minTransferExercises).toBe(2);
+  });
+
   it("uses the config's declared minFamilies as the floor and applies the config's fixed floors", () => {
     expect(built.recipe.diversityConstraints).toEqual({
       modelCountRange: [8, 12],
@@ -275,6 +304,41 @@ describe("buildInstructionalLesson", () => {
       minTransferExercises: 5,
       requireControlledConstruction: true,
     });
+  });
+
+  it("applies an explicit per-lesson predicate override without changing the default", () => {
+    const focused = buildInstructionalLesson(FAKE_CONFIG, {
+      id: "fake-lesson-focused",
+      moduleId: "fake-module",
+      order: 1,
+      primaryCanDoId: "fake-can-do-one",
+      supportingCanDoIds: [],
+      introducedConceptIds: [],
+      introducedSenseIds: [],
+      diversityOverride: { minPredicates: 1 },
+      models: eightModels("fake-lesson-focused"),
+      transfers: fiveTransfers("fake-lesson-focused"),
+    });
+
+    expect(focused.recipe.diversityConstraints.minPredicates).toBe(1);
+    expect(built.recipe.diversityConstraints.minPredicates).toBe(3);
+  });
+
+  it("rejects a diversity override outside the default floor", () => {
+    expect(() =>
+      buildInstructionalLesson(FAKE_CONFIG, {
+        id: "fake-lesson-invalid-override",
+        moduleId: "fake-module",
+        order: 1,
+        primaryCanDoId: "fake-can-do-one",
+        supportingCanDoIds: [],
+        introducedConceptIds: [],
+        introducedSenseIds: [],
+        diversityOverride: { minPredicates: 0, minFamilies: 2 },
+        models: eightModels("fake-lesson-invalid-override"),
+        transfers: fiveTransfers("fake-lesson-invalid-override"),
+      }),
+    ).toThrow(/minFamilies|minPredicates override/i);
   });
 
   it("passes the level's own defineLesson the exact candidate shape and returns its result as `recipe`", () => {

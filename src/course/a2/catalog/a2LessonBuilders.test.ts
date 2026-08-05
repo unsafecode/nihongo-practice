@@ -120,6 +120,10 @@ describe("buildA2InstructionalLesson", () => {
 
   it("builds a recipe honoring the 8-12 model/exercise range and wires real kanjiExposureIds", () => {
     expect(built.recipe.modelVariantIds).toHaveLength(8);
+    expect([
+      built.recipe.practice.roundOne.targetCount,
+      built.recipe.practice.roundTwo.targetCount,
+    ]).toEqual([5, 5]);
     expect(built.recipe.practice.roundOne.targetCount + built.recipe.practice.roundTwo.targetCount).toBe(10);
     expect(built.recipe.kanjiExposureIds).toEqual(a2KanjiExposureIdsForLesson("connected-conversation-1"));
     expect(built.recipe.kanjiExposureIds.length).toBeGreaterThan(0);

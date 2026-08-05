@@ -21,9 +21,9 @@ describe("buildA1Reports – exact level metrics", () => {
     expect(reports.byLesson.filter((row) => row.kind === "phonetic").length).toBe(4);
   });
 
-  it("reports 12 modules, one level row, 37 verb records, 15 Can-dos, 1 checkpoint, 1 alias", () => {
+  it("reports 12 modules, one level row, 40 verb records, 15 Can-dos, 1 checkpoint, 1 alias", () => {
     expect(reports.byModule.length).toBe(12);
-    expect(reports.verbUse.length).toBe(37);
+    expect(reports.verbUse.length).toBe(40);
     expect(reports.canDos.length).toBe(15);
     expect(reports.checkpoints.length).toBe(1);
     expect(reports.aliases.length).toBe(1);
@@ -35,10 +35,10 @@ describe("buildA1Reports – exact level metrics", () => {
       moduleCount: 12,
       lessonCount: 48,
       modelCount: 352,
-      exerciseCount: 480,
-      transferCount: 220,
+      exerciseCount: 216,
+      transferCount: 88,
       phoneticItemCount: 40,
-      verbRecordCount: 37,
+      verbRecordCount: 40,
       complete: true,
     });
   });
@@ -74,7 +74,7 @@ describe("buildA1Reports – exact level metrics", () => {
   it("gives every semantic lesson eight models and no phonetic block", () => {
     for (const row of reports.byLesson.filter((r) => r.kind === "semantic")) {
       expect(row.modelCount).toBe(8);
-      expect(row.transferCount).toBe(5);
+      expect(row.transferCount).toBe(2);
       expect(row.phonetic).toBeUndefined();
     }
   });

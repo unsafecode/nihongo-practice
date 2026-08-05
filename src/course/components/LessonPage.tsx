@@ -7,9 +7,13 @@ import { SpeechNotice } from "../../components/SpeechNotice";
 import { useSpeech } from "../../hooks/useSpeech";
 import { useLocale } from "../../i18n/LocaleContext";
 import {
+  A1_LESSON_SECTION_IDS,
+  A2_LESSON_SECTION_IDS,
   LESSON_SECTION_ANCHOR_CLASS,
-  LESSON_SECTION_IDS,
+  isA1LessonSectionId,
+  isA2LessonSectionId,
   lessonSectionAnchorId,
+  type LessonSectionId,
 } from "../../routing/lessonSections";
 import { lessonPath, routePaths } from "../../routing/routes";
 import { courseModulesByLevel } from "../data/course";
@@ -69,11 +73,13 @@ export function LessonPage() {
   const copy = getCourseCopy(locale);
   const { supported, japaneseVoiceAvailable, playbackFailed } = useSpeech();
   const { markVisited } = useProgress();
-  const activeSectionId = useActiveSection(LESSON_SECTION_IDS);
   // The A2 module ids are disjoint from A1's, so the URL's module segment
   // selects the level: an A2 module resolves against the A2 course and renders
   // through the A2 section renderer, everything else against A1 (unchanged).
   const level = levelForModule(moduleId);
+  const sectionIds: readonly LessonSectionId[] =
+    level === "a2" ? A2_LESSON_SECTION_IDS : A1_LESSON_SECTION_IDS;
+  const activeSectionId = useActiveSection(sectionIds);
   const modules = courseModulesByLevel[level];
   const orderedLessons = orderedLessonsByLevel[level];
   const resolution = resolveLessonRoute(moduleId, lessonId, modules);
@@ -130,19 +136,31 @@ export function LessonPage() {
     .map((id) => copy.objectives[id])
     .join(" ");
 
-  const renderSectionBody = (sectionId: (typeof LESSON_SECTION_IDS)[number]) =>
-    level === "a2" ? (
-      <A2LessonSection lessonId={lesson.id} sectionId={sectionId} />
-    ) : (
+  const renderSectionBody = (sectionId: LessonSectionId) => {
+    if (level === "a2") {
+      return isA2LessonSectionId(sectionId) ? (
+        <A2LessonSection lessonId={lesson.id} sectionId={sectionId} />
+      ) : null;
+    }
+    return isA1LessonSectionId(sectionId) ? (
       <A1LessonSection lessonId={lesson.id} sectionId={sectionId} />
-    );
+    ) : null;
+  };
+
+  const sectionLabel = (sectionId: LessonSectionId): string =>
+    level === "a2" && isA2LessonSectionId(sectionId)
+      ? copy.lesson.sections[sectionId]
+      : isA1LessonSectionId(sectionId)
+        ? copy.a1Lesson.sections[sectionId]
+        : "";
 
   return (
     <main className="lesson-layout">
       <LessonRail
         moduleId={courseModule.id}
         lessonId={lesson.id}
-        sections={LESSON_SECTION_IDS}
+        level={level}
+        sections={sectionIds}
         activeSectionId={activeSectionId}
       />
 
@@ -196,7 +214,7 @@ export function LessonPage() {
         />
 
         <div className="lesson-sections">
-          {LESSON_SECTION_IDS.map((sectionId) => {
+          {sectionIds.map((sectionId) => {
             const headingId = `${lessonSectionAnchorId(sectionId)}-heading`;
             return (
               <section
@@ -206,7 +224,7 @@ export function LessonPage() {
                 aria-labelledby={headingId}
               >
                 <h2 id={headingId} className="lesson-section__landmark">
-                  {copy.lesson.sections[sectionId]}
+                  {sectionLabel(sectionId)}
                 </h2>
                 {renderSectionBody(sectionId)}
               </section>

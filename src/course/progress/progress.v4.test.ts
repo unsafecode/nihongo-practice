@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { lessonPlans } from "../catalog/lessonPlans";
 import { courseModules as legacyAssembledCourseModules } from "../catalog/assembleCourse";
+import { courseModulesByLevel } from "../data/course";
+import { getLessonExercises } from "../components/lessonExerciseModel";
 import {
   A1_V3_LESSON_ID_MAP,
   A1_V3_PUBLISHED_LESSON_IDS,
@@ -11,6 +13,7 @@ import {
   clearLevel,
   emptyLevelProgress,
   emptyProgressV4,
+  migrateV4Catalog,
   migrateV3ToV4,
   parseProgress,
   recordCanDoEvidence,
@@ -22,7 +25,9 @@ import {
   type CourseProgressV4,
   type LevelProgress,
   type ModuleOutline,
+  type StoredCourseProgressV4,
 } from "./progress";
+import { reviewKeyFor } from "./reviewQueue";
 
 const T0 = "2026-07-16T10:00:00.000Z";
 const T1 = "2026-07-16T11:00:00.000Z";
@@ -50,6 +55,71 @@ function v3Fixture(overrides: Partial<CourseProgressV3> = {}): CourseProgressV3 
     orphanedReviewKeys: [],
     updatedAt: T0,
     ...overrides,
+  };
+}
+
+type CatalogSets = {
+  readonly knownReviewKeysByLevel: Readonly<
+    Record<"a1" | "a2", ReadonlySet<string>>
+  >;
+  readonly knownLessonIdsByLevel: Readonly<
+    Record<"a1" | "a2", ReadonlySet<string>>
+  >;
+};
+
+function currentCatalogSets(): CatalogSets {
+  const knownLessonIdsByLevel = {
+    a1: new Set(
+      courseModulesByLevel.a1.flatMap((module) =>
+        module.lessons.map((lesson) => lesson.id),
+      ),
+    ),
+    a2: new Set(
+      courseModulesByLevel.a2.flatMap((module) =>
+        module.lessons.map((lesson) => lesson.id),
+      ),
+    ),
+  };
+  return {
+    knownLessonIdsByLevel,
+    knownReviewKeysByLevel: {
+      a1: new Set(
+        [...knownLessonIdsByLevel.a1].flatMap((lessonId) =>
+          (getLessonExercises(lessonId)?.exercises ?? []).map((exercise) =>
+            reviewKeyFor(lessonId, exercise.definitionId),
+          ),
+        ),
+      ),
+      a2: new Set(
+        [...knownLessonIdsByLevel.a2].flatMap((lessonId) =>
+          (getLessonExercises(lessonId)?.exercises ?? []).map((exercise) =>
+            reviewKeyFor(lessonId, exercise.definitionId),
+          ),
+        ),
+      ),
+    },
+  };
+}
+
+function exerciseIds(lessonId: string): string[] {
+  const model = getLessonExercises(lessonId);
+  if (!model) throw new Error(`fixture requires exercises for ${lessonId}`);
+  return model.exercises.map((exercise) => exercise.definitionId);
+}
+
+function reviewEntry(
+  lessonId: string,
+  exerciseDefinitionId: string,
+  lastMistakeAt: string,
+) {
+  return {
+    reviewKey: reviewKeyFor(lessonId, exerciseDefinitionId),
+    lessonId,
+    exerciseDefinitionId,
+    targetConceptIds: ["preserved-concept"],
+    targetLexemeIds: ["preserved-lexeme"],
+    mistakeCount: 3,
+    lastMistakeAt,
   };
 }
 
@@ -459,6 +529,256 @@ describe("migrateV3ToV4 — deterministic visited-only migration", () => {
       orphanedLessonIds: ["legacy"],
     });
     expect(migrateV3ToV4(v3)).toEqual(migrateV3ToV4(v3));
+  });
+});
+
+describe("v4 catalog v1 → v2 normalization", () => {
+  function v1Fixture(): StoredCourseProgressV4 {
+    const currentA1ExerciseIds = exerciseIds("introductions-1");
+    const currentPhoneticExerciseIds = exerciseIds("sounds-1");
+    const currentA2ExerciseIds = exerciseIds("connected-conversation-1");
+    const removedSemanticDefinitionId = "introductions-1-round-1-8";
+    const removedPhoneticDefinitionId = "snd1-sushi-ex";
+
+    expect(currentA1ExerciseIds).toHaveLength(4);
+    expect(currentPhoneticExerciseIds).toHaveLength(4);
+    expect(currentA2ExerciseIds.length).toBeGreaterThan(0);
+    expect(currentA1ExerciseIds).not.toContain(removedSemanticDefinitionId);
+    expect(currentPhoneticExerciseIds).not.toContain(removedPhoneticDefinitionId);
+
+    const knownA1Review = reviewEntry(
+      "introductions-1",
+      currentA1ExerciseIds[0]!,
+      T1,
+    );
+    const removedSemanticReview = reviewEntry(
+      "introductions-1",
+      removedSemanticDefinitionId,
+      T2,
+    );
+    const removedPhoneticReview = reviewEntry(
+      "sounds-1",
+      removedPhoneticDefinitionId,
+      T2,
+    );
+    const knownA2Review = reviewEntry(
+      "connected-conversation-1",
+      currentA2ExerciseIds[0]!,
+      T2,
+    );
+
+    return {
+      schemaVersion: 4,
+      catalogVersion: "a1-a2-v1",
+      levels: {
+        a1: {
+          lessons: {
+            "introductions-1": {
+              visitedAt: T0,
+              practicedAt: T1,
+              consolidatedAt: T2,
+              attemptedExerciseIds: [
+                ...currentA1ExerciseIds,
+                removedSemanticDefinitionId,
+              ],
+              acceptedExerciseIds: [
+                ...currentA1ExerciseIds,
+                removedSemanticDefinitionId,
+              ],
+            },
+            "sounds-1": {
+              visitedAt: T0,
+              practicedAt: T1,
+              consolidatedAt: T2,
+              attemptedExerciseIds: [
+                currentPhoneticExerciseIds[0]!,
+                removedPhoneticDefinitionId,
+              ],
+              acceptedExerciseIds: [
+                currentPhoneticExerciseIds[0]!,
+                removedPhoneticDefinitionId,
+              ],
+            },
+            "missing-a1-lesson": {
+              visitedAt: T0,
+              practicedAt: T1,
+              consolidatedAt: T2,
+              attemptedExerciseIds: ["missing-a1-definition"],
+              acceptedExerciseIds: ["missing-a1-definition"],
+            },
+          },
+          canDos: {
+            "a1-can-do-identity": {
+              canDoId: "a1-can-do-identity",
+              visitedLessonIds: ["introductions-1"],
+              practicedLessonIds: ["introductions-1"],
+              acceptedTransferExerciseIds: [currentA1ExerciseIds[3]!],
+              checkpointAttemptIds: ["a1-existing-attempt"],
+              lastUpdatedAt: T2,
+            },
+          },
+          checkpointAttempts: [
+            {
+              id: "a1-existing-attempt",
+              checkpointId: "a1-checkpoint",
+              attemptedAt: T2,
+              acceptedExerciseIds: [...currentA1ExerciseIds],
+              sampledCanDoIds: ["a1-can-do-identity"],
+            },
+          ],
+          lastVisitedLessonId: "introductions-1",
+          reviewQueue: [
+            knownA1Review,
+            removedSemanticReview,
+            removedPhoneticReview,
+          ],
+          orphanedLessonIds: ["existing-a1-orphan"],
+          orphanedReviewKeys: ["existing-a1-review-orphan"],
+        },
+        a2: {
+          lessons: {
+            "connected-conversation-1": {
+              visitedAt: T0,
+              practicedAt: T1,
+              consolidatedAt: T2,
+              attemptedExerciseIds: [...currentA2ExerciseIds],
+              acceptedExerciseIds: [...currentA2ExerciseIds],
+            },
+          },
+          canDos: {
+            "a2-can-do-connected-conversation": {
+              canDoId: "a2-can-do-connected-conversation",
+              visitedLessonIds: ["connected-conversation-1"],
+              practicedLessonIds: ["connected-conversation-1"],
+              acceptedTransferExerciseIds: [currentA2ExerciseIds.at(-1)!],
+              checkpointAttemptIds: ["a2-existing-attempt"],
+              lastUpdatedAt: T2,
+            },
+          },
+          checkpointAttempts: [
+            {
+              id: "a2-existing-attempt",
+              checkpointId: "a2-checkpoint",
+              attemptedAt: T2,
+              acceptedExerciseIds: [...currentA2ExerciseIds],
+              sampledCanDoIds: ["a2-can-do-connected-conversation"],
+            },
+          ],
+          lastVisitedLessonId: "connected-conversation-1",
+          reviewQueue: [knownA2Review],
+          orphanedLessonIds: ["existing-a2-orphan"],
+          orphanedReviewKeys: ["existing-a2-review-orphan"],
+        },
+      },
+      migrationNotice: {
+        fromSchemaVersion: 3,
+        preservedVisitedLessonIds: ["sounds-1"],
+        resetEvidenceLessonIds: ["sounds-1"],
+        acknowledgedAt: T1,
+      },
+      updatedAt: T2,
+    };
+  }
+
+  it("updates a legacy catalog without discarding lesson, Can-do, checkpoint, or A2 evidence", () => {
+    const source = v1Fixture();
+    const before = JSON.parse(JSON.stringify(source));
+    const current = currentCatalogSets();
+    const migrated = migrateV4Catalog(
+      source,
+      current.knownReviewKeysByLevel,
+      current.knownLessonIdsByLevel,
+    );
+
+    expect(migrated.catalogVersion).toBe("a1-a2-v2");
+    expect(migrated.updatedAt).toBe(source.updatedAt);
+    expect(migrated.migrationNotice).toEqual(source.migrationNotice);
+    expect(migrated.levels.a1.lessons).toEqual(source.levels.a1.lessons);
+    expect(migrated.levels.a2.lessons).toEqual(source.levels.a2.lessons);
+    expect(migrated.levels.a1.canDos).toEqual(source.levels.a1.canDos);
+    expect(migrated.levels.a2.canDos).toEqual(source.levels.a2.canDos);
+    expect(migrated.levels.a1.checkpointAttempts).toEqual(
+      source.levels.a1.checkpointAttempts,
+    );
+    expect(migrated.levels.a2.checkpointAttempts).toEqual(
+      source.levels.a2.checkpointAttempts,
+    );
+    expect(migrated.levels.a1.lastVisitedLessonId).toBe(
+      source.levels.a1.lastVisitedLessonId,
+    );
+    expect(migrated.levels.a2.lastVisitedLessonId).toBe(
+      source.levels.a2.lastVisitedLessonId,
+    );
+    expect(migrated.levels.a1.orphanedLessonIds).toEqual([
+      "existing-a1-orphan",
+      "missing-a1-lesson",
+    ]);
+    expect(migrated.levels.a2.orphanedLessonIds).toEqual(
+      source.levels.a2.orphanedLessonIds,
+    );
+    expect(migrated.levels.a1.reviewQueue).toEqual([
+      source.levels.a1.reviewQueue[0],
+    ]);
+    expect(migrated.levels.a2.reviewQueue).toEqual(source.levels.a2.reviewQueue);
+    expect(migrated.levels.a1.orphanedReviewKeys).toEqual([
+      "existing-a1-review-orphan",
+      source.levels.a1.reviewQueue[1]!.reviewKey,
+      source.levels.a1.reviewQueue[2]!.reviewKey,
+    ]);
+    expect(migrated.levels.a2.orphanedReviewKeys).toEqual(
+      source.levels.a2.orphanedReviewKeys,
+    );
+    expect(source).toEqual(before);
+  });
+
+  it("is deterministic and returns the same current-v2 reference when reconciliation has nothing to change", () => {
+    const source = v1Fixture();
+    const current = currentCatalogSets();
+    const once = migrateV4Catalog(
+      source,
+      current.knownReviewKeysByLevel,
+      current.knownLessonIdsByLevel,
+    );
+    const twice = migrateV4Catalog(
+      source,
+      current.knownReviewKeysByLevel,
+      current.knownLessonIdsByLevel,
+    );
+    expect(twice).toEqual(once);
+    expect(
+      migrateV4Catalog(
+        once,
+        current.knownReviewKeysByLevel,
+        current.knownLessonIdsByLevel,
+      ),
+    ).toBe(once);
+  });
+
+  it("normalizes a valid v4 catalog-v1 payload through parsing and rejects an unknown future catalog revision", () => {
+    const source = v1Fixture();
+    const current = currentCatalogSets();
+    const parsed = parseProgress(
+      JSON.stringify(source),
+      current.knownLessonIdsByLevel.a1,
+      current.knownReviewKeysByLevel,
+      current.knownLessonIdsByLevel,
+    );
+
+    expect(parsed.corrupted).toBe(false);
+    expect(parsed.migrated).toBe(true);
+    expect(parsed.progress.catalogVersion).toBe("a1-a2-v2");
+    expect(parsed.progress.levels.a1.orphanedReviewKeys).toContain(
+      source.levels.a1.reviewQueue[1]!.reviewKey,
+    );
+    expect(
+      parseProgress(
+        JSON.stringify({ ...source, catalogVersion: "a1-a2-v99" }),
+      ),
+    ).toEqual({
+      progress: emptyProgressV4(),
+      corrupted: true,
+      migrated: false,
+    });
   });
 });
 

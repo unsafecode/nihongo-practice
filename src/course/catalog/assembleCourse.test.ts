@@ -3,7 +3,7 @@ import { curriculumFoundation } from "../curriculum/foundation";
 import { assembledCurriculum } from "./curriculum";
 import { validateCurriculum } from "./validateCurriculum";
 import { validateCourse } from "../data/validate";
-import { LESSON_SECTION_IDS } from "../../routing/lessonSections";
+import { A2_LESSON_SECTION_IDS } from "../../routing/lessonSections";
 import {
   assembleCourse,
   assembledCourse,
@@ -119,7 +119,7 @@ describe("assembleCourse: stable lesson sections", () => {
     for (const module of courseModules) {
       for (const lesson of module.lessons) {
         expect(lesson.sections!.map((section) => section.id)).toEqual([
-          ...LESSON_SECTION_IDS,
+          ...A2_LESSON_SECTION_IDS,
         ]);
       }
     }

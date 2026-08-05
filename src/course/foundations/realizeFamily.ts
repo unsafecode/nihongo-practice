@@ -192,6 +192,14 @@ const REALIZATION_RULES: Readonly<Record<string, RealizationRuleDefinition>> = {
     objectRole: "governed-theme",
     contentSlots: [{ slotId: "object", particle: { kind: "fixed", particle: "o" } }],
   },
+  // Subject/topic + a polite verb with no governed argument. This keeps an
+  // agent-only predicate distinct from object- and location-governing frames.
+  "rule-bare-action": {
+    id: "rule-bare-action",
+    predicateKind: "verb",
+    objectRole: null,
+    contentSlots: [],
+  },
   // Verb + a nominative theme marked が (e.g. 日本語がわかります). Structurally a
   // predicate-governed theme like the を rule, but with が case marking.
   "rule-nominative-action": {

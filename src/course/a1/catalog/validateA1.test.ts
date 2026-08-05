@@ -101,6 +101,31 @@ describe("validateA1 – baseline release", () => {
     // The foundation report exists and carries per-lesson coverage rows.
     expect(Object.keys(result.foundationReport.reports.byLesson).length).toBe(44);
   });
+
+  it("preserves attributed curriculum failures as exact canonical release codes", () => {
+    const result = validateA1({
+      curriculumInput: {
+        semanticSectionOrder: [
+          "rule",
+          "grammar",
+          "vocabulary",
+          "comparison",
+          "explore",
+          "recap",
+        ],
+      },
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "invalid-section-order",
+          stage: "sections",
+        }),
+      ]),
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -482,8 +507,8 @@ describe("validateA1 – capstone required-scenario coverage", () => {
 // ---------------------------------------------------------------------------
 
 describe("validateA1 – recurrence completeness", () => {
-  it("baseline: all 37 release verb-use records carry >= 2 later uses", () => {
-    expect(a1ReleaseVerbUseRecords.length).toBe(37);
+  it("baseline: all 40 release verb-use records carry >= 2 later uses", () => {
+    expect(a1ReleaseVerbUseRecords.length).toBe(40);
     for (const record of a1ReleaseVerbUseRecords) {
       expect(record.laterUses.length).toBeGreaterThanOrEqual(2);
     }

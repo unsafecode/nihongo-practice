@@ -238,7 +238,7 @@ describe("course progress schema v3", () => {
     ).toEqual({
       progress: {
         schemaVersion: 4,
-        catalogVersion: "a1-a2-v1",
+        catalogVersion: "a1-a2-v2",
         levels: {
           a1: {
             lessons: {

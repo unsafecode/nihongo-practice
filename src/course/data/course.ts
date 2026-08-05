@@ -30,11 +30,10 @@ import type { CourseModule, Lesson } from "./types";
  * (runtime) as a last-resort guard against a corrupted assembly ever
  * shipping silently.
  *
- * The deep lesson body (rule/comparison/explore/recap) is not modelled here
- * at all: `A1LessonPage` resolves it lesson-by-lesson from the foundation
- * view model (`buildA1LessonViewModel`) or, for the four phonetic `sounds-*`
- * lessons, from `module1ItemsByLesson` directly. This module only carries the
- * stable routing/navigation/copy-id metadata every module/course-map/progress
+ * The deep A1 lesson body (goal/vocabulary/grammar/examples/practice/recap)
+ * is not modelled here at all: `A1LessonPage` resolves it lesson-by-lesson
+ * from the curriculum view model. This module only carries the stable
+ * routing/navigation/copy-id metadata every module/course-map/progress
  * consumer needs.
  */
 

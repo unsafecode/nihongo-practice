@@ -33,6 +33,7 @@ import { curriculumExamples } from "../catalog/examples";
 import { curriculumExercises } from "../catalog/exercises";
 import { assembledExamples } from "../catalog/assembleCourse";
 import { exampleSegmentToAssembledToken } from "../data/romajiTokens";
+import { a1FoundationCatalogs } from "../a1/catalog/catalog";
 
 /** Strip HTML tags so assertions read the actual visible/announced text
  * content in document order, independent of internal gear/mark wrappers. */
@@ -87,15 +88,22 @@ const NOOP: ExerciseViewHandlers = {
   onClear: vi.fn(),
 };
 
-function exerciseOfKind(
-  lessonId: string,
-  kind: ExercisePrompt["kind"],
-): GeneratedExercise {
-  const found = getLessonExercises(lessonId)?.exercises.find(
-    (e) => e.prompt.kind === kind,
-  );
-  if (!found) throw new Error(`no ${kind} in ${lessonId}`);
-  return found;
+const COMPAT_GENERATED_EXERCISE_FIELDS = {
+  practiceFunction: null,
+  feedback: {
+    en: { accepted: "Accepted.", retry: "Try again." },
+    it: { accepted: "Accettato.", retry: "Riprova." },
+  },
+} as const;
+
+function a1ExerciseOfKind(kind: ExercisePrompt["kind"]): GeneratedExercise {
+  for (const lesson of a1FoundationCatalogs.lessons) {
+    const found = getLessonExercises(lesson.id)?.exercises.find(
+      (exercise) => exercise.prompt.kind === kind,
+    );
+    if (found !== undefined) return found;
+  }
+  throw new Error(`no A1 ${kind} exercise`);
 }
 
 /**
@@ -130,6 +138,7 @@ if (!legacyTransformResult.ok) {
   throw new Error("legacy transformation fixture failed to generate");
 }
 const transformEx: GeneratedExercise = {
+  ...COMPAT_GENERATED_EXERCISE_FIELDS,
   definitionId: legacyTransformDefinition.id,
   targetExampleId: legacyTransformDefinition.targetExampleId,
   visibleTargetKey: legacyTransformDefinition.targetExampleId,
@@ -240,10 +249,10 @@ function renderView(
   );
 }
 
-const tileEx = exerciseOfKind("introductions-1", "tile-ordering");
-const choiceEx = exerciseOfKind("introductions-1", "choice");
-const completeEx = exerciseOfKind("introductions-1", "completion");
-const constructEx = exerciseOfKind("introductions-1", "constrained-construction");
+const tileEx = a1ExerciseOfKind("tile-ordering");
+const choiceEx = a1ExerciseOfKind("choice");
+const completeEx = a1ExerciseOfKind("completion");
+const constructEx = a1ExerciseOfKind("constrained-construction");
 // transformEx is the legacy fixture defined above (A1 never generates this kind).
 
 describe("ExerciseView — common structure and accessibility", () => {
@@ -491,14 +500,14 @@ describe("LessonExercises — renders a lesson's 3-5 exercises", () => {
   });
 });
 
-describe("LessonExercises — renders a phonetic lesson's 10 real exercises (I1)", () => {
-  it("renders one card per authored phonetic item, not an empty section", () => {
+describe("LessonExercises — renders a phonetic lesson's four selected exercises", () => {
+  it("renders one card per selected generated target, not an empty section", () => {
     const html = renderLessonExercises("sounds-1");
     const model = getLessonExercises("sounds-1")!;
-    expect(model.exercises.length).toBe(10);
+    expect(model.exercises.length).toBe(4);
     expect(html).toContain(itCopy.exercises.heading);
-    expect((html.match(/class="lesson-exercise"/g) ?? []).length).toBe(10);
-    expect((html.match(/type="submit"/g) ?? []).length).toBe(10);
+    expect((html.match(/class="lesson-exercise"/g) ?? []).length).toBe(4);
+    expect((html.match(/type="submit"/g) ?? []).length).toBe(4);
   });
 });
 

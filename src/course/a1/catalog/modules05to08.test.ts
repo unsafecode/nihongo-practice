@@ -13,10 +13,10 @@
  *     でした/ではありません spacing, bare frequency adverbs, destination に vs
  *     direction へ→`e`, transport で vs action-place で, route から/まで,
  *     companion と vs recipient に, plain vs honorific kin terms);
- *   • per-lesson metrics (8 models / 5 transfers / 5+5 practice, ≥3 predicate
+ *   • per-lesson metrics (8 models / 5 transfers / 2+2 practice, ≥3 predicate
  *     senses, ≥3 discourse roles, ≥2 contexts, ≥10 unique visible targets,
  *     reuse ≤2, transfer fingerprints unseen) + view-model selection/generation
- *     yielding exactly 10 exercises in EN and IT;
+ *     yielding exactly 4 exercises in EN and IT;
  *   • the exact productive-verb recurrence table computed in-test from real
  *     structure keys, canonical positions, later-module status and position
  *     gaps — with the raw intro records still `laterUses: []`;
@@ -39,7 +39,7 @@ import {
   a1StructureKey,
 } from "./shared";
 import { module2Lessons, module2Recipe, module2VerbUseRecords } from "./module02Introductions";
-import { module3Lessons, module3Recipe } from "./module03Questions";
+import { module3Lessons, module3Recipe, module3VerbUseRecords } from "./module03Questions";
 import { module4Lessons, module4Recipe, module4VerbUseRecords } from "./module04Actions";
 import { module5Lessons, module5Recipe, module5VerbUseRecords } from "./module05Routines";
 import { module6Lessons, module6Recipe } from "./module06TensePolarity";
@@ -122,30 +122,30 @@ const variantById = new Map(allVariants.map((v) => [v.id, v]));
 
 const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["routines-1-m1", "ゆきはろくじにおきます", "yuki wa rokuji ni okimasu"],
-  ["routines-1-m2", "しちじにおきます", "shichiji ni okimasu"],
-  ["routines-1-m3", "けんははちじにでかけます", "ken wa hachiji ni dekakemasu"],
+  ["routines-1-m2", "くじにおきます", "kuji ni okimasu"],
+  ["routines-1-m3", "けんはくじにでかけます", "ken wa kuji ni dekakemasu"],
   ["routines-1-m4", "くじにでかけます", "kuji ni dekakemasu"],
   ["routines-1-m5", "みなはろくじにかえります", "mina wa rokuji ni kaerimasu"],
   ["routines-1-m6", "ごじにかえります", "goji ni kaerimasu"],
-  ["routines-1-m7", "ゆきはじゅういちじにねます", "yuki wa juuichiji ni nemasu"],
-  ["routines-1-m8", "じゅうじにねます", "juuji ni nemasu"],
+  ["routines-1-m7", "ゆきはくじにかえります", "yuki wa kuji ni kaerimasu"],
+  ["routines-1-m8", "ろくじにでかけます", "rokuji ni dekakemasu"],
   ["routines-1-t1", "ごじにおきます", "goji ni okimasu"],
-  ["routines-1-t2", "みなはしちじにでかけます", "mina wa shichiji ni dekakemasu"],
-  ["routines-1-t3", "じゅういちじにねます", "juuichiji ni nemasu"],
+  ["routines-1-t2", "みなはろくじにでかけます", "mina wa rokuji ni dekakemasu"],
+  ["routines-1-t3", "くじにかえります", "kuji ni kaerimasu"],
   ["routines-1-t4", "けんはくじにかえります", "ken wa kuji ni kaerimasu"],
-  ["routines-1-t5", "はちじにおきます", "hachiji ni okimasu"],
+  ["routines-1-t5", "ろくじにおきます", "rokuji ni okimasu"],
   ["routines-2-m1", "げつようびにべんきょうします", "getsuyoubi ni benkyoushimasu"],
   ["routines-2-m2", "ゆきはすいようびにべんきょうします", "yuki wa suiyoubi ni benkyoushimasu"],
   ["routines-2-m3", "あさたべます", "asa tabemasu"],
-  ["routines-2-m4", "みなはよるたべます", "mina wa yoru tabemasu"],
-  ["routines-2-m5", "よるよみます", "yoru yomimasu"],
+  ["routines-2-m4", "みなはあさたべます", "mina wa asa tabemasu"],
+  ["routines-2-m5", "あさよみます", "asa yomimasu"],
   ["routines-2-m6", "けんはにちようびによみます", "ken wa nichiyoubi ni yomimasu"],
-  ["routines-2-m7", "どようびにでかけます", "doyoubi ni dekakemasu"],
+  ["routines-2-m7", "もくようびにでかけます", "mokuyoubi ni dekakemasu"],
   ["routines-2-m8", "みなはあさおきます", "mina wa asa okimasu"],
   ["routines-2-t1", "みなはげつようびにべんきょうします", "mina wa getsuyoubi ni benkyoushimasu"],
-  ["routines-2-t2", "よるたべます", "yoru tabemasu"],
-  ["routines-2-t3", "けんはよるよみます", "ken wa yoru yomimasu"],
-  ["routines-2-t4", "にちようびによみます", "nichiyoubi ni yomimasu"],
+  ["routines-2-t2", "あさたべます", "asa tabemasu"],
+  ["routines-2-t3", "けんはあさよみます", "ken wa asa yomimasu"],
+  ["routines-2-t4", "げつようびによみます", "getsuyoubi ni yomimasu"],
   ["routines-2-t5", "ゆきはあさおきます", "yuki wa asa okimasu"],
   ["routines-3-m1", "まいにちべんきょうします", "mainichi benkyoushimasu"],
   ["routines-3-m2", "ゆきはよくべんきょうします", "yuki wa yoku benkyoushimasu"],
@@ -153,99 +153,99 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["routines-3-m4", "けんはときどきよみます", "ken wa tokidoki yomimasu"],
   ["routines-3-m5", "まいにちたべます", "mainichi tabemasu"],
   ["routines-3-m6", "みなはときどきでかけます", "mina wa tokidoki dekakemasu"],
-  ["routines-3-m7", "まいあさおきます", "maiasa okimasu"],
+  ["routines-3-m7", "まいにちおきます", "mainichi okimasu"],
   ["routines-3-m8", "ゆきはいつもべんきょうします", "yuki wa itsumo benkyoushimasu"],
   ["routines-3-t1", "みなはまいにちべんきょうします", "mina wa mainichi benkyoushimasu"],
   ["routines-3-t2", "まいにちよみます", "mainichi yomimasu"],
   ["routines-3-t3", "けんはよくたべます", "ken wa yoku tabemasu"],
   ["routines-3-t4", "よくでかけます", "yoku dekakemasu"],
-  ["routines-3-t5", "ゆきはまいあさおきます", "yuki wa maiasa okimasu"],
-  ["routines-4-m1", "ろくじにおきます", "rokuji ni okimasu"],
-  ["routines-4-m2", "パンをたべます", "pan o tabemasu"],
-  ["routines-4-m3", "がっこうにいきます", "gakkou ni ikimasu"],
-  ["routines-4-m4", "まいにちべんきょうします", "mainichi benkyoushimasu"],
+  ["routines-3-t5", "ゆきはまいにちおきます", "yuki wa mainichi okimasu"],
+  ["routines-4-m1", "ゆきははたらきます", "yuki wa hatarakimasu"],
+  ["routines-4-m2", "べんきょうします", "benkyoushimasu"],
+  ["routines-4-m3", "します", "shimasu"],
+  ["routines-4-m4", "まいあさおきます", "maiasa okimasu"],
   ["routines-4-m5", "ゆきはしんぶんをよみます", "yuki wa shinbun o yomimasu"],
-  ["routines-4-m6", "けんはいえにきます", "ken wa ie ni kimasu"],
+  ["routines-4-m6", "けんはがっこうにきます", "ken wa gakkou ni kimasu"],
   ["routines-4-m7", "じゅういちじにねます", "juuichiji ni nemasu"],
   ["routines-4-m8", "みなはすしをたべます", "mina wa sushi o tabemasu"],
   ["routines-4-t1", "しんぶんをよみます", "shinbun o yomimasu"],
-  ["routines-4-t2", "みなはがっこうにいきます", "mina wa gakkou ni ikimasu"],
-  ["routines-4-t3", "けんはパンをたべます", "ken wa pan o tabemasu"],
-  ["routines-4-t4", "ゆきはろくじにおきます", "yuki wa rokuji ni okimasu"],
-  ["routines-4-t5", "いえにきます", "ie ni kimasu"],
-  ["past-negative-1-m1", "すしをたべました", "sushi o tabemashita"],
+  ["routines-4-t2", "みなはします", "mina wa shimasu"],
+  ["routines-4-t3", "けんはすしをたべます", "ken wa sushi o tabemasu"],
+  ["routines-4-t4", "ゆきはじゅういちじにねます", "yuki wa juuichiji ni nemasu"],
+  ["routines-4-t5", "がっこうにきます", "gakkou ni kimasu"],
+  ["past-negative-1-m1", "りんごをたべました", "ringo o tabemashita"],
   ["past-negative-1-m2", "ゆきはしゅくだいをしました", "yuki wa shukudai o shimashita"],
-  ["past-negative-1-m3", "ほんをかいました", "hon o kaimashita"],
+  ["past-negative-1-m3", "みずをかいました", "mizu o kaimashita"],
   ["past-negative-1-m4", "けんはてがみをかきました", "ken wa tegami o kakimashita"],
-  ["past-negative-1-m5", "みなはともだちといきました", "mina wa tomodachi to ikimashita"],
+  ["past-negative-1-m5", "みなはがっこうにいきました", "mina wa gakkou ni ikimashita"],
   ["past-negative-1-m6", "しちじにおきました", "shichiji ni okimashita"],
   ["past-negative-1-m7", "じゅういちじにねました", "juuichiji ni nemashita"],
-  ["past-negative-1-m8", "けんはろくじにかえりました", "ken wa rokuji ni kaerimashita"],
-  ["past-negative-1-t1", "けんはすしをたべました", "ken wa sushi o tabemashita"],
-  ["past-negative-1-t2", "みなはほんをかいました", "mina wa hon o kaimashita"],
-  ["past-negative-1-t3", "ともだちといきました", "tomodachi to ikimashita"],
+  ["past-negative-1-m8", "けんはかようびにかえりました", "ken wa kayoubi ni kaerimashita"],
+  ["past-negative-1-t1", "けんはりんごをたべました", "ken wa ringo o tabemashita"],
+  ["past-negative-1-t2", "みなはみずをかいました", "mina wa mizu o kaimashita"],
+  ["past-negative-1-t3", "ゆきはしちじにおきました", "yuki wa shichiji ni okimashita"],
   ["past-negative-1-t4", "ゆきはしちじにおきました", "yuki wa shichiji ni okimashita"],
-  ["past-negative-1-t5", "ろくじにかえりました", "rokuji ni kaerimashita"],
-  ["past-negative-2-m1", "コーヒーをのみません", "koohii o nomimasen"],
-  ["past-negative-2-m2", "ゆきはかいしゃではたらきません", "yuki wa kaisha de hatarakimasen"],
+  ["past-negative-1-t5", "かようびにかえりました", "kayoubi ni kaerimashita"],
+  ["past-negative-2-m1", "おちゃをのみません", "ocha o nomimasen"],
+  ["past-negative-2-m2", "ゆきはスーパーではたらきません", "yuki wa suupaa de hatarakimasen"],
   ["past-negative-2-m3", "にほんごがわかりません", "nihongo ga wakarimasen"],
   ["past-negative-2-m4", "みなはせんせいにききません", "mina wa sensei ni kikimasen"],
   ["past-negative-2-m5", "えいがをみません", "eiga o mimasen"],
   ["past-negative-2-m6", "けんはおんがくをききません", "ken wa ongaku o kikimasen"],
-  ["past-negative-2-m7", "はちじにでかけません", "hachiji ni dekakemasen"],
-  ["past-negative-2-m8", "みなはろくじにかえりません", "mina wa rokuji ni kaerimasen"],
-  ["past-negative-2-t1", "けんはコーヒーをのみません", "ken wa koohii o nomimasen"],
+  ["past-negative-2-m7", "どようびにでかけません", "doyoubi ni dekakemasen"],
+  ["past-negative-2-m8", "みなはじゅうじにかえりません", "mina wa juuji ni kaerimasen"],
+  ["past-negative-2-t1", "けんはおちゃをのみません", "ken wa ocha o nomimasen"],
   ["past-negative-2-t2", "せんせいにききません", "sensei ni kikimasen"],
   ["past-negative-2-t3", "みなはえいがをみません", "mina wa eiga o mimasen"],
   ["past-negative-2-t4", "ゆきはおんがくをききません", "yuki wa ongaku o kikimasen"],
-  ["past-negative-2-t5", "ろくじにかえりません", "rokuji ni kaerimasen"],
-  ["past-negative-3-m1", "にほんごをべんきょうしませんでした", "nihongo o benkyoushimasen deshita"],
-  ["past-negative-3-m2", "ゆきはほんをよみませんでした", "yuki wa hon o yomimasen deshita"],
-  ["past-negative-3-m3", "しちじにおきませんでした", "shichiji ni okimasen deshita"],
-  ["past-negative-3-m4", "けんはじゅういちじにねませんでした", "ken wa juuichiji ni nemasen deshita"],
+  ["past-negative-2-t5", "じゅうじにかえりません", "juuji ni kaerimasen"],
+  ["past-negative-3-m1", "えいごをべんきょうしませんでした", "eigo o benkyoushimasen deshita"],
+  ["past-negative-3-m2", "ゆきはイタリアごをよみませんでした", "yuki wa itariago o yomimasen deshita"],
+  ["past-negative-3-m3", "ひるおきませんでした", "hiru okimasen deshita"],
+  ["past-negative-3-m4", "けんはごごねませんでした", "ken wa gogo nemasen deshita"],
   ["past-negative-3-m5", "はちじにでかけませんでした", "hachiji ni dekakemasen deshita"],
   ["past-negative-3-m6", "みなはげつようびにべんきょうしませんでした", "mina wa getsuyoubi ni benkyoushimasen deshita"],
   ["past-negative-3-m7", "よるよみませんでした", "yoru yomimasen deshita"],
   ["past-negative-3-m8", "ゆきはあさたべませんでした", "yuki wa asa tabemasen deshita"],
-  ["past-negative-3-t1", "ゆきはにほんごをべんきょうしませんでした", "yuki wa nihongo o benkyoushimasen deshita"],
-  ["past-negative-3-t2", "ほんをよみませんでした", "hon o yomimasen deshita"],
-  ["past-negative-3-t3", "みなはしちじにおきませんでした", "mina wa shichiji ni okimasen deshita"],
+  ["past-negative-3-t1", "ゆきはえいごをべんきょうしませんでした", "yuki wa eigo o benkyoushimasen deshita"],
+  ["past-negative-3-t2", "イタリアごをよみませんでした", "itariago o yomimasen deshita"],
+  ["past-negative-3-t3", "みなはひるおきませんでした", "mina wa hiru okimasen deshita"],
   ["past-negative-3-t4", "げつようびにべんきょうしませんでした", "getsuyoubi ni benkyoushimasen deshita"],
   ["past-negative-3-t5", "けんはよるよみませんでした", "ken wa yoru yomimasen deshita"],
-  ["past-negative-4-m1", "がくせいでした", "gakusei deshita"],
-  ["past-negative-4-m2", "けんはいしゃでした", "ken wa isha deshita"],
-  ["past-negative-4-m3", "せんせいではありません", "sensei dewa arimasen"],
-  ["past-negative-4-m4", "みなはかいしゃいんではありません", "mina wa kaishain dewa arimasen"],
-  ["past-negative-4-m5", "がくせいではありませんでした", "gakusei dewa arimasen deshita"],
-  ["past-negative-4-m6", "ゆきはにほんじんではありませんでした", "yuki wa nihonjin dewa arimasen deshita"],
+  ["past-negative-4-m1", "ほんはひゃくえんでした", "hon wa hyaku en deshita"],
+  ["past-negative-4-m2", "みかんはさんびゃくえんでした", "mikan wa sanbyaku en deshita"],
+  ["past-negative-4-m3", "これはごひゃくえんではありません", "kore wa gohyaku en dewa arimasen"],
+  ["past-negative-4-m4", "それはせんえんではありません", "sore wa sen en dewa arimasen"],
+  ["past-negative-4-m5", "ほんはひゃくえんではありませんでした", "hon wa hyaku en dewa arimasen deshita"],
+  ["past-negative-4-m6", "みかんはさんびゃくえんではありませんでした", "mikan wa sanbyaku en dewa arimasen deshita"],
   ["past-negative-4-m7", "えいごがわかりません", "eigo ga wakarimasen"],
   ["past-negative-4-m8", "けんはにほんごをべんきょうしました", "ken wa nihongo o benkyoushimashita"],
-  ["past-negative-4-t1", "けんはがくせいでした", "ken wa gakusei deshita"],
-  ["past-negative-4-t2", "いしゃではありません", "isha dewa arimasen"],
-  ["past-negative-4-t3", "みなはがくせいではありませんでした", "mina wa gakusei dewa arimasen deshita"],
-  ["past-negative-4-t4", "ゆきはえいごがわかりません", "yuki wa eigo ga wakarimasen"],
-  ["past-negative-4-t5", "せんせいではありませんでした", "sensei dewa arimasen deshita"],
-  ["places-1-m1", "えきにいきます", "eki ni ikimasu"],
-  ["places-1-m2", "ゆきはえきへいきます", "yuki wa eki e ikimasu"],
-  ["places-1-m3", "いえにきます", "ie ni kimasu"],
-  ["places-1-m4", "けんはいえへきます", "ken wa ie e kimasu"],
+  ["past-negative-4-t1", "みかんはひゃくえんでした", "mikan wa hyaku en deshita"],
+  ["past-negative-4-t2", "それはごひゃくえんではありません", "sore wa gohyaku en dewa arimasen"],
+  ["past-negative-4-t3", "みかんはひゃくえんではありませんでした", "mikan wa hyaku en dewa arimasen deshita"],
+  ["past-negative-4-t4", "けんはえいごがわかりません", "ken wa eigo ga wakarimasen"],
+  ["past-negative-4-t5", "ほんはさんびゃくえんではありませんでした", "hon wa sanbyaku en dewa arimasen deshita"],
+  ["places-1-m1", "みせにいきます", "mise ni ikimasu"],
+  ["places-1-m2", "ゆきはくうこうへいきます", "yuki wa kuukou e ikimasu"],
+  ["places-1-m3", "ぎんこうにきます", "ginkou ni kimasu"],
+  ["places-1-m4", "けんはびょういんへきます", "ken wa byouin e kimasu"],
   ["places-1-m5", "がっこうへいきます", "gakkou e ikimasu"],
   ["places-1-m6", "みなはがっこうにきます", "mina wa gakkou ni kimasu"],
   ["places-1-m7", "とうきょうにすみます", "toukyou ni sumimasu"],
   ["places-1-m8", "ゆきはおおさかにすみます", "yuki wa oosaka ni sumimasu"],
-  ["places-1-t1", "けんはえきへいきます", "ken wa eki e ikimasu"],
-  ["places-1-t2", "いえへきます", "ie e kimasu"],
+  ["places-1-t1", "けんはみせへいきます", "ken wa mise e ikimasu"],
+  ["places-1-t2", "ぎんこうへきます", "ginkou e kimasu"],
   ["places-1-t3", "みなはがっこうにいきます", "mina wa gakkou ni ikimasu"],
   ["places-1-t4", "けんはとうきょうにすみます", "ken wa toukyou ni sumimasu"],
   ["places-1-t5", "がっこうへきます", "gakkou e kimasu"],
   ["places-2-m1", "でんしゃでえきにいきます", "densha de eki ni ikimasu"],
   ["places-2-m2", "ゆきはバスでがっこうにいきます", "yuki wa basu de gakkou ni ikimasu"],
-  ["places-2-m3", "でんしゃでいえにきます", "densha de ie ni kimasu"],
+  ["places-2-m3", "でんしゃでがっこうにきます", "densha de gakkou ni kimasu"],
   ["places-2-m4", "けんはくるまでえきにきます", "ken wa kuruma de eki ni kimasu"],
   ["places-2-m5", "かいしゃではたらきます", "kaisha de hatarakimasu"],
   ["places-2-m6", "みなはレストランではたらきます", "mina wa resutoran de hatarakimasu"],
   ["places-2-m7", "じてんしゃでがっこうにいきます", "jitensha de gakkou ni ikimasu"],
-  ["places-2-m8", "ゆきはみせではたらきます", "yuki wa mise de hatarakimasu"],
+  ["places-2-m8", "ゆきはがっこうへいきます", "yuki wa gakkou e ikimasu"],
   ["places-2-t1", "けんはでんしゃでえきにいきます", "ken wa densha de eki ni ikimasu"],
   ["places-2-t2", "バスでがっこうにきます", "basu de gakkou ni kimasu"],
   ["places-2-t3", "みなはかいしゃではたらきます", "mina wa kaisha de hatarakimasu"],
@@ -254,8 +254,8 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["places-3-m1", "とうきょうからおおさかまでいきます", "toukyou kara oosaka made ikimasu"],
   ["places-3-m2", "ゆきはおおさかからきょうとまでいきます", "yuki wa oosaka kara kyouto made ikimasu"],
   ["places-3-m3", "いえからえきまできます", "ie kara eki made kimasu"],
-  ["places-3-m4", "けんはとうきょうからきょうとまでいきます", "ken wa toukyou kara kyouto made ikimasu"],
-  ["places-3-m5", "えきからがっこうまできます", "eki kara gakkou made kimasu"],
+  ["places-3-m4", "けんはホテルからまちまでいきます", "ken wa hoteru kara machi made ikimasu"],
+  ["places-3-m5", "えきのちかくからがっこうまできます", "eki no chikaku kara gakkou made kimasu"],
   ["places-3-m6", "みなはいえからかいしゃまでいきます", "mina wa ie kara kaisha made ikimasu"],
   ["places-3-m7", "とうきょうにすみます", "toukyou ni sumimasu"],
   ["places-3-m8", "ゆきはおおさかにすみます", "yuki wa oosaka ni sumimasu"],
@@ -264,33 +264,33 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["places-3-t3", "みなはいえからえきまできます", "mina wa ie kara eki made kimasu"],
   ["places-3-t4", "けんはとうきょうにすみます", "ken wa toukyou ni sumimasu"],
   ["places-3-t5", "ゆきはえきからがっこうまできます", "yuki wa eki kara gakkou made kimasu"],
-  ["places-4-m1", "えきにいきます", "eki ni ikimasu"],
-  ["places-4-m2", "ゆきはでんしゃでがっこうにいきます", "yuki wa densha de gakkou ni ikimasu"],
+  ["places-4-m1", "ひこうきでおおさかにいきます", "hikouki de oosaka ni ikimasu"],
+  ["places-4-m2", "ゆきはちかてつでがっこうにいきます", "yuki wa chikatetsu de gakkou ni ikimasu"],
   ["places-4-m3", "いえからかいしゃまでいきます", "ie kara kaisha made ikimasu"],
-  ["places-4-m4", "けんはいえへきます", "ken wa ie e kimasu"],
+  ["places-4-m4", "けんはタクシーでえきにきます", "ken wa takushii de eki ni kimasu"],
   ["places-4-m5", "かいしゃではたらきます", "kaisha de hatarakimasu"],
-  ["places-4-m6", "みなはがっこうへいきます", "mina wa gakkou e ikimasu"],
-  ["places-4-m7", "バスでえきにきます", "basu de eki ni kimasu"],
+  ["places-4-m6", "みなはじてんしゃでがっこうにいきます", "mina wa jitensha de gakkou ni ikimasu"],
+  ["places-4-m7", "ふねでおおさかにきます", "fune de oosaka ni kimasu"],
   ["places-4-m8", "ゆきはレストランではたらきます", "yuki wa resutoran de hatarakimasu"],
   ["places-4-t1", "けんはえきにいきます", "ken wa eki ni ikimasu"],
-  ["places-4-t2", "でんしゃでがっこうにいきます", "densha de gakkou ni ikimasu"],
+  ["places-4-t2", "ちかてつでがっこうにいきます", "chikatetsu de gakkou ni ikimasu"],
   ["places-4-t3", "みなはいえからかいしゃまでいきます", "mina wa ie kara kaisha made ikimasu"],
-  ["places-4-t4", "いえへきます", "ie e kimasu"],
+  ["places-4-t4", "タクシーでえきにきます", "takushii de eki ni kimasu"],
   ["places-4-t5", "ゆきはかいしゃではたらきます", "yuki wa kaisha de hatarakimasu"],
   ["people-1-m1", "はははせんせいです", "haha wa sensei desu"],
   ["people-1-m2", "ちちはいしゃです", "chichi wa isha desu"],
   ["people-1-m3", "おかあさんはせんせいです", "okaasan wa sensei desu"],
   ["people-1-m4", "おとうさんはかいしゃいんです", "otousan wa kaishain desu"],
   ["people-1-m5", "はははコーヒーをのみます", "haha wa koohii o nomimasu"],
-  ["people-1-m6", "あにはおちゃをのみます", "ani wa ocha o nomimasu"],
+  ["people-1-m6", "ちちはコーヒーをのみます", "chichi wa koohii o nomimasu"],
   ["people-1-m7", "ちちはとうきょうにすみます", "chichi wa toukyou ni sumimasu"],
-  ["people-1-m8", "あねはおおさかにすみます", "ane wa oosaka ni sumimasu"],
+  ["people-1-m8", "はははおおさかにすみます", "haha wa oosaka ni sumimasu"],
   ["people-1-t1", "ちちはせんせいです", "chichi wa sensei desu"],
   ["people-1-t2", "おかあさんはいしゃです", "okaasan wa isha desu"],
-  ["people-1-t3", "あにはコーヒーをのみます", "ani wa koohii o nomimasu"],
+  ["people-1-t3", "ちちはコーヒーをのみます", "chichi wa koohii o nomimasu"],
   ["people-1-t4", "はははとうきょうにすみます", "haha wa toukyou ni sumimasu"],
-  ["people-1-t5", "あねはかいしゃいんです", "ane wa kaishain desu"],
-  ["people-2-m1", "ちちはとうきょうにすみます", "chichi wa toukyou ni sumimasu"],
+  ["people-1-t5", "はははせんせいです", "haha wa sensei desu"],
+  ["people-2-m1", "ちちはしゅくだいをします", "chichi wa shukudai o shimasu"],
   ["people-2-m2", "はははにほんごをべんきょうします", "haha wa nihongo o benkyoushimasu"],
   ["people-2-m3", "あにはしゅくだいをします", "ani wa shukudai o shimasu"],
   ["people-2-m4", "あねはてがみをかきます", "ane wa tegami o kakimasu"],
@@ -298,37 +298,37 @@ const EXPECTED_SENTENCES: readonly (readonly [string, string, string])[] = [
   ["people-2-m6", "いもうとはあさたべます", "imouto wa asa tabemasu"],
   ["people-2-m7", "ちちはよるよみます", "chichi wa yoru yomimasu"],
   ["people-2-m8", "はははてがみをかきます", "haha wa tegami o kakimasu"],
-  ["people-2-t1", "はははとうきょうにすみます", "haha wa toukyou ni sumimasu"],
+  ["people-2-t1", "はははしゅくだいをします", "haha wa shukudai o shimasu"],
   ["people-2-t2", "ちちはにほんごをべんきょうします", "chichi wa nihongo o benkyoushimasu"],
   ["people-2-t3", "あねはしゅくだいをします", "ane wa shukudai o shimasu"],
   ["people-2-t4", "おとうとはあさたべます", "otouto wa asa tabemasu"],
   ["people-2-t5", "あにはよるよみます", "ani wa yoru yomimasu"],
   ["people-3-m1", "ともだちといきます", "tomodachi to ikimasu"],
-  ["people-3-m2", "ゆきはクラスメートといきます", "yuki wa kurasumeeto to ikimasu"],
-  ["people-3-m3", "せんせいにききます", "sensei ni kikimasu"],
+  ["people-3-m2", "ゆきはどうりょうといきます", "yuki wa douryou to ikimasu"],
+  ["people-3-m3", "ひとにききます", "hito ni kikimasu"],
   ["people-3-m4", "けんはともだちにききます", "ken wa tomodachi ni kikimasu"],
-  ["people-3-m5", "みなはせんせいといきます", "mina wa sensei to ikimasu"],
+  ["people-3-m5", "みなはかぞくといきます", "mina wa kazoku to ikimasu"],
   ["people-3-m6", "えいがをみます", "eiga o mimasu"],
   ["people-3-m7", "ゆきはえいがをみます", "yuki wa eiga o mimasu"],
   ["people-3-m8", "てんいんにききます", "ten'in ni kikimasu"],
   ["people-3-t1", "けんはともだちといきます", "ken wa tomodachi to ikimasu"],
-  ["people-3-t2", "クラスメートといきます", "kurasumeeto to ikimasu"],
-  ["people-3-t3", "みなはせんせいにききます", "mina wa sensei ni kikimasu"],
+  ["people-3-t2", "どうりょうといきます", "douryou to ikimasu"],
+  ["people-3-t3", "みなはひとにききます", "mina wa hito ni kikimasu"],
   ["people-3-t4", "ともだちにききます", "tomodachi ni kikimasu"],
-  ["people-3-t5", "けんはえいがをみます", "ken wa eiga o mimasu"],
-  ["people-4-m1", "ほんをかいます", "hon o kaimasu"],
-  ["people-4-m2", "ゆきはほんをかいます", "yuki wa hon o kaimasu"],
+  ["people-3-t5", "けんはてんいんにききます", "ken wa ten'in ni kikimasu"],
+  ["people-4-m1", "ともだちといきます", "tomodachi to ikimasu"],
+  ["people-4-m2", "ゆきはきっぷをかいます", "yuki wa kippu o kaimasu"],
   ["people-4-m3", "えいがをみます", "eiga o mimasu"],
-  ["people-4-m4", "けんはテレビをみます", "ken wa terebi o mimasu"],
+  ["people-4-m4", "みなはラーメンをかいます", "mina wa raamen o kaimasu"],
   ["people-4-m5", "みなはおんがくをききます", "mina wa ongaku o kikimasu"],
   ["people-4-m6", "おんがくをききます", "ongaku o kikimasu"],
-  ["people-4-m7", "ゆきはしんぶんをかいます", "yuki wa shinbun o kaimasu"],
-  ["people-4-m8", "みなはえいがをみます", "mina wa eiga o mimasu"],
-  ["people-4-t1", "けんはほんをかいます", "ken wa hon o kaimasu"],
-  ["people-4-t2", "テレビをみます", "terebi o mimasu"],
+  ["people-4-m7", "ゆきはかばんをかいます", "yuki wa kaban o kaimasu"],
+  ["people-4-m8", "みなはしゃしんをみます", "mina wa shashin o mimasu"],
+  ["people-4-t1", "ゆきはラーメンをかいます", "yuki wa raamen o kaimasu"],
+  ["people-4-t2", "えいがをみます", "eiga o mimasu"],
   ["people-4-t3", "ゆきはおんがくをききます", "yuki wa ongaku o kikimasu"],
-  ["people-4-t4", "しんぶんをかいます", "shinbun o kaimasu"],
-  ["people-4-t5", "けんはおんがくをききます", "ken wa ongaku o kikimasu"],
+  ["people-4-t4", "かばんをかいます", "kaban o kaimasu"],
+  ["people-4-t5", "ゆきはおんがくをききます", "yuki wa ongaku o kikimasu"],
 ];
 
 describe("A1 modules 5–8 · exact realized-sentence table", () => {
@@ -362,15 +362,15 @@ const romajiFor = (id: string) => romajiOf(realize(variantById.get(id) as Senten
 describe("A1 modules 5–8 · conjugation & case-frame regressions", () => {
   it("realizes polite past ました, negative ません and past-negative ませんでした", () => {
     // Past affirmative attaches ました (tabe+mashita), never a copula.
-    expect(jpOf("past-negative-1-m1")).toBe("すしをたべました");
-    expect(romajiFor("past-negative-1-m1")).toBe("sushi o tabemashita");
+    expect(jpOf("past-negative-1-m1")).toBe("りんごをたべました");
+    expect(romajiFor("past-negative-1-m1")).toBe("ringo o tabemashita");
     // Negative present ません.
-    expect(jpOf("past-negative-2-m1")).toBe("コーヒーをのみません");
-    expect(romajiFor("past-negative-2-m1")).toBe("koohii o nomimasen");
+    expect(jpOf("past-negative-2-m1")).toBe("おちゃをのみません");
+    expect(romajiFor("past-negative-2-m1")).toBe("ocha o nomimasen");
     // Past-negative ませんでした — the copula でした spaces off the verbal
     // negative (…masen deshita), never a run-on.
-    expect(jpOf("past-negative-3-m1")).toBe("にほんごをべんきょうしませんでした");
-    expect(romajiFor("past-negative-3-m1")).toBe("nihongo o benkyoushimasen deshita");
+    expect(jpOf("past-negative-3-m1")).toBe("えいごをべんきょうしませんでした");
+    expect(romajiFor("past-negative-3-m1")).toBe("eigo o benkyoushimasen deshita");
     expect(romajiFor("past-negative-3-m1")).toMatch(/masen deshita$/);
   });
 
@@ -378,9 +378,9 @@ describe("A1 modules 5–8 · conjugation & case-frame regressions", () => {
     // でした / ではありません / ではありませんでした are standalone predicates:
     // no letter may run directly into desu/deshita, and では spaces as `dewa`.
     const copular: readonly (readonly [string, string, string])[] = [
-      ["past-negative-4-m1", "がくせいでした", "gakusei deshita"],
-      ["past-negative-4-m3", "せんせいではありません", "sensei dewa arimasen"],
-      ["past-negative-4-m5", "がくせいではありませんでした", "gakusei dewa arimasen deshita"],
+      ["past-negative-4-m1", "ほんはひゃくえんでした", "hon wa hyaku en deshita"],
+      ["past-negative-4-m3", "これはごひゃくえんではありません", "kore wa gohyaku en dewa arimasen"],
+      ["past-negative-4-m5", "ほんはひゃくえんではありませんでした", "hon wa hyaku en dewa arimasen deshita"],
     ];
     for (const [id, jp, romaji] of copular) {
       expect(jpOf(id), id).toBe(jp);
@@ -404,7 +404,7 @@ describe("A1 modules 5–8 · conjugation & case-frame regressions", () => {
       ["routines-3-m2", "ゆきはよくべんきょうします"],
       ["routines-3-m4", "けんはときどきよみます"],
       ["routines-3-m8", "ゆきはいつもべんきょうします"],
-      ["routines-3-m7", "まいあさおきます"],
+      ["routines-3-m7", "まいにちおきます"],
     ];
     for (const [id, jp] of adverbial) {
       expect(jpOf(id), id).toBe(jp);
@@ -415,7 +415,7 @@ describe("A1 modules 5–8 · conjugation & case-frame regressions", () => {
 
   it("marks time-of-clock and day with に but bare time-of-day frames without", () => {
     // Clock/day take に; あさ/よる (time-of-day) are bare adverbials.
-    expect(jpOf("routines-1-m2")).toBe("しちじにおきます");
+    expect(jpOf("routines-1-m2")).toBe("くじにおきます");
     expect(jpOf("routines-2-m1")).toBe("げつようびにべんきょうします");
     expect(jpOf("routines-2-m3")).toBe("あさたべます");
     expect(jpOf("routines-2-m3")).not.toMatch(/あさ(に|は|を)/);
@@ -424,10 +424,10 @@ describe("A1 modules 5–8 · conjugation & case-frame regressions", () => {
   it("distinguishes destination に from direction へ→`e` and route から/まで", () => {
     // Destination に stays `ni`; directional へ renders as `e` (topic は→`wa`
     // analogue), never `he`.
-    expect(jpOf("places-1-m1")).toBe("えきにいきます");
-    expect(romajiFor("places-1-m1")).toBe("eki ni ikimasu");
-    expect(jpOf("places-1-m2")).toBe("ゆきはえきへいきます");
-    expect(romajiFor("places-1-m2")).toBe("yuki wa eki e ikimasu");
+    expect(jpOf("places-1-m1")).toBe("みせにいきます");
+    expect(romajiFor("places-1-m1")).toBe("mise ni ikimasu");
+    expect(jpOf("places-1-m2")).toBe("ゆきはくうこうへいきます");
+    expect(romajiFor("places-1-m2")).toBe("yuki wa kuukou e ikimasu");
     expect(romajiFor("places-1-m2")).not.toContain(" he ");
     // Route: departure から + limit まで, both spaced particles.
     expect(jpOf("places-3-m1")).toBe("とうきょうからおおさかまでいきます");
@@ -447,8 +447,28 @@ describe("A1 modules 5–8 · conjugation & case-frame regressions", () => {
     // Companion と (…to ikimasu) vs person-target に (…ni kikimasu).
     expect(jpOf("people-3-m1")).toBe("ともだちといきます");
     expect(romajiFor("people-3-m1")).toBe("tomodachi to ikimasu");
-    expect(jpOf("people-3-m3")).toBe("せんせいにききます");
-    expect(romajiFor("people-3-m3")).toBe("sensei ni kikimasu");
+    expect(jpOf("people-3-m3")).toBe("ひとにききます");
+    expect(romajiFor("people-3-m3")).toBe("hito ni kikimasu");
+  });
+
+  it("uses practical hotel and photo exemplars instead of the unnatural route and money models", () => {
+    expect(jpOf("places-3-m4")).toBe("けんはホテルからまちまでいきます");
+    expect(romajiFor("places-3-m4")).toBe("ken wa hoteru kara machi made ikimasu");
+    expect(a1CopyEn["places-3-m4-translation"]).toBe("Ken goes from the hotel into town.");
+    expect(a1CopyIt["places-3-m4-translation"]).toBe("Ken va dall'hotel in città.");
+
+    expect(jpOf("people-4-m8")).toBe("みなはしゃしんをみます");
+    expect(romajiFor("people-4-m8")).toBe("mina wa shashin o mimasu");
+    expect(a1CopyEn["people-4-m8-translation"]).toBe("Mina looks at a photo.");
+    expect(a1CopyIt["people-4-m8-translation"]).toBe("Mina guarda una foto.");
+
+    const productionModelJapanese = deepBuilt
+      .flatMap((built) => built.variants)
+      .filter((variant) => variant.pedagogicalUse === "model")
+      .map(realize)
+      .map((sentence) => sentence.canonicalJapanese);
+    expect(productionModelJapanese.some((sentence) => sentence.includes("へやからまちまで"))).toBe(false);
+    expect(productionModelJapanese.some((sentence) => sentence.includes("おかねをみます"))).toBe(false);
   });
 
   it("uses plain kin terms for own family and honorific for others', with copula は", () => {
@@ -515,8 +535,8 @@ describe("A1 modules 5–8 · lesson metrics", () => {
         }
       });
 
-      expect(built.recipe.practice.roundOne.targetCount).toBe(5);
-      expect(built.recipe.practice.roundTwo.targetCount).toBe(5);
+      expect(built.recipe.practice.roundOne.targetCount).toBe(2);
+      expect(built.recipe.practice.roundTwo.targetCount).toBe(2);
 
       for (const locale of ["en", "it"] as const) {
         const vm = buildLessonViewModel({
@@ -529,8 +549,8 @@ describe("A1 modules 5–8 · lesson metrics", () => {
         });
         expect(vm.ok, vm.ok ? "" : `${lessonId} ${locale}: ${JSON.stringify((vm as { error: unknown }).error)}`).toBe(true);
         if (vm.ok) {
-          expect(vm.model.rounds[0].targets.length).toBe(5);
-          expect(vm.model.rounds[1].targets.length).toBe(5);
+          expect(vm.model.rounds[0].targets.length).toBe(2);
+          expect(vm.model.rounds[1].targets.length).toBe(2);
         }
       }
     },
@@ -552,7 +572,10 @@ function positionOf(lessonId: string): number {
 /** The authoritative expected recurrence assignment (senseId → later lessons). */
 const EXPECTED_RECURRENCE: Readonly<Record<string, readonly string[]>> = {
   "a1-sense-be": ["past-negative-4", "people-1"],
-  "a1-sense-live": ["people-1", "people-2"],
+  "a1-sense-work-bare": ["introductions-4", "routines-4"],
+  "a1-sense-study-bare": ["introductions-4", "routines-4"],
+  "a1-sense-do-bare": ["introductions-4", "routines-4"],
+  "a1-sense-live": ["people-1", "places-3"],
   "a1-sense-study": ["past-negative-3", "people-2"],
   "a1-sense-work": ["past-negative-2", "places-2"],
   "a1-sense-understand": ["past-negative-2", "past-negative-4"],
@@ -560,9 +583,8 @@ const EXPECTED_RECURRENCE: Readonly<Record<string, readonly string[]>> = {
   "a1-sense-eat": ["routines-4", "past-negative-1"],
   "a1-sense-drink": ["past-negative-2", "people-1"],
   "a1-sense-read": ["routines-4", "past-negative-3"],
-  "a1-sense-go": ["routines-4", "places-1"],
+  "a1-sense-go": ["places-1", "places-2"],
   "a1-sense-come": ["routines-4", "places-1"],
-  "a1-sense-accompany": ["past-negative-1", "people-3"],
   "a1-sense-ask": ["past-negative-2", "people-3"],
   "a1-sense-buy": ["past-negative-1", "people-4"],
   "a1-sense-see": ["past-negative-2", "people-4"],
@@ -578,16 +600,21 @@ const EXPECTED_RECURRENCE: Readonly<Record<string, readonly string[]>> = {
 };
 
 describe("A1 productive-verb recurrence (§9.3 rules 3-5)", () => {
-  it("covers every productive sense introduced in Modules 2, 4 and 5", () => {
+  it("covers every productive sense introduced in Modules 2 through 5", () => {
     const augmentedSenses = new Set(a1AugmentedVerbUseRecords.map((r) => r.senseId));
-    expect(augmentedSenses.size).toBe(24);
+    expect(augmentedSenses.size).toBe(26);
     for (const senseId of Object.keys(EXPECTED_RECURRENCE)) {
       expect(augmentedSenses.has(senseId), senseId).toBe(true);
     }
   });
 
   it("keeps the RAW module records at laterUses: [] (intro timeline untouched)", () => {
-    for (const raw of [...module2VerbUseRecords, ...module4VerbUseRecords, ...module5VerbUseRecords]) {
+    for (const raw of [
+      ...module2VerbUseRecords,
+      ...module3VerbUseRecords,
+      ...module4VerbUseRecords,
+      ...module5VerbUseRecords,
+    ]) {
       expect(raw.laterUses.length, raw.senseId).toBe(0);
       expect(raw.learningUse).toBe("productive");
     }
@@ -669,7 +696,7 @@ describe("A1 modules 5–8 · answer integrity", () => {
       expect(vm.ok, built.recipe.id).toBe(true);
       if (!vm.ok) continue;
       const targets = [...vm.model.rounds[0].targets, ...vm.model.rounds[1].targets];
-      expect(targets.length).toBe(10);
+      expect(targets.length).toBe(4);
 
       // Blank fields stay blank (no leaked answer text).
       for (const target of targets) {
@@ -689,7 +716,7 @@ describe("A1 modules 5–8 · answer integrity", () => {
         expect(Object.prototype.hasOwnProperty.call(target, "answer")).toBe(false);
       }
 
-      // No two of the ten exercises may resolve to the same full answer
+      // No two of the four exercises may resolve to the same full answer
       // sentence (a genuinely disguised duplicate), and no single sentence may
       // appear under two different exercise kinds.
       const answerKeys = new Set<string>();
@@ -704,7 +731,7 @@ describe("A1 modules 5–8 · answer integrity", () => {
         }
         kindByAnswer.set(full, target.prompt.kind);
       }
-      expect(answerKeys.size).toBe(10);
+      expect(answerKeys.size).toBe(4);
     }
   });
 
@@ -795,7 +822,7 @@ describe("A1 modules 2–4 · realization regression", () => {
 
   it("preserves canonical prior rows (spot check)", () => {
     expect(jpOf("introductions-1-m1")).toBe("ゆきはがくせいです");
-    expect(jpOf("actions-1-m2")).toBe("ラーメンをたべます");
+    expect(jpOf("actions-1-m2")).toBe("みかんをたべます");
     expect(jpOf("essential-questions-1-m1")).toBe("これはなんですか");
   });
 

@@ -282,7 +282,10 @@ function selectionConstraints(
     minPredicates: 1,
     minRoles: 1,
     minContexts: 1,
-    minUniqueVisibleTargets: d.minUniqueTargets,
+    minUniqueVisibleTargets:
+      round === "one"
+        ? Math.min(d.minUniqueTargets, lesson.practice.roundOne.targetCount)
+        : d.minUniqueTargets,
     maxVisibleReuse: d.maxTargetReuse,
     minTransferTargets: round === "two" ? d.minTransferExercises : 0,
     requireControlledConstruction:

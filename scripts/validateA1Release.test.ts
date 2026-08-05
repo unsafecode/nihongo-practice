@@ -41,7 +41,20 @@ describe("scripts/validateA1Release — the prebuild content-validation gate (I3
 
   it("exits cleanly and prints an OK message when validateA1Release() reports valid", async () => {
     vi.doMock(VALIDATE_A1_MODULE_PATH, () => ({
-      validateA1Release: () => ({ valid: true, errors: [], foundationReport: {} }),
+      validateA1Release: () => ({
+        valid: true,
+        errors: [],
+        foundationReport: {},
+        curriculumReport: {
+          reports: {
+            byLesson: Array.from({ length: 48 }, (_, index) => ({ lessonId: `lesson-${index}` })),
+            practiceFunctionDistribution: {
+              "meaning-comprehension": 48,
+              "listening-speaking": 48,
+            },
+          },
+        },
+      }),
     }));
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -52,6 +65,8 @@ describe("scripts/validateA1Release — the prebuild content-validation gate (I3
     expect(exitCode).toBeUndefined();
     expect(errorSpy).not.toHaveBeenCalled();
     expect(logSpy.mock.calls.flat().join(" ")).toMatch(/OK/);
+    expect(logSpy.mock.calls.flat().join(" ")).toMatch(/48 lessons/);
+    expect(logSpy.mock.calls.flat().join(" ")).toMatch(/meaning-comprehension=48/);
   });
 
   it("refuses the build — exits non-zero and prints every structured error — when validateA1Release() reports invalid", async () => {
@@ -60,7 +75,12 @@ describe("scripts/validateA1Release — the prebuild content-validation gate (I3
         valid: false,
         errors: [
           { code: "manifest-invalid", id: "sounds-1", dimension: "structure" },
-          { code: "cando-primary-mismatch", id: "a1-can-do-sounds", referenceId: "sounds-2" },
+          {
+            code: "invalid-section-order",
+            lessonId: "introductions-1",
+            stage: "sections",
+            referenceId: "rule,vocabulary,grammar,comparison,explore,recap",
+          },
         ],
         foundationReport: {},
       }),
@@ -73,7 +93,8 @@ describe("scripts/validateA1Release — the prebuild content-validation gate (I3
     const allErrorText = errorSpy.mock.calls.flat().join(" ");
     expect(allErrorText).toContain("manifest-invalid");
     expect(allErrorText).toContain("sounds-1");
-    expect(allErrorText).toContain("cando-primary-mismatch");
-    expect(allErrorText).toContain("sounds-2");
+    expect(allErrorText).toContain("invalid-section-order");
+    expect(allErrorText).toContain("lesson=introductions-1");
+    expect(allErrorText).toContain("stage=sections");
   });
 });

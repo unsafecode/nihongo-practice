@@ -65,6 +65,7 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-context-weekday-study-label": "Weekday study routine",
     "a1-context-mealtime-routine-label": "Daily mealtime routine",
     "a1-context-evening-reading-label": "Evening reading routine",
+    "a1-context-social-outing-label": "A social outing",
     "a1-role-creature-label": "An animal",
     "a1-referent-creature-label": "The animal",
     "a1-can-do-sounds-descriptor": "I can hear and read the basic sounds of Japanese.",
@@ -82,7 +83,8 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-can-do-scenario-2-descriptor": "I can talk through a typical day — my routine, a place, what I like, and what I want to buy.",
     "a1-can-do-scenario-3-descriptor": "I can get around, asking where a place is and saying how I'll get there and what I need.",
     "a1-can-do-scenario-4-descriptor": "I can say who I am and what I do, describe things around me, and ask for clarification when I change topic.",
-    "a1-module-outcome-introductions": "You can introduce yourself and other people with a few key facts.",
+    "a1-module-outcome-introductions":
+      "You can build simple sentences, introduce yourself, and use polite verbs with natural subject omission.",
     "a1-module-outcome-essential-questions": "You can ask and recognize the everyday questions that keep a conversation going.",
     "a1-module-outcome-actions": "You can say what you and others do with everyday things, places, and people.",
     "a1-module-outcome-routines": "You can describe your daily routine using times, days, and how often you do things.",
@@ -129,6 +131,7 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-context-weekday-study-label": "Routine di studio infrasettimanale",
     "a1-context-mealtime-routine-label": "Routine dei pasti quotidiani",
     "a1-context-evening-reading-label": "Routine di lettura serale",
+    "a1-context-social-outing-label": "Un'uscita sociale",
     "a1-role-creature-label": "Un animale",
     "a1-referent-creature-label": "L'animale",
     "a1-can-do-sounds-descriptor": "So sentire e leggere i suoni di base del giapponese.",
@@ -146,7 +149,8 @@ export const a1SharedCopy: { readonly en: Readonly<Record<string, string>>; read
     "a1-can-do-scenario-2-descriptor": "So raccontare una giornata tipica: la mia routine, un luogo, cosa mi piace e cosa voglio comprare.",
     "a1-can-do-scenario-3-descriptor": "So muovermi, chiedendo dove si trova un luogo e dicendo come ci arrivo e di cosa ho bisogno.",
     "a1-can-do-scenario-4-descriptor": "So dire chi sono e cosa faccio, descrivere le cose intorno a me e chiedere chiarimenti quando cambio argomento.",
-    "a1-module-outcome-introductions": "Sai presentare te stesso e altre persone con alcuni dati chiave.",
+    "a1-module-outcome-introductions":
+      "Sai costruire frasi semplici, presentarti e usare verbi cortesi con l'omissione naturale del soggetto.",
     "a1-module-outcome-essential-questions": "Sai fare e riconoscere le domande quotidiane che tengono viva una conversazione.",
     "a1-module-outcome-actions": "Sai dire cosa fai tu e gli altri con le cose, i luoghi e le persone di ogni giorno.",
     "a1-module-outcome-routines": "Sai descrivere la tua giornata usando orari, giorni e con quale frequenza fai le cose.",
@@ -349,6 +353,10 @@ export const A1_CONTEXT_SCENARIO: Readonly<Record<string, Bilingual>> = deepFree
   "a1-context-evening-reading": {
     en: "You are describing your habit of reading in the evening.",
     it: "Descrivi la tua abitudine di leggere la sera.",
+  },
+  "a1-context-social-outing": {
+    en: "You are arranging a simple outing with someone you know.",
+    it: "Stai organizzando una semplice uscita con una persona che conosci.",
   },
 });
 

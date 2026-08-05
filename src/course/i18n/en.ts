@@ -141,6 +141,95 @@ const enUi = {
         "Anything you did not get right here will reappear in your review queue so you can try it again.",
     },
   },
+  a1Lesson: {
+    sections: {
+      rule: "Goal",
+      vocabulary: "New words",
+      grammar: "Grammar",
+      comparison: "Examples",
+      explore: "Practice",
+      recap: "Recap",
+    },
+    overview: {
+      canDoLabel: "Can-do",
+      situationLabel: "Situation",
+      prerequisitesLabel: "Builds on",
+    },
+    vocabulary: {
+      newWordsHeading: "New words",
+      reviewWordsHeading: "Known words to reuse",
+      reviewBadge: "Review",
+      reviewExceptionLabel: "Review note",
+      showMeanings: "Show meanings",
+      hideMeanings: "Hide meanings",
+      meaningLabel: "Meaning",
+      categoryLabel: "Category",
+      categories: {
+        pronoun: "Pronoun",
+        person: "Person",
+        noun: "Noun",
+        verb: "Verb",
+        adjective: "Adjective",
+        "question-word": "Question word",
+        time: "Time",
+        expression: "Expression",
+      },
+      verbFormsLabel: "Verb forms",
+      dictionaryLabel: "Dictionary form",
+      politeLabel: "Polite form",
+      classLabel: "Verb class",
+      verbClasses: {
+        godan: "Godan",
+        ichidan: "Ichidan",
+        irregular: "Irregular",
+      },
+    },
+    learningNote: {
+      kindLabel: "Note type",
+      kinds: {
+        grammar: "Grammar note",
+        phonetic: "Sound note",
+        synthesis: "Synthesis note",
+      },
+      meaningLabel: "Meaning",
+      useLabel: "Use",
+      constructionLabel: "Construction",
+      typicalMistakeLabel: "Typical mistake",
+      subjectOmissionLabel: "Subject omission",
+      nearestContrastLabel: "Nearest contrast",
+      patternLabel: "Pattern",
+    },
+    examples: {
+      translationLabel: "Natural translation",
+      glossesLabel: "Word by word",
+      dialogueLabel: "Short dialogue",
+      turnLabel: (position: number) => `Turn ${position}`,
+      optionalPattern: "Explore the pattern",
+    },
+    practice: {
+      functionLabel: "Practice function",
+      functions: {
+        "meaning-comprehension": "Understand the meaning",
+        "form-discrimination": "Notice the form",
+        "controlled-production": "Build the form",
+        transformation: "Transform the pattern",
+        "contextual-response": "Respond in context",
+        "listening-speaking": "Listen and speak",
+      },
+    },
+    audio: {
+      play: "Play audio",
+      playing: "Playing…",
+      unavailable: "Japanese audio is unavailable in this browser.",
+      failed: "Audio playback failed. Try again.",
+      statusLabel: "Audio status",
+    },
+    recap: {
+      meaningsAndFormsLabel: "Meanings and forms",
+      retrievalCueLabel: "Retrieval cue",
+      reviewExceptionLabel: "Review note",
+    },
+  },
   practice: {
     eyebrow: "Free practice",
     title: "Explore without losing the thread.",
@@ -197,6 +286,7 @@ const enUi = {
     mistakes: (n: number) => (n === 1 ? "1 miss" : `${n} misses`),
     practice: "Review now",
     openLesson: "Open lesson",
+    variedTask: "A different retrieval task for the same lesson focus.",
     resolved: "Reviewed — removed from your list.",
     orphaned: (n: number) =>
       n === 1
@@ -284,7 +374,7 @@ const enUi = {
     helpBody:
       "An earlier version of this course tracked progress differently. When the structure changed, any lesson visit that safely matches the new structure carries over automatically. Practice attempts, saved review items, and checkpoint results tied to exercises that were redesigned may need to be completed again, since they no longer match the new exercises exactly. Any older visit without a safe match in the new structure is retained as recovery data rather than shown as an equivalent visited lesson.",
   },
-} satisfies Pick<CourseCopy, "home" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
+} satisfies Pick<CourseCopy, "home" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "a1Lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
 
 const enCourseMap: CourseCopy["courseMap"] = {
   heading: "The course",

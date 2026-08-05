@@ -3,8 +3,11 @@ import {
   loadProgress,
   persistProgress,
   resetStoredProgress,
+  STORAGE_KEY,
 } from "./ProgressContext";
 import { emptyProgressV4 } from "./progress";
+import { getLessonExercises } from "../components/lessonExerciseModel";
+import { reviewKeyFor } from "./reviewQueue";
 
 function memoryStorage(): Storage {
   const values = new Map<string, string>();
@@ -49,6 +52,69 @@ function writeBlockedMemoryStorage(initial: Readonly<Record<string, string>> = {
   };
 }
 
+function catalogV1Payload(): string {
+  const currentDefinitionId =
+    getLessonExercises("introductions-1")!.exercises[0]!.definitionId;
+  const removedDefinitionId = "introductions-1-round-1-8";
+  const knownReview = {
+    reviewKey: reviewKeyFor("introductions-1", currentDefinitionId),
+    lessonId: "introductions-1",
+    exerciseDefinitionId: currentDefinitionId,
+    targetConceptIds: ["a1-concept-topic-wa"],
+    targetLexemeIds: [],
+    mistakeCount: 2,
+    lastMistakeAt: "2026-07-16T10:00:00.000Z",
+  };
+  const removedReview = {
+    reviewKey: reviewKeyFor("introductions-1", removedDefinitionId),
+    lessonId: "introductions-1",
+    exerciseDefinitionId: removedDefinitionId,
+    targetConceptIds: ["a1-concept-topic-wa"],
+    targetLexemeIds: [],
+    mistakeCount: 1,
+    lastMistakeAt: "2026-07-16T11:00:00.000Z",
+  };
+  return JSON.stringify({
+    schemaVersion: 4,
+    catalogVersion: "a1-a2-v1",
+    levels: {
+      a1: {
+        lessons: {
+          "introductions-1": {
+            visitedAt: "2026-07-13T10:00:00.000Z",
+            practicedAt: "2026-07-14T10:00:00.000Z",
+            consolidatedAt: null,
+            attemptedExerciseIds: [currentDefinitionId, removedDefinitionId],
+            acceptedExerciseIds: [currentDefinitionId],
+          },
+        },
+        canDos: {},
+        checkpointAttempts: [],
+        lastVisitedLessonId: "introductions-1",
+        reviewQueue: [knownReview, removedReview],
+        orphanedLessonIds: ["older-a1-lesson"],
+        orphanedReviewKeys: ["older-a1-review"],
+      },
+      a2: {
+        lessons: {},
+        canDos: {},
+        checkpointAttempts: [],
+        lastVisitedLessonId: null,
+        reviewQueue: [],
+        orphanedLessonIds: [],
+        orphanedReviewKeys: [],
+      },
+    },
+    migrationNotice: {
+      fromSchemaVersion: 3,
+      preservedVisitedLessonIds: ["sounds-1"],
+      resetEvidenceLessonIds: [],
+      acknowledgedAt: null,
+    },
+    updatedAt: "2026-07-16T11:00:00.000Z",
+  });
+}
+
 describe("progress persistence results", () => {
   it("distinguishes saved, removed, and unavailable outcomes", () => {
     const storage = memoryStorage();
@@ -71,6 +137,43 @@ describe("progress persistence results", () => {
       }),
     );
     expect(loadProgress(storage).loadStatus).toBe("migrated");
+  });
+
+  it("normalizes a stored v4 catalog-v1 payload to v2 and persists the reconciled result", () => {
+    const rawV1 = catalogV1Payload();
+    const storage = memoryStorage();
+    storage.setItem(STORAGE_KEY, rawV1);
+
+    const loaded = loadProgress(storage);
+
+    expect(loaded.corrupted).toBe(false);
+    expect(loaded.migrated).toBe(true);
+    expect(loaded.persistenceAvailable).toBe(true);
+    expect(loaded.progress.catalogVersion).toBe("a1-a2-v2");
+    expect(loaded.progress.levels.a1.lessons["introductions-1"]?.attemptedExerciseIds).toEqual(
+      JSON.parse(rawV1).levels.a1.lessons["introductions-1"].attemptedExerciseIds,
+    );
+    expect(loaded.progress.levels.a1.reviewQueue).toHaveLength(1);
+    expect(loaded.progress.levels.a1.orphanedReviewKeys).toEqual([
+      "older-a1-review",
+      reviewKeyFor("introductions-1", "introductions-1-round-1-8"),
+    ]);
+    expect(JSON.parse(storage.getItem(STORAGE_KEY)!).catalogVersion).toBe(
+      "a1-a2-v2",
+    );
+  });
+
+  it("keeps the normalized v4 catalog result in memory and raw catalog-v1 bytes on disk when write-back fails", () => {
+    const rawV1 = catalogV1Payload();
+    const storage = writeBlockedMemoryStorage({ [STORAGE_KEY]: rawV1 });
+
+    const loaded = loadProgress(storage);
+
+    expect(loaded.corrupted).toBe(false);
+    expect(loaded.migrated).toBe(true);
+    expect(loaded.persistenceAvailable).toBe(false);
+    expect(loaded.progress.catalogVersion).toBe("a1-a2-v2");
+    expect(storage.getItem(STORAGE_KEY)).toBe(rawV1);
   });
 
   it("keeps raw v3 storage untouched and migrated progress in memory when the write-back after migration fails", () => {
@@ -154,15 +257,21 @@ describe("progress persistence results", () => {
     storage.setItem("nihongo.course.progress", JSON.stringify(stored));
 
     const loaded = loadProgress(storage);
-    expect(loaded.loadStatus).toBe("current");
+    expect(loaded.loadStatus).toBe("migrated");
     expect(loaded.progress.levels.a1.reviewQueue).toEqual([]);
     expect(loaded.progress.levels.a1.orphanedReviewKeys).toEqual([
       "ghost-lesson:ghost-lesson-x1",
     ]);
-    // Untouched raw storage: reconciliation is an in-memory projection only
-    // (persisting it back is the calling React effect's responsibility).
-    expect(storage.getItem("nihongo.course.progress")).toBe(
-      JSON.stringify(stored),
-    );
+    // Catalog reconciliation is a normalization, so the existing migration
+    // persistence path writes the usable V2 result back to storage.
+    expect(JSON.parse(storage.getItem("nihongo.course.progress")!)).toMatchObject({
+      catalogVersion: "a1-a2-v2",
+      levels: {
+        a1: {
+          reviewQueue: [],
+          orphanedReviewKeys: ["ghost-lesson:ghost-lesson-x1"],
+        },
+      },
+    });
   });
 });

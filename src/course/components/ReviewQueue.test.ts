@@ -1,7 +1,10 @@
-import { createElement } from "react";
+/** @vitest-environment jsdom */
+
+import { act, createElement } from "react";
+import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "../../i18n/LocaleContext";
 import { ScriptProvider } from "../../settings/ScriptContext";
 import {
@@ -12,6 +15,7 @@ import {
   emptyProgress,
   emptyProgressV4,
   emptyLevelProgress,
+  recordExerciseAcceptance,
   recordExerciseMistake,
 } from "../progress/progress";
 import type { CourseProgressV3, CourseProgressV4, ExerciseEvidence } from "../progress/progress";
@@ -21,6 +25,10 @@ import { en as enCopy } from "../i18n/en";
 import { it as itCopy } from "../i18n/it";
 import { lessonPath } from "../../routing/routes";
 import { ReviewQueue } from "./ReviewQueue";
+import { buildReviewQueueView } from "./reviewQueueModel";
+import { opaqueTargetKey } from "../foundations/opaqueTargetKey";
+
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 /**
  * Static accessible-markup contract for the lightweight `Da ripassare` review
@@ -40,6 +48,10 @@ function evidence(
   exerciseDefinitionId: string,
   at: string,
 ): ExerciseEvidence {
+  const exercise = getLessonExercises(lessonId)?.exercises.find(
+    (candidate) => candidate.definitionId === exerciseDefinitionId,
+  );
+  if (!exercise) throw new Error(`fixture assumption failed: ${lessonId}:${exerciseDefinitionId}`);
   return {
     lessonId,
     exerciseDefinitionId,
@@ -47,8 +59,8 @@ function evidence(
       getLessonExercises(lessonId)?.exercises.map((e) => e.definitionId) ?? [
         exerciseDefinitionId,
       ],
-    targetConceptIds: [],
-    targetLexemeIds: [],
+    targetConceptIds: [...exercise.prompt.assessedConceptIds],
+    targetLexemeIds: [...exercise.prompt.assessedLexemeIds],
     at,
   };
 }
@@ -125,6 +137,69 @@ function render(value: ProgressContextValue, props: { level?: "a1" | "a2" } = {}
   );
 }
 
+function mount(
+  value: ProgressContextValue,
+  props: { level?: "a1" | "a2" } = {},
+): { readonly container: HTMLDivElement; readonly root: Root } {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  act(() => {
+    root.render(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(
+          LocaleProvider,
+          null,
+          createElement(
+            ScriptProvider,
+            null,
+            createElement(
+              ProgressContext.Provider,
+              { value },
+              createElement(ReviewQueue, { ...props }),
+            ),
+          ),
+        ),
+      ),
+    );
+  });
+  return { container, root };
+}
+
+function reviewButton(container: HTMLElement): HTMLButtonElement {
+  const button = container.querySelector<HTMLButtonElement>(
+    ".review-queue__item-actions button",
+  );
+  if (!button) throw new Error("review button not found");
+  return button;
+}
+
+function submit(container: HTMLElement): void {
+  const button = container.querySelector<HTMLButtonElement>(".lesson-exercise__submit");
+  if (!button) throw new Error("submit button not found");
+  act(() => button.click());
+}
+
+function storageForLocale(locale: "en" | "it"): Storage {
+  const values = new Map<string, string>([["nihongo.locale.primary", locale]]);
+  return {
+    get length() {
+      return values.size;
+    },
+    clear: () => values.clear(),
+    getItem: (key) => values.get(key) ?? null,
+    key: (index) => [...values.keys()][index] ?? null,
+    removeItem: (key) => values.delete(key),
+    setItem: (key, value) => values.set(key, value),
+  };
+}
+
+afterEach(() => {
+  document.body.replaceChildren();
+});
+
 describe("ReviewQueue — heading and empty state", () => {
   it("renders the localized Da ripassare heading", () => {
     const html = render(contextValue(emptyProgress()));
@@ -147,6 +222,145 @@ describe("ReviewQueue — populated state", () => {
   it("shows the queue count", () => {
     const html = render(contextValue(populated));
     expect(html).toContain(itCopy.review.count(2));
+  });
+
+  describe("ReviewQueue — varied A1 retrieval interaction", () => {
+    const sourceExercise = getLessonExercises("sounds-1")!.exercises[0]!;
+    const sourceProgress = withMistakes([
+      "sounds-1",
+      sourceExercise.definitionId,
+      "2026-01-01T00:00:00.000Z",
+    ]);
+
+    it("labels a varied A1 retrieval and exposes only opaque target metadata on its open card", () => {
+      const value = contextValue(sourceProgress);
+      const item = buildReviewQueueView(sourceProgress, "a1").items[0]!;
+      const { container, root } = mount(value);
+
+      expect(container.innerHTML).toContain("review-queue__varied-task");
+      expect(container.innerHTML).toContain(itCopy.a1Lesson.practice.functionLabel);
+      expect(item.reviewKey).toBe(sourceProgress.reviewQueue[0]!.reviewKey);
+      act(() => reviewButton(container).click());
+      const card = container.querySelector<HTMLElement>(".lesson-exercise");
+
+      expect(item.exerciseDefinitionId).not.toBe(sourceExercise.definitionId);
+      expect(card?.getAttribute("data-practice-function")).toBe(item.practiceFunction);
+      expect(card?.getAttribute("data-visible-target-key")).toBe(
+        opaqueTargetKey(item.visibleTargetKey),
+      );
+      expect(card?.getAttribute("data-visible-target-key")).not.toBe(item.visibleTargetKey);
+      expect(card?.outerHTML).not.toContain(
+        `data-visible-target-key="${item.visibleTargetKey}"`,
+      );
+
+      act(() => root.unmount());
+    });
+
+    it("keeps the selected alternate stable across Italian and English UI locales", () => {
+      const cardTargetForLocale = (locale: "en" | "it"): string | null => {
+        const originalStorage = Object.getOwnPropertyDescriptor(window, "localStorage");
+        Object.defineProperty(window, "localStorage", {
+          configurable: true,
+          value: storageForLocale(locale),
+        });
+        try {
+          const { container, root } = mount(contextValue(sourceProgress));
+          act(() => reviewButton(container).click());
+          const target = container
+            .querySelector<HTMLElement>(".lesson-exercise")
+            ?.getAttribute("data-visible-target-key") ?? null;
+          act(() => root.unmount());
+          return target;
+        } finally {
+          if (originalStorage) Object.defineProperty(window, "localStorage", originalStorage);
+          else delete (window as { localStorage?: Storage }).localStorage;
+        }
+      };
+
+      expect(cardTargetForLocale("it")).toBe(cardTargetForLocale("en"));
+    });
+
+    it("resolves the original stored review definition after accepting an alternate", () => {
+      const resolveReview = vi.fn();
+      const value = contextValue(sourceProgress, { resolveReview });
+      const item = buildReviewQueueView(sourceProgress, "a1").items[0]!;
+      const prompt = item.prompt;
+      if (prompt.kind !== "choice") throw new Error("fixture assumption failed: choice");
+      const { container, root } = mount(value);
+
+      act(() => reviewButton(container).click());
+      const input = container.querySelector<HTMLInputElement>(
+        `input[value="${prompt.correctOptionId}"]`,
+      );
+      if (!input) throw new Error("correct alternate option not found");
+      act(() => input.click());
+      submit(container);
+
+      expect(resolveReview).toHaveBeenCalledTimes(1);
+      expect(resolveReview).toHaveBeenCalledWith({
+        lessonId: "sounds-1",
+        exerciseDefinitionId: sourceExercise.definitionId,
+        targetConceptIds: sourceProgress.reviewQueue[0]!.targetConceptIds,
+        targetLexemeIds: sourceProgress.reviewQueue[0]!.targetLexemeIds,
+      });
+      expect(resolveReview.mock.calls[0]![0].exerciseDefinitionId).not.toBe(
+        item.exerciseDefinitionId,
+      );
+      expect(
+        recordExerciseAcceptance(
+          sourceProgress,
+          evidence(
+            "sounds-1",
+            sourceExercise.definitionId,
+            "2026-01-02T00:00:00.000Z",
+          ),
+          "review",
+        ).reviewQueue,
+      ).toEqual([]);
+
+      act(() => root.unmount());
+    });
+
+    it("records a retry against the original key without creating an alternate-key attempt", () => {
+      const recordAttempt = vi.fn();
+      const value = contextValue(sourceProgress, { recordAttempt });
+      const item = buildReviewQueueView(sourceProgress, "a1").items[0]!;
+      const prompt = item.prompt;
+      if (prompt.kind !== "choice") throw new Error("fixture assumption failed: choice");
+      const wrongOption = prompt.options.find(
+        (option) => option.id !== prompt.correctOptionId,
+      );
+      if (!wrongOption) throw new Error("wrong alternate option not found");
+      const { container, root } = mount(value);
+
+      act(() => reviewButton(container).click());
+      const input = container.querySelector<HTMLInputElement>(
+        `input[value="${wrongOption.id}"]`,
+      );
+      if (!input) throw new Error("wrong alternate option not found");
+      act(() => input.click());
+      submit(container);
+
+      expect(recordAttempt).toHaveBeenCalledTimes(1);
+      expect(recordAttempt).toHaveBeenCalledWith({
+        lessonId: "sounds-1",
+        exerciseDefinitionId: sourceExercise.definitionId,
+        outcome: "retry",
+        targetConceptIds: sourceProgress.reviewQueue[0]!.targetConceptIds,
+        targetLexemeIds: sourceProgress.reviewQueue[0]!.targetLexemeIds,
+      });
+      expect(recordAttempt.mock.calls[0]![0].exerciseDefinitionId).not.toBe(
+        item.exerciseDefinitionId,
+      );
+      const retried = recordExerciseMistake(
+        sourceProgress,
+        evidence("sounds-1", sourceExercise.definitionId, "2026-01-02T00:00:00.000Z"),
+      );
+      expect(retried.reviewQueue).toHaveLength(1);
+      expect(retried.reviewQueue[0]?.reviewKey).toBe(sourceProgress.reviewQueue[0]?.reviewKey);
+
+      act(() => root.unmount());
+    });
   });
 
   it("renders each entry with a deep link back to its lesson", () => {
@@ -281,5 +495,23 @@ describe("ReviewQueue — level-scoped A2 surface (Phase 3 Task 8 spec-fix, BLOC
     ]);
     const html = render(contextValue(populated));
     expect(html).toContain(lessonPath("introductions", "introductions-1"));
+  });
+
+  it("keeps an opened A2 review on its original definition without A1 function metadata", () => {
+    const progressV4 = progressV4WithA2Review();
+    const value = contextValue(emptyProgress(), { progressV4 });
+    const item = buildReviewQueueView(progressV4.levels.a2, "a2").items[0]!;
+    const { container, root } = mount(value, { level: "a2" });
+
+    act(() => reviewButton(container).click());
+
+    expect(item.exerciseDefinitionId).toBe(item.sourceExerciseDefinitionId);
+    expect(
+      container.querySelector<HTMLElement>(".lesson-exercise")?.hasAttribute(
+        "data-practice-function",
+      ),
+    ).toBe(false);
+
+    act(() => root.unmount());
   });
 });

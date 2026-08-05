@@ -25,7 +25,7 @@ import {
   A1_PHONETIC_PRACTICE_MAX_REUSE,
   A1_PHONETIC_PRACTICE_MIN,
   A1_PHONETIC_PRACTICE_MIN_UNIQUE,
-  A1_ROUND_TARGET_COUNT,
+  A1_ROUND_TARGET_COUNTS,
   assembleA1Slice,
   AuthoringError,
   defineA1Lesson,
@@ -348,12 +348,12 @@ const FORM: FormSelection = {
 
 const DIVERSITY: LessonDiversityConstraints = {
   modelCountRange: [8, 8],
-  exerciseCountRange: [10, 10],
+  exerciseCountRange: [4, 4],
   minFamilies: 1,
   minPredicates: 3,
   minRoles: 3,
   minContexts: 2,
-  minUniqueTargets: 5,
+  minUniqueTargets: 4,
   maxTargetReuse: 2,
   minTransferExercises: 2,
   requireControlledConstruction: true,
@@ -372,7 +372,7 @@ function practice(lessonId: string): LessonPracticeDefinition {
       candidateVariantIds: models(`${lessonId}-r1`, 6),
       selectionPolicyId: "a1-policy",
       exerciseKinds: ["completion", "choice"],
-      targetCount: 5,
+      targetCount: 2,
     },
     roundTwo: {
       id: `${lessonId}-round-2`,
@@ -380,7 +380,7 @@ function practice(lessonId: string): LessonPracticeDefinition {
       candidateVariantIds: models(`${lessonId}-r2`, 6),
       selectionPolicyId: "a1-policy",
       exerciseKinds: ["constrained-construction", "transformation"],
-      targetCount: 5,
+      targetCount: 2,
     },
   };
 }
@@ -423,7 +423,7 @@ function phoneticRecipe(
       (_, i) => `${id}-contrast-${i + 1}`,
     ),
     practiceTargetRefs: Array.from(
-      { length: 10 },
+      { length: 4 },
       (_, i) => `${id}-target-${i + 1}`,
     ),
     outcomeCopyId: `a1-outcome-${id}`,
@@ -506,11 +506,11 @@ describe("defineA1Lesson — gates", () => {
     }
   });
 
-  it("rejects a round whose target count is not five", () => {
+  it("rejects a round whose target count does not match its configured round", () => {
     const p = practice("introductions-1");
     const broken: LessonPracticeDefinition = {
       ...p,
-      roundTwo: { ...p.roundTwo, targetCount: 4 },
+      roundTwo: { ...p.roundTwo, targetCount: 3 },
     };
     try {
       defineA1Lesson(instructionalRecipe({ practice: broken }));
@@ -518,7 +518,7 @@ describe("defineA1Lesson — gates", () => {
     } catch (error) {
       expect((error as AuthoringError).code).toBe("round-shape");
     }
-    expect(A1_ROUND_TARGET_COUNT).toBe(5);
+    expect(A1_ROUND_TARGET_COUNTS).toEqual([2, 2]);
   });
 
   it("rejects duplicate candidate target refs within a round", () => {
@@ -625,16 +625,16 @@ describe("defineA1PhoneticLesson — gates and thresholds", () => {
     }
   });
 
-  it("exposes the practice-ref thresholds (8-12, ≥5 unique, ≤2 reuse)", () => {
-    expect(A1_PHONETIC_PRACTICE_MIN).toBe(8);
-    expect(A1_PHONETIC_PRACTICE_MAX).toBe(12);
-    expect(A1_PHONETIC_PRACTICE_MIN_UNIQUE).toBe(5);
-    expect(A1_PHONETIC_PRACTICE_MAX_REUSE).toBe(2);
+  it("exposes the exact four, unique generated-practice target contract", () => {
+    expect(A1_PHONETIC_PRACTICE_MIN).toBe(4);
+    expect(A1_PHONETIC_PRACTICE_MAX).toBe(4);
+    expect(A1_PHONETIC_PRACTICE_MIN_UNIQUE).toBe(4);
+    expect(A1_PHONETIC_PRACTICE_MAX_REUSE).toBe(1);
   });
 
-  it("rejects fewer than eight practice target refs", () => {
+  it("rejects fewer than four practice target refs", () => {
     const few = phoneticRecipe({
-      practiceTargetRefs: Array.from({ length: 7 }, (_, i) => `t-${i}`),
+      practiceTargetRefs: Array.from({ length: 3 }, (_, i) => `t-${i}`),
     });
     try {
       defineA1PhoneticLesson(few);
@@ -644,9 +644,9 @@ describe("defineA1PhoneticLesson — gates and thresholds", () => {
     }
   });
 
-  it("rejects more than twelve practice target refs", () => {
+  it("rejects more than four practice target refs", () => {
     const many = phoneticRecipe({
-      practiceTargetRefs: Array.from({ length: 13 }, (_, i) => `t-${i}`),
+      practiceTargetRefs: Array.from({ length: 5 }, (_, i) => `t-${i}`),
     });
     try {
       defineA1PhoneticLesson(many);
@@ -656,10 +656,8 @@ describe("defineA1PhoneticLesson — gates and thresholds", () => {
     }
   });
 
-  it("rejects fewer than five unique practice target refs", () => {
-    // Eight refs, four distinct glyphs each used twice: count and reuse are
-    // both legal, only the unique-shortfall gate should fire.
-    const refs = ["a", "a", "b", "b", "c", "c", "d", "d"];
+  it("rejects repeated generated-practice target refs", () => {
+    const refs = ["a", "a", "b", "c"];
     try {
       defineA1PhoneticLesson(phoneticRecipe({ practiceTargetRefs: refs }));
       throw new Error("expected throw");
@@ -668,20 +666,8 @@ describe("defineA1PhoneticLesson — gates and thresholds", () => {
     }
   });
 
-  it("rejects a practice target ref reused more than twice", () => {
-    // Eight refs with six distinct glyphs (≥5 unique) but one used three times.
-    const refs = ["a", "a", "a", "b", "c", "d", "e", "f"];
-    try {
-      defineA1PhoneticLesson(phoneticRecipe({ practiceTargetRefs: refs }));
-      throw new Error("expected throw");
-    } catch (error) {
-      expect((error as AuthoringError).code).toBe("practice-ref-reuse");
-    }
-  });
-
-  it("accepts practice target refs reused up to twice (no blanket uniqueness)", () => {
-    // Ten refs, eight distinct, two used twice: within all three thresholds.
-    const refs = ["a", "a", "b", "b", "c", "d", "e", "f", "g", "h"];
+  it("accepts exactly four unique generated-practice target refs", () => {
+    const refs = ["a", "b", "c", "d"];
     const defined = defineA1PhoneticLesson(
       phoneticRecipe({ practiceTargetRefs: refs }),
     );

@@ -167,10 +167,10 @@ describe("ProgressContext V4 exposure (Phase 2 Task 6)", () => {
     });
   });
 
-  it("records practiced Can-do evidence once a phonetic lesson's 10 real exercises are all attempted (I1 progress/review integration)", async () => {
+  it("records practiced Can-do evidence once a phonetic lesson's four selected exercises are all attempted", async () => {
     await withMountedProvider({}, async (get) => {
       const model = getLessonExercises("sounds-1")!;
-      expect(model.exercises.length).toBe(10);
+      expect(model.exercises.length).toBe(4);
 
       await acceptAllExercises(get, "sounds-1");
 

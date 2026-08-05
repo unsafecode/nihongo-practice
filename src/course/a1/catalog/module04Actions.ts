@@ -3,7 +3,8 @@
  *
  * Four instructional lessons that make the productive action verbs speakable:
  * present-tense object actions (を), action place (で) and destination (に),
- * companions (と) and recipients (に), and the object-transfer verbs. Subjects
+ * recipients (に), and the object-transfer verbs. Companion と is staged later
+ * with the people vocabulary. Subjects
  * are dropped whenever Japanese would drop them (pro-drop first person) and
  * named only when a third party is introduced — never pronoun-stuffed.
  *
@@ -16,7 +17,6 @@
 
 import { A1_MODULE_MANIFEST } from "../manifest";
 import {
-  A1_CONCEPT_COMPANION_TO,
   A1_CONCEPT_LOCATION_PARTICLE,
   A1_CONCEPT_OBJECT_WO,
   A1_CONCEPT_RECIPIENT_NI,
@@ -45,12 +45,6 @@ const loc = (subject: string, predicate: string, location: string) => ({
   predicate,
   location,
 });
-// `<subject> <companion> と いきます` (accompany).
-const comp = (subject: string, companion: string) => ({
-  subject,
-  predicate: "a1-value-accompany",
-  companion,
-});
 // `<subject> <recipient> に ききます` (ask).
 const ask = (subject: string, recipient: string) => ({
   subject,
@@ -72,23 +66,23 @@ const lesson1: A1BuiltLesson = buildA1InstructionalLesson({
   primaryCanDoId: "a1-can-do-actions",
   supportingCanDoIds: ["a1-can-do-daily-life"],
   introducedConceptIds: [A1_CONCEPT_TOPIC_WA, A1_CONCEPT_OBJECT_WO],
-  introducedSenseIds: ["a1-sense-eat", "a1-sense-drink", "a1-sense-read"],
+  introducedSenseIds: ["a1-sense-eat", "a1-sense-drink", "a1-sense-read", "a1-sense-do"],
   models: [
     { id: "actions-1-m1", family: "a1-family-object-action", context: "a1-context-cafe", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: obj("a1-value-yuki", "a1-value-eat", "a1-value-obj-sushi"), translation: L("Yuki eats sushi.", "Yuki mangia il sushi.") },
-    { id: "actions-1-m2", family: "a1-family-object-action", context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-eat", "a1-value-obj-ramen"), translation: L("I eat ramen.", "Mangio il ramen.") },
+    { id: "actions-1-m2", family: "a1-family-object-action", context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-eat", "a1-value-obj-mikan"), translation: L("I eat a mandarin orange.", "Mangio un mandarino.") },
     { id: "actions-1-m3", family: "a1-family-object-action", context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-drink", "a1-value-obj-coffee"), translation: L("I drink coffee.", "Bevo il caffè.") },
-    { id: "actions-1-m4", family: "a1-family-object-action", context: "a1-context-cafe", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: obj("a1-value-mina", "a1-value-drink", "a1-value-obj-tea"), translation: L("Mina drinks tea.", "Mina beve il tè.") },
+    { id: "actions-1-m4", family: "a1-family-object-action", context: "a1-context-cafe", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: obj("a1-value-mina", "a1-value-drink", "a1-value-obj-coffee"), translation: L("Mina drinks coffee.", "Mina beve il caffè.") },
     { id: "actions-1-m5", family: "a1-family-object-action", context: "a1-context-classroom", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: obj("a1-value-yuki", "a1-value-read", "a1-value-obj-book"), translation: L("Yuki reads a book.", "Yuki legge un libro.") },
-    { id: "actions-1-m6", family: "a1-family-object-action", context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-read", "a1-value-obj-newspaper"), translation: L("I read the newspaper.", "Leggo il giornale.") },
-    { id: "actions-1-m7", family: "a1-family-object-action", context: "a1-context-cafe", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: obj("a1-value-ken", "a1-value-eat", "a1-value-obj-bread"), translation: L("Ken eats bread.", "Ken mangia il pane.") },
-    { id: "actions-1-m8", family: "a1-family-object-action", context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-drink", "a1-value-obj-water"), translation: L("I drink water.", "Bevo l'acqua.") },
+    { id: "actions-1-m6", family: "a1-family-object-action", context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-read", "a1-value-obj-book"), translation: L("I read a book.", "Leggo un libro.") },
+    { id: "actions-1-m7", family: "a1-family-object-action", context: "a1-context-classroom", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: obj("a1-value-yuki", "a1-value-do", "a1-value-obj-homework"), translation: L("Yuki does homework.", "Yuki fa i compiti.") },
+    { id: "actions-1-m8", family: "a1-family-object-action", context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-do", "a1-value-obj-homework"), translation: L("I do homework.", "Faccio i compiti.") },
   ],
   transfers: [
     { id: "actions-1-t1", family: "a1-family-object-action", context: "a1-context-classroom", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: obj("a1-value-mina", "a1-value-read", "a1-value-obj-book"), translation: L("Mina reads a book.", "Mina legge un libro.") },
     { id: "actions-1-t2", family: "a1-family-object-action", context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-eat", "a1-value-obj-sushi"), translation: L("I eat sushi.", "Mangio il sushi.") },
     { id: "actions-1-t3", family: "a1-family-object-action", context: "a1-context-cafe", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: obj("a1-value-ken", "a1-value-drink", "a1-value-obj-coffee"), translation: L("Ken drinks coffee.", "Ken beve il caffè.") },
-    { id: "actions-1-t4", family: "a1-family-object-action", context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-read", "a1-value-obj-book"), translation: L("I read a book.", "Leggo un libro.") },
-    { id: "actions-1-t5", family: "a1-family-object-action", context: "a1-context-cafe", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: obj("a1-value-mina", "a1-value-eat", "a1-value-obj-ramen"), translation: L("Mina eats ramen.", "Mina mangia il ramen.") },
+    { id: "actions-1-t4", family: "a1-family-object-action", context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-read", "a1-value-obj-book"), translation: L("I read a book at the café.", "Leggo un libro al bar.") },
+    { id: "actions-1-t5", family: "a1-family-object-action", context: "a1-context-cafe", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: obj("a1-value-mina", "a1-value-eat", "a1-value-obj-mikan"), translation: L("Mina eats a mandarin orange.", "Mina mangia un mandarino.") },
   ],
 });
 
@@ -103,28 +97,28 @@ const lesson2: A1BuiltLesson = buildA1InstructionalLesson({
   primaryCanDoId: "a1-can-do-actions",
   supportingCanDoIds: ["a1-can-do-daily-life"],
   introducedConceptIds: [A1_CONCEPT_TOPIC_WA, A1_CONCEPT_LOCATION_PARTICLE],
-  introducedSenseIds: ["a1-sense-go", "a1-sense-come"],
+  introducedSenseIds: ["a1-sense-go", "a1-sense-come", "a1-sense-live", "a1-sense-work"],
   models: [
-    { id: "actions-2-m1", family: "a1-family-location-action", context: "a1-context-station", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: loc("a1-value-yuki", "a1-value-go", "a1-value-loc-station"), translation: L("Yuki goes to the station.", "Yuki va alla stazione.") },
+    { id: "actions-2-m1", family: "a1-family-location-action", context: "a1-context-station", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: loc("a1-value-yuki", "a1-value-go", "a1-value-loc-library"), translation: L("Yuki goes to the library.", "Yuki va in biblioteca.") },
     { id: "actions-2-m2", family: "a1-family-location-action", context: "a1-context-station", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-go", "a1-value-loc-school"), translation: L("I go to school.", "Vado a scuola.") },
-    { id: "actions-2-m3", family: "a1-family-location-action", context: "a1-context-station", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: loc("a1-value-mina", "a1-value-come", "a1-value-loc-library"), translation: L("Mina comes to the library.", "Mina viene in biblioteca.") },
+    { id: "actions-2-m3", family: "a1-family-location-action", context: "a1-context-station", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: loc("a1-value-mina", "a1-value-come", "a1-value-loc-cafe"), translation: L("Mina comes to the café.", "Mina viene al caffè.") },
     { id: "actions-2-m4", family: "a1-family-location-action", context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-come", "a1-value-loc-cafe"), translation: L("I come to the café.", "Vengo al caffè.") },
-    { id: "actions-2-m5", family: "a1-family-location-action", context: "a1-context-station", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: loc("a1-value-ken", "a1-value-go", "a1-value-loc-shop"), translation: L("Ken goes to the shop.", "Ken va al negozio.") },
-    { id: "actions-2-m6", family: "a1-family-location-action", context: "a1-context-station", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-come", "a1-value-loc-park"), translation: L("I come to the park.", "Vengo al parco.") },
+    { id: "actions-2-m5", family: "a1-family-location-action", context: "a1-context-first-meeting", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: loc("a1-value-yuki", "a1-value-live", "a1-value-loc-tokyo"), translation: L("Yuki lives in Tokyo.", "Yuki vive a Tokyo.") },
+    { id: "actions-2-m6", family: "a1-family-location-action", context: "a1-context-first-meeting", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-live", "a1-value-loc-osaka"), translation: L("I live in Osaka.", "Vivo a Osaka.") },
     { id: "actions-2-m7", family: "a1-family-location-action", context: "a1-context-workplace", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: loc("a1-value-ken", "a1-value-work", "a1-value-loc-company"), translation: L("Ken works at the company.", "Ken lavora in azienda.") },
-    { id: "actions-2-m8", family: "a1-family-location-action", context: "a1-context-workplace", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-work", "a1-value-loc-restaurant"), translation: L("I work at a restaurant.", "Lavoro in un ristorante.") },
+    { id: "actions-2-m8", family: "a1-family-location-action", context: "a1-context-cafe", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-work", "a1-value-loc-cafe"), translation: L("I work at a café.", "Lavoro in un caffè.") },
   ],
   transfers: [
-    { id: "actions-2-t1", family: "a1-family-location-action", context: "a1-context-station", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-go", "a1-value-loc-shop"), translation: L("I go to the shop.", "Vado al negozio.") },
+    { id: "actions-2-t1", family: "a1-family-location-action", context: "a1-context-town", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-go", "a1-value-loc-school"), translation: L("I go to school.", "Vado a scuola.") },
     { id: "actions-2-t2", family: "a1-family-location-action", context: "a1-context-station", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: loc("a1-value-yuki", "a1-value-come", "a1-value-loc-library"), translation: L("Yuki comes to the library.", "Yuki viene in biblioteca.") },
-    { id: "actions-2-t3", family: "a1-family-location-action", context: "a1-context-station", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: loc("a1-value-mina", "a1-value-go", "a1-value-loc-station"), translation: L("Mina goes to the station.", "Mina va alla stazione.") },
-    { id: "actions-2-t4", family: "a1-family-location-action", context: "a1-context-station", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-go", "a1-value-loc-restaurant"), translation: L("I go to a restaurant.", "Vado al ristorante.") },
+    { id: "actions-2-t3", family: "a1-family-location-action", context: "a1-context-station", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: loc("a1-value-mina", "a1-value-go", "a1-value-loc-library"), translation: L("Mina goes to the library.", "Mina va in biblioteca.") },
+    { id: "actions-2-t4", family: "a1-family-location-action", context: "a1-context-station", subjectReferent: SELF, subjectRealization: "omitted", slots: loc(WATASHI, "a1-value-go", "a1-value-loc-cafe"), translation: L("I go to a café.", "Vado in un caffè.") },
     { id: "actions-2-t5", family: "a1-family-location-action", context: "a1-context-workplace", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: loc("a1-value-mina", "a1-value-work", "a1-value-loc-company"), translation: L("Mina works at the company.", "Mina lavora in azienda.") },
   ],
 });
 
 // ---------------------------------------------------------------------------
-// Lesson actions-3 — accompany (と) / ask (に) / buy (を)
+// Lesson actions-3 — study (を) / ask (に) / buy (を)
 // ---------------------------------------------------------------------------
 
 const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
@@ -135,26 +129,25 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
   supportingCanDoIds: ["a1-can-do-daily-life"],
   introducedConceptIds: [
     A1_CONCEPT_TOPIC_WA,
-    A1_CONCEPT_COMPANION_TO,
     A1_CONCEPT_RECIPIENT_NI,
     A1_CONCEPT_OBJECT_WO,
   ],
-  introducedSenseIds: ["a1-sense-accompany", "a1-sense-ask", "a1-sense-buy"],
+  introducedSenseIds: ["a1-sense-study", "a1-sense-ask", "a1-sense-buy"],
   models: [
-    { id: "actions-3-m1", family: "a1-family-companion-action", context: "a1-context-first-meeting", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: comp("a1-value-yuki", "a1-value-companion-friend"), translation: L("Yuki goes with a friend.", "Yuki va con un amico.") },
-    { id: "actions-3-m2", family: "a1-family-companion-action", context: "a1-context-first-meeting", subjectReferent: SELF, subjectRealization: "omitted", slots: comp(WATASHI, "a1-value-companion-classmate"), translation: L("I go with a classmate.", "Vado con un compagno di classe.") },
+    { id: "actions-3-m1", family: "a1-family-object-action", context: "a1-context-classroom", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: obj("a1-value-yuki", "a1-value-study", "a1-value-obj-japanese"), translation: L("Yuki studies Japanese.", "Yuki studia giapponese.") },
+    { id: "actions-3-m2", family: "a1-family-recipient-action", context: "a1-context-first-meeting", subjectReferent: SELF, subjectRealization: "omitted", slots: ask(WATASHI, "a1-value-recipient-teacher"), translation: L("I ask the teacher.", "Chiedo all'insegnante.") },
     { id: "actions-3-m3", family: "a1-family-recipient-action", context: "a1-context-classroom", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: ask("a1-value-mina", "a1-value-recipient-teacher"), translation: L("Mina asks the teacher.", "Mina chiede all'insegnante.") },
     { id: "actions-3-m4", family: "a1-family-recipient-action", context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", slots: ask(WATASHI, "a1-value-recipient-clerk"), translation: L("I ask the clerk.", "Chiedo al commesso.") },
     { id: "actions-3-m5", family: "a1-family-object-action", context: "a1-context-shop", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: obj("a1-value-ken", "a1-value-buy", "a1-value-obj-book"), translation: L("Ken buys a book.", "Ken compra un libro.") },
-    { id: "actions-3-m6", family: "a1-family-object-action", context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-buy", "a1-value-obj-bread"), translation: L("I buy bread.", "Compro il pane.") },
-    { id: "actions-3-m7", family: "a1-family-companion-action", context: "a1-context-first-meeting", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: comp("a1-value-ken", "a1-value-companion-friend"), translation: L("Ken goes with a friend.", "Ken va con un amico.") },
-    { id: "actions-3-m8", family: "a1-family-object-action", context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-buy", "a1-value-obj-coffee"), translation: L("I buy coffee.", "Compro il caffè.") },
+    { id: "actions-3-m6", family: "a1-family-object-action", context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-buy", "a1-value-obj-are"), translation: L("I buy that over there.", "Compro quello laggiù.") },
+    { id: "actions-3-m7", family: "a1-family-object-action", context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-study", "a1-value-obj-japanese"), translation: L("I study Japanese.", "Studio giapponese.") },
+    { id: "actions-3-m8", family: "a1-family-object-action", context: "a1-context-shop", subjectReferent: "a1-referent-classmate", subjectRealization: "explicit", slots: obj("a1-value-classmate-subject", "a1-value-buy", "a1-value-obj-coffee"), translation: L("The classmate buys coffee.", "Il compagno di classe compra il caffè.") },
   ],
   transfers: [
-    { id: "actions-3-t1", family: "a1-family-companion-action", context: "a1-context-first-meeting", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: comp("a1-value-mina", "a1-value-companion-classmate"), translation: L("Mina goes with a classmate.", "Mina va con un compagno di classe.") },
+    { id: "actions-3-t1", family: "a1-family-object-action", context: "a1-context-classroom", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: obj("a1-value-mina", "a1-value-study", "a1-value-obj-japanese"), translation: L("Mina studies Japanese.", "Mina studia giapponese.") },
     { id: "actions-3-t2", family: "a1-family-recipient-action", context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", slots: ask(WATASHI, "a1-value-recipient-teacher"), translation: L("I ask the teacher.", "Chiedo all'insegnante.") },
-    { id: "actions-3-t3", family: "a1-family-object-action", context: "a1-context-shop", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: obj("a1-value-mina", "a1-value-buy", "a1-value-obj-newspaper"), translation: L("Mina buys a newspaper.", "Mina compra un giornale.") },
-    { id: "actions-3-t4", family: "a1-family-companion-action", context: "a1-context-first-meeting", subjectReferent: SELF, subjectRealization: "omitted", slots: comp(WATASHI, "a1-value-companion-friend"), translation: L("I go with a friend.", "Vado con un amico.") },
+    { id: "actions-3-t3", family: "a1-family-object-action", context: "a1-context-shop", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: obj("a1-value-mina", "a1-value-buy", "a1-value-obj-book"), translation: L("Mina buys a book.", "Mina compra un libro.") },
+    { id: "actions-3-t4", family: "a1-family-recipient-action", context: "a1-context-town", subjectReferent: SELF, subjectRealization: "omitted", slots: ask(WATASHI, "a1-value-recipient-clerk"), translation: L("I ask the clerk.", "Chiedo al commesso.") },
     { id: "actions-3-t5", family: "a1-family-object-action", context: "a1-context-shop", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-buy", "a1-value-obj-book"), translation: L("I buy a book.", "Compro un libro.") },
   ],
 });
@@ -185,7 +178,7 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
     { id: "actions-4-t1", family: "a1-family-object-action", context: "a1-context-cafe", subjectReferent: "a1-referent-ken", subjectRealization: "explicit", slots: obj("a1-value-ken", "a1-value-listen", "a1-value-obj-music"), translation: L("Ken listens to music.", "Ken ascolta la musica.") },
     { id: "actions-4-t2", family: "a1-family-object-action", context: "a1-context-cafe", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: obj("a1-value-mina", "a1-value-see", "a1-value-obj-tv"), translation: L("Mina watches TV.", "Mina guarda la TV.") },
     { id: "actions-4-t3", family: "a1-family-object-action", context: "a1-context-classroom", subjectReferent: "a1-referent-yuki", subjectRealization: "explicit", slots: obj("a1-value-yuki", "a1-value-write", "a1-value-obj-letter"), translation: L("Yuki writes a letter.", "Yuki scrive una lettera.") },
-    { id: "actions-4-t4", family: "a1-family-object-action", context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-read", "a1-value-obj-newspaper"), translation: L("I read the newspaper.", "Leggo il giornale.") },
+    { id: "actions-4-t4", family: "a1-family-object-action", context: "a1-context-classroom", subjectReferent: SELF, subjectRealization: "omitted", slots: obj(WATASHI, "a1-value-read", "a1-value-obj-book"), translation: L("I read a book.", "Leggo un libro.") },
     { id: "actions-4-t5", family: "a1-family-object-action", context: "a1-context-cafe", subjectReferent: "a1-referent-mina", subjectRealization: "explicit", slots: obj("a1-value-mina", "a1-value-see", "a1-value-obj-movie"), translation: L("Mina watches a movie.", "Mina guarda un film.") },
   ],
 });
@@ -202,9 +195,12 @@ export const module4VerbUseRecords: readonly VerbUseRecord[] = [
   a1VerbUseRecord({ senseId: "a1-sense-eat", introductionLessonId: "actions-1", introductionVariantIds: ["actions-1-m1", "actions-1-m2"], exerciseRoundId: "actions-1-round-1", exerciseKind: "tile-ordering", exerciseTargetVariantId: "actions-1-m1" }),
   a1VerbUseRecord({ senseId: "a1-sense-drink", introductionLessonId: "actions-1", introductionVariantIds: ["actions-1-m4", "actions-1-m3"], exerciseRoundId: "actions-1-round-1", exerciseKind: "tile-ordering", exerciseTargetVariantId: "actions-1-m4" }),
   a1VerbUseRecord({ senseId: "a1-sense-read", introductionLessonId: "actions-1", introductionVariantIds: ["actions-1-m5", "actions-1-m6"], exerciseRoundId: "actions-1-round-1", exerciseKind: "tile-ordering", exerciseTargetVariantId: "actions-1-m5" }),
+  a1VerbUseRecord({ senseId: "a1-sense-do", introductionLessonId: "actions-1", introductionVariantIds: ["actions-1-m7", "actions-1-m8"], exerciseRoundId: "actions-1-round-1", exerciseKind: "tile-ordering", exerciseTargetVariantId: "actions-1-m7" }),
   a1VerbUseRecord({ senseId: "a1-sense-go", introductionLessonId: "actions-2", introductionVariantIds: ["actions-2-m1", "actions-2-m2"], exerciseRoundId: "actions-2-round-1", exerciseKind: "tile-ordering", exerciseTargetVariantId: "actions-2-m1" }),
   a1VerbUseRecord({ senseId: "a1-sense-come", introductionLessonId: "actions-2", introductionVariantIds: ["actions-2-m3", "actions-2-m4"], exerciseRoundId: "actions-2-round-1", exerciseKind: "tile-ordering", exerciseTargetVariantId: "actions-2-m3" }),
-  a1VerbUseRecord({ senseId: "a1-sense-accompany", introductionLessonId: "actions-3", introductionVariantIds: ["actions-3-m1", "actions-3-m2"], exerciseRoundId: "actions-3-round-1", exerciseKind: "tile-ordering", exerciseTargetVariantId: "actions-3-m1" }),
+  a1VerbUseRecord({ senseId: "a1-sense-live", introductionLessonId: "actions-2", introductionVariantIds: ["actions-2-m5", "actions-2-m6"], exerciseRoundId: "actions-2-round-1", exerciseKind: "tile-ordering", exerciseTargetVariantId: "actions-2-m5" }),
+  a1VerbUseRecord({ senseId: "a1-sense-work", introductionLessonId: "actions-2", introductionVariantIds: ["actions-2-m7", "actions-2-m8"], exerciseRoundId: "actions-2-round-1", exerciseKind: "tile-ordering", exerciseTargetVariantId: "actions-2-m7" }),
+  a1VerbUseRecord({ senseId: "a1-sense-study", introductionLessonId: "actions-3", introductionVariantIds: ["actions-3-m1", "actions-3-m7"], exerciseRoundId: "actions-3-round-1", exerciseKind: "tile-ordering", exerciseTargetVariantId: "actions-3-m1" }),
   a1VerbUseRecord({ senseId: "a1-sense-ask", introductionLessonId: "actions-3", introductionVariantIds: ["actions-3-m3", "actions-3-m4"], exerciseRoundId: "actions-3-round-1", exerciseKind: "tile-ordering", exerciseTargetVariantId: "actions-3-m3" }),
   a1VerbUseRecord({ senseId: "a1-sense-buy", introductionLessonId: "actions-3", introductionVariantIds: ["actions-3-m5", "actions-3-m6"], exerciseRoundId: "actions-3-round-1", exerciseKind: "tile-ordering", exerciseTargetVariantId: "actions-3-m5" }),
   a1VerbUseRecord({ senseId: "a1-sense-see", introductionLessonId: "actions-4", introductionVariantIds: ["actions-4-m1", "actions-4-m2"], exerciseRoundId: "actions-4-round-1", exerciseKind: "tile-ordering", exerciseTargetVariantId: "actions-4-m1" }),

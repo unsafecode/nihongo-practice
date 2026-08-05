@@ -38,7 +38,7 @@ import {
   recordExerciseMistake,
   summarizeLevel,
 } from "./progress";
-import { reconcileReviewQueueEntries, reviewKeyFor } from "./reviewQueue";
+import { reviewKeyFor } from "./reviewQueue";
 import { getLessonExercises } from "../components/lessonExerciseModel";
 import { courseModulesByLevel } from "../data/course";
 import type { CourseModule } from "../data/types";
@@ -138,7 +138,19 @@ const LEVEL_RUNTIME: Readonly<Record<CourseLevelId, LevelRuntime>> = {
   },
 };
 
-const COURSE_LEVEL_IDS: readonly CourseLevelId[] = ["a1", "a2"];
+const KNOWN_REVIEW_KEYS_BY_LEVEL: Readonly<
+  Record<CourseLevelId, ReadonlySet<string>>
+> = {
+  a1: LEVEL_RUNTIME.a1.knownReviewKeys,
+  a2: LEVEL_RUNTIME.a2.knownReviewKeys,
+};
+
+const KNOWN_LESSON_IDS_BY_LEVEL: Readonly<
+  Record<CourseLevelId, ReadonlySet<string>>
+> = {
+  a1: LEVEL_RUNTIME.a1.knownLessonIds,
+  a2: LEVEL_RUNTIME.a2.knownLessonIds,
+};
 
 /**
  * The level a lesson belongs to, resolved from the (disjoint) lesson-id
@@ -403,37 +415,22 @@ interface PreparedProgress {
  */
 export function prepareProgress(storage: Storage | null): PreparedProgress {
   const stored = readSetting(storage, STORAGE_KEY);
-  // v1/v2 payloads only ever carried A1 lessons, so the migration
-  // reconciliation uses A1's known lesson ids (v4 payloads ignore this arg).
-  const parsed = parseProgress(stored.value, LEVEL_RUNTIME.a1.knownLessonIds);
+  // v1/v2 payloads only ever carried A1 lessons; V4 catalog normalization
+  // receives both levels' current lesson/review sets. The pure progress module
+  // deliberately does not import this component-layer runtime metadata.
+  const parsed = parseProgress(
+    stored.value,
+    LEVEL_RUNTIME.a1.knownLessonIds,
+    KNOWN_REVIEW_KEYS_BY_LEVEL,
+    KNOWN_LESSON_IDS_BY_LEVEL,
+  );
 
-  // Reconcile each level's review queue against its own known review keys —
-  // an A2 review entry reconciles against A2 exercises, never A1's, and each
-  // level's reconciliation leaves the other level untouched (spec §10.4/§17).
-  let progress = parsed.progress;
-  for (const level of COURSE_LEVEL_IDS) {
-    const levelProgress = progress.levels[level];
-    const reconciled = reconcileReviewQueueEntries(
-      levelProgress.reviewQueue,
-      levelProgress.orphanedReviewKeys,
-      LEVEL_RUNTIME[level].knownReviewKeys,
-    );
-    if (reconciled.changed) {
-      progress = {
-        ...progress,
-        levels: {
-          ...progress.levels,
-          [level]: {
-            ...levelProgress,
-            reviewQueue: reconciled.reviewQueue,
-            orphanedReviewKeys: reconciled.orphanedReviewKeys,
-          },
-        },
-      };
-    }
-  }
-
-  return { progress, corrupted: parsed.corrupted, migrated: parsed.migrated, stored };
+  return {
+    progress: parsed.progress,
+    corrupted: parsed.corrupted,
+    migrated: parsed.migrated,
+    stored,
+  };
 }
 
 export function loadProgress(storage: Storage | null): InitialProgress {
@@ -451,15 +448,13 @@ export function loadProgress(storage: Storage | null): InitialProgress {
   }
 
   if (migrated) {
-    // A v1/v2/v3 payload only ever gets deterministically migrated once: the
-    // migrated v4 is written straight back so every subsequent load sees
-    // schemaVersion 4 directly and passes it through by reference (never
-    // re-running the migration, never re-stamping its notice or
-    // timestamps). If the write fails, the migrated v4 is still returned
-    // for use in memory this session, persistence is reported unavailable,
-    // and the raw v3 (or older) bytes already on disk are left completely
-    // untouched — `writeSetting` either fully replaces the stored value or
-    // throws without touching it, never a partial write.
+    // A legacy schema-v1/v2/v3 payload, legacy V4 catalog, or stale V4 catalog
+    // reconciliation is normalized once and written straight back. Every later
+    // load then sees current schema/catalog data by reference, without
+    // re-stamping evidence or migration timestamps. If the write fails, the
+    // usable normalized state still remains in memory while the raw source
+    // bytes stay untouched — `writeSetting` either fully replaces the stored
+    // value or throws without a partial write.
     const writeResult = persistProgress(storage, progress);
     return {
       progress,
