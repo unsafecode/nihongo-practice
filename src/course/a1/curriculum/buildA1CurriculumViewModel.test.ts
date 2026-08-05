@@ -10,6 +10,7 @@ import {
   buildA1CurriculumViewModel,
   type A1CurriculumViewModel,
 } from "./buildA1CurriculumViewModel";
+import { A1_LESSON_IDS } from "../manifest";
 import { a1LexemeByValueId } from "./lexicon";
 import type { A1LessonContent } from "./types";
 
@@ -265,25 +266,25 @@ describe("buildA1CurriculumViewModel — verb, phonetic, and capstone contracts"
 describe("buildA1CurriculumViewModel — complete A1 coverage", () => {
   it("resolves every one of the 64 curriculum rows in both locales without a partial model", () => {
     for (const locale of LOCALES) {
-      for (const content of Object.values(a1LessonContentById)) {
-        if (!content) continue;
-        const model = expectOk(content.lessonId, locale);
-        expect(model.examples.length, content.lessonId).toBeGreaterThanOrEqual(2);
-        expect(model.examples.length, content.lessonId).toBeLessThanOrEqual(3);
-        expect(model.practice.activities, content.lessonId).toHaveLength(5);
+      for (const lessonId of A1_LESSON_IDS) {
+        const content = contentFor(lessonId);
+        const model = expectOk(lessonId, locale);
+        expect(model.examples.length, lessonId).toBeGreaterThanOrEqual(2);
+        expect(model.examples.length, lessonId).toBeLessThanOrEqual(3);
+        expect(model.practice.activities, lessonId).toHaveLength(5);
         expect(
           model.practice.activities.filter((activity) => activity.interactionKind !== "spoken"),
-          content.lessonId,
+          lessonId,
         ).toHaveLength(4);
-        expect(model.recap.retrievalCue.trim(), content.lessonId).not.toBe("");
+        expect(model.recap.retrievalCue.trim(), lessonId).not.toBe("");
         if (content.newLexemeIds.length === 0) {
-          expect(model.vocabulary.length, content.lessonId).toBeGreaterThanOrEqual(4);
-          expect(model.vocabulary.length, content.lessonId).toBeLessThanOrEqual(6);
-          expect(model.vocabulary.every((entry) => entry.isReview === true), content.lessonId).toBe(
+          expect(model.vocabulary.length, lessonId).toBeGreaterThanOrEqual(4);
+          expect(model.vocabulary.length, lessonId).toBeLessThanOrEqual(6);
+          expect(model.vocabulary.every((entry) => entry.isReview === true), lessonId).toBe(
             true,
           );
         } else {
-          expect(model.vocabulary.map((entry) => entry.id), content.lessonId).toEqual(
+          expect(model.vocabulary.map((entry) => entry.id), lessonId).toEqual(
             content.newLexemeIds,
           );
         }

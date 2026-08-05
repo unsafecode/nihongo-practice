@@ -7,6 +7,7 @@ import {
 } from "../a1/curriculum/catalog";
 import { a1FoundationCatalogs } from "../a1/catalog/catalog";
 import { module1ItemsByLesson, module1Lessons } from "../a1/catalog/module01Sounds";
+import { A1_LESSON_IDS } from "../a1/manifest";
 import { buildA1LessonViewModel } from "../a1/a1LessonViewModel";
 import {
   buildA1PracticeModel,
@@ -152,6 +153,32 @@ describe("buildA1PracticeModel — phonetic targets", () => {
         spokenVariantId: items[4]?.id,
       });
       expect(content.practiceBlueprint.activities).toHaveLength(5);
+    }
+  });
+});
+
+describe("buildA1PracticeModel — complete canonical A1 coverage", () => {
+  it("builds exactly five non-empty activities for every one of the 64 manifest lesson ids", () => {
+    expect(A1_LESSON_IDS).toHaveLength(64);
+
+    for (const lessonId of A1_LESSON_IDS) {
+      const content = a1LessonContentById[lessonId];
+      expect(content, lessonId).toBeDefined();
+      if (!content) continue;
+
+      const model = expectOk(lessonId);
+      expect(model.activities.map((activity) => activity.id), lessonId).toEqual(
+        content.practiceBlueprint.activities.map((activity) => activity.id),
+      );
+      expect(model.activities, lessonId).toHaveLength(5);
+      expect(
+        model.activities.filter((activity) => activity.generatedExercise !== undefined),
+        lessonId,
+      ).toHaveLength(4);
+      expect(model.activities[4]).toMatchObject({
+        function: "listening-speaking",
+        interactionKind: "spoken",
+      });
     }
   });
 });

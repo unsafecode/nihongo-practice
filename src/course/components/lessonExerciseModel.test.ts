@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { courseModules } from "../data/course";
 import { a1FoundationCatalogs } from "../a1/catalog/catalog";
 import { buildA1LessonViewModel } from "../a1/a1LessonViewModel";
 import { a1LessonContentById } from "../a1/curriculum/catalog";
@@ -8,6 +7,7 @@ import {
   module1Lessons,
 } from "../a1/catalog/module01Sounds";
 import { A2_LESSON_IDS } from "../a2/manifest";
+import { A1_LESSON_IDS } from "../a1/manifest";
 import { buildA2FoundationViewModel } from "../a2/view/buildA2LessonViewModel";
 import {
   exampleTokens,
@@ -17,7 +17,7 @@ import {
 
 /**
  * The pure lesson-exercise model (Phase 2 Task 6; design spec §10.1). It
- * resolves the A1 release's 44 semantic lessons' authored practice targets
+ * resolves the A1 release's 60 semantic lessons' authored practice targets
  * into deterministic engine prompts, and separately resolves each of the
  * four phonetic (`sounds-*`) lessons' four selected `A1PhoneticItem`s into
  * deterministic choice/tile-ordering prompts plus their separate spoken
@@ -26,7 +26,7 @@ import {
  * reconstructing a canonical answer in the component layer.
  */
 
-const allLessonIds = courseModules.flatMap((m) => m.lessons.map((l) => l.id));
+const allLessonIds = [...A1_LESSON_IDS];
 const semanticLessonIds = new Set(
   a1FoundationCatalogs.lessons.map((lesson) => lesson.id),
 );
@@ -436,12 +436,17 @@ describe("getLessonExercises — A2 lessons resolve through the same model", () 
 describe("getLessonExercises — complete release coverage", () => {
   it("returns error-free generated exercise models for all 124 A1 and A2 routes", () => {
     const allRouteIds = [...allLessonIds, ...A2_LESSON_IDS];
+    expect(allLessonIds).toEqual(A1_LESSON_IDS);
+    expect(allLessonIds).toHaveLength(64);
+    expect(A2_LESSON_IDS).toHaveLength(60);
     expect(allRouteIds).toHaveLength(124);
     for (const lessonId of allRouteIds) {
       const model = getLessonExercises(lessonId);
       expect(model, lessonId).toBeDefined();
       expect(model?.errors, lessonId).toEqual([]);
-      expect(model?.exercises.length, lessonId).toBeGreaterThan(0);
+      expect(model?.exercises, lessonId).toHaveLength(
+        A1_LESSON_IDS.includes(lessonId) ? 4 : 10,
+      );
     }
   });
 });

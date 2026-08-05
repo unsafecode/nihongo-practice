@@ -108,7 +108,7 @@ function a1ExerciseOfKind(kind: ExercisePrompt["kind"]): GeneratedExercise {
 
 /**
  * A1's own release builder never selects a `"transformation"`-kind exercise
- * (empirically: every one of its 44 semantic lessons generates exactly
+ * (empirically: every one of its 60 semantic lessons generates exactly
  * tile-ordering/choice/completion/constrained-construction). `ExerciseView`'s
  * transformation body is still real, load-bearing production code — used
  * wherever the *legacy* engine's catalog is exercised, e.g. review-queue

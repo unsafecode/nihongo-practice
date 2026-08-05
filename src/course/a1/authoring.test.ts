@@ -156,6 +156,19 @@ describe("A1 manifest — published release 16×4 shape", () => {
         expect(A1_LESSON_MANIFEST[id].contract).toBe("instructional");
       }
     }
+    const contractCounts = A1_LESSON_IDS.reduce<Record<string, number>>(
+      (counts, lessonId) => {
+        const contract = A1_LESSON_MANIFEST[lessonId].contract;
+        counts[contract] = (counts[contract] ?? 0) + 1;
+        return counts;
+      },
+      {},
+    );
+    expect(contractCounts).toEqual({
+      phonetic: 4,
+      instructional: 56,
+      synthesis: 4,
+    });
   });
 
   it("wires each lesson manifest entry to its module, order, and position", () => {

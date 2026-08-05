@@ -8,24 +8,28 @@ SPA statica: nessun account, nessun backend, nessuna analisi, nessun tracker, ne
 
 ## Percorso completo A0→A1
 
-Il percorso guidato è il corso **A0→A1 completo**: **12 moduli in quattro fasi** (Orientati · Costruisci · Naviga · Sintetizza) per un totale di **40 lezioni** compatte da 6 a 10 minuti, che coprono **42 verbi** e **270 vocaboli contestuali**.
+Il percorso guidato è il corso **A0→A1 completo**: **16 moduli in quattro aree** (Suoni · Fondamenti · Situazioni · Sintesi) per un totale di **64 lezioni**. La release comprende **60 lezioni semantiche**, **4 lezioni fonetiche** e **4 capstone** di sintesi guidata.
 
 L'approccio è **hiragana-first con katakana assistita**: i prestiti in katakana (es. コーヒー) mostrano, alla prima esposizione, una lettura in hiragana affiancata (ruby), mai al posto della grafia autentica.
 
-I 12 moduli, in ordine:
+I 16 moduli, in ordine:
 
 1. **Suoni, hiragana e il ponte katakana** — l'alfabeto sillabico, la lettura hiragana e i primi prestiti in katakana
-2. **Presentarsi** — nome, provenienza, lingua, occupazione ed età
-3. **Domande essenziali** — chi, cosa, dove, quando, quale, come e quanto
-4. **Azioni e oggetti** — frasi d'azione cortesi con oggetti e compagni
-5. **Routine, orario e frequenza** — giornata, giorni della settimana, frequenza
-6. **Passato e negativo** — presente/passato, affermativo/negativo
-7. **Luoghi, movimento e trasporti** — particelle di luogo, verbi di spostamento
-8. **Persone, famiglia e relazioni** — relazioni di base, piani condivisi
-9. **Descrizioni, preferenze e meteo** — condizioni familiari, gusti e preferenze
-10. **Acquisti, quantità e richieste** — prezzi, quantità, richieste cortesi
-11. **Esistenza, posizione e bisogni** — あります/います, posizione, bisogni
-12. **Sintesi pratica** — tre prove finali circoscritte: una presentazione, un'uscita quotidiana e una giornata di viaggio
+2. **Fondamenti della frase** — identità, ordine del predicato e riferimenti recuperabili
+3. **Temi e domande** — tema, fuoco e domande essenziali
+4. **Verbi cortesi** — forme dizionario, ます, oggetti e luoghi
+5. **Tempo e movimento** — orari, routine, passato, direzione e trasporto
+6. **Presentarsi** — nome, provenienza, lingua, occupazione ed età
+7. **Domande essenziali** — chi, cosa, dove, quando, quale, come e quanto
+8. **Azioni e oggetti** — frasi d'azione cortesi con oggetti e compagni
+9. **Routine, orario e frequenza** — giornata, giorni della settimana, frequenza
+10. **Passato e negativo** — presente/passato, affermativo/negativo
+11. **Luoghi, movimento e trasporti** — particelle di luogo, verbi di spostamento
+12. **Persone, famiglia e relazioni** — relazioni di base, piani condivisi
+13. **Descrizioni, preferenze e meteo** — condizioni familiari, gusti e preferenze
+14. **Acquisti, quantità e richieste** — prezzi, quantità, richieste cortesi
+15. **Esistenza, posizione e bisogni** — あります/います, posizione, bisogni
+16. **Sintesi pratica** — quattro scenari guidati di sintesi
 
 Ogni lezione combina **regola · confronto · esplorazione guidata · esercizi · riepilogo**. Ogni lezione include da **3 a 5 esercizi deterministici** — riordino di tessere, scelta di particella o desinenza, trasformazione di tempo/polarità, completamento e costruzione guidata da un'intenzione in italiano o inglese. Gli esercizi sono generati da dati condivisi (concetti, lessico ed esempi): nessuna risposta canonica è duplicata nel codice e ogni esercizio resta completamente utilizzabile anche senza voce.
 

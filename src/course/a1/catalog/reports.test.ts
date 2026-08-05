@@ -15,6 +15,52 @@ import { buildA1Reports, a1ReportMarkdown } from "./reports";
 const reports = buildA1Reports();
 
 describe("buildA1Reports – exact level metrics", () => {
+  it("derives four complete area rows from the authored partition and actual module rows", () => {
+    const areas = reports.byArea;
+
+    expect(areas).toHaveLength(4);
+    expect(areas).toEqual([
+      expect.objectContaining({
+        areaId: "sounds",
+        moduleIds: ["sounds"],
+        moduleCount: 1,
+        lessonCount: 4,
+        semanticLessonCount: 0,
+        phoneticLessonCount: 4,
+        capstoneLessonCount: 0,
+        complete: true,
+      }),
+      expect.objectContaining({
+        areaId: "foundations",
+        moduleCount: 4,
+        lessonCount: 16,
+        semanticLessonCount: 16,
+        phoneticLessonCount: 0,
+        capstoneLessonCount: 0,
+        complete: true,
+      }),
+      expect.objectContaining({
+        areaId: "situations",
+        moduleCount: 10,
+        lessonCount: 40,
+        semanticLessonCount: 40,
+        phoneticLessonCount: 0,
+        capstoneLessonCount: 0,
+        complete: true,
+      }),
+      expect.objectContaining({
+        areaId: "synthesis",
+        moduleIds: ["capstones"],
+        moduleCount: 1,
+        lessonCount: 4,
+        semanticLessonCount: 4,
+        phoneticLessonCount: 0,
+        capstoneLessonCount: 4,
+        complete: true,
+      }),
+    ]);
+  });
+
   it("combines 60 semantic + 4 phonetic lessons into 64 routed rows", () => {
     expect(reports.byLesson.length).toBe(64);
     expect(reports.byLesson.filter((row) => row.kind === "semantic").length).toBe(60);
@@ -33,7 +79,11 @@ describe("buildA1Reports – exact level metrics", () => {
     expect(reports.level).toEqual({
       level: "a1",
       moduleCount: 16,
+      areaCount: 4,
       lessonCount: 64,
+      semanticLessonCount: 60,
+      phoneticLessonCount: 4,
+      capstoneLessonCount: 4,
       modelCount: 480,
       exerciseCount: 280,
       transferCount: 120,
@@ -110,6 +160,7 @@ describe("a1ReportMarkdown – stable rendering", () => {
       "Release valid: yes",
       "Foundation complete: yes",
       "## Level",
+      "## Areas",
       "## Modules",
       "## Lessons",
       "## Phonetic detail",

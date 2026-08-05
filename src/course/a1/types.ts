@@ -352,7 +352,7 @@ export interface A1CurriculumValidationError {
  * The structured failure codes the whole-level `validateA1` release gate can
  * report (plan §Task 1 Step 3 / Task 4): manifest agreement, the phonetic
  * contract, capstone no-new-content, level-scope introduction order,
- * route/copy id resolution, and the exact 12×4/48 release counts. This is a
+ * route/copy id resolution, and the exact 16×4/64 release counts. This is a
  * runtime-checkable `readonly` tuple, not merely a compile-time alias, so
  * consumers (and tests) can prove membership rather than assert a type
  * compiles. `validateA1` imports and re-exports this exact vocabulary as
@@ -363,6 +363,11 @@ export const A1_RELEASE_ERROR_CODES = [
   "module-count",
   "lessons-per-module",
   "route-count",
+  // area partition / runtime-map / localized area-copy agreement
+  "area-count",
+  "area-module-membership",
+  "area-order",
+  "area-copy-parity",
   // route id resolution
   "unknown-lesson-id",
   "duplicate-lesson-id",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { lessonPath } from "../../routing/routePaths";
+import { A1_LESSON_IDS, A1_MODULE_IDS } from "../a1/manifest";
 import { courseModules } from "../data/course";
 import type { CourseModule, Lesson, LessonSections } from "../data/types";
 import {
@@ -131,6 +132,10 @@ describe("resolveLessonRoute: canonical match", () => {
     );
 
     expect(routes).toHaveLength(64);
+    expect(routes.map((route) => route.moduleId)).toEqual(
+      A1_MODULE_IDS.flatMap((moduleId) => Array(4).fill(moduleId)),
+    );
+    expect(routes.map((route) => route.lessonId)).toEqual(A1_LESSON_IDS);
     for (const route of routes) {
       const result = resolveLessonRoute(route.moduleId, route.lessonId, courseModules);
       expect(result.kind, `${route.moduleId}/${route.lessonId}`).toBe("match");

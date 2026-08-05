@@ -8,6 +8,7 @@ import {
   A1_LESSON_MANIFEST,
 } from "../manifest";
 import {
+  type A1LessonContract,
   type A1LessonRecipe,
   type A1CurriculumValidationError,
   type A1CurriculumValidationStage,
@@ -15,6 +16,7 @@ import {
 import {
   a1FoundationCatalogs,
   a1FoundationCopy,
+  a1SemanticFoundationCatalogs,
   a1SemanticBuiltLessons,
 } from "../catalog/catalog";
 import { module1ItemsByLesson, type A1PhoneticItem } from "../catalog/module01Sounds";
@@ -39,9 +41,12 @@ import {
 import { resolveLexeme } from "./resolveLexeme";
 import {
   buildA1CurriculumReports,
+  type A1ProductionBuildReport,
   type A1CurriculumReports,
   type A1LessonCurriculumReport,
 } from "./reports";
+import { buildA1CurriculumViewModel } from "./buildA1CurriculumViewModel";
+import { buildA1PracticeModel } from "../../components/a1PracticeModel";
 import {
   phoneticItemForPracticeTarget,
   reviewRetrievalConceptIds,
@@ -112,6 +117,7 @@ interface ResolvedActivityTarget {
 
 interface MutableLessonReport {
   lessonId: string;
+  contract: A1LessonContract;
   newLexemeCount: number;
   introducedLexemeIds: string[];
   usedLexemeIds: string[];
@@ -244,6 +250,105 @@ export function validateReviewRetrievalPair(
   };
 }
 
+function shouldAnalyzeProductionBuilders(
+  overrides: A1CurriculumValidationOverrides,
+): boolean {
+  const supportedOverrides = new Set(["foundationCatalogs", "foundationCopy"]);
+  if (Object.keys(overrides).some((key) => !supportedOverrides.has(key))) {
+    return false;
+  }
+  return (
+    (overrides.foundationCatalogs === undefined ||
+      overrides.foundationCatalogs === a1FoundationCatalogs ||
+      overrides.foundationCatalogs === a1SemanticFoundationCatalogs) &&
+    (overrides.foundationCopy === undefined ||
+      overrides.foundationCopy === a1FoundationCopy)
+  );
+}
+
+function productionBuildReport(
+  push: (error: A1CurriculumValidationError) => void,
+): A1ProductionBuildReport {
+  const semanticLessonIds = A1_LESSON_IDS.filter(
+    (lessonId) => !isPhoneticLesson(lessonId),
+  );
+  let curriculumViewBuildCount = 0;
+  let practiceModelBuildCount = 0;
+
+  for (const lessonId of semanticLessonIds) {
+    for (const locale of ["en", "it"] as const) {
+      curriculumViewBuildCount += 1;
+      const view = buildA1CurriculumViewModel(lessonId, locale);
+      if (!view.ok) {
+        push({
+          code: "missing-instructional-content",
+          stage: "realization",
+          lessonId,
+          id: lessonId,
+          referenceId: view.error.referenceId,
+          dimension: `production-view:${locale}:${view.error.code}`,
+        });
+        continue;
+      }
+      const spoken = view.model.practice.activities.at(-1);
+      if (
+        view.model.vocabulary.length === 0 ||
+        view.model.note.id.length === 0 ||
+        view.model.examples.length < 2 ||
+        view.model.examples.length > 3 ||
+        view.model.practice.activities.length !== 5 ||
+        spoken?.interactionKind !== "spoken"
+      ) {
+        push({
+          code: "missing-instructional-content",
+          stage: "realization",
+          lessonId,
+          id: lessonId,
+          dimension: `production-view:${locale}:partial-model`,
+        });
+      }
+    }
+
+    practiceModelBuildCount += 1;
+    const practice = buildA1PracticeModel(lessonId);
+    if (!practice.ok) {
+      push({
+        code: "missing-instructional-content",
+        stage: "practice",
+        lessonId,
+        id: lessonId,
+        referenceId: practice.error.referenceId,
+        dimension: `production-practice:${practice.error.code}`,
+      });
+      continue;
+    }
+    const spoken = practice.model.activities.at(-1);
+    if (
+      practice.model.activities.length !== 5 ||
+      practice.model.activities.filter(
+        (activity) => activity.generatedExercise !== undefined,
+      ).length !== 4 ||
+      spoken?.interactionKind !== "spoken" ||
+      spoken.spokenVariantId === undefined
+    ) {
+      push({
+        code: "missing-instructional-content",
+        stage: "practice",
+        lessonId,
+        id: lessonId,
+        dimension: "production-practice:partial-model",
+      });
+    }
+  }
+
+  return {
+    analyzed: true,
+    semanticLessonCount: semanticLessonIds.length,
+    curriculumViewBuildCount,
+    practiceModelBuildCount,
+  };
+}
+
 /**
  * Exhaustive, non-throwing learner-contract validation over the frozen A1
  * catalogs (or complete replacement fixtures). Structural catalog import
@@ -264,6 +369,7 @@ export function validateA1Curriculum(
       lessonId,
       {
         lessonId,
+        contract: A1_LESSON_MANIFEST[lessonId]!.contract,
         newLexemeCount: 0,
         introducedLexemeIds: [],
         usedLexemeIds: [],
@@ -787,10 +893,20 @@ export function validateA1Curriculum(
     report.usedLexemeIds = [...usedLexemeIds].sort(compare);
   }
 
+  const productionBuilds = shouldAnalyzeProductionBuilders(overrides)
+    ? productionBuildReport(push)
+    : {
+        analyzed: false,
+        semanticLessonCount: 0,
+        curriculumViewBuildCount: 0,
+        practiceModelBuildCount: 0,
+      };
+
   const rows: A1LessonCurriculumReport[] = A1_LESSON_IDS.map((lessonId) => {
     const row = reportByLesson.get(lessonId)!;
     return {
       lessonId: row.lessonId,
+      contract: row.contract,
       newLexemeCount: row.newLexemeCount,
       introducedLexemeIds: row.introducedLexemeIds,
       usedLexemeIds: row.usedLexemeIds,
@@ -812,7 +928,11 @@ export function validateA1Curriculum(
   return {
     valid: sortedErrors.length === 0,
     errors: sortedErrors,
-    reports: buildA1CurriculumReports({ rows, errors: sortedErrors }),
+    reports: buildA1CurriculumReports({
+      rows,
+      errors: sortedErrors,
+      productionBuilds,
+    }),
   };
 }
 

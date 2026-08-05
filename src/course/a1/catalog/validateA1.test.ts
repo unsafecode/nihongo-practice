@@ -12,6 +12,7 @@ import {
   validateA1,
   validateA1Release,
   type A1ValidationErrorCode,
+  type ValidateA1Input,
 } from "./validateA1";
 import {
   a1FoundationCatalogs,
@@ -21,11 +22,25 @@ import {
 import { a1CanDosAuthored } from "./canDos";
 import { a1Checkpoint } from "./checkpoint";
 import { a1ReleaseVerbUseRecords } from "./recurrence";
-import { module1ItemsByLesson, module1Lessons, type A1PhoneticItem } from "./module01Sounds";
-import { A1_MANIFEST_SPEC } from "../manifest";
+import {
+  module1ItemsByLesson,
+  module1Lessons,
+  type A1PhoneticItem,
+} from "./module01Sounds";
+import {
+  A1_CAPSTONE_LESSON_IDS,
+  A1_LESSON_IDS,
+  A1_MANIFEST_SPEC,
+  A1_MODULE_IDS,
+} from "../manifest";
+import { A1_AREAS } from "../areas";
+import type { A1CourseArea } from "../types";
 import { A1_RELEASE_ERROR_CODES, type A1ReleaseErrorCode } from "../types";
 import { a1LearningTargetSenses } from "./a1SemanticCatalog";
 import { a1LexemeById } from "../curriculum/lexicon";
+import { courseModules } from "../../data/course";
+import { en as enCourseCopy } from "../../i18n/en";
+import { it as itCourseCopy } from "../../i18n/it";
 
 type Clonable = <T>(value: T) => T;
 const clone: Clonable = (value) => structuredClone(value);
@@ -38,7 +53,7 @@ function codesOf(result: { errors: readonly { code: A1ValidationErrorCode }[] })
 function fullClone(): FoundationCatalogs {
   return clone(a1FoundationCatalogs);
 }
-/** Clone the semantic (44-lesson) catalogs so a test can mutate variants. */
+/** Clone the semantic (60-lesson) catalogs so a test can mutate variants. */
 function semanticClone(): FoundationCatalogs {
   return clone(a1SemanticFoundationCatalogs);
 }
@@ -50,6 +65,23 @@ function verbClone(): VerbUseRecord[] {
 }
 function phoneticItemsClone(): Record<string, A1PhoneticItem[]> {
   return clone(module1ItemsByLesson) as Record<string, A1PhoneticItem[]>;
+}
+function areasClone(): A1CourseArea[] {
+  return clone(A1_AREAS) as A1CourseArea[];
+}
+function runtimeModulesClone() {
+  return clone(courseModules);
+}
+function areaCopyClone() {
+  return {
+    en: clone(enCourseCopy.courseAreas),
+    it: clone(itCourseCopy.courseAreas),
+  };
+}
+function validateWithAreaInputs(
+  input: Pick<ValidateA1Input, "areas" | "runtimeModules" | "areaCopy">,
+) {
+  return validateA1(input);
 }
 
 // ---------------------------------------------------------------------------
@@ -137,6 +169,16 @@ describe("validateA1 – baseline release", () => {
     expect(Object.keys(result.foundationReport.reports.byLesson).length).toBe(60);
   });
 
+  it("guards the canonical 16-module / 64-route release split into 60 semantic, 4 phonetic, and 4 capstone lessons", () => {
+    const result = validateA1Release();
+
+    expect(A1_MODULE_IDS).toHaveLength(16);
+    expect(A1_LESSON_IDS).toHaveLength(64);
+    expect(Object.keys(result.foundationReport.reports.byLesson)).toHaveLength(60);
+    expect(module1Lessons).toHaveLength(4);
+    expect(A1_CAPSTONE_LESSON_IDS).toHaveLength(4);
+  });
+
   it("preserves attributed curriculum failures as exact canonical release codes", () => {
     const result = validateA1({
       curriculumInput: {
@@ -168,13 +210,48 @@ describe("validateA1 – baseline release", () => {
 // ---------------------------------------------------------------------------
 
 describe("validateA1 – structural mutations", () => {
-  it("module-count: fewer than 12 modules", () => {
+  it("module-count: fewer than 16 modules", () => {
     const full = fullClone();
     // Drop a middle (non-capstone, non-final) module.
     (full.modules as unknown as unknown[]).splice(1, 1);
     const result = validateA1({ fullCatalogs: full });
     expect(result.valid).toBe(false);
     expect(codesOf(result)).toContain("module-count");
+  });
+
+  it("reports semantic, phonetic, and capstone count drift from the canonical release split", () => {
+    const semantic = semanticClone();
+    (semantic as unknown as { lessons: FoundationCatalogs["lessons"] }).lessons =
+      semantic.lessons.filter((lesson) => lesson.id !== "capstones-4");
+    const phoneticLessons = clone(module1Lessons).slice(0, 3);
+
+    const result = validateA1({
+      semanticCatalogs: semantic,
+      phoneticLessons,
+    });
+
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "manifest-mismatch",
+          dimension: "semantic-lesson-count",
+          expected: 60,
+          actual: 59,
+        }),
+        expect.objectContaining({
+          code: "phonetic-lesson-mismatch",
+          dimension: "lesson-count",
+          expected: 4,
+          actual: 3,
+        }),
+        expect.objectContaining({
+          code: "capstone-structure",
+          dimension: "semantic-count",
+          expected: 4,
+          actual: 3,
+        }),
+      ]),
+    );
   });
 
   it("lessons-per-module: a module with the wrong lesson count", () => {
@@ -636,6 +713,194 @@ describe("validateA1 – Can-do & checkpoint alignment", () => {
 });
 
 // ---------------------------------------------------------------------------
+// A1 course-area release gate
+// ---------------------------------------------------------------------------
+
+function areaReleaseErrors(result: ReturnType<typeof validateA1>) {
+  return result.errors.filter((error) => error.code.startsWith("area-"));
+}
+
+function expectOnlyAreaReleaseCode(
+  result: ReturnType<typeof validateA1>,
+  code: string,
+  underlyingCode: string,
+  id?: string,
+): void {
+  expect(result.valid).toBe(false);
+  const errors = areaReleaseErrors(result);
+  expect([...new Set(errors.map((error) => error.code))]).toEqual([code]);
+  expect(errors).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        code,
+        underlyingCode,
+        ...(id === undefined ? {} : { id }),
+      }),
+    ]),
+  );
+}
+
+describe("validateA1Release – A1 area integration", () => {
+  it("accepts the independently sourced production areas, runtime modules, and bilingual area copy", () => {
+    const result = validateWithAreaInputs({
+      areas: areasClone(),
+      runtimeModules: runtimeModulesClone(),
+      areaCopy: areaCopyClone(),
+    });
+
+    expect(result.valid).toBe(true);
+    expect(areaReleaseErrors(result)).toEqual([]);
+  });
+
+  it("reports area-count with missing-area attribution without a different area-code collision", () => {
+    const areas = areasClone();
+    const removed = areas.pop()!;
+    areas[2] = {
+      ...areas[2]!,
+      moduleIds: [...areas[2]!.moduleIds, ...removed.moduleIds],
+    };
+
+    expectOnlyAreaReleaseCode(
+      validateWithAreaInputs({ areas }),
+      "area-count",
+      "missing-area-id",
+      "synthesis",
+    );
+  });
+
+  it.each([
+    ["duplicate", (areas: A1CourseArea[]) => {
+      areas[1] = {
+        ...areas[1]!,
+        moduleIds: [...areas[1]!.moduleIds, "sounds"],
+      };
+    }, "duplicate-module-membership", "sounds"],
+    ["unknown", (areas: A1CourseArea[]) => {
+      areas[1] = {
+        ...areas[1]!,
+        moduleIds: [
+          "not-an-a1-module",
+          ...areas[1]!.moduleIds.slice(1),
+        ] as A1CourseArea["moduleIds"],
+      };
+    }, "unknown-module-membership", "not-an-a1-module"],
+    ["omitted", (areas: A1CourseArea[]) => {
+      areas[1] = {
+        ...areas[1]!,
+        moduleIds: areas[1]!.moduleIds.filter(
+          (moduleId) => moduleId !== "polite-verbs",
+        ),
+      };
+    }, "missing-module-membership", "polite-verbs"],
+  ])(
+    "reports area-module-membership for %s membership with no different area-code collision",
+    (_label, mutate, underlyingCode, id) => {
+      const areas = areasClone();
+      mutate(areas);
+
+      expectOnlyAreaReleaseCode(
+        validateWithAreaInputs({ areas }),
+        "area-module-membership",
+        underlyingCode,
+        id,
+      );
+    },
+  );
+
+  it("reports area-order for reordered membership with real order attribution", () => {
+    const areas = areasClone();
+    const moduleIds = [...areas[1]!.moduleIds];
+    [moduleIds[0], moduleIds[1]] = [moduleIds[1]!, moduleIds[0]!];
+    areas[1] = { ...areas[1]!, moduleIds };
+
+    expectOnlyAreaReleaseCode(
+      validateWithAreaInputs({ areas }),
+      "area-order",
+      "module-union-order",
+    );
+  });
+
+  it("checks the real runtime module area assignment rather than trusting the area declaration alone", () => {
+    const runtimeModules = runtimeModulesClone();
+    runtimeModules[1] = { ...runtimeModules[1]!, areaId: "sounds" };
+
+    expectOnlyAreaReleaseCode(
+      validateWithAreaInputs({ runtimeModules }),
+      "area-module-membership",
+      "runtime-area-mismatch",
+      "sentence-foundations",
+    );
+  });
+
+  it.each([
+    ["duplicate", (runtimeModules: ReturnType<typeof runtimeModulesClone>) => {
+      runtimeModules[1] = { ...runtimeModules[0]! };
+    }, "runtime-duplicate-module", "sounds"],
+    ["unknown", (runtimeModules: ReturnType<typeof runtimeModulesClone>) => {
+      runtimeModules[1] = {
+        ...runtimeModules[1]!,
+        id: "unknown-runtime-module",
+      };
+    }, "runtime-unknown-module", "unknown-runtime-module"],
+    ["omitted", (runtimeModules: ReturnType<typeof runtimeModulesClone>) => {
+      runtimeModules.splice(1, 1);
+    }, "runtime-missing-module", "sentence-foundations"],
+  ])(
+    "reports area-module-membership for a %s runtime module without a different area-code collision",
+    (_label, mutate, underlyingCode, id) => {
+      const runtimeModules = runtimeModulesClone();
+      mutate(runtimeModules);
+
+      expectOnlyAreaReleaseCode(
+        validateWithAreaInputs({ runtimeModules }),
+        "area-module-membership",
+        underlyingCode,
+        id,
+      );
+    },
+  );
+
+  it("checks the runtime module sequence against the ordered area membership", () => {
+    const runtimeModules = runtimeModulesClone();
+    [runtimeModules[1], runtimeModules[2]] = [
+      runtimeModules[2]!,
+      runtimeModules[1]!,
+    ];
+
+    expectOnlyAreaReleaseCode(
+      validateWithAreaInputs({ runtimeModules }),
+      "area-order",
+      "runtime-module-order",
+    );
+  });
+
+  it.each([
+    ["en", "sounds", "title", "a1-area-sounds-title"],
+    ["it", "foundations", "description", "a1-area-foundations-description"],
+  ] as const)(
+    "reports area-copy-parity for a missing %s %s",
+    (locale, areaId, field, copyId) => {
+      const areaCopy = areaCopyClone();
+      areaCopy[locale][areaId] = {
+        ...areaCopy[locale][areaId],
+        [field]: "",
+      };
+
+      const result = validateWithAreaInputs({ areaCopy });
+      expectOnlyAreaReleaseCode(
+        result,
+        "area-copy-parity",
+        `missing-${locale}-area-${field}`,
+        areaId,
+      );
+      expect(
+        areaReleaseErrors(result).some((error) => error.referenceId === copyId),
+      ).toBe(true);
+    },
+  );
+});
+
+// ---------------------------------------------------------------------------
 // Copy hygiene / aliases / claims
 // ---------------------------------------------------------------------------
 
@@ -773,6 +1038,14 @@ describe("validateA1 – canonical release error vocabulary lives in types.ts", 
     // below is provably a member rather than an independently-declared literal.
     expect(A1_RELEASE_ERROR_CODES.length).toBeGreaterThan(0);
     expect(new Set(A1_RELEASE_ERROR_CODES).size).toBe(A1_RELEASE_ERROR_CODES.length);
+    expect(A1_RELEASE_ERROR_CODES).toEqual(
+      expect.arrayContaining([
+        "area-count",
+        "area-module-membership",
+        "area-order",
+        "area-copy-parity",
+      ]),
+    );
   });
 
   it("emits an introduction-order violation (unknown-content) that is a member of the canonical vocabulary", () => {

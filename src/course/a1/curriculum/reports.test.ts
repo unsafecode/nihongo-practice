@@ -6,10 +6,26 @@ import { validateA1Curriculum } from "./validateA1Curriculum";
 describe("A1 curriculum reports", () => {
   it("derives 64 canonical learner-contract rows from production analysis", () => {
     const reports = validateA1Curriculum().reports;
+    const { lessonContractDistribution, productionBuilds } = reports;
 
     expect(reports.byLesson).toHaveLength(64);
     expect(reports.byLesson.map((row) => row.lessonId)).toEqual(A1_LESSON_IDS);
     expect(reports.byLesson.every((row) => row.visibleTargetKeys.length === 5)).toBe(true);
+    expect(lessonContractDistribution).toEqual({
+      instructional: 56,
+      phonetic: 4,
+      synthesis: 4,
+    });
+    expect(
+      lessonContractDistribution.instructional +
+        lessonContractDistribution.synthesis,
+    ).toBe(60);
+    expect(productionBuilds).toEqual({
+      analyzed: true,
+      semanticLessonCount: 60,
+      curriculumViewBuildCount: 120,
+      practiceModelBuildCount: 60,
+    });
     expect(reports.unresolvedFindings).toEqual([]);
     expect(reports.repeatedFindings).toEqual([]);
   });

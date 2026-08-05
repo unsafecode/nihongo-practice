@@ -18,7 +18,7 @@ import { buildPhoneticLessonModel, phoneticLessonIds } from "./phoneticExerciseM
 
 /**
  * The pure lesson-exercise model (Phase 2 Task 6; design spec §10.1-§10.2).
- * It resolves each of the A1 release's 44 semantic lessons' two practice
+ * It resolves each of the A1 release's 60 semantic lessons' two practice
  * rounds into the deterministic engine prompts the UI renders, and exposes
  * the derived lookups a component needs without ever reconstructing a
  * canonical answer:
@@ -40,7 +40,7 @@ import { buildPhoneticLessonModel, phoneticLessonIds } from "./phoneticExerciseM
  * legacy curriculum copy catalog, which carries no entries for A1 prompt
  * copy ids.
  *
- * Only the 44 semantic lessons produce sentence-engine exercises: the four
+ * Only the 60 semantic lessons produce sentence-engine exercises: the four
  * phonetic `sounds-*` lessons instead resolve their own deterministic
  * choice/tile-ordering exercises from `phoneticExerciseModel.ts`'s
  * `buildPhoneticLessonModel` — hand-assembled directly from `module01Sounds`'s
@@ -73,7 +73,7 @@ export interface GeneratedExercise {
   /**
    * The exercise's real visible-answer key: the semantic engine's own
    * `FoundationRoundTarget.visibleTargetKey` (the realized canonical
-   * Japanese sentence) for the 44 semantic lessons, or a phonetic item's own
+   * Japanese sentence) for the 60 semantic lessons, or a phonetic item's own
    * displayed `glyph` for the four `sounds-*` lessons — never a re-derived
    * id. `Exercise.tsx` only ever emits this through {@link opaqueTargetKey}
    * (never the raw string) as `.lesson-exercise`'s `data-visible-target-key`,
@@ -127,7 +127,7 @@ type FoundationViewModelBuilder = (
   locale: Locale,
 ) => FoundationLessonViewModelResult;
 
-/** The A1 lesson ids that carry sentence-engine content (the 44 semantic lessons). */
+/** The A1 lesson ids that carry sentence-engine content (the 60 semantic lessons). */
 const a1SemanticLessonIds = new Set(
   a1FoundationCatalogs.lessons.map((lesson) => lesson.id),
 );

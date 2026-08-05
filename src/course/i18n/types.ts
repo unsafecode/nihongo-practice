@@ -62,7 +62,7 @@ export interface CourseCopy {
      * level and its JF/CEFR alignment claim, never a certification claim.
      */
     levelBadge: string;
-    /** Exact "12 modules, 48 lessons" structural statement — a fixed course
+    /** Exact "16 modules, 64 lessons" structural statement — a fixed course
      * shape, never a completion/progress claim (that is `lessonsProgress`). */
     courseShape: (moduleCount: number, lessonCount: number) => string;
   };

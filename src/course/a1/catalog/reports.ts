@@ -27,7 +27,11 @@ import { validateA1, type ValidateA1Result } from "./validateA1";
 import { a1FoundationCatalogs, a1AllLessonPositions } from "./catalog";
 import { module1ItemsByLesson, module1Lessons, type A1PhoneticItem } from "./module01Sounds";
 import { a1CanDosAuthored, A1_SCENARIO_CANDO_IDS } from "./canDos";
-import { A1_LEGACY_LESSON_ALIASES } from "../manifest";
+import {
+  A1_CAPSTONE_LESSON_IDS,
+  A1_LEGACY_LESSON_ALIASES,
+} from "../manifest";
+import { A1_AREAS } from "../areas";
 
 // ---------------------------------------------------------------------------
 // Report row contracts
@@ -78,11 +82,31 @@ export interface A1ModuleReportRow {
   readonly complete: boolean;
 }
 
+/** One row of the four-area A1 course-map coverage table. */
+export interface A1AreaReportRow {
+  readonly areaId: string;
+  readonly order: number;
+  readonly titleCopyId: string;
+  readonly descriptionCopyId: string;
+  readonly moduleIds: readonly string[];
+  readonly moduleCount: number;
+  readonly lessonCount: number;
+  readonly semanticLessonCount: number;
+  readonly phoneticLessonCount: number;
+  readonly capstoneLessonCount: number;
+  readonly canDoIds: readonly string[];
+  readonly complete: boolean;
+}
+
 /** The single A1 level row. */
 export interface A1LevelReportRow {
   readonly level: "a1";
+  readonly areaCount: number;
   readonly moduleCount: number;
   readonly lessonCount: number;
+  readonly semanticLessonCount: number;
+  readonly phoneticLessonCount: number;
+  readonly capstoneLessonCount: number;
   readonly modelCount: number;
   readonly exerciseCount: number;
   readonly transferCount: number;
@@ -112,6 +136,7 @@ export interface A1AliasReportRow {
 export interface A1CoverageReports {
   readonly byLesson: readonly A1LessonReportRow[];
   readonly byModule: readonly A1ModuleReportRow[];
+  readonly byArea: readonly A1AreaReportRow[];
   readonly level: A1LevelReportRow;
   readonly verbUse: readonly VerbUseReportRow[];
   readonly checkpoints: readonly CheckpointReportRow[];
@@ -200,7 +225,7 @@ export function buildA1Reports(result: ValidateA1Result = validateA1()): A1Cover
 
   lessonRows.sort((left, right) => left.position - right.position || compareStrings(left.lessonId, right.lessonId));
 
-  // --- 12 module rows ------------------------------------------------------
+  // --- 16 module rows ------------------------------------------------------
   const rowsByModule = new Map<string, A1LessonReportRow[]>();
   for (const row of lessonRows) {
     const list = rowsByModule.get(row.moduleId) ?? [];
@@ -240,11 +265,20 @@ export function buildA1Reports(result: ValidateA1Result = validateA1()): A1Cover
   const levelModels = moduleRows.reduce((sum, row) => sum + row.modelCount, 0);
   const levelExercises = moduleRows.reduce((sum, row) => sum + row.exerciseCount, 0);
   const levelPhonetic = moduleRows.reduce((sum, row) => sum + row.phoneticItemCount, 0);
+  const semanticLessonCount = lessonRows.filter((row) => row.kind === "semantic").length;
+  const phoneticLessonCount = lessonRows.filter((row) => row.kind === "phonetic").length;
+  const capstoneLessonCount = lessonRows.filter((row) =>
+    A1_CAPSTONE_LESSON_IDS.includes(row.lessonId),
+  ).length;
   const foundationLevel = foundation.byLevel["a1"];
   const level: A1LevelReportRow = {
     level: "a1",
+    areaCount: A1_AREAS.length,
     moduleCount: moduleRows.length,
     lessonCount: lessonRows.length,
+    semanticLessonCount,
+    phoneticLessonCount,
+    capstoneLessonCount,
     modelCount: levelModels,
     exerciseCount: levelExercises,
     transferCount: foundationLevel ? foundationLevel.transferCount : 0,
@@ -282,9 +316,48 @@ export function buildA1Reports(result: ValidateA1Result = validateA1()): A1Cover
     .map(([legacyLessonId, canonicalLessonId]) => ({ legacyLessonId, canonicalLessonId }))
     .sort((left, right) => compareStrings(left.legacyLessonId, right.legacyLessonId));
 
+  // --- area rows ------------------------------------------------------------
+  const moduleRowById = new Map(
+    moduleRows.map((row) => [row.moduleId, row] as const),
+  );
+  const lessonRowById = new Map(
+    lessonRows.map((row) => [row.lessonId, row] as const),
+  );
+  const areaRows: A1AreaReportRow[] = A1_AREAS.map((area, index) => {
+    const rows = area.moduleIds
+      .map((moduleId) => moduleRowById.get(moduleId))
+      .filter((row): row is A1ModuleReportRow => row !== undefined);
+    const areaLessonRows = rows
+      .flatMap((row) => row.lessonIds.map((lessonId) => lessonRowById.get(lessonId)))
+      .filter((row): row is A1LessonReportRow => row !== undefined);
+    const areaLessonIds = new Set(areaLessonRows.map((row) => row.lessonId));
+    return {
+      areaId: area.id,
+      order: index + 1,
+      titleCopyId: area.titleCopyId,
+      descriptionCopyId: area.descriptionCopyId,
+      moduleIds: [...area.moduleIds],
+      moduleCount: rows.length,
+      lessonCount: areaLessonRows.length,
+      semanticLessonCount: areaLessonRows.filter((row) => row.kind === "semantic").length,
+      phoneticLessonCount: areaLessonRows.filter((row) => row.kind === "phonetic").length,
+      capstoneLessonCount: areaLessonRows.filter((row) =>
+        A1_CAPSTONE_LESSON_IDS.includes(row.lessonId),
+      ).length,
+      canDoIds: canDoRows
+        .filter((canDo) => canDo.lessonIds.some((lessonId) => areaLessonIds.has(lessonId)))
+        .map((canDo) => canDo.canDoId),
+      complete:
+        rows.length === area.moduleIds.length &&
+        rows.every((row) => row.complete) &&
+        rows.map((row) => row.moduleId).join(",") === area.moduleIds.join(","),
+    };
+  });
+
   return {
     byLesson: lessonRows,
     byModule: moduleRows,
+    byArea: areaRows,
     level,
     verbUse: foundation.verbUse,
     checkpoints: foundation.checkpoints,
@@ -335,11 +408,22 @@ export function a1ReportMarkdown(reports: A1CoverageReports = buildA1Reports()):
 
   lines.push("## Level");
   lines.push("");
-  lines.push("| Level | Modules | Lessons | Models | Exercises | Transfers | Phonetic items | Verb records |");
-  lines.push("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+  lines.push("| Level | Areas | Modules | Lessons | Semantic | Phonetic | Capstones | Models | Exercises | Transfers | Phonetic items | Verb records |");
+  lines.push("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
   lines.push(
-    `| ${reports.level.level} | ${reports.level.moduleCount} | ${reports.level.lessonCount} | ${reports.level.modelCount} | ${reports.level.exerciseCount} | ${reports.level.transferCount} | ${reports.level.phoneticItemCount} | ${reports.level.verbRecordCount} |`,
+    `| ${reports.level.level} | ${reports.level.areaCount} | ${reports.level.moduleCount} | ${reports.level.lessonCount} | ${reports.level.semanticLessonCount} | ${reports.level.phoneticLessonCount} | ${reports.level.capstoneLessonCount} | ${reports.level.modelCount} | ${reports.level.exerciseCount} | ${reports.level.transferCount} | ${reports.level.phoneticItemCount} | ${reports.level.verbRecordCount} |`,
   );
+  lines.push("");
+
+  lines.push("## Areas");
+  lines.push("");
+  lines.push("| Order | Area | Modules | Lessons | Semantic | Phonetic | Capstones | Can-dos | Complete |");
+  lines.push("| ---: | --- | ---: | ---: | ---: | ---: | ---: | --- | --- |");
+  for (const row of reports.byArea) {
+    lines.push(
+      `| ${row.order} | ${row.areaId} | ${row.moduleCount} | ${row.lessonCount} | ${row.semanticLessonCount} | ${row.phoneticLessonCount} | ${row.capstoneLessonCount} | ${row.canDoIds.join(", ")} | ${row.complete ? "yes" : "no"} |`,
+    );
+  }
   lines.push("");
 
   lines.push("## Modules");

@@ -6,7 +6,7 @@
  */
 
 import { deepFreeze } from "../foundations/deepFreeze";
-import { A1_EXPANDED_MODULE_IDS } from "./manifest";
+import { A1_MODULE_IDS } from "./manifest";
 import type {
   A1AreaId,
   A1AreaValidationError,
@@ -71,7 +71,7 @@ export const A1_AREAS: readonly A1CourseArea[] = deepFreeze([
 ]);
 
 /**
- * Validate an arbitrary A1 area partition without normalizing it. Each
+ * Validate an arbitrary canonical A1 area partition without normalizing it. Each
  * diagnostic preserves the authored ID/order problem so callers can report
  * every defect.
  */
@@ -84,22 +84,26 @@ export function validateA1Areas(
     message: string,
     detail?: string,
   ) => errors.push({ code, message, detail });
+  let hasAreaIdentityError = false;
+  let hasModuleMembershipError = false;
 
   if (areas.length !== A1_AREA_IDS.length) {
+    hasAreaIdentityError = true;
     push(
       "area-count",
-      `Expected exactly ${A1_AREA_IDS.length} expanded A1 areas, received ${areas.length}.`,
+      `Expected exactly ${A1_AREA_IDS.length} canonical A1 areas, received ${areas.length}.`,
     );
   }
 
   const seenAreaIds = new Set<string>();
   const seenModuleIds = new Set<string>();
-  const expandedModuleIds = new Set<string>(A1_EXPANDED_MODULE_IDS);
+  const canonicalModuleIds = new Set<string>(A1_MODULE_IDS);
   const authoredModuleIds: string[] = [];
 
-  for (const [index, area] of areas.entries()) {
+  for (const area of areas) {
     const areaId = area.id;
     if (seenAreaIds.has(areaId)) {
+      hasAreaIdentityError = true;
       push(
         "duplicate-area-id",
         `Area id "${areaId}" appears more than once.`,
@@ -109,14 +113,8 @@ export function validateA1Areas(
     seenAreaIds.add(areaId);
 
     if (!A1_AREA_IDS.includes(areaId)) {
+      hasAreaIdentityError = true;
       push("unknown-area-id", `Area id "${areaId}" is not recognized.`, areaId);
-    }
-    if (areaId !== A1_AREA_IDS[index]) {
-      push(
-        "area-order",
-        `Area at position ${index + 1} must be "${A1_AREA_IDS[index]}".`,
-        areaId,
-      );
     }
 
     if (area.moduleIds.length === 0) {
@@ -126,6 +124,7 @@ export function validateA1Areas(
     for (const moduleId of area.moduleIds) {
       authoredModuleIds.push(moduleId);
       if (seenModuleIds.has(moduleId)) {
+        hasModuleMembershipError = true;
         push(
           "duplicate-module-membership",
           `Module "${moduleId}" appears in more than one A1 area.`,
@@ -134,10 +133,11 @@ export function validateA1Areas(
       }
       seenModuleIds.add(moduleId);
 
-      if (!expandedModuleIds.has(moduleId)) {
+      if (!canonicalModuleIds.has(moduleId)) {
+        hasModuleMembershipError = true;
         push(
           "unknown-module-membership",
-          `Area "${areaId}" includes module "${moduleId}" outside the expanded A1 plan.`,
+          `Area "${areaId}" includes module "${moduleId}" outside the canonical A1 plan.`,
           moduleId,
         );
       }
@@ -146,29 +146,46 @@ export function validateA1Areas(
 
   for (const areaId of A1_AREA_IDS) {
     if (!seenAreaIds.has(areaId)) {
+      hasAreaIdentityError = true;
       push("missing-area-id", `Required area "${areaId}" is missing.`, areaId);
     }
   }
 
-  for (const moduleId of A1_EXPANDED_MODULE_IDS) {
+  if (!hasAreaIdentityError) {
+    for (const [index, area] of areas.entries()) {
+      if (area.id !== A1_AREA_IDS[index]) {
+        push(
+          "area-order",
+          `Area at position ${index + 1} must be "${A1_AREA_IDS[index]}".`,
+          area.id,
+        );
+      }
+    }
+  }
+
+  for (const moduleId of A1_MODULE_IDS) {
     if (!seenModuleIds.has(moduleId)) {
+      hasModuleMembershipError = true;
       push(
         "missing-module-membership",
-        `Expanded A1 module "${moduleId}" is not assigned to an area.`,
+        `Canonical A1 module "${moduleId}" is not assigned to an area.`,
         moduleId,
       );
     }
   }
 
   if (
-    authoredModuleIds.length !== A1_EXPANDED_MODULE_IDS.length ||
-    authoredModuleIds.some(
-      (moduleId, index) => moduleId !== A1_EXPANDED_MODULE_IDS[index],
+    !hasModuleMembershipError &&
+    (
+      authoredModuleIds.length !== A1_MODULE_IDS.length ||
+      authoredModuleIds.some(
+        (moduleId, index) => moduleId !== A1_MODULE_IDS[index],
+      )
     )
   ) {
     push(
       "module-union-order",
-      "A1 area module membership must equal A1_EXPANDED_MODULE_IDS in expanded order.",
+      "A1 area module membership must equal A1_MODULE_IDS in canonical order.",
     );
   }
 

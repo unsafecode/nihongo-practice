@@ -28,6 +28,8 @@
  */
 
 import type {
+  A1AreaValidationError,
+  A1CourseArea,
   A1ManifestSpec,
   A1ReleaseErrorCode,
   A1ReleaseValidationError,
@@ -47,6 +49,7 @@ import {
   A1_LEGACY_LESSON_ALIASES,
   validateA1ManifestSpec,
 } from "../manifest";
+import { A1_AREAS, validateA1Areas } from "../areas";
 import type {
   CanDo,
   FoundationCatalogs,
@@ -55,6 +58,10 @@ import type {
   SentenceVariant,
   VerbUseRecord,
 } from "../../foundations/types";
+import type { CourseModule } from "../../data/types";
+import { courseModules } from "../../data/course";
+import { en as enCourseCopy } from "../../i18n/en";
+import { it as itCourseCopy } from "../../i18n/it";
 import {
   validateFoundations,
   type ValidateFoundationsResult,
@@ -94,6 +101,10 @@ export { A1_RELEASE_CATALOG_VERSION, A1_RELEASE_SEED };
 export const A1_EXPECTED_MODULE_COUNT = 16 as const;
 export const A1_EXPECTED_LESSONS_PER_MODULE = 4 as const;
 export const A1_EXPECTED_ROUTE_COUNT = 64 as const;
+export const A1_EXPECTED_AREA_COUNT = 4 as const;
+export const A1_EXPECTED_SEMANTIC_LESSON_COUNT = 60 as const;
+export const A1_EXPECTED_PHONETIC_LESSON_COUNT = 4 as const;
+export const A1_EXPECTED_CAPSTONE_LESSON_COUNT = 4 as const;
 
 // ---------------------------------------------------------------------------
 // Error contract
@@ -106,6 +117,21 @@ export const A1_EXPECTED_ROUTE_COUNT = 64 as const;
 // for backward compatibility with existing importers of `./validateA1`.
 export type A1ValidationErrorCode = A1ReleaseErrorCode;
 export type A1ValidationError = A1ReleaseValidationError;
+
+/** The learner-facing title/description pair for one authored A1 area. */
+export interface A1AreaLocaleCopy {
+  readonly title?: string;
+  readonly description?: string;
+}
+
+/** The two independently localized runtime area-copy tables. */
+export interface A1AreaCopyByLocale {
+  readonly en: Readonly<Record<string, A1AreaLocaleCopy | undefined>>;
+  readonly it: Readonly<Record<string, A1AreaLocaleCopy | undefined>>;
+}
+
+/** The runtime fields whose agreement with the authored area partition matters. */
+export type A1RuntimeAreaModule = Pick<CourseModule, "id" | "areaId">;
 
 export interface ValidateA1Input {
   /** The full 64-lesson level view (16 modules, 19 Can-dos, all positions). */
@@ -129,6 +155,12 @@ export interface ValidateA1Input {
   readonly checkpoint?: typeof a1Checkpoint;
   /** The authored Can-do set that must each carry transfer evidence. */
   readonly authoredCanDos?: readonly CanDo[];
+  /** The ordered authoring partition that the runtime course must preserve. */
+  readonly areas?: readonly A1CourseArea[];
+  /** The assembled A1 runtime modules, checked independently of the authoring partition. */
+  readonly runtimeModules?: readonly A1RuntimeAreaModule[];
+  /** The actual IT/EN course-map copy rendered for each authored area. */
+  readonly areaCopy?: A1AreaCopyByLocale;
   /** Whole-catalog learner-contract overrides for release-gate fixtures. */
   readonly curriculumInput?: A1CurriculumValidationOverrides;
 }
@@ -165,6 +197,169 @@ function isCapstoneVariant(variantId: string): boolean {
   return variantId.startsWith("capstones-");
 }
 
+function areaReleaseCode(
+  code: A1AreaValidationError["code"],
+): Extract<
+  A1ValidationErrorCode,
+  "area-count" | "area-module-membership" | "area-order"
+> {
+  switch (code) {
+    case "area-order":
+    case "module-union-order":
+      return "area-order";
+    case "duplicate-module-membership":
+    case "unknown-module-membership":
+    case "missing-module-membership":
+      return "area-module-membership";
+    default:
+      return "area-count";
+  }
+}
+
+function addAreaValidationErrors(
+  errors: readonly A1AreaValidationError[],
+  push: (error: A1ValidationError) => void,
+): void {
+  for (const error of errors) {
+    push({
+      code: areaReleaseCode(error.code),
+      id: error.detail,
+      referenceId: error.message,
+      underlyingCode: error.code,
+    });
+  }
+}
+
+function addRuntimeAreaErrors(
+  areas: readonly A1CourseArea[],
+  runtimeModules: readonly A1RuntimeAreaModule[],
+  push: (error: A1ValidationError) => void,
+): void {
+  const expectedModuleIds = areas.flatMap((area) => area.moduleIds);
+  const expectedAreaByModuleId = new Map(
+    areas.flatMap((area) =>
+      area.moduleIds.map((moduleId) => [moduleId, area.id] as const),
+    ),
+  );
+  const seenModuleIds = new Set<string>();
+  let hasMembershipError = false;
+
+  for (const module of runtimeModules) {
+    if (seenModuleIds.has(module.id)) {
+      hasMembershipError = true;
+      push({
+        code: "area-module-membership",
+        id: module.id,
+        dimension: "runtime-module",
+        underlyingCode: "runtime-duplicate-module",
+      });
+      continue;
+    }
+    seenModuleIds.add(module.id);
+
+    const expectedAreaId = expectedAreaByModuleId.get(module.id);
+    if (expectedAreaId === undefined) {
+      hasMembershipError = true;
+      push({
+        code: "area-module-membership",
+        id: module.id,
+        dimension: "runtime-module",
+        underlyingCode: "runtime-unknown-module",
+      });
+      continue;
+    }
+    if (module.areaId !== expectedAreaId) {
+      hasMembershipError = true;
+      push({
+        code: "area-module-membership",
+        id: module.id,
+        referenceId: expectedAreaId,
+        dimension: module.areaId ?? "missing-area-id",
+        underlyingCode: "runtime-area-mismatch",
+      });
+    }
+  }
+
+  for (const moduleId of expectedModuleIds) {
+    if (!seenModuleIds.has(moduleId)) {
+      hasMembershipError = true;
+      push({
+        code: "area-module-membership",
+        id: moduleId,
+        underlyingCode: "runtime-missing-module",
+      });
+    }
+  }
+
+  const runtimeModuleIds = runtimeModules.map((module) => module.id);
+  if (
+    !hasMembershipError &&
+    (
+      runtimeModuleIds.length !== expectedModuleIds.length ||
+      runtimeModuleIds.some(
+        (moduleId, index) => moduleId !== expectedModuleIds[index],
+      )
+    )
+  ) {
+    const mismatchIndex = runtimeModuleIds.findIndex(
+      (moduleId, index) => moduleId !== expectedModuleIds[index],
+    );
+    push({
+      code: "area-order",
+      id:
+        mismatchIndex === -1
+          ? undefined
+          : runtimeModuleIds[mismatchIndex],
+      referenceId:
+        mismatchIndex === -1
+          ? undefined
+          : expectedModuleIds[mismatchIndex],
+      underlyingCode: "runtime-module-order",
+    });
+  }
+}
+
+function addAreaCopyErrors(
+  areas: readonly A1CourseArea[],
+  areaCopy: A1AreaCopyByLocale,
+  push: (error: A1ValidationError) => void,
+): void {
+  const knownAreaIds = new Set(areas.map((area) => area.id));
+  for (const area of areas) {
+    for (const locale of ["en", "it"] as const) {
+      const entry = areaCopy[locale][area.id];
+      for (const [field, copyId] of [
+        ["title", area.titleCopyId],
+        ["description", area.descriptionCopyId],
+      ] as const) {
+        const text = entry?.[field];
+        if (typeof text !== "string" || text.trim().length === 0) {
+          push({
+            code: "area-copy-parity",
+            id: area.id,
+            referenceId: copyId,
+            dimension: `${locale}:${field}`,
+            underlyingCode: `missing-${locale}-area-${field}`,
+          });
+        }
+      }
+    }
+  }
+
+  for (const locale of ["en", "it"] as const) {
+    for (const areaId of Object.keys(areaCopy[locale])) {
+      if (!knownAreaIds.has(areaId as A1CourseArea["id"])) {
+        push({
+          code: "area-copy-parity",
+          id: areaId,
+          dimension: locale,
+          underlyingCode: `unknown-${locale}-area-copy`,
+        });
+      }
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // The release validator
 // ---------------------------------------------------------------------------
@@ -179,6 +374,12 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
   const manifestSpec = input.manifestSpec ?? A1_MANIFEST_SPEC;
   const checkpoint = input.checkpoint ?? a1Checkpoint;
   const authoredCanDos = input.authoredCanDos ?? a1CanDosAuthored;
+  const areas = input.areas ?? A1_AREAS;
+  const runtimeModules = input.runtimeModules ?? courseModules;
+  const areaCopy: A1AreaCopyByLocale = input.areaCopy ?? {
+    en: enCourseCopy.courseAreas,
+    it: itCourseCopy.courseAreas,
+  };
   const curriculumOverrides = input.curriculumInput ?? {};
   const curriculumReport = validateA1Curriculum({
     ...curriculumOverrides,
@@ -314,6 +515,42 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
   if (full.lessonPositions.length !== A1_EXPECTED_ROUTE_COUNT) {
     push({ code: "route-count", expected: A1_EXPECTED_ROUTE_COUNT, actual: full.lessonPositions.length });
   }
+  if (semantic.lessons.length !== A1_EXPECTED_SEMANTIC_LESSON_COUNT) {
+    push({
+      code: "manifest-mismatch",
+      dimension: "semantic-lesson-count",
+      expected: A1_EXPECTED_SEMANTIC_LESSON_COUNT,
+      actual: semantic.lessons.length,
+    });
+  }
+  if (phoneticLessons.length !== A1_EXPECTED_PHONETIC_LESSON_COUNT) {
+    push({
+      code: "phonetic-lesson-mismatch",
+      dimension: "lesson-count",
+      expected: A1_EXPECTED_PHONETIC_LESSON_COUNT,
+      actual: phoneticLessons.length,
+    });
+  }
+  const phoneticItemLessonIds = Object.keys(phoneticItemsByLesson);
+  if (phoneticItemLessonIds.length !== A1_EXPECTED_PHONETIC_LESSON_COUNT) {
+    push({
+      code: "phonetic-lesson-mismatch",
+      dimension: "item-lesson-count",
+      expected: A1_EXPECTED_PHONETIC_LESSON_COUNT,
+      actual: phoneticItemLessonIds.length,
+    });
+  }
+  const semanticCapstoneCount = semantic.lessons.filter((lesson) =>
+    A1_CAPSTONE_LESSON_IDS.includes(lesson.id),
+  ).length;
+  if (semanticCapstoneCount !== A1_EXPECTED_CAPSTONE_LESSON_COUNT) {
+    push({
+      code: "capstone-structure",
+      dimension: "semantic-count",
+      expected: A1_EXPECTED_CAPSTONE_LESSON_COUNT,
+      actual: semanticCapstoneCount,
+    });
+  }
 
   // --- 2. Unknown / duplicate lesson ids + manifest agreement --------------
   const manifestLessonSet = new Set(A1_LESSON_IDS);
@@ -370,7 +607,24 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
     }
   }
 
-  // --- 3. Capstone module structure: final, four synthesis lessons ---------
+  // --- 3. Area partition, runtime membership, and localized area copy -------
+  if (areas.length !== A1_EXPECTED_AREA_COUNT) {
+    push({
+      code: "area-count",
+      expected: A1_EXPECTED_AREA_COUNT,
+      actual: areas.length,
+      underlyingCode: "release-area-count",
+    });
+  }
+  const areaResult = validateA1Areas(areas);
+  if (!areaResult.ok) {
+    addAreaValidationErrors(areaResult.errors, push);
+  } else {
+    addRuntimeAreaErrors(areas, runtimeModules, push);
+    addAreaCopyErrors(areas, areaCopy, push);
+  }
+
+  // --- 4. Capstone module structure: final, four synthesis lessons ---------
   const lastModule = full.modules[full.modules.length - 1];
   if (!lastModule || lastModule.id !== manifestSpec.capstoneModuleId) {
     push({ code: "capstone-structure", dimension: "not-final", id: lastModule?.id });
@@ -383,7 +637,7 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
   const contextIds = new Set(semantic.contexts.map((context) => context.id));
   const roleIds = new Set(semantic.personRoles.map((role) => role.id));
 
-  // --- 4. Unknown content (values, contexts, roles must exist) -------------
+  // --- 5. Unknown content (values, contexts, roles must exist) -------------
   // Level-scope introduce-before-use is no longer computed from an order-
   // *insensitive* global model-value set. Ordering is enforced by the
   // canonical-order cumulative availability map handed to the foundation
@@ -404,7 +658,7 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
     }
   }
 
-  // --- 5. Capstone no-new-content (strict prior sets from modules 1-11) -----
+  // --- 6. Capstone no-new-content (strict prior taught-content sets) --------
   const prior = {
     value: new Set<string>(),
     sense: new Set<string>(),
@@ -448,7 +702,7 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
     }
   }
 
-  // --- 5b. Capstone required-scenario coverage (Phase 2 Task 4 spec fix) ---
+  // --- 6b. Capstone required-scenario coverage (Phase 2 Task 4 spec fix) ---
   // No-new-content alone cannot tell a whole-level synthesis apart from a
   // wrong-but-plausible remix of Modules 9-11 (the B1/B2 findings). Each
   // capstone must additionally exercise its required family/referent/
@@ -632,7 +886,7 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
     }
   }
 
-  // --- 6. Foundation gate: every foundation error blocks release -----------
+  // --- 7. Foundation gate: every foundation error blocks release -----------
   // The wrapped oracle is authoritative. Recurrence findings are translated to
   // the release-scoped `recurrence-incomplete` code (below); every *other*
   // foundation error is surfaced verbatim as a blocking `foundation-invalid`
@@ -661,7 +915,7 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
     }
   }
 
-  // --- 7. Can-do / checkpoint alignment ------------------------------------
+  // --- 8. Can-do / checkpoint alignment ------------------------------------
   const sampledCanDos = new Set(checkpoint.sampledCanDoIds);
   const canDoById = new Map(full.canDos.map((canDo) => [canDo.id, canDo]));
   // Every taught primary Can-do (from real lessons) must be checkpoint-sampled.
@@ -715,7 +969,7 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
     });
   }
 
-  // --- 8. Copy parity, no Japanese, personal aliases, no certification -----
+  // --- 9. Copy parity, no Japanese, personal aliases, no certification -----
   const enKeys = Object.keys(copy.en);
   const itKeys = new Set(Object.keys(copy.it));
   for (const key of enKeys) {
@@ -751,7 +1005,7 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
     push({ code: "personal-alias-match", dimension: aliasError });
   }
 
-  // --- 9. Phonetic contracts (the four sounds lessons) ---------------------
+  // --- 10. Phonetic contracts (the four sounds lessons) --------------------
   const allPhoneticIds = new Set<string>();
   const allExerciseRefs = new Map<string, number>();
   for (const items of Object.values(phoneticItemsByLesson)) {

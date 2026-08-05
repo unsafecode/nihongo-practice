@@ -13,10 +13,11 @@ describe('README.md public documentation', () => {
   it('contains all required complete A0→A1 course content and no stale content', () => {
     // Required substrings
     expect(readme).toContain('## Percorso completo A0→A1');
-    expect(readme).toContain('12 moduli in quattro fasi');
-    expect(readme).toContain('40 lezioni');
-    expect(readme).toContain('42 verbi');
-    expect(readme).toContain('270 vocaboli contestuali');
+    expect(readme).toContain('16 moduli in quattro aree');
+    expect(readme).toContain('64 lezioni');
+    expect(readme).toContain('60 lezioni semantiche');
+    expect(readme).toContain('4 lezioni fonetiche');
+    expect(readme).toContain('4 capstone');
     expect(readme).toContain('hiragana-first con katakana assistita');
     expect(readme).toContain('Sintesi pratica');
     expect(readme).toContain('lezioni visitate');
@@ -34,6 +35,8 @@ describe('README.md public documentation', () => {
     expect(readme).not.toContain('non è un corso strutturato');
     expect(readme).not.toContain('## Esperienza v2.1 corretta');
     expect(readme).not.toContain('sette moduli guidati e un capstone');
+    expect(readme).not.toContain('12 moduli in quattro fasi');
+    expect(readme).not.toContain('40 lezioni');
     expect(readme).not.toContain('prossima estensione A0→A1');
     expect(readme).not.toContain('questa versione eseguibile mantiene ancora il percorso v2.1');
     // Stale Slice D "not yet available" framing must be gone (Slice D Task 3).
