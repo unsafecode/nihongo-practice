@@ -14,6 +14,7 @@ describe('README.md public documentation', () => {
     // Required substrings
     expect(readme).toContain('## Percorso completo A0→A1');
     expect(readme).toContain('16 moduli in quattro aree');
+    expect(readme).toContain('(Suoni · Fondamentali · Situazioni · Sintesi)');
     expect(readme).toContain('64 lezioni');
     expect(readme).toContain('60 lezioni semantiche');
     expect(readme).toContain('4 lezioni fonetiche');
@@ -36,6 +37,7 @@ describe('README.md public documentation', () => {
     expect(readme).not.toContain('## Esperienza v2.1 corretta');
     expect(readme).not.toContain('sette moduli guidati e un capstone');
     expect(readme).not.toContain('12 moduli in quattro fasi');
+    expect(readme).not.toContain('(Suoni · Fondamenti · Situazioni · Sintesi)');
     expect(readme).not.toContain('40 lezioni');
     expect(readme).not.toContain('prossima estensione A0→A1');
     expect(readme).not.toContain('questa versione eseguibile mantiene ancora il percorso v2.1');

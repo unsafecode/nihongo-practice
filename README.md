@@ -8,7 +8,7 @@ SPA statica: nessun account, nessun backend, nessuna analisi, nessun tracker, ne
 
 ## Percorso completo A0→A1
 
-Il percorso guidato è il corso **A0→A1 completo**: **16 moduli in quattro aree** (Suoni · Fondamenti · Situazioni · Sintesi) per un totale di **64 lezioni**. La release comprende **60 lezioni semantiche**, **4 lezioni fonetiche** e **4 capstone** di sintesi guidata.
+Il percorso guidato è il corso **A0→A1 completo**: **16 moduli in quattro aree** (Suoni · Fondamentali · Situazioni · Sintesi) per un totale di **64 lezioni**. La release comprende **60 lezioni semantiche**, **4 lezioni fonetiche** e **4 capstone** di sintesi guidata.
 
 L'approccio è **hiragana-first con katakana assistita**: i prestiti in katakana (es. コーヒー) mostrano, alla prima esposizione, una lettura in hiragana affiancata (ruby), mai al posto della grafia autentica.
 

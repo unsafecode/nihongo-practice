@@ -9,6 +9,7 @@ import {
 import { A2_LESSON_IDS } from "../a2/manifest";
 import { A1_LESSON_IDS } from "../a1/manifest";
 import { buildA2FoundationViewModel } from "../a2/view/buildA2LessonViewModel";
+import { courseModulesByLevel } from "../data/course";
 import {
   exampleTokens,
   getLessonExercises,
@@ -26,7 +27,9 @@ import {
  * reconstructing a canonical answer in the component layer.
  */
 
-const allLessonIds = [...A1_LESSON_IDS];
+const allLessonIds = courseModulesByLevel.a1.flatMap((module) =>
+  module.lessons.map((lesson) => lesson.id),
+);
 const semanticLessonIds = new Set(
   a1FoundationCatalogs.lessons.map((lesson) => lesson.id),
 );
@@ -435,10 +438,19 @@ describe("getLessonExercises — A2 lessons resolve through the same model", () 
 
 describe("getLessonExercises — complete release coverage", () => {
   it("returns error-free generated exercise models for all 124 A1 and A2 routes", () => {
-    const allRouteIds = [...allLessonIds, ...A2_LESSON_IDS];
+    const a1RouteIds = courseModulesByLevel.a1.flatMap((module) =>
+      module.lessons.map((lesson) => lesson.id),
+    );
+    const a2RouteIds = courseModulesByLevel.a2.flatMap((module) =>
+      module.lessons.map((lesson) => lesson.id),
+    );
+    const allRouteIds = [...a1RouteIds, ...a2RouteIds];
+
+    expect(a1RouteIds).toEqual(A1_LESSON_IDS);
+    expect(a2RouteIds).toEqual(A2_LESSON_IDS);
     expect(allLessonIds).toEqual(A1_LESSON_IDS);
     expect(allLessonIds).toHaveLength(64);
-    expect(A2_LESSON_IDS).toHaveLength(60);
+    expect(a2RouteIds).toHaveLength(60);
     expect(allRouteIds).toHaveLength(124);
     for (const lessonId of allRouteIds) {
       const model = getLessonExercises(lessonId);

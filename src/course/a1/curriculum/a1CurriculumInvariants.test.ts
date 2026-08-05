@@ -8,6 +8,7 @@ import {
   A1_LESSON_MANIFEST,
 } from "../manifest";
 import { buildA1PracticeModel } from "../../components/a1PracticeModel";
+import { courseModulesByLevel } from "../../data/course";
 import {
   a1LessonContentById,
   a1LessonContents,
@@ -29,13 +30,37 @@ function expectBilingual(value: { readonly en: string; readonly it: string }): v
   expect(value.it.trim()).not.toBe("");
 }
 
+function productionVocabularySequence(): readonly Readonly<{
+  lessonId: string;
+  usedLexemeIds: readonly string[];
+  introducedLexemeIds: readonly string[];
+}>[] {
+  return courseModulesByLevel.a1.flatMap((module) => module.lessons).map((lesson) => {
+    const view = buildA1CurriculumViewModel(lesson.id, "en");
+    if (!view.ok) throw new Error(`expected production view for ${lesson.id}`);
+    const usedLexemeIds = view.model.vocabulary.map((entry) => entry.id);
+    return {
+      lessonId: lesson.id,
+      usedLexemeIds,
+      introducedLexemeIds: view.model.vocabulary
+        .filter((entry) => entry.isReview !== true)
+        .map((entry) => entry.id),
+    };
+  });
+}
+
 describe("A1 learner curriculum invariants", () => {
-  it("certifies all 64 canonical curriculum rows without an empty success", () => {
+  it("derives the report's ordered first-use sequence from learner-facing production content", () => {
     const result = validateA1Curriculum();
-    const declaredFirstUses = a1LessonContents.flatMap(
-      (content) => content.newLexemeIds,
+    const productionVocabulary = productionVocabularySequence();
+    const productionIntroductions = productionVocabulary.map(
+      ({ lessonId, introducedLexemeIds }) => ({ lessonId, introducedLexemeIds }),
     );
-    const reportedFirstUses = result.reports.byLesson.flatMap(
+    const reportedIntroductions = result.reports.byLesson.map((row) => ({
+      lessonId: row.lessonId,
+      introducedLexemeIds: row.introducedLexemeIds,
+    }));
+    const reportedFirstUses = reportedIntroductions.flatMap(
       (row) => row.introducedLexemeIds,
     );
 
@@ -43,14 +68,22 @@ describe("A1 learner curriculum invariants", () => {
     expect(result.errors).toEqual([]);
     expect(result.reports.byLesson).toHaveLength(64);
     expect(result.reports.byLesson.map((row) => row.lessonId)).toEqual(A1_LESSON_IDS);
-    expect(reportedFirstUses).toEqual(declaredFirstUses);
+    expect(reportedIntroductions).toEqual(productionIntroductions);
+    // This reviewed inventory changes only with an intentional editorial
+    // vocabulary review, not when report assembly happens to change.
+    expect(reportedFirstUses).toHaveLength(252);
     expect(
-      result.reports.byLesson.reduce(
-        (total, row) => total + row.newLexemeCount,
-        0,
-      ),
-    ).toBe(declaredFirstUses.length);
-    expect(new Set(reportedFirstUses).size).toBe(declaredFirstUses.length);
+      result.reports.byLesson.reduce((total, row) => total + row.newLexemeCount, 0),
+    ).toBe(252);
+    expect(new Set(reportedFirstUses).size).toBe(252);
+    for (const [index, row] of result.reports.byLesson.entries()) {
+      const production = productionVocabulary[index]!;
+      expect(production.lessonId).toBe(row.lessonId);
+      expect(new Set(row.usedLexemeIds).size, row.lessonId).toBe(row.usedLexemeIds.length);
+      expect(row.usedLexemeIds, row.lessonId).toEqual(
+        expect.arrayContaining([...production.usedLexemeIds]),
+      );
+    }
   });
 
   it("keeps the 4–6 / capstone-zero introduction contract and first-use closure", () => {
