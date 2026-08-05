@@ -1,10 +1,10 @@
 # A1 foundations curriculum rebuild design
 
-**Status:** Approved for implementation  
-**Date:** 2026-08-04  
-**Repository:** `unsafecode/nihongo-practice`  
-**Baseline:** `master` at `f3c7de7`  
-**Delivery:** Independent curriculum branch; do not merge, deploy, or depend on PR #3  
+**Status:** Approved for implementation
+**Date:** 2026-08-04
+**Repository:** `unsafecode/nihongo-practice`
+**Baseline:** `master` at `f3c7de7`
+**Delivery:** Independent curriculum branch; do not merge, deploy, or depend on PR #3
 
 ## 1. Decision
 
