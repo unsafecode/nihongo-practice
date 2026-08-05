@@ -535,7 +535,7 @@ const lesson4: A1BuiltLesson = buildA1InstructionalLesson({
       family: TRANSPORT,
       context: "a1-context-station",
       subjectReferent: "a1-referent-yuki",
-      subjectRealization: "omitted",
+      subjectRealization: "explicit",
       form: A1_AFFIRMATIVE_PAST_POLITE,
       slots: transport(
         "a1-value-yuki",

@@ -258,6 +258,15 @@ describe("published Foundations modules 03–04", () => {
     expect(realize("time-movement-3-m4").canonicalJapanese).toBe(
       "みなはおとといかえりませんでした",
     );
+    expect(realize("time-movement-4-m3").canonicalJapanese).toBe(
+      "ゆきはバスでかいしゃにかえりました",
+    );
+    expect(translation("time-movement-4-m3", "en")).toBe(
+      "Yuki returned to the company by bus.",
+    );
+    expect(translation("time-movement-4-m3", "it")).toBe(
+      "Yuki è tornata in azienda in autobus.",
+    );
     expect(translation("time-movement-3-m4", "en")).toBe(
       "Mina did not return the day before yesterday.",
     );
@@ -308,6 +317,7 @@ describe("published Foundations modules 03–04", () => {
       ["time-movement-3-m1", "きのうべんきょうしませんでした", "kinou benkyoushimasen deshita"],
       ["time-movement-3-m4", "みなはおとといかえりませんでした", "mina wa ototoi kaerimasen deshita"],
       ["time-movement-4-m2", "でんしゃでえきにいきました", "densha de eki ni ikimashita"],
+      ["time-movement-4-m3", "ゆきはバスでかいしゃにかえりました", "yuki wa basu de kaisha ni kaerimashita"],
     ] as const;
 
     for (const [variantId, japanese, romaji] of expected) {

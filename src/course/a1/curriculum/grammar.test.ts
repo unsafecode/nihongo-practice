@@ -225,8 +225,9 @@ describe("A1 learner note catalog", () => {
       },
       nearestContrastId: "a1-note-particle-ni-destination",
     });
-    expect(note?.typicalMistake.en).toContain("*placeに働きます");
-    expect(note?.typicalMistake.it).toContain("*luogoに働きます");
+    expect(note?.typicalMistake.en).toContain("*placeにはたらきます");
+    expect(note?.typicalMistake.it).toContain("*luogoにはたらきます");
+    expect(`${note?.typicalMistake.en}\n${note?.typicalMistake.it}`).not.toContain("働");
     expect(note?.pattern).toEqual([
       expect.objectContaining({
         kind: "slot",

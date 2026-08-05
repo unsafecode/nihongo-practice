@@ -708,8 +708,8 @@ const a1BaseLearningNotes: readonly A1LearningNote[] = deepFreeze([
       it: "Luogo + に + andare o venire; luogo + で + un'attività come lavorare.",
     },
     typicalMistake: {
-      en: "Do not say *placeでいきます for a destination or *placeに働きます for an activity setting.",
-      it: "Non dire *luogoでいきます per una destinazione o *luogoに働きます per il luogo di un'attività.",
+      en: "Do not say *placeでいきます for a destination or *placeにはたらきます for an activity setting.",
+      it: "Non dire *luogoでいきます per una destinazione o *luogoにはたらきます per il luogo di un'attività.",
     },
     pattern: [
       token("slot", "destination", "destination", "destinazione"),

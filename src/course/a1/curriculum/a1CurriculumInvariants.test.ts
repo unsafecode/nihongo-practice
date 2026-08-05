@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { buildA1LessonViewModel } from "../a1LessonViewModel";
-import { a1FoundationCatalogs } from "../catalog/catalog";
+import {
+  a1AllVariants,
+  a1FoundationCatalogs,
+  a1FoundationCopy,
+} from "../catalog/catalog";
+import { a1TranslationCopyId } from "../catalog/shared";
 import {
   A1_CAPSTONE_LESSON_IDS,
   A1_LESSON_IDS,
@@ -139,6 +144,36 @@ describe("A1 learner curriculum invariants", () => {
       if (note.subjectOmissionNote) expectBilingual(note.subjectOmissionNote);
       for (const token of note.pattern) expectBilingual(token.label);
     }
+  });
+
+  it("only omits a named dialogue subject when the immediately prior turn explicitly establishes it across all 64 lessons", () => {
+    const variantById = new Map(
+      a1AllVariants.map((variant) => [variant.id, variant]),
+    );
+    const namedPeople = ["Yuki", "Ken", "Mina"];
+    const violations = a1LessonContents.flatMap((content) =>
+      (content.dialogue?.turnVariantIds ?? []).flatMap((variantId, index, turns) => {
+        const variant = variantById.get(variantId);
+        const translation = a1FoundationCopy.en[a1TranslationCopyId(variantId)] ?? "";
+        const namesAPerson = namedPeople.some((name) => translation.includes(name));
+        if (
+          !namesAPerson ||
+          variant?.pedagogicalUse !== "model" ||
+          variant.discourse.subjectRealization !== "omitted"
+        ) {
+          return [];
+        }
+
+        const prior = variantById.get(turns[index - 1] ?? "");
+        return prior?.discourse.subjectReferentId === variant.discourse.subjectReferentId &&
+          prior.discourse.subjectRealization === "explicit"
+          ? []
+          : [`${content.lessonId}:${variantId}`];
+      }),
+    );
+
+    expect(a1LessonContents).toHaveLength(64);
+    expect(violations).toEqual([]);
   });
 
   it("builds every production semantic lesson rather than treating an empty model as success", () => {

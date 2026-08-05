@@ -5,6 +5,8 @@ import {
   a1AllStagedFoundationsCatalogs,
   a1AllStagedFoundationsCopy,
   a1FoundationsArea03to04BuiltLessons,
+  a1FoundationsArea03to04Catalogs,
+  a1FoundationsArea03to04Copy,
   a1FoundationsArea03to04LessonContent,
 } from "./foundationsArea03to04";
 import { a1FoundationsArea01to02LessonContent } from "./foundationsArea01to02";
@@ -153,6 +155,64 @@ describe("staged Foundations learner content 03–04", () => {
       )?.dialogue;
       expect(dialogue?.turnVariantIds).toHaveLength(3);
     }
+  });
+
+  it("keeps the final worked dialogue and its staged practice targets explicit about Yuki", () => {
+    const content = a1FoundationsArea03to04LessonContent.find(
+      ({ lessonId }) => lessonId === "time-movement-4",
+    );
+    expect(content?.workedExampleVariantIds).toEqual([
+      "time-movement-4-m1",
+      "time-movement-4-m2",
+      "time-movement-4-m3",
+    ]);
+    expect(content?.dialogue?.turnVariantIds).toEqual([
+      "time-movement-4-m1",
+      "time-movement-4-m2",
+      "time-movement-4-m3",
+    ]);
+
+    const built = buildLessonViewModel({
+      catalogs: a1FoundationsArea03to04Catalogs,
+      copy: a1FoundationsArea03to04Copy,
+      lessonId: "time-movement-4",
+      locale: "en",
+      catalogVersion: "a1-foundations-staged-03to04",
+      seed: "a1-foundations-staged-03to04",
+    });
+    expect(built.ok).toBe(true);
+    if (!built.ok) return;
+
+    expect(
+      built.model.rounds.flatMap((round) =>
+        round.targets.map(({ variantId, visibleTargetKey, translation }) => ({
+          variantId,
+          visibleTargetKey,
+          translation,
+        })),
+      ),
+    ).toEqual([
+      {
+        variantId: "time-movement-4-m2",
+        visibleTargetKey: "でんしゃでえきにいきました",
+        translation: "I went to the station by train.",
+      },
+      {
+        variantId: "time-movement-4-m3",
+        visibleTargetKey: "ゆきはバスでかいしゃにかえりました",
+        translation: "Yuki returned to the company by bus.",
+      },
+      {
+        variantId: "time-movement-4-t2",
+        visibleTargetKey: "でんしゃでかいしゃにかえりました",
+        translation: "I returned to the company by train.",
+      },
+      {
+        variantId: "time-movement-4-t3",
+        visibleTargetKey: "みなはバスでがっこうにいきました",
+        translation: "Mina went to school by bus.",
+      },
+    ]);
   });
 
   it("builds all sixteen staged lessons with two prompts per round, speech, and a safe retrieval alternate", () => {
