@@ -553,8 +553,8 @@ export const a1LearningNotes: readonly A1LearningNote[] = deepFreeze([
       it: "か alla fine della frase rende cortese una domanda; だれ, なに・なん e どこ chiedono chi, che cosa e dove.",
     },
     use: {
-      en: "Keep the question word in the information slot and put か at the end.",
-      it: "Tieni la parola interrogativa nello spazio dell'informazione e metti か alla fine.",
+      en: "Use なん before です for a neutral “what?” and なに when you deliberately stress “what exactly?”; keep the question word in the information slot and put か at the end.",
+      it: "Usa なん prima di です per un neutro «che cosa?» e なに quando vuoi sottolineare «che cos'è esattamente?»; tieni la parola interrogativa nello spazio dell'informazione e metti か alla fine.",
     },
     construction: {
       en: "Use a question word or known information before the final polite predicate plus か.",

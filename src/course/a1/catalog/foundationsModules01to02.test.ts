@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { formatRomaji } from "../../../romaji/formatRomaji";
 import { buildLessonViewModel } from "../../foundations/buildLessonViewModel";
 import { realizeVariant } from "../../foundations/realizeFamily";
+import { a1LearningNoteById } from "../curriculum/grammar";
 import { A1_EXPANDED_CANONICAL_POSITIONS } from "../manifest";
 import { FOUNDATIONS_LEXEME_IDS_BY_LESSON } from "./foundationsShared";
 import { a1FoundationCatalogs } from "./catalog";
@@ -261,15 +262,6 @@ describe("staged Foundations modules 01–02", () => {
   });
 
   it("keeps focus and clarification honest without a premature verbal understanding form", () => {
-    const anata = variantById.get("sentence-foundations-3-m1");
-    expect(anata?.contextId).toBe("a1-context-unidentified-addressee");
-    expect(anata?.discourse.subjectReferentId).toBe(
-      "a1-referent-unidentified-addressee",
-    );
-    expect(anata?.discourse.addresseeRoleId).toBe(
-      "a1-role-unidentified-addressee",
-    );
-
     const focus = realize("topic-questions-2-m2");
     expect(focus.tokens.some((token) => token.jp === "が")).toBe(true);
     expect(focus.canonicalJapanese).toBe("ゆきがにほんじんです");
@@ -280,6 +272,65 @@ describe("staged Foundations modules 01–02", () => {
     );
     expect(realizedTopicQuestions.some((sentence) => sentence.includes("わか"))).toBe(false);
     expect(realizedTopicQuestions).not.toContain("これはどれですか");
+  });
+
+  it("uses なん for neutral です questions and なに only for an emphatic question", () => {
+    const expected = [
+      [
+        "topic-questions-3-m3",
+        "なんですか",
+        "nan desu ka",
+        "What is it?",
+        "Che cos'è?",
+      ],
+      [
+        "topic-questions-3-m6",
+        "なにですか",
+        "nani desu ka",
+        "What exactly is this?",
+        "Che cos'è esattamente questo?",
+      ],
+      [
+        "topic-questions-3-t4",
+        "なまえはなんですか",
+        "namae wa nan desu ka",
+        "What is the name?",
+        "Qual è il nome?",
+      ],
+    ] as const;
+
+    for (const [variantId, japanese, expectedRomaji, english, italian] of expected) {
+      const sentence = realize(variantId);
+      expect(sentence.canonicalJapanese).toBe(japanese);
+      const romaji = formatRomaji(sentence.tokens);
+      expect(romaji.ok).toBe(true);
+      if (romaji.ok) expect(romaji.text).toBe(expectedRomaji);
+      expect(a1FoundationsArea01to02Copy.en[`${variantId}-translation`]).toBe(english);
+      expect(a1FoundationsArea01to02Copy.it[`${variantId}-translation`]).toBe(italian);
+    }
+
+    const questionWordByGloss = new Map<string, Set<string>>();
+    for (const variant of moduleTopicQuestionsLessons
+      .find(({ recipe }) => recipe.id === "topic-questions-3")
+      ?.variants ?? []) {
+      const questionWord = variant.slotValues.object;
+      if (
+        questionWord !== "a1-value-q-nan" &&
+        questionWord !== "a1-value-q-nani"
+      ) {
+        continue;
+      }
+      const gloss = `${a1FoundationsArea01to02Copy.en[`${variant.id}-translation`]}|${a1FoundationsArea01to02Copy.it[`${variant.id}-translation`]}`;
+      const words = questionWordByGloss.get(gloss) ?? new Set<string>();
+      words.add(questionWord);
+      questionWordByGloss.set(gloss, words);
+    }
+    expect([...questionWordByGloss.values()].every((words) => words.size === 1)).toBe(true);
+
+    expect(a1LearningNoteById["a1-note-question-ka-words"]?.use).toEqual({
+      en: "Use なん before です for a neutral “what?” and なに when you deliberately stress “what exactly?”; keep the question word in the information slot and put か at the end.",
+      it: "Usa なん prima di です per un neutro «che cosa?» e なに quando vuoi sottolineare «che cos'è esattamente?»; tieni la parola interrogativa nello spazio dell'informazione e metti か alla fine.",
+    });
   });
 
   it("provides complete, parity-preserving staged bilingual copy", () => {
@@ -297,7 +348,6 @@ describe("staged Foundations modules 01–02", () => {
 
   it("stages only the grammar available at each lesson", () => {
     const forbiddenParticles = ["を", "で", "に", "へ"] as const;
-    const anataVariantIds: string[] = [];
     const availableConceptIds = new Set<string>();
 
     for (const [lessonIndex, built] of builtLessons.entries()) {
@@ -329,21 +379,30 @@ describe("staged Foundations modules 01–02", () => {
         if (lessonIndex < 6) {
           expect(sentence.canonicalJapanese.endsWith("か"), variant.id).toBe(false);
         }
-        if (sentence.canonicalJapanese.includes("あなた")) anataVariantIds.push(variant.id);
       }
     }
 
-    expect(anataVariantIds).toEqual(["sentence-foundations-3-m1"]);
-    expect(
-      builtLessons
-        .flatMap(({ variants }) => variants)
-        .some((variant, index, all) =>
-          variant.id.startsWith("sentence-foundations-3") &&
-          all[index + 1]?.id.startsWith("sentence-foundations-3") &&
-          realize(variant.id).canonicalJapanese.includes("あなた") &&
-          realize(all[index + 1].id).canonicalJapanese.includes("あなた"),
-        ),
-    ).toBe(false);
+    const allVariants = builtLessons.flatMap(({ variants }) => variants);
+    const anataVariants = allVariants.filter((variant) =>
+      realize(variant.id).canonicalJapanese.includes("あなた"),
+    );
+    expect(anataVariants.map(({ id }) => id)).toEqual(["sentence-foundations-3-m1"]);
+    for (const variant of anataVariants) {
+      expect(variant.contextId).toBe("a1-context-unidentified-addressee");
+      expect(variant.discourse.subjectReferentId).toBe(
+        "a1-referent-unidentified-addressee",
+      );
+      expect(variant.discourse.addresseeRoleId).toBe(
+        "a1-role-unidentified-addressee",
+      );
+    }
+
+    const visibleAnataIds = a1FoundationsArea01to02LessonContent.flatMap((content) => [
+      ...content.workedExampleVariantIds,
+      ...(content.dialogue?.turnVariantIds ?? []),
+    ]).filter((variantId) => realize(variantId).canonicalJapanese.includes("あなた"));
+    expect(visibleAnataIds).toEqual(["sentence-foundations-3-m1"]);
+    expect(visibleAnataIds).toHaveLength(1);
   });
 
   it("builds generated practice through the catalog-neutral staged view model", () => {

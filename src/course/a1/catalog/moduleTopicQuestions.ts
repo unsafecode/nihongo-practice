@@ -326,10 +326,10 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
     question({
       id: "topic-questions-3-m3",
       family: "a1-family-foundation-question-copular",
-      context: "a1-context-classroom",
+      context: "a1-context-workplace",
       subjectReferent: "a1-referent-thing",
       subjectRealization: "omitted",
-      slots: cop("a1-value-kore", "a1-value-q-nani"),
+      slots: cop("a1-value-kore", "a1-value-q-nan"),
       translation: L("What is it?", "Che cos'è?"),
     }),
     question({
@@ -355,9 +355,12 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
       family: "a1-family-foundation-question-copular",
       context: "a1-context-first-meeting",
       subjectReferent: "a1-referent-thing",
-      subjectRealization: "explicit",
-      slots: cop("a1-value-name-subject", "a1-value-q-nani"),
-      translation: L("What is the name?", "Qual è il nome?"),
+      subjectRealization: "omitted",
+      slots: cop("a1-value-kore", "a1-value-q-nani"),
+      translation: L(
+        "What exactly is this?",
+        "Che cos'è esattamente questo?",
+      ),
     }),
     question({
       id: "topic-questions-3-m7",
@@ -412,7 +415,7 @@ const lesson3: A1BuiltLesson = buildA1InstructionalLesson({
       context: "a1-context-station",
       subjectReferent: "a1-referent-thing",
       subjectRealization: "explicit",
-      slots: cop("a1-value-name-subject", "a1-value-q-nani"),
+      slots: cop("a1-value-name-subject", "a1-value-q-nan"),
       translation: L("What is the name?", "Qual è il nome?"),
     }),
     question({
