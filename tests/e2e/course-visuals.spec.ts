@@ -1,5 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import { PREVIEW_BASE_PATH, PREVIEW_ORIGIN } from "../../playwright.config";
+import { A1_AREAS } from "../../src/course/a1/areas";
+import {
+  A1_LESSON_IDS,
+  A1_LESSON_MANIFEST,
+  A1_MODULE_IDS,
+} from "../../src/course/a1/manifest";
 import { buildA1PracticeModel } from "../../src/course/components/a1PracticeModel";
 import { getA1SpokenAttemptModel } from "../../src/course/components/a1SpokenAttemptModel";
 import { CURRENT_COURSE_PROGRESS_CATALOG_VERSION } from "../../src/course/progress/progress";
@@ -31,24 +37,40 @@ const A1_FOUNDATION_BASELINES = [
   {
     name: "introductions-1",
     url: routeUrls.lesson("introductions", "introductions-1"),
-    snapshot: "a1-foundations-introductions-1.png",
+    snapshot: "a1-migrated-introductions-1.png",
+    dialogue: true,
   },
   {
     name: "shopping-4",
     url: routeUrls.lesson("shopping", "shopping-4"),
     snapshot: "a1-migrated-scenario-shopping-4.png",
+    dialogue: true,
+  },
+  {
+    name: "sentence-foundations-1",
+    url: routeUrls.lesson("sentence-foundations", "sentence-foundations-1"),
+    snapshot: "a1-sentence-foundations-1.png",
+    dialogue: false,
+  },
+  {
+    name: "time-movement-4",
+    url: routeUrls.lesson("time-movement", "time-movement-4"),
+    snapshot: "a1-time-movement-4.png",
+    dialogue: true,
   },
 ] as const;
 
-/** The complete A0→A1 rebuild's 12 modules, in fixed phase order (design
- * spec §5.2/§6.2): 3 "orient", 3 "build", 5 "navigate", 1 "synthesize". */
-const EXPECTED_PHASE_MODULE_COUNTS = [3, 3, 5, 1] as const;
-/** Real module id order (`src/course/curriculum/foundation.ts`'s `moduleSeeds`),
- * grouped into the same four fixed phases. The redesigned course map no
- * longer wraps modules in a `.course-phase` DOM grouping, so phase order is
- * asserted against this hardcoded mirror of the curriculum source instead. */
+/** The complete published A1 map: explicit semantic areas, 16 modules, and
+ * 64 canonical routes. The hardcoded shape makes expansion regressions visible;
+ * imports below independently prove the DOM follows the release manifest. */
+const EXPECTED_AREA_IDS = ["sounds", "foundations", "situations", "synthesis"] as const;
+const EXPECTED_AREA_MODULE_COUNTS = [1, 4, 10, 1] as const;
 const EXPECTED_MODULE_ORDER = [
   "sounds",
+  "sentence-foundations",
+  "topic-questions",
+  "polite-verbs",
+  "time-movement",
   "introductions",
   "essential-questions",
   "actions",
@@ -61,14 +83,14 @@ const EXPECTED_MODULE_ORDER = [
   "existence-needs",
   "capstones",
 ] as const;
-const TOTAL_MODULE_COUNT = 12;
-const TOTAL_LESSON_COUNT = 48;
+const TOTAL_MODULE_COUNT = 16;
+const TOTAL_LESSON_COUNT = 64;
 
 /** The Module 1 "katakana bridge" lesson (design spec §7): the first lesson
  * that introduces authentic katakana loanwords, e.g. コーヒー. */
 const KATAKANA_BRIDGE_LESSON_URL = routeUrls.lesson("sounds", "sounds-4");
 
-/** Clicks every currently-collapsed module disclosure so all 48 lesson rows
+/** Clicks every currently-collapsed module disclosure so all 64 lesson rows
  * become visible, letting a test prove the *complete* set of routes without
  * assuming DOM presence implies user-visible reachability. */
 async function expandAllModules(page: Page): Promise<void> {
@@ -80,6 +102,25 @@ async function expandAllModules(page: Page): Promise<void> {
       await button.click();
     }
   }
+}
+
+async function showCompleteFoundationsArea(page: Page): Promise<void> {
+  const areas = page.locator(".course-area");
+  const count = await areas.count();
+  for (let areaIndex = 0; areaIndex < count; areaIndex += 1) {
+    const area = areas.nth(areaIndex);
+    const isFoundations = await area.evaluate((element) =>
+      element.classList.contains("course-area--foundations"),
+    );
+    const disclosures = area.locator(".module-card__disclosure");
+    for (let index = 0; index < await disclosures.count(); index += 1) {
+      const disclosure = disclosures.nth(index);
+      const expanded = (await disclosure.getAttribute("aria-expanded")) === "true";
+      if (expanded !== isFoundations) await disclosure.click();
+    }
+  }
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 }
 
 const SCREENS = [
@@ -245,11 +286,32 @@ for (const screen of SCREENS) {
   });
 }
 
-test.describe("reviewed A1 foundations desktop baselines", () => {
+test.describe("reviewed A1 desktop baselines", () => {
   test.skip(
     ({ viewport }) => !viewport || viewport.width < 700,
     "A1 full-page baselines are reviewed at the approved desktop viewport",
   );
+
+  test("Course Map: complete Foundations area is expanded while other areas stay compact", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, routeUrls.home);
+    await showCompleteFoundationsArea(page);
+
+    const foundations = page.locator(".course-area--foundations");
+    await expect(foundations.locator(".module-card")).toHaveCount(4);
+    await expect(foundations.locator(".module-card__lesson-link")).toHaveCount(16);
+    await expect(
+      foundations.locator(".module-card__lesson-link").filter({ visible: true }),
+    ).toHaveCount(16);
+    await expect(page).toHaveScreenshot("a1-course-map-foundations-expanded.png", {
+      fullPage: true,
+    });
+
+    await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
+  });
 
   for (const baseline of A1_FOUNDATION_BASELINES) {
     test(`${baseline.name}: Italian hiragana learning flow`, async ({ page }) => {
@@ -259,6 +321,9 @@ test.describe("reviewed A1 foundations desktop baselines", () => {
 
       await expect(page.locator(".a1-vocabulary__meaning").first()).toContainText(/\S/);
       await expect(page.locator(".a1-worked-examples__pattern:not([open])")).toHaveCount(1);
+      await expect(page.locator(".a1-worked-examples__dialogue")).toHaveCount(
+        baseline.dialogue ? 1 : 0,
+      );
       await expect(page.locator(".lesson-exercise")).toHaveCount(4);
       await expect(page.locator(".spoken-attempt")).toHaveCount(1);
       await expect(page).toHaveScreenshot(baseline.snapshot, { fullPage: true });
@@ -596,19 +661,29 @@ test.describe("representative lesson visual system", () => {
   });
 });
 
-test.describe("live complete A0→A1 course composition (Slice B Task 5)", () => {
-  test("exposes exactly 12 module cards in the four fixed phases' module order", async ({ page }) => {
+test.describe("live complete A1 course composition", () => {
+  test("exposes exactly four semantic areas, 16 module cards, and the canonical module order", async ({ page }) => {
     await setupPageObservers(page);
     await gotoReady(page, routeUrls.home);
 
-    // The redesigned course map no longer wraps modules in a `.course-phase`
-    // DOM grouping (confirmed intentional — a single flat list under one
-    // "The course" heading) — so phase order is now derived from each
-    // module card's first lesson-link href and compared against the fixed
-    // curriculum order, then grouped into run-lengths to prove the phase
-    // sizes are still 3/3/5/1.
+    expect(A1_AREAS.map((area) => area.id)).toEqual([...EXPECTED_AREA_IDS]);
+    expect(A1_MODULE_IDS).toHaveLength(TOTAL_MODULE_COUNT);
+    expect(A1_LESSON_IDS).toHaveLength(TOTAL_LESSON_COUNT);
     const totalModules = await page.locator(".module-card").count();
     expect(totalModules).toBe(TOTAL_MODULE_COUNT);
+
+    const areaShape = await page.locator(".course-area").evaluateAll((areas) =>
+      areas.map((area) => ({
+        id: area.getAttribute("aria-labelledby")?.replace("course-area-", "") ?? "",
+        modules: area.querySelectorAll(".module-card").length,
+      })),
+    );
+    expect(areaShape).toEqual(
+      EXPECTED_AREA_IDS.map((id, index) => ({
+        id,
+        modules: EXPECTED_AREA_MODULE_COUNTS[index],
+      })),
+    );
 
     await expandAllModules(page);
     const firstHrefs = await page.locator(".module-card").evaluateAll((cards) =>
@@ -616,38 +691,9 @@ test.describe("live complete A0→A1 course composition (Slice B Task 5)", () =>
     );
     const moduleIds = firstHrefs.map((href) => href.split("/")[2] ?? "");
     expect(moduleIds).toEqual([...EXPECTED_MODULE_ORDER]);
-
-    // Re-derive phase run-lengths from the fixed order to prove the
-    // 3/3/5/1 phase sizes still hold even without a DOM phase wrapper.
-    const runLengths: number[] = [];
-    let currentPhase: string | null = null;
-    const phaseByModuleId: Record<string, string> = {
-      sounds: "orient",
-      introductions: "orient",
-      "essential-questions": "orient",
-      actions: "build",
-      routines: "build",
-      "past-negative": "build",
-      places: "navigate",
-      people: "navigate",
-      descriptions: "navigate",
-      shopping: "navigate",
-      "existence-needs": "navigate",
-      capstones: "synthesize",
-    };
-    for (const id of moduleIds) {
-      const phase = phaseByModuleId[id];
-      if (phase !== currentPhase) {
-        runLengths.push(1);
-        currentPhase = phase;
-      } else {
-        runLengths[runLengths.length - 1] += 1;
-      }
-    }
-    expect(runLengths).toEqual([...EXPECTED_PHASE_MODULE_COUNTS]);
   });
 
-  test("declares exactly 48 unique lesson links across every module", async ({ page }) => {
+  test("declares exactly 64 unique lesson links across every module", async ({ page }) => {
     await setupPageObservers(page);
     await gotoReady(page, routeUrls.home);
     await expandAllModules(page);
@@ -661,6 +707,12 @@ test.describe("live complete A0→A1 course composition (Slice B Task 5)", () =>
     expect(hrefs).toHaveLength(TOTAL_LESSON_COUNT);
     expect(new Set(hrefs).size, "every lesson link href is unique").toBe(TOTAL_LESSON_COUNT);
     expect(hrefs.every((href) => !!href), "every lesson link has an href").toBe(true);
+    expect(hrefs).toEqual(
+      A1_LESSON_IDS.map((lessonId) => {
+        const entry = A1_LESSON_MANIFEST[lessonId];
+        return `#/percorso/${entry.moduleId}/${entry.lessonId}`;
+      }),
+    );
   });
 
   test("only the recommended module's lessons render by default — no raw dumped rows on the rest", async ({ page }) => {
@@ -670,7 +722,7 @@ test.describe("live complete A0→A1 course composition (Slice B Task 5)", () =>
     // Regression guard: `.module-card__lessons[hidden]` must actually render
     // with zero height. A CSS specificity tie with the UA `[hidden]` default
     // previously let every collapsed module's full lesson list render
-    // anyway, dumping all 48 rows on first paint instead of only the
+    // anyway, dumping all 64 rows on first paint instead of only the
     // recommended module's (design spec §13.3).
     const panelMetrics = await page.evaluate(() =>
       Array.from(document.querySelectorAll<HTMLElement>(".module-card__lessons")).map(
@@ -699,7 +751,10 @@ test.describe("live complete A0→A1 course composition (Slice B Task 5)", () =>
     // height matching the expanded module (design spec §13.3). The bound is
     // generous enough to absorb mobile's narrower text wrapping while still
     // being far below what a giant/equal-height forced card would measure.
-    const collapsedBound = viewport && isMobile(viewport.width) ? 620 : 320;
+    // Foundations cards carry a longer localized outcome plus their explicit
+    // prerequisite. Their current desktop maximum is 323px, so 340px remains
+    // a strict content-sized ceiling while allowing that authored area.
+    const collapsedBound = viewport && isMobile(viewport.width) ? 620 : 340;
     const cardHeights = await page.locator(".module-card").evaluateAll((cards) =>
       cards.map((card) => card.getBoundingClientRect().height),
     );

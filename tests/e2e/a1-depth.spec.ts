@@ -270,7 +270,7 @@ test.describe("V3 to V4 A1 migration remains live and idempotent", () => {
     assertLocalOnlyNetwork(observers);
   });
 
-  test("resets old attempt evidence but persists the migrated v2 record across a reload", async ({
+  test("resets old attempt evidence but persists the migrated v3 record across a reload", async ({
     page,
   }) => {
     const observers = await setupPageObservers(page);
@@ -315,7 +315,7 @@ test.describe("V3 to V4 A1 migration remains live and idempotent", () => {
     assertLocalOnlyNetwork(observers);
   });
 
-  test("keeps a current v2 payload unchanged and handles unavailable persistence truthfully", async ({
+  test("keeps a current v3 payload unchanged and handles unavailable persistence truthfully", async ({
     page,
   }) => {
     const observers = await setupPageObservers(page);

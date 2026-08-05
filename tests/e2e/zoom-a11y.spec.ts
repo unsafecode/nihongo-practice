@@ -13,6 +13,16 @@ import {
 
 const ZOOM_FACTOR = 2;
 const A1_ZOOM_LESSONS = [
+  {
+    moduleId: "sentence-foundations",
+    lessonId: "sentence-foundations-1",
+    kind: "sentence foundations",
+  },
+  {
+    moduleId: "time-movement",
+    lessonId: "time-movement-4",
+    kind: "time and movement",
+  },
   { moduleId: "shopping", lessonId: "shopping-4", kind: "semantic" },
   { moduleId: "sounds", lessonId: "sounds-1", kind: "phonetic" },
 ] as const;
@@ -121,6 +131,91 @@ async function assertFocusAndReducedMotion(page: Page): Promise<void> {
   }
 }
 
+async function assertCourseMapZoomSurface(page: Page): Promise<void> {
+  const areas = page.locator(".course-area");
+  await expect(areas).toHaveCount(4);
+  const areaShape = await areas.evaluateAll((nodes) =>
+    nodes.map((area) => ({
+      id: area.getAttribute("aria-labelledby")?.replace("course-area-", "") ?? "",
+      modules: area.querySelectorAll(".module-card").length,
+    })),
+  );
+  expect(areaShape).toEqual([
+    { id: "sounds", modules: 1 },
+    { id: "foundations", modules: 4 },
+    { id: "situations", modules: 10 },
+    { id: "synthesis", modules: 1 },
+  ]);
+
+  const foundations = page.locator(".course-area--foundations");
+  const disclosures = foundations.locator(".module-card__disclosure");
+  for (let index = 0; index < await disclosures.count(); index += 1) {
+    const disclosure = disclosures.nth(index);
+    if ((await disclosure.getAttribute("aria-expanded")) === "false") {
+      await disclosure.focus();
+      await page.keyboard.press("Enter");
+    }
+  }
+  await expect(
+    foundations.locator(".module-card__lesson-link").filter({ visible: true }),
+  ).toHaveCount(16);
+  await expect(page.locator('[role="status"]').first()).toBeVisible();
+
+  let focus: { outlineStyle: string; outlineWidth: number } | null = null;
+  for (let presses = 0; presses < 80 && focus === null; presses += 1) {
+    await page.keyboard.press("Tab");
+    focus = await page.evaluate(() => {
+      const element = document.activeElement;
+      if (!(element instanceof HTMLElement) || !element.classList.contains("module-card__disclosure")) {
+        return null;
+      }
+      const style = getComputedStyle(element);
+      return {
+        outlineStyle: style.outlineStyle,
+        outlineWidth: Number.parseFloat(style.outlineWidth),
+      };
+    });
+  }
+  expect(focus, "keyboard Tab reaches a Course Map disclosure").not.toBeNull();
+  expect(focus!.outlineStyle).not.toBe("none");
+  expect(focus!.outlineWidth).toBeGreaterThanOrEqual(2);
+
+  const transitionSeconds = async (): Promise<number> =>
+    disclosures.first().evaluate((element) =>
+      Math.max(
+        ...getComputedStyle(element)
+          .transitionDuration.split(",")
+          .map((part) => Number.parseFloat(part) || 0),
+      ),
+    );
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  const normalSeconds = await transitionSeconds();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const reducedSeconds = await transitionSeconds();
+  expect(normalSeconds).toBeGreaterThan(0);
+  expect(reducedSeconds).toBeLessThan(0.05);
+  expect(reducedSeconds).toBeLessThan(normalSeconds);
+
+  expect(await auditTouchTargets(page)).toEqual([]);
+  await assertNoHorizontalOverflow(page);
+}
+
+test.describe("A1 Course Map at real 200% zoom", () => {
+  test("keeps the four-area Foundation hierarchy, focus, live status, and touch targets usable", async ({
+    page,
+  }) => {
+    const observers = await setupPageObservers(page);
+    await gotoReady(page, routeUrls.home);
+
+    const evidence = await applyBrowserZoom(page, ZOOM_FACTOR);
+    assertZoomApplied(evidence);
+    await assertCourseMapZoomSurface(page);
+
+    await assertNoRuntimeErrors(page, observers);
+    assertLocalOnlyNetwork(observers);
+  });
+});
+
 for (const lesson of A1_ZOOM_LESSONS) {
   test.describe(`${lesson.kind} A1 lesson ${lesson.lessonId} at real 200% zoom`, () => {
     test("reflows or pinch-zooms the complete six-section learning surface without page overflow", async ({
@@ -154,7 +249,7 @@ for (const lesson of A1_ZOOM_LESSONS) {
 }
 
 test.describe("A1 and A2 at the 320px reflow floor", () => {
-  test("keeps an early A1 lesson, migrated shopping scenario, A2 map, and A2 lesson within the page viewport", async ({
+  test("keeps the A1 areas, new Foundation lessons, migrated shopping scenario, A2 map, and A2 lesson within the page viewport", async ({
     page,
   }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop-1440", "the explicit 320px floor runs once");
@@ -162,6 +257,9 @@ test.describe("A1 and A2 at the 320px reflow floor", () => {
     await page.setViewportSize({ width: 320, height: 640 });
 
     const screens = [
+      routeUrls.home,
+      routeUrls.lesson("sentence-foundations", "sentence-foundations-1"),
+      routeUrls.lesson("time-movement", "time-movement-4"),
       routeUrls.lesson("introductions", "introductions-1"),
       routeUrls.lesson("shopping", "shopping-4"),
       A2_COURSE_URL,
@@ -169,6 +267,10 @@ test.describe("A1 and A2 at the 320px reflow floor", () => {
     ];
     for (const url of screens) {
       await gotoReady(page, url);
+      if (url === routeUrls.home) {
+        await expect(page.locator(".course-area")).toHaveCount(4);
+        await expect(page.locator(".course-area--foundations .module-card")).toHaveCount(4);
+      }
       await assertNoHorizontalOverflow(page);
       const targets = await auditTouchTargets(page);
       expect(targets, `${url} targets: ${JSON.stringify(targets)}`).toEqual([]);

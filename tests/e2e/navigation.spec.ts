@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
   A1_LESSON_IDS,
+  A1_MODULE_IDS,
   A1_LESSON_MANIFEST,
 } from "../../src/course/a1/manifest";
 import { buildA1PracticeModel } from "../../src/course/components/a1PracticeModel";
@@ -194,10 +195,12 @@ test.describe("navigation and settings", () => {
 });
 
 test.describe("complete published A1 routes", () => {
-  test("the Course map exposes the manifest's 48 canonical lesson links in order", async ({ page }) => {
+  test("the Course map exposes the manifest's 64 canonical lesson links in order", async ({ page }) => {
     const observers = await setupPageObservers(page);
     await gotoReady(page, routeUrls.home);
 
+    expect(A1_MODULE_IDS).toHaveLength(16);
+    expect(A1_LESSON_IDS).toHaveLength(64);
     const disclosures = page.locator(".module-card__disclosure");
     for (let index = 0; index < await disclosures.count(); index += 1) {
       if ((await disclosures.nth(index).getAttribute("aria-expanded")) === "false") {

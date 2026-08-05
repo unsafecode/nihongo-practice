@@ -38,8 +38,8 @@ const A1_REP_LESSON_URL = routeUrls.lesson("introductions", "introductions-1");
 
 const PROGRESS_STORAGE_KEY = "nihongo.course.progress";
 
-const A1_MODULE_COUNT = 12;
-const A1_LESSON_COUNT = 48;
+const A1_MODULE_COUNT = 16;
+const A1_LESSON_COUNT = 64;
 const A2_MODULE_COUNT = 15;
 const A2_LESSON_COUNT = 60;
 
