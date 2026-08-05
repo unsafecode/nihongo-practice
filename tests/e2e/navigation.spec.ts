@@ -302,6 +302,40 @@ test.describe("A1 foundation lesson navigation and current practice", () => {
         name: TILE_EXERCISE_COPY.moveTileForward(tile),
         exact: true,
       });
+    const bank = card.getByRole("list", {
+      name: TILE_EXERCISE_COPY.bankLabel,
+      exact: true,
+    });
+    const answer = card.getByRole("list", {
+      name: TILE_EXERCISE_COPY.answerAreaLabel,
+      exact: true,
+    });
+    const feedback = card.locator(".lesson-exercise__feedback");
+
+    // Start with a genuinely wrong non-final tile. The bank's presentation
+    // order makes ス the first remaining control; the canonical first answer
+    // remains レ, which must not be placed or focused as a side effect.
+    await add("ン").focus();
+    await expectActiveControl(page, add("ン"));
+    await page.keyboard.press("Enter");
+    await expect(answer).toContainText("ン");
+    await expect(answer).not.toContainText("レ");
+    await expectActiveControl(page, add("ス"));
+    await expect(add("レ")).not.toBeFocused();
+    await expect(feedback).toHaveClass("lesson-exercise__feedback");
+    await expect(feedback).toBeEmpty();
+
+    // Clear the wrong partial answer before exercising the existing full
+    // keyboard reorder path.
+    const clear = card.getByRole("button", {
+      name: TILE_EXERCISE_COPY.clear,
+      exact: true,
+    });
+    await clear.focus();
+    await page.keyboard.press("Enter");
+    await expect(bank.getByRole("button")).toHaveCount(5);
+    await expect(answer.locator(".lesson-exercise__placed")).toHaveCount(0);
+    await expect(feedback).toHaveClass("lesson-exercise__feedback");
 
     // The target word is learner-visible in the current production exercise;
     // this deliberately locates the card by its accessible bank, not card order.
@@ -312,7 +346,7 @@ test.describe("A1 foundation lesson navigation and current practice", () => {
       await expectActiveControl(page, control);
       await page.keyboard.press("Enter");
     }
-    await expect(card.getByRole("list", { name: TILE_EXERCISE_COPY.bankLabel })).toBeEmpty();
+    await expect(bank).toBeEmpty();
     await expectActiveControl(page, remove("ラ"));
 
     // Moving a middle tile to the first boundary leaves focus on its enabled
