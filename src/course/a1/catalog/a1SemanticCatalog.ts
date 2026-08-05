@@ -773,9 +773,8 @@ export const a1ExpandedFoundationSemanticValues: readonly SemanticValue[] =
       kind: "location",
       tokenFragments: [frag("どこ", "doko")],
     }),
-    // Staged alternate referent forms let the first two Foundations modules
-    // realize names, roles, and どれ naturally without widening the published
-    // lesson catalog before Task 5.
+    // Canonical referent forms let the first two Foundations modules realize
+    // names, roles, and どれ naturally.
     defineA1SemanticValue({
       id: "a1-value-name-subject",
       kind: "referent",

@@ -1,7 +1,7 @@
 /**
- * Staged Foundations module 2 — topics, focus, and identity questions.
+ * Foundations module 2 — topics, focus, and identity questions.
  *
- * These recipes are part of the published Foundations sequence.
+ * This authoring slice is part of the published Foundations area.
  */
 
 import { defineA1Module } from "../authoring";

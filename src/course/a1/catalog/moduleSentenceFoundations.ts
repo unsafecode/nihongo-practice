@@ -1,7 +1,7 @@
 /**
- * Staged Foundations module 1 — predicate-final identity sentences.
+ * Foundations module 1 — predicate-final identity sentences.
  *
- * This module is part of the published 16-module Foundations area.
+ * This authoring slice is part of the published Foundations area.
  */
 
 import { defineA1Module } from "../authoring";
@@ -591,7 +591,7 @@ export const moduleSentenceFoundationsRecipe: A1ModuleRecipe = defineA1Module({
   outcomeCopyId: "a1-module-outcome-sentence-foundations",
 });
 
-/** Staged only; Task 5 owns promotion into the release recurrence timeline. */
+/** Canonical recurrence records for the published sentence-foundations lessons. */
 export const moduleSentenceFoundationsVerbUseRecords: readonly VerbUseRecord[] = [
   a1VerbUseRecord({
     senseId: "a1-sense-be",
