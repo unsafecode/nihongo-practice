@@ -21,6 +21,17 @@ import {
   reviewKeyFor,
   upsertReviewMistake,
 } from "./reviewQueue";
+import { V4_ACTIVITY_MIGRATION_MAP } from "../base/migration/v4ActivityMap";
+import { V4_CANDO_MIGRATION_MAP } from "../base/migration/v4CanDoMap";
+import { V4_OWNERSHIP_MIGRATION_MAP } from "../base/migration/v4OwnershipMap";
+import { lessonIdsForLevel } from "../levels/ownership";
+import {
+  COURSE_LEVEL_IDS,
+  type CourseLevelId as SharedCourseLevelId,
+} from "../levels/types";
+
+/** V4-compatible A1/A2 alias retained for the unchanged runtime bridge. */
+export type CourseLevelId = Exclude<SharedCourseLevelId, "a0">;
 
 export interface CourseProgressV1 {
   schemaVersion: 1;
@@ -84,7 +95,7 @@ export interface CourseProgressV3 {
 // it never mutates its input, and it never calls `Date` — every timestamp in
 // the result is either the source's own `updatedAt` or `null`.
 
-export type CourseLevelId = "a1" | "a2";
+type V4CourseLevelId = CourseLevelId;
 export type LessonId = string;
 export type CanDoId = string;
 export type CheckpointId = string;
@@ -125,7 +136,7 @@ export interface CheckpointAttempt {
   readonly sampledCanDoIds: readonly CanDoId[];
 }
 
-/** One level's (A1 or A2) complete, independent progress (design spec §17). */
+/** One legacy V4 level's (A1 or A2) complete, independent progress. */
 export interface LevelProgress {
   readonly lessons: Readonly<Record<LessonId, LessonProgress>>;
   readonly canDos: Readonly<Record<CanDoId, CanDoEvidence>>;
@@ -144,9 +155,9 @@ export interface LevelProgress {
  * "what changed" explanation can stay available in progress help.
  */
 export interface ProgressMigrationNotice {
-  readonly fromSchemaVersion: 3;
-  readonly preservedVisitedLessonIds: readonly LessonId[];
-  readonly resetEvidenceLessonIds: readonly LessonId[];
+  readonly fromSchemaVersion: 3 | 4;
+  readonly preservedVisitedLessonIds?: readonly LessonId[];
+  readonly resetEvidenceLessonIds?: readonly LessonId[];
   readonly acknowledgedAt: string | null;
 }
 
@@ -165,9 +176,13 @@ type SupportedCourseProgressCatalogVersion =
   | typeof CURRENT_COURSE_PROGRESS_CATALOG_VERSION;
 
 export interface CourseProgressV4 {
-  readonly schemaVersion: 4;
-  readonly catalogVersion: typeof CURRENT_COURSE_PROGRESS_CATALOG_VERSION;
-  readonly levels: Readonly<Record<CourseLevelId, LevelProgress>>;
+  readonly schemaVersion: 4 | 5;
+  readonly catalogVersion:
+    | "a1-a2-v1"
+    | "a1-a2-v2"
+    | typeof CURRENT_COURSE_PROGRESS_CATALOG_VERSION
+    | "base-a1-a2-v1";
+  readonly levels: Readonly<Record<V4CourseLevelId, LevelProgress>>;
   readonly migrationNotice: ProgressMigrationNotice | null;
   readonly updatedAt: string;
 }
@@ -183,12 +198,12 @@ export type StoredCourseProgressV4 = Omit<CourseProgressV4, "catalogVersion"> & 
 
 /** Current runtime catalog keys supplied by ProgressContext, never imported here. */
 export type KnownReviewKeysByLevel = Readonly<
-  Record<CourseLevelId, ReadonlySet<string>>
+  Partial<Record<SharedCourseLevelId, ReadonlySet<string>>>
 >;
 
 /** Current runtime lesson ids supplied by ProgressContext, never imported here. */
 export type KnownLessonIdsByLevel = Readonly<
-  Record<CourseLevelId, ReadonlySet<string>>
+  Partial<Record<SharedCourseLevelId, ReadonlySet<string>>>
 >;
 
 export function emptyLevelProgress(): LevelProgress {
@@ -210,6 +225,82 @@ export function emptyProgressV4(): CourseProgressV4 {
     levels: { a1: emptyLevelProgress(), a2: emptyLevelProgress() },
     migrationNotice: null,
     updatedAt: new Date(0).toISOString(),
+  };
+}
+
+// ── Schema V5: Base/A1/A2 lossless ownership migration ────────────────────
+
+/** The catalog revision written by every current schema-V5 progress record. */
+export const CURRENT_COURSE_PROGRESS_V5_CATALOG_VERSION = "base-a1-a2-v1" as const;
+
+export interface HistoricalCheckpointRef {
+  readonly sourceLevel: "a1" | "a2";
+  readonly attemptId: CheckpointAttemptId;
+}
+
+export interface CanDoEvidenceV5 extends CanDoEvidence {
+  readonly historicalCheckpointRefs: readonly HistoricalCheckpointRef[];
+}
+
+export interface HistoricalActivityDisposition {
+  readonly sourceLevel: "a1" | "a2";
+  readonly lessonId: LessonId;
+  readonly activityId: ExerciseDefinitionId;
+  readonly disposition: "same-semantics" | "historical-orphan";
+  readonly orphanedReview: ReviewQueueEntry | null;
+}
+
+export interface LevelProgressV5 extends LevelProgress {
+  readonly canDos: Readonly<Record<CanDoId, CanDoEvidenceV5>>;
+  readonly orphanedLessonRecords: Readonly<Record<LessonId, LessonProgress>>;
+  readonly historicalActivityDispositions: readonly HistoricalActivityDisposition[];
+}
+
+export interface BaseOwnershipMigrationNotice extends ProgressMigrationNotice {
+  readonly fromSchemaVersion: 4;
+  /** Mapped lessons with actual V4 records, not every registry row. */
+  readonly movedLessonIds: readonly LessonId[];
+  /** Historical V4 activity ids that had actual evidence. */
+  readonly historicalActivityIds: readonly ExerciseDefinitionId[];
+  readonly resumeLevel: SharedCourseLevelId;
+  readonly priorNotice: ProgressMigrationNotice | null;
+  readonly acknowledgedAt: null | string;
+}
+
+export interface CourseProgressV5 extends CourseProgressV4 {
+  readonly schemaVersion: 5;
+  readonly catalogVersion: typeof CURRENT_COURSE_PROGRESS_V5_CATALOG_VERSION;
+  readonly levels: Readonly<Record<SharedCourseLevelId, LevelProgressV5>>;
+  readonly migrationNotice: BaseOwnershipMigrationNotice | null;
+}
+
+const EPOCH_TIMESTAMP = "1970-01-01T00:00:00.000Z";
+
+export function emptyLevelProgressV5(): LevelProgressV5 {
+  return {
+    lessons: {},
+    canDos: {},
+    checkpointAttempts: [],
+    lastVisitedLessonId: null,
+    reviewQueue: [],
+    orphanedLessonIds: [],
+    orphanedReviewKeys: [],
+    orphanedLessonRecords: {},
+    historicalActivityDispositions: [],
+  };
+}
+
+export function emptyProgressV5(): CourseProgressV5 {
+  return {
+    schemaVersion: 5,
+    catalogVersion: CURRENT_COURSE_PROGRESS_V5_CATALOG_VERSION,
+    levels: {
+      a0: emptyLevelProgressV5(),
+      a1: emptyLevelProgressV5(),
+      a2: emptyLevelProgressV5(),
+    },
+    migrationNotice: null,
+    updatedAt: EPOCH_TIMESTAMP,
   };
 }
 
@@ -522,6 +613,169 @@ function isValidV4Shape(
   );
 }
 
+function isHistoricalCheckpointRef(value: unknown): value is HistoricalCheckpointRef {
+  if (!value || typeof value !== "object") return false;
+  const ref = value as Partial<HistoricalCheckpointRef>;
+  return (
+    (ref.sourceLevel === "a1" || ref.sourceLevel === "a2") &&
+    typeof ref.attemptId === "string"
+  );
+}
+
+function hasOwnFields(value: object, fields: readonly string[]): boolean {
+  return fields.every((field) => Object.prototype.hasOwnProperty.call(value, field));
+}
+
+function isLessonProgressV5(value: unknown): value is LessonProgress {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const lesson = value as Partial<LessonProgress>;
+  return (
+    hasOwnFields(value, [
+      "visitedAt",
+      "practicedAt",
+      "consolidatedAt",
+      "attemptedExerciseIds",
+      "acceptedExerciseIds",
+    ]) &&
+    isOptionalString(lesson.visitedAt) &&
+    isOptionalString(lesson.practicedAt) &&
+    isOptionalString(lesson.consolidatedAt) &&
+    isStringArray(lesson.attemptedExerciseIds) &&
+    isStringArray(lesson.acceptedExerciseIds)
+  );
+}
+
+function isCanDoEvidenceV5(value: unknown): value is CanDoEvidenceV5 {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const evidence = value as Partial<CanDoEvidenceV5>;
+  return (
+    hasOwnFields(value, [
+      "canDoId",
+      "visitedLessonIds",
+      "practicedLessonIds",
+      "acceptedTransferExerciseIds",
+      "checkpointAttemptIds",
+      "lastUpdatedAt",
+      "historicalCheckpointRefs",
+    ]) &&
+    typeof evidence.canDoId === "string" &&
+    isStringArray(evidence.visitedLessonIds) &&
+    isStringArray(evidence.practicedLessonIds) &&
+    isStringArray(evidence.acceptedTransferExerciseIds) &&
+    isStringArray(evidence.checkpointAttemptIds) &&
+    typeof evidence.lastUpdatedAt === "string" &&
+    Array.isArray(evidence.historicalCheckpointRefs) &&
+    evidence.historicalCheckpointRefs.every(isHistoricalCheckpointRef)
+  );
+}
+
+function isHistoricalActivityDisposition(
+  value: unknown,
+): value is HistoricalActivityDisposition {
+  if (!value || typeof value !== "object") return false;
+  const disposition = value as Partial<HistoricalActivityDisposition>;
+  return (
+    (disposition.sourceLevel === "a1" || disposition.sourceLevel === "a2") &&
+    typeof disposition.lessonId === "string" &&
+    typeof disposition.activityId === "string" &&
+    (disposition.disposition === "same-semantics" ||
+      disposition.disposition === "historical-orphan") &&
+    (disposition.orphanedReview === null ||
+      isReviewQueueEntry(disposition.orphanedReview))
+  );
+}
+
+function isLevelProgressV5(value: unknown): value is LevelProgressV5 {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const level = value as Partial<LevelProgressV5>;
+  return (
+    hasOwnFields(value, [
+      "lessons",
+      "canDos",
+      "checkpointAttempts",
+      "lastVisitedLessonId",
+      "reviewQueue",
+      "orphanedLessonIds",
+      "orphanedReviewKeys",
+      "orphanedLessonRecords",
+      "historicalActivityDispositions",
+    ]) &&
+    !!level.lessons &&
+    typeof level.lessons === "object" &&
+    Object.values(level.lessons).every(isLessonProgressV5) &&
+    !!level.canDos &&
+    typeof level.canDos === "object" &&
+    Object.values(level.canDos).every(isCanDoEvidenceV5) &&
+    Array.isArray(level.checkpointAttempts) &&
+    level.checkpointAttempts.every(isCheckpointAttempt) &&
+    isOptionalString(level.lastVisitedLessonId) &&
+    Array.isArray(level.reviewQueue) &&
+    level.reviewQueue.every(isReviewQueueEntry) &&
+    isStringArray(level.orphanedLessonIds) &&
+    isStringArray(level.orphanedReviewKeys) &&
+    !!level.orphanedLessonRecords &&
+    typeof level.orphanedLessonRecords === "object" &&
+    Object.values(level.orphanedLessonRecords).every(isLessonProgressV5) &&
+    Array.isArray(level.historicalActivityDispositions) &&
+    level.historicalActivityDispositions.every(isHistoricalActivityDisposition)
+  );
+}
+
+function isBaseOwnershipMigrationNotice(
+  value: unknown,
+): value is BaseOwnershipMigrationNotice | null {
+  if (value === null) return true;
+  if (!value || typeof value !== "object") return false;
+  const notice = value as Partial<BaseOwnershipMigrationNotice>;
+  return (
+    hasOwnFields(value, [
+      "fromSchemaVersion",
+      "movedLessonIds",
+      "historicalActivityIds",
+      "resumeLevel",
+      "priorNotice",
+      "acknowledgedAt",
+    ]) &&
+    notice.fromSchemaVersion === 4 &&
+    isStringArray(notice.movedLessonIds) &&
+    isStringArray(notice.historicalActivityIds) &&
+    (notice.resumeLevel === "a0" ||
+      notice.resumeLevel === "a1" ||
+      notice.resumeLevel === "a2") &&
+    isProgressMigrationNotice(notice.priorNotice) &&
+    isOptionalString(notice.acknowledgedAt)
+  );
+}
+
+function isValidV5Shape(value: Partial<CourseProgressV5>): value is CourseProgressV5 {
+  if (
+    !hasOwnFields(value, [
+      "schemaVersion",
+      "catalogVersion",
+      "levels",
+      "migrationNotice",
+      "updatedAt",
+    ]) ||
+    value.schemaVersion !== 5 ||
+    value.catalogVersion !== CURRENT_COURSE_PROGRESS_V5_CATALOG_VERSION ||
+    !value.levels ||
+    typeof value.levels !== "object" ||
+    typeof value.updatedAt !== "string" ||
+    !isBaseOwnershipMigrationNotice(value.migrationNotice)
+  ) {
+    return false;
+  }
+
+  const levelIds = Object.keys(value.levels).sort();
+  return (
+    levelIds.length === COURSE_LEVEL_IDS.length &&
+    levelIds.every((levelId, index) => levelId === COURSE_LEVEL_IDS[index]) &&
+    isLevelProgressV5(value.levels.a0) &&
+    isLevelProgressV5(value.levels.a1) &&
+    isLevelProgressV5(value.levels.a2)
+  );
+}
+
 /**
  * Reconciles one V4 level against the current runtime catalog without touching
  * learner evidence. Unknown lesson records stay intact as historical evidence
@@ -590,7 +844,7 @@ function reconcileV4LevelCatalog(
  * A current catalog-v3 record with nothing to reconcile is returned by reference.
  */
 export function migrateV4Catalog(
-  progress: StoredCourseProgressV4,
+  progress: CourseProgressV4,
   knownReviewKeysByLevel?: KnownReviewKeysByLevel,
   knownLessonIdsByLevel?: KnownLessonIdsByLevel,
 ): CourseProgressV4 {
@@ -621,8 +875,447 @@ export function migrateV4Catalog(
   };
 }
 
+export interface V5MigrationRuntimeIds {
+  readonly knownLessonIdsByLevel?: KnownLessonIdsByLevel;
+  readonly knownReviewKeysByLevel?: KnownReviewKeysByLevel;
+}
+
+function defaultKnownLessonIdsByLevel(): KnownLessonIdsByLevel {
+  return Object.fromEntries(
+    COURSE_LEVEL_IDS.map((levelId) => [levelId, new Set(lessonIdsForLevel(levelId))]),
+  ) as KnownLessonIdsByLevel;
+}
+
+function cloneLessonProgress(lesson: LessonProgress): LessonProgress {
+  return {
+    visitedAt: lesson.visitedAt,
+    practicedAt: lesson.practicedAt,
+    consolidatedAt: lesson.consolidatedAt,
+    attemptedExerciseIds: [...lesson.attemptedExerciseIds],
+    acceptedExerciseIds: [...lesson.acceptedExerciseIds],
+  };
+}
+
+function cloneReviewEntry(review: ReviewQueueEntry): ReviewQueueEntry {
+  return {
+    reviewKey: review.reviewKey,
+    lessonId: review.lessonId,
+    exerciseDefinitionId: review.exerciseDefinitionId,
+    targetConceptIds: [...review.targetConceptIds],
+    targetLexemeIds: [...review.targetLexemeIds],
+    mistakeCount: review.mistakeCount,
+    lastMistakeAt: review.lastMistakeAt,
+  };
+}
+
+function cloneCheckpointAttempt(attempt: CheckpointAttempt): CheckpointAttempt {
+  return {
+    id: attempt.id,
+    checkpointId: attempt.checkpointId,
+    attemptedAt: attempt.attemptedAt,
+    acceptedExerciseIds: [...attempt.acceptedExerciseIds],
+    sampledCanDoIds: [...attempt.sampledCanDoIds],
+  };
+}
+
+function canDoEvidenceV5(
+  evidence: CanDoEvidence,
+  historicalCheckpointRefs: readonly HistoricalCheckpointRef[] = [],
+): CanDoEvidenceV5 {
+  return {
+    canDoId: evidence.canDoId,
+    visitedLessonIds: [...evidence.visitedLessonIds],
+    practicedLessonIds: [...evidence.practicedLessonIds],
+    acceptedTransferExerciseIds: [...evidence.acceptedTransferExerciseIds],
+    checkpointAttemptIds: [...evidence.checkpointAttemptIds],
+    lastUpdatedAt: evidence.lastUpdatedAt,
+    historicalCheckpointRefs: [...historicalCheckpointRefs],
+  };
+}
+
+function latestVisitedLessonId(lessons: Readonly<Record<string, LessonProgress>>): string | null {
+  const candidates = Object.entries(lessons)
+    .filter(([, lesson]) => lesson.visitedAt !== null)
+    .sort(([leftId, left], [rightId, right]) => {
+      if (left.visitedAt! > right.visitedAt!) return -1;
+      if (left.visitedAt! < right.visitedAt!) return 1;
+      return leftId < rightId ? -1 : leftId > rightId ? 1 : 0;
+    });
+  return candidates[0]?.[0] ?? null;
+}
+
+function migrateLevelRecords(
+  level: LevelProgress,
+  knownLessonIds: ReadonlySet<string>,
+  excludedLessonIds: ReadonlySet<string> = new Set(),
+): Pick<LevelProgressV5, "lessons" | "orphanedLessonIds" | "orphanedLessonRecords"> {
+  const lessons: Record<string, LessonProgress> = {};
+  const orphanedLessonRecords: Record<string, LessonProgress> = {};
+  const newlyOrphanedLessonIds: string[] = [];
+
+  for (const lessonId of Object.keys(level.lessons).sort()) {
+    if (excludedLessonIds.has(lessonId)) continue;
+    const lesson = cloneLessonProgress(level.lessons[lessonId]!);
+    if (knownLessonIds.has(lessonId)) {
+      lessons[lessonId] = lesson;
+    } else {
+      orphanedLessonRecords[lessonId] = lesson;
+      newlyOrphanedLessonIds.push(lessonId);
+    }
+  }
+
+  return {
+    lessons,
+    orphanedLessonIds: dedupeInEncounterOrder([
+      ...level.orphanedLessonIds,
+      ...newlyOrphanedLessonIds,
+    ]),
+    orphanedLessonRecords,
+  };
+}
+
+function historicalDispositionsForV4(
+  v4: CourseProgressV4,
+): {
+  readonly dispositions: readonly HistoricalActivityDisposition[];
+  readonly historicalActivityIds: readonly string[];
+  readonly movedReviewKeys: readonly string[];
+} {
+  const sourceReviews = v4.levels.a1.reviewQueue;
+  const dispositions: HistoricalActivityDisposition[] = [];
+  const historicalActivityIds: string[] = [];
+  const movedReviewKeys: string[] = [];
+
+  for (const ownership of V4_OWNERSHIP_MIGRATION_MAP) {
+    const lesson = v4.levels.a1.lessons[ownership.sourceLessonId];
+    const reviews = sourceReviews.filter(
+      (review) => review.lessonId === ownership.sourceLessonId,
+    );
+    const evidencedActivityIds = new Set([
+      ...(lesson?.attemptedExerciseIds ?? []),
+      ...(lesson?.acceptedExerciseIds ?? []),
+      ...reviews.map((review) => review.exerciseDefinitionId),
+    ]);
+    const mappedActivities = V4_ACTIVITY_MIGRATION_MAP.filter(
+      (activity) =>
+        activity.sourceLessonId === ownership.sourceLessonId &&
+        evidencedActivityIds.has(activity.sourceActivityId),
+    );
+
+    for (const activity of mappedActivities) {
+      const matchingReview = reviews.find(
+        (review) => review.exerciseDefinitionId === activity.sourceActivityId,
+      );
+      dispositions.push({
+        sourceLevel: "a1",
+        lessonId: activity.sourceLessonId,
+        activityId: activity.sourceActivityId,
+        disposition: activity.disposition,
+        orphanedReview: matchingReview ? cloneReviewEntry(matchingReview) : null,
+      });
+      historicalActivityIds.push(activity.sourceActivityId);
+      if (matchingReview) movedReviewKeys.push(matchingReview.reviewKey);
+    }
+
+    // A structurally valid legacy queue can still contain a rehomed lesson's
+    // non-inventory definition. It can no longer be actionable in Base, so
+    // retain the whole record as typed historical evidence rather than only its
+    // key.
+    for (const legacyReview of reviews) {
+      if (mappedActivities.some(
+        (activity) => activity.sourceActivityId === legacyReview.exerciseDefinitionId,
+      )) {
+        continue;
+      }
+      dispositions.push({
+        sourceLevel: "a1",
+        lessonId: ownership.sourceLessonId,
+        activityId: legacyReview.exerciseDefinitionId,
+        disposition: "historical-orphan",
+        orphanedReview: cloneReviewEntry(legacyReview),
+      });
+      historicalActivityIds.push(legacyReview.exerciseDefinitionId);
+      movedReviewKeys.push(legacyReview.reviewKey);
+    }
+  }
+
+  return {
+    dispositions,
+    historicalActivityIds: dedupeInEncounterOrder(historicalActivityIds),
+    movedReviewKeys: dedupeInEncounterOrder(movedReviewKeys),
+  };
+}
+
+/**
+ * Losslessly moves V4 evidence into the three-level V5 schema. The registry
+ * rows, supplied runtime ownership sets, and source payload are the only
+ * inputs; it neither reads the clock nor mutates V4 objects.
+ */
+export function migrateV4ToV5(
+  v4: CourseProgressV4,
+  runtimeIds: V5MigrationRuntimeIds = {},
+): CourseProgressV5 {
+  const knownLessonIdsByLevel =
+    runtimeIds.knownLessonIdsByLevel ?? defaultKnownLessonIdsByLevel();
+  const rehomedSourceIds = new Set(
+    V4_OWNERSHIP_MIGRATION_MAP.map((row) => row.sourceLessonId),
+  );
+  const a1Records = migrateLevelRecords(
+    v4.levels.a1,
+    knownLessonIdsByLevel.a1 ?? new Set(),
+    rehomedSourceIds,
+  );
+  const a2Records = migrateLevelRecords(
+    v4.levels.a2,
+    knownLessonIdsByLevel.a2 ?? new Set(),
+  );
+
+  const movedLessons: Record<string, LessonProgress> = {};
+  const movedLessonIds: string[] = [];
+  for (const ownership of V4_OWNERSHIP_MIGRATION_MAP) {
+    const source = v4.levels.a1.lessons[ownership.sourceLessonId];
+    if (!source) continue;
+    movedLessons[ownership.destinationLessonId] = cloneLessonProgress(source);
+    movedLessonIds.push(ownership.destinationLessonId);
+  }
+
+  const a1CheckpointAttemptIds = new Set(
+    v4.levels.a1.checkpointAttempts.map((attempt) => attempt.id),
+  );
+  const a0CanDos: Record<string, CanDoEvidenceV5> = {};
+  const a1CanDos: Record<string, CanDoEvidenceV5> = {};
+  for (const [canDoId, evidence] of Object.entries(v4.levels.a1.canDos)) {
+    const ownership = V4_CANDO_MIGRATION_MAP.find(
+      (row) => row.sourceCanDoId === canDoId,
+    );
+    const refs = ownership
+      ? dedupeInEncounterOrder(
+          evidence.checkpointAttemptIds.filter((attemptId) =>
+            a1CheckpointAttemptIds.has(attemptId),
+          ),
+        ).map((attemptId) => ({ sourceLevel: "a1" as const, attemptId }))
+      : [];
+    const converted = canDoEvidenceV5(evidence, refs);
+    if (ownership) a0CanDos[ownership.destinationCanDoId] = converted;
+    else a1CanDos[canDoId] = converted;
+  }
+  const a2CanDos = Object.fromEntries(
+    Object.entries(v4.levels.a2.canDos).map(([canDoId, evidence]) => [
+      canDoId,
+      canDoEvidenceV5(evidence),
+    ]),
+  ) as Record<string, CanDoEvidenceV5>;
+
+  const historical = historicalDispositionsForV4(v4);
+  const a1Reviews = v4.levels.a1.reviewQueue
+    .filter((review) => !rehomedSourceIds.has(review.lessonId))
+    .map(cloneReviewEntry);
+
+  const movedLastVisit = V4_OWNERSHIP_MIGRATION_MAP.find(
+    (row) =>
+      row.sourceLessonId === v4.levels.a1.lastVisitedLessonId &&
+      v4.levels.a1.lessons[row.sourceLessonId] !== undefined,
+  );
+  const a0LastVisitedLessonId = movedLastVisit?.destinationLessonId ?? null;
+  const sourceA1LastVisitedLessonId = v4.levels.a1.lastVisitedLessonId;
+  const a1LastVisitedLessonId =
+    a0LastVisitedLessonId !== null ||
+    sourceA1LastVisitedLessonId === null ||
+    !Object.prototype.hasOwnProperty.call(a1Records.lessons, sourceA1LastVisitedLessonId)
+      ? latestVisitedLessonId(a1Records.lessons)
+      : sourceA1LastVisitedLessonId;
+  const sourceA2LastVisitedLessonId = v4.levels.a2.lastVisitedLessonId;
+  const a2LastVisitedLessonId = sourceA2LastVisitedLessonId !== null &&
+    Object.prototype.hasOwnProperty.call(
+      a2Records.lessons,
+      sourceA2LastVisitedLessonId,
+    )
+    ? sourceA2LastVisitedLessonId
+    : latestVisitedLessonId(a2Records.lessons);
+  const resumeLevel: SharedCourseLevelId =
+    a0LastVisitedLessonId !== null ? "a0" : a1LastVisitedLessonId !== null ? "a1" : "a0";
+
+  return {
+    schemaVersion: 5,
+    catalogVersion: CURRENT_COURSE_PROGRESS_V5_CATALOG_VERSION,
+    levels: {
+      a0: {
+        lessons: movedLessons,
+        canDos: a0CanDos,
+        checkpointAttempts: [],
+        lastVisitedLessonId: a0LastVisitedLessonId,
+        reviewQueue: [],
+        orphanedLessonIds: [],
+        orphanedReviewKeys: dedupeInEncounterOrder(historical.movedReviewKeys),
+        orphanedLessonRecords: {},
+        historicalActivityDispositions: historical.dispositions,
+      },
+      a1: {
+        lessons: a1Records.lessons,
+        canDos: a1CanDos,
+        checkpointAttempts: v4.levels.a1.checkpointAttempts.map(cloneCheckpointAttempt),
+        lastVisitedLessonId: a1LastVisitedLessonId,
+        reviewQueue: a1Reviews,
+        orphanedLessonIds: a1Records.orphanedLessonIds,
+        orphanedReviewKeys: dedupeInEncounterOrder(v4.levels.a1.orphanedReviewKeys),
+        orphanedLessonRecords: a1Records.orphanedLessonRecords,
+        historicalActivityDispositions: [],
+      },
+      a2: {
+        lessons: a2Records.lessons,
+        canDos: a2CanDos,
+        checkpointAttempts: v4.levels.a2.checkpointAttempts.map(cloneCheckpointAttempt),
+        lastVisitedLessonId: a2LastVisitedLessonId,
+        reviewQueue: v4.levels.a2.reviewQueue.map(cloneReviewEntry),
+        orphanedLessonIds: a2Records.orphanedLessonIds,
+        orphanedReviewKeys: dedupeInEncounterOrder(v4.levels.a2.orphanedReviewKeys),
+        orphanedLessonRecords: a2Records.orphanedLessonRecords,
+        historicalActivityDispositions: [],
+      },
+    },
+    migrationNotice: {
+      fromSchemaVersion: 4,
+      movedLessonIds,
+      historicalActivityIds: historical.historicalActivityIds,
+      resumeLevel,
+      priorNotice: v4.migrationNotice,
+      acknowledgedAt: null,
+    },
+    updatedAt: v4.updatedAt,
+  };
+}
+
+function reconcileV5LevelCatalog(
+  level: LevelProgressV5,
+  levelId: SharedCourseLevelId,
+  knownReviewKeys: ReadonlySet<string> | undefined,
+  knownLessonIds: ReadonlySet<string> | undefined,
+): LevelProgressV5 {
+  let orphanedLessonIds = dedupeInEncounterOrder(level.orphanedLessonIds);
+  let orphanedReviewKeys = dedupeInEncounterOrder(level.orphanedReviewKeys);
+  let lessons = level.lessons as Record<string, LessonProgress>;
+  let orphanedLessonRecords =
+    level.orphanedLessonRecords as Record<string, LessonProgress>;
+  let historicalActivityDispositions =
+    level.historicalActivityDispositions as HistoricalActivityDisposition[];
+
+  if (knownLessonIds) {
+    const unknownLessonIds = Object.keys(level.lessons)
+      .filter((lessonId) => !knownLessonIds.has(lessonId))
+      .sort();
+    if (unknownLessonIds.length > 0) {
+      lessons = { ...level.lessons };
+      orphanedLessonRecords = { ...level.orphanedLessonRecords };
+      for (const lessonId of unknownLessonIds) {
+        delete lessons[lessonId];
+        if (!orphanedLessonRecords[lessonId]) {
+          orphanedLessonRecords[lessonId] = level.lessons[lessonId]!;
+        }
+      }
+      orphanedLessonIds = dedupeInEncounterOrder([
+        ...orphanedLessonIds,
+        ...unknownLessonIds,
+      ]);
+    }
+  }
+
+  if (knownReviewKeys) {
+    const unknownReviews = level.reviewQueue.filter(
+      (review) => !knownReviewKeys.has(review.reviewKey),
+    );
+    if (unknownReviews.length > 0) {
+      const remainingReviews = level.reviewQueue.filter((review) =>
+        knownReviewKeys.has(review.reviewKey),
+      );
+      historicalActivityDispositions = [...historicalActivityDispositions];
+      for (const review of unknownReviews) {
+        const existingIndex = historicalActivityDispositions.findIndex(
+          (disposition) =>
+            disposition.sourceLevel === levelId &&
+            disposition.lessonId === review.lessonId &&
+            disposition.activityId === review.exerciseDefinitionId,
+        );
+        if (existingIndex === -1) {
+          historicalActivityDispositions.push({
+            sourceLevel: levelId === "a0" ? "a1" : levelId,
+            lessonId: review.lessonId,
+            activityId: review.exerciseDefinitionId,
+            disposition: "historical-orphan",
+            orphanedReview: review,
+          });
+        } else if (historicalActivityDispositions[existingIndex]!.orphanedReview === null) {
+          historicalActivityDispositions[existingIndex] = {
+            ...historicalActivityDispositions[existingIndex]!,
+            orphanedReview: review,
+          };
+        } else if (
+          historicalActivityDispositions[existingIndex]!.orphanedReview!.reviewKey !==
+          review.reviewKey
+        ) {
+          historicalActivityDispositions.push({
+            sourceLevel: levelId === "a0" ? "a1" : levelId,
+            lessonId: review.lessonId,
+            activityId: review.exerciseDefinitionId,
+            disposition: "historical-orphan",
+            orphanedReview: review,
+          });
+        }
+      }
+      orphanedReviewKeys = dedupeInEncounterOrder([
+        ...orphanedReviewKeys,
+        ...unknownReviews.map((review) => review.reviewKey),
+      ]);
+      return {
+        ...level,
+        lessons,
+        orphanedLessonRecords,
+        orphanedLessonIds,
+        reviewQueue: remainingReviews,
+        orphanedReviewKeys,
+        historicalActivityDispositions,
+      };
+    }
+  }
+
+  if (
+    lessons === level.lessons &&
+    orphanedLessonRecords === level.orphanedLessonRecords &&
+    sameIdList(orphanedLessonIds, level.orphanedLessonIds) &&
+    sameIdList(orphanedReviewKeys, level.orphanedReviewKeys)
+  ) {
+    return level;
+  }
+  return {
+    ...level,
+    lessons,
+    orphanedLessonRecords,
+    orphanedLessonIds,
+    orphanedReviewKeys,
+  };
+}
+
+/** Reconciles current V5 catalog ownership without touching valid evidence. */
+export function migrateV5Catalog(
+  progress: CourseProgressV5,
+  knownReviewKeysByLevel?: KnownReviewKeysByLevel,
+  knownLessonIdsByLevel?: KnownLessonIdsByLevel,
+): CourseProgressV5 {
+  let levels = progress.levels;
+  for (const levelId of COURSE_LEVEL_IDS) {
+    const current = levels[levelId];
+    const reconciled = reconcileV5LevelCatalog(
+      current,
+      levelId,
+      knownReviewKeysByLevel?.[levelId],
+      knownLessonIdsByLevel?.[levelId],
+    );
+    if (reconciled !== current) levels = { ...levels, [levelId]: reconciled };
+  }
+  return levels === progress.levels ? progress : { ...progress, levels };
+}
+
 export interface ProgressParseResult {
-  progress: CourseProgressV4;
+  progress: CourseProgressV5;
   corrupted: boolean;
   migrated: boolean;
 }
@@ -777,18 +1470,15 @@ export function migrateV2ToV3(
 }
 
 /**
- * Parses raw stored text into current-schema (v4) progress.
+ * Parses raw stored text into current-schema (v5) progress.
  * Explicit, non-throwing behavior for every payload shape:
- * - `null` (nothing stored yet) -> empty v4 progress, not corrupted.
- * - valid current catalog-v3 schema-v4 -> passed through unchanged, by direct reference when its
+ * - `null` (nothing stored yet) -> empty v5 progress, not corrupted.
+ * - valid current schema-v5 -> passed through unchanged, by direct reference when its
  *   runtime catalog reconciliation is already current.
- * - valid legacy schema-v4 catalog v1/v2 -> normalized to catalog v3 without resetting
- *   evidence; injected runtime sets reconcile active review entries.
- * - valid v3 -> migrated to v4 via migrateV3ToV4 (visited-only, Phase 2 Task 5).
- * - valid v2 -> migrated to v3 via migrateV2ToV3, then to v4.
- * - valid v1 -> migrated to v2 via migrateV1ToV2, then to v3, then to v4.
- * - malformed JSON, malformed v1/v2/v3/v4 shape, missing schemaVersion, or a
- *   future/unknown schemaVersion -> empty v4 progress, corrupted: true.
+ * - valid schema-v4 catalog revisions -> normalized, then migrated losslessly to v5.
+ * - valid v3/v2/v1 -> continue their existing chain to v4, then migrate to v5.
+ * - malformed JSON, malformed v1/v2/v3/v4/v5 shape, missing schemaVersion, or a
+ *   future/unknown schemaVersion -> empty v5 progress, corrupted: true.
  * No genuine unversioned (pre-schemaVersion) payload has ever shipped from
  * this codebase, so an absent schemaVersion is treated as corrupted rather
  * than guessed at.
@@ -800,16 +1490,16 @@ export function parseProgress(
   knownLessonIdsByLevel?: KnownLessonIdsByLevel,
 ): ProgressParseResult {
   if (raw === null) {
-    return { progress: emptyProgressV4(), corrupted: false, migrated: false };
+    return { progress: emptyProgressV5(), corrupted: false, migrated: false };
   }
   try {
     const value = JSON.parse(raw) as { schemaVersion?: unknown };
-    if (value.schemaVersion === 4) {
-      const candidate = value as Partial<StoredCourseProgressV4>;
-      if (!isValidV4Shape(candidate)) {
-        return { progress: emptyProgressV4(), corrupted: true, migrated: false };
+    if (value.schemaVersion === 5) {
+      const candidate = value as Partial<CourseProgressV5>;
+      if (!isValidV5Shape(candidate)) {
+        return { progress: emptyProgressV5(), corrupted: true, migrated: false };
       }
-      const progress = migrateV4Catalog(
+      const progress = migrateV5Catalog(
         candidate,
         knownReviewKeysByLevel,
         knownLessonIdsByLevel,
@@ -820,44 +1510,83 @@ export function parseProgress(
         migrated: progress !== candidate,
       };
     }
+    if (value.schemaVersion === 4) {
+      const candidate = value as Partial<StoredCourseProgressV4>;
+      if (!isValidV4Shape(candidate)) {
+        return { progress: emptyProgressV5(), corrupted: true, migrated: false };
+      }
+      const v4 = migrateV4Catalog(candidate);
+      const progress = migrateV5Catalog(
+        migrateV4ToV5(v4, { knownLessonIdsByLevel }),
+        knownReviewKeysByLevel,
+        knownLessonIdsByLevel,
+      );
+      return {
+        progress,
+        corrupted: false,
+        migrated: true,
+      };
+    }
     if (value.schemaVersion === 3) {
       const candidate = value as Partial<CourseProgressV3>;
       return isValidV3Shape(candidate)
-        ? { progress: migrateV3ToV4(candidate), corrupted: false, migrated: true }
-        : { progress: emptyProgressV4(), corrupted: true, migrated: false };
+        ? {
+            progress: migrateV5Catalog(
+              migrateV4ToV5(migrateV3ToV4(candidate), { knownLessonIdsByLevel }),
+              knownReviewKeysByLevel,
+              knownLessonIdsByLevel,
+            ),
+            corrupted: false,
+            migrated: true,
+          }
+        : { progress: emptyProgressV5(), corrupted: true, migrated: false };
     }
     if (value.schemaVersion === 2) {
       const candidate = value as Partial<CourseProgressV2>;
       return isValidV2Shape(candidate)
         ? {
-            progress: migrateV3ToV4(
-              migrateV2ToV3(
-                candidate,
-                knownLessonIds ?? new Set(candidate.visitedLessonIds),
+            progress: migrateV5Catalog(
+              migrateV4ToV5(
+                migrateV3ToV4(
+                  migrateV2ToV3(
+                    candidate,
+                    knownLessonIds ?? new Set(candidate.visitedLessonIds),
+                  ),
+                ),
+                { knownLessonIdsByLevel },
               ),
+              knownReviewKeysByLevel,
+              knownLessonIdsByLevel,
             ),
             corrupted: false,
             migrated: true,
           }
-        : { progress: emptyProgressV4(), corrupted: true, migrated: false };
+        : { progress: emptyProgressV5(), corrupted: true, migrated: false };
     }
     if (value.schemaVersion === 1) {
       const candidate = value as Partial<CourseProgressV1>;
       if (!isValidV1Shape(candidate)) {
-        return { progress: emptyProgressV4(), corrupted: true, migrated: false };
+        return { progress: emptyProgressV5(), corrupted: true, migrated: false };
       }
       const v2 = migrateV1ToV2(candidate);
       return {
-        progress: migrateV3ToV4(
-          migrateV2ToV3(v2, knownLessonIds ?? new Set(v2.visitedLessonIds)),
+        progress: migrateV5Catalog(
+          migrateV4ToV5(
+            migrateV3ToV4(
+              migrateV2ToV3(v2, knownLessonIds ?? new Set(v2.visitedLessonIds)),
+            ),
+            { knownLessonIdsByLevel },
+          ),
+          knownReviewKeysByLevel,
+          knownLessonIdsByLevel,
         ),
         corrupted: false,
         migrated: true,
       };
     }
-    return { progress: emptyProgressV4(), corrupted: true, migrated: false };
+    return { progress: emptyProgressV5(), corrupted: true, migrated: false };
   } catch {
-    return { progress: emptyProgressV4(), corrupted: true, migrated: false };
+    return { progress: emptyProgressV5(), corrupted: true, migrated: false };
   }
 }
 
@@ -1156,7 +1885,7 @@ export function recommendContinuationLessonId(
   return orderedLessons[0].id;
 }
 
-// ── V4 level-scoped mutators: Can-do evidence, checkpoint attempts, clearing ──
+// ── V5 level-scoped mutators with V4-compatible overloads ───────────────────
 //
 // These are new pure, exported functions operating directly on `LevelProgress`
 // / `CourseProgressV4` (Phase 2 Task 5 step 4). They are deliberately not yet
@@ -1167,7 +1896,9 @@ export function recommendContinuationLessonId(
 // they must satisfy (idempotence, no mutation, level isolation, never
 // touching locale/script settings) is locked in ahead of that UI work.
 
-/** Visited lesson ids within one level — the v4 analogue of `visitedLessonIds`. */
+/** Visited lesson ids within one level. */
+export function visitedLessonIdsForLevel(level: LevelProgressV5): string[];
+export function visitedLessonIdsForLevel(level: LevelProgress): string[];
 export function visitedLessonIdsForLevel(level: LevelProgress): string[] {
   return Object.entries(level.lessons)
     .filter(([, lesson]) => lesson.visitedAt !== null)
@@ -1195,6 +1926,14 @@ export interface CanDoEvidenceInput {
  * produced evidence. Returns the same `level` reference when nothing new was
  * recorded, matching the existing V3 mutators' no-op contract.
  */
+export function recordCanDoEvidence(
+  level: LevelProgressV5,
+  input: CanDoEvidenceInput,
+): LevelProgressV5;
+export function recordCanDoEvidence(
+  level: LevelProgress,
+  input: CanDoEvidenceInput,
+): LevelProgress;
 export function recordCanDoEvidence(
   level: LevelProgress,
   input: CanDoEvidenceInput,
@@ -1236,14 +1975,28 @@ export function recordCanDoEvidence(
     sameIdList(existing.checkpointAttemptIds, checkpointAttemptIds);
   if (unchanged) return level;
 
-  const next: CanDoEvidence = {
+  const next: CanDoEvidence | CanDoEvidenceV5 =
+    "historicalActivityDispositions" in level
+      ? {
+          canDoId: input.canDoId,
+          visitedLessonIds,
+          practicedLessonIds,
+          acceptedTransferExerciseIds,
+          checkpointAttemptIds,
+          lastUpdatedAt: input.at,
+          historicalCheckpointRefs: [
+            ...((existing as CanDoEvidenceV5 | undefined)
+              ?.historicalCheckpointRefs ?? []),
+          ],
+        }
+      : {
     canDoId: input.canDoId,
     visitedLessonIds,
     practicedLessonIds,
     acceptedTransferExerciseIds,
     checkpointAttemptIds,
     lastUpdatedAt: input.at,
-  };
+      };
   return { ...level, canDos: { ...level.canDos, [input.canDoId]: next } };
 }
 
@@ -1252,6 +2005,14 @@ export function recordCanDoEvidence(
  * attempt id is only ever recorded once. Never a pass/fail verdict — only
  * which exercises were accepted and which Can-dos this attempt sampled.
  */
+export function recordCheckpointAttempt(
+  level: LevelProgressV5,
+  attempt: CheckpointAttempt,
+): LevelProgressV5;
+export function recordCheckpointAttempt(
+  level: LevelProgress,
+  attempt: CheckpointAttempt,
+): LevelProgress;
 export function recordCheckpointAttempt(
   level: LevelProgress,
   attempt: CheckpointAttempt,
@@ -1262,7 +2023,7 @@ export function recordCheckpointAttempt(
   return { ...level, checkpointAttempts: [...level.checkpointAttempts, attempt] };
 }
 
-function levelIsEmpty(level: LevelProgress): boolean {
+function levelIsEmpty(level: LevelProgress | LevelProgressV5): boolean {
   return (
     Object.keys(level.lessons).length === 0 &&
     Object.keys(level.canDos).length === 0 &&
@@ -1270,7 +2031,10 @@ function levelIsEmpty(level: LevelProgress): boolean {
     level.lastVisitedLessonId === null &&
     level.reviewQueue.length === 0 &&
     level.orphanedLessonIds.length === 0 &&
-    level.orphanedReviewKeys.length === 0
+    level.orphanedReviewKeys.length === 0 &&
+    (!("orphanedLessonRecords" in level) ||
+      (Object.keys(level.orphanedLessonRecords).length === 0 &&
+        level.historicalActivityDispositions.length === 0))
   );
 }
 
@@ -1282,14 +2046,30 @@ function levelIsEmpty(level: LevelProgress): boolean {
  * same reference when the level is already empty.
  */
 export function clearLevel(
+  progress: CourseProgressV5,
+  level: SharedCourseLevelId,
+  at: string,
+): CourseProgressV5;
+export function clearLevel(
   progress: CourseProgressV4,
   level: CourseLevelId,
   at: string,
+): CourseProgressV4;
+export function clearLevel(
+  progress: CourseProgressV4,
+  level: SharedCourseLevelId,
+  at: string,
 ): CourseProgressV4 {
-  if (levelIsEmpty(progress.levels[level])) return progress;
+  const levels = progress.levels as Partial<
+    Record<SharedCourseLevelId, LevelProgress | LevelProgressV5>
+  >;
+  const current = levels[level];
+  if (!current || levelIsEmpty(current)) return progress;
+  const nextLevel =
+    "orphanedLessonRecords" in current ? emptyLevelProgressV5() : emptyLevelProgress();
   return {
     ...progress,
-    levels: { ...progress.levels, [level]: emptyLevelProgress() },
+    levels: { ...progress.levels, [level]: nextLevel },
     updatedAt: at,
   };
 }
@@ -1311,6 +2091,14 @@ export function clearAll(at: string): CourseProgressV4 {
  * acknowledged.
  */
 export function acknowledgeMigrationNotice(
+  progress: CourseProgressV5,
+  at: string,
+): CourseProgressV5;
+export function acknowledgeMigrationNotice(
+  progress: CourseProgressV4,
+  at: string,
+): CourseProgressV4;
+export function acknowledgeMigrationNotice(
   progress: CourseProgressV4,
   at: string,
 ): CourseProgressV4 {
@@ -1320,7 +2108,7 @@ export function acknowledgeMigrationNotice(
 }
 
 export interface LevelProgressSummary {
-  readonly level: CourseLevelId;
+  readonly level: SharedCourseLevelId;
   readonly visitedLessonCount: number;
   readonly totalLessonCount: number;
   readonly visitedPercent: number;
@@ -1333,11 +2121,23 @@ export interface LevelProgressSummary {
  * summary, even when both are computed from the same `modules` outline.
  */
 export function summarizeLevel(
+  progress: CourseProgressV5,
+  level: SharedCourseLevelId,
+  modules: readonly ModuleOutline[],
+): LevelProgressSummary;
+export function summarizeLevel(
   progress: CourseProgressV4,
   level: CourseLevelId,
   modules: readonly ModuleOutline[],
+): LevelProgressSummary;
+export function summarizeLevel(
+  progress: CourseProgressV4,
+  level: SharedCourseLevelId,
+  modules: readonly ModuleOutline[],
 ): LevelProgressSummary {
-  const levelProgress = progress.levels[level];
+  const levelProgress = (
+    progress.levels as Partial<Record<SharedCourseLevelId, LevelProgress>>
+  )[level] ?? emptyLevelProgress();
   const visited = visitedLessonIdsForLevel(levelProgress);
   const totalLessonCount = modules.reduce(
     (sum, courseModule) => sum + courseModule.lessons.length,

@@ -8,7 +8,7 @@ import {
   useProgress,
   type ProgressContextValue,
 } from "./ProgressContext";
-import { emptyLevelProgress } from "./progress";
+import { emptyLevelProgressV5 } from "./progress";
 import { getLessonExercises } from "../components/lessonExerciseModel";
 import { a2Checkpoint } from "../a2/catalog/checkpoint";
 import { A2_SYNTHESIS_LESSON_IDS } from "../a2/manifest";
@@ -181,7 +181,7 @@ describe("ProgressContext — level-scoped clearLevel (Phase 3 Task 8 spec-fix, 
 
       // A2 wiped back to empty…
       expect(get().levelSummaryFor("a2").visitedLessonCount).toBe(0);
-      expect(get().progressV4.levels.a2).toEqual(emptyLevelProgress());
+      expect(get().progressV4.levels.a2).toEqual(emptyLevelProgressV5());
       // …while A1 is preserved byte-for-byte.
       expect(JSON.stringify(get().progressV4.levels.a1)).toBe(a1Before);
       expect(get().levelSummaryFor("a1").visitedLessonCount).toBe(1);
@@ -197,7 +197,7 @@ describe("ProgressContext — level-scoped clearLevel (Phase 3 Task 8 spec-fix, 
       await act(async () => get().clearLevel("a1"));
 
       expect(get().levelSummaryFor("a1").visitedLessonCount).toBe(0);
-      expect(get().progressV4.levels.a1).toEqual(emptyLevelProgress());
+      expect(get().progressV4.levels.a1).toEqual(emptyLevelProgressV5());
       expect(JSON.stringify(get().progressV4.levels.a2)).toBe(a2Before);
       expect(get().levelSummaryFor("a2").visitedLessonCount).toBe(1);
     });

@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  emptyLevelProgress,
   emptyProgress,
-  emptyProgressV4,
+  emptyProgressV5,
   markLessonVisited,
   parseProgress,
   recordExerciseAcceptance,
@@ -187,9 +186,9 @@ describe("course progress v3 — evidence-based practiced/consolidated transitio
     expect(second.lessons.l1.attemptedExerciseIds).toEqual(first.lessons.l1.attemptedExerciseIds);
   });
 
-  it("migrates accumulated schema-v3 evidence via the schema-v3→schema-v4 visited-only migration on reload (l1 is not a reviewed A1 id, so it is orphaned)", () => {
+  it("continues the schema-v3→V4 visited-only migration through V5 without reviving orphaned evidence", () => {
     // Phase 2 Task 5: schemaVersion 3 is no longer the current schema, so a
-    // previously-stored, fully-formed schema-v3 payload always migrates to schema-v4 on
+    // previously-stored, fully-formed schema-v3 payload always migrates through V4 on
     // load. "l1" (this describe block's fixture lesson id) is not one of
     // the explicit reviewed A1 v3 lesson ids, so — correctly — none of its
     // evidence transfers, not even `visitedAt`; it becomes an A1 orphan.
@@ -197,7 +196,7 @@ describe("course progress v3 — evidence-based practiced/consolidated transitio
     const parsed = parseProgress(JSON.stringify(progress), new Set(["l1"]));
     expect(parsed.corrupted).toBe(false);
     expect(parsed.migrated).toBe(true);
-    expect(parsed.progress.schemaVersion).toBe(4);
+    expect(parsed.progress.schemaVersion).toBe(5);
     expect(parsed.progress.levels.a1.lessons).toEqual({});
     expect(parsed.progress.levels.a1.orphanedLessonIds).toEqual(["l1"]);
   });
@@ -208,7 +207,7 @@ describe("course progress v3 — evidence-based practiced/consolidated transitio
       reviewQueue: [{ reviewKey: "l1:l1-x1", lessonId: "l1" }],
     };
     expect(parseProgress(JSON.stringify(bad), knownLessonIds)).toEqual({
-      progress: emptyProgressV4(),
+      progress: emptyProgressV5(),
       corrupted: true,
       migrated: false,
     });
@@ -224,9 +223,8 @@ describe("course progress schema v3", () => {
   // set, demonstrating the "orphaned by the schema-v3→schema-v4 migration" path.
   const knownLessonIdsWithReviewed = new Set(["sounds-1", "sounds-special"]);
 
-  it("migrates v2 visits, preserving a reviewed id's visit and orphaning both an unmapped-but-known id and a never-known id", () => {
-    expect(
-      parseProgress(
+  it("carries the reviewed V3→V4 visit into Base while retaining V4 orphan ledgers", () => {
+    const parsed = parseProgress(
         JSON.stringify({
           schemaVersion: 2,
           visitedLessonIds: ["sounds-1", "sounds-core", "removed-id"],
@@ -234,13 +232,15 @@ describe("course progress schema v3", () => {
           updatedAt: "2026-07-13T10:00:00.000Z",
         }),
         new Set(["sounds-1", "sounds-core", "sounds-special"]),
-      ),
-    ).toEqual({
+    );
+    expect(parsed).toMatchObject({
+      corrupted: false,
+      migrated: true,
       progress: {
-        schemaVersion: 4,
-        catalogVersion: "a1-a2-v3",
+        schemaVersion: 5,
+        catalogVersion: "base-a1-a2-v1",
         levels: {
-          a1: {
+          a0: {
             lessons: {
               "sounds-1": {
                 visitedAt: "2026-07-13T10:00:00.000Z",
@@ -250,25 +250,25 @@ describe("course progress schema v3", () => {
                 acceptedExerciseIds: [],
               },
             },
-            canDos: {},
-            checkpointAttempts: [],
             lastVisitedLessonId: "sounds-1",
-            reviewQueue: [],
-            orphanedLessonIds: ["removed-id", "sounds-core"],
-            orphanedReviewKeys: [],
           },
-          a2: emptyLevelProgress(),
+          a1: {
+            lessons: {},
+            orphanedLessonIds: ["removed-id", "sounds-core"],
+          },
         },
         migrationNotice: {
-          fromSchemaVersion: 3,
-          preservedVisitedLessonIds: ["sounds-1"],
-          resetEvidenceLessonIds: [],
-          acknowledgedAt: null,
+          fromSchemaVersion: 4,
+          movedLessonIds: ["sounds-1"],
+          priorNotice: {
+            fromSchemaVersion: 3,
+            preservedVisitedLessonIds: ["sounds-1"],
+            resetEvidenceLessonIds: [],
+            acknowledgedAt: null,
+          },
         },
         updatedAt: "2026-07-13T10:00:00.000Z",
       },
-      corrupted: false,
-      migrated: true,
     });
   });
 
@@ -283,7 +283,7 @@ describe("course progress schema v3", () => {
       knownLessonIdsWithReviewed,
     );
     expect(result.migrated).toBe(true);
-    expect(result.progress.levels.a1.lessons["sounds-1"]).toMatchObject({
+    expect(result.progress.levels.a0.lessons["sounds-1"]).toMatchObject({
       practicedAt: null,
       consolidatedAt: null,
       attemptedExerciseIds: [],
@@ -291,7 +291,7 @@ describe("course progress schema v3", () => {
     });
   });
 
-  it("migrates a valid schema-v3 payload into schema-v4, preserving only the visit timestamp for a reviewed lesson", () => {
+  it("migrates a valid schema-v3 payload through V4 into Base, preserving only the visit timestamp", () => {
     const progress = markLessonVisited(emptyProgress(), "sounds-1");
     const parsed = parseProgress(
       JSON.stringify(progress),
@@ -299,15 +299,15 @@ describe("course progress schema v3", () => {
     );
     expect(parsed.corrupted).toBe(false);
     expect(parsed.migrated).toBe(true);
-    expect(parsed.progress.schemaVersion).toBe(4);
-    expect(parsed.progress.levels.a1.lessons["sounds-1"]).toEqual({
+    expect(parsed.progress.schemaVersion).toBe(5);
+    expect(parsed.progress.levels.a0.lessons["sounds-1"]).toEqual({
       visitedAt: progress.lessons["sounds-1"].visitedAt,
       practicedAt: null,
       consolidatedAt: null,
       attemptedExerciseIds: [],
       acceptedExerciseIds: [],
     });
-    expect(parsed.progress.levels.a2).toEqual(emptyLevelProgress());
+    expect(parsed.progress.levels.a2).toEqual(emptyProgressV5().levels.a2);
   });
 
   it("marks visits idempotently and projects visited lesson ids", () => {
@@ -319,14 +319,14 @@ describe("course progress schema v3", () => {
 
   it("rejects malformed and future payloads explicitly", () => {
     expect(parseProgress("{bad", knownLessonIds)).toEqual({
-      progress: emptyProgressV4(),
+      progress: emptyProgressV5(),
       corrupted: true,
       migrated: false,
     });
     expect(
-      parseProgress(JSON.stringify({ schemaVersion: 5 }), knownLessonIds),
+      parseProgress(JSON.stringify({ schemaVersion: 6 }), knownLessonIds),
     ).toEqual({
-      progress: emptyProgressV4(),
+      progress: emptyProgressV5(),
       corrupted: true,
       migrated: false,
     });
@@ -358,9 +358,8 @@ describe("course progress v3 — retired v2.1 lesson ids: orphan-safe, route-ali
       retired,
       "genuinely-unknown-id",
     ]);
-    // The opaque last-visited id is preserved verbatim; the route/map layer —
-    // not progress — canonicalizes navigation via the explicit alias map.
-    expect(parsed.progress.levels.a1.lastVisitedLessonId).toBe(retired);
+    // V5 will not invent a resumed A1 visit from an orphan-only V4 record.
+    expect(parsed.progress.levels.a1.lastVisitedLessonId).toBeNull();
     expect(
       LEGACY_LESSON_ALIASES.some((alias) => alias.legacyLessonId === retired),
     ).toBe(true);

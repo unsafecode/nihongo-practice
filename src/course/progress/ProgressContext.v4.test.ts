@@ -244,7 +244,7 @@ describe("ProgressContext V4 exposure (Phase 2 Task 6)", () => {
       await act(async () => get().acknowledgeMigrationNotice());
       expect(get().migrationNotice!.acknowledgedAt).not.toBeNull();
       // Acknowledging never deletes the record — "what changed" stays visible.
-      expect(get().migrationNotice!.fromSchemaVersion).toBe(3);
+      expect(get().migrationNotice!.fromSchemaVersion).toBe(4);
     });
   });
 });

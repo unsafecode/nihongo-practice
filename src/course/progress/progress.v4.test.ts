@@ -14,7 +14,9 @@ import {
   clearLevel,
   emptyLevelProgress,
   emptyProgressV4,
+  emptyProgressV5,
   migrateV4Catalog,
+  migrateV4ToV5,
   migrateV3ToV4,
   parseProgress,
   recordCanDoEvidence,
@@ -840,7 +842,7 @@ describe("v4 catalog v1/v2 → v3 normalization", () => {
     ]);
   });
 
-  it("accepts catalog v2 through parseProgress and keeps an already reconciled catalog-v3 record by reference", () => {
+  it("accepts catalog v2 through parseProgress into V5 while keeping V4 catalog normalization reference-stable", () => {
     const legacy = {
       ...v1Fixture(),
       catalogVersion: "a1-a2-v2" as const,
@@ -856,7 +858,7 @@ describe("v4 catalog v1/v2 → v3 normalization", () => {
     expect(parsed).toMatchObject({
       corrupted: false,
       migrated: true,
-      progress: { catalogVersion: "a1-a2-v3" },
+      progress: { catalogVersion: "base-a1-a2-v1", schemaVersion: 5 },
     });
 
     const currentV3 = emptyProgressV4();
@@ -892,7 +894,7 @@ describe("v4 catalog v1/v2 → v3 normalization", () => {
     ).toBe(once);
   });
 
-  it("normalizes a valid v4 catalog-v1 payload through parsing and rejects an unknown future catalog revision", () => {
+  it("normalizes a valid V4 catalog-v1 payload through V5 parsing and rejects an unknown future catalog revision", () => {
     const source = v1Fixture();
     const current = currentCatalogSets();
     const parsed = parseProgress(
@@ -904,7 +906,7 @@ describe("v4 catalog v1/v2 → v3 normalization", () => {
 
     expect(parsed.corrupted).toBe(false);
     expect(parsed.migrated).toBe(true);
-    expect(parsed.progress.catalogVersion).toBe("a1-a2-v3");
+    expect(parsed.progress.catalogVersion).toBe("base-a1-a2-v1");
     expect(parsed.progress.levels.a1.orphanedReviewKeys).toContain(
       source.levels.a1.reviewQueue[1]!.reviewKey,
     );
@@ -913,40 +915,40 @@ describe("v4 catalog v1/v2 → v3 normalization", () => {
         JSON.stringify({ ...source, catalogVersion: "a1-a2-v99" }),
       ),
     ).toEqual({
-      progress: emptyProgressV4(),
+      progress: emptyProgressV5(),
       corrupted: true,
       migrated: false,
     });
   });
 });
 
-describe("parseProgress → CourseProgressV4", () => {
-  it("treats null storage content as empty v4 progress", () => {
+describe("parseProgress → CourseProgressV5", () => {
+  it("treats null storage content as empty V5 progress", () => {
     expect(parseProgress(null)).toEqual({
-      progress: emptyProgressV4(),
+      progress: emptyProgressV5(),
       corrupted: false,
       migrated: false,
     });
   });
 
-  it("passes a valid v4 payload through unchanged, by reference, with no migration", () => {
+  it("migrates a valid V4 payload losslessly into V5", () => {
     const progress = emptyProgressV4();
     const raw = JSON.stringify(progress);
     const parsed = parseProgress(raw);
     expect(parsed.corrupted).toBe(false);
-    expect(parsed.migrated).toBe(false);
-    expect(parsed.progress).toEqual(progress);
+    expect(parsed.migrated).toBe(true);
+    expect(parsed.progress).toEqual(migrateV4ToV5(progress));
   });
 
-  it("migrates a valid v3 payload directly into v4", () => {
+  it("migrates a valid V3 payload through V4 into V5", () => {
     const v3 = v3Fixture({ lessons: { "sounds-1": v3Lesson({ visitedAt: T0 }) } });
     const parsed = parseProgress(JSON.stringify(v3));
     expect(parsed.corrupted).toBe(false);
     expect(parsed.migrated).toBe(true);
-    expect(parsed.progress).toEqual(migrateV3ToV4(v3));
+    expect(parsed.progress).toEqual(migrateV4ToV5(migrateV3ToV4(v3)));
   });
 
-  it("migrates a valid v2 payload all the way through v3 into v4", () => {
+  it("migrates a valid v2 payload all the way through V3/V4 into V5", () => {
     const parsed = parseProgress(
       JSON.stringify({
         schemaVersion: 2,
@@ -958,12 +960,12 @@ describe("parseProgress → CourseProgressV4", () => {
     );
     expect(parsed.corrupted).toBe(false);
     expect(parsed.migrated).toBe(true);
-    expect(parsed.progress.schemaVersion).toBe(4);
-    expect(parsed.progress.levels.a1.lessons["sounds-1"].visitedAt).toBe(T0);
-    expect(parsed.progress.levels.a1.lastVisitedLessonId).toBe("sounds-1");
+    expect(parsed.progress.schemaVersion).toBe(5);
+    expect(parsed.progress.levels.a0.lessons["sounds-1"].visitedAt).toBe(T0);
+    expect(parsed.progress.levels.a0.lastVisitedLessonId).toBe("sounds-1");
   });
 
-  it("migrates a valid v1 payload all the way through v3 into v4", () => {
+  it("migrates a valid v1 payload all the way through V3/V4 into V5", () => {
     const parsed = parseProgress(
       JSON.stringify({
         schemaVersion: 1,
@@ -975,8 +977,8 @@ describe("parseProgress → CourseProgressV4", () => {
     );
     expect(parsed.corrupted).toBe(false);
     expect(parsed.migrated).toBe(true);
-    expect(parsed.progress.schemaVersion).toBe(4);
-    expect(parsed.progress.levels.a1.lessons["sounds-1"].visitedAt).toBe(T0);
+    expect(parsed.progress.schemaVersion).toBe(5);
+    expect(parsed.progress.levels.a0.lessons["sounds-1"].visitedAt).toBe(T0);
   });
 
   describe("migration notice conditions across v1/v2/v3 (Phase 2 Task 5 quality-review Important fix)", () => {
@@ -998,7 +1000,7 @@ describe("parseProgress → CourseProgressV4", () => {
       );
       expect(parsed.migrated).toBe(true);
       expect(parsed.progress.migrationNotice).not.toBeNull();
-      expect(parsed.progress.migrationNotice?.resetEvidenceLessonIds).toEqual([]);
+      expect(parsed.progress.migrationNotice?.priorNotice?.resetEvidenceLessonIds).toEqual([]);
       expect(parsed.progress.levels.a1.orphanedLessonIds).toEqual([]);
     });
 
@@ -1014,7 +1016,7 @@ describe("parseProgress → CourseProgressV4", () => {
       );
       expect(parsed.migrated).toBe(true);
       expect(parsed.progress.migrationNotice).not.toBeNull();
-      expect(parsed.progress.migrationNotice?.resetEvidenceLessonIds).toEqual([]);
+      expect(parsed.progress.migrationNotice?.priorNotice?.resetEvidenceLessonIds).toEqual([]);
       expect(parsed.progress.levels.a1.orphanedLessonIds).toEqual([]);
     });
 
@@ -1025,22 +1027,22 @@ describe("parseProgress → CourseProgressV4", () => {
       const parsed = parseProgress(JSON.stringify(v3));
       expect(parsed.migrated).toBe(true);
       expect(parsed.progress.migrationNotice).not.toBeNull();
-      expect(parsed.progress.migrationNotice?.resetEvidenceLessonIds).toEqual([]);
+      expect(parsed.progress.migrationNotice?.priorNotice?.resetEvidenceLessonIds).toEqual([]);
       expect(parsed.progress.levels.a1.orphanedLessonIds).toEqual([]);
     });
   });
 
   it("rejects malformed JSON as corrupted", () => {
     expect(parseProgress("{bad")).toEqual({
-      progress: emptyProgressV4(),
+      progress: emptyProgressV5(),
       corrupted: true,
       migrated: false,
     });
   });
 
-  it("rejects a future/unknown schema version (5) without throwing", () => {
-    expect(parseProgress(JSON.stringify({ schemaVersion: 5 }))).toEqual({
-      progress: emptyProgressV4(),
+  it("rejects a future/unknown schema version (6) without throwing", () => {
+    expect(parseProgress(JSON.stringify({ schemaVersion: 6 }))).toEqual({
+      progress: emptyProgressV5(),
       corrupted: true,
       migrated: false,
     });
@@ -1049,7 +1051,7 @@ describe("parseProgress → CourseProgressV4", () => {
   it("rejects a malformed v4 shape (wrong number of levels) as corrupted", () => {
     const malformed = { ...emptyProgressV4(), levels: { a1: emptyLevelProgress() } };
     expect(parseProgress(JSON.stringify(malformed))).toEqual({
-      progress: emptyProgressV4(),
+      progress: emptyProgressV5(),
       corrupted: true,
       migrated: false,
     });
@@ -1065,22 +1067,22 @@ describe("parseProgress → CourseProgressV4", () => {
     const parsed = parseProgress(JSON.stringify(withoutMigrationNotice));
     expect(parsed.corrupted).toBe(true);
     expect(parsed.migrated).toBe(false);
-    expect(parsed.progress).toEqual(emptyProgressV4());
+    expect(parsed.progress).toEqual(emptyProgressV5());
     expect(parsed.progress.migrationNotice).not.toBeUndefined();
   });
 
-  it("still accepts a valid v4 payload whose migrationNotice is explicitly null", () => {
+  it("migrates a valid V4 payload whose migrationNotice is explicitly null", () => {
     const progress = { ...emptyProgressV4(), migrationNotice: null };
     const parsed = parseProgress(JSON.stringify(progress));
     expect(parsed.corrupted).toBe(false);
-    expect(parsed.migrated).toBe(false);
-    expect(parsed.progress).toEqual(progress);
+    expect(parsed.migrated).toBe(true);
+    expect(parsed.progress).toEqual(migrateV4ToV5(progress));
   });
 
   it("rejects an invalid timestamp type in v4 as corrupted", () => {
     const malformed = { ...emptyProgressV4(), updatedAt: 12345 };
     expect(parseProgress(JSON.stringify(malformed))).toEqual({
-      progress: emptyProgressV4(),
+      progress: emptyProgressV5(),
       corrupted: true,
       migrated: false,
     });

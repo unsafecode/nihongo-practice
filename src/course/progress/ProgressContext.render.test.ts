@@ -142,7 +142,7 @@ describe("ProgressProvider initialization — side effects (Phase 2 Task 5 quali
       expect(calls.removeItem).toBe(0);
       // The one write that did happen must actually be the migrated v4, not
       // a stale/duplicate copy of the original v3 bytes.
-      expect(JSON.parse(storage.getItem(STORAGE_KEY) ?? "null").schemaVersion).toBe(4);
+      expect(JSON.parse(storage.getItem(STORAGE_KEY) ?? "null").schemaVersion).toBe(5);
       await act(async () => root.unmount());
     });
     container.remove();
