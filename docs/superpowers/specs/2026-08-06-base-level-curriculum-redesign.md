@@ -1,10 +1,17 @@
 # Base level curriculum redesign
 
-**Status:** Approved architecture; validated design input  
+**Status:** Corrected and approved implementation architecture
 **Date:** 2026-08-06  
 **Repository:** `unsafecode/nihongo-practice`  
 **Baseline:** deployed `master` at `136fb9f0dc62a8c5284c98d8cbd44ad2de90ddbc`  
-**Delivery boundary:** design only; implementation planning and product changes are explicitly deferred
+**Delivery boundary:** complete implementation, release validation, independent review, and pull request
+
+**Correction note:** The initial `d3f6714` draft was rejected. This revision is
+the controlling design. It moves argument particles after the verb-class
+foundation, reserves dynamic-verb ongoing meaning for `〜ています`, adds that
+construction to Base, separates content-lesson and system-lesson depth, requires
+verified sound audio rather than browser TTS alone, and makes the diagnostic,
+progress-map, and release evidence contracts explicit.
 
 ## 1. Decision and authority
 
@@ -183,6 +190,17 @@ routes remain valid because they now belong to Base. New reference routes are:
 Reference links may add a validated `throughLessonId` query to show the
 cumulative state at a particular point. No localized title is used as an ID.
 
+### 5.4 Optional entry self-diagnostic
+
+Fresh learners see a short, non-blocking Base entry diagnostic before or beside
+the first recommendation. It samples sound timing, sentence anatomy, core
+particle sense, and polite verb form recognition without recording
+accepted-exercise, Can-do, checkpoint, or lesson-completion evidence. The result
+may recommend a Base module or A1, but every level and route remains open.
+Skipping, stopping, or receiving a low score has no punitive copy and changes no
+stored lesson evidence. Diagnostic state uses content-independent IDs and may be
+discarded independently of course progress.
+
 ## 6. Canonical course ownership
 
 ### 6.1 Base manifest: 10 modules, 40 lessons
@@ -191,8 +209,8 @@ cumulative state at a particular point. No localized title is used as an ID.
 sounds
 sentence-foundations
 topic-questions
-core-particles
 polite-verbs
+argument-particles
 time-movement
 copula-adjectives
 existence-location
@@ -200,9 +218,11 @@ requests-connection
 base-synthesis
 ```
 
-Each module has exactly four lessons. The first five module IDs and their 20
-lesson IDs already exist and retain their routes. The last five module IDs add
-20 new routes.
+Each module has exactly four lessons. The stable modules `sounds`,
+`sentence-foundations`, `topic-questions`, `polite-verbs`, and `time-movement`
+and their 20 lesson IDs retain their routes. `argument-particles`,
+`copula-adjectives`, `existence-location`, `requests-connection`, and
+`base-synthesis` add 20 new routes.
 
 ### 6.2 A1 manifest after rehoming
 
@@ -266,13 +286,18 @@ navigation remains open.
 
 | Stable lesson ID | Learner outcome |
 |---|---|
-| `sounds-1` | Hear and produce the five steady vowels and count morae rather than English-style syllables |
-| `sounds-2` | Distinguish core consonant rows, voicing, and common minimal sound contrasts |
+| `sounds-1` | Read the complete unvoiced hiragana inventory, hear and produce the five steady vowels, and count morae rather than English-style syllables |
+| `sounds-2` | Complete the hiragana inventory with dakuten and handakuten, then distinguish voicing and common minimal sound contrasts |
 | `sounds-3` | Hear and read long vowels, small `っ`, and moraic `ん` without collapsing timing |
-| `sounds-4` | Read contracted sounds and practical katakana while keeping hiragana as the primary course script |
+| `sounds-4` | Read all common yōon combinations and a bounded practical katakana bridge while keeping hiragana as the primary course script |
 
 Sound lessons teach listening and script foundations honestly. They do not
-invent sentence predicates or inflate lexeme counts with isolated kana.
+invent sentence predicates or inflate lexeme counts with isolated kana. Their
+canonical contrasts use checked-in, human-reviewed audio assets with stable
+fingerprints. Browser speech may provide optional replay for ordinary words,
+but it is never the sole evidence for vowel quality, voicing, long vowels,
+gemination, moraic `ん`, yōon, or mora timing. Pitch accent is explicitly
+outside Base.
 
 ### 7.2 Module 2: `sentence-foundations` - Sentence anatomy and recoverable omission
 
@@ -280,12 +305,16 @@ invent sentence predicates or inflate lexeme counts with isolated kana.
 |---|---|
 | `sentence-foundations-1` | Read Japanese as ordered information chunks with the predicate at the end |
 | `sentence-foundations-2` | Distinguish a stated topic or subject from information naturally omitted because context recovers it |
-| `sentence-foundations-3` | Recognize noun, adjective, and verb predicates and know what can close a sentence |
+| `sentence-foundations-3` | Build an affirmative polite noun predicate with `です`, recognize the predicate-final slot, and contrast that known closer with a labelled verb-predicate preview |
 | `sentence-foundations-4` | Put modifiers before nouns and assemble a complete short sentence without copying English word order |
 
 This module progressively fills the sentence anatomy map. It explicitly
 distinguishes grammatical role, discourse topic, and English translation
-choices. It does not teach "Japanese has no subjects."
+choices. It owns affirmative polite noun-predicate `です`, which is required by
+the following topic/question module. Verb and adjective predicate categories may
+be labelled in the anatomy diagram, but their forms are not exemplified or
+assessed before their owner lessons. It does not teach "Japanese has no
+subjects."
 
 ### 7.3 Module 3: `topic-questions` - Topic, focus, questions, and sentence endings
 
@@ -293,71 +322,84 @@ choices. It does not teach "Japanese has no subjects."
 |---|---|
 | `topic-questions-1` | Establish and maintain a topic with `は`, including natural omission after the topic is recoverable |
 | `topic-questions-2` | Use `が` for focus or grammatical subject and contrast it with topic `は` |
-| `topic-questions-3` | Ask content and yes/no questions with core question words and polite question `か` |
-| `topic-questions-4` | Manage a four-to-eight-turn clarification exchange with `か`, `ね`, and `よ` where those endings are natural |
+| `topic-questions-3` | Link nouns with possessive/attributive `の`, add with `も`, and use nominal/listing/companion `と` in noun-predicate contexts |
+| `topic-questions-4` | Ask content and yes/no questions and manage a four-to-eight-turn clarification exchange with question `か`, `ね`, and `よ` where those endings are natural |
 
 `ね` and `よ` are introduced as common interactional endings, not universal
 English punctuation equivalents. The particle atlas begins with `は`, `が`,
-and question `か`.
+possessive/attributive `の` only, additive `も`, nominal/listing/companion `と`,
+and question `か`. Explanatory or nominalizing `の` and `んです` are outside
+Base.
 
-### 7.4 Module 4: `core-particles` - Core particle atlas
-
-| New lesson ID | Learner outcome |
-|---|---|
-| `core-particles-1` | Mark a direct object with `を` and contrast object marking with topicalizing that object using `は` |
-| `core-particles-2` | Contrast time/destination `に`, direction `へ`, and action-place/instrument `で` |
-| `core-particles-3` | Use noun-linking `の`, companion/listing `と`, and additive `も` in practical phrases and sentences |
-| `core-particles-4` | Express source and limit with `から` and `まで`, then choose among the complete Base particle set in context |
-
-The atlas always states what role a particle marks, what it does not mark, and
-its nearest useful contrast. `と` is limited here to companion and exhaustive
-listing; quotation is not silently assessed.
-
-### 7.5 Module 5: `polite-verbs` - Dictionary forms, classes, and polite stems
+### 7.4 Module 4: `polite-verbs` - Dictionary forms, classes, and polite stems
 
 | Stable lesson ID | Learner outcome |
 |---|---|
 | `polite-verbs-1` | Treat dictionary form as the lookup form and recognize a verb predicate |
 | `polite-verbs-2` | Distinguish godan and ichidan verbs using forms and reviewed exceptions rather than the final sound alone |
 | `polite-verbs-3` | Form the polite stem for godan and ichidan verbs and handle `する` and `くる` explicitly |
-| `polite-verbs-4` | Build practical polite nonpast sentences from dictionary form, stem, particles, and `ます` |
+| `polite-verbs-4` | Build practical polite nonpast sentences from dictionary form, stem, known topic/nominal chunks, natural omission, and `ます` |
 
 The verb-class grid names godan, ichidan, `する`, and `くる`. It shows the
 godan final-kana-to-i-row transformation, ichidan `る` removal, and both
 irregular polite stems `し` and `き`. It does not pretend every `-iru/-eru`
 verb is ichidan.
 
+### 7.5 Module 5: `argument-particles` - Licensed verb arguments
+
+| New lesson ID | Learner outcome |
+|---|---|
+| `argument-particles-1` | Mark a direct object with `を` only with a taught transitive licensing verb, and contrast it with topicalized object `は` |
+| `argument-particles-2` | Mark a goal with `に` and direction with `へ` using taught motion predicates |
+| `argument-particles-3` | Mark an action place or means with `で` using predicates that license that reading |
+| `argument-particles-4` | Choose `を`, goal `に`, direction `へ`, or action-place/means `で` from predicate meaning and discourse context |
+
+Particles are taught by sense and licensing predicate, never as an atomic list
+of English prepositions. Each atlas entry states its licensed frame, what the
+particle does not mark, and its nearest useful contrast. Time `に` remains owned
+by the following module; existence-location `に` remains owned by the existence
+module.
+
 ### 7.6 Module 6: `time-movement` - Tense, time, and polarity
 
 | Stable lesson ID | Learner outcome |
 |---|---|
-| `time-movement-1` | Interpret polite nonpast as current, habitual, or future from context |
-| `time-movement-2` | Choose time `に` where appropriate and omit it with relative time expressions where appropriate |
+| `time-movement-1` | Interpret dynamic-verb polite nonpast as habitual or future, and distinguish stative predicates that can describe a present state |
+| `time-movement-2` | Choose time `に` where appropriate, omit it with relative time expressions, and express source/limit with time and motion `から`/`まで` |
 | `time-movement-3` | Form and contrast `ます`, `ません`, `ました`, and `ませんでした` |
 | `time-movement-4` | Use the four polite verb forms in a real schedule or movement dialogue with explicit time cues |
 
 The tense/polarity grid separates grammatical nonpast from English present
 tense. It explicitly contains `ます`, `ません`, `ました`, and
-`ませんでした`. Time words and discourse context must disambiguate current,
-habitual, and future readings in visible examples.
+`ませんでした`. A dynamic nonpast example may be glossed only as habitual or
+future, never as an action ongoing now. Stative predicates may describe a
+present state. Ongoing dynamic events are withheld until `〜ています` in module
+9. Time and motion `から`/`まで` are taught here rather than in an abstract
+particle inventory.
 
 ### 7.7 Module 7: `copula-adjectives` - Noun predicates, copula, and adjectives
 
 | New lesson ID | Learner outcome |
 |---|---|
-| `copula-adjectives-1` | Build polite noun predicates with affirmative and negative nonpast copula forms |
-| `copula-adjectives-2` | Contrast polite copula nonpast/past and affirmative/negative forms |
+| `copula-adjectives-1` | Extend known affirmative `です` with the polite negative noun-predicate form |
+| `copula-adjectives-2` | Complete the polite noun-predicate nonpast/past and affirmative/negative grid |
 | `copula-adjectives-3` | Use `い` adjectives as predicates and noun modifiers across the Base tense/polarity scope |
 | `copula-adjectives-4` | Use `な` adjectives as predicates and place `な` before a modified noun, contrasting them with `い` adjectives |
 
-The canonical polite forms are explicit. Contractions such as `じゃ` may be
+Affirmative nonpast `です` is reviewed from `sentence-foundations-3`; module 7
+owns the remaining noun-predicate tense/polarity cells and all adjective
+tense/polarity. The canonical polite forms are explicit. Contractions such as `じゃ` may be
 introduced as common recognition/application forms only when their relationship
 to the canonical grid is shown. The grid includes noun/`な`-adjective predicate
 `です`, `ではありません`, `でした`, and `ではありませんでした`; it also
 shows the `い`-adjective patterns `おいしいです`, `おいしくないです`,
 `おいしかったです`, and `おいしくなかったです` with substitutable
 lexical stems. The adjective/copula grid never applies copula conjugation rules
-to an `い` adjective stem.
+to an `い` adjective stem. `い` adjectives self-conjugate; polite `です` after
+an `い`-adjective predicate is a politeness marker, not copula `だ`.
+`な` adjectives are nominal-type predicates and require the copula
+predicatively and `な` before a modified noun. Authoring and answer evaluation
+deterministically reject `高いだ`-type forms.
 
 ### 7.8 Module 8: `existence-location` - Existence, people, things, and location
 
@@ -379,14 +421,17 @@ translation rule for English "have."
 | `requests-connection-1` | Form a minimal practical `て` form for the taught godan groups, ichidan verbs, `する`, and `くる` |
 | `requests-connection-2` | Make and understand practical requests with `てください` and appropriate softening |
 | `requests-connection-3` | Connect two simple actions with the `て` form without implying every possible discourse relation |
-| `requests-connection-4` | Handle a practical request-and-response dialogue using known particles, forms, and natural omission |
+| `requests-connection-4` | Use `〜ています` for a bounded ongoing action or resulting/current state and handle a practical four-to-eight-turn exchange |
 
-This is a bounded Base layer. It does not introduce the progressive,
-permission, prohibition, or full informal conjugation systems by implication.
+This is a bounded Base layer. It introduces only practical `て` formation,
+`〜てください`, sequential `〜て`, and `〜ています` for ongoing actions or
+resulting/current states. Permission, prohibition, conditionals, and the full
+informal conjugation system remain outside Base.
 The practical `て` grid explicitly covers `う／つ／る -> って`,
 `む／ぶ／ぬ -> んで`, `く -> いて`, `ぐ -> いで`, `す -> して`,
 ichidan `る -> て`, `する -> して`, and `くる -> きて`, plus only reviewed
-high-frequency exceptions such as `いく -> いって`.
+high-frequency exceptions such as `いく -> いって`. The `〜ています` lesson
+is the only Base surface allowed to gloss a dynamic predicate as ongoing now.
 
 ### 7.10 Module 10: `base-synthesis` - Practical Base synthesis
 
@@ -395,7 +440,7 @@ high-frequency exceptions such as `いく -> いって`.
 | `base-synthesis-1` | Sustain an identity and description exchange using natural topic continuity |
 | `base-synthesis-2` | Describe a routine or plan across time, tense, and polarity |
 | `base-synthesis-3` | Locate a person or thing and make a practical request |
-| `base-synthesis-4` | Complete a mixed Base checkpoint covering sentence anatomy, particles, predicates, and interaction |
+| `base-synthesis-4` | Complete a mixed Base checkpoint covering all five reference grids, `〜ています`, and interaction |
 
 These lessons introduce no new grammar and no new lexemes. They retrieve
 previously taught material in new contexts and report observed evidence only.
@@ -406,21 +451,38 @@ The checkpoint is not a certification and does not unlock A1.
 Depth is measured from the production learner view, not from source-file size,
 token count, or hidden variants.
 
-### 8.1 Semantic instructional lessons
+### 8.1 Explicit lesson classification
 
-Each lesson in modules 2-9 must contain:
+Every Base lesson declares exactly one contract: `phonetic`, `content`,
+`system`, or `synthesis`. The classification is fixed:
 
-- **8-12 genuinely new lexemes**;
-- **6-10 unique visible worked examples**;
+- `sounds-1..4`: `phonetic`;
+- `base-synthesis-1..4`: `synthesis`;
+- `topic-questions-4`, `polite-verbs-4`, `time-movement-4`,
+  `existence-location-4`, and `requests-connection-2`: `content`;
+- every other lesson in modules 2-9: `system`.
+
+The validator rejects missing or contradictory classification. The complete
+Base lexicon, excluding particles, endings, inflections, punctuation, and
+interchangeable names, must contain no more than 250 unique lexemes. Meaningful
+sound-lesson anchor words count toward that cap; reusing an already-owned anchor
+does not create another lexeme. The global cap overrides the sum of per-lesson
+maxima.
+
+### 8.2 Semantic lesson common contract
+
+Every content or system lesson contains:
+
 - a **4-8 turn dialogue** when the outcome is interactive;
-- one main explanation, at least one explicit contrast, and a link to the
-  cumulative reference state;
-- **at least 8 non-spoken activities** covering eight distinct cognitive
-  functions;
-- **2 listening/speaking activities**, one listening-led and one spoken;
-- a cumulative recap that retrieves current and earlier material.
+- one main explanation, a construction/form procedure, constraints and a common
+  error, the nearest contrast, and a progressive reference snapshot;
+- explicit prerequisite links and a cumulative recap that retrieves current
+  and earlier material;
+- **at least 8 non-spoken activities** from the taxonomy below, spanning at
+  least six distinct categories and using no category more than twice;
+- **2 audio activities**, one listening-led and one spoken.
 
-The eight required non-spoken functions are:
+The non-spoken activity taxonomy is:
 
 1. meaning comprehension;
 2. form or function discrimination;
@@ -438,11 +500,29 @@ The two audio functions are:
 
 An interaction widget is not a cognitive function. Reusing a choice widget for
 two genuinely different functions is allowed; relabeling the same prompt is
-not.
+not. The eight-activity minimum does not mean every lesson must use all eight
+categories; it means at least six categories, no more than two activities per
+category, and no repeated target-operation pair.
 
-### 8.2 Lexeme substance rules
+### 8.3 Content lesson contract
 
-A count of 8-12 is necessary but not sufficient:
+A content lesson introduces **8-12 genuinely new lexemes** and shows **6-10
+unique visible worked examples**. Its examples collectively cover at least two
+structural patterns, three contexts or discourse roles, the principal contrast,
+and every newly taught grammar/form item.
+
+### 8.4 System lesson contract
+
+A system lesson introduces **3-6 genuinely new lexemes**, shows **10-14 unique
+visible worked examples**, and visibly covers every required cell in the
+lesson's declared pattern matrix. A pattern cell is a meaningful combination of
+form, role, polarity/tense, class, or contrast defined by that lesson; cosmetic
+lexeme substitutions do not count. The validator compares declared cells with
+realized examples and fails both missing and duplicate-only coverage.
+
+### 8.5 Lexeme substance rules
+
+A lesson's numeric range is necessary but not sufficient:
 
 - inflected forms of one verb are one lexeme, not separate words;
 - particles, endings, punctuation, names used only as interchangeable slots,
@@ -455,23 +535,19 @@ A count of 8-12 is necessary but not sufficient:
   items that recur in at least two Base synthesis surfaces;
 - a vocabulary list entry that is never used fails validation.
 
-### 8.3 Worked examples and dialogues
+### 8.6 Worked examples and dialogues
 
 A visible example includes Japanese, optional romaji, token roles/glosses, a
-natural translation, an audio control, and a short teaching purpose. The 6-10
-examples must collectively cover:
-
-- at least two structural patterns;
-- at least three contexts or discourse roles;
-- the lesson's principal contrast;
-- all newly taught grammar and forms.
+natural translation, an audio control, and a short teaching purpose. Content
+lessons meet the 6-10 range; system lessons meet the 10-14 range and complete
+their pattern-cell coverage.
 
 Dialogue turns are additional visible surfaces. A dialogue may not repeat a
 worked-example fingerprint, and two turns may not be cosmetic substitutions of
 the same utterance. A valid dialogue has at least two speakers, coherent
 adjacency pairs, recoverable omissions, and a practical outcome.
 
-### 8.4 Main explanation and cumulative contrast
+### 8.7 Main explanation and cumulative contrast
 
 One compact note is no longer the whole grammar contract. A semantic lesson has:
 
@@ -487,7 +563,7 @@ One compact note is no longer the whole grammar contract. A semantic lesson has:
 Character minima are forbidden. Validators prove required semantic blocks,
 references, concepts, and visible examples instead.
 
-### 8.5 Sound lesson exception
+### 8.8 Sound lesson exception
 
 Sound lessons use a phonetic contract:
 
@@ -495,6 +571,8 @@ Sound lessons use a phonetic contract:
 - 4-8 meaningful anchor words with EN/IT meanings, not claimed as a full
   sentence-ready vocabulary lesson;
 - at least six unique visible audio exemplars;
+- checked-in, human-reviewed canonical audio assets or fixtures for every
+  assessed contrast, with stable content/audio fingerprints;
 - a main phonetic explanation plus an explicit contrast map;
 - six non-spoken activities covering sound discrimination, mora segmentation,
   kana recognition, script mapping, sound-to-word matching, and controlled
@@ -502,9 +580,10 @@ Sound lessons use a phonetic contract:
 - one listening identification activity and one spoken/read-aloud activity.
 
 The semantic 8-12 lexeme and 6-10 sentence-example minima do not apply. A sound
-lesson cannot pass by inventing sentence metadata.
+lesson cannot pass by inventing sentence metadata or by delegating canonical
+sound evidence to browser TTS.
 
-### 8.6 Synthesis lesson exception
+### 8.9 Synthesis lesson exception
 
 Base synthesis lessons introduce zero lexemes and zero grammar concepts. Each
 must visibly retrieve at least 12 previously taught lexemes, at least four
@@ -512,7 +591,7 @@ grammar systems, 6-10 unique worked examples, and a 4-8 turn practical dialogue.
 They use the full 8+2 activity contract. The zero-new-content exception is
 explicit and valid only for `base-synthesis`.
 
-### 8.7 Default-visible rule
+### 8.10 Default-visible rule
 
 Vocabulary, explanations, contrast, examples, and dialogue are present and
 visible in the default lesson flow. Progressive exercise steps may appear after
@@ -528,10 +607,10 @@ form catalogs as lessons:
 | Reference ID | First introduced | Progressive content |
 |---|---|---|
 | `sentence-anatomy` | `sentence-foundations-1` | chunks, topic/subject status, modifier order, predicate types, endings |
-| `particle-atlas` | `topic-questions-1` | `は`, `が`, `を`, `に`, `で`, `へ`, `の`, `と`, `も`, `から`, `まで`, and question `か` |
-| `verb-classes-conjugation` | `polite-verbs-1` | dictionary form, godan/ichidan/`する`/`くる`, polite stems, polite and practical `て` forms |
+| `particle-atlas` | `topic-questions-1` | progressive ownership of `は`, `が`, possessive/attributive `の`, `も`, nominal/listing/companion `と`, question `か`, licensed `を`/goal `に`/`へ`/action-place or means `で`, time `に`, `から`/`まで`, and existence-location `に` + existential `が` |
+| `verb-classes-conjugation` | `polite-verbs-1` | dictionary form, godan/ichidan/`する`/`くる`, explicit exceptions, polite stems, polite forms, practical `て` forms, and `〜ています` |
 | `tense-polarity` | `time-movement-1` | nonpast semantics and the four polite verb forms |
-| `adjective-copula` | `copula-adjectives-1` | noun predicate, polite copula, `い` adjective, and `な` adjective grids |
+| `adjective-copula` | `copula-adjectives-1` | reviewed affirmative `です`, remaining noun-predicate polite copula cells, and complete `い`/`な` adjective grids |
 
 Every reference entry declares:
 
@@ -587,6 +666,12 @@ Canonical Japanese is authored once in semantic/form sources. Lesson copy
 references IDs. Reference grids derive forms from the form engine; they do not
 copy conjugation strings into a second source of truth.
 
+The form engine exposes deterministic rules for godan/ichidan/`する`/`くる`
+polite stems, the complete four-cell polite tense/polarity grid, bounded `て`
+allomorphy including `行く -> 行って`, `〜てください`, sequential `〜て`, and
+`〜ています`. It also exposes separate noun/`な`-adjective and `い`-adjective
+paths so `高いだ`-type combinations cannot be represented as valid output.
+
 Base may extend a sentence family or form rule only when the required Base
 structure cannot be represented honestly. A shared change must preserve A1/A2
 realization snapshots unless an explicitly reviewed correction is required.
@@ -628,6 +713,44 @@ inferred merely from an old `consolidatedAt`.
 The exact 20 lesson IDs under `sounds`, `sentence-foundations`,
 `topic-questions`, `polite-verbs`, and `time-movement` have a reviewed ownership
 map from A1 to Base.
+
+The immutable ownership map is identity-by-stable-lesson-ID and is checked in as
+production data, not reconstructed from module position:
+
+| V4 owner/lesson | V5 owner/lesson |
+|---|---|
+| `a1/sounds-1` | `a0/sounds-1` |
+| `a1/sounds-2` | `a0/sounds-2` |
+| `a1/sounds-3` | `a0/sounds-3` |
+| `a1/sounds-4` | `a0/sounds-4` |
+| `a1/sentence-foundations-1` | `a0/sentence-foundations-1` |
+| `a1/sentence-foundations-2` | `a0/sentence-foundations-2` |
+| `a1/sentence-foundations-3` | `a0/sentence-foundations-3` |
+| `a1/sentence-foundations-4` | `a0/sentence-foundations-4` |
+| `a1/topic-questions-1` | `a0/topic-questions-1` |
+| `a1/topic-questions-2` | `a0/topic-questions-2` |
+| `a1/topic-questions-3` | `a0/topic-questions-3` |
+| `a1/topic-questions-4` | `a0/topic-questions-4` |
+| `a1/polite-verbs-1` | `a0/polite-verbs-1` |
+| `a1/polite-verbs-2` | `a0/polite-verbs-2` |
+| `a1/polite-verbs-3` | `a0/polite-verbs-3` |
+| `a1/polite-verbs-4` | `a0/polite-verbs-4` |
+| `a1/time-movement-1` | `a0/time-movement-1` |
+| `a1/time-movement-2` | `a0/time-movement-2` |
+| `a1/time-movement-3` | `a0/time-movement-3` |
+| `a1/time-movement-4` | `a0/time-movement-4` |
+
+The migration also imports an explicit checked-in activity map covering every
+published V4 exercise definition and review key for those lessons. Each row
+contains `sourceLevel`, `sourceLessonId`, `sourceActivityId`, `destinationLevel`,
+`destinationLessonId`, optional `destinationActivityId`, and a disposition of
+`same-semantics` or `historical-orphan`. Only `same-semantics` rows may satisfy a
+current V5 requirement. Any activity whose operation, target, accepted-answer
+semantics, or required evidence changed receives a new content-independent V5
+activity ID; its old attempts, acceptances, review entry, mistake count, and
+timestamps remain under the historical/orphan row. The validator compares this
+map with the complete V4 production ID inventory, so omission is a release
+failure.
 
 For each rehomed lesson, V4-to-V5 migration:
 
@@ -706,6 +829,7 @@ The release fails on:
 
 - any Base count other than 10 modules and 40 lessons;
 - any A1 count other than the retained 11 modules and 44 lessons;
+- a Base lexicon greater than 250 unique substantive lexemes;
 - duplicate or missing global module/lesson IDs;
 - a route whose resolved owner differs from its manifest owner;
 - an existing route or alias that no longer resolves;
@@ -718,13 +842,15 @@ The release fails on:
 
 The release fails when:
 
-- a semantic instructional lesson has fewer than 8 or more than 12 genuine new
-  lexemes;
+- a content lesson has fewer than 8 or more than 12 genuine new lexemes;
+- a system lesson has fewer than 3 or more than 6 genuine new lexemes;
 - a declared new lexeme is absent from visible teaching or same-lesson
   retrieval;
 - recurrence requirements are unmet;
-- a semantic lesson has fewer than 6 or more than 10 unique visible worked
+- a content lesson has fewer than 6 or more than 10 unique visible worked
   examples;
+- a system lesson has fewer than 10 or more than 14 unique visible worked
+  examples, or does not realize every declared pattern cell;
 - a required interaction lacks a 4-8 turn dialogue;
 - worked examples or dialogue turns duplicate one another by normalized visible
   semantic fingerprint;
@@ -744,7 +870,8 @@ widget kinds cannot make duplicates unique.
 The release fails when:
 
 - a semantic/synthesis lesson lacks eight non-spoken plus two audio activities;
-- any required cognitive function is absent;
+- fewer than six non-spoken taxonomy categories are present or any one category
+  appears more than twice;
 - two activities relabel the same target and operation as different functions;
 - visible targets repeat within a lesson;
 - a generated exercise duplicates a worked example instead of requiring
@@ -776,6 +903,11 @@ Automated structural checks fail on known beginner-content hazards, including:
 - omitted referents without a recoverable antecedent;
 - particle roles inconsistent with the sentence family;
 - impossible or mismatched predicate/form combinations;
+- a dynamic nonpast predicate is translated or glossed as an action ongoing now;
+- adjective tense/polarity appears before the adjective module;
+- an `い` adjective receives copula `だ`, including `高いだ`-type forms;
+- a `な` adjective omits required predicative copula or attributive `な`;
+- explanatory/nominalizing `の` or `んです` appears in Base;
 - English-order modifier placement;
 - dialogue turns without coherent speaker, referent, or adjacency continuity;
 - translations that erase the contrast the example claims to teach.
@@ -814,10 +946,19 @@ Build reports expose, per lesson:
 - activity functions, widget kinds, target fingerprints, and assessed IDs;
 - first-teach and prerequisite closure;
 - naturalness-review fingerprint/status;
+- verified canonical sound-audio fingerprint/review status;
 - production view and render-probe success.
 
 Aggregate reports include distributions and explicit unresolved findings. A
 total alone never passes the release.
+
+`scripts/validateBaseRelease.ts` is the first command in `npm run prebuild`,
+before A1 and A2 validation. It imports heavy authoring validators only at build
+time. Production runtime imports only a lightweight Base shape assertion. A
+successful Base validation prints real module/lesson/lexeme/example/dialogue and
+activity counts, per-category activity distributions, pattern-cell coverage,
+reference-entry counts, reviewed audio counts, and unresolved-finding count;
+`"passed"` without those measured values is not acceptable evidence.
 
 ## 13. No-answer-leakage requirements
 
@@ -880,10 +1021,12 @@ grow cards vertically but may not truncate Japanese, meanings, or controls.
 
 ## 15. Audio and speech error handling
 
-Vocabulary, worked examples, dialogue turns, and listening activities use the
-existing browser speech/audio boundary. Controls expose localized idle,
-playing, stopped, unavailable, blocked, and failed states. A new play request
-may stop the previous utterance, but the UI must report that transition.
+Vocabulary, worked examples, dialogue turns, and ordinary listening activities
+use the existing browser speech/audio boundary. Canonical sound teaching uses
+the verified checked-in assets and fixtures required by Section 8.8; browser TTS
+is optional reinforcement only. Controls expose localized idle, playing,
+stopped, unavailable, blocked, and failed states. A new play request may stop
+the previous utterance, but the UI must report that transition.
 
 On synthesis failure, the learner keeps the visible Japanese, romaji setting,
 meaning, and retry control. On speech-recognition unavailability or denial, the
@@ -893,6 +1036,9 @@ an attempt accepted automatically.
 Errors are scoped to the control or activity that failed. They do not collapse
 the lesson, erase progress, or silently fall back to a success-shaped state.
 All status changes are keyboard reachable and announced without stealing focus.
+Verified-asset load failure names the affected contrast and offers retry plus
+the complete visual/mora explanation; it never silently substitutes unverified
+browser synthesis as canonical evidence.
 
 No audio recording is uploaded or retained by the application. Browser and
 privacy copy remains truthful in Italian and English.
@@ -931,7 +1077,8 @@ Required coverage includes:
 - EN/IT and hiragana/romaji parity;
 - no-answer-leakage helpers and pre-attempt render probes;
 - V4-to-V5 migration, evidence preservation, idempotence, future/corrupt input,
-  rehomed continuation, and A2 deep equality;
+  rehomed continuation, empty-Base A1/A2 reachability equality, and A2 deep
+  equality;
 - every production Base learner view in both locales and both script modes;
 - unchanged A1 scenario and A2 editorial snapshots.
 
@@ -951,6 +1098,10 @@ git diff --check
 `npm run build` must run Base, A1, and A2 prebuild validators. A separate
 `GITHUB_PAGES=true` production build must use `/nihongo-practice/` and pass the
 same release validators.
+
+The Pages workflow runs `npm run check:bundle` after the Pages production build
+and before `actions/upload-pages-artifact`; artifact upload is unreachable when
+the budget fails.
 
 The bundle gate receives a reviewed budget change only for measured canonical
 content growth. Duplicate locale structures, duplicate conjugation strings,
