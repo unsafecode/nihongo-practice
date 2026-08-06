@@ -114,6 +114,41 @@ export const A1_LESSON_IDS: readonly LessonId[] = deepFreeze(
   A1_MODULE_IDS.flatMap((moduleId) => [...A1_LESSON_IDS_BY_MODULE[moduleId]]),
 );
 
+const RETAINED_RUNTIME_MODULE_ORDER: readonly ModuleId[] = [
+  "introductions",
+  "essential-questions",
+  "actions",
+  "routines",
+  "past-negative",
+  "places",
+  "people",
+  "descriptions",
+  "shopping",
+  "existence-needs",
+  "capstones",
+];
+
+export const A1_RETAINED_MODULE_IDS: readonly ModuleId[] = deepFreeze([
+  ...RETAINED_RUNTIME_MODULE_ORDER,
+]);
+
+export const A1_RETAINED_LESSON_IDS_BY_MODULE: Readonly<
+  Partial<Record<ModuleId, readonly LessonId[]>>
+> = deepFreeze(
+  Object.fromEntries(
+    A1_RETAINED_MODULE_IDS.map((moduleId) => [
+      moduleId,
+      [...A1_LESSON_IDS_BY_MODULE[moduleId]],
+    ]),
+  ),
+);
+
+export const A1_RETAINED_LESSON_IDS: readonly LessonId[] = deepFreeze(
+  A1_RETAINED_MODULE_IDS.flatMap((moduleId) => [
+    ...(A1_RETAINED_LESSON_IDS_BY_MODULE[moduleId] ?? []),
+  ]),
+);
+
 export const A1_CAPSTONE_LESSON_IDS: readonly LessonId[] = deepFreeze([
   ...A1_LESSON_IDS_BY_MODULE[A1_MANIFEST_SPEC.capstoneModuleId],
 ]);
