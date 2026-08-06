@@ -67,15 +67,25 @@ const itUi = {
   },
   courseLevels: {
     selectorLabel: "Livello del corso",
+    recommendedMarker: "Consigliato",
+    base: "Base",
     a1: "A1",
     a2: "A2",
+    baseHeading: "Corso Base",
     a1Heading: "Corso A1",
     a2Heading: "Corso A2",
+    baseBadge: "Base, fondamentali per chi inizia",
     a2Badge: "A2, il nostro allineamento ai descrittori Can-do JF/CEFR",
+    baseAvailableHint:
+      "Fondamentali per suoni, kana e primi schemi di frase.",
+    baseRecommendedHint:
+      "Inizia da qui se il corso è nuovo per te e vuoi prima i fondamentali.",
+    a1AvailableHint:
+      "A1 resta aperto e applica i fondamentali nelle situazioni quotidiane.",
     a2AvailableHint:
-      "A2 è disponibile quando vuoi. Si basa su A1, quindi affrontare prima A1 aiuta — ma nulla è bloccato.",
+      "A2 resta aperto e costruisce conversazioni collegate.",
     a2RecommendedHint:
-      "Hai affrontato la verifica A1, quindi A2 è un buon passo successivo. Era comunque sempre aperto — nulla era bloccato.",
+      "A2 resta aperto come buon passo successivo dopo A1 e costruisce conversazioni collegate.",
     a2CheckpointHeading: "Verifica A2",
     resetLevel: (levelLabel: string) => `Azzera i progressi di ${levelLabel}`,
     resetLevelConfirm: (levelLabel: string) =>

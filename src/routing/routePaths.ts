@@ -1,9 +1,11 @@
 /**
- * Pure route-path constants and builders, kept dependency-free (no React,
- * no react-router) so they can be imported by both the router wiring in
+ * Pure route-path constants and builders, kept React/router-free so they can
+ * be imported by both the router wiring in
  * ./routes and the pure route/return-target helpers in ./routeTarget
  * without creating an import cycle between them.
  */
+
+import { levelParam, type CourseLevelId } from "../course/levels/types";
 
 export const routePaths = {
   course: "/percorso",
@@ -35,25 +37,23 @@ export function lessonPath(moduleId: string, lessonId: string): string {
  */
 export const courseLevelParam = "livello";
 
-/** The two course levels the runtime exposes. */
+/** Deprecated binary CourseHome compatibility type; new URL code uses CourseLevelId. */
 export type CourseLevelParam = "a1" | "a2";
 
 /**
- * Course-map URL focused on a given level, e.g. `/percorso?livello=a2`. A1 is
- * the default and renders at the bare `${routePaths.course}` (no param at all)
- * so every existing A1 URL stays byte-for-byte stable; A2 alone carries the
- * `livello` query param.
+ * Course-map URL focused on a given level. Every option carries explicit URL
+ * intent; default resolution is handled separately by the selection helper.
  */
-export function coursePathForLevel(level: CourseLevelParam): string {
-  return level === "a1"
-    ? routePaths.course
-    : `${routePaths.course}?${courseLevelParam}=a2`;
+export function coursePathForLevel(level: CourseLevelId): string {
+  const params = new URLSearchParams({ [courseLevelParam]: levelParam(level) });
+  return `${routePaths.course}?${params.toString()}`;
 }
 
 /**
- * Resolves a raw `livello` query-param value to a course level, defaulting to
- * A1 for a missing or unrecognized value (invalid input never hard-fails the
- * course home — it just shows the stable A1 default).
+ * @deprecated Old binary compatibility wrapper for CourseHome until Task6 wires
+ * Base runtime data into map selection. New production code must use
+ * parseExplicitCourseLevel + resolveCourseLevel. Keeping this A1/A2-only avoids
+ * silently indexing Base data before CourseHome can render it.
  */
 export function courseLevelFromParam(value: string | null): CourseLevelParam {
   return value === "a2" ? "a2" : "a1";

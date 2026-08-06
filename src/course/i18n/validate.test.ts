@@ -309,11 +309,18 @@ describe("A2 runtime copy (Phase 3 Task 8): level selector + kanji chrome", () =
     const c = copy.courseLevels;
     return [
       c.selectorLabel,
+      c.recommendedMarker,
+      c.base,
       c.a1,
       c.a2,
+      c.baseHeading,
       c.a1Heading,
       c.a2Heading,
+      c.baseBadge,
       c.a2Badge,
+      c.baseAvailableHint,
+      c.baseRecommendedHint,
+      c.a1AvailableHint,
       c.a2AvailableHint,
       c.a2RecommendedHint,
       c.a2CheckpointHeading,
@@ -358,9 +365,9 @@ describe("A2 runtime copy (Phase 3 Task 8): level selector + kanji chrome", () =
 
   it("keeps the checkpoint copy an alignment claim, never certification/mastery", () => {
     for (const copy of [enCopy, itCopy]) {
-      const body = `${copy.checkpoint.notMet} ${copy.checkpoint.met}`;
+      const body = `${copy.checkpoint.notMet} ${copy.checkpoint.met} ${courseLevelStrings(copy).join(" ")}`;
       expect(body.toLowerCase()).not.toMatch(
-        /\b(certif|mastered|mastery|fluent|passed|superato|certificato|padronanza)\b/,
+        /\b(lock|locked|certif|mastered|mastery|fluent|passed|superato|certificato|padronanza|bloccat)\b/,
       );
     }
   });

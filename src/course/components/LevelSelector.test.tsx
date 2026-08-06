@@ -3,84 +3,96 @@
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MemoryRouter, Routes, Route, useLocation } from "react-router";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { CourseLevelId } from "../levels/types";
+import {
+  COURSE_LEVEL_PREFERENCE_KEY,
+} from "../levels/selection";
 import { en as enCopy } from "../i18n/en";
+import { it as itCopy } from "../i18n/it";
 import { coursePathForLevel } from "../../routing/routePaths";
 import { LevelSelector } from "./LevelSelector";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const copy = enCopy.courseLevels;
+const progressStorageKey = "nihongo.course.progress";
+
+function memoryStorage(): Storage {
+  const values = new Map<string, string>();
+  return {
+    get length(): number {
+      return values.size;
+    },
+    clear: () => values.clear(),
+    getItem: (key) => values.get(key) ?? null,
+    key: (index) => [...values.keys()][index] ?? null,
+    removeItem: (key) => {
+      values.delete(key);
+    },
+    setItem: (key, value) => {
+      values.set(key, value);
+    },
+  };
+}
 
 function renderStatic(
-  level: "a1" | "a2",
-  a2Recommended: boolean,
+  level: CourseLevelId,
+  recommendedLevel: CourseLevelId | null,
   initialPath = coursePathForLevel(level),
 ): string {
   return renderToStaticMarkup(
     createElement(
       MemoryRouter,
       { initialEntries: [initialPath] },
-      createElement(LevelSelector, { level, a2Recommended, copy }),
+      createElement(LevelSelector, { level, recommendedLevel, copy }),
     ),
   );
 }
 
-describe("LevelSelector — accessible two-option level control (Phase 3 Task 8)", () => {
-  it("offers both A1 and A2 as directly routable links (never disabled)", () => {
-    const html = renderStatic("a1", false);
+describe("LevelSelector — accessible three-option level control", () => {
+  it("offers Base, A1, and A2 as directly routable enabled links", () => {
+    const html = renderStatic("a1", "a0");
+    expect(html).toContain(`href="${coursePathForLevel("a0")}"`);
     expect(html).toContain(`href="${coursePathForLevel("a1")}"`);
     expect(html).toContain(`href="${coursePathForLevel("a2")}"`);
-    // Links are never disabled — A2 is always selectable, never hard-locked.
     expect(html).not.toContain("disabled");
     expect(html).not.toContain("aria-disabled");
   });
 
-  it("marks the URL-selected level with aria-current and a selected data hook", () => {
-    const a1 = renderStatic("a1", false);
-    expect(a1).toMatch(/data-level="a1"[^>]*aria-current="true"|aria-current="true"[^>]*data-level="a1"/);
-    expect(a1).toMatch(/data-level="a2"[^>]*data-selected="false"|data-selected="false"[^>]*data-level="a2"/);
-
-    const a2 = renderStatic("a2", true);
-    expect(a2).toMatch(/data-level="a2"[^>]*aria-current="true"|aria-current="true"[^>]*data-level="a2"/);
+  it("marks only the selected URL level with aria-current and a selected data hook", () => {
+    const html = renderStatic("a0", "a0");
+    expect(html).toMatch(/data-level="a0"[^>]*aria-current="true"|aria-current="true"[^>]*data-level="a0"/);
+    expect(html).toMatch(/data-level="a1"[^>]*data-selected="false"|data-selected="false"[^>]*data-level="a1"/);
+    expect(html).toMatch(/data-level="a2"[^>]*data-selected="false"|data-selected="false"[^>]*data-level="a2"/);
   });
 
-  it("shows the soft 'available' hint before the A1 checkpoint and the 'recommended' hint after — never blocking", () => {
-    expect(renderStatic("a1", false)).toContain(copy.a2AvailableHint);
-    expect(renderStatic("a1", true)).toContain(copy.a2RecommendedHint);
-    // A2 is enabled in both cases regardless of the hint variant.
-    expect(renderStatic("a1", false)).toContain(`href="${coursePathForLevel("a2")}"`);
-    expect(renderStatic("a1", true)).toContain(`href="${coursePathForLevel("a2")}"`);
+  it("shows each option's truthful hint and a visible recommended marker without disabling options", () => {
+    const html = renderStatic("a1", "a2");
+    expect(html).toContain(copy.baseAvailableHint);
+    expect(html).toContain(copy.a1AvailableHint);
+    expect(html).toContain(copy.a2RecommendedHint);
+    expect(html).toContain(copy.recommendedMarker);
+    expect(html).not.toContain("aria-disabled");
   });
 
-  it("names the selector group for assistive tech with visible text, not only an aria-label attribute", () => {
-    const html = renderStatic("a1", false);
-    // Must appear as visible text content between tags, not just hidden inside an attribute value.
+  it("names the selector group through visible text and aria-labelledby", () => {
+    const html = renderStatic("a1", null);
     expect(html).toContain(`>${copy.selectorLabel}<`);
-  });
-
-  it("labels the nav landmark via aria-labelledby referencing an element whose visible text is the label", () => {
-    const html = renderStatic("a1", false);
-    // The nav uses aria-labelledby, not a free-standing aria-label.
     expect(html).not.toContain(`aria-label="${copy.selectorLabel}"`);
-    // Extract the aria-labelledby value from the rendered nav.
     const labelledByMatch = html.match(/aria-labelledby="([^"]*)"/);
     expect(labelledByMatch).not.toBeNull();
     const labelledBy = labelledByMatch![1];
-    // The id must be non-empty — an empty string would trivially satisfy equality.
     expect(labelledBy).not.toBe("");
-    // Extract the id of the element whose text content is the selector label.
     const escapedLabel = copy.selectorLabel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const idMatch = html.match(new RegExp(`id="([^"]*)"[^>]*>${escapedLabel}<`));
     expect(idMatch).not.toBeNull();
-    const labelElementId = idMatch![1];
-    // The association is wired: the nav points at the labelling element.
-    expect(labelledBy).toBe(labelElementId);
+    expect(labelledBy).toBe(idMatch![1]);
   });
 });
 
-describe("LevelSelector — URL drives selection and clicking pushes history", () => {
+describe("LevelSelector — URL navigation and preference persistence", () => {
   function LocationProbe() {
     const location = useLocation();
     return createElement(
@@ -90,22 +102,34 @@ describe("LevelSelector — URL drives selection and clicking pushes history", (
     );
   }
 
-  afterEach(() => {
-    vi.restoreAllMocks();
+  function BackButton() {
+    const navigate = useNavigate();
+    return createElement("button", { type: "button", onClick: () => navigate(-1) }, "Back");
+  }
+
+  beforeEach(() => {
+    Object.defineProperty(window, "localStorage", {
+      value: memoryStorage(),
+      configurable: true,
+    });
+    window.localStorage.clear();
   });
 
-  it("navigates (pushes history) to the A2 URL when its option is activated, and back restores A1", async () => {
-    // React Router 7 commits a `Link` navigation via `React.startTransition`
-    // (see chunk-SA4DP3SF.js: `startTransition(() => setStateImpl(...))`),
-    // which the React scheduler posts as a MessageChannel macrotask. A bare
-    // `await act(async () => { dispatch click })` only drains microtasks, so
-    // the transition's state update lands *after* the act() scope and React
-    // logs "An update to Root inside a test was not wrapped in act(...)". This
-    // spy fails the test if that warning is emitted, so the fix (flushing the
-    // transition inside act — see clickAndFlush) is proven, not suppressed.
-    // spy still forwards to the real console (no suppression) — we only
-    // inspect its calls to assert the warning never fires.
+  afterEach(() => {
+    vi.restoreAllMocks();
+    window.localStorage.clear();
+  });
+
+  async function clickAndFlush(link: HTMLAnchorElement) {
+    await act(async () => {
+      link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  }
+
+  it("pushes distinct URLs for all three options, back restores the prior location, and stores the selected internal id", async () => {
     const consoleError = vi.spyOn(console, "error");
+    window.localStorage.setItem(progressStorageKey, "untouched");
 
     const container = document.createElement("div");
     document.body.append(container);
@@ -116,6 +140,7 @@ describe("LevelSelector — URL drives selection and clicking pushes history", (
           MemoryRouter,
           { initialEntries: [coursePathForLevel("a1")] },
           createElement(LocationProbe),
+          createElement(BackButton),
           createElement(
             Routes,
             null,
@@ -123,7 +148,7 @@ describe("LevelSelector — URL drives selection and clicking pushes history", (
               path: "/percorso",
               element: createElement(LevelSelector, {
                 level: "a1" as const,
-                a2Recommended: false,
+                recommendedLevel: "a0" as const,
                 copy,
               }),
             }),
@@ -132,20 +157,41 @@ describe("LevelSelector — URL drives selection and clicking pushes history", (
       );
     });
 
-    expect(container.querySelector('[data-testid="loc"]')?.textContent).toBe("/percorso");
+    expect(container.querySelector('[data-testid="loc"]')?.textContent).toBe(
+      "/percorso?livello=a1",
+    );
 
+    const baseLink = container.querySelector<HTMLAnchorElement>('[data-level="a0"]');
     const a2Link = container.querySelector<HTMLAnchorElement>('[data-level="a2"]');
+    const a1Link = container.querySelector<HTMLAnchorElement>('[data-level="a1"]');
+    expect(baseLink).not.toBeNull();
+    expect(a1Link).not.toBeNull();
     expect(a2Link).not.toBeNull();
+
+    await clickAndFlush(baseLink!);
+    expect(container.querySelector('[data-testid="loc"]')?.textContent).toBe(
+      "/percorso?livello=base",
+    );
+    expect(window.localStorage.getItem(COURSE_LEVEL_PREFERENCE_KEY)).toBe("a0");
+    expect(window.localStorage.getItem(progressStorageKey)).toBe("untouched");
+
+    await clickAndFlush(a2Link!);
+    expect(container.querySelector('[data-testid="loc"]')?.textContent).toBe(
+      "/percorso?livello=a2",
+    );
+    expect(window.localStorage.getItem(COURSE_LEVEL_PREFERENCE_KEY)).toBe("a2");
+
+    await clickAndFlush(a1Link!);
+    expect(container.querySelector('[data-testid="loc"]')?.textContent).toBe(
+      "/percorso?livello=a1",
+    );
+    expect(window.localStorage.getItem(COURSE_LEVEL_PREFERENCE_KEY)).toBe("a1");
+
+    const back = container.querySelector<HTMLButtonElement>("button");
     await act(async () => {
-      a2Link!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
-      // Flush RR7's startTransition-deferred navigation state update *inside*
-      // act(): React's scheduler posts it as a MessageChannel macrotask, so a
-      // microtask-only drain leaves it pending until a later out-of-act tick
-      // (e.g. unmount), which is exactly what triggered the warning. Awaiting a
-      // macrotask here commits the transition within the act() scope.
+      back!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
-
     expect(container.querySelector('[data-testid="loc"]')?.textContent).toBe(
       "/percorso?livello=a2",
     );
@@ -159,5 +205,38 @@ describe("LevelSelector — URL drives selection and clicking pushes history", (
       String(args[0]).includes("not wrapped in act"),
     );
     expect(actWarnings).toEqual([]);
+  });
+});
+
+describe("LevelSelector — locale copy", () => {
+  const forbidden = /\b(lock|locked|pass|passed|certif|bloccat|superat|certificat)\b/i;
+  const japanese = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff66-\uff9f]/;
+
+  it.each([
+    ["en", enCopy.courseLevels],
+    ["it", itCopy.courseLevels],
+  ] as const)("has complete option hints without Japanese or lock/pass/certification claims (%s)", (_locale, levels) => {
+    const values = [
+      levels.selectorLabel,
+      levels.recommendedMarker,
+      levels.base,
+      levels.a1,
+      levels.a2,
+      levels.baseHeading,
+      levels.a1Heading,
+      levels.a2Heading,
+      levels.baseBadge,
+      levels.a2Badge,
+      levels.baseAvailableHint,
+      levels.baseRecommendedHint,
+      levels.a1AvailableHint,
+      levels.a2AvailableHint,
+      levels.a2RecommendedHint,
+    ];
+    for (const value of values) {
+      expect(value.trim().length).toBeGreaterThan(0);
+      expect(value).not.toMatch(japanese);
+      expect(value).not.toMatch(forbidden);
+    }
   });
 });

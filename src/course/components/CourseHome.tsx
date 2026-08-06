@@ -48,8 +48,9 @@ const CAN_DO_TIER_GLYPH: Partial<Record<keyof typeof canDoEvidenceTierCopyKey, s
 
 /**
  * Course home (design spec 5.7/6.1; extended level-aware for the A2 release
- * by Phase 3 Task 8). It reads the `livello` URL search param (missing/invalid
- * defaults to A1, so every bare `/percorso` A1 URL and its output stay stable),
+ * by Phase 3 Task 8). Until Task6 wires Base runtime data into CourseHome, this
+ * component deliberately keeps using the deprecated binary URL wrapper
+ * (anything except exact A2 renders the existing A1 map),
  * renders the accessible {@link LevelSelector}, and shows the *selected*
  * level's own heading, area-aware/flat CourseMap as appropriate, truthful
  * Can-do evidence summary, and checkpoint attempt-state section. A1 and A2
@@ -134,7 +135,7 @@ export function CourseHome(): ReactElement {
 
   // A2 is *recommended* (soft, non-blocking) once the A1 checkpoint has been
   // attempted -- derived from real A1 checkpoint evidence, never a lock.
-  const a2Recommended = checkpointAttempts.length > 0;
+  const recommendedLevel = checkpointAttempts.length > 0 ? "a2" : "a0";
 
   const badge = levelIsA1 ? copy.home.levelBadge : copy.courseLevels.a2Badge;
   const levelHeading = levelIsA1
@@ -253,7 +254,7 @@ export function CourseHome(): ReactElement {
 
       <LevelSelector
         level={level}
-        a2Recommended={a2Recommended}
+        recommendedLevel={recommendedLevel}
         copy={copy.courseLevels}
       />
 

@@ -101,25 +101,34 @@ export interface CourseCopy {
     evidenceLink: string;
   };
   /**
-   * The URL-reflected level dimension (Phase 3 Task 8, design spec §5). The
-   * level selector and the A2-specific Course Home sections (hero badge, level
-   * heading, checkpoint) resolve their copy here. A2 is always selectable and
-   * directly routable — the two hints are soft, non-blocking guidance only
-   * (A2 is never locked or gated). Every string is alignment/practice copy,
-   * never a certification/mastery/"passed" claim.
+   * The URL-reflected level dimension. The selector renders Base/A1/A2 as
+   * enabled links with soft recommendations only. Every string is alignment/
+   * practice copy, never a certification/mastery/"passed" claim.
    */
   courseLevels: {
-    /** Accessible name for the two-option level selector group. */
+    /** Visible accessible name for the three-option level selector group. */
     selectorLabel: string;
-    /** Selector option labels (short, e.g. "A1" / "A2"). */
+    /** Visible marker appended to the softly recommended option. */
+    recommendedMarker: string;
+    /** Selector option labels (short, e.g. "Base" / "A1" / "A2"). */
+    base: string;
     a1: string;
     a2: string;
     /** Level map headings (the focus target when the level changes). */
+    baseHeading: string;
     a1Heading: string;
     a2Heading: string;
+    /** Base hero alignment badge. */
+    baseBadge: string;
     /** A2 hero alignment badge — states the level + its JF/CEFR alignment claim. */
     a2Badge: string;
-    /** Soft hint shown before the A1 checkpoint is attempted (A2 still selectable). */
+    /** Base hint when not recommended. */
+    baseAvailableHint: string;
+    /** Soft hint recommending Base to fresh learners. */
+    baseRecommendedHint: string;
+    /** A1 hint: remains open and applies foundations in situations. */
+    a1AvailableHint: string;
+    /** A2 hint: remains open and builds connected conversation. */
     a2AvailableHint: string;
     /** Soft "recommended next" hint shown once the A1 checkpoint is attempted. */
     a2RecommendedHint: string;

@@ -67,15 +67,25 @@ const enUi = {
   },
   courseLevels: {
     selectorLabel: "Course level",
+    recommendedMarker: "Recommended",
+    base: "Base",
     a1: "A1",
     a2: "A2",
+    baseHeading: "Base course",
     a1Heading: "A1 course",
     a2Heading: "A2 course",
+    baseBadge: "Base, foundations for first-time learners",
     a2Badge: "A2, our alignment to JF/CEFR Can-do descriptors",
+    baseAvailableHint:
+      "Foundations for sound, kana, and first sentence patterns.",
+    baseRecommendedHint:
+      "Start here if you are new to the course and want foundations first.",
+    a1AvailableHint:
+      "A1 remains open and applies the foundations in everyday situations.",
     a2AvailableHint:
-      "A2 is available whenever you like. It builds on A1, so working through A1 first helps — but nothing is locked.",
+      "A2 remains open and builds connected conversation.",
     a2RecommendedHint:
-      "You have worked through the A1 checkpoint, so A2 is a good next step. It was open all along — nothing was locked.",
+      "A2 remains open as a good next step after A1 and builds connected conversation.",
     a2CheckpointHeading: "A2 checkpoint",
     resetLevel: (levelLabel: string) => `Reset ${levelLabel} progress`,
     resetLevelConfirm: (levelLabel: string) =>
