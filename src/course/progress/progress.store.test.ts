@@ -213,7 +213,7 @@ describe("progress persistence results", () => {
     expect(loaded.loadStatus).toBe("migrated");
     expect(loaded.persistenceAvailable).toBe(false);
     expect(loaded.progress.schemaVersion).toBe(5);
-    expect((loaded.progress as CourseProgressV5).levels.a0.lessons["sounds-1"]).toEqual({
+    expect((loaded.progress as unknown as CourseProgressV5).levels.a0.lessons["sounds-1"]).toEqual({
       visitedAt: "2026-07-13T10:00:00.000Z",
       practicedAt: null,
       consolidatedAt: null,

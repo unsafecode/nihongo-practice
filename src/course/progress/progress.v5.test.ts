@@ -11,6 +11,7 @@ import {
   V4_REHOMED_LESSON_IDS,
 } from "../base/migration/v4OwnershipMap";
 import { lessonIdsForLevel } from "../levels/ownership";
+import { buildCanDoSummaryModel } from "../components/canDoSummaryModel";
 import {
   clearLevel,
   emptyProgressV4,
@@ -239,6 +240,259 @@ describe("V4 to V5 migration registries", () => {
 });
 
 describe("migrateV4ToV5", () => {
+  it("preserves dangling continuation pointers by ownership and chooses a deterministic resume level", () => {
+    const v1ThroughChain = parseProgress(
+      JSON.stringify({
+        schemaVersion: 1,
+        completedLessonIds: [],
+        lastVisitedLessonId: "sounds-1",
+        updatedAt: T0,
+      }),
+      new Set(["sounds-1"]),
+    );
+    expect(v1ThroughChain.progress.levels.a0.lastVisitedLessonId).toBe("sounds-1");
+    expect(v1ThroughChain.progress.levels.a1.lastVisitedLessonId).toBeNull();
+    expect(v1ThroughChain.progress.migrationNotice?.resumeLevel).toBe("a0");
+    expect(v1ThroughChain.progress.levels.a0.lessons["sounds-1"]).toBeUndefined();
+
+    const a2Only = migrateV4ToV5({
+      ...emptyProgressV4(),
+      levels: {
+        ...emptyProgressV4().levels,
+        a2: {
+          ...emptyProgressV4().levels.a2,
+          lastVisitedLessonId: "connected-conversation-1",
+        },
+      },
+    });
+    expect(a2Only.levels.a2.lastVisitedLessonId).toBe("connected-conversation-1");
+    expect(a2Only.migrationNotice?.resumeLevel).toBe("a2");
+
+    const retained = migrateV4ToV5({
+      ...emptyProgressV4(),
+      levels: {
+        ...emptyProgressV4().levels,
+        a1: { ...emptyProgressV4().levels.a1, lastVisitedLessonId: "introductions-1" },
+        a2: { ...emptyProgressV4().levels.a2, lastVisitedLessonId: "connected-conversation-1" },
+      },
+    });
+    expect(retained.levels.a1.lastVisitedLessonId).toBe("introductions-1");
+    expect(retained.levels.a2.lastVisitedLessonId).toBe("connected-conversation-1");
+    expect(retained.migrationNotice?.resumeLevel).toBe("a1");
+
+    const latestA2 = migrateV4ToV5({
+      ...emptyProgressV4(),
+      levels: {
+        a1: {
+          ...emptyProgressV4().levels.a1,
+          lessons: { "introductions-1": lesson({ visitedAt: T1 }) },
+          lastVisitedLessonId: "introductions-1",
+        },
+        a2: {
+          ...emptyProgressV4().levels.a2,
+          lessons: { "connected-conversation-1": lesson({ visitedAt: T2 }) },
+          lastVisitedLessonId: "connected-conversation-1",
+        },
+      },
+    });
+    expect(latestA2.migrationNotice?.resumeLevel).toBe("a2");
+  });
+
+  it("classifies retired evidenced activity IDs outside the frozen inventory exactly once", () => {
+    const v4 = {
+      ...emptyProgressV4(),
+      levels: {
+        ...emptyProgressV4().levels,
+        a1: {
+          ...emptyProgressV4().levels.a1,
+          lessons: {
+            "sounds-1": lesson({
+              attemptedExerciseIds: ["retired-v4-id"],
+              acceptedExerciseIds: ["retired-v4-id"],
+            }),
+          },
+        },
+      },
+    };
+
+    const v5 = migrateV4ToV5(v4);
+
+    expect(v5.levels.a0.historicalActivityDispositions).toEqual([
+      {
+        sourceLevel: "a1",
+        lessonId: "sounds-1",
+        activityId: "retired-v4-id",
+        disposition: "historical-orphan",
+        orphanedReview: null,
+      },
+    ]);
+    expect(v5.migrationNotice?.historicalActivityIds).toEqual(["retired-v4-id"]);
+  });
+
+  it("moves source checkpoint references out of rehomed Can-dos without current demonstration evidence", () => {
+    const base = emptyProgressV4();
+    const v4 = {
+      ...base,
+      levels: {
+        ...base.levels,
+        a1: {
+          ...base.levels.a1,
+          canDos: {
+            "a1-can-do-sounds": {
+              canDoId: "a1-can-do-sounds",
+              visitedLessonIds: [],
+              practicedLessonIds: [],
+              acceptedTransferExerciseIds: [],
+              checkpointAttemptIds: ["a1-checkpoint-attempt-1", "a1-checkpoint-attempt-1"],
+              lastUpdatedAt: T2,
+            },
+          },
+          checkpointAttempts: [{
+            id: "a1-checkpoint-attempt-1",
+            checkpointId: "a1-checkpoint",
+            attemptedAt: T2,
+            acceptedExerciseIds: [],
+            sampledCanDoIds: ["a1-can-do-sounds"],
+          }],
+        },
+      },
+    };
+    const v5 = migrateV4ToV5(v4);
+    const moved = v5.levels.a0.canDos["a1-can-do-sounds"]!;
+
+    expect(moved.checkpointAttemptIds).toEqual([]);
+    expect(moved.historicalCheckpointRefs).toEqual([
+      { sourceLevel: "a1", attemptId: "a1-checkpoint-attempt-1" },
+    ]);
+    expect(v5.levels.a1.checkpointAttempts).toEqual(v4.levels.a1.checkpointAttempts);
+    expect(buildCanDoSummaryModel(
+      [{ id: "a1-can-do-sounds", descriptorCopyId: "sounds" }],
+      { "a1-can-do-sounds": moved },
+    ).items[0]?.tier).toBe("not-started");
+  });
+
+  it("uses injected review sets to preserve retired retained A1 and A2 reviews as historical", () => {
+    const base = emptyProgressV4();
+    const a1Review = review("introductions-1", "retired-a1-review", T1);
+    const a2Review = review("connected-conversation-1", "retired-a2-review", T2);
+    const v5 = migrateV4ToV5({
+      ...base,
+      levels: {
+        a1: { ...base.levels.a1, reviewQueue: [a1Review] },
+        a2: { ...base.levels.a2, reviewQueue: [a2Review] },
+      },
+    }, {
+      knownReviewKeysByLevel: { a1: new Set(), a2: new Set() },
+    });
+
+    expect(v5.levels.a1.reviewQueue).toEqual([]);
+    expect(v5.levels.a1.orphanedReviewKeys).toContain(a1Review.reviewKey);
+    expect(v5.levels.a1.historicalActivityDispositions).toEqual([{
+      sourceLevel: "a1",
+      lessonId: a1Review.lessonId,
+      activityId: a1Review.exerciseDefinitionId,
+      disposition: "historical-orphan",
+      orphanedReview: a1Review,
+    }]);
+    expect(v5.levels.a2.reviewQueue).toEqual([]);
+    expect(v5.levels.a2.orphanedReviewKeys).toContain(a2Review.reviewKey);
+    expect(v5.levels.a2.historicalActivityDispositions).toEqual([{
+      sourceLevel: "a2",
+      lessonId: a2Review.lessonId,
+      activityId: a2Review.exerciseDefinitionId,
+      disposition: "historical-orphan",
+      orphanedReview: a2Review,
+    }]);
+  });
+
+  it("keeps matching Base historical review provenance and avoids duplicate reconciliation rows", () => {
+    const current = emptyProgressV5();
+    const retired = review("sounds-1", "retired-base-review", T2);
+    const parsed = parseProgress(JSON.stringify({
+      ...current,
+      levels: {
+        ...current.levels,
+        a0: {
+          ...current.levels.a0,
+          reviewQueue: [retired],
+          historicalActivityDispositions: [{
+            sourceLevel: "a0",
+            lessonId: retired.lessonId,
+            activityId: retired.exerciseDefinitionId,
+            disposition: "historical-orphan",
+            orphanedReview: null,
+          }],
+        },
+      },
+    }), undefined, { a0: new Set() });
+
+    expect(parsed.corrupted).toBe(false);
+    expect(parsed.progress.levels.a0.historicalActivityDispositions).toEqual([{
+      sourceLevel: "a0",
+      lessonId: retired.lessonId,
+      activityId: retired.exerciseDefinitionId,
+      disposition: "historical-orphan",
+      orphanedReview: retired,
+    }]);
+  });
+
+  it("fails closed for V5 array dictionaries and active/historical overlap", () => {
+    for (const field of ["lessons", "canDos", "orphanedLessonRecords"] as const) {
+      const current = emptyProgressV5();
+      const malformed = {
+        ...current,
+        levels: {
+          ...current.levels,
+          a0: { ...current.levels.a0, [field]: [] },
+        },
+      };
+      expect(parseProgress(JSON.stringify(malformed)).corrupted).toBe(true);
+    }
+
+    const current = emptyProgressV5();
+    const newerActive = lesson({ visitedAt: T2 });
+    const olderOrphan = lesson({ visitedAt: T0 });
+    const overlap = {
+      ...current,
+      levels: {
+        ...current.levels,
+        a0: {
+          ...current.levels.a0,
+          lessons: { "sounds-1": newerActive },
+          orphanedLessonRecords: { "sounds-1": olderOrphan },
+        },
+      },
+    };
+    expect(parseProgress(JSON.stringify(overlap))).toEqual({
+      progress: emptyProgressV5(),
+      corrupted: true,
+      migrated: false,
+    });
+    expect(() => migrateV5Catalog(overlap)).toThrow(
+      "V5 lesson overlap in a0: sounds-1",
+    );
+
+    const conflictingReview = review("sounds-1", "retired-base-review", T2);
+    const reviewOverlap = {
+      ...current,
+      levels: {
+        ...current.levels,
+        a0: {
+          ...current.levels.a0,
+          reviewQueue: [conflictingReview],
+          historicalActivityDispositions: [{
+            sourceLevel: "a0",
+            lessonId: conflictingReview.lessonId,
+            activityId: conflictingReview.exerciseDefinitionId,
+            disposition: "historical-orphan",
+            orphanedReview: conflictingReview,
+          }],
+        },
+      },
+    };
+    expect(parseProgress(JSON.stringify(reviewOverlap)).corrupted).toBe(true);
+  });
+
   it("losslessly rehomes actual Base evidence while retaining unrelated active and orphan evidence", () => {
     const v4 = v4EvidenceFixture();
     const sourceMovedLesson = v4.levels.a1.lessons["sounds-1"]!;
@@ -278,7 +532,10 @@ describe("migrateV4ToV5", () => {
       "unknown-retired-a1",
     ]);
 
-    expect(movedCanDo).toEqual(sourceMovedCanDo);
+    expect(movedCanDo).toEqual({
+      ...sourceMovedCanDo,
+      checkpointAttemptIds: [],
+    });
     expect(historicalCheckpointRefs).toEqual([
       { sourceLevel: "a1", attemptId: "a1-checkpoint-attempt-1" },
     ]);
@@ -321,30 +578,51 @@ describe("migrateV4ToV5", () => {
     const v4 = v4EvidenceFixture();
     const v5 = migrateV4ToV5(v4);
     const sourceAtoms = [
-      ...v4.levels.a1.lessons["sounds-1"]!.attemptedExerciseIds,
-      ...v4.levels.a1.lessons["sounds-1"]!.acceptedExerciseIds,
-      v4.levels.a1.reviewQueue[0]!.reviewKey,
-      ...v4.levels.a1.canDos["a1-can-do-sounds"]!.checkpointAttemptIds,
-      "unknown-retired-a1",
-      ...v4.levels.a2.lessons["connected-conversation-1"]!.attemptedExerciseIds,
-      ...v4.levels.a2.lessons["connected-conversation-1"]!.acceptedExerciseIds,
-    ];
-    const destinationAtoms = [
-      ...v5.levels.a0.lessons["sounds-1"]!.attemptedExerciseIds,
-      ...v5.levels.a0.lessons["sounds-1"]!.acceptedExerciseIds,
-      ...v5.levels.a0.historicalActivityDispositions.flatMap((row) => [
-        row.activityId,
-        ...(row.orphanedReview ? [row.orphanedReview.reviewKey] : []),
-      ]),
-      ...v5.levels.a0.canDos["a1-can-do-sounds"]!.historicalCheckpointRefs.map(
-        (ref) => ref.attemptId,
+      ...v4.levels.a1.lessons["sounds-1"]!.attemptedExerciseIds.map(
+        (id) => `attempted:a1:sounds-1:${id}`,
       ),
-      ...Object.keys(v5.levels.a1.orphanedLessonRecords),
-      ...v5.levels.a2.lessons["connected-conversation-1"]!.attemptedExerciseIds,
-      ...v5.levels.a2.lessons["connected-conversation-1"]!.acceptedExerciseIds,
+      ...v4.levels.a1.lessons["sounds-1"]!.acceptedExerciseIds.map(
+        (id) => `accepted:a1:sounds-1:${id}`,
+      ),
+      `review:a1:${v4.levels.a1.reviewQueue[0]!.reviewKey}`,
+      ...[...new Set(v4.levels.a1.canDos["a1-can-do-sounds"]!.checkpointAttemptIds)].map(
+        (id) => `checkpoint:a1:${id}`,
+      ),
+    ];
+    sourceAtoms.push(
+      "lesson:a1:unknown-retired-a1",
+      ...v4.levels.a2.lessons["connected-conversation-1"]!.attemptedExerciseIds.map(
+        (id) => `attempted:a2:connected-conversation-1:${id}`,
+      ),
+      ...v4.levels.a2.lessons["connected-conversation-1"]!.acceptedExerciseIds.map(
+        (id) => `accepted:a2:connected-conversation-1:${id}`,
+      ),
+    );
+    const destinationAtoms = [
+      ...v5.levels.a0.lessons["sounds-1"]!.attemptedExerciseIds.map(
+        (id) => `attempted:a1:sounds-1:${id}`,
+      ),
+      ...v5.levels.a0.lessons["sounds-1"]!.acceptedExerciseIds.map(
+        (id) => `accepted:a1:sounds-1:${id}`,
+      ),
+      ...v5.levels.a0.historicalActivityDispositions.flatMap((row) =>
+        row.orphanedReview ? [`review:${row.sourceLevel}:${row.orphanedReview.reviewKey}`] : [],
+      ),
+      ...v5.levels.a0.canDos["a1-can-do-sounds"]!.historicalCheckpointRefs.map(
+        (ref) => `checkpoint:${ref.sourceLevel}:${ref.attemptId}`,
+      ),
+      ...Object.keys(v5.levels.a1.orphanedLessonRecords).map(
+        (lessonId) => `lesson:a1:${lessonId}`,
+      ),
+      ...v5.levels.a2.lessons["connected-conversation-1"]!.attemptedExerciseIds.map(
+        (id) => `attempted:a2:connected-conversation-1:${id}`,
+      ),
+      ...v5.levels.a2.lessons["connected-conversation-1"]!.acceptedExerciseIds.map(
+        (id) => `accepted:a2:connected-conversation-1:${id}`,
+      ),
     ];
 
-    expect(destinationAtoms).toEqual(expect.arrayContaining(sourceAtoms));
+    expect(destinationAtoms.sort()).toEqual(sourceAtoms.sort());
     expect(v5.levels.a0.historicalActivityDispositions.every(
       (row) => row.disposition === "historical-orphan",
     )).toBe(true);

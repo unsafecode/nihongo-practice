@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import { lessonPlans } from "../catalog/lessonPlans";
 import { courseModules as legacyAssembledCourseModules } from "../catalog/assembleCourse";
 import { courseModulesByLevel } from "../data/course";
@@ -12,6 +12,7 @@ import {
   acknowledgeMigrationNotice,
   clearAll,
   clearLevel,
+  CURRENT_COURSE_PROGRESS_CATALOG_VERSION,
   emptyLevelProgress,
   emptyProgressV4,
   emptyProgressV5,
@@ -26,11 +27,18 @@ import {
   type CheckpointAttempt,
   type CourseProgressV3,
   type CourseProgressV4,
+  type CourseProgressV5,
   type LevelProgress,
   type ModuleOutline,
   type StoredCourseProgressV4,
 } from "./progress";
 import { reviewKeyFor } from "./reviewQueue";
+
+type Assert<T extends true> = T;
+type IsAssignable<From, To> = [From] extends [To] ? true : false;
+type V5DoesNotMatchV4 = Assert<
+  IsAssignable<CourseProgressV5, CourseProgressV4> extends false ? true : false
+>;
 
 const T0 = "2026-07-16T10:00:00.000Z";
 const T1 = "2026-07-16T11:00:00.000Z";
@@ -127,6 +135,21 @@ function reviewEntry(
 }
 
 describe("A1_V3_PUBLISHED_LESSON_IDS / A1_V3_SAFE_SOURCE_LESSON_IDS / A1_V3_LESSON_ID_MAP / A1_V4_DESTINATION_LESSON_IDS", () => {
+  it("keeps V4 and V5 schema/catalog discriminants independent", () => {
+    expectTypeOf<V5DoesNotMatchV4>().toEqualTypeOf<true>();
+    expectTypeOf<StoredCourseProgressV4>().toMatchTypeOf(emptyProgressV4());
+
+    if (false) {
+      // @ts-expect-error V5 progress cannot enter the V4 catalog migrator.
+      migrateV4Catalog(emptyProgressV5());
+    }
+
+    expect(emptyProgressV4()).toMatchObject({
+      schemaVersion: 4,
+      catalogVersion: CURRENT_COURSE_PROGRESS_CATALOG_VERSION,
+    });
+  });
+
   it("keeps the current A1 runtime destination catalog at the exact 16-module / 64-lesson manifest shape", () => {
     const current = currentCatalogSets();
 

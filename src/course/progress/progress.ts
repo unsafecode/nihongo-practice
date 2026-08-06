@@ -176,12 +176,8 @@ type SupportedCourseProgressCatalogVersion =
   | typeof CURRENT_COURSE_PROGRESS_CATALOG_VERSION;
 
 export interface CourseProgressV4 {
-  readonly schemaVersion: 4 | 5;
-  readonly catalogVersion:
-    | "a1-a2-v1"
-    | "a1-a2-v2"
-    | typeof CURRENT_COURSE_PROGRESS_CATALOG_VERSION
-    | "base-a1-a2-v1";
+  readonly schemaVersion: 4;
+  readonly catalogVersion: SupportedCourseProgressCatalogVersion;
   readonly levels: Readonly<Record<V4CourseLevelId, LevelProgress>>;
   readonly migrationNotice: ProgressMigrationNotice | null;
   readonly updatedAt: string;
@@ -192,9 +188,7 @@ export interface CourseProgressV4 {
  * Catalog v1 and v2 normalize to catalog v3; arbitrary catalog strings fail
  * closed.
  */
-export type StoredCourseProgressV4 = Omit<CourseProgressV4, "catalogVersion"> & {
-  readonly catalogVersion: SupportedCourseProgressCatalogVersion;
-};
+export type StoredCourseProgressV4 = CourseProgressV4;
 
 /** Current runtime catalog keys supplied by ProgressContext, never imported here. */
 export type KnownReviewKeysByLevel = Readonly<
@@ -243,7 +237,7 @@ export interface CanDoEvidenceV5 extends CanDoEvidence {
 }
 
 export interface HistoricalActivityDisposition {
-  readonly sourceLevel: "a1" | "a2";
+  readonly sourceLevel: SharedCourseLevelId;
   readonly lessonId: LessonId;
   readonly activityId: ExerciseDefinitionId;
   readonly disposition: "same-semantics" | "historical-orphan";
@@ -267,11 +261,12 @@ export interface BaseOwnershipMigrationNotice extends ProgressMigrationNotice {
   readonly acknowledgedAt: null | string;
 }
 
-export interface CourseProgressV5 extends CourseProgressV4 {
+export interface CourseProgressV5 {
   readonly schemaVersion: 5;
   readonly catalogVersion: typeof CURRENT_COURSE_PROGRESS_V5_CATALOG_VERSION;
   readonly levels: Readonly<Record<SharedCourseLevelId, LevelProgressV5>>;
   readonly migrationNotice: BaseOwnershipMigrationNotice | null;
+  readonly updatedAt: string;
 }
 
 const EPOCH_TIMESTAMP = "1970-01-01T00:00:00.000Z";
@@ -534,6 +529,12 @@ function isCanDoEvidence(value: unknown): value is CanDoEvidence {
   );
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
 function isCheckpointAttempt(value: unknown): value is CheckpointAttempt {
   if (!value || typeof value !== "object") return false;
   const attempt = value as Partial<CheckpointAttempt>;
@@ -614,20 +615,24 @@ function isValidV4Shape(
 }
 
 function isHistoricalCheckpointRef(value: unknown): value is HistoricalCheckpointRef {
-  if (!value || typeof value !== "object") return false;
+  if (!isPlainRecord(value)) return false;
   const ref = value as Partial<HistoricalCheckpointRef>;
   return (
+    hasOwnFields(value, ["sourceLevel", "attemptId"]) &&
     (ref.sourceLevel === "a1" || ref.sourceLevel === "a2") &&
     typeof ref.attemptId === "string"
   );
 }
 
 function hasOwnFields(value: object, fields: readonly string[]): boolean {
-  return fields.every((field) => Object.prototype.hasOwnProperty.call(value, field));
+  return (
+    Object.keys(value).length === fields.length &&
+    fields.every((field) => Object.prototype.hasOwnProperty.call(value, field))
+  );
 }
 
 function isLessonProgressV5(value: unknown): value is LessonProgress {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  if (!isPlainRecord(value)) return false;
   const lesson = value as Partial<LessonProgress>;
   return (
     hasOwnFields(value, [
@@ -646,7 +651,7 @@ function isLessonProgressV5(value: unknown): value is LessonProgress {
 }
 
 function isCanDoEvidenceV5(value: unknown): value is CanDoEvidenceV5 {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  if (!isPlainRecord(value)) return false;
   const evidence = value as Partial<CanDoEvidenceV5>;
   return (
     hasOwnFields(value, [
@@ -672,10 +677,19 @@ function isCanDoEvidenceV5(value: unknown): value is CanDoEvidenceV5 {
 function isHistoricalActivityDisposition(
   value: unknown,
 ): value is HistoricalActivityDisposition {
-  if (!value || typeof value !== "object") return false;
+  if (!isPlainRecord(value)) return false;
   const disposition = value as Partial<HistoricalActivityDisposition>;
   return (
-    (disposition.sourceLevel === "a1" || disposition.sourceLevel === "a2") &&
+    hasOwnFields(value, [
+      "sourceLevel",
+      "lessonId",
+      "activityId",
+      "disposition",
+      "orphanedReview",
+    ]) &&
+    (disposition.sourceLevel === "a0" ||
+      disposition.sourceLevel === "a1" ||
+      disposition.sourceLevel === "a2") &&
     typeof disposition.lessonId === "string" &&
     typeof disposition.activityId === "string" &&
     (disposition.disposition === "same-semantics" ||
@@ -686,7 +700,7 @@ function isHistoricalActivityDisposition(
 }
 
 function isLevelProgressV5(value: unknown): value is LevelProgressV5 {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  if (!isPlainRecord(value)) return false;
   const level = value as Partial<LevelProgressV5>;
   return (
     hasOwnFields(value, [
@@ -700,11 +714,9 @@ function isLevelProgressV5(value: unknown): value is LevelProgressV5 {
       "orphanedLessonRecords",
       "historicalActivityDispositions",
     ]) &&
-    !!level.lessons &&
-    typeof level.lessons === "object" &&
+    isPlainRecord(level.lessons) &&
     Object.values(level.lessons).every(isLessonProgressV5) &&
-    !!level.canDos &&
-    typeof level.canDos === "object" &&
+    isPlainRecord(level.canDos) &&
     Object.values(level.canDos).every(isCanDoEvidenceV5) &&
     Array.isArray(level.checkpointAttempts) &&
     level.checkpointAttempts.every(isCheckpointAttempt) &&
@@ -713,11 +725,19 @@ function isLevelProgressV5(value: unknown): value is LevelProgressV5 {
     level.reviewQueue.every(isReviewQueueEntry) &&
     isStringArray(level.orphanedLessonIds) &&
     isStringArray(level.orphanedReviewKeys) &&
-    !!level.orphanedLessonRecords &&
-    typeof level.orphanedLessonRecords === "object" &&
+    isPlainRecord(level.orphanedLessonRecords) &&
     Object.values(level.orphanedLessonRecords).every(isLessonProgressV5) &&
     Array.isArray(level.historicalActivityDispositions) &&
-    level.historicalActivityDispositions.every(isHistoricalActivityDisposition)
+    level.historicalActivityDispositions.every(isHistoricalActivityDisposition) &&
+    !Object.keys(level.lessons).some((lessonId) =>
+      Object.prototype.hasOwnProperty.call(level.orphanedLessonRecords, lessonId),
+    ) &&
+    !level.reviewQueue.some((review) =>
+      level.orphanedReviewKeys!.includes(review.reviewKey) ||
+      level.historicalActivityDispositions!.some(
+        (disposition) => disposition.orphanedReview?.reviewKey === review.reviewKey,
+      ),
+    )
   );
 }
 
@@ -725,7 +745,7 @@ function isBaseOwnershipMigrationNotice(
   value: unknown,
 ): value is BaseOwnershipMigrationNotice | null {
   if (value === null) return true;
-  if (!value || typeof value !== "object") return false;
+  if (!isPlainRecord(value)) return false;
   const notice = value as Partial<BaseOwnershipMigrationNotice>;
   return (
     hasOwnFields(value, [
@@ -758,8 +778,8 @@ function isValidV5Shape(value: Partial<CourseProgressV5>): value is CourseProgre
     ]) ||
     value.schemaVersion !== 5 ||
     value.catalogVersion !== CURRENT_COURSE_PROGRESS_V5_CATALOG_VERSION ||
-    !value.levels ||
-    typeof value.levels !== "object" ||
+    !isPlainRecord(value) ||
+    !isPlainRecord(value.levels) ||
     typeof value.updatedAt !== "string" ||
     !isBaseOwnershipMigrationNotice(value.migrationNotice)
   ) {
@@ -921,13 +941,14 @@ function cloneCheckpointAttempt(attempt: CheckpointAttempt): CheckpointAttempt {
 function canDoEvidenceV5(
   evidence: CanDoEvidence,
   historicalCheckpointRefs: readonly HistoricalCheckpointRef[] = [],
+  checkpointAttemptIds: readonly CheckpointAttemptId[] = evidence.checkpointAttemptIds,
 ): CanDoEvidenceV5 {
   return {
     canDoId: evidence.canDoId,
     visitedLessonIds: [...evidence.visitedLessonIds],
     practicedLessonIds: [...evidence.practicedLessonIds],
     acceptedTransferExerciseIds: [...evidence.acceptedTransferExerciseIds],
-    checkpointAttemptIds: [...evidence.checkpointAttemptIds],
+    checkpointAttemptIds: [...checkpointAttemptIds],
     lastUpdatedAt: evidence.lastUpdatedAt,
     historicalCheckpointRefs: [...historicalCheckpointRefs],
   };
@@ -942,6 +963,34 @@ function latestVisitedLessonId(lessons: Readonly<Record<string, LessonProgress>>
       return leftId < rightId ? -1 : leftId > rightId ? 1 : 0;
     });
   return candidates[0]?.[0] ?? null;
+}
+
+function resumeLevelForV4Migration(
+  a0LastVisitedLessonId: string | null,
+  a1LastVisitedLessonId: string | null,
+  a2LastVisitedLessonId: string | null,
+  a1Lessons: Readonly<Record<string, LessonProgress>>,
+  a2Lessons: Readonly<Record<string, LessonProgress>>,
+): SharedCourseLevelId {
+  if (a0LastVisitedLessonId !== null) return "a0";
+  if (a1LastVisitedLessonId === null && a2LastVisitedLessonId !== null) return "a2";
+  if (a1LastVisitedLessonId !== null && a2LastVisitedLessonId === null) return "a1";
+  if (a1LastVisitedLessonId === null && a2LastVisitedLessonId === null) {
+    return latestVisitedLessonId(a1Lessons) === null ? "a0" : "a1";
+  }
+
+  const a1VisitedAt = a1Lessons[a1LastVisitedLessonId!]?.visitedAt ?? null;
+  const a2VisitedAt = a2Lessons[a2LastVisitedLessonId!]?.visitedAt ?? null;
+  if (a1VisitedAt !== null && a2VisitedAt !== null && a1VisitedAt !== a2VisitedAt) {
+    return a1VisitedAt > a2VisitedAt ? "a1" : "a2";
+  }
+  if (a1VisitedAt !== null && a2VisitedAt === null) return "a1";
+  if (a2VisitedAt !== null && a1VisitedAt === null) return "a2";
+  return COURSE_LEVEL_IDS.find(
+    (levelId) =>
+      (levelId === "a1" && a1LastVisitedLessonId !== null) ||
+      (levelId === "a2" && a2LastVisitedLessonId !== null),
+  ) ?? "a0";
 }
 
 function migrateLevelRecords(
@@ -991,52 +1040,32 @@ function historicalDispositionsForV4(
     const reviews = sourceReviews.filter(
       (review) => review.lessonId === ownership.sourceLessonId,
     );
-    const evidencedActivityIds = new Set([
+    const evidencedActivityIds = dedupeInEncounterOrder([
       ...(lesson?.attemptedExerciseIds ?? []),
       ...(lesson?.acceptedExerciseIds ?? []),
       ...reviews.map((review) => review.exerciseDefinitionId),
     ]);
-    const mappedActivities = V4_ACTIVITY_MIGRATION_MAP.filter(
-      (activity) =>
-        activity.sourceLessonId === ownership.sourceLessonId &&
-        evidencedActivityIds.has(activity.sourceActivityId),
-    );
-
-    for (const activity of mappedActivities) {
+    for (const activityId of evidencedActivityIds) {
+      const activity = V4_ACTIVITY_MIGRATION_MAP.find(
+        (row) =>
+          row.sourceLessonId === ownership.sourceLessonId &&
+          row.sourceActivityId === activityId,
+      );
+      if (activity?.disposition === "same-semantics") continue;
       const matchingReview = reviews.find(
-        (review) => review.exerciseDefinitionId === activity.sourceActivityId,
+        (review) => review.exerciseDefinitionId === activityId,
       );
       dispositions.push({
         sourceLevel: "a1",
-        lessonId: activity.sourceLessonId,
-        activityId: activity.sourceActivityId,
-        disposition: activity.disposition,
+        lessonId: ownership.sourceLessonId,
+        activityId,
+        disposition: "historical-orphan",
         orphanedReview: matchingReview ? cloneReviewEntry(matchingReview) : null,
       });
-      historicalActivityIds.push(activity.sourceActivityId);
+      historicalActivityIds.push(activityId);
       if (matchingReview) movedReviewKeys.push(matchingReview.reviewKey);
     }
 
-    // A structurally valid legacy queue can still contain a rehomed lesson's
-    // non-inventory definition. It can no longer be actionable in Base, so
-    // retain the whole record as typed historical evidence rather than only its
-    // key.
-    for (const legacyReview of reviews) {
-      if (mappedActivities.some(
-        (activity) => activity.sourceActivityId === legacyReview.exerciseDefinitionId,
-      )) {
-        continue;
-      }
-      dispositions.push({
-        sourceLevel: "a1",
-        lessonId: ownership.sourceLessonId,
-        activityId: legacyReview.exerciseDefinitionId,
-        disposition: "historical-orphan",
-        orphanedReview: cloneReviewEntry(legacyReview),
-      });
-      historicalActivityIds.push(legacyReview.exerciseDefinitionId);
-      movedReviewKeys.push(legacyReview.reviewKey);
-    }
   }
 
   return {
@@ -1044,6 +1073,56 @@ function historicalDispositionsForV4(
     historicalActivityIds: dedupeInEncounterOrder(historicalActivityIds),
     movedReviewKeys: dedupeInEncounterOrder(movedReviewKeys),
   };
+}
+
+function historicalActivityKey(disposition: HistoricalActivityDisposition): string {
+  return `${disposition.sourceLevel}\u0000${disposition.lessonId}\u0000${disposition.activityId}`;
+}
+
+function mergeHistoricalActivityDispositions(
+  existing: readonly HistoricalActivityDisposition[],
+  additions: readonly HistoricalActivityDisposition[],
+): readonly HistoricalActivityDisposition[] {
+  const merged: HistoricalActivityDisposition[] = [];
+  const indexByKey = new Map<string, number>();
+  let changed = false;
+
+  for (const disposition of [...existing, ...additions]) {
+    const key = historicalActivityKey(disposition);
+    const existingIndex = indexByKey.get(key);
+    if (existingIndex === undefined) {
+      indexByKey.set(key, merged.length);
+      merged.push(disposition);
+      continue;
+    }
+    changed = true;
+    const current = merged[existingIndex]!;
+    if (current.orphanedReview === null && disposition.orphanedReview !== null) {
+      merged[existingIndex] = { ...current, orphanedReview: disposition.orphanedReview };
+    }
+  }
+
+  return changed || additions.length > 0 ? merged : existing;
+}
+
+function historicalDispositionsForRetiredReviews(
+  sourceLevel: SharedCourseLevelId,
+  reviews: readonly ReviewQueueEntry[],
+): readonly HistoricalActivityDisposition[] {
+  return reviews.map((review) => ({
+    sourceLevel,
+    lessonId: review.lessonId,
+    activityId: review.exerciseDefinitionId,
+    disposition: "historical-orphan",
+    orphanedReview: cloneReviewEntry(review),
+  }));
+}
+
+class V5ReconciliationConflictError extends Error {
+  constructor(levelId: SharedCourseLevelId, kind: "lesson" | "review", ids: readonly string[]) {
+    super(`V5 ${kind} overlap in ${levelId}: ${ids.join(", ")}`);
+    this.name = "V5ReconciliationConflictError";
+  }
 }
 
 /**
@@ -1079,9 +1158,6 @@ export function migrateV4ToV5(
     movedLessonIds.push(ownership.destinationLessonId);
   }
 
-  const a1CheckpointAttemptIds = new Set(
-    v4.levels.a1.checkpointAttempts.map((attempt) => attempt.id),
-  );
   const a0CanDos: Record<string, CanDoEvidenceV5> = {};
   const a1CanDos: Record<string, CanDoEvidenceV5> = {};
   for (const [canDoId, evidence] of Object.entries(v4.levels.a1.canDos)) {
@@ -1090,12 +1166,14 @@ export function migrateV4ToV5(
     );
     const refs = ownership
       ? dedupeInEncounterOrder(
-          evidence.checkpointAttemptIds.filter((attemptId) =>
-            a1CheckpointAttemptIds.has(attemptId),
-          ),
+          evidence.checkpointAttemptIds,
         ).map((attemptId) => ({ sourceLevel: "a1" as const, attemptId }))
       : [];
-    const converted = canDoEvidenceV5(evidence, refs);
+    const converted = canDoEvidenceV5(
+      evidence,
+      refs,
+      ownership ? [] : evidence.checkpointAttemptIds,
+    );
     if (ownership) a0CanDos[ownership.destinationCanDoId] = converted;
     else a1CanDos[canDoId] = converted;
   }
@@ -1107,33 +1185,44 @@ export function migrateV4ToV5(
   ) as Record<string, CanDoEvidenceV5>;
 
   const historical = historicalDispositionsForV4(v4);
-  const a1Reviews = v4.levels.a1.reviewQueue
+  const a1RetainedReviews = v4.levels.a1.reviewQueue
     .filter((review) => !rehomedSourceIds.has(review.lessonId))
+    .map(cloneReviewEntry);
+  const a1RetiredReviews = runtimeIds.knownReviewKeysByLevel?.a1
+    ? a1RetainedReviews.filter(
+        (review) => !runtimeIds.knownReviewKeysByLevel!.a1!.has(review.reviewKey),
+      )
+    : [];
+  const a1Reviews = a1RetainedReviews.filter(
+    (review) => !a1RetiredReviews.includes(review),
+  );
+  const a2RetiredReviews = runtimeIds.knownReviewKeysByLevel?.a2
+    ? v4.levels.a2.reviewQueue.filter(
+        (review) => !runtimeIds.knownReviewKeysByLevel!.a2!.has(review.reviewKey),
+      )
+    : [];
+  const a2Reviews = v4.levels.a2.reviewQueue
+    .filter((review) => !a2RetiredReviews.includes(review))
     .map(cloneReviewEntry);
 
   const movedLastVisit = V4_OWNERSHIP_MIGRATION_MAP.find(
-    (row) =>
-      row.sourceLessonId === v4.levels.a1.lastVisitedLessonId &&
-      v4.levels.a1.lessons[row.sourceLessonId] !== undefined,
+    (row) => row.sourceLessonId === v4.levels.a1.lastVisitedLessonId,
   );
   const a0LastVisitedLessonId = movedLastVisit?.destinationLessonId ?? null;
   const sourceA1LastVisitedLessonId = v4.levels.a1.lastVisitedLessonId;
   const a1LastVisitedLessonId =
-    a0LastVisitedLessonId !== null ||
-    sourceA1LastVisitedLessonId === null ||
-    !Object.prototype.hasOwnProperty.call(a1Records.lessons, sourceA1LastVisitedLessonId)
+    a0LastVisitedLessonId !== null
       ? latestVisitedLessonId(a1Records.lessons)
       : sourceA1LastVisitedLessonId;
   const sourceA2LastVisitedLessonId = v4.levels.a2.lastVisitedLessonId;
-  const a2LastVisitedLessonId = sourceA2LastVisitedLessonId !== null &&
-    Object.prototype.hasOwnProperty.call(
-      a2Records.lessons,
-      sourceA2LastVisitedLessonId,
-    )
-    ? sourceA2LastVisitedLessonId
-    : latestVisitedLessonId(a2Records.lessons);
-  const resumeLevel: SharedCourseLevelId =
-    a0LastVisitedLessonId !== null ? "a0" : a1LastVisitedLessonId !== null ? "a1" : "a0";
+  const a2LastVisitedLessonId = sourceA2LastVisitedLessonId;
+  const resumeLevel = resumeLevelForV4Migration(
+    a0LastVisitedLessonId,
+    a1LastVisitedLessonId,
+    a2LastVisitedLessonId,
+    v4.levels.a1.lessons,
+    v4.levels.a2.lessons,
+  );
 
   return {
     schemaVersion: 5,
@@ -1157,20 +1246,32 @@ export function migrateV4ToV5(
         lastVisitedLessonId: a1LastVisitedLessonId,
         reviewQueue: a1Reviews,
         orphanedLessonIds: a1Records.orphanedLessonIds,
-        orphanedReviewKeys: dedupeInEncounterOrder(v4.levels.a1.orphanedReviewKeys),
+        orphanedReviewKeys: dedupeInEncounterOrder([
+          ...v4.levels.a1.orphanedReviewKeys,
+          ...a1RetiredReviews.map((review) => review.reviewKey),
+        ]),
         orphanedLessonRecords: a1Records.orphanedLessonRecords,
-        historicalActivityDispositions: [],
+        historicalActivityDispositions: mergeHistoricalActivityDispositions(
+          [],
+          historicalDispositionsForRetiredReviews("a1", a1RetiredReviews),
+        ),
       },
       a2: {
         lessons: a2Records.lessons,
         canDos: a2CanDos,
         checkpointAttempts: v4.levels.a2.checkpointAttempts.map(cloneCheckpointAttempt),
         lastVisitedLessonId: a2LastVisitedLessonId,
-        reviewQueue: v4.levels.a2.reviewQueue.map(cloneReviewEntry),
+        reviewQueue: a2Reviews,
         orphanedLessonIds: a2Records.orphanedLessonIds,
-        orphanedReviewKeys: dedupeInEncounterOrder(v4.levels.a2.orphanedReviewKeys),
+        orphanedReviewKeys: dedupeInEncounterOrder([
+          ...v4.levels.a2.orphanedReviewKeys,
+          ...a2RetiredReviews.map((review) => review.reviewKey),
+        ]),
         orphanedLessonRecords: a2Records.orphanedLessonRecords,
-        historicalActivityDispositions: [],
+        historicalActivityDispositions: mergeHistoricalActivityDispositions(
+          [],
+          historicalDispositionsForRetiredReviews("a2", a2RetiredReviews),
+        ),
       },
     },
     migrationNotice: {
@@ -1196,8 +1297,44 @@ function reconcileV5LevelCatalog(
   let lessons = level.lessons as Record<string, LessonProgress>;
   let orphanedLessonRecords =
     level.orphanedLessonRecords as Record<string, LessonProgress>;
-  let historicalActivityDispositions =
-    level.historicalActivityDispositions as HistoricalActivityDisposition[];
+  let historicalActivityDispositions = mergeHistoricalActivityDispositions(
+    level.historicalActivityDispositions,
+    [],
+  );
+  const overlappingLessonIds = Object.keys(level.lessons).filter((lessonId) =>
+    Object.prototype.hasOwnProperty.call(level.orphanedLessonRecords, lessonId),
+  );
+  const conflictingLessonIds = overlappingLessonIds.filter(
+    (lessonId) => !sameLessonProgress(
+      level.lessons[lessonId]!,
+      level.orphanedLessonRecords[lessonId]!,
+    ),
+  );
+  if (conflictingLessonIds.length > 0) {
+    throw new V5ReconciliationConflictError(levelId, "lesson", conflictingLessonIds);
+  }
+  if (overlappingLessonIds.length > 0) {
+    orphanedLessonRecords = { ...orphanedLessonRecords };
+    for (const lessonId of overlappingLessonIds) {
+      delete orphanedLessonRecords[lessonId];
+    }
+    orphanedLessonIds = orphanedLessonIds.filter(
+      (lessonId) => !overlappingLessonIds.includes(lessonId),
+    );
+  }
+  const activeReviewKeys = new Set(level.reviewQueue.map((review) => review.reviewKey));
+  const historicalReviewKeys = new Set([
+    ...level.orphanedReviewKeys,
+    ...level.historicalActivityDispositions.flatMap((disposition) =>
+      disposition.orphanedReview === null ? [] : [disposition.orphanedReview.reviewKey],
+    ),
+  ]);
+  const overlappingReviewKeys = [...activeReviewKeys].filter((reviewKey) =>
+    historicalReviewKeys.has(reviewKey),
+  );
+  if (overlappingReviewKeys.length > 0) {
+    throw new V5ReconciliationConflictError(levelId, "review", overlappingReviewKeys);
+  }
 
   if (knownLessonIds) {
     const unknownLessonIds = Object.keys(level.lessons)
@@ -1227,40 +1364,10 @@ function reconcileV5LevelCatalog(
       const remainingReviews = level.reviewQueue.filter((review) =>
         knownReviewKeys.has(review.reviewKey),
       );
-      historicalActivityDispositions = [...historicalActivityDispositions];
-      for (const review of unknownReviews) {
-        const existingIndex = historicalActivityDispositions.findIndex(
-          (disposition) =>
-            disposition.sourceLevel === levelId &&
-            disposition.lessonId === review.lessonId &&
-            disposition.activityId === review.exerciseDefinitionId,
-        );
-        if (existingIndex === -1) {
-          historicalActivityDispositions.push({
-            sourceLevel: levelId === "a0" ? "a1" : levelId,
-            lessonId: review.lessonId,
-            activityId: review.exerciseDefinitionId,
-            disposition: "historical-orphan",
-            orphanedReview: review,
-          });
-        } else if (historicalActivityDispositions[existingIndex]!.orphanedReview === null) {
-          historicalActivityDispositions[existingIndex] = {
-            ...historicalActivityDispositions[existingIndex]!,
-            orphanedReview: review,
-          };
-        } else if (
-          historicalActivityDispositions[existingIndex]!.orphanedReview!.reviewKey !==
-          review.reviewKey
-        ) {
-          historicalActivityDispositions.push({
-            sourceLevel: levelId === "a0" ? "a1" : levelId,
-            lessonId: review.lessonId,
-            activityId: review.exerciseDefinitionId,
-            disposition: "historical-orphan",
-            orphanedReview: review,
-          });
-        }
-      }
+      historicalActivityDispositions = mergeHistoricalActivityDispositions(
+        historicalActivityDispositions,
+        historicalDispositionsForRetiredReviews(levelId, unknownReviews),
+      );
       orphanedReviewKeys = dedupeInEncounterOrder([
         ...orphanedReviewKeys,
         ...unknownReviews.map((review) => review.reviewKey),
@@ -1281,7 +1388,8 @@ function reconcileV5LevelCatalog(
     lessons === level.lessons &&
     orphanedLessonRecords === level.orphanedLessonRecords &&
     sameIdList(orphanedLessonIds, level.orphanedLessonIds) &&
-    sameIdList(orphanedReviewKeys, level.orphanedReviewKeys)
+    sameIdList(orphanedReviewKeys, level.orphanedReviewKeys) &&
+    historicalActivityDispositions === level.historicalActivityDispositions
   ) {
     return level;
   }
@@ -1291,6 +1399,7 @@ function reconcileV5LevelCatalog(
     orphanedLessonRecords,
     orphanedLessonIds,
     orphanedReviewKeys,
+    historicalActivityDispositions,
   };
 }
 
@@ -1517,7 +1626,7 @@ export function parseProgress(
       }
       const v4 = migrateV4Catalog(candidate);
       const progress = migrateV5Catalog(
-        migrateV4ToV5(v4, { knownLessonIdsByLevel }),
+        migrateV4ToV5(v4, { knownLessonIdsByLevel, knownReviewKeysByLevel }),
         knownReviewKeysByLevel,
         knownLessonIdsByLevel,
       );
@@ -1532,7 +1641,10 @@ export function parseProgress(
       return isValidV3Shape(candidate)
         ? {
             progress: migrateV5Catalog(
-              migrateV4ToV5(migrateV3ToV4(candidate), { knownLessonIdsByLevel }),
+              migrateV4ToV5(migrateV3ToV4(candidate), {
+                knownLessonIdsByLevel,
+                knownReviewKeysByLevel,
+              }),
               knownReviewKeysByLevel,
               knownLessonIdsByLevel,
             ),
@@ -1553,7 +1665,7 @@ export function parseProgress(
                     knownLessonIds ?? new Set(candidate.visitedLessonIds),
                   ),
                 ),
-                { knownLessonIdsByLevel },
+                { knownLessonIdsByLevel, knownReviewKeysByLevel },
               ),
               knownReviewKeysByLevel,
               knownLessonIdsByLevel,
@@ -1575,7 +1687,7 @@ export function parseProgress(
             migrateV3ToV4(
               migrateV2ToV3(v2, knownLessonIds ?? new Set(v2.visitedLessonIds)),
             ),
-            { knownLessonIdsByLevel },
+            { knownLessonIdsByLevel, knownReviewKeysByLevel },
           ),
           knownReviewKeysByLevel,
           knownLessonIdsByLevel,
@@ -2056,10 +2168,15 @@ export function clearLevel(
   at: string,
 ): CourseProgressV4;
 export function clearLevel(
-  progress: CourseProgressV4,
+  progress: CourseProgressV4 | CourseProgressV5,
+  level: CourseLevelId,
+  at: string,
+): CourseProgressV4 | CourseProgressV5;
+export function clearLevel(
+  progress: CourseProgressV4 | CourseProgressV5,
   level: SharedCourseLevelId,
   at: string,
-): CourseProgressV4 {
+): CourseProgressV4 | CourseProgressV5 {
   const levels = progress.levels as Partial<
     Record<SharedCourseLevelId, LevelProgress | LevelProgressV5>
   >;
@@ -2071,7 +2188,7 @@ export function clearLevel(
     ...progress,
     levels: { ...progress.levels, [level]: nextLevel },
     updatedAt: at,
-  };
+  } as CourseProgressV4 | CourseProgressV5;
 }
 
 /**
@@ -2099,12 +2216,19 @@ export function acknowledgeMigrationNotice(
   at: string,
 ): CourseProgressV4;
 export function acknowledgeMigrationNotice(
-  progress: CourseProgressV4,
+  progress: CourseProgressV4 | CourseProgressV5,
   at: string,
-): CourseProgressV4 {
+): CourseProgressV4 | CourseProgressV5;
+export function acknowledgeMigrationNotice(
+  progress: CourseProgressV4 | CourseProgressV5,
+  at: string,
+): CourseProgressV4 | CourseProgressV5 {
   const notice = progress.migrationNotice;
   if (!notice || notice.acknowledgedAt !== null) return progress;
-  return { ...progress, migrationNotice: { ...notice, acknowledgedAt: at } };
+  return {
+    ...progress,
+    migrationNotice: { ...notice, acknowledgedAt: at },
+  } as CourseProgressV4 | CourseProgressV5;
 }
 
 export interface LevelProgressSummary {
@@ -2131,7 +2255,12 @@ export function summarizeLevel(
   modules: readonly ModuleOutline[],
 ): LevelProgressSummary;
 export function summarizeLevel(
-  progress: CourseProgressV4,
+  progress: CourseProgressV4 | CourseProgressV5,
+  level: CourseLevelId,
+  modules: readonly ModuleOutline[],
+): LevelProgressSummary;
+export function summarizeLevel(
+  progress: CourseProgressV4 | CourseProgressV5,
   level: SharedCourseLevelId,
   modules: readonly ModuleOutline[],
 ): LevelProgressSummary {

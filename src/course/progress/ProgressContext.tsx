@@ -19,6 +19,7 @@ import {
   type CourseLevelId,
   type CourseProgressV3,
   type CourseProgressV4,
+  type CourseProgressV5,
   type ExerciseEvidence,
   type LevelProgress,
   type LessonProgress,
@@ -426,7 +427,7 @@ export function prepareProgress(storage: Storage | null): PreparedProgress {
   );
 
   return {
-    progress: parsed.progress,
+    progress: parsed.progress as unknown as CourseProgressV4,
     corrupted: parsed.corrupted,
     migrated: parsed.migrated,
     stored,
@@ -486,7 +487,7 @@ export type ProgressPersistenceResult =
  */
 export function persistProgress(
   storage: Storage | null,
-  progress: CourseProgressV4,
+  progress: CourseProgressV4 | CourseProgressV5,
 ): ProgressPersistenceResult {
   return writeSetting(storage, STORAGE_KEY, JSON.stringify(progress))
     ? { status: "saved" }

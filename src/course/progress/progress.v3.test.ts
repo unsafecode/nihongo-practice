@@ -358,8 +358,9 @@ describe("course progress v3 — retired v2.1 lesson ids: orphan-safe, route-ali
       retired,
       "genuinely-unknown-id",
     ]);
-    // V5 will not invent a resumed A1 visit from an orphan-only V4 record.
-    expect(parsed.progress.levels.a1.lastVisitedLessonId).toBeNull();
+    // The continuation pointer remains valid evidence even though this retired
+    // id has no active lesson record; no visit record is fabricated.
+    expect(parsed.progress.levels.a1.lastVisitedLessonId).toBe(retired);
     expect(
       LEGACY_LESSON_ALIASES.some((alias) => alias.legacyLessonId === retired),
     ).toBe(true);
