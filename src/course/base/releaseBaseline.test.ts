@@ -39,6 +39,9 @@ describe("Base release baseline", () => {
     expect(createHash("sha256").update(a2EditorialSurfaces).digest("hex")).toBe(
       "6ce32b1fd05ead0c10f494549e090d1cf7328734e2cc9041635f320270b2b38f",
     );
+    expect(
+      readFileSync(new URL("../../../.gitattributes", import.meta.url), "utf8"),
+    ).toContain("src/course/a2/catalog/a2EditorialSurfaces.golden.json text eol=lf");
     expect(A2_LESSON_IDS).toHaveLength(60);
   });
 });

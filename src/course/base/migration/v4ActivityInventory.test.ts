@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { describe, expect, it } from "vitest";
 import { V4_ACTIVITY_INVENTORY } from "./v4ActivityInventory";
 
@@ -25,7 +26,9 @@ const REHOMED_LESSON_IDS = [
 ] as const;
 
 describe("V4 activity inventory", () => {
-  it("covers exactly the 20 rehomed lessons and keeps each lesson populated", () => {
+  it("locks the canonical 80-row inventory shape, review keys, and digest", () => {
+    expect(V4_ACTIVITY_INVENTORY).toHaveLength(80);
+
     const lessonIds = [...new Set(V4_ACTIVITY_INVENTORY.map((row) => row.lessonId))].sort();
     expect(lessonIds).toEqual([...REHOMED_LESSON_IDS].sort());
 
@@ -35,30 +38,22 @@ describe("V4 activity inventory", () => {
       rowsByLesson.set(row.lessonId, [...rows, row]);
     }
 
-    for (const lessonId of REHOMED_LESSON_IDS) {
-      expect(rowsByLesson.get(lessonId)?.length ?? 0).toBeGreaterThan(0);
-    }
-  });
-
-  it("keeps lesson-definition pairs and review keys unique, with non-empty fields", () => {
-    const pairs = new Set<string>();
-    const reviewKeys = new Set<string>();
-
-    for (const row of V4_ACTIVITY_INVENTORY) {
+    const normalizedRows = V4_ACTIVITY_INVENTORY.map((row) => {
       expect(row.lessonId.trim()).not.toBe("");
       expect(row.definitionId.trim()).not.toBe("");
       expect(row.reviewKey.trim()).not.toBe("");
       expect(row.practiceFunction.trim()).not.toBe("");
+      expect(row.reviewKey).toBe(`${row.lessonId}:${row.definitionId}`);
+      return [row.lessonId, row.definitionId, row.reviewKey, row.practiceFunction].join("\u001f");
+    });
 
-      const pairKey = `${row.lessonId}::${row.definitionId}`;
-      expect(pairs.has(pairKey)).toBe(false);
-      expect(reviewKeys.has(row.reviewKey)).toBe(false);
-      pairs.add(pairKey);
-      reviewKeys.add(row.reviewKey);
+    for (const lessonId of REHOMED_LESSON_IDS) {
+      expect(rowsByLesson.get(lessonId)?.length ?? 0).toBe(4);
     }
 
-    expect(pairs.size).toBe(V4_ACTIVITY_INVENTORY.length);
-    expect(reviewKeys.size).toBe(V4_ACTIVITY_INVENTORY.length);
+    expect(
+      createHash("sha256").update(normalizedRows.join("\n")).digest("hex"),
+    ).toBe("768fd07c7407f4850e4931ecbf941147b35ce77a40645b1b6fa0959226cfbdfe");
   });
 
   it("is runtime immutable and deep-frozen", () => {
