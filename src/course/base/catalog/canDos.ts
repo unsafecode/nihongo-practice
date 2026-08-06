@@ -1,4 +1,5 @@
 import { deepFreeze } from "../../foundations/deepFreeze";
+import { immutableReadonlyMap } from "../../foundations/immutableReadonlyMap";
 import type { CanDo, CanDoDomain, CanDoId, LessonId, ModuleId } from "../../foundations/types";
 import { BASE_LESSON_IDS_BY_MODULE, BASE_MODULE_IDS } from "../manifest";
 
@@ -62,6 +63,6 @@ export const baseCanDos: readonly CanDo[] = deepFreeze(
   BASE_MODULE_IDS.map((moduleId) => canDoForModule(moduleId)),
 );
 
-export const baseCanDoById: ReadonlyMap<CanDoId, CanDo> = new Map(
+export const baseCanDoById: ReadonlyMap<CanDoId, CanDo> = immutableReadonlyMap(
   baseCanDos.map((canDo) => [canDo.id, canDo]),
 );

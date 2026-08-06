@@ -43,12 +43,6 @@ function contractForLesson(lessonId: LessonId): BaseLessonContract {
   return "system";
 }
 
-function contractForModule(moduleId: ModuleId): BaseLessonContract {
-  if (moduleId === "sounds") return "phonetic";
-  if (moduleId === "base-synthesis") return "synthesis";
-  return "system";
-}
-
 function buildBaseManifestSpec(): BaseManifestSpec {
   const lessonIdsByModule: Record<ModuleId, LessonId[]> = {};
   const modulePrerequisites: Record<ModuleId, ModuleId[]> = {};
@@ -130,7 +124,6 @@ export const BASE_MODULE_MANIFEST: Readonly<
       const entry: BaseModuleManifestEntry = {
         id: moduleId,
         order: index + 1,
-        contract: contractForModule(moduleId),
         prerequisiteIds: [...BASE_MANIFEST_SPEC.modulePrerequisites[moduleId]],
         lessonIds: [...BASE_LESSON_IDS_BY_MODULE[moduleId]],
         outcomeCopyId: moduleOutcomeCopyId(moduleId),
@@ -175,8 +168,17 @@ export function validateBaseManifestSpec(
     }
     lessonIds.push(...moduleLessons);
     for (const lessonId of moduleLessons) {
-      if (!spec.lessonContracts[lessonId]) {
+      const actualContract = spec.lessonContracts[lessonId];
+      if (!actualContract) {
         push("missing-lesson-contract", `Lesson "${lessonId}" has no contract.`);
+      } else {
+        const expectedContract = contractForLesson(lessonId);
+        if (actualContract !== expectedContract) {
+          push(
+            "lesson-contract-classification",
+            `Lesson "${lessonId}" contract "${actualContract}" must match fixed Base classification "${expectedContract}".`,
+          );
+        }
       }
     }
   }
@@ -186,7 +188,11 @@ export function validateBaseManifestSpec(
 
   spec.moduleIds.forEach((moduleId, index) => {
     const expected = index === 0 ? [] : [spec.moduleIds[index - 1]];
-    const actual = spec.modulePrerequisites[moduleId] ?? [];
+    if (!Object.prototype.hasOwnProperty.call(spec.modulePrerequisites, moduleId)) {
+      push("missing-prerequisite-record", `Module "${moduleId}" has no modulePrerequisites record.`);
+      return;
+    }
+    const actual = spec.modulePrerequisites[moduleId];
     if (actual.length !== expected.length || actual.some((id, i) => id !== expected[i])) {
       push("prerequisite-chain", `Module "${moduleId}" does not follow the linear prerequisite chain.`);
     }

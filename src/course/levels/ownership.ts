@@ -1,4 +1,5 @@
 import { deepFreeze } from "../foundations/deepFreeze";
+import { immutableReadonlyMap } from "../foundations/immutableReadonlyMap";
 import type { LessonId, ModuleId } from "../foundations/types";
 import { BASE_LESSON_IDS, BASE_LESSON_IDS_BY_MODULE, BASE_MODULE_IDS } from "../base/manifest";
 import {
@@ -108,23 +109,25 @@ function buildCurrentRegistry(): readonly CurrentLessonRouteEntry[] {
   return deepFreeze(entries);
 }
 
-export const currentLessonRouteRegistry: readonly CurrentLessonRouteEntry[] =
-  buildCurrentRegistry();
+const currentLessonRouteEntries: readonly CurrentLessonRouteEntry[] = buildCurrentRegistry();
+
+export const currentLessonRouteRegistry: ReadonlyMap<LessonId, CurrentLessonRouteEntry> =
+  immutableReadonlyMap(currentLessonRouteEntries.map((entry) => [entry.lessonId, entry]));
 
 const ownerByLessonId: ReadonlyMap<LessonId, LessonOwner> = new Map(
-  currentLessonRouteRegistry.map((entry) => [
+  currentLessonRouteEntries.map((entry) => [
     entry.lessonId,
-    { levelId: entry.levelId, moduleId: entry.moduleId },
+    deepFreeze({ levelId: entry.levelId, moduleId: entry.moduleId }),
   ]),
 );
 
 const ownerByModuleId: ReadonlyMap<ModuleId, CourseLevelId> = new Map(
-  currentLessonRouteRegistry.map((entry) => [entry.moduleId, entry.levelId]),
+  currentLessonRouteEntries.map((entry) => [entry.moduleId, entry.levelId]),
 );
 
 function buildAliasRegistry(): readonly PublishedRouteAliasEntry[] {
-  const currentRouteKeys = new Set(currentLessonRouteRegistry.map((entry) => entry.routeKey));
-  const currentLessonIds = new Set(currentLessonRouteRegistry.map((entry) => entry.lessonId));
+  const currentRouteKeys = new Set(currentLessonRouteEntries.map((entry) => entry.routeKey));
+  const currentLessonIds = new Set(currentLessonRouteEntries.map((entry) => entry.lessonId));
   const aliasLessonIds = new Set<LessonId>();
   const aliasRouteKeys = new Set<string>();
   const entries: PublishedRouteAliasEntry[] = [];
@@ -171,8 +174,10 @@ function buildAliasRegistry(): readonly PublishedRouteAliasEntry[] {
   return deepFreeze(entries);
 }
 
-export const publishedRouteAliasRegistry: readonly PublishedRouteAliasEntry[] =
-  buildAliasRegistry();
+const publishedRouteAliasEntries: readonly PublishedRouteAliasEntry[] = buildAliasRegistry();
+
+export const publishedRouteAliasRegistry: ReadonlyMap<LessonId, PublishedRouteAliasEntry> =
+  immutableReadonlyMap(publishedRouteAliasEntries.map((entry) => [entry.aliasLessonId, entry]));
 
 export function lessonOwner(id: LessonId): LessonOwner | null {
   return ownerByLessonId.get(id) ?? null;

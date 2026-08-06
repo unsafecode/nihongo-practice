@@ -24,6 +24,14 @@ describe("shared course level identity", () => {
 });
 
 describe("course ownership registry", () => {
+  function currentEntries() {
+    return [...currentLessonRouteRegistry.values()];
+  }
+
+  function aliasEntries() {
+    return [...publishedRouteAliasRegistry.values()];
+  }
+
   it("resolves canonical lesson and module owners without defaulting unknown ids", () => {
     expect(lessonOwner("sounds-1")).toEqual({ levelId: "a0", moduleId: "sounds" });
     expect(moduleOwner("sounds")).toBe("a0");
@@ -54,20 +62,20 @@ describe("course ownership registry", () => {
     expect(lessonIdsForLevel("a1")).toHaveLength(44);
     expect(lessonIdsForLevel("a2")).toHaveLength(60);
 
-    expect(currentLessonRouteRegistry.map((entry) => entry.lessonId)).toEqual([
+    expect(currentEntries().map((entry) => entry.lessonId)).toEqual([
       ...BASE_LESSON_IDS,
       ...A1_RETAINED_LESSON_IDS,
       ...A2_LESSON_IDS,
     ]);
-    expect(currentLessonRouteRegistry).toHaveLength(144);
+    expect(currentLessonRouteRegistry.size).toBe(144);
   });
 
   it("has no duplicate current module ids, lesson ids, or route keys", () => {
-    const moduleIds = currentLessonRouteRegistry
+    const moduleIds = currentEntries()
       .filter((entry, index, entries) => entries.findIndex((candidate) => candidate.moduleId === entry.moduleId) === index)
       .map((entry) => entry.moduleId);
-    const lessonIds = currentLessonRouteRegistry.map((entry) => entry.lessonId);
-    const routeKeys = currentLessonRouteRegistry.map((entry) => entry.routeKey);
+    const lessonIds = currentEntries().map((entry) => entry.lessonId);
+    const routeKeys = currentEntries().map((entry) => entry.routeKey);
 
     expect(new Set(moduleIds)).toHaveLength(36);
     expect(new Set(lessonIds)).toHaveLength(144);
@@ -86,16 +94,16 @@ describe("course ownership registry", () => {
   });
 
   it("keeps published aliases separate and resolves every alias to a valid canonical owner", () => {
-    expect(publishedRouteAliasRegistry.length).toBeGreaterThan(0);
+    expect(publishedRouteAliasRegistry.size).toBeGreaterThan(0);
 
-    const currentLessonIds = new Set(currentLessonRouteRegistry.map((entry) => entry.lessonId));
-    const aliasLessonIds = publishedRouteAliasRegistry.map((entry) => entry.aliasLessonId);
-    const aliasRouteKeys = publishedRouteAliasRegistry.map((entry) => entry.routeKey);
+    const currentLessonIds = new Set(currentEntries().map((entry) => entry.lessonId));
+    const aliasLessonIds = aliasEntries().map((entry) => entry.aliasLessonId);
+    const aliasRouteKeys = aliasEntries().map((entry) => entry.routeKey);
 
     expect(new Set(aliasLessonIds)).toHaveLength(aliasLessonIds.length);
     expect(new Set(aliasRouteKeys)).toHaveLength(aliasRouteKeys.length);
 
-    for (const alias of publishedRouteAliasRegistry) {
+    for (const alias of aliasEntries()) {
       const owner = lessonOwner(alias.lessonId);
       expect(owner, alias.aliasLessonId).not.toBeNull();
       expect(alias.owner, alias.aliasLessonId).toEqual(owner);
@@ -104,5 +112,65 @@ describe("course ownership registry", () => {
       expect(currentLessonIds.has(alias.aliasLessonId), alias.aliasLessonId).toBe(false);
       expect(lessonOwner(alias.aliasLessonId), alias.aliasLessonId).toBeNull();
     }
+  });
+
+  it("exposes ownership registries and lookup owners through immutable runtime views", () => {
+    const firstCurrent = currentLessonRouteRegistry.get("sounds-1");
+    const owner = lessonOwner("sounds-1");
+    const firstAlias = aliasEntries()[0];
+    expect(firstCurrent).toBeDefined();
+    expect(owner).toEqual({ levelId: "a0", moduleId: "sounds" });
+    expect(firstAlias).toBeDefined();
+
+    const mutableCurrent = currentLessonRouteRegistry as unknown as {
+      clear?: () => void;
+      delete?: (id: string) => boolean;
+      set?: (id: string, value: unknown) => unknown;
+    };
+    const mutableAliases = publishedRouteAliasRegistry as unknown as {
+      clear?: () => void;
+      delete?: (id: string) => boolean;
+      set?: (id: string, value: unknown) => unknown;
+    };
+
+    mutableCurrent.clear?.();
+    mutableCurrent.delete?.("sounds-1");
+    mutableCurrent.set?.("sounds-1", { ...firstCurrent!, moduleId: "mutated-module" });
+    mutableAliases.clear?.();
+    mutableAliases.delete?.(firstAlias!.aliasLessonId);
+    mutableAliases.set?.(firstAlias!.aliasLessonId, { ...firstAlias!, moduleId: "mutated-module" });
+
+    try {
+      (owner as { moduleId: string } | null)!.moduleId = "mutated-module";
+    } catch {
+      // Frozen values may throw in strict mode; either way later reads must be stable.
+    }
+    try {
+      (firstCurrent as { moduleId: string } | undefined)!.moduleId = "mutated-module";
+    } catch {
+      // Frozen values may throw in strict mode; either way later reads must be stable.
+    }
+    try {
+      (firstAlias!.owner as { moduleId: string }).moduleId = "mutated-module";
+    } catch {
+      // Frozen values may throw in strict mode; either way later reads must be stable.
+    }
+
+    expect("clear" in currentLessonRouteRegistry).toBe(false);
+    expect("delete" in currentLessonRouteRegistry).toBe(false);
+    expect("set" in currentLessonRouteRegistry).toBe(false);
+    expect("clear" in publishedRouteAliasRegistry).toBe(false);
+    expect("delete" in publishedRouteAliasRegistry).toBe(false);
+    expect("set" in publishedRouteAliasRegistry).toBe(false);
+    expect(currentLessonRouteRegistry.size).toBe(144);
+    expect(currentLessonRouteRegistry.get("sounds-1")).toEqual({
+      routeKey: "sounds/sounds-1",
+      levelId: "a0",
+      moduleId: "sounds",
+      lessonId: "sounds-1",
+    });
+    expect(lessonOwner("sounds-1")).toEqual({ levelId: "a0", moduleId: "sounds" });
+    expect(publishedRouteAliasRegistry.get(firstAlias!.aliasLessonId)).toEqual(firstAlias);
+    expect([...currentLessonRouteRegistry.keys()][0]).toBe("sounds-1");
   });
 });

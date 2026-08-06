@@ -663,6 +663,67 @@ describe("validateFoundations — deterministic error ordering", () => {
     const lessonIds = run(cats).errors.map((e: ValidationError) => e.lessonId);
     expect(lessonIds).toEqual([A1, A2]);
   });
+
+  it("orders mixed A0/A1/A2 lesson faults by the shared canonical level order", () => {
+    const a1Lesson = foundationCatalogs.lessons.find((l) => l.id === A1)!;
+    const a0Lesson = {
+      ...a1Lesson,
+      id: "fixture-a0-personal-details",
+      level: "a0" as const,
+      moduleId: "fixture-a0-module",
+      diversityConstraints: { ...a1Lesson.diversityConstraints, minContexts: 4 },
+    };
+    const a0Module = {
+      id: "fixture-a0-module",
+      level: "a0" as const,
+      order: 1,
+      canDoIds: [a1Lesson.primaryCanDoId],
+      lessonIds: [a0Lesson.id],
+    };
+    const a0Level = {
+      id: "a0" as const,
+      alignmentCopyId: foundationCatalogs.levels[0].alignmentCopyId,
+      moduleIds: [a0Module.id],
+      canDoIds: [a1Lesson.primaryCanDoId],
+    };
+    const cats = withCatalog({
+      levels: [foundationCatalogs.levels[1], a0Level, foundationCatalogs.levels[0]],
+      modules: [
+        foundationCatalogs.modules[2],
+        a0Module,
+        foundationCatalogs.modules[0],
+        foundationCatalogs.modules[1],
+        foundationCatalogs.modules[3],
+      ],
+      lessons: [
+        ...foundationCatalogs.lessons.map((lesson) => {
+          if (lesson.id === A1) {
+            return { ...lesson, diversityConstraints: { ...lesson.diversityConstraints, minContexts: 4 } };
+          }
+          if (lesson.id === A2) {
+            return { ...lesson, diversityConstraints: { ...lesson.diversityConstraints, minContexts: 4 } };
+          }
+          return lesson;
+        }),
+        a0Lesson,
+      ],
+      lessonPositions: [
+        ...foundationCatalogs.lessonPositions,
+        {
+          lessonId: a0Lesson.id,
+          level: "a0" as const,
+          moduleId: a0Module.id,
+          position: 1,
+        },
+      ],
+    });
+
+    const lessonIds = run(cats)
+      .errors.filter((error) => error.code === "insufficient-context-diversity")
+      .map((error) => error.lessonId);
+
+    expect(lessonIds).toEqual([a0Lesson.id, A1, A2]);
+  });
 });
 
 // ---------------------------------------------------------------------------

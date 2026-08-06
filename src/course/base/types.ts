@@ -17,7 +17,6 @@ export interface BaseLessonManifestEntry {
 export interface BaseModuleManifestEntry {
   readonly id: ModuleId;
   readonly order: number;
-  readonly contract: BaseLessonContract;
   readonly prerequisiteIds: readonly ModuleId[];
   readonly lessonIds: readonly LessonId[];
   readonly outcomeCopyId: CopyId;
@@ -36,6 +35,8 @@ export type BaseManifestErrorCode =
   | "duplicate-module-id"
   | "duplicate-lesson-id"
   | "missing-lesson-contract"
+  | "lesson-contract-classification"
+  | "missing-prerequisite-record"
   | "prerequisite-chain";
 
 export interface BaseManifestValidationError {

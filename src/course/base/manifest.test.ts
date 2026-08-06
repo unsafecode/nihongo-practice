@@ -7,6 +7,7 @@ import {
   BASE_MANIFEST_SPEC,
   BASE_MODULE_IDS,
   BASE_MODULE_MANIFEST,
+  validateBaseManifestSpec,
   validateBaseManifest,
 } from "./manifest";
 import {
@@ -51,6 +52,25 @@ function assertFrozenArray(value: readonly unknown[]): void {
   expect(Object.isFrozen(value)).toBe(true);
 }
 
+function mutableBaseManifestSpec() {
+  return {
+    moduleIds: [...BASE_MANIFEST_SPEC.moduleIds],
+    lessonIdsByModule: Object.fromEntries(
+      Object.entries(BASE_MANIFEST_SPEC.lessonIdsByModule).map(([moduleId, lessonIds]) => [
+        moduleId,
+        [...lessonIds],
+      ]),
+    ),
+    modulePrerequisites: Object.fromEntries(
+      Object.entries(BASE_MANIFEST_SPEC.modulePrerequisites).map(([moduleId, prerequisiteIds]) => [
+        moduleId,
+        [...prerequisiteIds],
+      ]),
+    ),
+    lessonContracts: { ...BASE_MANIFEST_SPEC.lessonContracts },
+  };
+}
+
 describe("Base manifest", () => {
   it("locks the exact 10-module / 40-lesson order", () => {
     expect(BASE_MODULE_IDS).toEqual(BASE_MODULE_ORDER);
@@ -92,6 +112,12 @@ describe("Base manifest", () => {
     });
   });
 
+  it("keeps lesson contracts only on lesson manifest entries", () => {
+    expect(BASE_LESSON_MANIFEST["topic-questions-4"].contract).toBe("content");
+    expect(BASE_LESSON_MANIFEST["topic-questions-1"].contract).toBe("system");
+    expect(BASE_MODULE_MANIFEST["topic-questions"]).not.toHaveProperty("contract");
+  });
+
   it("deep-freezes all exported manifest arrays, maps, entries, and nested arrays", () => {
     assertFrozenArray(BASE_MODULE_IDS);
     assertFrozenArray(BASE_LESSON_IDS);
@@ -119,6 +145,44 @@ describe("Base manifest", () => {
       ]);
     }
     expect(validateBaseManifest()).toEqual({ ok: true });
+  });
+
+  it("rejects a lesson contract that does not match the fixed Base classification", () => {
+    const spec = mutableBaseManifestSpec();
+    spec.lessonContracts["sounds-1"] = "system";
+
+    const result = validateBaseManifestSpec(spec);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "lesson-contract-classification",
+            message: expect.stringContaining('"sounds-1"'),
+          }),
+        ]),
+      );
+    }
+  });
+
+  it("rejects a missing modulePrerequisites record instead of treating it as an empty list", () => {
+    const spec = mutableBaseManifestSpec();
+    delete spec.modulePrerequisites.sounds;
+
+    const result = validateBaseManifestSpec(spec);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "missing-prerequisite-record",
+            message: expect.stringContaining('"sounds"'),
+          }),
+        ]),
+      );
+    }
   });
 });
 
@@ -159,6 +223,26 @@ describe("Base Can-dos and checkpoint", () => {
       });
       expect(baseCanDoById.get(canDo.id)).toBe(canDo);
     }
+  });
+
+  it("exposes Base Can-do lookup data through an immutable runtime view", () => {
+    const first = baseCanDos[0];
+    const mutable = baseCanDoById as unknown as {
+      clear?: () => void;
+      delete?: (id: string) => boolean;
+      set?: (id: string, value: CanDo) => unknown;
+    };
+
+    mutable.clear?.();
+    mutable.delete?.(first.id);
+    mutable.set?.("mutated-can-do", { ...first, id: "mutated-can-do" });
+
+    expect("clear" in baseCanDoById).toBe(false);
+    expect("delete" in baseCanDoById).toBe(false);
+    expect("set" in baseCanDoById).toBe(false);
+    expect(baseCanDoById.size).toBe(baseCanDos.length);
+    expect(baseCanDoById.get(first.id)).toBe(first);
+    expect([...baseCanDoById.keys()]).toEqual(BASE_CAN_DO_IDS);
   });
 
   it("defines the Base checkpoint over synthesis scenarios and all system-reference families", () => {
