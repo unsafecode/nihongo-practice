@@ -52,6 +52,7 @@ import {
   BASE_CHECKPOINT_SCENARIO_LESSON_IDS,
 } from "../base/catalog/checkpoint";
 import {
+  A1_LESSON_IDS,
   A1_RETAINED_LESSON_IDS_BY_MODULE,
   A1_RETAINED_MODULE_IDS,
 } from "../a1/manifest";
@@ -150,6 +151,7 @@ const a2LessonToCanDoId = new Map(
 const a0KnownLessonIds = new Set(lessonIdsForLevel("a0"));
 const a1KnownLessonIds = new Set(lessonIdsForLevel("a1"));
 const a2KnownLessonIds = new Set(lessonIdsForLevel("a2"));
+const legacyV1V2KnownLessonIds = new Set(A1_LESSON_IDS);
 
 function checkpointWithRuntimeSample(
   checkpoint: CheckpointDefinition,
@@ -546,12 +548,12 @@ interface PreparedProgress {
  */
 export function prepareProgress(storage: Storage | null): PreparedProgress {
   const stored = readSetting(storage, STORAGE_KEY);
-  // Legacy payloads are normalized against every current level's lesson/review
-  // sets. The pure progress module
-  // deliberately does not import this component-layer runtime metadata.
+  // V1/V2 payloads predate the Base/A1 split and could contain every
+  // historically published A1 id. Keep that legacy parse set wider than the
+  // retained A1 runtime, while V5 reconciliation below remains level-scoped.
   const parsed = parseProgress(
     stored.value,
-    LEVEL_RUNTIME.a1.knownLessonIds,
+    legacyV1V2KnownLessonIds,
     KNOWN_REVIEW_KEYS_BY_LEVEL,
     KNOWN_LESSON_IDS_BY_LEVEL,
   );

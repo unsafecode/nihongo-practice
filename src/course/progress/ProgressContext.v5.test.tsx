@@ -8,6 +8,7 @@ import {
   LEVEL_RUNTIME,
   STORAGE_KEY,
   loadProgress,
+  prepareProgress,
   runtimeForLesson,
   useProgress,
   type ProgressContextValue,
@@ -19,6 +20,8 @@ import { V4_ACTIVITY_MIGRATION_MAP } from "../base/migration/v4ActivityMap";
 import { a1Checkpoint } from "../a1/catalog/checkpoint";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+const LEGACY_LOAD_UPDATED_AT = "2026-08-06T08:15:00.000Z";
 
 function memoryStorage(): { storage: Storage; value: (key: string) => string | null } {
   const values = new Map<string, string>();
@@ -52,6 +55,83 @@ function Consumer({ onValue }: { onValue: (value: ProgressContextValue) => void 
       )
     : null;
 }
+
+function assertLegacyLoadPreservesBaseAndA1Visits(progress: ReturnType<typeof loadProgress>["progress"]) {
+  expect(progress.updatedAt).toBe(LEGACY_LOAD_UPDATED_AT);
+  expect(progress.levels.a0.lessons["sounds-1"]).toEqual({
+    visitedAt: LEGACY_LOAD_UPDATED_AT,
+    practicedAt: null,
+    consolidatedAt: null,
+    attemptedExerciseIds: [],
+    acceptedExerciseIds: [],
+  });
+  expect(progress.levels.a1.lessons["introductions-1"]).toEqual({
+    visitedAt: LEGACY_LOAD_UPDATED_AT,
+    practicedAt: null,
+    consolidatedAt: null,
+    attemptedExerciseIds: [],
+    acceptedExerciseIds: [],
+  });
+  expect(progress.levels.a0.lastVisitedLessonId).toBe("sounds-1");
+  expect(progress.migrationNotice?.resumeLevel).toBe("a0");
+
+  for (const level of ["a0", "a1", "a2"] as const) {
+    expect(progress.levels[level].orphanedLessonIds).not.toContain("sounds-1");
+    expect(progress.levels[level].orphanedLessonIds).not.toContain("introductions-1");
+    expect(progress.levels[level].orphanedLessonRecords["sounds-1"]).toBeUndefined();
+    expect(progress.levels[level].orphanedLessonRecords["introductions-1"]).toBeUndefined();
+  }
+
+  expect(progress.levels.a1.orphanedLessonIds).toContain("sounds-5");
+  expect(progress.levels.a1.lessons["sounds-5"]).toBeUndefined();
+  expect(progress.levels.a0.lessons["sounds-4"]).toBeUndefined();
+}
+
+describe("ProgressContext V5 legacy load migration", () => {
+  it.each([
+    [
+      "V1",
+      {
+        schemaVersion: 1,
+        completedLessonIds: ["sounds-1", "introductions-1", "sounds-5"],
+        lastVisitedLessonId: "sounds-1",
+        updatedAt: LEGACY_LOAD_UPDATED_AT,
+      },
+    ],
+    [
+      "V2",
+      {
+        schemaVersion: 2,
+        visitedLessonIds: ["sounds-1", "introductions-1", "sounds-5"],
+        lastVisitedLessonId: "sounds-1",
+        updatedAt: LEGACY_LOAD_UPDATED_AT,
+      },
+    ],
+  ] as const)("preserves pre-split Base and retained A1 visits from %s payloads", (_, payload) => {
+    const preparedStore = memoryStorage();
+    preparedStore.storage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    const prepared = prepareProgress(preparedStore.storage);
+    expect(prepared.corrupted).toBe(false);
+    expect(prepared.migrated).toBe(true);
+    assertLegacyLoadPreservesBaseAndA1Visits(prepared.progress);
+    expect(JSON.parse(preparedStore.value(STORAGE_KEY) ?? "null")).toEqual(payload);
+
+    const loadStore = memoryStorage();
+    loadStore.storage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    const loaded = loadProgress(loadStore.storage);
+    expect(loaded).toMatchObject({
+      corrupted: false,
+      migrated: true,
+      persistenceAvailable: true,
+      loadStatus: "migrated",
+    });
+    assertLegacyLoadPreservesBaseAndA1Visits(loaded.progress);
+    expect(JSON.parse(loadStore.value(STORAGE_KEY) ?? "null")).toMatchObject({
+      schemaVersion: 5,
+      updatedAt: LEGACY_LOAD_UPDATED_AT,
+    });
+  });
+});
 
 describe("ProgressContext V5 owner failures", () => {
   it("rejects an unknown visit without creating A1 evidence", async () => {
