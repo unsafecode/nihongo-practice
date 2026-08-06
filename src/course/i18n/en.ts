@@ -82,6 +82,8 @@ const enUi = {
       "Start here if you are new to the course and want foundations first.",
     a1AvailableHint:
       "A1 remains open and applies the foundations in everyday situations.",
+    a1RecommendedHint:
+      "A1 is recommended for learners ready to apply Base foundations in everyday situations.",
     a2AvailableHint:
       "A2 remains open and builds connected conversation.",
     a2RecommendedHint:

@@ -18,7 +18,10 @@ const LEVEL_OPTIONS: readonly {
   readonly level: CourseLevelId;
   readonly labelKey: "base" | "a1" | "a2";
   readonly hintKey: "baseAvailableHint" | "a1AvailableHint" | "a2AvailableHint";
-  readonly recommendedHintKey: "baseRecommendedHint" | "a2RecommendedHint";
+  readonly recommendedHintKey:
+    | "baseRecommendedHint"
+    | "a1RecommendedHint"
+    | "a2RecommendedHint";
 }[] = [
   {
     level: "a0",
@@ -30,7 +33,7 @@ const LEVEL_OPTIONS: readonly {
     level: "a1",
     labelKey: "a1",
     hintKey: "a1AvailableHint",
-    recommendedHintKey: "baseRecommendedHint",
+    recommendedHintKey: "a1RecommendedHint",
   },
   {
     level: "a2",
@@ -55,10 +58,9 @@ export function LevelSelector({
         {LEVEL_OPTIONS.map((option) => {
           const selected = option.level === level;
           const recommended = option.level === recommendedLevel;
-          const hint =
-            recommended && option.level !== "a1"
-              ? copy[option.recommendedHintKey]
-              : copy[option.hintKey];
+          const hint = recommended
+            ? copy[option.recommendedHintKey]
+            : copy[option.hintKey];
           return (
             <li key={option.level} className="level-selector__option-item">
               <ActionLink

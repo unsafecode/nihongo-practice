@@ -128,6 +128,8 @@ export interface CourseCopy {
     baseRecommendedHint: string;
     /** A1 hint: remains open and applies foundations in situations. */
     a1AvailableHint: string;
+    /** Soft hint recommending A1 after Base foundations are ready. */
+    a1RecommendedHint: string;
     /** A2 hint: remains open and builds connected conversation. */
     a2AvailableHint: string;
     /** Soft "recommended next" hint shown once the A1 checkpoint is attempted. */

@@ -77,6 +77,14 @@ describe("LevelSelector — accessible three-option level control", () => {
     expect(html).not.toContain("aria-disabled");
   });
 
+  it("shows the A1 recommended hint instead of Base or availability copy when A1 is recommended", () => {
+    const html = renderStatic("a1", "a1");
+    expect(html).toContain(copy.recommendedMarker);
+    expect(html).toContain(copy.a1RecommendedHint);
+    expect(html).not.toContain(copy.baseRecommendedHint);
+    expect(html).not.toContain(copy.a1AvailableHint);
+  });
+
   it("names the selector group through visible text and aria-labelledby", () => {
     const html = renderStatic("a1", null);
     expect(html).toContain(`>${copy.selectorLabel}<`);
@@ -230,6 +238,7 @@ describe("LevelSelector — locale copy", () => {
       levels.baseAvailableHint,
       levels.baseRecommendedHint,
       levels.a1AvailableHint,
+      levels.a1RecommendedHint,
       levels.a2AvailableHint,
       levels.a2RecommendedHint,
     ];

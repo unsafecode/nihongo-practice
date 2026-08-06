@@ -82,6 +82,8 @@ const itUi = {
       "Inizia da qui se il corso è nuovo per te e vuoi prima i fondamentali.",
     a1AvailableHint:
       "A1 resta aperto e applica i fondamentali nelle situazioni quotidiane.",
+    a1RecommendedHint:
+      "A1 è consigliato per chi è pronto ad applicare le basi del Base nelle situazioni quotidiane.",
     a2AvailableHint:
       "A2 resta aperto e costruisce conversazioni collegate.",
     a2RecommendedHint:
