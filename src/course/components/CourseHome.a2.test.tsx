@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "../../i18n/LocaleContext";
 import { coursePathForLevel } from "../../routing/routePaths";
 import { lessonPath } from "../../routing/routes";
+import { COURSE_LEVEL_PREFERENCE_KEY } from "../levels/selection";
 import { a2CanDoDescriptorCopy } from "../a2/catalog/canDos";
 import { a2CanDosAuthored } from "../a2/catalog/catalog";
 import { courseModulesByLevel } from "../data/course";
@@ -31,6 +32,24 @@ import { escapeHtmlText } from "./renderTestUtils";
 
 const a2Modules = courseModulesByLevel.a2;
 const a2Lessons = a2Modules.flatMap((m) => m.lessons);
+
+function memoryStorage(): Storage {
+  const values = new Map<string, string>();
+  return {
+    get length(): number {
+      return values.size;
+    },
+    clear: () => values.clear(),
+    getItem: (key) => values.get(key) ?? null,
+    key: (index) => [...values.keys()][index] ?? null,
+    removeItem: (key) => {
+      values.delete(key);
+    },
+    setItem: (key, value) => {
+      values.set(key, value);
+    },
+  };
+}
 
 function makeProgressValue(
   progressV5: CourseProgressV5 = emptyProgressV5(),
@@ -104,6 +123,45 @@ function renderAt(path: string, value = makeProgressValue()): string {
   );
 }
 
+async function renderClientAt(path: string, value = makeProgressValue()) {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  await act(async () => {
+    root.render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: [path] },
+        createElement(
+          LocaleProvider,
+          null,
+          createElement(
+            ProgressContext.Provider,
+            { value },
+            createElement(
+              Routes,
+              null,
+              createElement(Route, {
+                path: "/percorso",
+                element: createElement(CourseHome),
+              }),
+            ),
+          ),
+        ),
+      ),
+    );
+  });
+  return { container, root };
+}
+
+async function waitForPreference(expected: string) {
+  for (let attempts = 0; attempts < 25; attempts += 1) {
+    if (window.localStorage.getItem(COURSE_LEVEL_PREFERENCE_KEY) === expected) return;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  expect(window.localStorage.getItem(COURSE_LEVEL_PREFERENCE_KEY)).toBe(expected);
+}
+
 describe("CourseHome — A2 level view via ?livello=a2 (Phase 3 Task 8)", () => {
   const html = renderAt(coursePathForLevel("a2"));
 
@@ -153,6 +211,32 @@ describe("CourseHome — A2 level view via ?livello=a2 (Phase 3 Task 8)", () => 
     expect(a1).toContain(itCopy.home.levelBadge);
     expect(a1).toContain(itCopy.modules.sounds.title);
     expect(a1).toContain(itCopy.home.courseShape(16, 64));
+  });
+
+  it("writes Base preference from the explicit base URL even though the transitional CourseHome still renders A1", async () => {
+    const original = Object.getOwnPropertyDescriptor(window, "localStorage");
+    const storage = memoryStorage();
+    Object.defineProperty(window, "localStorage", {
+      value: storage,
+      configurable: true,
+    });
+    Object.defineProperty(globalThis, "localStorage", {
+      value: storage,
+      configurable: true,
+    });
+
+    const { container, root } = await renderClientAt(coursePathForLevel("a0"));
+    await waitForPreference("a0");
+    expect(container.textContent).toContain(itCopy.home.levelBadge);
+    expect(container.textContent).toContain(itCopy.modules.sounds.title);
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+
+    if (original) Object.defineProperty(window, "localStorage", original);
+    else delete (window as { localStorage?: Storage }).localStorage;
   });
 });
 
@@ -336,7 +420,7 @@ describe("CourseHome — selecting a level moves focus and is back/forward safe"
         link.dispatchEvent(
           new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }),
         );
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 20));
       });
     };
 
@@ -409,7 +493,7 @@ describe("CourseHome — selecting a level moves focus and is back/forward safe"
         link.dispatchEvent(
           new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }),
         );
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 20));
       });
     };
 

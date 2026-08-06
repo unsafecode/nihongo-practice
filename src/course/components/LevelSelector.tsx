@@ -1,9 +1,13 @@
-import { useId, type ReactElement } from "react";
+import { useEffect, useId, type ReactElement } from "react";
 import { ActionLink } from "../../components/actions/Action";
 import { browserStorage } from "../../settings/storage";
-import { coursePathForLevel } from "../../routing/routePaths";
+import { courseLevelParam, coursePathForLevel } from "../../routing/routePaths";
+import { useLocation } from "react-router";
 import type { CourseLevelId } from "../levels/types";
-import { writeCourseLevelPreference } from "../levels/selection";
+import {
+  parseExplicitCourseLevel,
+  writeCourseLevelPreference,
+} from "../levels/selection";
 import type { CourseCopy } from "../i18n/types";
 
 export interface LevelSelectorProps {
@@ -49,6 +53,17 @@ export function LevelSelector({
   copy,
 }: LevelSelectorProps): ReactElement {
   const labelId = useId();
+  const location = useLocation();
+
+  useEffect(() => {
+    const explicitLevel = parseExplicitCourseLevel(
+      new URLSearchParams(location.search).get(courseLevelParam),
+    );
+    if (explicitLevel !== null) {
+      writeCourseLevelPreference(browserStorage(), explicitLevel);
+    }
+  }, [location.search]);
+
   return (
     <nav className="level-selector" aria-labelledby={labelId}>
       <p id={labelId} className="level-selector__label">
@@ -70,9 +85,6 @@ export function LevelSelector({
                 data-level={option.level}
                 data-selected={selected}
                 aria-current={selected ? "true" : undefined}
-                onClick={() => {
-                  writeCourseLevelPreference(browserStorage(), option.level);
-                }}
               >
                 <span className="level-selector__option-label">
                   {copy[option.labelKey]}

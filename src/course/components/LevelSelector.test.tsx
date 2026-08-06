@@ -17,7 +17,6 @@ import { LevelSelector } from "./LevelSelector";
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const copy = enCopy.courseLevels;
-const progressStorageKey = "nihongo.course.progress";
 
 function memoryStorage(): Storage {
   const values = new Map<string, string>();
@@ -116,8 +115,13 @@ describe("LevelSelector — URL navigation and preference persistence", () => {
   }
 
   beforeEach(() => {
+    const storage = memoryStorage();
     Object.defineProperty(window, "localStorage", {
-      value: memoryStorage(),
+      value: storage,
+      configurable: true,
+    });
+    Object.defineProperty(globalThis, "localStorage", {
+      value: storage,
       configurable: true,
     });
     window.localStorage.clear();
@@ -131,14 +135,19 @@ describe("LevelSelector — URL navigation and preference persistence", () => {
   async function clickAndFlush(link: HTMLAnchorElement) {
     await act(async () => {
       link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 20));
     });
   }
 
-  it("pushes distinct URLs for all three options, back restores the prior location, and stores the selected internal id", async () => {
-    const consoleError = vi.spyOn(console, "error");
-    window.localStorage.setItem(progressStorageKey, "untouched");
+  async function waitForPreference(expected: string) {
+    for (let attempts = 0; attempts < 25; attempts += 1) {
+      if (window.localStorage.getItem(COURSE_LEVEL_PREFERENCE_KEY) === expected) return;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    expect(window.localStorage.getItem(COURSE_LEVEL_PREFERENCE_KEY)).toBe(expected);
+  }
 
+  async function mountSelector(initialPath: string) {
     const container = document.createElement("div");
     document.body.append(container);
     const root = createRoot(container);
@@ -146,7 +155,7 @@ describe("LevelSelector — URL navigation and preference persistence", () => {
       root.render(
         createElement(
           MemoryRouter,
-          { initialEntries: [coursePathForLevel("a1")] },
+          { initialEntries: [initialPath] },
           createElement(LocationProbe),
           createElement(BackButton),
           createElement(
@@ -164,10 +173,45 @@ describe("LevelSelector — URL navigation and preference persistence", () => {
         ),
       );
     });
+    return { container, root };
+  }
 
+  it("ignores modifier clicks so location and stored preference stay unchanged", async () => {
+    const { container, root } = await mountSelector(coursePathForLevel("a1"));
+    await waitForPreference("a1");
     expect(container.querySelector('[data-testid="loc"]')?.textContent).toBe(
       "/percorso?livello=a1",
     );
+
+    const a2Link = container.querySelector<HTMLAnchorElement>('[data-level="a2"]');
+    expect(a2Link).not.toBeNull();
+    await act(async () => {
+      a2Link!.dispatchEvent(
+        new MouseEvent("click", {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          ctrlKey: true,
+        }),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(container.querySelector('[data-testid="loc"]')?.textContent).toBe(
+      "/percorso?livello=a1",
+    );
+    expect(window.localStorage.getItem(COURSE_LEVEL_PREFERENCE_KEY)).toBe("a1");
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("pushes distinct URLs for all three options, back restores the explicit URL, and storage failures do not block navigation", async () => {
+    const consoleError = vi.spyOn(console, "error");
+
+    const { container, root } = await mountSelector(coursePathForLevel("a1"));
+    await waitForPreference("a1");
 
     const baseLink = container.querySelector<HTMLAnchorElement>('[data-level="a0"]');
     const a2Link = container.querySelector<HTMLAnchorElement>('[data-level="a2"]');
@@ -180,29 +224,41 @@ describe("LevelSelector — URL navigation and preference persistence", () => {
     expect(container.querySelector('[data-testid="loc"]')?.textContent).toBe(
       "/percorso?livello=base",
     );
-    expect(window.localStorage.getItem(COURSE_LEVEL_PREFERENCE_KEY)).toBe("a0");
-    expect(window.localStorage.getItem(progressStorageKey)).toBe("untouched");
+    await waitForPreference("a0");
 
     await clickAndFlush(a2Link!);
     expect(container.querySelector('[data-testid="loc"]')?.textContent).toBe(
       "/percorso?livello=a2",
     );
-    expect(window.localStorage.getItem(COURSE_LEVEL_PREFERENCE_KEY)).toBe("a2");
+    await waitForPreference("a2");
 
     await clickAndFlush(a1Link!);
     expect(container.querySelector('[data-testid="loc"]')?.textContent).toBe(
       "/percorso?livello=a1",
     );
-    expect(window.localStorage.getItem(COURSE_LEVEL_PREFERENCE_KEY)).toBe("a1");
+    await waitForPreference("a1");
 
     const back = container.querySelector<HTMLButtonElement>("button");
     await act(async () => {
       back!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 20));
     });
     expect(container.querySelector('[data-testid="loc"]')?.textContent).toBe(
       "/percorso?livello=a2",
     );
+    expect(window.localStorage.getItem(COURSE_LEVEL_PREFERENCE_KEY)).toBe("a2");
+
+    const setItem = vi.spyOn(window.localStorage, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    await clickAndFlush(baseLink!);
+    expect(container.querySelector('[data-testid="loc"]')?.textContent).toBe(
+      "/percorso?livello=base",
+    );
+    expect(window.localStorage.getItem(COURSE_LEVEL_PREFERENCE_KEY)).toBe("a2");
+    expect(setItem).toHaveBeenCalled();
+
+    setItem.mockRestore();
 
     await act(async () => {
       root.unmount();
