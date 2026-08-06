@@ -115,7 +115,7 @@ async function acceptAllExercises(
   }
 }
 
-describe("ProgressContext V4 exposure (Phase 2 Task 6)", () => {
+describe("ProgressContext V5 exposure", () => {
   it("starts with no migration notice, empty Can-do evidence, and no checkpoint attempts for a fresh learner", async () => {
     await withMountedProvider({}, (get) => {
       const value = get();
@@ -123,18 +123,19 @@ describe("ProgressContext V4 exposure (Phase 2 Task 6)", () => {
       expect(value.canDoEvidence).toEqual({});
       expect(value.checkpointAttempts).toEqual([]);
       expect(value.levelSummary.level).toBe("a1");
-      expect(value.levelSummary.totalLessonCount).toBe(64);
+      expect(value.levelSummary.totalLessonCount).toBe(44);
       expect(value.levelSummary.visitedLessonCount).toBe(0);
     });
   });
 
-  it("records visited Can-do evidence for the correct Can-do id when a phonetic lesson is visited", async () => {
+  it("records a phonetic lesson visit only in Base's canonical Can-do evidence", async () => {
     await withMountedProvider({}, async (get) => {
       await act(async () => get().markVisited("sounds-1"));
-      const evidence = get().canDoEvidence["a1-can-do-sounds"];
+      const evidence = get().canDoEvidenceFor("a0")["a1-can-do-sounds"];
       expect(evidence).toBeDefined();
       expect(evidence!.visitedLessonIds).toEqual(["sounds-1"]);
-      expect(get().levelSummary.visitedLessonCount).toBe(1);
+      expect(get().levelSummaryFor("a0").visitedLessonCount).toBe(1);
+      expect(get().levelSummary.visitedLessonCount).toBe(0);
     });
   });
 
@@ -167,19 +168,19 @@ describe("ProgressContext V4 exposure (Phase 2 Task 6)", () => {
     });
   });
 
-  it("records practiced Can-do evidence once a phonetic lesson's four selected exercises are all attempted", async () => {
+  it("does not reactivate retired phonetic exercise definitions as current Base requirements", async () => {
     await withMountedProvider({}, async (get) => {
       const model = getLessonExercises("sounds-1")!;
       expect(model.exercises.length).toBe(4);
 
       await acceptAllExercises(get, "sounds-1");
 
-      // v3-compat surface advances exactly like a semantic lesson.
-      expect(get().progress.lessons["sounds-1"]?.practicedAt).not.toBeNull();
-
-      const evidence = get().canDoEvidence["a1-can-do-sounds"];
-      expect(evidence).toBeDefined();
-      expect(evidence!.practicedLessonIds).toContain("sounds-1");
+      expect(get().mutationError).toEqual({
+        code: "unknown-exercise-definition",
+        lessonId: "sounds-1",
+      });
+      expect(get().progressV5.levels.a0.lessons["sounds-1"]).toBeUndefined();
+      expect(get().canDoEvidenceFor("a0")["a1-can-do-sounds"]).toBeUndefined();
     });
   });
 

@@ -1,0 +1,367 @@
+/** @vitest-environment jsdom */
+
+import { act, createElement } from "react";
+import { createRoot } from "react-dom/client";
+import { describe, expect, it } from "vitest";
+import {
+  ProgressProvider,
+  LEVEL_RUNTIME,
+  loadProgress,
+  runtimeForLesson,
+  useProgress,
+  type ProgressContextValue,
+} from "./ProgressContext";
+import { currentLessonRouteRegistry } from "../levels/ownership";
+import { getLessonExercises } from "../components/lessonExerciseModel";
+import { V4_ACTIVITY_MIGRATION_MAP } from "../base/migration/v4ActivityMap";
+
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+function memoryStorage(): { storage: Storage; value: (key: string) => string | null } {
+  const values = new Map<string, string>();
+  return {
+    storage: {
+      get length() {
+        return values.size;
+      },
+      clear: () => values.clear(),
+      getItem: (key) => values.get(key) ?? null,
+      key: (index) => [...values.keys()][index] ?? null,
+      removeItem: (key) => {
+        values.delete(key);
+      },
+      setItem: (key, value) => {
+        values.set(key, value);
+      },
+    },
+    value: (key) => values.get(key) ?? null,
+  };
+}
+
+function Consumer({ onValue }: { onValue: (value: ProgressContextValue) => void }) {
+  const value = useProgress();
+  onValue(value);
+  return value.mutationError
+    ? createElement(
+        "p",
+        { role: "alert", "data-error-code": value.mutationError.code },
+        value.mutationError.lessonId,
+      )
+    : null;
+}
+
+describe("ProgressContext V5 owner failures", () => {
+  it("rejects an unknown visit without creating A1 evidence", async () => {
+    const original = Object.getOwnPropertyDescriptor(window, "localStorage");
+    const store = memoryStorage();
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: store.storage,
+    });
+    const container = document.createElement("div");
+    document.body.append(container);
+    let latest: ProgressContextValue | undefined;
+    const root = createRoot(container);
+
+    try {
+      await act(async () => {
+        root.render(
+          createElement(
+            ProgressProvider,
+            null,
+            createElement(Consumer, { onValue: (value) => (latest = value) }),
+          ),
+        );
+      });
+      if (!latest) throw new Error("provider did not render");
+      const before = latest.progressV5;
+
+      await act(async () => latest?.markVisited("unknown-lesson"));
+
+      expect(latest.progressV5).toBe(before);
+      expect(latest.mutationError).toEqual({
+        code: "unknown-lesson-owner",
+        lessonId: "unknown-lesson",
+      });
+      expect(container.querySelector('[role="alert"]')?.textContent).toBe("unknown-lesson");
+      expect(store.value("nihongo.course.progress")).toContain('"schemaVersion":5');
+    } finally {
+      await act(async () => root.unmount());
+      container.remove();
+      if (original) Object.defineProperty(window, "localStorage", original);
+      else delete (window as { localStorage?: Storage }).localStorage;
+    }
+  });
+
+  it("rejects unknown attempts and review resolutions without changing any level", async () => {
+    const original = Object.getOwnPropertyDescriptor(window, "localStorage");
+    const store = memoryStorage();
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: store.storage,
+    });
+    const container = document.createElement("div");
+    document.body.append(container);
+    let latest: ProgressContextValue | undefined;
+    const root = createRoot(container);
+
+    try {
+      await act(async () => {
+        root.render(
+          createElement(
+            ProgressProvider,
+            null,
+            createElement(Consumer, { onValue: (value) => (latest = value) }),
+          ),
+        );
+      });
+      if (!latest) throw new Error("provider did not render");
+      const before = latest.progressV5;
+      const input = {
+        lessonId: "unknown-lesson",
+        exerciseDefinitionId: "unknown-definition",
+        targetConceptIds: [],
+        targetLexemeIds: [],
+      };
+
+      await act(async () => latest?.recordAttempt({ ...input, outcome: "retry" }));
+      expect(latest.progressV5).toBe(before);
+      expect(latest.progressV5.updatedAt).toBe(before.updatedAt);
+      expect(latest.mutationError).toEqual({
+        code: "unknown-lesson-owner",
+        lessonId: "unknown-lesson",
+      });
+      expect(container.querySelector('[role="alert"]')?.textContent).toBe("unknown-lesson");
+
+      await act(async () => latest?.clearMutationError());
+      await act(async () => latest?.resolveReview(input));
+      expect(latest.progressV5).toBe(before);
+      expect(latest.progressV5.levels).toBe(before.levels);
+      expect(latest.mutationError).toEqual({
+        code: "unknown-lesson-owner",
+        lessonId: "unknown-lesson",
+      });
+      expect(container.querySelector('[role="alert"]')?.textContent).toBe("unknown-lesson");
+    } finally {
+      await act(async () => root.unmount());
+      container.remove();
+      if (original) Object.defineProperty(window, "localStorage", original);
+      else delete (window as { localStorage?: Storage }).localStorage;
+    }
+  });
+});
+
+describe("ProgressContext V5 canonical ownership", () => {
+  it("resolves every current lesson to its one complete runtime and fails closed for unknown lessons", () => {
+    expect(currentLessonRouteRegistry.size).toBe(144);
+    for (const [lessonId, owner] of currentLessonRouteRegistry) {
+      const result = runtimeForLesson(lessonId);
+      expect(result).toMatchObject({ ok: true, level: owner.levelId });
+      if (result.ok) {
+        expect(result.runtime.knownLessonIds.has(lessonId)).toBe(true);
+        expect(result.runtime.lessonToCanDoId.get(lessonId)).toEqual(expect.any(String));
+      }
+    }
+    expect(runtimeForLesson("not-a-current-lesson")).toEqual({
+      ok: false,
+      lessonId: "not-a-current-lesson",
+    });
+  });
+
+  it("fails closed when a registry owner is absent from its runtime's Can-do map", () => {
+    const inconsistentRuntime = {
+      ...LEVEL_RUNTIME,
+      a0: {
+        ...LEVEL_RUNTIME.a0,
+        lessonToCanDoId: new Map(),
+      },
+    };
+    expect(runtimeForLesson("sounds-1", inconsistentRuntime)).toEqual({
+      ok: false,
+      lessonId: "sounds-1",
+    });
+  });
+
+  it("keeps retired V4 Base activity ids out of current Base requirements", () => {
+    expect(LEVEL_RUNTIME.a0.knownReviewKeys).toEqual(new Set());
+    expect(LEVEL_RUNTIME.a0.checkpointScenarioLessonIds).toEqual([
+      "base-synthesis-1",
+      "base-synthesis-2",
+      "base-synthesis-3",
+      "base-synthesis-4",
+    ]);
+    for (const activity of V4_ACTIVITY_MIGRATION_MAP) {
+      expect(LEVEL_RUNTIME.a0.knownReviewKeys.has(`${activity.destinationLessonId}:${activity.destinationActivityId}`)).toBe(false);
+    }
+  });
+
+  it("writes a visit into only the canonical owner level", async () => {
+    const original = Object.getOwnPropertyDescriptor(window, "localStorage");
+    const store = memoryStorage();
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: store.storage,
+    });
+    const container = document.createElement("div");
+    document.body.append(container);
+    let latest: ProgressContextValue | undefined;
+    const root = createRoot(container);
+
+    try {
+      await act(async () => {
+        root.render(
+          createElement(
+            ProgressProvider,
+            null,
+            createElement(Consumer, { onValue: (value) => (latest = value) }),
+          ),
+        );
+      });
+      if (!latest) throw new Error("provider did not render");
+
+      for (const [lessonId, level] of [
+        ["sounds-1", "a0"],
+        ["introductions-1", "a1"],
+        ["connected-conversation-1", "a2"],
+      ] as const) {
+        const before = latest.progressV5;
+        await act(async () => latest?.markVisited(lessonId));
+        expect(latest.progressV5.levels[level].lessons[lessonId]?.visitedAt).not.toBeNull();
+        for (const otherLevel of ["a0", "a1", "a2"] as const) {
+          if (otherLevel !== level) {
+            expect(latest.progressV5.levels[otherLevel]).toEqual(before.levels[otherLevel]);
+          }
+        }
+      }
+      expect(latest.progressV5.levels.a1.lessons["sounds-1"]).toBeUndefined();
+    } finally {
+      await act(async () => root.unmount());
+      container.remove();
+      if (original) Object.defineProperty(window, "localStorage", original);
+      else delete (window as { localStorage?: Storage }).localStorage;
+    }
+  });
+
+  it("rejects a stale definition and records an exact current definition only", async () => {
+    const original = Object.getOwnPropertyDescriptor(window, "localStorage");
+    const store = memoryStorage();
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: store.storage,
+    });
+    const container = document.createElement("div");
+    document.body.append(container);
+    let latest: ProgressContextValue | undefined;
+    const root = createRoot(container);
+
+    try {
+      await act(async () => {
+        root.render(
+          createElement(
+            ProgressProvider,
+            null,
+            createElement(Consumer, { onValue: (value) => (latest = value) }),
+          ),
+        );
+      });
+      if (!latest) throw new Error("provider did not render");
+      const before = latest.progressV5;
+      const stale = {
+        lessonId: "introductions-1",
+        exerciseDefinitionId: "introductions-1-retired",
+        outcome: "accepted" as const,
+        targetConceptIds: [],
+        targetLexemeIds: [],
+      };
+      await act(async () => latest?.recordAttempt(stale));
+      expect(latest.progressV5).toBe(before);
+      expect(latest.mutationError).toEqual({
+        code: "unknown-exercise-definition",
+        lessonId: "introductions-1",
+      });
+
+      const exercise = getLessonExercises("introductions-1")!.exercises[0]!;
+      await act(async () =>
+        latest?.recordAttempt({
+          lessonId: "introductions-1",
+          exerciseDefinitionId: exercise.definitionId,
+          outcome: "accepted",
+          targetConceptIds: exercise.prompt.assessedConceptIds,
+          targetLexemeIds: exercise.prompt.assessedLexemeIds,
+        }),
+      );
+      expect(latest.progressV5.levels.a1.lessons["introductions-1"]?.attemptedExerciseIds).toEqual([
+        exercise.definitionId,
+      ]);
+      expect(latest.progressV5.levels.a0.lessons["introductions-1"]).toBeUndefined();
+      expect(latest.progressV5.levels.a2.lessons["introductions-1"]).toBeUndefined();
+    } finally {
+      await act(async () => root.unmount());
+      container.remove();
+      if (original) Object.defineProperty(window, "localStorage", original);
+      else delete (window as { localStorage?: Storage }).localStorage;
+    }
+  });
+
+  it("keeps clearLevel total for Base, A1, and A2, then resets to a current V5 record", async () => {
+    const original = Object.getOwnPropertyDescriptor(window, "localStorage");
+    const store = memoryStorage();
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: store.storage,
+    });
+    const container = document.createElement("div");
+    document.body.append(container);
+    let latest: ProgressContextValue | undefined;
+    const root = createRoot(container);
+
+    try {
+      await act(async () => {
+        root.render(
+          createElement(
+            ProgressProvider,
+            null,
+            createElement(Consumer, { onValue: (value) => (latest = value) }),
+          ),
+        );
+      });
+      if (!latest) throw new Error("provider did not render");
+      for (const lessonId of ["sounds-1", "introductions-1", "connected-conversation-1"]) {
+        await act(async () => latest?.markVisited(lessonId));
+      }
+      expect(latest.levelSummaryFor("a0").visitedLessonCount).toBe(1);
+      expect(latest.levelSummaryFor("a1").visitedLessonCount).toBe(1);
+      expect(latest.levelSummaryFor("a2").visitedLessonCount).toBe(1);
+
+      const a1Before = latest.progressV5.levels.a1;
+      const a2Before = latest.progressV5.levels.a2;
+      await act(async () => latest?.clearLevel("a0"));
+      expect(latest.levelSummaryFor("a0").visitedLessonCount).toBe(0);
+      expect(latest.progressV5.levels.a1).toEqual(a1Before);
+      expect(latest.progressV5.levels.a2).toEqual(a2Before);
+
+      const a2AfterBaseClear = latest.progressV5.levels.a2;
+      await act(async () => latest?.clearLevel("a1"));
+      expect(latest.levelSummaryFor("a1").visitedLessonCount).toBe(0);
+      expect(latest.progressV5.levels.a2).toEqual(a2AfterBaseClear);
+      await act(async () => latest?.clearLevel("a2"));
+      expect(latest.levelSummaryFor("a2").visitedLessonCount).toBe(0);
+
+      await act(async () => latest?.reset());
+      expect(latest.progressV5.schemaVersion).toBe(5);
+      expect(latest.progressV5.migrationNotice).toBeNull();
+      expect(JSON.parse(store.value("nihongo.course.progress") ?? "null")).toMatchObject({
+        schemaVersion: 5,
+        migrationNotice: null,
+      });
+      const reloaded = loadProgress(store.storage);
+      expect(reloaded.progress.schemaVersion).toBe(5);
+      expect(reloaded.progress.migrationNotice).toBeNull();
+    } finally {
+      await act(async () => root.unmount());
+      container.remove();
+      if (original) Object.defineProperty(window, "localStorage", original);
+      else delete (window as { localStorage?: Storage }).localStorage;
+    }
+  });
+});

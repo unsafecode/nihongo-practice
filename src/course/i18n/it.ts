@@ -43,6 +43,12 @@ const itUi = {
     courseShape: (moduleCount: number, lessonCount: number) =>
       `${moduleCount} moduli, ${lessonCount} lezioni`,
   },
+  progressMutation: {
+    title: "I progressi non sono stati aggiornati",
+    body: (lessonId: string) =>
+      `Non è stato possibile registrare in modo sicuro i progressi per la lezione “${lessonId}”. Torna al percorso e riprova.`,
+    dismiss: "Chiudi",
+  },
   canDoSummary: {
     heading: "Cosa sai già fare",
     demonstratedCount: (demonstrated: number, total: number) =>
@@ -377,7 +383,7 @@ const itUi = {
     helpBody:
       "Una versione precedente di questo percorso teneva traccia dei progressi in modo diverso. Quando la struttura è cambiata, ogni visita a una lezione che corrisponde in modo sicuro alla nuova struttura viene mantenuta automaticamente. I tentativi di pratica, gli elementi di ripasso salvati e i risultati delle verifiche legati agli esercizi rinnovati potrebbero dover essere completati di nuovo, perché non corrispondono più esattamente ai nuovi esercizi. Ogni vecchia visita senza una corrispondenza sicura nella nuova struttura è conservata come dati di recupero, senza essere considerata una lezione visitata equivalente.",
   },
-} satisfies Pick<CourseCopy, "home" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "a1Lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
+} satisfies Pick<CourseCopy, "home" | "progressMutation" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "a1Lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
 
 const itCourseMap: CourseCopy["courseMap"] = {
   heading: "Il percorso",

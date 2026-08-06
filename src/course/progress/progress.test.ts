@@ -476,9 +476,9 @@ describe("progress storage lifecycle", () => {
 
   it("reports write failure explicitly without throwing when storage is blocked", () => {
     const storage = blockedStorage();
-    const progress = v4FixtureFromV3(
+    const progress = migrateV4ToV5(v4FixtureFromV3(
       markLessonVisited(emptyProgress(), "sounds-core"),
-    );
+    ));
 
     expect(persistProgress(storage, progress)).toEqual({ status: "unavailable" });
   });

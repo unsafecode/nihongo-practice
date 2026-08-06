@@ -1,6 +1,7 @@
 import { courseModulesByLevel } from "../data/course";
 import type { Locale } from "../../i18n/LocaleContext";
-import type { CourseLevelId, ReviewQueueEntry } from "../progress/progress";
+import type { ReviewQueueEntry } from "../progress/progress";
+import type { CourseLevelId } from "../levels/types";
 import { orderedReviewQueue } from "../progress/reviewQueue";
 import type { GeneratedExercise } from "./lessonExerciseModel";
 import type { ExercisePrompt } from "../exercises/types";
@@ -96,6 +97,7 @@ export interface ReviewQueueView {
 }
 
 const moduleIdByLessonForLevel: Readonly<Record<CourseLevelId, ReadonlyMap<string, string>>> = {
+  a0: new Map(),
   a1: new Map(
     courseModulesByLevel.a1.flatMap((courseModule) =>
       courseModule.lessons.map((lesson) => [lesson.id, courseModule.id]),

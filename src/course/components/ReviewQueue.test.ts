@@ -13,12 +13,12 @@ import {
 } from "../progress/ProgressContext";
 import {
   emptyProgress,
-  emptyProgressV4,
-  emptyLevelProgress,
+  emptyProgressV5,
+  emptyLevelProgressV5,
   recordExerciseAcceptance,
   recordExerciseMistake,
 } from "../progress/progress";
-import type { CourseProgressV3, CourseProgressV4, ExerciseEvidence } from "../progress/progress";
+import type { CourseProgressV3, CourseProgressV5, ExerciseEvidence } from "../progress/progress";
 import { reviewKeyFor } from "../progress/reviewQueue";
 import { getLessonExercises } from "./lessonExerciseModel";
 import { en as enCopy } from "../i18n/en";
@@ -79,6 +79,21 @@ function contextValue(
   progress: CourseProgressV3,
   overrides: Partial<ProgressContextValue> = {},
 ): ProgressContextValue {
+  const progressV5 = emptyProgressV5();
+  const progressV5WithA1Queue: CourseProgressV5 = {
+    ...progressV5,
+    levels: {
+      ...progressV5.levels,
+      a1: {
+        ...progressV5.levels.a1,
+        lessons: progress.lessons,
+        lastVisitedLessonId: progress.lastVisitedLessonId,
+        reviewQueue: progress.reviewQueue,
+        orphanedLessonIds: progress.orphanedLessonIds,
+        orphanedReviewKeys: progress.orphanedReviewKeys,
+      },
+    },
+  };
   return {
     progress,
     corrupted: false,
@@ -100,7 +115,7 @@ function contextValue(
     },
     canDoEvidence: {},
     checkpointAttempts: [],
-    progressV4: emptyProgressV4(),
+    progressV5: progressV5WithA1Queue,
     lessonEvidence: () => undefined,
     levelSummaryFor: () => ({
       level: "a1",
@@ -111,6 +126,8 @@ function contextValue(
     }),
     canDoEvidenceFor: () => ({}),
     checkpointAttemptsFor: () => [],
+    mutationError: null,
+    clearMutationError: vi.fn(),
     ...overrides,
   };
 }
@@ -225,9 +242,9 @@ describe("ReviewQueue — populated state", () => {
   });
 
   describe("ReviewQueue — varied A1 retrieval interaction", () => {
-    const sourceExercise = getLessonExercises("sounds-1")!.exercises[0]!;
+    const sourceExercise = getLessonExercises("past-negative-1")!.exercises[0]!;
     const sourceProgress = withMistakes([
-      "sounds-1",
+      "past-negative-1",
       sourceExercise.definitionId,
       "2026-01-01T00:00:00.000Z",
     ]);
@@ -285,20 +302,37 @@ describe("ReviewQueue — populated state", () => {
       const value = contextValue(sourceProgress, { resolveReview });
       const item = buildReviewQueueView(sourceProgress, "a1").items[0]!;
       const prompt = item.prompt;
-      if (prompt.kind !== "choice") throw new Error("fixture assumption failed: choice");
       const { container, root } = mount(value);
 
       act(() => reviewButton(container).click());
-      const input = container.querySelector<HTMLInputElement>(
-        `input[value="${prompt.correctOptionId}"]`,
-      );
-      if (!input) throw new Error("correct alternate option not found");
-      act(() => input.click());
+      if (prompt.kind === "choice") {
+        const input = container.querySelector<HTMLInputElement>(
+          `input[value="${prompt.correctOptionId}"]`,
+        );
+        if (!input) throw new Error("correct alternate option not found");
+        act(() => input.click());
+      } else if (
+        prompt.kind === "completion" ||
+        prompt.kind === "transformation" ||
+        prompt.kind === "constrained-construction"
+      ) {
+        const input = container.querySelector<HTMLInputElement>('input[type="text"]');
+        if (!input) throw new Error("alternate text input not found");
+        act(() => {
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(
+            input,
+            prompt.canonicalAnswer,
+          );
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+      } else {
+        throw new Error(`fixture assumption failed: ${prompt.kind}`);
+      }
       submit(container);
 
       expect(resolveReview).toHaveBeenCalledTimes(1);
       expect(resolveReview).toHaveBeenCalledWith({
-        lessonId: "sounds-1",
+        lessonId: "past-negative-1",
         exerciseDefinitionId: sourceExercise.definitionId,
         targetConceptIds: sourceProgress.reviewQueue[0]!.targetConceptIds,
         targetLexemeIds: sourceProgress.reviewQueue[0]!.targetLexemeIds,
@@ -310,7 +344,7 @@ describe("ReviewQueue — populated state", () => {
         recordExerciseAcceptance(
           sourceProgress,
           evidence(
-            "sounds-1",
+            "past-negative-1",
             sourceExercise.definitionId,
             "2026-01-02T00:00:00.000Z",
           ),
@@ -326,24 +360,41 @@ describe("ReviewQueue — populated state", () => {
       const value = contextValue(sourceProgress, { recordAttempt });
       const item = buildReviewQueueView(sourceProgress, "a1").items[0]!;
       const prompt = item.prompt;
-      if (prompt.kind !== "choice") throw new Error("fixture assumption failed: choice");
-      const wrongOption = prompt.options.find(
-        (option) => option.id !== prompt.correctOptionId,
-      );
-      if (!wrongOption) throw new Error("wrong alternate option not found");
       const { container, root } = mount(value);
 
       act(() => reviewButton(container).click());
-      const input = container.querySelector<HTMLInputElement>(
-        `input[value="${wrongOption.id}"]`,
-      );
-      if (!input) throw new Error("wrong alternate option not found");
-      act(() => input.click());
+      if (prompt.kind === "choice") {
+        const wrongOption = prompt.options.find(
+          (option) => option.id !== prompt.correctOptionId,
+        );
+        if (!wrongOption) throw new Error("wrong alternate option not found");
+        const input = container.querySelector<HTMLInputElement>(
+          `input[value="${wrongOption.id}"]`,
+        );
+        if (!input) throw new Error("wrong alternate option not found");
+        act(() => input.click());
+      } else if (
+        prompt.kind === "completion" ||
+        prompt.kind === "transformation" ||
+        prompt.kind === "constrained-construction"
+      ) {
+        const input = container.querySelector<HTMLInputElement>('input[type="text"]');
+        if (!input) throw new Error("alternate text input not found");
+        act(() => {
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(
+            input,
+            "not the target",
+          );
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+      } else {
+        throw new Error(`fixture assumption failed: ${prompt.kind}`);
+      }
       submit(container);
 
       expect(recordAttempt).toHaveBeenCalledTimes(1);
       expect(recordAttempt).toHaveBeenCalledWith({
-        lessonId: "sounds-1",
+        lessonId: "past-negative-1",
         exerciseDefinitionId: sourceExercise.definitionId,
         outcome: "retry",
         targetConceptIds: sourceProgress.reviewQueue[0]!.targetConceptIds,
@@ -354,7 +405,7 @@ describe("ReviewQueue — populated state", () => {
       );
       const retried = recordExerciseMistake(
         sourceProgress,
-        evidence("sounds-1", sourceExercise.definitionId, "2026-01-02T00:00:00.000Z"),
+        evidence("past-negative-1", sourceExercise.definitionId, "2026-01-02T00:00:00.000Z"),
       );
       expect(retried.reviewQueue).toHaveLength(1);
       expect(retried.reviewQueue[0]?.reviewKey).toBe(sourceProgress.reviewQueue[0]?.reviewKey);
@@ -426,6 +477,35 @@ describe("ReviewQueue — orphan and storage states (spec §10.4, §16)", () => 
     expect(html).toContain(itCopy.review.unresolvable(1));
     expect(html).not.toContain(itCopy.review.empty);
   });
+
+  it("treats a Base-owned entry found in the A1 queue as historical, never actionable", () => {
+    const baseExercise = getLessonExercises("sounds-1")!.exercises[0]!;
+    const base = emptyProgressV5();
+    const progressV5: CourseProgressV5 = {
+      ...base,
+      levels: {
+        ...base.levels,
+        a1: {
+          ...base.levels.a1,
+          reviewQueue: [
+            {
+              reviewKey: reviewKeyFor("sounds-1", baseExercise.definitionId),
+              lessonId: "sounds-1",
+              exerciseDefinitionId: baseExercise.definitionId,
+              targetConceptIds: [],
+              targetLexemeIds: [],
+              mistakeCount: 1,
+              lastMistakeAt: "2026-01-01T00:00:00.000Z",
+            },
+          ],
+        },
+      },
+    };
+    const html = render(contextValue(emptyProgress(), { progressV5 }));
+    expect(html).toContain(itCopy.review.orphaned(1));
+    expect(html).not.toContain(lessonPath("sounds", "sounds-1"));
+    expect(html).not.toContain(itCopy.review.practice);
+  });
 });
 
 describe("ReviewQueue — locale parity", () => {
@@ -441,14 +521,14 @@ describe("ReviewQueue — locale parity", () => {
 
 const a2ReviewExerciseId = getLessonExercises("connected-conversation-1")!.exercises[0]!.definitionId;
 
-function progressV4WithA2Review(): CourseProgressV4 {
-  const base = emptyProgressV4();
+function progressV5WithA2Review(): CourseProgressV5 {
+  const base = emptyProgressV5();
   return {
     ...base,
     levels: {
       ...base.levels,
       a2: {
-        ...emptyLevelProgress(),
+        ...emptyLevelProgressV5(),
         reviewQueue: [
           {
             reviewKey: reviewKeyFor("connected-conversation-1", a2ReviewExerciseId),
@@ -466,8 +546,8 @@ function progressV4WithA2Review(): CourseProgressV4 {
 }
 
 describe("ReviewQueue — level-scoped A2 surface (Phase 3 Task 8 spec-fix, BLOCKER 1)", () => {
-  it("reads progressV4.levels.a2 and renders the A2 entry with an A2 deep link when level='a2'", () => {
-    const value = contextValue(emptyProgress(), { progressV4: progressV4WithA2Review() });
+  it("reads progressV5.levels.a2 and renders the A2 entry with an A2 deep link when level='a2'", () => {
+    const value = contextValue(emptyProgress(), { progressV5: progressV5WithA2Review() });
     const html = render(value, { level: "a2" });
     expect(html).toContain(itCopy.review.count(1));
     // The A2 lesson title (from the merged copy) and its A2 module deep link.
@@ -498,9 +578,9 @@ describe("ReviewQueue — level-scoped A2 surface (Phase 3 Task 8 spec-fix, BLOC
   });
 
   it("keeps an opened A2 review on its original definition without A1 function metadata", () => {
-    const progressV4 = progressV4WithA2Review();
-    const value = contextValue(emptyProgress(), { progressV4 });
-    const item = buildReviewQueueView(progressV4.levels.a2, "a2").items[0]!;
+    const progressV5 = progressV5WithA2Review();
+    const value = contextValue(emptyProgress(), { progressV5 });
+    const item = buildReviewQueueView(progressV5.levels.a2, "a2").items[0]!;
     const { container, root } = mount(value, { level: "a2" });
 
     act(() => reviewButton(container).click());

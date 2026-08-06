@@ -16,21 +16,18 @@ import {
   type StoredValue,
 } from "../../settings/storage";
 import {
-  type CourseLevelId,
   type CourseProgressV3,
-  type CourseProgressV4,
   type CourseProgressV5,
   type ExerciseEvidence,
-  type LevelProgress,
+  type LevelProgressV5,
   type LessonProgress,
   type CanDoEvidence,
   type CheckpointAttempt,
   type LevelProgressSummary,
   type ModuleOutline,
-  type ProgressMigrationNotice,
   acknowledgeMigrationNotice as acknowledgeMigrationNoticeV4,
   clearLevel as clearLevelProgress,
-  emptyProgressV4,
+  emptyProgressV5,
   markLessonVisited,
   parseProgress,
   recordCanDoEvidence,
@@ -41,18 +38,36 @@ import {
 } from "./progress";
 import { reviewKeyFor } from "./reviewQueue";
 import { getLessonExercises } from "../components/lessonExerciseModel";
-import { courseModulesByLevel } from "../data/course";
-import type { CourseModule } from "../data/types";
-import type { CheckpointDefinition } from "../foundations/types";
+import type { CheckpointDefinition, LessonId, ModuleId } from "../foundations/types";
+import { lessonIdsForLevel, lessonOwner } from "../levels/ownership";
+import type { CourseLevelId } from "../levels/types";
+import {
+  BASE_LESSON_IDS_BY_MODULE,
+  BASE_MODULE_IDS,
+} from "../base/manifest";
+import { baseCanDos as baseCanDosAuthored } from "../base/catalog/canDos";
+import {
+  baseCheckpoint,
+  BASE_CHECKPOINT_ID,
+  BASE_CHECKPOINT_SCENARIO_LESSON_IDS,
+} from "../base/catalog/checkpoint";
+import {
+  A1_RETAINED_LESSON_IDS_BY_MODULE,
+  A1_RETAINED_MODULE_IDS,
+} from "../a1/manifest";
 import { a1CanDosAuthored } from "../a1/catalog/canDos";
 import {
   a1Checkpoint,
   A1_CHECKPOINT_ID,
   A1_CHECKPOINT_SCENARIO_LESSON_IDS,
 } from "../a1/catalog/checkpoint";
+import {
+  A2_LESSON_IDS_BY_MODULE,
+  A2_MODULE_IDS,
+  A2_SYNTHESIS_LESSON_IDS,
+} from "../a2/manifest";
 import { a2SemanticBuiltLessons } from "../a2/catalog/catalog";
 import { a2Checkpoint, A2_CHECKPOINT_ID } from "../a2/catalog/checkpoint";
-import { A2_SYNTHESIS_LESSON_IDS } from "../a2/manifest";
 
 export const STORAGE_KEY = "nihongo.course.progress";
 
@@ -64,7 +79,7 @@ export const STORAGE_KEY = "nihongo.course.progress";
  * store is already level-aware, so recording A2 evidence only ever touches
  * `levels.a2` and leaves `levels.a1` byte-identical (no destructive migration).
  */
-interface LevelRuntime {
+export interface LevelRuntime {
   readonly level: CourseLevelId;
   readonly knownLessonIds: ReadonlySet<string>;
   readonly knownReviewKeys: ReadonlySet<string>;
@@ -76,53 +91,83 @@ interface LevelRuntime {
   readonly checkpointScenarioLessonIds: readonly string[];
 }
 
-function moduleOutlineFor(modules: readonly CourseModule[]): ModuleOutline[] {
-  return modules.map((courseModule) => ({
-    id: courseModule.id,
-    prerequisiteIds: courseModule.prerequisiteIds,
-    lessons: courseModule.lessons.map((lesson) => ({ id: lesson.id })),
+function moduleOutlineFor(
+  moduleIds: readonly ModuleId[],
+  lessonIdsByModule: Readonly<Partial<Record<ModuleId, readonly LessonId[]>>>,
+): readonly ModuleOutline[] {
+  return moduleIds.map((moduleId, index) => ({
+    id: moduleId,
+    prerequisiteIds: index === 0 ? [] : [moduleIds[index - 1]!],
+    lessons: (lessonIdsByModule[moduleId] ?? []).map((id) => ({ id })),
   }));
 }
 
-function knownReviewKeysFor(lessonIds: ReadonlySet<string>): ReadonlySet<string> {
+function currentExerciseDefinitionsFor(
+  level: CourseLevelId,
+  lessonId: string,
+): readonly { readonly definitionId: string; readonly practicePurpose: string }[] {
+  // Base has no current exercise model yet. `getLessonExercises("sounds-1")`
+  // still resolves a retired V4 activity, so it must not reactivate it here.
+  if (level === "a0") return [];
+  const model = getLessonExercises(lessonId);
+  return model && model.errors.length === 0 ? model.exercises : [];
+}
+
+function knownReviewKeysFor(
+  level: CourseLevelId,
+  lessonIds: ReadonlySet<string>,
+): ReadonlySet<string> {
   return new Set(
     [...lessonIds].flatMap((lessonId) =>
-      (getLessonExercises(lessonId)?.exercises ?? []).map((exercise) =>
+      currentExerciseDefinitionsFor(level, lessonId).map((exercise) =>
         reviewKeyFor(lessonId, exercise.definitionId),
       ),
     ),
   );
 }
 
-// A1 lesson → its single authored Can-do id (the same total 1:1 mapping
-// `data/course.ts` relies on). A2 lesson → its recipe's primary Can-do id
-// (an A2 lesson has one primary plus supporting Can-dos, so the primary comes
-// from the recipe, never from scanning Can-do lessonIds).
-const a1LessonToCanDoId = new Map(
-  a1CanDosAuthored.flatMap((canDo) => canDo.lessonIds.map((lessonId) => [lessonId, canDo.id])),
-);
+function lessonToCanDoIdFor(
+  level: CourseLevelId,
+  canDos: readonly { readonly id: string; readonly lessonIds: readonly string[] }[],
+): ReadonlyMap<string, string> {
+  return new Map(
+    canDos.flatMap((canDo) =>
+      canDo.lessonIds
+        .filter((lessonId) => lessonOwner(lessonId)?.levelId === level)
+        .map((lessonId) => [lessonId, canDo.id] as const),
+    ),
+  );
+}
+
+const baseLessonToCanDoId = lessonToCanDoIdFor("a0", baseCanDosAuthored);
+const a1LessonToCanDoId = lessonToCanDoIdFor("a1", a1CanDosAuthored);
 const a2LessonToCanDoId = new Map(
-  a2SemanticBuiltLessons.map((built) => [built.recipe.id, built.recipe.primaryCanDoId]),
+  a2SemanticBuiltLessons
+    .filter((built) => lessonOwner(built.recipe.id)?.levelId === "a2")
+    .map((built) => [built.recipe.id, built.recipe.primaryCanDoId]),
 );
 
-const a1KnownLessonIds = new Set(
-  courseModulesByLevel.a1.flatMap((courseModule) =>
-    courseModule.lessons.map((lesson) => lesson.id),
-  ),
-);
-const a2KnownLessonIds = new Set(
-  courseModulesByLevel.a2.flatMap((courseModule) =>
-    courseModule.lessons.map((lesson) => lesson.id),
-  ),
-);
+const a0KnownLessonIds = new Set(lessonIdsForLevel("a0"));
+const a1KnownLessonIds = new Set(lessonIdsForLevel("a1"));
+const a2KnownLessonIds = new Set(lessonIdsForLevel("a2"));
 
-const LEVEL_RUNTIME: Readonly<Record<CourseLevelId, LevelRuntime>> = {
+export const LEVEL_RUNTIME: Readonly<Record<CourseLevelId, LevelRuntime>> = {
+  a0: {
+    level: "a0",
+    knownLessonIds: a0KnownLessonIds,
+    knownReviewKeys: knownReviewKeysFor("a0", a0KnownLessonIds),
+    lessonToCanDoId: baseLessonToCanDoId,
+    moduleOutline: moduleOutlineFor(BASE_MODULE_IDS, BASE_LESSON_IDS_BY_MODULE),
+    checkpoint: baseCheckpoint,
+    checkpointAttemptId: BASE_CHECKPOINT_ID,
+    checkpointScenarioLessonIds: BASE_CHECKPOINT_SCENARIO_LESSON_IDS,
+  },
   a1: {
     level: "a1",
     knownLessonIds: a1KnownLessonIds,
-    knownReviewKeys: knownReviewKeysFor(a1KnownLessonIds),
+    knownReviewKeys: knownReviewKeysFor("a1", a1KnownLessonIds),
     lessonToCanDoId: a1LessonToCanDoId,
-    moduleOutline: moduleOutlineFor(courseModulesByLevel.a1),
+    moduleOutline: moduleOutlineFor(A1_RETAINED_MODULE_IDS, A1_RETAINED_LESSON_IDS_BY_MODULE),
     checkpoint: a1Checkpoint,
     checkpointAttemptId: A1_CHECKPOINT_ID,
     checkpointScenarioLessonIds: A1_CHECKPOINT_SCENARIO_LESSON_IDS,
@@ -130,9 +175,9 @@ const LEVEL_RUNTIME: Readonly<Record<CourseLevelId, LevelRuntime>> = {
   a2: {
     level: "a2",
     knownLessonIds: a2KnownLessonIds,
-    knownReviewKeys: knownReviewKeysFor(a2KnownLessonIds),
+    knownReviewKeys: knownReviewKeysFor("a2", a2KnownLessonIds),
     lessonToCanDoId: a2LessonToCanDoId,
-    moduleOutline: moduleOutlineFor(courseModulesByLevel.a2),
+    moduleOutline: moduleOutlineFor(A2_MODULE_IDS, A2_LESSON_IDS_BY_MODULE),
     checkpoint: a2Checkpoint,
     checkpointAttemptId: A2_CHECKPOINT_ID,
     checkpointScenarioLessonIds: A2_SYNTHESIS_LESSON_IDS,
@@ -142,6 +187,7 @@ const LEVEL_RUNTIME: Readonly<Record<CourseLevelId, LevelRuntime>> = {
 const KNOWN_REVIEW_KEYS_BY_LEVEL: Readonly<
   Record<CourseLevelId, ReadonlySet<string>>
 > = {
+  a0: LEVEL_RUNTIME.a0.knownReviewKeys,
   a1: LEVEL_RUNTIME.a1.knownReviewKeys,
   a2: LEVEL_RUNTIME.a2.knownReviewKeys,
 };
@@ -149,17 +195,34 @@ const KNOWN_REVIEW_KEYS_BY_LEVEL: Readonly<
 const KNOWN_LESSON_IDS_BY_LEVEL: Readonly<
   Record<CourseLevelId, ReadonlySet<string>>
 > = {
+  a0: LEVEL_RUNTIME.a0.knownLessonIds,
   a1: LEVEL_RUNTIME.a1.knownLessonIds,
   a2: LEVEL_RUNTIME.a2.knownLessonIds,
 };
 
+export type OwnerResult =
+  | { readonly ok: true; readonly level: CourseLevelId; readonly runtime: LevelRuntime }
+  | { readonly ok: false; readonly lessonId: string };
+
 /**
- * The level a lesson belongs to, resolved from the (disjoint) lesson-id
- * namespaces. An id unknown to A2 defaults to A1 — the stable default level —
- * so a legacy/opaque id can never route a mutation to the wrong level.
+ * Resolves the canonical registry owner and refuses any runtime whose lesson or
+ * primary Can-do map is incomplete. No mutation may use a fallback owner.
  */
-function levelForLesson(lessonId: string): CourseLevelId {
-  return LEVEL_RUNTIME.a2.knownLessonIds.has(lessonId) ? "a2" : "a1";
+export function runtimeForLesson(
+  lessonId: string,
+  runtimes: Readonly<Record<CourseLevelId, LevelRuntime>> = LEVEL_RUNTIME,
+): OwnerResult {
+  const owner = lessonOwner(lessonId);
+  if (!owner) return { ok: false, lessonId };
+  const runtime = runtimes[owner.levelId];
+  if (
+    runtime.level !== owner.levelId ||
+    !runtime.knownLessonIds.has(lessonId) ||
+    !runtime.lessonToCanDoId.has(lessonId)
+  ) {
+    return { ok: false, lessonId };
+  }
+  return { ok: true, level: owner.levelId, runtime };
 }
 
 /**
@@ -169,7 +232,7 @@ function levelForLesson(lessonId: string): CourseLevelId {
  * fabricated Can-do.
  */
 function withCanDoEvidence(
-  level: LevelProgress,
+  level: LevelProgressV5,
   runtime: LevelRuntime,
   lessonId: string,
   at: string,
@@ -178,9 +241,11 @@ function withCanDoEvidence(
     readonly practiced?: boolean;
     readonly acceptedTransferExerciseId?: string;
   },
-): LevelProgress {
+): LevelProgressV5 {
   const canDoId = runtime.lessonToCanDoId.get(lessonId);
-  if (!canDoId) return level;
+  if (!canDoId) {
+    throw new Error(`incomplete runtime for lesson "${lessonId}"`);
+  }
   return recordCanDoEvidence(level, {
     canDoId,
     at,
@@ -198,7 +263,11 @@ function withCanDoEvidence(
  * Can-dos this attempt sampled. Generalized over the level runtime so A1 and
  * A2 share one implementation.
  */
-function withCheckpointAttempt(level: LevelProgress, runtime: LevelRuntime, at: string): LevelProgress {
+function withCheckpointAttempt(
+  level: LevelProgressV5,
+  runtime: LevelRuntime,
+  at: string,
+): LevelProgressV5 {
   const allConsolidated = runtime.checkpointScenarioLessonIds.every(
     (lessonId) => level.lessons[lessonId]?.consolidatedAt != null,
   );
@@ -233,7 +302,7 @@ function withCheckpointAttempt(level: LevelProgress, runtime: LevelRuntime, at: 
  * either (design spec §8, §11.1).
  */
 function withAttemptEvidence(
-  level: LevelProgress,
+  level: LevelProgressV5,
   runtime: LevelRuntime,
   lessonId: string,
   exerciseDefinitionId: string,
@@ -241,10 +310,10 @@ function withAttemptEvidence(
   nowPracticedAt: string | null,
   accepted: boolean,
   at: string,
-): LevelProgress {
+): LevelProgressV5 {
   const justPracticed = wasPracticedAt === null && nowPracticedAt !== null;
   const practicePurpose = accepted
-    ? getLessonExercises(lessonId)?.exercises.find(
+    ? currentExerciseDefinitionsFor(runtime.level, lessonId).find(
         (exercise) => exercise.definitionId === exerciseDefinitionId,
       )?.practicePurpose
     : undefined;
@@ -280,26 +349,54 @@ export interface ReviewResolutionInput {
   readonly targetLexemeIds: readonly string[];
 }
 
+type MutationErrorCode =
+  | "unknown-lesson-owner"
+  | "incomplete-lesson-runtime"
+  | "unknown-exercise-definition";
+
+export interface ProgressMutationError {
+  readonly code: MutationErrorCode;
+  readonly lessonId: string;
+}
+
+type EvidenceResult =
+  | { readonly ok: true; readonly evidence: Omit<ExerciseEvidence, "at"> }
+  | { readonly ok: false; readonly error: ProgressMutationError };
+
+function errorForRuntime(lessonId: string): ProgressMutationError {
+  return {
+    code: lessonOwner(lessonId) === null ? "unknown-lesson-owner" : "incomplete-lesson-runtime",
+    lessonId,
+  };
+}
+
 function evidenceFor(
+  runtime: LevelRuntime,
   lessonId: string,
   exerciseDefinitionId: string,
   targetConceptIds: readonly string[],
   targetLexemeIds: readonly string[],
-  at: string,
-): ExerciseEvidence {
+): EvidenceResult {
+  const definitions = currentExerciseDefinitionsFor(runtime.level, lessonId);
+  const definition = definitions.find((item) => item.definitionId === exerciseDefinitionId);
+  if (
+    !definition ||
+    !runtime.knownReviewKeys.has(reviewKeyFor(lessonId, exerciseDefinitionId))
+  ) {
+    return {
+      ok: false,
+      error: { code: "unknown-exercise-definition", lessonId },
+    };
+  }
   return {
-    lessonId,
-    exerciseDefinitionId,
-    // The authored practice-round required IDs are the practiced/consolidated
-    // gate; an unknown lesson falls back to just this exercise so a single
-    // accept can never fabricate a whole-lesson gate.
-    requiredExerciseIds:
-      getLessonExercises(lessonId)?.exercises.map((exercise) => exercise.definitionId) ?? [
-        exerciseDefinitionId,
-      ],
-    targetConceptIds,
-    targetLexemeIds,
-    at,
+    ok: true,
+    evidence: {
+      lessonId,
+      exerciseDefinitionId,
+      requiredExerciseIds: definitions.map((item) => item.definitionId),
+      targetConceptIds,
+      targetLexemeIds,
+    },
   };
 }
 
@@ -308,13 +405,13 @@ function evidenceFor(
  * `ProgressContextValue.progress` field. The app's existing components
  * (`CourseHome`, `LessonPage`, etc.) all target the A1 catalog today and were
  * built entirely against `CourseProgressV3`; rather than touch every
- * consumer for Phase 2 Task 5, `progressV4.levels.a1` is projected through
+ * consumer for Phase 2 Task 5, `progressV5.levels.a1` is projected through
  * this bridge so those components keep working unchanged while progress is
  * actually stored level-aware underneath (spec §17). `canDos` and
  * `checkpointAttempts` have no v3 analogue and are intentionally dropped in
  * this direction — nothing v3-shaped ever reads them.
  */
-function levelToV3Compat(level: LevelProgress, updatedAt: string): CourseProgressV3 {
+function levelToV3Compat(level: LevelProgressV5, updatedAt: string): CourseProgressV3 {
   return {
     schemaVersion: 3,
     catalogVersion: "a0-a1-v1",
@@ -331,7 +428,10 @@ function levelToV3Compat(level: LevelProgress, updatedAt: string): CourseProgres
  * into a `LevelProgress`, preserving whatever v4-only evidence (`canDos`,
  * `checkpointAttempts`) the level already carried — the v3 mutators never
  * see or touch those fields, so they must never be discarded here. */
-function v3CompatToLevel(v3: CourseProgressV3, previous: LevelProgress): LevelProgress {
+function v3CompatToLevel(
+  v3: CourseProgressV3,
+  previous: LevelProgressV5,
+): LevelProgressV5 {
   return {
     ...previous,
     lessons: v3.lessons,
@@ -363,8 +463,8 @@ export interface ProgressContextValue {
    * at.
    */
   clearLevel: (level: CourseLevelId) => void;
-  /** Non-null exactly once for a learner whose schema-v3 progress migrated to schema-v4 (spec §17). */
-  migrationNotice: ProgressMigrationNotice | null;
+  /** Non-null exactly once for a learner whose legacy progress migrated to V5. */
+  migrationNotice: CourseProgressV5["migrationNotice"];
   /** Stamps `migrationNotice.acknowledgedAt` — never deletes the record (its "what changed" copy stays available). */
   acknowledgeMigrationNotice: () => void;
   /** A1's independent, truthful visited-lesson summary (design spec §7.3, §17) — never A2 evidence. */
@@ -374,11 +474,10 @@ export interface ProgressContextValue {
   /** Every completed A1 checkpoint attempt so far, oldest first (design spec §17). */
   checkpointAttempts: readonly CheckpointAttempt[];
   /**
-   * The full level-aware V4 state (Phase 3 Task 8). Exposed so level-aware
-   * consumers (Course Home) can read A1 *or* A2 evidence without going through
+   * The full level-aware V5 state. Consumers can read each owning level without going through
    * the A1-only v3-compat projection above.
    */
-  progressV4: CourseProgressV4;
+  progressV5: CourseProgressV5;
   /** One lesson's own evidence, resolved from whichever level owns it. */
   lessonEvidence: (lessonId: string) => LessonProgress | undefined;
   /** A given level's independent visited-lesson summary — never the other level's evidence. */
@@ -387,10 +486,13 @@ export interface ProgressContextValue {
   canDoEvidenceFor: (level: CourseLevelId) => Readonly<Record<string, CanDoEvidence>>;
   /** A given level's completed checkpoint attempts, oldest first. */
   checkpointAttemptsFor: (level: CourseLevelId) => readonly CheckpointAttempt[];
+  /** The last rejected owner/exercise mutation; reads never create this state. */
+  mutationError: ProgressMutationError | null;
+  clearMutationError: () => void;
 }
 
 interface InitialProgress {
-  progress: CourseProgressV4;
+  progress: CourseProgressV5;
   corrupted: boolean;
   migrated: boolean;
   persistenceAvailable: boolean;
@@ -398,7 +500,7 @@ interface InitialProgress {
 }
 
 interface PreparedProgress {
-  progress: CourseProgressV4;
+  progress: CourseProgressV5;
   corrupted: boolean;
   migrated: boolean;
   stored: StoredValue;
@@ -416,8 +518,8 @@ interface PreparedProgress {
  */
 export function prepareProgress(storage: Storage | null): PreparedProgress {
   const stored = readSetting(storage, STORAGE_KEY);
-  // v1/v2 payloads only ever carried A1 lessons; V4 catalog normalization
-  // receives both levels' current lesson/review sets. The pure progress module
+  // Legacy payloads are normalized against every current level's lesson/review
+  // sets. The pure progress module
   // deliberately does not import this component-layer runtime metadata.
   const parsed = parseProgress(
     stored.value,
@@ -427,7 +529,7 @@ export function prepareProgress(storage: Storage | null): PreparedProgress {
   );
 
   return {
-    progress: parsed.progress as unknown as CourseProgressV4,
+    progress: parsed.progress,
     corrupted: parsed.corrupted,
     migrated: parsed.migrated,
     stored,
@@ -487,7 +589,7 @@ export type ProgressPersistenceResult =
  */
 export function persistProgress(
   storage: Storage | null,
-  progress: CourseProgressV4 | CourseProgressV5,
+  progress: CourseProgressV5,
 ): ProgressPersistenceResult {
   return writeSetting(storage, STORAGE_KEY, JSON.stringify(progress))
     ? { status: "saved" }
@@ -514,14 +616,15 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
   // migrated write-back are deferred to the mount effect below instead of
   // running here during render.
   const [initial] = useState(() => prepareProgress(storage));
-  const [progressV4, setProgressV4] = useState(initial.progress);
+  const [progressV5, setProgressV5] = useState<CourseProgressV5>(initial.progress);
   const [corrupted, setCorrupted] = useState(initial.corrupted);
+  const [mutationError, setMutationError] = useState<ProgressMutationError | null>(null);
   const [persistenceAvailable, setPersistenceAvailable] = useState(
     initial.stored.available,
   );
   // Guards the one-time initial-mount side effects (corrupted cleanup,
   // migrated write-back) so they run exactly once, deferred from render into
-  // this effect, without re-running on every later `progressV4` change —
+  // this effect, without re-running on every later V5 progress change —
   // ongoing persistence below still runs on every change as before.
   const didCommitInitialSideEffectRef = useRef(false);
 
@@ -535,20 +638,25 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
     }
     // Whether this is the initial mount (current/empty, migrated, or
     // corrupted-then-recreated) or a later change, exactly one
-    // `persistProgress` call commits `progressV4` here — never a second,
+    // `persistProgress` call commits `progressV5` here — never a second,
     // duplicate write-back for the same migrated payload (minor #4).
-    setPersistenceAvailable(persistProgress(storage, progressV4).status === "saved");
-  }, [progressV4, storage, initial]);
+    setPersistenceAvailable(persistProgress(storage, progressV5).status === "saved");
+  }, [progressV5, storage, initial]);
 
   const progress = useMemo(
-    () => levelToV3Compat(progressV4.levels.a1, progressV4.updatedAt),
-    [progressV4],
+    () => levelToV3Compat(progressV5.levels.a1, progressV5.updatedAt),
+    [progressV5],
   );
 
   const markVisited = useCallback((lessonId: string) => {
-    const level = levelForLesson(lessonId);
-    const runtime = LEVEL_RUNTIME[level];
-    setProgressV4((current) => {
+    const owner = runtimeForLesson(lessonId);
+    if (!owner.ok) {
+      setMutationError(errorForRuntime(lessonId));
+      return;
+    }
+    setMutationError(null);
+    const { level, runtime } = owner;
+    setProgressV5((current) => {
       const v3 = levelToV3Compat(current.levels[level], current.updatedAt);
       const nextV3 = markLessonVisited(v3, lessonId);
       if (nextV3 === v3) return current;
@@ -568,17 +676,27 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const recordAttempt = useCallback((input: ExerciseAttemptInput) => {
-    const at = new Date().toISOString();
-    const level = levelForLesson(input.lessonId);
-    const runtime = LEVEL_RUNTIME[level];
-    const evidence = evidenceFor(
+    const owner = runtimeForLesson(input.lessonId);
+    if (!owner.ok) {
+      setMutationError(errorForRuntime(input.lessonId));
+      return;
+    }
+    const evidenceResult = evidenceFor(
+      owner.runtime,
       input.lessonId,
       input.exerciseDefinitionId,
       input.targetConceptIds,
       input.targetLexemeIds,
-      at,
     );
-    setProgressV4((current) => {
+    if (!evidenceResult.ok) {
+      setMutationError(evidenceResult.error);
+      return;
+    }
+    setMutationError(null);
+    const at = new Date().toISOString();
+    const evidence: ExerciseEvidence = { ...evidenceResult.evidence, at };
+    const { level, runtime } = owner;
+    setProgressV5((current) => {
       const v3 = levelToV3Compat(current.levels[level], current.updatedAt);
       const accepted = input.outcome === "accepted";
       const nextV3 = accepted
@@ -604,17 +722,27 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resolveReview = useCallback((input: ReviewResolutionInput) => {
-    const at = new Date().toISOString();
-    const level = levelForLesson(input.lessonId);
-    const runtime = LEVEL_RUNTIME[level];
-    const evidence = evidenceFor(
+    const owner = runtimeForLesson(input.lessonId);
+    if (!owner.ok) {
+      setMutationError(errorForRuntime(input.lessonId));
+      return;
+    }
+    const evidenceResult = evidenceFor(
+      owner.runtime,
       input.lessonId,
       input.exerciseDefinitionId,
       input.targetConceptIds,
       input.targetLexemeIds,
-      at,
     );
-    setProgressV4((current) => {
+    if (!evidenceResult.ok) {
+      setMutationError(evidenceResult.error);
+      return;
+    }
+    setMutationError(null);
+    const at = new Date().toISOString();
+    const evidence: ExerciseEvidence = { ...evidenceResult.evidence, at };
+    const { level, runtime } = owner;
+    setProgressV5((current) => {
       const v3 = levelToV3Compat(current.levels[level], current.updatedAt);
       const nextV3 = recordExerciseAcceptance(v3, evidence, "review");
       if (nextV3 === v3) return current;
@@ -642,9 +770,10 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
 
   const reset = useCallback(() => {
     setCorrupted(false);
+    setMutationError(null);
     const result = resetStoredProgress(storage);
     setPersistenceAvailable(result.status === "removed");
-    if (result.status === "removed") setProgressV4(emptyProgressV4());
+    if (result.status === "removed") setProgressV5(emptyProgressV5());
   }, [storage]);
 
   // Level-scoped reset (ISSUE 3). Never removes the whole stored record the
@@ -659,44 +788,48 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
   // `clearLevel`) when that level is already empty means no needless write.
   const clearLevel = useCallback((level: CourseLevelId) => {
     setCorrupted(false);
-    setProgressV4((current) =>
+    setMutationError(null);
+    setProgressV5((current) =>
       clearLevelProgress(current, level, new Date().toISOString()),
     );
   }, []);
 
   const acknowledgeMigrationNotice = useCallback(() => {
-    setProgressV4((current) =>
+    setProgressV5((current) =>
       acknowledgeMigrationNoticeV4(current, new Date().toISOString()),
     );
   }, []);
 
   const levelSummary = useMemo(
-    () => summarizeLevel(progressV4, "a1", LEVEL_RUNTIME.a1.moduleOutline),
-    [progressV4],
+    () => summarizeLevel(progressV5, "a1", LEVEL_RUNTIME.a1.moduleOutline),
+    [progressV5],
   );
-  const canDoEvidence = progressV4.levels.a1.canDos;
-  const checkpointAttempts = progressV4.levels.a1.checkpointAttempts;
+  const canDoEvidence = progressV5.levels.a1.canDos;
+  const checkpointAttempts = progressV5.levels.a1.checkpointAttempts;
 
   const lessonEvidence = useCallback(
-    (lessonId: string): LessonProgress | undefined =>
-      progressV4.levels[levelForLesson(lessonId)].lessons[lessonId],
-    [progressV4],
+    (lessonId: string): LessonProgress | undefined => {
+      const owner = runtimeForLesson(lessonId);
+      return owner.ok ? progressV5.levels[owner.level].lessons[lessonId] : undefined;
+    },
+    [progressV5],
   );
   const levelSummaryFor = useCallback(
     (level: CourseLevelId): LevelProgressSummary =>
-      summarizeLevel(progressV4, level, LEVEL_RUNTIME[level].moduleOutline),
-    [progressV4],
+      summarizeLevel(progressV5, level, LEVEL_RUNTIME[level].moduleOutline),
+    [progressV5],
   );
   const canDoEvidenceFor = useCallback(
     (level: CourseLevelId): Readonly<Record<string, CanDoEvidence>> =>
-      progressV4.levels[level].canDos,
-    [progressV4],
+      progressV5.levels[level].canDos,
+    [progressV5],
   );
   const checkpointAttemptsFor = useCallback(
     (level: CourseLevelId): readonly CheckpointAttempt[] =>
-      progressV4.levels[level].checkpointAttempts,
-    [progressV4],
+      progressV5.levels[level].checkpointAttempts,
+    [progressV5],
   );
+  const clearMutationError = useCallback(() => setMutationError(null), []);
 
   const value = useMemo<ProgressContextValue>(
     () => ({
@@ -709,16 +842,18 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       dismissCorruption,
       reset,
       clearLevel,
-      migrationNotice: progressV4.migrationNotice,
+      migrationNotice: progressV5.migrationNotice,
       acknowledgeMigrationNotice,
       levelSummary,
       canDoEvidence,
       checkpointAttempts,
-      progressV4,
+      progressV5,
       lessonEvidence,
       levelSummaryFor,
       canDoEvidenceFor,
       checkpointAttemptsFor,
+      mutationError,
+      clearMutationError,
     }),
     [
       progress,
@@ -730,7 +865,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       dismissCorruption,
       reset,
       clearLevel,
-      progressV4,
+      progressV5,
       acknowledgeMigrationNotice,
       levelSummary,
       canDoEvidence,
@@ -739,6 +874,8 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       levelSummaryFor,
       canDoEvidenceFor,
       checkpointAttemptsFor,
+      mutationError,
+      clearMutationError,
     ],
   );
 

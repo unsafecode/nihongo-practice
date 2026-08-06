@@ -13,9 +13,9 @@ import { a2CanDosAuthored } from "../a2/catalog/catalog";
 import { courseModulesByLevel } from "../data/course";
 import { it as itCopy } from "../i18n/it";
 import {
-  emptyProgressV4,
-  emptyLevelProgress,
-  type CourseProgressV4,
+  emptyProgressV5,
+  emptyLevelProgressV5,
+  type CourseProgressV5,
   type ReviewQueueEntry,
 } from "../progress/progress";
 import { reviewKeyFor } from "../progress/reviewQueue";
@@ -33,12 +33,12 @@ const a2Modules = courseModulesByLevel.a2;
 const a2Lessons = a2Modules.flatMap((m) => m.lessons);
 
 function makeProgressValue(
-  progressV4: CourseProgressV4 = emptyProgressV4(),
+  progressV5: CourseProgressV5 = emptyProgressV5(),
 ): ProgressContextValue {
   // Project the v3-compat `progress` surface from levels.a1, exactly as the
   // real ProgressContext does — so a level-scoped review surface reading
-  // `progress` for A1 and `progressV4.levels.a2` for A2 sees consistent data.
-  const a1 = progressV4.levels.a1;
+  // `progress` for A1 and `progressV5.levels.a2` for A2 see consistent data.
+  const a1 = progressV5.levels.a1;
   return {
     progress: {
       schemaVersion: 3,
@@ -48,7 +48,7 @@ function makeProgressValue(
       reviewQueue: [...a1.reviewQueue],
       orphanedLessonIds: [...a1.orphanedLessonIds],
       orphanedReviewKeys: [...a1.orphanedReviewKeys],
-      updatedAt: progressV4.updatedAt,
+      updatedAt: progressV5.updatedAt,
     },
     corrupted: false,
     persistenceAvailable: true,
@@ -69,9 +69,9 @@ function makeProgressValue(
     },
     canDoEvidence: {},
     checkpointAttempts: [],
-    progressV4,
+    progressV5,
     lessonEvidence: (lessonId) =>
-      progressV4.levels.a2.lessons[lessonId] ?? progressV4.levels.a1.lessons[lessonId],
+      progressV5.levels.a2.lessons[lessonId] ?? progressV5.levels.a1.lessons[lessonId],
     levelSummaryFor: (level) => ({
       level,
       visitedLessonCount: 0,
@@ -79,8 +79,10 @@ function makeProgressValue(
       visitedPercent: 0,
       recommendedContinuationLessonId: null,
     }),
-    canDoEvidenceFor: (level) => progressV4.levels[level].canDos,
-    checkpointAttemptsFor: (level) => progressV4.levels[level].checkpointAttempts,
+    canDoEvidenceFor: (level) => progressV5.levels[level].canDos,
+    checkpointAttemptsFor: (level) => progressV5.levels[level].checkpointAttempts,
+    mutationError: null,
+    clearMutationError: () => {},
   };
 }
 
@@ -154,11 +156,11 @@ describe("CourseHome — A2 level view via ?livello=a2 (Phase 3 Task 8)", () => 
   });
 });
 
-function progressV4WithLevelVisit(
+function progressV5WithLevelVisit(
   level: "a1" | "a2",
   lessonId: string,
-): CourseProgressV4 {
-  const base = emptyProgressV4();
+): CourseProgressV5 {
+  const base = emptyProgressV5();
   return {
     ...base,
     levels: {
@@ -191,7 +193,7 @@ describe("CourseHome — level-scoped reset on the A2 view (ISSUE 3)", () => {
   it("enables the A2 reset once the A2 level itself has visited progress", () => {
     const html = renderAt(
       coursePathForLevel("a2"),
-      makeProgressValue(progressV4WithLevelVisit("a2", "connected-conversation-1")),
+      makeProgressValue(progressV5WithLevelVisit("a2", "connected-conversation-1")),
     );
     expect(html).toMatch(/class="action action--destructive[^"]*">Azzera i progressi di A2</);
     expect(html).not.toMatch(/class="action action--destructive[^"]*" disabled=""/);
@@ -200,7 +202,7 @@ describe("CourseHome — level-scoped reset on the A2 view (ISSUE 3)", () => {
   it("keeps the A2 reset disabled when only A1 has progress — the enabled state follows the SELECTED level, never the other", () => {
     const html = renderAt(
       coursePathForLevel("a2"),
-      makeProgressValue(progressV4WithLevelVisit("a1", "sounds-1")),
+      makeProgressValue(progressV5WithLevelVisit("a1", "introductions-1")),
     );
     expect(html).toMatch(
       /class="action action--destructive[^"]*" disabled=""[^>]*>Azzera i progressi di A2</,
@@ -210,7 +212,7 @@ describe("CourseHome — level-scoped reset on the A2 view (ISSUE 3)", () => {
   it("keeps the A1 reset disabled on the default view when only A2 has progress", () => {
     const html = renderAt(
       "/percorso",
-      makeProgressValue(progressV4WithLevelVisit("a2", "connected-conversation-1")),
+      makeProgressValue(progressV5WithLevelVisit("a2", "connected-conversation-1")),
     );
     expect(html).toMatch(
       /class="action action--destructive[^"]*" disabled=""[^>]*>Azzera i progressi di A1</,
@@ -234,15 +236,16 @@ function reviewEntry(lessonId: string, exerciseDefinitionId: string, at: string)
   };
 }
 
-function progressV4WithReviews(
+function progressV5WithReviews(
   entries: Partial<Record<"a1" | "a2", ReviewQueueEntry[]>>,
-): CourseProgressV4 {
-  const base = emptyProgressV4();
+): CourseProgressV5 {
+  const base = emptyProgressV5();
   return {
     ...base,
     levels: {
-      a1: { ...emptyLevelProgress(), reviewQueue: entries.a1 ?? [] },
-      a2: { ...emptyLevelProgress(), reviewQueue: entries.a2 ?? [] },
+      a0: base.levels.a0,
+      a1: { ...emptyLevelProgressV5(), reviewQueue: entries.a1 ?? [] },
+      a2: { ...emptyLevelProgressV5(), reviewQueue: entries.a2 ?? [] },
     },
   };
 }
@@ -261,7 +264,7 @@ describe("CourseHome — selected-level review surface (Phase 3 Task 8 spec-fix,
     const html = renderAt(
       coursePathForLevel("a2"),
       makeProgressValue(
-        progressV4WithReviews({
+        progressV5WithReviews({
           a2: [reviewEntry("connected-conversation-1", a2ReviewExerciseId, "2026-02-01T00:00:00.000Z")],
         }),
       ),
@@ -276,7 +279,7 @@ describe("CourseHome — selected-level review surface (Phase 3 Task 8 spec-fix,
     const html = renderAt(
       coursePathForLevel("a2"),
       makeProgressValue(
-        progressV4WithReviews({
+        progressV5WithReviews({
           a1: [reviewEntry("introductions-1", a1ReviewExerciseId, "2026-01-01T00:00:00.000Z")],
         }),
       ),
@@ -291,7 +294,7 @@ describe("CourseHome — selected-level review surface (Phase 3 Task 8 spec-fix,
     const html = renderAt(
       "/percorso",
       makeProgressValue(
-        progressV4WithReviews({
+        progressV5WithReviews({
           a1: [reviewEntry("introductions-1", a1ReviewExerciseId, "2026-01-01T00:00:00.000Z")],
         }),
       ),
@@ -395,7 +398,7 @@ describe("CourseHome — selecting a level moves focus and is back/forward safe"
     document.body.append(container);
     const root = createRoot(container);
     const value = makeProgressValue(
-      progressV4WithReviews({
+      progressV5WithReviews({
         a1: [reviewEntry("introductions-1", a1ReviewExerciseId, "2026-01-01T00:00:00.000Z")],
         a2: [reviewEntry("connected-conversation-1", a2ReviewExerciseId, "2026-02-01T00:00:00.000Z")],
       }),

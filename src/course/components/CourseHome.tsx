@@ -55,7 +55,7 @@ const CAN_DO_TIER_GLYPH: Partial<Record<keyof typeof canDoEvidenceTierCopyKey, s
  * Can-do evidence summary, and checkpoint attempt-state section. A1 and A2
  * evidence never cross-contaminate:
  * A1 reads the v3-compat `progress`/`canDoEvidence`/`checkpointAttempts`
- * surfaces (unchanged), while A2 reads its own `progressV4.levels.a2`. Nothing
+ * surfaces (unchanged), while A2 reads its own `progressV5.levels.a2`. Nothing
  * here locks or blocks navigation to any level or lesson, or claims
  * certification, mastery, or that a level was "completed"/"passed" (3.1) --
  * every dynamic section reports only recorded evidence, and A2 is only ever
@@ -80,7 +80,9 @@ export function CourseHome(): ReactElement {
     acknowledgeMigrationNotice,
     canDoEvidence,
     checkpointAttempts,
-    progressV4,
+    progressV5,
+    mutationError,
+    clearMutationError,
   } = useProgress();
 
   // Move focus to the selected level's heading whenever the level changes
@@ -101,7 +103,7 @@ export function CourseHome(): ReactElement {
   // The selected level's own progress source. A1 keeps reading the existing
   // v3-compat projection (so A1 output is byte-for-byte stable); A2 reads its
   // own, independent `levels.a2` slice.
-  const a2LevelProgress = progressV4.levels.a2;
+  const a2LevelProgress = progressV5.levels.a2;
   const visitedIds = levelIsA1
     ? visitedLessonIds(progress)
     : visitedLessonIdsForLevel(a2LevelProgress);
@@ -189,6 +191,16 @@ export function CourseHome(): ReactElement {
           tone="warning"
           title={copy.home.persistenceWarningTitle}
           body={copy.home.persistenceWarningBody}
+        />
+      ) : null}
+
+      {mutationError ? (
+        <Notice
+          tone="error"
+          title={copy.progressMutation.title}
+          body={copy.progressMutation.body(mutationError.lessonId)}
+          dismissLabel={copy.progressMutation.dismiss}
+          onDismiss={clearMutationError}
         />
       ) : null}
 
@@ -313,7 +325,7 @@ export function CourseHome(): ReactElement {
 
       {/*
         The selected level's own review queue (Phase 3 Task 8 spec-fix,
-        BLOCKER 1). `ReviewQueue` reads `progressV4.levels[level]` for A2 and
+        BLOCKER 1). `ReviewQueue` reads `progressV5.levels[level]` for A2 and
         the A1 v3-compat projection for A1, resolving every entry against the
         selected level's catalog — it never reads the other level. Switching
         levels (or back/forward) re-renders it with the new `level`, swapping

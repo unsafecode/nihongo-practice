@@ -66,6 +66,12 @@ export interface CourseCopy {
      * shape, never a completion/progress claim (that is `lessonsProgress`). */
     courseShape: (moduleCount: number, lessonCount: number) => string;
   };
+  /** A fail-closed progress mutation could not be recorded for this lesson. */
+  progressMutation: {
+    title: string;
+    body: (lessonId: string) => string;
+    dismiss: string;
+  };
   /**
    * The Course Home Can-do evidence summary (design spec §8/§17, Phase 2
    * Task 6): one line per authored Can-do, each showing only its recorded

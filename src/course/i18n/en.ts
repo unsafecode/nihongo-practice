@@ -43,6 +43,12 @@ const enUi = {
     courseShape: (moduleCount: number, lessonCount: number) =>
       `${moduleCount} modules, ${lessonCount} lessons`,
   },
+  progressMutation: {
+    title: "Progress was not updated",
+    body: (lessonId: string) =>
+      `We could not safely record progress for lesson “${lessonId}”. Please return to the course and try again.`,
+    dismiss: "Dismiss",
+  },
   canDoSummary: {
     heading: "What you can do so far",
     demonstratedCount: (demonstrated: number, total: number) =>
@@ -374,7 +380,7 @@ const enUi = {
     helpBody:
       "An earlier version of this course tracked progress differently. When the structure changed, any lesson visit that safely matches the new structure carries over automatically. Practice attempts, saved review items, and checkpoint results tied to exercises that were redesigned may need to be completed again, since they no longer match the new exercises exactly. Any older visit without a safe match in the new structure is retained as recovery data rather than shown as an equivalent visited lesson.",
   },
-} satisfies Pick<CourseCopy, "home" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "a1Lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
+} satisfies Pick<CourseCopy, "home" | "progressMutation" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "a1Lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
 
 const enCourseMap: CourseCopy["courseMap"] = {
   heading: "The course",

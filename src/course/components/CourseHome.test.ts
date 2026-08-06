@@ -12,12 +12,12 @@ import { en as enCopy } from "../i18n/en";
 import { it as itCopy } from "../i18n/it";
 import {
   emptyProgress,
-  emptyProgressV4,
+  emptyProgressV5,
   markLessonVisited,
   type CanDoEvidence,
   type CheckpointAttempt,
   type CourseProgressV3,
-  type ProgressMigrationNotice,
+  type BaseOwnershipMigrationNotice,
 } from "../progress/progress";
 import {
   ProgressContext,
@@ -75,7 +75,7 @@ function makeProgressValue(
     },
     canDoEvidence: {},
     checkpointAttempts: [],
-    progressV4: emptyProgressV4(),
+    progressV5: emptyProgressV5(),
     lessonEvidence: () => undefined,
     levelSummaryFor: (level) => ({
       level,
@@ -86,6 +86,8 @@ function makeProgressValue(
     }),
     canDoEvidenceFor: () => ({}),
     checkpointAttemptsFor: () => [],
+    mutationError: null,
+    clearMutationError: () => {},
     ...overrides,
   };
 }
@@ -394,10 +396,17 @@ describe("CourseHome: destructive, confirmed, level-scoped reset (ISSUE 3)", () 
   });
 });
 
-const sampleMigrationNotice: ProgressMigrationNotice = {
-  fromSchemaVersion: 3,
-  preservedVisitedLessonIds: ["sounds-1", "sounds-2"],
-  resetEvidenceLessonIds: ["introductions-1"],
+const sampleMigrationNotice: BaseOwnershipMigrationNotice = {
+  fromSchemaVersion: 4,
+  movedLessonIds: ["sounds-1", "sounds-2"],
+  historicalActivityIds: [],
+  resumeLevel: "a1",
+  priorNotice: {
+    fromSchemaVersion: 3,
+    preservedVisitedLessonIds: ["sounds-1", "sounds-2"],
+    resetEvidenceLessonIds: ["introductions-1"],
+    acknowledgedAt: null,
+  },
   acknowledgedAt: null,
 };
 
@@ -417,7 +426,7 @@ describe("CourseHome: schema-v3→schema-v4 migration notice (design spec §17, 
   });
 
   it("always keeps the migration help explanation available, even once acknowledged", () => {
-    const acknowledged: ProgressMigrationNotice = {
+    const acknowledged: BaseOwnershipMigrationNotice = {
       ...sampleMigrationNotice,
       acknowledgedAt: "2024-01-01T00:00:00.000Z",
     };

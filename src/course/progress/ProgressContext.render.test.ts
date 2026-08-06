@@ -10,7 +10,7 @@ import {
   useProgress,
   type ProgressContextValue,
 } from "./ProgressContext";
-import { emptyProgressV4 } from "./progress";
+import { emptyProgressV5 } from "./progress";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
@@ -114,7 +114,7 @@ describe("ProgressProvider initialization — side effects (Phase 2 Task 5 quali
   it.each([
     ["a migrated schema-v3 payload", { [STORAGE_KEY]: rawV3Payload() }],
     ["a corrupted payload", { [STORAGE_KEY]: "{not json" }],
-    ["a current v4 payload", { [STORAGE_KEY]: JSON.stringify(emptyProgressV4()) }],
+    ["a current v5 payload", { [STORAGE_KEY]: JSON.stringify(emptyProgressV5()) }],
     ["no stored value at all", {}],
   ])(
     "performs zero localStorage writes while rendering: %s (lazy state init must stay pure)",
@@ -140,7 +140,7 @@ describe("ProgressProvider initialization — side effects (Phase 2 Task 5 quali
       });
       expect(calls.setItem).toBe(1);
       expect(calls.removeItem).toBe(0);
-      // The one write that did happen must actually be the migrated v4, not
+      // The one write that did happen must actually be the migrated v5, not
       // a stale/duplicate copy of the original v3 bytes.
       expect(JSON.parse(storage.getItem(STORAGE_KEY) ?? "null").schemaVersion).toBe(5);
       await act(async () => root.unmount());
@@ -166,9 +166,9 @@ describe("ProgressProvider initialization — side effects (Phase 2 Task 5 quali
     container.remove();
   });
 
-  it("persists exactly once on mount for an already-current v4 payload (preserves the existing always-persist-on-mount contract)", async () => {
+  it("persists exactly once on mount for an already-current v5 payload (preserves the existing always-persist-on-mount contract)", async () => {
     const { storage, calls } = instrumentedStorage({
-      [STORAGE_KEY]: JSON.stringify(emptyProgressV4()),
+      [STORAGE_KEY]: JSON.stringify(emptyProgressV5()),
     });
     const container = document.createElement("div");
     document.body.append(container);
