@@ -18,6 +18,7 @@ import { currentLessonRouteRegistry } from "../levels/ownership";
 import { getLessonExercises } from "../components/lessonExerciseModel";
 import { V4_ACTIVITY_MIGRATION_MAP } from "../base/migration/v4ActivityMap";
 import { a1Checkpoint } from "../a1/catalog/checkpoint";
+import { A1_LESSON_IDS } from "../a1/manifest";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -82,9 +83,15 @@ function assertLegacyLoadPreservesBaseAndA1Visits(progress: ReturnType<typeof lo
     expect(progress.levels[level].orphanedLessonRecords["introductions-1"]).toBeUndefined();
   }
 
-  expect(progress.levels.a1.orphanedLessonIds).toContain("sounds-5");
+  expect(progress.levels.a1.orphanedLessonIds).not.toContain("sounds-5");
   expect(progress.levels.a1.lessons["sounds-5"]).toBeUndefined();
-  expect(progress.levels.a0.lessons["sounds-4"]).toBeUndefined();
+  expect(progress.levels.a0.lessons["sounds-4"]).toEqual({
+    visitedAt: LEGACY_LOAD_UPDATED_AT,
+    practicedAt: null,
+    consolidatedAt: null,
+    attemptedExerciseIds: [],
+    acceptedExerciseIds: [],
+  });
 }
 
 describe("ProgressContext V5 legacy load migration", () => {
@@ -130,6 +137,55 @@ describe("ProgressContext V5 legacy load migration", () => {
       schemaVersion: 5,
       updatedAt: LEGACY_LOAD_UPDATED_AT,
     });
+  });
+
+  it.each([
+    [
+      "V1",
+      {
+        schemaVersion: 1,
+        completedLessonIds: A1_LESSON_IDS,
+        lastVisitedLessonId: "time-movement-4",
+        updatedAt: LEGACY_LOAD_UPDATED_AT,
+      },
+    ],
+    [
+      "V2",
+      {
+        schemaVersion: 2,
+        visitedLessonIds: A1_LESSON_IDS,
+        lastVisitedLessonId: "time-movement-4",
+        updatedAt: LEGACY_LOAD_UPDATED_AT,
+      },
+    ],
+  ] as const)("injects every pre-split current ID when loading %s payloads", (_, payload) => {
+    const store = memoryStorage();
+    store.storage.setItem(STORAGE_KEY, JSON.stringify(payload));
+
+    const loaded = loadProgress(store.storage);
+    const { progress } = loaded;
+    const activeLessonIds = [
+      ...Object.keys(progress.levels.a0.lessons),
+      ...Object.keys(progress.levels.a1.lessons),
+    ];
+
+    expect(loaded).toMatchObject({
+      corrupted: false,
+      migrated: true,
+      loadStatus: "migrated",
+    });
+    expect(Object.keys(progress.levels.a0.lessons)).toHaveLength(20);
+    expect(Object.keys(progress.levels.a1.lessons)).toHaveLength(44);
+    expect(activeLessonIds.sort()).toEqual([...A1_LESSON_IDS].sort());
+    expect(progress.levels.a0.lastVisitedLessonId).toBe("time-movement-4");
+    expect(progress.levels.a1.lastVisitedLessonId).not.toBeNull();
+    expect(progress.levels.a1.lessons[progress.levels.a1.lastVisitedLessonId!]).toBeDefined();
+    for (const lessonId of A1_LESSON_IDS) {
+      for (const level of ["a0", "a1", "a2"] as const) {
+        expect(progress.levels[level].orphanedLessonIds).not.toContain(lessonId);
+        expect(progress.levels[level].orphanedLessonRecords[lessonId]).toBeUndefined();
+      }
+    }
   });
 });
 

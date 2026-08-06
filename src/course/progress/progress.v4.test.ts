@@ -4,6 +4,7 @@ import { courseModules as legacyAssembledCourseModules } from "../catalog/assemb
 import { courseModulesByLevel } from "../data/course";
 import { getLessonExercises } from "../components/lessonExerciseModel";
 import { A1_LESSON_IDS } from "../a1/manifest";
+import { V4_REHOMED_LESSON_IDS } from "../base/migration/v4OwnershipMap";
 import {
   A1_V3_LESSON_ID_MAP,
   A1_V3_PUBLISHED_LESSON_IDS,
@@ -111,6 +112,14 @@ function currentCatalogSets(): CatalogSets {
     },
   };
 }
+
+const preSplitA1LessonIds = new Set(A1_LESSON_IDS);
+const rehomedPreSplitLessonIds = new Set<string>(V4_REHOMED_LESSON_IDS);
+const legacyV1V2RuntimeIds = {
+  a0: rehomedPreSplitLessonIds,
+  a1: new Set(A1_LESSON_IDS.filter((lessonId) => !rehomedPreSplitLessonIds.has(lessonId))),
+  a2: new Set<string>(),
+};
 
 function exerciseIds(lessonId: string): string[] {
   const model = getLessonExercises(lessonId);
@@ -946,6 +955,158 @@ describe("v4 catalog v1/v2 → v3 normalization", () => {
 });
 
 describe("parseProgress → CourseProgressV5", () => {
+  describe("V1/V2 pre-split current-id migration", () => {
+    const allPreSplitVisits = [...A1_LESSON_IDS];
+
+    function parseLegacyV1V2(
+      schemaVersion: 1 | 2,
+      visitedLessonIds: readonly string[],
+      lastVisitedLessonId: string | null,
+    ) {
+      const payload = schemaVersion === 1
+        ? {
+            schemaVersion,
+            completedLessonIds: visitedLessonIds,
+            lastVisitedLessonId,
+            updatedAt: T1,
+          }
+        : {
+            schemaVersion,
+            visitedLessonIds,
+            lastVisitedLessonId,
+            updatedAt: T1,
+          };
+      return parseProgress(
+        JSON.stringify(payload),
+        preSplitA1LessonIds,
+        { a0: new Set(), a1: new Set(), a2: new Set() },
+        legacyV1V2RuntimeIds,
+      );
+    }
+
+    it.each([1, 2] as const)(
+      "preserves every injected pre-split current lesson visit from V%s without fabricated evidence",
+      (schemaVersion) => {
+        const parsed = parseLegacyV1V2(schemaVersion, allPreSplitVisits, "time-movement-4");
+        const { progress } = parsed;
+        const activeLessonIds = [
+          ...Object.keys(progress.levels.a0.lessons),
+          ...Object.keys(progress.levels.a1.lessons),
+        ];
+
+        expect(parsed).toMatchObject({ corrupted: false, migrated: true });
+        expect(Object.keys(progress.levels.a0.lessons)).toHaveLength(20);
+        expect(Object.keys(progress.levels.a1.lessons)).toHaveLength(44);
+        expect(activeLessonIds.sort()).toEqual([...A1_LESSON_IDS].sort());
+        expect(Object.keys(progress.levels.a0.lessons).sort()).toEqual(
+          [...V4_REHOMED_LESSON_IDS].sort(),
+        );
+        expect(progress.levels.a0.lastVisitedLessonId).toBe("time-movement-4");
+        expect(progress.levels.a1.lastVisitedLessonId).not.toBeNull();
+        expect(
+          progress.levels.a1.lessons[progress.levels.a1.lastVisitedLessonId!],
+        ).toBeDefined();
+
+        for (const lessonId of A1_LESSON_IDS) {
+          const record =
+            progress.levels.a0.lessons[lessonId] ?? progress.levels.a1.lessons[lessonId];
+          expect(record).toEqual({
+            visitedAt: T1,
+            practicedAt: null,
+            consolidatedAt: null,
+            attemptedExerciseIds: [],
+            acceptedExerciseIds: [],
+          });
+          for (const levelId of ["a0", "a1", "a2"] as const) {
+            expect(progress.levels[levelId].orphanedLessonIds).not.toContain(lessonId);
+            expect(progress.levels[levelId].orphanedLessonRecords[lessonId]).toBeUndefined();
+          }
+        }
+
+        const again = parseLegacyV1V2(schemaVersion, allPreSplitVisits, "time-movement-4");
+        expect(again).toEqual(parsed);
+        expect(parseProgress(JSON.stringify(progress))).toEqual({
+          progress,
+          corrupted: false,
+          migrated: false,
+        });
+      },
+    );
+
+    it.each([1, 2] as const)(
+      "retains reviewed V3 aliases while orphaning orientation and opaque V%s ids",
+      (schemaVersion) => {
+        const parsed = parseLegacyV1V2(
+          schemaVersion,
+          [
+            "sounds-4",
+            "sounds-5",
+            "sounds-5",
+            "capstones-self-introduction",
+            "capstones-everyday-outing",
+            "capstones-travel-day",
+            "capstones-orientation",
+            "opaque-legacy-id",
+          ],
+          "sounds-5",
+        );
+        const { progress } = parsed;
+
+        expect(Object.keys(progress.levels.a0.lessons)).toEqual(["sounds-4"]);
+        expect(Object.keys(progress.levels.a1.lessons).sort()).toEqual([
+          "capstones-1",
+          "capstones-2",
+          "capstones-3",
+        ]);
+        expect(progress.levels.a0.lastVisitedLessonId).toBe("sounds-4");
+        expect(progress.levels.a1.lessons["sounds-5"]).toBeUndefined();
+        expect(progress.levels.a1.orphanedLessonIds).toEqual([
+          "capstones-orientation",
+          "opaque-legacy-id",
+        ]);
+        expect(progress.levels.a1.orphanedLessonRecords).toEqual({});
+        for (const record of [
+          ...Object.values(progress.levels.a0.lessons),
+          ...Object.values(progress.levels.a1.lessons),
+        ]) {
+          expect(record).toEqual({
+            visitedAt: T1,
+            practicedAt: null,
+            consolidatedAt: null,
+            attemptedExerciseIds: [],
+            acceptedExerciseIds: [],
+          });
+        }
+      },
+    );
+
+    it.each([1, 2] as const)(
+      "resolves V%s last-visited pointers without inventing a visit record",
+      (schemaVersion) => {
+        const knownPointer = parseLegacyV1V2(
+          schemaVersion,
+          ["introductions-1"],
+          "time-movement-4",
+        ).progress;
+        expect(knownPointer.levels.a0.lastVisitedLessonId).toBe("time-movement-4");
+        expect(knownPointer.levels.a0.lessons["time-movement-4"]).toBeUndefined();
+        expect(knownPointer.levels.a1.lessons["introductions-1"]?.visitedAt).toBe(T1);
+
+        const unknownPointer = parseLegacyV1V2(
+          schemaVersion,
+          ["introductions-1"],
+          "opaque-last-visited-id",
+        ).progress;
+        expect(unknownPointer.levels.a0.lastVisitedLessonId).toBeNull();
+        expect(unknownPointer.levels.a1.lastVisitedLessonId).toBeNull();
+        expect(unknownPointer.levels.a1.orphanedLessonIds).toEqual([
+          "opaque-last-visited-id",
+        ]);
+        expect(unknownPointer.levels.a1.orphanedLessonRecords).toEqual({});
+      },
+    );
+  });
+
   it("treats null storage content as empty V5 progress", () => {
     expect(parseProgress(null)).toEqual({
       progress: emptyProgressV5(),

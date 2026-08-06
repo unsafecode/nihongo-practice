@@ -151,7 +151,9 @@ const a2LessonToCanDoId = new Map(
 const a0KnownLessonIds = new Set(lessonIdsForLevel("a0"));
 const a1KnownLessonIds = new Set(lessonIdsForLevel("a1"));
 const a2KnownLessonIds = new Set(lessonIdsForLevel("a2"));
-const legacyV1V2KnownLessonIds = new Set(A1_LESSON_IDS);
+// The exact pre-split A1 source catalog for V1/V2 migration. This deliberately
+// excludes all new Base-only ids; current level ownership remains below.
+const preSplitA1LessonIds = new Set(A1_LESSON_IDS);
 
 function checkpointWithRuntimeSample(
   checkpoint: CheckpointDefinition,
@@ -548,12 +550,12 @@ interface PreparedProgress {
  */
 export function prepareProgress(storage: Storage | null): PreparedProgress {
   const stored = readSetting(storage, STORAGE_KEY);
-  // V1/V2 payloads predate the Base/A1 split and could contain every
-  // historically published A1 id. Keep that legacy parse set wider than the
-  // retained A1 runtime, while V5 reconciliation below remains level-scoped.
+  // V1/V2 payloads may contain all exact pre-split A1 ids. Keep that source
+  // set distinct from the current retained-A1 runtime; V5 reconciliation
+  // remains level-scoped.
   const parsed = parseProgress(
     stored.value,
-    legacyV1V2KnownLessonIds,
+    preSplitA1LessonIds,
     KNOWN_REVIEW_KEYS_BY_LEVEL,
     KNOWN_LESSON_IDS_BY_LEVEL,
   );

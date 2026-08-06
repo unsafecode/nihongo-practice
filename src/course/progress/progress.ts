@@ -148,14 +148,14 @@ export interface LevelProgress {
 }
 
 /**
- * Records that a schema-v3→schema-v4 migration happened and exactly what it did, so the UI
- * can show a truthful, dismissible one-time notice (design spec §17, Phase 2
- * Task 5 step 5). `acknowledgedAt` starts `null` and is set once the learner
- * dismisses the notice — acknowledging never deletes this record, so the
- * "what changed" explanation can stay available in progress help.
+ * Records that a legacy schema→schema-v4 migration happened and exactly what
+ * it did, so the UI can show a truthful, dismissible one-time notice.
+ * `acknowledgedAt` starts `null` and is set once the learner dismisses the
+ * notice — acknowledging never deletes this record, so the "what changed"
+ * explanation can stay available in progress help.
  */
 export interface ProgressMigrationNotice {
-  readonly fromSchemaVersion: 3 | 4;
+  readonly fromSchemaVersion: 2 | 3 | 4;
   readonly preservedVisitedLessonIds?: readonly LessonId[];
   readonly resetEvidenceLessonIds?: readonly LessonId[];
   readonly acknowledgedAt: string | null;
@@ -574,7 +574,8 @@ function isProgressMigrationNotice(
   if (typeof value !== "object") return false;
   const notice = value as Partial<ProgressMigrationNotice>;
   return (
-    notice.fromSchemaVersion === 3 &&
+    (notice.fromSchemaVersion === 2 ||
+      notice.fromSchemaVersion === 3) &&
     isStringArray(notice.preservedVisitedLessonIds) &&
     isStringArray(notice.resetEvidenceLessonIds) &&
     isOptionalString(notice.acknowledgedAt ?? null)
@@ -1579,13 +1580,101 @@ export function migrateV2ToV3(
 }
 
 /**
+ * Runtime catalog inputs for a V1/V2 migration. `preSplitA1LessonIds` is
+ * specifically the exact 64-id A1 catalog that shipped immediately before
+ * Base split out; it is not the current retained-A1 set and must not include
+ * new Base-only lesson ids.
+ */
+export interface V1V2MigrationRuntimeIds extends V5MigrationRuntimeIds {
+  readonly preSplitA1LessonIds?: ReadonlySet<string>;
+}
+
+function v1V2DestinationLessonId(
+  lessonId: string,
+  preSplitA1LessonIds: ReadonlySet<string> | undefined,
+): string | null {
+  // The pre-split source catalog is newer than schema V3. Its stable ids must
+  // be retained as-is before considering the older V3 alias map.
+  if (preSplitA1LessonIds?.has(lessonId)) return lessonId;
+  return A1_V3_LESSON_ID_MAP[lessonId] ?? null;
+}
+
+/**
+ * Migrates a visited-only V2 snapshot directly to current V5 ownership.
+ *
+ * V1/V2 could contain either the pre-split 64-id catalog or older published
+ * V3 aliases. A synthetic V4 keeps those two source eras distinct, then
+ * delegates the reviewed ownership move to `migrateV4ToV5`. No practice,
+ * consolidation, attempts, or acceptance evidence is fabricated.
+ */
+export function migrateV2ToV5(
+  progress: CourseProgressV2,
+  runtimeIds: V1V2MigrationRuntimeIds = {},
+): CourseProgressV5 {
+  const lessons: Record<string, LessonProgress> = {};
+  const preservedVisitedLessonIds: string[] = [];
+  const orphanedLessonIds: string[] = [];
+
+  for (const sourceLessonId of dedupeInEncounterOrder(progress.visitedLessonIds)) {
+    const destinationLessonId = v1V2DestinationLessonId(
+      sourceLessonId,
+      runtimeIds.preSplitA1LessonIds,
+    );
+    if (destinationLessonId === null) {
+      orphanedLessonIds.push(sourceLessonId);
+      continue;
+    }
+    if (Object.prototype.hasOwnProperty.call(lessons, destinationLessonId)) continue;
+    lessons[destinationLessonId] = lessonVisit(progress.updatedAt);
+    preservedVisitedLessonIds.push(destinationLessonId);
+  }
+
+  const lastVisitedLessonId =
+    progress.lastVisitedLessonId === null
+      ? null
+      : v1V2DestinationLessonId(
+          progress.lastVisitedLessonId,
+          runtimeIds.preSplitA1LessonIds,
+        );
+  if (progress.lastVisitedLessonId !== null && lastVisitedLessonId === null) {
+    orphanedLessonIds.push(progress.lastVisitedLessonId);
+  }
+
+  const empty = emptyProgressV4();
+  const syntheticV4: CourseProgressV4 = {
+    ...empty,
+    levels: {
+      a1: {
+        ...empty.levels.a1,
+        lessons,
+        lastVisitedLessonId,
+        orphanedLessonIds: dedupeInEncounterOrder(orphanedLessonIds),
+      },
+      a2: empty.levels.a2,
+    },
+    migrationNotice: {
+      fromSchemaVersion: 2,
+      preservedVisitedLessonIds,
+      resetEvidenceLessonIds: [],
+      acknowledgedAt: null,
+    },
+    updatedAt: progress.updatedAt,
+  };
+
+  return migrateV4ToV5(syntheticV4, runtimeIds);
+}
+
+/**
  * Parses raw stored text into current-schema (v5) progress.
  * Explicit, non-throwing behavior for every payload shape:
  * - `null` (nothing stored yet) -> empty v5 progress, not corrupted.
  * - valid current schema-v5 -> passed through unchanged, by direct reference when its
  *   runtime catalog reconciliation is already current.
  * - valid schema-v4 catalog revisions -> normalized, then migrated losslessly to v5.
- * - valid v3/v2/v1 -> continue their existing chain to v4, then migrate to v5.
+ * - valid v3 -> continues through its historical V3→V4 path to V5.
+ * - valid v1/v2 -> uses the version-specific pre-split/older-alias path to V5.
+ *   Its optional `preSplitA1LessonIds` is only the exact pre-split 64-id
+ *   source catalog; omitting it remains fail-closed for unreviewed ids.
  * - malformed JSON, malformed v1/v2/v3/v4/v5 shape, missing schemaVersion, or a
  *   future/unknown schemaVersion -> empty v5 progress, corrupted: true.
  * No genuine unversioned (pre-schemaVersion) payload has ever shipped from
@@ -1594,7 +1683,7 @@ export function migrateV2ToV3(
  */
 export function parseProgress(
   raw: string | null,
-  knownLessonIds?: ReadonlySet<string>,
+  preSplitA1LessonIds?: ReadonlySet<string>,
   knownReviewKeysByLevel?: KnownReviewKeysByLevel,
   knownLessonIdsByLevel?: KnownLessonIdsByLevel,
 ): ProgressParseResult {
@@ -1658,15 +1747,11 @@ export function parseProgress(
       return isValidV2Shape(candidate)
         ? {
             progress: migrateV5Catalog(
-              migrateV4ToV5(
-                migrateV3ToV4(
-                  migrateV2ToV3(
-                    candidate,
-                    knownLessonIds ?? new Set(candidate.visitedLessonIds),
-                  ),
-                ),
-                { knownLessonIdsByLevel, knownReviewKeysByLevel },
-              ),
+              migrateV2ToV5(candidate, {
+                preSplitA1LessonIds,
+                knownLessonIdsByLevel,
+                knownReviewKeysByLevel,
+              }),
               knownReviewKeysByLevel,
               knownLessonIdsByLevel,
             ),
@@ -1683,12 +1768,11 @@ export function parseProgress(
       const v2 = migrateV1ToV2(candidate);
       return {
         progress: migrateV5Catalog(
-          migrateV4ToV5(
-            migrateV3ToV4(
-              migrateV2ToV3(v2, knownLessonIds ?? new Set(v2.visitedLessonIds)),
-            ),
-            { knownLessonIdsByLevel, knownReviewKeysByLevel },
-          ),
+          migrateV2ToV5(v2, {
+            preSplitA1LessonIds,
+            knownLessonIdsByLevel,
+            knownReviewKeysByLevel,
+          }),
           knownReviewKeysByLevel,
           knownLessonIdsByLevel,
         ),

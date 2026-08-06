@@ -231,7 +231,7 @@ describe("course progress schema v3", () => {
           lastVisitedLessonId: "sounds-1",
           updatedAt: "2026-07-13T10:00:00.000Z",
         }),
-        new Set(["sounds-1", "sounds-core", "sounds-special"]),
+        undefined,
     );
     expect(parsed).toMatchObject({
       corrupted: false,
@@ -254,14 +254,14 @@ describe("course progress schema v3", () => {
           },
           a1: {
             lessons: {},
-            orphanedLessonIds: ["removed-id", "sounds-core"],
+            orphanedLessonIds: ["sounds-core", "removed-id"],
           },
         },
         migrationNotice: {
           fromSchemaVersion: 4,
           movedLessonIds: ["sounds-1"],
           priorNotice: {
-            fromSchemaVersion: 3,
+            fromSchemaVersion: 2,
             preservedVisitedLessonIds: ["sounds-1"],
             resetEvidenceLessonIds: [],
             acknowledgedAt: null,
@@ -350,7 +350,7 @@ describe("course progress v3 — retired v2.1 lesson ids: orphan-safe, route-ali
         lastVisitedLessonId: retired,
         updatedAt: "2026-07-15T10:00:00.000Z",
       }),
-      realKnownLessonIds,
+      undefined,
     );
     expect(parsed.migrated).toBe(true);
     expect(parsed.progress.levels.a1.lessons).toEqual({});
@@ -358,9 +358,9 @@ describe("course progress v3 — retired v2.1 lesson ids: orphan-safe, route-ali
       retired,
       "genuinely-unknown-id",
     ]);
-    // The continuation pointer remains valid evidence even though this retired
-    // id has no active lesson record; no visit record is fabricated.
-    expect(parsed.progress.levels.a1.lastVisitedLessonId).toBe(retired);
+    // Unknown V1/V2 pointers fail closed: the orphan notice retains the id,
+    // but no dangling active-level continuation pointer is fabricated.
+    expect(parsed.progress.levels.a1.lastVisitedLessonId).toBeNull();
     expect(
       LEGACY_LESSON_ALIASES.some((alias) => alias.legacyLessonId === retired),
     ).toBe(true);
