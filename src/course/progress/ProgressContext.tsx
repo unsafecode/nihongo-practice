@@ -151,6 +151,34 @@ const a0KnownLessonIds = new Set(lessonIdsForLevel("a0"));
 const a1KnownLessonIds = new Set(lessonIdsForLevel("a1"));
 const a2KnownLessonIds = new Set(lessonIdsForLevel("a2"));
 
+function checkpointWithRuntimeSample(
+  checkpoint: CheckpointDefinition,
+  allowedCanDoIds: ReadonlySet<string>,
+): CheckpointDefinition {
+  const sampledCanDoIds = checkpoint.sampledCanDoIds.filter((id) =>
+    allowedCanDoIds.has(id),
+  );
+  if (sampledCanDoIds.length === 0) {
+    throw new Error(`checkpoint "${checkpoint.id}" has no runtime-owned sampled Can-dos`);
+  }
+  for (const canDoId of sampledCanDoIds) {
+    if (!allowedCanDoIds.has(canDoId)) {
+      throw new Error(
+        `checkpoint "${checkpoint.id}" samples non-runtime Can-do "${canDoId}"`,
+      );
+    }
+  }
+  return Object.freeze({
+    ...checkpoint,
+    sampledCanDoIds: Object.freeze([...sampledCanDoIds]),
+  });
+}
+
+const a1CheckpointRuntime = checkpointWithRuntimeSample(
+  a1Checkpoint,
+  new Set(a1LessonToCanDoId.values()),
+);
+
 export const LEVEL_RUNTIME: Readonly<Record<CourseLevelId, LevelRuntime>> = {
   a0: {
     level: "a0",
@@ -168,7 +196,7 @@ export const LEVEL_RUNTIME: Readonly<Record<CourseLevelId, LevelRuntime>> = {
     knownReviewKeys: knownReviewKeysFor("a1", a1KnownLessonIds),
     lessonToCanDoId: a1LessonToCanDoId,
     moduleOutline: moduleOutlineFor(A1_RETAINED_MODULE_IDS, A1_RETAINED_LESSON_IDS_BY_MODULE),
-    checkpoint: a1Checkpoint,
+    checkpoint: a1CheckpointRuntime,
     checkpointAttemptId: A1_CHECKPOINT_ID,
     checkpointScenarioLessonIds: A1_CHECKPOINT_SCENARIO_LESSON_IDS,
   },

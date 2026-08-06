@@ -6,14 +6,17 @@ import { describe, expect, it } from "vitest";
 import {
   ProgressProvider,
   LEVEL_RUNTIME,
+  STORAGE_KEY,
   loadProgress,
   runtimeForLesson,
   useProgress,
   type ProgressContextValue,
 } from "./ProgressContext";
+import { emptyProgressV4 } from "./progress";
 import { currentLessonRouteRegistry } from "../levels/ownership";
 import { getLessonExercises } from "../components/lessonExerciseModel";
 import { V4_ACTIVITY_MIGRATION_MAP } from "../base/migration/v4ActivityMap";
+import { a1Checkpoint } from "../a1/catalog/checkpoint";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -192,6 +195,104 @@ describe("ProgressContext V5 canonical ownership", () => {
     ]);
     for (const activity of V4_ACTIVITY_MIGRATION_MAP) {
       expect(LEVEL_RUNTIME.a0.knownReviewKeys.has(`${activity.destinationLessonId}:${activity.destinationActivityId}`)).toBe(false);
+    }
+  });
+
+  it("records retained A1 checkpoint evidence without Base-owned Can-dos while preserving historical attempts", async () => {
+    const retainedA1CanDoIds = new Set(LEVEL_RUNTIME.a1.lessonToCanDoId.values());
+    const retainedSampledCanDoIds = a1Checkpoint.sampledCanDoIds.filter((id) =>
+      retainedA1CanDoIds.has(id),
+    );
+    const baseOwnedSampledCanDoIds = a1Checkpoint.sampledCanDoIds.filter(
+      (id) => !retainedA1CanDoIds.has(id),
+    );
+    expect(retainedSampledCanDoIds.length).toBeGreaterThan(0);
+    expect(baseOwnedSampledCanDoIds.length).toBeGreaterThan(0);
+
+    const historicalAttempt = {
+      id: "legacy-a1-checkpoint-attempt",
+      checkpointId: a1Checkpoint.id,
+      attemptedAt: "2026-08-06T00:00:00.000Z",
+      acceptedExerciseIds: ["legacy-a1-exercise"],
+      sampledCanDoIds: [...a1Checkpoint.sampledCanDoIds],
+    };
+    const historicalStore = memoryStorage();
+    const v4 = emptyProgressV4();
+    historicalStore.storage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        ...v4,
+        levels: {
+          ...v4.levels,
+          a1: {
+            ...v4.levels.a1,
+            checkpointAttempts: [historicalAttempt],
+          },
+        },
+      }),
+    );
+    expect(loadProgress(historicalStore.storage).progress.levels.a1.checkpointAttempts[0]).toEqual(
+      historicalAttempt,
+    );
+
+    const original = Object.getOwnPropertyDescriptor(window, "localStorage");
+    const store = memoryStorage();
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: store.storage,
+    });
+    const container = document.createElement("div");
+    document.body.append(container);
+    let latest: ProgressContextValue | undefined;
+    const root = createRoot(container);
+
+    try {
+      await act(async () => {
+        root.render(
+          createElement(
+            ProgressProvider,
+            null,
+            createElement(Consumer, { onValue: (value) => (latest = value) }),
+          ),
+        );
+      });
+      if (!latest) throw new Error("provider did not render");
+
+      for (const lessonId of LEVEL_RUNTIME.a1.checkpointScenarioLessonIds) {
+        const exercises = getLessonExercises(lessonId)?.exercises ?? [];
+        expect(exercises.length).toBeGreaterThan(0);
+        for (const exercise of exercises) {
+          await act(async () =>
+            latest?.recordAttempt({
+              lessonId,
+              exerciseDefinitionId: exercise.definitionId,
+              outcome: "accepted",
+              targetConceptIds: exercise.prompt.assessedConceptIds,
+              targetLexemeIds: exercise.prompt.assessedLexemeIds,
+            }),
+          );
+        }
+        expect(latest.progressV5.levels.a1.lessons[lessonId]?.consolidatedAt).not.toBeNull();
+      }
+
+      const attempts = latest.progressV5.levels.a1.checkpointAttempts;
+      expect(attempts).toHaveLength(1);
+      const [attempt] = attempts;
+      expect(attempt!.sampledCanDoIds).toEqual(retainedSampledCanDoIds);
+      for (const canDoId of baseOwnedSampledCanDoIds) {
+        expect(attempt!.sampledCanDoIds).not.toContain(canDoId);
+        expect(latest.progressV5.levels.a1.canDos[canDoId]).toBeUndefined();
+      }
+      for (const canDoId of retainedSampledCanDoIds) {
+        expect(latest.progressV5.levels.a1.canDos[canDoId]?.checkpointAttemptIds).toContain(
+          attempt!.id,
+        );
+      }
+    } finally {
+      await act(async () => root.unmount());
+      container.remove();
+      if (original) Object.defineProperty(window, "localStorage", original);
+      else delete (window as { localStorage?: Storage }).localStorage;
     }
   });
 

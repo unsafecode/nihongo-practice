@@ -3,7 +3,13 @@
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it } from "vitest";
-import { ProgressProvider, STORAGE_KEY, useProgress, type ProgressContextValue } from "./ProgressContext";
+import {
+  LEVEL_RUNTIME,
+  ProgressProvider,
+  STORAGE_KEY,
+  useProgress,
+  type ProgressContextValue,
+} from "./ProgressContext";
 import { getLessonExercises } from "../components/lessonExerciseModel";
 import { a1Checkpoint, A1_CHECKPOINT_SCENARIO_LESSON_IDS } from "../a1/catalog/checkpoint";
 
@@ -184,7 +190,7 @@ describe("ProgressContext V5 exposure", () => {
     });
   });
 
-  it("records exactly one idempotent checkpoint attempt once all four capstone lessons are consolidated, sampling every taught Can-do honestly", async () => {
+  it("records exactly one idempotent checkpoint attempt once all four capstone lessons are consolidated, sampling retained A1 Can-dos honestly", async () => {
     await withMountedProvider({}, async (get) => {
       expect(A1_CHECKPOINT_SCENARIO_LESSON_IDS.length).toBe(4);
       for (const lessonId of A1_CHECKPOINT_SCENARIO_LESSON_IDS) {
@@ -196,7 +202,7 @@ describe("ProgressContext V5 exposure", () => {
       const attempt = get().checkpointAttempts[0]!;
       expect(attempt.checkpointId).toBe(a1Checkpoint.id);
       expect([...attempt.sampledCanDoIds].sort()).toEqual(
-        [...a1Checkpoint.sampledCanDoIds].sort(),
+        [...LEVEL_RUNTIME.a1.checkpoint.sampledCanDoIds].sort(),
       );
       const expectedAccepted = A1_CHECKPOINT_SCENARIO_LESSON_IDS.flatMap(
         (lessonId) => get().progress.lessons[lessonId]!.acceptedExerciseIds,
