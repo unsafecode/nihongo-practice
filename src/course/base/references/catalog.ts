@@ -325,6 +325,7 @@ function reference(
 }
 
 const FORM_COLUMN = column("form", "Form", "Forma");
+const STEM_COLUMN = column("stem", "Polite stem", "Tema cortese");
 const AFFIRMATIVE_COLUMN = column("affirmative", "Affirmative", "Affermativa");
 const NEGATIVE_COLUMN = column("negative", "Negative", "Negativa");
 const PAST_AFFIRMATIVE_COLUMN = column(
@@ -702,7 +703,7 @@ const VERB_ENTRIES = [
     ["The する class has an explicit stem.", "La classe する ha un tema esplicito."],
     [
       cell("verb-class-suru", "form", "Dictionary", "Dizionario", SURU_DICTIONARY),
-      cell("verb-stem-suru", "form", "Polite stem", "Tema cortese", SURU_POLITE_STEM),
+      cell("verb-stem-suru", "stem", "Polite stem", "Tema cortese", SURU_POLITE_STEM),
     ],
     ["base-verb-dictionary-form"],
   ),
@@ -713,7 +714,7 @@ const VERB_ENTRIES = [
     ["The くる class has an explicit stem.", "La classe くる ha un tema esplicito."],
     [
       cell("verb-class-kuru", "form", "Dictionary", "Dizionario", KURU_DICTIONARY),
-      cell("verb-stem-kuru", "form", "Polite stem", "Tema cortese", KURU_POLITE_STEM),
+      cell("verb-stem-kuru", "stem", "Polite stem", "Tema cortese", KURU_POLITE_STEM),
     ],
     ["base-verb-dictionary-form"],
     ["base-verb-class-suru"],
@@ -963,7 +964,7 @@ export const BASE_REFERENCE_CATALOG: BaseReferenceCatalog = deepFreeze([
       "Recognize the class before reading its generated forms.",
       "Riconosci la classe prima di leggere le forme generate.",
     ],
-    [FORM_COLUMN, ...POLITE_COLUMNS],
+    [FORM_COLUMN, STEM_COLUMN, ...POLITE_COLUMNS],
     VERB_ENTRIES,
   ),
   reference(
@@ -1614,7 +1615,19 @@ function computeBaseReferenceCatalogInspection(
           );
         }
       }
+      const seenColumnIds = new Set<string>();
       for (const canonicalCell of entry.canonicalFormCells) {
+        if (seenColumnIds.has(canonicalCell.columnId)) {
+          errors.push(
+            validationError(
+              "invalid-cell-reference",
+              reference.id,
+              entry.semanticId,
+              canonicalCell.columnId,
+            ),
+          );
+        }
+        seenColumnIds.add(canonicalCell.columnId);
         if (!formatRomaji(canonicalCell.tokens).ok) {
           errors.push(
             validationError(

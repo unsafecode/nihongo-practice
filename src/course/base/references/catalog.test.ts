@@ -85,6 +85,31 @@ describe("Base reference catalog", () => {
       cellsFor("base-verb-class-suru").find(({ id }) => id === "verb-stem-suru")
         ?.sourceContentIds,
     ).toContain("polite-stems");
+    for (const semanticId of [
+      "base-verb-class-suru",
+      "base-verb-class-kuru",
+    ]) {
+      const irregularCells = cellsFor(semanticId);
+      const lemmaId =
+        semanticId === "base-verb-class-suru" ? "verb-suru" : "verb-kuru";
+      const irregularDictionary = realizeVerbDictionary(lemmaId);
+      const irregularStem = realizePoliteStem(lemmaId);
+      expect(irregularDictionary.ok && irregularStem.ok).toBe(true);
+      if (!irregularDictionary.ok || !irregularStem.ok) continue;
+      expect(irregularCells.map(({ columnId }) => columnId)).toEqual([
+        "form",
+        "stem",
+      ]);
+      expect(irregularCells.map(({ tokens }) => tokens)).toEqual([
+        irregularDictionary.value,
+        irregularStem.value,
+      ]);
+      expect(
+        referenceById["verb-classes-conjugation"].entries.find(
+          (entry) => entry.semanticId === semanticId,
+        )?.firstTeachLessonId,
+      ).toBe("polite-verbs-3");
+    }
     const sequential = cellsFor("base-verb-sequential-te")[0];
     expect(sequential?.sourceContentIds).toContain("sequential-te");
     expect(sequential?.sourceContentIds).not.toContain("te-allomorphy");
@@ -155,6 +180,30 @@ describe("Base reference catalog", () => {
       }
     }
     expect(validateBaseReferenceCatalog(BASE_REFERENCE_CATALOG)).toEqual([]);
+  });
+
+  it("publishes unique column IDs within every semantic row", () => {
+    for (const reference of BASE_REFERENCE_CATALOG) {
+      for (const entry of reference.entries) {
+        const columnIds = entry.canonicalFormCells.map(({ columnId }) => columnId);
+        expect(new Set(columnIds).size).toBe(columnIds.length);
+      }
+    }
+
+    const catalog = mutableCatalog();
+    const suru = catalog
+      .find(({ id }) => id === "verb-classes-conjugation")!
+      .entries.find(({ semanticId }) => semanticId === "base-verb-class-suru")!;
+    const cells = suru.canonicalFormCells as unknown as { columnId: string }[];
+    cells[1].columnId = cells[0].columnId;
+    expect(validateBaseReferenceCatalog(catalog)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "invalid-cell-reference",
+          semanticId: "base-verb-class-suru",
+        }),
+      ]),
+    );
   });
 
   it("returns a deeply immutable sanitized catalog snapshot", () => {
