@@ -194,6 +194,9 @@ describe("Base reference catalog", () => {
 
   it("publishes formatter-valid tokens for every cell and example", () => {
     for (const reference of BASE_REFERENCE_CATALOG) {
+      for (const publishedCell of reference.cells) {
+        expect(formatRomaji(publishedCell.tokens)).toMatchObject({ ok: true });
+      }
       for (const entry of reference.entries) {
         for (const formCell of entry.canonicalFormCells) {
           expect(formatRomaji(formCell.tokens)).toMatchObject({ ok: true });
@@ -234,6 +237,86 @@ describe("Base reference catalog", () => {
         expect.objectContaining({ code: "invalid-token-sequence" }),
       ]),
     );
+  });
+
+  it("rejects forged same-ID top-level cells by format and deep semantics", () => {
+    type MutableCell = {
+      id: string;
+      columnId: string;
+      copy: {
+        en: { label: string; explanation: string };
+        it: { label: string; explanation: string };
+      };
+      tokens: {
+        id: string;
+        jp: string;
+        romaji: string;
+        kind: "lexical" | "particle" | "morpheme" | "punctuation";
+        boundaryBefore: "attach" | "space";
+        source: { domain: "catalog"; referenceId: string };
+        reading?: string;
+      }[];
+      sourceContentIds: string[];
+      desuFunction?: "politeness-marker" | "copula";
+    };
+    const forgedCatalog = (
+      mutate: (cell: MutableCell) => void,
+      cellIndex = 0,
+    ) => {
+      const catalog = mutableCatalog();
+      const publishedCells = catalog[0].cells as unknown as MutableCell[];
+      const forged = structuredClone(publishedCells[cellIndex]);
+      mutate(forged);
+      publishedCells[cellIndex] = forged;
+      return catalog;
+    };
+
+    for (const catalog of [
+      forgedCatalog((cell) => {
+        cell.tokens[0].boundaryBefore = "space";
+      }),
+      forgedCatalog((cell) => {
+        cell.tokens[0].romaji = "";
+      }),
+      forgedCatalog((cell) => {
+        cell.tokens[0].jp = "";
+      }),
+    ]) {
+      expect(validateBaseReferenceCatalog(catalog)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "invalid-token-sequence" }),
+        ]),
+      );
+    }
+
+    const predicateCellIndex = BASE_REFERENCE_CATALOG[0].cells.findIndex(
+      ({ desuFunction }) => desuFunction !== undefined,
+    );
+    for (const catalog of [
+      forgedCatalog((cell) => {
+        cell.columnId = "topic";
+      }),
+      forgedCatalog((cell) => {
+        cell.tokens[0].jp = "せんせい";
+        cell.tokens[0].romaji = "sensei";
+      }),
+      forgedCatalog((cell) => {
+        cell.sourceContentIds = ["noun-sensei"];
+      }),
+      forgedCatalog((cell) => {
+        cell.copy.en.label = "Forged label";
+      }),
+      forgedCatalog((cell) => {
+        cell.desuFunction =
+          cell.desuFunction === "copula" ? "politeness-marker" : "copula";
+      }, predicateCellIndex),
+    ]) {
+      expect(validateBaseReferenceCatalog(catalog)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "invalid-cell-reference" }),
+        ]),
+      );
+    }
   });
 
   it("stores and validates cell provenance against canonical owner registries", () => {

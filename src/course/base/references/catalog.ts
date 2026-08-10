@@ -1264,6 +1264,39 @@ function strictExample(value: unknown): BaseReferenceExample | undefined {
   return { id, firstTeachLessonId, sourceContentIds, tokens };
 }
 
+function canonicalCellFingerprint(
+  cell: BaseReferenceCanonicalCell,
+): string {
+  return JSON.stringify({
+    id: cell.id,
+    columnId: cell.columnId,
+    copy: {
+      en: {
+        label: cell.copy.en.label,
+        explanation: cell.copy.en.explanation,
+      },
+      it: {
+        label: cell.copy.it.label,
+        explanation: cell.copy.it.explanation,
+      },
+    },
+    tokens: cell.tokens.map((token) => ({
+      id: token.id,
+      jp: token.jp,
+      romaji: token.romaji,
+      kind: token.kind,
+      boundaryBefore: token.boundaryBefore,
+      source: {
+        domain: token.source.domain,
+        referenceId: token.source.referenceId,
+      },
+      reading: token.reading ?? null,
+    })),
+    sourceContentIds: [...cell.sourceContentIds],
+    desuFunction: cell.desuFunction ?? null,
+  });
+}
+
 function validationError(
   code: BaseReferenceCatalogValidationErrorCode,
   referenceId = "unknown-reference",
@@ -1670,9 +1703,27 @@ export function validateBaseReferenceCatalog(
         }
       }
     }
+    for (const publishedCell of reference.cells) {
+      if (!formatRomaji(publishedCell.tokens).ok) {
+        errors.push(
+          validationError(
+            "invalid-token-sequence",
+            reference.id,
+            undefined,
+            publishedCell.id,
+          ),
+        );
+      }
+    }
     if (
       reference.cells.length !== expectedCells.length ||
-      reference.cells.some((value, index) => value.id !== expectedCells[index]?.id)
+      reference.cells.some((value, index) => {
+        const expected = expectedCells[index];
+        return (
+          expected === undefined ||
+          canonicalCellFingerprint(value) !== canonicalCellFingerprint(expected)
+        );
+      })
     ) {
       errors.push(validationError("invalid-cell-reference", reference.id));
     }
