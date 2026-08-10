@@ -132,7 +132,7 @@ export function CourseHome(): ReactElement {
   if (model.visitedLessonCount > 0) primaryLabel = copy.home.continue;
   if (model.allVisited) primaryLabel = copy.home.review;
 
-  const canReset = visitedIds.length > 0 || lastVisitedLessonId !== null;
+  const canReset = evidence[level];
 
   const resetProgress = () => {
     if (window.confirm(copy.courseLevels.resetLevelConfirm(levelLabel)))
@@ -235,28 +235,28 @@ export function CourseHome(): ReactElement {
 
       <CourseMap model={model} />
 
-      {descriptorUnavailable ? (
-        <Notice
-          tone="warning"
-          title={copy.courseLevels.descriptorUnavailableTitle}
-          body={copy.courseLevels.descriptorUnavailableBody}
-        />
-      ) : (
-        <section
-          id="can-do-summary"
-          className="can-do-summary"
-          aria-labelledby="can-do-summary-heading"
-          tabIndex={-1}
-        >
-          <h2 id="can-do-summary-heading" className="can-do-summary__heading">
-            {copy.canDoSummary.heading}
-          </h2>
-          <p className="can-do-summary__count" role="status">
-            {copy.canDoSummary.demonstratedCount(
-              canDoSummary.demonstratedCount,
-              canDoSummary.totalCount,
-            )}
-          </p>
+      <section
+        id="can-do-summary"
+        className="can-do-summary"
+        aria-labelledby="can-do-summary-heading"
+        tabIndex={-1}
+      >
+        <h2 id="can-do-summary-heading" className="can-do-summary__heading">
+          {copy.canDoSummary.heading}
+        </h2>
+        <p className="can-do-summary__count" role="status">
+          {copy.canDoSummary.demonstratedCount(
+            canDoSummary.demonstratedCount,
+            canDoSummary.totalCount,
+          )}
+        </p>
+        {descriptorUnavailable ? (
+          <Notice
+            tone="warning"
+            title={copy.courseLevels.descriptorUnavailableTitle}
+            body={copy.courseLevels.descriptorUnavailableBody}
+          />
+        ) : (
           <ul className="can-do-summary__list">
             {canDoItems.map(({ item, descriptor }) => {
               const glyph = CAN_DO_TIER_GLYPH[item.tier];
@@ -285,8 +285,8 @@ export function CourseHome(): ReactElement {
               );
             })}
           </ul>
-        </section>
-      )}
+        )}
+      </section>
 
       <CheckpointState
         heading={checkpointHeading}

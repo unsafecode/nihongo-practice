@@ -19,6 +19,7 @@ import {
   type CheckpointAttempt,
   type CourseProgressV3,
   type BaseOwnershipMigrationNotice,
+  type LevelProgressV5,
 } from "../progress/progress";
 import {
   ProgressContext,
@@ -401,6 +402,96 @@ describe("CourseHome: destructive, confirmed, level-scoped reset (ISSUE 3)", () 
         progress: progressWithVisited([firstLesson.id]),
       }),
     );
+    expect(html).toMatch(/class="action action--destructive[^"]*">Azzera i progressi di A1</);
+    expect(html).not.toMatch(
+      /class="action action--destructive[^"]*" disabled=""/,
+    );
+  });
+
+  function progressWithA1Evidence(
+    mutate: (level: LevelProgressV5) => LevelProgressV5,
+  ) {
+    const progress = emptyProgressV5();
+    return {
+      ...progress,
+      levels: {
+        ...progress.levels,
+        a1: mutate(progress.levels.a1),
+      },
+    };
+  }
+
+  it.each([
+    ["Can-do record", (level: LevelProgressV5): LevelProgressV5 => ({
+      ...level,
+      canDos: {
+        "a1-can-do-identity": {
+          canDoId: "a1-can-do-identity",
+          visitedLessonIds: [],
+          practicedLessonIds: [],
+          acceptedTransferExerciseIds: [],
+          checkpointAttemptIds: [],
+          historicalCheckpointRefs: [],
+          lastUpdatedAt: "2026-08-10T00:00:00.000Z",
+        },
+      },
+    })],
+    ["checkpoint attempt", (level: LevelProgressV5): LevelProgressV5 => ({
+      ...level,
+      checkpointAttempts: [{
+        id: "a1-checkpoint-attempt-1",
+        checkpointId: "a1-checkpoint",
+        attemptedAt: "2026-08-10T00:00:00.000Z",
+        acceptedExerciseIds: [],
+        sampledCanDoIds: [],
+      }],
+    })],
+    ["active review", (level: LevelProgressV5): LevelProgressV5 => ({
+      ...level,
+      reviewQueue: [{
+        reviewKey: "introductions-1:introductions-1-x1",
+        lessonId: "introductions-1",
+        exerciseDefinitionId: "introductions-1-x1",
+        targetConceptIds: [],
+        targetLexemeIds: [],
+        mistakeCount: 1,
+        lastMistakeAt: "2026-08-10T00:00:00.000Z",
+      }],
+    })],
+    ["orphan lesson record and ID", (level: LevelProgressV5): LevelProgressV5 => ({
+      ...level,
+      orphanedLessonIds: ["retired-a1-lesson"],
+      orphanedLessonRecords: {
+        "retired-a1-lesson": {
+          visitedAt: null,
+          practicedAt: null,
+          consolidatedAt: null,
+          attemptedExerciseIds: ["retired-exercise"],
+          acceptedExerciseIds: [],
+        },
+      },
+    })],
+    ["orphan review key", (level: LevelProgressV5): LevelProgressV5 => ({
+      ...level,
+      orphanedReviewKeys: ["retired-a1-lesson:retired-exercise"],
+    })],
+    ["historical activity disposition", (level: LevelProgressV5): LevelProgressV5 => ({
+      ...level,
+      historicalActivityDispositions: [{
+        sourceLevel: "a1",
+        lessonId: "retired-a1-lesson",
+        activityId: "retired-exercise",
+        disposition: "historical-orphan",
+        orphanedReview: null,
+      }],
+    })],
+  ] as const)("enables the A1 reset when the level contains only %s evidence", (_, mutate) => {
+    const html = renderHome(
+      makeProgressValue({
+        progressV5: progressWithA1Evidence(mutate),
+      }),
+    );
+
     expect(html).toMatch(/class="action action--destructive[^"]*">Azzera i progressi di A1</);
     expect(html).not.toMatch(
       /class="action action--destructive[^"]*" disabled=""/,

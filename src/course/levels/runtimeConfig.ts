@@ -1,6 +1,5 @@
 import type { Locale } from "../../i18n/LocaleContext";
 import { a1CanDosAuthored } from "../a1/catalog/canDos";
-import { a1Checkpoint } from "../a1/catalog/checkpoint";
 import { a2CanDosAuthored } from "../a2/catalog/catalog";
 import { a2CanDoDescriptorCopy } from "../a2/catalog/canDos";
 import { a2Checkpoint } from "../a2/catalog/checkpoint";
@@ -11,6 +10,7 @@ import { a1RetainedAreas, courseModulesByLevel } from "../data/course";
 import type { CourseModule } from "../data/types";
 import type { CanDo, CheckpointDefinition } from "../foundations/types";
 import { getCourseCopy } from "../i18n/catalog";
+import { retainedA1Checkpoint } from "./checkpoints";
 import { COURSE_LEVEL_IDS, type CourseLevelId } from "./types";
 
 export interface CourseLevelCopyConfig {
@@ -74,7 +74,7 @@ export const LEVEL_RUNTIME_CONFIG: Readonly<Record<CourseLevelId, CourseLevelRun
     areas: a1RetainedAreas,
     canDos: retainedA1CanDos,
     progressLevel: "a1",
-    checkpoint: a1Checkpoint,
+    checkpoint: retainedA1Checkpoint,
     copy: {
       shortLabelKey: "a1",
       headingKey: "a1Heading",

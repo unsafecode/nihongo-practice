@@ -21,6 +21,7 @@ import {
   parseProgress,
   recordCanDoEvidence,
   type CourseProgressV4,
+  type LevelProgressV5,
   type LessonProgress,
   type ReviewQueueEntry,
 } from "./progress";
@@ -782,5 +783,78 @@ describe("migrateV4ToV5", () => {
     expect(v5.levels.a0).toEqual(emptyProgressV5().levels.a0);
     expect(lessonIdsForLevel("a1")).toHaveLength(44);
     expect(lessonIdsForLevel("a2")).toHaveLength(60);
+  });
+
+  it.each([
+    ["Can-do record", (level: LevelProgressV5): LevelProgressV5 => ({
+      ...level,
+      canDos: {
+        "a1-can-do-identity": {
+          canDoId: "a1-can-do-identity",
+          visitedLessonIds: [],
+          practicedLessonIds: [],
+          acceptedTransferExerciseIds: [],
+          checkpointAttemptIds: [],
+          historicalCheckpointRefs: [],
+          lastUpdatedAt: T1,
+        },
+      },
+    })],
+    ["checkpoint attempt", (level: LevelProgressV5): LevelProgressV5 => ({
+      ...level,
+      checkpointAttempts: [{
+        id: "a1-checkpoint-attempt-1",
+        checkpointId: "a1-checkpoint",
+        attemptedAt: T1,
+        acceptedExerciseIds: [],
+        sampledCanDoIds: [],
+      }],
+    })],
+    ["active review", (level: LevelProgressV5): LevelProgressV5 => ({
+      ...level,
+      reviewQueue: [review("introductions-1", "introductions-1-x1", T1)],
+    })],
+    ["orphan lesson record and ID", (level: LevelProgressV5): LevelProgressV5 => ({
+      ...level,
+      orphanedLessonIds: ["retired-a1-lesson"],
+      orphanedLessonRecords: {
+        "retired-a1-lesson": lesson({ visitedAt: null }),
+      },
+    })],
+    ["orphan review key", (level: LevelProgressV5): LevelProgressV5 => ({
+      ...level,
+      orphanedReviewKeys: ["retired-a1-lesson:retired-exercise"],
+    })],
+    ["historical activity disposition", (level: LevelProgressV5): LevelProgressV5 => ({
+      ...level,
+      historicalActivityDispositions: [{
+        sourceLevel: "a1",
+        lessonId: "retired-a1-lesson",
+        activityId: "retired-exercise",
+        disposition: "historical-orphan",
+        orphanedReview: null,
+      }],
+    })],
+  ] as const)("clears selected V5 level with only %s evidence while preserving other levels", (_, mutate) => {
+    const base = emptyProgressV5();
+    const otherLevel = {
+      ...base.levels.a2,
+      lessons: { "connected-conversation-1": lesson() },
+      lastVisitedLessonId: "connected-conversation-1",
+    };
+    const progress = {
+      ...base,
+      levels: {
+        ...base.levels,
+        a1: mutate(base.levels.a1),
+        a2: otherLevel,
+      },
+    };
+
+    const cleared = clearLevel(progress, "a1", T2);
+
+    expect(cleared.levels.a1).toEqual(emptyProgressV5().levels.a1);
+    expect(cleared.levels.a2).toEqual(otherLevel);
+    expect(cleared.updatedAt).toBe(T2);
   });
 });

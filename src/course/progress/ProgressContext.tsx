@@ -58,7 +58,6 @@ import {
 } from "../a1/manifest";
 import { a1CanDosAuthored } from "../a1/catalog/canDos";
 import {
-  a1Checkpoint,
   A1_CHECKPOINT_ID,
   A1_CHECKPOINT_SCENARIO_LESSON_IDS,
 } from "../a1/catalog/checkpoint";
@@ -69,6 +68,7 @@ import {
 } from "../a2/manifest";
 import { a2SemanticBuiltLessons } from "../a2/catalog/catalog";
 import { a2Checkpoint, A2_CHECKPOINT_ID } from "../a2/catalog/checkpoint";
+import { retainedA1Checkpoint } from "../levels/checkpoints";
 
 export const STORAGE_KEY = "nihongo.course.progress";
 
@@ -155,34 +155,6 @@ const a2KnownLessonIds = new Set(lessonIdsForLevel("a2"));
 // excludes all new Base-only ids; current level ownership remains below.
 const preSplitA1LessonIds = new Set(A1_LESSON_IDS);
 
-function checkpointWithRuntimeSample(
-  checkpoint: CheckpointDefinition,
-  allowedCanDoIds: ReadonlySet<string>,
-): CheckpointDefinition {
-  const sampledCanDoIds = checkpoint.sampledCanDoIds.filter((id) =>
-    allowedCanDoIds.has(id),
-  );
-  if (sampledCanDoIds.length === 0) {
-    throw new Error(`checkpoint "${checkpoint.id}" has no runtime-owned sampled Can-dos`);
-  }
-  for (const canDoId of sampledCanDoIds) {
-    if (!allowedCanDoIds.has(canDoId)) {
-      throw new Error(
-        `checkpoint "${checkpoint.id}" samples non-runtime Can-do "${canDoId}"`,
-      );
-    }
-  }
-  return Object.freeze({
-    ...checkpoint,
-    sampledCanDoIds: Object.freeze([...sampledCanDoIds]),
-  });
-}
-
-const a1CheckpointRuntime = checkpointWithRuntimeSample(
-  a1Checkpoint,
-  new Set(a1LessonToCanDoId.values()),
-);
-
 export const LEVEL_RUNTIME: Readonly<Record<CourseLevelId, LevelRuntime>> = {
   a0: {
     level: "a0",
@@ -200,7 +172,7 @@ export const LEVEL_RUNTIME: Readonly<Record<CourseLevelId, LevelRuntime>> = {
     knownReviewKeys: knownReviewKeysFor("a1", a1KnownLessonIds),
     lessonToCanDoId: a1LessonToCanDoId,
     moduleOutline: moduleOutlineFor(A1_RETAINED_MODULE_IDS, A1_RETAINED_LESSON_IDS_BY_MODULE),
-    checkpoint: a1CheckpointRuntime,
+    checkpoint: retainedA1Checkpoint,
     checkpointAttemptId: A1_CHECKPOINT_ID,
     checkpointScenarioLessonIds: A1_CHECKPOINT_SCENARIO_LESSON_IDS,
   },
