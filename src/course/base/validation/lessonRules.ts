@@ -34,6 +34,20 @@ import {
   semanticFingerprintFor,
   visibleSurfaceFingerprint,
 } from "./fingerprints";
+import {
+  invalidRuntimeCatalogFields,
+  isRuntimeStringArray,
+  isStrictRuntimeConcept,
+  isStrictRuntimeDialogue,
+  isStrictRuntimeExample,
+  isStrictRuntimeLesson,
+  isStrictRuntimeLexeme,
+  isStrictRuntimeReferenceSnapshot,
+  isStrictRuntimeRetrievalSystem,
+  isStrictRuntimeTokenSequence as isStrictRawRuntimeTokenSequence,
+  ownDataArrayValues,
+  runtimeVisibleTargetIssue,
+} from "./runtimeGuards";
 
 export type BaseValidationErrorCode =
   | "phonetic-contrast-count"
@@ -54,6 +68,9 @@ export type BaseValidationErrorCode =
   | "system-pattern-matrix-duplicate"
   | "system-pattern-matrix-unresolved"
   | "system-pattern-cell-set-mismatch"
+  | "invalid-pattern-cell-id"
+  | "duplicate-pattern-cell-id"
+  | "semantic-pattern-cell-declaration-missing"
   | "synthesis-new-content"
   | "synthesis-review-lexeme-count"
   | "synthesis-retrieved-system-count"
@@ -78,6 +95,7 @@ export type BaseValidationErrorCode =
   | "fingerprint-resolution"
   | "worked-example-reused-by-activity"
   | "duplicate-semantic-fingerprint"
+  | "duplicate-visible-example-surface"
   | "dialogue-example-fingerprint-overlap"
   | "unresolved-reference"
   | "first-teach-before-owner"
@@ -96,6 +114,11 @@ export type BaseValidationErrorCode =
   | "invalid-token-sequence"
   | "token-sequence-invalid"
   | "invalid-visible-target"
+  | "invalid-lesson-shape"
+  | "invalid-example-shape"
+  | "invalid-dialogue-shape"
+  | "invalid-visible-target-shape"
+  | "invalid-catalog-entry"
   | "invalid-particle-frame"
   | "particle-frame-predicate-mismatch"
   | "target-provenance-mismatch"
@@ -110,8 +133,10 @@ export type BaseValidationErrorCode =
   | "review-lexeme-not-retrieved"
   | "synthesis-retrieved-system-duplicate"
   | "synthesis-system-before-teach"
+  | "synthesis-system-component-before-teach"
   | "synthesis-system-not-visible"
   | "synthesis-system-not-retrieved"
+  | "retrieved-system-outside-synthesis"
   | "duplicate-prerequisite"
   | "self-prerequisite"
   | "future-prerequisite"
@@ -147,11 +172,32 @@ function resolvedExamples(
     const example = catalogs.examples.get(exampleId);
     if (!example) {
       push("unresolved-reference", exampleId, "worked example");
+    } else if (!isStrictRuntimeExample(example)) {
+      push("invalid-example-shape", exampleId, "worked example");
     } else {
       examples.push(example);
     }
   }
   return examples;
+}
+
+function validateWorkedExampleVisibleSurfaces(
+  examples: readonly BaseExample[],
+  push: (
+    code: BaseValidationErrorCode,
+    referenceId?: string,
+    detail?: string,
+  ) => void,
+): void {
+  const seen = new Set<string>();
+  for (const example of examples) {
+    const surface = visibleSurfaceFingerprint(example.tokens);
+    if (seen.has(surface)) {
+      push("duplicate-visible-example-surface", example.id, surface);
+      continue;
+    }
+    seen.add(surface);
+  }
 }
 
 function validateReference(
@@ -167,20 +213,23 @@ function validateReference(
   if (!resolves) push("unresolved-reference", id, detail);
 }
 
-/**
- * Keeps every authoring token sequence on the same romaji and boundary rules,
- * regardless of whether it belongs to an example, prompt, answer, or audio.
- */
-const TOKEN_KINDS = new Set(["lexical", "particle", "morpheme", "punctuation"]);
-const TOKEN_BOUNDARIES = new Set(["attach", "space"]);
-const TOKEN_SOURCE_DOMAINS = new Set([
-  "catalog",
-  "lab",
-  "exercise",
-  "speech",
-  "test",
-  "family",
-]);
+function validateCatalogRecord(
+  value: unknown,
+  id: string,
+  label: string,
+  isValid: (value: unknown) => boolean,
+  push: (
+    code: BaseValidationErrorCode,
+    referenceId?: string,
+    detail?: string,
+  ) => void,
+): boolean {
+  if (!isValid(value)) {
+    push("invalid-catalog-entry", id, label);
+    return false;
+  }
+  return true;
+}
 
 const hasOwn: (value: object, key: PropertyKey) => boolean =
   (Object as unknown as {
@@ -209,33 +258,10 @@ function ownDataValue(
   return descriptor && "value" in descriptor ? descriptor.value : undefined;
 }
 
-function isStrictRuntimeToken(token: unknown): token is AssembledToken {
-  if (!isPlainDataRecord(token)) return false;
-  const source = ownDataValue(token, "source");
-  if (!isPlainDataRecord(source)) return false;
-  const referenceId = ownDataValue(source, "referenceId");
-  const domain = ownDataValue(source, "domain");
-  const reading = ownDataValue(token, "reading");
-  return (
-    typeof ownDataValue(token, "id") === "string" &&
-    typeof ownDataValue(token, "jp") === "string" &&
-    typeof ownDataValue(token, "romaji") === "string" &&
-    typeof ownDataValue(token, "kind") === "string" &&
-    TOKEN_KINDS.has(ownDataValue(token, "kind") as string) &&
-    typeof ownDataValue(token, "boundaryBefore") === "string" &&
-    TOKEN_BOUNDARIES.has(ownDataValue(token, "boundaryBefore") as string) &&
-    typeof domain === "string" &&
-    TOKEN_SOURCE_DOMAINS.has(domain) &&
-    typeof referenceId === "string" &&
-    referenceId.trim().length > 0 &&
-    (reading === undefined || typeof reading === "string")
-  );
-}
-
 function isStrictRuntimeTokenSequence(
   tokens: readonly AssembledToken[] | unknown,
 ): tokens is readonly AssembledToken[] {
-  return Array.isArray(tokens) && tokens.every(isStrictRuntimeToken);
+  return isStrictRawRuntimeTokenSequence(tokens);
 }
 
 export function validateTokenSequence(
@@ -271,6 +297,28 @@ function validateTokens(
       referenceId,
       `${label}:${formatted.errors.map((error) => error.code).join(",")}`,
     );
+  }
+}
+
+function reportInvalidVisibleTarget(
+  reason: string | undefined,
+  referenceId: string,
+  label: string,
+  push: (
+    code: BaseValidationErrorCode,
+    referenceId?: string,
+    detail?: string,
+  ) => void,
+): void {
+  if (reason === "invalid-example") {
+    push("invalid-example-shape", referenceId, label);
+    return;
+  }
+  push("invalid-visible-target-shape", referenceId, `${label}:${reason ?? "invalid"}`);
+  if (reason === "invalid-token-sequence") {
+    push("token-sequence-invalid", referenceId, `${label}:invalid-runtime-token`);
+  } else if (reason === "invalid-particle-frame") {
+    push("invalid-particle-frame", referenceId, `${label}:malformed`);
   }
 }
 
@@ -373,16 +421,32 @@ function validateActivities(
       catalogs,
     );
     if (promptTarget) {
-      validateSentenceLikeReferences(
-        promptTarget.target,
-        catalogs,
-        promptTarget.referenceId,
-        promptTarget.label,
-        push,
-      );
+      if (promptTarget.invalidReason) {
+        reportInvalidVisibleTarget(
+          promptTarget.invalidReason,
+          promptTarget.referenceId,
+          promptTarget.label,
+          push,
+        );
+      } else {
+        validateSentenceLikeReferences(
+          promptTarget.target,
+          catalogs,
+          promptTarget.referenceId,
+          promptTarget.label,
+          push,
+        );
+      }
     }
     const activityTarget = activityTargetReferenceFor(activity, catalogs);
-    if (activityTarget && activityTarget.source !== "example") {
+    if (activityTarget?.invalidReason) {
+      reportInvalidVisibleTarget(
+        activityTarget.invalidReason,
+        activityTarget.referenceId,
+        activityTarget.label,
+        push,
+      );
+    } else if (activityTarget && activityTarget.source !== "example") {
       validateSentenceLikeReferences(
         activityTarget.target,
         catalogs,
@@ -411,9 +475,29 @@ function validateActivities(
     );
     for (const conceptId of activity.assessedConceptIds) {
       validateReference(conceptId, catalogs.concepts.has(conceptId), "assessed concept", push);
+      const concept = catalogs.concepts.get(conceptId);
+      if (concept !== undefined) {
+        validateCatalogRecord(
+          concept,
+          conceptId,
+          "assessed concept",
+          isStrictRuntimeConcept,
+          push,
+        );
+      }
     }
     for (const lexemeId of activity.assessedLexemeIds) {
       validateReference(lexemeId, catalogs.lexemes.has(lexemeId), "assessed lexeme", push);
+      const lexeme = catalogs.lexemes.get(lexemeId);
+      if (lexeme !== undefined) {
+        validateCatalogRecord(
+          lexeme,
+          lexemeId,
+          "assessed lexeme",
+          isStrictRuntimeLexeme,
+          push,
+        );
+      }
     }
     const visibleLexemeIds = new Set<string>();
     const visibleContentIds = new Set<string>();
@@ -526,7 +610,13 @@ function countCountableLexemes(
   lexemeIds: readonly string[],
   catalogs: BaseValidationCatalogs,
 ): number {
-  return uniqueIds(lexemeIds).filter((id) => catalogs.lexemes.get(id)?.countable).length;
+  return uniqueIds(lexemeIds).filter((id) => {
+    const lexeme = catalogs.lexemes.get(id);
+    return (
+      isStrictRuntimeLexeme(lexeme) &&
+      (lexeme as Readonly<{ readonly countable: boolean }>).countable
+    );
+  }).length;
 }
 
 function countMeaningfulAnchors(
@@ -535,17 +625,57 @@ function countMeaningfulAnchors(
 ): number {
   return uniqueIds(lexemeIds).filter((id) => {
     const lexeme = catalogs.lexemes.get(id);
+    if (!isStrictRuntimeLexeme(lexeme)) return false;
+    const runtimeLexeme = lexeme as Readonly<{
+      readonly countable: boolean;
+      readonly meaningCopyId: string;
+    }>;
     return (
-      lexeme?.countable === true &&
-      lexeme.meaningCopyId.trim().length > 0
+      runtimeLexeme.countable === true &&
+      runtimeLexeme.meaningCopyId.trim().length > 0
     );
   }).length;
+}
+
+function validateSemanticPatternDeclaration(
+  lesson: Exclude<BaseLessonContent, { readonly contract: "phonetic" }>,
+  catalogs: BaseValidationCatalogs,
+  push: (
+    code: BaseValidationErrorCode,
+    referenceId?: string,
+    detail?: string,
+  ) => void,
+): void {
+  const canonicalMatrix = catalogs.patternCellIdsByLesson.get(lesson.lessonId);
+  if (canonicalMatrix !== undefined && !isRuntimeStringArray(canonicalMatrix)) {
+    push("invalid-catalog-entry", lesson.lessonId, "pattern cell matrix");
+  } else if (lesson.patternCellIds.length === 0 && canonicalMatrix !== undefined) {
+    push("semantic-pattern-cell-declaration-missing", lesson.lessonId);
+  }
+  const seen = new Set<string>();
+  for (const patternCellId of lesson.patternCellIds) {
+    if (typeof patternCellId !== "string" || patternCellId.trim().length === 0) {
+      push("invalid-pattern-cell-id", String(patternCellId));
+      continue;
+    }
+    if (seen.has(patternCellId)) {
+      push("duplicate-pattern-cell-id", patternCellId);
+      continue;
+    }
+    seen.add(patternCellId);
+    validateReference(
+      patternCellId,
+      catalogs.patternCellIds.has(patternCellId),
+      "lesson pattern cell",
+      push,
+    );
+  }
 }
 
 type SentenceLike = BaseVisibleTarget;
 
 function isStringArray(value: unknown): value is readonly string[] {
-  return Array.isArray(value) && value.every((entry) => typeof entry === "string");
+  return isRuntimeStringArray(value);
 }
 
 function isParticleFrame(value: unknown): value is Readonly<Record<string, unknown>> {
@@ -566,7 +696,7 @@ function validateParticlePredicateProvenance(
   const framePredicateSenseId = ownDataValue(frame, "predicateSenseId");
   const targetPredicateSenseId = ownDataValue(target, "predicateSenseId");
   const targetPredicateLexemeId = ownDataValue(target, "predicateLexemeId");
-  const targetLexemeIds = target.lexemeIds;
+  const targetLexemeIds = ownDataValue(target, "lexemeIds");
   const registry =
     typeof framePredicateSenseId === "string"
       ? BASE_PARTICLE_FRAME_BY_PREDICATE.get(
@@ -605,9 +735,10 @@ function validateCanonicalTokenSourceProvenance(
     detail?: string,
   ) => void,
 ): void {
-  if (!Array.isArray(tokens)) return;
+  const tokenEntries = ownDataArrayValues(tokens);
+  if (!tokenEntries) return;
   const reported = new Set<string>();
-  for (const token of tokens) {
+  for (const token of tokenEntries) {
     if (!isPlainDataRecord(token)) continue;
     const source = ownDataValue(token, "source");
     if (!isPlainDataRecord(source)) continue;
@@ -645,13 +776,13 @@ function validateSentenceLikeReferences(
     detail?: string,
   ) => void,
 ): void {
-  if (sentence === null || typeof sentence !== "object" || Array.isArray(sentence)) {
-    push("invalid-visible-target", referenceId, label);
+  const targetIssue = runtimeVisibleTargetIssue(sentence);
+  if (targetIssue !== undefined) {
+    reportInvalidVisibleTarget(targetIssue, referenceId, label, push);
     return;
   }
   const target = sentence as Readonly<Record<string, unknown>>;
-  const requiredArrays = [
-    "tokens",
+  const requiredStringArrays = [
     "lexemeIds",
     "conceptIds",
     "formIds",
@@ -659,8 +790,12 @@ function validateSentenceLikeReferences(
     "semanticRoleIds",
     "interpretationTags",
   ] as const;
-  if (!requiredArrays.every((field) => Array.isArray(target[field]))) {
-    push("invalid-visible-target", referenceId, label);
+  if (
+    !requiredStringArrays.every((field) =>
+      isRuntimeStringArray(ownDataValue(target, field)),
+    )
+  ) {
+    push("invalid-visible-target-shape", referenceId, label);
     return;
   }
   const predicateSenseId = ownDataValue(target, "predicateSenseId");
@@ -672,7 +807,7 @@ function validateSentenceLikeReferences(
     )
   ) {
     push("invalid-visible-target", referenceId, `${label}:predicate-provenance`);
-    if (target.particleFrame !== undefined) {
+    if (ownDataValue(target, "particleFrame") !== undefined) {
       push(
         "particle-frame-predicate-mismatch",
         referenceId,
@@ -681,26 +816,61 @@ function validateSentenceLikeReferences(
     }
     return;
   }
-  validateTokens(target.tokens, referenceId, label, push);
+  const tokens = ownDataValue(target, "tokens");
+  const lexemeIds = ownDataValue(target, "lexemeIds");
+  const conceptIds = ownDataValue(target, "conceptIds");
+  const formIds = ownDataValue(target, "formIds");
+  const patternCellIds = ownDataValue(target, "patternCellIds");
+  validateTokens(tokens, referenceId, label, push);
   if (
-    !isStringArray(target.lexemeIds) ||
-    !isStringArray(target.conceptIds) ||
-    !isStringArray(target.formIds) ||
-    !isStringArray(target.patternCellIds)
+    !isStringArray(lexemeIds) ||
+    !isStringArray(conceptIds) ||
+    !isStringArray(formIds) ||
+    !isStringArray(patternCellIds)
   ) {
-    push("invalid-visible-target", referenceId, label);
+    push("invalid-visible-target-shape", referenceId, label);
     return;
   }
-  for (const lexemeId of target.lexemeIds) {
+  for (const lexemeId of lexemeIds) {
     validateReference(lexemeId, catalogs.lexemes.has(lexemeId), `${label} lexeme`, push);
+    const lexeme = catalogs.lexemes.get(lexemeId);
+    if (lexeme !== undefined) {
+      validateCatalogRecord(
+        lexeme,
+        lexemeId,
+        `${label} lexeme`,
+        isStrictRuntimeLexeme,
+        push,
+      );
+    }
   }
-  for (const conceptId of target.conceptIds) {
+  for (const conceptId of conceptIds) {
     validateReference(conceptId, catalogs.concepts.has(conceptId), `${label} concept`, push);
+    const concept = catalogs.concepts.get(conceptId);
+    if (concept !== undefined) {
+      validateCatalogRecord(
+        concept,
+        conceptId,
+        `${label} concept`,
+        isStrictRuntimeConcept,
+        push,
+      );
+    }
   }
-  for (const formId of target.formIds) {
+  for (const formId of formIds) {
     validateReference(formId, catalogs.concepts.has(formId), `${label} form`, push);
+    const form = catalogs.concepts.get(formId);
+    if (form !== undefined) {
+      validateCatalogRecord(
+        form,
+        formId,
+        `${label} form`,
+        isStrictRuntimeConcept,
+        push,
+      );
+    }
   }
-  for (const patternCellId of target.patternCellIds) {
+  for (const patternCellId of patternCellIds) {
     validateReference(
       patternCellId,
       catalogs.patternCellIds.has(patternCellId),
@@ -709,10 +879,10 @@ function validateSentenceLikeReferences(
     );
   }
   validateCanonicalTokenSourceProvenance(
-    target.tokens,
-    target.lexemeIds,
-    target.conceptIds,
-    target.formIds,
+    tokens,
+    lexemeIds,
+    conceptIds,
+    formIds,
     catalogs,
     referenceId,
     label,
@@ -775,7 +945,9 @@ function canonicalExampleReferences(
   }
   for (const activity of lesson.activities) {
     const example = catalogs.examples.get(activity.targetId);
-    if (!example || canonical.has(example.id)) continue;
+    if (!example || !isStrictRuntimeExample(example) || canonical.has(example.id)) {
+      continue;
+    }
     canonical.set(example.id, {
       example,
       referenceId: activity.targetId,
@@ -843,7 +1015,9 @@ function targetStringField(
   if (target === null || typeof target !== "object" || Array.isArray(target)) {
     return [];
   }
-  const value = (target as Readonly<Record<string, unknown>>)[field];
+  const record = target as Readonly<Record<string, unknown>>;
+  if (!isPlainDataRecord(record)) return [];
+  const value = ownDataValue(record, field);
   return isStringArray(value) ? value : [];
 }
 
@@ -1049,6 +1223,10 @@ function validateSynthesisRetrievalSystems(
       push("unresolved-reference", systemId, "retrieved system");
       continue;
     }
+    if (!isStrictRuntimeRetrievalSystem(system)) {
+      push("invalid-catalog-entry", systemId, "retrieved system");
+      continue;
+    }
     const systemPosition = firstTeachLessonPosition(system.firstTeachLessonId);
     const taughtBefore =
       lessonPosition !== undefined &&
@@ -1063,9 +1241,29 @@ function validateSynthesisRetrievalSystems(
     }
     let hasOnlyCanonicalComponents = system.componentContentIds.length > 0;
     for (const componentId of system.componentContentIds) {
-      if (!catalogs.concepts.has(componentId)) {
+      const component = catalogs.concepts.get(componentId);
+      if (!component) {
         hasOnlyCanonicalComponents = false;
         push("unresolved-reference", componentId, "retrieved system component");
+        continue;
+      }
+      const componentIsClaimed =
+        evidence.visibleContentIds.has(componentId) ||
+        evidence.activeRetrievalContentIds.has(componentId);
+      const componentPosition = firstTeachLessonPosition(
+        component.firstTeachLessonId,
+      );
+      if (
+        componentIsClaimed &&
+        (lessonPosition === undefined ||
+          componentPosition === undefined ||
+          componentPosition >= lessonPosition)
+      ) {
+        push(
+          "synthesis-system-component-before-teach",
+          componentId,
+          component.firstTeachLessonId,
+        );
       }
     }
     const visiblyApplied = system.componentContentIds.some((componentId) =>
@@ -1095,10 +1293,15 @@ function validateSynthesisRetrievalSystems(
 }
 
 export function validateBaseLessonDepth(
-  lesson: BaseLessonContent,
-  catalogs: BaseValidationCatalogs,
+  rawLesson: BaseLessonContent | unknown,
+  rawCatalogs: BaseValidationCatalogs | unknown,
 ): readonly BaseValidationError[] {
   const errors: BaseValidationError[] = [];
+  const lessonId =
+    isPlainDataRecord(rawLesson) &&
+    typeof ownDataValue(rawLesson, "lessonId") === "string"
+      ? (ownDataValue(rawLesson, "lessonId") as string)
+      : "unknown-lesson";
   const push = (
     code: BaseValidationErrorCode,
     referenceId?: string,
@@ -1107,11 +1310,25 @@ export function validateBaseLessonDepth(
     errors.push({
       code,
       stage: "lesson-depth",
-      lessonId: lesson.lessonId,
+      lessonId,
       ...(referenceId !== undefined ? { referenceId } : {}),
       ...(detail !== undefined ? { detail } : {}),
     });
   };
+
+  if (!isStrictRuntimeLesson(rawLesson)) {
+    push("invalid-lesson-shape", lessonId, "lesson");
+    return deepFreeze(errors);
+  }
+  const catalogFields = invalidRuntimeCatalogFields(rawCatalogs);
+  if (catalogFields.length > 0) {
+    for (const field of catalogFields) {
+      push("invalid-catalog-entry", field, "catalogs");
+    }
+    return deepFreeze(errors);
+  }
+  const lesson = rawLesson as BaseLessonContent;
+  const catalogs = rawCatalogs as BaseValidationCatalogs;
 
   validateReference(lesson.recapCopyId, catalogs.copyIds.has(lesson.recapCopyId), "recap copy", push);
   const seenPrerequisites = new Set<string>();
@@ -1169,6 +1386,16 @@ export function validateBaseLessonDepth(
     }
     for (const lexemeId of uniqueIds(lesson.anchorLexemeIds)) {
       validateReference(lexemeId, catalogs.lexemes.has(lexemeId), "phonetic anchor", push);
+      const lexeme = catalogs.lexemes.get(lexemeId);
+      if (lexeme !== undefined) {
+        validateCatalogRecord(
+          lexeme,
+          lexemeId,
+          "phonetic anchor",
+          isStrictRuntimeLexeme,
+          push,
+        );
+      }
     }
     const audioSurfaces = new Set<string>();
     for (const audioId of uniqueIds(lesson.audioExemplarIds)) {
@@ -1233,15 +1460,40 @@ export function validateBaseLessonDepth(
       "reference snapshot",
       push,
     );
+    const snapshot = catalogs.referenceSnapshots.get(snapshotId);
+    if (snapshot !== undefined) {
+      validateCatalogRecord(
+        snapshot,
+        snapshotId,
+        "reference snapshot",
+        isStrictRuntimeReferenceSnapshot,
+        push,
+      );
+    }
   }
   for (const lexemeId of [...lesson.newLexemeIds, ...lesson.reviewLexemeIds]) {
     validateReference(lexemeId, catalogs.lexemes.has(lexemeId), "lesson lexeme", push);
+    const lexeme = catalogs.lexemes.get(lexemeId);
+    if (lexeme !== undefined) {
+      validateCatalogRecord(lexeme, lexemeId, "lesson lexeme", isStrictRuntimeLexeme, push);
+    }
   }
   for (const conceptId of [...lesson.introducedConceptIds, ...lesson.reviewedConceptIds]) {
     validateReference(conceptId, catalogs.concepts.has(conceptId), "lesson concept", push);
+    const concept = catalogs.concepts.get(conceptId);
+    if (concept !== undefined) {
+      validateCatalogRecord(
+        concept,
+        conceptId,
+        "lesson concept",
+        isStrictRuntimeConcept,
+        push,
+      );
+    }
   }
 
   const examples = resolvedExamples(lesson, catalogs, push);
+  validateWorkedExampleVisibleSurfaces(examples, push);
   const canonicalExamples = canonicalExampleReferences(lesson, examples, catalogs);
   const uniqueExamples = validateExampleReferences(canonicalExamples, catalogs, push);
   const workedExampleIds = new Set(examples.map((example) => example.id));
@@ -1250,9 +1502,15 @@ export function validateBaseLessonDepth(
   );
   validateActivities(lesson, catalogs, true, push);
 
-  const dialogue = lesson.dialogueId ? catalogs.dialogues.get(lesson.dialogueId) : undefined;
-  if (lesson.dialogueId && !dialogue) {
+  const rawDialogue = lesson.dialogueId
+    ? catalogs.dialogues.get(lesson.dialogueId)
+    : undefined;
+  const dialogue =
+    rawDialogue && isStrictRuntimeDialogue(rawDialogue) ? rawDialogue : undefined;
+  if (lesson.dialogueId && !rawDialogue) {
     push("unresolved-reference", lesson.dialogueId, "dialogue");
+  } else if (lesson.dialogueId && rawDialogue && !dialogue) {
+    push("invalid-dialogue-shape", lesson.dialogueId, "dialogue");
   }
   if (dialogue) {
     validateReference(
@@ -1303,6 +1561,16 @@ export function validateBaseLessonDepth(
   }
 
   validateDeclaredContentEvidence(lesson, examples, dialogue, catalogs, push);
+  validateSemanticPatternDeclaration(lesson, catalogs, push);
+
+  if (
+    lesson.contract !== "synthesis" &&
+    lesson.retrievedSystemIds.length > 0
+  ) {
+    for (const systemId of lesson.retrievedSystemIds) {
+      push("retrieved-system-outside-synthesis", systemId);
+    }
+  }
 
   if (lesson.contract === "content") {
     const newCount = countCountableLexemes(lesson.newLexemeIds, catalogs);
@@ -1322,8 +1590,10 @@ export function validateBaseLessonDepth(
       push("system-example-count", undefined, `${uniqueIds(lesson.workedExampleIds).length}`);
     }
     const canonicalMatrix = catalogs.patternCellIdsByLesson.get(lesson.lessonId);
-    if (!canonicalMatrix) {
+    if (canonicalMatrix === undefined) {
       push("system-pattern-matrix-missing", lesson.lessonId);
+    } else if (!isRuntimeStringArray(canonicalMatrix)) {
+      push("invalid-catalog-entry", lesson.lessonId, "pattern cell matrix");
     } else {
       const substantiveCells = canonicalMatrix.filter(
         (cellId) => typeof cellId === "string" && cellId.trim().length > 0,
@@ -1348,11 +1618,6 @@ export function validateBaseLessonDepth(
         }
       }
       const declaredCellSet = new Set(lesson.patternCellIds);
-      for (const patternCellId of lesson.patternCellIds) {
-        if (!catalogs.patternCellIds.has(patternCellId)) {
-          push("system-pattern-matrix-unresolved", patternCellId);
-        }
-      }
       const declarationMatches =
         lesson.patternCellIds.length === declaredCellSet.size &&
         declaredCellSet.size === canonicalCellSet.size &&

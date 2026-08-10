@@ -5,6 +5,11 @@ import {
   type BaseVisibleTarget,
 } from "../catalog/types";
 import { activityTargetReferenceFor } from "../catalog/visibleTargets";
+import {
+  isPlainDataRecord,
+  ownDataArrayValues,
+  ownDataValue,
+} from "./runtimeGuards";
 
 export { BASE_ACTIVITY_OPERATION_BY_CATEGORY } from "../catalog/types";
 
@@ -19,29 +24,6 @@ export type ActivityFingerprintResolution =
         readonly targetId: string;
       }>;
     }>;
-
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    return false;
-  }
-  const prototype = Object.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
-}
-
-const hasOwn: (value: object, key: PropertyKey) => boolean =
-  (Object as unknown as {
-    hasOwn?: (value: object, key: PropertyKey) => boolean;
-  }).hasOwn ??
-  ((value, key) => Object.prototype.hasOwnProperty.call(value, key));
-
-function ownDataValue(
-  value: Readonly<Record<string, unknown>>,
-  key: string,
-): unknown {
-  if (!hasOwn(value, key)) return undefined;
-  const descriptor = Object.getOwnPropertyDescriptor(value, key);
-  return descriptor && "value" in descriptor ? descriptor.value : undefined;
-}
 
 function ownStringEntries(
   value: Readonly<Record<string, unknown>>,
@@ -81,11 +63,11 @@ function normalizedParticleFrame(
   readonly predicateSenseId: string;
   readonly provided: readonly (readonly [string, string])[];
 }> | null {
-  if (!isRecord(particleFrame)) return null;
+  if (!isPlainDataRecord(particleFrame)) return null;
   const predicateSenseId = ownDataValue(particleFrame, "predicateSenseId");
   if (typeof predicateSenseId !== "string") return null;
   const providedValue = ownDataValue(particleFrame, "provided");
-  const provided = isRecord(providedValue)
+  const provided = isPlainDataRecord(providedValue)
     ? ownStringEntries(providedValue)
         .map(
           ([role, sense]) =>
@@ -107,9 +89,12 @@ function normalizedParticleFrame(
 export function visibleSurfaceFingerprint(
   tokens: readonly AssembledToken[] | unknown,
 ): string {
-  if (!Array.isArray(tokens)) return "";
-  return tokens
-    .map((token) => (isRecord(token) ? normalizeText(token.jp) : ""))
+  const entries = ownDataArrayValues(tokens);
+  if (!entries) return "";
+  return entries
+    .map((token) =>
+      isPlainDataRecord(token) ? normalizeText(ownDataValue(token, "jp")) : "",
+    )
     .join("")
     .normalize("NFKC")
     .replace(/\s+/gu, " ")
@@ -121,15 +106,17 @@ export function canonicalTokenSequence(tokens: readonly AssembledToken[] | unkno
 }
 
 function semanticPayload(input: SemanticFingerprintSubject | unknown): Readonly<Record<string, unknown>> {
-  const target = isRecord(input) ? input : {};
+  const target: Readonly<Record<string, unknown>> = isPlainDataRecord(input)
+    ? input
+    : {};
   return {
-    tokens: canonicalTokenSequence(target.tokens),
-    formIds: sortedNormalized(target.formIds),
-    semanticRoleIds: sortedNormalized(target.semanticRoleIds),
-    discourseFrameId: normalizedOptionalText(target.discourseFrameId),
-    predicateAspect: normalizedOptionalText(target.predicateAspect),
-    interpretationTags: sortedNormalized(target.interpretationTags),
-    particleFrame: normalizedParticleFrame(target.particleFrame),
+    tokens: canonicalTokenSequence(ownDataValue(target, "tokens")),
+    formIds: sortedNormalized(ownDataValue(target, "formIds")),
+    semanticRoleIds: sortedNormalized(ownDataValue(target, "semanticRoleIds")),
+    discourseFrameId: normalizedOptionalText(ownDataValue(target, "discourseFrameId")),
+    predicateAspect: normalizedOptionalText(ownDataValue(target, "predicateAspect")),
+    interpretationTags: sortedNormalized(ownDataValue(target, "interpretationTags")),
+    particleFrame: normalizedParticleFrame(ownDataValue(target, "particleFrame")),
   };
 }
 
@@ -159,24 +146,32 @@ export function activityTargetOperationFingerprintFor(
   catalogs: BaseValidationCatalogs,
 ): ActivityFingerprintResolution {
   const target = targetMetadataFor(activity, catalogs);
+  const activityRecord = isPlainDataRecord(activity)
+    ? activity
+    : ({} as Readonly<Record<string, unknown>>);
+  const targetId = ownDataValue(activityRecord, "targetId");
   if (!target) {
     return Object.freeze({
       ok: false as const,
       error: Object.freeze({
         code: "unresolved-activity-target" as const,
-        targetId: activity.targetId,
+        targetId: typeof targetId === "string" ? targetId : "",
       }),
     });
   }
   return Object.freeze({
     ok: true as const,
     fingerprint: `base-activity-target-v1:${JSON.stringify({
-      operation: activity.operation,
+      operation: ownDataValue(activityRecord, "operation"),
       tokens: canonicalTokenSequence(target.tokens),
       targetLexemeIds: sortedNormalized(target.lexemeIds),
       targetConceptIds: sortedNormalized(target.conceptIds),
-      assessedConceptIds: sortedNormalized(activity.assessedConceptIds),
-      assessedLexemeIds: sortedNormalized(activity.assessedLexemeIds),
+      assessedConceptIds: sortedNormalized(
+        ownDataValue(activityRecord, "assessedConceptIds"),
+      ),
+      assessedLexemeIds: sortedNormalized(
+        ownDataValue(activityRecord, "assessedLexemeIds"),
+      ),
       targetFormIds: sortedNormalized(target.formIds),
       targetPatternCellIds: sortedNormalized(target.patternCellIds),
       targetSemanticRoleIds: sortedNormalized(target.semanticRoleIds),

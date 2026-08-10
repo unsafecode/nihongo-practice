@@ -3,6 +3,15 @@ import type { LessonId, SemanticArgumentRole } from "../../foundations/types";
 import { deepFreeze } from "../../foundations/deepFreeze";
 import type { BaseLessonContract } from "../types";
 import { BASE_LESSON_MANIFEST } from "../manifest";
+import {
+  isPlainDataRecord,
+  isRuntimeStringArray,
+  isStrictRuntimeDialogueTurn,
+  isStrictRuntimeExample,
+  ownDataArrayValues,
+  ownDataValue,
+  runtimeVisibleTargetIssue,
+} from "../validation/runtimeGuards";
 import type {
   BaseParticleRole,
   BaseParticleSense,
@@ -265,44 +274,63 @@ function cloneForBasePublication<T>(
   const existing = seen.get(source);
   if (existing !== undefined) return existing as T;
   if (Array.isArray(value)) {
+    const values = ownDataArrayValues(value);
+    if (!values) return [] as T;
     const clone: unknown[] = [];
     seen.set(source, clone);
-    clone.push(...value.map((entry) => cloneForBasePublication(entry, seen)));
+    clone.push(...values.map((entry) => cloneForBasePublication(entry, seen)));
     return clone as T;
   }
-  const prototype = Object.getPrototypeOf(source);
-  if (prototype !== Object.prototype && prototype !== null) return value;
-  const clone = Object.create(prototype) as Record<string, unknown>;
+  if (!isPlainDataRecord(value)) return value;
+  const clone = Object.create(Object.getPrototypeOf(source)) as Record<string, unknown>;
   seen.set(source, clone);
-  for (const key of Object.keys(source)) {
-    clone[key] = cloneForBasePublication(
-      (source as Readonly<Record<string, unknown>>)[key],
-      seen,
-    );
+  for (const [key, descriptor] of Object.entries(
+    Object.getOwnPropertyDescriptors(source),
+  )) {
+    if (!("value" in descriptor)) continue;
+    clone[key] = cloneForBasePublication(descriptor.value, seen);
   }
   return clone as T;
 }
 
-function visibleTargetView(source: BaseVisibleTarget): BaseVisibleTarget {
+const EMPTY_VISIBLE_TARGET: BaseVisibleTarget = deepFreeze({
+  tokens: [],
+  lexemeIds: [],
+  conceptIds: [],
+  formIds: [],
+  patternCellIds: [],
+  semanticRoleIds: [],
+  interpretationTags: [],
+  predicateSenseId: null,
+  predicateLexemeId: null,
+});
+
+function visibleTargetView(source: unknown): BaseVisibleTarget {
+  if (runtimeVisibleTargetIssue(source) !== undefined || !isPlainDataRecord(source)) {
+    return EMPTY_VISIBLE_TARGET;
+  }
+  const predicateAspect = ownDataValue(source, "predicateAspect");
+  const discourseFrameId = ownDataValue(source, "discourseFrameId");
+  const particleFrame = ownDataValue(source, "particleFrame");
   return deepFreeze(
     cloneForBasePublication({
-      tokens: source.tokens,
-      lexemeIds: source.lexemeIds,
-      conceptIds: source.conceptIds,
-      formIds: source.formIds,
-      patternCellIds: source.patternCellIds,
-      semanticRoleIds: source.semanticRoleIds,
-      interpretationTags: source.interpretationTags,
-      predicateSenseId: source.predicateSenseId,
-      predicateLexemeId: source.predicateLexemeId,
-      ...(source.predicateAspect
-        ? { predicateAspect: source.predicateAspect }
+      tokens: ownDataValue(source, "tokens"),
+      lexemeIds: ownDataValue(source, "lexemeIds"),
+      conceptIds: ownDataValue(source, "conceptIds"),
+      formIds: ownDataValue(source, "formIds"),
+      patternCellIds: ownDataValue(source, "patternCellIds"),
+      semanticRoleIds: ownDataValue(source, "semanticRoleIds"),
+      interpretationTags: ownDataValue(source, "interpretationTags"),
+      predicateSenseId: ownDataValue(source, "predicateSenseId"),
+      predicateLexemeId: ownDataValue(source, "predicateLexemeId"),
+      ...(typeof predicateAspect === "string"
+        ? { predicateAspect }
         : {}),
-      ...(source.discourseFrameId
-        ? { discourseFrameId: source.discourseFrameId }
+      ...(typeof discourseFrameId === "string"
+        ? { discourseFrameId }
         : {}),
-      ...(source.particleFrame ? { particleFrame: source.particleFrame } : {}),
-    }),
+      ...(particleFrame !== undefined ? { particleFrame } : {}),
+    } as BaseVisibleTarget),
   );
 }
 
@@ -313,14 +341,14 @@ export function visibleTargetFromTarget(target: BaseVisibleTarget): BaseVisibleT
 
 /** Adapts an authored example to the canonical visible-target provenance view. */
 export function visibleTargetFromExample(example: BaseExample): BaseVisibleTarget {
-  return visibleTargetView(example);
+  return isStrictRuntimeExample(example) ? visibleTargetView(example) : EMPTY_VISIBLE_TARGET;
 }
 
 /** Adapts an authored dialogue turn to the canonical visible-target provenance view. */
 export function visibleTargetFromDialogueTurn(
   turn: BaseDialogueTurn,
 ): BaseVisibleTarget {
-  return visibleTargetView(turn);
+  return isStrictRuntimeDialogueTurn(turn) ? visibleTargetView(turn) : EMPTY_VISIBLE_TARGET;
 }
 
 /** @deprecated Use `visibleTargetFromExample` for clone-safe publication. */
@@ -453,13 +481,7 @@ function assertNonemptyId(value: string, label: string): void {
 }
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return (
-    value !== null &&
-    typeof value === "object" &&
-    !Array.isArray(value) &&
-    (Object.getPrototypeOf(value) === Object.prototype ||
-      Object.getPrototypeOf(value) === null)
-  );
+  return isPlainDataRecord(value);
 }
 
 function isNonemptyString(value: unknown): value is string {
@@ -467,7 +489,7 @@ function isNonemptyString(value: unknown): value is string {
 }
 
 function isStringArray(value: unknown): value is readonly string[] {
-  return Array.isArray(value) && value.every(isNonemptyString);
+  return isRuntimeStringArray(value) && value.every(isNonemptyString);
 }
 
 function isAllowed(set: ReadonlySet<string>, value: unknown): boolean {
@@ -497,8 +519,7 @@ function hasCommonFields(value: unknown): value is Readonly<Record<string, unkno
     isNonemptyString(value.lessonId) &&
     isNonemptyString(value.contract) &&
     isStringArray(value.prerequisiteLessonIds) &&
-    Array.isArray(value.activities) &&
-    value.activities.every(hasActivityFields) &&
+    ownDataArrayValues(value.activities)?.every(hasActivityFields) === true &&
     isNonemptyString(value.recapCopyId)
   );
 }

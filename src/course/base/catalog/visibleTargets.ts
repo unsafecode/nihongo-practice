@@ -7,6 +7,13 @@ import {
   visibleTargetFromExample,
   visibleTargetFromTarget,
 } from "./types";
+import {
+  isPlainDataRecord,
+  isStrictRuntimeExample,
+  ownDataValue,
+  runtimeVisibleTargetIssue,
+  type RuntimeVisibleTargetIssue,
+} from "../validation/runtimeGuards";
 
 /**
  * A length-delimited key keeps prompt IDs stable and collision-safe even when
@@ -21,6 +28,26 @@ export interface BaseVisibleTargetReference {
   readonly referenceId: string;
   readonly label: string;
   readonly source: "example" | "accepted-answer" | "audio" | "activity-prompt";
+  readonly invalidReason?:
+    | RuntimeVisibleTargetIssue
+    | "invalid-example"
+    | "invalid-activity";
+}
+
+function targetReference(
+  rawTarget: unknown,
+  referenceId: string,
+  label: string,
+  source: BaseVisibleTargetReference["source"],
+): BaseVisibleTargetReference {
+  const invalidReason = runtimeVisibleTargetIssue(rawTarget);
+  return {
+    target: visibleTargetFromTarget(rawTarget as BaseVisibleTarget),
+    referenceId,
+    label,
+    source,
+    ...(invalidReason === undefined ? {} : { invalidReason }),
+  };
 }
 
 /**
@@ -31,32 +58,31 @@ export function activityTargetReferenceFor(
   activity: BaseActivityDefinition,
   catalogs: BaseValidationCatalogs,
 ): BaseVisibleTargetReference | undefined {
-  const example = catalogs.examples.get(activity.targetId);
+  if (!isPlainDataRecord(activity)) return undefined;
+  const targetId = ownDataValue(activity, "targetId");
+  if (typeof targetId !== "string") return undefined;
+  const example = catalogs.examples.get(targetId);
   if (example) {
     return {
       target: visibleTargetFromExample(example),
-      referenceId: activity.targetId,
+      referenceId: targetId,
       label: "activity target example",
       source: "example",
+      ...(!isStrictRuntimeExample(example) ? { invalidReason: "invalid-example" as const } : {}),
     };
   }
-  const acceptedAnswer = catalogs.acceptedAnswerTargets.get(activity.targetId);
+  const acceptedAnswer = catalogs.acceptedAnswerTargets.get(targetId);
   if (acceptedAnswer) {
-    return {
-      target: visibleTargetFromTarget(acceptedAnswer),
-      referenceId: activity.targetId,
-      label: "activity accepted target",
-      source: "accepted-answer",
-    };
+    return targetReference(
+      acceptedAnswer,
+      targetId,
+      "activity accepted target",
+      "accepted-answer",
+    );
   }
-  const audioTarget = catalogs.audioTargets.get(activity.targetId);
+  const audioTarget = catalogs.audioTargets.get(targetId);
   if (audioTarget) {
-    return {
-      target: visibleTargetFromTarget(audioTarget),
-      referenceId: activity.targetId,
-      label: "activity audio target",
-      source: "audio",
-    };
+    return targetReference(audioTarget, targetId, "activity audio target", "audio");
   }
   return undefined;
 }
@@ -67,16 +93,14 @@ export function activityPromptTargetReferenceFor(
   activity: BaseActivityDefinition,
   catalogs: BaseValidationCatalogs,
 ): BaseVisibleTargetReference | undefined {
+  if (!isPlainDataRecord(activity)) return undefined;
+  const activityId = ownDataValue(activity, "id");
+  if (typeof activityId !== "string") return undefined;
   const target = catalogs.activityPromptTargets.get(
-    baseActivityPromptKey(lessonId, activity.id),
+    baseActivityPromptKey(lessonId, activityId),
   );
   return target
-    ? {
-        target: visibleTargetFromTarget(target),
-        referenceId: activity.id,
-        label: "activity prompt",
-        source: "activity-prompt",
-      }
+    ? targetReference(target, activityId, "activity prompt", "activity-prompt")
     : undefined;
 }
 
@@ -87,11 +111,6 @@ export function audioTargetReferenceFor(
 ): BaseVisibleTargetReference | undefined {
   const target = catalogs.audioTargets.get(audioTargetId);
   return target
-    ? {
-        target: visibleTargetFromTarget(target),
-        referenceId: audioTargetId,
-        label,
-        source: "audio",
-      }
+    ? targetReference(target, audioTargetId, label, "audio")
     : undefined;
 }

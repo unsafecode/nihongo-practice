@@ -11,6 +11,7 @@ import {
   validateFirstTeachOwners,
   type FirstTeachOwner,
 } from "../catalog/firstTeach";
+import { validateBaseRetrievalSystems } from "../catalog/concepts";
 import {
   baseVisibleTargetForDialogueTurn,
   type BaseConcept,
@@ -24,6 +25,20 @@ import {
   activityTargetReferenceFor,
   audioTargetReferenceFor,
 } from "../catalog/visibleTargets";
+import {
+  invalidRuntimeCatalogFields,
+  isPlainDataRecord,
+  isStrictRuntimeConcept,
+  isStrictRuntimeDialogue,
+  isStrictRuntimeExample,
+  isStrictRuntimeLesson,
+  isStrictRuntimeLexeme,
+  isStrictRuntimePrerequisiteLesson,
+  isStrictRuntimeReferenceSnapshot,
+  isStrictRuntimeRetrievalSystem,
+  ownDataArrayValues,
+  ownDataValue,
+} from "./runtimeGuards";
 import {
   BASE_PARTICLE_FRAME_BY_PREDICATE,
   particleSenseFirstTeachContentId,
@@ -52,7 +67,7 @@ function workedExamplesFor(
   if (lesson.contract === "phonetic") return [];
   return lesson.workedExampleIds.flatMap((id) => {
     const example = catalogs.examples.get(id);
-    return example ? [example] : [];
+    return example && isStrictRuntimeExample(example) ? [example] : [];
   });
 }
 
@@ -76,7 +91,9 @@ function canonicalExamplesFor(
   }
   for (const activity of lesson.activities) {
     const example = catalogs.examples.get(activity.targetId);
-    if (!example || canonical.has(example.id)) continue;
+    if (!example || !isStrictRuntimeExample(example) || canonical.has(example.id)) {
+      continue;
+    }
     canonical.set(example.id, {
       example,
       referenceId: activity.targetId,
@@ -89,11 +106,24 @@ function canonicalExamplesFor(
 function ownerKindForConcept(
   concept: BaseConcept | undefined,
 ): "concept" | "form" | "reference-entry" {
-  return concept?.kind ?? "concept";
+  return isStrictRuntimeConcept(concept)
+    ? (ownDataValue(
+        concept as unknown as Readonly<Record<string, unknown>>,
+        "kind",
+      ) as "concept" | "form" | "reference-entry")
+    : "concept";
 }
 
-function tokensJapanese(tokens: readonly { readonly jp: string }[]): string {
-  return tokens.map((token) => token.jp).join("");
+function tokensJapanese(tokens: unknown): string {
+  const entries = ownDataArrayValues(tokens);
+  if (!entries) return "";
+  return entries
+    .map((token) =>
+      isPlainDataRecord(token) && typeof ownDataValue(token, "jp") === "string"
+        ? (ownDataValue(token, "jp") as string)
+        : "",
+    )
+    .join("");
 }
 
 function positionFor(lessonId: string): number | undefined {
@@ -116,7 +146,7 @@ function isBeforeLesson(lessonId: string, referenceLessonId: string): boolean {
  * reports cycles additively for malformed authoring input.
  */
 export function validateBaseLessonPrerequisiteGraph(
-  lessons: readonly BaseLessonContent[],
+  lessons: readonly BaseLessonContent[] | unknown,
 ): readonly BaseValidationError[] {
   const errors: BaseValidationError[] = [];
   const push = (
@@ -131,9 +161,29 @@ export function validateBaseLessonPrerequisiteGraph(
       ...(referenceId ? { referenceId } : {}),
     });
   };
-  const byLessonId = new Map(lessons.map((lesson) => [lesson.lessonId, lesson]));
+  const rawLessons = ownDataArrayValues(lessons);
+  if (!rawLessons) {
+    push("unknown-lesson", "invalid-lesson-shape", "lessons");
+    return deepFreeze(errors);
+  }
+  const validLessons: BaseLessonContent[] = [];
+  for (const rawLesson of rawLessons) {
+    const candidateLessonId =
+      isPlainDataRecord(rawLesson) &&
+      typeof ownDataValue(rawLesson, "lessonId") === "string"
+        ? (ownDataValue(rawLesson, "lessonId") as string)
+        : "unknown-lesson";
+    if (!isStrictRuntimePrerequisiteLesson(rawLesson)) {
+      push(candidateLessonId, "invalid-lesson-shape", "prerequisite lesson");
+      continue;
+    }
+    validLessons.push(rawLesson as BaseLessonContent);
+  }
+  const byLessonId = new Map(
+    validLessons.map((lesson) => [lesson.lessonId, lesson]),
+  );
 
-  for (const lesson of lessons) {
+  for (const lesson of validLessons) {
     const seen = new Set<string>();
     const lessonPosition = BASE_CANONICAL_POSITIONS[lesson.lessonId];
     const requiredPrerequisite = requiredBaseLessonPrerequisiteFor(lesson.lessonId);
@@ -187,7 +237,7 @@ export function validateBaseLessonPrerequisiteGraph(
     visiting.delete(lessonId);
     visited.add(lessonId);
   };
-  for (const lesson of lessons) visit(lesson.lessonId);
+  for (const lesson of validLessons) visit(lesson.lessonId);
   for (const lessonId of cycleLessonIds) {
     push(lessonId, "lesson-prerequisite-cycle", lessonId);
   }
@@ -195,14 +245,11 @@ export function validateBaseLessonPrerequisiteGraph(
 }
 
 export function validateFirstTeachOrder(
-  lessons: readonly BaseLessonContent[],
-  owners: readonly FirstTeachOwner[],
-  catalogs: BaseValidationCatalogs,
+  rawLessons: readonly BaseLessonContent[] | unknown,
+  rawOwners: readonly FirstTeachOwner[] | unknown,
+  rawCatalogs: BaseValidationCatalogs | unknown,
 ): readonly BaseValidationError[] {
   const errors: BaseValidationError[] = [];
-  const ownerByKey = new Map(
-    owners.map((owner) => [firstTeachOwnerKey(owner.kind, owner.contentId), owner]),
-  );
   const push = (
     lessonId: string,
     code: BaseValidationErrorCode,
@@ -217,6 +264,56 @@ export function validateFirstTeachOrder(
       ...(detail ? { detail } : {}),
     });
   };
+  const ownerEntries = ownDataArrayValues(rawOwners);
+  if (!ownerEntries) {
+    push("unknown-lesson", "invalid-catalog-entry", "first-teach-owners");
+    return deepFreeze(errors);
+  }
+  const owners: FirstTeachOwner[] = [];
+  for (const rawOwner of ownerEntries) {
+    const ownerIsValid =
+      isPlainDataRecord(rawOwner) &&
+      typeof ownDataValue(rawOwner, "contentId") === "string" &&
+      typeof ownDataValue(rawOwner, "levelId") === "string" &&
+      typeof ownDataValue(rawOwner, "lessonId") === "string" &&
+      ["lexeme", "concept", "form", "reference-entry"].includes(
+        ownDataValue(rawOwner, "kind") as string,
+      );
+    if (!ownerIsValid) {
+      push("unknown-lesson", "invalid-catalog-entry", "first-teach-owner");
+      continue;
+    }
+    owners.push(rawOwner as unknown as FirstTeachOwner);
+  }
+  const ownerByKey = new Map(
+    owners.map((owner) => [firstTeachOwnerKey(owner.kind, owner.contentId), owner]),
+  );
+  const lessonEntries = ownDataArrayValues(rawLessons);
+  if (!lessonEntries) {
+    push("unknown-lesson", "invalid-lesson-shape", "lessons");
+    return deepFreeze(errors);
+  }
+  const lessons: BaseLessonContent[] = [];
+  for (const rawLesson of lessonEntries) {
+    const candidateLessonId =
+      isPlainDataRecord(rawLesson) &&
+      typeof ownDataValue(rawLesson, "lessonId") === "string"
+        ? (ownDataValue(rawLesson, "lessonId") as string)
+        : "unknown-lesson";
+    if (!isStrictRuntimeLesson(rawLesson)) {
+      push(candidateLessonId, "invalid-lesson-shape", "lesson");
+      continue;
+    }
+    lessons.push(rawLesson as BaseLessonContent);
+  }
+  const catalogFields = invalidRuntimeCatalogFields(rawCatalogs);
+  if (catalogFields.length > 0) {
+    for (const field of catalogFields) {
+      push(lessons[0]?.lessonId ?? "unknown-lesson", "invalid-catalog-entry", field);
+    }
+    return deepFreeze(errors);
+  }
+  const catalogs = rawCatalogs as BaseValidationCatalogs;
   const validateOwnedReference = (
     lesson: BaseLessonContent,
     kind: FirstTeachOwner["kind"],
@@ -225,12 +322,25 @@ export function validateFirstTeachOrder(
     reportedId = id,
   ): void => {
     const owner = ownerByKey.get(firstTeachOwnerKey(kind, id));
-    const catalogFirstTeachLessonId =
+    const catalogRecord =
       kind === "lexeme"
-        ? catalogs.lexemes.get(id)?.firstTeachLessonId
+        ? catalogs.lexemes.get(id)
         : kind === "reference-entry"
-          ? catalogs.referenceSnapshots.get(id)?.firstTeachLessonId
-          : catalogs.concepts.get(id)?.firstTeachLessonId;
+          ? catalogs.referenceSnapshots.get(id)
+          : catalogs.concepts.get(id);
+    const validCatalogRecord =
+      kind === "lexeme"
+        ? isStrictRuntimeLexeme(catalogRecord)
+        : kind === "reference-entry"
+          ? isStrictRuntimeReferenceSnapshot(catalogRecord)
+          : isStrictRuntimeConcept(catalogRecord);
+    if (catalogRecord && !validCatalogRecord) {
+      push(lesson.lessonId, "invalid-catalog-entry", id, sourceLabel);
+    }
+    const catalogFirstTeachLessonId = validCatalogRecord
+      ? (catalogRecord as Readonly<{ readonly firstTeachLessonId: string }>)
+          .firstTeachLessonId
+      : undefined;
     if (!owner) {
       push(lesson.lessonId, "missing-first-teach-owner", reportedId, sourceLabel);
       if (owners.some((candidate) => candidate.contentId === id)) {
@@ -405,15 +515,35 @@ export function validateFirstTeachOrder(
         catalogs,
       );
       if (promptTarget) {
-        validateSentence(
-          lesson,
-          promptTarget.target,
-          promptTarget.referenceId,
-          promptTarget.label,
-        );
+        if (promptTarget.invalidReason) {
+          push(
+            lesson.lessonId,
+            promptTarget.invalidReason === "invalid-particle-frame"
+              ? "invalid-particle-frame"
+              : "invalid-visible-target-shape",
+            promptTarget.referenceId,
+            promptTarget.label,
+          );
+        } else {
+          validateSentence(
+            lesson,
+            promptTarget.target,
+            promptTarget.referenceId,
+            promptTarget.label,
+          );
+        }
       }
       const target = activityTargetReferenceFor(activity, catalogs);
-      if (target && target.source !== "example") {
+      if (target?.invalidReason) {
+        push(
+          lesson.lessonId,
+          target.invalidReason === "invalid-particle-frame"
+            ? "invalid-particle-frame"
+            : "invalid-visible-target-shape",
+          target.referenceId,
+          target.label,
+        );
+      } else if (target && target.source !== "example") {
         validateSentence(lesson, target.target, target.referenceId, target.label);
       }
     }
@@ -429,7 +559,16 @@ export function validateFirstTeachOrder(
     if (lesson.contract === "phonetic") {
       for (const audioExemplarId of lesson.audioExemplarIds) {
         const target = audioTargetReferenceFor(audioExemplarId, catalogs);
-        if (target) {
+        if (target?.invalidReason) {
+          push(
+            lesson.lessonId,
+            target.invalidReason === "invalid-particle-frame"
+              ? "invalid-particle-frame"
+              : "invalid-visible-target-shape",
+            target.referenceId,
+            target.label,
+          );
+        } else if (target) {
           validateSentence(lesson, target.target, target.referenceId, target.label);
         }
       }
@@ -472,8 +611,11 @@ export function validateFirstTeachOrder(
     }
 
     if (lesson.dialogueId) {
-      const dialogue = catalogs.dialogues.get(lesson.dialogueId);
-      if (dialogue) {
+      const rawDialogue = catalogs.dialogues.get(lesson.dialogueId);
+      if (rawDialogue && !isStrictRuntimeDialogue(rawDialogue)) {
+        push(lesson.lessonId, "invalid-dialogue-shape", lesson.dialogueId);
+      } else if (rawDialogue) {
+        const dialogue = rawDialogue;
         for (const [index, turn] of dialogue.turns.entries()) {
           validateSentence(
             lesson,
@@ -490,14 +632,61 @@ export function validateFirstTeachOrder(
     }
   }
 
+  const validConcepts = [...catalogs.concepts.values()].filter(
+    isStrictRuntimeConcept,
+  ) as BaseConcept[];
+  const validLexemes = [...catalogs.lexemes.values()].filter(
+    isStrictRuntimeLexeme,
+  ) as Parameters<typeof validateFirstTeachOwners>[2];
+  const validSnapshots = [...catalogs.referenceSnapshots.values()].filter(
+    isStrictRuntimeReferenceSnapshot,
+  ) as Parameters<typeof validateFirstTeachOwners>[3];
+  const firstLessonId = lessons[0]?.lessonId ?? "unknown-lesson";
+  for (const system of [...catalogs.systems.values()]) {
+    if (isStrictRuntimeRetrievalSystem(system)) continue;
+    const systemId =
+      isPlainDataRecord(system) && typeof ownDataValue(system, "id") === "string"
+        ? (ownDataValue(system, "id") as string)
+        : "unknown-system";
+    push(firstLessonId, "invalid-catalog-entry", systemId, "retrieval system");
+  }
+  for (const systemError of validateBaseRetrievalSystems(
+    [...catalogs.systems.values()].filter(isStrictRuntimeRetrievalSystem) as Parameters<
+      typeof validateBaseRetrievalSystems
+    >[0],
+    validConcepts,
+    owners,
+  )) {
+    if (systemError.code === "retrieval-system-component-unresolved") {
+      push(
+        firstLessonId,
+        "unresolved-reference",
+        systemError.componentId,
+        "retrieval system component",
+      );
+    } else if (systemError.code === "retrieval-system-component-owner-mismatch") {
+      push(
+        firstLessonId,
+        "owner-catalog-mismatch",
+        systemError.componentId,
+        "retrieval system component",
+      );
+    } else {
+      push(
+        firstLessonId,
+        "invalid-catalog-entry",
+        systemError.systemId,
+        systemError.code,
+      );
+    }
+  }
   const ownerErrors = validateFirstTeachOwners(
     owners,
-    [...catalogs.concepts.values()],
-    [...catalogs.lexemes.values()],
-    [...catalogs.referenceSnapshots.values()],
+    validConcepts,
+    validLexemes,
+    validSnapshots,
   );
   for (const ownerError of ownerErrors) {
-    const firstLessonId = lessons[0]?.lessonId ?? "unknown-lesson";
     if (ownerError.code === "prerequisite-after-dependent") {
       push(
         firstLessonId,
@@ -523,12 +712,17 @@ export function validateFirstTeachOrder(
  * intentionally has no locale or UI dependency.
  */
 export function visibleJapaneseFor(
-  lessons: readonly BaseLessonContent[],
-  catalogs: BaseValidationCatalogs,
+  rawLessons: readonly BaseLessonContent[] | unknown,
+  rawCatalogs: BaseValidationCatalogs | unknown,
 ): string {
+  const lessonEntries = ownDataArrayValues(rawLessons);
+  if (!lessonEntries || invalidRuntimeCatalogFields(rawCatalogs).length > 0) {
+    return "";
+  }
+  const catalogs = rawCatalogs as BaseValidationCatalogs;
   const surfaces: string[] = [];
   const emitted = new Set<string>();
-  const append = (key: string, tokens: readonly { readonly jp: string }[]): void => {
+  const append = (key: string, tokens: unknown): void => {
     if (emitted.has(key)) return;
     emitted.add(key);
     surfaces.push(tokensJapanese(tokens));
@@ -537,16 +731,20 @@ export function visibleJapaneseFor(
     activity: BaseLessonContent["activities"][number],
   ): void => {
     const target = activityTargetReferenceFor(activity, catalogs);
-    if (target) append(`${target.source}:${target.referenceId}`, target.target.tokens);
+    if (target && !target.invalidReason) {
+      append(`${target.source}:${target.referenceId}`, target.target.tokens);
+    }
   };
-  for (const lesson of lessons) {
+  for (const rawLesson of lessonEntries) {
+    if (!isStrictRuntimeLesson(rawLesson)) continue;
+    const lesson = rawLesson as BaseLessonContent;
     if (lesson.contract !== "phonetic") {
       for (const example of workedExamplesFor(lesson, catalogs)) {
         append(`example:${example.id}`, example.tokens);
       }
       if (lesson.dialogueId) {
         const dialogue = catalogs.dialogues.get(lesson.dialogueId);
-        if (dialogue) {
+        if (dialogue && isStrictRuntimeDialogue(dialogue)) {
           for (const [index, turn] of dialogue.turns.entries()) {
             append(`dialogue:${dialogue.id}:${index}`, turn.tokens);
           }
@@ -559,7 +757,7 @@ export function visibleJapaneseFor(
         activity,
         catalogs,
       );
-      if (promptTarget) {
+      if (promptTarget && !promptTarget.invalidReason) {
         append(
           `activity-prompt:${lesson.lessonId}:${activity.id}`,
           promptTarget.target.tokens,
@@ -570,7 +768,9 @@ export function visibleJapaneseFor(
     if (lesson.contract === "phonetic") {
       for (const audioExemplarId of lesson.audioExemplarIds) {
         const audioTarget = audioTargetReferenceFor(audioExemplarId, catalogs);
-        if (audioTarget) append(`audio:${audioExemplarId}`, audioTarget.target.tokens);
+        if (audioTarget && !audioTarget.invalidReason) {
+          append(`audio:${audioExemplarId}`, audioTarget.target.tokens);
+        }
       }
     }
   }

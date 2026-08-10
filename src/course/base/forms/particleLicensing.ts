@@ -152,7 +152,7 @@ const BASE_PREDICATE_PARTICLE_FRAMES: readonly BasePredicateParticleFrame[] = de
   },
   {
     id: "read",
-    allowedPredicateLexemeIds: [],
+    allowedPredicateLexemeIds: ["verb-yomu"],
     requiredRoles: ["theme"],
     particleSensesByRole: { theme: ["object-o"] },
     particleOwnerLessonId: "argument-particles-1",
@@ -201,14 +201,14 @@ const BASE_PREDICATE_PARTICLE_FRAMES: readonly BasePredicateParticleFrame[] = de
   },
   {
     id: "work",
-    allowedPredicateLexemeIds: [],
+    allowedPredicateLexemeIds: ["verb-hataraku"],
     requiredRoles: ["action-place"],
     particleSensesByRole: { "action-place": ["action-place-de"] },
     particleOwnerLessonId: "argument-particles-3",
   },
   {
     id: "travel",
-    allowedPredicateLexemeIds: [],
+    allowedPredicateLexemeIds: ["verb-iku", "verb-kuru", "verb-kaeru"],
     requiredRoles: ["means"],
     particleSensesByRole: { means: ["means-de"] },
     particleOwnerLessonId: "argument-particles-3",

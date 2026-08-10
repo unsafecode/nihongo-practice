@@ -3,6 +3,11 @@ import {
   BASE_PARTICLE_FRAME_BY_PREDICATE,
   validateParticleFrame,
 } from "./particleLicensing";
+import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
+import {
+  BASE_FIRST_TEACH_OWNER_BY_KEY,
+  firstTeachOwnerKey,
+} from "../catalog/firstTeach";
 
 describe("Base particle frame licensing", () => {
   it("licenses object-marked themes for transitive predicate senses", () => {
@@ -134,5 +139,42 @@ describe("Base particle frame licensing", () => {
     expect(BASE_PARTICLE_FRAME_BY_PREDICATE.get("eat")?.allowedPredicateLexemeIds).toEqual([
       "verb-taberu",
     ]);
+  });
+
+  it("keeps every predicate frame live through owned verb lexemes", () => {
+    for (const frame of BASE_PARTICLE_FRAME_BY_PREDICATE.values()) {
+      expect(frame.allowedPredicateLexemeIds.length).toBeGreaterThan(0);
+      for (const lexemeId of frame.allowedPredicateLexemeIds) {
+        const lexeme = BASE_LEXEME_BY_ID.get(lexemeId);
+        expect(lexeme?.category).toBe("verb");
+        expect(
+          BASE_FIRST_TEACH_OWNER_BY_KEY.get(firstTeachOwnerKey("lexeme", lexemeId)),
+        ).toMatchObject({
+          lessonId: lexeme?.firstTeachLessonId,
+        });
+      }
+    }
+
+    expect(BASE_PARTICLE_FRAME_BY_PREDICATE.get("read")?.allowedPredicateLexemeIds).toEqual([
+      "verb-yomu",
+    ]);
+    expect(BASE_PARTICLE_FRAME_BY_PREDICATE.get("work")?.allowedPredicateLexemeIds).toEqual([
+      "verb-hataraku",
+    ]);
+    expect(BASE_PARTICLE_FRAME_BY_PREDICATE.get("travel")?.allowedPredicateLexemeIds).toEqual([
+      "verb-iku",
+      "verb-kuru",
+      "verb-kaeru",
+    ]);
+    expect(BASE_LEXEME_BY_ID.get("verb-yomu")).toMatchObject({
+      category: "verb",
+      verbClass: "godan",
+      firstTeachLessonId: "polite-verbs-1",
+    });
+    expect(BASE_LEXEME_BY_ID.get("verb-hataraku")).toMatchObject({
+      category: "verb",
+      verbClass: "godan",
+      firstTeachLessonId: "polite-verbs-1",
+    });
   });
 });

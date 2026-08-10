@@ -1,5 +1,13 @@
 import { deepFreeze } from "../../foundations/deepFreeze";
 import { immutableReadonlyMap } from "../../foundations/immutableReadonlyMap";
+import { lessonOwner } from "../../levels/ownership";
+import {
+  isPlainDataRecord,
+  isStrictRuntimeConcept,
+  isStrictRuntimeRetrievalSystem,
+  ownDataArrayValues,
+  ownDataValue,
+} from "../validation/runtimeGuards";
 import type {
   BaseConcept,
   BaseConceptKind,
@@ -251,3 +259,107 @@ export const BASE_RETRIEVAL_SYSTEM_BY_ID: ReadonlyMap<
 > = immutableReadonlyMap(
   BASE_RETRIEVAL_SYSTEMS.map((system) => [system.id, system]),
 );
+
+export type BaseRetrievalSystemValidationErrorCode =
+  | "retrieval-system-invalid"
+  | "retrieval-system-component-empty"
+  | "retrieval-system-component-duplicate"
+  | "retrieval-system-component-unresolved"
+  | "retrieval-system-component-owner-mismatch";
+
+export interface BaseRetrievalSystemValidationError {
+  readonly code: BaseRetrievalSystemValidationErrorCode;
+  readonly systemId: string;
+  readonly componentId?: string;
+}
+
+type ComponentOwner = Readonly<{
+  readonly contentId: string;
+  readonly kind: BaseConceptKind | "lexeme";
+  readonly levelId: string;
+  readonly lessonId: string;
+}>;
+
+/**
+ * Retrieval systems can introduce their components progressively. Their own
+ * first-teach lesson therefore does not constrain component owners; it only
+ * identifies when the system itself becomes reviewable.
+ */
+export function validateBaseRetrievalSystems(
+  systems: readonly BaseRetrievalSystem[],
+  concepts: readonly BaseConcept[],
+  owners: readonly ComponentOwner[],
+): readonly BaseRetrievalSystemValidationError[] {
+  const errors: BaseRetrievalSystemValidationError[] = [];
+  const componentOwners = (ownDataArrayValues(owners) ?? []).flatMap((owner) =>
+    isPlainDataRecord(owner) &&
+    typeof ownDataValue(owner, "contentId") === "string" &&
+    typeof ownDataValue(owner, "kind") === "string" &&
+    typeof ownDataValue(owner, "levelId") === "string" &&
+    typeof ownDataValue(owner, "lessonId") === "string"
+      ? [owner as ComponentOwner]
+      : [],
+  );
+  const conceptsById = new Map<string, BaseConcept>();
+  for (const rawConcept of ownDataArrayValues(concepts) ?? []) {
+    if (!isStrictRuntimeConcept(rawConcept)) continue;
+    const concept = rawConcept as BaseConcept;
+    conceptsById.set(concept.id, concept);
+  }
+  for (const rawSystem of ownDataArrayValues(systems) ?? []) {
+    if (!isStrictRuntimeRetrievalSystem(rawSystem)) {
+      const systemId =
+        isPlainDataRecord(rawSystem) &&
+        typeof ownDataValue(rawSystem, "id") === "string"
+          ? (ownDataValue(rawSystem, "id") as string)
+          : "unknown-system";
+      errors.push({ code: "retrieval-system-invalid", systemId });
+      continue;
+    }
+    const system = rawSystem as BaseRetrievalSystem;
+    const componentIds = system.componentContentIds;
+    if (componentIds.length === 0) {
+      errors.push({
+        code: "retrieval-system-component-empty",
+        systemId: system.id,
+      });
+      continue;
+    }
+    const seen = new Set<string>();
+    for (const componentId of componentIds) {
+      if (seen.has(componentId)) {
+        errors.push({
+          code: "retrieval-system-component-duplicate",
+          systemId: system.id,
+          componentId,
+        });
+        continue;
+      }
+      seen.add(componentId);
+      const concept = conceptsById.get(componentId);
+      if (!concept) {
+        errors.push({
+          code: "retrieval-system-component-unresolved",
+          systemId: system.id,
+          componentId,
+        });
+        continue;
+      }
+      const matchingOwners = componentOwners.filter(
+        (owner) =>
+          owner.contentId === componentId &&
+          owner.kind === concept.kind &&
+          owner.lessonId === concept.firstTeachLessonId &&
+          owner.levelId === lessonOwner(concept.firstTeachLessonId)?.levelId,
+      );
+      if (matchingOwners.length !== 1) {
+        errors.push({
+          code: "retrieval-system-component-owner-mismatch",
+          systemId: system.id,
+          componentId,
+        });
+      }
+    }
+  }
+  return deepFreeze(errors);
+}

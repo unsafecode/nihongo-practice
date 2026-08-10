@@ -321,6 +321,91 @@ describe("Base first-teach ownership", () => {
     expect(index && "set" in index).toBe(false);
   });
 
+  it("accepts progressive retrieval systems while rejecting orphaned, duplicate, or owner-mismatched components", () => {
+    const systems = (
+      conceptsCatalog as Readonly<Record<string, unknown>>
+    ).BASE_RETRIEVAL_SYSTEMS as
+      | readonly {
+          readonly id: string;
+          readonly firstTeachLessonId: string;
+          readonly componentContentIds: readonly string[];
+        }[]
+      | undefined;
+    const validateSystems = (
+      conceptsCatalog as unknown as {
+        validateBaseRetrievalSystems?: (
+          systems: readonly {
+            readonly id: string;
+            readonly firstTeachLessonId: string;
+            readonly componentContentIds: readonly string[];
+          }[],
+          concepts: readonly BaseConcept[],
+          owners: typeof BASE_FIRST_TEACH_OWNERS,
+        ) => readonly { readonly code: string; readonly componentId?: string }[];
+      }
+    ).validateBaseRetrievalSystems;
+
+    expect(validateSystems).toBeTypeOf("function");
+    if (!validateSystems || !systems) return;
+
+    expect(
+      validateSystems(systems, BASE_CONCEPTS, BASE_FIRST_TEACH_OWNERS),
+    ).toEqual([]);
+    expect(
+      validateSystems(
+        [
+          {
+            id: "broken-system",
+            firstTeachLessonId: "sentence-foundations-2",
+            componentContentIds: [
+              "sentence-chunks",
+              "sentence-chunks",
+              "missing-component",
+            ],
+          },
+        ],
+        BASE_CONCEPTS,
+        BASE_FIRST_TEACH_OWNERS,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "retrieval-system-component-duplicate",
+          componentId: "sentence-chunks",
+        }),
+        expect.objectContaining({
+          code: "retrieval-system-component-unresolved",
+          componentId: "missing-component",
+        }),
+      ]),
+    );
+    expect(
+      validateSystems(
+        [
+          {
+            id: "owner-mismatch",
+            firstTeachLessonId: "sentence-foundations-2",
+            componentContentIds: ["sentence-chunks"],
+          },
+        ],
+        [
+          {
+            ...BASE_CONCEPTS.find((concept) => concept.id === "sentence-chunks")!,
+            firstTeachLessonId: "sentence-foundations-3",
+          },
+        ],
+        BASE_FIRST_TEACH_OWNERS,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "retrieval-system-component-owner-mismatch",
+          componentId: "sentence-chunks",
+        }),
+      ]),
+    );
+  });
+
   it("keeps critical particle, verb, time, adjective, and existence owners at their first lesson", () => {
     const owner = (kind: "concept" | "form", contentId: string) =>
       BASE_FIRST_TEACH_OWNER_BY_KEY.get(firstTeachOwnerKey(kind, contentId))?.lessonId;
