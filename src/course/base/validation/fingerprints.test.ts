@@ -154,4 +154,26 @@ describe("Base canonical fingerprints", () => {
     expect(() => semanticFingerprintFor(inherited)).not.toThrow();
     expect(semanticFingerprintFor(inherited)).toBe(semanticFingerprintFor(absent));
   });
+
+  it("uses descriptor-extracted particle entries when normalizing hidden roles", () => {
+    const hiddenProvided = {} as Record<string, unknown>;
+    Object.defineProperty(hiddenProvided, "theme", {
+      enumerable: false,
+      value: "object-o",
+    });
+    const visible = example({
+      particleFrame: {
+        predicateSenseId: "eat",
+        provided: { theme: "object-o" },
+      },
+    });
+    const hidden = example({
+      particleFrame: {
+        predicateSenseId: "eat",
+        provided: hiddenProvided,
+      } as BaseExample["particleFrame"],
+    });
+
+    expect(semanticFingerprintFor(hidden)).toBe(semanticFingerprintFor(visible));
+  });
 });

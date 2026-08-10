@@ -7,6 +7,8 @@ import {
   BASE_MANIFEST_SPEC,
   BASE_MODULE_IDS,
   BASE_MODULE_MANIFEST,
+  baseCanonicalPosition,
+  baseLessonManifestEntry,
   validateBaseManifestSpec,
   validateBaseManifest,
 } from "./manifest";
@@ -118,6 +120,16 @@ describe("Base manifest", () => {
     expect(BASE_MODULE_MANIFEST["topic-questions"]).not.toHaveProperty("contract");
   });
 
+  it("resolves only canonical lesson IDs through prototype-safe lookups", () => {
+    expect(baseLessonManifestEntry("sounds-1")?.contract).toBe("phonetic");
+    expect(baseCanonicalPosition("sounds-1")).toBe(1);
+
+    for (const id of ["constructor", "toString", "__proto__", "hasOwnProperty"]) {
+      expect(baseLessonManifestEntry(id)).toBeNull();
+      expect(baseCanonicalPosition(id)).toBeNull();
+    }
+  });
+
   it("deep-freezes all exported manifest arrays, maps, entries, and nested arrays", () => {
     assertFrozenArray(BASE_MODULE_IDS);
     assertFrozenArray(BASE_LESSON_IDS);
@@ -183,6 +195,14 @@ describe("Base manifest", () => {
         ]),
       );
     }
+  });
+
+  it("fails closed when a manifest spec supplies a prototype-named module ID", () => {
+    const spec = mutableBaseManifestSpec();
+    (spec as unknown as { moduleIds: string[] }).moduleIds = ["constructor"];
+
+    expect(() => validateBaseManifestSpec(spec)).not.toThrow();
+    expect(validateBaseManifestSpec(spec).ok).toBe(false);
   });
 });
 

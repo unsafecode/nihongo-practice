@@ -1,4 +1,12 @@
 import type { AssembledToken } from "../../../romaji/types";
+import {
+  baseActivityOperationFor,
+  isBaseActivityKind,
+  isBaseActivityMode,
+  isBaseActivityOperation,
+  isBaseInteractionKind,
+} from "../catalog/activityContracts";
+import { particleProvidedEntries } from "../forms/particleLicensing";
 
 export type RuntimeDataRecord = Readonly<Record<string, unknown>>;
 
@@ -39,6 +47,21 @@ const PARTICLE_FRAME_SENSES = new Set([
   "listing-to",
   "nominal-to",
   "question-ka",
+]);
+const PREDICATE_ASPECTS = new Set([
+  "dynamic",
+  "stative",
+  "nominal",
+  "adjectival",
+]);
+const INTERPRETATION_TAGS = new Set([
+  "habitual",
+  "future",
+  "present-state",
+  "ongoing-now",
+  "resulting-state",
+  "past",
+  "negative",
 ]);
 
 const hasOwn: (value: object, key: PropertyKey) => boolean =
@@ -156,17 +179,37 @@ function isSafeParticleFrame(value: unknown): boolean {
   if (typeof predicateSenseId !== "string" || !hasOwnDataValue(value, "provided")) {
     return false;
   }
-  const provided = ownDataValue(value, "provided");
-  if (!isPlainDataRecord(provided)) return false;
-  return Object.keys(provided).every((role) => {
-    const particleSense = ownDataValue(provided, role);
-    return (
-      PARTICLE_FRAME_ROLES.has(role) &&
-      (particleSense === undefined ||
-        (typeof particleSense === "string" &&
-          PARTICLE_FRAME_SENSES.has(particleSense)))
-    );
-  });
+  const provided = particleProvidedEntries(ownDataValue(value, "provided"));
+  return (
+    provided.ok &&
+    provided.entries.every(
+      ([role, particleSense]) =>
+        PARTICLE_FRAME_ROLES.has(role) &&
+        PARTICLE_FRAME_SENSES.has(particleSense),
+    )
+  );
+}
+
+function isStrictInterpretationTags(
+  value: unknown,
+  requireAtLeastOne: boolean,
+): boolean {
+  const entries = ownDataArrayValues(value);
+  if (!entries) return false;
+  if (requireAtLeastOne && entries.length === 0) return false;
+  const tags = new Set<string>();
+  for (const entry of entries) {
+    if (
+      typeof entry !== "string" ||
+      entry.trim().length === 0 ||
+      !INTERPRETATION_TAGS.has(entry) ||
+      tags.has(entry)
+    ) {
+      return false;
+    }
+    tags.add(entry);
+  }
+  return true;
 }
 
 /**
@@ -186,7 +229,6 @@ export function runtimeVisibleTargetIssue(
     "formIds",
     "patternCellIds",
     "semanticRoleIds",
-    "interpretationTags",
   ] as const;
   if (
     !requiredStringArrays.every(
@@ -205,10 +247,18 @@ export function runtimeVisibleTargetIssue(
   ) {
     return "invalid-visible-target";
   }
+  const predicateAspect = ownDataValue(value, "predicateAspect");
   if (
     hasOwnDataValue(value, "predicateAspect") &&
-    ownDataValue(value, "predicateAspect") !== undefined &&
-    typeof ownDataValue(value, "predicateAspect") !== "string"
+    (typeof predicateAspect !== "string" || !PREDICATE_ASPECTS.has(predicateAspect))
+  ) {
+    return "invalid-visible-target";
+  }
+  if (
+    !isStrictInterpretationTags(
+      ownDataValue(value, "interpretationTags"),
+      predicateAspect !== undefined,
+    )
   ) {
     return "invalid-visible-target";
   }
@@ -278,20 +328,48 @@ export function isStrictRuntimeActivity(value: unknown): boolean {
   if (!isPlainDataRecord(value)) return false;
   const stringFields = [
     "id",
-    "category",
-    "interactionKind",
-    "mode",
     "targetId",
-    "operation",
     "instructionCopyId",
     "acceptedFeedbackCopyId",
     "retryFeedbackCopyId",
   ] as const;
   return (
     stringFields.every((field) => typeof ownDataValue(value, field) === "string") &&
+    isBaseActivityKind(ownDataValue(value, "category")) &&
+    isBaseInteractionKind(ownDataValue(value, "interactionKind")) &&
+    isBaseActivityMode(ownDataValue(value, "mode")) &&
+    isBaseActivityOperation(ownDataValue(value, "operation")) &&
     isRuntimeStringArray(ownDataValue(value, "assessedConceptIds")) &&
     isRuntimeStringArray(ownDataValue(value, "assessedLexemeIds"))
   );
+}
+
+export type RuntimeActivityShapeIssue =
+  | "invalid-activity-shape"
+  | "activity-category-operation-mismatch";
+
+export function runtimeActivityShapeIssues(
+  value: unknown,
+): readonly RuntimeActivityShapeIssue[] {
+  if (!isPlainDataRecord(value)) {
+    return ["invalid-activity-shape", "activity-category-operation-mismatch"];
+  }
+  const category = ownDataValue(value, "category");
+  const interactionKind = ownDataValue(value, "interactionKind");
+  const mode = ownDataValue(value, "mode");
+  const operation = ownDataValue(value, "operation");
+  if (
+    !isBaseActivityKind(category) ||
+    !isBaseInteractionKind(interactionKind) ||
+    !isBaseActivityMode(mode) ||
+    !isBaseActivityOperation(operation)
+  ) {
+    return ["invalid-activity-shape", "activity-category-operation-mismatch"];
+  }
+  const expectedOperation = baseActivityOperationFor(category);
+  return expectedOperation === operation
+    ? []
+    : ["activity-category-operation-mismatch"];
 }
 
 export function isStrictRuntimeLexeme(value: unknown): boolean {

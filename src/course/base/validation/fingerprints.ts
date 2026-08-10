@@ -10,6 +10,7 @@ import {
   ownDataArrayValues,
   ownDataValue,
 } from "./runtimeGuards";
+import { particleProvidedEntries } from "../forms/particleLicensing";
 
 export { BASE_ACTIVITY_OPERATION_BY_CATEGORY } from "../catalog/types";
 
@@ -24,15 +25,6 @@ export type ActivityFingerprintResolution =
         readonly targetId: string;
       }>;
     }>;
-
-function ownStringEntries(
-  value: Readonly<Record<string, unknown>>,
-): readonly (readonly [string, string])[] {
-  return Object.keys(value).flatMap((key) => {
-    const entry = ownDataValue(value, key);
-    return typeof entry === "string" ? ([[key, entry]] as const) : [];
-  });
-}
 
 function normalizeText(value: unknown): string {
   return typeof value === "string"
@@ -66,16 +58,14 @@ function normalizedParticleFrame(
   if (!isPlainDataRecord(particleFrame)) return null;
   const predicateSenseId = ownDataValue(particleFrame, "predicateSenseId");
   if (typeof predicateSenseId !== "string") return null;
-  const providedValue = ownDataValue(particleFrame, "provided");
-  const provided = isPlainDataRecord(providedValue)
-    ? ownStringEntries(providedValue)
-        .map(
-          ([role, sense]) =>
-            [normalizeText(role), normalizeText(sense)] as const,
-        )
-        .filter(([, sense]) => sense.length > 0)
-        .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
-    : [];
+  const provided = particleProvidedEntries(
+    ownDataValue(particleFrame, "provided"),
+  ).entries
+    .map(
+      ([role, sense]) => [normalizeText(role), normalizeText(sense)] as const,
+    )
+    .filter(([, sense]) => sense.length > 0)
+    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0));
   return {
     predicateSenseId: normalizeText(predicateSenseId),
     provided,
@@ -161,6 +151,7 @@ export function activityTargetOperationFingerprintFor(
       }),
     });
   }
+  const targetRecord = target as unknown as Readonly<Record<string, unknown>>;
   return Object.freeze({
     ok: true as const,
     fingerprint: `base-activity-target-v1:${JSON.stringify({
@@ -177,10 +168,18 @@ export function activityTargetOperationFingerprintFor(
       targetFormIds: sortedNormalized(target.formIds),
       targetPatternCellIds: sortedNormalized(target.patternCellIds),
       targetSemanticRoleIds: sortedNormalized(target.semanticRoleIds),
-      targetDiscourseFrameId: normalizedOptionalText(target.discourseFrameId),
-      targetPredicateAspect: normalizedOptionalText(target.predicateAspect),
-      targetInterpretationTags: sortedNormalized(target.interpretationTags),
-      targetParticleFrame: normalizedParticleFrame(target.particleFrame),
+      targetDiscourseFrameId: normalizedOptionalText(
+        ownDataValue(targetRecord, "discourseFrameId"),
+      ),
+      targetPredicateAspect: normalizedOptionalText(
+        ownDataValue(targetRecord, "predicateAspect"),
+      ),
+      targetInterpretationTags: sortedNormalized(
+        ownDataValue(targetRecord, "interpretationTags"),
+      ),
+      targetParticleFrame: normalizedParticleFrame(
+        ownDataValue(targetRecord, "particleFrame"),
+      ),
     })}`,
   });
 }

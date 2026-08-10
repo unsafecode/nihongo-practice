@@ -3438,3 +3438,340 @@ describe("Task7 remaining Base validation boundaries", () => {
     );
   });
 });
+
+describe("Task7 audit prototype and enum regressions", () => {
+  function nonEnumerableParticleFrame(
+    particleSense: string,
+  ): BaseVisibleTarget["particleFrame"] {
+    const provided = {} as Record<string, unknown>;
+    Object.defineProperty(provided, "theme", {
+      enumerable: false,
+      value: particleSense,
+    });
+    return {
+      predicateSenseId: "eat",
+      provided,
+    } as BaseVisibleTarget["particleFrame"];
+  }
+
+  it("reports the same malformed particle frame from worked, dialogue, and accepted targets", () => {
+    const workedExample: BaseExample = {
+      ...EXAMPLES[0],
+      id: "non-enumerable-worked-frame",
+      lexemeIds: ["verb-taberu"],
+      predicateSenseId: "eat",
+      predicateLexemeId: "verb-taberu",
+      particleFrame: nonEnumerableParticleFrame("focus-subject-ga"),
+    };
+    const dialogue: BaseDialogue = {
+      ...DIALOGUE,
+      turns: [
+        {
+          ...DIALOGUE.turns[0],
+          lexemeIds: ["verb-taberu"],
+          predicateSenseId: "eat",
+          predicateLexemeId: "verb-taberu",
+          particleFrame: nonEnumerableParticleFrame("focus-subject-ga"),
+        },
+        ...DIALOGUE.turns.slice(1),
+      ],
+    };
+    const acceptedTargetId = "non-enumerable-accepted-frame";
+    const catalogs: BaseValidationCatalogs = {
+      ...CATALOGS,
+      examples: new Map([...CATALOGS.examples, [workedExample.id, workedExample]]),
+      dialogues: new Map([...CATALOGS.dialogues, [dialogue.id, dialogue]]),
+      acceptedAnswerTargets: new Map([
+        ...CATALOGS.acceptedAnswerTargets,
+        [
+          acceptedTargetId,
+          visibleTarget([token("non-enumerable-accepted-token", "隠")], {
+            lexemeIds: ["verb-taberu"],
+            predicateSenseId: "eat",
+            predicateLexemeId: "verb-taberu",
+            particleFrame: nonEnumerableParticleFrame("focus-subject-ga"),
+          }),
+        ],
+      ]),
+    };
+    const lesson: BaseLessonContent = {
+      ...systemLesson(),
+      workedExampleIds: [
+        workedExample.id,
+        ...EXAMPLES.slice(1, 10).map((entry) => entry.id),
+      ],
+      activities: [
+        { ...SEMANTIC_ACTIVITIES[0], targetId: acceptedTargetId },
+        ...SEMANTIC_ACTIVITIES.slice(1),
+      ],
+    };
+
+    expect(() => validateBaseLessonDepth(lesson, catalogs)).not.toThrow();
+    const errors = validateBaseLessonDepth(lesson, catalogs);
+
+    const referenceIds = [
+      workedExample.id,
+      `${dialogue.id}:0`,
+      acceptedTargetId,
+    ] as const;
+    for (const referenceId of referenceIds) {
+      expect(errors).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "invalid-particle-frame",
+            referenceId,
+          }),
+        ]),
+      );
+    }
+    const particleErrorsFor = (referenceId: string) =>
+      errors
+        .filter(
+          (error) =>
+            error.referenceId === referenceId &&
+            (error.code === "invalid-particle-frame" ||
+              error.code === "unlicensed-particle"),
+        )
+        .map((error) => `${error.code}:${error.detail ?? ""}`)
+        .sort();
+    expect(particleErrorsFor(referenceIds[1])).toEqual(
+      particleErrorsFor(referenceIds[0]),
+    );
+    expect(particleErrorsFor(referenceIds[2])).toEqual(
+      particleErrorsFor(referenceIds[0]),
+    );
+  });
+
+  it("keeps hidden early particle senses in first-teach validation while rejecting their frame", () => {
+    const hiddenObjectExample: BaseExample = {
+      ...EXAMPLES[0],
+      id: "hidden-object-particle-before-teach",
+      lexemeIds: ["verb-taberu"],
+      predicateSenseId: "eat",
+      predicateLexemeId: "verb-taberu",
+      particleFrame: nonEnumerableParticleFrame("object-o"),
+    };
+    const catalogs: BaseValidationCatalogs = {
+      ...CATALOGS,
+      examples: new Map([
+        ...CATALOGS.examples,
+        [hiddenObjectExample.id, hiddenObjectExample],
+      ]),
+    };
+    const lesson: BaseLessonContent = {
+      ...systemLesson(),
+      lessonId: "polite-verbs-4",
+      contract: "content",
+      prerequisiteLessonIds: ["polite-verbs-3"],
+      newLexemeIds: [],
+      introducedConceptIds: [],
+      workedExampleIds: [hiddenObjectExample.id],
+    };
+
+    expect(() =>
+      validateFirstTeachOrder([lesson], BASE_FIRST_TEACH_OWNERS, catalogs),
+    ).not.toThrow();
+    expect(
+      validateFirstTeachOrder([lesson], BASE_FIRST_TEACH_OWNERS, catalogs),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "invalid-particle-frame",
+          referenceId: hiddenObjectExample.id,
+        }),
+        expect.objectContaining({
+          code: "first-teach-before-owner",
+          referenceId: "object-o",
+        }),
+      ]),
+    );
+  });
+
+  it("reports hostile activity domains instead of indexing prototype values", () => {
+    const base = phoneticLesson();
+    const malformedFields: readonly (readonly [
+      string,
+      Readonly<Record<string, unknown>>,
+    ])[] = [
+      ["constructor-category", { category: "constructor" }],
+      ["to-string-category", { category: "toString" }],
+      ["value-of-category", { category: "valueOf" }],
+      ["proto-category", { category: "__proto__" }],
+      ["symbol-category", { category: Symbol("category") }],
+      ["space-category", { category: "meaning-comprehension " }],
+      ["constructor-operation", { operation: "constructor" }],
+      ["space-mode", { mode: "audio " }],
+      ["space-interaction", { interactionKind: "choice " }],
+    ];
+
+    for (const [_name, fields] of malformedFields) {
+      const lesson = {
+        ...base,
+        activities: [
+          {
+            ...base.activities[0],
+            ...fields,
+          },
+          ...base.activities.slice(1),
+        ],
+      } as unknown as BaseLessonContent;
+
+      expect(() => validateBaseLessonDepth(lesson, CATALOGS)).not.toThrow();
+      expect(validateBaseLessonDepth(lesson, CATALOGS)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "invalid-activity-shape",
+            referenceId: base.activities[0].id,
+          }),
+          expect.objectContaining({
+            code: "activity-category-operation-mismatch",
+            referenceId: base.activities[0].id,
+          }),
+        ]),
+      );
+      expect(
+        validateFirstTeachOrder([lesson], BASE_FIRST_TEACH_OWNERS, CATALOGS),
+      ).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "invalid-activity-shape",
+            referenceId: base.activities[0].id,
+          }),
+          expect.objectContaining({
+            code: "activity-category-operation-mismatch",
+            referenceId: base.activities[0].id,
+          }),
+        ]),
+      );
+    }
+  });
+
+  it("treats prototype-like lesson and prerequisite IDs as unknown", () => {
+    const prototypeLesson = {
+      ...phoneticLesson(),
+      lessonId: "constructor",
+      prerequisiteLessonIds: [],
+    } as unknown as BaseLessonContent;
+    const prototypePrerequisite = {
+      ...phoneticLesson(),
+      prerequisiteLessonIds: ["hasOwnProperty"],
+    } as unknown as BaseLessonContent;
+
+    expect(() => validateBaseLessonDepth(prototypeLesson, CATALOGS)).not.toThrow();
+    expect(() =>
+      sequenceRules.validateBaseLessonPrerequisiteGraph([prototypePrerequisite]),
+    ).not.toThrow();
+    expect(validateBaseLessonDepth(prototypeLesson, CATALOGS)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "unknown-base-lesson",
+          referenceId: "constructor",
+        }),
+      ]),
+    );
+    expect(
+      sequenceRules.validateBaseLessonPrerequisiteGraph([prototypePrerequisite]),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "invalid-prerequisite",
+          referenceId: "hasOwnProperty",
+        }),
+      ]),
+    );
+  });
+
+  it("rejects dynamic-space and ongoing-space across visible, example, and dialogue shapes", () => {
+    const phonetic = phoneticLesson();
+    const malformedTargetCases = [
+      ["dynamic-space", { predicateAspect: "dynamic " }],
+      ["ongoing-space", { interpretationTags: ["ongoing-now "] }],
+      ["dynamic-case", { predicateAspect: "Dynamic" }],
+      ["ongoing-case", { interpretationTags: ["ONGOING-NOW"] }],
+      ["unknown-aspect", { predicateAspect: "habitual" }],
+      ["duplicate-tags", { interpretationTags: ["habitual", "habitual"] }],
+      ["empty-tags", { interpretationTags: [] }],
+    ] as const;
+
+    for (const [name, overrides] of malformedTargetCases) {
+      const targetId = `enum-${name}`;
+      const catalogs: BaseValidationCatalogs = {
+        ...CATALOGS,
+        acceptedAnswerTargets: new Map([
+          ...CATALOGS.acceptedAnswerTargets,
+          [
+            targetId,
+            visibleTarget(
+              [token(`${targetId}-token`, "形")],
+              overrides as unknown as Partial<BaseVisibleTarget>,
+            ),
+          ],
+        ]),
+      };
+      const lesson: BaseLessonContent = {
+        ...phonetic,
+        activities: [
+          { ...phonetic.activities[0], targetId },
+          ...phonetic.activities.slice(1),
+        ],
+      };
+
+      expect(() => validateBaseLessonDepth(lesson, catalogs)).not.toThrow();
+      expect(validateBaseLessonDepth(lesson, catalogs)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "invalid-visible-target-shape",
+            referenceId: targetId,
+          }),
+        ]),
+      );
+    }
+
+    const malformedExample: BaseExample = {
+      ...EXAMPLES[0],
+      id: "dynamic-space-example",
+      predicateAspect: "dynamic " as BaseExample["predicateAspect"],
+    };
+    const malformedDialogue: BaseDialogue = {
+      ...DIALOGUE,
+      turns: [
+        {
+          ...DIALOGUE.turns[0],
+          interpretationTags: ["ongoing-now "] as unknown as BaseVisibleTarget["interpretationTags"],
+        },
+        ...DIALOGUE.turns.slice(1),
+      ],
+    };
+    const catalogs: BaseValidationCatalogs = {
+      ...CATALOGS,
+      examples: new Map([
+        ...CATALOGS.examples,
+        [malformedExample.id, malformedExample],
+      ]),
+      dialogues: new Map([
+        ...CATALOGS.dialogues,
+        [malformedDialogue.id, malformedDialogue],
+      ]),
+    };
+    const semantic = {
+      ...systemLesson(),
+      workedExampleIds: [
+        malformedExample.id,
+        ...EXAMPLES.slice(1, 10).map((entry) => entry.id),
+      ],
+    };
+
+    expect(validateBaseLessonDepth(semantic, catalogs)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "invalid-example-shape",
+          referenceId: malformedExample.id,
+        }),
+        expect.objectContaining({
+          code: "invalid-dialogue-shape",
+          referenceId: malformedDialogue.id,
+        }),
+      ]),
+    );
+  });
+});

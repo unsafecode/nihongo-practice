@@ -382,6 +382,47 @@ describe("Base first-teach ownership", () => {
     );
   });
 
+  it("reports prototype-like lesson IDs as unknown instead of deriving a contract", () => {
+    const semanticLesson: BaseSystemLessonContent = {
+      lessonId: "sentence-foundations-3",
+      contract: "system",
+      prerequisiteLessonIds: [],
+      recapCopyId: "recap",
+      activities: [],
+      newLexemeIds: [],
+      reviewLexemeIds: [],
+      introducedConceptIds: [],
+      reviewedConceptIds: [],
+      explanationBlockIds: {
+        main: "main",
+        construction: "construction",
+        constraints: "constraints",
+        commonError: "common-error",
+        nearestContrast: "nearest-contrast",
+      },
+      patternCellIds: [],
+      workedExampleIds: [],
+      dialogueId: null,
+      referenceSnapshotIds: [],
+      interactive: false,
+      retrievedSystemIds: [],
+    };
+
+    for (const lessonId of [
+      "constructor",
+      "toString",
+      "__proto__",
+      "hasOwnProperty",
+    ]) {
+      expect(() =>
+        defineBaseLessonContent({
+          ...semanticLesson,
+          lessonId,
+        } as unknown as BaseSystemLessonContent),
+      ).toThrow(expect.objectContaining({ code: "unknown-lesson-id" }));
+    }
+  });
+
   it("publishes immutable canonical retrieval systems without localized text", () => {
     const systems = (
       conceptsCatalog as Readonly<Record<string, unknown>>

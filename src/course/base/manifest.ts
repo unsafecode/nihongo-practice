@@ -110,33 +110,65 @@ export function requiredBaseLessonPrerequisiteFor(
   return BASE_REQUIRED_PREREQUISITE_BY_LESSON.get(lessonId as LessonId);
 }
 
+const BASE_CANONICAL_POSITION_ENTRIES: readonly (readonly [LessonId, number])[] =
+  BASE_LESSON_IDS.map((id, index) => [id, index + 1]);
+
 export const BASE_CANONICAL_POSITIONS: Readonly<Record<LessonId, number>> =
   deepFreeze(
-    Object.fromEntries(BASE_LESSON_IDS.map((id, index) => [id, index + 1])),
+    Object.fromEntries(BASE_CANONICAL_POSITION_ENTRIES) as Record<LessonId, number>,
   );
+
+const BASE_CANONICAL_POSITION_BY_ID: ReadonlyMap<LessonId, number> =
+  immutableReadonlyMap(BASE_CANONICAL_POSITION_ENTRIES);
+
+export function baseCanonicalPosition(id: unknown): number | null {
+  return typeof id === "string"
+    ? BASE_CANONICAL_POSITION_BY_ID.get(id as LessonId) ?? null
+    : null;
+}
 
 function moduleOutcomeCopyId(moduleId: ModuleId): string {
   return `base-module-outcome-${moduleId}`;
 }
 
+const BASE_LESSON_MANIFEST_ENTRIES: readonly (
+  readonly [LessonId, BaseLessonManifestEntry]
+)[] = BASE_MODULE_IDS.flatMap((moduleId) =>
+  BASE_LESSON_IDS_BY_MODULE[moduleId].map((lessonId, index) => {
+    const position = baseCanonicalPosition(lessonId);
+    if (position === null) {
+      throw new Error(`Missing canonical Base position for "${lessonId}".`);
+    }
+    const entry: BaseLessonManifestEntry = {
+      lessonId,
+      moduleId,
+      order: (index + 1) as 1 | 2 | 3 | 4,
+      contract: BASE_MANIFEST_SPEC.lessonContracts[lessonId],
+      position,
+    };
+    return [lessonId, entry];
+  }),
+);
+
 export const BASE_LESSON_MANIFEST: Readonly<
   Record<LessonId, BaseLessonManifestEntry>
 > = deepFreeze(
-  Object.fromEntries(
-    BASE_MODULE_IDS.flatMap((moduleId) =>
-      BASE_LESSON_IDS_BY_MODULE[moduleId].map((lessonId, index) => {
-        const entry: BaseLessonManifestEntry = {
-          lessonId,
-          moduleId,
-          order: (index + 1) as 1 | 2 | 3 | 4,
-          contract: BASE_MANIFEST_SPEC.lessonContracts[lessonId],
-          position: BASE_CANONICAL_POSITIONS[lessonId],
-        };
-        return [lessonId, entry];
-      }),
-    ),
-  ),
+  Object.fromEntries(BASE_LESSON_MANIFEST_ENTRIES) as Record<
+    LessonId,
+    BaseLessonManifestEntry
+  >,
 );
+
+const BASE_LESSON_MANIFEST_BY_ID: ReadonlyMap<LessonId, BaseLessonManifestEntry> =
+  immutableReadonlyMap(BASE_LESSON_MANIFEST_ENTRIES);
+
+export function baseLessonManifestEntry(
+  id: unknown,
+): BaseLessonManifestEntry | null {
+  return typeof id === "string"
+    ? BASE_LESSON_MANIFEST_BY_ID.get(id as LessonId) ?? null
+    : null;
+}
 
 export const BASE_MODULE_MANIFEST: Readonly<
   Record<ModuleId, BaseModuleManifestEntry>
@@ -165,6 +197,13 @@ function findDuplicates<T>(values: readonly T[]): T[] {
   return [...duplicates];
 }
 
+function ownDataValue(value: unknown, key: string): unknown {
+  if (value === null || typeof value !== "object") return undefined;
+  if (!Object.prototype.hasOwnProperty.call(value, key)) return undefined;
+  const descriptor = Object.getOwnPropertyDescriptor(value, key);
+  return descriptor && "value" in descriptor ? descriptor.value : undefined;
+}
+
 export function validateBaseManifestSpec(
   spec: BaseManifestSpec,
 ): BaseManifestValidationResult {
@@ -179,22 +218,29 @@ export function validateBaseManifestSpec(
     push("duplicate-module-id", `Module id "${duplicate}" appears more than once.`);
   }
 
-  const lessonIds: LessonId[] = [];
+  const lessonIds: string[] = [];
   for (const moduleId of spec.moduleIds) {
-    const moduleLessons = spec.lessonIdsByModule[moduleId] ?? [];
+    const moduleLessonsValue = ownDataValue(spec.lessonIdsByModule, moduleId);
+    const moduleLessons = Array.isArray(moduleLessonsValue)
+      ? moduleLessonsValue
+      : [];
     if (moduleLessons.length !== 4) {
       push(
         "lessons-per-module",
         `Module "${moduleId}" must have exactly 4 lessons, has ${moduleLessons.length}.`,
       );
     }
-    lessonIds.push(...moduleLessons);
     for (const lessonId of moduleLessons) {
-      const actualContract = spec.lessonContracts[lessonId];
-      if (!actualContract) {
+      if (typeof lessonId !== "string") {
+        push("missing-lesson-contract", `Lesson "${String(lessonId)}" has no contract.`);
+        continue;
+      }
+      lessonIds.push(lessonId);
+      const actualContract = ownDataValue(spec.lessonContracts, lessonId);
+      if (typeof actualContract !== "string") {
         push("missing-lesson-contract", `Lesson "${lessonId}" has no contract.`);
       } else {
-        const expectedContract = contractForLesson(lessonId);
+        const expectedContract = contractForLesson(lessonId as LessonId);
         if (actualContract !== expectedContract) {
           push(
             "lesson-contract-classification",
@@ -210,11 +256,11 @@ export function validateBaseManifestSpec(
 
   spec.moduleIds.forEach((moduleId, index) => {
     const expected = index === 0 ? [] : [spec.moduleIds[index - 1]];
-    if (!Object.prototype.hasOwnProperty.call(spec.modulePrerequisites, moduleId)) {
+    const actual = ownDataValue(spec.modulePrerequisites, moduleId);
+    if (!Array.isArray(actual)) {
       push("missing-prerequisite-record", `Module "${moduleId}" has no modulePrerequisites record.`);
       return;
     }
-    const actual = spec.modulePrerequisites[moduleId];
     if (actual.length !== expected.length || actual.some((id, i) => id !== expected[i])) {
       push("prerequisite-chain", `Module "${moduleId}" does not follow the linear prerequisite chain.`);
     }

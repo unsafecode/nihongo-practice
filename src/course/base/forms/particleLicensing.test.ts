@@ -105,6 +105,40 @@ describe("Base particle frame licensing", () => {
     );
   });
 
+  it("rejects non-enumerable, symbol, and prototype-named particle roles", () => {
+    const nonEnumerableTheme = {} as Record<string, unknown>;
+    Object.defineProperty(nonEnumerableTheme, "theme", {
+      enumerable: false,
+      value: "focus-subject-ga",
+    });
+    const symbolRole = {
+      theme: "object-o",
+      [Symbol("hidden")]: "object-o",
+    } as Record<string, unknown>;
+    const prototypeNamedRole = Object.create(null) as Record<string, unknown>;
+    prototypeNamedRole.theme = "object-o";
+    Object.defineProperty(prototypeNamedRole, "constructor", {
+      enumerable: true,
+      value: "object-o",
+    });
+
+    for (const provided of [
+      nonEnumerableTheme,
+      symbolRole,
+      prototypeNamedRole,
+    ]) {
+      expect(() => validateParticleFrame("eat", provided)).not.toThrow();
+      expect(validateParticleFrame("eat", provided)).toEqual(
+        expect.objectContaining({
+          ok: false,
+          errors: expect.arrayContaining([
+            expect.objectContaining({ code: "invalid-particle-frame" }),
+          ]),
+        }),
+      );
+    }
+  });
+
   it("reports a literal toString role without invoking inherited methods", () => {
     const provided = Object.create(null) as Record<string, unknown>;
     provided.theme = "object-o";

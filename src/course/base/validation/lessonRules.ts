@@ -2,8 +2,8 @@ import type { AssembledToken } from "../../../romaji/types";
 import { formatRomaji } from "../../../romaji/formatRomaji";
 import { deepFreeze } from "../../foundations/deepFreeze";
 import {
-  BASE_CANONICAL_POSITIONS,
-  BASE_LESSON_MANIFEST,
+  baseCanonicalPosition,
+  baseLessonManifestEntry,
   requiredBaseLessonPrerequisiteFor,
 } from "../manifest";
 import { firstTeachLessonPosition } from "../catalog/firstTeach";
@@ -20,16 +20,21 @@ import {
   activityPromptTargetReferenceFor,
   activityTargetReferenceFor,
   audioTargetReferenceFor,
+  baseActivityPromptKey,
 } from "../catalog/visibleTargets";
 import {
   BASE_PARTICLE_FRAME_BY_PREDICATE,
-  validateParticleFrame,
+  particleProvidedEntries,
+  validateParticleFrameEntries,
 } from "../forms/particleLicensing";
 import {
-  BASE_ACTIVITY_INTERACTIONS_BY_CATEGORY,
-  BASE_ACTIVITY_OPERATION_BY_CATEGORY,
   BASE_PHONETIC_ACTIVITY_OPERATIONS,
 } from "../catalog/types";
+import {
+  baseActivityInteractionsFor,
+  baseActivityOperationFor,
+  isBaseActivityKind,
+} from "../catalog/activityContracts";
 import {
   activityTargetOperationFingerprintFor,
   activityTargetVisibleSurfaceFor,
@@ -48,6 +53,7 @@ import {
   isStrictRuntimeRetrievalSystem,
   isStrictRuntimeTokenSequence as isStrictRawRuntimeTokenSequence,
   ownDataArrayValues,
+  runtimeActivityShapeIssues,
   runtimeVisibleTargetIssue,
   strictRuntimeLessonWithContract,
 } from "./runtimeGuards";
@@ -92,6 +98,7 @@ export type BaseValidationErrorCode =
   | "semantic-listening-audio-count"
   | "semantic-spoken-audio-count"
   | "duplicate-activity-id"
+  | "invalid-activity-shape"
   | "duplicate-target-operation"
   | "duplicate-visible-target"
   | "activity-category-operation-mismatch"
@@ -179,6 +186,7 @@ function resolvedExamples(
     if (!example) {
       push("unresolved-reference", exampleId, "worked example");
     } else if (!isStrictRuntimeExample(example)) {
+      reportMalformedParticleFrame(example, exampleId, "worked example", push);
       push("invalid-example-shape", exampleId, "worked example");
     } else {
       examples.push(example);
@@ -204,6 +212,60 @@ function validateWorkedExampleVisibleSurfaces(
     }
     seen.add(surface);
   }
+}
+
+function reportMalformedParticleFrame(
+  target: unknown,
+  referenceId: string,
+  _label: string,
+  push: (
+    code: BaseValidationErrorCode,
+    referenceId?: string,
+    detail?: string,
+  ) => void,
+): void {
+  if (runtimeVisibleTargetIssue(target) !== "invalid-particle-frame") return;
+  push("invalid-particle-frame", referenceId, "malformed-particle-frame");
+  if (!isPlainDataRecord(target)) return;
+  const particleFrame = ownDataValue(target, "particleFrame");
+  if (!isPlainDataRecord(particleFrame)) return;
+  const frame = validateParticleFrameEntries(
+    ownDataValue(particleFrame, "predicateSenseId"),
+    particleProvidedEntries(ownDataValue(particleFrame, "provided")),
+  );
+  if (!frame.ok) {
+    for (const error of frame.errors) {
+      push(
+        error.code === "unlicensed-particle"
+          ? "unlicensed-particle"
+          : "invalid-particle-frame",
+        referenceId,
+        error.code,
+      );
+    }
+  }
+}
+
+function reportMalformedDialogueParticleFrames(
+  dialogue: unknown,
+  dialogueId: string,
+  push: (
+    code: BaseValidationErrorCode,
+    referenceId?: string,
+    detail?: string,
+  ) => void,
+): void {
+  if (!isPlainDataRecord(dialogue)) return;
+  const turns = ownDataArrayValues(ownDataValue(dialogue, "turns"));
+  if (!turns) return;
+  turns.forEach((turn, index) =>
+    reportMalformedParticleFrame(
+      turn,
+      `${dialogueId}:${index}`,
+      "dialogue turn",
+      push,
+    ),
+  );
 }
 
 function validateReference(
@@ -353,8 +415,6 @@ function reportInvalidVisibleTarget(
   push("invalid-visible-target-shape", referenceId, `${label}:${reason ?? "invalid"}`);
   if (reason === "invalid-token-sequence") {
     push("token-sequence-invalid", referenceId, `${label}:invalid-runtime-token`);
-  } else if (reason === "invalid-particle-frame") {
-    push("invalid-particle-frame", referenceId, `${label}:malformed`);
   }
 }
 
@@ -385,16 +445,18 @@ function validateActivities(
   const isBaseActivityCategory = (
     activity: BaseActivityDefinition,
   ): boolean =>
-    activity.category !== "listening" && activity.category !== "spoken";
+    isBaseActivityKind(activity.category) &&
+    activity.category !== "listening" &&
+    activity.category !== "spoken";
   const hasLegalInteraction = (activity: BaseActivityDefinition): boolean => {
-    const allowed = BASE_ACTIVITY_INTERACTIONS_BY_CATEGORY[activity.category];
+    const allowed = baseActivityInteractionsFor(activity.category);
     return allowed?.includes(activity.interactionKind) ?? false;
   };
   const hasLegalActivityCombination = (
     activity: BaseActivityDefinition,
   ): boolean => {
-    const expectedOperation = BASE_ACTIVITY_OPERATION_BY_CATEGORY[activity.category];
-    if (!expectedOperation) return false;
+    const expectedOperation = baseActivityOperationFor(activity.category);
+    if (expectedOperation === null) return false;
     if (!hasLegalInteraction(activity)) return false;
     if (!isBaseActivityCategory(activity)) {
       return activity.mode === "audio" && activity.operation === expectedOperation;
@@ -409,7 +471,7 @@ function validateActivities(
   for (const activity of lesson.activities) {
     if (activityIds.has(activity.id)) push("duplicate-activity-id", activity.id);
     activityIds.add(activity.id);
-    const expectedOperation = BASE_ACTIVITY_OPERATION_BY_CATEGORY[activity.category];
+    const expectedOperation = baseActivityOperationFor(activity.category);
     const allowsPhoneticOperation =
       isPhoneticLesson &&
       isBaseActivityCategory(activity) &&
@@ -463,6 +525,16 @@ function validateActivities(
           promptTarget.label,
           push,
         );
+        if (promptTarget.invalidReason === "invalid-particle-frame") {
+          reportMalformedParticleFrame(
+            catalogs.activityPromptTargets.get(
+              baseActivityPromptKey(lesson.lessonId, activity.id),
+            ),
+            promptTarget.referenceId,
+            promptTarget.label,
+            push,
+          );
+        }
       } else {
         validateSentenceLikeReferences(
           promptTarget.target,
@@ -480,6 +552,22 @@ function validateActivities(
         activityTarget.label,
         push,
       );
+      if (activityTarget.invalidReason === "invalid-example") {
+        reportMalformedParticleFrame(
+          catalogs.examples.get(activity.targetId),
+          activityTarget.referenceId,
+          activityTarget.label,
+          push,
+        );
+      } else if (activityTarget.invalidReason === "invalid-particle-frame") {
+        reportMalformedParticleFrame(
+          catalogs.acceptedAnswerTargets.get(activity.targetId) ??
+            catalogs.audioTargets.get(activity.targetId),
+          activityTarget.referenceId,
+          activityTarget.label,
+          push,
+        );
+      }
     } else if (activityTarget && activityTarget.source !== "example") {
       validateSentenceLikeReferences(
         activityTarget.target,
@@ -704,10 +792,6 @@ function isStringArray(value: unknown): value is readonly string[] {
   return isRuntimeStringArray(value);
 }
 
-function isParticleFrame(value: unknown): value is Readonly<Record<string, unknown>> {
-  return isPlainDataRecord(value);
-}
-
 function validateParticlePredicateProvenance(
   target: Readonly<Record<string, unknown>>,
   frame: Readonly<Record<string, unknown>>,
@@ -805,6 +889,9 @@ function validateSentenceLikeReferences(
   const targetIssue = runtimeVisibleTargetIssue(sentence);
   if (targetIssue !== undefined) {
     reportInvalidVisibleTarget(targetIssue, referenceId, label, push);
+    if (targetIssue === "invalid-particle-frame") {
+      reportMalformedParticleFrame(sentence, referenceId, label, push);
+    }
     return;
   }
   const target = sentence as Readonly<Record<string, unknown>>;
@@ -914,27 +1001,30 @@ function validateSentenceLikeReferences(
     label,
     push,
   );
-  if (target.particleFrame !== undefined) {
-    if (isParticleFrame(target.particleFrame)) {
+  const particleFrame = ownDataValue(target, "particleFrame");
+  if (particleFrame !== undefined) {
+    if (isPlainDataRecord(particleFrame)) {
       validateParticlePredicateProvenance(
         target,
-        target.particleFrame,
+        particleFrame,
         referenceId,
         label,
         push,
       );
     }
     if (
-      !isParticleFrame(target.particleFrame) ||
-      typeof ownDataValue(target.particleFrame, "predicateSenseId") !== "string" ||
-      !isParticleFrame(ownDataValue(target.particleFrame, "provided"))
+      !isPlainDataRecord(particleFrame) ||
+      typeof ownDataValue(particleFrame, "predicateSenseId") !== "string"
     ) {
       push("invalid-particle-frame", referenceId, `${label}:malformed`);
       return;
     }
-    const frame = validateParticleFrame(
-      ownDataValue(target.particleFrame, "predicateSenseId"),
-      ownDataValue(target.particleFrame, "provided"),
+    const provided = particleProvidedEntries(
+      ownDataValue(particleFrame, "provided"),
+    );
+    const frame = validateParticleFrameEntries(
+      ownDataValue(particleFrame, "predicateSenseId"),
+      provided,
     );
     if (!frame.ok) {
       for (const error of frame.errors) {
@@ -1328,6 +1418,29 @@ function validateSynthesisRetrievalSystems(
   }
 }
 
+function reportMalformedRuntimeActivities(
+  rawLesson: unknown,
+  push: (
+    code: BaseValidationErrorCode,
+    referenceId?: string,
+    detail?: string,
+  ) => void,
+): void {
+  if (!isPlainDataRecord(rawLesson)) return;
+  const activities = ownDataArrayValues(ownDataValue(rawLesson, "activities"));
+  if (!activities) return;
+  activities.forEach((activity, index) => {
+    const activityId =
+      isPlainDataRecord(activity) &&
+      typeof ownDataValue(activity, "id") === "string"
+        ? (ownDataValue(activity, "id") as string)
+        : `activity-${index + 1}`;
+    for (const code of runtimeActivityShapeIssues(activity)) {
+      push(code, activityId);
+    }
+  });
+}
+
 export function validateBaseLessonDepth(
   rawLesson: BaseLessonContent | unknown,
   rawCatalogs: BaseValidationCatalogs | unknown,
@@ -1349,10 +1462,8 @@ export function validateBaseLessonDepth(
   };
 
   const manifest =
-    lessonId === "unknown-lesson"
-      ? undefined
-      : BASE_LESSON_MANIFEST[lessonId];
-  const hasCanonicalLessonPosition = manifest !== undefined;
+    lessonId === "unknown-lesson" ? null : baseLessonManifestEntry(lessonId);
+  const hasCanonicalLessonPosition = manifest !== null;
   if (lessonId !== "unknown-lesson" && !manifest) {
     push("unknown-base-lesson", lessonId);
   }
@@ -1378,6 +1489,7 @@ export function validateBaseLessonDepth(
       return deepFreeze(errors);
     }
   } else if (!isStrictRuntimeLesson(rawLesson)) {
+    reportMalformedRuntimeActivities(rawLesson, push);
     push("invalid-lesson-shape", lessonId, "lesson");
     return deepFreeze(errors);
   } else {
@@ -1395,8 +1507,8 @@ export function validateBaseLessonDepth(
   validateReference(lesson.recapCopyId, catalogs.copyIds.has(lesson.recapCopyId), "recap copy", push);
   const seenPrerequisites = new Set<string>();
   const lessonPosition = hasCanonicalLessonPosition
-    ? BASE_CANONICAL_POSITIONS[lesson.lessonId]
-    : undefined;
+    ? baseCanonicalPosition(lesson.lessonId)
+    : null;
   const requiredPrerequisite = hasCanonicalLessonPosition
     ? requiredBaseLessonPrerequisiteFor(lesson.lessonId)
     : undefined;
@@ -1415,12 +1527,12 @@ export function validateBaseLessonDepth(
     if (prerequisiteId === lesson.lessonId) {
       push("self-prerequisite", prerequisiteId);
     }
-    if (!BASE_LESSON_MANIFEST[prerequisiteId]) {
+    if (baseLessonManifestEntry(prerequisiteId) === null) {
       push("invalid-prerequisite", prerequisiteId);
     } else if (
       hasCanonicalLessonPosition &&
-      lessonPosition !== undefined &&
-      BASE_CANONICAL_POSITIONS[prerequisiteId] >= lessonPosition
+      lessonPosition !== null &&
+      (baseCanonicalPosition(prerequisiteId) ?? -1) >= lessonPosition
     ) {
       push("future-prerequisite", prerequisiteId);
     }
@@ -1476,6 +1588,14 @@ export function validateBaseLessonDepth(
             audioTarget.label,
             push,
           );
+          if (audioTarget.invalidReason === "invalid-particle-frame") {
+            reportMalformedParticleFrame(
+              catalogs.audioTargets.get(audioId),
+              audioTarget.referenceId,
+              audioTarget.label,
+              push,
+            );
+          }
           continue;
         }
         validateSentenceLikeReferences(
@@ -1586,6 +1706,7 @@ export function validateBaseLessonDepth(
   if (lesson.dialogueId && !rawDialogue) {
     push("unresolved-reference", lesson.dialogueId, "dialogue");
   } else if (lesson.dialogueId && rawDialogue && !dialogue) {
+    reportMalformedDialogueParticleFrames(rawDialogue, lesson.dialogueId, push);
     push("invalid-dialogue-shape", lesson.dialogueId, "dialogue");
   }
   if (dialogue) {

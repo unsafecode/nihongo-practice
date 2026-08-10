@@ -2,7 +2,23 @@ import type { AssembledToken } from "../../../romaji/types";
 import type { LessonId, SemanticArgumentRole } from "../../foundations/types";
 import { deepFreeze } from "../../foundations/deepFreeze";
 import type { BaseLessonContract } from "../types";
-import { BASE_LESSON_MANIFEST } from "../manifest";
+import { baseLessonManifestEntry } from "../manifest";
+import {
+  BASE_ACTIVITY_INTERACTIONS_BY_CATEGORY,
+  BASE_ACTIVITY_OPERATION_BY_CATEGORY,
+  BASE_PHONETIC_ACTIVITY_OPERATIONS,
+  isBaseActivityKind,
+  isBaseActivityMode,
+  isBaseActivityOperation,
+  isBaseInteractionKind,
+  type BaseActivityCategory,
+  type BaseActivityKind,
+  type BaseActivityMode,
+  type BaseActivityOperation,
+  type BaseInteractionKind,
+  type BasePhoneticActivityOperation,
+  type BaseSemanticActivityOperation,
+} from "./activityContracts";
 import {
   isPlainDataRecord,
   isRuntimeStringArray,
@@ -17,106 +33,20 @@ import type {
   BaseParticleSense,
 } from "../forms/particleLicensing";
 
-export type BaseActivityCategory =
-  | "meaning-comprehension"
-  | "form-function-discrimination"
-  | "ordering"
-  | "controlled-production"
-  | "transformation"
-  | "error-diagnosis"
-  | "contextual-response"
-  | "cumulative-retrieval";
-
-export type BaseInteractionKind =
-  | "choice"
-  | "tile-ordering"
-  | "completion"
-  | "transformation"
-  | "constrained-construction"
-  | "listening"
-  | "spoken";
-
-export type BaseActivityMode = "non-spoken" | "audio";
-export type BaseActivityKind = BaseActivityCategory | "listening" | "spoken";
-export type BaseSemanticActivityOperation =
-  | "recognize-meaning"
-  | "discriminate-form-function"
-  | "order-chunks"
-  | "produce-controlled"
-  | "transform-form"
-  | "diagnose-error"
-  | "select-contextual-response"
-  | "retrieve-cumulative"
-  | "identify-audio"
-  | "produce-spoken";
-export type BasePhoneticActivityOperation =
-  | "discriminate-sound"
-  | "segment-morae"
-  | "recognize-kana"
-  | "map-script"
-  | "match-sound-word"
-  | "assemble-reading";
-export type BaseActivityOperation =
-  | BaseSemanticActivityOperation
-  | BasePhoneticActivityOperation;
-
-export const BASE_ACTIVITY_OPERATION_BY_CATEGORY: Readonly<
-  Record<BaseActivityKind, BaseSemanticActivityOperation>
-> = deepFreeze({
-  "meaning-comprehension": "recognize-meaning",
-  "form-function-discrimination": "discriminate-form-function",
-  ordering: "order-chunks",
-  "controlled-production": "produce-controlled",
-  transformation: "transform-form",
-  "error-diagnosis": "diagnose-error",
-  "contextual-response": "select-contextual-response",
-  "cumulative-retrieval": "retrieve-cumulative",
-  listening: "identify-audio",
-  spoken: "produce-spoken",
-});
-
-export const BASE_ACTIVITY_INTERACTIONS_BY_CATEGORY: Readonly<
-  Record<BaseActivityKind, readonly BaseInteractionKind[]>
-> = deepFreeze({
-  "meaning-comprehension": ["choice"],
-  "form-function-discrimination": ["choice"],
-  ordering: ["tile-ordering"],
-  "controlled-production": ["completion", "constrained-construction"],
-  transformation: ["transformation"],
-  "error-diagnosis": ["choice"],
-  "contextual-response": ["choice", "constrained-construction"],
-  "cumulative-retrieval": ["completion", "constrained-construction"],
-  listening: ["listening"],
-  spoken: ["spoken"],
-});
-
-export const BASE_PHONETIC_ACTIVITY_OPERATIONS: readonly BasePhoneticActivityOperation[] =
-  deepFreeze([
-    "discriminate-sound",
-    "segment-morae",
-    "recognize-kana",
-    "map-script",
-    "match-sound-word",
-    "assemble-reading",
-  ]);
-
-const ACTIVITY_KINDS = new Set<string>(
-  Object.keys(BASE_ACTIVITY_OPERATION_BY_CATEGORY),
-);
-const ACTIVITY_INTERACTIONS = new Set<string>([
-  "choice",
-  "tile-ordering",
-  "completion",
-  "transformation",
-  "constrained-construction",
-  "listening",
-  "spoken",
-]);
-const ACTIVITY_MODES = new Set<string>(["non-spoken", "audio"]);
-const ACTIVITY_OPERATIONS = new Set<string>([
-  ...Object.values(BASE_ACTIVITY_OPERATION_BY_CATEGORY),
-  ...BASE_PHONETIC_ACTIVITY_OPERATIONS,
-]);
+export {
+  BASE_ACTIVITY_INTERACTIONS_BY_CATEGORY,
+  BASE_ACTIVITY_OPERATION_BY_CATEGORY,
+  BASE_PHONETIC_ACTIVITY_OPERATIONS,
+};
+export type {
+  BaseActivityCategory,
+  BaseActivityKind,
+  BaseActivityMode,
+  BaseActivityOperation,
+  BaseInteractionKind,
+  BasePhoneticActivityOperation,
+  BaseSemanticActivityOperation,
+};
 
 export interface BaseActivityDefinition {
   readonly id: string;
@@ -498,19 +428,15 @@ function isStringArray(value: unknown): value is readonly string[] {
   return isRuntimeStringArray(value) && value.every(isNonemptyString);
 }
 
-function isAllowed(set: ReadonlySet<string>, value: unknown): boolean {
-  return typeof value === "string" && set.has(value);
-}
-
 function hasActivityFields(value: unknown): boolean {
   if (!isRecord(value)) return false;
   return (
     isNonemptyString(value.id) &&
-    isAllowed(ACTIVITY_KINDS, value.category) &&
-    isAllowed(ACTIVITY_INTERACTIONS, value.interactionKind) &&
-    isAllowed(ACTIVITY_MODES, value.mode) &&
+    isBaseActivityKind(value.category) &&
+    isBaseInteractionKind(value.interactionKind) &&
+    isBaseActivityMode(value.mode) &&
     isNonemptyString(value.targetId) &&
-    isAllowed(ACTIVITY_OPERATIONS, value.operation) &&
+    isBaseActivityOperation(value.operation) &&
     isNonemptyString(value.instructionCopyId) &&
     isNonemptyString(value.acceptedFeedbackCopyId) &&
     isNonemptyString(value.retryFeedbackCopyId) &&
@@ -749,7 +675,7 @@ export function defineBaseLessonContent<T extends BaseLessonContent>(lesson: T):
   }
   assertNonemptyId(lesson.lessonId, "lessonId");
   assertNonemptyId(lesson.recapCopyId, "recapCopyId");
-  const manifest = BASE_LESSON_MANIFEST[lesson.lessonId];
+  const manifest = baseLessonManifestEntry(lesson.lessonId);
   if (!manifest) {
     throw new BaseLessonContentDefinitionError(
       "unknown-lesson-id",

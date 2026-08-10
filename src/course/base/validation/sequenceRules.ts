@@ -1,8 +1,8 @@
 import { deepFreeze } from "../../foundations/deepFreeze";
 import { lessonOwner } from "../../levels/ownership";
 import {
-  BASE_CANONICAL_POSITIONS,
-  BASE_LESSON_MANIFEST,
+  baseCanonicalPosition,
+  baseLessonManifestEntry,
   requiredBaseLessonPrerequisiteFor,
 } from "../manifest";
 import {
@@ -24,6 +24,7 @@ import {
   activityPromptTargetReferenceFor,
   activityTargetReferenceFor,
   audioTargetReferenceFor,
+  baseActivityPromptKey,
 } from "../catalog/visibleTargets";
 import {
   invalidRuntimeCatalogFields,
@@ -38,12 +39,15 @@ import {
   isStrictRuntimeRetrievalSystem,
   ownDataArrayValues,
   ownDataValue,
+  runtimeActivityShapeIssues,
+  runtimeVisibleTargetIssue,
   strictRuntimeLessonWithContract,
 } from "./runtimeGuards";
 import {
   BASE_PARTICLE_FRAME_BY_PREDICATE,
   particleSenseFirstTeachContentId,
-  validateParticleFrame,
+  particleProvidedEntries,
+  validateParticleFrameEntries,
 } from "../forms/particleLicensing";
 import type { BaseValidationError, BaseValidationErrorCode } from "./lessonRules";
 
@@ -154,7 +158,7 @@ function canonicalLessonForManifest(
 }
 
 function hasCanonicalBaseLesson(lessonId: string): boolean {
-  return BASE_LESSON_MANIFEST[lessonId] !== undefined;
+  return baseLessonManifestEntry(lessonId) !== null;
 }
 
 function isBeforeLesson(lessonId: string, referenceLessonId: string): boolean {
@@ -216,8 +220,8 @@ export function validateBaseLessonPrerequisiteGraph(
     const seen = new Set<string>();
     const hasCanonicalPosition = hasCanonicalBaseLesson(lesson.lessonId);
     const lessonPosition = hasCanonicalPosition
-      ? BASE_CANONICAL_POSITIONS[lesson.lessonId]
-      : undefined;
+      ? baseCanonicalPosition(lesson.lessonId)
+      : null;
     const requiredPrerequisite = hasCanonicalPosition
       ? requiredBaseLessonPrerequisiteFor(lesson.lessonId)
       : undefined;
@@ -236,14 +240,14 @@ export function validateBaseLessonPrerequisiteGraph(
       if (prerequisiteId === lesson.lessonId) {
         push(lesson.lessonId, "self-prerequisite", prerequisiteId);
       }
-      if (!BASE_LESSON_MANIFEST[prerequisiteId]) {
+      if (baseLessonManifestEntry(prerequisiteId) === null) {
         push(lesson.lessonId, "invalid-prerequisite", prerequisiteId);
         continue;
       }
       if (
         hasCanonicalPosition &&
-        lessonPosition !== undefined &&
-        BASE_CANONICAL_POSITIONS[prerequisiteId] >= lessonPosition
+        lessonPosition !== null &&
+        (baseCanonicalPosition(prerequisiteId) ?? -1) >= lessonPosition
       ) {
         push(lesson.lessonId, "future-prerequisite", prerequisiteId);
       }
@@ -331,10 +335,24 @@ export function validateFirstTeachOrder(
   const lessons: BaseLessonContent[] = [];
   for (const rawLesson of lessonEntries) {
     const candidateLessonId = lessonIdFrom(rawLesson);
+    const strictLesson = isStrictRuntimeLesson(rawLesson);
+    if (!strictLesson && isPlainDataRecord(rawLesson)) {
+      const activities = ownDataArrayValues(ownDataValue(rawLesson, "activities"));
+      activities?.forEach((activity, index) => {
+        const activityId =
+          isPlainDataRecord(activity) &&
+          typeof ownDataValue(activity, "id") === "string"
+            ? (ownDataValue(activity, "id") as string)
+            : `activity-${index + 1}`;
+        for (const code of runtimeActivityShapeIssues(activity)) {
+          push(candidateLessonId, code, activityId);
+        }
+      });
+    }
     const manifest =
       candidateLessonId === "unknown-lesson"
-        ? undefined
-        : BASE_LESSON_MANIFEST[candidateLessonId];
+        ? null
+        : baseLessonManifestEntry(candidateLessonId);
     if (candidateLessonId !== "unknown-lesson" && !manifest) {
       push(candidateLessonId, "unknown-base-lesson", candidateLessonId);
     }
@@ -366,7 +384,7 @@ export function validateFirstTeachOrder(
       lessons.push(canonicalLesson);
       continue;
     }
-    if (!isStrictRuntimeLesson(rawLesson)) {
+    if (!strictLesson) {
       push(candidateLessonId, "invalid-lesson-shape", "lesson");
       continue;
     }
@@ -451,13 +469,40 @@ export function validateFirstTeachOrder(
       particleSense,
     );
   };
+  const particleFrameForTarget = (
+    target: unknown,
+  ):
+    | Readonly<{
+        readonly predicateSenseId: unknown;
+        readonly provided: ReturnType<typeof particleProvidedEntries>;
+      }>
+    | undefined => {
+    if (!isPlainDataRecord(target)) return undefined;
+    const frame = ownDataValue(target, "particleFrame");
+    if (!isPlainDataRecord(frame)) return undefined;
+    return {
+      predicateSenseId: ownDataValue(frame, "predicateSenseId"),
+      provided: particleProvidedEntries(ownDataValue(frame, "provided")),
+    };
+  };
+  const validateParticleSenseOwnersForTarget = (
+    lesson: BaseLessonContent,
+    target: unknown,
+    sourceLabel?: string,
+  ): void => {
+    const particle = particleFrameForTarget(target);
+    if (!particle) return;
+    for (const [, particleSense] of particle.provided.entries) {
+      validateParticleSenseOwner(lesson, particleSense, sourceLabel);
+    }
+  };
   const validateSentence = (
     lesson: BaseLessonContent,
     sentence: BaseVisibleTarget,
     referenceId: string,
     sourceLabel?: string,
   ): void => {
-    const lessonManifest = BASE_LESSON_MANIFEST[lesson.lessonId];
+    const lessonManifest = baseLessonManifestEntry(lesson.lessonId);
     for (const lexemeId of sentence.lexemeIds) {
       validateOwnedReference(lesson, "lexeme", lexemeId, sourceLabel);
     }
@@ -480,7 +525,7 @@ export function validateFirstTeachOrder(
       );
       if (
         ADJECTIVE_CELL_IDS.has(formId) &&
-        lessonManifest !== undefined &&
+        lessonManifest !== null &&
         (lessonManifest.moduleId !== "copula-adjectives" &&
           lessonManifest.moduleId !== "existence-location" &&
           lessonManifest.moduleId !== "requests-connection" &&
@@ -491,7 +536,7 @@ export function validateFirstTeachOrder(
       if (
         TE_IMASU_FORM_IDS.has(formId) &&
         sentence.interpretationTags.includes("ongoing-now") &&
-        lessonManifest !== undefined &&
+        lessonManifest !== null &&
         isBeforeLesson(lesson.lessonId, TE_IMASU_OWNER_LESSON_ID)
       ) {
         push(
@@ -511,14 +556,15 @@ export function validateFirstTeachOrder(
     ) {
       push(lesson.lessonId, "dynamic-nonpast-ongoing-now", referenceId);
     }
-    if (sentence.particleFrame) {
+    const particle = particleFrameForTarget(sentence);
+    if (particle) {
       const predicateFrame = BASE_PARTICLE_FRAME_BY_PREDICATE.get(
-        sentence.particleFrame.predicateSenseId as Parameters<
+        particle.predicateSenseId as Parameters<
           typeof BASE_PARTICLE_FRAME_BY_PREDICATE.get
         >[0],
       );
       if (
-        sentence.predicateSenseId !== sentence.particleFrame.predicateSenseId ||
+        sentence.predicateSenseId !== particle.predicateSenseId ||
         typeof sentence.predicateLexemeId !== "string" ||
         !sentence.lexemeIds.includes(sentence.predicateLexemeId) ||
         predicateFrame?.allowedPredicateLexemeIds.includes(
@@ -532,21 +578,10 @@ export function validateFirstTeachOrder(
           sourceLabel,
         );
       }
-      const provided = sentence.particleFrame.provided;
-      if (
-        provided !== null &&
-        typeof provided === "object" &&
-        !Array.isArray(provided)
-      ) {
-        for (const particleSense of Object.values(provided)) {
-          if (typeof particleSense === "string") {
-            validateParticleSenseOwner(lesson, particleSense, sourceLabel);
-          }
-        }
-      }
-      const frame = validateParticleFrame(
-        sentence.particleFrame.predicateSenseId,
-        sentence.particleFrame.provided,
+      validateParticleSenseOwnersForTarget(lesson, sentence, sourceLabel);
+      const frame = validateParticleFrameEntries(
+        particle.predicateSenseId,
+        particle.provided,
       );
       if (!frame.ok) {
         for (const error of frame.errors) {
@@ -589,6 +624,15 @@ export function validateFirstTeachOrder(
       );
       if (promptTarget) {
         if (promptTarget.invalidReason) {
+          if (promptTarget.invalidReason === "invalid-particle-frame") {
+            validateParticleSenseOwnersForTarget(
+              lesson,
+              catalogs.activityPromptTargets.get(
+                baseActivityPromptKey(lesson.lessonId, activity.id),
+              ),
+              promptTarget.label,
+            );
+          }
           push(
             lesson.lessonId,
             promptTarget.invalidReason === "invalid-particle-frame"
@@ -608,6 +652,15 @@ export function validateFirstTeachOrder(
       }
       const target = activityTargetReferenceFor(activity, catalogs);
       if (target?.invalidReason) {
+        if (target.invalidReason === "invalid-particle-frame") {
+          validateParticleSenseOwnersForTarget(
+            lesson,
+            catalogs.examples.get(activity.targetId) ??
+              catalogs.acceptedAnswerTargets.get(activity.targetId) ??
+              catalogs.audioTargets.get(activity.targetId),
+            target.label,
+          );
+        }
         push(
           lesson.lessonId,
           target.invalidReason === "invalid-particle-frame"
@@ -618,6 +671,21 @@ export function validateFirstTeachOrder(
         );
       } else if (target && target.source !== "example") {
         validateSentence(lesson, target.target, target.referenceId, target.label);
+      }
+    }
+    if (lesson.contract !== "phonetic") {
+      for (const exampleId of lesson.workedExampleIds) {
+        const example = catalogs.examples.get(exampleId);
+        if (runtimeVisibleTargetIssue(example) !== "invalid-particle-frame") {
+          continue;
+        }
+        validateParticleSenseOwnersForTarget(lesson, example, "worked example");
+        push(
+          lesson.lessonId,
+          "invalid-particle-frame",
+          exampleId,
+          "worked example",
+        );
       }
     }
     for (const reference of canonicalExamplesFor(lesson, catalogs)) {
@@ -633,6 +701,13 @@ export function validateFirstTeachOrder(
       for (const audioExemplarId of lesson.audioExemplarIds) {
         const target = audioTargetReferenceFor(audioExemplarId, catalogs);
         if (target?.invalidReason) {
+          if (target.invalidReason === "invalid-particle-frame") {
+            validateParticleSenseOwnersForTarget(
+              lesson,
+              catalogs.audioTargets.get(audioExemplarId),
+              target.label,
+            );
+          }
           push(
             lesson.lessonId,
             target.invalidReason === "invalid-particle-frame"
@@ -686,6 +761,21 @@ export function validateFirstTeachOrder(
     if (lesson.dialogueId) {
       const rawDialogue = catalogs.dialogues.get(lesson.dialogueId);
       if (rawDialogue && !isStrictRuntimeDialogue(rawDialogue)) {
+        if (isPlainDataRecord(rawDialogue)) {
+          const turns = ownDataArrayValues(ownDataValue(rawDialogue, "turns"));
+          turns?.forEach((turn, index) => {
+            if (runtimeVisibleTargetIssue(turn) !== "invalid-particle-frame") {
+              return;
+            }
+            validateParticleSenseOwnersForTarget(lesson, turn, "dialogue turn");
+            push(
+              lesson.lessonId,
+              "invalid-particle-frame",
+              `${lesson.dialogueId}:${index}`,
+              "dialogue turn",
+            );
+          });
+        }
         push(lesson.lessonId, "invalid-dialogue-shape", lesson.dialogueId);
       } else if (rawDialogue) {
         const dialogue = rawDialogue;
@@ -810,7 +900,7 @@ export function visibleJapaneseFor(
   };
   for (const rawLesson of lessonEntries) {
     const lessonId = lessonIdFrom(rawLesson);
-    const manifest = BASE_LESSON_MANIFEST[lessonId];
+    const manifest = baseLessonManifestEntry(lessonId);
     if (!manifest) continue;
     const declaredContract = lessonContractFrom(rawLesson);
     const lesson =

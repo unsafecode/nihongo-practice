@@ -1,6 +1,17 @@
 import type { SemanticArgumentRole } from "../../foundations/types";
 import { deepFreeze } from "../../foundations/deepFreeze";
 import { immutableReadonlyMap } from "../../foundations/immutableReadonlyMap";
+import {
+  particleProvidedEntries,
+  type ParticleProvidedEntries,
+} from "./particleProvided";
+
+export {
+  particleProvidedEntries,
+  type InvalidParticleProvidedEntry,
+  type ParticleProvidedEntries,
+  type ParticleProvidedEntry,
+} from "./particleProvided";
 
 export type BaseParticleSense =
   | "topic-wa"
@@ -113,33 +124,47 @@ export const BASE_PARTICLE_SENSES: readonly BaseParticleSenseDefinition[] = deep
  * learner-facing distinction. The mapped records are owned by
  * `BASE_FIRST_TEACH_OWNERS`.
  */
+const PARTICLE_SENSE_CONTENT_ENTRIES: readonly (readonly [
+  BaseParticleSense,
+  string,
+])[] = [
+  ["topic-wa", "topic-wa"],
+  ["focus-subject-ga", "focus-subject-ga"],
+  ["object-o", "licensed-object-o"],
+  ["goal-ni", "goal-ni"],
+  ["direction-he", "direction-he"],
+  ["action-place-de", "action-place-de"],
+  ["means-de", "means-de"],
+  ["existence-location-ni", "existence-location-ni"],
+  ["existential-subject-ga", "existential-subject-ga"],
+  ["time-ni", "time-ni"],
+  ["source-kara", "source-kara"],
+  ["limit-made", "limit-made"],
+  ["possessive-attributive-no", "possessive-no"],
+  ["additive-mo", "additive-mo"],
+  ["companion-to", "companion-to"],
+  ["listing-to", "nominal-listing-to"],
+  ["nominal-to", "nominal-listing-to"],
+  ["question-ka", "question-ka"],
+];
+
 export const BASE_PARTICLE_SENSE_CONTENT_ID_BY_SENSE: Readonly<
   Record<BaseParticleSense, string>
-> = deepFreeze({
-  "topic-wa": "topic-wa",
-  "focus-subject-ga": "focus-subject-ga",
-  "object-o": "licensed-object-o",
-  "goal-ni": "goal-ni",
-  "direction-he": "direction-he",
-  "action-place-de": "action-place-de",
-  "means-de": "means-de",
-  "existence-location-ni": "existence-location-ni",
-  "existential-subject-ga": "existential-subject-ga",
-  "time-ni": "time-ni",
-  "source-kara": "source-kara",
-  "limit-made": "limit-made",
-  "possessive-attributive-no": "possessive-no",
-  "additive-mo": "additive-mo",
-  "companion-to": "companion-to",
-  "listing-to": "nominal-listing-to",
-  "nominal-to": "nominal-listing-to",
-  "question-ka": "question-ka",
-});
+> = deepFreeze(
+  Object.fromEntries(PARTICLE_SENSE_CONTENT_ENTRIES) as Record<
+    BaseParticleSense,
+    string
+  >,
+);
+
+const PARTICLE_SENSE_CONTENT_ID_BY_SENSE = immutableReadonlyMap(
+  PARTICLE_SENSE_CONTENT_ENTRIES,
+);
 
 export function particleSenseFirstTeachContentId(
   sense: BaseParticleSense,
 ): string {
-  return BASE_PARTICLE_SENSE_CONTENT_ID_BY_SENSE[sense];
+  return PARTICLE_SENSE_CONTENT_ID_BY_SENSE.get(sense) ?? "";
 }
 
 const BASE_PREDICATE_PARTICLE_FRAMES: readonly BasePredicateParticleFrame[] = deepFreeze([
@@ -257,30 +282,9 @@ const BASE_PARTICLE_ROLE_BY_ID: ReadonlyMap<BaseParticleRole, BaseParticleRole> 
 const BASE_PARTICLE_SENSE_BY_ID: ReadonlyMap<BaseParticleSense, BaseParticleSense> =
   immutableReadonlyMap(BASE_PARTICLE_SENSES.map((sense) => [sense.id, sense.id]));
 
-const hasOwn: (value: object, key: PropertyKey) => boolean =
-  (Object as unknown as {
-    hasOwn?: (value: object, key: PropertyKey) => boolean;
-  }).hasOwn ??
-  ((value, key) => Object.prototype.hasOwnProperty.call(value, key));
-
-function isPlainRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    return false;
-  }
-  const prototype = Object.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
-}
-
-function hasOnlyOwnDataProperties(value: Readonly<Record<string, unknown>>): boolean {
-  if (Object.getOwnPropertySymbols(value).length > 0) return false;
-  return Object.values(Object.getOwnPropertyDescriptors(value)).every(
-    (descriptor) => "value" in descriptor,
-  );
-}
-
-export function validateParticleFrame(
+export function validateParticleFrameEntries(
   predicateSenseId: unknown,
-  provided: unknown,
+  provided: ParticleProvidedEntries,
 ): BaseParticleFrameResult {
   if (typeof predicateSenseId !== "string") {
     const errors: readonly BaseParticleFrameError[] = Object.freeze([
@@ -305,33 +309,24 @@ export function validateParticleFrame(
   }
 
   const errors: BaseParticleFrameError[] = [];
-  const plainProvided = isPlainRecord(provided);
-  const ownDataProvided =
-    plainProvided && hasOnlyOwnDataProperties(provided);
-  if (!ownDataProvided) {
-    errors.push({ code: "invalid-particle-frame", predicateSenseId });
+  for (const error of provided.errors) {
+    errors.push({
+      code: "invalid-particle-frame",
+      predicateSenseId,
+      ...(error.role !== undefined
+        ? { role: error.role as BaseParticleRole }
+        : {}),
+    });
   }
+  const senseByRole = new Map(provided.entries);
   for (const role of frame.requiredRoles) {
-    const property =
-      ownDataProvided && hasOwn(provided, role)
-        ? Object.getOwnPropertyDescriptor(provided, role)
-        : undefined;
-    if (
-      !property ||
-      !("value" in property) ||
-      typeof property.value !== "string" ||
-      property.value.trim().length === 0
-    ) {
+    const particleSense = senseByRole.get(role);
+    if (typeof particleSense !== "string" || particleSense.trim().length === 0) {
       errors.push({ code: "missing-role", predicateSenseId, role });
     }
   }
-  if (!ownDataProvided) {
-    return Object.freeze({ ok: false, errors: deepFreeze(errors) });
-  }
-  for (const role of Object.keys(provided)) {
-    const descriptor = Object.getOwnPropertyDescriptor(provided, role);
-    const particleSense = descriptor && "value" in descriptor ? descriptor.value : undefined;
-    if (typeof particleSense !== "string" || particleSense.trim().length === 0) {
+  for (const [role, particleSense] of provided.entries) {
+    if (particleSense.trim().length === 0) {
       errors.push({
         code: "invalid-particle-frame",
         predicateSenseId,
@@ -347,7 +342,14 @@ export function validateParticleFrame(
       });
       continue;
     }
-    const allowed = frame.particleSensesByRole[role as BaseParticleRole];
+    const allowedDescriptor = Object.getOwnPropertyDescriptor(
+      frame.particleSensesByRole,
+      role,
+    );
+    const allowed =
+      allowedDescriptor && "value" in allowedDescriptor
+        ? (allowedDescriptor.value as readonly BaseParticleSense[])
+        : undefined;
     if (!allowed) {
       errors.push({
         code: "extra-role",
@@ -372,4 +374,14 @@ export function validateParticleFrame(
         value: Object.freeze({ predicateSenseId: frame.id }),
       })
     : Object.freeze({ ok: false, errors: deepFreeze(errors) });
+}
+
+export function validateParticleFrame(
+  predicateSenseId: unknown,
+  provided: unknown,
+): BaseParticleFrameResult {
+  return validateParticleFrameEntries(
+    predicateSenseId,
+    particleProvidedEntries(provided),
+  );
 }
