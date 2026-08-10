@@ -1,8 +1,6 @@
 import { deepFreeze } from "../../foundations/deepFreeze";
 import { baseCanonicalPosition } from "../manifest";
 import {
-  BASE_REFERENCE_CATALOG,
-  BASE_REFERENCE_EXAMPLES,
   inspectBaseReferenceCatalog,
   type BaseReferenceCanonicalCell,
   type BaseReferenceCatalog,
@@ -95,8 +93,8 @@ export function buildBaseReferenceViewModel(
   referenceId: string,
   throughLessonId: string,
   locale: BaseReferenceLocale,
-  catalog: BaseReferenceCatalog = BASE_REFERENCE_CATALOG,
-  eligibleExamples: readonly BaseReferenceExample[] = BASE_REFERENCE_EXAMPLES,
+  catalog?: BaseReferenceCatalog,
+  eligibleExamples?: readonly BaseReferenceExample[],
 ): BaseReferenceViewModelResult {
   if (typeof referenceId !== "string") {
     return failure("unknown-reference", referenceId);
@@ -113,7 +111,12 @@ export function buildBaseReferenceViewModel(
     return failure("unknown-reference", referenceId);
   }
 
-  const inspection = inspectBaseReferenceCatalog(catalog, eligibleExamples);
+  const inspection =
+    arguments.length === 3
+      ? inspectBaseReferenceCatalog()
+      : arguments.length >= 5
+        ? inspectBaseReferenceCatalog(catalog, eligibleExamples)
+        : inspectBaseReferenceCatalog(catalog);
   const validationErrors = inspection.errors;
   if (validationErrors.some(({ code }) => code === "future-prerequisite")) {
     return failure("future-prerequisite", referenceId);

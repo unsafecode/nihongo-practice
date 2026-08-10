@@ -1747,19 +1747,33 @@ function computeBaseReferenceCatalogInspection(
 
 let canonicalInspection: BaseReferenceCatalogInspection | undefined;
 
+export function inspectBaseReferenceCatalog(): BaseReferenceCatalogInspection;
 export function inspectBaseReferenceCatalog(
-  catalog: unknown = BASE_REFERENCE_CATALOG,
-  eligibleExamples: unknown = BASE_REFERENCE_EXAMPLES,
+  catalog: unknown,
+  eligibleExamples?: unknown,
+): BaseReferenceCatalogInspection;
+export function inspectBaseReferenceCatalog(
+  catalog?: unknown,
+  eligibleExamples?: unknown,
 ): BaseReferenceCatalogInspection {
+  const canonicalConvenience = arguments.length === 0;
+  const catalogInput = canonicalConvenience
+    ? BASE_REFERENCE_CATALOG
+    : catalog;
+  const examplesInput = canonicalConvenience
+    ? BASE_REFERENCE_EXAMPLES
+    : arguments.length >= 2
+      ? eligibleExamples
+      : BASE_REFERENCE_EXAMPLES;
   const canonicalInputs =
-    catalog === BASE_REFERENCE_CATALOG &&
-    eligibleExamples === BASE_REFERENCE_EXAMPLES;
+    catalogInput === BASE_REFERENCE_CATALOG &&
+    examplesInput === BASE_REFERENCE_EXAMPLES;
   if (canonicalInputs && canonicalInspection) {
     return canonicalInspection;
   }
   const inspection = computeBaseReferenceCatalogInspection(
-    catalog,
-    eligibleExamples,
+    catalogInput,
+    examplesInput,
   );
   if (canonicalInputs) {
     canonicalInspection = inspection;
@@ -1769,7 +1783,9 @@ export function inspectBaseReferenceCatalog(
 
 export function validateBaseReferenceCatalog(
   catalog: unknown,
-  eligibleExamples: unknown = BASE_REFERENCE_EXAMPLES,
+  eligibleExamples?: unknown,
 ): readonly BaseReferenceCatalogValidationError[] {
-  return inspectBaseReferenceCatalog(catalog, eligibleExamples).errors;
+  return arguments.length >= 2
+    ? inspectBaseReferenceCatalog(catalog, eligibleExamples).errors
+    : inspectBaseReferenceCatalog(catalog).errors;
 }

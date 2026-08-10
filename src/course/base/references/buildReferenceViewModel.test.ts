@@ -332,6 +332,35 @@ describe("buildBaseReferenceViewModel", () => {
     });
   });
 
+  it("fails closed for explicitly undefined custom catalog or examples", () => {
+      expect(
+        buildBaseReferenceViewModel(
+          "particle-atlas",
+          "topic-questions-2",
+          "en",
+          undefined as unknown as BaseReferenceCatalog,
+        ),
+      ).toEqual({
+        ok: false,
+        error: { code: "unknown-reference", referenceId: "particle-atlas" },
+      });
+      expect(
+        buildBaseReferenceViewModel(
+          "particle-atlas",
+          "topic-questions-2",
+          "en",
+          BASE_REFERENCE_CATALOG,
+          undefined as unknown as typeof BASE_REFERENCE_EXAMPLES,
+        ),
+      ).toEqual({
+        ok: false,
+        error: { code: "unknown-reference", referenceId: "particle-atlas" },
+      });
+      expect(
+        buildBaseReferenceViewModel("particle-atlas", "topic-questions-2", "en"),
+      ).toMatchObject({ ok: true });
+  });
+
   it("localizes labels and explanations in English and Italian", () => {
     const en = buildBaseReferenceViewModel(
       "sentence-anatomy",

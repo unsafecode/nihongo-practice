@@ -183,6 +183,43 @@ describe("Base reference catalog", () => {
     expect(second.errors.length).toBeGreaterThan(0);
   });
 
+  it("distinguishes canonical zero-argument inspection from explicit undefined", () => {
+    const canonical = inspectBaseReferenceCatalog();
+    expect(canonical.errors).toEqual([]);
+    expect(canonical.catalog).toHaveLength(5);
+
+    const explicitUndefined = inspectBaseReferenceCatalog(undefined);
+    expect(explicitUndefined.catalog).toBeNull();
+    expect(explicitUndefined.errors).toEqual([
+      expect.objectContaining({ code: "invalid-catalog-shape" }),
+    ]);
+    expect(validateBaseReferenceCatalog(undefined)).toEqual([
+      expect.objectContaining({ code: "invalid-catalog-shape" }),
+    ]);
+
+    const undefinedExamples = inspectBaseReferenceCatalog(
+      BASE_REFERENCE_CATALOG,
+      undefined,
+    );
+    expect(undefinedExamples.catalog).toBeNull();
+    expect(undefinedExamples.examples).toBeNull();
+    expect(undefinedExamples.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "invalid-example-shape" }),
+      ]),
+    );
+    expect(
+      validateBaseReferenceCatalog(BASE_REFERENCE_CATALOG, undefined),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "invalid-example-shape" }),
+      ]),
+    );
+    expect(inspectBaseReferenceCatalog(null).errors).toEqual([
+      expect.objectContaining({ code: "invalid-catalog-shape" }),
+    ]);
+  });
+
   it("derives tense-polarity cells exactly from the canonical writing verb", () => {
     const expected = realizePoliteGrid("verb-kaku");
     expect(expected.ok).toBe(true);
