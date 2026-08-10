@@ -3,6 +3,11 @@ import { deepFreeze } from "../../foundations/deepFreeze";
 import { immutableReadonlyMap } from "../../foundations/immutableReadonlyMap";
 import type { BaseLexeme, BaseVerbLexeme } from "./types";
 
+const DYNAMIC_TE_CONSTRUCTIONS: readonly BaseVerbLexeme["allowedTeConstructions"][number][] =
+  deepFreeze(["te", "request", "sequence", "te-imasu"]);
+const EXISTENTIAL_TE_CONSTRUCTIONS: readonly BaseVerbLexeme["allowedTeConstructions"][number][] =
+  deepFreeze(["te", "sequence"]);
+
 function dictionaryToken(
   id: string,
   kana: string,
@@ -27,6 +32,7 @@ function verb(
   verbClass: BaseVerbLexeme["verbClass"],
   aspect: BaseVerbLexeme["aspect"],
   firstTeachLessonId: string,
+  allowedTeConstructions: BaseVerbLexeme["allowedTeConstructions"],
 ): BaseVerbLexeme {
   return {
     id,
@@ -38,23 +44,24 @@ function verb(
     category: "verb",
     verbClass,
     aspect,
+    allowedTeConstructions,
     dictionaryTokens: dictionaryToken(id, kana, romaji),
   };
 }
 
 export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
-  verb("verb-kaku", "かく", "kaku", "godan", "dynamic", "polite-verbs-1"),
-  verb("verb-oyogu", "およぐ", "oyogu", "godan", "dynamic", "polite-verbs-1"),
-  verb("verb-hanasu", "はなす", "hanasu", "godan", "dynamic", "polite-verbs-1"),
-  verb("verb-matsu", "まつ", "matsu", "godan", "dynamic", "polite-verbs-1"),
-  verb("verb-shinu", "しぬ", "shinu", "godan", "dynamic", "polite-verbs-1"),
-  verb("verb-asobu", "あそぶ", "asobu", "godan", "dynamic", "polite-verbs-1"),
-  verb("verb-nomu", "のむ", "nomu", "godan", "dynamic", "polite-verbs-1"),
-  verb("verb-kau", "かう", "kau", "godan", "dynamic", "polite-verbs-1"),
-  verb("verb-taberu", "たべる", "taberu", "ichidan", "dynamic", "polite-verbs-2"),
-  verb("verb-miru", "みる", "miru", "ichidan", "dynamic", "polite-verbs-2"),
-  verb("verb-suru", "する", "suru", "suru", "dynamic", "polite-verbs-3"),
-  verb("verb-kuru", "くる", "kuru", "kuru", "dynamic", "polite-verbs-3"),
+  verb("verb-kaku", "かく", "kaku", "godan", "dynamic", "polite-verbs-1", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-oyogu", "およぐ", "oyogu", "godan", "dynamic", "polite-verbs-1", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-hanasu", "はなす", "hanasu", "godan", "dynamic", "polite-verbs-1", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-matsu", "まつ", "matsu", "godan", "dynamic", "polite-verbs-1", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-shinu", "しぬ", "shinu", "godan", "dynamic", "polite-verbs-1", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-asobu", "あそぶ", "asobu", "godan", "dynamic", "polite-verbs-1", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-nomu", "のむ", "nomu", "godan", "dynamic", "polite-verbs-1", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-kau", "かう", "kau", "godan", "dynamic", "polite-verbs-1", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-taberu", "たべる", "taberu", "ichidan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-miru", "みる", "miru", "ichidan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-suru", "する", "suru", "suru", "dynamic", "polite-verbs-3", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-kuru", "くる", "kuru", "kuru", "dynamic", "polite-verbs-3", DYNAMIC_TE_CONSTRUCTIONS),
   verb(
     "verb-benkyou-suru",
     "べんきょうする",
@@ -62,6 +69,7 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
     "suru",
     "dynamic",
     "polite-verbs-3",
+    DYNAMIC_TE_CONSTRUCTIONS,
   ),
   verb(
     "verb-motte-kuru",
@@ -70,9 +78,18 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
     "kuru",
     "dynamic",
     "polite-verbs-3",
+    DYNAMIC_TE_CONSTRUCTIONS,
   ),
   {
-    ...verb("verb-iku", "いく", "iku", "godan", "dynamic", "time-movement-1"),
+    ...verb(
+      "verb-iku",
+      "いく",
+      "iku",
+      "godan",
+      "dynamic",
+      "time-movement-1",
+      DYNAMIC_TE_CONSTRUCTIONS,
+    ),
     teFormException: {
       stemKana: "い",
       stemRomaji: "i",
@@ -80,9 +97,33 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
       endingRomaji: "tte",
     },
   },
-  verb("verb-kaeru", "かえる", "kaeru", "godan", "dynamic", "time-movement-1"),
-  verb("verb-aru", "ある", "aru", "godan", "stative", "existence-location-1"),
-  verb("verb-iru", "いる", "iru", "ichidan", "stative", "existence-location-1"),
+  verb(
+    "verb-kaeru",
+    "かえる",
+    "kaeru",
+    "godan",
+    "dynamic",
+    "time-movement-1",
+    DYNAMIC_TE_CONSTRUCTIONS,
+  ),
+  verb(
+    "verb-aru",
+    "ある",
+    "aru",
+    "godan",
+    "stative",
+    "existence-location-1",
+    EXISTENTIAL_TE_CONSTRUCTIONS,
+  ),
+  verb(
+    "verb-iru",
+    "いる",
+    "iru",
+    "ichidan",
+    "stative",
+    "existence-location-1",
+    EXISTENTIAL_TE_CONSTRUCTIONS,
+  ),
   {
     id: "adjective-takai",
     kana: "たかい",

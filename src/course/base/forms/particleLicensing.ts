@@ -102,6 +102,40 @@ export const BASE_PARTICLE_SENSES: readonly BaseParticleSenseDefinition[] = deep
   { id: "question-ka", firstTeachLessonId: "topic-questions-4" },
 ]);
 
+/**
+ * Maps every licensed particle sense to the content record that introduces its
+ * learner-facing distinction. The mapped records are owned by
+ * `BASE_FIRST_TEACH_OWNERS`.
+ */
+export const BASE_PARTICLE_SENSE_CONTENT_ID_BY_SENSE: Readonly<
+  Record<BaseParticleSense, string>
+> = deepFreeze({
+  "topic-wa": "topic-wa",
+  "focus-subject-ga": "focus-subject-ga",
+  "object-o": "licensed-object-o",
+  "goal-ni": "goal-ni",
+  "direction-he": "direction-he",
+  "action-place-de": "action-place-de",
+  "means-de": "means-de",
+  "existence-location-ni": "existence-location-ni",
+  "existential-subject-ga": "existential-subject-ga",
+  "time-ni": "time-ni",
+  "source-kara": "source-kara",
+  "limit-made": "limit-made",
+  "possessive-attributive-no": "possessive-no",
+  "additive-mo": "additive-mo",
+  "companion-to": "companion-to",
+  "listing-to": "nominal-listing-to",
+  "nominal-to": "nominal-listing-to",
+  "question-ka": "question-ka",
+});
+
+export function particleSenseFirstTeachContentId(
+  sense: BaseParticleSense,
+): string {
+  return BASE_PARTICLE_SENSE_CONTENT_ID_BY_SENSE[sense];
+}
+
 const BASE_PREDICATE_PARTICLE_FRAMES: readonly BasePredicateParticleFrame[] = deepFreeze([
   {
     id: "eat",

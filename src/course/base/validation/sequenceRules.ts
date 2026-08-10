@@ -13,7 +13,10 @@ import type {
   BaseLessonContent,
   BaseValidationCatalogs,
 } from "../catalog/types";
-import { validateParticleFrame } from "../forms/particleLicensing";
+import {
+  particleSenseFirstTeachContentId,
+  validateParticleFrame,
+} from "../forms/particleLicensing";
 import type { BaseValidationError, BaseValidationErrorCode } from "./lessonRules";
 
 const ADJECTIVE_CELL_IDS = new Set([
@@ -25,7 +28,7 @@ const FORBIDDEN_FORM_IDS = new Set(["explanatory-no", "ndesu"]);
 const TE_IMASU_FORM_IDS = new Set(["te-imasu"]);
 const TE_IMASU_OWNER_LESSON_ID = "requests-connection-4";
 
-function examplesFor(
+function workedExamplesFor(
   lesson: BaseLessonContent,
   catalogs: BaseValidationCatalogs,
 ): readonly BaseExample[] {
@@ -34,6 +37,36 @@ function examplesFor(
     const example = catalogs.examples.get(id);
     return example ? [example] : [];
   });
+}
+
+interface CanonicalExampleReference {
+  readonly example: BaseExample;
+  readonly referenceId: string;
+  readonly sourceLabel: string;
+}
+
+function canonicalExamplesFor(
+  lesson: BaseLessonContent,
+  catalogs: BaseValidationCatalogs,
+): readonly CanonicalExampleReference[] {
+  const canonical = new Map<string, CanonicalExampleReference>();
+  for (const example of workedExamplesFor(lesson, catalogs)) {
+    canonical.set(example.id, {
+      example,
+      referenceId: example.id,
+      sourceLabel: "example",
+    });
+  }
+  for (const activity of lesson.activities) {
+    const example = catalogs.examples.get(activity.targetId);
+    if (!example || canonical.has(example.id)) continue;
+    canonical.set(example.id, {
+      example,
+      referenceId: activity.targetId,
+      sourceLabel: "activity target example",
+    });
+  }
+  return [...canonical.values()];
 }
 
 function ownerKindForConcept(
@@ -87,29 +120,59 @@ export function validateFirstTeachOrder(
     lesson: BaseLessonContent,
     kind: FirstTeachOwner["kind"],
     id: string,
+    sourceLabel?: string,
+    reportedId = id,
   ): void => {
     const owner = ownerByKey.get(firstTeachOwnerKey(kind, id));
     const lessonPosition = positionFor(lesson.lessonId);
     const ownerPosition = owner ? positionFor(owner.lessonId) : undefined;
     if (owner && lessonPosition !== undefined && ownerPosition !== undefined && ownerPosition > lessonPosition) {
-      push(lesson.lessonId, "first-teach-before-owner", id);
+      push(lesson.lessonId, "first-teach-before-owner", reportedId, sourceLabel);
     }
+  };
+  const validateParticleSenseOwner = (
+    lesson: BaseLessonContent,
+    particleSense: string,
+    sourceLabel?: string,
+  ): void => {
+    const contentId = particleSenseFirstTeachContentId(
+      particleSense as Parameters<typeof particleSenseFirstTeachContentId>[0],
+    );
+    const concept = catalogs.concepts.get(contentId);
+    validateOwnedReference(
+      lesson,
+      ownerKindForConcept(concept),
+      contentId,
+      sourceLabel,
+      particleSense,
+    );
   };
   const validateSentence = (
     lesson: BaseLessonContent,
     sentence: BaseExample | BaseDialogueTurn,
     referenceId: string,
+    sourceLabel?: string,
   ): void => {
     for (const lexemeId of sentence.lexemeIds) {
-      validateOwnedReference(lesson, "lexeme", lexemeId);
+      validateOwnedReference(lesson, "lexeme", lexemeId, sourceLabel);
     }
     for (const conceptId of sentence.conceptIds) {
       const concept = catalogs.concepts.get(conceptId);
-      validateOwnedReference(lesson, ownerKindForConcept(concept), conceptId);
+      validateOwnedReference(
+        lesson,
+        ownerKindForConcept(concept),
+        conceptId,
+        sourceLabel,
+      );
     }
     for (const formId of sentence.formIds) {
       const form = catalogs.concepts.get(formId);
-      validateOwnedReference(lesson, ownerKindForConcept(form), formId);
+      validateOwnedReference(
+        lesson,
+        ownerKindForConcept(form),
+        formId,
+        sourceLabel,
+      );
       if (
         ADJECTIVE_CELL_IDS.has(formId) &&
         (BASE_LESSON_MANIFEST[lesson.lessonId]?.moduleId !== "copula-adjectives" &&
@@ -142,6 +205,11 @@ export function validateFirstTeachOrder(
       push(lesson.lessonId, "dynamic-nonpast-ongoing-now", referenceId);
     }
     if (sentence.particleFrame) {
+      for (const particleSense of Object.values(sentence.particleFrame.provided)) {
+        if (particleSense) {
+          validateParticleSenseOwner(lesson, particleSense, sourceLabel);
+        }
+      }
       const frame = validateParticleFrame(
         sentence.particleFrame.predicateSenseId,
         sentence.particleFrame.provided,
@@ -160,19 +228,39 @@ export function validateFirstTeachOrder(
   };
 
   for (const lesson of lessons) {
-    if (lesson.contract === "phonetic") {
-      for (const activity of lesson.activities) {
-        for (const lexemeId of activity.assessedLexemeIds) {
-          validateOwnedReference(lesson, "lexeme", lexemeId);
-        }
+    for (const activity of lesson.activities) {
+      for (const lexemeId of activity.assessedLexemeIds) {
+        validateOwnedReference(
+          lesson,
+          "lexeme",
+          lexemeId,
+          `activity assessment:${activity.id}`,
+        );
       }
-      continue;
+      for (const conceptId of activity.assessedConceptIds) {
+        const concept = catalogs.concepts.get(conceptId);
+        validateOwnedReference(
+          lesson,
+          ownerKindForConcept(concept),
+          conceptId,
+          `activity assessment:${activity.id}`,
+        );
+      }
     }
+    for (const reference of canonicalExamplesFor(lesson, catalogs)) {
+      validateSentence(
+        lesson,
+        reference.example,
+        reference.referenceId,
+        reference.sourceLabel,
+      );
+    }
+
+    if (lesson.contract === "phonetic") continue;
 
     for (const lexemeId of [
       ...lesson.newLexemeIds,
       ...lesson.reviewLexemeIds,
-      ...lesson.activities.flatMap((activity) => activity.assessedLexemeIds),
     ]) {
       validateOwnedReference(lesson, "lexeme", lexemeId);
     }
@@ -185,7 +273,6 @@ export function validateFirstTeachOrder(
     const conceptIds = [
       ...lesson.introducedConceptIds,
       ...lesson.reviewedConceptIds,
-      ...lesson.activities.flatMap((activity) => activity.assessedConceptIds),
     ];
     for (const conceptId of conceptIds) {
       const concept = catalogs.concepts.get(conceptId);
@@ -205,9 +292,6 @@ export function validateFirstTeachOrder(
       }
     }
 
-    for (const example of examplesFor(lesson, catalogs)) {
-      validateSentence(lesson, example, example.id);
-    }
     if (lesson.dialogueId) {
       const dialogue = catalogs.dialogues.get(lesson.dialogueId);
       if (dialogue) {
@@ -277,7 +361,7 @@ export function visibleJapaneseFor(
   };
   for (const lesson of lessons) {
     if (lesson.contract !== "phonetic") {
-      for (const example of examplesFor(lesson, catalogs)) {
+      for (const example of workedExamplesFor(lesson, catalogs)) {
         append(`example:${example.id}`, example.tokens);
       }
       if (lesson.dialogueId) {

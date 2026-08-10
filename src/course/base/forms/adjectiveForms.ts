@@ -105,7 +105,7 @@ function token(
     boundaryBefore,
     source: { domain: "catalog", referenceId },
   };
-  return Object.freeze(assembled);
+  return assembled;
 }
 
 function lexicalTokens(

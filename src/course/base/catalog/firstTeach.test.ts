@@ -9,9 +9,14 @@ import {
 import {
   BASE_FIRST_TEACH_OWNER_BY_KEY,
   BASE_FIRST_TEACH_OWNERS,
+  BASE_PARTICLE_SENSE_FIRST_TEACH_OWNER_BY_SENSE,
   firstTeachOwnerKey,
   validateFirstTeachOwners,
 } from "./firstTeach";
+import {
+  BASE_PARTICLE_SENSE_CONTENT_ID_BY_SENSE,
+  BASE_PARTICLE_SENSES,
+} from "../forms/particleLicensing";
 
 describe("Base first-teach ownership", () => {
   it("deep-freezes authoring content and rejects duplicate structural activity IDs", () => {
@@ -206,6 +211,22 @@ describe("Base first-teach ownership", () => {
     expect(owner("concept", "existence-location-frame")).toBe("existence-location-1");
     expect(owner("form", "te-kudasai")).toBe("requests-connection-2");
     expect(owner("form", "sequential-te")).toBe("requests-connection-3");
+  });
+
+  it("maps every particle sense to an immutable canonical first-teach owner", () => {
+    expect(Object.isFrozen(BASE_PARTICLE_SENSE_CONTENT_ID_BY_SENSE)).toBe(true);
+    expect(BASE_PARTICLE_SENSE_FIRST_TEACH_OWNER_BY_SENSE.size).toBe(
+      BASE_PARTICLE_SENSES.length,
+    );
+    for (const sense of BASE_PARTICLE_SENSES) {
+      const contentId = BASE_PARTICLE_SENSE_CONTENT_ID_BY_SENSE[sense.id];
+      const owner = BASE_PARTICLE_SENSE_FIRST_TEACH_OWNER_BY_SENSE.get(sense.id);
+      expect(contentId).toBeTruthy();
+      expect(owner).toMatchObject({
+        contentId,
+        lessonId: sense.firstTeachLessonId,
+      });
+    }
   });
 
   it("accepts the canonical owner graph and its prerequisite order", () => {

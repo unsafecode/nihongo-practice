@@ -274,10 +274,13 @@ export interface BaseLexemeCommon {
   readonly countable: boolean;
 }
 
+export type BaseTeConstruction = "te" | "request" | "sequence" | "te-imasu";
+
 export interface BaseVerbLexeme extends BaseLexemeCommon {
   readonly category: "verb";
   readonly verbClass: "godan" | "ichidan" | "suru" | "kuru";
   readonly aspect: "dynamic" | "stative";
+  readonly allowedTeConstructions: readonly BaseTeConstruction[];
   readonly dictionaryTokens: readonly AssembledToken[];
   readonly teFormException?: Readonly<{
     readonly stemKana: string;
@@ -330,6 +333,7 @@ export interface BaseValidationCatalogs {
   readonly dialogues: ReadonlyMap<string, BaseDialogue>;
   readonly audioTargets: ReadonlyMap<string, readonly AssembledToken[]>;
   readonly copyIds: ReadonlySet<string>;
+  readonly contrastMapIds: ReadonlySet<string>;
   readonly referenceSnapshotIds: ReadonlySet<string>;
   readonly patternCellIds: ReadonlySet<string>;
   readonly acceptedAnswerTokens: ReadonlyMap<string, readonly AssembledToken[]>;

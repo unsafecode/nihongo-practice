@@ -1,9 +1,13 @@
 import type { AssembledToken } from "../../../romaji/types";
 import { deepFreeze } from "../../foundations/deepFreeze";
 import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
-import type { BaseVerbLexeme } from "../catalog/types";
+import type { BaseTeConstruction, BaseVerbLexeme } from "../catalog/types";
 
-export type BaseVerbFormErrorCode = "unknown-lexeme" | "not-a-verb" | "invalid-verb-ending";
+export type BaseVerbFormErrorCode =
+  | "unknown-lexeme"
+  | "not-a-verb"
+  | "invalid-verb-ending"
+  | "construction-not-licensed";
 
 export interface BaseVerbFormError {
   readonly code: BaseVerbFormErrorCode;
@@ -21,7 +25,7 @@ export interface PoliteVerbGrid {
   readonly pastNegative: readonly AssembledToken[];
 }
 
-export type TeConstruction = "te" | "request" | "sequence" | "te-imasu";
+export type TeConstruction = BaseTeConstruction;
 
 interface GodanEnding {
   readonly kana: string;
@@ -138,7 +142,7 @@ function token(
     boundaryBefore,
     source: { domain: "catalog", referenceId },
   };
-  return Object.freeze(assembled);
+  return assembled;
 }
 
 function removeSuffix(
@@ -315,6 +319,9 @@ export function realizeTeConstruction(
 ): BaseFormResult<readonly AssembledToken[]> {
   const verb = verbFor(lemmaId);
   if (!verb.ok) return verb;
+  if (!verb.value.allowedTeConstructions.includes(construction)) {
+    return error("construction-not-licensed", lemmaId);
+  }
   const parts = teParts(verb.value);
   if (!parts) return error("invalid-verb-ending", lemmaId);
   const teId = construction === "sequence" ? "te-sequence" : "te";

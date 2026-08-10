@@ -100,6 +100,24 @@ describe("Base verb forms", () => {
     }
   });
 
+  it("deep-freezes generated verb token sources without leaking across grid cells", () => {
+    const result = realizePoliteGrid("verb-kaku");
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const token = result.value.negative[0];
+    const sharedToken = result.value.pastAffirmative[0];
+    expect(Object.isFrozen(result.value)).toBe(true);
+    expect(Object.isFrozen(result.value.negative)).toBe(true);
+    expect(Object.isFrozen(token)).toBe(true);
+    expect(Object.isFrozen(token.source)).toBe(true);
+    expect(() => {
+      (token.source as { referenceId: string }).referenceId = "mutated-source";
+    }).toThrow(TypeError);
+    expect(token.source.referenceId).toBe("verb-kaku");
+    expect(sharedToken.source.referenceId).toBe("verb-kaku");
+  });
+
   it.each([
     ["verb-kau", "かって"],
     ["verb-matsu", "まって"],
@@ -203,7 +221,7 @@ describe("Base verb forms", () => {
     },
   );
 
-  it("passes every published verb realization through formatRomaji", () => {
+  it("passes every licensed published verb realization through formatRomaji", () => {
     for (const lexeme of BASE_LEXICON) {
       if (lexeme.category !== "verb") continue;
       const dictionary = realizeVerbDictionary(lexeme.id);
@@ -218,7 +236,17 @@ describe("Base verb forms", () => {
       expect(stem.ok).toBe(true);
       expect(polite.ok).toBe(true);
       expect(grid.ok).toBe(true);
-      for (const construction of constructions) expect(construction.ok).toBe(true);
+      const allowed = (
+        lexeme as unknown as {
+          readonly allowedTeConstructions?: readonly string[];
+        }
+      ).allowedTeConstructions;
+      expect(allowed).toBeDefined();
+      expect(Object.isFrozen(allowed)).toBe(true);
+      for (const [index, construction] of constructions.entries()) {
+        const constructionId = ["te", "request", "sequence", "te-imasu"][index];
+        expect(construction.ok).toBe(allowed?.includes(constructionId));
+      }
       if (!dictionary.ok || !stem.ok || !polite.ok || !grid.ok) continue;
 
       const sequences = [
@@ -251,6 +279,25 @@ describe("Base verb forms", () => {
       expect(sequence.value).toHaveLength(2);
       expect(sequence.value[1]).toMatchObject({
         source: { referenceId: "te-sequence" },
+      });
+    }
+  });
+
+  it("licenses existential verbs only for their explicitly valid te constructions", () => {
+    for (const lemmaId of ["verb-aru", "verb-iru"] as const) {
+      const lexeme = BASE_LEXEME_BY_ID.get(lemmaId);
+      expect(lexeme).toMatchObject({
+        allowedTeConstructions: ["te", "sequence"],
+      });
+      expect(realizeTeConstruction(lemmaId, "te").ok).toBe(true);
+      expect(realizeTeConstruction(lemmaId, "sequence").ok).toBe(true);
+      expect(realizeTeConstruction(lemmaId, "request")).toEqual({
+        ok: false,
+        error: { code: "construction-not-licensed", lemmaId },
+      });
+      expect(realizeTeConstruction(lemmaId, "te-imasu")).toEqual({
+        ok: false,
+        error: { code: "construction-not-licensed", lemmaId },
       });
     }
   });

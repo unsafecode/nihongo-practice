@@ -1,3 +1,5 @@
+import type { AssembledToken } from "../../../romaji/types";
+import { formatRomaji } from "../../../romaji/formatRomaji";
 import { deepFreeze } from "../../foundations/deepFreeze";
 import { BASE_LESSON_MANIFEST } from "../manifest";
 import type {
@@ -8,7 +10,6 @@ import type {
   BaseValidationCatalogs,
 } from "../catalog/types";
 import { validateParticleFrame } from "../forms/particleLicensing";
-import { formatRomaji } from "../../../romaji/formatRomaji";
 import {
   BASE_ACTIVITY_INTERACTIONS_BY_CATEGORY,
   BASE_ACTIVITY_OPERATION_BY_CATEGORY,
@@ -23,6 +24,7 @@ import {
 
 export type BaseValidationErrorCode =
   | "phonetic-contrast-count"
+  | "invalid-phonetic-contrast-id"
   | "phonetic-anchor-count"
   | "phonetic-audio-count"
   | "phonetic-nonspoken-operations"
@@ -38,6 +40,8 @@ export type BaseValidationErrorCode =
   | "synthesis-retrieved-system-count"
   | "synthesis-example-count"
   | "synthesis-dialogue-turn-count"
+  | "dialogue-speaker-count"
+  | "invalid-speaker"
   | "missing-explanation-block"
   | "missing-reference-snapshot"
   | "invalid-prerequisite"
@@ -49,6 +53,7 @@ export type BaseValidationErrorCode =
   | "semantic-spoken-audio-count"
   | "duplicate-activity-id"
   | "duplicate-target-operation"
+  | "duplicate-visible-target"
   | "activity-category-operation-mismatch"
   | "fingerprint-resolution"
   | "worked-example-reused-by-activity"
@@ -118,6 +123,36 @@ function validateReference(
   if (!resolves) push("unresolved-reference", id, detail);
 }
 
+/**
+ * Keeps every authoring token sequence on the same romaji and boundary rules,
+ * regardless of whether it belongs to an example, prompt, answer, or audio.
+ */
+export function validateTokenSequence(
+  tokens: readonly AssembledToken[],
+): ReturnType<typeof formatRomaji> {
+  return formatRomaji(tokens);
+}
+
+function validateTokens(
+  tokens: readonly AssembledToken[],
+  referenceId: string,
+  label: string,
+  push: (
+    code: BaseValidationErrorCode,
+    referenceId?: string,
+    detail?: string,
+  ) => void,
+): void {
+  const formatted = validateTokenSequence(tokens);
+  if (!formatted.ok) {
+    push(
+      "invalid-token-sequence",
+      referenceId,
+      `${label}:${formatted.errors.map((error) => error.code).join(",")}`,
+    );
+  }
+}
+
 function validateActivities(
   lesson: BaseLessonContent,
   catalogs: BaseValidationCatalogs,
@@ -130,6 +165,7 @@ function validateActivities(
 ): void {
   const activityIds = new Set<string>();
   const operations = new Set<string>();
+  const visibleTargets = new Set<string>();
   const categoryCounts = new Map<string, number>();
   let nonspokenCount = 0;
   let listeningAudioCount = 0;
@@ -206,6 +242,35 @@ function validateActivities(
       );
       push("unresolved-reference", activity.targetId, "activity target");
     }
+    if (activity.activityPromptTokens) {
+      validateTokens(
+        activity.activityPromptTokens,
+        activity.id,
+        "activity prompt",
+        push,
+      );
+    }
+    if (!catalogs.examples.has(activity.targetId)) {
+      const acceptedAnswer = catalogs.acceptedAnswerTokens.get(activity.targetId);
+      if (acceptedAnswer) {
+        validateTokens(
+          acceptedAnswer,
+          activity.targetId,
+          "activity accepted target",
+          push,
+        );
+      } else {
+        const audioTarget = catalogs.audioTargets.get(activity.targetId);
+        if (audioTarget) {
+          validateTokens(
+            audioTarget,
+            activity.targetId,
+            "activity audio target",
+            push,
+          );
+        }
+      }
+    }
     validateReference(
       activity.instructionCopyId,
       catalogs.copyIds.has(activity.instructionCopyId),
@@ -231,6 +296,12 @@ function validateActivities(
       validateReference(lexemeId, catalogs.lexemes.has(lexemeId), "assessed lexeme", push);
     }
     const targetSurface = activityTargetVisibleSurfaceFor(activity, catalogs);
+    if (targetSurface !== undefined) {
+      if (visibleTargets.has(targetSurface)) {
+        push("duplicate-visible-target", activity.targetId, activity.id);
+      }
+      visibleTargets.add(targetSurface);
+    }
     if (targetSurface && workedSurfaces.has(targetSurface)) {
       push("worked-example-reused-by-activity", activity.targetId);
     }
@@ -308,6 +379,19 @@ function countCountableLexemes(
   return uniqueIds(lexemeIds).filter((id) => catalogs.lexemes.get(id)?.countable).length;
 }
 
+function countMeaningfulAnchors(
+  lexemeIds: readonly string[],
+  catalogs: BaseValidationCatalogs,
+): number {
+  return uniqueIds(lexemeIds).filter((id) => {
+    const lexeme = catalogs.lexemes.get(id);
+    return (
+      lexeme?.countable === true &&
+      lexeme.meaningCopyId.trim().length > 0
+    );
+  }).length;
+}
+
 type SentenceLike =
   | Pick<
       BaseExample,
@@ -329,14 +413,7 @@ function validateSentenceLikeReferences(
     detail?: string,
   ) => void,
 ): void {
-  const formatted = formatRomaji(sentence.tokens);
-  if (!formatted.ok) {
-    push(
-      "invalid-token-sequence",
-      referenceId,
-      `${label}:${formatted.errors.map((error) => error.code).join(",")}`,
-    );
-  }
+  validateTokens(sentence.tokens, referenceId, label, push);
   for (const lexemeId of sentence.lexemeIds) {
     validateReference(lexemeId, catalogs.lexemes.has(lexemeId), `${label} lexeme`, push);
   }
@@ -367,8 +444,39 @@ function validateSentenceLikeReferences(
   }
 }
 
+interface CanonicalExampleReference {
+  readonly example: BaseExample;
+  readonly referenceId: string;
+  readonly label: string;
+}
+
+function canonicalExampleReferences(
+  lesson: BaseLessonContent,
+  workedExamples: readonly BaseExample[],
+  catalogs: BaseValidationCatalogs,
+): readonly CanonicalExampleReference[] {
+  const canonical = new Map<string, CanonicalExampleReference>();
+  for (const example of workedExamples) {
+    canonical.set(example.id, {
+      example,
+      referenceId: example.id,
+      label: "example",
+    });
+  }
+  for (const activity of lesson.activities) {
+    const example = catalogs.examples.get(activity.targetId);
+    if (!example || canonical.has(example.id)) continue;
+    canonical.set(example.id, {
+      example,
+      referenceId: activity.targetId,
+      label: "activity target example",
+    });
+  }
+  return [...canonical.values()];
+}
+
 function validateExampleReferences(
-  examples: readonly BaseExample[],
+  references: readonly CanonicalExampleReference[],
   catalogs: BaseValidationCatalogs,
   push: (
     code: BaseValidationErrorCode,
@@ -378,8 +486,8 @@ function validateExampleReferences(
 ): readonly BaseExample[] {
   const fingerprints = new Set<string>();
   const uniqueExamples: BaseExample[] = [];
-  for (const example of examples) {
-    validateSentenceLikeReferences(example, catalogs, example.id, "example", push);
+  for (const { example, referenceId, label } of references) {
+    validateSentenceLikeReferences(example, catalogs, referenceId, label, push);
     const fingerprint = semanticFingerprintFor(example);
     if (fingerprints.has(fingerprint)) {
       push("duplicate-semantic-fingerprint", fingerprint);
@@ -390,27 +498,27 @@ function validateExampleReferences(
     validateReference(
       example.teachingPurposeCopyId,
       catalogs.copyIds.has(example.teachingPurposeCopyId),
-      "example teaching-purpose copy",
+      `${label} teaching-purpose copy`,
       push,
     );
     if ("copyId" in example.translationCopy) {
       validateReference(
         example.translationCopy.copyId,
         catalogs.copyIds.has(example.translationCopy.copyId),
-        "example translation copy",
+        `${label} translation copy`,
         push,
       );
     } else {
       validateReference(
         example.translationCopy.enCopyId,
         catalogs.copyIds.has(example.translationCopy.enCopyId),
-        "example English translation copy",
+        `${label} English translation copy`,
         push,
       );
       validateReference(
         example.translationCopy.itCopyId,
         catalogs.copyIds.has(example.translationCopy.itCopyId),
-        "example Italian translation copy",
+        `${label} Italian translation copy`,
         push,
       );
     }
@@ -432,8 +540,8 @@ export function validateBaseLessonDepth(
       code,
       stage: "lesson-depth",
       lessonId: lesson.lessonId,
-      ...(referenceId ? { referenceId } : {}),
-      ...(detail ? { detail } : {}),
+      ...(referenceId !== undefined ? { referenceId } : {}),
+      ...(detail !== undefined ? { detail } : {}),
     });
   };
 
@@ -445,26 +553,58 @@ export function validateBaseLessonDepth(
   }
 
   if (lesson.contract === "phonetic") {
-    if (!isCountWithin(lesson.contrastiveItemIds.length, 10, 16)) {
-      push("phonetic-contrast-count", undefined, `${lesson.contrastiveItemIds.length}`);
+    validateExampleReferences(
+      canonicalExampleReferences(lesson, [], catalogs),
+      catalogs,
+      push,
+    );
+    const contrastiveItemIds = uniqueIds(lesson.contrastiveItemIds);
+    for (const contrastiveItemId of contrastiveItemIds) {
+      if (contrastiveItemId.trim().length === 0) {
+        push("invalid-phonetic-contrast-id", contrastiveItemId);
+      }
     }
-    if (!isCountWithin(lesson.anchorLexemeIds.length, 4, 8)) {
-      push("phonetic-anchor-count", undefined, `${lesson.anchorLexemeIds.length}`);
+    const substantiveContrastCount = contrastiveItemIds.filter(
+      (id) => id.trim().length > 0,
+    ).length;
+    if (!isCountWithin(substantiveContrastCount, 10, 16)) {
+      push("phonetic-contrast-count", undefined, `${substantiveContrastCount}`);
     }
-    if (lesson.audioExemplarIds.length < 6) {
-      push("phonetic-audio-count", undefined, `${lesson.audioExemplarIds.length}`);
+    const meaningfulAnchorCount = countMeaningfulAnchors(
+      lesson.anchorLexemeIds,
+      catalogs,
+    );
+    if (!isCountWithin(meaningfulAnchorCount, 4, 8)) {
+      push("phonetic-anchor-count", undefined, `${meaningfulAnchorCount}`);
     }
-    for (const lexemeId of lesson.anchorLexemeIds) {
+    for (const lexemeId of uniqueIds(lesson.anchorLexemeIds)) {
       validateReference(lexemeId, catalogs.lexemes.has(lexemeId), "phonetic anchor", push);
     }
-    for (const audioId of lesson.audioExemplarIds) {
-      validateReference(
-        audioId,
-        catalogs.audioTargets.has(audioId),
-        "phonetic audio exemplar",
-        push,
-      );
+    const audioSurfaces = new Set<string>();
+    for (const audioId of uniqueIds(lesson.audioExemplarIds)) {
+      const audioTarget = catalogs.audioTargets.get(audioId);
+      validateReference(audioId, audioTarget !== undefined, "phonetic audio exemplar", push);
+      if (audioTarget) {
+        validateTokens(audioTarget, audioId, "phonetic audio exemplar", push);
+        const surface = visibleSurfaceFingerprint(audioTarget);
+        if (surface.length > 0) audioSurfaces.add(surface);
+      }
     }
+    if (audioSurfaces.size < 6) {
+      push("phonetic-audio-count", undefined, `${audioSurfaces.size}`);
+    }
+    validateReference(
+      lesson.phoneticExplanationCopyId,
+      catalogs.copyIds.has(lesson.phoneticExplanationCopyId),
+      "phonetic explanation copy",
+      push,
+    );
+    validateReference(
+      lesson.contrastMapId,
+      catalogs.contrastMapIds.has(lesson.contrastMapId),
+      "phonetic contrast map",
+      push,
+    );
     const listeningCount = lesson.activities.filter(
       (activity) =>
         activity.category === "listening" &&
@@ -506,7 +646,12 @@ export function validateBaseLessonDepth(
   }
 
   const examples = resolvedExamples(lesson, catalogs, push);
-  const uniqueExamples = validateExampleReferences(examples, catalogs, push);
+  const canonicalExamples = canonicalExampleReferences(lesson, examples, catalogs);
+  const uniqueExamples = validateExampleReferences(canonicalExamples, catalogs, push);
+  const workedExampleIds = new Set(examples.map((example) => example.id));
+  const uniqueWorkedExamples = uniqueExamples.filter((example) =>
+    workedExampleIds.has(example.id),
+  );
   validateActivities(lesson, catalogs, true, push);
 
   const dialogue = lesson.dialogueId ? catalogs.dialogues.get(lesson.dialogueId) : undefined;
@@ -522,8 +667,15 @@ export function validateBaseLessonDepth(
     );
     const exampleFingerprints = new Set(examples.map(semanticFingerprintFor));
     const dialogueFingerprints = new Set<string>();
+    const speakerIds = new Set<string>();
     for (const [index, turn] of dialogue.turns.entries()) {
       const turnReferenceId = `${dialogue.id}:${index}`;
+      const speakerId = turn.speakerId.trim();
+      if (speakerId.length === 0) {
+        push("invalid-speaker", turnReferenceId);
+      } else {
+        speakerIds.add(speakerId);
+      }
       validateSentenceLikeReferences(
         turn,
         catalogs,
@@ -539,6 +691,9 @@ export function validateBaseLessonDepth(
         push("dialogue-example-fingerprint-overlap", fingerprint);
       }
       dialogueFingerprints.add(fingerprint);
+    }
+    if (speakerIds.size < 2) {
+      push("dialogue-speaker-count", dialogue.id, `${speakerIds.size}`);
     }
     if (lesson.interactive && !isCountWithin(dialogue.turns.length, 4, 8)) {
       push(
@@ -569,7 +724,11 @@ export function validateBaseLessonDepth(
       push("system-example-count", undefined, `${uniqueIds(lesson.workedExampleIds).length}`);
     }
     for (const patternCellId of lesson.patternCellIds) {
-      if (!uniqueExamples.some((example) => example.patternCellIds.includes(patternCellId))) {
+      if (
+        !uniqueWorkedExamples.some((example) =>
+          example.patternCellIds.includes(patternCellId),
+        )
+      ) {
         push("system-pattern-cell-unrepresented", patternCellId);
       }
     }

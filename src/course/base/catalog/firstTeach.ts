@@ -11,6 +11,11 @@ import {
 import { BASE_CONCEPTS } from "./concepts";
 import { BASE_LEXICON } from "./lexicon";
 import type { BaseConcept, BaseConceptKind, BaseLexeme } from "./types";
+import {
+  BASE_PARTICLE_SENSES,
+  particleSenseFirstTeachContentId,
+  type BaseParticleSense,
+} from "../forms/particleLicensing";
 
 export type FirstTeachOwnerKind =
   | "lexeme"
@@ -76,6 +81,37 @@ export const BASE_FIRST_TEACH_OWNER_BY_KEY: ReadonlyMap<string, FirstTeachOwner>
       owner,
     ]),
   );
+
+function particleSenseOwner(
+  sense: BaseParticleSense,
+): FirstTeachOwner {
+  const contentId = particleSenseFirstTeachContentId(sense);
+  const concept = BASE_CONCEPTS.find((entry) => entry.id === contentId);
+  if (!concept) {
+    throw new Error(
+      `Particle sense "${sense}" maps to unknown first-teach content "${contentId}".`,
+    );
+  }
+  const owner = BASE_FIRST_TEACH_OWNER_BY_KEY.get(
+    firstTeachOwnerKey(concept.kind, contentId),
+  );
+  if (!owner || owner.lessonId !== concept.firstTeachLessonId) {
+    throw new Error(
+      `Particle sense "${sense}" does not have a canonical first-teach owner.`,
+    );
+  }
+  return owner;
+}
+
+export const BASE_PARTICLE_SENSE_FIRST_TEACH_OWNER_BY_SENSE: ReadonlyMap<
+  BaseParticleSense,
+  FirstTeachOwner
+> = immutableReadonlyMap(
+  BASE_PARTICLE_SENSES.map((sense) => [
+    sense.id,
+    particleSenseOwner(sense.id),
+  ]),
+);
 
 function ownerLookup(
   owners: readonly FirstTeachOwner[],

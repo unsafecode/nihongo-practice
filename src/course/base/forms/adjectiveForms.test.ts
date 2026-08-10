@@ -63,6 +63,25 @@ describe("Base adjective and copula forms", () => {
     }
   });
 
+  it("deep-freezes generated adjective token sources without leaking across grid cells", () => {
+    const result = realizeIAdjectivePredicate("adjective-takai");
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const token = result.value.negative.tokens[0];
+    const sharedToken = result.value.pastAffirmative.tokens[0];
+    expect(Object.isFrozen(result.value)).toBe(true);
+    expect(Object.isFrozen(result.value.negative)).toBe(true);
+    expect(Object.isFrozen(result.value.negative.tokens)).toBe(true);
+    expect(Object.isFrozen(token)).toBe(true);
+    expect(Object.isFrozen(token.source)).toBe(true);
+    expect(() => {
+      (token.source as { referenceId: string }).referenceId = "mutated-source";
+    }).toThrow(TypeError);
+    expect(token.source.referenceId).toBe("adjective-takai");
+    expect(sharedToken.source.referenceId).toBe("adjective-takai");
+  });
+
   it("uses the irregular いい form source for every non-affirmative cell", () => {
     const result = realizeIAdjectivePredicate("adjective-ii");
 
