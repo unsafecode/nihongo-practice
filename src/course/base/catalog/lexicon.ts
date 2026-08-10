@@ -208,6 +208,15 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
     category: "adjective",
     adjectiveClass: "na",
   },
+  {
+    id: "noun-gakusei",
+    kana: "がくせい",
+    romaji: "gakusei",
+    meaningCopyId: "noun-gakusei-meaning",
+    firstTeachLessonId: "sentence-foundations-1",
+    countable: true,
+    category: "noun",
+  },
 ]);
 
 export const BASE_LEXEME_BY_ID: ReadonlyMap<string, BaseLexeme> =

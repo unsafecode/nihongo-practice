@@ -1,4 +1,5 @@
 import type { SemanticArgumentRole } from "../../foundations/types";
+import type { AssembledToken } from "../../../romaji/types";
 import { deepFreeze } from "../../foundations/deepFreeze";
 import { immutableReadonlyMap } from "../../foundations/immutableReadonlyMap";
 import {
@@ -57,6 +58,11 @@ export type BasePredicateSenseId =
 export interface BaseParticleSenseDefinition {
   readonly id: BaseParticleSense;
   readonly firstTeachLessonId: string;
+}
+
+interface BaseParticleSurfaceDefinition {
+  readonly kana: string;
+  readonly romaji: string;
 }
 
 export interface BasePredicateParticleFrame {
@@ -118,6 +124,46 @@ export const BASE_PARTICLE_SENSES: readonly BaseParticleSenseDefinition[] = deep
   { id: "nominal-to", firstTeachLessonId: "topic-questions-3" },
   { id: "question-ka", firstTeachLessonId: "topic-questions-4" },
 ]);
+
+const BASE_PARTICLE_SURFACE_BY_SENSE: Readonly<
+  Record<BaseParticleSense, BaseParticleSurfaceDefinition>
+> = deepFreeze({
+  "topic-wa": { kana: "は", romaji: "wa" },
+  "focus-subject-ga": { kana: "が", romaji: "ga" },
+  "object-o": { kana: "を", romaji: "o" },
+  "goal-ni": { kana: "に", romaji: "ni" },
+  "direction-he": { kana: "へ", romaji: "e" },
+  "action-place-de": { kana: "で", romaji: "de" },
+  "means-de": { kana: "で", romaji: "de" },
+  "existence-location-ni": { kana: "に", romaji: "ni" },
+  "existential-subject-ga": { kana: "が", romaji: "ga" },
+  "time-ni": { kana: "に", romaji: "ni" },
+  "source-kara": { kana: "から", romaji: "kara" },
+  "limit-made": { kana: "まで", romaji: "made" },
+  "possessive-attributive-no": { kana: "の", romaji: "no" },
+  "additive-mo": { kana: "も", romaji: "mo" },
+  "companion-to": { kana: "と", romaji: "to" },
+  "listing-to": { kana: "と", romaji: "to" },
+  "nominal-to": { kana: "と", romaji: "to" },
+  "question-ka": { kana: "か", romaji: "ka" },
+});
+
+/** Returns the one canonical token sequence for a licensed particle sense. */
+export function baseParticleSurfaceTokens(
+  sense: BaseParticleSense,
+): readonly AssembledToken[] {
+  const surface = BASE_PARTICLE_SURFACE_BY_SENSE[sense];
+  return deepFreeze([
+    {
+      id: `${sense}-particle`,
+      jp: surface.kana,
+      romaji: surface.romaji,
+      kind: "particle",
+      boundaryBefore: "attach",
+      source: { domain: "catalog", referenceId: sense },
+    },
+  ]);
+}
 
 /**
  * Maps every licensed particle sense to the content record that introduces its

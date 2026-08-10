@@ -1,7 +1,7 @@
 import type { AssembledToken } from "../../../romaji/types";
 import { deepFreeze } from "../../foundations/deepFreeze";
 import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
-import type { BaseAdjectiveLexeme } from "../catalog/types";
+import type { BaseAdjectiveLexeme, BaseNounLexeme } from "../catalog/types";
 
 export type DesuFunction = "politeness-marker" | "copula";
 
@@ -31,6 +31,7 @@ export interface BaseNounPredicateInput {
 
 export type BaseAdjectiveFormErrorCode =
   | "unknown-lexeme"
+  | "not-a-noun"
   | "not-an-i-adjective"
   | "not-a-na-adjective";
 
@@ -213,6 +214,17 @@ export function realizeNounPredicate(
   noun: BaseNounPredicateInput,
 ): BaseAdjectiveFormResult<BasePredicateGrid> {
   return ok(copulaGrid(lexicalTokens(noun.id, noun.kana, noun.romaji), noun.id));
+}
+
+/** Realizes a noun predicate only from an owned Base noun lexeme. */
+export function realizeOwnedNounPredicate(
+  lexemeId: string,
+): BaseAdjectiveFormResult<BasePredicateGrid> {
+  const lexeme = BASE_LEXEME_BY_ID.get(lexemeId);
+  if (!lexeme) return error("unknown-lexeme", lexemeId);
+  if (lexeme.category !== "noun") return error("not-a-noun", lexemeId);
+  const noun: BaseNounLexeme = lexeme;
+  return realizeNounPredicate(noun);
 }
 
 export function realizeNaAdjectivePredicate(

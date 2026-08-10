@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  baseParticleSurfaceTokens,
   BASE_PARTICLE_FRAME_BY_PREDICATE,
+  BASE_PARTICLE_SENSES,
   validateParticleFrame,
 } from "./particleLicensing";
 import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
@@ -10,6 +12,14 @@ import {
 } from "../catalog/firstTeach";
 
 describe("Base particle frame licensing", () => {
+  it("publishes every licensed particle surface from the canonical particle catalog", () => {
+    for (const sense of BASE_PARTICLE_SENSES) {
+      const tokens = baseParticleSurfaceTokens(sense.id);
+      expect(tokens.map(({ jp }) => jp).join("")).not.toBe("");
+      expect(Object.isFrozen(tokens)).toBe(true);
+    }
+    expect(baseParticleSurfaceTokens("topic-wa").map(({ jp }) => jp).join("")).toBe("は");
+  });
   it("licenses object-marked themes for transitive predicate senses", () => {
     expect(validateParticleFrame("eat", { theme: "object-o" })).toEqual({
       ok: true,

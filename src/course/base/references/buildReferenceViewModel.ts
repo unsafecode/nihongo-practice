@@ -2,6 +2,7 @@ import { deepFreeze } from "../../foundations/deepFreeze";
 import { baseCanonicalPosition } from "../manifest";
 import {
   BASE_REFERENCE_CATALOG,
+  baseReferenceCopyById,
   validateBaseReferenceCatalog,
   type BaseReferenceCanonicalCell,
   type BaseReferenceCatalog,
@@ -33,6 +34,7 @@ export interface BaseReferenceEntryViewModel {
     readonly columnId: string;
     readonly label: string;
     readonly value: BaseReferenceCanonicalCell["tokens"];
+    readonly desuFunction?: BaseReferenceCanonicalCell["desuFunction"];
   }[];
 }
 
@@ -156,8 +158,8 @@ export function buildBaseReferenceViewModel(
     firstTeachLessonId: entry.firstTeachLessonId,
     prerequisiteEntryIds: entry.prerequisiteEntryIds,
     copyId: entry.copyId,
-    label: entry.copy[locale].label,
-    explanation: entry.copy[locale].explanation,
+    label: baseReferenceCopyById(entry.copyId)![locale].label,
+    explanation: baseReferenceCopyById(entry.copyId)![locale].explanation,
     contrastIds: entry.contrastIds,
     exampleIds: entry.exampleIds,
     canonicalFormCells: entry.canonicalFormCells.map((canonicalCell) => ({
@@ -165,20 +167,24 @@ export function buildBaseReferenceViewModel(
       columnId: canonicalCell.columnId,
       label: canonicalCell.copy[locale].label,
       value: canonicalCell.tokens,
+      ...(canonicalCell.desuFunction === undefined
+        ? {}
+        : { desuFunction: canonicalCell.desuFunction }),
     })),
   }));
 
   const rows: ReferenceGridModel["rows"] = entries.map((entry) => ({
     id: entry.semanticId,
     header: entry.label,
-    cells: entry.canonicalFormCells.map(({ columnId, label, value }) => ({
+    cells: entry.canonicalFormCells.map(({ columnId, label, value, desuFunction }) => ({
       columnId,
       label,
       value,
+      ...(desuFunction === undefined ? {} : { desuFunction }),
     })),
   }));
   const grid: ReferenceGridModel = {
-    caption: definition.copy[locale].label,
+    caption: baseReferenceCopyById(definition.copyId)![locale].label,
     columns: definition.columns.map((referenceColumn) => ({
       id: referenceColumn.id,
       label: referenceColumn.copy[locale].label,
@@ -191,8 +197,8 @@ export function buildBaseReferenceViewModel(
     model: {
       id: definition.id,
       copyId: definition.copyId,
-      label: definition.copy[locale].label,
-      explanation: definition.copy[locale].explanation,
+      label: baseReferenceCopyById(definition.copyId)![locale].label,
+      explanation: baseReferenceCopyById(definition.copyId)![locale].explanation,
       firstTeachLessonId: definition.firstTeachLessonId,
       throughLessonId,
       entries,

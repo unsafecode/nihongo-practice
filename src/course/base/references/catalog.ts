@@ -1,11 +1,15 @@
 import type { AssembledToken } from "../../../romaji/types";
 import { deepFreeze } from "../../foundations/deepFreeze";
+import { immutableReadonlyMap } from "../../foundations/immutableReadonlyMap";
 import { baseCanonicalPosition } from "../manifest";
+import { BASE_CONCEPT_BY_ID } from "../catalog/concepts";
+import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
 import {
+  type DesuFunction,
   realizeIAdjectivePredicate,
   realizeNaAdjectiveAttributive,
   realizeNaAdjectivePredicate,
-  realizeNounPredicate,
+  realizeOwnedNounPredicate,
 } from "../forms/adjectiveForms";
 import {
   realizePoliteGrid,
@@ -13,6 +17,12 @@ import {
   realizeTeConstruction,
   realizeVerbDictionary,
 } from "../forms/verbForms";
+import {
+  BASE_PARTICLE_SENSES,
+  baseParticleSurfaceTokens,
+  particleSenseFirstTeachContentId,
+  type BaseParticleSense,
+} from "../forms/particleLicensing";
 import {
   isPlainDataRecord,
   ownDataArrayValues,
@@ -49,6 +59,7 @@ export interface BaseReferenceCanonicalCell {
   readonly columnId: string;
   readonly copy: BaseReferenceCopy;
   readonly tokens: readonly AssembledToken[];
+  readonly desuFunction?: DesuFunction;
 }
 
 export interface BaseReferenceEntry {
@@ -84,6 +95,7 @@ export interface ReferenceGridModel {
       readonly columnId: string;
       readonly label: string;
       readonly value: readonly AssembledToken[];
+      readonly desuFunction?: DesuFunction;
     }[];
   }[];
 }
@@ -130,51 +142,41 @@ function formValue<T>(
   return result.value;
 }
 
-function staticParticle(
-  id: string,
-  jp: string,
-  romaji: string,
-): readonly AssembledToken[] {
-  return deepFreeze([
-    {
-      id: `${id}-token`,
-      jp,
-      romaji,
-      kind: "particle",
-      boundaryBefore: "attach",
-      source: { domain: "catalog", referenceId: id },
-    },
-  ]);
-}
-
 function cell(
   id: string,
   columnId: string,
   enLabel: string,
   itLabel: string,
   tokens: readonly AssembledToken[],
+  desuFunction?: DesuFunction,
 ): BaseReferenceCanonicalCell {
   return {
     id,
     columnId,
     copy: localized(enLabel, enLabel, itLabel, itLabel),
     tokens,
+    ...(desuFunction === undefined ? {} : { desuFunction }),
   };
 }
 
 function entry(
   semanticId: string,
-  firstTeachLessonId: string,
+  ownerContentId: string,
   labels: readonly [string, string],
   explanations: readonly [string, string],
   canonicalFormCells: readonly BaseReferenceCanonicalCell[] = [],
   prerequisiteEntryIds: readonly string[] = [],
   contrastIds: readonly string[] = [],
-  exampleIds: readonly string[] = [],
+  exampleIds: readonly string[] = [`reference-example-${semanticId}`],
 ): BaseReferenceEntry {
+  const owner =
+    BASE_CONCEPT_BY_ID.get(ownerContentId) ?? BASE_LEXEME_BY_ID.get(ownerContentId);
+  if (!owner) {
+    throw new Error(`Unknown canonical Base owner: ${ownerContentId}`);
+  }
   return {
     semanticId,
-    firstTeachLessonId,
+    firstTeachLessonId: owner.firstTeachLessonId,
     prerequisiteEntryIds,
     copyId: `${semanticId}-copy`,
     copy: localized(labels[0], explanations[0], labels[1], explanations[1]),
@@ -246,13 +248,7 @@ const KAKU_POLITE_GRID = formValue(realizePoliteGrid("verb-kaku"));
 const IKU_TE_FORM = formValue(realizeTeConstruction("verb-iku", "te"));
 const KAKU_TE_FORM = formValue(realizeTeConstruction("verb-kaku", "te"));
 const TABERU_TE_IMASU = formValue(realizeTeConstruction("verb-taberu", "te-imasu"));
-const NOUN_GRID = formValue(
-  realizeNounPredicate({
-    id: "base-reference-noun-student",
-    kana: "がくせい",
-    romaji: "gakusei",
-  }),
-);
+const NOUN_GRID = formValue(realizeOwnedNounPredicate("noun-gakusei"));
 const I_ADJECTIVE_GRID = formValue(realizeIAdjectivePredicate("adjective-takai"));
 const NA_ADJECTIVE_GRID = formValue(
   realizeNaAdjectivePredicate("adjective-shizuka"),
@@ -260,6 +256,16 @@ const NA_ADJECTIVE_GRID = formValue(
 const NA_ADJECTIVE_ATTRIBUTIVE = formValue(
   realizeNaAdjectiveAttributive("adjective-shizuka"),
 );
+
+function predicateCell(
+  id: string,
+  columnId: string,
+  enLabel: string,
+  itLabel: string,
+  predicateCell: Readonly<{ readonly tokens: readonly AssembledToken[]; readonly desuFunction: DesuFunction }>,
+): BaseReferenceCanonicalCell {
+  return cell(id, columnId, enLabel, itLabel, predicateCell.tokens, predicateCell.desuFunction);
+}
 
 function politeCells(
   prefix: string,
@@ -300,236 +306,155 @@ function politeCells(
 const SENTENCE_ANATOMY_ENTRIES = [
   entry(
     "base-sentence-chunks",
-    "sentence-foundations-1",
+    "sentence-chunks",
     ["Sentence chunks", "Blocchi della frase"],
     [
       "Build a sentence from meaningful chunks.",
       "Costruisci una frase con blocchi significativi.",
     ],
+    [
+      cell(
+        "sentence-chunks-noun",
+        "canonical-target",
+        "Canonical noun",
+        "Nome canonico",
+        NOUN_GRID.affirmative.tokens.slice(0, 1),
+      ),
+    ],
   ),
   entry(
     "base-sentence-predicate-types",
-    "sentence-foundations-3",
+    "affirmative-desu",
     ["Predicate types", "Tipi di predicato"],
     [
       "A predicate may be nominal, verbal, or adjectival.",
       "Un predicato può essere nominale, verbale o aggettivale.",
     ],
-    [],
+    [
+      predicateCell(
+        "sentence-predicate-nominal",
+        "canonical-target",
+        "Noun predicate",
+        "Predicato nominale",
+        NOUN_GRID.affirmative,
+      ),
+    ],
     ["base-sentence-chunks"],
   ),
   entry(
     "base-sentence-endings",
-    "sentence-foundations-3",
+    "affirmative-desu",
     ["Sentence endings", "Finali di frase"],
     [
       "An ending completes the predicate.",
       "Un finale completa il predicato.",
     ],
-    [],
+    [
+      cell(
+        "sentence-ending-desu",
+        "canonical-target",
+        "Polite ending",
+        "Finale cortese",
+        NOUN_GRID.affirmative.tokens.slice(1),
+        NOUN_GRID.affirmative.desuFunction,
+      ),
+    ],
     ["base-sentence-predicate-types"],
   ),
   entry(
     "base-sentence-modifier-order",
-    "sentence-foundations-4",
+    "modifier-before-noun",
     ["Modifier order", "Ordine dei modificatori"],
     [
       "Modifiers come before the noun they describe.",
       "I modificatori precedono il nome che descrivono.",
     ],
-    [],
+    [
+      predicateCell(
+        "sentence-modifier-order-target",
+        "canonical-target",
+        "Canonical predicate",
+        "Predicato canonico",
+        NOUN_GRID.affirmative,
+      ),
+    ],
     ["base-sentence-chunks"],
   ),
   entry(
     "base-sentence-topic-subject-status",
-    "topic-questions-2",
+    "focus-subject-ga",
     ["Topic and subject status", "Stato di tema e soggetto"],
     [
       "Topic and focused subject are distinct discourse roles.",
       "Tema e soggetto focalizzato sono ruoli discorsivi distinti.",
     ],
-    [],
+    [
+      predicateCell(
+        "sentence-topic-subject-target",
+        "canonical-target",
+        "Canonical predicate",
+        "Predicato canonico",
+        NOUN_GRID.affirmative,
+      ),
+    ],
     ["base-sentence-chunks"],
   ),
 ] as const;
 
 function particleEntry(
-  semanticId: string,
-  firstTeachLessonId: string,
-  jp: string,
-  romaji: string,
+  sense: BaseParticleSense,
   labels: readonly [string, string],
   explanations: readonly [string, string],
-  prerequisiteEntryIds: readonly string[] = ["base-particle-wa"],
+  prerequisiteEntryIds: readonly string[] = ["base-particle-topic-wa"],
   contrastIds: readonly string[] = [],
 ): BaseReferenceEntry {
+  const definition = BASE_PARTICLE_SENSES.find(({ id }) => id === sense);
+  if (!definition) throw new Error(`Unknown canonical particle sense: ${sense}`);
+  const semanticId = `base-particle-${sense}`;
   return entry(
     semanticId,
-    firstTeachLessonId,
+    particleSenseFirstTeachContentId(sense),
     labels,
     explanations,
-    [cell(`${semanticId}-form`, "form", jp, jp, staticParticle(semanticId, jp, romaji))],
+    [
+      cell(
+        `${semanticId}-form`,
+        "form",
+        labels[0],
+        labels[1],
+        baseParticleSurfaceTokens(sense),
+      ),
+    ],
     prerequisiteEntryIds,
     contrastIds,
   );
 }
 
 const PARTICLE_ATLAS_ENTRIES = [
-  particleEntry(
-    "base-particle-wa",
-    "topic-questions-1",
-    "は",
-    "wa",
-    ["Topic は", "Tema は"],
-    ["Marks the sentence topic.", "Segna il tema della frase."],
-    [],
-  ),
-  particleEntry(
-    "base-particle-ga",
-    "topic-questions-2",
-    "が",
-    "ga",
-    ["Focus/subject が", "Fuoco/soggetto が"],
-    ["Marks a focused subject.", "Segna un soggetto focalizzato."],
-    ["base-particle-wa"],
-    ["base-particle-wa"],
-  ),
-  particleEntry(
-    "base-particle-no-possessive-attributive",
-    "topic-questions-3",
-    "の",
-    "no",
-    ["Possessive/attributive の", "の possessivo/attributivo"],
-    ["Links a possessor or attribute.", "Collega un possessore o attributo."],
-  ),
-  particleEntry(
-    "base-particle-mo",
-    "topic-questions-3",
-    "も",
-    "mo",
-    ["Additive も", "も additivo"],
-    ["Adds an also/too relation.", "Aggiunge una relazione di inclusione."],
-  ),
-  particleEntry(
-    "base-particle-to-nominal-listing",
-    "topic-questions-3",
-    "と",
-    "to",
-    ["Nominal/listing と", "と nominale/per elenco"],
-    ["Links nouns or lists items.", "Collega nomi o elementi di un elenco."],
-  ),
-  particleEntry(
-    "base-particle-to-companion",
-    "topic-questions-3",
-    "と",
-    "to",
-    ["Companion と", "と di compagnia"],
-    ["Marks a companion.", "Segna una persona in compagnia."],
-    ["base-particle-to-nominal-listing"],
-    ["base-particle-to-nominal-listing"],
-  ),
-  particleEntry(
-    "base-particle-ka",
-    "topic-questions-4",
-    "か",
-    "ka",
-    ["Question か", "Domanda か"],
-    ["Marks a question.", "Segna una domanda."],
-  ),
-  particleEntry(
-    "base-particle-o",
-    "argument-particles-1",
-    "を",
-    "o",
-    ["Licensed object を", "Oggetto consentito を"],
-    ["Marks a licensed direct object.", "Segna un oggetto diretto consentito."],
-  ),
-  particleEntry(
-    "base-particle-ni-goal",
-    "argument-particles-2",
-    "に",
-    "ni",
-    ["Goal に", "Meta に"],
-    ["Marks a movement goal.", "Segna una meta di movimento."],
-  ),
-  particleEntry(
-    "base-particle-he",
-    "argument-particles-2",
-    "へ",
-    "e",
-    ["Direction へ", "Direzione へ"],
-    ["Marks a direction.", "Segna una direzione."],
-    ["base-particle-ni-goal"],
-    ["base-particle-ni-goal"],
-  ),
-  particleEntry(
-    "base-particle-de-action-place",
-    "argument-particles-3",
-    "で",
-    "de",
-    ["Action-place で", "Luogo d'azione で"],
-    ["Marks where an action happens.", "Segna dove avviene un'azione."],
-  ),
-  particleEntry(
-    "base-particle-de-means",
-    "argument-particles-3",
-    "で",
-    "de",
-    ["Means で", "Mezzo で"],
-    ["Marks a means or instrument.", "Segna un mezzo o strumento."],
-    ["base-particle-de-action-place"],
-    ["base-particle-de-action-place"],
-  ),
-  particleEntry(
-    "base-particle-ni-time",
-    "time-movement-2",
-    "に",
-    "ni",
-    ["Time に", "Tempo に"],
-    ["Marks a specific time.", "Segna un momento specifico."],
-  ),
-  particleEntry(
-    "base-particle-kara",
-    "time-movement-2",
-    "から",
-    "kara",
-    ["Source から", "Origine から"],
-    ["Marks a starting point.", "Segna un punto di partenza."],
-  ),
-  particleEntry(
-    "base-particle-made",
-    "time-movement-2",
-    "まで",
-    "made",
-    ["Limit まで", "Limite まで"],
-    ["Marks an endpoint.", "Segna un punto finale."],
-    ["base-particle-kara"],
-    ["base-particle-kara"],
-  ),
-  particleEntry(
-    "base-particle-existence-ni",
-    "existence-location-2",
-    "に",
-    "ni",
-    ["Existence-location に", "Luogo di esistenza に"],
-    ["Marks where something exists.", "Segna dove qualcosa esiste."],
-  ),
-  particleEntry(
-    "base-particle-existential-ga",
-    "existence-location-2",
-    "が",
-    "ga",
-    ["Existential が", "が esistenziale"],
-    ["Marks what exists.", "Segna ciò che esiste."],
-    ["base-particle-existence-ni"],
-    ["base-particle-ga"],
-  ),
+  particleEntry("topic-wa", ["Topic", "Tema"], ["Marks the sentence topic.", "Segna il tema della frase."], []),
+  particleEntry("focus-subject-ga", ["Focused subject", "Soggetto focalizzato"], ["Marks a focused subject.", "Segna un soggetto focalizzato."], ["base-particle-topic-wa"], ["base-particle-topic-wa"]),
+  particleEntry("possessive-attributive-no", ["Possessive and attribute", "Possesso e attributo"], ["Links a possessor or attribute.", "Collega un possessore o attributo."]),
+  particleEntry("additive-mo", ["Addition", "Aggiunta"], ["Adds an also/too relation.", "Aggiunge una relazione di inclusione."]),
+  particleEntry("listing-to", ["Listing", "Elenco"], ["Links items in a noun list.", "Collega elementi in un elenco di nomi."]),
+  particleEntry("nominal-to", ["Nominal link", "Collegamento nominale"], ["Links nominal elements.", "Collega elementi nominali."], ["base-particle-listing-to"], ["base-particle-listing-to"]),
+  particleEntry("companion-to", ["Companion", "Compagnia"], ["Marks a companion.", "Segna una persona in compagnia."], ["base-particle-listing-to"], ["base-particle-listing-to"]),
+  particleEntry("question-ka", ["Question", "Domanda"], ["Marks a question.", "Segna una domanda."]),
+  particleEntry("object-o", ["Direct object", "Oggetto diretto"], ["Marks a licensed direct object.", "Segna un oggetto diretto consentito."]),
+  particleEntry("goal-ni", ["Goal", "Meta"], ["Marks a movement goal.", "Segna una meta di movimento."]),
+  particleEntry("direction-he", ["Direction", "Direzione"], ["Marks a direction.", "Segna una direzione."], ["base-particle-goal-ni"], ["base-particle-goal-ni"]),
+  particleEntry("action-place-de", ["Action place", "Luogo d'azione"], ["Marks where an action happens.", "Segna dove avviene un'azione."]),
+  particleEntry("means-de", ["Means", "Mezzo"], ["Marks a means or instrument.", "Segna un mezzo o strumento."], ["base-particle-action-place-de"], ["base-particle-action-place-de"]),
+  particleEntry("time-ni", ["Specific time", "Momento specifico"], ["Marks a specific time.", "Segna un momento specifico."]),
+  particleEntry("source-kara", ["Source", "Origine"], ["Marks a starting point.", "Segna un punto di partenza."]),
+  particleEntry("limit-made", ["Limit", "Limite"], ["Marks an endpoint.", "Segna un punto finale."], ["base-particle-source-kara"], ["base-particle-source-kara"]),
+  particleEntry("existence-location-ni", ["Existence location", "Luogo d'esistenza"], ["Marks where something exists.", "Segna dove qualcosa esiste."]),
+  particleEntry("existential-subject-ga", ["Existential subject", "Soggetto esistenziale"], ["Marks what exists.", "Segna ciò che esiste."], ["base-particle-existence-location-ni"], ["base-particle-focus-subject-ga"]),
 ] as const;
 
 const VERB_ENTRIES = [
   entry(
     "base-verb-dictionary-form",
-    "polite-verbs-1",
+    "verb-kaku",
     ["Dictionary form", "Forma dizionario"],
     [
       "The dictionary form identifies the verb.",
@@ -539,7 +464,7 @@ const VERB_ENTRIES = [
   ),
   entry(
     "base-verb-class-godan",
-    "polite-verbs-2",
+    "godan-verb-class",
     ["Godan verbs", "Verbi godan"],
     [
       "Godan endings change by row.",
@@ -550,7 +475,7 @@ const VERB_ENTRIES = [
   ),
   entry(
     "base-verb-class-ichidan",
-    "polite-verbs-2",
+    "ichidan-verb-class",
     ["Ichidan verbs", "Verbi ichidan"],
     [
       "Ichidan verbs use a stable stem.",
@@ -570,7 +495,7 @@ const VERB_ENTRIES = [
   ),
   entry(
     "base-verb-class-suru",
-    "polite-verbs-3",
+    "suru-verb-class",
     ["する class", "Classe する"],
     ["The する class has an explicit stem.", "La classe する ha un tema esplicito."],
     [
@@ -581,7 +506,7 @@ const VERB_ENTRIES = [
   ),
   entry(
     "base-verb-class-kuru",
-    "polite-verbs-3",
+    "kuru-verb-class",
     ["くる class", "Classe くる"],
     ["The くる class has an explicit stem.", "La classe くる ha un tema esplicito."],
     [
@@ -593,7 +518,7 @@ const VERB_ENTRIES = [
   ),
   entry(
     "base-verb-polite-stems",
-    "polite-verbs-3",
+    "polite-stems",
     ["Polite stems", "Temi cortesi"],
     [
       "Polite forms are built from the canonical stem.",
@@ -604,7 +529,7 @@ const VERB_ENTRIES = [
   ),
   entry(
     "base-verb-polite-forms",
-    "polite-verbs-4",
+    "masu-nonpast",
     ["Polite forms", "Forme cortesi"],
     [
       "Polite endings attach to the stem.",
@@ -615,7 +540,7 @@ const VERB_ENTRIES = [
   ),
   entry(
     "base-verb-exceptions",
-    "time-movement-1",
+    "te-allomorphy",
     ["Explicit exceptions", "Eccezioni esplicite"],
     [
       "Stored exceptions override the regular class path.",
@@ -626,7 +551,7 @@ const VERB_ENTRIES = [
   ),
   entry(
     "base-verb-te-forms",
-    "requests-connection-1",
+    "te-allomorphy",
     ["Practical て forms", "Forme in て pratiche"],
     [
       "Use the licensed canonical form for connection.",
@@ -637,7 +562,7 @@ const VERB_ENTRIES = [
   ),
   entry(
     "base-verb-te-imasu",
-    "requests-connection-4",
+    "te-imasu",
     ["Progressive/state construction", "Costruzione progressiva/di stato"],
     [
       "This is the Base ongoing or resulting-state construction.",
@@ -651,16 +576,25 @@ const VERB_ENTRIES = [
 const TENSE_ENTRIES = [
   entry(
     "base-tense-dynamic-nonpast",
-    "time-movement-1",
+    "dynamic-nonpast-semantics",
     ["Dynamic nonpast", "Non-passato dinamico"],
     [
       "Dynamic nonpast expresses a habit or future event, not an ongoing present.",
       "Il non-passato dinamico esprime abitudine o futuro, non un presente in corso.",
     ],
+    [
+      cell(
+        "tense-dynamic-nonpast",
+        "affirmative",
+        "Polite nonpast",
+        "Non-passato cortese",
+        KAKU_POLITE_GRID.affirmative,
+      ),
+    ],
   ),
   entry(
     "base-tense-polite-grid",
-    "time-movement-3",
+    "four-polite-tense-cells",
     ["Four polite forms", "Quattro forme cortesi"],
     [
       "Compare nonpast and past across affirmative and negative polarity.",
@@ -674,84 +608,84 @@ const TENSE_ENTRIES = [
 const ADJECTIVE_ENTRIES = [
   entry(
     "base-copula-reviewed-affirmative",
-    "copula-adjectives-1",
+    "negative-noun-predicate-copula",
     ["Reviewed affirmative copula", "Copula affermativa ripassata"],
     [
       "Review the affirmative noun predicate.",
       "Ripassa il predicato nominale affermativo.",
     ],
     [
-      cell(
+      predicateCell(
         "noun-predicate-affirmative",
         "affirmative",
         "Affirmative",
         "Affermativa",
-        NOUN_GRID.affirmative.tokens,
+        NOUN_GRID.affirmative,
       ),
     ],
   ),
   entry(
     "base-copula-noun-predicate-grid",
-    "copula-adjectives-2",
+    "remaining-copula-cells",
     ["Noun-predicate copula", "Copula del predicato nominale"],
     [
       "Complete the remaining polite noun-predicate cells.",
       "Completa le restanti celle cortesi del predicato nominale.",
     ],
     [
-      cell(
+      predicateCell(
         "noun-predicate-negative",
         "negative",
         "Negative",
         "Negativa",
-        NOUN_GRID.negative.tokens,
+        NOUN_GRID.negative,
       ),
-      cell(
+      predicateCell(
         "noun-predicate-past-affirmative",
         "pastAffirmative",
         "Past affirmative",
         "Passata affermativa",
-        NOUN_GRID.pastAffirmative.tokens,
+        NOUN_GRID.pastAffirmative,
       ),
-      cell(
+      predicateCell(
         "noun-predicate-past-negative",
         "pastNegative",
         "Past negative",
         "Passata negativa",
-        NOUN_GRID.pastNegative.tokens,
+        NOUN_GRID.pastNegative,
       ),
     ],
     ["base-copula-reviewed-affirmative"],
   ),
   entry(
     "base-adjective-i-grid",
-    "copula-adjectives-3",
+    "i-adjective-tense-polarity",
     ["い-adjective grid", "Griglia degli aggettivi in い"],
     [
       "The adjective self-conjugates; the polite marker never becomes the plain copula.",
       "L'aggettivo si coniuga da sé; il marcatore cortese non diventa mai copula piana.",
     ],
     [
-      cell("i-adjective-affirmative", "affirmative", "Affirmative", "Affermativa", I_ADJECTIVE_GRID.affirmative.tokens),
-      cell("i-adjective-negative", "negative", "Negative", "Negativa", I_ADJECTIVE_GRID.negative.tokens),
-      cell("i-adjective-past-affirmative", "pastAffirmative", "Past affirmative", "Passata affermativa", I_ADJECTIVE_GRID.pastAffirmative.tokens),
-      cell("i-adjective-past-negative", "pastNegative", "Past negative", "Passata negativa", I_ADJECTIVE_GRID.pastNegative.tokens),
+      predicateCell("i-adjective-affirmative", "affirmative", "Affirmative", "Affermativa", I_ADJECTIVE_GRID.affirmative),
+      predicateCell("i-adjective-negative", "negative", "Negative", "Negativa", I_ADJECTIVE_GRID.negative),
+      predicateCell("i-adjective-past-affirmative", "pastAffirmative", "Past affirmative", "Passata affermativa", I_ADJECTIVE_GRID.pastAffirmative),
+      predicateCell("i-adjective-past-negative", "pastNegative", "Past negative", "Passata negativa", I_ADJECTIVE_GRID.pastNegative),
     ],
     ["base-copula-noun-predicate-grid"],
   ),
   entry(
     "base-adjective-na-grid",
-    "copula-adjectives-4",
+    "na-adjective-predicate-and-attributive",
     ["な-adjective grid", "Griglia degli aggettivi in な"],
     [
       "Predicate forms use the nominal/copular path; attributive use takes な.",
       "Le forme predicative seguono il percorso nominale/copulare; l'uso attributivo prende な.",
     ],
     [
-      cell("na-adjective-affirmative", "affirmative", "Affirmative", "Affermativa", NA_ADJECTIVE_GRID.affirmative.tokens),
-      cell("na-adjective-negative", "negative", "Negative", "Negativa", NA_ADJECTIVE_GRID.negative.tokens),
-      cell("na-adjective-past-affirmative", "pastAffirmative", "Past affirmative", "Passata affermativa", NA_ADJECTIVE_GRID.pastAffirmative.tokens),
-      cell("na-adjective-past-negative", "pastNegative", "Past negative", "Passata negativa", NA_ADJECTIVE_GRID.pastNegative.tokens),
+      predicateCell("na-adjective-affirmative", "affirmative", "Affirmative", "Affermativa", NA_ADJECTIVE_GRID.affirmative),
+      predicateCell("na-adjective-negative", "negative", "Negative", "Negativa", NA_ADJECTIVE_GRID.negative),
+      predicateCell("na-adjective-past-affirmative", "pastAffirmative", "Past affirmative", "Passata affermativa", NA_ADJECTIVE_GRID.pastAffirmative),
+      predicateCell("na-adjective-past-negative", "pastNegative", "Past negative", "Passata negativa", NA_ADJECTIVE_GRID.pastNegative),
       cell("na-adjective-attributive", "attributive", "Before a noun", "Prima di un nome", NA_ADJECTIVE_ATTRIBUTIVE),
     ],
     ["base-adjective-i-grid"],
@@ -776,7 +710,7 @@ export const BASE_REFERENCE_CATALOG: BaseReferenceCatalog = deepFreeze([
       "See how a Base sentence is assembled progressively.",
       "Osserva come una frase Base viene costruita progressivamente.",
     ],
-    [],
+    [column("canonical-target", "Canonical target", "Obiettivo canonico")],
     SENTENCE_ANATOMY_ENTRIES,
   ),
   reference(
@@ -835,7 +769,48 @@ export const referenceById: Readonly<Record<BaseReferenceId, BaseReferenceDefini
     ),
   );
 
-const BASE_REFERENCE_ELIGIBLE_EXAMPLE_IDS: ReadonlySet<string> = new Set();
+export const BASE_REFERENCE_COPY_BY_ID: ReadonlyMap<string, BaseReferenceCopy> =
+  immutableReadonlyMap(
+    BASE_REFERENCE_CATALOG.flatMap((reference) => [
+      [reference.copyId, reference.copy] as const,
+      ...reference.entries.map(
+        (entry) => [entry.copyId, entry.copy] as const,
+      ),
+    ]),
+  );
+
+export function baseReferenceCopyById(copyId: string): BaseReferenceCopy | undefined {
+  return BASE_REFERENCE_COPY_BY_ID.get(copyId);
+}
+
+export interface BaseReferenceExampleContract {
+  readonly id: string;
+  readonly firstTeachLessonId: string;
+}
+
+/**
+ * Stable example IDs reserved for authored lesson modules. They carry only an
+ * ID and owner; Task 10+ supplies the actual localized example content.
+ */
+export const BASE_REFERENCE_EXAMPLE_CONTRACTS: readonly BaseReferenceExampleContract[] =
+  deepFreeze(
+    BASE_REFERENCE_CATALOG.flatMap((reference) =>
+      reference.entries.map((entry) => ({
+        id: entry.exampleIds[0]!,
+        firstTeachLessonId: entry.firstTeachLessonId,
+      })),
+    ),
+  );
+
+export const BASE_REFERENCE_ELIGIBLE_EXAMPLE_IDS: ReadonlySet<string> = deepFreeze(
+  new Set(BASE_REFERENCE_EXAMPLE_CONTRACTS.map(({ id }) => id)),
+);
+const BASE_REFERENCE_EXAMPLE_CONTRACT_BY_ID: ReadonlyMap<
+  string,
+  BaseReferenceExampleContract
+> = immutableReadonlyMap(
+  BASE_REFERENCE_EXAMPLE_CONTRACTS.map((contract) => [contract.id, contract]),
+);
 
 const REFERENCE_KEYS = new Set([
   "id",
@@ -857,6 +832,13 @@ const ENTRY_KEYS = new Set([
   "exampleIds",
 ]);
 const CELL_KEYS = new Set(["id", "columnId", "copy", "tokens"]);
+const PREDICATE_CELL_KEYS = new Set([
+  "id",
+  "columnId",
+  "copy",
+  "tokens",
+  "desuFunction",
+]);
 const COLUMN_KEYS = new Set(["id", "copy"]);
 const COPY_KEYS = new Set(["en", "it"]);
 const LOCALIZED_COPY_KEYS = new Set(["label", "explanation"]);
@@ -921,23 +903,36 @@ function strictCopy(value: unknown): BaseReferenceCopy | undefined {
 }
 
 function strictCell(value: unknown): BaseReferenceCanonicalCell | undefined {
-  const record = exactRecord(value, CELL_KEYS);
+  const record =
+    exactRecord(value, CELL_KEYS) ?? exactRecord(value, PREDICATE_CELL_KEYS);
   if (!record) return undefined;
   const id = ownDataValue(record, "id");
   const columnId = ownDataValue(record, "columnId");
   const copy = strictCopy(ownDataValue(record, "copy"));
   const tokens = strictRuntimeTokenSequence(ownDataValue(record, "tokens"));
+  const desuFunction = ownDataValue(record, "desuFunction");
   if (
     typeof id !== "string" ||
     id.trim() === "" ||
     typeof columnId !== "string" ||
     columnId.trim() === "" ||
     !copy ||
-    !tokens
+    !tokens ||
+    (desuFunction !== undefined &&
+      desuFunction !== "politeness-marker" &&
+      desuFunction !== "copula")
   ) {
     return undefined;
   }
-  return { id, columnId, copy, tokens };
+  return {
+    id,
+    columnId,
+    copy,
+    tokens,
+    ...(desuFunction === undefined
+      ? {}
+      : { desuFunction: desuFunction as DesuFunction }),
+  };
 }
 
 function strictColumn(value: unknown): BaseReferenceColumn | undefined {
@@ -1071,6 +1066,9 @@ export function validateBaseReferenceCatalog(
       errors.push(validationError("duplicate-reference-id", referenceId));
     }
     referenceIds.add(referenceId);
+    if (!BASE_REFERENCE_COPY_BY_ID.has(copyId as string)) {
+      errors.push(validationError("invalid-reference-shape", referenceId));
+    }
     if (baseCanonicalPosition(firstTeachLessonId) === null) {
       errors.push(
         validationError(
@@ -1094,6 +1092,11 @@ export function validateBaseReferenceCatalog(
       columnIds,
     });
     for (const entry of entries) {
+      if (!BASE_REFERENCE_COPY_BY_ID.has(entry.copyId)) {
+        errors.push(
+          validationError("invalid-entry-shape", referenceId, entry.semanticId),
+        );
+      }
       if (semanticOwners.has(entry.semanticId)) {
         errors.push(
           validationError(
@@ -1172,7 +1175,22 @@ export function validateBaseReferenceCatalog(
         }
       }
       for (const exampleId of entry.exampleIds) {
-        if (!eligibleExampleIds.has(exampleId)) {
+        const contract =
+          eligibleExampleIds === BASE_REFERENCE_ELIGIBLE_EXAMPLE_IDS
+            ? BASE_REFERENCE_EXAMPLE_CONTRACT_BY_ID.get(exampleId)
+            : undefined;
+        const contractPosition = contract
+          ? baseCanonicalPosition(contract.firstTeachLessonId)
+          : null;
+        const entryPosition = baseCanonicalPosition(entry.firstTeachLessonId);
+        if (
+          !eligibleExampleIds.has(exampleId) ||
+          (eligibleExampleIds === BASE_REFERENCE_ELIGIBLE_EXAMPLE_IDS &&
+            (!contract ||
+              contractPosition === null ||
+              entryPosition === null ||
+              contractPosition > entryPosition))
+        ) {
           errors.push(
             validationError(
               "invalid-example-reference",
