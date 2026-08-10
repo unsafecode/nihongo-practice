@@ -12,6 +12,34 @@ const TOKEN_SOURCE_DOMAINS = new Set([
   "test",
   "family",
 ]);
+const PARTICLE_FRAME_ROLES = new Set([
+  "theme",
+  "goal",
+  "action-place",
+  "means",
+  "existence-location",
+  "existential-subject",
+]);
+const PARTICLE_FRAME_SENSES = new Set([
+  "topic-wa",
+  "focus-subject-ga",
+  "object-o",
+  "goal-ni",
+  "direction-he",
+  "action-place-de",
+  "means-de",
+  "existence-location-ni",
+  "existential-subject-ga",
+  "time-ni",
+  "source-kara",
+  "limit-made",
+  "possessive-attributive-no",
+  "additive-mo",
+  "companion-to",
+  "listing-to",
+  "nominal-to",
+  "question-ka",
+]);
 
 const hasOwn: (value: object, key: PropertyKey) => boolean =
   (Object as unknown as {
@@ -128,13 +156,23 @@ function isSafeParticleFrame(value: unknown): boolean {
   if (typeof predicateSenseId !== "string" || !hasOwnDataValue(value, "provided")) {
     return false;
   }
-  return isPlainDataRecord(ownDataValue(value, "provided"));
+  const provided = ownDataValue(value, "provided");
+  if (!isPlainDataRecord(provided)) return false;
+  return Object.keys(provided).every((role) => {
+    const particleSense = ownDataValue(provided, role);
+    return (
+      PARTICLE_FRAME_ROLES.has(role) &&
+      (particleSense === undefined ||
+        (typeof particleSense === "string" &&
+          PARTICLE_FRAME_SENSES.has(particleSense)))
+    );
+  });
 }
 
 /**
  * Validates the raw object before anything can clone it or read a property.
- * Role values remain the particle validator's responsibility; this guard only
- * establishes that they are own data properties on a plain record.
+ * Role values must be closed own-data strings before publication; licensing
+ * between a predicate and those values remains the particle validator's job.
  */
 export function runtimeVisibleTargetIssue(
   value: unknown,
@@ -413,6 +451,35 @@ export function isStrictRuntimeLesson(value: unknown): boolean {
     typeof ownDataValue(value, "interactive") === "boolean" &&
     isRuntimeStringArray(ownDataValue(value, "retrievedSystemIds"))
   );
+}
+
+type RuntimeBaseLessonContract =
+  | "phonetic"
+  | "content"
+  | "system"
+  | "synthesis";
+
+/**
+ * Reinterprets a descriptor-safe lesson record under its manifest contract.
+ * Callers use this only after reporting a contract mismatch, so semantic
+ * contracts cannot accidentally validate with another semantic range.
+ */
+export function strictRuntimeLessonWithContract(
+  value: unknown,
+  contract: RuntimeBaseLessonContract,
+): unknown | undefined {
+  if (!isPlainDataRecord(value)) return undefined;
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  delete descriptors.contract;
+  const normalized = Object.create(Object.getPrototypeOf(value));
+  Object.defineProperties(normalized, descriptors);
+  Object.defineProperty(normalized, "contract", {
+    configurable: true,
+    enumerable: true,
+    value: contract,
+    writable: true,
+  });
+  return isStrictRuntimeLesson(normalized) ? normalized : undefined;
 }
 
 export function isStrictRuntimePrerequisiteLesson(value: unknown): boolean {

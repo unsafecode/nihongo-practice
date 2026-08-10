@@ -3,9 +3,11 @@ import * as conceptsCatalog from "./concepts";
 import { BASE_CONCEPT_BY_ID, BASE_CONCEPTS } from "./concepts";
 import {
   defineBaseLessonContent,
+  visibleTargetFromTarget,
   type BaseConcept,
   type BasePhoneticLessonContent,
   type BaseSystemLessonContent,
+  type BaseVisibleTarget,
 } from "./types";
 import {
   BASE_FIRST_TEACH_OWNER_BY_KEY,
@@ -243,6 +245,104 @@ describe("Base first-teach ownership", () => {
         contrastMapId: "hidden",
       } as unknown as BaseSystemLessonContent),
     ).toThrow(expect.objectContaining({ code: "wrong-contract-fields" }));
+  });
+
+  it("rejects unsupported publication values without freezing authoring input", () => {
+    class AuthoringOnlyValue {
+      value = "unchanged";
+    }
+    const cyclic: { self?: unknown } = {};
+    cyclic.self = cyclic;
+    const arrayNestedDate = new Date("2026-08-10T00:00:00.000Z");
+    const arrayWithNestedDate = ["safe"] as unknown as Record<string, unknown>;
+    Object.defineProperty(arrayWithNestedDate, "nested", {
+      configurable: true,
+      enumerable: true,
+      value: arrayNestedDate,
+      writable: true,
+    });
+    const accessor = {} as Record<string, unknown>;
+    Object.defineProperty(accessor, "value", {
+      enumerable: true,
+      get: () => "hidden",
+    });
+    const unsupported = [
+      new Date("2026-08-10T00:00:00.000Z"),
+      new Map([["key", "value"]]),
+      new Set(["value"]),
+      new AuthoringOnlyValue(),
+      accessor,
+      Symbol("publication"),
+      () => "publication",
+      cyclic,
+      arrayWithNestedDate,
+    ] as const;
+    const lesson = (): BasePhoneticLessonContent => ({
+      lessonId: "sounds-1",
+      contract: "phonetic",
+      prerequisiteLessonIds: [],
+      recapCopyId: "recap",
+      activities: [],
+      contrastiveItemIds: ["contrast-1"],
+      anchorLexemeIds: ["verb-kaku"],
+      audioExemplarIds: ["audio-1"],
+      phoneticExplanationCopyId: "explanation-1",
+      contrastMapId: "contrast-map-1",
+    });
+
+    for (const value of unsupported) {
+      const authoringInput = {
+        ...lesson(),
+        publicationMetadata: value,
+      } as unknown as BasePhoneticLessonContent;
+
+      expect(() => defineBaseLessonContent(authoringInput)).toThrow(
+        expect.objectContaining({
+          name: "BaseLessonContentDefinitionError",
+          code: "unsupported-publication-value",
+        }),
+      );
+      if (value !== null && (typeof value === "object" || typeof value === "function")) {
+        expect(Object.isFrozen(value)).toBe(false);
+      }
+    }
+    expect(Object.isFrozen(arrayNestedDate)).toBe(false);
+  });
+
+  it("rejects unsafe visible-target values before freezing their caller graph", () => {
+    const unsafeDate = new Date("2026-08-10T00:00:00.000Z");
+    const target: BaseVisibleTarget = {
+      tokens: [
+        {
+          id: "unsafe-visible-target-token",
+          jp: "危",
+          romaji: "ki",
+          kind: "lexical",
+          boundaryBefore: "attach",
+          source: { domain: "test", referenceId: "unsafe-visible-target-token" },
+        },
+      ],
+      lexemeIds: [],
+      conceptIds: [],
+      formIds: [],
+      patternCellIds: [],
+      semanticRoleIds: [],
+      interpretationTags: [],
+      predicateSenseId: "eat",
+      predicateLexemeId: "verb-taberu",
+      particleFrame: {
+        predicateSenseId: "eat",
+        provided: { theme: unsafeDate as unknown as "object-o" },
+      },
+    };
+
+    expect(() => visibleTargetFromTarget(target)).toThrow(
+      expect.objectContaining({
+        name: "BaseVisibleTargetPublicationError",
+        code: "invalid-visible-target-shape",
+      }),
+    );
+    expect(Object.isFrozen(unsafeDate)).toBe(false);
   });
 
   it("assigns one frozen a0 owner to each lexeme, concept, form, and reference entry", () => {

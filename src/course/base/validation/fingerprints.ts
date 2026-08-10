@@ -136,8 +136,10 @@ export function activityTargetVisibleSurfaceFor(
   activity: BaseActivityDefinition,
   catalogs: BaseValidationCatalogs,
 ): string | undefined {
-  const target = targetMetadataFor(activity, catalogs);
-  return target ? visibleSurfaceFingerprint(target.tokens) : undefined;
+  const reference = activityTargetReferenceFor(activity, catalogs);
+  return reference && !reference.invalidReason
+    ? visibleSurfaceFingerprint(reference.target.tokens)
+    : undefined;
 }
 
 export function activityTargetOperationFingerprintFor(

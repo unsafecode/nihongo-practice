@@ -9,7 +9,9 @@ import {
 import { firstTeachLessonPosition } from "../catalog/firstTeach";
 import type {
   BaseActivityDefinition,
+  BaseConcept,
   BaseExample,
+  BaseLexeme,
   BaseLessonContent,
   BaseValidationCatalogs,
   BaseVisibleTarget,
@@ -47,6 +49,7 @@ import {
   isStrictRuntimeTokenSequence as isStrictRawRuntimeTokenSequence,
   ownDataArrayValues,
   runtimeVisibleTargetIssue,
+  strictRuntimeLessonWithContract,
 } from "./runtimeGuards";
 
 export type BaseValidationErrorCode =
@@ -140,7 +143,10 @@ export type BaseValidationErrorCode =
   | "duplicate-prerequisite"
   | "self-prerequisite"
   | "future-prerequisite"
-  | "lesson-prerequisite-cycle";
+  | "lesson-prerequisite-cycle"
+  | "unknown-base-lesson"
+  | "lesson-contract-mismatch"
+  | "missing-canonical-contract-fields";
 
 export interface BaseValidationError {
   readonly code: BaseValidationErrorCode;
@@ -258,6 +264,36 @@ function ownDataValue(
   return descriptor && "value" in descriptor ? descriptor.value : undefined;
 }
 
+function lessonIdFrom(value: unknown): string {
+  return isPlainDataRecord(value) &&
+    typeof ownDataValue(value, "lessonId") === "string"
+    ? (ownDataValue(value, "lessonId") as string)
+    : "unknown-lesson";
+}
+
+function lessonContractFrom(value: unknown): string | undefined {
+  return isPlainDataRecord(value) &&
+    typeof ownDataValue(value, "contract") === "string"
+    ? (ownDataValue(value, "contract") as string)
+    : undefined;
+}
+
+function canonicalLessonForManifest(
+  rawLesson: unknown,
+  contract: BaseLessonContent["contract"],
+): BaseLessonContent | undefined {
+  const normalized = strictRuntimeLessonWithContract(rawLesson, contract);
+  return normalized === undefined ? undefined : (normalized as BaseLessonContent);
+}
+
+function strictLexemeFor(
+  catalogs: BaseValidationCatalogs,
+  lexemeId: string,
+): BaseLexeme | undefined {
+  const lexeme = catalogs.lexemes.get(lexemeId);
+  return isStrictRuntimeLexeme(lexeme) ? (lexeme as BaseLexeme) : undefined;
+}
+
 function isStrictRuntimeTokenSequence(
   tokens: readonly AssembledToken[] | unknown,
 ): tokens is readonly AssembledToken[] {
@@ -326,6 +362,7 @@ function validateActivities(
   lesson: BaseLessonContent,
   catalogs: BaseValidationCatalogs,
   semantic: boolean,
+  workedExamples: readonly BaseExample[],
   push: (
     code: BaseValidationErrorCode,
     referenceId?: string,
@@ -340,12 +377,7 @@ function validateActivities(
   let listeningAudioCount = 0;
   let spokenAudioCount = 0;
   const workedSurfaces = new Set(
-    lesson.contract === "phonetic"
-      ? []
-      : lesson.workedExampleIds.flatMap((exampleId) => {
-          const example = catalogs.examples.get(exampleId);
-          return example ? [visibleSurfaceFingerprint(example.tokens)] : [];
-        }),
+    workedExamples.map((example) => visibleSurfaceFingerprint(example.tokens)),
   );
 
   const isPhoneticLesson = lesson.contract === "phonetic";
@@ -397,23 +429,26 @@ function validateActivities(
         `${activity.category}:${activity.mode}:${activity.interactionKind}:${activity.operation}`,
       );
     }
-    const targetOperation = activityTargetOperationFingerprintFor(
-      lesson.lessonId,
-      activity,
-      catalogs,
-    );
-    if (targetOperation.ok) {
-      if (operations.has(targetOperation.fingerprint)) {
-        push("duplicate-target-operation", targetOperation.fingerprint);
-      }
-      operations.add(targetOperation.fingerprint);
-    } else {
-      push(
-        "fingerprint-resolution",
-        activity.targetId,
-        targetOperation.error.code,
+    const activityTarget = activityTargetReferenceFor(activity, catalogs);
+    if (!activityTarget?.invalidReason) {
+      const targetOperation = activityTargetOperationFingerprintFor(
+        lesson.lessonId,
+        activity,
+        catalogs,
       );
-      push("unresolved-reference", activity.targetId, "activity target");
+      if (targetOperation.ok) {
+        if (operations.has(targetOperation.fingerprint)) {
+          push("duplicate-target-operation", targetOperation.fingerprint);
+        }
+        operations.add(targetOperation.fingerprint);
+      } else {
+        push(
+          "fingerprint-resolution",
+          activity.targetId,
+          targetOperation.error.code,
+        );
+        push("unresolved-reference", activity.targetId, "activity target");
+      }
     }
     const promptTarget = activityPromptTargetReferenceFor(
       lesson.lessonId,
@@ -438,7 +473,6 @@ function validateActivities(
         );
       }
     }
-    const activityTarget = activityTargetReferenceFor(activity, catalogs);
     if (activityTarget?.invalidReason) {
       reportInvalidVisibleTarget(
         activityTarget.invalidReason,
@@ -610,13 +644,9 @@ function countCountableLexemes(
   lexemeIds: readonly string[],
   catalogs: BaseValidationCatalogs,
 ): number {
-  return uniqueIds(lexemeIds).filter((id) => {
-    const lexeme = catalogs.lexemes.get(id);
-    return (
-      isStrictRuntimeLexeme(lexeme) &&
-      (lexeme as Readonly<{ readonly countable: boolean }>).countable
-    );
-  }).length;
+  return uniqueIds(lexemeIds).filter(
+    (id) => strictLexemeFor(catalogs, id)?.countable === true,
+  ).length;
 }
 
 function countMeaningfulAnchors(
@@ -624,15 +654,11 @@ function countMeaningfulAnchors(
   catalogs: BaseValidationCatalogs,
 ): number {
   return uniqueIds(lexemeIds).filter((id) => {
-    const lexeme = catalogs.lexemes.get(id);
-    if (!isStrictRuntimeLexeme(lexeme)) return false;
-    const runtimeLexeme = lexeme as Readonly<{
-      readonly countable: boolean;
-      readonly meaningCopyId: string;
-    }>;
+    const lexeme = strictLexemeFor(catalogs, id);
+    if (!lexeme) return false;
     return (
-      runtimeLexeme.countable === true &&
-      runtimeLexeme.meaningCopyId.trim().length > 0
+      lexeme.countable === true &&
+      lexeme.meaningCopyId.trim().length > 0
     );
   }).length;
 }
@@ -1089,8 +1115,8 @@ function validateDeclaredContentEvidence(
   );
   const declaredNewLexemeIds = uniqueIds(lesson.newLexemeIds);
   for (const lexemeId of declaredNewLexemeIds) {
-    const lexeme = catalogs.lexemes.get(lexemeId);
-    if (lexeme && !lexeme.countable) {
+    const lexeme = strictLexemeFor(catalogs, lexemeId);
+    if (lexeme?.countable === false) {
       push("new-lexeme-not-countable", lexemeId);
     }
     if (!evidence.visibleLexemeIds.has(lexemeId)) {
@@ -1187,6 +1213,7 @@ function validateSynthesisRetrievalSystems(
   workedExamples: readonly BaseExample[],
   dialogue: { readonly turns: readonly BaseVisibleTarget[] } | undefined,
   catalogs: BaseValidationCatalogs,
+  hasCanonicalLessonPosition: boolean,
   push: (
     code: BaseValidationErrorCode,
     referenceId?: string,
@@ -1201,7 +1228,9 @@ function validateSynthesisRetrievalSystems(
   );
   const seen = new Set<string>();
   let validSystemCount = 0;
-  const lessonPosition = firstTeachLessonPosition(lesson.lessonId);
+  const lessonPosition = hasCanonicalLessonPosition
+    ? firstTeachLessonPosition(lesson.lessonId)
+    : undefined;
 
   for (const lexemeId of uniqueIds(lesson.reviewLexemeIds)) {
     if (!evidence.visibleLexemeIds.has(lexemeId)) {
@@ -1232,7 +1261,7 @@ function validateSynthesisRetrievalSystems(
       lessonPosition !== undefined &&
       systemPosition !== undefined &&
       systemPosition < lessonPosition;
-    if (!taughtBefore) {
+    if (lessonPosition !== undefined && !taughtBefore) {
       push(
         "synthesis-system-before-teach",
         systemId,
@@ -1241,10 +1270,18 @@ function validateSynthesisRetrievalSystems(
     }
     let hasOnlyCanonicalComponents = system.componentContentIds.length > 0;
     for (const componentId of system.componentContentIds) {
-      const component = catalogs.concepts.get(componentId);
-      if (!component) {
+      const rawComponent = catalogs.concepts.get(componentId);
+      if (!rawComponent) {
         hasOnlyCanonicalComponents = false;
         push("unresolved-reference", componentId, "retrieved system component");
+        continue;
+      }
+      const component = isStrictRuntimeConcept(rawComponent)
+        ? (rawComponent as BaseConcept)
+        : undefined;
+      if (!component) {
+        hasOnlyCanonicalComponents = false;
+        push("invalid-catalog-entry", componentId, "retrieved system component");
         continue;
       }
       const componentIsClaimed =
@@ -1255,9 +1292,8 @@ function validateSynthesisRetrievalSystems(
       );
       if (
         componentIsClaimed &&
-        (lessonPosition === undefined ||
-          componentPosition === undefined ||
-          componentPosition >= lessonPosition)
+        lessonPosition !== undefined &&
+        (componentPosition === undefined || componentPosition >= lessonPosition)
       ) {
         push(
           "synthesis-system-component-before-teach",
@@ -1297,11 +1333,7 @@ export function validateBaseLessonDepth(
   rawCatalogs: BaseValidationCatalogs | unknown,
 ): readonly BaseValidationError[] {
   const errors: BaseValidationError[] = [];
-  const lessonId =
-    isPlainDataRecord(rawLesson) &&
-    typeof ownDataValue(rawLesson, "lessonId") === "string"
-      ? (ownDataValue(rawLesson, "lessonId") as string)
-      : "unknown-lesson";
+  const lessonId = lessonIdFrom(rawLesson);
   const push = (
     code: BaseValidationErrorCode,
     referenceId?: string,
@@ -1316,9 +1348,40 @@ export function validateBaseLessonDepth(
     });
   };
 
-  if (!isStrictRuntimeLesson(rawLesson)) {
+  const manifest =
+    lessonId === "unknown-lesson"
+      ? undefined
+      : BASE_LESSON_MANIFEST[lessonId];
+  const hasCanonicalLessonPosition = manifest !== undefined;
+  if (lessonId !== "unknown-lesson" && !manifest) {
+    push("unknown-base-lesson", lessonId);
+  }
+  const declaredContract = lessonContractFrom(rawLesson);
+  let lesson: BaseLessonContent | undefined;
+  if (
+    manifest &&
+    declaredContract !== undefined &&
+    declaredContract !== manifest.contract
+  ) {
+    push(
+      "lesson-contract-mismatch",
+      lessonId,
+      `${declaredContract}:${manifest.contract}`,
+    );
+    lesson = canonicalLessonForManifest(rawLesson, manifest.contract);
+    if (!lesson) {
+      push(
+        "missing-canonical-contract-fields",
+        lessonId,
+        manifest.contract,
+      );
+      return deepFreeze(errors);
+    }
+  } else if (!isStrictRuntimeLesson(rawLesson)) {
     push("invalid-lesson-shape", lessonId, "lesson");
     return deepFreeze(errors);
+  } else {
+    lesson = rawLesson as BaseLessonContent;
   }
   const catalogFields = invalidRuntimeCatalogFields(rawCatalogs);
   if (catalogFields.length > 0) {
@@ -1327,13 +1390,16 @@ export function validateBaseLessonDepth(
     }
     return deepFreeze(errors);
   }
-  const lesson = rawLesson as BaseLessonContent;
   const catalogs = rawCatalogs as BaseValidationCatalogs;
 
   validateReference(lesson.recapCopyId, catalogs.copyIds.has(lesson.recapCopyId), "recap copy", push);
   const seenPrerequisites = new Set<string>();
-  const lessonPosition = BASE_CANONICAL_POSITIONS[lesson.lessonId];
-  const requiredPrerequisite = requiredBaseLessonPrerequisiteFor(lesson.lessonId);
+  const lessonPosition = hasCanonicalLessonPosition
+    ? BASE_CANONICAL_POSITIONS[lesson.lessonId]
+    : undefined;
+  const requiredPrerequisite = hasCanonicalLessonPosition
+    ? requiredBaseLessonPrerequisiteFor(lesson.lessonId)
+    : undefined;
   if (
     requiredPrerequisite !== undefined &&
     requiredPrerequisite !== null &&
@@ -1352,6 +1418,7 @@ export function validateBaseLessonDepth(
     if (!BASE_LESSON_MANIFEST[prerequisiteId]) {
       push("invalid-prerequisite", prerequisiteId);
     } else if (
+      hasCanonicalLessonPosition &&
       lessonPosition !== undefined &&
       BASE_CANONICAL_POSITIONS[prerequisiteId] >= lessonPosition
     ) {
@@ -1402,6 +1469,15 @@ export function validateBaseLessonDepth(
       const audioTarget = audioTargetReferenceFor(audioId, catalogs);
       validateReference(audioId, audioTarget !== undefined, "phonetic audio exemplar", push);
       if (audioTarget) {
+        if (audioTarget.invalidReason) {
+          reportInvalidVisibleTarget(
+            audioTarget.invalidReason,
+            audioTarget.referenceId,
+            audioTarget.label,
+            push,
+          );
+          continue;
+        }
         validateSentenceLikeReferences(
           audioTarget.target,
           catalogs,
@@ -1442,7 +1518,7 @@ export function validateBaseLessonDepth(
     ).length;
     if (listeningCount !== 1) push("phonetic-listening-count", undefined, `${listeningCount}`);
     if (spokenCount !== 1) push("phonetic-spoken-count", undefined, `${spokenCount}`);
-    validateActivities(lesson, catalogs, false, push);
+    validateActivities(lesson, catalogs, false, [], push);
     return deepFreeze(errors);
   }
 
@@ -1500,7 +1576,7 @@ export function validateBaseLessonDepth(
   const uniqueWorkedExamples = uniqueExamples.filter((example) =>
     workedExampleIds.has(example.id),
   );
-  validateActivities(lesson, catalogs, true, push);
+  validateActivities(lesson, catalogs, true, examples, push);
 
   const rawDialogue = lesson.dialogueId
     ? catalogs.dialogues.get(lesson.dialogueId)
@@ -1647,7 +1723,14 @@ export function validateBaseLessonDepth(
         `${uniqueIds(lesson.reviewLexemeIds).length}`,
       );
     }
-    validateSynthesisRetrievalSystems(lesson, examples, dialogue, catalogs, push);
+    validateSynthesisRetrievalSystems(
+      lesson,
+      examples,
+      dialogue,
+      catalogs,
+      hasCanonicalLessonPosition,
+      push,
+    );
     if (!isCountWithin(uniqueIds(lesson.workedExampleIds).length, 6, 10)) {
       push("synthesis-example-count", undefined, `${uniqueIds(lesson.workedExampleIds).length}`);
     }

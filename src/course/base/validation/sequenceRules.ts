@@ -38,6 +38,7 @@ import {
   isStrictRuntimeRetrievalSystem,
   ownDataArrayValues,
   ownDataValue,
+  strictRuntimeLessonWithContract,
 } from "./runtimeGuards";
 import {
   BASE_PARTICLE_FRAME_BY_PREDICATE,
@@ -130,6 +131,32 @@ function positionFor(lessonId: string): number | undefined {
   return firstTeachLessonPosition(lessonId);
 }
 
+function lessonIdFrom(value: unknown): string {
+  return isPlainDataRecord(value) &&
+    typeof ownDataValue(value, "lessonId") === "string"
+    ? (ownDataValue(value, "lessonId") as string)
+    : "unknown-lesson";
+}
+
+function lessonContractFrom(value: unknown): string | undefined {
+  return isPlainDataRecord(value) &&
+    typeof ownDataValue(value, "contract") === "string"
+    ? (ownDataValue(value, "contract") as string)
+    : undefined;
+}
+
+function canonicalLessonForManifest(
+  rawLesson: unknown,
+  contract: BaseLessonContent["contract"],
+): BaseLessonContent | undefined {
+  const normalized = strictRuntimeLessonWithContract(rawLesson, contract);
+  return normalized === undefined ? undefined : (normalized as BaseLessonContent);
+}
+
+function hasCanonicalBaseLesson(lessonId: string): boolean {
+  return BASE_LESSON_MANIFEST[lessonId] !== undefined;
+}
+
 function isBeforeLesson(lessonId: string, referenceLessonId: string): boolean {
   const position = positionFor(lessonId);
   const referencePosition = positionFor(referenceLessonId);
@@ -168,11 +195,13 @@ export function validateBaseLessonPrerequisiteGraph(
   }
   const validLessons: BaseLessonContent[] = [];
   for (const rawLesson of rawLessons) {
-    const candidateLessonId =
-      isPlainDataRecord(rawLesson) &&
-      typeof ownDataValue(rawLesson, "lessonId") === "string"
-        ? (ownDataValue(rawLesson, "lessonId") as string)
-        : "unknown-lesson";
+    const candidateLessonId = lessonIdFrom(rawLesson);
+    if (
+      candidateLessonId !== "unknown-lesson" &&
+      !hasCanonicalBaseLesson(candidateLessonId)
+    ) {
+      push(candidateLessonId, "unknown-base-lesson", candidateLessonId);
+    }
     if (!isStrictRuntimePrerequisiteLesson(rawLesson)) {
       push(candidateLessonId, "invalid-lesson-shape", "prerequisite lesson");
       continue;
@@ -185,8 +214,13 @@ export function validateBaseLessonPrerequisiteGraph(
 
   for (const lesson of validLessons) {
     const seen = new Set<string>();
-    const lessonPosition = BASE_CANONICAL_POSITIONS[lesson.lessonId];
-    const requiredPrerequisite = requiredBaseLessonPrerequisiteFor(lesson.lessonId);
+    const hasCanonicalPosition = hasCanonicalBaseLesson(lesson.lessonId);
+    const lessonPosition = hasCanonicalPosition
+      ? BASE_CANONICAL_POSITIONS[lesson.lessonId]
+      : undefined;
+    const requiredPrerequisite = hasCanonicalPosition
+      ? requiredBaseLessonPrerequisiteFor(lesson.lessonId)
+      : undefined;
     if (
       requiredPrerequisite !== undefined &&
       requiredPrerequisite !== null &&
@@ -207,6 +241,7 @@ export function validateBaseLessonPrerequisiteGraph(
         continue;
       }
       if (
+        hasCanonicalPosition &&
         lessonPosition !== undefined &&
         BASE_CANONICAL_POSITIONS[prerequisiteId] >= lessonPosition
       ) {
@@ -295,11 +330,42 @@ export function validateFirstTeachOrder(
   }
   const lessons: BaseLessonContent[] = [];
   for (const rawLesson of lessonEntries) {
-    const candidateLessonId =
-      isPlainDataRecord(rawLesson) &&
-      typeof ownDataValue(rawLesson, "lessonId") === "string"
-        ? (ownDataValue(rawLesson, "lessonId") as string)
-        : "unknown-lesson";
+    const candidateLessonId = lessonIdFrom(rawLesson);
+    const manifest =
+      candidateLessonId === "unknown-lesson"
+        ? undefined
+        : BASE_LESSON_MANIFEST[candidateLessonId];
+    if (candidateLessonId !== "unknown-lesson" && !manifest) {
+      push(candidateLessonId, "unknown-base-lesson", candidateLessonId);
+    }
+    const declaredContract = lessonContractFrom(rawLesson);
+    if (
+      manifest &&
+      declaredContract !== undefined &&
+      declaredContract !== manifest.contract
+    ) {
+      push(
+        candidateLessonId,
+        "lesson-contract-mismatch",
+        candidateLessonId,
+        `${declaredContract}:${manifest.contract}`,
+      );
+      const canonicalLesson = canonicalLessonForManifest(
+        rawLesson,
+        manifest.contract,
+      );
+      if (!canonicalLesson) {
+        push(
+          candidateLessonId,
+          "missing-canonical-contract-fields",
+          candidateLessonId,
+          manifest.contract,
+        );
+        continue;
+      }
+      lessons.push(canonicalLesson);
+      continue;
+    }
     if (!isStrictRuntimeLesson(rawLesson)) {
       push(candidateLessonId, "invalid-lesson-shape", "lesson");
       continue;
@@ -338,8 +404,10 @@ export function validateFirstTeachOrder(
       push(lesson.lessonId, "invalid-catalog-entry", id, sourceLabel);
     }
     const catalogFirstTeachLessonId = validCatalogRecord
-      ? (catalogRecord as Readonly<{ readonly firstTeachLessonId: string }>)
-          .firstTeachLessonId
+      ? (ownDataValue(
+          catalogRecord as unknown as Readonly<Record<string, unknown>>,
+          "firstTeachLessonId",
+        ) as string)
       : undefined;
     if (!owner) {
       push(lesson.lessonId, "missing-first-teach-owner", reportedId, sourceLabel);
@@ -358,7 +426,9 @@ export function validateFirstTeachOrder(
     ) {
       push(lesson.lessonId, "owner-catalog-mismatch", reportedId, sourceLabel);
     }
-    const lessonPosition = positionFor(lesson.lessonId);
+    const lessonPosition = hasCanonicalBaseLesson(lesson.lessonId)
+      ? positionFor(lesson.lessonId)
+      : undefined;
     const ownerPosition = owner ? positionFor(owner.lessonId) : undefined;
     if (owner && lessonPosition !== undefined && ownerPosition !== undefined && ownerPosition > lessonPosition) {
       push(lesson.lessonId, "first-teach-before-owner", reportedId, sourceLabel);
@@ -387,6 +457,7 @@ export function validateFirstTeachOrder(
     referenceId: string,
     sourceLabel?: string,
   ): void => {
+    const lessonManifest = BASE_LESSON_MANIFEST[lesson.lessonId];
     for (const lexemeId of sentence.lexemeIds) {
       validateOwnedReference(lesson, "lexeme", lexemeId, sourceLabel);
     }
@@ -409,16 +480,18 @@ export function validateFirstTeachOrder(
       );
       if (
         ADJECTIVE_CELL_IDS.has(formId) &&
-        (BASE_LESSON_MANIFEST[lesson.lessonId]?.moduleId !== "copula-adjectives" &&
-          BASE_LESSON_MANIFEST[lesson.lessonId]?.moduleId !== "existence-location" &&
-          BASE_LESSON_MANIFEST[lesson.lessonId]?.moduleId !== "requests-connection" &&
-          BASE_LESSON_MANIFEST[lesson.lessonId]?.moduleId !== "base-synthesis")
+        lessonManifest !== undefined &&
+        (lessonManifest.moduleId !== "copula-adjectives" &&
+          lessonManifest.moduleId !== "existence-location" &&
+          lessonManifest.moduleId !== "requests-connection" &&
+          lessonManifest.moduleId !== "base-synthesis")
       ) {
         push(lesson.lessonId, "adjective-cell-before-module-seven", formId);
       }
       if (
         TE_IMASU_FORM_IDS.has(formId) &&
         sentence.interpretationTags.includes("ongoing-now") &&
+        lessonManifest !== undefined &&
         isBeforeLesson(lesson.lessonId, TE_IMASU_OWNER_LESSON_ID)
       ) {
         push(
@@ -736,8 +809,17 @@ export function visibleJapaneseFor(
     }
   };
   for (const rawLesson of lessonEntries) {
-    if (!isStrictRuntimeLesson(rawLesson)) continue;
-    const lesson = rawLesson as BaseLessonContent;
+    const lessonId = lessonIdFrom(rawLesson);
+    const manifest = BASE_LESSON_MANIFEST[lessonId];
+    if (!manifest) continue;
+    const declaredContract = lessonContractFrom(rawLesson);
+    const lesson =
+      declaredContract !== undefined && declaredContract !== manifest.contract
+        ? canonicalLessonForManifest(rawLesson, manifest.contract)
+        : isStrictRuntimeLesson(rawLesson)
+          ? (rawLesson as BaseLessonContent)
+          : undefined;
+    if (!lesson) continue;
     if (lesson.contract !== "phonetic") {
       for (const example of workedExamplesFor(lesson, catalogs)) {
         append(`example:${example.id}`, example.tokens);

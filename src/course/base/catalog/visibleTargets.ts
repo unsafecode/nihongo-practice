@@ -5,7 +5,7 @@ import type {
 } from "./types";
 import {
   visibleTargetFromExample,
-  visibleTargetFromTarget,
+  visibleTargetFromCatalogTarget,
 } from "./types";
 import {
   isPlainDataRecord,
@@ -42,7 +42,7 @@ function targetReference(
 ): BaseVisibleTargetReference {
   const invalidReason = runtimeVisibleTargetIssue(rawTarget);
   return {
-    target: visibleTargetFromTarget(rawTarget as BaseVisibleTarget),
+    target: visibleTargetFromCatalogTarget(rawTarget),
     referenceId,
     label,
     source,

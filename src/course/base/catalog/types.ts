@@ -265,32 +265,21 @@ export interface BaseDialogue {
   readonly turns: readonly BaseDialogueTurn[];
 }
 
-function cloneForBasePublication<T>(
-  value: T,
-  seen: WeakMap<object, unknown> = new WeakMap(),
-): T {
-  if (value === null || typeof value !== "object") return value;
-  const source = value as object;
-  const existing = seen.get(source);
-  if (existing !== undefined) return existing as T;
-  if (Array.isArray(value)) {
-    const values = ownDataArrayValues(value);
-    if (!values) return [] as T;
-    const clone: unknown[] = [];
-    seen.set(source, clone);
-    clone.push(...values.map((entry) => cloneForBasePublication(entry, seen)));
-    return clone as T;
+export type BaseVisibleTargetPublicationErrorCode =
+  | "invalid-visible-target-shape"
+  | "unsupported-publication-value";
+
+export class BaseVisibleTargetPublicationError extends Error {
+  readonly code: BaseVisibleTargetPublicationErrorCode;
+
+  constructor(
+    code: BaseVisibleTargetPublicationErrorCode,
+    message: string,
+  ) {
+    super(message);
+    this.name = "BaseVisibleTargetPublicationError";
+    this.code = code;
   }
-  if (!isPlainDataRecord(value)) return value;
-  const clone = Object.create(Object.getPrototypeOf(source)) as Record<string, unknown>;
-  seen.set(source, clone);
-  for (const [key, descriptor] of Object.entries(
-    Object.getOwnPropertyDescriptors(source),
-  )) {
-    if (!("value" in descriptor)) continue;
-    clone[key] = cloneForBasePublication(descriptor.value, seen);
-  }
-  return clone as T;
 }
 
 const EMPTY_VISIBLE_TARGET: BaseVisibleTarget = deepFreeze({
@@ -305,8 +294,17 @@ const EMPTY_VISIBLE_TARGET: BaseVisibleTarget = deepFreeze({
   predicateLexemeId: null,
 });
 
-function visibleTargetView(source: unknown): BaseVisibleTarget {
+function visibleTargetView(
+  source: unknown,
+  throwOnInvalid = false,
+): BaseVisibleTarget {
   if (runtimeVisibleTargetIssue(source) !== undefined || !isPlainDataRecord(source)) {
+    if (throwOnInvalid) {
+      throw new BaseVisibleTargetPublicationError(
+        "invalid-visible-target-shape",
+        "Visible target must contain only supported plain data values.",
+      );
+    }
     return EMPTY_VISIBLE_TARGET;
   }
   const predicateAspect = ownDataValue(source, "predicateAspect");
@@ -336,6 +334,13 @@ function visibleTargetView(source: unknown): BaseVisibleTarget {
 
 /** Clones and freezes arbitrary canonical target provenance before publication. */
 export function visibleTargetFromTarget(target: BaseVisibleTarget): BaseVisibleTarget {
+  return visibleTargetView(target, true);
+}
+
+/** Returns an immutable empty view for malformed catalog provenance. */
+export function visibleTargetFromCatalogTarget(
+  target: unknown,
+): BaseVisibleTarget {
   return visibleTargetView(target);
 }
 
@@ -458,7 +463,8 @@ export type BaseLessonContentDefinitionErrorCode =
   | "duplicate-activity-id"
   | "unknown-lesson-id"
   | "lesson-contract-mismatch"
-  | "wrong-contract-fields";
+  | "wrong-contract-fields"
+  | "unsupported-publication-value";
 
 export class BaseLessonContentDefinitionError extends Error {
   readonly code: BaseLessonContentDefinitionErrorCode;
@@ -606,6 +612,128 @@ function hasSemanticFields(
     typeof lesson.interactive === "boolean" &&
     isStringArray(lesson.retrievedSystemIds)
   );
+}
+
+function unsupportedPublicationValue(path: string): never {
+  throw new BaseLessonContentDefinitionError(
+    "unsupported-publication-value",
+    `Unsupported publication value at "${path}".`,
+  );
+}
+
+function assertPublicationValue(
+  value: unknown,
+  path: string,
+  active: WeakSet<object>,
+): void {
+  if (
+    value === null ||
+    value === undefined ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint"
+  ) {
+    return;
+  }
+  if (typeof value === "symbol" || typeof value === "function") {
+    unsupportedPublicationValue(path);
+  }
+  if (typeof value !== "object") {
+    unsupportedPublicationValue(path);
+  }
+  const source = value as object;
+  if (active.has(source)) {
+    unsupportedPublicationValue(path);
+  }
+  active.add(source);
+  if (Array.isArray(value)) {
+    if (!ownDataArrayValues(value)) {
+      unsupportedPublicationValue(path);
+    }
+    for (const [key, descriptor] of Object.entries(
+      Object.getOwnPropertyDescriptors(value),
+    )) {
+      if (key === "length") continue;
+      if (!("value" in descriptor)) {
+        unsupportedPublicationValue(`${path}.${key}`);
+      }
+      assertPublicationValue(
+        descriptor.value,
+        Number.isSafeInteger(Number(key)) ? `${path}[${key}]` : `${path}.${key}`,
+        active,
+      );
+    }
+  } else {
+    if (!isPlainDataRecord(value)) {
+      unsupportedPublicationValue(path);
+    }
+    for (const [key, descriptor] of Object.entries(
+      Object.getOwnPropertyDescriptors(value),
+    )) {
+      if (!("value" in descriptor)) {
+        unsupportedPublicationValue(`${path}.${key}`);
+      }
+      assertPublicationValue(descriptor.value, `${path}.${key}`, active);
+    }
+  }
+  active.delete(source);
+}
+
+function clonePublicationValue<T>(
+  value: T,
+  seen: WeakMap<object, unknown>,
+): T {
+  if (value === null || typeof value !== "object") return value;
+  const source = value as object;
+  const existing = seen.get(source);
+  if (existing !== undefined) return existing as T;
+  if (Array.isArray(value)) {
+    const clone: unknown[] = [];
+    seen.set(source, clone);
+    if (!ownDataArrayValues(value)) {
+      unsupportedPublicationValue("publication array");
+    }
+    for (const [key, descriptor] of Object.entries(
+      Object.getOwnPropertyDescriptors(value),
+    )) {
+      if (key === "length") continue;
+      if (!("value" in descriptor)) {
+        unsupportedPublicationValue(`publication array.${key}`);
+      }
+      Object.defineProperty(clone, key, {
+        configurable: true,
+        enumerable: true,
+        value: clonePublicationValue(descriptor.value, seen),
+        writable: true,
+      });
+    }
+    return clone as T;
+  }
+  if (!isPlainDataRecord(value)) {
+    unsupportedPublicationValue("publication record");
+  }
+  const clone = Object.create(Object.getPrototypeOf(source)) as Record<string, unknown>;
+  seen.set(source, clone);
+  for (const [key, descriptor] of Object.entries(
+    Object.getOwnPropertyDescriptors(source),
+  )) {
+    if (!("value" in descriptor)) {
+      unsupportedPublicationValue(`publication record.${key}`);
+    }
+    Object.defineProperty(clone, key, {
+      configurable: true,
+      enumerable: true,
+      value: clonePublicationValue(descriptor.value, seen),
+      writable: true,
+    });
+  }
+  return clone as T;
+}
+
+function cloneForBasePublication<T>(value: T): T {
+  assertPublicationValue(value, "publication", new WeakSet());
+  return clonePublicationValue(value, new WeakMap());
 }
 
 /**
