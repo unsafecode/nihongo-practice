@@ -97,31 +97,6 @@ describe("courseModules — retained A1 runtime source", () => {
       "essential-questions": "questions",
       capstones: "capstone",
     });
-
-    describe("courseModulesByLevel.a0 — Base runtime source", () => {
-      it("publishes exactly the Base manifest's 10 modules and 40 lessons", () => {
-        expect(courseModulesByLevel.a0).toBe(baseCourseModules);
-        expect(baseCourseModules.map((module) => module.id)).toEqual([...BASE_MODULE_IDS]);
-        expect(baseCourseModules.flatMap((module) => module.lessons)).toHaveLength(40);
-        expect(
-          baseCourseModules.flatMap((module) => module.lessons.map((lesson) => lesson.id)),
-        ).toEqual([...BASE_LESSON_IDS]);
-      });
-
-      it("uses manifest order, prerequisites, outcomes, and authored Can-do descriptors", () => {
-        for (const module of baseCourseModules) {
-          const manifest = BASE_MODULE_MANIFEST[module.id];
-          expect(module.order).toBe(manifest.order);
-          expect(module.prerequisiteIds).toEqual(manifest.prerequisiteIds);
-          expect(module.outcomeCopyIds).toEqual([manifest.outcomeCopyId]);
-          expect(module.lessons).toHaveLength(4);
-          for (const lesson of module.lessons) {
-            expect(lesson.titleCopyId).toBe(lesson.id);
-            expect(lesson.objectiveCopyIds).toHaveLength(1);
-          }
-        }
-      });
-    });
   });
 
   it("uses the lesson id itself as the title copy id (stable, unambiguous)", () => {
@@ -151,6 +126,31 @@ describe("courseModules — retained A1 runtime source", () => {
           expect(matchingCanDo, `no Can-do descriptor for ${copyId}`).toBeDefined();
           expect(matchingCanDo!.lessonIds).toContain(lesson.id);
         }
+      }
+    }
+  });
+});
+
+describe("courseModulesByLevel.a0 — Base runtime source", () => {
+  it("publishes exactly the Base manifest's 10 modules and 40 lessons", () => {
+    expect(courseModulesByLevel.a0).toBe(baseCourseModules);
+    expect(baseCourseModules.map((module) => module.id)).toEqual([...BASE_MODULE_IDS]);
+    expect(baseCourseModules.flatMap((module) => module.lessons)).toHaveLength(40);
+    expect(baseCourseModules.flatMap((module) => module.lessons.map((lesson) => lesson.id))).toEqual([
+      ...BASE_LESSON_IDS,
+    ]);
+  });
+
+  it("uses manifest order, prerequisites, outcomes, and authored Can-do descriptors", () => {
+    for (const module of baseCourseModules) {
+      const manifest = BASE_MODULE_MANIFEST[module.id];
+      expect(module.order).toBe(manifest.order);
+      expect(module.prerequisiteIds).toEqual(manifest.prerequisiteIds);
+      expect(module.outcomeCopyIds).toEqual([manifest.outcomeCopyId]);
+      expect(module.lessons).toHaveLength(4);
+      for (const lesson of module.lessons) {
+        expect(lesson.titleCopyId).toBe(lesson.id);
+        expect(lesson.objectiveCopyIds).toHaveLength(1);
       }
     }
   });
