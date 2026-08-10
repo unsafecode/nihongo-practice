@@ -202,6 +202,12 @@ export interface BaseReferenceCatalogValidationError {
   readonly detailId?: string;
 }
 
+export interface BaseReferenceCatalogInspection {
+  readonly catalog: BaseReferenceCatalog | null;
+  readonly examples: readonly BaseReferenceExample[] | null;
+  readonly errors: readonly BaseReferenceCatalogValidationError[];
+}
+
 function localized(
   enLabel: string,
   enExplanation: string,
@@ -1004,10 +1010,6 @@ export const BASE_REFERENCE_COPY_BY_ID: ReadonlyMap<string, BaseReferenceCopy> =
     ]),
   );
 
-export function baseReferenceCopyById(copyId: string): BaseReferenceCopy | undefined {
-  return BASE_REFERENCE_COPY_BY_ID.get(copyId);
-}
-
 export interface BaseReferenceExample {
   readonly id: string;
   readonly firstTeachLessonId: string;
@@ -1305,13 +1307,17 @@ function validationError(
   };
 }
 
-export function validateBaseReferenceCatalog(
+function computeBaseReferenceCatalogInspection(
   catalog: unknown,
-  eligibleExamples: unknown = BASE_REFERENCE_EXAMPLES,
-): readonly BaseReferenceCatalogValidationError[] {
+  eligibleExamples: unknown,
+): BaseReferenceCatalogInspection {
   const rawReferences = ownDataArrayValues(catalog);
   if (!rawReferences) {
-    return deepFreeze([validationError("invalid-catalog-shape")]);
+    return deepFreeze({
+      catalog: null,
+      examples: null,
+      errors: [validationError("invalid-catalog-shape")],
+    });
   }
 
   const errors: BaseReferenceCatalogValidationError[] = [];
@@ -1350,6 +1356,7 @@ export function validateBaseReferenceCatalog(
     }
   }
   const references: {
+    readonly definition: BaseReferenceDefinition;
     readonly id: string;
     readonly firstTeachLessonId: string;
     readonly entries: readonly BaseReferenceEntry[];
@@ -1435,7 +1442,17 @@ export function validateBaseReferenceCatalog(
       (parsedEntry): parsedEntry is BaseReferenceEntry => parsedEntry !== undefined,
     );
     const cells = parsedCells as BaseReferenceCanonicalCell[];
+    const definition: BaseReferenceDefinition = {
+      id: referenceId as BaseReferenceId,
+      firstTeachLessonId,
+      copyId: copyId as string,
+      copy,
+      columns: columns as BaseReferenceColumn[],
+      entries,
+      cells,
+    };
     references.push({
+      definition,
       id: referenceId,
       firstTeachLessonId,
       entries,
@@ -1714,5 +1731,45 @@ export function validateBaseReferenceCatalog(
       errors.push(validationError("invalid-cell-reference", reference.id));
     }
   }
-  return deepFreeze(errors);
+  if (errors.length > 0) {
+    return deepFreeze({
+      catalog: null,
+      examples: null,
+      errors,
+    });
+  }
+  return deepFreeze({
+    catalog: references.map(({ definition }) => definition),
+    examples: parsedExamples as BaseReferenceExample[],
+    errors: [],
+  });
+}
+
+let canonicalInspection: BaseReferenceCatalogInspection | undefined;
+
+export function inspectBaseReferenceCatalog(
+  catalog: unknown = BASE_REFERENCE_CATALOG,
+  eligibleExamples: unknown = BASE_REFERENCE_EXAMPLES,
+): BaseReferenceCatalogInspection {
+  const canonicalInputs =
+    catalog === BASE_REFERENCE_CATALOG &&
+    eligibleExamples === BASE_REFERENCE_EXAMPLES;
+  if (canonicalInputs && canonicalInspection) {
+    return canonicalInspection;
+  }
+  const inspection = computeBaseReferenceCatalogInspection(
+    catalog,
+    eligibleExamples,
+  );
+  if (canonicalInputs) {
+    canonicalInspection = inspection;
+  }
+  return inspection;
+}
+
+export function validateBaseReferenceCatalog(
+  catalog: unknown,
+  eligibleExamples: unknown = BASE_REFERENCE_EXAMPLES,
+): readonly BaseReferenceCatalogValidationError[] {
+  return inspectBaseReferenceCatalog(catalog, eligibleExamples).errors;
 }

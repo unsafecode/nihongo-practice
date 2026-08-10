@@ -3,11 +3,9 @@ import { baseCanonicalPosition } from "../manifest";
 import {
   BASE_REFERENCE_CATALOG,
   BASE_REFERENCE_EXAMPLES,
-  baseReferenceCopyById,
-  validateBaseReferenceCatalog,
+  inspectBaseReferenceCatalog,
   type BaseReferenceCanonicalCell,
   type BaseReferenceCatalog,
-  type BaseReferenceDefinition,
   type BaseReferenceId,
   type BaseReferenceExample,
   type BaseReferenceLocale,
@@ -115,17 +113,22 @@ export function buildBaseReferenceViewModel(
     return failure("unknown-reference", referenceId);
   }
 
-  const validationErrors = validateBaseReferenceCatalog(catalog, eligibleExamples);
+  const inspection = inspectBaseReferenceCatalog(catalog, eligibleExamples);
+  const validationErrors = inspection.errors;
   if (validationErrors.some(({ code }) => code === "future-prerequisite")) {
     return failure("future-prerequisite", referenceId);
   }
   if (validationErrors.length > 0) {
     return failure("unknown-reference", referenceId);
   }
+  const validatedCatalog = inspection.catalog;
+  if (!validatedCatalog) {
+    return failure("unknown-reference", referenceId);
+  }
 
-  const definition = catalog.find(
+  const definition = validatedCatalog.find(
     (candidate) => candidate.id === referenceId,
-  ) as BaseReferenceDefinition | undefined;
+  );
   if (!definition) {
     return failure("unknown-reference", referenceId);
   }
@@ -143,7 +146,7 @@ export function buildBaseReferenceViewModel(
   });
   const visibleIds = new Set(visibleEntries.map(({ semanticId }) => semanticId));
   const allEntriesById = new Map(
-    catalog.flatMap(({ entries }) =>
+    validatedCatalog.flatMap(({ entries }) =>
       entries.map((entry) => [entry.semanticId, entry] as const),
     ),
   );
@@ -171,8 +174,8 @@ export function buildBaseReferenceViewModel(
     sourceContentIds: entry.sourceContentIds,
     prerequisiteEntryIds: entry.prerequisiteEntryIds,
     copyId: entry.copyId,
-    label: baseReferenceCopyById(entry.copyId)![locale].label,
-    explanation: baseReferenceCopyById(entry.copyId)![locale].explanation,
+    label: entry.copy[locale].label,
+    explanation: entry.copy[locale].explanation,
     contrastIds: entry.contrastIds.filter((contrastId) => {
       const contrast = allEntriesById.get(contrastId);
       const contrastPosition = contrast
@@ -211,7 +214,7 @@ export function buildBaseReferenceViewModel(
     })),
   }));
   const grid: ReferenceGridModel = {
-    caption: baseReferenceCopyById(definition.copyId)![locale].label,
+    caption: definition.copy[locale].label,
     columns: definition.columns.map((referenceColumn) => ({
       id: referenceColumn.id,
       label: referenceColumn.copy[locale].label,
@@ -224,8 +227,8 @@ export function buildBaseReferenceViewModel(
     model: {
       id: definition.id,
       copyId: definition.copyId,
-      label: baseReferenceCopyById(definition.copyId)![locale].label,
-      explanation: baseReferenceCopyById(definition.copyId)![locale].explanation,
+      label: definition.copy[locale].label,
+      explanation: definition.copy[locale].explanation,
       firstTeachLessonId: definition.firstTeachLessonId,
       throughLessonId,
       entries,

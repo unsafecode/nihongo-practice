@@ -372,6 +372,79 @@ describe("buildBaseReferenceViewModel", () => {
     }
   });
 
+  it("renders one validated custom-copy source consistently", () => {
+    const catalog = structuredClone(BASE_REFERENCE_CATALOG) as BaseReferenceCatalog;
+    const definition = catalog[0] as unknown as {
+      copy: { en: { label: string; explanation: string } };
+      columns: { copy: { en: { label: string; explanation: string } } }[];
+      entries: {
+        copy: { en: { label: string; explanation: string } };
+        canonicalFormCells: {
+          copy: { en: { label: string; explanation: string } };
+        }[];
+      }[];
+    };
+    definition.copy.en.label = "Custom reference";
+    definition.copy.en.explanation = "Custom reference explanation";
+    definition.columns[0].copy.en.label = "Custom column";
+    definition.entries[0].copy.en.label = "Custom entry";
+    definition.entries[0].copy.en.explanation = "Custom entry explanation";
+    definition.entries[0].canonicalFormCells[0].copy.en.label = "Custom cell";
+
+    const result = buildBaseReferenceViewModel(
+      "sentence-anatomy",
+      "sentence-foundations-1",
+      "en",
+      catalog,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.model.label).toBe("Custom reference");
+    expect(result.model.explanation).toBe("Custom reference explanation");
+    expect(result.model.grid.caption).toBe("Custom reference");
+    expect(result.model.grid.columns[0].label).toBe("Custom column");
+    expect(result.model.entries[0].label).toBe("Custom entry");
+    expect(result.model.entries[0].explanation).toBe("Custom entry explanation");
+    expect(result.model.entries[0].canonicalFormCells[0].label).toBe(
+      "Custom cell",
+    );
+  });
+
+  it("never consumes a Proxy get trap after descriptor-only validation", () => {
+    const clean = structuredClone(BASE_REFERENCE_CATALOG) as BaseReferenceCatalog;
+    const forgedAtlas = structuredClone(clean[1]) as unknown as {
+      copy: { en: { label: string; explanation: string } };
+      entries: { firstTeachLessonId: string }[];
+    };
+    forgedAtlas.copy.en.label = "FORGED ATLAS";
+    for (const entry of forgedAtlas.entries) {
+      entry.firstTeachLessonId = "topic-questions-1";
+    }
+    let getTrapReads = 0;
+    const differential = new Proxy(clean as BaseReferenceCatalog, {
+      get(target, property, receiver) {
+        getTrapReads += 1;
+        if (property === "1") return forgedAtlas;
+        return Reflect.get(target, property, receiver);
+      },
+    });
+
+    const result = buildBaseReferenceViewModel(
+      "particle-atlas",
+      "topic-questions-2",
+      "en",
+      differential,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(getTrapReads).toBe(0);
+    expect(result.model.label).toBe("Particle atlas");
+    expect(result.model.entries.map(({ semanticId }) => semanticId)).toEqual([
+      "base-particle-wa",
+      "base-particle-ga",
+    ]);
+  });
+
   it("uses identical semantic rows and labels for grids and stacked cards", () => {
     const result = buildBaseReferenceViewModel(
       "tense-polarity",

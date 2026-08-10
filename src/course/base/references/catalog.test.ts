@@ -17,6 +17,7 @@ import {
   BASE_REFERENCE_EXAMPLES,
   BASE_REFERENCE_CATALOG,
   BASE_REFERENCE_IDS,
+  inspectBaseReferenceCatalog,
   referenceById,
   validateBaseReferenceCatalog,
   type BaseReferenceCatalog,
@@ -154,6 +155,32 @@ describe("Base reference catalog", () => {
       }
     }
     expect(validateBaseReferenceCatalog(BASE_REFERENCE_CATALOG)).toEqual([]);
+  });
+
+  it("returns a deeply immutable sanitized catalog snapshot", () => {
+    expect(inspectBaseReferenceCatalog).toBeTypeOf("function");
+    if (typeof inspectBaseReferenceCatalog !== "function") return;
+    const inspection = inspectBaseReferenceCatalog(mutableCatalog());
+    expect(inspection.errors).toEqual([]);
+    expect(inspection.catalog).not.toBeNull();
+    expect(inspection.examples).not.toBeNull();
+    expect(Object.isFrozen(inspection)).toBe(true);
+    expect(Object.isFrozen(inspection.catalog)).toBe(true);
+    expect(Object.isFrozen(inspection.catalog![0].entries)).toBe(true);
+    expect(Object.isFrozen(inspection.catalog![0].entries[0].copy.en)).toBe(true);
+    expect(Object.isFrozen(inspection.examples)).toBe(true);
+    expect(() =>
+      (inspection.catalog![0].entries as unknown as unknown[]).push({}),
+    ).toThrow();
+    expect(inspectBaseReferenceCatalog()).toBe(inspectBaseReferenceCatalog());
+
+    const supplied = mutableCatalog();
+    const first = inspectBaseReferenceCatalog(supplied);
+    (supplied[0].entries[0].sourceContentIds as string[]).push("te-imasu");
+    const second = inspectBaseReferenceCatalog(supplied);
+    expect(second).not.toBe(first);
+    expect(second.catalog).toBeNull();
+    expect(second.errors.length).toBeGreaterThan(0);
   });
 
   it("derives tense-polarity cells exactly from the canonical writing verb", () => {
