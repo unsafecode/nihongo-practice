@@ -1,6 +1,7 @@
 import type { AssembledToken } from "../../../romaji/types";
 import { deepFreeze } from "../../foundations/deepFreeze";
 import { immutableReadonlyMap } from "../../foundations/immutableReadonlyMap";
+import { immutableReadonlySet } from "../../foundations/immutableReadonlySet";
 import { baseCanonicalPosition } from "../manifest";
 import { BASE_CONCEPT_BY_ID } from "../catalog/concepts";
 import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
@@ -1034,12 +1035,10 @@ export const BASE_REFERENCE_EXAMPLES: readonly BaseReferenceExample[] =
     ),
   );
 
-/** Backward-compatible ownership projection for release reporting. */
-export const BASE_REFERENCE_EXAMPLE_CONTRACTS = BASE_REFERENCE_EXAMPLES;
-
-export const BASE_REFERENCE_ELIGIBLE_EXAMPLE_IDS: ReadonlySet<string> = deepFreeze(
-  new Set(BASE_REFERENCE_EXAMPLES.map(({ id }) => id)),
-);
+export const BASE_REFERENCE_ELIGIBLE_EXAMPLE_IDS: ReadonlySet<string> =
+  immutableReadonlySet(
+    BASE_REFERENCE_EXAMPLES.map(({ id }) => id),
+  );
 const REFERENCE_KEYS = new Set([
   "id",
   "firstTeachLessonId",

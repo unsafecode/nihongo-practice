@@ -12,8 +12,8 @@ import {
 } from "../forms/verbForms";
 import {
   BASE_REFERENCE_COPY_BY_ID,
+  BASE_REFERENCE_ELIGIBLE_EXAMPLE_IDS,
   BASE_REFERENCE_EXAMPLES,
-  BASE_REFERENCE_EXAMPLE_CONTRACTS,
   BASE_REFERENCE_CATALOG,
   BASE_REFERENCE_IDS,
   referenceById,
@@ -109,7 +109,7 @@ describe("Base reference catalog", () => {
       for (const entry of reference.entries) {
         expect(entry.exampleIds).toHaveLength(1);
         expect(
-          BASE_REFERENCE_EXAMPLE_CONTRACTS.find(
+          BASE_REFERENCE_EXAMPLES.find(
             ({ id }) => id === entry.exampleIds[0],
           )?.firstTeachLessonId,
         ).toBe(entry.firstTeachLessonId);
@@ -118,7 +118,7 @@ describe("Base reference catalog", () => {
 
     const catalog = mutableCatalog();
     (catalog[0].entries[0] as unknown as { exampleIds: string[] }).exampleIds = [
-      BASE_REFERENCE_EXAMPLE_CONTRACTS.at(-1)!.id,
+      BASE_REFERENCE_EXAMPLES.at(-1)!.id,
     ];
     expect(validateBaseReferenceCatalog(catalog)).toEqual(
       expect.arrayContaining([
@@ -503,6 +503,44 @@ describe("Base reference catalog", () => {
     expect(() =>
       (BASE_REFERENCE_CATALOG[0].entries as unknown as unknown[]).push({}),
     ).toThrow();
+  });
+
+  it("publishes example eligibility through a truly immutable ReadonlySet view", () => {
+    const eligibility = BASE_REFERENCE_ELIGIBLE_EXAMPLE_IDS;
+    const originalIds = [...eligibility];
+    const forgedId = "forged-reference-example";
+    const mutable = eligibility as unknown as {
+      add?: (id: string) => unknown;
+      delete?: (id: string) => unknown;
+      clear?: () => unknown;
+    };
+
+    expect(Object.isFrozen(eligibility)).toBe(true);
+    expect(mutable.add).toBeUndefined();
+    expect(mutable.delete).toBeUndefined();
+    expect(mutable.clear).toBeUndefined();
+    expect(() => Set.prototype.add.call(eligibility, forgedId)).toThrow();
+    expect(() =>
+      Set.prototype.delete.call(eligibility, originalIds[0]),
+    ).toThrow();
+    expect(() => Set.prototype.clear.call(eligibility)).toThrow();
+    expect(Reflect.setPrototypeOf(eligibility, Set.prototype)).toBe(false);
+    expect([...eligibility]).toEqual(originalIds);
+    expect(eligibility.has(forgedId)).toBe(false);
+    expect(eligibility.has(originalIds[0])).toBe(true);
+
+    const fromForEach: string[] = [];
+    eligibility.forEach((value, key, set) => {
+      expect(set).toBe(eligibility);
+      expect(key).toBe(value);
+      fromForEach.push(value);
+    });
+    expect(fromForEach).toEqual(originalIds);
+    expect([...eligibility.keys()]).toEqual(originalIds);
+    expect([...eligibility.values()]).toEqual(originalIds);
+    expect([...eligibility.entries()]).toEqual(
+      originalIds.map((id) => [id, id]),
+    );
   });
 
   it("rejects duplicate semantic IDs and unresolved contrasts or examples", () => {
