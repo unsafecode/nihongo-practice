@@ -1,4 +1,5 @@
 import type { AssembledToken } from "../../../romaji/types";
+import { formatRomaji } from "../../../romaji/formatRomaji";
 import { deepFreeze } from "../../foundations/deepFreeze";
 import { immutableReadonlyMap } from "../../foundations/immutableReadonlyMap";
 import { immutableReadonlySet } from "../../foundations/immutableReadonlySet";
@@ -12,7 +13,10 @@ import {
   realizeNaAdjectivePredicate,
   realizeOwnedNounPredicate,
 } from "../forms/adjectiveForms";
-import { composeBaseTokenSequences } from "../forms/composeFormTokens";
+import {
+  composeBaseTokenSequences,
+  isolateBaseTokenSequence,
+} from "../forms/composeFormTokens";
 import {
   realizePoliteGrid,
   realizePoliteStem,
@@ -187,6 +191,7 @@ export type BaseReferenceCatalogValidationErrorCode =
   | "invalid-example-shape"
   | "invalid-source-reference"
   | "future-source-reference"
+  | "invalid-token-sequence"
   | "duplicate-cell-id"
   | "invalid-cell-reference";
 
@@ -442,6 +447,9 @@ const STUDENT_TEACHER_MODIFIER = composedTokens([
   },
   { tokens: TEACHER_NOUN, boundaryBefore: "space" },
 ]);
+const STANDALONE_DESU = formValue(
+  isolateBaseTokenSequence(NOUN_GRID.affirmative.tokens.slice(1)),
+);
 
 const SENTENCE_ANATOMY_ENTRIES = [
   entry(
@@ -495,7 +503,7 @@ const SENTENCE_ANATOMY_ENTRIES = [
         "canonical-target",
         "Polite ending",
         "Finale cortese",
-        NOUN_GRID.affirmative.tokens.slice(1),
+        STANDALONE_DESU,
         NOUN_GRID.affirmative.desuFunction,
       ),
     ],
@@ -1302,6 +1310,16 @@ export function validateBaseReferenceCatalog(
         );
       }
       examplesById.set(example.id, example);
+      if (!formatRomaji(example.tokens).ok) {
+        errors.push(
+          validationError(
+            "invalid-token-sequence",
+            "unknown-reference",
+            undefined,
+            example.id,
+          ),
+        );
+      }
     }
   }
   const references: {
@@ -1557,6 +1575,16 @@ export function validateBaseReferenceCatalog(
         }
       }
       for (const canonicalCell of entry.canonicalFormCells) {
+        if (!formatRomaji(canonicalCell.tokens).ok) {
+          errors.push(
+            validationError(
+              "invalid-token-sequence",
+              reference.id,
+              entry.semanticId,
+              canonicalCell.id,
+            ),
+          );
+        }
         for (const unmappedSourceId of unmappedTokenSourceIds(
           canonicalCell.tokens,
         )) {

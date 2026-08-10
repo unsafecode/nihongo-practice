@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { formatRomaji } from "../../../romaji/formatRomaji";
 import {
   realizeIAdjectivePredicate,
   realizeNaAdjectivePredicate,
@@ -189,6 +190,50 @@ describe("Base reference catalog", () => {
         );
       }
     }
+  });
+
+  it("publishes formatter-valid tokens for every cell and example", () => {
+    for (const reference of BASE_REFERENCE_CATALOG) {
+      for (const entry of reference.entries) {
+        for (const formCell of entry.canonicalFormCells) {
+          expect(formatRomaji(formCell.tokens)).toMatchObject({ ok: true });
+        }
+      }
+    }
+    for (const example of BASE_REFERENCE_EXAMPLES) {
+      expect(formatRomaji(example.tokens)).toMatchObject({ ok: true });
+    }
+  });
+
+  it("fails closed for invalid cell and example token sequences", () => {
+    const invalidCellCatalog = mutableCatalog();
+    const invalidCellToken = invalidCellCatalog[0].entries[0]
+      .canonicalFormCells[0].tokens[0] as unknown as {
+      boundaryBefore: "attach" | "space";
+    };
+    invalidCellToken.boundaryBefore = "space";
+    expect(validateBaseReferenceCatalog(invalidCellCatalog)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "invalid-token-sequence" }),
+      ]),
+    );
+
+    const invalidExamples = structuredClone(
+      BASE_REFERENCE_EXAMPLES,
+    ) as unknown as {
+      id: string;
+      firstTeachLessonId: string;
+      sourceContentIds: string[];
+      tokens: { boundaryBefore: "attach" | "space" }[];
+    }[];
+    invalidExamples[0].tokens[0].boundaryBefore = "space";
+    expect(
+      validateBaseReferenceCatalog(BASE_REFERENCE_CATALOG, invalidExamples),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "invalid-token-sequence" }),
+      ]),
+    );
   });
 
   it("stores and validates cell provenance against canonical owner registries", () => {

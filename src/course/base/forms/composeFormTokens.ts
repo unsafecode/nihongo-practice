@@ -68,6 +68,32 @@ function cloneTokenWithBoundary(
 }
 
 /**
+ * Isolates a subsequence as a standalone canonical token sequence.
+ *
+ * Slicing a word from a composed predicate can leave its first token with a
+ * `space` insertion boundary. A standalone sequence always starts attached.
+ */
+export function isolateBaseTokenSequence(
+  tokens: readonly AssembledToken[],
+): ComposeBaseTokenSequenceResult {
+  if (!Array.isArray(tokens) || tokens.length === 0) {
+    return error("empty-sequence");
+  }
+  const isolated = deepFreeze(
+    tokens.map((token, index) =>
+      cloneTokenWithBoundary(
+        token,
+        index === 0 ? "attach" : token.boundaryBefore,
+      ),
+    ),
+  );
+  const formatted = formatRomaji(isolated);
+  return formatted.ok
+    ? ok(isolated)
+    : error("invalid-composed-sequence", undefined, formatted.errors);
+}
+
+/**
  * Canonical Base-token composition API.
  *
  * Form APIs intentionally return standalone sequences whose first token is
