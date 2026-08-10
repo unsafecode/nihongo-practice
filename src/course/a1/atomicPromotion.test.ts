@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { courseModules } from "../data/course";
+import { legacyA1CourseModules as courseModules } from "../data/course";
 import { a1FoundationCatalogs } from "./catalog/catalog";
 import { a1LessonContents } from "./curriculum/catalog";
 import {

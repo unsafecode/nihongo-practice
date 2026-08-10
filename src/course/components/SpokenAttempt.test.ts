@@ -650,7 +650,7 @@ function renderLesson(path: string): string {
 
 describe("SpokenAttempt — integrated once per A1 lesson, after practice, before recap", () => {
   it.each([
-    ["/percorso/sounds/sounds-1", "tool exploration"],
+    ["/percorso/routines/routines-1", "tool exploration"],
     ["/percorso/actions/actions-1", "transformation exploration"],
     ["/percorso/introductions/introductions-1", "journey/other"],
   ])("renders exactly one spoken-attempt block for %s", (path) => {

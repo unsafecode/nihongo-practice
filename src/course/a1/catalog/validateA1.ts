@@ -59,7 +59,7 @@ import type {
   VerbUseRecord,
 } from "../../foundations/types";
 import type { CourseModule } from "../../data/types";
-import { courseModules } from "../../data/course";
+import { legacyA1CourseModules as courseModules } from "../../data/course";
 import { en as enCourseCopy } from "../../i18n/en";
 import { it as itCourseCopy } from "../../i18n/it";
 import {

@@ -5,11 +5,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
 import { LocaleProvider } from "../../i18n/LocaleContext";
+import { coursePathForLevel } from "../../routing/routePaths";
 import { lessonPath, routePaths } from "../../routing/routes";
-import { a1CanDosAuthored } from "../a1/catalog/canDos";
 import { courseModules } from "../data/course";
 import { en as enCopy } from "../i18n/en";
 import { it as itCopy } from "../i18n/it";
+import { LEVEL_RUNTIME_CONFIG } from "../levels/runtimeConfig";
 import {
   emptyProgress,
   emptyProgressV5,
@@ -32,12 +33,8 @@ const allLessons = courseModules.flatMap((courseModule) =>
 const totalLessons = allLessons.length;
 const firstLesson = allLessons[0];
 const lastLesson = allLessons[allLessons.length - 1];
+const a1RuntimeCanDos = LEVEL_RUNTIME_CONFIG.a1.canDos;
 const a1ModuleIdsInLearnerOrder = [
-  "sounds",
-  "sentence-foundations",
-  "topic-questions",
-  "polite-verbs",
-  "time-movement",
   "introductions",
   "essential-questions",
   "actions",
@@ -54,8 +51,33 @@ const a1ModuleIdsInLearnerOrder = [
 function makeProgressValue(
   overrides: Partial<ProgressContextValue> = {},
 ): ProgressContextValue {
+  const progress = overrides.progress ?? emptyProgress();
+  const progressV5 =
+    overrides.progressV5 ??
+    (() => {
+      const empty = emptyProgressV5();
+      return {
+        ...empty,
+        levels: {
+          ...empty.levels,
+          a1: {
+            ...empty.levels.a1,
+            lessons: progress.lessons,
+            lastVisitedLessonId: progress.lastVisitedLessonId,
+            reviewQueue: progress.reviewQueue,
+            canDos: Object.fromEntries(
+              Object.entries(overrides.canDoEvidence ?? {}).map(([id, evidence]) => [
+                id,
+                { ...evidence, historicalCheckpointRefs: [] },
+              ]),
+            ),
+            checkpointAttempts: overrides.checkpointAttempts ?? [],
+          },
+        },
+      };
+    })();
   return {
-    progress: emptyProgress(),
+    progress,
     corrupted: false,
     persistenceAvailable: true,
     markVisited: () => {},
@@ -75,7 +97,7 @@ function makeProgressValue(
     },
     canDoEvidence: {},
     checkpointAttempts: [],
-    progressV5: emptyProgressV5(),
+    progressV5,
     lessonEvidence: () => undefined,
     levelSummaryFor: (level) => ({
       level,
@@ -106,7 +128,7 @@ function progressWithVisitsButNoLastVisited(lessonIds: string[]): CourseProgress
 function renderHome(
   progressValue: ProgressContextValue,
   initialEntries: Array<string | { pathname: string; state?: unknown }> = [
-    "/percorso",
+    coursePathForLevel("a1"),
   ],
 ): string {
   return renderToStaticMarkup(
@@ -130,6 +152,24 @@ const courseHomePath = fileURLToPath(new URL("./CourseHome.tsx", import.meta.url
 function readCourseHomeSource(): string {
   return readFileSync(courseHomePath, "utf8");
 }
+
+describe("CourseHome — three-level runtime selection", () => {
+  it("selects Base for a fresh bare course URL", () => {
+    const html = renderHome(makeProgressValue(), ["/percorso"]);
+    expect(html).toContain(itCopy.courseLevels.baseBadge);
+    expect(html).toContain(itCopy.courseLevels.baseHeading);
+    expect(html).toContain(itCopy.home.courseShape(10, 40));
+    expect(html).toContain(itCopy.modules["argument-particles"].title);
+  });
+
+  it("uses only typed three-level selection and selected V5 progress data", () => {
+    const source = readCourseHomeSource();
+    expect(source).not.toContain("levelIsA1");
+    expect(source).not.toContain("courseLevelFromParam");
+    expect(source).not.toMatch(/\bvisitedLessonIds\(progress\)/);
+    expect(source).not.toMatch(/\bprogress\.(lessons|lastVisitedLessonId)/);
+  });
+});
 
 /**
  * Extracts the href of the primary hero CTA anchor specifically. The course
@@ -170,11 +210,11 @@ describe("CourseHome hero: editoriale mnemonico", () => {
     expect(html).toContain(itCopy.home.lessonsProgress(visited.length, totalLessons));
   });
 
-  it("shows the A1/JF-CEFR alignment badge and the exact fixed course shape (16 modules, 64 lessons)", () => {
+  it("shows the retained A1 badge and exact runtime shape (11 modules, 44 lessons)", () => {
     const html = renderHome(makeProgressValue());
-    expect(html).toContain(itCopy.home.levelBadge);
-    expect(courseModules.length).toBe(16);
-    expect(totalLessons).toBe(64);
+    expect(html).toContain(itCopy.courseLevels.a1Badge);
+    expect(courseModules.length).toBe(11);
+    expect(totalLessons).toBe(44);
     expect(html).toContain(itCopy.home.courseShape(courseModules.length, totalLessons));
   });
 });
@@ -198,28 +238,28 @@ describe("CourseHome hero: primary and secondary actions (Task 1 Action primitiv
     expect(html).toMatch(/class="action action--primary[^"]*"[^>]*>Continua</);
   });
 
-  it("keeps a returning learner on an existing Presentations lesson after Foundations was inserted before it", () => {
+  it("keeps a returning learner on an existing A1 lesson", () => {
     const html = renderHome(
       makeProgressValue({
-        progress: progressWithVisited(["sounds-1", "introductions-1"]),
+        progress: progressWithVisited(["introductions-1", "essential-questions-1"]),
       }),
     );
 
     expect(primaryActionHref(html)).toBe(
-      lessonPath("introductions", "introductions-1"),
+      lessonPath("essential-questions", "essential-questions-1"),
     );
   });
 
-  it("recommends the first Foundations lesson after every Sounds lesson is visited without a last-visited lesson", () => {
-    const soundsLessonIds = courseModules[0]!.lessons.map((lesson) => lesson.id);
+  it("recommends the first lesson in the next retained module when a module is visited", () => {
+    const introductionLessonIds = courseModules[0]!.lessons.map((lesson) => lesson.id);
     const html = renderHome(
       makeProgressValue({
-        progress: progressWithVisitsButNoLastVisited(soundsLessonIds),
+        progress: progressWithVisitsButNoLastVisited(introductionLessonIds),
       }),
     );
 
     expect(primaryActionHref(html)).toBe(
-      lessonPath("sentence-foundations", "sentence-foundations-1"),
+      lessonPath("essential-questions", "essential-questions-1"),
     );
   });
 
@@ -261,7 +301,7 @@ describe("CourseHome hero: primary and secondary actions (Task 1 Action primitiv
 });
 
 describe("CourseHome: renders the area-grouped CourseMap, never the old chapter grid", () => {
-  it("keeps the visible A1 path in learner order, with navigable lessons and the sounds prerequisite for Foundations", () => {
+  it("keeps the retained A1 path in learner order with navigable lessons", () => {
     expect(courseModules.map((courseModule) => courseModule.id)).toEqual(
       a1ModuleIdsInLearnerOrder,
     );
@@ -286,10 +326,10 @@ describe("CourseHome: renders the area-grouped CourseMap, never the old chapter 
       }
     }
 
-    expect(primaryActionHref(html)).toBe(lessonPath("sounds", "sounds-1"));
+    expect(primaryActionHref(html)).toBe(lessonPath("introductions", "introductions-1"));
     expect(html).toContain(
       escapeHtmlText(
-        itCopy.courseMap.prerequisites([itCopy.modules.sounds.title]),
+        itCopy.courseMap.prerequisites([]),
       ),
     );
   });
@@ -298,7 +338,6 @@ describe("CourseHome: renders the area-grouped CourseMap, never the old chapter 
     const html = renderHome(makeProgressValue());
     expect(html).toContain(`class="course-map"`);
     expect(html).toContain(itCopy.courseMap.heading);
-    expect(html).toContain(itCopy.modules.sounds.title);
     expect(html).toContain(itCopy.modules.introductions.title);
     expect(html).toContain(itCopy.modules.capstones.title);
   });
@@ -449,16 +488,16 @@ describe("CourseHome: Can-do evidence summary (design spec §8/§17, Phase 2 Tas
     const html = renderHome(makeProgressValue());
     expect(html).toContain(itCopy.canDoSummary.heading);
     expect(html).toContain(
-      itCopy.canDoSummary.demonstratedCount(0, a1CanDosAuthored.length),
+      itCopy.canDoSummary.demonstratedCount(0, a1RuntimeCanDos.length),
     );
-    for (const canDo of a1CanDosAuthored) {
+    for (const canDo of a1RuntimeCanDos) {
       expect(html).toContain(escapeHtmlText(itCopy.objectives[canDo.descriptorCopyId]));
     }
     expect(html).toContain(itCopy.canDoSummary.tierNotStarted);
   });
 
   it("reflects a demonstrated Can-do's evidence tier and demonstrated count from real canDoEvidence", () => {
-    const demonstrated = a1CanDosAuthored[0];
+    const demonstrated = a1RuntimeCanDos[0]!;
     const evidence: Record<string, CanDoEvidence> = {
       [demonstrated.id]: {
         canDoId: demonstrated.id,
@@ -474,7 +513,7 @@ describe("CourseHome: Can-do evidence summary (design spec §8/§17, Phase 2 Tas
     );
     expect(html).toContain(itCopy.canDoSummary.tierDemonstrated);
     expect(html).toContain(
-      itCopy.canDoSummary.demonstratedCount(1, a1CanDosAuthored.length),
+      itCopy.canDoSummary.demonstratedCount(1, a1RuntimeCanDos.length),
     );
   });
 });
@@ -499,7 +538,7 @@ describe("CourseHome: Can-do evidence tier glyphs are explicit aria-hidden spans
   }
 
   it("renders the visited tier's glyph (○) as a real aria-hidden DOM span next to the visible tier text", () => {
-    const visited = a1CanDosAuthored[0];
+    const visited = a1RuntimeCanDos[0]!;
     const evidence: Record<string, CanDoEvidence> = {
       [visited.id]: {
         canDoId: visited.id,
@@ -521,7 +560,7 @@ describe("CourseHome: Can-do evidence tier glyphs are explicit aria-hidden spans
   });
 
   it("renders the practiced tier's glyph (◐) as a real aria-hidden DOM span next to the visible tier text", () => {
-    const practiced = a1CanDosAuthored[0];
+    const practiced = a1RuntimeCanDos[0]!;
     const evidence: Record<string, CanDoEvidence> = {
       [practiced.id]: {
         canDoId: practiced.id,
@@ -543,7 +582,7 @@ describe("CourseHome: Can-do evidence tier glyphs are explicit aria-hidden spans
   });
 
   it("renders the demonstrated tier's glyph as ● (matching lesson-exercises' consolidated tier), not ✓ or ★, as a real aria-hidden DOM span", () => {
-    const demonstrated = a1CanDosAuthored[0];
+    const demonstrated = a1RuntimeCanDos[0]!;
     const evidence: Record<string, CanDoEvidence> = {
       [demonstrated.id]: {
         canDoId: demonstrated.id,
@@ -569,25 +608,31 @@ describe("CourseHome: Can-do evidence tier glyphs are explicit aria-hidden spans
 
 
 describe("CourseHome: checkpoint evidence state (Phase 4 Task 27 — automatic accrual)", () => {
-  it("shows the not-met body when no checkpoint evidence has been recorded yet", () => {
+  it("reports when no checkpoint attempt has been recorded yet", () => {
     const html = renderHome(makeProgressValue());
-    expect(html).toContain(itCopy.checkpoint.heading);
-    expect(html).toContain(escapeHtmlText(itCopy.checkpoint.notMet));
+    expect(html).toContain(itCopy.courseLevels.a1CheckpointHeading);
+    expect(html).toContain(
+      escapeHtmlText(itCopy.courseLevels.checkpointNotAttempted(itCopy.courseLevels.a1)),
+    );
   });
 
-  it("shows the met body once checkpoint evidence is present, and hides the not-met body", () => {
+  it("reports an observed checkpoint attempt without a result claim", () => {
     const attempt: CheckpointAttempt = {
       id: "a1-checkpoint-attempt-1",
       checkpointId: "a1-checkpoint",
       attemptedAt: "2024-01-01T00:00:00.000Z",
       acceptedExerciseIds: ["ex-1", "ex-2", "ex-3"],
-      sampledCanDoIds: ["a1-can-do-sounds", "a1-can-do-identity"],
+      sampledCanDoIds: [a1RuntimeCanDos[0]!.id],
     };
     const html = renderHome(
       makeProgressValue({ checkpointAttempts: [attempt] }),
     );
-    expect(html).toContain(escapeHtmlText(itCopy.checkpoint.met));
-    expect(html).not.toContain(escapeHtmlText(itCopy.checkpoint.notMet));
+    expect(html).toContain(
+      escapeHtmlText(itCopy.courseLevels.checkpointAttemptRecorded(itCopy.courseLevels.a1)),
+    );
+    expect(html).not.toContain(
+      escapeHtmlText(itCopy.courseLevels.checkpointNotAttempted(itCopy.courseLevels.a1)),
+    );
   });
 
   it("reveals the on-page can-do-summary section without any bare-fragment anchor (in-page action, not a route)", () => {

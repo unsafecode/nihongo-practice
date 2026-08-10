@@ -120,6 +120,8 @@ export interface CourseCopy {
     a2Heading: string;
     /** Base hero alignment badge. */
     baseBadge: string;
+    /** A1 hero badge for the retained everyday-situations course. */
+    a1Badge: string;
     /** A2 hero alignment badge — states the level + its JF/CEFR alignment claim. */
     a2Badge: string;
     /** Base hint when not recommended. */
@@ -134,8 +136,16 @@ export interface CourseCopy {
     a2AvailableHint: string;
     /** Soft "recommended next" hint shown once the A1 checkpoint is attempted. */
     a2RecommendedHint: string;
-    /** A2 checkpoint attempt-state section copy (separate from A1's). */
+    /** Level-specific checkpoint headings. */
+    baseCheckpointHeading: string;
+    a1CheckpointHeading: string;
     a2CheckpointHeading: string;
+    /** Fail-closed explanation when a configured Can-do descriptor is absent. */
+    descriptorUnavailableTitle: string;
+    descriptorUnavailableBody: string;
+    /** Checkpoint state is observational: it reports attempts, never a result. */
+    checkpointNotAttempted: (levelLabel: string) => string;
+    checkpointAttemptRecorded: (levelLabel: string) => string;
     /**
      * Level-scoped destructive-reset copy (Phase 3 Task 8 spec-fix, ISSUE 3).
      * `resetLevel` is the button label and `resetLevelConfirm` the

@@ -9,7 +9,7 @@ import {
 import { A2_LESSON_IDS } from "../a2/manifest";
 import { A1_LESSON_IDS } from "../a1/manifest";
 import { buildA2FoundationViewModel } from "../a2/view/buildA2LessonViewModel";
-import { courseModulesByLevel } from "../data/course";
+import { courseModulesByLevel, legacyA1CourseModules } from "../data/course";
 import {
   exampleTokens,
   getLessonExercises,
@@ -27,7 +27,7 @@ import {
  * reconstructing a canonical answer in the component layer.
  */
 
-const allLessonIds = courseModulesByLevel.a1.flatMap((module) =>
+const allLessonIds = legacyA1CourseModules.flatMap((module) =>
   module.lessons.map((lesson) => lesson.id),
 );
 const semanticLessonIds = new Set(
@@ -438,7 +438,7 @@ describe("getLessonExercises — A2 lessons resolve through the same model", () 
 
 describe("getLessonExercises — complete release coverage", () => {
   it("returns error-free generated exercise models for all 124 A1 and A2 routes", () => {
-    const a1RouteIds = courseModulesByLevel.a1.flatMap((module) =>
+    const a1RouteIds = legacyA1CourseModules.flatMap((module) =>
       module.lessons.map((lesson) => lesson.id),
     );
     const a2RouteIds = courseModulesByLevel.a2.flatMap((module) =>

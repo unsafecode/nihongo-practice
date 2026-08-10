@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
 import { LocaleProvider } from "../../i18n/LocaleContext";
 import { it as itCopy } from "../i18n/it";
-import { courseModules } from "../data/course";
+import { legacyA1CourseModules as courseModules } from "../data/course";
 import { buildCourseMapModel, type ModuleMapEntry } from "./courseMapModel";
 import { ModuleCard } from "./ModuleCard";
 import type { CourseModule } from "../data/types";
@@ -58,10 +58,10 @@ function renderCard(
 
 describe("ModuleCard: core content", () => {
   it("renders the module's semantic icon, localized title, and outcome", () => {
-    const html = renderCard(entryFor("sounds"), { initiallyExpanded: false });
+    const html = renderCard(entryFor("introductions"), { initiallyExpanded: false });
     expect(html).toContain("<svg");
-    expect(html).toContain(itCopy.modules.sounds.title);
-    expect(html).toContain(itCopy.outcomes["a1-module-outcome-sounds"]);
+    expect(html).toContain(itCopy.modules.introductions.title);
+    expect(html).toContain(itCopy.outcomes["a1-module-outcome-introductions"]);
   });
 
   it("renders the module-scoped visited lesson count", () => {

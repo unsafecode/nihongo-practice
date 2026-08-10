@@ -38,7 +38,7 @@ import type { A1CourseArea } from "../types";
 import { A1_RELEASE_ERROR_CODES, type A1ReleaseErrorCode } from "../types";
 import { a1LearningTargetSenses } from "./a1SemanticCatalog";
 import { a1LexemeById } from "../curriculum/lexicon";
-import { courseModules } from "../../data/course";
+import { legacyA1CourseModules as courseModules } from "../../data/course";
 import { en as enCourseCopy } from "../../i18n/en";
 import { it as itCourseCopy } from "../../i18n/it";
 

@@ -5,7 +5,10 @@ import { describe, expect, it } from "vitest";
 import { LocaleProvider } from "../../i18n/LocaleContext";
 import { lessonPath } from "../../routing/routes";
 import { it as itCopy } from "../i18n/it";
-import { courseModules, courseModulesByLevel } from "../data/course";
+import {
+  courseModulesByLevel,
+  legacyA1CourseModules as courseModules,
+} from "../data/course";
 import { A1_AREAS } from "../a1/areas";
 import { buildCourseMapModel } from "./courseMapModel";
 import { CourseMap } from "./CourseMap";

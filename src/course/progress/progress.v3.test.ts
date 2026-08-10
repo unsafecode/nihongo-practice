@@ -10,7 +10,7 @@ import {
   visitedLessonIds,
   type ExerciseEvidence,
 } from "./progress";
-import { courseModules } from "../data/course";
+import { legacyA1CourseModules as courseModules } from "../data/course";
 import { LEGACY_LESSON_ALIASES } from "../routing/lessonRouteResolution";
 
 const knownLessonIds = new Set(["sounds-core", "sounds-special"]);

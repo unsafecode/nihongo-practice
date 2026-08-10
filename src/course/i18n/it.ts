@@ -1,5 +1,8 @@
 import type { CourseCopy } from "./types";
 import { assembledCourseCopy } from "../catalog/assembleCourse";
+import { mergeBaseNavigationDictionary } from "../base/copy/en";
+import { baseNavigationCopyIt } from "../base/copy/it";
+import { courseModulesByLevel } from "../data/course";
 import {
   a1RuntimeLessonCopy,
   a1RuntimeModuleCopy,
@@ -74,7 +77,8 @@ const itUi = {
     baseHeading: "Corso Base",
     a1Heading: "Corso A1",
     a2Heading: "Corso A2",
-    baseBadge: "Base, fondamentali per chi inizia",
+    baseBadge: "Base, fondamenta create dal prodotto per Can-do pratici A1",
+    a1Badge: "A1, pratica quotidiana costruita sulle fondamenta Base",
     a2Badge: "A2, il nostro allineamento ai descrittori Can-do JF/CEFR",
     baseAvailableHint:
       "Fondamentali per suoni, kana e primi schemi di frase.",
@@ -88,7 +92,16 @@ const itUi = {
       "A2 resta aperto e costruisce conversazioni collegate.",
     a2RecommendedHint:
       "A2 resta aperto come buon passo successivo dopo A1 e costruisce conversazioni collegate.",
+    baseCheckpointHeading: "Verifica Base",
+    a1CheckpointHeading: "Verifica A1",
     a2CheckpointHeading: "Verifica A2",
+    descriptorUnavailableTitle: "Dettagli Can-do non disponibili",
+    descriptorUnavailableBody:
+      "La descrizione di questo Can-do non è disponibile ora. La mappa del corso e i collegamenti alle lezioni restano disponibili.",
+    checkpointNotAttempted: (levelLabel: string) =>
+      `Non è ancora registrato alcun tentativo della verifica ${levelLabel}.`,
+    checkpointAttemptRecorded: (levelLabel: string) =>
+      `È registrato un tentativo della verifica ${levelLabel}.`,
     resetLevel: (levelLabel: string) => `Azzera i progressi di ${levelLabel}`,
     resetLevelConfirm: (levelLabel: string) =>
       `Vuoi davvero azzerare i progressi del corso ${levelLabel}? I progressi dell'altro livello vengono mantenuti.`,
@@ -436,6 +449,32 @@ const itCourseAreas: CourseCopy["courseAreas"] = {
   },
 };
 
+function retainedA1Copy<T>(
+  source: Readonly<Record<string, T>>,
+  keys: readonly string[],
+): Record<string, T> {
+  return Object.fromEntries(keys.map((key) => [key, source[key]!]));
+}
+
+const itRetainedA1Modules = courseModulesByLevel.a1;
+const itRetainedA1ModuleCopy = retainedA1Copy(
+  a1RuntimeModuleCopy("it"),
+  itRetainedA1Modules.map((module) => module.id),
+);
+const itRetainedA1LessonCopy = retainedA1Copy(
+  a1RuntimeLessonCopy("it"),
+  itRetainedA1Modules.flatMap((module) => module.lessons.map((lesson) => lesson.titleCopyId)),
+);
+const itRetainedA1ObjectiveCopy = retainedA1Copy(
+  a1RuntimeObjectiveCopy("it"),
+  itRetainedA1Modules.flatMap((module) =>
+    module.lessons.flatMap((lesson) => lesson.objectiveCopyIds),
+  ),
+);
+const itRetainedA1OutcomeCopy = retainedA1Copy(
+  a1RuntimeOutcomeCopy("it"),
+  itRetainedA1Modules.flatMap((module) => module.outcomeCopyIds),
+);
 
 export const it = {
   ...itUi,
@@ -452,10 +491,32 @@ export const it = {
   // from — so they're kept from the legacy course copy, still genuinely used
   // by the legacy `spokenAttemptModel`/`TransformComparison`/`GuidedToolLink`
   // consumers. `journeyScenes` has no shipped content in either pipeline.
-  modules: { ...a1RuntimeModuleCopy("it"), ...a2RuntimeModuleCopy("it") },
-  lessons: { ...a1RuntimeLessonCopy("it"), ...a2RuntimeLessonCopy("it") },
-  objectives: { ...a1RuntimeObjectiveCopy("it"), ...a2RuntimeObjectiveCopy("it") },
-  outcomes: { ...a1RuntimeOutcomeCopy("it"), ...a2RuntimeOutcomeCopy("it") },
+  // Base deliberately wins only for the reviewed stable rehomes; the merge
+  // helper throws for every other navigation-copy collision.
+  modules: mergeBaseNavigationDictionary(
+    "modules",
+    itRetainedA1ModuleCopy,
+    a2RuntimeModuleCopy("it"),
+    baseNavigationCopyIt.modules,
+  ),
+  lessons: mergeBaseNavigationDictionary(
+    "lessons",
+    itRetainedA1LessonCopy,
+    a2RuntimeLessonCopy("it"),
+    baseNavigationCopyIt.lessons,
+  ),
+  objectives: mergeBaseNavigationDictionary(
+    "objectives",
+    itRetainedA1ObjectiveCopy,
+    a2RuntimeObjectiveCopy("it"),
+    baseNavigationCopyIt.objectives,
+  ),
+  outcomes: mergeBaseNavigationDictionary(
+    "outcomes",
+    itRetainedA1OutcomeCopy,
+    a2RuntimeOutcomeCopy("it"),
+    baseNavigationCopyIt.outcomes,
+  ),
   blocks: assembledCourseCopy.it.blocks,
   examples: assembledCourseCopy.it.examples,
   journeyScenes: {} as CourseCopy["journeyScenes"],

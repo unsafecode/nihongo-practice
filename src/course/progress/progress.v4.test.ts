@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { lessonPlans } from "../catalog/lessonPlans";
 import { courseModules as legacyAssembledCourseModules } from "../catalog/assembleCourse";
-import { courseModulesByLevel } from "../data/course";
+import { courseModulesByLevel, legacyA1CourseModules } from "../data/course";
 import { getLessonExercises } from "../components/lessonExerciseModel";
 import { A1_LESSON_IDS } from "../a1/manifest";
 import { V4_REHOMED_LESSON_IDS } from "../base/migration/v4OwnershipMap";
@@ -82,7 +82,7 @@ type CatalogSets = {
 function currentCatalogSets(): CatalogSets {
   const knownLessonIdsByLevel = {
     a1: new Set(
-      courseModulesByLevel.a1.flatMap((module) =>
+      legacyA1CourseModules.flatMap((module) =>
         module.lessons.map((lesson) => lesson.id),
       ),
     ),
@@ -159,10 +159,11 @@ describe("A1_V3_PUBLISHED_LESSON_IDS / A1_V3_SAFE_SOURCE_LESSON_IDS / A1_V3_LESS
     });
   });
 
-  it("keeps the current A1 runtime destination catalog at the exact 16-module / 64-lesson manifest shape", () => {
+  it("keeps the active A1 runtime at 11 modules / 44 lessons while V4 retains its legacy source catalog", () => {
     const current = currentCatalogSets();
 
-    expect(courseModulesByLevel.a1).toHaveLength(16);
+    expect(courseModulesByLevel.a1).toHaveLength(11);
+    expect(courseModulesByLevel.a1.flatMap((module) => module.lessons)).toHaveLength(44);
     expect(current.knownLessonIdsByLevel.a1).toHaveLength(64);
     expect([...current.knownLessonIdsByLevel.a1].sort()).toEqual(
       [...A1_LESSON_IDS].sort(),

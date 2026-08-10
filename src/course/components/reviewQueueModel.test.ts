@@ -6,7 +6,7 @@ import { getLessonExercises } from "./lessonExerciseModel";
 import { buildReviewQueueView } from "./reviewQueueModel";
 import { a1FoundationCatalogs } from "../a1/catalog/catalog";
 import { a1LessonContentById } from "../a1/curriculum/catalog";
-import { courseModulesByLevel } from "../data/course";
+import { legacyA1CourseModules } from "../data/course";
 import { validateReviewRetrievalPair } from "../a1/curriculum/validateA1Curriculum";
 
 /**
@@ -200,7 +200,7 @@ describe("buildReviewQueueView — empty and populated", () => {
     });
 
     it("finds a safe generated alternate for every semantic and phonetic A1 source", () => {
-      const lessonIds = courseModulesByLevel.a1.flatMap((module) =>
+      const lessonIds = legacyA1CourseModules.flatMap((module) =>
         module.lessons.map((lesson) => lesson.id),
       );
       expect(lessonIds).toHaveLength(64);
@@ -234,7 +234,7 @@ describe("buildReviewQueueView — empty and populated", () => {
     });
 
     it("finds safe alternates for all 256 legacy-shaped A1 entries without rewriting stored evidence", () => {
-      const lessonIds = courseModulesByLevel.a1.flatMap((module) =>
+      const lessonIds = legacyA1CourseModules.flatMap((module) =>
         module.lessons.map((lesson) => lesson.id),
       );
       const sources = lessonIds.flatMap((lessonId) =>

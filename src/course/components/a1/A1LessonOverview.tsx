@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { Link } from "react-router";
 import { lessonPath } from "../../../routing/routePaths";
-import { courseModulesByLevel } from "../../data/course";
+import { legacyA1CourseModules } from "../../data/course";
 import type { A1CurriculumViewModel } from "../../a1/curriculum/buildA1CurriculumViewModel";
 import type { CourseCopy } from "../../i18n/types";
 
@@ -11,7 +11,7 @@ export interface A1LessonOverviewProps {
 }
 
 function prerequisitePath(lessonId: string): string | null {
-  const module = courseModulesByLevel.a1.find((courseModule) =>
+  const module = legacyA1CourseModules.find((courseModule) =>
     courseModule.lessons.some((lesson) => lesson.id === lessonId),
   );
   return module ? lessonPath(module.id, lessonId) : null;

@@ -8,7 +8,7 @@ import { reviewRetrievalConceptIds } from "../a1/curriculum/lessonContentHelpers
 import type { A1PracticeFunction } from "../a1/curriculum/types";
 import { a2FoundationCatalogs } from "../a2/catalog/catalog";
 import { buildA2FoundationViewModel } from "../a2/view/buildA2LessonViewModel";
-import { courseModulesByLevel } from "../data/course";
+import { courseModulesByLevel, legacyA1CourseModules } from "../data/course";
 import type { ExercisePrompt } from "../exercises/types";
 import type {
   FoundationLessonViewModel,
@@ -265,7 +265,7 @@ function buildModel(lessonId: string): LessonExercisesModel {
 }
 
 const allCourseLessonIds = [
-  ...courseModulesByLevel.a1,
+  ...legacyA1CourseModules,
   ...courseModulesByLevel.a2,
 ].flatMap((courseModule) => courseModule.lessons.map((lesson) => lesson.id));
 

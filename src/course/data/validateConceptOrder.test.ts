@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CourseConceptId, PhaseId } from "./types";
-import { courseModules } from "./course";
+import { legacyA1CourseModules as courseModules } from "./course";
 import { validateConceptOrder } from "./validate";
 
 /**

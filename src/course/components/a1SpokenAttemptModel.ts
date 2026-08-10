@@ -6,7 +6,7 @@ import {
   module1ItemsByLesson,
   type A1PhoneticItem,
 } from "../a1/catalog/module01Sounds";
-import { courseModules } from "../data/course";
+import { legacyA1CourseModules as courseModules } from "../data/course";
 import { getCourseCopy } from "../i18n/catalog";
 import { normalizeTranscript } from "../speech/normalizeTranscript";
 import type { ResolvedSpeechPrompt } from "../speech/types";

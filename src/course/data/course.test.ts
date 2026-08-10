@@ -1,51 +1,61 @@
 import { describe, expect, it } from "vitest";
-import { A1_LESSON_IDS, A1_MODULE_IDS, A1_MODULE_MANIFEST } from "../a1/manifest";
-import { A1_AREAS } from "../a1/areas";
+import {
+  A1_RETAINED_LESSON_IDS,
+  A1_RETAINED_LESSON_IDS_BY_MODULE,
+  A1_RETAINED_MODULE_IDS,
+  A1_MODULE_MANIFEST,
+} from "../a1/manifest";
 import { a1CanDoById } from "../a1/catalog/canDos";
 import { semanticIconIds } from "../../components/icons/Icon";
 import { A2_LESSON_IDS, A2_MODULE_IDS, A2_MODULE_MANIFEST } from "../a2/manifest";
 import { a2CanDosAuthored } from "../a2/catalog/catalog";
-import { courseModules, courseModulesByLevel } from "./course";
+import { BASE_LESSON_IDS, BASE_MODULE_IDS, BASE_MODULE_MANIFEST } from "../base/manifest";
+import {
+  a1RetainedAreas,
+  baseCourseModules,
+  courseModules,
+  courseModulesByLevel,
+} from "./course";
 
 /**
  * The runtime course source (Phase 2 Task 6, design spec §5/§6/§17): once the
  * A1 release catalog is validated, `courseModules` derives from it directly —
- * exactly 16 modules / 64 lessons with stable manifest ids, never a partial or
- * legacy A0→A1 assembly.
+ * exactly 11 retained modules / 44 lessons with stable manifest ids. Rehomed
+ * Base modules are active only at `courseModulesByLevel.a0`.
  */
-describe("courseModules — A1 runtime source", () => {
-  it("assigns every A1 module to its explicit canonical course area", () => {
+describe("courseModules — retained A1 runtime source", () => {
+  it("assigns every retained A1 module to a nonempty filtered authored area", () => {
     expect(
       courseModules.map((courseModule) => ({
         id: courseModule.id,
         areaId: Reflect.get(courseModule, "areaId"),
       })),
     ).toEqual(
-      A1_AREAS.flatMap((area) =>
+      a1RetainedAreas.flatMap((area) =>
         area.moduleIds.map((id) => ({ id, areaId: area.id })),
       ),
     );
   });
 
-  it("publishes exactly 16 modules and 64 lessons with stable manifest ids", () => {
-    expect(courseModules).toHaveLength(16);
+  it("publishes exactly 11 modules and 44 lessons with stable retained manifest ids", () => {
+    expect(courseModules).toHaveLength(11);
     const lessonIds = courseModules.flatMap((m) => m.lessons.map((l) => l.id));
-    expect(lessonIds).toHaveLength(64);
-    expect(new Set(lessonIds).size).toBe(64);
-    expect(courseModules.map((m) => m.id)).toEqual([...A1_MODULE_IDS]);
-    expect(lessonIds.sort()).toEqual([...A1_LESSON_IDS].sort());
+    expect(lessonIds).toHaveLength(44);
+    expect(new Set(lessonIds).size).toBe(44);
+    expect(courseModules.map((m) => m.id)).toEqual([...A1_RETAINED_MODULE_IDS]);
+    expect(lessonIds.sort()).toEqual([...A1_RETAINED_LESSON_IDS].sort());
   });
 
-  it("orders modules 1 through 16 matching the manifest", () => {
-    expect(courseModules.map((m) => m.order)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-    ]);
+  it("rebases retained modules into runtime order 1 through 11", () => {
+    expect(courseModules.map((m) => m.order)).toEqual(
+      Array.from({ length: 11 }, (_, index) => index + 1),
+    );
   });
 
   it("gives every module exactly 4 lessons in manifest order", () => {
     for (const courseModule of courseModules) {
       expect(courseModule.lessons.map((l) => l.id)).toEqual([
-        ...A1_MODULE_MANIFEST[courseModule.id].lessonIds,
+        ...(A1_RETAINED_LESSON_IDS_BY_MODULE[courseModule.id] ?? []),
       ]);
     }
   });
@@ -66,7 +76,9 @@ describe("courseModules — A1 runtime source", () => {
     const orderById = new Map(courseModules.map((m) => [m.id, m.order]));
     for (const courseModule of courseModules) {
       expect(courseModule.prerequisiteIds).toEqual(
-        A1_MODULE_MANIFEST[courseModule.id].prerequisiteIds,
+        A1_MODULE_MANIFEST[courseModule.id].prerequisiteIds.filter((id) =>
+          A1_RETAINED_MODULE_IDS.includes(id),
+        ),
       );
       for (const prerequisiteId of courseModule.prerequisiteIds) {
         expect(orderById.get(prerequisiteId)).toBeLessThan(courseModule.order);
@@ -74,17 +86,41 @@ describe("courseModules — A1 runtime source", () => {
     }
   });
 
-  it("gives every module a valid semantic icon id and reuses the Foundations icons intentionally", () => {
+  it("gives every retained module a valid semantic icon id", () => {
     for (const courseModule of courseModules) {
       expect(semanticIconIds).toContain(courseModule.iconId);
     }
     expect(
       Object.fromEntries(courseModules.map((courseModule) => [courseModule.id, courseModule.iconId])),
     ).toMatchObject({
-      "sentence-foundations": "sentence",
-      "topic-questions": "questions",
-      "polite-verbs": "ordering",
-      "time-movement": "time",
+      introductions: "identity",
+      "essential-questions": "questions",
+      capstones: "capstone",
+    });
+
+    describe("courseModulesByLevel.a0 — Base runtime source", () => {
+      it("publishes exactly the Base manifest's 10 modules and 40 lessons", () => {
+        expect(courseModulesByLevel.a0).toBe(baseCourseModules);
+        expect(baseCourseModules.map((module) => module.id)).toEqual([...BASE_MODULE_IDS]);
+        expect(baseCourseModules.flatMap((module) => module.lessons)).toHaveLength(40);
+        expect(
+          baseCourseModules.flatMap((module) => module.lessons.map((lesson) => lesson.id)),
+        ).toEqual([...BASE_LESSON_IDS]);
+      });
+
+      it("uses manifest order, prerequisites, outcomes, and authored Can-do descriptors", () => {
+        for (const module of baseCourseModules) {
+          const manifest = BASE_MODULE_MANIFEST[module.id];
+          expect(module.order).toBe(manifest.order);
+          expect(module.prerequisiteIds).toEqual(manifest.prerequisiteIds);
+          expect(module.outcomeCopyIds).toEqual([manifest.outcomeCopyId]);
+          expect(module.lessons).toHaveLength(4);
+          for (const lesson of module.lessons) {
+            expect(lesson.titleCopyId).toBe(lesson.id);
+            expect(lesson.objectiveCopyIds).toHaveLength(1);
+          }
+        }
+      });
     });
   });
 

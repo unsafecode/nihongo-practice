@@ -88,15 +88,10 @@ describe("LessonPage — A1 vocabulary-first section dispatcher", () => {
     expect(html.match(/class="lesson-rail-mobile__step"/g)).toHaveLength(6);
   });
 
-  it("uses the same six anchors for a phonetic lesson, with its sound note and fifth spoken activity", () => {
+  it("does not claim that the intermediate Base route renders deep phonetic content", () => {
     const html = render(PHONETIC_A1_LESSON);
-    expect(html.match(/class="lesson-section lesson-section-anchor"/g)).toHaveLength(
-      6,
-    );
-    expect(html).toContain('data-note-kind="phonetic"');
-    expect(html).toContain('class="a1-vocabulary"');
-    expect(html.match(/class="lesson-exercise"/g)).toHaveLength(4);
-    expect(html.match(/class="spoken-attempt"/g)).toHaveLength(1);
+    expect(html).not.toContain('class="lesson-section lesson-section-anchor"');
+    expect(html).not.toContain('data-note-kind="phonetic"');
   });
 });
 

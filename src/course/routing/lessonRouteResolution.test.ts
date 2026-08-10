@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { lessonPath } from "../../routing/routePaths";
 import { A1_LESSON_IDS, A1_MODULE_IDS } from "../a1/manifest";
-import { courseModules } from "../data/course";
+import { legacyA1CourseModules as courseModules } from "../data/course";
 import type { CourseModule, Lesson, LessonSections } from "../data/types";
 import {
   isLegacyConsolidatedRedirectState,

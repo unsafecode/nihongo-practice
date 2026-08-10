@@ -22,7 +22,7 @@ import {
   resetStoredProgress,
   STORAGE_KEY,
 } from "./ProgressContext";
-import { courseModules } from "../data/course";
+import { legacyA1CourseModules as courseModules } from "../data/course";
 
 function memoryStorage(): Storage {
   const values = new Map<string, string>();

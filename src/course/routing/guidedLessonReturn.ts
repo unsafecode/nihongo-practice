@@ -33,7 +33,7 @@ import type {
 import { lessonPath } from "../../routing/routePaths";
 import type { RouteTarget } from "../../routing/routeTarget";
 import type { CourseModule } from "../data/types";
-import { courseModules } from "../data/course";
+import { legacyA1CourseModules as courseModules } from "../data/course";
 import { resolveLessonRoute } from "./lessonRouteResolution";
 
 const COURSE_LESSON_PREFIX_SEGMENT = "percorso";

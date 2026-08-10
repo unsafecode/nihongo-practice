@@ -13,7 +13,7 @@ import {
   A1_LESSON_MANIFEST,
 } from "../manifest";
 import { buildA1PracticeModel } from "../../components/a1PracticeModel";
-import { courseModulesByLevel } from "../../data/course";
+import { legacyA1CourseModules } from "../../data/course";
 import {
   a1LessonContentById,
   a1LessonContents,
@@ -40,7 +40,7 @@ function productionVocabularySequence(): readonly Readonly<{
   usedLexemeIds: readonly string[];
   introducedLexemeIds: readonly string[];
 }>[] {
-  return courseModulesByLevel.a1.flatMap((module) => module.lessons).map((lesson) => {
+  return legacyA1CourseModules.flatMap((module) => module.lessons).map((lesson) => {
     const view = buildA1CurriculumViewModel(lesson.id, "en");
     if (!view.ok) throw new Error(`expected production view for ${lesson.id}`);
     const usedLexemeIds = view.model.vocabulary.map((entry) => entry.id);
