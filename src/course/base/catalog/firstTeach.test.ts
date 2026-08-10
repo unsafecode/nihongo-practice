@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import * as conceptsCatalog from "./concepts";
 import { BASE_CONCEPT_BY_ID, BASE_CONCEPTS } from "./concepts";
 import {
   defineBaseLessonContent,
@@ -196,6 +197,45 @@ describe("Base first-teach ownership", () => {
     expect(BASE_CONCEPT_BY_ID.get("affirmative-desu")?.firstTeachLessonId).toBe(
       "sentence-foundations-3",
     );
+  });
+
+  it("publishes immutable canonical retrieval systems without localized text", () => {
+    const systems = (
+      conceptsCatalog as Readonly<Record<string, unknown>>
+    ).BASE_RETRIEVAL_SYSTEMS as
+      | readonly {
+          readonly id: string;
+          readonly firstTeachLessonId: string;
+          readonly componentContentIds: readonly string[];
+        }[]
+      | undefined;
+    const index = (
+      conceptsCatalog as Readonly<Record<string, unknown>>
+    ).BASE_RETRIEVAL_SYSTEM_BY_ID as
+      | ReadonlyMap<string, { readonly id: string }>
+      | undefined;
+
+    expect(systems).toBeDefined();
+    expect(index).toBeDefined();
+    expect(Object.isFrozen(systems)).toBe(true);
+    expect(
+      systems?.map((system) => system.id),
+    ).toEqual(
+      expect.arrayContaining([
+        "sentence-anatomy",
+        "particle-atlas",
+        "verb-classes-conjugation",
+        "tense-polarity",
+        "adjective-copula",
+        "existence-location",
+        "bounded-te",
+      ]),
+    );
+    expect(systems?.every((system) => system.componentContentIds.length > 0)).toBe(
+      true,
+    );
+    expect(index?.get("bounded-te")?.id).toBe("bounded-te");
+    expect(index && "set" in index).toBe(false);
   });
 
   it("keeps critical particle, verb, time, adjective, and existence owners at their first lesson", () => {

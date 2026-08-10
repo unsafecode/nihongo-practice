@@ -72,6 +72,11 @@ export type BaseParticleFrameError =
       readonly predicateSenseId: string;
       readonly role: BaseParticleRole;
       readonly particleSense: BaseParticleSense;
+    }>
+  | Readonly<{
+      readonly code: "invalid-particle-frame";
+      readonly predicateSenseId: string;
+      readonly role?: BaseParticleRole;
     }>;
 
 export type BaseParticleFrameResult =
@@ -224,10 +229,23 @@ export const BASE_PARTICLE_FRAME_BY_PREDICATE: ReadonlyMap<
   BASE_PREDICATE_PARTICLE_FRAMES.map((frame) => [frame.id, frame]),
 );
 
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
 export function validateParticleFrame(
-  predicateSenseId: string,
-  provided: Readonly<Partial<Record<BaseParticleRole, BaseParticleSense>>>,
+  predicateSenseId: unknown,
+  provided: unknown,
 ): BaseParticleFrameResult {
+  if (typeof predicateSenseId !== "string") {
+    const errors: readonly BaseParticleFrameError[] = Object.freeze([
+      { code: "invalid-particle-frame", predicateSenseId: "" },
+    ]);
+    return Object.freeze({
+      ok: false as const,
+      errors,
+    });
+  }
   const frame = BASE_PARTICLE_FRAME_BY_PREDICATE.get(
     predicateSenseId as BasePredicateSenseId,
   );
@@ -242,24 +260,37 @@ export function validateParticleFrame(
   }
 
   const errors: BaseParticleFrameError[] = [];
+  if (!isRecord(provided)) {
+    errors.push({ code: "invalid-particle-frame", predicateSenseId });
+    return Object.freeze({ ok: false, errors: deepFreeze(errors) });
+  }
   for (const role of frame.requiredRoles) {
-    if (!provided[role]) {
+    if (typeof provided[role] !== "string" || provided[role].trim().length === 0) {
       errors.push({ code: "missing-role", predicateSenseId, role });
     }
   }
-  for (const [role, particleSense] of Object.entries(provided) as [
-    BaseParticleRole,
-    BaseParticleSense,
-  ][]) {
-    const allowed = frame.particleSensesByRole[role];
+  for (const [role, particleSense] of Object.entries(provided)) {
+    if (typeof particleSense !== "string" || particleSense.trim().length === 0) {
+      errors.push({
+        code: "invalid-particle-frame",
+        predicateSenseId,
+        role: role as BaseParticleRole,
+      });
+      continue;
+    }
+    const allowed = frame.particleSensesByRole[role as BaseParticleRole];
     if (!allowed) {
-      errors.push({ code: "extra-role", predicateSenseId, role });
-    } else if (!allowed.includes(particleSense)) {
+      errors.push({
+        code: "extra-role",
+        predicateSenseId,
+        role: role as BaseParticleRole,
+      });
+    } else if (!allowed.includes(particleSense as BaseParticleSense)) {
       errors.push({
         code: "unlicensed-particle",
         predicateSenseId,
-        role,
-        particleSense,
+        role: role as BaseParticleRole,
+        particleSense: particleSense as BaseParticleSense,
       });
     }
   }

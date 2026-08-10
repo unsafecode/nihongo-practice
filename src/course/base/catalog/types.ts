@@ -108,21 +108,6 @@ const ACTIVITY_OPERATIONS = new Set<string>([
   ...Object.values(BASE_ACTIVITY_OPERATION_BY_CATEGORY),
   ...BASE_PHONETIC_ACTIVITY_OPERATIONS,
 ]);
-const ROMAJI_TOKEN_KINDS = new Set<string>([
-  "lexical",
-  "particle",
-  "morpheme",
-  "punctuation",
-]);
-const ROMAJI_BOUNDARIES = new Set<string>(["space", "attach"]);
-const TOKEN_SOURCE_DOMAINS = new Set<string>([
-  "catalog",
-  "lab",
-  "exercise",
-  "speech",
-  "test",
-  "family",
-]);
 
 export interface BaseActivityDefinition {
   readonly id: string;
@@ -131,7 +116,6 @@ export interface BaseActivityDefinition {
   readonly mode: BaseActivityMode;
   readonly targetId: string;
   readonly operation: BaseActivityOperation;
-  readonly activityPromptTokens?: readonly AssembledToken[];
   readonly instructionCopyId: string;
   readonly acceptedFeedbackCopyId: string;
   readonly retryFeedbackCopyId: string;
@@ -219,50 +203,82 @@ export type BaseTranslationCopy =
   | Readonly<{ readonly copyId: string }>
   | Readonly<{ readonly enCopyId: string; readonly itCopyId: string }>;
 
-export interface BaseExample {
-  readonly id: string;
+export interface BaseParticleFrame {
+  readonly predicateSenseId: string;
+  readonly provided: Readonly<
+    Partial<Record<BaseParticleRole, BaseParticleSense>>
+  >;
+}
+
+/**
+ * Canonical provenance carried by every learner-visible Japanese target.
+ *
+ * Token source references are useful rendering metadata, but are not
+ * authoritative content ownership records: generated morphemes can carry
+ * non-canonical source IDs. Validators use these explicit fields instead.
+ */
+export interface BaseVisibleTarget {
   readonly tokens: readonly AssembledToken[];
   readonly lexemeIds: readonly string[];
   readonly conceptIds: readonly string[];
   readonly formIds: readonly string[];
   readonly patternCellIds: readonly string[];
   readonly semanticRoleIds: readonly SemanticArgumentRole[];
+  readonly interpretationTags: readonly BaseInterpretationTag[];
+  readonly predicateAspect?: BasePredicateAspect;
+  readonly discourseFrameId?: string;
+  readonly particleFrame?: BaseParticleFrame;
+}
+
+export interface BaseExample extends BaseVisibleTarget {
+  readonly id: string;
   readonly discourseFrameId: string;
   readonly teachingPurposeCopyId: string;
   readonly translationCopy: BaseTranslationCopy;
   readonly predicateAspect: BasePredicateAspect;
-  readonly interpretationTags: readonly BaseInterpretationTag[];
-  readonly particleFrame?: Readonly<{
-    readonly predicateSenseId: string;
-    readonly provided: Readonly<
-      Partial<Record<BaseParticleRole, BaseParticleSense>>
-    >;
-  }>;
 }
 
-export interface BaseDialogueTurn {
+export interface BaseDialogueTurn extends BaseVisibleTarget {
   readonly speakerId: string;
-  readonly tokens: readonly AssembledToken[];
-  readonly lexemeIds: readonly string[];
-  readonly conceptIds: readonly string[];
-  readonly formIds: readonly string[];
-  readonly patternCellIds: readonly string[];
-  readonly semanticRoleIds: readonly SemanticArgumentRole[];
   readonly discourseFrameId: string;
   readonly predicateAspect: BasePredicateAspect;
-  readonly interpretationTags: readonly BaseInterpretationTag[];
-  readonly particleFrame?: Readonly<{
-    readonly predicateSenseId: string;
-    readonly provided: Readonly<
-      Partial<Record<BaseParticleRole, BaseParticleSense>>
-    >;
-  }>;
 }
 
 export interface BaseDialogue {
   readonly id: string;
   readonly practicalOutcomeCopyId: string;
   readonly turns: readonly BaseDialogueTurn[];
+}
+
+function visibleTargetView(source: BaseVisibleTarget): BaseVisibleTarget {
+  return Object.freeze({
+    tokens: source.tokens,
+    lexemeIds: source.lexemeIds,
+    conceptIds: source.conceptIds,
+    formIds: source.formIds,
+    patternCellIds: source.patternCellIds,
+    semanticRoleIds: source.semanticRoleIds,
+    interpretationTags: source.interpretationTags,
+    ...(source.predicateAspect
+      ? { predicateAspect: source.predicateAspect }
+      : {}),
+    ...(source.discourseFrameId
+      ? { discourseFrameId: source.discourseFrameId }
+      : {}),
+    ...(source.particleFrame ? { particleFrame: source.particleFrame } : {}),
+  });
+}
+
+/** Adapts an authored example to the canonical visible-target provenance view. */
+export function baseVisibleTargetForExample(example: BaseExample): BaseVisibleTarget {
+  return visibleTargetView(example);
+}
+
+/** Adapts an authored dialogue turn to the canonical visible-target provenance view. */
+export function baseVisibleTargetForDialogueTurn(
+  turn: BaseDialogueTurn,
+): BaseVisibleTarget {
+  return visibleTargetView(turn);
 }
 
 export interface BaseLexemeCommon {
@@ -326,17 +342,26 @@ export interface BaseConcept {
   readonly firstTeachLessonId: LessonId;
 }
 
+export interface BaseRetrievalSystem {
+  readonly id: string;
+  readonly firstTeachLessonId: LessonId;
+  readonly componentContentIds: readonly string[];
+}
+
 export interface BaseValidationCatalogs {
   readonly lexemes: ReadonlyMap<string, BaseLexeme>;
   readonly concepts: ReadonlyMap<string, BaseConcept>;
   readonly examples: ReadonlyMap<string, BaseExample>;
   readonly dialogues: ReadonlyMap<string, BaseDialogue>;
-  readonly audioTargets: ReadonlyMap<string, readonly AssembledToken[]>;
+  readonly audioTargets: ReadonlyMap<string, BaseVisibleTarget>;
+  readonly acceptedAnswerTargets: ReadonlyMap<string, BaseVisibleTarget>;
+  /** Prompt provenance is keyed by `BaseActivityDefinition.id`. */
+  readonly activityPromptTargets: ReadonlyMap<string, BaseVisibleTarget>;
   readonly copyIds: ReadonlySet<string>;
   readonly contrastMapIds: ReadonlySet<string>;
   readonly referenceSnapshotIds: ReadonlySet<string>;
   readonly patternCellIds: ReadonlySet<string>;
-  readonly acceptedAnswerTokens: ReadonlyMap<string, readonly AssembledToken[]>;
+  readonly systems: ReadonlyMap<string, BaseRetrievalSystem>;
 }
 
 export type BaseLessonContentDefinitionErrorCode =
@@ -388,24 +413,6 @@ function isAllowed(set: ReadonlySet<string>, value: unknown): boolean {
   return typeof value === "string" && set.has(value);
 }
 
-function isTokenArray(value: unknown): value is readonly AssembledToken[] {
-  return (
-    Array.isArray(value) &&
-    value.every(
-      (entry) =>
-        isRecord(entry) &&
-        isNonemptyString(entry.id) &&
-        isNonemptyString(entry.jp) &&
-        isNonemptyString(entry.romaji) &&
-        isAllowed(ROMAJI_TOKEN_KINDS, entry.kind) &&
-        isAllowed(ROMAJI_BOUNDARIES, entry.boundaryBefore) &&
-        isRecord(entry.source) &&
-        isNonemptyString(entry.source.referenceId) &&
-        isAllowed(TOKEN_SOURCE_DOMAINS, entry.source.domain),
-    )
-  );
-}
-
 function hasActivityFields(value: unknown): boolean {
   if (!isRecord(value)) return false;
   return (
@@ -415,8 +422,6 @@ function hasActivityFields(value: unknown): boolean {
     isAllowed(ACTIVITY_MODES, value.mode) &&
     isNonemptyString(value.targetId) &&
     isAllowed(ACTIVITY_OPERATIONS, value.operation) &&
-    (value.activityPromptTokens === undefined ||
-      isTokenArray(value.activityPromptTokens)) &&
     isNonemptyString(value.instructionCopyId) &&
     isNonemptyString(value.acceptedFeedbackCopyId) &&
     isNonemptyString(value.retryFeedbackCopyId) &&

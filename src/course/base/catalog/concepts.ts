@@ -1,6 +1,10 @@
 import { deepFreeze } from "../../foundations/deepFreeze";
 import { immutableReadonlyMap } from "../../foundations/immutableReadonlyMap";
-import type { BaseConcept, BaseConceptKind } from "./types";
+import type {
+  BaseConcept,
+  BaseConceptKind,
+  BaseRetrievalSystem,
+} from "./types";
 
 function concept(
   id: string,
@@ -136,3 +140,84 @@ export const BASE_CONCEPTS: readonly BaseConcept[] = deepFreeze([
 
 export const BASE_CONCEPT_BY_ID: ReadonlyMap<string, BaseConcept> =
   immutableReadonlyMap(BASE_CONCEPTS.map((entry) => [entry.id, entry]));
+
+function retrievalSystem(
+  id: string,
+  firstTeachLessonId: string,
+  componentContentIds: readonly string[],
+): BaseRetrievalSystem {
+  return { id, firstTeachLessonId, componentContentIds };
+}
+
+/**
+ * Canonical cumulative-retrieval systems use only stable content IDs. Locale
+ * copy belongs to authored lessons, never to this catalog.
+ */
+export const BASE_RETRIEVAL_SYSTEMS: readonly BaseRetrievalSystem[] = deepFreeze([
+  retrievalSystem(
+    "sentence-anatomy",
+    "sentence-foundations-2",
+    ["sentence-chunks", "sentence-order", "affirmative-desu", "modifier-before-noun"],
+  ),
+  retrievalSystem(
+    "particle-atlas",
+    "argument-particles-4",
+    [
+      "topic-wa",
+      "focus-subject-ga",
+      "licensed-object-o",
+      "goal-ni",
+      "action-place-de",
+    ],
+  ),
+  retrievalSystem(
+    "verb-classes-conjugation",
+    "polite-verbs-1",
+    [
+      "dictionary-lemma",
+      "godan-verb-class",
+      "ichidan-verb-class",
+      "suru-verb-class",
+      "kuru-verb-class",
+      "polite-stems",
+      "masu-nonpast",
+    ],
+  ),
+  retrievalSystem(
+    "tense-polarity",
+    "time-movement-3",
+    ["dynamic-nonpast-semantics", "four-polite-tense-cells"],
+  ),
+  retrievalSystem(
+    "adjective-copula",
+    "copula-adjectives-3",
+    [
+      "remaining-copula-cells",
+      "i-adjective-tense-polarity",
+      "na-adjective-predicate-and-attributive",
+    ],
+  ),
+  retrievalSystem(
+    "existence-location",
+    "existence-location-2",
+    [
+      "aru-existence",
+      "iru-existence",
+      "existence-location-frame",
+      "existence-location-ni",
+      "existential-subject-ga",
+    ],
+  ),
+  retrievalSystem(
+    "bounded-te",
+    "requests-connection-4",
+    ["te-allomorphy", "te-kudasai", "sequential-te", "te-imasu"],
+  ),
+]);
+
+export const BASE_RETRIEVAL_SYSTEM_BY_ID: ReadonlyMap<
+  string,
+  BaseRetrievalSystem
+> = immutableReadonlyMap(
+  BASE_RETRIEVAL_SYSTEMS.map((system) => [system.id, system]),
+);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AssembledToken } from "../../../romaji/types";
 import type { BaseExample } from "../catalog/types";
+import { validateParticleFrame } from "../forms/particleLicensing";
 import {
   BASE_ACTIVITY_OPERATION_BY_CATEGORY,
   semanticFingerprintFor,
@@ -89,5 +90,51 @@ describe("Base canonical fingerprints", () => {
     expect(visibleSurfaceFingerprint(singleToken.tokens)).toBe("たべます");
     expect(visibleSurfaceFingerprint(segmented.tokens)).toBe("たべます");
     expect(semanticFingerprintFor(singleToken)).toBe(semanticFingerprintFor(segmented));
+  });
+
+  it("filters explicit undefined particle values deterministically and rejects the malformed frame", () => {
+    const malformed = example({
+      particleFrame: {
+        predicateSenseId: "eat",
+        provided: { theme: undefined },
+      },
+    });
+    const missing = example({
+      particleFrame: {
+        predicateSenseId: "eat",
+        provided: {},
+      },
+    });
+
+    expect(() => semanticFingerprintFor(malformed)).not.toThrow();
+    expect(semanticFingerprintFor(malformed)).toBe(semanticFingerprintFor(missing));
+    expect(
+      validateParticleFrame("eat", { theme: undefined }),
+    ).toEqual(
+      expect.objectContaining({
+        ok: false,
+        errors: expect.arrayContaining([
+          expect.objectContaining({ code: "missing-role", role: "theme" }),
+          expect.objectContaining({ code: "invalid-particle-frame", role: "theme" }),
+        ]),
+      }),
+    );
+  });
+
+  it("fails closed when fingerprint input carries nullish runtime metadata", () => {
+    const emptyTarget = {
+      tokens: [],
+      lexemeIds: [],
+      conceptIds: [],
+      formIds: [],
+      patternCellIds: [],
+      semanticRoleIds: [],
+      interpretationTags: [],
+    } as unknown as BaseExample;
+
+    expect(() => semanticFingerprintFor(null as unknown as BaseExample)).not.toThrow();
+    expect(semanticFingerprintFor(null as unknown as BaseExample)).toBe(
+      semanticFingerprintFor(emptyTarget),
+    );
   });
 });

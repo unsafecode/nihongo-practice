@@ -1,18 +1,27 @@
 import { deepFreeze } from "../../foundations/deepFreeze";
-import { BASE_LESSON_MANIFEST } from "../manifest";
+import {
+  BASE_CANONICAL_POSITIONS,
+  BASE_LESSON_MANIFEST,
+} from "../manifest";
 import {
   firstTeachOwnerKey,
   firstTeachLessonPosition,
   validateFirstTeachOwners,
   type FirstTeachOwner,
 } from "../catalog/firstTeach";
-import type {
-  BaseConcept,
-  BaseDialogueTurn,
-  BaseExample,
-  BaseLessonContent,
-  BaseValidationCatalogs,
+import {
+  baseVisibleTargetForDialogueTurn,
+  type BaseConcept,
+  type BaseExample,
+  type BaseLessonContent,
+  type BaseValidationCatalogs,
+  type BaseVisibleTarget,
 } from "../catalog/types";
+import {
+  activityPromptTargetReferenceFor,
+  activityTargetReferenceFor,
+  audioTargetReferenceFor,
+} from "../catalog/visibleTargets";
 import {
   particleSenseFirstTeachContentId,
   validateParticleFrame,
@@ -93,6 +102,82 @@ function isBeforeLesson(lessonId: string, referenceLessonId: string): boolean {
   );
 }
 
+/**
+ * Valid lesson prerequisites always point strictly backward in the canonical
+ * order, so a valid graph cannot contain a cycle. This full-array pass still
+ * reports cycles additively for malformed authoring input.
+ */
+export function validateBaseLessonPrerequisiteGraph(
+  lessons: readonly BaseLessonContent[],
+): readonly BaseValidationError[] {
+  const errors: BaseValidationError[] = [];
+  const push = (
+    lessonId: string,
+    code: BaseValidationErrorCode,
+    referenceId?: string,
+  ): void => {
+    errors.push({
+      code,
+      stage: "sequence",
+      lessonId,
+      ...(referenceId ? { referenceId } : {}),
+    });
+  };
+  const byLessonId = new Map(lessons.map((lesson) => [lesson.lessonId, lesson]));
+
+  for (const lesson of lessons) {
+    const seen = new Set<string>();
+    const lessonPosition = BASE_CANONICAL_POSITIONS[lesson.lessonId];
+    for (const prerequisiteId of lesson.prerequisiteLessonIds) {
+      if (seen.has(prerequisiteId)) {
+        push(lesson.lessonId, "duplicate-prerequisite", prerequisiteId);
+      }
+      seen.add(prerequisiteId);
+      if (prerequisiteId === lesson.lessonId) {
+        push(lesson.lessonId, "self-prerequisite", prerequisiteId);
+      }
+      if (!BASE_LESSON_MANIFEST[prerequisiteId]) {
+        push(lesson.lessonId, "invalid-prerequisite", prerequisiteId);
+        continue;
+      }
+      if (
+        lessonPosition !== undefined &&
+        BASE_CANONICAL_POSITIONS[prerequisiteId] >= lessonPosition
+      ) {
+        push(lesson.lessonId, "future-prerequisite", prerequisiteId);
+      }
+    }
+  }
+
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+  const path: string[] = [];
+  const cycleLessonIds = new Set<string>();
+  const visit = (lessonId: string): void => {
+    if (visiting.has(lessonId)) {
+      const start = path.indexOf(lessonId);
+      path.slice(start).forEach((id) => cycleLessonIds.add(id));
+      return;
+    }
+    if (visited.has(lessonId)) return;
+    const lesson = byLessonId.get(lessonId);
+    if (!lesson) return;
+    visiting.add(lessonId);
+    path.push(lessonId);
+    for (const prerequisiteId of lesson.prerequisiteLessonIds) {
+      if (byLessonId.has(prerequisiteId)) visit(prerequisiteId);
+    }
+    path.pop();
+    visiting.delete(lessonId);
+    visited.add(lessonId);
+  };
+  for (const lesson of lessons) visit(lesson.lessonId);
+  for (const lessonId of cycleLessonIds) {
+    push(lessonId, "lesson-prerequisite-cycle", lessonId);
+  }
+  return deepFreeze(errors);
+}
+
 export function validateFirstTeachOrder(
   lessons: readonly BaseLessonContent[],
   owners: readonly FirstTeachOwner[],
@@ -149,7 +234,7 @@ export function validateFirstTeachOrder(
   };
   const validateSentence = (
     lesson: BaseLessonContent,
-    sentence: BaseExample | BaseDialogueTurn,
+    sentence: BaseVisibleTarget,
     referenceId: string,
     sourceLabel?: string,
   ): void => {
@@ -205,9 +290,16 @@ export function validateFirstTeachOrder(
       push(lesson.lessonId, "dynamic-nonpast-ongoing-now", referenceId);
     }
     if (sentence.particleFrame) {
-      for (const particleSense of Object.values(sentence.particleFrame.provided)) {
-        if (particleSense) {
-          validateParticleSenseOwner(lesson, particleSense, sourceLabel);
+      const provided = sentence.particleFrame.provided;
+      if (
+        provided !== null &&
+        typeof provided === "object" &&
+        !Array.isArray(provided)
+      ) {
+        for (const particleSense of Object.values(provided)) {
+          if (typeof particleSense === "string") {
+            validateParticleSenseOwner(lesson, particleSense, sourceLabel);
+          }
         }
       }
       const frame = validateParticleFrame(
@@ -218,7 +310,9 @@ export function validateFirstTeachOrder(
         for (const error of frame.errors) {
           push(
             lesson.lessonId,
-            "unlicensed-particle",
+            error.code === "unlicensed-particle"
+              ? "unlicensed-particle"
+              : "invalid-particle-frame",
             referenceId,
             error.code,
           );
@@ -246,6 +340,19 @@ export function validateFirstTeachOrder(
           `activity assessment:${activity.id}`,
         );
       }
+      const promptTarget = activityPromptTargetReferenceFor(activity, catalogs);
+      if (promptTarget) {
+        validateSentence(
+          lesson,
+          promptTarget.target,
+          promptTarget.referenceId,
+          promptTarget.label,
+        );
+      }
+      const target = activityTargetReferenceFor(activity, catalogs);
+      if (target && target.source !== "example") {
+        validateSentence(lesson, target.target, target.referenceId, target.label);
+      }
     }
     for (const reference of canonicalExamplesFor(lesson, catalogs)) {
       validateSentence(
@@ -254,6 +361,15 @@ export function validateFirstTeachOrder(
         reference.referenceId,
         reference.sourceLabel,
       );
+    }
+
+    if (lesson.contract === "phonetic") {
+      for (const audioExemplarId of lesson.audioExemplarIds) {
+        const target = audioTargetReferenceFor(audioExemplarId, catalogs);
+        if (target) {
+          validateSentence(lesson, target.target, target.referenceId, target.label);
+        }
+      }
     }
 
     if (lesson.contract === "phonetic") continue;
@@ -296,7 +412,11 @@ export function validateFirstTeachOrder(
       const dialogue = catalogs.dialogues.get(lesson.dialogueId);
       if (dialogue) {
         for (const [index, turn] of dialogue.turns.entries()) {
-          validateSentence(lesson, turn, `${dialogue.id}:${index}`);
+          validateSentence(
+            lesson,
+            baseVisibleTargetForDialogueTurn(turn),
+            `${dialogue.id}:${index}`,
+          );
         }
       }
     }
@@ -345,19 +465,11 @@ export function visibleJapaneseFor(
     emitted.add(key);
     surfaces.push(tokensJapanese(tokens));
   };
-  const appendActivityTarget = (targetId: string): void => {
-    const example = catalogs.examples.get(targetId);
-    if (example) {
-      append(`example:${example.id}`, example.tokens);
-      return;
-    }
-    const acceptedAnswer = catalogs.acceptedAnswerTokens.get(targetId);
-    if (acceptedAnswer) {
-      append(`accepted-answer:${targetId}`, acceptedAnswer);
-      return;
-    }
-    const audioTarget = catalogs.audioTargets.get(targetId);
-    if (audioTarget) append(`audio:${targetId}`, audioTarget);
+  const appendActivityTarget = (
+    activity: BaseLessonContent["activities"][number],
+  ): void => {
+    const target = activityTargetReferenceFor(activity, catalogs);
+    if (target) append(`${target.source}:${target.referenceId}`, target.target.tokens);
   };
   for (const lesson of lessons) {
     if (lesson.contract !== "phonetic") {
@@ -374,15 +486,19 @@ export function visibleJapaneseFor(
       }
     }
     for (const activity of lesson.activities) {
-      if (activity.activityPromptTokens) {
-        append(`activity-prompt:${lesson.lessonId}:${activity.id}`, activity.activityPromptTokens);
+      const promptTarget = activityPromptTargetReferenceFor(activity, catalogs);
+      if (promptTarget) {
+        append(
+          `activity-prompt:${lesson.lessonId}:${activity.id}`,
+          promptTarget.target.tokens,
+        );
       }
-      appendActivityTarget(activity.targetId);
+      appendActivityTarget(activity);
     }
     if (lesson.contract === "phonetic") {
       for (const audioExemplarId of lesson.audioExemplarIds) {
-        const audioTarget = catalogs.audioTargets.get(audioExemplarId);
-        if (audioTarget) append(`audio:${audioExemplarId}`, audioTarget);
+        const audioTarget = audioTargetReferenceFor(audioExemplarId, catalogs);
+        if (audioTarget) append(`audio:${audioExemplarId}`, audioTarget.target.tokens);
       }
     }
   }

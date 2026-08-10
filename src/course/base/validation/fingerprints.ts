@@ -1,33 +1,14 @@
 import type { AssembledToken } from "../../../romaji/types";
 import {
   type BaseActivityDefinition,
-  type BaseDialogueTurn,
-  type BaseExample,
   type BaseValidationCatalogs,
+  type BaseVisibleTarget,
 } from "../catalog/types";
+import { activityTargetReferenceFor } from "../catalog/visibleTargets";
 
 export { BASE_ACTIVITY_OPERATION_BY_CATEGORY } from "../catalog/types";
 
-type SemanticFingerprintSubject = Pick<
-  BaseExample | BaseDialogueTurn,
-  | "tokens"
-  | "formIds"
-  | "semanticRoleIds"
-  | "discourseFrameId"
-  | "predicateAspect"
-  | "interpretationTags"
-  | "particleFrame"
->;
-
-interface CanonicalTargetMetadata {
-  readonly tokens: readonly AssembledToken[];
-  readonly formIds: readonly string[];
-  readonly semanticRoleIds: readonly string[];
-  readonly discourseFrameId: string | null;
-  readonly predicateAspect: string | null;
-  readonly interpretationTags: readonly string[];
-  readonly particleFrame: SemanticFingerprintSubject["particleFrame"] | null;
-}
+type SemanticFingerprintSubject = BaseVisibleTarget;
 
 export type ActivityFingerprintResolution =
   | Readonly<{ readonly ok: true; readonly fingerprint: string }>
@@ -39,26 +20,56 @@ export type ActivityFingerprintResolution =
       }>;
     }>;
 
-function normalizeText(value: string): string {
-  return value.normalize("NFKC").replace(/\s+/gu, " ").trim();
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function sortedNormalized(values: readonly string[]): readonly string[] {
-  return [...new Set(values.map(normalizeText))].sort();
+function normalizeText(value: unknown): string {
+  return typeof value === "string"
+    ? value.normalize("NFKC").replace(/\s+/gu, " ").trim()
+    : "";
+}
+
+function normalizedOptionalText(value: unknown): string | null {
+  const normalized = normalizeText(value);
+  return normalized.length > 0 ? normalized : null;
+}
+
+function sortedNormalized(values: unknown): readonly string[] {
+  if (!Array.isArray(values)) return [];
+  return [
+    ...new Set(
+      values
+        .filter((value): value is string => typeof value === "string")
+        .map(normalizeText)
+        .filter((value) => value.length > 0),
+    ),
+  ].sort();
 }
 
 function normalizedParticleFrame(
-  particleFrame: SemanticFingerprintSubject["particleFrame"] | null | undefined,
+  particleFrame: unknown,
 ): Readonly<{
   readonly predicateSenseId: string;
   readonly provided: readonly (readonly [string, string])[];
 }> | null {
-  if (!particleFrame) return null;
+  if (!isRecord(particleFrame)) return null;
+  const provided = isRecord(particleFrame.provided)
+    ? Object.entries(particleFrame.provided)
+        .filter(
+          (entry): entry is [string, string] =>
+            typeof entry[0] === "string" && typeof entry[1] === "string",
+        )
+        .map(
+          ([role, sense]) =>
+            [normalizeText(role), normalizeText(sense)] as const,
+        )
+        .filter(([, sense]) => sense.length > 0)
+        .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+    : [];
   return {
     predicateSenseId: normalizeText(particleFrame.predicateSenseId),
-    provided: Object.entries(particleFrame.provided)
-      .map(([role, sense]) => [normalizeText(role), normalizeText(sense)] as const)
-      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0)),
+    provided,
   };
 }
 
@@ -67,77 +78,43 @@ function normalizedParticleFrame(
  * boundaries, segmentation, and romaji/copy metadata cannot affect it.
  */
 export function visibleSurfaceFingerprint(
-  tokens: readonly AssembledToken[],
+  tokens: readonly AssembledToken[] | unknown,
 ): string {
+  if (!Array.isArray(tokens)) return "";
   return tokens
-    .map((token) => token.jp)
+    .map((token) => (isRecord(token) ? normalizeText(token.jp) : ""))
     .join("")
     .normalize("NFKC")
     .replace(/\s+/gu, " ")
     .trim();
 }
 
-export function canonicalTokenSequence(tokens: readonly AssembledToken[]): string {
+export function canonicalTokenSequence(tokens: readonly AssembledToken[] | unknown): string {
   return visibleSurfaceFingerprint(tokens);
 }
 
-function semanticPayload(input: SemanticFingerprintSubject): Readonly<Record<string, unknown>> {
+function semanticPayload(input: SemanticFingerprintSubject | unknown): Readonly<Record<string, unknown>> {
+  const target = isRecord(input) ? input : {};
   return {
-    tokens: canonicalTokenSequence(input.tokens),
-    formIds: sortedNormalized(input.formIds),
-    semanticRoleIds: sortedNormalized(input.semanticRoleIds),
-    discourseFrameId: normalizeText(input.discourseFrameId),
-    predicateAspect: normalizeText(input.predicateAspect),
-    interpretationTags: sortedNormalized(input.interpretationTags),
-    particleFrame: normalizedParticleFrame(input.particleFrame),
+    tokens: canonicalTokenSequence(target.tokens),
+    formIds: sortedNormalized(target.formIds),
+    semanticRoleIds: sortedNormalized(target.semanticRoleIds),
+    discourseFrameId: normalizedOptionalText(target.discourseFrameId),
+    predicateAspect: normalizedOptionalText(target.predicateAspect),
+    interpretationTags: sortedNormalized(target.interpretationTags),
+    particleFrame: normalizedParticleFrame(target.particleFrame),
   };
 }
 
-export function semanticFingerprintFor(input: SemanticFingerprintSubject): string {
+export function semanticFingerprintFor(input: SemanticFingerprintSubject | unknown): string {
   return `base-semantic-v1:${JSON.stringify(semanticPayload(input))}`;
 }
 
 function targetMetadataFor(
   activity: BaseActivityDefinition,
   catalogs: BaseValidationCatalogs,
-): CanonicalTargetMetadata | undefined {
-  const example = catalogs.examples.get(activity.targetId);
-  if (example) {
-    return {
-      tokens: example.tokens,
-      formIds: example.formIds,
-      semanticRoleIds: example.semanticRoleIds,
-      discourseFrameId: example.discourseFrameId,
-      predicateAspect: example.predicateAspect,
-      interpretationTags: example.interpretationTags,
-      particleFrame: example.particleFrame,
-    };
-  }
-  const acceptedAnswer = catalogs.acceptedAnswerTokens.get(activity.targetId);
-  if (acceptedAnswer) {
-    return {
-      tokens: acceptedAnswer,
-      formIds: [],
-      semanticRoleIds: [],
-      discourseFrameId: null,
-      predicateAspect: null,
-      interpretationTags: [],
-      particleFrame: null,
-    };
-  }
-  const audioTarget = catalogs.audioTargets.get(activity.targetId);
-  if (audioTarget) {
-    return {
-      tokens: audioTarget,
-      formIds: [],
-      semanticRoleIds: [],
-      discourseFrameId: null,
-      predicateAspect: null,
-      interpretationTags: [],
-      particleFrame: null,
-    };
-  }
-  return undefined;
+): BaseVisibleTarget | undefined {
+  return activityTargetReferenceFor(activity, catalogs)?.target;
 }
 
 export function activityTargetVisibleSurfaceFor(
@@ -167,14 +144,15 @@ export function activityTargetOperationFingerprintFor(
     fingerprint: `base-activity-target-v1:${JSON.stringify({
       operation: activity.operation,
       tokens: canonicalTokenSequence(target.tokens),
+      targetLexemeIds: sortedNormalized(target.lexemeIds),
+      targetConceptIds: sortedNormalized(target.conceptIds),
       assessedConceptIds: sortedNormalized(activity.assessedConceptIds),
       assessedLexemeIds: sortedNormalized(activity.assessedLexemeIds),
       targetFormIds: sortedNormalized(target.formIds),
+      targetPatternCellIds: sortedNormalized(target.patternCellIds),
       targetSemanticRoleIds: sortedNormalized(target.semanticRoleIds),
-      targetDiscourseFrameId:
-        target.discourseFrameId === null ? null : normalizeText(target.discourseFrameId),
-      targetPredicateAspect:
-        target.predicateAspect === null ? null : normalizeText(target.predicateAspect),
+      targetDiscourseFrameId: normalizedOptionalText(target.discourseFrameId),
+      targetPredicateAspect: normalizedOptionalText(target.predicateAspect),
       targetInterpretationTags: sortedNormalized(target.interpretationTags),
       targetParticleFrame: normalizedParticleFrame(target.particleFrame),
     })}`,
