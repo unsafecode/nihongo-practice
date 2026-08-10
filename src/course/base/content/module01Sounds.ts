@@ -25,12 +25,18 @@ import { immutableReadonlySet } from "../../foundations/immutableReadonlySet";
 import { validateBaseLessonDepth } from "../validation/lessonRules";
 import { baseNavigationCopyEn } from "../copy/en";
 import { baseNavigationCopyIt } from "../copy/it";
+import {
+  DAKUTEN,
+  GOJUON,
+  YOON,
+} from "../../../syllabary/kana";
 
 type LocalizedText = Readonly<{ readonly en: string; readonly it: string }>;
 
 export interface BaseSoundContrastiveItem {
   readonly id: string;
   readonly kana: string;
+  readonly romaji: string;
   readonly morae: readonly string[];
   readonly audioId: string;
   readonly explanation: LocalizedText;
@@ -39,6 +45,7 @@ export interface BaseSoundContrastiveItem {
 export interface BaseSoundAnchorWord {
   readonly id: string;
   readonly kana: string;
+  readonly romaji: string;
   readonly morae: readonly string[];
   readonly meaningCopyId: string;
   readonly status: LocalizedText;
@@ -58,12 +65,21 @@ export interface BaseSoundActivityDesign {
   readonly activityId: string;
   readonly operation: BaseActivityDefinition["operation"];
   readonly evidenceTag: BaseSoundActivityEvidenceTag;
-  readonly promptKana: string;
-  readonly answerKana: string;
-  readonly optionsKana: readonly string[];
+  readonly promptTargetId: string;
+  readonly optionTargetIds: readonly string[];
+  readonly correctOptionTargetId: string | null;
+  readonly answerTargetId: string;
+  readonly anchorTargetId: string;
   readonly anchorLexemeId: string;
   readonly contrastItemIds: readonly string[];
   readonly canonicalAudioId: string | null;
+}
+
+export interface BaseSoundDisplayTarget {
+  readonly id: string;
+  readonly kana: string;
+  readonly romaji: string;
+  readonly role: "prompt" | "option" | "answer" | "anchor";
 }
 
 export interface BaseSoundInventoryCoverage {
@@ -178,6 +194,58 @@ export const SOUND_ACTIVITY_OPERATIONS: readonly BasePhoneticActivityOperation[]
     "assemble-reading",
   ]);
 
+const BASE_KANA_ROMAJI = new Map(
+  [...GOJUON, ...DAKUTEN, ...YOON].flatMap((row) =>
+    row.cells
+      .filter((cell) => cell !== null)
+      .map((cell) => [cell.kana, cell.romaji] as const),
+  ),
+);
+BASE_KANA_ROMAJI.set("ゃ", "ya");
+BASE_KANA_ROMAJI.set("ゅ", "yu");
+BASE_KANA_ROMAJI.set("ょ", "yo");
+
+function hiraganaFor(character: string): string {
+  const codePoint = character.codePointAt(0);
+  return codePoint !== undefined && codePoint >= 0x30a1 && codePoint <= 0x30f6
+    ? String.fromCodePoint(codePoint - 0x60)
+    : character;
+}
+
+export function romanizeBaseSoundSurface(kana: string): string {
+  const normalized = [...kana].map(hiraganaFor).join("");
+  const parts: string[] = [];
+  let geminate = false;
+  for (let index = 0; index < normalized.length; index += 1) {
+    const character = normalized[index];
+    if (character === "っ") {
+      geminate = true;
+      continue;
+    }
+    if (/[\s・／]/.test(character)) {
+      parts.push(" ");
+      continue;
+    }
+    if (character === "＿") {
+      parts.push("_");
+      continue;
+    }
+    const pair = normalized.slice(index, index + 2);
+    const pairRomaji = BASE_KANA_ROMAJI.get(pair);
+    const romaji = pairRomaji ?? BASE_KANA_ROMAJI.get(character);
+    if (!romaji) {
+      throw new Error(`No Base romaji source for "${character}" in "${kana}".`);
+    }
+    if (geminate) {
+      parts.push(romaji[0]);
+      geminate = false;
+    }
+    parts.push(romaji);
+    if (pairRomaji) index += 1;
+  }
+  return parts.join("").replace(/\s+/g, " ").trim();
+}
+
 function contrast(
   id: string,
   kana: string,
@@ -188,6 +256,7 @@ function contrast(
   return {
     id,
     kana,
+    romaji: romanizeBaseSoundSurface(kana),
     morae,
     audioId: id,
     explanation: { en, it },
@@ -202,6 +271,7 @@ function anchor(
   return {
     id,
     kana,
+    romaji: romanizeBaseSoundSurface(kana),
     morae,
     meaningCopyId: `${id}-meaning`,
     status: {
@@ -365,57 +435,83 @@ const EVIDENCE_TAGS: readonly BaseSoundActivityEvidenceTag[] = [
   "read-aloud",
 ];
 
-const ACTIVITY_OPTIONS: Readonly<Record<string, readonly string[]>> = {
-  "snd1-discriminate-vowels": ["あ≠い", "あ＝い"],
-  "snd1-segment-asa": ["あ・さ", "あさ（ひとつ）"],
-  "snd1-recognize-gojuon": ["さしすせそ", "たちつてと"],
-  "snd1-map-hiragana-row": ["か・き・く・け・こ", "さ・し・す・せ・そ"],
-  "snd1-match-ie": ["いえ", "うえ"],
-  "snd1-assemble-umi": ["う・み→うみ", "う・に→うに"],
-  "snd1-listen-u": ["う", "お"],
-  "snd2-discriminate-kaga": ["か≠が", "か＝が"],
-  "snd2-segment-kagi": ["か・ぎ", "かぎ（ひとつ）"],
-  "snd2-recognize-jidi": ["じ・ぢ", "じ・じ"],
-  "snd2-map-dakuten": ["た→だ　は→ば→ぱ", "た→ざ　は→だ→な"],
-  "snd2-match-kaze": ["かぜ", "かせ"],
-  "snd2-assemble-denwa": ["で・ん・わ→でんわ", "で・わ→でわ"],
-  "snd2-listen-zudzu": ["ず", "づ"],
-  "snd3-discriminate-obasan": ["おばさん≠おばあさん", "おばさん＝おばあさん"],
-  "snd3-segment-gakkou": ["が・っ・こ・う", "が・こ・う"],
-  "snd3-recognize-small-tsu": ["きって", "きて"],
-  "snd3-map-moraic-n": ["か・ん", "かん（ひとつ）"],
-  "snd3-match-hon": ["ほん", "ほ"],
-  "snd3-assemble-kippu": ["き・っ・ぷ→きっぷ", "き・ぷ→きぷ"],
-  "snd3-listen-kan": ["かん", "か"],
-  "snd4-discriminate-yoon": ["きゃ≠しゃ≠ちゃ", "きや＝しや＝ちや"],
-  "snd4-segment-ryokou": ["りょ・こ・う", "り・ょ・こ・う"],
-  "snd4-recognize-small-yoon": ["にゅ・ぎゅ・じゃ", "にゆ・ぎゆ・じや"],
-  "snd4-map-katakana": ["ア・カ・コ", "あ・か・こ"],
-  "snd4-match-shashin": ["しゃしん", "しやしん"],
-  "snd4-assemble-kyaku": ["きゃ・く→きゃく", "き・ゃ・く→きゃく"],
-  "snd4-listen-nyuryo": ["にゅ", "りょ"],
+interface BaseSoundActivitySurfaceSeed {
+  readonly prompt: string;
+  readonly options: readonly string[];
+  readonly correctIndex: 0 | 1 | 2 | null;
+  readonly spokenAnswer?: string;
+}
+
+const ACTIVITY_SURFACES: Readonly<
+  Record<string, BaseSoundActivitySurfaceSeed>
+> = {
+  "snd1-discriminate-vowels": { prompt: "あ　＿", options: ["い", "え"], correctIndex: 0 },
+  "snd1-segment-asa": { prompt: "あさ", options: ["あ・さ", "あ・あ・さ"], correctIndex: 0 },
+  "snd1-recognize-gojuon": { prompt: "さ　し　す　せ　そ", options: ["たちつてと", "さしすせそ"], correctIndex: 1 },
+  "snd1-map-hiragana-row": { prompt: "か　き　く　け　＿", options: ["さしすせそ", "かきくけこ"], correctIndex: 1 },
+  "snd1-match-ie": { prompt: "い・え", options: ["うえ", "いえ"], correctIndex: 1 },
+  "snd1-assemble-umi": { prompt: "う・み", options: ["うに", "うみ"], correctIndex: 1 },
+  "snd1-listen-u": { prompt: "きいて　えらぶ", options: ["お", "う"], correctIndex: 1 },
+  "snd1-read-neko": { prompt: "ねこ", options: [], correctIndex: null, spokenAnswer: "ねこ" },
+  "snd2-discriminate-kaga": { prompt: "か　が", options: ["か・が", "か・ざ"], correctIndex: 0 },
+  "snd2-segment-kagi": { prompt: "かぎ", options: ["か・き", "か・ぎ"], correctIndex: 1 },
+  "snd2-recognize-jidi": { prompt: "じ　ぢ　ず　づ", options: ["じ・じ・ず・ず", "じ・ぢ・ず・づ"], correctIndex: 1 },
+  "snd2-map-dakuten": { prompt: "た　＿　は　ば　＿", options: ["だ・ぱ", "ざ・な"], correctIndex: 0 },
+  "snd2-match-kaze": { prompt: "か・ぜ", options: ["かせ", "かぜ"], correctIndex: 1 },
+  "snd2-assemble-denwa": { prompt: "で・ん・わ", options: ["でわ", "でんわ"], correctIndex: 1 },
+  "snd2-listen-kaga": { prompt: "きいて　えらぶ", options: ["か", "が"], correctIndex: 1 },
+  "snd2-read-panpu": { prompt: "ぱ　ぷ", options: [], correctIndex: null, spokenAnswer: "ぱ　ぷ" },
+  "snd3-discriminate-obasan": { prompt: "おばさん　＿", options: ["おばあさん", "おじさん"], correctIndex: 0 },
+  "snd3-segment-gakkou": { prompt: "がっこう", options: ["が・こ・う", "が・っ・こ・う"], correctIndex: 1 },
+  "snd3-recognize-small-tsu": { prompt: "きて　きって", options: ["きて", "きって"], correctIndex: 1 },
+  "snd3-map-moraic-n": { prompt: "か　＿", options: ["ん", "な"], correctIndex: 0 },
+  "snd3-match-hon": { prompt: "ほ・ん", options: ["ほ", "ほん"], correctIndex: 1 },
+  "snd3-assemble-kippu": { prompt: "き・っ・ぷ", options: ["きぷ", "きっぷ"], correctIndex: 1 },
+  "snd3-listen-kan": { prompt: "きいて　えらぶ", options: ["かん", "か"], correctIndex: 0 },
+  "snd3-read-obaasan": { prompt: "おばあさん", options: [], correctIndex: null, spokenAnswer: "お・ば・あ・さ・ん" },
+  "snd4-discriminate-yoon": { prompt: "きゃ　＿", options: ["しや", "しゃ", "ちゃ"], correctIndex: 1 },
+  "snd4-segment-ryokou": { prompt: "りょこう", options: ["りょ・こ・う", "り・ょ・こ・う"], correctIndex: 0 },
+  "snd4-recognize-small-yoon": { prompt: "にゆ　にゅ", options: ["にゅ・にゆ", "にゆ・にゅ"], correctIndex: 1 },
+  "snd4-map-katakana": { prompt: "あ　か　こ", options: ["オ・サ・ソ", "ア・カ・コ"], correctIndex: 1 },
+  "snd4-match-shashin": { prompt: "しゃ・し・ん", options: ["しやしん", "しゃしん"], correctIndex: 1 },
+  "snd4-assemble-kyaku": { prompt: "きゃ・く", options: ["きやく", "きゃく"], correctIndex: 1 },
+  "snd4-listen-nyuryo": { prompt: "きいて　えらぶ", options: ["りょ", "にゅ"], correctIndex: 1 },
+  "snd4-read-chuui": { prompt: "ちゅうい", options: [], correctIndex: null, spokenAnswer: "ちゅうい" },
 };
 
 function design(
   activityId: string,
   index: number,
-  promptKana: string,
-  answerKana: string,
   anchorLexemeId: string,
   contrastItemIds: readonly string[],
   canonicalAudioId: string | null = null,
 ): BaseSoundActivityDesign {
-  const optionsKana = index === 7 ? [] : ACTIVITY_OPTIONS[activityId];
-  if (!optionsKana) {
-    throw new Error(`Missing Base sound activity options for "${activityId}".`);
+  const surfaces = ACTIVITY_SURFACES[activityId];
+  if (!surfaces) {
+    throw new Error(`Missing Base sound activity surfaces for "${activityId}".`);
+  }
+  const optionTargetIds = surfaces.options.map(
+    (_, optionIndex) => `${activityId}-option-${optionIndex + 1}`,
+  );
+  const correctOptionTargetId =
+    surfaces.correctIndex === null
+      ? null
+      : optionTargetIds[surfaces.correctIndex] ?? null;
+  if (
+    (index === 7 && correctOptionTargetId !== null) ||
+    (index !== 7 && correctOptionTargetId === null)
+  ) {
+    throw new Error(`Invalid Base sound answer position for "${activityId}".`);
   }
   return {
     activityId,
     operation: ACTIVITY_SHAPES[index][2],
     evidenceTag: EVIDENCE_TAGS[index],
-    promptKana,
-    answerKana,
-    optionsKana,
+    promptTargetId: `${activityId}-prompt`,
+    optionTargetIds,
+    correctOptionTargetId,
+    answerTargetId: `${activityId}-answer`,
+    anchorTargetId: `${anchorLexemeId}-target`,
     anchorLexemeId,
     contrastItemIds,
     canonicalAudioId,
@@ -423,148 +519,47 @@ function design(
 }
 
 const SOUND_1_ACTIVITY_DESIGNS: readonly BaseSoundActivityDesign[] = [
-  design("snd1-discriminate-vowels", 0, "あ・い・う", "あ≠い", "anchor-asa", [
-    "snd1-vowel-a",
-    "snd1-vowel-i",
-    "snd1-vowel-u",
-  ]),
-  design("snd1-segment-asa", 1, "あさ", "あ・さ", "anchor-asa", [
-    "snd1-vowel-a",
-    "snd1-s-row",
-  ]),
-  design("snd1-recognize-gojuon", 2, "さ行", "さしすせそ", "anchor-ie", [
-    "snd1-s-row",
-  ]),
-  design("snd1-map-hiragana-row", 3, "k + a i u e o", "か・き・く・け・こ", "anchor-umi", [
-    "snd1-k-row",
-  ]),
-  design("snd1-match-ie", 4, "い・え", "いえ", "anchor-ie", [
-    "snd1-vowel-i",
-    "snd1-vowel-e",
-  ]),
-  design("snd1-assemble-umi", 5, "う・み", "う・み→うみ", "anchor-umi", [
-    "snd1-vowel-u",
-    "snd1-m-row",
-  ]),
-  design("snd1-listen-u", 6, "う / お", "う", "anchor-umi", [
-    "snd1-vowel-u",
-    "snd1-vowel-o",
-  ], "snd1-vowel-u"),
-  design("snd1-read-neko", 7, "ね・こ", "ねこ", "anchor-neko", [
-    "snd1-n-row",
-    "snd1-k-row",
-  ]),
+  design("snd1-discriminate-vowels", 0, "anchor-asa", ["snd1-vowel-a", "snd1-vowel-i"]),
+  design("snd1-segment-asa", 1, "anchor-asa", ["snd1-vowel-a"]),
+  design("snd1-recognize-gojuon", 2, "anchor-ie", ["snd1-s-row"]),
+  design("snd1-map-hiragana-row", 3, "anchor-umi", ["snd1-k-row"]),
+  design("snd1-match-ie", 4, "anchor-ie", ["snd1-vowel-i", "snd1-vowel-e"]),
+  design("snd1-assemble-umi", 5, "anchor-umi", ["snd1-vowel-u"]),
+  design("snd1-listen-u", 6, "anchor-umi", ["snd1-vowel-u", "snd1-vowel-o"], "snd1-vowel-u"),
+  design("snd1-read-neko", 7, "anchor-neko", []),
 ];
 
 const SOUND_2_ACTIVITY_DESIGNS: readonly BaseSoundActivityDesign[] = [
-  design("snd2-discriminate-kaga", 0, "か / が", "か≠が", "anchor-kagi", [
-    "snd2-ka",
-    "snd2-ga",
-  ]),
-  design("snd2-segment-kagi", 1, "かぎ", "か・ぎ", "anchor-kagi", [
-    "snd2-ka",
-    "snd2-ga",
-  ]),
-  design("snd2-recognize-jidi", 2, "じ / ぢ", "じ・ぢ", "anchor-kaze", [
-    "snd2-ji",
-    "snd2-di",
-  ]),
-  design("snd2-map-dakuten", 3, "た→?　は→?", "た→だ　は→ば→ぱ", "anchor-denwa", [
-    "snd2-ta",
-    "snd2-da",
-    "snd2-ha",
-    "snd2-ba",
-    "snd2-pa",
-  ]),
-  design("snd2-match-kaze", 4, "か・ぜ", "かぜ", "anchor-kaze", [
-    "snd2-sa",
-    "snd2-za",
-  ]),
-  design("snd2-assemble-denwa", 5, "で・ん・わ", "で・ん・わ→でんわ", "anchor-denwa", [
-    "snd2-da",
-  ]),
-  design("snd2-listen-zudzu", 6, "ず / づ", "ず", "anchor-pan", [
-    "snd2-zu",
-    "snd2-dzu",
-  ], "snd2-zu"),
-  design("snd2-read-panpu", 7, "ぱ・ぷ", "ぱ・ぷ", "anchor-pan", [
-    "snd2-pa",
-    "snd2-pu",
-  ]),
+  design("snd2-discriminate-kaga", 0, "anchor-kagi", ["snd2-ka", "snd2-ga"]),
+  design("snd2-segment-kagi", 1, "anchor-kagi", ["snd2-ka"]),
+  design("snd2-recognize-jidi", 2, "anchor-kaze", ["snd2-ji", "snd2-di", "snd2-zu", "snd2-dzu"]),
+  design("snd2-map-dakuten", 3, "anchor-denwa", ["snd2-ta", "snd2-da", "snd2-ha", "snd2-ba", "snd2-pa"]),
+  design("snd2-match-kaze", 4, "anchor-kaze", ["snd2-ka"]),
+  design("snd2-assemble-denwa", 5, "anchor-denwa", []),
+  design("snd2-listen-kaga", 6, "anchor-pan", ["snd2-ka", "snd2-ga"], "snd2-ga"),
+  design("snd2-read-panpu", 7, "anchor-pan", ["snd2-pa", "snd2-pu"]),
 ];
 
 const SOUND_3_ACTIVITY_DESIGNS: readonly BaseSoundActivityDesign[] = [
-  design("snd3-discriminate-obasan", 0, "おばさん / おばあさん", "おばさん≠おばあさん", "anchor-obaasan", [
-    "snd3-obasan",
-    "snd3-obasan-obaasan",
-  ]),
-  design("snd3-segment-gakkou", 1, "がっこう", "が・っ・こ・う", "anchor-gakkou", [
-    "snd3-koukou",
-    "snd3-sakka",
-  ]),
-  design("snd3-recognize-small-tsu", 2, "きて / きって", "きって", "anchor-kippu", [
-    "snd3-kite",
-    "snd3-kite-kitte",
-  ]),
-  design("snd3-map-moraic-n", 3, "か + ん", "か・ん", "anchor-hon", [
-    "snd3-ka",
-    "snd3-ka-kan",
-  ]),
-  design("snd3-match-hon", 4, "ほ・ん", "ほん", "anchor-hon", [
-    "snd3-ho",
-    "snd3-hoon",
-  ]),
-  design("snd3-assemble-kippu", 5, "き・っ・ぷ", "き・っ・ぷ→きっぷ", "anchor-kippu", [
-    "snd3-kite-kitte",
-    "snd3-sakka",
-  ]),
-  design("snd3-listen-kan", 6, "か / かん", "かん", "anchor-gakkou", [
-    "snd3-ka",
-    "snd3-ka-kan",
-  ], "snd3-ka-kan"),
-  design("snd3-read-obaasan", 7, "お・ば・あ・さ・ん", "おばあさん", "anchor-obaasan", [
-    "snd3-obasan-obaasan",
-  ]),
+  design("snd3-discriminate-obasan", 0, "anchor-obaasan", ["snd3-obasan", "snd3-obasan-obaasan"]),
+  design("snd3-segment-gakkou", 1, "anchor-gakkou", []),
+  design("snd3-recognize-small-tsu", 2, "anchor-kippu", ["snd3-kite", "snd3-kite-kitte"]),
+  design("snd3-map-moraic-n", 3, "anchor-hon", ["snd3-ka"]),
+  design("snd3-match-hon", 4, "anchor-hon", ["snd3-ho"]),
+  design("snd3-assemble-kippu", 5, "anchor-kippu", []),
+  design("snd3-listen-kan", 6, "anchor-gakkou", ["snd3-ka", "snd3-ka-kan"], "snd3-ka-kan"),
+  design("snd3-read-obaasan", 7, "anchor-obaasan", ["snd3-obasan-obaasan"]),
 ];
 
 const SOUND_4_ACTIVITY_DESIGNS: readonly BaseSoundActivityDesign[] = [
-  design("snd4-discriminate-yoon", 0, "きゃ / しゃ / ちゃ", "きゃ≠しゃ≠ちゃ", "anchor-kyaku", [
-    "snd4-kya",
-    "snd4-sha",
-    "snd4-cha",
-  ]),
-  design("snd4-segment-ryokou", 1, "りょこう", "りょ・こ・う", "anchor-ryokou", [
-    "snd4-ryo",
-  ]),
-  design("snd4-recognize-small-yoon", 2, "にゆ / にゅ", "にゅ・ぎゅ・じゃ", "anchor-chuui", [
-    "snd4-nyu",
-    "snd4-gyu",
-    "snd4-ja",
-  ]),
-  design("snd4-map-katakana", 3, "あ・か・こ", "ア・カ・コ", "anchor-kyaku", [
-    "snd4-katakana-a",
-    "snd4-katakana-ka",
-    "snd4-katakana-ko",
-  ]),
-  design("snd4-match-shashin", 4, "しゃ・し・ん", "しゃしん", "anchor-shashin", [
-    "snd4-sha",
-    "snd4-byo",
-  ]),
-  design("snd4-assemble-kyaku", 5, "きゃ・く", "きゃ・く→きゃく", "anchor-kyaku", [
-    "snd4-kya",
-    "snd4-pyo",
-  ]),
-  design("snd4-listen-nyuryo", 6, "にゅ / りょ", "にゅ", "anchor-ryokou", [
-    "snd4-nyu",
-    "snd4-ryo",
-  ], "snd4-nyu"),
-  design("snd4-read-chuui", 7, "ちゅ・う・い", "ちゅうい", "anchor-chuui", [
-    "snd4-cha",
-    "snd4-gyu",
-    "snd4-ja",
-    "snd4-byo",
-    "snd4-pyo",
-  ]),
+  design("snd4-discriminate-yoon", 0, "anchor-kyaku", ["snd4-kya", "snd4-sha", "snd4-cha"]),
+  design("snd4-segment-ryokou", 1, "anchor-ryokou", ["snd4-ryo"]),
+  design("snd4-recognize-small-yoon", 2, "anchor-chuui", ["snd4-nyu"]),
+  design("snd4-map-katakana", 3, "anchor-kyaku", ["snd4-katakana-a", "snd4-katakana-ka", "snd4-katakana-ko"]),
+  design("snd4-match-shashin", 4, "anchor-shashin", ["snd4-sha"]),
+  design("snd4-assemble-kyaku", 5, "anchor-kyaku", ["snd4-kya"]),
+  design("snd4-listen-nyuryo", 6, "anchor-ryokou", ["snd4-nyu", "snd4-ryo"], "snd4-nyu"),
+  design("snd4-read-chuui", 7, "anchor-chuui", []),
 ];
 
 function activities(
@@ -578,15 +573,28 @@ function activities(
       category,
       interactionKind,
       mode: index < 6 ? "non-spoken" : "audio",
-      targetId: entry.canonicalAudioId ?? `${entry.activityId}-answer`,
+      targetId: entry.canonicalAudioId ?? entry.answerTargetId,
       operation: entry.operation,
       instructionCopyId: `${entry.activityId}-instruction`,
       acceptedFeedbackCopyId: "base-sounds-feedback-accepted",
       retryFeedbackCopyId: "base-sounds-feedback-retry",
       assessedConceptIds: [conceptId],
-      assessedLexemeIds: [entry.anchorLexemeId],
+      assessedLexemeIds: activityAssessesAnchor(entry)
+        ? [entry.anchorLexemeId]
+        : [],
     };
   });
+}
+
+function activityAssessesAnchor(design: BaseSoundActivityDesign): boolean {
+  const surfaces = ACTIVITY_SURFACES[design.activityId];
+  const anchor = BASE_LEXEME_BY_ID.get(design.anchorLexemeId);
+  if (!surfaces || !anchor) return false;
+  return [
+    surfaces.prompt,
+    ...surfaces.options,
+    surfaces.spokenAnswer ?? "",
+  ].some((surface) => surface.replace(/[\s・]/g, "").includes(anchor.kana));
 }
 
 function lesson(
@@ -756,21 +764,22 @@ const SOUND_CONCEPT_BY_LESSON: Readonly<Record<string, string>> = {
 function visibleTarget(
   id: string,
   kana: string,
+  romaji: string,
   conceptId: string,
-  anchorLexemeId?: string,
+  lexemeIds: readonly string[] = [],
 ): BaseVisibleTarget {
   return {
     tokens: [
       {
         id: `${id}-token`,
         jp: kana,
-        romaji: kana,
+        romaji,
         kind: "lexical",
         boundaryBefore: "attach",
         source: { domain: "catalog", referenceId: id },
       },
     ],
-    lexemeIds: anchorLexemeId ? [anchorLexemeId] : [],
+    lexemeIds,
     conceptIds: [conceptId],
     formIds: [],
     patternCellIds: [],
@@ -781,39 +790,123 @@ function visibleTarget(
   };
 }
 
+function displayTarget(
+  id: string,
+  kana: string,
+  role: BaseSoundDisplayTarget["role"],
+): BaseSoundDisplayTarget {
+  return deepFreeze({
+    id,
+    kana,
+    romaji: romanizeBaseSoundSurface(kana),
+    role,
+  });
+}
+
+const soundDisplayTargetEntries: readonly (
+  readonly [string, BaseSoundDisplayTarget]
+)[] = [
+  ...RAW_BASE_SOUND_MODULE.lessons.flatMap((definition) =>
+    definition.anchorWords.map((anchor) => [
+      `${anchor.id}-target`,
+      deepFreeze({
+        id: `${anchor.id}-target`,
+        kana: anchor.kana,
+        romaji: anchor.romaji,
+        role: "anchor" as const,
+      }),
+    ] as const),
+  ),
+  ...RAW_BASE_SOUND_MODULE.lessons.flatMap((definition) =>
+    definition.activityDesigns.flatMap((design) => {
+      const surfaces = ACTIVITY_SURFACES[design.activityId];
+      if (!surfaces) {
+        throw new Error(`Missing surfaces for "${design.activityId}".`);
+      }
+      const answer =
+        surfaces.correctIndex === null
+          ? surfaces.spokenAnswer
+          : surfaces.options[surfaces.correctIndex];
+      if (!answer) {
+        throw new Error(`Missing answer surface for "${design.activityId}".`);
+      }
+      return [
+        [
+          design.promptTargetId,
+          displayTarget(design.promptTargetId, surfaces.prompt, "prompt"),
+        ] as const,
+        ...design.optionTargetIds.map((optionTargetId, optionIndex) => [
+          optionTargetId,
+          displayTarget(
+            optionTargetId,
+            surfaces.options[optionIndex],
+            "option",
+          ),
+        ] as const),
+        [
+          design.answerTargetId,
+          displayTarget(design.answerTargetId, answer, "answer"),
+        ] as const,
+      ];
+    }),
+  ),
+];
+
+if (
+  new Set(soundDisplayTargetEntries.map(([id]) => id)).size !==
+  soundDisplayTargetEntries.length
+) {
+  throw new Error("Duplicate Base sound display target ID.");
+}
+
+export const BASE_SOUND_TARGET_BY_ID: ReadonlyMap<
+  string,
+  BaseSoundDisplayTarget
+> = immutableReadonlyMap(soundDisplayTargetEntries);
+
 const acceptedAnswerEntries = RAW_BASE_SOUND_MODULE.lessons.flatMap(
   (definition) => {
     const conceptId = SOUND_CONCEPT_BY_LESSON[definition.content.lessonId];
     return definition.activityDesigns
       .filter((design) => design.canonicalAudioId === null)
-      .map((design) => [
-        `${design.activityId}-answer`,
-        visibleTarget(
-          `${design.activityId}-answer`,
-          design.answerKana,
-          conceptId,
-          design.anchorLexemeId,
-        ),
-      ] as const);
+      .map((design) => {
+        const target = BASE_SOUND_TARGET_BY_ID.get(design.answerTargetId);
+        if (!target) {
+          throw new Error(`Missing answer target "${design.answerTargetId}".`);
+        }
+        return [
+          design.answerTargetId,
+          visibleTarget(
+            target.id,
+            target.kana,
+            target.romaji,
+            conceptId,
+            activityAssessesAnchor(design) ? [design.anchorLexemeId] : [],
+          ),
+        ] as const;
+      });
   },
 );
 
 const activityPromptEntries = RAW_BASE_SOUND_MODULE.lessons.flatMap(
   (definition) => {
     const conceptId = SOUND_CONCEPT_BY_LESSON[definition.content.lessonId];
-    return definition.activityDesigns.map((design) => [
-      baseActivityPromptKey(definition.content.lessonId, design.activityId),
-      visibleTarget(
-        `${design.activityId}-prompt`,
-        `${
-          design.optionsKana.length > 0
-            ? `${design.promptKana}　選択：${design.optionsKana.join("／")}`
-            : design.promptKana
-        }　アンカー：${BASE_LEXEME_BY_ID.get(design.anchorLexemeId)?.kana ?? ""}`,
-        conceptId,
-        design.anchorLexemeId,
-      ),
-    ] as const);
+    return definition.activityDesigns.map((design) => {
+      const target = BASE_SOUND_TARGET_BY_ID.get(design.promptTargetId);
+      if (!target) {
+        throw new Error(`Missing prompt target "${design.promptTargetId}".`);
+      }
+      return [
+        baseActivityPromptKey(definition.content.lessonId, design.activityId),
+        visibleTarget(
+          target.id,
+          target.kana,
+          target.romaji,
+          conceptId,
+          activityAssessesAnchor(design) ? [design.anchorLexemeId] : [],
+        ),
+      ] as const;
+    });
   },
 );
 
@@ -826,7 +919,12 @@ function audioConceptId(audioId: string): string {
 
 const audioTargetEntries = BASE_AUDIO_CATALOG.map((record) => [
   record.id,
-  visibleTarget(record.id, record.kana, audioConceptId(record.id)),
+  visibleTarget(
+    record.id,
+    record.kana,
+    romanizeBaseSoundSurface(record.kana),
+    audioConceptId(record.id),
+  ),
 ] as const);
 
 const enCopyIds = Object.keys(baseNavigationCopyEn.content);
@@ -958,6 +1056,23 @@ function visibleTargetSurface(target: BaseVisibleTarget | undefined): string {
   return target?.tokens.map((token) => token.jp).join("") ?? "";
 }
 
+function normalizedActivitySurface(value: string): string {
+  return value.replace(/[\s・／＿]/g, "");
+}
+
+function isTruthfulBaseRomaji(kana: unknown, romaji: unknown): boolean {
+  if (typeof kana !== "string" || typeof romaji !== "string") return false;
+  try {
+    return (
+      romaji.trim().length > 0 &&
+      !/[\u3040-\u30ff\u3400-\u9fff]/.test(romaji) &&
+      romaji === romanizeBaseSoundSurface(kana)
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidation {
   const module = plainRecord(value);
   const lessons = module ? densePlainArray(own(module, "lessons")) : undefined;
@@ -999,6 +1114,7 @@ export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidati
       errors.add("invalid-contrast-count");
     }
     const itemIds: string[] = [];
+    const itemKanaById = new Map<string, string>();
     const itemAudioIds: string[] = [];
     for (const itemValue of items ?? []) {
       const item = plainRecord(itemValue);
@@ -1010,6 +1126,7 @@ export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidati
         !item ||
         typeof id !== "string" ||
         typeof kana !== "string" ||
+        !isTruthfulBaseRomaji(kana, own(item, "romaji")) ||
         typeof audioId !== "string" ||
         !morae ||
         morae.join("") !== kana ||
@@ -1021,6 +1138,7 @@ export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidati
       if (globalItemIds.has(id)) errors.add("duplicate-contrast-id");
       globalItemIds.add(id);
       itemIds.push(id);
+      itemKanaById.set(id, kana);
       itemAudioIds.push(audioId);
       const audio = baseAudioRecordById(audioId);
       if (
@@ -1062,6 +1180,10 @@ export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidati
         !anchorRecord ||
         typeof anchorId !== "string" ||
         typeof own(anchorRecord, "kana") !== "string" ||
+        !isTruthfulBaseRomaji(
+          own(anchorRecord, "kana"),
+          own(anchorRecord, "romaji"),
+        ) ||
         typeof own(anchorRecord, "meaningCopyId") !== "string" ||
         !morae ||
         morae.join("") !== own(anchorRecord, "kana") ||
@@ -1091,24 +1213,43 @@ export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidati
 
     const designs = densePlainArray(own(definition, "activityDesigns"));
     const activityValues = densePlainArray(own(content, "activities"));
+    const correctPositions = new Set<number>();
     if (!designs || !activityValues || designs.length !== 8 || activityValues.length !== 8) {
       errors.add("invalid-phonetic-activities");
     } else {
       designs.forEach((designValue, index) => {
         const designRecord = plainRecord(designValue);
         const activityRecord = plainRecord(activityValues[index]);
-        const contrastIds = designRecord
-          ? stringArray(own(designRecord, "contrastItemIds"))
-          : undefined;
-        const activityId = designRecord
-          ? own(designRecord, "activityId")
-          : undefined;
-        const answerKana = designRecord
-          ? own(designRecord, "answerKana")
-          : undefined;
-        const targetId = activityRecord
-          ? own(activityRecord, "targetId")
-          : undefined;
+        if (!designRecord || !activityRecord) {
+          errors.add("invalid-activity-evidence");
+          return;
+        }
+        const activityId = own(designRecord, "activityId");
+        const operation = own(designRecord, "operation");
+        const promptTargetId = own(designRecord, "promptTargetId");
+        const optionTargetIds = stringArray(own(designRecord, "optionTargetIds"));
+        const correctOptionTargetId = own(designRecord, "correctOptionTargetId");
+        const answerTargetId = own(designRecord, "answerTargetId");
+        const anchorTargetId = own(designRecord, "anchorTargetId");
+        const anchorLexemeId = own(designRecord, "anchorLexemeId");
+        const contrastIds = stringArray(own(designRecord, "contrastItemIds"));
+        const canonicalAudioId = own(designRecord, "canonicalAudioId");
+        const promptTarget =
+          typeof promptTargetId === "string"
+            ? BASE_SOUND_TARGET_BY_ID.get(promptTargetId)
+            : undefined;
+        const optionTargets = (optionTargetIds ?? []).map((id) =>
+          BASE_SOUND_TARGET_BY_ID.get(id),
+        );
+        const answerTarget =
+          typeof answerTargetId === "string"
+            ? BASE_SOUND_TARGET_BY_ID.get(answerTargetId)
+            : undefined;
+        const anchorTarget =
+          typeof anchorTargetId === "string"
+            ? BASE_SOUND_TARGET_BY_ID.get(anchorTargetId)
+            : undefined;
+        const targetId = own(activityRecord, "targetId");
         const publishedTarget =
           typeof targetId === "string"
             ? BASE_SOUND_VALIDATION_CATALOGS.acceptedAnswerTargets.get(targetId) ??
@@ -1120,55 +1261,116 @@ export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidati
                 baseActivityPromptKey(lessonId, activityId),
               )
             : undefined;
-        const promptSurface = visibleTargetSurface(publishedPrompt);
-        const operation = designRecord
-          ? own(designRecord, "operation")
-          : undefined;
+        const correctPosition =
+          typeof correctOptionTargetId === "string"
+            ? (optionTargetIds ?? []).indexOf(correctOptionTargetId)
+            : -1;
+        if (correctPosition >= 0) correctPositions.add(correctPosition);
+        const expectedAnswerKana =
+          correctPosition >= 0
+            ? optionTargets[correctPosition]?.kana
+            : answerTarget?.kana;
+        const anchorLexeme =
+          typeof anchorLexemeId === "string"
+            ? BASE_LEXEME_BY_ID.get(anchorLexemeId)
+            : undefined;
+        const typedTargets = [
+          promptTarget,
+          ...optionTargets,
+          answerTarget,
+          anchorTarget,
+        ];
+        const targetRomajiValid = typedTargets.every(
+          (target) =>
+            target !== undefined &&
+            target.romaji.trim().length > 0 &&
+            !/[\u3040-\u30ff\u3400-\u9fff]/.test(target.romaji) &&
+            target.romaji === romanizeBaseSoundSurface(target.kana),
+        );
+        const activitySurfaces = [
+          promptTarget?.kana ?? "",
+          ...optionTargets.map((target) => target?.kana ?? ""),
+          answerTarget?.kana ?? "",
+          ...(typeof canonicalAudioId === "string"
+            ? [baseAudioRecordById(canonicalAudioId)?.kana ?? ""]
+            : []),
+        ];
+        const linkedItemsVisible =
+          contrastIds?.every((contrastId) => {
+            const itemKana = itemKanaById.get(contrastId);
+            return (
+              itemKana !== undefined &&
+              activitySurfaces.some((surface) =>
+                normalizedActivitySurface(surface).includes(
+                  normalizedActivitySurface(itemKana),
+                ),
+              )
+            );
+          }) === true;
+        const listeningHashes =
+          operation === "identify-audio"
+            ? new Set(
+                (contrastIds ?? [])
+                  .map((id) => baseAudioRecordById(id)?.sha256)
+                  .filter((hash): hash is string => typeof hash === "string"),
+              )
+            : null;
+        const promptScriptValid =
+          promptTarget !== undefined &&
+          !/[\u3400-\u9fff]/.test(promptTarget.kana) &&
+          (lessonIndex === 3 ||
+            !/[\u30a1-\u30fa\u30fc]/.test(promptTarget.kana));
+        const noMetaAnswers = typedTargets.every(
+          (target) => target !== undefined && !/[≠＝→]/.test(target.kana),
+        );
         const semanticEvidenceValid =
-          typeof answerKana === "string" &&
-          (operation !== "discriminate-sound" ||
-            (contrastIds?.length ?? 0) >= 2) &&
-          (operation !== "segment-morae" || answerKana.includes("・")) &&
-          (operation !== "match-sound-word" ||
-            BASE_LEXEME_BY_ID.get(
-              String(own(designRecord ?? {}, "anchorLexemeId")),
-            )?.kana === answerKana) &&
-          (operation !== "assemble-reading" || answerKana.includes("→")) &&
+          (operation !== "discriminate-sound" || (contrastIds?.length ?? 0) >= 2) &&
+          (operation !== "segment-morae" || answerTarget?.kana.includes("・") === true) &&
+          (operation !== "match-sound-word" || answerTarget?.kana === anchorLexeme?.kana) &&
+          (operation !== "assemble-reading" || answerTarget?.kana === anchorLexeme?.kana) &&
           (operation !== "identify-audio" ||
-            typeof own(designRecord ?? {}, "canonicalAudioId") === "string") &&
-          (operation !== "produce-spoken" ||
-            (densePlainArray(own(designRecord ?? {}, "optionsKana"))?.length ??
-              -1) === 0);
+            (typeof canonicalAudioId === "string" &&
+              (listeningHashes?.size ?? 0) >= 2)) &&
+          (operation !== "produce-spoken" || optionTargetIds?.length === 0);
+        const expectedActivityTargetId =
+          typeof canonicalAudioId === "string" ? canonicalAudioId : answerTargetId;
         if (
-          !designRecord ||
-          !activityRecord ||
-          own(designRecord, "activityId") !== own(activityRecord, "id") ||
-          own(designRecord, "operation") !== ACTIVITY_SHAPES[index][2] ||
-          own(designRecord, "operation") !== own(activityRecord, "operation") ||
+          activityId !== own(activityRecord, "id") ||
+          operation !== ACTIVITY_SHAPES[index][2] ||
+          operation !== own(activityRecord, "operation") ||
           own(designRecord, "evidenceTag") !== EVIDENCE_TAGS[index] ||
-          typeof own(designRecord, "promptKana") !== "string" ||
-          typeof own(designRecord, "answerKana") !== "string" ||
-          !densePlainArray(own(designRecord, "optionsKana")) ||
+          promptTarget?.role !== "prompt" ||
+          optionTargets.some((target) => target?.role !== "option") ||
+          answerTarget?.role !== "answer" ||
+          anchorTarget?.role !== "anchor" ||
+          anchorTarget?.kana !== anchorLexeme?.kana ||
+          answerTarget?.kana !== expectedAnswerKana ||
           (index < 7 &&
-            !(stringArray(own(designRecord, "optionsKana")) ?? []).includes(
-              String(own(designRecord, "answerKana")),
-            )) ||
+            ((optionTargetIds?.length ?? 0) < 2 || correctPosition < 0)) ||
           (index === 7 &&
-            (densePlainArray(own(designRecord, "optionsKana"))?.length ?? -1) !==
-              0) ||
-          !semanticEvidenceValid ||
-          visibleTargetSurface(publishedTarget) !== answerKana ||
-          !promptSurface.includes(String(own(designRecord, "promptKana"))) ||
-          !(stringArray(own(designRecord, "optionsKana")) ?? []).every(
-            (option) => promptSurface.includes(option),
-          ) ||
-          !anchorIds.includes(String(own(designRecord, "anchorLexemeId"))) ||
+            ((optionTargetIds?.length ?? -1) !== 0 ||
+              correctOptionTargetId !== null)) ||
+          expectedActivityTargetId !== targetId ||
+          visibleTargetSurface(publishedPrompt) !== promptTarget?.kana ||
+          visibleTargetSurface(publishedTarget) !==
+            (typeof canonicalAudioId === "string"
+              ? baseAudioRecordById(canonicalAudioId)?.kana
+              : answerTarget?.kana) ||
+          !anchorIds.includes(String(anchorLexemeId)) ||
           !contrastIds ||
-          contrastIds.some((id) => !itemIds.includes(id))
+          contrastIds.some((id) => !itemIds.includes(id)) ||
+          !linkedItemsVisible ||
+          !targetRomajiValid ||
+          !promptScriptValid ||
+          !noMetaAnswers ||
+          !semanticEvidenceValid
         ) {
           errors.add("invalid-activity-evidence");
         }
       });
+      if (!correctPositions.has(0) || !correctPositions.has(1)) {
+        errors.add("invalid-activity-evidence");
+      }
     }
 
     const coverageValues = densePlainArray(own(definition, "inventoryCoverage"));
