@@ -1,6 +1,13 @@
 import { deepFreeze } from "../../foundations/deepFreeze";
 import { immutableReadonlyMap } from "../../foundations/immutableReadonlyMap";
-import { BASE_LESSON_MANIFEST } from "../manifest";
+import {
+  lessonIdsForLevel,
+  lessonOwner,
+} from "../../levels/ownership";
+import {
+  COURSE_LEVEL_IDS,
+  type CourseLevelId,
+} from "../../levels/types";
 import { BASE_CONCEPTS } from "./concepts";
 import { BASE_LEXICON } from "./lexicon";
 import type { BaseConcept, BaseConceptKind, BaseLexeme } from "./types";
@@ -11,7 +18,7 @@ export type FirstTeachOwnerKind =
 
 export interface FirstTeachOwner {
   readonly contentId: string;
-  readonly levelId: "a0";
+  readonly levelId: CourseLevelId;
   readonly lessonId: string;
   readonly kind: FirstTeachOwnerKind;
 }
@@ -20,6 +27,7 @@ export type FirstTeachValidationErrorCode =
   | "duplicate-owner"
   | "missing-owner"
   | "missing-lesson"
+  | "owner-level-mismatch"
   | "prerequisite-after-dependent"
   | "prerequisite-cycle"
   | "unknown-prerequisite";
@@ -81,6 +89,19 @@ function ownerKindForConcept(concept: BaseConcept): FirstTeachOwnerKind {
   return concept.kind;
 }
 
+const CANONICAL_LESSON_POSITION_BY_ID: ReadonlyMap<string, number> = (() => {
+  let position = 0;
+  return immutableReadonlyMap(
+    COURSE_LEVEL_IDS.flatMap((levelId) =>
+      lessonIdsForLevel(levelId).map((lessonId) => [lessonId, position++] as const),
+    ),
+  );
+})();
+
+export function firstTeachLessonPosition(lessonId: string): number | undefined {
+  return CANONICAL_LESSON_POSITION_BY_ID.get(lessonId);
+}
+
 function hasPrerequisiteCycle(concepts: readonly BaseConcept[]): readonly string[] {
   const byId = new Map(concepts.map((concept) => [concept.id, concept]));
   const visiting = new Set<string>();
@@ -119,9 +140,16 @@ export function validateFirstTeachOwners(
   for (const owner of owners) {
     const key = firstTeachOwnerKey(owner.kind, owner.contentId);
     counts.set(key, (counts.get(key) ?? 0) + 1);
-    if (!BASE_LESSON_MANIFEST[owner.lessonId]) {
+    const lesson = lessonOwner(owner.lessonId);
+    if (!lesson) {
       errors.push({
         code: "missing-lesson",
+        contentId: owner.contentId,
+        lessonId: owner.lessonId,
+      });
+    } else if (lesson.levelId !== owner.levelId) {
+      errors.push({
+        code: "owner-level-mismatch",
         contentId: owner.contentId,
         lessonId: owner.lessonId,
       });
@@ -165,10 +193,10 @@ export function validateFirstTeachOwners(
       );
       if (
         prerequisiteOwner &&
-        BASE_LESSON_MANIFEST[prerequisiteOwner.lessonId] &&
-        BASE_LESSON_MANIFEST[dependent.lessonId] &&
-        BASE_LESSON_MANIFEST[prerequisiteOwner.lessonId].position >=
-          BASE_LESSON_MANIFEST[dependent.lessonId].position
+        firstTeachLessonPosition(prerequisiteOwner.lessonId) !== undefined &&
+        firstTeachLessonPosition(dependent.lessonId) !== undefined &&
+        firstTeachLessonPosition(prerequisiteOwner.lessonId)! >=
+          firstTeachLessonPosition(dependent.lessonId)!
       ) {
         errors.push({
           code: "prerequisite-after-dependent",

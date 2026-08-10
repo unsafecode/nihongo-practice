@@ -5,9 +5,11 @@ import { BASE_FIRST_TEACH_OWNERS } from "../catalog/firstTeach";
 import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
 import type {
   BaseActivityDefinition,
+  BaseConcept,
   BaseDialogue,
   BaseExample,
   BaseLessonContent,
+  BasePhoneticActivityOperation,
   BaseSystemLessonContent,
   BaseValidationCatalogs,
 } from "../catalog/types";
@@ -20,7 +22,7 @@ function token(id: string, jp: string): AssembledToken {
     jp,
     romaji: `r-${id}`,
     kind: "lexical",
-    boundaryBefore: "space",
+    boundaryBefore: "attach",
     source: { domain: "test", referenceId: id },
   };
 }
@@ -74,6 +76,19 @@ const OPERATION_BY_CATEGORY = {
   spoken: "produce-spoken",
 } as const;
 
+const INTERACTION_BY_CATEGORY = {
+  "meaning-comprehension": "choice",
+  "form-function-discrimination": "choice",
+  ordering: "tile-ordering",
+  "controlled-production": "completion",
+  transformation: "transformation",
+  "error-diagnosis": "choice",
+  "contextual-response": "choice",
+  "cumulative-retrieval": "completion",
+  listening: "listening",
+  spoken: "spoken",
+} as const;
+
 function activity(
   index: number,
   category: BaseActivityDefinition["category"],
@@ -82,8 +97,7 @@ function activity(
   return {
     id: `activity-${index}`,
     category,
-    interactionKind:
-      category === "listening" ? "listening" : category === "spoken" ? "spoken" : "choice",
+    interactionKind: INTERACTION_BY_CATEGORY[category],
     mode,
     targetId: mode === "audio" && category === "listening" ? "audio-1" : `answer-${index}`,
     operation: OPERATION_BY_CATEGORY[category],
@@ -183,12 +197,10 @@ function phoneticLesson(): BaseLessonContent {
     contract: "phonetic",
     prerequisiteLessonIds: ["sounds-1"],
     activities: [
-      activity(1, "meaning-comprehension"),
-      activity(2, "form-function-discrimination"),
-      activity(3, "ordering"),
-      activity(4, "controlled-production"),
-      activity(5, "transformation"),
-      activity(6, "error-diagnosis"),
+      ...PHONETIC_OPERATIONS.map((operation, index) => ({
+        ...activity(index + 1, "meaning-comprehension"),
+        operation,
+      })),
       activity(7, "listening", "audio"),
       activity(8, "spoken", "audio"),
     ],
@@ -203,6 +215,36 @@ function phoneticLesson(): BaseLessonContent {
     audioExemplarIds: ["audio-1", "audio-2", "audio-3", "audio-4", "audio-5", "audio-6"],
     phoneticExplanationCopyId: "main",
     contrastMapId: "contrast-map-1",
+  };
+}
+
+const PHONETIC_OPERATIONS = [
+  "discriminate-sound",
+  "segment-morae",
+  "recognize-kana",
+  "map-script",
+  "match-sound-word",
+  "assemble-reading",
+] as const;
+
+function phoneticLessonWithOperations(
+  operations: readonly BasePhoneticActivityOperation[],
+): BaseLessonContent {
+  return {
+    ...phoneticLesson(),
+    activities: [
+      ...operations.map(
+        (operation, index) =>
+          ({
+            ...activity(index + 1, "meaning-comprehension"),
+            id: `phonetic-${index + 1}`,
+            targetId: `answer-${index + 1}`,
+            operation,
+          }),
+      ),
+      activity(9, "listening", "audio"),
+      activity(10, "spoken", "audio"),
+    ],
   };
 }
 
@@ -349,6 +391,33 @@ describe("Base lesson depth rules", () => {
     );
   });
 
+  it("rejects an accepted-answer alias that reuses a worked example's visible surface", () => {
+    const aliasId = "alias-example-surface";
+    const lesson = {
+      ...systemLesson(),
+      activities: [
+        { ...SEMANTIC_ACTIVITIES[0], targetId: aliasId },
+        ...SEMANTIC_ACTIVITIES.slice(1),
+      ],
+    };
+    const catalogs: BaseValidationCatalogs = {
+      ...CATALOGS,
+      acceptedAnswerTokens: new Map([
+        ...CATALOGS.acceptedAnswerTokens,
+        [aliasId, EXAMPLES[0].tokens],
+      ]),
+    };
+
+    expect(validateBaseLessonDepth(lesson, catalogs)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "worked-example-reused-by-activity",
+          referenceId: aliasId,
+        }),
+      ]),
+    );
+  });
+
   it("accepts nine semantic nonspoken activities across at least six capped categories", () => {
     const lesson = {
       ...systemLesson(),
@@ -356,6 +425,42 @@ describe("Base lesson depth rules", () => {
     };
 
     expect(validateBaseLessonDepth(lesson, CATALOGS)).toEqual([]);
+  });
+
+  it("does not count nonspoken listening or spoken activities toward semantic coverage", () => {
+    const lesson = {
+      ...systemLesson(),
+      activities: [
+        activity(1, "meaning-comprehension"),
+        activity(2, "form-function-discrimination"),
+        activity(3, "ordering"),
+        activity(4, "controlled-production"),
+        activity(5, "listening"),
+        activity(6, "spoken"),
+        activity(9, "listening", "audio"),
+        activity(10, "spoken", "audio"),
+      ],
+    };
+
+    expect(codes(lesson)).toEqual(
+      expect.arrayContaining([
+        "illegal-activity-combination",
+        "semantic-category-coverage",
+      ]),
+    );
+  });
+
+  it("requires all six distinct closed phonetic operations, not six targets", () => {
+    expect(
+      codes(
+        phoneticLessonWithOperations(
+          Array<BasePhoneticActivityOperation>(6).fill("discriminate-sound"),
+        ),
+      ),
+    ).toContain("phonetic-nonspoken-operations");
+    expect(validateBaseLessonDepth(phoneticLessonWithOperations(PHONETIC_OPERATIONS), CATALOGS)).toEqual(
+      [],
+    );
   });
 
   it("derives example uniqueness and pattern coverage from canonical semantic data", () => {
@@ -380,6 +485,53 @@ describe("Base lesson depth rules", () => {
         catalogs,
       ),
     ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "duplicate-semantic-fingerprint" }),
+        expect.objectContaining({
+          code: "system-pattern-cell-unrepresented",
+          referenceId: "cell-3",
+        }),
+      ]),
+    );
+  });
+
+  it("does not let cosmetic token segmentation create a pattern-coverage cell", () => {
+    const segmented = {
+      ...EXAMPLES[0],
+      id: "example-segmented",
+      tokens: [
+        token("segmented-stem", "例"),
+        {
+          ...token("segmented-ending", "1"),
+          kind: "morpheme" as const,
+          boundaryBefore: "attach" as const,
+        },
+      ],
+      patternCellIds: ["cell-3"],
+    } as BaseExample;
+    const catalogs: BaseValidationCatalogs = {
+      ...CATALOGS,
+      examples: new Map([...CATALOGS.examples, [segmented.id, segmented]]),
+      patternCellIds: new Set([...CATALOGS.patternCellIds, "cell-3"]),
+    };
+    const lesson = {
+      ...systemLesson(),
+      workedExampleIds: [
+        "example-1",
+        segmented.id,
+        "example-2",
+        "example-3",
+        "example-4",
+        "example-5",
+        "example-6",
+        "example-7",
+        "example-8",
+        "example-9",
+      ],
+      patternCellIds: ["cell-3"],
+    };
+
+    expect(validateBaseLessonDepth(lesson, catalogs)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ code: "duplicate-semantic-fingerprint" }),
         expect.objectContaining({
@@ -446,9 +598,106 @@ describe("Base lesson depth rules", () => {
       ]),
     );
   });
+
+  it("validates every dialogue turn's references, particle frame, and token metadata", () => {
+    const dialogue: BaseDialogue = {
+      ...DIALOGUE,
+      turns: [
+        {
+          ...DIALOGUE.turns[0],
+          tokens: [
+            {
+              ...token("bad-turn-token", "悪"),
+              romaji: "",
+              boundaryBefore: "space",
+            },
+          ],
+          lexemeIds: ["missing-turn-lexeme"],
+          conceptIds: ["missing-turn-concept"],
+          formIds: ["missing-turn-form"],
+          patternCellIds: ["missing-turn-cell"],
+          particleFrame: {
+            predicateSenseId: "eat",
+            provided: { theme: "goal-ni" },
+          },
+        },
+      ],
+    };
+    const catalogs: BaseValidationCatalogs = {
+      ...CATALOGS,
+      dialogues: new Map([[dialogue.id, dialogue]]),
+    };
+
+    expect(validateBaseLessonDepth(systemLesson(), catalogs)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "unresolved-reference",
+          referenceId: "missing-turn-lexeme",
+        }),
+        expect.objectContaining({
+          code: "unresolved-reference",
+          referenceId: "missing-turn-concept",
+        }),
+        expect.objectContaining({
+          code: "unresolved-reference",
+          referenceId: "missing-turn-form",
+        }),
+        expect.objectContaining({
+          code: "unresolved-reference",
+          referenceId: "missing-turn-cell",
+        }),
+        expect.objectContaining({
+          code: "unlicensed-particle",
+          referenceId: "dialogue-1:0",
+        }),
+        expect.objectContaining({
+          code: "invalid-token-sequence",
+          referenceId: "dialogue-1:0",
+        }),
+      ]),
+    );
+    expect(
+      validateFirstTeachOrder([systemLesson()], BASE_FIRST_TEACH_OWNERS, catalogs),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "unlicensed-particle",
+          referenceId: "dialogue-1:0",
+        }),
+      ]),
+    );
+  });
 });
 
 describe("Base sequence rules", () => {
+  it("includes phonetic prompts, accepted targets, and audio exemplars in review surfaces", () => {
+    const phonetic = phoneticLesson();
+    const brokenAudio = {
+      ...phonetic,
+      audioExemplarIds: [
+        "audio-1",
+        "audio-2",
+        "audio-3",
+        "audio-4",
+        "audio-5",
+        "missing-audio",
+      ],
+    } as BaseLessonContent;
+
+    expect(visibleJapaneseFor([phonetic], CATALOGS)).toBe(
+      "問1答1問2答2問3答3問4答4問5答5問6答6問7音1問8答8音2音3音4音5音6",
+    );
+    expect(validateBaseLessonDepth(brokenAudio, CATALOGS)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "unresolved-reference",
+          referenceId: "missing-audio",
+          detail: "phonetic audio exemplar",
+        }),
+      ]),
+    );
+  });
+
   it("uses authoring catalog tokens as the only Japanese visibility surface", () => {
     const lesson = {
       ...systemLesson(),
@@ -514,6 +763,74 @@ describe("Base sequence rules", () => {
     );
   });
 
+  it("permits dynamic ongoing-now only through te-imasu at its owning lesson", () => {
+    const plainDynamic = {
+      ...EXAMPLES[0],
+      id: "plain-dynamic-ongoing",
+      formIds: ["masu-nonpast"],
+      interpretationTags: ["ongoing-now"] as const,
+    };
+    const teImasuAtOwner = {
+      ...EXAMPLES[1],
+      id: "te-imasu-ongoing-owner",
+      formIds: ["te-imasu"],
+      interpretationTags: ["ongoing-now"] as const,
+    };
+    const teImasuEarlier = {
+      ...EXAMPLES[2],
+      id: "te-imasu-ongoing-earlier",
+      formIds: ["te-imasu"],
+      interpretationTags: ["ongoing-now"] as const,
+    };
+    const teImasuHabitual = {
+      ...EXAMPLES[3],
+      id: "te-imasu-habitual-owner",
+      formIds: ["te-imasu"],
+      interpretationTags: ["habitual"] as const,
+    };
+    const catalogs: BaseValidationCatalogs = {
+      ...CATALOGS,
+      examples: new Map([
+        ...CATALOGS.examples,
+        [plainDynamic.id, plainDynamic],
+        [teImasuAtOwner.id, teImasuAtOwner],
+        [teImasuEarlier.id, teImasuEarlier],
+        [teImasuHabitual.id, teImasuHabitual],
+      ]),
+    };
+    const lessonAtOwner = {
+      ...systemLesson(),
+      lessonId: "requests-connection-4",
+      newLexemeIds: [],
+      introducedConceptIds: [],
+    };
+    const errorsFor = (lessonId: string, exampleId: string) =>
+      validateFirstTeachOrder(
+        [{ ...lessonAtOwner, lessonId, workedExampleIds: [exampleId] }],
+        BASE_FIRST_TEACH_OWNERS,
+        catalogs,
+      ).map((error) => error.code);
+
+    expect(errorsFor("requests-connection-4", plainDynamic.id)).toContain(
+      "dynamic-nonpast-ongoing-now",
+    );
+    expect(errorsFor("requests-connection-4", teImasuAtOwner.id)).not.toContain(
+      "dynamic-nonpast-ongoing-now",
+    );
+    expect(errorsFor("requests-connection-4", teImasuAtOwner.id)).not.toContain(
+      "te-imasu-ongoing-before-requests-connection-4",
+    );
+    expect(errorsFor("requests-connection-3", teImasuEarlier.id)).toContain(
+      "te-imasu-ongoing-before-requests-connection-4",
+    );
+    expect(errorsFor("base-synthesis-1", teImasuAtOwner.id)).not.toContain(
+      "te-imasu-ongoing-before-requests-connection-4",
+    );
+    expect(errorsFor("requests-connection-4", teImasuHabitual.id)).not.toContain(
+      "dynamic-nonpast-ongoing-now",
+    );
+  });
+
   it("requires introduced targets to be owned by their declaring lesson", () => {
     const lesson = {
       ...systemLesson(),
@@ -528,6 +845,81 @@ describe("Base sequence rules", () => {
         expect.objectContaining({
           code: "introduced-id-owner-mismatch",
           referenceId: "i-adjective-tense-polarity",
+        }),
+      ]),
+    );
+  });
+
+  it("requires each new lexeme to be owned by the declaring lesson, not merely earlier", () => {
+    const earlierLexemeIds = [
+      "verb-kaku",
+      "verb-oyogu",
+      "verb-hanasu",
+      "verb-matsu",
+      "verb-shinu",
+      "verb-asobu",
+      "verb-nomu",
+      "verb-kau",
+    ];
+    const lesson: BaseLessonContent = {
+      ...systemLesson(),
+      lessonId: "requests-connection-2",
+      contract: "content",
+      newLexemeIds: earlierLexemeIds,
+      introducedConceptIds: [],
+      workedExampleIds: EXAMPLES.slice(0, 6).map((entry) => entry.id),
+    };
+
+    expect(
+      validateBaseLessonDepth(lesson, CATALOGS).map((error) => error.code),
+    ).not.toContain("content-new-lexeme-count");
+    expect(
+      validateFirstTeachOrder([lesson], BASE_FIRST_TEACH_OWNERS, CATALOGS),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "new-lexeme-owner-mismatch",
+          referenceId: "verb-kaku",
+        }),
+      ]),
+    );
+  });
+
+  it("uses global course order when a Base lesson depends on an A1 owner", () => {
+    const a1Concept: BaseConcept = {
+      id: "fixture-a1-sequence-concept",
+      kind: "concept",
+      prerequisiteIds: [],
+      firstTeachLessonId: "introductions-1",
+    };
+    const catalogs: BaseValidationCatalogs = {
+      ...CATALOGS,
+      concepts: new Map([...CATALOGS.concepts, [a1Concept.id, a1Concept]]),
+    };
+    const owners = [
+      ...BASE_FIRST_TEACH_OWNERS,
+      {
+        contentId: a1Concept.id,
+        levelId: "a1" as const,
+        lessonId: a1Concept.firstTeachLessonId,
+        kind: "concept" as const,
+      },
+    ];
+    const baseLesson: BaseLessonContent = {
+      ...systemLesson(),
+      lessonId: "base-synthesis-4",
+      contract: "synthesis",
+      newLexemeIds: [],
+      introducedConceptIds: [],
+      reviewedConceptIds: [a1Concept.id],
+      workedExampleIds: [],
+    };
+
+    expect(validateFirstTeachOrder([baseLesson], owners, catalogs)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "first-teach-before-owner",
+          referenceId: a1Concept.id,
         }),
       ]),
     );

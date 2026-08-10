@@ -63,17 +63,22 @@ function normalizedParticleFrame(
 }
 
 /**
- * Produces a stable token sequence from learner-visible Japanese only. Token
- * identity and romaji/copy metadata cannot affect semantic equivalence.
+ * Produces a stable learner-visible Japanese surface. Token identity, token
+ * boundaries, segmentation, and romaji/copy metadata cannot affect it.
  */
+export function visibleSurfaceFingerprint(
+  tokens: readonly AssembledToken[],
+): string {
+  return tokens
+    .map((token) => token.jp)
+    .join("")
+    .normalize("NFKC")
+    .replace(/\s+/gu, " ")
+    .trim();
+}
+
 export function canonicalTokenSequence(tokens: readonly AssembledToken[]): string {
-  return JSON.stringify(
-    tokens.map((token) => [
-      normalizeText(token.jp),
-      normalizeText(token.kind),
-      normalizeText(token.boundaryBefore),
-    ]),
-  );
+  return visibleSurfaceFingerprint(tokens);
 }
 
 function semanticPayload(input: SemanticFingerprintSubject): Readonly<Record<string, unknown>> {
@@ -133,6 +138,14 @@ function targetMetadataFor(
     };
   }
   return undefined;
+}
+
+export function activityTargetVisibleSurfaceFor(
+  activity: BaseActivityDefinition,
+  catalogs: BaseValidationCatalogs,
+): string | undefined {
+  const target = targetMetadataFor(activity, catalogs);
+  return target ? visibleSurfaceFingerprint(target.tokens) : undefined;
 }
 
 export function activityTargetOperationFingerprintFor(

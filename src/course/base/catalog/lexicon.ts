@@ -14,7 +14,7 @@ function dictionaryToken(
       jp: kana,
       romaji,
       kind: "lexical",
-      boundaryBefore: "space",
+      boundaryBefore: "attach",
       source: { domain: "catalog", referenceId: id },
     },
   ]);
@@ -55,6 +55,22 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
   verb("verb-miru", "みる", "miru", "ichidan", "dynamic", "polite-verbs-2"),
   verb("verb-suru", "する", "suru", "suru", "dynamic", "polite-verbs-3"),
   verb("verb-kuru", "くる", "kuru", "kuru", "dynamic", "polite-verbs-3"),
+  verb(
+    "verb-benkyou-suru",
+    "べんきょうする",
+    "benkyou suru",
+    "suru",
+    "dynamic",
+    "polite-verbs-3",
+  ),
+  verb(
+    "verb-motte-kuru",
+    "もってくる",
+    "motte kuru",
+    "kuru",
+    "dynamic",
+    "polite-verbs-3",
+  ),
   {
     ...verb("verb-iku", "いく", "iku", "godan", "dynamic", "time-movement-1"),
     teFormException: {

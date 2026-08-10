@@ -23,28 +23,88 @@ export interface PoliteVerbGrid {
 
 export type TeConstruction = "te" | "request" | "sequence" | "te-imasu";
 
-const POLITE_STEM_BY_GODAN_ENDING: Readonly<Record<string, readonly [string, string]>> = {
-  "う": ["い", "i"],
-  "く": ["き", "ki"],
-  "ぐ": ["ぎ", "gi"],
-  "す": ["し", "shi"],
-  "つ": ["ち", "chi"],
-  "ぬ": ["に", "ni"],
-  "ぶ": ["び", "bi"],
-  "む": ["み", "mi"],
-  "る": ["り", "ri"],
-};
+interface GodanEnding {
+  readonly kana: string;
+  readonly romaji: string;
+  readonly politeKana: string;
+  readonly politeRomaji: string;
+  readonly teKana: string;
+  readonly teRomaji: string;
+}
 
-const TE_BY_GODAN_ENDING: Readonly<Record<string, readonly [string, string]>> = {
-  "う": ["って", "tte"],
-  "つ": ["って", "tte"],
-  "る": ["って", "tte"],
-  "む": ["んで", "nde"],
-  "ぶ": ["んで", "nde"],
-  "ぬ": ["んで", "nde"],
-  "く": ["いて", "ite"],
-  "ぐ": ["いで", "ide"],
-  "す": ["して", "shite"],
+const GODAN_ENDING_BY_KANA: Readonly<Record<string, GodanEnding>> = {
+  "う": {
+    kana: "う",
+    romaji: "u",
+    politeKana: "い",
+    politeRomaji: "i",
+    teKana: "って",
+    teRomaji: "tte",
+  },
+  "く": {
+    kana: "く",
+    romaji: "ku",
+    politeKana: "き",
+    politeRomaji: "ki",
+    teKana: "いて",
+    teRomaji: "ite",
+  },
+  "ぐ": {
+    kana: "ぐ",
+    romaji: "gu",
+    politeKana: "ぎ",
+    politeRomaji: "gi",
+    teKana: "いで",
+    teRomaji: "ide",
+  },
+  "す": {
+    kana: "す",
+    romaji: "su",
+    politeKana: "し",
+    politeRomaji: "shi",
+    teKana: "して",
+    teRomaji: "shite",
+  },
+  "つ": {
+    kana: "つ",
+    romaji: "tsu",
+    politeKana: "ち",
+    politeRomaji: "chi",
+    teKana: "って",
+    teRomaji: "tte",
+  },
+  "ぬ": {
+    kana: "ぬ",
+    romaji: "nu",
+    politeKana: "に",
+    politeRomaji: "ni",
+    teKana: "んで",
+    teRomaji: "nde",
+  },
+  "ぶ": {
+    kana: "ぶ",
+    romaji: "bu",
+    politeKana: "び",
+    politeRomaji: "bi",
+    teKana: "んで",
+    teRomaji: "nde",
+  },
+  "む": {
+    kana: "む",
+    romaji: "mu",
+    politeKana: "み",
+    politeRomaji: "mi",
+    teKana: "んで",
+    teRomaji: "nde",
+  },
+  "る": {
+    kana: "る",
+    romaji: "ru",
+    politeKana: "り",
+    politeRomaji: "ri",
+    teKana: "って",
+    teRomaji: "tte",
+  },
 };
 
 function result<T>(value: T): BaseFormResult<T> {
@@ -81,25 +141,65 @@ function token(
   return Object.freeze(assembled);
 }
 
-function removeEnding(verb: BaseVerbLexeme): readonly [string, string, string] | undefined {
-  const lastKana = verb.kana.slice(-1);
-  const lastRomaji = verb.romaji.slice(-1);
-  if (!lastKana || !lastRomaji) return undefined;
-  return [verb.kana.slice(0, -1), verb.romaji.slice(0, -1), lastKana];
+function removeSuffix(
+  verb: BaseVerbLexeme,
+  kanaSuffix: string,
+  romajiSuffix: string,
+): readonly [string, string] | undefined {
+  if (
+    !verb.kana.endsWith(kanaSuffix) ||
+    !verb.romaji.endsWith(romajiSuffix)
+  ) {
+    return undefined;
+  }
+  return [
+    verb.kana.slice(0, -kanaSuffix.length),
+    verb.romaji.slice(0, -romajiSuffix.length),
+  ];
+}
+
+function compoundParts(
+  verb: BaseVerbLexeme,
+  kanaSuffix: "する" | "くる",
+  romajiSuffix: "suru" | "kuru",
+  politeKana: string,
+  politeRomaji: string,
+  teKana: string,
+  teRomaji: string,
+): readonly [string, string, string, string] | undefined {
+  const prefix = removeSuffix(verb, kanaSuffix, romajiSuffix);
+  if (!prefix) return undefined;
+  return [
+    `${prefix[0]}${politeKana}`,
+    `${prefix[1]}${politeRomaji}`,
+    teKana,
+    teRomaji,
+  ];
 }
 
 function politeStemParts(
   verb: BaseVerbLexeme,
 ): readonly [string, string] | undefined {
-  if (verb.verbClass === "suru") return ["し", "shi"];
-  if (verb.verbClass === "kuru") return ["き", "ki"];
-  const ending = removeEnding(verb);
+  if (verb.verbClass === "suru") {
+    const parts = compoundParts(verb, "する", "suru", "し", "shi", "て", "te");
+    return parts ? [parts[0], parts[1]] : undefined;
+  }
+  if (verb.verbClass === "kuru") {
+    const parts = compoundParts(verb, "くる", "kuru", "き", "ki", "て", "te");
+    return parts ? [parts[0], parts[1]] : undefined;
+  }
+  if (verb.verbClass === "ichidan") {
+    return removeSuffix(verb, "る", "ru");
+  }
+  const endingKana = verb.kana.slice(-1);
+  const ending = GODAN_ENDING_BY_KANA[endingKana];
   if (!ending) return undefined;
-  const [rootKana, rootRomaji, endingKana] = ending;
-  if (verb.verbClass === "ichidan") return [rootKana, rootRomaji];
-  const stemEnding = POLITE_STEM_BY_GODAN_ENDING[endingKana];
-  if (!stemEnding) return undefined;
-  return [`${rootKana}${stemEnding[0]}`, `${rootRomaji}${stemEnding[1]}`];
+  const root = removeSuffix(verb, ending.kana, ending.romaji);
+  if (!root) return undefined;
+  return [
+    `${root[0]}${ending.politeKana}`,
+    `${root[1]}${ending.politeRomaji}`,
+  ];
 }
 
 function teParts(verb: BaseVerbLexeme): readonly [string, string, string, string] | undefined {
@@ -111,15 +211,22 @@ function teParts(verb: BaseVerbLexeme): readonly [string, string, string, string
       verb.teFormException.endingRomaji,
     ];
   }
-  if (verb.verbClass === "suru") return ["し", "shi", "て", "te"];
-  if (verb.verbClass === "kuru") return ["き", "ki", "て", "te"];
-  const ending = removeEnding(verb);
+  if (verb.verbClass === "suru") {
+    return compoundParts(verb, "する", "suru", "し", "shi", "て", "te");
+  }
+  if (verb.verbClass === "kuru") {
+    return compoundParts(verb, "くる", "kuru", "き", "ki", "て", "te");
+  }
+  if (verb.verbClass === "ichidan") {
+    const root = removeSuffix(verb, "る", "ru");
+    return root ? [root[0], root[1], "て", "te"] : undefined;
+  }
+  const endingKana = verb.kana.slice(-1);
+  const ending = GODAN_ENDING_BY_KANA[endingKana];
   if (!ending) return undefined;
-  const [rootKana, rootRomaji, endingKana] = ending;
-  if (verb.verbClass === "ichidan") return [rootKana, rootRomaji, "て", "te"];
-  const teEnding = TE_BY_GODAN_ENDING[endingKana];
-  if (!teEnding) return undefined;
-  return [rootKana, rootRomaji, teEnding[0], teEnding[1]];
+  const root = removeSuffix(verb, ending.kana, ending.romaji);
+  if (!root) return undefined;
+  return [root[0], root[1], ending.teKana, ending.teRomaji];
 }
 
 function lexicalToken(
@@ -128,7 +235,7 @@ function lexicalToken(
   jp: string,
   romaji: string,
 ): AssembledToken {
-  return token(`${verb.id}-${idSuffix}`, jp, romaji, "lexical", "space", verb.id);
+  return token(`${verb.id}-${idSuffix}`, jp, romaji, "lexical", "attach", verb.id);
 }
 
 function appendMorpheme(
@@ -141,6 +248,19 @@ function appendMorpheme(
   return deepFreeze([
     ...tokens,
     token(`${lemmaId}-${id}`, jp, romaji, "morpheme", "attach", id),
+  ]);
+}
+
+function appendStandaloneWord(
+  tokens: readonly AssembledToken[],
+  lemmaId: string,
+  id: string,
+  jp: string,
+  romaji: string,
+): readonly AssembledToken[] {
+  return deepFreeze([
+    ...tokens,
+    token(`${lemmaId}-${id}`, jp, romaji, "morpheme", "space", id),
   ]);
 }
 
@@ -212,7 +332,11 @@ export function realizeTeConstruction(
   if (construction === "te") return result(teTokens);
   if (construction === "sequence") return result(teTokens);
   if (construction === "request") {
-    return result(appendMorpheme(teTokens, lemmaId, "kudasai", "ください", "kudasai"));
+    return result(
+      appendStandaloneWord(teTokens, lemmaId, "kudasai", "ください", "kudasai"),
+    );
   }
-  return result(appendMorpheme(teTokens, lemmaId, "imasu", "います", "imasu"));
+  return result(
+    appendStandaloneWord(teTokens, lemmaId, "imasu", "います", "imasu"),
+  );
 }

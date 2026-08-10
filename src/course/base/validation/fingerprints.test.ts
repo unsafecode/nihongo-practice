@@ -4,6 +4,7 @@ import type { BaseExample } from "../catalog/types";
 import {
   BASE_ACTIVITY_OPERATION_BY_CATEGORY,
   semanticFingerprintFor,
+  visibleSurfaceFingerprint,
 } from "./fingerprints";
 
 function token(
@@ -72,5 +73,21 @@ describe("Base canonical fingerprints", () => {
     expect(semanticFingerprintFor(first)).not.toBe(semanticFingerprintFor(form));
     expect(semanticFingerprintFor(first)).not.toBe(semanticFingerprintFor(roles));
     expect(semanticFingerprintFor(first)).not.toBe(semanticFingerprintFor(discourse));
+  });
+
+  it("uses one NFKC-normalized visible surface regardless of token segmentation", () => {
+    const singleToken = example({
+      tokens: [token("single", "たべます")],
+    });
+    const segmented = example({
+      tokens: [
+        token("stem", "たべ", "lexical", "attach"),
+        token("ending", "ます", "morpheme", "attach"),
+      ],
+    });
+
+    expect(visibleSurfaceFingerprint(singleToken.tokens)).toBe("たべます");
+    expect(visibleSurfaceFingerprint(segmented.tokens)).toBe("たべます");
+    expect(semanticFingerprintFor(singleToken)).toBe(semanticFingerprintFor(segmented));
   });
 });

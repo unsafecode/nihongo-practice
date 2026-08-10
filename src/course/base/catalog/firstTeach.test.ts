@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { BASE_CONCEPT_BY_ID, BASE_CONCEPTS } from "./concepts";
 import {
   defineBaseLessonContent,
+  type BaseConcept,
   type BasePhoneticLessonContent,
+  type BaseSystemLessonContent,
 } from "./types";
 import {
   BASE_FIRST_TEACH_OWNER_BY_KEY,
@@ -62,9 +64,96 @@ describe("Base first-teach ownership", () => {
       } as unknown as BasePhoneticLessonContent),
     ).toThrow(
       expect.objectContaining({
-        code: "wrong-contract-fields",
+        code: "lesson-contract-mismatch",
       }),
     );
+  });
+
+  it("requires manifest-backed contracts and complete plain-record lesson fields", () => {
+    const semanticLesson: BaseSystemLessonContent = {
+      lessonId: "sentence-foundations-3",
+      contract: "system",
+      prerequisiteLessonIds: [],
+      recapCopyId: "recap",
+      activities: [],
+      newLexemeIds: [],
+      reviewLexemeIds: [],
+      introducedConceptIds: [],
+      reviewedConceptIds: [],
+      explanationBlockIds: {
+        main: "main",
+        construction: "construction",
+        constraints: "constraints",
+        commonError: "common-error",
+        nearestContrast: "nearest-contrast",
+      },
+      patternCellIds: [],
+      workedExampleIds: [],
+      dialogueId: null,
+      referenceSnapshotIds: [],
+      interactive: false,
+      retrievedSystemIds: [],
+    };
+
+    expect(() =>
+      defineBaseLessonContent({
+        ...semanticLesson,
+        lessonId: "unknown-base-lesson",
+      }),
+    ).toThrow(expect.objectContaining({ code: "unknown-lesson-id" }));
+    expect(() =>
+      defineBaseLessonContent({
+        ...semanticLesson,
+        lessonId: "topic-questions-4",
+      }),
+    ).toThrow(expect.objectContaining({ code: "lesson-contract-mismatch" }));
+    expect(() =>
+      defineBaseLessonContent({
+        ...semanticLesson,
+        explanationBlockIds: {
+          main: "main",
+          construction: "construction",
+        },
+      } as unknown as BaseSystemLessonContent),
+    ).toThrow(expect.objectContaining({ code: "wrong-contract-fields" }));
+    expect(() =>
+      defineBaseLessonContent({
+        ...semanticLesson,
+        explanationBlockIds: [
+          "main",
+          "construction",
+          "constraints",
+          "common-error",
+          "nearest-contrast",
+        ],
+      } as unknown as BaseSystemLessonContent),
+    ).toThrow(expect.objectContaining({ code: "wrong-contract-fields" }));
+    expect(() =>
+      defineBaseLessonContent({
+        ...semanticLesson,
+        activities: null,
+      } as unknown as BaseSystemLessonContent),
+    ).toThrow(expect.objectContaining({ code: "wrong-contract-fields" }));
+    expect(() =>
+      defineBaseLessonContent({
+        ...semanticLesson,
+        activities: [
+          {
+            id: "invalid-activity",
+            category: "bogus",
+            interactionKind: "choice",
+            mode: "non-spoken",
+            targetId: "target",
+            operation: "recognize-meaning",
+            instructionCopyId: "instruction",
+            acceptedFeedbackCopyId: "accepted",
+            retryFeedbackCopyId: "retry",
+            assessedConceptIds: [],
+            assessedLexemeIds: [],
+          },
+        ],
+      } as unknown as BaseSystemLessonContent),
+    ).toThrow(expect.objectContaining({ code: "wrong-contract-fields" }));
   });
 
   it("assigns one frozen a0 owner to each lexeme, concept, form, and reference entry", () => {
@@ -178,6 +267,83 @@ describe("Base first-teach ownership", () => {
     expect(validateFirstTeachOwners(BASE_FIRST_TEACH_OWNERS, cyclicConcepts)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ code: "prerequisite-cycle" }),
+      ]),
+    );
+  });
+
+  it("uses canonical Base, A1, and A2 lesson order for global ownership", () => {
+    const baseConcept: BaseConcept = {
+      id: "fixture-base-concept",
+      kind: "concept",
+      prerequisiteIds: [],
+      firstTeachLessonId: "base-synthesis-4",
+    };
+    const a1Concept: BaseConcept = {
+      id: "fixture-a1-concept",
+      kind: "concept",
+      prerequisiteIds: [baseConcept.id],
+      firstTeachLessonId: "introductions-1",
+    };
+    const a2Concept: BaseConcept = {
+      id: "fixture-a2-concept",
+      kind: "concept",
+      prerequisiteIds: [a1Concept.id],
+      firstTeachLessonId: "connected-conversation-1",
+    };
+    const owners = [
+      ...BASE_FIRST_TEACH_OWNERS,
+      {
+        contentId: baseConcept.id,
+        levelId: "a0" as const,
+        lessonId: baseConcept.firstTeachLessonId,
+        kind: "concept" as const,
+      },
+      {
+        contentId: a1Concept.id,
+        levelId: "a1" as const,
+        lessonId: a1Concept.firstTeachLessonId,
+        kind: "concept" as const,
+      },
+      {
+        contentId: a2Concept.id,
+        levelId: "a2" as const,
+        lessonId: a2Concept.firstTeachLessonId,
+        kind: "concept" as const,
+      },
+    ];
+
+    expect(
+      validateFirstTeachOwners(
+        owners,
+        [...BASE_CONCEPTS, baseConcept, a1Concept, a2Concept],
+      ),
+    ).toEqual([]);
+
+    const baseDependingOnA1: BaseConcept = {
+      ...baseConcept,
+      id: "fixture-base-after-a1",
+      prerequisiteIds: [a1Concept.id],
+    };
+    expect(
+      validateFirstTeachOwners(
+        [
+          ...owners,
+          {
+            contentId: baseDependingOnA1.id,
+            levelId: "a0" as const,
+            lessonId: baseDependingOnA1.firstTeachLessonId,
+            kind: "concept" as const,
+          },
+        ],
+        [...BASE_CONCEPTS, baseConcept, a1Concept, a2Concept, baseDependingOnA1],
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "prerequisite-after-dependent",
+          contentId: baseDependingOnA1.id,
+          referenceId: a1Concept.id,
+        }),
       ]),
     );
   });

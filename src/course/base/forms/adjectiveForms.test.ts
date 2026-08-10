@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { formatRomaji } from "../../../romaji/formatRomaji";
 import {
   realizeIAdjectivePredicate,
   realizeNaAdjectiveAttributive,
@@ -6,10 +7,17 @@ import {
   realizeNounPredicate,
   validateBasePredicate,
 } from "./adjectiveForms";
-import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
+import { BASE_LEXEME_BY_ID, BASE_LEXICON } from "../catalog/lexicon";
 
 function japanese(tokens: readonly { readonly jp: string }[]): string {
   return tokens.map((token) => token.jp).join("");
+}
+
+function expectFormatted(
+  tokens: readonly import("../../../romaji/types").AssembledToken[],
+  expected: string,
+): void {
+  expect(formatRomaji(tokens)).toMatchObject({ ok: true, text: expected });
 }
 
 describe("Base adjective and copula forms", () => {
@@ -28,6 +36,13 @@ describe("Base adjective and copula forms", () => {
       expect(japanese(result.value.pastNegative.tokens)).toBe("がくせいではありませんでした");
       expect(result.value.affirmative.desuFunction).toBe("copula");
       expect(Object.isFrozen(result.value)).toBe(true);
+      expectFormatted(result.value.affirmative.tokens, "gakusei desu");
+      expectFormatted(result.value.negative.tokens, "gakusei dewa arimasen");
+      expectFormatted(result.value.pastAffirmative.tokens, "gakusei deshita");
+      expectFormatted(
+        result.value.pastNegative.tokens,
+        "gakusei dewa arimasen deshita",
+      );
     }
   });
 
@@ -41,6 +56,10 @@ describe("Base adjective and copula forms", () => {
       expect(japanese(result.value.pastAffirmative.tokens)).toBe("たかかったです");
       expect(japanese(result.value.pastNegative.tokens)).toBe("たかくなかったです");
       expect(result.value.affirmative.desuFunction).toBe("politeness-marker");
+      expectFormatted(result.value.affirmative.tokens, "takai desu");
+      expectFormatted(result.value.negative.tokens, "takakunai desu");
+      expectFormatted(result.value.pastAffirmative.tokens, "takakatta desu");
+      expectFormatted(result.value.pastNegative.tokens, "takakunakatta desu");
     }
   });
 
@@ -62,9 +81,49 @@ describe("Base adjective and copula forms", () => {
 
     expect(modifier.ok && japanese(modifier.value)).toBe("しずかな");
     expect(predicate.ok).toBe(true);
-    if (predicate.ok) {
+    if (modifier.ok && predicate.ok) {
       expect(japanese(predicate.value.affirmative.tokens)).toBe("しずかです");
       expect(predicate.value.affirmative.desuFunction).toBe("copula");
+      expectFormatted(modifier.value, "shizuka na");
+      expectFormatted(predicate.value.affirmative.tokens, "shizuka desu");
+    }
+  });
+
+  it("passes every adjective and copula cell through formatRomaji", () => {
+    const noun = realizeNounPredicate({
+      id: "noun-student",
+      kana: "がくせい",
+      romaji: "gakusei",
+    });
+    expect(noun.ok).toBe(true);
+    if (noun.ok) {
+      for (const cell of Object.values(noun.value)) {
+        expect(formatRomaji(cell.tokens)).toMatchObject({ ok: true });
+      }
+    }
+
+    for (const lexeme of BASE_LEXICON) {
+      if (lexeme.category !== "adjective") continue;
+      if (lexeme.adjectiveClass === "i") {
+        const grid = realizeIAdjectivePredicate(lexeme.id);
+        expect(grid.ok).toBe(true);
+        if (grid.ok) {
+          for (const cell of Object.values(grid.value)) {
+            expect(formatRomaji(cell.tokens)).toMatchObject({ ok: true });
+          }
+        }
+      } else {
+        const grid = realizeNaAdjectivePredicate(lexeme.id);
+        const modifier = realizeNaAdjectiveAttributive(lexeme.id);
+        expect(grid.ok).toBe(true);
+        expect(modifier.ok).toBe(true);
+        if (grid.ok) {
+          for (const cell of Object.values(grid.value)) {
+            expect(formatRomaji(cell.tokens)).toMatchObject({ ok: true });
+          }
+        }
+        if (modifier.ok) expect(formatRomaji(modifier.value)).toMatchObject({ ok: true });
+      }
     }
   });
 

@@ -2,11 +2,13 @@ import { deepFreeze } from "../../foundations/deepFreeze";
 import { BASE_LESSON_MANIFEST } from "../manifest";
 import {
   firstTeachOwnerKey,
+  firstTeachLessonPosition,
   validateFirstTeachOwners,
   type FirstTeachOwner,
 } from "../catalog/firstTeach";
 import type {
   BaseConcept,
+  BaseDialogueTurn,
   BaseExample,
   BaseLessonContent,
   BaseValidationCatalogs,
@@ -20,6 +22,8 @@ const ADJECTIVE_CELL_IDS = new Set([
   "na-adjective-predicate-and-attributive",
 ]);
 const FORBIDDEN_FORM_IDS = new Set(["explanatory-no", "ndesu"]);
+const TE_IMASU_FORM_IDS = new Set(["te-imasu"]);
+const TE_IMASU_OWNER_LESSON_ID = "requests-connection-4";
 
 function examplesFor(
   lesson: BaseLessonContent,
@@ -43,7 +47,17 @@ function tokensJapanese(tokens: readonly { readonly jp: string }[]): string {
 }
 
 function positionFor(lessonId: string): number | undefined {
-  return BASE_LESSON_MANIFEST[lessonId]?.position;
+  return firstTeachLessonPosition(lessonId);
+}
+
+function isBeforeLesson(lessonId: string, referenceLessonId: string): boolean {
+  const position = positionFor(lessonId);
+  const referencePosition = positionFor(referenceLessonId);
+  return (
+    position !== undefined &&
+    referencePosition !== undefined &&
+    position < referencePosition
+  );
 }
 
 export function validateFirstTeachOrder(
@@ -81,6 +95,69 @@ export function validateFirstTeachOrder(
       push(lesson.lessonId, "first-teach-before-owner", id);
     }
   };
+  const validateSentence = (
+    lesson: BaseLessonContent,
+    sentence: BaseExample | BaseDialogueTurn,
+    referenceId: string,
+  ): void => {
+    for (const lexemeId of sentence.lexemeIds) {
+      validateOwnedReference(lesson, "lexeme", lexemeId);
+    }
+    for (const conceptId of sentence.conceptIds) {
+      const concept = catalogs.concepts.get(conceptId);
+      validateOwnedReference(lesson, ownerKindForConcept(concept), conceptId);
+    }
+    for (const formId of sentence.formIds) {
+      const form = catalogs.concepts.get(formId);
+      validateOwnedReference(lesson, ownerKindForConcept(form), formId);
+      if (
+        ADJECTIVE_CELL_IDS.has(formId) &&
+        (BASE_LESSON_MANIFEST[lesson.lessonId]?.moduleId !== "copula-adjectives" &&
+          BASE_LESSON_MANIFEST[lesson.lessonId]?.moduleId !== "existence-location" &&
+          BASE_LESSON_MANIFEST[lesson.lessonId]?.moduleId !== "requests-connection" &&
+          BASE_LESSON_MANIFEST[lesson.lessonId]?.moduleId !== "base-synthesis")
+      ) {
+        push(lesson.lessonId, "adjective-cell-before-module-seven", formId);
+      }
+      if (
+        TE_IMASU_FORM_IDS.has(formId) &&
+        sentence.interpretationTags.includes("ongoing-now") &&
+        isBeforeLesson(lesson.lessonId, TE_IMASU_OWNER_LESSON_ID)
+      ) {
+        push(
+          lesson.lessonId,
+          "te-imasu-ongoing-before-requests-connection-4",
+          formId,
+        );
+      }
+      if (FORBIDDEN_FORM_IDS.has(formId)) {
+        push(lesson.lessonId, "forbidden-explanatory-no", formId);
+      }
+    }
+    if (
+      sentence.predicateAspect === "dynamic" &&
+      sentence.interpretationTags.includes("ongoing-now") &&
+      !sentence.formIds.some((formId) => TE_IMASU_FORM_IDS.has(formId))
+    ) {
+      push(lesson.lessonId, "dynamic-nonpast-ongoing-now", referenceId);
+    }
+    if (sentence.particleFrame) {
+      const frame = validateParticleFrame(
+        sentence.particleFrame.predicateSenseId,
+        sentence.particleFrame.provided,
+      );
+      if (!frame.ok) {
+        for (const error of frame.errors) {
+          push(
+            lesson.lessonId,
+            "unlicensed-particle",
+            referenceId,
+            error.code,
+          );
+        }
+      }
+    }
+  };
 
   for (const lesson of lessons) {
     if (lesson.contract === "phonetic") {
@@ -98,6 +175,12 @@ export function validateFirstTeachOrder(
       ...lesson.activities.flatMap((activity) => activity.assessedLexemeIds),
     ]) {
       validateOwnedReference(lesson, "lexeme", lexemeId);
+    }
+    for (const lexemeId of lesson.newLexemeIds) {
+      const owner = ownerByKey.get(firstTeachOwnerKey("lexeme", lexemeId));
+      if (owner?.lessonId !== lesson.lessonId) {
+        push(lesson.lessonId, "new-lexeme-owner-mismatch", lexemeId);
+      }
     }
     const conceptIds = [
       ...lesson.introducedConceptIds,
@@ -123,81 +206,13 @@ export function validateFirstTeachOrder(
     }
 
     for (const example of examplesFor(lesson, catalogs)) {
-      for (const lexemeId of example.lexemeIds) {
-        validateOwnedReference(lesson, "lexeme", lexemeId);
-      }
-      for (const conceptId of example.conceptIds) {
-        const concept = catalogs.concepts.get(conceptId);
-        validateOwnedReference(lesson, ownerKindForConcept(concept), conceptId);
-      }
-      for (const formId of example.formIds) {
-        const form = catalogs.concepts.get(formId);
-        validateOwnedReference(lesson, ownerKindForConcept(form), formId);
-        if (
-          ADJECTIVE_CELL_IDS.has(formId) &&
-          (BASE_LESSON_MANIFEST[lesson.lessonId]?.moduleId !== "copula-adjectives" &&
-            BASE_LESSON_MANIFEST[lesson.lessonId]?.moduleId !== "existence-location" &&
-            BASE_LESSON_MANIFEST[lesson.lessonId]?.moduleId !== "requests-connection" &&
-            BASE_LESSON_MANIFEST[lesson.lessonId]?.moduleId !== "base-synthesis")
-        ) {
-          push(lesson.lessonId, "adjective-cell-before-module-seven", formId);
-        }
-        if (
-          formId === "te-imasu" &&
-          example.interpretationTags.includes("ongoing-now") &&
-          lesson.lessonId !== "requests-connection-4"
-        ) {
-          push(
-            lesson.lessonId,
-            "te-imasu-ongoing-before-requests-connection-4",
-            formId,
-          );
-        }
-        if (FORBIDDEN_FORM_IDS.has(formId)) {
-          push(lesson.lessonId, "forbidden-explanatory-no", formId);
-        }
-      }
-      if (
-        example.predicateAspect === "dynamic" &&
-        example.interpretationTags.includes("ongoing-now")
-      ) {
-        push(lesson.lessonId, "dynamic-nonpast-ongoing-now", example.id);
-      }
-      if (example.particleFrame) {
-        const frame = validateParticleFrame(
-          example.particleFrame.predicateSenseId,
-          example.particleFrame.provided,
-        );
-        if (!frame.ok) {
-          for (const error of frame.errors) {
-            push(
-              lesson.lessonId,
-              "unlicensed-particle",
-              example.id,
-              error.code,
-            );
-          }
-        }
-      }
+      validateSentence(lesson, example, example.id);
     }
     if (lesson.dialogueId) {
       const dialogue = catalogs.dialogues.get(lesson.dialogueId);
       if (dialogue) {
-        for (const turn of dialogue.turns) {
-          for (const lexemeId of turn.lexemeIds) {
-            validateOwnedReference(lesson, "lexeme", lexemeId);
-          }
-          for (const conceptId of turn.conceptIds) {
-            const concept = catalogs.concepts.get(conceptId);
-            validateOwnedReference(lesson, ownerKindForConcept(concept), conceptId);
-          }
-          for (const formId of turn.formIds) {
-            const form = catalogs.concepts.get(formId);
-            validateOwnedReference(lesson, ownerKindForConcept(form), formId);
-            if (FORBIDDEN_FORM_IDS.has(formId)) {
-              push(lesson.lessonId, "forbidden-explanatory-no", formId);
-            }
-          }
+        for (const [index, turn] of dialogue.turns.entries()) {
+          validateSentence(lesson, turn, `${dialogue.id}:${index}`);
         }
       }
     }
@@ -246,16 +261,31 @@ export function visibleJapaneseFor(
     emitted.add(key);
     surfaces.push(tokensJapanese(tokens));
   };
-  for (const lesson of lessons) {
-    if (lesson.contract === "phonetic") continue;
-    for (const example of examplesFor(lesson, catalogs)) {
+  const appendActivityTarget = (targetId: string): void => {
+    const example = catalogs.examples.get(targetId);
+    if (example) {
       append(`example:${example.id}`, example.tokens);
+      return;
     }
-    if (lesson.dialogueId) {
-      const dialogue = catalogs.dialogues.get(lesson.dialogueId);
-      if (dialogue) {
-        for (const [index, turn] of dialogue.turns.entries()) {
-          append(`dialogue:${dialogue.id}:${index}`, turn.tokens);
+    const acceptedAnswer = catalogs.acceptedAnswerTokens.get(targetId);
+    if (acceptedAnswer) {
+      append(`accepted-answer:${targetId}`, acceptedAnswer);
+      return;
+    }
+    const audioTarget = catalogs.audioTargets.get(targetId);
+    if (audioTarget) append(`audio:${targetId}`, audioTarget);
+  };
+  for (const lesson of lessons) {
+    if (lesson.contract !== "phonetic") {
+      for (const example of examplesFor(lesson, catalogs)) {
+        append(`example:${example.id}`, example.tokens);
+      }
+      if (lesson.dialogueId) {
+        const dialogue = catalogs.dialogues.get(lesson.dialogueId);
+        if (dialogue) {
+          for (const [index, turn] of dialogue.turns.entries()) {
+            append(`dialogue:${dialogue.id}:${index}`, turn.tokens);
+          }
         }
       }
     }
@@ -263,15 +293,13 @@ export function visibleJapaneseFor(
       if (activity.activityPromptTokens) {
         append(`activity-prompt:${lesson.lessonId}:${activity.id}`, activity.activityPromptTokens);
       }
-      const example = catalogs.examples.get(activity.targetId);
-      if (example) {
-        append(`example:${example.id}`, example.tokens);
-        continue;
+      appendActivityTarget(activity.targetId);
+    }
+    if (lesson.contract === "phonetic") {
+      for (const audioExemplarId of lesson.audioExemplarIds) {
+        const audioTarget = catalogs.audioTargets.get(audioExemplarId);
+        if (audioTarget) append(`audio:${audioExemplarId}`, audioTarget);
       }
-      const target =
-        catalogs.acceptedAnswerTokens.get(activity.targetId) ??
-        catalogs.audioTargets.get(activity.targetId);
-      if (target) append(`activity-target:${activity.targetId}`, target);
     }
   }
   return surfaces.join("");

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { formatRomaji } from "../../../romaji/formatRomaji";
 import { BASE_LEXEME_BY_ID, BASE_LEXICON } from "../catalog/lexicon";
 import {
   realizePoliteGrid,
@@ -10,6 +11,10 @@ import {
 
 function japanese(tokens: readonly { readonly jp: string }[]): string {
   return tokens.map((token) => token.jp).join("");
+}
+
+function rawRomaji(tokens: readonly { readonly romaji: string }[]): string {
+  return tokens.map((token) => token.romaji).join("");
 }
 
 function expectForm(
@@ -71,7 +76,7 @@ describe("Base verb forms", () => {
     if (polite.ok) {
       expect(polite.value[0]).toMatchObject({
         kind: "lexical",
-        boundaryBefore: "space",
+        boundaryBefore: "attach",
         source: { domain: "catalog", referenceId: "verb-kaku" },
       });
       expect(polite.value[1]).toMatchObject({
@@ -112,6 +117,126 @@ describe("Base verb forms", () => {
   ])("realizes te allomorphy for %s", (lemmaId, expected) => {
     const result = realizeTeConstruction(lemmaId, "te");
     expect(result.ok && japanese(result.value)).toBe(expected);
+  });
+
+  it.each([
+    ["verb-kaku", "かき", "kaki", "かいて", "kaite"],
+    ["verb-oyogu", "およぎ", "oyogi", "およいで", "oyoide"],
+    ["verb-hanasu", "はなし", "hanashi", "はなして", "hanashite"],
+    ["verb-matsu", "まち", "machi", "まって", "matte"],
+    ["verb-shinu", "しに", "shini", "しんで", "shinde"],
+    ["verb-asobu", "あそび", "asobi", "あそんで", "asonde"],
+    ["verb-nomu", "のみ", "nomi", "のんで", "nonde"],
+    ["verb-kau", "かい", "kai", "かって", "katte"],
+    ["verb-kaeru", "かえり", "kaeri", "かえって", "kaette"],
+    ["verb-taberu", "たべ", "tabe", "たべて", "tabete"],
+  ])(
+    "derives full romaji endings for %s",
+    (lemmaId, expectedStem, expectedStemRomaji, expectedTe, expectedTeRomaji) => {
+      const stem = realizePoliteStem(lemmaId);
+      const te = realizeTeConstruction(lemmaId, "te");
+
+      expect(stem.ok && japanese(stem.value)).toBe(expectedStem);
+      expect(stem.ok && rawRomaji(stem.value)).toBe(expectedStemRomaji);
+      expect(te.ok && japanese(te.value)).toBe(expectedTe);
+      expect(te.ok && rawRomaji(te.value)).toBe(expectedTeRomaji);
+    },
+  );
+
+  it("preserves a compound prefix when deriving suru and kuru forms", () => {
+    const benkyouStem = realizePoliteStem("verb-benkyou-suru");
+    const benkyouTe = realizeTeConstruction("verb-benkyou-suru", "te");
+    const motteStem = realizePoliteStem("verb-motte-kuru");
+    const motteTe = realizeTeConstruction("verb-motte-kuru", "te");
+
+    expect(benkyouStem.ok && japanese(benkyouStem.value)).toBe("べんきょうし");
+    expect(benkyouStem.ok && rawRomaji(benkyouStem.value)).toBe("benkyou shi");
+    expect(benkyouTe.ok && japanese(benkyouTe.value)).toBe("べんきょうして");
+    expect(benkyouTe.ok && rawRomaji(benkyouTe.value)).toBe("benkyou shite");
+    expect(motteStem.ok && japanese(motteStem.value)).toBe("もってき");
+    expect(motteStem.ok && rawRomaji(motteStem.value)).toBe("motte ki");
+    expect(motteTe.ok && japanese(motteTe.value)).toBe("もってきて");
+    expect(motteTe.ok && rawRomaji(motteTe.value)).toBe("motte kite");
+  });
+
+  it.each([
+    ["verb-kaku", "かき", "kaki", "かいて", "kaite"],
+    ["verb-oyogu", "およぎ", "oyogi", "およいで", "oyoide"],
+    ["verb-hanasu", "はなし", "hanashi", "はなして", "hanashite"],
+    ["verb-matsu", "まち", "machi", "まって", "matte"],
+    ["verb-shinu", "しに", "shini", "しんで", "shinde"],
+    ["verb-asobu", "あそび", "asobi", "あそんで", "asonde"],
+    ["verb-nomu", "のみ", "nomi", "のんで", "nonde"],
+    ["verb-kau", "かい", "kai", "かって", "katte"],
+    ["verb-kaeru", "かえり", "kaeri", "かえって", "kaette"],
+    ["verb-taberu", "たべ", "tabe", "たべて", "tabete"],
+  ])(
+    "formats every polite-grid, te, request, and te-imasu sequence for %s",
+    (lemmaId, stemKana, stemRomaji, teKana, teRomaji) => {
+      const grid = realizePoliteGrid(lemmaId);
+      const te = realizeTeConstruction(lemmaId, "te");
+      const request = realizeTeConstruction(lemmaId, "request");
+      const ongoing = realizeTeConstruction(lemmaId, "te-imasu");
+
+      expect(grid.ok).toBe(true);
+      expect(te.ok).toBe(true);
+      expect(request.ok).toBe(true);
+      expect(ongoing.ok).toBe(true);
+      if (!grid.ok || !te.ok || !request.ok || !ongoing.ok) return;
+
+      for (const [tokens, expectedJapanese, expectedRomaji] of [
+        [grid.value.affirmative, `${stemKana}ます`, `${stemRomaji}masu`],
+        [grid.value.negative, `${stemKana}ません`, `${stemRomaji}masen`],
+        [grid.value.pastAffirmative, `${stemKana}ました`, `${stemRomaji}mashita`],
+        [
+          grid.value.pastNegative,
+          `${stemKana}ませんでした`,
+          `${stemRomaji}masen deshita`,
+        ],
+        [te.value, teKana, teRomaji],
+        [request.value, `${teKana}ください`, `${teRomaji} kudasai`],
+        [ongoing.value, `${teKana}います`, `${teRomaji} imasu`],
+      ] as const) {
+        expect(japanese(tokens)).toBe(expectedJapanese);
+        expect(formatRomaji(tokens)).toMatchObject({ ok: true, text: expectedRomaji });
+      }
+    },
+  );
+
+  it("passes every published verb realization through formatRomaji", () => {
+    for (const lexeme of BASE_LEXICON) {
+      if (lexeme.category !== "verb") continue;
+      const dictionary = realizeVerbDictionary(lexeme.id);
+      const stem = realizePoliteStem(lexeme.id);
+      const polite = realizePoliteNonpast(lexeme.id);
+      const grid = realizePoliteGrid(lexeme.id);
+      const constructions = (["te", "request", "sequence", "te-imasu"] as const).map(
+        (construction) => realizeTeConstruction(lexeme.id, construction),
+      );
+
+      expect(dictionary.ok).toBe(true);
+      expect(stem.ok).toBe(true);
+      expect(polite.ok).toBe(true);
+      expect(grid.ok).toBe(true);
+      for (const construction of constructions) expect(construction.ok).toBe(true);
+      if (!dictionary.ok || !stem.ok || !polite.ok || !grid.ok) continue;
+
+      const sequences = [
+        dictionary.value,
+        stem.value,
+        polite.value,
+        grid.value.affirmative,
+        grid.value.negative,
+        grid.value.pastAffirmative,
+        grid.value.pastNegative,
+        ...constructions.flatMap((construction) =>
+          construction.ok ? [construction.value] : [],
+        ),
+      ];
+      for (const tokens of sequences) {
+        expect(formatRomaji(tokens)).toMatchObject({ ok: true });
+      }
+    }
   });
 
   it("builds requests and ongoing constructions from the same te form", () => {

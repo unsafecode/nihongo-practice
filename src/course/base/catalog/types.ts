@@ -2,6 +2,7 @@ import type { AssembledToken } from "../../../romaji/types";
 import type { LessonId, SemanticArgumentRole } from "../../foundations/types";
 import { deepFreeze } from "../../foundations/deepFreeze";
 import type { BaseLessonContract } from "../types";
+import { BASE_LESSON_MANIFEST } from "../manifest";
 import type {
   BaseParticleRole,
   BaseParticleSense,
@@ -28,7 +29,7 @@ export type BaseInteractionKind =
 
 export type BaseActivityMode = "non-spoken" | "audio";
 export type BaseActivityKind = BaseActivityCategory | "listening" | "spoken";
-export type BaseActivityOperation =
+export type BaseSemanticActivityOperation =
   | "recognize-meaning"
   | "discriminate-form-function"
   | "order-chunks"
@@ -39,10 +40,20 @@ export type BaseActivityOperation =
   | "retrieve-cumulative"
   | "identify-audio"
   | "produce-spoken";
+export type BasePhoneticActivityOperation =
+  | "discriminate-sound"
+  | "segment-morae"
+  | "recognize-kana"
+  | "map-script"
+  | "match-sound-word"
+  | "assemble-reading";
+export type BaseActivityOperation =
+  | BaseSemanticActivityOperation
+  | BasePhoneticActivityOperation;
 
 export const BASE_ACTIVITY_OPERATION_BY_CATEGORY: Readonly<
-  Record<BaseActivityKind, BaseActivityOperation>
-> = Object.freeze({
+  Record<BaseActivityKind, BaseSemanticActivityOperation>
+> = deepFreeze({
   "meaning-comprehension": "recognize-meaning",
   "form-function-discrimination": "discriminate-form-function",
   ordering: "order-chunks",
@@ -54,6 +65,64 @@ export const BASE_ACTIVITY_OPERATION_BY_CATEGORY: Readonly<
   listening: "identify-audio",
   spoken: "produce-spoken",
 });
+
+export const BASE_ACTIVITY_INTERACTIONS_BY_CATEGORY: Readonly<
+  Record<BaseActivityKind, readonly BaseInteractionKind[]>
+> = deepFreeze({
+  "meaning-comprehension": ["choice"],
+  "form-function-discrimination": ["choice"],
+  ordering: ["tile-ordering"],
+  "controlled-production": ["completion", "constrained-construction"],
+  transformation: ["transformation"],
+  "error-diagnosis": ["choice"],
+  "contextual-response": ["choice", "constrained-construction"],
+  "cumulative-retrieval": ["completion", "constrained-construction"],
+  listening: ["listening"],
+  spoken: ["spoken"],
+});
+
+export const BASE_PHONETIC_ACTIVITY_OPERATIONS: readonly BasePhoneticActivityOperation[] =
+  deepFreeze([
+    "discriminate-sound",
+    "segment-morae",
+    "recognize-kana",
+    "map-script",
+    "match-sound-word",
+    "assemble-reading",
+  ]);
+
+const ACTIVITY_KINDS = new Set<string>(
+  Object.keys(BASE_ACTIVITY_OPERATION_BY_CATEGORY),
+);
+const ACTIVITY_INTERACTIONS = new Set<string>([
+  "choice",
+  "tile-ordering",
+  "completion",
+  "transformation",
+  "constrained-construction",
+  "listening",
+  "spoken",
+]);
+const ACTIVITY_MODES = new Set<string>(["non-spoken", "audio"]);
+const ACTIVITY_OPERATIONS = new Set<string>([
+  ...Object.values(BASE_ACTIVITY_OPERATION_BY_CATEGORY),
+  ...BASE_PHONETIC_ACTIVITY_OPERATIONS,
+]);
+const ROMAJI_TOKEN_KINDS = new Set<string>([
+  "lexical",
+  "particle",
+  "morpheme",
+  "punctuation",
+]);
+const ROMAJI_BOUNDARIES = new Set<string>(["space", "attach"]);
+const TOKEN_SOURCE_DOMAINS = new Set<string>([
+  "catalog",
+  "lab",
+  "exercise",
+  "speech",
+  "test",
+  "family",
+]);
 
 export interface BaseActivityDefinition {
   readonly id: string;
@@ -269,6 +338,8 @@ export interface BaseValidationCatalogs {
 export type BaseLessonContentDefinitionErrorCode =
   | "empty-id"
   | "duplicate-activity-id"
+  | "unknown-lesson-id"
+  | "lesson-contract-mismatch"
   | "wrong-contract-fields";
 
 export class BaseLessonContentDefinitionError extends Error {
@@ -292,37 +363,125 @@ function assertNonemptyId(value: string, label: string): void {
 }
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return value !== null && typeof value === "object";
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    (Object.getPrototypeOf(value) === Object.prototype ||
+      Object.getPrototypeOf(value) === null)
+  );
 }
 
-function hasPhoneticFields(lesson: BaseLessonContent): boolean {
-  const candidate = lesson as unknown as Readonly<Record<string, unknown>>;
+function isNonemptyString(value: unknown): value is string {
+  return typeof value === "string" && nonempty(value);
+}
+
+function isStringArray(value: unknown): value is readonly string[] {
+  return Array.isArray(value) && value.every(isNonemptyString);
+}
+
+function isAllowed(set: ReadonlySet<string>, value: unknown): boolean {
+  return typeof value === "string" && set.has(value);
+}
+
+function isTokenArray(value: unknown): value is readonly AssembledToken[] {
   return (
-    Array.isArray(candidate.contrastiveItemIds) &&
-    Array.isArray(candidate.anchorLexemeIds) &&
-    Array.isArray(candidate.audioExemplarIds) &&
-    typeof candidate.phoneticExplanationCopyId === "string" &&
-    typeof candidate.contrastMapId === "string"
+    Array.isArray(value) &&
+    value.every(
+      (entry) =>
+        isRecord(entry) &&
+        isNonemptyString(entry.id) &&
+        isNonemptyString(entry.jp) &&
+        isNonemptyString(entry.romaji) &&
+        isAllowed(ROMAJI_TOKEN_KINDS, entry.kind) &&
+        isAllowed(ROMAJI_BOUNDARIES, entry.boundaryBefore) &&
+        isRecord(entry.source) &&
+        isNonemptyString(entry.source.referenceId) &&
+        isAllowed(TOKEN_SOURCE_DOMAINS, entry.source.domain),
+    )
+  );
+}
+
+function hasActivityFields(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  return (
+    isNonemptyString(value.id) &&
+    isAllowed(ACTIVITY_KINDS, value.category) &&
+    isAllowed(ACTIVITY_INTERACTIONS, value.interactionKind) &&
+    isAllowed(ACTIVITY_MODES, value.mode) &&
+    isNonemptyString(value.targetId) &&
+    isAllowed(ACTIVITY_OPERATIONS, value.operation) &&
+    (value.activityPromptTokens === undefined ||
+      isTokenArray(value.activityPromptTokens)) &&
+    isNonemptyString(value.instructionCopyId) &&
+    isNonemptyString(value.acceptedFeedbackCopyId) &&
+    isNonemptyString(value.retryFeedbackCopyId) &&
+    isStringArray(value.assessedConceptIds) &&
+    isStringArray(value.assessedLexemeIds)
+  );
+}
+
+function hasCommonFields(value: unknown): value is Readonly<Record<string, unknown>> {
+  return (
+    isRecord(value) &&
+    isNonemptyString(value.lessonId) &&
+    isNonemptyString(value.contract) &&
+    isStringArray(value.prerequisiteLessonIds) &&
+    Array.isArray(value.activities) &&
+    value.activities.every(hasActivityFields) &&
+    isNonemptyString(value.recapCopyId)
+  );
+}
+
+function hasPhoneticFields(
+  lesson: unknown,
+): lesson is BasePhoneticLessonContent {
+  if (!isRecord(lesson)) return false;
+  return (
+    isStringArray(lesson.contrastiveItemIds) &&
+    isStringArray(lesson.anchorLexemeIds) &&
+    isStringArray(lesson.audioExemplarIds) &&
+    isNonemptyString(lesson.phoneticExplanationCopyId) &&
+    isNonemptyString(lesson.contrastMapId)
+  );
+}
+
+const SEMANTIC_EXPLANATION_KEYS = [
+  "main",
+  "construction",
+  "constraints",
+  "commonError",
+  "nearestContrast",
+] as const;
+
+function hasExplanationBlocks(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  const keys = Object.getOwnPropertyNames(value);
+  return (
+    Object.getOwnPropertySymbols(value).length === 0 &&
+    keys.length === SEMANTIC_EXPLANATION_KEYS.length &&
+    SEMANTIC_EXPLANATION_KEYS.every(
+      (key) => keys.includes(key) && isNonemptyString(value[key]),
+    )
   );
 }
 
 function hasSemanticFields(
-  lesson: BaseLessonContent,
+  lesson: unknown,
 ): lesson is Exclude<BaseLessonContent, BasePhoneticLessonContent> {
-  if (lesson.contract === "phonetic") return false;
-  const candidate = lesson as unknown as Readonly<Record<string, unknown>>;
+  if (!isRecord(lesson)) return false;
   return (
-    Array.isArray(candidate.newLexemeIds) &&
-    Array.isArray(candidate.reviewLexemeIds) &&
-    Array.isArray(candidate.introducedConceptIds) &&
-    Array.isArray(candidate.reviewedConceptIds) &&
-    isRecord(candidate.explanationBlockIds) &&
-    Array.isArray(candidate.patternCellIds) &&
-    Array.isArray(candidate.workedExampleIds) &&
-    (typeof candidate.dialogueId === "string" || candidate.dialogueId === null) &&
-    Array.isArray(candidate.referenceSnapshotIds) &&
-    typeof candidate.interactive === "boolean" &&
-    Array.isArray(candidate.retrievedSystemIds)
+    isStringArray(lesson.newLexemeIds) &&
+    isStringArray(lesson.reviewLexemeIds) &&
+    isStringArray(lesson.introducedConceptIds) &&
+    isStringArray(lesson.reviewedConceptIds) &&
+    hasExplanationBlocks(lesson.explanationBlockIds) &&
+    isStringArray(lesson.patternCellIds) &&
+    isStringArray(lesson.workedExampleIds) &&
+    (isNonemptyString(lesson.dialogueId) || lesson.dialogueId === null) &&
+    isStringArray(lesson.referenceSnapshotIds) &&
+    typeof lesson.interactive === "boolean" &&
+    isStringArray(lesson.retrievedSystemIds)
   );
 }
 
@@ -331,8 +490,27 @@ function hasSemanticFields(
  * depth, catalog resolution, and ordering remain validator responsibilities.
  */
 export function defineBaseLessonContent<T extends BaseLessonContent>(lesson: T): T {
+  if (!hasCommonFields(lesson)) {
+    throw new BaseLessonContentDefinitionError(
+      "wrong-contract-fields",
+      "Lesson does not provide the required common fields.",
+    );
+  }
   assertNonemptyId(lesson.lessonId, "lessonId");
   assertNonemptyId(lesson.recapCopyId, "recapCopyId");
+  const manifest = BASE_LESSON_MANIFEST[lesson.lessonId];
+  if (!manifest) {
+    throw new BaseLessonContentDefinitionError(
+      "unknown-lesson-id",
+      `Lesson "${lesson.lessonId}" is not in the Base lesson manifest.`,
+    );
+  }
+  if (lesson.contract !== manifest.contract) {
+    throw new BaseLessonContentDefinitionError(
+      "lesson-contract-mismatch",
+      `Lesson "${lesson.lessonId}" must use the "${manifest.contract}" contract.`,
+    );
+  }
   const activityIds = new Set<string>();
   for (const activity of lesson.activities) {
     assertNonemptyId(activity.id, "activity id");
@@ -354,7 +532,7 @@ export function defineBaseLessonContent<T extends BaseLessonContent>(lesson: T):
         "Phonetic lesson does not provide phonetic fields.",
       );
     }
-    const phonetic = lesson as BasePhoneticLessonContent;
+    const phonetic = lesson;
     assertNonemptyId(phonetic.phoneticExplanationCopyId, "phoneticExplanationCopyId");
     assertNonemptyId(phonetic.contrastMapId, "contrastMapId");
   } else if (hasSemanticFields(lesson)) {

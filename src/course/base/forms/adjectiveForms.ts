@@ -113,7 +113,7 @@ function lexicalTokens(
   kana: string,
   romaji: string,
 ): readonly AssembledToken[] {
-  return deepFreeze([token(`${id}-stem`, kana, romaji, "lexical", "space", id)]);
+  return deepFreeze([token(`${id}-stem`, kana, romaji, "lexical", "attach", id)]);
 }
 
 function append(
@@ -126,6 +126,19 @@ function append(
   return deepFreeze([
     ...tokens,
     token(`${id}-${suffixId}`, jp, romaji, "morpheme", "attach", suffixId),
+  ]);
+}
+
+function appendStandaloneWord(
+  tokens: readonly AssembledToken[],
+  id: string,
+  suffixId: string,
+  jp: string,
+  romaji: string,
+): readonly AssembledToken[] {
+  return deepFreeze([
+    ...tokens,
+    token(`${id}-${suffixId}`, jp, romaji, "morpheme", "space", suffixId),
   ]);
 }
 
@@ -156,14 +169,26 @@ function copulaGrid(
   id: string,
 ): BasePredicateGrid {
   return deepFreeze({
-    affirmative: cell(append(stem, id, "desu", "です", "desu"), "copula"),
-    negative: cell(
-      append(stem, id, "dewa-arimasen", "ではありません", "dewa arimasen"),
+    affirmative: cell(
+      appendStandaloneWord(stem, id, "desu", "です", "desu"),
       "copula",
     ),
-    pastAffirmative: cell(append(stem, id, "deshita", "でした", "deshita"), "copula"),
+    negative: cell(
+      appendStandaloneWord(
+        stem,
+        id,
+        "dewa-arimasen",
+        "ではありません",
+        "dewa arimasen",
+      ),
+      "copula",
+    ),
+    pastAffirmative: cell(
+      appendStandaloneWord(stem, id, "deshita", "でした", "deshita"),
+      "copula",
+    ),
     pastNegative: cell(
-      append(
+      appendStandaloneWord(
         stem,
         id,
         "dewa-arimasen-deshita",
@@ -200,7 +225,7 @@ export function realizeNaAdjectiveAttributive(
   const adjective = adjectiveFor(lexemeId, "na");
   if (!adjective.ok) return adjective;
   return ok(
-    append(
+    appendStandaloneWord(
       lexicalTokens(adjective.value.id, adjective.value.kana, adjective.value.romaji),
       adjective.value.id,
       "na",
@@ -235,24 +260,42 @@ export function realizeIAdjectivePredicate(
   return ok(
     deepFreeze({
       affirmative: cell(
-        append(dictionary, adjective.value.id, "desu", "です", "desu"),
+        appendStandaloneWord(dictionary, adjective.value.id, "desu", "です", "desu"),
         "politeness-marker",
       ),
       negative: cell(
-        append(stem, adjective.value.id, "kunai-desu", "くないです", "kunai desu"),
+        appendStandaloneWord(
+          append(stem, adjective.value.id, "kunai", "くない", "kunai"),
+          adjective.value.id,
+          "desu",
+          "です",
+          "desu",
+        ),
         "politeness-marker",
       ),
       pastAffirmative: cell(
-        append(stem, adjective.value.id, "katta-desu", "かったです", "katta desu"),
+        appendStandaloneWord(
+          append(stem, adjective.value.id, "katta", "かった", "katta"),
+          adjective.value.id,
+          "desu",
+          "です",
+          "desu",
+        ),
         "politeness-marker",
       ),
       pastNegative: cell(
-        append(
-          stem,
+        appendStandaloneWord(
+          append(
+            stem,
+            adjective.value.id,
+            "kunakatta",
+            "くなかった",
+            "kunakatta",
+          ),
           adjective.value.id,
-          "kunakatta-desu",
-          "くなかったです",
-          "kunakatta desu",
+          "desu",
+          "です",
+          "desu",
         ),
         "politeness-marker",
       ),
