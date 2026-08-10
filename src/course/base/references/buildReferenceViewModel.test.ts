@@ -20,6 +20,58 @@ describe("buildBaseReferenceViewModel", () => {
     }
   });
 
+  it("builds a non-empty snapshot at every reference first-teach lesson", () => {
+    for (const reference of BASE_REFERENCE_CATALOG) {
+      const result = buildBaseReferenceViewModel(
+        reference.id,
+        reference.firstTeachLessonId,
+        "en",
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) continue;
+      expect(result.model.entries.length).toBeGreaterThan(0);
+      expect(result.model.grid.rows.length).toBeGreaterThan(0);
+      expect(
+        result.model.entries.some(
+          ({ firstTeachLessonId }) =>
+            firstTeachLessonId === reference.firstTeachLessonId,
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("reveals real anatomy and predicate surfaces only at their exact owners", () => {
+    const idsAt = (lessonId: string) => {
+      const result = buildBaseReferenceViewModel(
+        "sentence-anatomy",
+        lessonId,
+        "en",
+      );
+      expect(result.ok).toBe(true);
+      return result.ok
+        ? result.model.entries.map(({ semanticId }) => semanticId)
+        : [];
+    };
+    expect(idsAt("topic-questions-2")).not.toContain(
+      "base-sentence-modifier-order",
+    );
+    expect(idsAt("topic-questions-3")).toContain(
+      "base-sentence-modifier-order",
+    );
+    expect(idsAt("polite-verbs-3")).not.toContain(
+      "base-sentence-predicate-type-verbal",
+    );
+    expect(idsAt("polite-verbs-4")).toContain(
+      "base-sentence-predicate-type-verbal",
+    );
+    expect(idsAt("copula-adjectives-2")).not.toContain(
+      "base-sentence-predicate-type-adjectival",
+    );
+    expect(idsAt("copula-adjectives-3")).toContain(
+      "base-sentence-predicate-type-adjectival",
+    );
+  });
+
   it("reveals only particle entries owned through the requested lesson", () => {
     const early = buildBaseReferenceViewModel("particle-atlas", "topic-questions-2", "en");
     expect(early.ok && early.model.entries.map(({ semanticId }) => semanticId)).toEqual([

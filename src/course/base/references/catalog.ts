@@ -11,6 +11,7 @@ import {
   realizeNaAdjectivePredicate,
   realizeOwnedNounPredicate,
 } from "../forms/adjectiveForms";
+import { composeBaseTokenSequences } from "../forms/composeFormTokens";
 import {
   realizePoliteGrid,
   realizePoliteStem,
@@ -37,7 +38,7 @@ const FORM_CONTENT_ID_BY_TOKEN_SOURCE_ID: Readonly<Record<string, string>> = {
   mashita: "four-polite-tense-cells",
   "masen-deshita": "four-polite-tense-cells",
   te: "te-allomorphy",
-  "te-sequence": "te-allomorphy",
+  "te-sequence": "sequential-te",
   kudasai: "te-kudasai",
   imasu: "te-imasu",
   desu: "affirmative-desu",
@@ -63,12 +64,37 @@ function tokenSourceContentIds(
         if (BASE_LEXEME_BY_ID.has(source.referenceId)) {
           return [source.referenceId, ...structuralFormIds];
         }
+        const particleSense = BASE_PARTICLE_SENSES.find(
+          ({ id: senseId }) => senseId === source.referenceId,
+        );
+        if (particleSense) {
+          return [
+            particleSenseFirstTeachContentId(particleSense.id),
+            ...structuralFormIds,
+          ];
+        }
         const formContentId =
           FORM_CONTENT_ID_BY_TOKEN_SOURCE_ID[source.referenceId];
         return formContentId
           ? [formContentId, ...structuralFormIds]
           : structuralFormIds;
       }),
+    ),
+  ];
+}
+
+function unmappedTokenSourceIds(
+  tokens: readonly AssembledToken[],
+): readonly string[] {
+  return [
+    ...new Set(
+      tokens.flatMap(({ source }) =>
+        BASE_LEXEME_BY_ID.has(source.referenceId) ||
+        BASE_PARTICLE_SENSES.some(({ id }) => id === source.referenceId) ||
+        FORM_CONTENT_ID_BY_TOKEN_SOURCE_ID[source.referenceId] !== undefined
+          ? []
+          : [source.referenceId],
+      ),
     ),
   ];
 }
@@ -148,6 +174,7 @@ export interface ReferenceGridModel {
 export type BaseReferenceCatalogValidationErrorCode =
   | "invalid-catalog-shape"
   | "invalid-reference-shape"
+  | "missing-first-teach-entry"
   | "invalid-entry-shape"
   | "duplicate-reference-id"
   | "duplicate-semantic-id"
@@ -322,8 +349,12 @@ const KURU_POLITE_STEM = formValue(realizePoliteStem("verb-kuru"));
 const KAKU_POLITE_GRID = formValue(realizePoliteGrid("verb-kaku"));
 const IKU_TE_FORM = formValue(realizeTeConstruction("verb-iku", "te"));
 const KAKU_TE_FORM = formValue(realizeTeConstruction("verb-kaku", "te"));
+const TABERU_TE_SEQUENCE = formValue(
+  realizeTeConstruction("verb-taberu", "sequence"),
+);
 const TABERU_TE_IMASU = formValue(realizeTeConstruction("verb-taberu", "te-imasu"));
 const NOUN_GRID = formValue(realizeOwnedNounPredicate("noun-gakusei"));
+const TEACHER_NOUN_GRID = formValue(realizeOwnedNounPredicate("noun-sensei"));
 const I_ADJECTIVE_GRID = formValue(realizeIAdjectivePredicate("adjective-takai"));
 const NA_ADJECTIVE_GRID = formValue(
   realizeNaAdjectivePredicate("adjective-shizuka"),
@@ -379,6 +410,37 @@ function politeCells(
 }
 
 const KAKU_POLITE_CELLS = politeCells("tense-kaku", KAKU_POLITE_GRID);
+const STUDENT_NOUN = NOUN_GRID.affirmative.tokens.slice(0, 1);
+const TEACHER_NOUN = TEACHER_NOUN_GRID.affirmative.tokens.slice(0, 1);
+
+function composedTokens(
+  parts: readonly {
+    readonly tokens: readonly AssembledToken[];
+    readonly boundaryBefore?: "attach" | "space";
+  }[],
+): readonly AssembledToken[] {
+  return formValue(composeBaseTokenSequences(parts));
+}
+
+const STUDENT_TOPIC = composedTokens([
+  { tokens: STUDENT_NOUN },
+  { tokens: baseParticleSurfaceTokens("topic-wa"), boundaryBefore: "space" },
+]);
+const TEACHER_SUBJECT = composedTokens([
+  { tokens: TEACHER_NOUN },
+  {
+    tokens: baseParticleSurfaceTokens("focus-subject-ga"),
+    boundaryBefore: "space",
+  },
+]);
+const STUDENT_TEACHER_MODIFIER = composedTokens([
+  { tokens: STUDENT_NOUN },
+  {
+    tokens: baseParticleSurfaceTokens("possessive-attributive-no"),
+    boundaryBefore: "space",
+  },
+  { tokens: TEACHER_NOUN, boundaryBefore: "space" },
+]);
 
 const SENTENCE_ANATOMY_ENTRIES = [
   entry(
@@ -395,17 +457,17 @@ const SENTENCE_ANATOMY_ENTRIES = [
         "canonical-target",
         "Canonical noun",
         "Nome canonico",
-        NOUN_GRID.affirmative.tokens.slice(0, 1),
+        STUDENT_NOUN,
       ),
     ],
   ),
   entry(
     "base-sentence-predicate-types",
     "affirmative-desu",
-    ["Predicate types", "Tipi di predicato"],
+    ["Nominal predicate", "Predicato nominale"],
     [
-      "A predicate may be nominal, verbal, or adjectival.",
-      "Un predicato può essere nominale, verbale o aggettivale.",
+      "A noun predicate identifies a person or thing.",
+      "Un predicato nominale identifica una persona o una cosa.",
     ],
     [
       predicateCell(
@@ -439,25 +501,6 @@ const SENTENCE_ANATOMY_ENTRIES = [
     ["base-sentence-predicate-types"],
   ),
   entry(
-    "base-sentence-modifier-order",
-    "modifier-before-noun",
-    ["Modifier order", "Ordine dei modificatori"],
-    [
-      "Modifiers come before the noun they describe.",
-      "I modificatori precedono il nome che descrivono.",
-    ],
-    [
-      predicateCell(
-        "sentence-modifier-order-target",
-        "canonical-target",
-        "Canonical predicate",
-        "Predicato canonico",
-        NOUN_GRID.affirmative,
-      ),
-    ],
-    ["base-sentence-chunks"],
-  ),
-  entry(
     "base-sentence-topic-subject-status",
     "focus-subject-ga",
     ["Topic and subject status", "Stato di tema e soggetto"],
@@ -466,15 +509,79 @@ const SENTENCE_ANATOMY_ENTRIES = [
       "Tema e soggetto focalizzato sono ruoli discorsivi distinti.",
     ],
     [
-      predicateCell(
-        "sentence-topic-subject-target",
-        "canonical-target",
-        "Canonical predicate",
-        "Predicato canonico",
-        NOUN_GRID.affirmative,
+      cell(
+        "sentence-topic-target",
+        "topic",
+        "Topic chunk",
+        "Blocco del tema",
+        STUDENT_TOPIC,
+      ),
+      cell(
+        "sentence-subject-target",
+        "focusedSubject",
+        "Focused-subject chunk",
+        "Blocco del soggetto focalizzato",
+        TEACHER_SUBJECT,
       ),
     ],
     ["base-sentence-chunks"],
+  ),
+  entry(
+    "base-sentence-modifier-order",
+    "possessive-no",
+    ["Modifier order", "Ordine dei modificatori"],
+    [
+      "Modifiers come before the noun they describe.",
+      "I modificatori precedono il nome che descrivono.",
+    ],
+    [
+      cell(
+        "sentence-modifier-order-target",
+        "canonical-target",
+        "Modifier before noun",
+        "Modificatore prima del nome",
+        STUDENT_TEACHER_MODIFIER,
+      ),
+    ],
+    ["base-sentence-chunks"],
+  ),
+  entry(
+    "base-sentence-predicate-type-verbal",
+    "masu-nonpast",
+    ["Verbal predicate", "Predicato verbale"],
+    [
+      "A verbal predicate expresses an action with its owned polite form.",
+      "Un predicato verbale esprime un'azione con la forma cortese disponibile.",
+    ],
+    [
+      cell(
+        "sentence-predicate-verbal",
+        "canonical-target",
+        "Verbal predicate",
+        "Predicato verbale",
+        KAKU_POLITE_GRID.affirmative,
+      ),
+    ],
+    ["base-sentence-predicate-types"],
+  ),
+  entry(
+    "base-sentence-predicate-type-adjectival",
+    "i-adjective-tense-polarity",
+    ["Adjectival predicate", "Predicato aggettivale"],
+    [
+      "An adjectival predicate describes with its owned inflection.",
+      "Un predicato aggettivale descrive con la flessione disponibile.",
+    ],
+    [
+      predicateCell(
+        "sentence-predicate-adjectival",
+        "canonical-target",
+        "Adjectival predicate",
+        "Predicato aggettivale",
+        I_ADJECTIVE_GRID.affirmative,
+      ),
+    ],
+    ["base-sentence-predicate-types"],
   ),
 ] as const;
 
@@ -658,6 +765,25 @@ const VERB_ENTRIES = [
     ["base-verb-class-godan"],
   ),
   entry(
+    "base-verb-sequential-te",
+    "sequential-te",
+    ["Sequential て form", "Forma sequenziale in て"],
+    [
+      "The sequential construction links two short events.",
+      "La costruzione sequenziale collega due eventi brevi.",
+    ],
+    [
+      cell(
+        "verb-sequential-te-taberu",
+        "form",
+        "Sequential form",
+        "Forma sequenziale",
+        TABERU_TE_SEQUENCE,
+      ),
+    ],
+    ["base-verb-te-forms"],
+  ),
+  entry(
     "base-verb-te-imasu",
     "te-imasu",
     ["Progressive/state construction", "Costruzione progressiva/di stato"],
@@ -666,7 +792,7 @@ const VERB_ENTRIES = [
       "Questa è la costruzione Base per azione in corso o stato risultante.",
     ],
     [cell("verb-te-imasu-taberu", "form", "Construction", "Costruzione", TABERU_TE_IMASU)],
-    ["base-verb-te-forms"],
+    ["base-verb-sequential-te"],
     ["base-tense-dynamic-nonpast"],
   ),
 ] as const;
@@ -802,7 +928,11 @@ export const BASE_REFERENCE_CATALOG: BaseReferenceCatalog = deepFreeze([
       "See how a Base sentence is assembled progressively.",
       "Osserva come una frase Base viene costruita progressivamente.",
     ],
-    [column("canonical-target", "Canonical target", "Obiettivo canonico")],
+    [
+      column("canonical-target", "Canonical target", "Obiettivo canonico"),
+      column("topic", "Topic", "Tema"),
+      column("focusedSubject", "Focused subject", "Soggetto focalizzato"),
+    ],
     SENTENCE_ANATOMY_ENTRIES,
   ),
   reference(
@@ -1268,6 +1398,15 @@ export function validateBaseReferenceCatalog(
       cells,
       columnIds,
     });
+    if (
+      !entries.some(
+        (entry) => entry.firstTeachLessonId === firstTeachLessonId,
+      )
+    ) {
+      errors.push(
+        validationError("missing-first-teach-entry", referenceId),
+      );
+    }
     for (const entry of entries) {
       if (!BASE_REFERENCE_COPY_BY_ID.has(entry.copyId)) {
         errors.push(
@@ -1419,6 +1558,18 @@ export function validateBaseReferenceCatalog(
         }
       }
       for (const canonicalCell of entry.canonicalFormCells) {
+        for (const unmappedSourceId of unmappedTokenSourceIds(
+          canonicalCell.tokens,
+        )) {
+          errors.push(
+            validationError(
+              "invalid-source-reference",
+              reference.id,
+              entry.semanticId,
+              unmappedSourceId,
+            ),
+          );
+        }
         for (const tokenContentId of tokenSourceContentIds(
           canonicalCell.tokens,
         )) {

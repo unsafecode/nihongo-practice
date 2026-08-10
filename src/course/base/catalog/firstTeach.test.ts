@@ -643,7 +643,7 @@ describe("Base first-teach ownership", () => {
         "verb-miru",
       ].map((id) => [id, lexemeOwner(id)]),
     ).toEqual([
-      ["verb-kaku", "polite-verbs-2"],
+      ["verb-kaku", "polite-verbs-1"],
       ["verb-oyogu", "polite-verbs-2"],
       ["verb-hanasu", "polite-verbs-2"],
       ["verb-matsu", "polite-verbs-2"],

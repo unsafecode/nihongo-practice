@@ -40,6 +40,29 @@ describe("Base reference catalog", () => {
     expect(BASE_REFERENCE_CATALOG.map(({ id }) => id)).toEqual(BASE_REFERENCE_IDS);
   });
 
+  it("owns a non-empty entry at every reference first-teach lesson", () => {
+    for (const reference of BASE_REFERENCE_CATALOG) {
+      expect(
+        reference.entries.some(
+          ({ firstTeachLessonId }) =>
+            firstTeachLessonId === reference.firstTeachLessonId,
+        ),
+      ).toBe(true);
+    }
+    expect(BASE_LEXEME_BY_ID.get("verb-kaku")?.firstTeachLessonId).toBe(
+      "polite-verbs-1",
+    );
+
+    const emptyFirstTeach = mutableCatalog();
+    (emptyFirstTeach[0] as { firstTeachLessonId: string }).firstTeachLessonId =
+      "sounds-4";
+    expect(validateBaseReferenceCatalog(emptyFirstTeach)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "missing-first-teach-entry" }),
+      ]),
+    );
+  });
+
   it("derives dictionary, stem, and te rows from their canonical verb engines", () => {
     const dictionary = realizeVerbDictionary("verb-kaku");
     const stem = realizePoliteStem("verb-kaku");
@@ -60,6 +83,9 @@ describe("Base reference catalog", () => {
       cellsFor("base-verb-class-suru").find(({ id }) => id === "verb-stem-suru")
         ?.sourceContentIds,
     ).toContain("polite-stems");
+    const sequential = cellsFor("base-verb-sequential-te")[0];
+    expect(sequential?.sourceContentIds).toContain("sequential-te");
+    expect(sequential?.sourceContentIds).not.toContain("te-allomorphy");
   });
 
   it("resolves every consumed copy ID and assigns examples only at eligible owners", () => {
@@ -239,6 +265,67 @@ describe("Base reference catalog", () => {
         expect.objectContaining({ code: "invalid-source-reference" }),
       ]),
     );
+
+    const unmappedSource = mutableCatalog();
+    const hostileToken = unmappedSource[0].entries[0].canonicalFormCells[0]
+      .tokens[0] as unknown as {
+      source: { domain: "catalog"; referenceId: string };
+    };
+    hostileToken.source.referenceId = "unmapped-reference-source";
+    expect(validateBaseReferenceCatalog(unmappedSource)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "invalid-source-reference" }),
+      ]),
+    );
+  });
+
+  it("uses distinct canonical anatomy surfaces with real particles and modifiers", () => {
+    const entries = referenceById["sentence-anatomy"].entries;
+    const surface = (semanticId: string, cellIndex = 0) =>
+      entries
+        .find((entry) => entry.semanticId === semanticId)!
+        .canonicalFormCells[cellIndex].tokens.map(({ jp }) => jp)
+        .join("");
+    expect(surface("base-sentence-topic-subject-status")).toBe("がくせいは");
+    expect(surface("base-sentence-topic-subject-status", 1)).toBe("せんせいが");
+    expect(surface("base-sentence-modifier-order")).toBe("がくせいのせんせい");
+    expect(
+      entries.find(
+        ({ semanticId }) => semanticId === "base-sentence-modifier-order",
+      )?.firstTeachLessonId,
+    ).toBe("topic-questions-3");
+
+    const firstCellSurfaces = entries.map(({ canonicalFormCells }) =>
+      canonicalFormCells[0].tokens.map(({ jp }) => jp).join(""),
+    );
+    expect(new Set(firstCellSurfaces).size).toBe(firstCellSurfaces.length);
+  });
+
+  it("progresses sentence predicate types through nominal, verbal, and adjectival owners", () => {
+    const entries = referenceById["sentence-anatomy"].entries;
+    const byId = (semanticId: string) =>
+      entries.find((entry) => entry.semanticId === semanticId)!;
+    expect(
+      byId("base-sentence-predicate-types").canonicalFormCells[0].tokens
+        .map(({ jp }) => jp)
+        .join(""),
+    ).toBe("がくせいです");
+    expect(
+      byId("base-sentence-predicate-type-verbal").canonicalFormCells[0].tokens
+        .map(({ jp }) => jp)
+        .join(""),
+    ).toBe("かきます");
+    expect(byId("base-sentence-predicate-type-verbal").firstTeachLessonId).toBe(
+      "polite-verbs-4",
+    );
+    expect(
+      byId("base-sentence-predicate-type-adjectival").canonicalFormCells[0].tokens
+        .map(({ jp }) => jp)
+        .join(""),
+    ).toBe("たかいです");
+    expect(
+      byId("base-sentence-predicate-type-adjectival").firstTeachLessonId,
+    ).toBe("copula-adjectives-3");
   });
 
   it("reveals only nonpast polite verb forms before tense ownership", () => {
@@ -298,7 +385,7 @@ describe("Base reference catalog", () => {
     const dictionary = referenceById["verb-classes-conjugation"].entries.find(
       ({ semanticId }) => semanticId === "base-verb-dictionary-form",
     );
-    expect(dictionary?.firstTeachLessonId).toBe("polite-verbs-2");
+    expect(dictionary?.firstTeachLessonId).toBe("polite-verbs-1");
 
     const timeMovement = referenceById["verb-classes-conjugation"].entries.find(
       ({ semanticId }) => semanticId === "base-verb-exceptions",

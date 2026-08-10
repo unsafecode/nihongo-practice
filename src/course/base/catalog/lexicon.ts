@@ -50,7 +50,7 @@ function verb(
 }
 
 export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
-  verb("verb-kaku", "かく", "kaku", "godan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-kaku", "かく", "kaku", "godan", "dynamic", "polite-verbs-1", DYNAMIC_TE_CONSTRUCTIONS),
   verb("verb-oyogu", "およぐ", "oyogu", "godan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
   verb("verb-hanasu", "はなす", "hanasu", "godan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
   verb("verb-matsu", "まつ", "matsu", "godan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
@@ -213,6 +213,15 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
     kana: "がくせい",
     romaji: "gakusei",
     meaningCopyId: "noun-gakusei-meaning",
+    firstTeachLessonId: "sentence-foundations-1",
+    countable: true,
+    category: "noun",
+  },
+  {
+    id: "noun-sensei",
+    kana: "せんせい",
+    romaji: "sensei",
+    meaningCopyId: "noun-sensei-meaning",
     firstTeachLessonId: "sentence-foundations-1",
     countable: true,
     category: "noun",
