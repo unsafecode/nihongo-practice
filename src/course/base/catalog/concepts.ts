@@ -3,10 +3,10 @@ import { immutableReadonlyMap } from "../../foundations/immutableReadonlyMap";
 import { lessonOwner } from "../../levels/ownership";
 import {
   isPlainDataRecord,
-  isStrictRuntimeConcept,
-  isStrictRuntimeRetrievalSystem,
   ownDataArrayValues,
   ownDataValue,
+  strictRuntimeConcept,
+  strictRuntimeRetrievalSystem,
 } from "../validation/runtimeGuards";
 import type {
   BaseConcept,
@@ -302,12 +302,13 @@ export function validateBaseRetrievalSystems(
   );
   const conceptsById = new Map<string, BaseConcept>();
   for (const rawConcept of ownDataArrayValues(concepts) ?? []) {
-    if (!isStrictRuntimeConcept(rawConcept)) continue;
-    const concept = rawConcept as BaseConcept;
+    const concept = strictRuntimeConcept(rawConcept);
+    if (!concept) continue;
     conceptsById.set(concept.id, concept);
   }
   for (const rawSystem of ownDataArrayValues(systems) ?? []) {
-    if (!isStrictRuntimeRetrievalSystem(rawSystem)) {
+    const system = strictRuntimeRetrievalSystem(rawSystem);
+    if (!system) {
       const systemId =
         isPlainDataRecord(rawSystem) &&
         typeof ownDataValue(rawSystem, "id") === "string"
@@ -316,7 +317,6 @@ export function validateBaseRetrievalSystems(
       errors.push({ code: "retrieval-system-invalid", systemId });
       continue;
     }
-    const system = rawSystem as BaseRetrievalSystem;
     const componentIds = system.componentContentIds;
     if (componentIds.length === 0) {
       errors.push({

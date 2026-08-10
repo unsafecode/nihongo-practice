@@ -30,17 +30,20 @@ import {
   invalidRuntimeCatalogFields,
   isPlainDataRecord,
   isStrictRuntimeConcept,
-  isStrictRuntimeDialogue,
-  isStrictRuntimeExample,
-  isStrictRuntimeLesson,
   isStrictRuntimeLexeme,
-  isStrictRuntimePrerequisiteLesson,
   isStrictRuntimeReferenceSnapshot,
-  isStrictRuntimeRetrievalSystem,
   ownDataArrayValues,
   ownDataValue,
   runtimeActivityShapeIssues,
   runtimeVisibleTargetIssue,
+  strictRuntimeConcept,
+  strictRuntimeDialogue,
+  strictRuntimeExample,
+  strictRuntimeLesson,
+  strictRuntimeLexeme,
+  strictRuntimePrerequisiteLesson,
+  strictRuntimeReferenceSnapshot,
+  strictRuntimeRetrievalSystem,
   strictRuntimeLessonWithContract,
 } from "./runtimeGuards";
 import {
@@ -71,8 +74,8 @@ function workedExamplesFor(
 ): readonly BaseExample[] {
   if (lesson.contract === "phonetic") return [];
   return lesson.workedExampleIds.flatMap((id) => {
-    const example = catalogs.examples.get(id);
-    return example && isStrictRuntimeExample(example) ? [example] : [];
+    const example = strictRuntimeExample(catalogs.examples.get(id));
+    return example ? [example] : [];
   });
 }
 
@@ -95,8 +98,8 @@ function canonicalExamplesFor(
     });
   }
   for (const activity of lesson.activities) {
-    const example = catalogs.examples.get(activity.targetId);
-    if (!example || !isStrictRuntimeExample(example) || canonical.has(example.id)) {
+    const example = strictRuntimeExample(catalogs.examples.get(activity.targetId));
+    if (!example || canonical.has(example.id)) {
       continue;
     }
     canonical.set(example.id, {
@@ -197,7 +200,10 @@ export function validateBaseLessonPrerequisiteGraph(
     push("unknown-lesson", "invalid-lesson-shape", "lessons");
     return deepFreeze(errors);
   }
-  const validLessons: BaseLessonContent[] = [];
+  const validLessons: Readonly<{
+    readonly lessonId: string;
+    readonly prerequisiteLessonIds: readonly string[];
+  }>[] = [];
   for (const rawLesson of rawLessons) {
     const candidateLessonId = lessonIdFrom(rawLesson);
     if (
@@ -206,11 +212,12 @@ export function validateBaseLessonPrerequisiteGraph(
     ) {
       push(candidateLessonId, "unknown-base-lesson", candidateLessonId);
     }
-    if (!isStrictRuntimePrerequisiteLesson(rawLesson)) {
+    const prerequisiteLesson = strictRuntimePrerequisiteLesson(rawLesson);
+    if (!prerequisiteLesson) {
       push(candidateLessonId, "invalid-lesson-shape", "prerequisite lesson");
       continue;
     }
-    validLessons.push(rawLesson as BaseLessonContent);
+    validLessons.push(prerequisiteLesson);
   }
   const byLessonId = new Map(
     validLessons.map((lesson) => [lesson.lessonId, lesson]),
@@ -335,7 +342,7 @@ export function validateFirstTeachOrder(
   const lessons: BaseLessonContent[] = [];
   for (const rawLesson of lessonEntries) {
     const candidateLessonId = lessonIdFrom(rawLesson);
-    const strictLesson = isStrictRuntimeLesson(rawLesson);
+    const strictLesson = strictRuntimeLesson(rawLesson);
     if (!strictLesson && isPlainDataRecord(rawLesson)) {
       const activities = ownDataArrayValues(ownDataValue(rawLesson, "activities"));
       activities?.forEach((activity, index) => {
@@ -388,7 +395,7 @@ export function validateFirstTeachOrder(
       push(candidateLessonId, "invalid-lesson-shape", "lesson");
       continue;
     }
-    lessons.push(rawLesson as BaseLessonContent);
+    lessons.push(strictLesson);
   }
   const catalogFields = invalidRuntimeCatalogFields(rawCatalogs);
   if (catalogFields.length > 0) {
@@ -760,7 +767,8 @@ export function validateFirstTeachOrder(
 
     if (lesson.dialogueId) {
       const rawDialogue = catalogs.dialogues.get(lesson.dialogueId);
-      if (rawDialogue && !isStrictRuntimeDialogue(rawDialogue)) {
+      const dialogue = rawDialogue ? strictRuntimeDialogue(rawDialogue) : undefined;
+      if (rawDialogue && !dialogue) {
         if (isPlainDataRecord(rawDialogue)) {
           const turns = ownDataArrayValues(ownDataValue(rawDialogue, "turns"));
           turns?.forEach((turn, index) => {
@@ -777,8 +785,7 @@ export function validateFirstTeachOrder(
           });
         }
         push(lesson.lessonId, "invalid-dialogue-shape", lesson.dialogueId);
-      } else if (rawDialogue) {
-        const dialogue = rawDialogue;
+      } else if (dialogue) {
         for (const [index, turn] of dialogue.turns.entries()) {
           validateSentence(
             lesson,
@@ -795,28 +802,35 @@ export function validateFirstTeachOrder(
     }
   }
 
-  const validConcepts = [...catalogs.concepts.values()].filter(
-    isStrictRuntimeConcept,
-  ) as BaseConcept[];
-  const validLexemes = [...catalogs.lexemes.values()].filter(
-    isStrictRuntimeLexeme,
-  ) as Parameters<typeof validateFirstTeachOwners>[2];
-  const validSnapshots = [...catalogs.referenceSnapshots.values()].filter(
-    isStrictRuntimeReferenceSnapshot,
+  const validConcepts = [...catalogs.concepts.values()].flatMap((concept) => {
+    const snapshot = strictRuntimeConcept(concept);
+    return snapshot ? [snapshot] : [];
+  }) as BaseConcept[];
+  const validLexemes = [...catalogs.lexemes.values()].flatMap((lexeme) => {
+    const snapshot = strictRuntimeLexeme(lexeme);
+    return snapshot ? [snapshot] : [];
+  }) as Parameters<typeof validateFirstTeachOwners>[2];
+  const validSnapshots = [...catalogs.referenceSnapshots.values()].flatMap(
+    (snapshot) => {
+      const validSnapshot = strictRuntimeReferenceSnapshot(snapshot);
+      return validSnapshot ? [validSnapshot] : [];
+    },
   ) as Parameters<typeof validateFirstTeachOwners>[3];
   const firstLessonId = lessons[0]?.lessonId ?? "unknown-lesson";
   for (const system of [...catalogs.systems.values()]) {
-    if (isStrictRuntimeRetrievalSystem(system)) continue;
+    if (strictRuntimeRetrievalSystem(system)) continue;
     const systemId =
       isPlainDataRecord(system) && typeof ownDataValue(system, "id") === "string"
         ? (ownDataValue(system, "id") as string)
         : "unknown-system";
     push(firstLessonId, "invalid-catalog-entry", systemId, "retrieval system");
   }
+  const validSystems = [...catalogs.systems.values()].flatMap((system) => {
+    const snapshot = strictRuntimeRetrievalSystem(system);
+    return snapshot ? [snapshot] : [];
+  }) as Parameters<typeof validateBaseRetrievalSystems>[0];
   for (const systemError of validateBaseRetrievalSystems(
-    [...catalogs.systems.values()].filter(isStrictRuntimeRetrievalSystem) as Parameters<
-      typeof validateBaseRetrievalSystems
-    >[0],
+    validSystems,
     validConcepts,
     owners,
   )) {
@@ -906,17 +920,15 @@ export function visibleJapaneseFor(
     const lesson =
       declaredContract !== undefined && declaredContract !== manifest.contract
         ? canonicalLessonForManifest(rawLesson, manifest.contract)
-        : isStrictRuntimeLesson(rawLesson)
-          ? (rawLesson as BaseLessonContent)
-          : undefined;
+        : strictRuntimeLesson(rawLesson);
     if (!lesson) continue;
     if (lesson.contract !== "phonetic") {
       for (const example of workedExamplesFor(lesson, catalogs)) {
         append(`example:${example.id}`, example.tokens);
       }
       if (lesson.dialogueId) {
-        const dialogue = catalogs.dialogues.get(lesson.dialogueId);
-        if (dialogue && isStrictRuntimeDialogue(dialogue)) {
+        const dialogue = strictRuntimeDialogue(catalogs.dialogues.get(lesson.dialogueId));
+        if (dialogue) {
           for (const [index, turn] of dialogue.turns.entries()) {
             append(`dialogue:${dialogue.id}:${index}`, turn.tokens);
           }

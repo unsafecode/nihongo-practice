@@ -21,11 +21,11 @@ import {
 } from "./activityContracts";
 import {
   isPlainDataRecord,
-  isRuntimeStringArray,
   isStrictRuntimeDialogueTurn,
   isStrictRuntimeExample,
   ownDataArrayValues,
   ownDataValue,
+  runtimeStringArrayValues,
   runtimeVisibleTargetIssue,
 } from "../validation/runtimeGuards";
 import type {
@@ -425,7 +425,7 @@ function isNonemptyString(value: unknown): value is string {
 }
 
 function isStringArray(value: unknown): value is readonly string[] {
-  return isRuntimeStringArray(value) && value.every(isNonemptyString);
+  return runtimeStringArrayValues(value)?.every(isNonemptyString) === true;
 }
 
 function hasActivityFields(value: unknown): boolean {
@@ -577,16 +577,11 @@ function assertPublicationValue(
     if (!ownDataArrayValues(value)) {
       unsupportedPublicationValue(path);
     }
-    for (const [key, descriptor] of Object.entries(
-      Object.getOwnPropertyDescriptors(value),
-    )) {
-      if (key === "length") continue;
-      if (!("value" in descriptor)) {
-        unsupportedPublicationValue(`${path}.${key}`);
-      }
+    const entries = ownDataArrayValues(value);
+    for (let index = 0; index < (entries?.length ?? 0); index += 1) {
       assertPublicationValue(
-        descriptor.value,
-        Number.isSafeInteger(Number(key)) ? `${path}[${key}]` : `${path}.${key}`,
+        entries?.[index],
+        `${path}[${index}]`,
         active,
       );
     }
@@ -615,24 +610,14 @@ function clonePublicationValue<T>(
   const existing = seen.get(source);
   if (existing !== undefined) return existing as T;
   if (Array.isArray(value)) {
-    const clone: unknown[] = [];
-    seen.set(source, clone);
-    if (!ownDataArrayValues(value)) {
+    const entries = ownDataArrayValues(value);
+    if (!entries) {
       unsupportedPublicationValue("publication array");
     }
-    for (const [key, descriptor] of Object.entries(
-      Object.getOwnPropertyDescriptors(value),
-    )) {
-      if (key === "length") continue;
-      if (!("value" in descriptor)) {
-        unsupportedPublicationValue(`publication array.${key}`);
-      }
-      Object.defineProperty(clone, key, {
-        configurable: true,
-        enumerable: true,
-        value: clonePublicationValue(descriptor.value, seen),
-        writable: true,
-      });
+    const clone: unknown[] = new Array(entries.length);
+    seen.set(source, clone);
+    for (let index = 0; index < entries.length; index += 1) {
+      clone[index] = clonePublicationValue(entries[index], seen);
     }
     return clone as T;
   }
@@ -688,8 +673,17 @@ export function defineBaseLessonContent<T extends BaseLessonContent>(lesson: T):
       `Lesson "${lesson.lessonId}" must use the "${manifest.contract}" contract.`,
     );
   }
+  const activities = ownDataArrayValues(lesson.activities) as
+    | readonly BaseActivityDefinition[]
+    | undefined;
+  if (!activities) {
+    throw new BaseLessonContentDefinitionError(
+      "wrong-contract-fields",
+      "Lesson does not provide the required common fields.",
+    );
+  }
   const activityIds = new Set<string>();
-  for (const activity of lesson.activities) {
+  for (const activity of activities) {
     assertNonemptyId(activity.id, "activity id");
     assertNonemptyId(activity.targetId, "activity targetId");
     assertNonemptyId(activity.operation, "activity operation");

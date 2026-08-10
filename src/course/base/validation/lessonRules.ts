@@ -9,7 +9,6 @@ import {
 import { firstTeachLessonPosition } from "../catalog/firstTeach";
 import type {
   BaseActivityDefinition,
-  BaseConcept,
   BaseExample,
   BaseLexeme,
   BaseLessonContent,
@@ -43,18 +42,22 @@ import {
 } from "./fingerprints";
 import {
   invalidRuntimeCatalogFields,
-  isRuntimeStringArray,
   isStrictRuntimeConcept,
-  isStrictRuntimeDialogue,
-  isStrictRuntimeExample,
-  isStrictRuntimeLesson,
   isStrictRuntimeLexeme,
   isStrictRuntimeReferenceSnapshot,
-  isStrictRuntimeRetrievalSystem,
   isStrictRuntimeTokenSequence as isStrictRawRuntimeTokenSequence,
   ownDataArrayValues,
+  runtimeStringArrayValues,
   runtimeActivityShapeIssues,
   runtimeVisibleTargetIssue,
+  strictRuntimeConcept,
+  strictRuntimeDialogue,
+  strictRuntimeExample,
+  strictRuntimeLesson,
+  strictRuntimeLexeme,
+  strictRuntimeRetrievalSystem,
+  strictRuntimeTokenSequence,
+  strictRuntimeVisibleTarget,
   strictRuntimeLessonWithContract,
 } from "./runtimeGuards";
 
@@ -182,11 +185,12 @@ function resolvedExamples(
 ): readonly BaseExample[] {
   const examples: BaseExample[] = [];
   for (const exampleId of lesson.workedExampleIds) {
-    const example = catalogs.examples.get(exampleId);
-    if (!example) {
+    const rawExample = catalogs.examples.get(exampleId);
+    const example = strictRuntimeExample(rawExample);
+    if (!rawExample) {
       push("unresolved-reference", exampleId, "worked example");
-    } else if (!isStrictRuntimeExample(example)) {
-      reportMalformedParticleFrame(example, exampleId, "worked example", push);
+    } else if (!example) {
+      reportMalformedParticleFrame(rawExample, exampleId, "worked example", push);
       push("invalid-example-shape", exampleId, "worked example");
     } else {
       examples.push(example);
@@ -352,8 +356,7 @@ function strictLexemeFor(
   catalogs: BaseValidationCatalogs,
   lexemeId: string,
 ): BaseLexeme | undefined {
-  const lexeme = catalogs.lexemes.get(lexemeId);
-  return isStrictRuntimeLexeme(lexeme) ? (lexeme as BaseLexeme) : undefined;
+  return strictRuntimeLexeme(catalogs.lexemes.get(lexemeId));
 }
 
 function isStrictRuntimeTokenSequence(
@@ -365,13 +368,14 @@ function isStrictRuntimeTokenSequence(
 export function validateTokenSequence(
   tokens: readonly AssembledToken[] | unknown,
 ): ReturnType<typeof formatRomaji> {
-  if (!isStrictRuntimeTokenSequence(tokens)) {
+  const tokenSnapshot = strictRuntimeTokenSequence(tokens);
+  if (!tokenSnapshot) {
     return {
       ok: false,
       errors: [{ code: "unresolved-token" }],
     };
   }
-  return formatRomaji(tokens);
+  return formatRomaji(tokenSnapshot);
 }
 
 function validateTokens(
@@ -760,8 +764,13 @@ function validateSemanticPatternDeclaration(
     detail?: string,
   ) => void,
 ): void {
-  const canonicalMatrix = catalogs.patternCellIdsByLesson.get(lesson.lessonId);
-  if (canonicalMatrix !== undefined && !isRuntimeStringArray(canonicalMatrix)) {
+  const canonicalMatrix = runtimeStringArrayValues(
+    catalogs.patternCellIdsByLesson.get(lesson.lessonId),
+  );
+  if (
+    catalogs.patternCellIdsByLesson.has(lesson.lessonId) &&
+    canonicalMatrix === undefined
+  ) {
     push("invalid-catalog-entry", lesson.lessonId, "pattern cell matrix");
   } else if (lesson.patternCellIds.length === 0 && canonicalMatrix !== undefined) {
     push("semantic-pattern-cell-declaration-missing", lesson.lessonId);
@@ -787,10 +796,6 @@ function validateSemanticPatternDeclaration(
 }
 
 type SentenceLike = BaseVisibleTarget;
-
-function isStringArray(value: unknown): value is readonly string[] {
-  return isRuntimeStringArray(value);
-}
 
 function validateParticlePredicateProvenance(
   target: Readonly<Record<string, unknown>>,
@@ -894,56 +899,18 @@ function validateSentenceLikeReferences(
     }
     return;
   }
-  const target = sentence as Readonly<Record<string, unknown>>;
-  const requiredStringArrays = [
-    "lexemeIds",
-    "conceptIds",
-    "formIds",
-    "patternCellIds",
-    "semanticRoleIds",
-    "interpretationTags",
-  ] as const;
-  if (
-    !requiredStringArrays.every((field) =>
-      isRuntimeStringArray(ownDataValue(target, field)),
-    )
-  ) {
+  const target = strictRuntimeVisibleTarget(sentence);
+  if (!target) {
     push("invalid-visible-target-shape", referenceId, label);
     return;
   }
-  const predicateSenseId = ownDataValue(target, "predicateSenseId");
-  const predicateLexemeId = ownDataValue(target, "predicateLexemeId");
-  if (
-    !(
-      (typeof predicateSenseId === "string" || predicateSenseId === null) &&
-      (typeof predicateLexemeId === "string" || predicateLexemeId === null)
-    )
-  ) {
-    push("invalid-visible-target", referenceId, `${label}:predicate-provenance`);
-    if (ownDataValue(target, "particleFrame") !== undefined) {
-      push(
-        "particle-frame-predicate-mismatch",
-        referenceId,
-        `${label}:predicate-provenance`,
-      );
-    }
-    return;
-  }
-  const tokens = ownDataValue(target, "tokens");
-  const lexemeIds = ownDataValue(target, "lexemeIds");
-  const conceptIds = ownDataValue(target, "conceptIds");
-  const formIds = ownDataValue(target, "formIds");
-  const patternCellIds = ownDataValue(target, "patternCellIds");
+  const targetRecord = target as unknown as Readonly<Record<string, unknown>>;
+  const tokens = target.tokens;
+  const lexemeIds = target.lexemeIds;
+  const conceptIds = target.conceptIds;
+  const formIds = target.formIds;
+  const patternCellIds = target.patternCellIds;
   validateTokens(tokens, referenceId, label, push);
-  if (
-    !isStringArray(lexemeIds) ||
-    !isStringArray(conceptIds) ||
-    !isStringArray(formIds) ||
-    !isStringArray(patternCellIds)
-  ) {
-    push("invalid-visible-target-shape", referenceId, label);
-    return;
-  }
   for (const lexemeId of lexemeIds) {
     validateReference(lexemeId, catalogs.lexemes.has(lexemeId), `${label} lexeme`, push);
     const lexeme = catalogs.lexemes.get(lexemeId);
@@ -1001,11 +968,11 @@ function validateSentenceLikeReferences(
     label,
     push,
   );
-  const particleFrame = ownDataValue(target, "particleFrame");
+  const particleFrame = ownDataValue(targetRecord, "particleFrame");
   if (particleFrame !== undefined) {
     if (isPlainDataRecord(particleFrame)) {
       validateParticlePredicateProvenance(
-        target,
+        targetRecord,
         particleFrame,
         referenceId,
         label,
@@ -1060,8 +1027,8 @@ function canonicalExampleReferences(
     });
   }
   for (const activity of lesson.activities) {
-    const example = catalogs.examples.get(activity.targetId);
-    if (!example || !isStrictRuntimeExample(example) || canonical.has(example.id)) {
+    const example = strictRuntimeExample(catalogs.examples.get(activity.targetId));
+    if (!example || canonical.has(example.id)) {
       continue;
     }
     canonical.set(example.id, {
@@ -1134,7 +1101,7 @@ function targetStringField(
   const record = target as Readonly<Record<string, unknown>>;
   if (!isPlainDataRecord(record)) return [];
   const value = ownDataValue(record, field);
-  return isStringArray(value) ? value : [];
+  return runtimeStringArrayValues(value) ?? [];
 }
 
 interface DeclaredContentEvidence {
@@ -1337,12 +1304,13 @@ function validateSynthesisRetrievalSystems(
       continue;
     }
     seen.add(systemId);
-    const system = catalogs.systems.get(systemId);
-    if (!system) {
+    const rawSystem = catalogs.systems.get(systemId);
+    if (!rawSystem) {
       push("unresolved-reference", systemId, "retrieved system");
       continue;
     }
-    if (!isStrictRuntimeRetrievalSystem(system)) {
+    const system = strictRuntimeRetrievalSystem(rawSystem);
+    if (!system) {
       push("invalid-catalog-entry", systemId, "retrieved system");
       continue;
     }
@@ -1366,9 +1334,7 @@ function validateSynthesisRetrievalSystems(
         push("unresolved-reference", componentId, "retrieved system component");
         continue;
       }
-      const component = isStrictRuntimeConcept(rawComponent)
-        ? (rawComponent as BaseConcept)
-        : undefined;
+      const component = strictRuntimeConcept(rawComponent);
       if (!component) {
         hasOnlyCanonicalComponents = false;
         push("invalid-catalog-entry", componentId, "retrieved system component");
@@ -1488,12 +1454,12 @@ export function validateBaseLessonDepth(
       );
       return deepFreeze(errors);
     }
-  } else if (!isStrictRuntimeLesson(rawLesson)) {
+  } else if (!strictRuntimeLesson(rawLesson)) {
     reportMalformedRuntimeActivities(rawLesson, push);
     push("invalid-lesson-shape", lessonId, "lesson");
     return deepFreeze(errors);
   } else {
-    lesson = rawLesson as BaseLessonContent;
+    lesson = strictRuntimeLesson(rawLesson) as BaseLessonContent;
   }
   const catalogFields = invalidRuntimeCatalogFields(rawCatalogs);
   if (catalogFields.length > 0) {
@@ -1702,7 +1668,7 @@ export function validateBaseLessonDepth(
     ? catalogs.dialogues.get(lesson.dialogueId)
     : undefined;
   const dialogue =
-    rawDialogue && isStrictRuntimeDialogue(rawDialogue) ? rawDialogue : undefined;
+    rawDialogue ? strictRuntimeDialogue(rawDialogue) : undefined;
   if (lesson.dialogueId && !rawDialogue) {
     push("unresolved-reference", lesson.dialogueId, "dialogue");
   } else if (lesson.dialogueId && rawDialogue && !dialogue) {
@@ -1786,10 +1752,11 @@ export function validateBaseLessonDepth(
     if (!isCountWithin(uniqueIds(lesson.workedExampleIds).length, 10, 14)) {
       push("system-example-count", undefined, `${uniqueIds(lesson.workedExampleIds).length}`);
     }
-    const canonicalMatrix = catalogs.patternCellIdsByLesson.get(lesson.lessonId);
-    if (canonicalMatrix === undefined) {
+    const rawCanonicalMatrix = catalogs.patternCellIdsByLesson.get(lesson.lessonId);
+    const canonicalMatrix = runtimeStringArrayValues(rawCanonicalMatrix);
+    if (rawCanonicalMatrix === undefined) {
       push("system-pattern-matrix-missing", lesson.lessonId);
-    } else if (!isRuntimeStringArray(canonicalMatrix)) {
+    } else if (!canonicalMatrix) {
       push("invalid-catalog-entry", lesson.lessonId, "pattern cell matrix");
     } else {
       const substantiveCells = canonicalMatrix.filter(

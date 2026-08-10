@@ -26,6 +26,7 @@ import { validateBaseLessonDepth } from "./lessonRules";
 import { validateFirstTeachOrder, visibleJapaneseFor } from "./sequenceRules";
 import { BASE_LESSON_IDS, BASE_LESSON_MANIFEST } from "../manifest";
 import { validateTokenSequence } from "./lessonRules";
+import { ownDataArrayValues } from "./runtimeGuards";
 
 function token(id: string, jp: string): AssembledToken {
   return {
@@ -3773,5 +3774,134 @@ describe("Task7 audit prototype and enum regressions", () => {
         }),
       ]),
     );
+  });
+});
+
+describe("Task7 final Base array snapshot regressions", () => {
+  class IncludesSuppressingArray<T> extends Array<T> {
+    override includes(_searchElement: T, _fromIndex?: number): boolean {
+      return true;
+    }
+  }
+
+  class NullIteratorArray<T> extends Array<T> {
+    override *[Symbol.iterator](): IterableIterator<T> {
+      yield null as T;
+    }
+  }
+
+  it("rejects arrays whose prototype is not exactly Array.prototype", () => {
+    const subclass = new IncludesSuppressingArray<string>();
+
+    expect(ownDataArrayValues(subclass)).toBeUndefined();
+  });
+
+  it("rejects custom-prototype arrays instead of trusting overridden includes for prerequisites and provenance", () => {
+    const prerequisiteLessonIds = new IncludesSuppressingArray<string>();
+    const workedLexemeIds = new IncludesSuppressingArray<string>("verb-kaku");
+    const lexemeIds = new IncludesSuppressingArray<string>("verb-kaku");
+    const targetId = "includes-suppressed-predicate-target";
+    const workedExample: BaseExample = {
+      ...EXAMPLES[0],
+      id: "includes-suppressed-worked-example",
+      lexemeIds: workedLexemeIds as unknown as BaseExample["lexemeIds"],
+      predicateSenseId: "eat",
+      predicateLexemeId: "verb-taberu",
+      particleFrame: {
+        predicateSenseId: "eat",
+        provided: { theme: "object-o" },
+      },
+    };
+    const catalogs: BaseValidationCatalogs = {
+      ...CATALOGS,
+      examples: new Map([...CATALOGS.examples, [workedExample.id, workedExample]]),
+      acceptedAnswerTargets: new Map([
+        ...CATALOGS.acceptedAnswerTargets,
+        [
+          targetId,
+          visibleTarget([token("includes-suppressed-token", "食")], {
+            lexemeIds: lexemeIds as unknown as BaseVisibleTarget["lexemeIds"],
+            predicateSenseId: "eat",
+            predicateLexemeId: "verb-taberu",
+            particleFrame: {
+              predicateSenseId: "eat",
+              provided: { theme: "object-o" },
+            },
+          }),
+        ],
+      ]),
+    };
+    const lesson = {
+      ...systemLesson(),
+      prerequisiteLessonIds:
+        prerequisiteLessonIds as unknown as BaseLessonContent["prerequisiteLessonIds"],
+      workedExampleIds: [
+        workedExample.id,
+        ...EXAMPLES.slice(1, 10).map((entry) => entry.id),
+      ],
+      activities: [
+        { ...SEMANTIC_ACTIVITIES[0], targetId },
+        ...SEMANTIC_ACTIVITIES.slice(1),
+      ],
+    } as BaseLessonContent;
+
+    expect(() => validateBaseLessonDepth(lesson, catalogs)).not.toThrow();
+    expect(validateBaseLessonDepth(lesson, catalogs)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "invalid-lesson-shape" }),
+      ]),
+    );
+
+    const validLesson = {
+      ...systemLesson(),
+      workedExampleIds: [
+        workedExample.id,
+        ...EXAMPLES.slice(1, 10).map((entry) => entry.id),
+      ],
+      activities: [
+        { ...SEMANTIC_ACTIVITIES[0], targetId },
+        ...SEMANTIC_ACTIVITIES.slice(1),
+      ],
+    } as BaseLessonContent;
+    const validLessonErrors = validateBaseLessonDepth(validLesson, catalogs);
+    expect(validLessonErrors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "invalid-example-shape",
+          referenceId: workedExample.id,
+        }),
+        expect.objectContaining({
+          code: "invalid-visible-target-shape",
+          referenceId: targetId,
+        }),
+      ]),
+    );
+  });
+
+  it("never iterates original lesson activity arrays after validation", () => {
+    const activities = new NullIteratorArray<BaseActivityDefinition>();
+    activities.push(...phoneticLesson().activities);
+    const malformed = {
+      ...phoneticLesson(),
+      activities: activities as unknown as BaseLessonContent["activities"],
+    } as BaseLessonContent;
+
+    expect(() => validateBaseLessonDepth(malformed, CATALOGS)).not.toThrow();
+    expect(validateBaseLessonDepth(malformed, CATALOGS)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "invalid-lesson-shape" }),
+      ]),
+    );
+    expect(() =>
+      validateFirstTeachOrder([malformed], BASE_FIRST_TEACH_OWNERS, CATALOGS),
+    ).not.toThrow();
+    expect(
+      validateFirstTeachOrder([malformed], BASE_FIRST_TEACH_OWNERS, CATALOGS),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "invalid-lesson-shape" }),
+      ]),
+    );
+    expect(visibleJapaneseFor([malformed], CATALOGS)).toBe("");
   });
 });

@@ -38,10 +38,11 @@ function normalizedOptionalText(value: unknown): string | null {
 }
 
 function sortedNormalized(values: unknown): readonly string[] {
-  if (!Array.isArray(values)) return [];
+  const entries = ownDataArrayValues(values);
+  if (!entries) return [];
   return [
     ...new Set(
-      values
+      entries
         .filter((value): value is string => typeof value === "string")
         .map(normalizeText)
         .filter((value) => value.length > 0),

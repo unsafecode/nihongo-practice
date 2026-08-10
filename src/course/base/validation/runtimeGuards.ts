@@ -1,4 +1,17 @@
 import type { AssembledToken } from "../../../romaji/types";
+import type {
+  BaseActivityDefinition,
+  BaseConcept,
+  BaseDialogue,
+  BaseDialogueTurn,
+  BaseExample,
+  BaseLexeme,
+  BaseLessonContent,
+  BaseReferenceSnapshotDefinition,
+  BaseRetrievalSystem,
+  BaseTranslationCopy,
+  BaseVisibleTarget,
+} from "../catalog/types";
 import {
   baseActivityOperationFor,
   isBaseActivityKind,
@@ -106,6 +119,7 @@ export function hasOwnDataValue(
  */
 export function ownDataArrayValues(value: unknown): readonly unknown[] | undefined {
   if (!Array.isArray(value)) return undefined;
+  if (Object.getPrototypeOf(value) !== Array.prototype) return undefined;
   const descriptors = Object.getOwnPropertyDescriptors(value) as Record<
     string,
     PropertyDescriptor
@@ -123,17 +137,35 @@ export function ownDataArrayValues(value: unknown): readonly unknown[] | undefin
     return undefined;
   }
   const values: unknown[] = [];
+  const indexKeys = new Set<string>();
   for (let index = 0; index < length.value; index += 1) {
+    indexKeys.add(String(index));
     const descriptor = descriptors[String(index)];
     if (!descriptor || !("value" in descriptor)) return undefined;
     values.push(descriptor.value);
   }
-  return values;
+  if (
+    Object.keys(descriptors).some(
+      (key) => key !== "length" && !indexKeys.has(key),
+    )
+  ) {
+    return undefined;
+  }
+  return Object.freeze(values);
+}
+
+export function runtimeStringArrayValues(
+  value: unknown,
+): readonly string[] | undefined {
+  const entries = ownDataArrayValues(value);
+  if (entries === undefined || entries.some((entry) => typeof entry !== "string")) {
+    return undefined;
+  }
+  return entries as readonly string[];
 }
 
 export function isRuntimeStringArray(value: unknown): value is readonly string[] {
-  const entries = ownDataArrayValues(value);
-  return entries !== undefined && entries.every((entry) => typeof entry === "string");
+  return runtimeStringArrayValues(value) !== undefined;
 }
 
 function isStrictRuntimeToken(value: unknown): value is AssembledToken {
@@ -164,8 +196,17 @@ function isStrictRuntimeToken(value: unknown): value is AssembledToken {
 export function isStrictRuntimeTokenSequence(
   tokens: readonly AssembledToken[] | unknown,
 ): tokens is readonly AssembledToken[] {
+  return strictRuntimeTokenSequence(tokens) !== undefined;
+}
+
+export function strictRuntimeTokenSequence(
+  tokens: readonly AssembledToken[] | unknown,
+): readonly AssembledToken[] | undefined {
   const entries = ownDataArrayValues(tokens);
-  return entries !== undefined && entries.every(isStrictRuntimeToken);
+  if (entries === undefined || !entries.every(isStrictRuntimeToken)) {
+    return undefined;
+  }
+  return entries as readonly AssembledToken[];
 }
 
 export type RuntimeVisibleTargetIssue =
@@ -279,6 +320,54 @@ export function runtimeVisibleTargetIssue(
   return undefined;
 }
 
+export function strictRuntimeVisibleTarget(
+  value: unknown,
+): BaseVisibleTarget | undefined {
+  const issue = runtimeVisibleTargetIssue(value);
+  if (issue !== undefined || !isPlainDataRecord(value)) return undefined;
+  const tokens = strictRuntimeTokenSequence(ownDataValue(value, "tokens"));
+  const lexemeIds = runtimeStringArrayValues(ownDataValue(value, "lexemeIds"));
+  const conceptIds = runtimeStringArrayValues(ownDataValue(value, "conceptIds"));
+  const formIds = runtimeStringArrayValues(ownDataValue(value, "formIds"));
+  const patternCellIds = runtimeStringArrayValues(
+    ownDataValue(value, "patternCellIds"),
+  );
+  const semanticRoleIds = runtimeStringArrayValues(
+    ownDataValue(value, "semanticRoleIds"),
+  );
+  const interpretationTags = runtimeStringArrayValues(
+    ownDataValue(value, "interpretationTags"),
+  );
+  if (
+    !tokens ||
+    !lexemeIds ||
+    !conceptIds ||
+    !formIds ||
+    !patternCellIds ||
+    !semanticRoleIds ||
+    !interpretationTags
+  ) {
+    return undefined;
+  }
+  const predicateAspect = ownDataValue(value, "predicateAspect");
+  const discourseFrameId = ownDataValue(value, "discourseFrameId");
+  const particleFrame = ownDataValue(value, "particleFrame");
+  return Object.freeze({
+    tokens,
+    lexemeIds,
+    conceptIds,
+    formIds,
+    patternCellIds,
+    semanticRoleIds,
+    interpretationTags,
+    predicateSenseId: ownDataValue(value, "predicateSenseId"),
+    predicateLexemeId: ownDataValue(value, "predicateLexemeId"),
+    ...(typeof predicateAspect === "string" ? { predicateAspect } : {}),
+    ...(typeof discourseFrameId === "string" ? { discourseFrameId } : {}),
+    ...(particleFrame !== undefined ? { particleFrame } : {}),
+  } as BaseVisibleTarget);
+}
+
 function isRuntimeTranslationCopy(value: unknown): boolean {
   if (!isPlainDataRecord(value)) return false;
   const copyId = ownDataValue(value, "copyId");
@@ -290,42 +379,96 @@ function isRuntimeTranslationCopy(value: unknown): boolean {
 }
 
 export function isStrictRuntimeExample(value: unknown): boolean {
-  if (!isPlainDataRecord(value) || runtimeVisibleTargetIssue(value) !== undefined) {
-    return false;
+  return strictRuntimeExample(value) !== undefined;
+}
+
+export function strictRuntimeExample(value: unknown): BaseExample | undefined {
+  if (!isPlainDataRecord(value)) return undefined;
+  const target = strictRuntimeVisibleTarget(value);
+  const id = ownDataValue(value, "id");
+  const teachingPurposeCopyId = ownDataValue(value, "teachingPurposeCopyId");
+  const translationCopy = ownDataValue(value, "translationCopy");
+  const predicateAspect = ownDataValue(value, "predicateAspect");
+  const discourseFrameId = ownDataValue(value, "discourseFrameId");
+  if (
+    !target ||
+    typeof id !== "string" ||
+    typeof teachingPurposeCopyId !== "string" ||
+    !isRuntimeTranslationCopy(translationCopy) ||
+    typeof predicateAspect !== "string" ||
+    typeof discourseFrameId !== "string"
+  ) {
+    return undefined;
   }
-  return (
-    typeof ownDataValue(value, "id") === "string" &&
-    typeof ownDataValue(value, "teachingPurposeCopyId") === "string" &&
-    isRuntimeTranslationCopy(ownDataValue(value, "translationCopy")) &&
-    typeof ownDataValue(value, "predicateAspect") === "string" &&
-    typeof ownDataValue(value, "discourseFrameId") === "string"
-  );
+  return Object.freeze({
+    ...target,
+    id,
+    teachingPurposeCopyId,
+    translationCopy: translationCopy as BaseTranslationCopy,
+    predicateAspect: predicateAspect as BaseExample["predicateAspect"],
+    discourseFrameId,
+  });
 }
 
 export function isStrictRuntimeDialogueTurn(value: unknown): boolean {
-  return (
-    isPlainDataRecord(value) &&
-    runtimeVisibleTargetIssue(value) === undefined &&
-    typeof ownDataValue(value, "speakerId") === "string" &&
-    typeof ownDataValue(value, "predicateAspect") === "string" &&
-    typeof ownDataValue(value, "discourseFrameId") === "string"
-  );
+  return strictRuntimeDialogueTurn(value) !== undefined;
+}
+
+export function strictRuntimeDialogueTurn(
+  value: unknown,
+): BaseDialogueTurn | undefined {
+  if (!isPlainDataRecord(value)) return undefined;
+  const target = strictRuntimeVisibleTarget(value);
+  const speakerId = ownDataValue(value, "speakerId");
+  const predicateAspect = ownDataValue(value, "predicateAspect");
+  const discourseFrameId = ownDataValue(value, "discourseFrameId");
+  if (
+    !target ||
+    typeof speakerId !== "string" ||
+    typeof predicateAspect !== "string" ||
+    typeof discourseFrameId !== "string"
+  ) {
+    return undefined;
+  }
+  return Object.freeze({
+    ...target,
+    speakerId,
+    predicateAspect: predicateAspect as BaseDialogueTurn["predicateAspect"],
+    discourseFrameId,
+  });
 }
 
 export function isStrictRuntimeDialogue(value: unknown): boolean {
+  return strictRuntimeDialogue(value) !== undefined;
+}
+
+export function strictRuntimeDialogue(value: unknown): BaseDialogue | undefined {
   if (
     !isPlainDataRecord(value) ||
     typeof ownDataValue(value, "id") !== "string" ||
     typeof ownDataValue(value, "practicalOutcomeCopyId") !== "string"
   ) {
-    return false;
+    return undefined;
   }
   const turns = ownDataArrayValues(ownDataValue(value, "turns"));
-  return turns !== undefined && turns.every(isStrictRuntimeDialogueTurn);
+  if (turns === undefined) return undefined;
+  const turnSnapshots = turns.map(strictRuntimeDialogueTurn);
+  if (turnSnapshots.some((turn) => turn === undefined)) return undefined;
+  return Object.freeze({
+    id: ownDataValue(value, "id") as string,
+    practicalOutcomeCopyId: ownDataValue(value, "practicalOutcomeCopyId") as string,
+    turns: Object.freeze(turnSnapshots as BaseDialogueTurn[]),
+  });
 }
 
 export function isStrictRuntimeActivity(value: unknown): boolean {
-  if (!isPlainDataRecord(value)) return false;
+  return strictRuntimeActivity(value) !== undefined;
+}
+
+export function strictRuntimeActivity(
+  value: unknown,
+): BaseActivityDefinition | undefined {
+  if (!isPlainDataRecord(value)) return undefined;
   const stringFields = [
     "id",
     "targetId",
@@ -333,15 +476,42 @@ export function isStrictRuntimeActivity(value: unknown): boolean {
     "acceptedFeedbackCopyId",
     "retryFeedbackCopyId",
   ] as const;
-  return (
-    stringFields.every((field) => typeof ownDataValue(value, field) === "string") &&
-    isBaseActivityKind(ownDataValue(value, "category")) &&
-    isBaseInteractionKind(ownDataValue(value, "interactionKind")) &&
-    isBaseActivityMode(ownDataValue(value, "mode")) &&
-    isBaseActivityOperation(ownDataValue(value, "operation")) &&
-    isRuntimeStringArray(ownDataValue(value, "assessedConceptIds")) &&
-    isRuntimeStringArray(ownDataValue(value, "assessedLexemeIds"))
+  if (!stringFields.every((field) => typeof ownDataValue(value, field) === "string")) {
+    return undefined;
+  }
+  const category = ownDataValue(value, "category");
+  const interactionKind = ownDataValue(value, "interactionKind");
+  const mode = ownDataValue(value, "mode");
+  const operation = ownDataValue(value, "operation");
+  const assessedConceptIds = runtimeStringArrayValues(
+    ownDataValue(value, "assessedConceptIds"),
   );
+  const assessedLexemeIds = runtimeStringArrayValues(
+    ownDataValue(value, "assessedLexemeIds"),
+  );
+  if (
+    !isBaseActivityKind(category) ||
+    !isBaseInteractionKind(interactionKind) ||
+    !isBaseActivityMode(mode) ||
+    !isBaseActivityOperation(operation) ||
+    !assessedConceptIds ||
+    !assessedLexemeIds
+  ) {
+    return undefined;
+  }
+  return Object.freeze({
+    id: ownDataValue(value, "id") as string,
+    category,
+    interactionKind,
+    mode,
+    targetId: ownDataValue(value, "targetId") as string,
+    operation,
+    instructionCopyId: ownDataValue(value, "instructionCopyId") as string,
+    acceptedFeedbackCopyId: ownDataValue(value, "acceptedFeedbackCopyId") as string,
+    retryFeedbackCopyId: ownDataValue(value, "retryFeedbackCopyId") as string,
+    assessedConceptIds,
+    assessedLexemeIds,
+  });
 }
 
 export type RuntimeActivityShapeIssue =
@@ -373,8 +543,12 @@ export function runtimeActivityShapeIssues(
 }
 
 export function isStrictRuntimeLexeme(value: unknown): boolean {
-  if (!isPlainDataRecord(value)) return false;
-  return (
+  return strictRuntimeLexeme(value) !== undefined;
+}
+
+export function strictRuntimeLexeme(value: unknown): BaseLexeme | undefined {
+  if (!isPlainDataRecord(value)) return undefined;
+  if (
     typeof ownDataValue(value, "id") === "string" &&
     typeof ownDataValue(value, "kana") === "string" &&
     typeof ownDataValue(value, "romaji") === "string" &&
@@ -382,35 +556,78 @@ export function isStrictRuntimeLexeme(value: unknown): boolean {
     typeof ownDataValue(value, "firstTeachLessonId") === "string" &&
     typeof ownDataValue(value, "countable") === "boolean" &&
     typeof ownDataValue(value, "category") === "string"
-  );
+  ) {
+    return value as unknown as BaseLexeme;
+  }
+  return undefined;
 }
 
 export function isStrictRuntimeConcept(value: unknown): boolean {
-  return (
-    isPlainDataRecord(value) &&
-    typeof ownDataValue(value, "id") === "string" &&
-    typeof ownDataValue(value, "kind") === "string" &&
-    isRuntimeStringArray(ownDataValue(value, "prerequisiteIds")) &&
-    typeof ownDataValue(value, "firstTeachLessonId") === "string"
+  return strictRuntimeConcept(value) !== undefined;
+}
+
+export function strictRuntimeConcept(value: unknown): BaseConcept | undefined {
+  if (!isPlainDataRecord(value)) return undefined;
+  const prerequisiteIds = runtimeStringArrayValues(
+    ownDataValue(value, "prerequisiteIds"),
   );
+  if (
+    typeof ownDataValue(value, "id") !== "string" ||
+    typeof ownDataValue(value, "kind") !== "string" ||
+    !prerequisiteIds ||
+    typeof ownDataValue(value, "firstTeachLessonId") !== "string"
+  ) {
+    return undefined;
+  }
+  return Object.freeze({
+    id: ownDataValue(value, "id") as string,
+    kind: ownDataValue(value, "kind") as BaseConcept["kind"],
+    prerequisiteIds,
+    firstTeachLessonId: ownDataValue(value, "firstTeachLessonId") as string,
+  });
 }
 
 export function isStrictRuntimeReferenceSnapshot(value: unknown): boolean {
-  return (
-    isPlainDataRecord(value) &&
-    typeof ownDataValue(value, "id") === "string" &&
-    typeof ownDataValue(value, "firstTeachLessonId") === "string" &&
-    typeof ownDataValue(value, "titleCopyId") === "string"
-  );
+  return strictRuntimeReferenceSnapshot(value) !== undefined;
+}
+
+export function strictRuntimeReferenceSnapshot(
+  value: unknown,
+): BaseReferenceSnapshotDefinition | undefined {
+  if (
+    !isPlainDataRecord(value) ||
+    typeof ownDataValue(value, "id") !== "string" ||
+    typeof ownDataValue(value, "firstTeachLessonId") !== "string" ||
+    typeof ownDataValue(value, "titleCopyId") !== "string"
+  ) {
+    return undefined;
+  }
+  return value as unknown as BaseReferenceSnapshotDefinition;
 }
 
 export function isStrictRuntimeRetrievalSystem(value: unknown): boolean {
-  return (
-    isPlainDataRecord(value) &&
-    typeof ownDataValue(value, "id") === "string" &&
-    typeof ownDataValue(value, "firstTeachLessonId") === "string" &&
-    isRuntimeStringArray(ownDataValue(value, "componentContentIds"))
+  return strictRuntimeRetrievalSystem(value) !== undefined;
+}
+
+export function strictRuntimeRetrievalSystem(
+  value: unknown,
+): BaseRetrievalSystem | undefined {
+  if (!isPlainDataRecord(value)) return undefined;
+  const componentContentIds = runtimeStringArrayValues(
+    ownDataValue(value, "componentContentIds"),
   );
+  if (
+    typeof ownDataValue(value, "id") !== "string" ||
+    typeof ownDataValue(value, "firstTeachLessonId") !== "string" ||
+    !componentContentIds
+  ) {
+    return undefined;
+  }
+  return Object.freeze({
+    id: ownDataValue(value, "id") as string,
+    firstTeachLessonId: ownDataValue(value, "firstTeachLessonId") as string,
+    componentContentIds,
+  });
 }
 
 function isSafeReadonlyMap(value: unknown): boolean {
@@ -489,46 +706,128 @@ function isExplanationBlockRecord(value: unknown): boolean {
 }
 
 export function isStrictRuntimeLesson(value: unknown): boolean {
-  if (!isPlainDataRecord(value)) return false;
+  return strictRuntimeLesson(value) !== undefined;
+}
+
+export function strictRuntimeLesson(value: unknown): BaseLessonContent | undefined {
+  if (!isPlainDataRecord(value)) return undefined;
   const contract = ownDataValue(value, "contract");
   const activities = ownDataArrayValues(ownDataValue(value, "activities"));
+  const activitySnapshots = activities?.map(strictRuntimeActivity);
   if (
     typeof ownDataValue(value, "lessonId") !== "string" ||
     typeof ownDataValue(value, "recapCopyId") !== "string" ||
-    !isRuntimeStringArray(ownDataValue(value, "prerequisiteLessonIds")) ||
+    !runtimeStringArrayValues(ownDataValue(value, "prerequisiteLessonIds")) ||
     activities === undefined ||
-    !activities.every(isStrictRuntimeActivity)
+    activitySnapshots === undefined ||
+    activitySnapshots.some((activity) => activity === undefined)
   ) {
-    return false;
+    return undefined;
   }
+  const common = {
+    lessonId: ownDataValue(value, "lessonId") as BaseLessonContent["lessonId"],
+    contract,
+    prerequisiteLessonIds: runtimeStringArrayValues(
+      ownDataValue(value, "prerequisiteLessonIds"),
+    ) as BaseLessonContent["prerequisiteLessonIds"],
+    activities: Object.freeze(activitySnapshots as BaseActivityDefinition[]),
+    recapCopyId: ownDataValue(value, "recapCopyId") as string,
+  };
 
   if (contract === "phonetic") {
-    return (
-      isRuntimeStringArray(ownDataValue(value, "contrastiveItemIds")) &&
-      isRuntimeStringArray(ownDataValue(value, "anchorLexemeIds")) &&
-      isRuntimeStringArray(ownDataValue(value, "audioExemplarIds")) &&
-      typeof ownDataValue(value, "phoneticExplanationCopyId") === "string" &&
-      typeof ownDataValue(value, "contrastMapId") === "string"
+    const contrastiveItemIds = runtimeStringArrayValues(
+      ownDataValue(value, "contrastiveItemIds"),
     );
+    const anchorLexemeIds = runtimeStringArrayValues(
+      ownDataValue(value, "anchorLexemeIds"),
+    );
+    const audioExemplarIds = runtimeStringArrayValues(
+      ownDataValue(value, "audioExemplarIds"),
+    );
+    if (
+      !contrastiveItemIds ||
+      !anchorLexemeIds ||
+      !audioExemplarIds ||
+      typeof ownDataValue(value, "phoneticExplanationCopyId") !== "string" ||
+      typeof ownDataValue(value, "contrastMapId") !== "string"
+    ) {
+      return undefined;
+    }
+    return Object.freeze({
+      ...common,
+      contract,
+      contrastiveItemIds,
+      anchorLexemeIds,
+      audioExemplarIds,
+      phoneticExplanationCopyId: ownDataValue(value, "phoneticExplanationCopyId") as string,
+      contrastMapId: ownDataValue(value, "contrastMapId") as string,
+    }) as BaseLessonContent;
   }
 
   if (contract !== "content" && contract !== "system" && contract !== "synthesis") {
-    return false;
+    return undefined;
   }
-  return (
-    isRuntimeStringArray(ownDataValue(value, "newLexemeIds")) &&
-    isRuntimeStringArray(ownDataValue(value, "reviewLexemeIds")) &&
-    isRuntimeStringArray(ownDataValue(value, "introducedConceptIds")) &&
-    isRuntimeStringArray(ownDataValue(value, "reviewedConceptIds")) &&
-    isExplanationBlockRecord(ownDataValue(value, "explanationBlockIds")) &&
-    isRuntimeStringArray(ownDataValue(value, "patternCellIds")) &&
-    isRuntimeStringArray(ownDataValue(value, "workedExampleIds")) &&
-    (typeof ownDataValue(value, "dialogueId") === "string" ||
-      ownDataValue(value, "dialogueId") === null) &&
-    isRuntimeStringArray(ownDataValue(value, "referenceSnapshotIds")) &&
-    typeof ownDataValue(value, "interactive") === "boolean" &&
-    isRuntimeStringArray(ownDataValue(value, "retrievedSystemIds"))
+  const newLexemeIds = runtimeStringArrayValues(ownDataValue(value, "newLexemeIds"));
+  const reviewLexemeIds = runtimeStringArrayValues(
+    ownDataValue(value, "reviewLexemeIds"),
   );
+  const introducedConceptIds = runtimeStringArrayValues(
+    ownDataValue(value, "introducedConceptIds"),
+  );
+  const reviewedConceptIds = runtimeStringArrayValues(
+    ownDataValue(value, "reviewedConceptIds"),
+  );
+  const patternCellIds = runtimeStringArrayValues(
+    ownDataValue(value, "patternCellIds"),
+  );
+  const workedExampleIds = runtimeStringArrayValues(
+    ownDataValue(value, "workedExampleIds"),
+  );
+  const referenceSnapshotIds = runtimeStringArrayValues(
+    ownDataValue(value, "referenceSnapshotIds"),
+  );
+  const retrievedSystemIds = runtimeStringArrayValues(
+    ownDataValue(value, "retrievedSystemIds"),
+  );
+  const dialogueId = ownDataValue(value, "dialogueId");
+  const explanationBlockIds = ownDataValue(value, "explanationBlockIds");
+  if (
+    !newLexemeIds ||
+    !reviewLexemeIds ||
+    !introducedConceptIds ||
+    !reviewedConceptIds ||
+    !isExplanationBlockRecord(explanationBlockIds) ||
+    !patternCellIds ||
+    !workedExampleIds ||
+    !(typeof dialogueId === "string" || dialogueId === null) ||
+    !referenceSnapshotIds ||
+    typeof ownDataValue(value, "interactive") !== "boolean" ||
+    !retrievedSystemIds
+  ) {
+    return undefined;
+  }
+  const explanationBlocks = explanationBlockIds as Readonly<Record<string, unknown>>;
+  return Object.freeze({
+    ...common,
+    contract,
+    newLexemeIds,
+    reviewLexemeIds,
+    introducedConceptIds,
+    reviewedConceptIds,
+    explanationBlockIds: Object.freeze({
+      main: ownDataValue(explanationBlocks, "main") as string,
+      construction: ownDataValue(explanationBlocks, "construction") as string,
+      constraints: ownDataValue(explanationBlocks, "constraints") as string,
+      commonError: ownDataValue(explanationBlocks, "commonError") as string,
+      nearestContrast: ownDataValue(explanationBlocks, "nearestContrast") as string,
+    }),
+    patternCellIds,
+    workedExampleIds,
+    dialogueId,
+    referenceSnapshotIds,
+    interactive: ownDataValue(value, "interactive") as boolean,
+    retrievedSystemIds,
+  }) as BaseLessonContent;
 }
 
 type RuntimeBaseLessonContract =
@@ -557,13 +856,31 @@ export function strictRuntimeLessonWithContract(
     value: contract,
     writable: true,
   });
-  return isStrictRuntimeLesson(normalized) ? normalized : undefined;
+  return strictRuntimeLesson(normalized);
 }
 
 export function isStrictRuntimePrerequisiteLesson(value: unknown): boolean {
-  return (
-    isPlainDataRecord(value) &&
-    typeof ownDataValue(value, "lessonId") === "string" &&
-    isRuntimeStringArray(ownDataValue(value, "prerequisiteLessonIds"))
+  return strictRuntimePrerequisiteLesson(value) !== undefined;
+}
+
+export function strictRuntimePrerequisiteLesson(
+  value: unknown,
+): Readonly<{
+  readonly lessonId: string;
+  readonly prerequisiteLessonIds: readonly string[];
+}> | undefined {
+  if (!isPlainDataRecord(value)) return undefined;
+  const prerequisiteLessonIds = runtimeStringArrayValues(
+    ownDataValue(value, "prerequisiteLessonIds"),
   );
+  if (
+    typeof ownDataValue(value, "lessonId") !== "string" ||
+    !prerequisiteLessonIds
+  ) {
+    return undefined;
+  }
+  return Object.freeze({
+    lessonId: ownDataValue(value, "lessonId") as string,
+    prerequisiteLessonIds,
+  });
 }
