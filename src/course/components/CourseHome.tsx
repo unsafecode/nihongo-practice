@@ -68,9 +68,12 @@ export function CourseHome(): ReactElement {
     mutationError,
     clearMutationError,
   } = useProgress();
+
   const preference = readCourseLevelPreference(browserStorage());
   const evidence = courseLevelEvidence(progressV5);
-  const level = resolveCourseLevel({ explicit, preference, evidence });
+  const resumeLevel =
+    migrationNotice?.acknowledgedAt === null ? migrationNotice.resumeLevel : null;
+  const level = resolveCourseLevel({ explicit, preference, resumeLevel, evidence });
   const config = LEVEL_RUNTIME_CONFIG[level];
 
   // Move focus to the selected level's heading whenever the level changes

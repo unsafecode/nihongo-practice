@@ -19,6 +19,7 @@ import {
   type CheckpointAttempt,
   type CourseProgressV3,
   type BaseOwnershipMigrationNotice,
+  type CourseProgressV5,
   type LevelProgressV5,
 } from "../progress/progress";
 import {
@@ -35,6 +36,8 @@ const totalLessons = allLessons.length;
 const firstLesson = allLessons[0];
 const lastLesson = allLessons[allLessons.length - 1];
 const a1RuntimeCanDos = LEVEL_RUNTIME_CONFIG.a1.canDos;
+const a0ResumeLessonId = LEVEL_RUNTIME_CONFIG.a0.modules[0]!.lessons[0]!.id;
+const a1EvidenceLessonId = LEVEL_RUNTIME_CONFIG.a1.modules[0]!.lessons[0]!.id;
 const a1ModuleIdsInLearnerOrder = [
   "introductions",
   "essential-questions",
@@ -540,6 +543,47 @@ const sampleMigrationNotice: BaseOwnershipMigrationNotice = {
   acknowledgedAt: null,
 };
 
+function migrationResumeProgressV5(acknowledgedAt: string | null): CourseProgressV5 {
+  const progress = emptyProgressV5();
+  return {
+    ...progress,
+    levels: {
+      ...progress.levels,
+      a0: {
+        ...progress.levels.a0,
+        lessons: {
+          [a0ResumeLessonId]: {
+            visitedAt: "2026-08-10T00:00:00.000Z",
+            practicedAt: null,
+            consolidatedAt: null,
+            attemptedExerciseIds: [],
+            acceptedExerciseIds: [],
+          },
+        },
+        lastVisitedLessonId: a0ResumeLessonId,
+      },
+      a1: {
+        ...progress.levels.a1,
+        lessons: {
+          [a1EvidenceLessonId]: {
+            visitedAt: "2026-08-10T00:00:00.000Z",
+            practicedAt: null,
+            consolidatedAt: null,
+            attemptedExerciseIds: [],
+            acceptedExerciseIds: [],
+          },
+        },
+        lastVisitedLessonId: a1EvidenceLessonId,
+      },
+    },
+    migrationNotice: {
+      ...sampleMigrationNotice,
+      resumeLevel: "a0",
+      acknowledgedAt,
+    },
+  };
+}
+
 describe("CourseHome: schema-v3→schema-v4 migration notice (design spec §17, Phase 2 Task 6)", () => {
   it("omits the migration notice entirely when there is nothing to migrate", () => {
     const html = renderHome(makeProgressValue());
@@ -571,6 +615,36 @@ describe("CourseHome: schema-v3→schema-v4 migration notice (design spec §17, 
   it("wires the acknowledge action to acknowledgeMigrationNotice, never deleting the record (source contract)", () => {
     const source = readCourseHomeSource();
     expect(source).toMatch(/onDismiss=\{acknowledgeMigrationNotice\}/);
+  });
+});
+
+describe("CourseHome: migrated resume precedence", () => {
+  it("keeps an unacknowledged migration resume level ahead of mixed evidence", () => {
+    const progressV5 = migrationResumeProgressV5(null);
+    const html = renderHome(
+      makeProgressValue({
+        progressV5,
+        migrationNotice: progressV5.migrationNotice,
+      }),
+      ["/percorso"],
+    );
+    expect(html).toContain(itCopy.courseLevels.baseBadge);
+    expect(html).toContain(itCopy.courseLevels.baseHeading);
+    expect(html).not.toContain(itCopy.courseLevels.a1Badge);
+  });
+
+  it("falls back to evidence once the migration notice has been acknowledged", () => {
+    const progressV5 = migrationResumeProgressV5("2024-01-01T00:00:00.000Z");
+    const html = renderHome(
+      makeProgressValue({
+        progressV5,
+        migrationNotice: progressV5.migrationNotice,
+      }),
+      ["/percorso"],
+    );
+    expect(html).toContain(itCopy.courseLevels.a1Badge);
+    expect(html).toContain(itCopy.courseLevels.a1Heading);
+    expect(html).not.toContain(itCopy.courseLevels.baseBadge);
   });
 });
 

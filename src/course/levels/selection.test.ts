@@ -95,6 +95,7 @@ describe("resolveCourseLevel", () => {
       resolveCourseLevel({
         explicit: "a2",
         preference: "a0",
+        resumeLevel: "a0",
         evidence: { a0: true, a1: true, a2: false },
       }),
     ).toBe("a2");
@@ -105,6 +106,29 @@ describe("resolveCourseLevel", () => {
       resolveCourseLevel({
         explicit: null,
         preference: "a2",
+        resumeLevel: "a0",
+        evidence: { a0: false, a1: true, a2: false },
+      }),
+    ).toBe("a2");
+  });
+
+  it("uses an unacknowledged migration resume level before ordinary evidence fallback", () => {
+    expect(
+      resolveCourseLevel({
+        explicit: null,
+        preference: null,
+        resumeLevel: "a0",
+        evidence: { a0: true, a1: true, a2: false },
+      }),
+    ).toBe("a0");
+  });
+
+  it("still allows A2 resume when the migration notice points there", () => {
+    expect(
+      resolveCourseLevel({
+        explicit: null,
+        preference: null,
+        resumeLevel: "a2",
         evidence: { a0: false, a1: true, a2: false },
       }),
     ).toBe("a2");
@@ -115,6 +139,7 @@ describe("resolveCourseLevel", () => {
       resolveCourseLevel({
         explicit: null,
         preference: null,
+        resumeLevel: null,
         evidence: { ...emptyEvidence, a1: true },
       }),
     ).toBe("a1");
@@ -122,6 +147,7 @@ describe("resolveCourseLevel", () => {
       resolveCourseLevel({
         explicit: null,
         preference: null,
+        resumeLevel: null,
         evidence: { ...emptyEvidence, a2: true },
       }),
     ).toBe("a1");
@@ -132,6 +158,7 @@ describe("resolveCourseLevel", () => {
       resolveCourseLevel({
         explicit: null,
         preference: null,
+        resumeLevel: null,
         evidence: emptyEvidence,
       }),
     ).toBe("a0");
@@ -139,6 +166,7 @@ describe("resolveCourseLevel", () => {
       resolveCourseLevel({
         explicit: null,
         preference: null,
+        resumeLevel: null,
         evidence: { ...emptyEvidence, a0: true },
       }),
     ).toBe("a0");

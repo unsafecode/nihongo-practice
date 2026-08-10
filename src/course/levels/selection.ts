@@ -29,14 +29,17 @@ export function writeCourseLevelPreference(
 export function resolveCourseLevel({
   explicit,
   preference,
+  resumeLevel,
   evidence,
 }: {
   explicit: CourseLevelId | null;
   preference: CourseLevelId | null;
+  resumeLevel?: CourseLevelId | null;
   evidence: Record<CourseLevelId, boolean>;
 }): CourseLevelId {
   if (isCourseLevelId(explicit)) return explicit;
   if (isCourseLevelId(preference)) return preference;
+  if (isCourseLevelId(resumeLevel)) return resumeLevel;
   if (evidence.a1 || evidence.a2) return "a1";
   return "a0";
 }
