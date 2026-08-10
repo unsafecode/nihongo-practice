@@ -31,6 +31,48 @@ import {
   type RuntimeDataRecord,
 } from "../validation/runtimeGuards";
 
+const FORM_CONTENT_ID_BY_TOKEN_SOURCE_ID: Readonly<Record<string, string>> = {
+  masu: "masu-nonpast",
+  masen: "four-polite-tense-cells",
+  mashita: "four-polite-tense-cells",
+  "masen-deshita": "four-polite-tense-cells",
+  te: "te-allomorphy",
+  "te-sequence": "te-allomorphy",
+  kudasai: "te-kudasai",
+  imasu: "te-imasu",
+  desu: "affirmative-desu",
+  "dewa-arimasen": "negative-noun-predicate-copula",
+  deshita: "remaining-copula-cells",
+  "dewa-arimasen-deshita": "remaining-copula-cells",
+  kunai: "i-adjective-tense-polarity",
+  katta: "i-adjective-tense-polarity",
+  kunakatta: "i-adjective-tense-polarity",
+  na: "na-adjective-predicate-and-attributive",
+};
+
+function tokenSourceContentIds(
+  tokens: readonly AssembledToken[],
+): readonly string[] {
+  return [
+    ...new Set(
+      tokens.flatMap(({ id, source }) => {
+        const structuralFormIds = [
+          ...(id.endsWith("-dictionary") ? ["dictionary-lemma"] : []),
+          ...(id.endsWith("-polite-stem") ? ["polite-stems"] : []),
+        ];
+        if (BASE_LEXEME_BY_ID.has(source.referenceId)) {
+          return [source.referenceId, ...structuralFormIds];
+        }
+        const formContentId =
+          FORM_CONTENT_ID_BY_TOKEN_SOURCE_ID[source.referenceId];
+        return formContentId
+          ? [formContentId, ...structuralFormIds]
+          : structuralFormIds;
+      }),
+    ),
+  ];
+}
+
 export type BaseReferenceId =
   | "sentence-anatomy"
   | "particle-atlas"
@@ -59,12 +101,14 @@ export interface BaseReferenceCanonicalCell {
   readonly columnId: string;
   readonly copy: BaseReferenceCopy;
   readonly tokens: readonly AssembledToken[];
+  readonly sourceContentIds: readonly string[];
   readonly desuFunction?: DesuFunction;
 }
 
 export interface BaseReferenceEntry {
   readonly semanticId: string;
   readonly firstTeachLessonId: string;
+  readonly sourceContentIds: readonly string[];
   readonly prerequisiteEntryIds: readonly string[];
   readonly copyId: string;
   readonly copy: BaseReferenceCopy;
@@ -95,6 +139,7 @@ export interface ReferenceGridModel {
       readonly columnId: string;
       readonly label: string;
       readonly value: readonly AssembledToken[];
+      readonly sourceContentIds: readonly string[];
       readonly desuFunction?: DesuFunction;
     }[];
   }[];
@@ -111,6 +156,9 @@ export type BaseReferenceCatalogValidationErrorCode =
   | "future-prerequisite"
   | "invalid-contrast-reference"
   | "invalid-example-reference"
+  | "invalid-example-shape"
+  | "invalid-source-reference"
+  | "future-source-reference"
   | "duplicate-cell-id"
   | "invalid-cell-reference";
 
@@ -155,6 +203,7 @@ function cell(
     columnId,
     copy: localized(enLabel, enLabel, itLabel, itLabel),
     tokens,
+    sourceContentIds: [],
     ...(desuFunction === undefined ? {} : { desuFunction }),
   };
 }
@@ -174,13 +223,33 @@ function entry(
   if (!owner) {
     throw new Error(`Unknown canonical Base owner: ${ownerContentId}`);
   }
+  const sourcedCells = canonicalFormCells.map((canonicalCell) => {
+    const tokenContentIds = tokenSourceContentIds(canonicalCell.tokens);
+    return {
+      ...canonicalCell,
+      sourceContentIds: [
+        ...new Set([
+          ownerContentId,
+          ...canonicalCell.sourceContentIds,
+          ...tokenContentIds,
+        ]),
+      ],
+    };
+  });
+  const sourceContentIds = [
+    ...new Set([
+      ownerContentId,
+      ...sourcedCells.flatMap((canonicalCell) => canonicalCell.sourceContentIds),
+    ]),
+  ];
   return {
     semanticId,
     firstTeachLessonId: owner.firstTeachLessonId,
+    sourceContentIds,
     prerequisiteEntryIds,
     copyId: `${semanticId}-copy`,
     copy: localized(labels[0], explanations[0], labels[1], explanations[1]),
-    canonicalFormCells,
+    canonicalFormCells: sourcedCells,
     contrastIds,
     exampleIds,
   };
@@ -212,7 +281,13 @@ function reference(
     copy: localized(labels[0], explanations[0], labels[1], explanations[1]),
     columns,
     entries,
-    cells: entries.flatMap(({ canonicalFormCells }) => canonicalFormCells),
+    cells: [
+      ...new Map(
+        entries
+          .flatMap(({ canonicalFormCells }) => canonicalFormCells)
+          .map((canonicalCell) => [canonicalCell.id, canonicalCell] as const),
+      ).values(),
+    ],
   };
 }
 
@@ -302,6 +377,8 @@ function politeCells(
     ),
   ];
 }
+
+const KAKU_POLITE_CELLS = politeCells("tense-kaku", KAKU_POLITE_GRID);
 
 const SENTENCE_ANATOMY_ENTRIES = [
   entry(
@@ -405,12 +482,21 @@ function particleEntry(
   sense: BaseParticleSense,
   labels: readonly [string, string],
   explanations: readonly [string, string],
-  prerequisiteEntryIds: readonly string[] = ["base-particle-topic-wa"],
+  prerequisiteEntryIds: readonly string[] = ["base-particle-wa"],
   contrastIds: readonly string[] = [],
 ): BaseReferenceEntry {
   const definition = BASE_PARTICLE_SENSES.find(({ id }) => id === sense);
   if (!definition) throw new Error(`Unknown canonical particle sense: ${sense}`);
-  const semanticId = `base-particle-${sense}`;
+  const semanticId =
+    sense === "topic-wa"
+      ? "base-particle-wa"
+      : sense === "focus-subject-ga"
+        ? "base-particle-ga"
+        : sense === "existence-location-ni"
+          ? "base-particle-existence-ni"
+          : sense === "existential-subject-ga"
+            ? "base-particle-existential-ga"
+            : `base-particle-${sense}`;
   return entry(
     semanticId,
     particleSenseFirstTeachContentId(sense),
@@ -432,7 +518,7 @@ function particleEntry(
 
 const PARTICLE_ATLAS_ENTRIES = [
   particleEntry("topic-wa", ["Topic", "Tema"], ["Marks the sentence topic.", "Segna il tema della frase."], []),
-  particleEntry("focus-subject-ga", ["Focused subject", "Soggetto focalizzato"], ["Marks a focused subject.", "Segna un soggetto focalizzato."], ["base-particle-topic-wa"], ["base-particle-topic-wa"]),
+  particleEntry("focus-subject-ga", ["Focused subject", "Soggetto focalizzato"], ["Marks a focused subject.", "Segna un soggetto focalizzato."], ["base-particle-wa"], ["base-particle-wa"]),
   particleEntry("possessive-attributive-no", ["Possessive and attribute", "Possesso e attributo"], ["Links a possessor or attribute.", "Collega un possessore o attributo."]),
   particleEntry("additive-mo", ["Addition", "Aggiunta"], ["Adds an also/too relation.", "Aggiunge una relazione di inclusione."]),
   particleEntry("listing-to", ["Listing", "Elenco"], ["Links items in a noun list.", "Collega elementi in un elenco di nomi."]),
@@ -448,7 +534,7 @@ const PARTICLE_ATLAS_ENTRIES = [
   particleEntry("source-kara", ["Source", "Origine"], ["Marks a starting point.", "Segna un punto di partenza."]),
   particleEntry("limit-made", ["Limit", "Limite"], ["Marks an endpoint.", "Segna un punto finale."], ["base-particle-source-kara"], ["base-particle-source-kara"]),
   particleEntry("existence-location-ni", ["Existence location", "Luogo d'esistenza"], ["Marks where something exists.", "Segna dove qualcosa esiste."]),
-  particleEntry("existential-subject-ga", ["Existential subject", "Soggetto esistenziale"], ["Marks what exists.", "Segna ciò che esiste."], ["base-particle-existence-location-ni"], ["base-particle-focus-subject-ga"]),
+  particleEntry("existential-subject-ga", ["Existential subject", "Soggetto esistenziale"], ["Marks what exists.", "Segna ciò che esiste."], ["base-particle-existence-ni"], ["base-particle-ga"]),
 ] as const;
 
 const VERB_ENTRIES = [
@@ -535,8 +621,19 @@ const VERB_ENTRIES = [
       "Polite endings attach to the stem.",
       "Le terminazioni cortesi si uniscono al tema.",
     ],
-    politeCells("verb-polite-kaku", KAKU_POLITE_GRID),
+    [KAKU_POLITE_CELLS[0]],
     ["base-verb-polite-stems"],
+  ),
+  entry(
+    "base-verb-polite-tense-forms",
+    "four-polite-tense-cells",
+    ["Polite tense forms", "Forme cortesi di tempo"],
+    [
+      "Negative and past polite forms become available with tense and polarity.",
+      "Le forme cortesi negative e passate diventano disponibili con tempo e polarità.",
+    ],
+    KAKU_POLITE_CELLS.slice(1),
+    ["base-verb-polite-forms"],
   ),
   entry(
     "base-verb-exceptions",
@@ -570,6 +667,7 @@ const VERB_ENTRIES = [
     ],
     [cell("verb-te-imasu-taberu", "form", "Construction", "Costruzione", TABERU_TE_IMASU)],
     ["base-verb-te-forms"],
+    ["base-tense-dynamic-nonpast"],
   ),
 ] as const;
 
@@ -582,15 +680,9 @@ const TENSE_ENTRIES = [
       "Dynamic nonpast expresses a habit or future event, not an ongoing present.",
       "Il non-passato dinamico esprime abitudine o futuro, non un presente in corso.",
     ],
-    [
-      cell(
-        "tense-dynamic-nonpast",
-        "affirmative",
-        "Polite nonpast",
-        "Non-passato cortese",
-        KAKU_POLITE_GRID.affirmative,
-      ),
-    ],
+    [KAKU_POLITE_CELLS[0]],
+    [],
+    ["base-verb-te-imasu"],
   ),
   entry(
     "base-tense-polite-grid",
@@ -600,7 +692,7 @@ const TENSE_ENTRIES = [
       "Compare nonpast and past across affirmative and negative polarity.",
       "Confronta non-passato e passato nelle polarità affermativa e negativa.",
     ],
-    politeCells("tense-kaku", KAKU_POLITE_GRID),
+    KAKU_POLITE_CELLS,
     ["base-tense-dynamic-nonpast"],
   ),
 ] as const;
@@ -622,6 +714,13 @@ const ADJECTIVE_ENTRIES = [
         "Affermativa",
         NOUN_GRID.affirmative,
       ),
+      predicateCell(
+        "noun-predicate-negative",
+        "negative",
+        "Negative",
+        "Negativa",
+        NOUN_GRID.negative,
+      ),
     ],
   ),
   entry(
@@ -633,13 +732,6 @@ const ADJECTIVE_ENTRIES = [
       "Completa le restanti celle cortesi del predicato nominale.",
     ],
     [
-      predicateCell(
-        "noun-predicate-negative",
-        "negative",
-        "Negative",
-        "Negativa",
-        NOUN_GRID.negative,
-      ),
       predicateCell(
         "noun-predicate-past-affirmative",
         "pastAffirmative",
@@ -783,35 +875,41 @@ export function baseReferenceCopyById(copyId: string): BaseReferenceCopy | undef
   return BASE_REFERENCE_COPY_BY_ID.get(copyId);
 }
 
-export interface BaseReferenceExampleContract {
+export interface BaseReferenceExample {
   readonly id: string;
   readonly firstTeachLessonId: string;
+  readonly sourceContentIds: readonly string[];
+  readonly tokens: readonly AssembledToken[];
 }
 
 /**
- * Stable example IDs reserved for authored lesson modules. They carry only an
- * ID and owner; Task 10+ supplies the actual localized example content.
+ * Canonical reference examples are real token targets with explicit ownership,
+ * not reservations for content that may be authored by a later task.
  */
-export const BASE_REFERENCE_EXAMPLE_CONTRACTS: readonly BaseReferenceExampleContract[] =
+export const BASE_REFERENCE_EXAMPLES: readonly BaseReferenceExample[] =
   deepFreeze(
     BASE_REFERENCE_CATALOG.flatMap((reference) =>
-      reference.entries.map((entry) => ({
-        id: entry.exampleIds[0]!,
-        firstTeachLessonId: entry.firstTeachLessonId,
-      })),
+      reference.entries.map((entry) => {
+        const canonicalCell = entry.canonicalFormCells[0];
+        if (!canonicalCell) {
+          throw new Error(`Reference entry "${entry.semanticId}" has no example source.`);
+        }
+        return {
+          id: entry.exampleIds[0]!,
+          firstTeachLessonId: entry.firstTeachLessonId,
+          sourceContentIds: canonicalCell.sourceContentIds,
+          tokens: canonicalCell.tokens,
+        };
+      }),
     ),
   );
 
-export const BASE_REFERENCE_ELIGIBLE_EXAMPLE_IDS: ReadonlySet<string> = deepFreeze(
-  new Set(BASE_REFERENCE_EXAMPLE_CONTRACTS.map(({ id }) => id)),
-);
-const BASE_REFERENCE_EXAMPLE_CONTRACT_BY_ID: ReadonlyMap<
-  string,
-  BaseReferenceExampleContract
-> = immutableReadonlyMap(
-  BASE_REFERENCE_EXAMPLE_CONTRACTS.map((contract) => [contract.id, contract]),
-);
+/** Backward-compatible ownership projection for release reporting. */
+export const BASE_REFERENCE_EXAMPLE_CONTRACTS = BASE_REFERENCE_EXAMPLES;
 
+export const BASE_REFERENCE_ELIGIBLE_EXAMPLE_IDS: ReadonlySet<string> = deepFreeze(
+  new Set(BASE_REFERENCE_EXAMPLES.map(({ id }) => id)),
+);
 const REFERENCE_KEYS = new Set([
   "id",
   "firstTeachLessonId",
@@ -824,6 +922,7 @@ const REFERENCE_KEYS = new Set([
 const ENTRY_KEYS = new Set([
   "semanticId",
   "firstTeachLessonId",
+  "sourceContentIds",
   "prerequisiteEntryIds",
   "copyId",
   "copy",
@@ -831,13 +930,26 @@ const ENTRY_KEYS = new Set([
   "contrastIds",
   "exampleIds",
 ]);
-const CELL_KEYS = new Set(["id", "columnId", "copy", "tokens"]);
+const CELL_KEYS = new Set([
+  "id",
+  "columnId",
+  "copy",
+  "tokens",
+  "sourceContentIds",
+]);
 const PREDICATE_CELL_KEYS = new Set([
   "id",
   "columnId",
   "copy",
   "tokens",
+  "sourceContentIds",
   "desuFunction",
+]);
+const EXAMPLE_KEYS = new Set([
+  "id",
+  "firstTeachLessonId",
+  "sourceContentIds",
+  "tokens",
 ]);
 const COLUMN_KEYS = new Set(["id", "copy"]);
 const COPY_KEYS = new Set(["en", "it"]);
@@ -910,6 +1022,7 @@ function strictCell(value: unknown): BaseReferenceCanonicalCell | undefined {
   const columnId = ownDataValue(record, "columnId");
   const copy = strictCopy(ownDataValue(record, "copy"));
   const tokens = strictRuntimeTokenSequence(ownDataValue(record, "tokens"));
+  const sourceContentIds = stringArray(ownDataValue(record, "sourceContentIds"));
   const desuFunction = ownDataValue(record, "desuFunction");
   if (
     typeof id !== "string" ||
@@ -918,6 +1031,8 @@ function strictCell(value: unknown): BaseReferenceCanonicalCell | undefined {
     columnId.trim() === "" ||
     !copy ||
     !tokens ||
+    !sourceContentIds ||
+    sourceContentIds.length === 0 ||
     (desuFunction !== undefined &&
       desuFunction !== "politeness-marker" &&
       desuFunction !== "copula")
@@ -929,6 +1044,7 @@ function strictCell(value: unknown): BaseReferenceCanonicalCell | undefined {
     columnId,
     copy,
     tokens,
+    sourceContentIds,
     ...(desuFunction === undefined
       ? {}
       : { desuFunction: desuFunction as DesuFunction }),
@@ -950,6 +1066,7 @@ function strictEntry(value: unknown): BaseReferenceEntry | undefined {
   if (!record) return undefined;
   const semanticId = ownDataValue(record, "semanticId");
   const firstTeachLessonId = ownDataValue(record, "firstTeachLessonId");
+  const sourceContentIds = stringArray(ownDataValue(record, "sourceContentIds"));
   const prerequisiteEntryIds = stringArray(
     ownDataValue(record, "prerequisiteEntryIds"),
   );
@@ -963,6 +1080,8 @@ function strictEntry(value: unknown): BaseReferenceEntry | undefined {
     typeof semanticId !== "string" ||
     semanticId.trim() === "" ||
     typeof firstTeachLessonId !== "string" ||
+    !sourceContentIds ||
+    sourceContentIds.length === 0 ||
     typeof copyId !== "string" ||
     copyId.trim() === "" ||
     !prerequisiteEntryIds ||
@@ -978,6 +1097,7 @@ function strictEntry(value: unknown): BaseReferenceEntry | undefined {
   return {
     semanticId,
     firstTeachLessonId,
+    sourceContentIds,
     prerequisiteEntryIds,
     copyId,
     copy,
@@ -985,6 +1105,26 @@ function strictEntry(value: unknown): BaseReferenceEntry | undefined {
     contrastIds,
     exampleIds,
   };
+}
+
+function strictExample(value: unknown): BaseReferenceExample | undefined {
+  const record = exactRecord(value, EXAMPLE_KEYS);
+  if (!record) return undefined;
+  const id = ownDataValue(record, "id");
+  const firstTeachLessonId = ownDataValue(record, "firstTeachLessonId");
+  const sourceContentIds = stringArray(ownDataValue(record, "sourceContentIds"));
+  const tokens = strictRuntimeTokenSequence(ownDataValue(record, "tokens"));
+  if (
+    typeof id !== "string" ||
+    id.trim() === "" ||
+    typeof firstTeachLessonId !== "string" ||
+    !sourceContentIds ||
+    sourceContentIds.length === 0 ||
+    !tokens
+  ) {
+    return undefined;
+  }
+  return { id, firstTeachLessonId, sourceContentIds, tokens };
 }
 
 function validationError(
@@ -1003,7 +1143,7 @@ function validationError(
 
 export function validateBaseReferenceCatalog(
   catalog: unknown,
-  eligibleExampleIds: ReadonlySet<string> = BASE_REFERENCE_ELIGIBLE_EXAMPLE_IDS,
+  eligibleExamples: unknown = BASE_REFERENCE_EXAMPLES,
 ): readonly BaseReferenceCatalogValidationError[] {
   const rawReferences = ownDataArrayValues(catalog);
   if (!rawReferences) {
@@ -1011,6 +1151,30 @@ export function validateBaseReferenceCatalog(
   }
 
   const errors: BaseReferenceCatalogValidationError[] = [];
+  const rawExamples = ownDataArrayValues(eligibleExamples);
+  const parsedExamples = rawExamples?.map(strictExample);
+  const examplesById = new Map<string, BaseReferenceExample>();
+  if (
+    !rawExamples ||
+    !parsedExamples ||
+    parsedExamples.some((example) => !example)
+  ) {
+    errors.push(validationError("invalid-example-shape"));
+  } else {
+    for (const example of parsedExamples as BaseReferenceExample[]) {
+      if (examplesById.has(example.id)) {
+        errors.push(
+          validationError(
+            "invalid-example-shape",
+            "unknown-reference",
+            undefined,
+            example.id,
+          ),
+        );
+      }
+      examplesById.set(example.id, example);
+    }
+  }
   const references: {
     readonly id: string;
     readonly firstTeachLessonId: string;
@@ -1054,7 +1218,6 @@ export function validateBaseReferenceCatalog(
       columns.some((item) => !item) ||
       !rawEntries ||
       !parsedEntries ||
-      parsedEntries.some((item) => !item) ||
       !rawCells ||
       !parsedCells ||
       parsedCells.some((item) => !item)
@@ -1082,7 +1245,21 @@ export function validateBaseReferenceCatalog(
     const columnIds = new Set(
       (columns as BaseReferenceColumn[]).map(({ id }) => id),
     );
-    const entries = parsedEntries as BaseReferenceEntry[];
+    parsedEntries.forEach((parsedEntry, index) => {
+      if (parsedEntry) return;
+      const rawEntry = rawEntries[index];
+      const semanticId =
+        isPlainDataRecord(rawEntry) &&
+        typeof ownDataValue(rawEntry, "semanticId") === "string"
+          ? (ownDataValue(rawEntry, "semanticId") as string)
+          : undefined;
+      errors.push(
+        validationError("invalid-entry-shape", referenceId, semanticId),
+      );
+    });
+    const entries = parsedEntries.filter(
+      (parsedEntry): parsedEntry is BaseReferenceEntry => parsedEntry !== undefined,
+    );
     const cells = parsedCells as BaseReferenceCanonicalCell[];
     references.push({
       id: referenceId,
@@ -1125,12 +1302,55 @@ export function validateBaseReferenceCatalog(
     const ownSemanticIds = new Set(
       reference.entries.map(({ semanticId }) => semanticId),
     );
-    const expectedCells = reference.entries.flatMap(
-      ({ canonicalFormCells }) => canonicalFormCells,
-    );
-    const seenCellIds = new Set<string>();
+    const expectedCells = [
+      ...new Map(
+        reference.entries
+          .flatMap(({ canonicalFormCells }) => canonicalFormCells)
+          .map((canonicalCell) => [canonicalCell.id, canonicalCell] as const),
+      ).values(),
+    ];
+    const seenCellIds = new Map<string, string>();
     for (const entry of reference.entries) {
       const entryPosition = baseCanonicalPosition(entry.firstTeachLessonId);
+      let hasOwningSource = false;
+      for (const sourceContentId of entry.sourceContentIds) {
+        const source =
+          BASE_CONCEPT_BY_ID.get(sourceContentId) ??
+          BASE_LEXEME_BY_ID.get(sourceContentId);
+        const sourcePosition = source
+          ? baseCanonicalPosition(source.firstTeachLessonId)
+          : null;
+        if (!source || sourcePosition === null) {
+          errors.push(
+            validationError(
+              "invalid-source-reference",
+              reference.id,
+              entry.semanticId,
+              sourceContentId,
+            ),
+          );
+        } else if (entryPosition !== null && sourcePosition > entryPosition) {
+          errors.push(
+            validationError(
+              "future-source-reference",
+              reference.id,
+              entry.semanticId,
+              sourceContentId,
+            ),
+          );
+        } else if (sourcePosition === entryPosition) {
+          hasOwningSource = true;
+        }
+      }
+      if (!hasOwningSource) {
+        errors.push(
+          validationError(
+            "invalid-source-reference",
+            reference.id,
+            entry.semanticId,
+          ),
+        );
+      }
       for (const prerequisiteId of entry.prerequisiteEntryIds) {
         const prerequisite = semanticOwners.get(prerequisiteId);
         if (!prerequisite || !ownSemanticIds.has(prerequisiteId)) {
@@ -1175,21 +1395,18 @@ export function validateBaseReferenceCatalog(
         }
       }
       for (const exampleId of entry.exampleIds) {
-        const contract =
-          eligibleExampleIds === BASE_REFERENCE_ELIGIBLE_EXAMPLE_IDS
-            ? BASE_REFERENCE_EXAMPLE_CONTRACT_BY_ID.get(exampleId)
-            : undefined;
-        const contractPosition = contract
-          ? baseCanonicalPosition(contract.firstTeachLessonId)
+        const example = examplesById.get(exampleId);
+        const examplePosition = example
+          ? baseCanonicalPosition(example.firstTeachLessonId)
           : null;
-        const entryPosition = baseCanonicalPosition(entry.firstTeachLessonId);
         if (
-          !eligibleExampleIds.has(exampleId) ||
-          (eligibleExampleIds === BASE_REFERENCE_ELIGIBLE_EXAMPLE_IDS &&
-            (!contract ||
-              contractPosition === null ||
-              entryPosition === null ||
-              contractPosition > entryPosition))
+          !example ||
+          examplePosition === null ||
+          entryPosition === null ||
+          examplePosition > entryPosition ||
+          example.sourceContentIds.some(
+            (sourceContentId) => !entry.sourceContentIds.includes(sourceContentId),
+          )
         ) {
           errors.push(
             validationError(
@@ -1202,7 +1419,57 @@ export function validateBaseReferenceCatalog(
         }
       }
       for (const canonicalCell of entry.canonicalFormCells) {
-        if (seenCellIds.has(canonicalCell.id)) {
+        for (const tokenContentId of tokenSourceContentIds(
+          canonicalCell.tokens,
+        )) {
+          if (!canonicalCell.sourceContentIds.includes(tokenContentId)) {
+            errors.push(
+              validationError(
+                "invalid-source-reference",
+                reference.id,
+                entry.semanticId,
+                tokenContentId,
+              ),
+            );
+          }
+        }
+        for (const sourceContentId of canonicalCell.sourceContentIds) {
+          const source =
+            BASE_CONCEPT_BY_ID.get(sourceContentId) ??
+            BASE_LEXEME_BY_ID.get(sourceContentId);
+          const sourcePosition = source
+            ? baseCanonicalPosition(source.firstTeachLessonId)
+            : null;
+          if (!source || sourcePosition === null) {
+            errors.push(
+              validationError(
+                "invalid-source-reference",
+                reference.id,
+                entry.semanticId,
+                sourceContentId,
+              ),
+            );
+          } else if (entryPosition !== null && sourcePosition > entryPosition) {
+            errors.push(
+              validationError(
+                "future-source-reference",
+                reference.id,
+                entry.semanticId,
+                sourceContentId,
+              ),
+            );
+          }
+        }
+        const cellFingerprint = JSON.stringify({
+          columnId: canonicalCell.columnId,
+          tokenIds: canonicalCell.tokens.map(({ id }) => id),
+          desuFunction: canonicalCell.desuFunction,
+        });
+        const previousFingerprint = seenCellIds.get(canonicalCell.id);
+        if (
+          previousFingerprint !== undefined &&
+          previousFingerprint !== cellFingerprint
+        ) {
           errors.push(
             validationError(
               "duplicate-cell-id",
@@ -1212,7 +1479,7 @@ export function validateBaseReferenceCatalog(
             ),
           );
         }
-        seenCellIds.add(canonicalCell.id);
+        seenCellIds.set(canonicalCell.id, cellFingerprint);
         if (!reference.columnIds.has(canonicalCell.columnId)) {
           errors.push(
             validationError(

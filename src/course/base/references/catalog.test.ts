@@ -12,6 +12,7 @@ import {
 } from "../forms/verbForms";
 import {
   BASE_REFERENCE_COPY_BY_ID,
+  BASE_REFERENCE_EXAMPLES,
   BASE_REFERENCE_EXAMPLE_CONTRACTS,
   BASE_REFERENCE_CATALOG,
   BASE_REFERENCE_IDS,
@@ -19,6 +20,9 @@ import {
   validateBaseReferenceCatalog,
   type BaseReferenceCatalog,
 } from "./catalog";
+import { BASE_CONCEPT_BY_ID } from "../catalog/concepts";
+import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
+import { baseCanonicalPosition } from "../manifest";
 
 function mutableCatalog(): BaseReferenceCatalog {
   return structuredClone(BASE_REFERENCE_CATALOG) as BaseReferenceCatalog;
@@ -49,6 +53,13 @@ describe("Base reference catalog", () => {
     expect(cellsFor("base-verb-dictionary-form")[0]?.tokens).toEqual(dictionary.value);
     expect(cellsFor("base-verb-polite-stems")[0]?.tokens).toEqual(stem.value);
     expect(cellsFor("base-verb-te-forms")[0]?.tokens).toEqual(te.value);
+    expect(cellsFor("base-verb-dictionary-form")[0]?.sourceContentIds).toContain(
+      "dictionary-lemma",
+    );
+    expect(
+      cellsFor("base-verb-class-suru").find(({ id }) => id === "verb-stem-suru")
+        ?.sourceContentIds,
+    ).toContain("polite-stems");
   });
 
   it("resolves every consumed copy ID and assigns examples only at eligible owners", () => {
@@ -128,6 +139,151 @@ describe("Base reference catalog", () => {
     expect(grid.canonicalFormCells.map(({ tokens }) => tokens)).toEqual(
       Object.values(expected.value),
     );
+    expect(referenceById["tense-polarity"].cells.map(({ tokens }) => tokens)).toEqual(
+      Object.values(expected.value),
+    );
+  });
+
+  it("publishes real owned examples rather than circular ID reservations", () => {
+    expect(BASE_REFERENCE_EXAMPLES).toHaveLength(
+      BASE_REFERENCE_CATALOG.flatMap(({ entries }) => entries).length,
+    );
+    for (const example of BASE_REFERENCE_EXAMPLES) {
+      expect(example.tokens.length).toBeGreaterThan(0);
+      expect(example.sourceContentIds.length).toBeGreaterThan(0);
+      const ownerPosition = baseCanonicalPosition(example.firstTeachLessonId);
+      expect(ownerPosition).not.toBeNull();
+      for (const sourceContentId of example.sourceContentIds) {
+        const source =
+          BASE_CONCEPT_BY_ID.get(sourceContentId) ??
+          BASE_LEXEME_BY_ID.get(sourceContentId);
+        expect(source).toBeDefined();
+        expect(baseCanonicalPosition(source!.firstTeachLessonId)).toBeLessThanOrEqual(
+          ownerPosition!,
+        );
+      }
+    }
+  });
+
+  it("stores and validates cell provenance against canonical owner registries", () => {
+    for (const reference of BASE_REFERENCE_CATALOG) {
+      for (const entry of reference.entries) {
+        expect(entry.sourceContentIds.length).toBeGreaterThan(0);
+        const entryPosition = baseCanonicalPosition(entry.firstTeachLessonId)!;
+        expect(
+          entry.sourceContentIds.some((sourceContentId) => {
+            const source =
+              BASE_CONCEPT_BY_ID.get(sourceContentId) ??
+              BASE_LEXEME_BY_ID.get(sourceContentId);
+            return (
+              source !== undefined &&
+              baseCanonicalPosition(source.firstTeachLessonId) === entryPosition
+            );
+          }),
+        ).toBe(true);
+        for (const formCell of entry.canonicalFormCells) {
+          expect(formCell.sourceContentIds.length).toBeGreaterThan(0);
+          for (const sourceContentId of formCell.sourceContentIds) {
+            const source =
+              BASE_CONCEPT_BY_ID.get(sourceContentId) ??
+              BASE_LEXEME_BY_ID.get(sourceContentId);
+            expect(source).toBeDefined();
+            expect(
+              baseCanonicalPosition(source!.firstTeachLessonId),
+            ).toBeLessThanOrEqual(entryPosition);
+          }
+        }
+      }
+    }
+
+    const futureSource = mutableCatalog();
+    const early = futureSource[0].entries[0] as unknown as {
+      sourceContentIds: string[];
+      canonicalFormCells: { sourceContentIds: string[] }[];
+    };
+    early.sourceContentIds.push("te-imasu");
+    early.canonicalFormCells[0].sourceContentIds.push("te-imasu");
+    expect(validateBaseReferenceCatalog(futureSource)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "future-source-reference" }),
+      ]),
+    );
+
+    const undisclosedFutureLexeme = mutableCatalog();
+    const earlyCell = undisclosedFutureLexeme[0].entries[0]
+      .canonicalFormCells[0] as unknown as {
+      tokens: (typeof BASE_REFERENCE_CATALOG)[number]["entries"][number]["canonicalFormCells"][number]["tokens"];
+    };
+    earlyCell.tokens = referenceById["adjective-copula"].entries.find(
+      ({ semanticId }) => semanticId === "base-adjective-i-grid",
+    )!.canonicalFormCells[0].tokens;
+    expect(validateBaseReferenceCatalog(undisclosedFutureLexeme)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "invalid-source-reference" }),
+      ]),
+    );
+
+    const undisclosedFutureForm = mutableCatalog();
+    const earlyPoliteCell = undisclosedFutureForm
+      .find(({ id }) => id === "verb-classes-conjugation")!
+      .entries.find(
+        ({ semanticId }) => semanticId === "base-verb-polite-forms",
+      )!.canonicalFormCells[0] as unknown as {
+      tokens: (typeof BASE_REFERENCE_CATALOG)[number]["entries"][number]["canonicalFormCells"][number]["tokens"];
+    };
+    earlyPoliteCell.tokens = referenceById["tense-polarity"].entries.find(
+      ({ semanticId }) => semanticId === "base-tense-polite-grid",
+    )!.canonicalFormCells[1].tokens;
+    expect(validateBaseReferenceCatalog(undisclosedFutureForm)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "invalid-source-reference" }),
+      ]),
+    );
+  });
+
+  it("reveals only nonpast polite verb forms before tense ownership", () => {
+    const entries = referenceById["verb-classes-conjugation"].entries;
+    const initial = entries.find(
+      ({ semanticId }) => semanticId === "base-verb-polite-forms",
+    )!;
+    const later = entries.find(
+      ({ semanticId }) => semanticId === "base-verb-polite-tense-forms",
+    )!;
+    expect(initial.canonicalFormCells.map(({ columnId }) => columnId)).toEqual([
+      "affirmative",
+    ]);
+    expect(initial.firstTeachLessonId).toBe("polite-verbs-4");
+    expect(later.canonicalFormCells.map(({ columnId }) => columnId)).toEqual([
+      "negative",
+      "pastAffirmative",
+      "pastNegative",
+    ]);
+    expect(later.firstTeachLessonId).toBe("time-movement-3");
+  });
+
+  it("aligns negative noun-predicate visibility to its lesson-one owner", () => {
+    const entries = referenceById["adjective-copula"].entries;
+    expect(
+      entries
+        .find(({ semanticId }) => semanticId === "base-copula-reviewed-affirmative")!
+        .canonicalFormCells.map(({ columnId }) => columnId),
+    ).toEqual(["affirmative", "negative"]);
+    expect(
+      entries
+        .find(({ semanticId }) => semanticId === "base-copula-noun-predicate-grid")!
+        .canonicalFormCells.map(({ columnId }) => columnId),
+    ).toEqual(["pastAffirmative", "pastNegative"]);
+  });
+
+  it("encodes the reciprocal nonpast versus ongoing contrast", () => {
+    const dynamic = referenceById["tense-polarity"].entries.find(
+      ({ semanticId }) => semanticId === "base-tense-dynamic-nonpast",
+    )!;
+    const ongoing = referenceById["verb-classes-conjugation"].entries.find(
+      ({ semanticId }) => semanticId === "base-verb-te-imasu",
+    )!;
+    expect(dynamic.contrastIds).toContain("base-verb-te-imasu");
+    expect(ongoing.contrastIds).toContain("base-tense-dynamic-nonpast");
   });
 
   it("keeps every reference row meaningful, eligible, and sourced at its first teach point", () => {
@@ -229,8 +385,8 @@ describe("Base reference catalog", () => {
       ]),
     );
     expect(referenceById["particle-atlas"].entries.map(({ semanticId }) => semanticId)).toEqual([
-      "base-particle-topic-wa",
-      "base-particle-focus-subject-ga",
+      "base-particle-wa",
+      "base-particle-ga",
       "base-particle-possessive-attributive-no",
       "base-particle-additive-mo",
       "base-particle-listing-to",
@@ -245,8 +401,8 @@ describe("Base reference catalog", () => {
       "base-particle-time-ni",
       "base-particle-source-kara",
       "base-particle-limit-made",
-      "base-particle-existence-location-ni",
-      "base-particle-existential-subject-ga",
+      "base-particle-existence-ni",
+      "base-particle-existential-ga",
     ]);
   });
 
@@ -255,6 +411,8 @@ describe("Base reference catalog", () => {
     expect(Object.isFrozen(BASE_REFERENCE_CATALOG[0].entries)).toBe(true);
     expect(Object.isFrozen(BASE_REFERENCE_CATALOG[0].entries[0].copy.en)).toBe(true);
     expect(Object.getPrototypeOf(referenceById)).toBeNull();
+    expect(Object.isFrozen(BASE_REFERENCE_EXAMPLES)).toBe(true);
+    expect(Object.isFrozen(BASE_REFERENCE_EXAMPLES[0].sourceContentIds)).toBe(true);
     expect(() =>
       (BASE_REFERENCE_CATALOG[0].entries as unknown as unknown[]).push({}),
     ).toThrow();
@@ -315,5 +473,47 @@ describe("Base reference catalog", () => {
     });
     expect(() => validateBaseReferenceCatalog(hostile)).not.toThrow();
     expect(validateBaseReferenceCatalog(hostile)[0]?.code).toBe("invalid-catalog-shape");
+  });
+
+  it("rejects nested entry getters and hostile example collections without reading them", () => {
+    let getterReads = 0;
+    const catalog = mutableCatalog();
+    Object.defineProperty(catalog[0].entries[0], "sourceContentIds", {
+      enumerable: true,
+      get() {
+        getterReads += 1;
+        return ["sentence-chunks"];
+      },
+    });
+    expect(validateBaseReferenceCatalog(catalog)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "invalid-entry-shape" }),
+      ]),
+    );
+    expect(getterReads).toBe(0);
+
+    const sparseExamples: unknown[] = [];
+    sparseExamples.length = 1;
+    expect(validateBaseReferenceCatalog(BASE_REFERENCE_CATALOG, sparseExamples)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "invalid-example-shape" }),
+      ]),
+    );
+
+    const hostileExamples = new Proxy([], {
+      getPrototypeOf() {
+        throw new Error("example prototype trap");
+      },
+    });
+    expect(() =>
+      validateBaseReferenceCatalog(BASE_REFERENCE_CATALOG, hostileExamples),
+    ).not.toThrow();
+    expect(
+      validateBaseReferenceCatalog(BASE_REFERENCE_CATALOG, hostileExamples),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "invalid-example-shape" }),
+      ]),
+    );
   });
 });

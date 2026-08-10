@@ -2,12 +2,14 @@ import { deepFreeze } from "../../foundations/deepFreeze";
 import { baseCanonicalPosition } from "../manifest";
 import {
   BASE_REFERENCE_CATALOG,
+  BASE_REFERENCE_EXAMPLES,
   baseReferenceCopyById,
   validateBaseReferenceCatalog,
   type BaseReferenceCanonicalCell,
   type BaseReferenceCatalog,
   type BaseReferenceDefinition,
   type BaseReferenceId,
+  type BaseReferenceExample,
   type BaseReferenceLocale,
   type ReferenceGridModel,
 } from "./catalog";
@@ -23,6 +25,7 @@ export type {
 export interface BaseReferenceEntryViewModel {
   readonly semanticId: string;
   readonly firstTeachLessonId: string;
+  readonly sourceContentIds: readonly string[];
   readonly prerequisiteEntryIds: readonly string[];
   readonly copyId: string;
   readonly label: string;
@@ -34,6 +37,7 @@ export interface BaseReferenceEntryViewModel {
     readonly columnId: string;
     readonly label: string;
     readonly value: BaseReferenceCanonicalCell["tokens"];
+    readonly sourceContentIds: readonly string[];
     readonly desuFunction?: BaseReferenceCanonicalCell["desuFunction"];
   }[];
 }
@@ -94,6 +98,7 @@ export function buildBaseReferenceViewModel(
   throughLessonId: string,
   locale: BaseReferenceLocale,
   catalog: BaseReferenceCatalog = BASE_REFERENCE_CATALOG,
+  eligibleExamples: readonly BaseReferenceExample[] = BASE_REFERENCE_EXAMPLES,
 ): BaseReferenceViewModelResult {
   if (typeof referenceId !== "string") {
     return failure("unknown-reference", referenceId);
@@ -104,15 +109,17 @@ export function buildBaseReferenceViewModel(
     return failure("unknown-through-lesson", referenceId);
   }
   if (!isLocale(locale)) {
+    // The task's fixed error union has no locale code. "unknown-reference" is
+    // the closest fail-closed result because the requested localized surface
+    // does not exist; never manufacture a fallback locale/model.
     return failure("unknown-reference", referenceId);
   }
 
-  const validationErrors = validateBaseReferenceCatalog(catalog);
-  if (
-    validationErrors.some(
-      ({ code }) => code !== "future-prerequisite",
-    )
-  ) {
+  const validationErrors = validateBaseReferenceCatalog(catalog, eligibleExamples);
+  if (validationErrors.some(({ code }) => code === "future-prerequisite")) {
+    return failure("future-prerequisite", referenceId);
+  }
+  if (validationErrors.length > 0) {
     return failure("unknown-reference", referenceId);
   }
 
@@ -135,6 +142,11 @@ export function buildBaseReferenceViewModel(
     return position !== null && position <= throughPosition;
   });
   const visibleIds = new Set(visibleEntries.map(({ semanticId }) => semanticId));
+  const allEntriesById = new Map(
+    catalog.flatMap(({ entries }) =>
+      entries.map((entry) => [entry.semanticId, entry] as const),
+    ),
+  );
 
   for (const visibleEntry of visibleEntries) {
     for (const prerequisiteId of visibleEntry.prerequisiteEntryIds) {
@@ -156,17 +168,25 @@ export function buildBaseReferenceViewModel(
   const entries: BaseReferenceEntryViewModel[] = visibleEntries.map((entry) => ({
     semanticId: entry.semanticId,
     firstTeachLessonId: entry.firstTeachLessonId,
+    sourceContentIds: entry.sourceContentIds,
     prerequisiteEntryIds: entry.prerequisiteEntryIds,
     copyId: entry.copyId,
     label: baseReferenceCopyById(entry.copyId)![locale].label,
     explanation: baseReferenceCopyById(entry.copyId)![locale].explanation,
-    contrastIds: entry.contrastIds,
+    contrastIds: entry.contrastIds.filter((contrastId) => {
+      const contrast = allEntriesById.get(contrastId);
+      const contrastPosition = contrast
+        ? baseCanonicalPosition(contrast.firstTeachLessonId)
+        : null;
+      return contrastPosition !== null && contrastPosition <= throughPosition;
+    }),
     exampleIds: entry.exampleIds,
     canonicalFormCells: entry.canonicalFormCells.map((canonicalCell) => ({
       id: canonicalCell.id,
       columnId: canonicalCell.columnId,
       label: canonicalCell.copy[locale].label,
       value: canonicalCell.tokens,
+      sourceContentIds: canonicalCell.sourceContentIds,
       ...(canonicalCell.desuFunction === undefined
         ? {}
         : { desuFunction: canonicalCell.desuFunction }),
@@ -176,10 +196,17 @@ export function buildBaseReferenceViewModel(
   const rows: ReferenceGridModel["rows"] = entries.map((entry) => ({
     id: entry.semanticId,
     header: entry.label,
-    cells: entry.canonicalFormCells.map(({ columnId, label, value, desuFunction }) => ({
+    cells: entry.canonicalFormCells.map(({
       columnId,
       label,
       value,
+      sourceContentIds,
+      desuFunction,
+    }) => ({
+      columnId,
+      label,
+      value,
+      sourceContentIds,
       ...(desuFunction === undefined ? {} : { desuFunction }),
     })),
   }));

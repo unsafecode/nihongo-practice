@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { BASE_REFERENCE_CATALOG, type BaseReferenceCatalog } from "./catalog";
+import {
+  BASE_REFERENCE_CATALOG,
+  BASE_REFERENCE_EXAMPLES,
+  type BaseReferenceCatalog,
+} from "./catalog";
 import { buildBaseReferenceViewModel } from "./buildReferenceViewModel";
+import { BASE_CONCEPT_BY_ID } from "../catalog/concepts";
+import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
+import { BASE_LESSON_IDS, baseCanonicalPosition } from "../manifest";
 
 describe("buildBaseReferenceViewModel", () => {
   it("builds all five references through the final Base lesson", () => {
@@ -16,8 +23,8 @@ describe("buildBaseReferenceViewModel", () => {
   it("reveals only particle entries owned through the requested lesson", () => {
     const early = buildBaseReferenceViewModel("particle-atlas", "topic-questions-2", "en");
     expect(early.ok && early.model.entries.map(({ semanticId }) => semanticId)).toEqual([
-      "base-particle-topic-wa",
-      "base-particle-focus-subject-ga",
+      "base-particle-wa",
+      "base-particle-ga",
     ]);
 
     const later = buildBaseReferenceViewModel(
@@ -28,7 +35,7 @@ describe("buildBaseReferenceViewModel", () => {
     expect(
       later.ok &&
         later.model.entries.some(
-          ({ semanticId }) => semanticId === "base-particle-existence-location-ni",
+          ({ semanticId }) => semanticId === "base-particle-existence-ni",
         ),
     ).toBe(true);
   });
@@ -106,7 +113,7 @@ describe("buildBaseReferenceViewModel", () => {
       expect(entry.prerequisiteEntryIds.every((id) => included.has(id))).toBe(true);
     }
     expect(included.has("base-particle-action-place-de")).toBe(false);
-    expect(included.has("base-particle-existence-location-ni")).toBe(false);
+    expect(included.has("base-particle-existence-ni")).toBe(false);
   });
 
   it("fails closed for unknown references and lessons", () => {
@@ -126,10 +133,10 @@ describe("buildBaseReferenceViewModel", () => {
     const catalog = structuredClone(BASE_REFERENCE_CATALOG) as BaseReferenceCatalog;
     const atlas = catalog.find(({ id }) => id === "particle-atlas")!;
     const ga = atlas.entries.find(
-      ({ semanticId }) => semanticId === "base-particle-focus-subject-ga",
+      ({ semanticId }) => semanticId === "base-particle-ga",
     )!;
     (ga.prerequisiteEntryIds as string[]).push(
-      "base-particle-existence-location-ni",
+      "base-particle-existence-ni",
     );
     expect(
       buildBaseReferenceViewModel(
@@ -141,6 +148,135 @@ describe("buildBaseReferenceViewModel", () => {
     ).toEqual({
       ok: false,
       error: { code: "future-prerequisite", referenceId: "particle-atlas" },
+    });
+  });
+
+  it("fails closed for catalog-level future prerequisites even when the entry is hidden", () => {
+      const catalog = structuredClone(BASE_REFERENCE_CATALOG) as BaseReferenceCatalog;
+      const atlas = catalog.find(({ id }) => id === "particle-atlas")!;
+      const direction = atlas.entries.find(
+        ({ semanticId }) => semanticId === "base-particle-direction-he",
+      )!;
+      (direction.prerequisiteEntryIds as string[]).push(
+        "base-particle-existence-ni",
+      );
+      expect(
+        buildBaseReferenceViewModel(
+          "particle-atlas",
+          "topic-questions-2",
+          "en",
+          catalog,
+        ),
+      ).toEqual({
+        ok: false,
+        error: { code: "future-prerequisite", referenceId: "particle-atlas" },
+      });
+  });
+
+  it("threads eligible examples and rejects examples owned after their entry", () => {
+      const examples = structuredClone(BASE_REFERENCE_EXAMPLES) as {
+        id: string;
+        firstTeachLessonId: string;
+        sourceContentIds: string[];
+        tokens: (typeof BASE_REFERENCE_EXAMPLES)[number]["tokens"];
+      }[];
+      examples[0] = {
+        ...examples[0],
+        firstTeachLessonId: "base-synthesis-4",
+      };
+      expect(
+        buildBaseReferenceViewModel(
+          "sentence-anatomy",
+          "sentence-foundations-1",
+          "en",
+          BASE_REFERENCE_CATALOG,
+          examples,
+        ),
+      ).toEqual({
+        ok: false,
+        error: { code: "unknown-reference", referenceId: "sentence-anatomy" },
+      });
+  });
+
+  it("never renders source content before its canonical owner lesson", () => {
+      const sourcePosition = (sourceContentId: string) => {
+        const source =
+          BASE_CONCEPT_BY_ID.get(sourceContentId) ??
+          BASE_LEXEME_BY_ID.get(sourceContentId);
+        expect(source).toBeDefined();
+        return baseCanonicalPosition(source!.firstTeachLessonId)!;
+      };
+      const exampleById = new Map(
+        BASE_REFERENCE_EXAMPLES.map((example) => [example.id, example]),
+      );
+
+      for (const throughLessonId of BASE_LESSON_IDS) {
+        const throughPosition = baseCanonicalPosition(throughLessonId)!;
+        for (const reference of BASE_REFERENCE_CATALOG) {
+          const referencePosition = baseCanonicalPosition(reference.firstTeachLessonId)!;
+          if (referencePosition > throughPosition) continue;
+          const result = buildBaseReferenceViewModel(
+            reference.id,
+            throughLessonId,
+            "en",
+          );
+          expect(result.ok).toBe(true);
+          if (!result.ok) continue;
+          for (const entry of result.model.entries) {
+            for (const sourceContentId of entry.sourceContentIds) {
+              expect(sourcePosition(sourceContentId)).toBeLessThanOrEqual(
+                throughPosition,
+              );
+            }
+            for (const formCell of entry.canonicalFormCells) {
+              for (const sourceContentId of formCell.sourceContentIds) {
+                expect(sourcePosition(sourceContentId)).toBeLessThanOrEqual(
+                  throughPosition,
+                );
+              }
+            }
+            for (const exampleId of entry.exampleIds) {
+              expect(
+                baseCanonicalPosition(exampleById.get(exampleId)!.firstTeachLessonId),
+              ).toBeLessThanOrEqual(throughPosition);
+            }
+          }
+        }
+      }
+  });
+
+  it("does not leak a future reciprocal contrast", () => {
+      const early = buildBaseReferenceViewModel(
+        "tense-polarity",
+        "time-movement-1",
+        "en",
+      );
+      const complete = buildBaseReferenceViewModel(
+        "tense-polarity",
+        "requests-connection-4",
+        "en",
+      );
+      expect(early.ok).toBe(true);
+      expect(complete.ok).toBe(true);
+      if (!early.ok || !complete.ok) return;
+      expect(early.model.entries[0].contrastIds).not.toContain(
+        "base-verb-te-imasu",
+      );
+      expect(complete.model.entries[0].contrastIds).toContain(
+        "base-verb-te-imasu",
+      );
+  });
+
+  it("maps an invalid locale to the documented unknown-reference failure", () => {
+      expect(
+        buildBaseReferenceViewModel(
+          "particle-atlas",
+          "topic-questions-2",
+          "fr" as "en",
+        ),
+      ).toEqual({
+        ok: false,
+        error: { code: "unknown-reference", referenceId: "particle-atlas" },
     });
   });
 
