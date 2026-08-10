@@ -332,6 +332,51 @@ function systemLesson(): BaseSystemLessonContent {
   };
 }
 
+function contentLesson(
+  workedExampleIds: readonly string[],
+  overrides: Partial<
+    Omit<
+      BaseLessonContent,
+      "lessonId" | "contract" | "prerequisiteLessonIds" | "workedExampleIds"
+    >
+  > = {},
+): BaseLessonContent {
+  return {
+    ...systemLesson(),
+    lessonId: "requests-connection-2",
+    contract: "content" as const,
+    prerequisiteLessonIds: ["requests-connection-1"],
+    workedExampleIds,
+    ...overrides,
+  };
+}
+
+function contentExample(
+  id: string,
+  sourceIndex: number,
+  surface: string,
+  patternCellId: string,
+  discourseFrameId: string,
+): BaseExample {
+  return {
+    ...EXAMPLES[sourceIndex],
+    id,
+    tokens: [token(`${id}-token`, surface)],
+    patternCellIds: [patternCellId],
+    discourseFrameId,
+  } as BaseExample;
+}
+
+function catalogsWithExamples(examples: readonly BaseExample[]): BaseValidationCatalogs {
+  return {
+    ...CATALOGS,
+    examples: new Map([
+      ...CATALOGS.examples,
+      ...examples.map((entry) => [entry.id, entry] as const),
+    ]),
+  };
+}
+
 function hiddenSystemLesson(): BaseSystemLessonContent {
   return {
     ...systemLesson(),
@@ -3339,6 +3384,146 @@ describe("Task7 remaining Base validation boundaries", () => {
     );
     expect(contentErrors.map((error) => error.code)).not.toContain(
       "system-new-lexeme-count",
+    );
+  });
+
+  it("counts unique worked examples before enforcing content example cardinality", () => {
+    const example1 = contentExample(
+      "requests-connection-2-example-1",
+      0,
+      "例1",
+      "cell-1",
+      "frame-1",
+    );
+    const example2 = contentExample(
+      "requests-connection-2-example-2",
+      1,
+      "例2",
+      "cell-1",
+      "frame-1",
+    );
+    const example3 = contentExample(
+      "requests-connection-2-example-3",
+      2,
+      "例3",
+      "cell-1",
+      "frame-1",
+    );
+    const example4 = contentExample(
+      "requests-connection-2-example-4",
+      3,
+      "例4",
+      "cell-1",
+      "frame-1",
+    );
+    const example5 = contentExample(
+      "requests-connection-2-example-5",
+      4,
+      "例5",
+      "cell-1",
+      "frame-1",
+    );
+    const duplicateExample = {
+      ...example1,
+      id: "requests-connection-2-example-duplicate",
+    } as BaseExample;
+    const examples = [
+      example1,
+      example2,
+      example3,
+      example4,
+      example5,
+      duplicateExample,
+    ];
+    const errors = validateBaseLessonDepth(
+      contentLesson(examples.map((example) => example.id)),
+      catalogsWithExamples(examples),
+    );
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "content-example-count",
+          detail: "5",
+        }),
+      ]),
+    );
+  });
+
+  it("requires six unique examples to cover at least two structural patterns and three contexts", () => {
+    const examples = [
+      contentExample("requests-connection-2-example-1", 0, "例1", "cell-1", "frame-1"),
+      contentExample("requests-connection-2-example-2", 1, "例2", "cell-1", "frame-1"),
+      contentExample("requests-connection-2-example-3", 2, "例3", "cell-1", "frame-1"),
+      contentExample("requests-connection-2-example-4", 3, "例4", "cell-1", "frame-1"),
+      contentExample("requests-connection-2-example-5", 4, "例5", "cell-1", "frame-1"),
+      contentExample("requests-connection-2-example-6", 5, "例6", "cell-1", "frame-1"),
+    ];
+    const errors = validateBaseLessonDepth(
+      contentLesson(examples.map((example) => example.id)),
+      catalogsWithExamples(examples),
+    );
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "content-pattern-diversity",
+          detail: "1",
+        }),
+        expect.objectContaining({
+          code: "content-context-diversity",
+          detail: "1",
+        }),
+      ]),
+    );
+  });
+
+  it("treats two structural patterns and two contexts as insufficient for content diversity", () => {
+    const examples = [
+      contentExample("requests-connection-2-example-1", 0, "例1", "cell-1", "frame-1"),
+      contentExample("requests-connection-2-example-2", 1, "例2", "cell-1", "frame-1"),
+      contentExample("requests-connection-2-example-3", 2, "例3", "cell-1", "frame-1"),
+      contentExample("requests-connection-2-example-4", 3, "例4", "cell-2", "frame-2"),
+      contentExample("requests-connection-2-example-5", 4, "例5", "cell-2", "frame-2"),
+      contentExample("requests-connection-2-example-6", 5, "例6", "cell-2", "frame-2"),
+    ];
+    const errors = validateBaseLessonDepth(
+      contentLesson(examples.map((example) => example.id)),
+      catalogsWithExamples(examples),
+    );
+
+    expect(errors.map((error) => error.code)).not.toContain(
+      "content-pattern-diversity",
+    );
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "content-context-diversity",
+          detail: "2",
+        }),
+      ]),
+    );
+  });
+
+  it("passes the content diversity gate once examples cover two patterns and three contexts", () => {
+    const examples = [
+      contentExample("requests-connection-2-example-1", 0, "例1", "cell-1", "frame-1"),
+      contentExample("requests-connection-2-example-2", 1, "例2", "cell-1", "frame-1"),
+      contentExample("requests-connection-2-example-3", 2, "例3", "cell-2", "frame-2"),
+      contentExample("requests-connection-2-example-4", 3, "例4", "cell-2", "frame-2"),
+      contentExample("requests-connection-2-example-5", 4, "例5", "cell-1", "frame-3"),
+      contentExample("requests-connection-2-example-6", 5, "例6", "cell-1", "frame-3"),
+    ];
+    const errors = validateBaseLessonDepth(
+      contentLesson(examples.map((example) => example.id)),
+      catalogsWithExamples(examples),
+    );
+
+    expect(errors.map((error) => error.code)).not.toContain(
+      "content-pattern-diversity",
+    );
+    expect(errors.map((error) => error.code)).not.toContain(
+      "content-context-diversity",
     );
   });
 

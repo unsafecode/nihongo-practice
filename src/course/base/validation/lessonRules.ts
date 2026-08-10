@@ -73,6 +73,8 @@ export type BaseValidationErrorCode =
   | "phonetic-spoken-count"
   | "content-new-lexeme-count"
   | "content-example-count"
+  | "content-pattern-diversity"
+  | "content-context-diversity"
   | "system-new-lexeme-count"
   | "system-example-count"
   | "system-pattern-cell-unrepresented"
@@ -1125,6 +1127,40 @@ function validateExampleReferences(
   return uniqueExamples;
 }
 
+function contentPatternCellCount(examples: readonly BaseExample[]): number {
+  const patternCellIds = new Set<string>();
+  for (const example of examples) {
+    for (const patternCellId of uniqueIds(example.patternCellIds)) {
+      const normalized = patternCellId.trim();
+      if (normalized.length > 0) {
+        patternCellIds.add(normalized);
+      }
+    }
+  }
+  return patternCellIds.size;
+}
+
+function contentContextCount(examples: readonly BaseExample[]): number {
+  const contexts = new Set<string>();
+  for (const example of examples) {
+    const discourseFrameId = example.discourseFrameId.trim();
+    const semanticRoleIds = uniqueIds(example.semanticRoleIds)
+      .map((role) => role.trim())
+      .filter((role) => role.length > 0)
+      .sort();
+    if (discourseFrameId.length > 0) {
+      contexts.add(
+        semanticRoleIds.length > 0
+          ? `frame:${discourseFrameId}|roles:${semanticRoleIds.join(",")}`
+          : `frame:${discourseFrameId}`,
+      );
+    } else if (semanticRoleIds.length > 0) {
+      contexts.add(`roles:${semanticRoleIds.join(",")}`);
+    }
+  }
+  return contexts.size;
+}
+
 function targetStringField(
   target: BaseVisibleTarget | unknown,
   field: "lexemeIds" | "conceptIds" | "formIds",
@@ -1775,8 +1811,17 @@ export function validateBaseLessonDepth(
     if (!isCountWithin(newCount, 8, 12)) {
       push("content-new-lexeme-count", undefined, `${newCount}`);
     }
-    if (!isCountWithin(uniqueIds(lesson.workedExampleIds).length, 6, 10)) {
-      push("content-example-count", undefined, `${uniqueIds(lesson.workedExampleIds).length}`);
+    const uniqueWorkedExampleCount = uniqueWorkedExamples.length;
+    if (!isCountWithin(uniqueWorkedExampleCount, 6, 10)) {
+      push("content-example-count", undefined, `${uniqueWorkedExampleCount}`);
+    }
+    const patternCount = contentPatternCellCount(uniqueWorkedExamples);
+    if (patternCount < 2) {
+      push("content-pattern-diversity", undefined, `${patternCount}`);
+    }
+    const contextCount = contentContextCount(uniqueWorkedExamples);
+    if (contextCount < 3) {
+      push("content-context-diversity", undefined, `${contextCount}`);
     }
   }
   if (lesson.contract === "system") {
