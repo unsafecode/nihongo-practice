@@ -1140,25 +1140,15 @@ function contentPatternCellCount(examples: readonly BaseExample[]): number {
   return patternCellIds.size;
 }
 
-function contentContextCount(examples: readonly BaseExample[]): number {
-  const contexts = new Set<string>();
+function contentDiscourseFrameCount(examples: readonly BaseExample[]): number {
+  const discourseFrames = new Set<string>();
   for (const example of examples) {
     const discourseFrameId = example.discourseFrameId.trim();
-    const semanticRoleIds = uniqueIds(example.semanticRoleIds)
-      .map((role) => role.trim())
-      .filter((role) => role.length > 0)
-      .sort();
     if (discourseFrameId.length > 0) {
-      contexts.add(
-        semanticRoleIds.length > 0
-          ? `frame:${discourseFrameId}|roles:${semanticRoleIds.join(",")}`
-          : `frame:${discourseFrameId}`,
-      );
-    } else if (semanticRoleIds.length > 0) {
-      contexts.add(`roles:${semanticRoleIds.join(",")}`);
+      discourseFrames.add(discourseFrameId);
     }
   }
-  return contexts.size;
+  return discourseFrames.size;
 }
 
 function targetStringField(
@@ -1819,9 +1809,9 @@ export function validateBaseLessonDepth(
     if (patternCount < 2) {
       push("content-pattern-diversity", undefined, `${patternCount}`);
     }
-    const contextCount = contentContextCount(uniqueWorkedExamples);
-    if (contextCount < 3) {
-      push("content-context-diversity", undefined, `${contextCount}`);
+    const discourseFrameCount = contentDiscourseFrameCount(uniqueWorkedExamples);
+    if (discourseFrameCount < 3) {
+      push("content-context-diversity", undefined, `${discourseFrameCount}`);
     }
   }
   if (lesson.contract === "system") {

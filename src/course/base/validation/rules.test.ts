@@ -3505,6 +3505,51 @@ describe("Task7 remaining Base validation boundaries", () => {
     );
   });
 
+  it("counts only discourse frames toward content diversity even when semantic roles vary", () => {
+    const examples: readonly BaseExample[] = [
+      {
+        ...contentExample("requests-connection-2-example-1", 0, "例1", "cell-1", "frame-1"),
+        semanticRoleIds: ["agent"],
+      } as BaseExample,
+      {
+        ...contentExample("requests-connection-2-example-2", 1, "例2", "cell-1", "frame-1"),
+        semanticRoleIds: ["theme"],
+      } as BaseExample,
+      {
+        ...contentExample("requests-connection-2-example-3", 2, "例3", "cell-1", "frame-1"),
+        semanticRoleIds: ["agent", "theme"],
+      } as BaseExample,
+      {
+        ...contentExample("requests-connection-2-example-4", 3, "例4", "cell-2", "frame-1"),
+        semanticRoleIds: ["goal"],
+      } as BaseExample,
+      {
+        ...contentExample("requests-connection-2-example-5", 4, "例5", "cell-2", "frame-1"),
+        semanticRoleIds: ["location"],
+      } as BaseExample,
+      {
+        ...contentExample("requests-connection-2-example-6", 5, "例6", "cell-2", "frame-1"),
+        semanticRoleIds: ["topic"],
+      } as BaseExample,
+    ];
+    const errors = validateBaseLessonDepth(
+      contentLesson(examples.map((example) => example.id)),
+      catalogsWithExamples(examples),
+    );
+
+    expect(errors.map((error) => error.code)).not.toContain(
+      "content-pattern-diversity",
+    );
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "content-context-diversity",
+          detail: "1",
+        }),
+      ]),
+    );
+  });
+
   it("passes the content diversity gate once examples cover two patterns and three contexts", () => {
     const examples = [
       contentExample("requests-connection-2-example-1", 0, "例1", "cell-1", "frame-1"),
