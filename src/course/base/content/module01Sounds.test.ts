@@ -1,8 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { BASE_AUDIO_CATALOG, BASE_AUDIO_COPY } from "../audio/catalog";
+import { getCourseCopy } from "../../i18n/catalog";
+import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
+import { baseActivityPromptKey } from "../catalog/visibleTargets";
+import { validateBaseLessonDepth } from "../validation/lessonRules";
+import { BASE_AUDIO_CATALOG } from "../audio/catalog";
 import {
   BASIC_HIRAGANA,
+  BASE_SOUND_COPY_IDS,
+  BASE_SOUND_LESSONS,
   BASE_SOUND_MODULE,
+  BASE_SOUND_VALIDATION_CATALOGS,
+  COMMON_YOON_RELEASE_SUBSET,
   DAKUTEN_HIRAGANA,
   HANDAKUTEN_HIRAGANA,
   KATAKANA_BRIDGE,
@@ -31,10 +39,208 @@ function assertDeepFrozen(value: unknown, seen = new Set<object>()): void {
 }
 
 describe("Base module 1 complete sound system", () => {
+  it("resolves every learner-facing lesson, anchor, and audio-state copy in both runtime locales", () => {
+    for (const locale of ["en", "it"] as const) {
+      const runtimeCopy = getCourseCopy(locale).baseContent;
+      expect(Object.keys(runtimeCopy).sort()).toEqual([...BASE_SOUND_COPY_IDS].sort());
+      for (const copyId of BASE_SOUND_COPY_IDS) {
+        expect(runtimeCopy[copyId]?.trim(), `${locale}:${copyId}`).not.toBe("");
+      }
+    }
+  });
+
+  it("publishes all four lessons through the canonical Base depth pipeline", () => {
+    expect(BASE_SOUND_LESSONS).toHaveLength(4);
+    for (const lesson of BASE_SOUND_LESSONS) {
+      expect(validateBaseLessonDepth(lesson, BASE_SOUND_VALIDATION_CATALOGS)).toEqual(
+        [],
+      );
+      expect(Object.isFrozen(lesson)).toBe(true);
+    }
+  });
+
+  it("exposes canonical sound catalogs through mutation-free runtime views", () => {
+    for (const map of [
+      BASE_SOUND_VALIDATION_CATALOGS.audioTargets,
+      BASE_SOUND_VALIDATION_CATALOGS.acceptedAnswerTargets,
+      BASE_SOUND_VALIDATION_CATALOGS.activityPromptTargets,
+    ]) {
+      expect("set" in map).toBe(false);
+      expect("delete" in map).toBe(false);
+      expect("clear" in map).toBe(false);
+    }
+    for (const set of [
+      BASE_SOUND_VALIDATION_CATALOGS.copyIds,
+      BASE_SOUND_VALIDATION_CATALOGS.contrastMapIds,
+      BASE_SOUND_VALIDATION_CATALOGS.patternCellIds,
+    ]) {
+      expect("add" in set).toBe(false);
+      expect("delete" in set).toBe(false);
+      expect("clear" in set).toBe(false);
+    }
+  });
+
+  it("registers every anchor and every activity prompt, answer, and assessed target", () => {
+    for (const definition of BASE_SOUND_MODULE.lessons) {
+      const lesson = definition.content;
+      for (const anchor of definition.anchorWords) {
+        const lexeme = BASE_LEXEME_BY_ID.get(anchor.id);
+        expect(lexeme?.kana).toBe(anchor.kana);
+        expect(lexeme?.meaningCopyId).toBe(anchor.meaningCopyId);
+        expect(lesson.anchorLexemeIds).toContain(anchor.id);
+      }
+      for (const activity of lesson.activities) {
+        expect(
+          BASE_SOUND_VALIDATION_CATALOGS.activityPromptTargets.has(
+            baseActivityPromptKey(lesson.lessonId, activity.id),
+          ),
+        ).toBe(true);
+        const prompt =
+          BASE_SOUND_VALIDATION_CATALOGS.activityPromptTargets.get(
+            baseActivityPromptKey(lesson.lessonId, activity.id),
+          );
+        const anchorId = activity.assessedLexemeIds[0];
+        expect(prompt?.tokens[0].jp).toContain(
+          definition.anchorWords.find((anchor) => anchor.id === anchorId)?.kana,
+        );
+        expect(
+          BASE_SOUND_VALIDATION_CATALOGS.acceptedAnswerTargets.has(activity.targetId) ||
+            BASE_SOUND_VALIDATION_CATALOGS.audioTargets.has(activity.targetId),
+        ).toBe(true);
+        expect(
+          activity.assessedConceptIds.length + activity.assessedLexemeIds.length,
+        ).toBeGreaterThan(0);
+      }
+      for (const anchorId of lesson.anchorLexemeIds) {
+        expect(
+          lesson.activities.some((activity) => {
+            const prompt =
+              BASE_SOUND_VALIDATION_CATALOGS.activityPromptTargets.get(
+                baseActivityPromptKey(lesson.lessonId, activity.id),
+              );
+            const answer =
+              BASE_SOUND_VALIDATION_CATALOGS.acceptedAnswerTargets.get(
+                activity.targetId,
+              );
+            return (
+              prompt?.lexemeIds.includes(anchorId) ||
+              answer?.lexemeIds.includes(anchorId)
+            );
+          }),
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("binds each cognitive operation to substantive scoped evidence", () => {
+    const expectedEvidence = new Map([
+      ["discriminate-sound", "contrast-pair"],
+      ["segment-morae", "segmented-morae"],
+      ["recognize-kana", "kana-recognition"],
+      ["map-script", "script-correspondence"],
+      ["match-sound-word", "sound-word-match"],
+      ["assemble-reading", "controlled-assembly"],
+      ["identify-audio", "listening-identification"],
+      ["produce-spoken", "read-aloud"],
+    ]);
+    for (const definition of BASE_SOUND_MODULE.lessons) {
+      const anchorById = new Map(
+        definition.anchorWords.map((anchor) => [anchor.id, anchor]),
+      );
+      for (const design of definition.activityDesigns) {
+        expect(design.evidenceTag).toBe(expectedEvidence.get(design.operation));
+        expect(design.contrastItemIds.length).toBeGreaterThan(0);
+        if (design.operation !== "produce-spoken") {
+          expect(design.promptKana).not.toBe(design.answerKana);
+        }
+        if (design.operation === "segment-morae") {
+          expect(design.answerKana).toContain("・");
+        }
+        if (design.operation === "match-sound-word") {
+          expect(design.answerKana).toBe(
+            anchorById.get(design.anchorLexemeId)?.kana,
+          );
+        }
+        if (design.operation === "assemble-reading") {
+          expect(design.answerKana).toContain("→");
+        }
+        if (design.operation === "identify-audio") {
+          expect(design.canonicalAudioId).not.toBeNull();
+        }
+        if (design.operation === "produce-spoken") {
+          expect(design.optionsKana).toEqual([]);
+        } else {
+          expect(new Set(design.optionsKana).size).toBeGreaterThanOrEqual(2);
+          expect(design.optionsKana).toContain(design.answerKana);
+          const prompt =
+            BASE_SOUND_VALIDATION_CATALOGS.activityPromptTargets.get(
+              baseActivityPromptKey(
+                definition.content.lessonId,
+                design.activityId,
+              ),
+            );
+          for (const option of design.optionsKana) {
+            expect(prompt?.tokens[0].jp).toContain(option);
+          }
+        }
+      }
+    }
+    const sounds2Evidence = new Set(
+      BASE_SOUND_MODULE.lessons[1].activityDesigns.flatMap(
+        (design) => design.contrastItemIds,
+      ),
+    );
+    for (const id of [
+      "snd2-ji",
+      "snd2-di",
+      "snd2-zu",
+      "snd2-dzu",
+      "snd2-pa",
+      "snd2-pu",
+    ]) {
+      expect(sounds2Evidence.has(id), id).toBe(true);
+    }
+    expect(
+      BASE_SOUND_MODULE.lessons[2].activityDesigns.some((design) =>
+        design.contrastItemIds.includes("snd3-ka-kan"),
+      ),
+    ).toBe(true);
+    const katakanaMapping = BASE_SOUND_MODULE.lessons[3].activityDesigns.find(
+      (design) => design.operation === "map-script",
+    );
+    expect(katakanaMapping?.answerKana).toBe("ア・カ・コ");
+  });
+
+  it("partitions each declared inventory into assessed coverage or an explicit rationale", () => {
+    const inventories = new Map([
+      ["basic-hiragana", BASIC_HIRAGANA],
+      ["dakuten", DAKUTEN_HIRAGANA],
+      ["handakuten", HANDAKUTEN_HIRAGANA],
+      ["common-yoon", YOON_HIRAGANA],
+      ["katakana-bridge", KATAKANA_BRIDGE],
+    ]);
+    for (const definition of BASE_SOUND_MODULE.lessons) {
+      for (const coverage of definition.inventoryCoverage) {
+        const inventory = inventories.get(coverage.inventoryId)!;
+        expect(new Set([...coverage.represented, ...coverage.scopedOut])).toEqual(
+          new Set(inventory),
+        );
+        if (coverage.scopedOut.length > 0) {
+          expect(coverage.rationale?.en.trim()).not.toBe("");
+          expect(coverage.rationale?.it.trim()).not.toBe("");
+        } else {
+          expect(coverage.rationale).toBeNull();
+        }
+      }
+    }
+  });
+
   it("allocates the complete mandatory inventory across exactly four scopes", () => {
     expect(new Set(BASIC_HIRAGANA).size).toBe(46);
     expect(BASIC_HIRAGANA).toHaveLength(46);
-    expect(BASE_SOUND_MODULE.lessons.map((lesson) => lesson.lessonId)).toEqual([
+    expect(
+      BASE_SOUND_MODULE.lessons.map((definition) => definition.content.lessonId),
+    ).toEqual([
       "sounds-1",
       "sounds-2",
       "sounds-3",
@@ -58,6 +264,20 @@ describe("Base module 1 complete sound system", () => {
     expect(YOON_HIRAGANA).toEqual(
       expect.arrayContaining(["きゃ", "しゃ", "ちゃ", "にゅ", "りょ"]),
     );
+    expect(COMMON_YOON_RELEASE_SUBSET).toEqual([
+      "きゃ",
+      "しゃ",
+      "ちゃ",
+      "にゅ",
+      "りょ",
+      "ぎゅ",
+      "じゃ",
+      "びょ",
+      "ぴょ",
+    ]);
+    expect(BASE_SOUND_MODULE.lessons[3].contrastiveItems.map((item) => item.kana)).toEqual(
+      expect.arrayContaining([...COMMON_YOON_RELEASE_SUBSET]),
+    );
     expect(KATAKANA_BRIDGE.length).toBeGreaterThan(0);
     expect(KATAKANA_BRIDGE.length).toBeLessThan(BASIC_HIRAGANA.length);
     expect(BASE_SOUND_MODULE.lessons[3].scopeTags).toContain(
@@ -75,15 +295,18 @@ describe("Base module 1 complete sound system", () => {
       "assemble-reading",
     ]);
 
-    for (const lesson of BASE_SOUND_MODULE.lessons) {
+    for (const definition of BASE_SOUND_MODULE.lessons) {
+      const lesson = definition.content;
       expect(lesson.contract).toBe("phonetic");
-      expect(new Set(lesson.contrastiveItems.map((item) => item.id)).size).toBe(
-        lesson.contrastiveItems.length,
+      expect(
+        new Set(definition.contrastiveItems.map((item) => item.id)).size,
+      ).toBe(
+        definition.contrastiveItems.length,
       );
-      expect(lesson.contrastiveItems.length).toBeGreaterThanOrEqual(10);
-      expect(lesson.contrastiveItems.length).toBeLessThanOrEqual(16);
-      expect(lesson.anchorWords.length).toBeGreaterThanOrEqual(4);
-      expect(lesson.anchorWords.length).toBeLessThanOrEqual(8);
+      expect(definition.contrastiveItems.length).toBeGreaterThanOrEqual(10);
+      expect(definition.contrastiveItems.length).toBeLessThanOrEqual(16);
+      expect(definition.anchorWords.length).toBeGreaterThanOrEqual(4);
+      expect(definition.anchorWords.length).toBeLessThanOrEqual(8);
       expect(new Set(lesson.audioExemplarIds).size).toBeGreaterThanOrEqual(6);
 
       const nonSpoken = lesson.activities.filter(
@@ -117,11 +340,12 @@ describe("Base module 1 complete sound system", () => {
 
   it("links every assessed contrast to canonical audio and localized visible context", () => {
     const audioById = new Map(BASE_AUDIO_CATALOG.map((record) => [record.id, record]));
-    for (const lesson of BASE_SOUND_MODULE.lessons) {
+    for (const definition of BASE_SOUND_MODULE.lessons) {
+      const lesson = definition.content;
       expect(lesson.audioExemplarIds).toEqual(
-        lesson.contrastiveItems.map((item) => item.audioId),
+        definition.contrastiveItems.map((item) => item.audioId),
       );
-      for (const item of lesson.contrastiveItems) {
+      for (const item of definition.contrastiveItems) {
         const audio = audioById.get(item.audioId);
         expect(audio?.src).toMatch(/^\/audio\/base\/.+\.wav$/);
         expect(audio?.morae).toEqual(item.morae);
@@ -129,9 +353,9 @@ describe("Base module 1 complete sound system", () => {
         expect(item.explanation.en).not.toBe("");
         expect(item.explanation.it).not.toBe("");
       }
-      for (const anchor of lesson.anchorWords) {
-        expect(anchor.meaning.en).not.toBe("");
-        expect(anchor.meaning.it).not.toBe("");
+      for (const anchor of definition.anchorWords) {
+        expect(getCourseCopy("en").baseContent[anchor.meaningCopyId]).not.toBe("");
+        expect(getCourseCopy("it").baseContent[anchor.meaningCopyId]).not.toBe("");
         expect(anchor.status.en).toContain("anchor");
         expect(anchor.status.it).toContain("ancor");
       }
@@ -142,7 +366,7 @@ describe("Base module 1 complete sound system", () => {
         "base-audio-unavailable",
         "base-audio-retry",
       ]) {
-        expect(BASE_AUDIO_COPY[locale][id]).not.toBe("");
+        expect(getCourseCopy(locale).baseContent[id]).not.toBe("");
       }
     }
   });
@@ -184,7 +408,8 @@ describe("Base module 1 complete sound system", () => {
     expect(validateBaseSoundModule(cloneModule())).toEqual({ ok: true, errors: [] });
 
     const duplicateLesson = cloneModule();
-    duplicateLesson.lessons[1].lessonId = duplicateLesson.lessons[0].lessonId;
+    duplicateLesson.lessons[1].content.lessonId =
+      duplicateLesson.lessons[0].content.lessonId;
     expect(validateBaseSoundModule(duplicateLesson).errors).toContain(
       "invalid-lesson-allocation",
     );
@@ -197,8 +422,8 @@ describe("Base module 1 complete sound system", () => {
     );
 
     const paddedIds = cloneModule();
-    paddedIds.lessons[0].contrastiveItemIds[0] = "count-only-padding";
-    paddedIds.lessons[0].anchorLexemeIds[0] = "count-only-anchor-padding";
+    paddedIds.lessons[0].content.contrastiveItemIds[0] = "count-only-padding";
+    paddedIds.lessons[0].content.anchorLexemeIds[0] = "count-only-anchor-padding";
     expect(validateBaseSoundModule(paddedIds).errors).toContain(
       "invalid-lesson-shape",
     );
@@ -209,6 +434,35 @@ describe("Base module 1 complete sound system", () => {
       "mismatched-audio-linkage",
     );
 
+    const cosmeticOperation = cloneModule();
+    cosmeticOperation.lessons[0].activityDesigns[1].evidenceTag =
+      "contrast-pair";
+    expect(validateBaseSoundModule(cosmeticOperation).errors).toContain(
+      "invalid-activity-evidence",
+    );
+
+    const cosmeticSegmentation = cloneModule();
+    cosmeticSegmentation.lessons[0].activityDesigns[1].answerKana = "あさ";
+    cosmeticSegmentation.lessons[0].activityDesigns[1].optionsKana = [
+      "あさ",
+      "あせ",
+    ];
+    expect(validateBaseSoundModule(cosmeticSegmentation).errors).toContain(
+      "invalid-activity-evidence",
+    );
+
+    const inventedCoverage = cloneModule();
+    inventedCoverage.lessons[3].inventoryCoverage[0].represented[0] = "みゃ";
+    expect(validateBaseSoundModule(inventedCoverage).errors).toContain(
+      "invalid-inventory-coverage",
+    );
+
+    const missingCoverage = cloneModule();
+    missingCoverage.lessons[1].inventoryCoverage.pop();
+    expect(validateBaseSoundModule(missingCoverage).errors).toContain(
+      "invalid-inventory-coverage",
+    );
+
     const sparse = cloneModule();
     delete sparse.lessons[0];
     expect(validateBaseSoundModule(sparse).errors).toContain("invalid-module-shape");
@@ -217,7 +471,7 @@ describe("Base module 1 complete sound system", () => {
     expect(validateBaseSoundModule(inherited).errors).toContain("invalid-module-shape");
 
     const getterLesson = cloneModule();
-    Object.defineProperty(getterLesson.lessons[0], "contract", {
+    Object.defineProperty(getterLesson.lessons[0].content, "contract", {
       get: () => "phonetic",
     });
     expect(validateBaseSoundModule(getterLesson).errors).toContain("invalid-lesson-shape");

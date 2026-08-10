@@ -571,6 +571,8 @@ export interface CourseCopy {
   objectives: Record<string, string>;
   /** Keyed by entries in CourseModule.outcomeCopyIds. */
   outcomes: Record<string, string>;
+  /** Learner-facing Base lesson/activity/audio-state copy keyed by stable copy ID. */
+  baseContent: Record<string, string>;
   blocks: Record<string, BlockCopy>;
   examples: Record<string, ExampleCopy>;
   /**

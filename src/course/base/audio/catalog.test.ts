@@ -2,13 +2,14 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { getCourseCopy } from "../../i18n/catalog";
 import {
   BASE_AUDIO_CATALOG,
-  BASE_AUDIO_COPY,
   validateBaseAudioCatalog,
 } from "./catalog";
 import {
   BASE_AUDIO_REVIEW_LEDGER,
+  BASE_AUDIO_REVIEW_LEDGER_VALIDATION,
   validateBaseAudioReviewLedger,
 } from "./reviewLedger";
 
@@ -99,7 +100,7 @@ describe("Base canonical audio catalog", () => {
       });
       for (const locale of ["en", "it"] as const) {
         for (const id of Object.values(record.failureStateIds)) {
-          expect(BASE_AUDIO_COPY[locale][id]).not.toBe("");
+          expect(getCourseCopy(locale).baseContent[id]).not.toBe("");
         }
       }
       expect(JSON.stringify(record).toLowerCase()).not.toContain("speechsynthesis");
@@ -109,7 +110,6 @@ describe("Base canonical audio catalog", () => {
 
   it("deep-freezes the runtime catalog and review ledger without reviewer attribution", () => {
     assertDeepFrozen(BASE_AUDIO_CATALOG);
-    assertDeepFrozen(BASE_AUDIO_COPY);
     assertDeepFrozen(BASE_AUDIO_REVIEW_LEDGER);
     for (const entry of BASE_AUDIO_REVIEW_LEDGER) {
       expect(Object.keys(entry).sort()).toEqual(["fingerprint", "status"]);
@@ -140,6 +140,20 @@ describe("Base canonical audio catalog", () => {
     mismatchedMorae[0].morae = ["wrong"];
     expect(validateBaseAudioCatalog(mismatchedMorae).errors).toContain("mismatched-mora-linkage");
 
+    const conflictingSharedBytes = cloneCatalog();
+    conflictingSharedBytes[1].sha256 = conflictingSharedBytes[0].sha256;
+    expect(validateBaseAudioCatalog(conflictingSharedBytes).errors).toContain(
+      "conflicting-shared-audio",
+    );
+
+    const equivalentScriptBytes = cloneCatalog();
+    const hiraganaA = equivalentScriptBytes.find((record) => record.kana === "あ")!;
+    const katakanaA = equivalentScriptBytes.find((record) => record.kana === "ア")!;
+    katakanaA.sha256 = hiraganaA.sha256;
+    expect(validateBaseAudioCatalog(equivalentScriptBytes).errors).not.toContain(
+      "conflicting-shared-audio",
+    );
+
     const sparse = cloneCatalog();
     delete sparse[0];
     expect(validateBaseAudioCatalog(sparse).errors).toContain("invalid-catalog-shape");
@@ -153,6 +167,7 @@ describe("Base canonical audio catalog", () => {
   });
 
   it("fails release review closed on missing, duplicate, malformed, or invented ledger entries", () => {
+    expect(BASE_AUDIO_REVIEW_LEDGER_VALIDATION).toEqual({ ok: true, errors: [] });
     expect(
       validateBaseAudioReviewLedger(BASE_AUDIO_REVIEW_LEDGER, BASE_AUDIO_CATALOG),
     ).toEqual({ ok: true, errors: [] });
@@ -171,6 +186,13 @@ describe("Base canonical audio catalog", () => {
     expect(
       validateBaseAudioReviewLedger(
         [{ fingerprint: "not-a-hash", status: "accepted" }],
+        BASE_AUDIO_CATALOG,
+      ).errors,
+    ).toContain("malformed-review-entry");
+
+    expect(
+      validateBaseAudioReviewLedger(
+        [{ fingerprint: BASE_AUDIO_CATALOG[0].fingerprint, status: "reviewed" }],
         BASE_AUDIO_CATALOG,
       ).errors,
     ).toContain("malformed-review-entry");

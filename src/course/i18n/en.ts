@@ -517,6 +517,7 @@ export const en = {
     a2RuntimeOutcomeCopy("en"),
     baseNavigationCopyEn.outcomes,
   ),
+  baseContent: { ...baseNavigationCopyEn.content },
   blocks: assembledCourseCopy.en.blocks,
   examples: assembledCourseCopy.en.examples,
   journeyScenes: {} as CourseCopy["journeyScenes"],

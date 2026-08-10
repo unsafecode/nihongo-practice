@@ -1,5 +1,8 @@
 import { deepFreeze } from "../../foundations/deepFreeze";
-import type { BaseAudioRecord } from "./catalog";
+import {
+  BASE_AUDIO_CATALOG,
+  type BaseAudioRecord,
+} from "./catalog";
 
 export type BaseAudioReviewStatus = "pending" | "accepted";
 
@@ -273,3 +276,15 @@ export function validateBaseAudioReviewLedger(value: unknown, catalog: readonly 
 }
 
 export const BASE_AUDIO_REVIEW_LEDGER: readonly BaseAudioReviewEntry[] = deepFreeze(RAW_BASE_AUDIO_REVIEW_LEDGER);
+
+export const BASE_AUDIO_REVIEW_LEDGER_VALIDATION =
+  validateBaseAudioReviewLedger(
+    BASE_AUDIO_REVIEW_LEDGER,
+    BASE_AUDIO_CATALOG,
+  );
+
+if (!BASE_AUDIO_REVIEW_LEDGER_VALIDATION.ok) {
+  throw new Error(
+    `Invalid Base audio review ledger: ${BASE_AUDIO_REVIEW_LEDGER_VALIDATION.errors.join(", ")}`,
+  );
+}

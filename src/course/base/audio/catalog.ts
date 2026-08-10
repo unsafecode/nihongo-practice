@@ -30,31 +30,13 @@ export type BaseAudioCatalogError =
   | "invalid-localized-context"
   | "invalid-source-note"
   | "invalid-failure-metadata"
-  | "invalid-playback-policy";
+  | "invalid-playback-policy"
+  | "conflicting-shared-audio";
 
 export interface BaseAudioCatalogValidation {
   readonly ok: boolean;
   readonly errors: readonly BaseAudioCatalogError[];
 }
-
-export const BASE_AUDIO_COPY: Readonly<
-  Record<"en" | "it", Readonly<Record<string, string>>>
-> = deepFreeze({
-  en: {
-    "base-audio-failed":
-      "The canonical recording could not play. The kana, mora breaks, and meaning remain visible.",
-    "base-audio-unavailable":
-      "The canonical recording is unavailable. No browser voice is substituted.",
-    "base-audio-retry": "Retry the canonical recording",
-  },
-  it: {
-    "base-audio-failed":
-      "La registrazione canonica non è stata riprodotta. Kana, divisione in more e significato restano visibili.",
-    "base-audio-unavailable":
-      "La registrazione canonica non è disponibile. Non viene sostituita da una voce del browser.",
-    "base-audio-retry": "Riprova la registrazione canonica",
-  },
-});
 
 const EXPECTED_RECORD_KEYS = [
   "id",
@@ -151,6 +133,19 @@ function localizedPair(value: unknown): value is Readonly<{ en: string; it: stri
 const HASH = /^[a-f0-9]{64}$/;
 const LOCAL_WAV = /^\/audio\/base\/[a-z0-9-]+\.wav$/;
 
+function normalizedPhoneticMora(mora: string): string {
+  return [...mora]
+    .map((character) => {
+      const codePoint = character.codePointAt(0);
+      if (codePoint !== undefined && codePoint >= 0x30a1 && codePoint <= 0x30f6) {
+        return String.fromCodePoint(codePoint - 0x60);
+      }
+      return character;
+    })
+    .join("")
+    .replace(/[ぢづ]/g, (character) => (character === "ぢ" ? "じ" : "ず"));
+}
+
 export function validateBaseAudioCatalog(value: unknown): BaseAudioCatalogValidation {
   const entries = densePlainArray(value);
   if (!entries) return { ok: false, errors: ["invalid-catalog-shape"] };
@@ -158,6 +153,7 @@ export function validateBaseAudioCatalog(value: unknown): BaseAudioCatalogValida
   const errors = new Set<BaseAudioCatalogError>();
   const ids = new Set<string>();
   const sources = new Set<string>();
+  const representedReadingByHash = new Map<string, string>();
   for (const entry of entries) {
     const record = plainDataRecord(entry, EXPECTED_RECORD_KEYS);
     if (!record) {
@@ -185,6 +181,17 @@ export function validateBaseAudioCatalog(value: unknown): BaseAudioCatalogValida
     }
     if (typeof sha256 !== "string" || !HASH.test(sha256)) {
       errors.add("malformed-sha256");
+    } else if (morae?.every((mora): mora is string => typeof mora === "string")) {
+      const representedReading = morae.map(normalizedPhoneticMora).join("\0");
+      const previousReading = representedReadingByHash.get(sha256);
+      if (
+        previousReading !== undefined &&
+        previousReading !== representedReading
+      ) {
+        errors.add("conflicting-shared-audio");
+      } else {
+        representedReadingByHash.set(sha256, representedReading);
+      }
     }
     if (typeof fingerprint !== "string" || !HASH.test(fingerprint)) {
       errors.add("malformed-fingerprint");

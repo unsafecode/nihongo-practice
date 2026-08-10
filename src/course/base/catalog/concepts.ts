@@ -25,6 +25,16 @@ function concept(
 }
 
 export const BASE_CONCEPTS: readonly BaseConcept[] = deepFreeze([
+  concept("sound-vowels-gojuon", "concept", "sounds-1"),
+  concept("sound-voicing-marks", "concept", "sounds-2", [
+    "sound-vowels-gojuon",
+  ]),
+  concept("sound-mora-timing", "concept", "sounds-3", [
+    "sound-vowels-gojuon",
+  ]),
+  concept("sound-yoon-script-bridge", "concept", "sounds-4", [
+    "sound-mora-timing",
+  ]),
   concept("sentence-chunks", "concept", "sentence-foundations-1"),
   concept("sentence-order", "concept", "sentence-foundations-2", ["sentence-chunks"]),
   concept("sentence-omission", "concept", "sentence-foundations-2", ["sentence-chunks"]),

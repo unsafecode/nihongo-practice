@@ -1,10 +1,30 @@
-import type {
-  BaseActivityDefinition,
-  BasePhoneticLessonContent,
+import {
+  defineBaseLessonContent,
+  type BaseActivityDefinition,
+  type BasePhoneticLessonContent,
+  type BaseValidationCatalogs,
+  type BaseVisibleTarget,
 } from "../catalog/types";
-import type { BasePhoneticActivityOperation } from "../catalog/activityContracts";
+import type {
+  BasePhoneticActivityOperation,
+} from "../catalog/activityContracts";
 import { deepFreeze } from "../../foundations/deepFreeze";
-import { baseAudioRecordById } from "../audio/catalog";
+import {
+  BASE_AUDIO_CATALOG,
+  baseAudioRecordById,
+} from "../audio/catalog";
+import {
+  BASE_CONCEPT_BY_ID,
+  BASE_REFERENCE_SNAPSHOT_BY_ID,
+  BASE_RETRIEVAL_SYSTEM_BY_ID,
+} from "../catalog/concepts";
+import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
+import { baseActivityPromptKey } from "../catalog/visibleTargets";
+import { immutableReadonlyMap } from "../../foundations/immutableReadonlyMap";
+import { immutableReadonlySet } from "../../foundations/immutableReadonlySet";
+import { validateBaseLessonDepth } from "../validation/lessonRules";
+import { baseNavigationCopyEn } from "../copy/en";
+import { baseNavigationCopyIt } from "../copy/it";
 
 type LocalizedText = Readonly<{ readonly en: string; readonly it: string }>;
 
@@ -20,15 +40,52 @@ export interface BaseSoundAnchorWord {
   readonly id: string;
   readonly kana: string;
   readonly morae: readonly string[];
-  readonly meaning: LocalizedText;
+  readonly meaningCopyId: string;
   readonly status: LocalizedText;
 }
 
-export interface BaseSoundLesson extends BasePhoneticLessonContent {
+export type BaseSoundActivityEvidenceTag =
+  | "contrast-pair"
+  | "segmented-morae"
+  | "kana-recognition"
+  | "script-correspondence"
+  | "sound-word-match"
+  | "controlled-assembly"
+  | "listening-identification"
+  | "read-aloud";
+
+export interface BaseSoundActivityDesign {
+  readonly activityId: string;
+  readonly operation: BaseActivityDefinition["operation"];
+  readonly evidenceTag: BaseSoundActivityEvidenceTag;
+  readonly promptKana: string;
+  readonly answerKana: string;
+  readonly optionsKana: readonly string[];
+  readonly anchorLexemeId: string;
+  readonly contrastItemIds: readonly string[];
+  readonly canonicalAudioId: string | null;
+}
+
+export interface BaseSoundInventoryCoverage {
+  readonly inventoryId:
+    | "basic-hiragana"
+    | "dakuten"
+    | "handakuten"
+    | "common-yoon"
+    | "katakana-bridge";
+  readonly represented: readonly string[];
+  readonly scopedOut: readonly string[];
+  readonly rationale: LocalizedText | null;
+}
+
+export interface BaseSoundLesson {
+  readonly content: BasePhoneticLessonContent;
   readonly scopeTags: readonly string[];
   readonly scopeNote: LocalizedText;
   readonly contrastiveItems: readonly BaseSoundContrastiveItem[];
   readonly anchorWords: readonly BaseSoundAnchorWord[];
+  readonly activityDesigns: readonly BaseSoundActivityDesign[];
+  readonly inventoryCoverage: readonly BaseSoundInventoryCoverage[];
 }
 
 export interface BaseSoundModule {
@@ -46,6 +103,9 @@ export type BaseSoundModuleError =
   | "invalid-anchor-count"
   | "invalid-phonetic-activities"
   | "mismatched-audio-linkage"
+  | "invalid-activity-evidence"
+  | "invalid-inventory-coverage"
+  | "canonical-depth-failure"
   | "semantic-padding"
   | "invalid-localized-copy";
 
@@ -92,6 +152,18 @@ export const YOON_HIRAGANA: readonly string[] = deepFreeze([
   "ぴゃ", "ぴゅ", "ぴょ",
 ]);
 
+export const COMMON_YOON_RELEASE_SUBSET: readonly string[] = deepFreeze([
+  "きゃ",
+  "しゃ",
+  "ちゃ",
+  "にゅ",
+  "りょ",
+  "ぎゅ",
+  "じゃ",
+  "びょ",
+  "ぴょ",
+]);
+
 export const KATAKANA_BRIDGE: readonly string[] = deepFreeze([
   "ア", "イ", "ウ", "エ", "オ", "カ", "キ", "ク", "ケ", "コ",
 ]);
@@ -126,14 +198,12 @@ function anchor(
   id: string,
   kana: string,
   morae: readonly string[],
-  en: string,
-  it: string,
 ): BaseSoundAnchorWord {
   return {
     id,
     kana,
     morae,
-    meaning: { en, it },
+    meaningCopyId: `${id}-meaning`,
     status: {
       en: "Meaningful anchor word for sound practice; not yet full sentence-ready vocabulary.",
       it: "Parola-ancora significativa per esercitare i suoni; non è ancora lessico pronto per frasi complete.",
@@ -246,31 +316,31 @@ const SOUND_4_ITEMS: readonly BaseSoundContrastiveItem[] = [
 ];
 
 const SOUND_1_ANCHORS = [
-  anchor("anchor-asa", "あさ", ["あ", "さ"], "morning", "mattina"),
-  anchor("anchor-ie", "いえ", ["い", "え"], "house; home", "casa"),
-  anchor("anchor-umi", "うみ", ["う", "み"], "sea", "mare"),
-  anchor("anchor-neko", "ねこ", ["ね", "こ"], "cat", "gatto"),
+  anchor("anchor-asa", "あさ", ["あ", "さ"]),
+  anchor("anchor-ie", "いえ", ["い", "え"]),
+  anchor("anchor-umi", "うみ", ["う", "み"]),
+  anchor("anchor-neko", "ねこ", ["ね", "こ"]),
 ];
 
 const SOUND_2_ANCHORS = [
-  anchor("anchor-kagi", "かぎ", ["か", "ぎ"], "key", "chiave"),
-  anchor("anchor-kaze", "かぜ", ["か", "ぜ"], "wind", "vento"),
-  anchor("anchor-denwa", "でんわ", ["で", "ん", "わ"], "telephone", "telefono"),
-  anchor("anchor-pan", "ぱん", ["ぱ", "ん"], "bread", "pane"),
+  anchor("anchor-kagi", "かぎ", ["か", "ぎ"]),
+  anchor("anchor-kaze", "かぜ", ["か", "ぜ"]),
+  anchor("anchor-denwa", "でんわ", ["で", "ん", "わ"]),
+  anchor("anchor-pan", "ぱん", ["ぱ", "ん"]),
 ];
 
 const SOUND_3_ANCHORS = [
-  anchor("anchor-obaasan", "おばあさん", ["お", "ば", "あ", "さ", "ん"], "grandmother", "nonna"),
-  anchor("anchor-gakkou", "がっこう", ["が", "っ", "こ", "う"], "school", "scuola"),
-  anchor("anchor-hon", "ほん", ["ほ", "ん"], "book", "libro"),
-  anchor("anchor-kippu", "きっぷ", ["き", "っ", "ぷ"], "ticket", "biglietto"),
+  anchor("anchor-obaasan", "おばあさん", ["お", "ば", "あ", "さ", "ん"]),
+  anchor("anchor-gakkou", "がっこう", ["が", "っ", "こ", "う"]),
+  anchor("anchor-hon", "ほん", ["ほ", "ん"]),
+  anchor("anchor-kippu", "きっぷ", ["き", "っ", "ぷ"]),
 ];
 
 const SOUND_4_ANCHORS = [
-  anchor("anchor-kyaku", "きゃく", ["きゃ", "く"], "guest; customer", "ospite; cliente"),
-  anchor("anchor-shashin", "しゃしん", ["しゃ", "し", "ん"], "photograph", "fotografia"),
-  anchor("anchor-chuui", "ちゅうい", ["ちゅ", "う", "い"], "attention; caution", "attenzione"),
-  anchor("anchor-ryokou", "りょこう", ["りょ", "こ", "う"], "travel", "viaggio"),
+  anchor("anchor-kyaku", "きゃく", ["きゃ", "く"]),
+  anchor("anchor-shashin", "しゃしん", ["しゃ", "し", "ん"]),
+  anchor("anchor-chuui", "ちゅうい", ["ちゅ", "う", "い"]),
+  anchor("anchor-ryokou", "りょこう", ["りょ", "こ", "う"]),
 ];
 
 const ACTIVITY_SHAPES = [
@@ -284,48 +354,287 @@ const ACTIVITY_SHAPES = [
   ["spoken", "spoken", "produce-spoken"],
 ] as const;
 
+const EVIDENCE_TAGS: readonly BaseSoundActivityEvidenceTag[] = [
+  "contrast-pair",
+  "segmented-morae",
+  "kana-recognition",
+  "script-correspondence",
+  "sound-word-match",
+  "controlled-assembly",
+  "listening-identification",
+  "read-aloud",
+];
+
+const ACTIVITY_OPTIONS: Readonly<Record<string, readonly string[]>> = {
+  "snd1-discriminate-vowels": ["あ≠い", "あ＝い"],
+  "snd1-segment-asa": ["あ・さ", "あさ（ひとつ）"],
+  "snd1-recognize-gojuon": ["さしすせそ", "たちつてと"],
+  "snd1-map-hiragana-row": ["か・き・く・け・こ", "さ・し・す・せ・そ"],
+  "snd1-match-ie": ["いえ", "うえ"],
+  "snd1-assemble-umi": ["う・み→うみ", "う・に→うに"],
+  "snd1-listen-u": ["う", "お"],
+  "snd2-discriminate-kaga": ["か≠が", "か＝が"],
+  "snd2-segment-kagi": ["か・ぎ", "かぎ（ひとつ）"],
+  "snd2-recognize-jidi": ["じ・ぢ", "じ・じ"],
+  "snd2-map-dakuten": ["た→だ　は→ば→ぱ", "た→ざ　は→だ→な"],
+  "snd2-match-kaze": ["かぜ", "かせ"],
+  "snd2-assemble-denwa": ["で・ん・わ→でんわ", "で・わ→でわ"],
+  "snd2-listen-zudzu": ["ず", "づ"],
+  "snd3-discriminate-obasan": ["おばさん≠おばあさん", "おばさん＝おばあさん"],
+  "snd3-segment-gakkou": ["が・っ・こ・う", "が・こ・う"],
+  "snd3-recognize-small-tsu": ["きって", "きて"],
+  "snd3-map-moraic-n": ["か・ん", "かん（ひとつ）"],
+  "snd3-match-hon": ["ほん", "ほ"],
+  "snd3-assemble-kippu": ["き・っ・ぷ→きっぷ", "き・ぷ→きぷ"],
+  "snd3-listen-kan": ["かん", "か"],
+  "snd4-discriminate-yoon": ["きゃ≠しゃ≠ちゃ", "きや＝しや＝ちや"],
+  "snd4-segment-ryokou": ["りょ・こ・う", "り・ょ・こ・う"],
+  "snd4-recognize-small-yoon": ["にゅ・ぎゅ・じゃ", "にゆ・ぎゆ・じや"],
+  "snd4-map-katakana": ["ア・カ・コ", "あ・か・こ"],
+  "snd4-match-shashin": ["しゃしん", "しやしん"],
+  "snd4-assemble-kyaku": ["きゃ・く→きゃく", "き・ゃ・く→きゃく"],
+  "snd4-listen-nyuryo": ["にゅ", "りょ"],
+};
+
+function design(
+  activityId: string,
+  index: number,
+  promptKana: string,
+  answerKana: string,
+  anchorLexemeId: string,
+  contrastItemIds: readonly string[],
+  canonicalAudioId: string | null = null,
+): BaseSoundActivityDesign {
+  const optionsKana = index === 7 ? [] : ACTIVITY_OPTIONS[activityId];
+  if (!optionsKana) {
+    throw new Error(`Missing Base sound activity options for "${activityId}".`);
+  }
+  return {
+    activityId,
+    operation: ACTIVITY_SHAPES[index][2],
+    evidenceTag: EVIDENCE_TAGS[index],
+    promptKana,
+    answerKana,
+    optionsKana,
+    anchorLexemeId,
+    contrastItemIds,
+    canonicalAudioId,
+  };
+}
+
+const SOUND_1_ACTIVITY_DESIGNS: readonly BaseSoundActivityDesign[] = [
+  design("snd1-discriminate-vowels", 0, "あ・い・う", "あ≠い", "anchor-asa", [
+    "snd1-vowel-a",
+    "snd1-vowel-i",
+    "snd1-vowel-u",
+  ]),
+  design("snd1-segment-asa", 1, "あさ", "あ・さ", "anchor-asa", [
+    "snd1-vowel-a",
+    "snd1-s-row",
+  ]),
+  design("snd1-recognize-gojuon", 2, "さ行", "さしすせそ", "anchor-ie", [
+    "snd1-s-row",
+  ]),
+  design("snd1-map-hiragana-row", 3, "k + a i u e o", "か・き・く・け・こ", "anchor-umi", [
+    "snd1-k-row",
+  ]),
+  design("snd1-match-ie", 4, "い・え", "いえ", "anchor-ie", [
+    "snd1-vowel-i",
+    "snd1-vowel-e",
+  ]),
+  design("snd1-assemble-umi", 5, "う・み", "う・み→うみ", "anchor-umi", [
+    "snd1-vowel-u",
+    "snd1-m-row",
+  ]),
+  design("snd1-listen-u", 6, "う / お", "う", "anchor-umi", [
+    "snd1-vowel-u",
+    "snd1-vowel-o",
+  ], "snd1-vowel-u"),
+  design("snd1-read-neko", 7, "ね・こ", "ねこ", "anchor-neko", [
+    "snd1-n-row",
+    "snd1-k-row",
+  ]),
+];
+
+const SOUND_2_ACTIVITY_DESIGNS: readonly BaseSoundActivityDesign[] = [
+  design("snd2-discriminate-kaga", 0, "か / が", "か≠が", "anchor-kagi", [
+    "snd2-ka",
+    "snd2-ga",
+  ]),
+  design("snd2-segment-kagi", 1, "かぎ", "か・ぎ", "anchor-kagi", [
+    "snd2-ka",
+    "snd2-ga",
+  ]),
+  design("snd2-recognize-jidi", 2, "じ / ぢ", "じ・ぢ", "anchor-kaze", [
+    "snd2-ji",
+    "snd2-di",
+  ]),
+  design("snd2-map-dakuten", 3, "た→?　は→?", "た→だ　は→ば→ぱ", "anchor-denwa", [
+    "snd2-ta",
+    "snd2-da",
+    "snd2-ha",
+    "snd2-ba",
+    "snd2-pa",
+  ]),
+  design("snd2-match-kaze", 4, "か・ぜ", "かぜ", "anchor-kaze", [
+    "snd2-sa",
+    "snd2-za",
+  ]),
+  design("snd2-assemble-denwa", 5, "で・ん・わ", "で・ん・わ→でんわ", "anchor-denwa", [
+    "snd2-da",
+  ]),
+  design("snd2-listen-zudzu", 6, "ず / づ", "ず", "anchor-pan", [
+    "snd2-zu",
+    "snd2-dzu",
+  ], "snd2-zu"),
+  design("snd2-read-panpu", 7, "ぱ・ぷ", "ぱ・ぷ", "anchor-pan", [
+    "snd2-pa",
+    "snd2-pu",
+  ]),
+];
+
+const SOUND_3_ACTIVITY_DESIGNS: readonly BaseSoundActivityDesign[] = [
+  design("snd3-discriminate-obasan", 0, "おばさん / おばあさん", "おばさん≠おばあさん", "anchor-obaasan", [
+    "snd3-obasan",
+    "snd3-obasan-obaasan",
+  ]),
+  design("snd3-segment-gakkou", 1, "がっこう", "が・っ・こ・う", "anchor-gakkou", [
+    "snd3-koukou",
+    "snd3-sakka",
+  ]),
+  design("snd3-recognize-small-tsu", 2, "きて / きって", "きって", "anchor-kippu", [
+    "snd3-kite",
+    "snd3-kite-kitte",
+  ]),
+  design("snd3-map-moraic-n", 3, "か + ん", "か・ん", "anchor-hon", [
+    "snd3-ka",
+    "snd3-ka-kan",
+  ]),
+  design("snd3-match-hon", 4, "ほ・ん", "ほん", "anchor-hon", [
+    "snd3-ho",
+    "snd3-hoon",
+  ]),
+  design("snd3-assemble-kippu", 5, "き・っ・ぷ", "き・っ・ぷ→きっぷ", "anchor-kippu", [
+    "snd3-kite-kitte",
+    "snd3-sakka",
+  ]),
+  design("snd3-listen-kan", 6, "か / かん", "かん", "anchor-gakkou", [
+    "snd3-ka",
+    "snd3-ka-kan",
+  ], "snd3-ka-kan"),
+  design("snd3-read-obaasan", 7, "お・ば・あ・さ・ん", "おばあさん", "anchor-obaasan", [
+    "snd3-obasan-obaasan",
+  ]),
+];
+
+const SOUND_4_ACTIVITY_DESIGNS: readonly BaseSoundActivityDesign[] = [
+  design("snd4-discriminate-yoon", 0, "きゃ / しゃ / ちゃ", "きゃ≠しゃ≠ちゃ", "anchor-kyaku", [
+    "snd4-kya",
+    "snd4-sha",
+    "snd4-cha",
+  ]),
+  design("snd4-segment-ryokou", 1, "りょこう", "りょ・こ・う", "anchor-ryokou", [
+    "snd4-ryo",
+  ]),
+  design("snd4-recognize-small-yoon", 2, "にゆ / にゅ", "にゅ・ぎゅ・じゃ", "anchor-chuui", [
+    "snd4-nyu",
+    "snd4-gyu",
+    "snd4-ja",
+  ]),
+  design("snd4-map-katakana", 3, "あ・か・こ", "ア・カ・コ", "anchor-kyaku", [
+    "snd4-katakana-a",
+    "snd4-katakana-ka",
+    "snd4-katakana-ko",
+  ]),
+  design("snd4-match-shashin", 4, "しゃ・し・ん", "しゃしん", "anchor-shashin", [
+    "snd4-sha",
+    "snd4-byo",
+  ]),
+  design("snd4-assemble-kyaku", 5, "きゃ・く", "きゃ・く→きゃく", "anchor-kyaku", [
+    "snd4-kya",
+    "snd4-pyo",
+  ]),
+  design("snd4-listen-nyuryo", 6, "にゅ / りょ", "にゅ", "anchor-ryokou", [
+    "snd4-nyu",
+    "snd4-ryo",
+  ], "snd4-nyu"),
+  design("snd4-read-chuui", 7, "ちゅ・う・い", "ちゅうい", "anchor-chuui", [
+    "snd4-cha",
+    "snd4-gyu",
+    "snd4-ja",
+    "snd4-byo",
+    "snd4-pyo",
+  ]),
+];
+
 function activities(
-  lessonId: string,
-  items: readonly BaseSoundContrastiveItem[],
+  conceptId: string,
+  designs: readonly BaseSoundActivityDesign[],
 ): readonly BaseActivityDefinition[] {
-  return ACTIVITY_SHAPES.map(([category, interactionKind, operation], index) => ({
-    id: `${lessonId}-activity-${index + 1}-${operation}`,
-    category,
-    interactionKind,
-    mode: index < 6 ? "non-spoken" : "audio",
-    targetId: items[index].id,
-    operation,
-    instructionCopyId: `${lessonId}-${operation}-instruction`,
-    acceptedFeedbackCopyId: "base-sounds-feedback-accepted",
-    retryFeedbackCopyId: "base-sounds-feedback-retry",
-    assessedConceptIds: [],
-    assessedLexemeIds: [],
-  }));
+  return designs.map((entry, index) => {
+    const [category, interactionKind] = ACTIVITY_SHAPES[index];
+    return {
+      id: entry.activityId,
+      category,
+      interactionKind,
+      mode: index < 6 ? "non-spoken" : "audio",
+      targetId: entry.canonicalAudioId ?? `${entry.activityId}-answer`,
+      operation: entry.operation,
+      instructionCopyId: `${entry.activityId}-instruction`,
+      acceptedFeedbackCopyId: "base-sounds-feedback-accepted",
+      retryFeedbackCopyId: "base-sounds-feedback-retry",
+      assessedConceptIds: [conceptId],
+      assessedLexemeIds: [entry.anchorLexemeId],
+    };
+  });
 }
 
 function lesson(
   lessonId: "sounds-1" | "sounds-2" | "sounds-3" | "sounds-4",
   prerequisiteLessonIds: readonly string[],
+  conceptId: string,
   items: readonly BaseSoundContrastiveItem[],
   anchors: readonly BaseSoundAnchorWord[],
+  activityDesigns: readonly BaseSoundActivityDesign[],
   scopeTags: readonly string[],
   scopeNote: LocalizedText,
+  inventoryCoverage: readonly BaseSoundInventoryCoverage[],
 ): BaseSoundLesson {
-  return {
+  const content = defineBaseLessonContent({
     lessonId,
     contract: "phonetic",
     prerequisiteLessonIds,
-    activities: activities(lessonId, items),
+    activities: activities(conceptId, activityDesigns),
     recapCopyId: `${lessonId}-recap`,
     contrastiveItemIds: items.map((item) => item.id),
     anchorLexemeIds: anchors.map((item) => item.id),
     audioExemplarIds: items.map((item) => item.audioId),
     phoneticExplanationCopyId: `${lessonId}-phonetic-explanation`,
     contrastMapId: `${lessonId}-contrast-map`,
+  });
+  return {
+    content,
     scopeTags,
     scopeNote,
     contrastiveItems: items,
     anchorWords: anchors,
+    activityDesigns,
+    inventoryCoverage,
+  };
+}
+
+function inventoryCoverage(
+  inventoryId: BaseSoundInventoryCoverage["inventoryId"],
+  inventory: readonly string[],
+  represented: readonly string[],
+  rationale: LocalizedText | null,
+): BaseSoundInventoryCoverage {
+  const representedSet = new Set(represented);
+  return {
+    inventoryId,
+    represented,
+    scopedOut: inventory.filter((item) => !representedSet.has(item)),
+    rationale,
   };
 }
 
@@ -335,46 +644,100 @@ const RAW_BASE_SOUND_MODULE: BaseSoundModule = {
     lesson(
       "sounds-1",
       [],
+      "sound-vowels-gojuon",
       SOUND_1_ITEMS,
       SOUND_1_ANCHORS,
+      SOUND_1_ACTIVITY_DESIGNS,
       ["five-vowels", "unvoiced-gojuon", "basic-modern-hiragana-46", "mora-counting"],
       {
         en: "Hiragana-first listening and reading: five vowels, unvoiced gojuon rows, all 46 basic modern hiragana, and mora counting.",
         it: "Ascolto e lettura a partire dall'hiragana: cinque vocali, righe gojuon non sonore, tutti i 46 hiragana moderni di base e conteggio delle more.",
       },
+      [inventoryCoverage("basic-hiragana", BASIC_HIRAGANA, BASIC_HIRAGANA, null)],
     ),
     lesson(
       "sounds-2",
       ["sounds-1"],
+      "sound-voicing-marks",
       SOUND_2_ITEMS,
       SOUND_2_ANCHORS,
+      SOUND_2_ACTIVITY_DESIGNS,
       ["dakuten", "handakuten", "voiced-unvoiced-contrasts", "ji-di-zu-dzu-orthography"],
       {
         en: "Learn the spelling distinctions じ/ぢ and ず/づ; they are not universally acoustically distinct in modern standard Japanese.",
         it: "Impara le distinzioni ortografiche じ/ぢ e ず/づ; nel giapponese standard moderno non sono universalmente distinti all'ascolto.",
       },
+      [
+        inventoryCoverage(
+          "dakuten",
+          DAKUTEN_HIRAGANA,
+          SOUND_2_ITEMS.map((item) => item.kana).filter((kana) =>
+            DAKUTEN_HIRAGANA.includes(kana),
+          ),
+          {
+            en: "Base assesses representative dakuten contrasts from every voiced row; the remaining same-rule vowel variants stay reference-only.",
+            it: "Il Base valuta contrasti rappresentativi con dakuten per ogni riga sonora; le altre varianti vocaliche della stessa regola restano di consultazione.",
+          },
+        ),
+        inventoryCoverage(
+          "handakuten",
+          HANDAKUTEN_HIRAGANA,
+          SOUND_2_ITEMS.map((item) => item.kana).filter((kana) =>
+            HANDAKUTEN_HIRAGANA.includes(kana),
+          ),
+          {
+            en: "Base assesses ぱ and ぷ directly; ぴ, ぺ, and ぽ remain visible reference variants governed by the same handakuten rule.",
+            it: "Il Base valuta direttamente ぱ e ぷ; ぴ, ぺ e ぽ restano varianti visibili di consultazione con la stessa regola dell'handakuten.",
+          },
+        ),
+      ],
     ),
     lesson(
       "sounds-3",
       ["sounds-2"],
+      "sound-mora-timing",
       SOUND_3_ITEMS,
       SOUND_3_ANCHORS,
+      SOUND_3_ACTIVITY_DESIGNS,
       ["long-vowels", "small-tsu", "moraic-n", "timing-contrasts"],
       {
         en: "Long vowels, small っ, and moraic ん each contribute timing; count morae rather than kana characters.",
         it: "Vocali lunghe, piccolo っ e ん moraica contribuiscono al ritmo; conta le more, non i caratteri kana.",
       },
+      [],
     ),
     lesson(
       "sounds-4",
       ["sounds-3"],
+      "sound-yoon-script-bridge",
       SOUND_4_ITEMS,
       SOUND_4_ANCHORS,
+      SOUND_4_ACTIVITY_DESIGNS,
       ["common-yoon", "small-ya-yu-yo", "bounded-katakana-bridge-not-full-module"],
       {
         en: "Common yoon use small ゃ/ゅ/ょ and count as one mora. The katakana examples are a practical bridge, not a full katakana module.",
         it: "Gli yoon comuni usano i piccoli ゃ/ゅ/ょ e contano come una mora. Gli esempi in katakana sono un ponte pratico, non un modulo completo.",
       },
+      [
+        inventoryCoverage(
+          "common-yoon",
+          YOON_HIRAGANA,
+          COMMON_YOON_RELEASE_SUBSET,
+          {
+            en: "The release subset covers frequent unvoiced, voiced, and handakuten yoon; the full reference inventory is not padded into this lesson.",
+            it: "Il sottoinsieme pubblicato copre yoon frequenti non sonori, sonori e con handakuten; l'inventario completo di consultazione non viene usato per gonfiare la lezione.",
+          },
+        ),
+        inventoryCoverage(
+          "katakana-bridge",
+          KATAKANA_BRIDGE,
+          ["ア", "カ", "コ"],
+          {
+            en: "Only ア, カ, and コ are assessed as a practical script bridge; a full katakana inventory is outside this Base lesson.",
+            it: "Solo ア, カ e コ sono valutati come ponte pratico tra scritture; l'inventario completo del katakana è fuori da questa lezione Base.",
+          },
+        ),
+      ],
     ),
   ],
   outOfScope: {
@@ -382,6 +745,131 @@ const RAW_BASE_SOUND_MODULE: BaseSoundModule = {
     it: "L'accento tonale è esplicitamente fuori dal Base; il modulo si concentra su suoni segmentali, scrittura e ritmo moraico.",
   },
 };
+
+const SOUND_CONCEPT_BY_LESSON: Readonly<Record<string, string>> = {
+  "sounds-1": "sound-vowels-gojuon",
+  "sounds-2": "sound-voicing-marks",
+  "sounds-3": "sound-mora-timing",
+  "sounds-4": "sound-yoon-script-bridge",
+} as const;
+
+function visibleTarget(
+  id: string,
+  kana: string,
+  conceptId: string,
+  anchorLexemeId?: string,
+): BaseVisibleTarget {
+  return {
+    tokens: [
+      {
+        id: `${id}-token`,
+        jp: kana,
+        romaji: kana,
+        kind: "lexical",
+        boundaryBefore: "attach",
+        source: { domain: "catalog", referenceId: id },
+      },
+    ],
+    lexemeIds: anchorLexemeId ? [anchorLexemeId] : [],
+    conceptIds: [conceptId],
+    formIds: [],
+    patternCellIds: [],
+    semanticRoleIds: [],
+    interpretationTags: [],
+    predicateSenseId: null,
+    predicateLexemeId: null,
+  };
+}
+
+const acceptedAnswerEntries = RAW_BASE_SOUND_MODULE.lessons.flatMap(
+  (definition) => {
+    const conceptId = SOUND_CONCEPT_BY_LESSON[definition.content.lessonId];
+    return definition.activityDesigns
+      .filter((design) => design.canonicalAudioId === null)
+      .map((design) => [
+        `${design.activityId}-answer`,
+        visibleTarget(
+          `${design.activityId}-answer`,
+          design.answerKana,
+          conceptId,
+          design.anchorLexemeId,
+        ),
+      ] as const);
+  },
+);
+
+const activityPromptEntries = RAW_BASE_SOUND_MODULE.lessons.flatMap(
+  (definition) => {
+    const conceptId = SOUND_CONCEPT_BY_LESSON[definition.content.lessonId];
+    return definition.activityDesigns.map((design) => [
+      baseActivityPromptKey(definition.content.lessonId, design.activityId),
+      visibleTarget(
+        `${design.activityId}-prompt`,
+        `${
+          design.optionsKana.length > 0
+            ? `${design.promptKana}　選択：${design.optionsKana.join("／")}`
+            : design.promptKana
+        }　アンカー：${BASE_LEXEME_BY_ID.get(design.anchorLexemeId)?.kana ?? ""}`,
+        conceptId,
+        design.anchorLexemeId,
+      ),
+    ] as const);
+  },
+);
+
+function audioConceptId(audioId: string): string {
+  if (audioId.startsWith("snd1-")) return "sound-vowels-gojuon";
+  if (audioId.startsWith("snd2-")) return "sound-voicing-marks";
+  if (audioId.startsWith("snd3-")) return "sound-mora-timing";
+  return "sound-yoon-script-bridge";
+}
+
+const audioTargetEntries = BASE_AUDIO_CATALOG.map((record) => [
+  record.id,
+  visibleTarget(record.id, record.kana, audioConceptId(record.id)),
+] as const);
+
+const enCopyIds = Object.keys(baseNavigationCopyEn.content);
+const itCopyIds = Object.keys(baseNavigationCopyIt.content);
+if (
+  enCopyIds.length !== itCopyIds.length ||
+  enCopyIds.some(
+    (copyId) =>
+      !Object.prototype.hasOwnProperty.call(baseNavigationCopyIt.content, copyId),
+  )
+) {
+  throw new Error("Base sound copy IDs must resolve independently in EN and IT.");
+}
+
+export const BASE_SOUND_COPY_IDS: readonly string[] = deepFreeze(
+  [...enCopyIds].sort(),
+);
+
+export const BASE_SOUND_VALIDATION_CATALOGS: BaseValidationCatalogs =
+  deepFreeze({
+    lexemes: BASE_LEXEME_BY_ID,
+    concepts: BASE_CONCEPT_BY_ID,
+    examples: immutableReadonlyMap([]),
+    dialogues: immutableReadonlyMap([]),
+    audioTargets: immutableReadonlyMap(audioTargetEntries),
+    acceptedAnswerTargets: immutableReadonlyMap(acceptedAnswerEntries),
+    activityPromptTargets: immutableReadonlyMap(activityPromptEntries),
+    copyIds: immutableReadonlySet(BASE_SOUND_COPY_IDS),
+    contrastMapIds: immutableReadonlySet(
+      RAW_BASE_SOUND_MODULE.lessons.map(
+        (definition) => definition.content.contrastMapId,
+      ),
+    ),
+    referenceSnapshots: BASE_REFERENCE_SNAPSHOT_BY_ID,
+    patternCellIds: immutableReadonlySet<string>([]),
+    patternCellIdsByLesson: immutableReadonlyMap([]),
+    systems: BASE_RETRIEVAL_SYSTEM_BY_ID,
+  });
+
+export const BASE_SOUND_LESSONS: readonly BasePhoneticLessonContent[] =
+  deepFreeze(
+    RAW_BASE_SOUND_MODULE.lessons.map((definition) => definition.content),
+  );
 
 const SEMANTIC_PADDING_FIELDS = [
   "newLexemeIds",
@@ -466,6 +954,10 @@ function stringArray(value: unknown): readonly string[] | undefined {
     : undefined;
 }
 
+function visibleTargetSurface(target: BaseVisibleTarget | undefined): string {
+  return target?.tokens.map((token) => token.jp).join("") ?? "";
+}
+
 export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidation {
   const module = plainRecord(value);
   const lessons = module ? densePlainArray(own(module, "lessons")) : undefined;
@@ -477,25 +969,32 @@ export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidati
   const expectedLessonIds = ["sounds-1", "sounds-2", "sounds-3", "sounds-4"];
   const globalItemIds = new Set<string>();
 
-  lessons.forEach((lessonValue, lessonIndex) => {
-    const lessonRecord = plainRecord(lessonValue);
-    if (!lessonRecord) {
+  lessons.forEach((definitionValue, lessonIndex) => {
+    const definition = plainRecord(definitionValue);
+    const content = definition ? plainRecord(own(definition, "content")) : undefined;
+    if (!definition || !content) {
       errors.add("invalid-lesson-shape");
       return;
     }
-    const lessonId = own(lessonRecord, "lessonId");
+    const lessonId = own(content, "lessonId");
     if (
       lessonId !== expectedLessonIds[lessonIndex] ||
-      own(lessonRecord, "contract") !== "phonetic"
+      own(content, "contract") !== "phonetic"
     ) {
       errors.add("invalid-lesson-allocation");
     }
-    if (SEMANTIC_PADDING_FIELDS.some((field) => Object.prototype.hasOwnProperty.call(lessonRecord, field))) {
+    if (
+      SEMANTIC_PADDING_FIELDS.some((field) =>
+        Object.prototype.hasOwnProperty.call(content, field),
+      )
+    ) {
       errors.add("semantic-padding");
     }
-    if (!localized(own(lessonRecord, "scopeNote"))) errors.add("invalid-localized-copy");
+    if (!localized(own(definition, "scopeNote"))) {
+      errors.add("invalid-localized-copy");
+    }
 
-    const items = densePlainArray(own(lessonRecord, "contrastiveItems"));
+    const items = densePlainArray(own(definition, "contrastiveItems"));
     if (!items || items.length < 10 || items.length > 16) {
       errors.add("invalid-contrast-count");
     }
@@ -533,8 +1032,8 @@ export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidati
         errors.add("mismatched-audio-linkage");
       }
     }
-    const audioExemplarIds = stringArray(own(lessonRecord, "audioExemplarIds"));
-    const contrastiveItemIds = stringArray(own(lessonRecord, "contrastiveItemIds"));
+    const audioExemplarIds = stringArray(own(content, "audioExemplarIds"));
+    const contrastiveItemIds = stringArray(own(content, "contrastiveItemIds"));
     if (
       !contrastiveItemIds ||
       contrastiveItemIds.length !== itemIds.length ||
@@ -550,7 +1049,7 @@ export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidati
       errors.add("mismatched-audio-linkage");
     }
 
-    const anchors = densePlainArray(own(lessonRecord, "anchorWords"));
+    const anchors = densePlainArray(own(definition, "anchorWords"));
     if (!anchors || anchors.length < 4 || anchors.length > 8) {
       errors.add("invalid-anchor-count");
     }
@@ -563,17 +1062,25 @@ export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidati
         !anchorRecord ||
         typeof anchorId !== "string" ||
         typeof own(anchorRecord, "kana") !== "string" ||
+        typeof own(anchorRecord, "meaningCopyId") !== "string" ||
         !morae ||
         morae.join("") !== own(anchorRecord, "kana") ||
-        !localized(own(anchorRecord, "meaning")) ||
         !localized(own(anchorRecord, "status"))
       ) {
         errors.add("invalid-lesson-shape");
       } else {
         anchorIds.push(anchorId);
+        const lexeme = BASE_LEXEME_BY_ID.get(anchorId);
+        if (
+          !lexeme ||
+          lexeme.kana !== own(anchorRecord, "kana") ||
+          lexeme.meaningCopyId !== own(anchorRecord, "meaningCopyId")
+        ) {
+          errors.add("invalid-lesson-shape");
+        }
       }
     }
-    const anchorLexemeIds = stringArray(own(lessonRecord, "anchorLexemeIds"));
+    const anchorLexemeIds = stringArray(own(content, "anchorLexemeIds"));
     if (
       !anchorLexemeIds ||
       anchorLexemeIds.length !== anchorIds.length ||
@@ -582,43 +1089,172 @@ export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidati
       errors.add("invalid-lesson-shape");
     }
 
-    const activityValues = densePlainArray(own(lessonRecord, "activities"));
-    const activityIds = new Set<string>();
-    const targets = new Set<string>();
-    const nonSpokenOperations = new Set<string>();
-    let listening = 0;
-    let spoken = 0;
-    if (!activityValues || activityValues.length !== 8) {
+    const designs = densePlainArray(own(definition, "activityDesigns"));
+    const activityValues = densePlainArray(own(content, "activities"));
+    if (!designs || !activityValues || designs.length !== 8 || activityValues.length !== 8) {
       errors.add("invalid-phonetic-activities");
+    } else {
+      designs.forEach((designValue, index) => {
+        const designRecord = plainRecord(designValue);
+        const activityRecord = plainRecord(activityValues[index]);
+        const contrastIds = designRecord
+          ? stringArray(own(designRecord, "contrastItemIds"))
+          : undefined;
+        const activityId = designRecord
+          ? own(designRecord, "activityId")
+          : undefined;
+        const answerKana = designRecord
+          ? own(designRecord, "answerKana")
+          : undefined;
+        const targetId = activityRecord
+          ? own(activityRecord, "targetId")
+          : undefined;
+        const publishedTarget =
+          typeof targetId === "string"
+            ? BASE_SOUND_VALIDATION_CATALOGS.acceptedAnswerTargets.get(targetId) ??
+              BASE_SOUND_VALIDATION_CATALOGS.audioTargets.get(targetId)
+            : undefined;
+        const publishedPrompt =
+          typeof lessonId === "string" && typeof activityId === "string"
+            ? BASE_SOUND_VALIDATION_CATALOGS.activityPromptTargets.get(
+                baseActivityPromptKey(lessonId, activityId),
+              )
+            : undefined;
+        const promptSurface = visibleTargetSurface(publishedPrompt);
+        const operation = designRecord
+          ? own(designRecord, "operation")
+          : undefined;
+        const semanticEvidenceValid =
+          typeof answerKana === "string" &&
+          (operation !== "discriminate-sound" ||
+            (contrastIds?.length ?? 0) >= 2) &&
+          (operation !== "segment-morae" || answerKana.includes("・")) &&
+          (operation !== "match-sound-word" ||
+            BASE_LEXEME_BY_ID.get(
+              String(own(designRecord ?? {}, "anchorLexemeId")),
+            )?.kana === answerKana) &&
+          (operation !== "assemble-reading" || answerKana.includes("→")) &&
+          (operation !== "identify-audio" ||
+            typeof own(designRecord ?? {}, "canonicalAudioId") === "string") &&
+          (operation !== "produce-spoken" ||
+            (densePlainArray(own(designRecord ?? {}, "optionsKana"))?.length ??
+              -1) === 0);
+        if (
+          !designRecord ||
+          !activityRecord ||
+          own(designRecord, "activityId") !== own(activityRecord, "id") ||
+          own(designRecord, "operation") !== ACTIVITY_SHAPES[index][2] ||
+          own(designRecord, "operation") !== own(activityRecord, "operation") ||
+          own(designRecord, "evidenceTag") !== EVIDENCE_TAGS[index] ||
+          typeof own(designRecord, "promptKana") !== "string" ||
+          typeof own(designRecord, "answerKana") !== "string" ||
+          !densePlainArray(own(designRecord, "optionsKana")) ||
+          (index < 7 &&
+            !(stringArray(own(designRecord, "optionsKana")) ?? []).includes(
+              String(own(designRecord, "answerKana")),
+            )) ||
+          (index === 7 &&
+            (densePlainArray(own(designRecord, "optionsKana"))?.length ?? -1) !==
+              0) ||
+          !semanticEvidenceValid ||
+          visibleTargetSurface(publishedTarget) !== answerKana ||
+          !promptSurface.includes(String(own(designRecord, "promptKana"))) ||
+          !(stringArray(own(designRecord, "optionsKana")) ?? []).every(
+            (option) => promptSurface.includes(option),
+          ) ||
+          !anchorIds.includes(String(own(designRecord, "anchorLexemeId"))) ||
+          !contrastIds ||
+          contrastIds.some((id) => !itemIds.includes(id))
+        ) {
+          errors.add("invalid-activity-evidence");
+        }
+      });
     }
-    for (const activityValue of activityValues ?? []) {
-      const activity = plainRecord(activityValue);
-      if (!activity) {
-        errors.add("invalid-phonetic-activities");
-        continue;
+
+    const coverageValues = densePlainArray(own(definition, "inventoryCoverage"));
+    if (!coverageValues) {
+      errors.add("invalid-inventory-coverage");
+    } else {
+      const expectedCoverageIds = [
+        ["basic-hiragana"],
+        ["dakuten", "handakuten"],
+        [],
+        ["common-yoon", "katakana-bridge"],
+      ][lessonIndex];
+      const actualCoverageIds = coverageValues.map((coverageValue) => {
+        const coverage = plainRecord(coverageValue);
+        return coverage ? own(coverage, "inventoryId") : undefined;
+      });
+      if (
+        actualCoverageIds.length !== expectedCoverageIds.length ||
+        actualCoverageIds.some(
+          (inventoryId, index) => inventoryId !== expectedCoverageIds[index],
+        )
+      ) {
+        errors.add("invalid-inventory-coverage");
       }
-      const id = own(activity, "id");
-      const target = own(activity, "targetId");
-      const mode = own(activity, "mode");
-      const category = own(activity, "category");
-      const operation = own(activity, "operation");
-      if (typeof id !== "string" || activityIds.has(id)) errors.add("invalid-phonetic-activities");
-      else activityIds.add(id);
-      if (typeof target !== "string" || targets.has(target)) errors.add("invalid-phonetic-activities");
-      else targets.add(target);
-      if (mode === "non-spoken" && typeof operation === "string") {
-        nonSpokenOperations.add(operation);
+      for (const coverageValue of coverageValues) {
+        const coverage = plainRecord(coverageValue);
+        const represented = coverage
+          ? stringArray(own(coverage, "represented"))
+          : undefined;
+        const scopedOut = coverage
+          ? stringArray(own(coverage, "scopedOut")) ?? []
+          : undefined;
+        const inventoryId = coverage ? own(coverage, "inventoryId") : undefined;
+        const inventory =
+          inventoryId === "basic-hiragana"
+            ? BASIC_HIRAGANA
+            : inventoryId === "dakuten"
+              ? DAKUTEN_HIRAGANA
+              : inventoryId === "handakuten"
+                ? HANDAKUTEN_HIRAGANA
+                : inventoryId === "common-yoon"
+                  ? YOON_HIRAGANA
+                  : inventoryId === "katakana-bridge"
+                    ? KATAKANA_BRIDGE
+                    : undefined;
+        const combined = represented && scopedOut
+          ? [...represented, ...scopedOut]
+          : [];
+        const rationale = coverage ? own(coverage, "rationale") : undefined;
+        if (
+          !coverage ||
+          !inventory ||
+          !represented ||
+          !scopedOut ||
+          new Set(combined).size !== inventory.length ||
+          inventory.some((item) => !combined.includes(item)) ||
+          (scopedOut.length > 0 && !localized(rationale)) ||
+          (scopedOut.length === 0 && rationale !== null)
+        ) {
+          errors.add("invalid-inventory-coverage");
+          continue;
+        }
+        const authoredRepresentations =
+          inventoryId === "basic-hiragana"
+            ? (items ?? []).flatMap((itemValue) => {
+                const item = plainRecord(itemValue);
+                return stringArray(item ? own(item, "morae") : undefined) ?? [];
+              })
+            : (items ?? [])
+                .map((itemValue) => {
+                  const item = plainRecord(itemValue);
+                  return item ? own(item, "kana") : undefined;
+                })
+                .filter((kana): kana is string => typeof kana === "string");
+        if (
+          represented.some((item) => !authoredRepresentations.includes(item))
+        ) {
+          errors.add("invalid-inventory-coverage");
+        }
       }
-      if (category === "listening" && mode === "audio" && operation === "identify-audio") listening += 1;
-      if (category === "spoken" && mode === "audio" && operation === "produce-spoken") spoken += 1;
     }
+
     if (
-      nonSpokenOperations.size !== SOUND_ACTIVITY_OPERATIONS.length ||
-      SOUND_ACTIVITY_OPERATIONS.some((operation) => !nonSpokenOperations.has(operation)) ||
-      listening !== 1 ||
-      spoken !== 1
+      validateBaseLessonDepth(content, BASE_SOUND_VALIDATION_CATALOGS).length > 0
     ) {
-      errors.add("invalid-phonetic-activities");
+      errors.add("canonical-depth-failure");
     }
   });
 
@@ -627,7 +1263,15 @@ export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidati
 
 const moduleValidation = validateBaseSoundModule(RAW_BASE_SOUND_MODULE);
 if (!moduleValidation.ok) {
-  throw new Error(`Invalid Base sound module: ${moduleValidation.errors.join(", ")}`);
+  const depthDetails = RAW_BASE_SOUND_MODULE.lessons.flatMap((definition) =>
+    validateBaseLessonDepth(
+      definition.content,
+      BASE_SOUND_VALIDATION_CATALOGS,
+    ),
+  );
+  throw new Error(
+    `Invalid Base sound module: ${moduleValidation.errors.join(", ")} ${JSON.stringify(depthDetails)}`,
+  );
 }
 
 export const BASE_SOUND_MODULE: BaseSoundModule = deepFreeze(RAW_BASE_SOUND_MODULE);
