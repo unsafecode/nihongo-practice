@@ -163,12 +163,133 @@ describe("Base reference catalog", () => {
     const grid = referenceById["tense-polarity"].entries.find(
       ({ semanticId }) => semanticId === "base-tense-polite-grid",
     )!;
+    const dynamic = referenceById["tense-polarity"].entries.find(
+      ({ semanticId }) => semanticId === "base-tense-dynamic-nonpast",
+    )!;
+    expect(dynamic.canonicalFormCells.map(({ tokens }) => tokens)).toEqual([
+      expected.value.affirmative,
+    ]);
     expect(grid.canonicalFormCells.map(({ tokens }) => tokens)).toEqual(
-      Object.values(expected.value),
+      Object.values(expected.value).slice(1),
     );
     expect(referenceById["tense-polarity"].cells.map(({ tokens }) => tokens)).toEqual(
       Object.values(expected.value),
     );
+  });
+
+  it("publishes every entry cell without lossy last-wins dedupe", () => {
+    for (const reference of BASE_REFERENCE_CATALOG) {
+      const expected = reference.entries.flatMap(
+        ({ canonicalFormCells }) => canonicalFormCells,
+      );
+      expect(reference.cells).toHaveLength(expected.length);
+      expect(reference.cells.map(({ id }) => id)).toEqual(
+        expected.map(({ id }) => id),
+      );
+      expect(reference.cells.map(({ sourceContentIds }) => sourceContentIds)).toEqual(
+        expected.map(({ sourceContentIds }) => sourceContentIds),
+      );
+    }
+    expect(referenceById["tense-polarity"].cells).toHaveLength(4);
+    expect(referenceById["tense-polarity"].cells[0].sourceContentIds).toContain(
+      "dynamic-nonpast-semantics",
+    );
+    expect(
+      referenceById["tense-polarity"].cells
+        .slice(1)
+        .every(({ sourceContentIds }) =>
+          sourceContentIds.includes("four-polite-tense-cells"),
+        ),
+    ).toBe(true);
+  });
+
+  it("rejects divergent non-last entry duplicates using the complete cell fingerprint", () => {
+    type MutableEntryCell = {
+      id: string;
+      columnId: string;
+      copy: {
+        en: { label: string; explanation: string };
+        it: { label: string; explanation: string };
+      };
+      tokens: {
+        id: string;
+        jp: string;
+        romaji: string;
+        kind: "lexical" | "particle" | "morpheme" | "punctuation";
+        boundaryBefore: "attach" | "space";
+        source: {
+          domain: "catalog" | "exercise";
+          referenceId: string;
+        };
+        reading?: string;
+      }[];
+      sourceContentIds: string[];
+      desuFunction?: "politeness-marker" | "copula";
+    };
+    const forgedNonLastDuplicate = (
+      mutate: (cell: MutableEntryCell) => void,
+      entryIndex = 0,
+    ) => {
+      const catalog = mutableCatalog();
+      const cells = catalog[0].entries[entryIndex]
+        .canonicalFormCells as unknown as MutableEntryCell[];
+      const forged = structuredClone(cells[0]);
+      mutate(forged);
+      cells.unshift(forged);
+      return catalog;
+    };
+    const predicateEntryIndex = BASE_REFERENCE_CATALOG[0].entries.findIndex(
+      ({ semanticId }) => semanticId === "base-sentence-predicate-types",
+    );
+
+    const catalogs = [
+      forgedNonLastDuplicate((cell) => {
+        cell.columnId = "topic";
+      }),
+      forgedNonLastDuplicate((cell) => {
+        cell.copy.en.label = "Forged";
+      }),
+      forgedNonLastDuplicate((cell) => {
+        cell.tokens[0].id = "forged-token-id";
+      }),
+      forgedNonLastDuplicate((cell) => {
+        cell.tokens[0].jp = "せんせい";
+      }),
+      forgedNonLastDuplicate((cell) => {
+        cell.tokens[0].romaji = "sensei";
+      }),
+      forgedNonLastDuplicate((cell) => {
+        cell.tokens[0].kind = "particle";
+      }),
+      forgedNonLastDuplicate((cell) => {
+        cell.tokens[0].boundaryBefore = "space";
+      }),
+      forgedNonLastDuplicate((cell) => {
+        cell.tokens[0].source.domain = "exercise";
+      }),
+      forgedNonLastDuplicate((cell) => {
+        cell.tokens[0].source.referenceId = "noun-sensei";
+      }),
+      forgedNonLastDuplicate((cell) => {
+        cell.tokens[0].reading = "forged";
+      }),
+      forgedNonLastDuplicate((cell) => {
+        cell.sourceContentIds = ["noun-sensei"];
+      }),
+      forgedNonLastDuplicate((cell) => {
+        cell.desuFunction = "copula";
+      }),
+      forgedNonLastDuplicate((cell) => {
+        cell.tokens.reverse();
+      }, predicateEntryIndex),
+    ];
+    for (const catalog of catalogs) {
+      expect(validateBaseReferenceCatalog(catalog)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "duplicate-cell-id" }),
+        ]),
+      );
+    }
   });
 
   it("publishes real owned examples rather than circular ID reservations", () => {

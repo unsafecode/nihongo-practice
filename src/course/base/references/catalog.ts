@@ -314,13 +314,7 @@ function reference(
     copy: localized(labels[0], explanations[0], labels[1], explanations[1]),
     columns,
     entries,
-    cells: [
-      ...new Map(
-        entries
-          .flatMap(({ canonicalFormCells }) => canonicalFormCells)
-          .map((canonicalCell) => [canonicalCell.id, canonicalCell] as const),
-      ).values(),
-    ],
+    cells: entries.flatMap(({ canonicalFormCells }) => canonicalFormCells),
   };
 }
 
@@ -827,7 +821,7 @@ const TENSE_ENTRIES = [
       "Compare nonpast and past across affirmative and negative polarity.",
       "Confronta non-passato e passato nelle polarità affermativa e negativa.",
     ],
-    KAKU_POLITE_CELLS,
+    KAKU_POLITE_CELLS.slice(1),
     ["base-tense-dynamic-nonpast"],
   ),
 ] as const;
@@ -1491,13 +1485,9 @@ export function validateBaseReferenceCatalog(
     const ownSemanticIds = new Set(
       reference.entries.map(({ semanticId }) => semanticId),
     );
-    const expectedCells = [
-      ...new Map(
-        reference.entries
-          .flatMap(({ canonicalFormCells }) => canonicalFormCells)
-          .map((canonicalCell) => [canonicalCell.id, canonicalCell] as const),
-      ).values(),
-    ];
+    const expectedCells = reference.entries.flatMap(
+      ({ canonicalFormCells }) => canonicalFormCells,
+    );
     const seenCellIds = new Map<string, string>();
     for (const entry of reference.entries) {
       const entryPosition = baseCanonicalPosition(entry.firstTeachLessonId);
@@ -1671,11 +1661,7 @@ export function validateBaseReferenceCatalog(
             );
           }
         }
-        const cellFingerprint = JSON.stringify({
-          columnId: canonicalCell.columnId,
-          tokenIds: canonicalCell.tokens.map(({ id }) => id),
-          desuFunction: canonicalCell.desuFunction,
-        });
+        const cellFingerprint = canonicalCellFingerprint(canonicalCell);
         const previousFingerprint = seenCellIds.get(canonicalCell.id);
         if (
           previousFingerprint !== undefined &&
