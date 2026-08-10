@@ -13,6 +13,7 @@ import {
   BASE_FIRST_TEACH_OWNER_BY_KEY,
   BASE_FIRST_TEACH_OWNERS,
   BASE_PARTICLE_SENSE_FIRST_TEACH_OWNER_BY_SENSE,
+  firstTeachLessonPosition,
   firstTeachOwnerKey,
   validateFirstTeachOwners,
 } from "./firstTeach";
@@ -555,11 +556,215 @@ describe("Base first-teach ownership", () => {
     expect(owner("concept", "focus-subject-ga")).toBe("topic-questions-2");
     expect(owner("concept", "possessive-no")).toBe("topic-questions-3");
     expect(owner("concept", "question-ka")).toBe("topic-questions-4");
-    expect(owner("concept", "godan-verb-class")).toBe("polite-verbs-1");
+    expect(owner("concept", "godan-verb-class")).toBe("polite-verbs-2");
     expect(owner("form", "four-polite-tense-cells")).toBe("time-movement-3");
     expect(owner("concept", "existence-location-frame")).toBe("existence-location-1");
     expect(owner("form", "te-kudasai")).toBe("requests-connection-2");
     expect(owner("form", "sequential-te")).toBe("requests-connection-3");
+  });
+
+  it("locks the Task7 verb and adjective first-teach sequence to exact owners", () => {
+    const owner = (kind: "concept" | "form", contentId: string) =>
+      BASE_FIRST_TEACH_OWNER_BY_KEY.get(firstTeachOwnerKey(kind, contentId))?.lessonId;
+
+    expect(
+      [
+        ["concept", "dictionary-lemma", "polite-verbs-1"],
+        ["concept", "verb-predicate-recognition", "polite-verbs-1"],
+        ["concept", "godan-verb-class", "polite-verbs-2"],
+        ["concept", "ichidan-verb-class", "polite-verbs-2"],
+        ["concept", "suru-verb-class", "polite-verbs-3"],
+        ["concept", "kuru-verb-class", "polite-verbs-3"],
+        ["form", "polite-stems", "polite-verbs-3"],
+        ["form", "masu-nonpast", "polite-verbs-4"],
+        ["form", "negative-noun-predicate-copula", "copula-adjectives-1"],
+        ["form", "remaining-copula-cells", "copula-adjectives-2"],
+        ["concept", "i-adjective-class", "copula-adjectives-3"],
+        ["form", "i-adjective-tense-polarity", "copula-adjectives-3"],
+        ["concept", "na-adjective-class", "copula-adjectives-4"],
+        ["form", "na-adjective-predicate-and-attributive", "copula-adjectives-4"],
+      ].map(([kind, contentId, lessonId]) => [
+        contentId,
+        owner(kind as "concept" | "form", contentId),
+        lessonId,
+      ]),
+    ).toEqual([
+      ["dictionary-lemma", "polite-verbs-1", "polite-verbs-1"],
+      [
+        "verb-predicate-recognition",
+        "polite-verbs-1",
+        "polite-verbs-1",
+      ],
+      ["godan-verb-class", "polite-verbs-2", "polite-verbs-2"],
+      ["ichidan-verb-class", "polite-verbs-2", "polite-verbs-2"],
+      ["suru-verb-class", "polite-verbs-3", "polite-verbs-3"],
+      ["kuru-verb-class", "polite-verbs-3", "polite-verbs-3"],
+      ["polite-stems", "polite-verbs-3", "polite-verbs-3"],
+      ["masu-nonpast", "polite-verbs-4", "polite-verbs-4"],
+      [
+        "negative-noun-predicate-copula",
+        "copula-adjectives-1",
+        "copula-adjectives-1",
+      ],
+      ["remaining-copula-cells", "copula-adjectives-2", "copula-adjectives-2"],
+      ["i-adjective-class", "copula-adjectives-3", "copula-adjectives-3"],
+      [
+        "i-adjective-tense-polarity",
+        "copula-adjectives-3",
+        "copula-adjectives-3",
+      ],
+      ["na-adjective-class", "copula-adjectives-4", "copula-adjectives-4"],
+      [
+        "na-adjective-predicate-and-attributive",
+        "copula-adjectives-4",
+        "copula-adjectives-4",
+      ],
+    ]);
+  });
+
+  it("locks Task7 productive verb and adjective lexemes to their owner lessons", () => {
+    const lexemeOwner = (contentId: string) =>
+      BASE_FIRST_TEACH_OWNER_BY_KEY.get(firstTeachOwnerKey("lexeme", contentId))
+        ?.lessonId;
+
+    expect(
+      [
+        "verb-kaku",
+        "verb-oyogu",
+        "verb-hanasu",
+        "verb-matsu",
+        "verb-shinu",
+        "verb-asobu",
+        "verb-nomu",
+        "verb-kau",
+        "verb-yomu",
+        "verb-hataraku",
+        "verb-taberu",
+        "verb-miru",
+      ].map((id) => [id, lexemeOwner(id)]),
+    ).toEqual([
+      ["verb-kaku", "polite-verbs-2"],
+      ["verb-oyogu", "polite-verbs-2"],
+      ["verb-hanasu", "polite-verbs-2"],
+      ["verb-matsu", "polite-verbs-2"],
+      ["verb-shinu", "polite-verbs-2"],
+      ["verb-asobu", "polite-verbs-2"],
+      ["verb-nomu", "polite-verbs-2"],
+      ["verb-kau", "polite-verbs-2"],
+      ["verb-yomu", "polite-verbs-2"],
+      ["verb-hataraku", "polite-verbs-2"],
+      ["verb-taberu", "polite-verbs-2"],
+      ["verb-miru", "polite-verbs-2"],
+    ]);
+    expect(
+      ["verb-suru", "verb-kuru", "verb-benkyou-suru", "verb-motte-kuru"].map(
+        (id) => [id, lexemeOwner(id)],
+      ),
+    ).toEqual([
+      ["verb-suru", "polite-verbs-3"],
+      ["verb-kuru", "polite-verbs-3"],
+      ["verb-benkyou-suru", "polite-verbs-3"],
+      ["verb-motte-kuru", "polite-verbs-3"],
+    ]);
+    expect(
+      [
+        "adjective-takai",
+        "adjective-oishii",
+        "adjective-ii",
+        "adjective-shizuka",
+        "adjective-kirei",
+        "adjective-yuumei",
+        "adjective-kirai",
+      ].map((id) => [id, lexemeOwner(id)]),
+    ).toEqual([
+      ["adjective-takai", "copula-adjectives-3"],
+      ["adjective-oishii", "copula-adjectives-3"],
+      ["adjective-ii", "copula-adjectives-3"],
+      ["adjective-shizuka", "copula-adjectives-4"],
+      ["adjective-kirei", "copula-adjectives-4"],
+      ["adjective-yuumei", "copula-adjectives-4"],
+      ["adjective-kirai", "copula-adjectives-4"],
+    ]);
+  });
+
+  it("prevents early Task7 adjective, polite-stem, and masu ownership", () => {
+    const position = (lessonId: string) => firstTeachLessonPosition(lessonId) ?? -1;
+    const atOrAfter = (lessonId: string, firstAllowedLessonId: string) =>
+      position(lessonId) >= position(firstAllowedLessonId);
+    const ownerLesson = (kind: "concept" | "form" | "lexeme", contentId: string) =>
+      BASE_FIRST_TEACH_OWNER_BY_KEY.get(firstTeachOwnerKey(kind, contentId))?.lessonId;
+
+    for (const [kind, contentId] of [
+      ["lexeme", "adjective-takai"],
+      ["lexeme", "adjective-oishii"],
+      ["lexeme", "adjective-ii"],
+      ["form", "i-adjective-tense-polarity"],
+    ] as const) {
+      expect(atOrAfter(ownerLesson(kind, contentId)!, "copula-adjectives-3")).toBe(
+        true,
+      );
+    }
+    for (const [kind, contentId] of [
+      ["lexeme", "adjective-shizuka"],
+      ["lexeme", "adjective-kirei"],
+      ["lexeme", "adjective-yuumei"],
+      ["lexeme", "adjective-kirai"],
+      ["concept", "na-adjective-class"],
+      ["form", "na-adjective-predicate-and-attributive"],
+    ] as const) {
+      expect(atOrAfter(ownerLesson(kind, contentId)!, "copula-adjectives-4")).toBe(
+        true,
+      );
+    }
+    for (const owner of BASE_FIRST_TEACH_OWNERS.filter(
+      (entry) =>
+        entry.contentId === "polite-stems" ||
+        entry.contentId.startsWith("polite-stem-"),
+    )) {
+      expect(atOrAfter(owner.lessonId, "polite-verbs-3")).toBe(true);
+    }
+    expect(ownerLesson("form", "masu-nonpast")).toBe("polite-verbs-4");
+  });
+
+  it("keeps retrieval systems reviewable only after their latest Task7 component owner", () => {
+    const verbSystem = conceptsCatalog.BASE_RETRIEVAL_SYSTEM_BY_ID.get(
+      "verb-classes-conjugation",
+    );
+    const adjectiveSystem = conceptsCatalog.BASE_RETRIEVAL_SYSTEM_BY_ID.get(
+      "adjective-copula",
+    );
+    const componentLesson = (contentId: string) => {
+      const concept = BASE_CONCEPT_BY_ID.get(contentId);
+      return concept
+        ? BASE_FIRST_TEACH_OWNER_BY_KEY.get(firstTeachOwnerKey(concept.kind, contentId))
+            ?.lessonId
+        : undefined;
+    };
+
+    expect(verbSystem?.firstTeachLessonId).toBe("polite-verbs-4");
+    expect(
+      verbSystem?.componentContentIds.map((id) => [id, componentLesson(id)]),
+    ).toEqual([
+      ["dictionary-lemma", "polite-verbs-1"],
+      ["verb-predicate-recognition", "polite-verbs-1"],
+      ["godan-verb-class", "polite-verbs-2"],
+      ["ichidan-verb-class", "polite-verbs-2"],
+      ["suru-verb-class", "polite-verbs-3"],
+      ["kuru-verb-class", "polite-verbs-3"],
+      ["polite-stems", "polite-verbs-3"],
+      ["masu-nonpast", "polite-verbs-4"],
+    ]);
+    expect(adjectiveSystem?.firstTeachLessonId).toBe("copula-adjectives-4");
+    expect(
+      adjectiveSystem?.componentContentIds.map((id) => [id, componentLesson(id)]),
+    ).toEqual([
+      ["negative-noun-predicate-copula", "copula-adjectives-1"],
+      ["remaining-copula-cells", "copula-adjectives-2"],
+      ["i-adjective-class", "copula-adjectives-3"],
+      ["i-adjective-tense-polarity", "copula-adjectives-3"],
+      ["na-adjective-class", "copula-adjectives-4"],
+      ["na-adjective-predicate-and-attributive", "copula-adjectives-4"],
+    ]);
   });
 
   it("maps every particle sense to an immutable canonical first-teach owner", () => {
