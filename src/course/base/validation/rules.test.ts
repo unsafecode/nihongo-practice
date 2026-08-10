@@ -26,7 +26,10 @@ import { validateBaseLessonDepth } from "./lessonRules";
 import { validateFirstTeachOrder, visibleJapaneseFor } from "./sequenceRules";
 import { BASE_LESSON_IDS, BASE_LESSON_MANIFEST } from "../manifest";
 import { validateTokenSequence } from "./lessonRules";
-import { ownDataArrayValues } from "./runtimeGuards";
+import {
+  ownDataArrayValues,
+  runtimeVisibleTargetIssue,
+} from "./runtimeGuards";
 
 function token(id: string, jp: string): AssembledToken {
   return {
@@ -1189,7 +1192,6 @@ describe("Base lesson depth rules", () => {
       patternCellIds: ["cell-3"],
       teachingPurposeCopyId: "purpose-2",
       translationCopy: { copyId: "translation-2" },
-      semanticFingerprint: "fake-cosmetic-fingerprint",
     } as unknown as BaseExample;
     const catalogs: BaseValidationCatalogs = {
       ...CATALOGS,
@@ -1273,7 +1275,6 @@ describe("Base lesson depth rules", () => {
       formIds: ["te-imasu"],
       semanticRoleIds: ["topic"],
       discourseFrameId: "different-frame",
-      semanticFingerprint: "fake-distinct-fingerprint",
     } as unknown as BaseExample;
     const catalogs: BaseValidationCatalogs = {
       ...CATALOGS,
@@ -1335,7 +1336,6 @@ describe("Base lesson depth rules", () => {
       formIds: EXAMPLES[0].formIds,
       semanticRoleIds: EXAMPLES[0].semanticRoleIds,
       discourseFrameId: EXAMPLES[0].discourseFrameId,
-      semanticFingerprint: "fake-dialogue-fingerprint",
     } as unknown as BaseDialogue["turns"][number];
     const duplicateActivity = {
       ...SEMANTIC_ACTIVITIES[0],
@@ -3903,5 +3903,280 @@ describe("Task7 final Base array snapshot regressions", () => {
       ]),
     );
     expect(visibleJapaneseFor([malformed], CATALOGS)).toBe("");
+  });
+});
+
+describe("Task7 guard and publication acceptance regressions", () => {
+  function hostileTarget(
+    id: string,
+    mutate: (target: Record<string, unknown>) => void,
+  ): BaseVisibleTarget {
+    const target = visibleTarget([token(`${id}-token`, "凶")]) as unknown as Record<
+      string,
+      unknown
+    >;
+    mutate(target);
+    return target as unknown as BaseVisibleTarget;
+  }
+
+  it("publishes every target accepted by the strict raw guard and reports rejected shapes", () => {
+    const valid = visibleTarget([token("accepted-guard-token", "正")]);
+    const invalidTargets = [
+      hostileTarget("extra-date-token", (target) => {
+        (target.tokens as AssembledToken[])[0] = {
+          ...(target.tokens as AssembledToken[])[0],
+          extra: new Date(),
+        } as unknown as AssembledToken;
+      }),
+      hostileTarget("extra-function-source", (target) => {
+        const token = (target.tokens as AssembledToken[])[0] as unknown as Record<
+          string,
+          unknown
+        >;
+        token.source = {
+          ...(token.source as Record<string, unknown>),
+          extra: () => undefined,
+        };
+      }),
+      hostileTarget("non-enumerable-token", (target) => {
+        Object.defineProperty((target.tokens as AssembledToken[])[0], "jp", {
+          enumerable: false,
+          value: "凶",
+        });
+      }),
+      hostileTarget("accessor-source", (target) => {
+        Object.defineProperty(
+          (target.tokens as AssembledToken[])[0].source,
+          "referenceId",
+          {
+            enumerable: true,
+            get: () => "must-not-read",
+          },
+        );
+      }),
+      hostileTarget("extra-map-frame", (target) => {
+        target.predicateSenseId = "eat";
+        target.predicateLexemeId = "verb-taberu";
+        target.lexemeIds = ["verb-taberu"];
+        target.particleFrame = {
+          predicateSenseId: "eat",
+          provided: { theme: "object-o" },
+          extra: new Map(),
+        };
+      }),
+      hostileTarget("extra-string-target", (target) => {
+        target.extra = "hostile";
+      }),
+      hostileTarget("extra-symbol-target", (target) => {
+        Object.defineProperty(target, Symbol("extra"), {
+          enumerable: true,
+          value: "hostile",
+        });
+      }),
+      hostileTarget("extra-cycle-target", (target) => {
+        target.extra = target;
+      }),
+    ];
+
+    expect(runtimeVisibleTargetIssue(valid)).toBeUndefined();
+    expect(() => catalogTypes.visibleTargetFromCatalogTarget(valid)).not.toThrow();
+
+    for (const [index, invalid] of invalidTargets.entries()) {
+      const targetId = `guard-invalid-${index}`;
+      const catalogs: BaseValidationCatalogs = {
+        ...CATALOGS,
+        acceptedAnswerTargets: new Map([
+          ...CATALOGS.acceptedAnswerTargets,
+          [targetId, invalid],
+        ]),
+      };
+      const phonetic = phoneticLesson();
+      const lesson: BaseLessonContent = {
+        ...phonetic,
+        activities: [
+          { ...phonetic.activities[0], targetId },
+          ...phonetic.activities.slice(1),
+        ],
+      };
+
+      expect(runtimeVisibleTargetIssue(invalid)).toBeDefined();
+      expect(() => catalogTypes.visibleTargetFromCatalogTarget(invalid)).not.toThrow();
+      expect(() => validateBaseLessonDepth(lesson, catalogs)).not.toThrow();
+      expect(validateBaseLessonDepth(lesson, catalogs)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code:
+              runtimeVisibleTargetIssue(invalid) === "invalid-particle-frame"
+                ? "invalid-particle-frame"
+                : "invalid-visible-target-shape",
+            referenceId: targetId,
+          }),
+        ]),
+      );
+    }
+  });
+
+  it("rejects hostile graph extras across accepted, audio, prompt, example, and dialogue paths", () => {
+    const date = new Date();
+    const sourceFunction = () => undefined;
+    const frameMap = new Map();
+    const accepted = hostileTarget("accepted-date", (target) => {
+      (target.tokens as AssembledToken[])[0] = {
+        ...(target.tokens as AssembledToken[])[0],
+        extra: date,
+      } as unknown as AssembledToken;
+    });
+    const audio = hostileTarget("audio-function", (target) => {
+      const audioToken = (target.tokens as AssembledToken[])[0] as unknown as Record<
+        string,
+        unknown
+      >;
+      audioToken.source = {
+        ...(audioToken.source as Record<string, unknown>),
+        extra: sourceFunction,
+      };
+    });
+    const prompt = hostileTarget("prompt-map", (target) => {
+      target.predicateSenseId = "eat";
+      target.predicateLexemeId = "verb-taberu";
+      target.lexemeIds = ["verb-taberu"];
+      target.particleFrame = {
+        predicateSenseId: "eat",
+        provided: { theme: "object-o" },
+        extra: frameMap,
+      };
+    });
+    const hostileExample = {
+      ...hostileTarget("example-symbol", (target) => {
+        Object.defineProperty(target, Symbol("extra-example"), {
+          enumerable: true,
+          value: "hostile",
+        });
+      }),
+      id: "hostile-example",
+      teachingPurposeCopyId: "purpose-1",
+      translationCopy: { copyId: "translation-1" },
+    } as BaseExample;
+    const hostileTurn = {
+      ...hostileTarget("dialogue-cycle", () => undefined),
+      speakerId: "speaker-hostile",
+      predicateAspect: "dynamic",
+      discourseFrameId: "hostile-dialogue-frame",
+    } as BaseDialogue["turns"][number];
+    (hostileTurn as unknown as Record<string, unknown>).extra = hostileTurn;
+    const hostileDialogue: BaseDialogue = {
+      ...DIALOGUE,
+      id: "hostile-dialogue",
+      turns: [hostileTurn, ...DIALOGUE.turns.slice(1)],
+    };
+    const audioId = "hostile-audio";
+    const acceptedId = "hostile-accepted";
+    const promptActivity = SEMANTIC_ACTIVITIES[0];
+    const catalogs: BaseValidationCatalogs = {
+      ...CATALOGS,
+      acceptedAnswerTargets: new Map([
+        ...CATALOGS.acceptedAnswerTargets,
+        [acceptedId, accepted],
+      ]),
+      audioTargets: new Map([...CATALOGS.audioTargets, [audioId, audio]]),
+      activityPromptTargets: new Map([
+        ...CATALOGS.activityPromptTargets,
+        [
+          visibleTargets.baseActivityPromptKey(
+            "copula-adjectives-4",
+            promptActivity.id,
+          ),
+          prompt,
+        ],
+      ]),
+      examples: new Map([
+        ...CATALOGS.examples,
+        [hostileExample.id, hostileExample],
+      ]),
+      dialogues: new Map([
+        ...CATALOGS.dialogues,
+        [hostileDialogue.id, hostileDialogue],
+      ]),
+    };
+    const lesson: BaseLessonContent = {
+      ...systemLesson(),
+      workedExampleIds: [
+        hostileExample.id,
+        ...EXAMPLES.slice(1, 10).map((entry) => entry.id),
+      ],
+      dialogueId: hostileDialogue.id,
+      activities: [
+        { ...promptActivity, targetId: acceptedId },
+        ...SEMANTIC_ACTIVITIES.slice(1, 8),
+        { ...SEMANTIC_ACTIVITIES[8], targetId: audioId },
+        SEMANTIC_ACTIVITIES[9],
+      ],
+    };
+
+    expect(() => validateBaseLessonDepth(lesson, catalogs)).not.toThrow();
+    expect(() =>
+      validateFirstTeachOrder([lesson], BASE_FIRST_TEACH_OWNERS, catalogs),
+    ).not.toThrow();
+    expect(() => visibleJapaneseFor([lesson], catalogs)).not.toThrow();
+    expect(catalogTypes.visibleTargetFromCatalogTarget(accepted).tokens).toEqual([]);
+    expect(catalogTypes.visibleTargetFromCatalogTarget(audio).tokens).toEqual([]);
+    expect(catalogTypes.visibleTargetFromCatalogTarget(prompt).tokens).toEqual([]);
+    expect(catalogTypes.visibleTargetFromExample(hostileExample).tokens).toEqual([]);
+    expect(catalogTypes.visibleTargetFromDialogueTurn(hostileTurn).tokens).toEqual([]);
+    expect(validateBaseLessonDepth(lesson, catalogs)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "invalid-visible-target-shape",
+          referenceId: acceptedId,
+        }),
+        expect.objectContaining({
+          code: "invalid-visible-target-shape",
+          referenceId: audioId,
+        }),
+        expect.objectContaining({
+          code: "invalid-particle-frame",
+          referenceId: promptActivity.id,
+        }),
+        expect.objectContaining({
+          code: "invalid-example-shape",
+          referenceId: hostileExample.id,
+        }),
+        expect.objectContaining({
+          code: "invalid-dialogue-shape",
+          referenceId: hostileDialogue.id,
+        }),
+      ]),
+    );
+    expect(
+      validateFirstTeachOrder([lesson], BASE_FIRST_TEACH_OWNERS, catalogs),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "invalid-visible-target-shape" }),
+        expect.objectContaining({ code: "invalid-particle-frame" }),
+        expect.objectContaining({
+          code: "invalid-dialogue-shape",
+          referenceId: hostileDialogue.id,
+        }),
+      ]),
+    );
+    expect(visibleJapaneseFor([lesson], catalogs)).not.toContain("凶");
+    expect(Object.isFrozen(accepted)).toBe(false);
+    expect(Object.isFrozen((accepted.tokens as AssembledToken[])[0])).toBe(false);
+    expect(Object.isFrozen(date)).toBe(false);
+    expect(Object.isFrozen(sourceFunction)).toBe(false);
+    expect(Object.isFrozen(frameMap)).toBe(false);
+    expect((accepted.tokens as AssembledToken[])[0]).toHaveProperty("extra", date);
+    expect(
+      ((audio.tokens as AssembledToken[])[0].source as unknown as Record<
+        string,
+        unknown
+      >).extra,
+    ).toBe(sourceFunction);
+    expect(
+      (prompt.particleFrame as unknown as Record<string, unknown>).extra,
+    ).toBe(frameMap);
+    expect((hostileTurn as unknown as Record<string, unknown>).extra).toBe(
+      hostileTurn,
+    );
   });
 });

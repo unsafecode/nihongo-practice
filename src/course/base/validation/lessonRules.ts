@@ -52,6 +52,7 @@ import {
   runtimeVisibleTargetIssue,
   strictRuntimeConcept,
   strictRuntimeDialogue,
+  strictRuntimeDialogueTurn,
   strictRuntimeExample,
   strictRuntimeLesson,
   strictRuntimeLexeme,
@@ -59,6 +60,7 @@ import {
   strictRuntimeTokenSequence,
   strictRuntimeVisibleTarget,
   strictRuntimeLessonWithContract,
+  type RuntimeVisibleTargetShape,
 } from "./runtimeGuards";
 
 export type BaseValidationErrorCode =
@@ -190,7 +192,13 @@ function resolvedExamples(
     if (!rawExample) {
       push("unresolved-reference", exampleId, "worked example");
     } else if (!example) {
-      reportMalformedParticleFrame(rawExample, exampleId, "worked example", push);
+      reportMalformedParticleFrame(
+        rawExample,
+        exampleId,
+        "worked example",
+        push,
+        "example",
+      );
       push("invalid-example-shape", exampleId, "worked example");
     } else {
       examples.push(example);
@@ -227,8 +235,13 @@ function reportMalformedParticleFrame(
     referenceId?: string,
     detail?: string,
   ) => void,
+  targetShape: RuntimeVisibleTargetShape = "target",
 ): void {
-  if (runtimeVisibleTargetIssue(target) !== "invalid-particle-frame") return;
+  if (
+    runtimeVisibleTargetIssue(target, targetShape) !== "invalid-particle-frame"
+  ) {
+    return;
+  }
   push("invalid-particle-frame", referenceId, "malformed-particle-frame");
   if (!isPlainDataRecord(target)) return;
   const particleFrame = ownDataValue(target, "particleFrame");
@@ -268,6 +281,7 @@ function reportMalformedDialogueParticleFrames(
       `${dialogueId}:${index}`,
       "dialogue turn",
       push,
+      "dialogue-turn",
     ),
   );
 }
@@ -562,6 +576,7 @@ function validateActivities(
           activityTarget.referenceId,
           activityTarget.label,
           push,
+          "example",
         );
       } else if (activityTarget.invalidReason === "invalid-particle-frame") {
         reportMalformedParticleFrame(
@@ -890,16 +905,28 @@ function validateSentenceLikeReferences(
     referenceId?: string,
     detail?: string,
   ) => void,
+  targetShape: RuntimeVisibleTargetShape = "target",
 ): void {
-  const targetIssue = runtimeVisibleTargetIssue(sentence);
+  const targetIssue = runtimeVisibleTargetIssue(sentence, targetShape);
   if (targetIssue !== undefined) {
     reportInvalidVisibleTarget(targetIssue, referenceId, label, push);
     if (targetIssue === "invalid-particle-frame") {
-      reportMalformedParticleFrame(sentence, referenceId, label, push);
+      reportMalformedParticleFrame(
+        sentence,
+        referenceId,
+        label,
+        push,
+        targetShape,
+      );
     }
     return;
   }
-  const target = strictRuntimeVisibleTarget(sentence);
+  const target =
+    targetShape === "example"
+      ? strictRuntimeExample(sentence)
+      : targetShape === "dialogue-turn"
+        ? strictRuntimeDialogueTurn(sentence)
+        : strictRuntimeVisibleTarget(sentence);
   if (!target) {
     push("invalid-visible-target-shape", referenceId, label);
     return;
@@ -1052,7 +1079,14 @@ function validateExampleReferences(
   const fingerprints = new Set<string>();
   const uniqueExamples: BaseExample[] = [];
   for (const { example, referenceId, label } of references) {
-    validateSentenceLikeReferences(example, catalogs, referenceId, label, push);
+    validateSentenceLikeReferences(
+      example,
+      catalogs,
+      referenceId,
+      label,
+      push,
+      "example",
+    );
     const fingerprint = semanticFingerprintFor(example);
     if (fingerprints.has(fingerprint)) {
       push("duplicate-semantic-fingerprint", fingerprint);
@@ -1699,6 +1733,7 @@ export function validateBaseLessonDepth(
         turnReferenceId,
         "dialogue turn",
         push,
+        "dialogue-turn",
       );
       const fingerprint = semanticFingerprintFor(turn);
       if (

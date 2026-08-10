@@ -1,4 +1,4 @@
-import type { AssembledToken } from "../../../romaji/types";
+import type { AssembledToken, TokenSourceRef } from "../../../romaji/types";
 import type {
   BaseActivityDefinition,
   BaseConcept,
@@ -7,6 +7,7 @@ import type {
   BaseExample,
   BaseLexeme,
   BaseLessonContent,
+  BaseParticleFrame,
   BaseReferenceSnapshotDefinition,
   BaseRetrievalSystem,
   BaseTranslationCopy,
@@ -19,7 +20,6 @@ import {
   isBaseActivityOperation,
   isBaseInteractionKind,
 } from "../catalog/activityContracts";
-import { particleProvidedEntries } from "../forms/particleLicensing";
 
 export type RuntimeDataRecord = Readonly<Record<string, unknown>>;
 
@@ -77,40 +77,160 @@ const INTERPRETATION_TAGS = new Set([
   "negative",
 ]);
 
-const hasOwn: (value: object, key: PropertyKey) => boolean =
-  (Object as unknown as {
-    hasOwn?: (value: object, key: PropertyKey) => boolean;
-  }).hasOwn ??
-  ((value, key) => Object.prototype.hasOwnProperty.call(value, key));
+const TOKEN_KEYS = new Set([
+  "id",
+  "jp",
+  "romaji",
+  "kind",
+  "boundaryBefore",
+  "source",
+  "reading",
+]);
+const TOKEN_REQUIRED_KEYS = [
+  "id",
+  "jp",
+  "romaji",
+  "kind",
+  "boundaryBefore",
+  "source",
+] as const;
+const TOKEN_SOURCE_KEYS = new Set(["domain", "referenceId"]);
+const TOKEN_SOURCE_REQUIRED_KEYS = ["domain", "referenceId"] as const;
+const PARTICLE_FRAME_KEYS = new Set(["predicateSenseId", "provided"]);
+const PARTICLE_FRAME_REQUIRED_KEYS = ["predicateSenseId", "provided"] as const;
+const BASE_VISIBLE_TARGET_REQUIRED_KEYS = [
+  "tokens",
+  "lexemeIds",
+  "conceptIds",
+  "formIds",
+  "patternCellIds",
+  "semanticRoleIds",
+  "interpretationTags",
+  "predicateSenseId",
+  "predicateLexemeId",
+] as const;
+const BASE_VISIBLE_TARGET_OPTIONAL_KEYS = [
+  "predicateAspect",
+  "discourseFrameId",
+  "particleFrame",
+] as const;
+const BASE_VISIBLE_TARGET_KEYS = new Set([
+  ...BASE_VISIBLE_TARGET_REQUIRED_KEYS,
+  ...BASE_VISIBLE_TARGET_OPTIONAL_KEYS,
+]);
+const BASE_EXAMPLE_KEYS = new Set([
+  ...BASE_VISIBLE_TARGET_KEYS,
+  "id",
+  "teachingPurposeCopyId",
+  "translationCopy",
+]);
+const BASE_DIALOGUE_TURN_KEYS = new Set([
+  ...BASE_VISIBLE_TARGET_KEYS,
+  "speakerId",
+]);
+const BASE_DIALOGUE_KEYS = new Set(["id", "practicalOutcomeCopyId", "turns"]);
+const BASE_DIALOGUE_REQUIRED_KEYS = [
+  "id",
+  "practicalOutcomeCopyId",
+  "turns",
+] as const;
+const TRANSLATION_COPY_ID_KEYS = new Set(["copyId"]);
+const TRANSLATION_COPY_ID_REQUIRED_KEYS = ["copyId"] as const;
+const TRANSLATION_LOCALIZED_KEYS = new Set(["enCopyId", "itCopyId"]);
+const TRANSLATION_LOCALIZED_REQUIRED_KEYS = ["enCopyId", "itCopyId"] as const;
+
+export type RuntimeVisibleTargetShape =
+  | "target"
+  | "example"
+  | "dialogue-turn";
+
+interface PlainDataRecordInspection {
+  readonly record: RuntimeDataRecord;
+  readonly names: readonly string[];
+  readonly descriptors: Readonly<Record<string, PropertyDescriptor>>;
+}
+
+function inspectPlainDataRecord(value: unknown): PlainDataRecordInspection | undefined {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  try {
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return undefined;
+    if (Object.getOwnPropertySymbols(value).length > 0) return undefined;
+    const descriptors = Object.getOwnPropertyDescriptors(value) as Record<
+      string,
+      PropertyDescriptor
+    >;
+    const names = Object.getOwnPropertyNames(value);
+    if (
+      names.some((name) => {
+        const descriptor = descriptors[name];
+        return descriptor === undefined || !("value" in descriptor);
+      })
+    ) {
+      return undefined;
+    }
+    return {
+      record: value as RuntimeDataRecord,
+      names,
+      descriptors,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+function exactEnumerableDataRecord(
+  value: unknown,
+  allowedKeys: ReadonlySet<string>,
+  requiredKeys: readonly string[],
+): RuntimeDataRecord | undefined {
+  const inspection = inspectPlainDataRecord(value);
+  if (!inspection) return undefined;
+  for (const key of requiredKeys) {
+    if (inspection.descriptors[key] === undefined) return undefined;
+  }
+  for (const key of inspection.names) {
+    const descriptor = inspection.descriptors[key];
+    if (
+      !allowedKeys.has(key) ||
+      descriptor === undefined ||
+      !("value" in descriptor) ||
+      !descriptor.enumerable
+    ) {
+      return undefined;
+    }
+  }
+  return inspection.record;
+}
 
 export function isPlainDataRecord(value: unknown): value is RuntimeDataRecord {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    return false;
-  }
-  const prototype = Object.getPrototypeOf(value);
-  if (prototype !== Object.prototype && prototype !== null) return false;
-  if (Object.getOwnPropertySymbols(value).length > 0) return false;
-  return Object.values(Object.getOwnPropertyDescriptors(value)).every(
-    (descriptor) => "value" in descriptor,
-  );
+  return inspectPlainDataRecord(value) !== undefined;
 }
 
 export function ownDataValue(
   record: RuntimeDataRecord,
   key: string,
 ): unknown {
-  if (!hasOwn(record, key)) return undefined;
-  const descriptor = Object.getOwnPropertyDescriptor(record, key);
-  return descriptor && "value" in descriptor ? descriptor.value : undefined;
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(record, key);
+    return descriptor && "value" in descriptor ? descriptor.value : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function hasOwnDataValue(
   record: RuntimeDataRecord,
   key: string,
 ): boolean {
-  if (!hasOwn(record, key)) return false;
-  const descriptor = Object.getOwnPropertyDescriptor(record, key);
-  return descriptor !== undefined && "value" in descriptor;
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(record, key);
+    return descriptor !== undefined && "value" in descriptor;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -119,39 +239,54 @@ export function hasOwnDataValue(
  */
 export function ownDataArrayValues(value: unknown): readonly unknown[] | undefined {
   if (!Array.isArray(value)) return undefined;
-  if (Object.getPrototypeOf(value) !== Array.prototype) return undefined;
-  const descriptors = Object.getOwnPropertyDescriptors(value) as Record<
-    string,
-    PropertyDescriptor
-  >;
-  const length = descriptors["length"];
-  if (
-    !length ||
-    !("value" in length) ||
-    typeof length.value !== "number" ||
-    !Number.isSafeInteger(length.value) ||
-    length.value < 0 ||
-    Object.getOwnPropertySymbols(value).length > 0 ||
-    !Object.values(descriptors).every((descriptor) => "value" in descriptor)
-  ) {
+  try {
+    if (Object.getPrototypeOf(value) !== Array.prototype) return undefined;
+    if (Object.getOwnPropertySymbols(value).length > 0) return undefined;
+    const descriptors = Object.getOwnPropertyDescriptors(value) as Record<
+      string,
+      PropertyDescriptor
+    >;
+    const names = Object.getOwnPropertyNames(value);
+    const length = descriptors["length"];
+    if (
+      !length ||
+      !("value" in length) ||
+      typeof length.value !== "number" ||
+      !Number.isSafeInteger(length.value) ||
+      length.value < 0 ||
+      length.enumerable
+    ) {
+      return undefined;
+    }
+    const indexKeys = names.filter((key) => key !== "length");
+    if (indexKeys.length !== length.value) return undefined;
+    for (const key of indexKeys) {
+      const index = Number(key);
+      const descriptor = descriptors[key];
+      if (
+        !Number.isSafeInteger(index) ||
+        index < 0 ||
+        index >= length.value ||
+        String(index) !== key ||
+        descriptor === undefined ||
+        !("value" in descriptor) ||
+        !descriptor.enumerable
+      ) {
+        return undefined;
+      }
+    }
+    const values: unknown[] = [];
+    for (let index = 0; index < length.value; index += 1) {
+      const descriptor = descriptors[String(index)];
+      if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) {
+        return undefined;
+      }
+      values.push(descriptor.value);
+    }
+    return Object.freeze(values);
+  } catch {
     return undefined;
   }
-  const values: unknown[] = [];
-  const indexKeys = new Set<string>();
-  for (let index = 0; index < length.value; index += 1) {
-    indexKeys.add(String(index));
-    const descriptor = descriptors[String(index)];
-    if (!descriptor || !("value" in descriptor)) return undefined;
-    values.push(descriptor.value);
-  }
-  if (
-    Object.keys(descriptors).some(
-      (key) => key !== "length" && !indexKeys.has(key),
-    )
-  ) {
-    return undefined;
-  }
-  return Object.freeze(values);
 }
 
 export function runtimeStringArrayValues(
@@ -168,29 +303,69 @@ export function isRuntimeStringArray(value: unknown): value is readonly string[]
   return runtimeStringArrayValues(value) !== undefined;
 }
 
-function isStrictRuntimeToken(value: unknown): value is AssembledToken {
-  if (!isPlainDataRecord(value)) return false;
-  const source = ownDataValue(value, "source");
-  if (!isPlainDataRecord(source)) return false;
-  const referenceId = ownDataValue(source, "referenceId");
-  const domain = ownDataValue(source, "domain");
-  const reading = ownDataValue(value, "reading");
-  const kind = ownDataValue(value, "kind");
-  const boundaryBefore = ownDataValue(value, "boundaryBefore");
-  return (
-    typeof ownDataValue(value, "id") === "string" &&
-    typeof ownDataValue(value, "jp") === "string" &&
-    typeof ownDataValue(value, "romaji") === "string" &&
-    typeof kind === "string" &&
-    TOKEN_KINDS.has(kind) &&
-    typeof boundaryBefore === "string" &&
-    TOKEN_BOUNDARIES.has(boundaryBefore) &&
-    typeof domain === "string" &&
-    TOKEN_SOURCE_DOMAINS.has(domain) &&
-    typeof referenceId === "string" &&
-    referenceId.trim().length > 0 &&
-    (reading === undefined || typeof reading === "string")
+function strictRuntimeTokenSource(value: unknown): TokenSourceRef | undefined {
+  const source = exactEnumerableDataRecord(
+    value,
+    TOKEN_SOURCE_KEYS,
+    TOKEN_SOURCE_REQUIRED_KEYS,
   );
+  if (!source) return undefined;
+  const domain = ownDataValue(source, "domain");
+  const referenceId = ownDataValue(source, "referenceId");
+  if (
+    typeof domain !== "string" ||
+    !TOKEN_SOURCE_DOMAINS.has(domain) ||
+    typeof referenceId !== "string" ||
+    referenceId.trim().length === 0
+  ) {
+    return undefined;
+  }
+  return Object.freeze({
+    domain: domain as TokenSourceRef["domain"],
+    referenceId,
+  });
+}
+
+function strictRuntimeToken(value: unknown): AssembledToken | undefined {
+  const token = exactEnumerableDataRecord(
+    value,
+    TOKEN_KEYS,
+    TOKEN_REQUIRED_KEYS,
+  );
+  if (!token) return undefined;
+  const id = ownDataValue(token, "id");
+  const jp = ownDataValue(token, "jp");
+  const romaji = ownDataValue(token, "romaji");
+  const kind = ownDataValue(token, "kind");
+  const boundaryBefore = ownDataValue(token, "boundaryBefore");
+  const source = strictRuntimeTokenSource(ownDataValue(token, "source"));
+  const reading = ownDataValue(token, "reading");
+  if (
+    typeof id !== "string" ||
+    typeof jp !== "string" ||
+    typeof romaji !== "string" ||
+    typeof kind !== "string" ||
+    !TOKEN_KINDS.has(kind) ||
+    typeof boundaryBefore !== "string" ||
+    !TOKEN_BOUNDARIES.has(boundaryBefore) ||
+    !source ||
+    (hasOwnDataValue(token, "reading") && typeof reading !== "string")
+  ) {
+    return undefined;
+  }
+  return Object.freeze({
+    id,
+    jp,
+    romaji,
+    kind: kind as AssembledToken["kind"],
+    boundaryBefore: boundaryBefore as AssembledToken["boundaryBefore"],
+    source,
+    ...(typeof reading === "string" ? { reading } : {}),
+  });
+}
+
+export function isStrictRuntimeToken(value: unknown): value is AssembledToken {
+  return strictRuntimeToken(value) !== undefined;
 }
 
 export function isStrictRuntimeTokenSequence(
@@ -203,10 +378,16 @@ export function strictRuntimeTokenSequence(
   tokens: readonly AssembledToken[] | unknown,
 ): readonly AssembledToken[] | undefined {
   const entries = ownDataArrayValues(tokens);
-  if (entries === undefined || !entries.every(isStrictRuntimeToken)) {
+  if (entries === undefined) {
     return undefined;
   }
-  return entries as readonly AssembledToken[];
+  const snapshots: AssembledToken[] = [];
+  for (const entry of entries) {
+    const snapshot = strictRuntimeToken(entry);
+    if (!snapshot) return undefined;
+    snapshots.push(snapshot);
+  }
+  return Object.freeze(snapshots);
 }
 
 export type RuntimeVisibleTargetIssue =
@@ -214,21 +395,45 @@ export type RuntimeVisibleTargetIssue =
   | "invalid-token-sequence"
   | "invalid-particle-frame";
 
-function isSafeParticleFrame(value: unknown): boolean {
-  if (!isPlainDataRecord(value)) return false;
-  const predicateSenseId = ownDataValue(value, "predicateSenseId");
-  if (typeof predicateSenseId !== "string" || !hasOwnDataValue(value, "provided")) {
-    return false;
-  }
-  const provided = particleProvidedEntries(ownDataValue(value, "provided"));
-  return (
-    provided.ok &&
-    provided.entries.every(
-      ([role, particleSense]) =>
-        PARTICLE_FRAME_ROLES.has(role) &&
-        PARTICLE_FRAME_SENSES.has(particleSense),
-    )
+function strictParticleProvided(
+  value: unknown,
+): BaseParticleFrame["provided"] | undefined {
+  const provided = exactEnumerableDataRecord(
+    value,
+    PARTICLE_FRAME_ROLES,
+    [],
   );
+  if (!provided) return undefined;
+  const snapshot = Object.create(null) as Record<string, string>;
+  for (const role of Object.getOwnPropertyNames(provided)) {
+    const particleSense = ownDataValue(provided, role);
+    if (
+      !PARTICLE_FRAME_ROLES.has(role) ||
+      typeof particleSense !== "string" ||
+      !PARTICLE_FRAME_SENSES.has(particleSense)
+    ) {
+      return undefined;
+    }
+    snapshot[role] = particleSense;
+  }
+  return Object.freeze(snapshot) as BaseParticleFrame["provided"];
+}
+
+function strictRuntimeParticleFrame(value: unknown): BaseParticleFrame | undefined {
+  const frame = exactEnumerableDataRecord(
+    value,
+    PARTICLE_FRAME_KEYS,
+    PARTICLE_FRAME_REQUIRED_KEYS,
+  );
+  if (!frame) return undefined;
+  const predicateSenseId = ownDataValue(frame, "predicateSenseId");
+  const provided = strictParticleProvided(ownDataValue(frame, "provided"));
+  if (typeof predicateSenseId !== "string" || !provided) return undefined;
+  return Object.freeze({ predicateSenseId, provided });
+}
+
+export function isSafeParticleFrame(value: unknown): boolean {
+  return strictRuntimeParticleFrame(value) !== undefined;
 }
 
 function isStrictInterpretationTags(
@@ -253,6 +458,14 @@ function isStrictInterpretationTags(
   return true;
 }
 
+function visibleTargetKeysFor(
+  shape: RuntimeVisibleTargetShape,
+): ReadonlySet<string> {
+  if (shape === "example") return BASE_EXAMPLE_KEYS;
+  if (shape === "dialogue-turn") return BASE_DIALOGUE_TURN_KEYS;
+  return BASE_VISIBLE_TARGET_KEYS;
+}
+
 /**
  * Validates the raw object before anything can clone it or read a property.
  * Role values must be closed own-data strings before publication; licensing
@@ -260,9 +473,15 @@ function isStrictInterpretationTags(
  */
 export function runtimeVisibleTargetIssue(
   value: unknown,
+  shape: RuntimeVisibleTargetShape = "target",
 ): RuntimeVisibleTargetIssue | undefined {
-  if (!isPlainDataRecord(value)) return "invalid-visible-target";
-  const tokens = ownDataValue(value, "tokens");
+  const target = exactEnumerableDataRecord(
+    value,
+    visibleTargetKeysFor(shape),
+    BASE_VISIBLE_TARGET_REQUIRED_KEYS,
+  );
+  if (!target) return "invalid-visible-target";
+  const tokens = ownDataValue(target, "tokens");
   if (!isStrictRuntimeTokenSequence(tokens)) return "invalid-token-sequence";
   const requiredStringArrays = [
     "lexemeIds",
@@ -273,13 +492,15 @@ export function runtimeVisibleTargetIssue(
   ] as const;
   if (
     !requiredStringArrays.every(
-      (field) => hasOwnDataValue(value, field) && isRuntimeStringArray(ownDataValue(value, field)),
+      (field) =>
+        hasOwnDataValue(target, field) &&
+        isRuntimeStringArray(ownDataValue(target, field)),
     )
   ) {
     return "invalid-visible-target";
   }
-  const predicateSenseId = ownDataValue(value, "predicateSenseId");
-  const predicateLexemeId = ownDataValue(value, "predicateLexemeId");
+  const predicateSenseId = ownDataValue(target, "predicateSenseId");
+  const predicateLexemeId = ownDataValue(target, "predicateLexemeId");
   if (
     !(
       (typeof predicateSenseId === "string" || predicateSenseId === null) &&
@@ -288,55 +509,60 @@ export function runtimeVisibleTargetIssue(
   ) {
     return "invalid-visible-target";
   }
-  const predicateAspect = ownDataValue(value, "predicateAspect");
+  const predicateAspect = ownDataValue(target, "predicateAspect");
   if (
-    hasOwnDataValue(value, "predicateAspect") &&
+    hasOwnDataValue(target, "predicateAspect") &&
     (typeof predicateAspect !== "string" || !PREDICATE_ASPECTS.has(predicateAspect))
   ) {
     return "invalid-visible-target";
   }
   if (
     !isStrictInterpretationTags(
-      ownDataValue(value, "interpretationTags"),
+      ownDataValue(target, "interpretationTags"),
       predicateAspect !== undefined,
     )
   ) {
     return "invalid-visible-target";
   }
   if (
-    hasOwnDataValue(value, "discourseFrameId") &&
-    ownDataValue(value, "discourseFrameId") !== undefined &&
-    typeof ownDataValue(value, "discourseFrameId") !== "string"
+    hasOwnDataValue(target, "discourseFrameId") &&
+    typeof ownDataValue(target, "discourseFrameId") !== "string"
   ) {
     return "invalid-visible-target";
   }
   if (
-    hasOwnDataValue(value, "particleFrame") &&
-    ownDataValue(value, "particleFrame") !== undefined &&
-    !isSafeParticleFrame(ownDataValue(value, "particleFrame"))
+    hasOwnDataValue(target, "particleFrame") &&
+    !isSafeParticleFrame(ownDataValue(target, "particleFrame"))
   ) {
     return "invalid-particle-frame";
   }
   return undefined;
 }
 
-export function strictRuntimeVisibleTarget(
+function strictRuntimeVisibleTargetForShape(
   value: unknown,
+  shape: RuntimeVisibleTargetShape,
 ): BaseVisibleTarget | undefined {
-  const issue = runtimeVisibleTargetIssue(value);
-  if (issue !== undefined || !isPlainDataRecord(value)) return undefined;
-  const tokens = strictRuntimeTokenSequence(ownDataValue(value, "tokens"));
-  const lexemeIds = runtimeStringArrayValues(ownDataValue(value, "lexemeIds"));
-  const conceptIds = runtimeStringArrayValues(ownDataValue(value, "conceptIds"));
-  const formIds = runtimeStringArrayValues(ownDataValue(value, "formIds"));
+  const target = exactEnumerableDataRecord(
+    value,
+    visibleTargetKeysFor(shape),
+    BASE_VISIBLE_TARGET_REQUIRED_KEYS,
+  );
+  if (!target || runtimeVisibleTargetIssue(target, shape) !== undefined) {
+    return undefined;
+  }
+  const tokens = strictRuntimeTokenSequence(ownDataValue(target, "tokens"));
+  const lexemeIds = runtimeStringArrayValues(ownDataValue(target, "lexemeIds"));
+  const conceptIds = runtimeStringArrayValues(ownDataValue(target, "conceptIds"));
+  const formIds = runtimeStringArrayValues(ownDataValue(target, "formIds"));
   const patternCellIds = runtimeStringArrayValues(
-    ownDataValue(value, "patternCellIds"),
+    ownDataValue(target, "patternCellIds"),
   );
   const semanticRoleIds = runtimeStringArrayValues(
-    ownDataValue(value, "semanticRoleIds"),
+    ownDataValue(target, "semanticRoleIds"),
   );
   const interpretationTags = runtimeStringArrayValues(
-    ownDataValue(value, "interpretationTags"),
+    ownDataValue(target, "interpretationTags"),
   );
   if (
     !tokens ||
@@ -349,9 +575,22 @@ export function strictRuntimeVisibleTarget(
   ) {
     return undefined;
   }
-  const predicateAspect = ownDataValue(value, "predicateAspect");
-  const discourseFrameId = ownDataValue(value, "discourseFrameId");
-  const particleFrame = ownDataValue(value, "particleFrame");
+  const predicateSenseId = ownDataValue(target, "predicateSenseId");
+  const predicateLexemeId = ownDataValue(target, "predicateLexemeId");
+  const predicateAspect = ownDataValue(target, "predicateAspect");
+  const discourseFrameId = ownDataValue(target, "discourseFrameId");
+  const particleFrame = hasOwnDataValue(target, "particleFrame")
+    ? strictRuntimeParticleFrame(ownDataValue(target, "particleFrame"))
+    : undefined;
+  if (
+    !(
+      (typeof predicateSenseId === "string" || predicateSenseId === null) &&
+      (typeof predicateLexemeId === "string" || predicateLexemeId === null)
+    ) ||
+    (hasOwnDataValue(target, "particleFrame") && !particleFrame)
+  ) {
+    return undefined;
+  }
   return Object.freeze({
     tokens,
     lexemeIds,
@@ -360,22 +599,43 @@ export function strictRuntimeVisibleTarget(
     patternCellIds,
     semanticRoleIds,
     interpretationTags,
-    predicateSenseId: ownDataValue(value, "predicateSenseId"),
-    predicateLexemeId: ownDataValue(value, "predicateLexemeId"),
+    predicateSenseId,
+    predicateLexemeId,
     ...(typeof predicateAspect === "string" ? { predicateAspect } : {}),
     ...(typeof discourseFrameId === "string" ? { discourseFrameId } : {}),
-    ...(particleFrame !== undefined ? { particleFrame } : {}),
+    ...(particleFrame ? { particleFrame } : {}),
   } as BaseVisibleTarget);
 }
 
-function isRuntimeTranslationCopy(value: unknown): boolean {
-  if (!isPlainDataRecord(value)) return false;
-  const copyId = ownDataValue(value, "copyId");
-  if (typeof copyId === "string") return true;
-  return (
-    typeof ownDataValue(value, "enCopyId") === "string" &&
-    typeof ownDataValue(value, "itCopyId") === "string"
+export function strictRuntimeVisibleTarget(
+  value: unknown,
+): BaseVisibleTarget | undefined {
+  return strictRuntimeVisibleTargetForShape(value, "target");
+}
+
+function strictRuntimeTranslationCopy(
+  value: unknown,
+): BaseTranslationCopy | undefined {
+  const copy = exactEnumerableDataRecord(
+    value,
+    TRANSLATION_COPY_ID_KEYS,
+    TRANSLATION_COPY_ID_REQUIRED_KEYS,
   );
+  const copyId = copy ? ownDataValue(copy, "copyId") : undefined;
+  if (typeof copyId === "string") {
+    return Object.freeze({ copyId });
+  }
+  const localized = exactEnumerableDataRecord(
+    value,
+    TRANSLATION_LOCALIZED_KEYS,
+    TRANSLATION_LOCALIZED_REQUIRED_KEYS,
+  );
+  const enCopyId = localized ? ownDataValue(localized, "enCopyId") : undefined;
+  const itCopyId = localized ? ownDataValue(localized, "itCopyId") : undefined;
+  if (typeof enCopyId !== "string" || typeof itCopyId !== "string") {
+    return undefined;
+  }
+  return Object.freeze({ enCopyId, itCopyId });
 }
 
 export function isStrictRuntimeExample(value: unknown): boolean {
@@ -383,18 +643,25 @@ export function isStrictRuntimeExample(value: unknown): boolean {
 }
 
 export function strictRuntimeExample(value: unknown): BaseExample | undefined {
-  if (!isPlainDataRecord(value)) return undefined;
-  const target = strictRuntimeVisibleTarget(value);
-  const id = ownDataValue(value, "id");
-  const teachingPurposeCopyId = ownDataValue(value, "teachingPurposeCopyId");
-  const translationCopy = ownDataValue(value, "translationCopy");
-  const predicateAspect = ownDataValue(value, "predicateAspect");
-  const discourseFrameId = ownDataValue(value, "discourseFrameId");
+  const example = exactEnumerableDataRecord(
+    value,
+    BASE_EXAMPLE_KEYS,
+    BASE_VISIBLE_TARGET_REQUIRED_KEYS,
+  );
+  if (!example) return undefined;
+  const target = strictRuntimeVisibleTargetForShape(example, "example");
+  const id = ownDataValue(example, "id");
+  const teachingPurposeCopyId = ownDataValue(example, "teachingPurposeCopyId");
+  const translationCopy = strictRuntimeTranslationCopy(
+    ownDataValue(example, "translationCopy"),
+  );
+  const predicateAspect = ownDataValue(example, "predicateAspect");
+  const discourseFrameId = ownDataValue(example, "discourseFrameId");
   if (
     !target ||
     typeof id !== "string" ||
     typeof teachingPurposeCopyId !== "string" ||
-    !isRuntimeTranslationCopy(translationCopy) ||
+    !translationCopy ||
     typeof predicateAspect !== "string" ||
     typeof discourseFrameId !== "string"
   ) {
@@ -417,11 +684,16 @@ export function isStrictRuntimeDialogueTurn(value: unknown): boolean {
 export function strictRuntimeDialogueTurn(
   value: unknown,
 ): BaseDialogueTurn | undefined {
-  if (!isPlainDataRecord(value)) return undefined;
-  const target = strictRuntimeVisibleTarget(value);
-  const speakerId = ownDataValue(value, "speakerId");
-  const predicateAspect = ownDataValue(value, "predicateAspect");
-  const discourseFrameId = ownDataValue(value, "discourseFrameId");
+  const turn = exactEnumerableDataRecord(
+    value,
+    BASE_DIALOGUE_TURN_KEYS,
+    BASE_VISIBLE_TARGET_REQUIRED_KEYS,
+  );
+  if (!turn) return undefined;
+  const target = strictRuntimeVisibleTargetForShape(turn, "dialogue-turn");
+  const speakerId = ownDataValue(turn, "speakerId");
+  const predicateAspect = ownDataValue(turn, "predicateAspect");
+  const discourseFrameId = ownDataValue(turn, "discourseFrameId");
   if (
     !target ||
     typeof speakerId !== "string" ||
@@ -443,21 +715,29 @@ export function isStrictRuntimeDialogue(value: unknown): boolean {
 }
 
 export function strictRuntimeDialogue(value: unknown): BaseDialogue | undefined {
-  if (
-    !isPlainDataRecord(value) ||
-    typeof ownDataValue(value, "id") !== "string" ||
-    typeof ownDataValue(value, "practicalOutcomeCopyId") !== "string"
-  ) {
+  const dialogue = exactEnumerableDataRecord(
+    value,
+    BASE_DIALOGUE_KEYS,
+    BASE_DIALOGUE_REQUIRED_KEYS,
+  );
+  if (!dialogue) return undefined;
+  const id = ownDataValue(dialogue, "id");
+  const practicalOutcomeCopyId = ownDataValue(dialogue, "practicalOutcomeCopyId");
+  if (typeof id !== "string" || typeof practicalOutcomeCopyId !== "string") {
     return undefined;
   }
-  const turns = ownDataArrayValues(ownDataValue(value, "turns"));
+  const turns = ownDataArrayValues(ownDataValue(dialogue, "turns"));
   if (turns === undefined) return undefined;
-  const turnSnapshots = turns.map(strictRuntimeDialogueTurn);
-  if (turnSnapshots.some((turn) => turn === undefined)) return undefined;
+  const turnSnapshots: BaseDialogueTurn[] = [];
+  for (const turn of turns) {
+    const snapshot = strictRuntimeDialogueTurn(turn);
+    if (!snapshot) return undefined;
+    turnSnapshots.push(snapshot);
+  }
   return Object.freeze({
-    id: ownDataValue(value, "id") as string,
-    practicalOutcomeCopyId: ownDataValue(value, "practicalOutcomeCopyId") as string,
-    turns: Object.freeze(turnSnapshots as BaseDialogueTurn[]),
+    id,
+    practicalOutcomeCopyId,
+    turns: Object.freeze(turnSnapshots),
   });
 }
 

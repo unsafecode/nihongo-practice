@@ -683,7 +683,10 @@ export function validateFirstTeachOrder(
     if (lesson.contract !== "phonetic") {
       for (const exampleId of lesson.workedExampleIds) {
         const example = catalogs.examples.get(exampleId);
-        if (runtimeVisibleTargetIssue(example) !== "invalid-particle-frame") {
+        if (
+          runtimeVisibleTargetIssue(example, "example") !==
+          "invalid-particle-frame"
+        ) {
           continue;
         }
         validateParticleSenseOwnersForTarget(lesson, example, "worked example");
@@ -772,7 +775,10 @@ export function validateFirstTeachOrder(
         if (isPlainDataRecord(rawDialogue)) {
           const turns = ownDataArrayValues(ownDataValue(rawDialogue, "turns"));
           turns?.forEach((turn, index) => {
-            if (runtimeVisibleTargetIssue(turn) !== "invalid-particle-frame") {
+            if (
+              runtimeVisibleTargetIssue(turn, "dialogue-turn") !==
+              "invalid-particle-frame"
+            ) {
               return;
             }
             validateParticleSenseOwnersForTarget(lesson, turn, "dialogue turn");

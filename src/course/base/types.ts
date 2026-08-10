@@ -30,6 +30,7 @@ export interface BaseManifestSpec {
 }
 
 export type BaseManifestErrorCode =
+  | "invalid-array-shape"
   | "module-count"
   | "lessons-per-module"
   | "duplicate-module-id"

@@ -21,12 +21,11 @@ import {
 } from "./activityContracts";
 import {
   isPlainDataRecord,
-  isStrictRuntimeDialogueTurn,
-  isStrictRuntimeExample,
   ownDataArrayValues,
-  ownDataValue,
   runtimeStringArrayValues,
-  runtimeVisibleTargetIssue,
+  strictRuntimeDialogueTurn,
+  strictRuntimeExample,
+  strictRuntimeVisibleTarget,
 } from "../validation/runtimeGuards";
 import type {
   BaseParticleRole,
@@ -228,7 +227,8 @@ function visibleTargetView(
   source: unknown,
   throwOnInvalid = false,
 ): BaseVisibleTarget {
-  if (runtimeVisibleTargetIssue(source) !== undefined || !isPlainDataRecord(source)) {
+  const target = strictRuntimeVisibleTarget(source);
+  if (!target) {
     if (throwOnInvalid) {
       throw new BaseVisibleTargetPublicationError(
         "invalid-visible-target-shape",
@@ -237,29 +237,30 @@ function visibleTargetView(
     }
     return EMPTY_VISIBLE_TARGET;
   }
-  const predicateAspect = ownDataValue(source, "predicateAspect");
-  const discourseFrameId = ownDataValue(source, "discourseFrameId");
-  const particleFrame = ownDataValue(source, "particleFrame");
-  return deepFreeze(
-    cloneForBasePublication({
-      tokens: ownDataValue(source, "tokens"),
-      lexemeIds: ownDataValue(source, "lexemeIds"),
-      conceptIds: ownDataValue(source, "conceptIds"),
-      formIds: ownDataValue(source, "formIds"),
-      patternCellIds: ownDataValue(source, "patternCellIds"),
-      semanticRoleIds: ownDataValue(source, "semanticRoleIds"),
-      interpretationTags: ownDataValue(source, "interpretationTags"),
-      predicateSenseId: ownDataValue(source, "predicateSenseId"),
-      predicateLexemeId: ownDataValue(source, "predicateLexemeId"),
-      ...(typeof predicateAspect === "string"
-        ? { predicateAspect }
-        : {}),
-      ...(typeof discourseFrameId === "string"
-        ? { discourseFrameId }
-        : {}),
-      ...(particleFrame !== undefined ? { particleFrame } : {}),
-    } as BaseVisibleTarget),
-  );
+  return target;
+}
+
+function visibleTargetProjection(source: BaseVisibleTarget): BaseVisibleTarget {
+  return Object.freeze({
+    tokens: source.tokens,
+    lexemeIds: source.lexemeIds,
+    conceptIds: source.conceptIds,
+    formIds: source.formIds,
+    patternCellIds: source.patternCellIds,
+    semanticRoleIds: source.semanticRoleIds,
+    interpretationTags: source.interpretationTags,
+    predicateSenseId: source.predicateSenseId,
+    predicateLexemeId: source.predicateLexemeId,
+    ...(source.predicateAspect !== undefined
+      ? { predicateAspect: source.predicateAspect }
+      : {}),
+    ...(source.discourseFrameId !== undefined
+      ? { discourseFrameId: source.discourseFrameId }
+      : {}),
+    ...(source.particleFrame !== undefined
+      ? { particleFrame: source.particleFrame }
+      : {}),
+  });
 }
 
 /** Clones and freezes arbitrary canonical target provenance before publication. */
@@ -276,14 +277,16 @@ export function visibleTargetFromCatalogTarget(
 
 /** Adapts an authored example to the canonical visible-target provenance view. */
 export function visibleTargetFromExample(example: BaseExample): BaseVisibleTarget {
-  return isStrictRuntimeExample(example) ? visibleTargetView(example) : EMPTY_VISIBLE_TARGET;
+  const strictExample = strictRuntimeExample(example);
+  return strictExample ? visibleTargetProjection(strictExample) : EMPTY_VISIBLE_TARGET;
 }
 
 /** Adapts an authored dialogue turn to the canonical visible-target provenance view. */
 export function visibleTargetFromDialogueTurn(
   turn: BaseDialogueTurn,
 ): BaseVisibleTarget {
-  return isStrictRuntimeDialogueTurn(turn) ? visibleTargetView(turn) : EMPTY_VISIBLE_TARGET;
+  const strictTurn = strictRuntimeDialogueTurn(turn);
+  return strictTurn ? visibleTargetProjection(strictTurn) : EMPTY_VISIBLE_TARGET;
 }
 
 /** @deprecated Use `visibleTargetFromExample` for clone-safe publication. */

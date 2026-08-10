@@ -190,7 +190,8 @@ export const BASE_MODULE_MANIFEST: Readonly<
 function findDuplicates<T>(values: readonly T[]): T[] {
   const seen = new Set<T>();
   const duplicates = new Set<T>();
-  for (const value of values) {
+  for (let index = 0; index < values.length; index += 1) {
+    const value = values[index] as T;
     if (seen.has(value)) duplicates.add(value);
     else seen.add(value);
   }
@@ -199,9 +200,83 @@ function findDuplicates<T>(values: readonly T[]): T[] {
 
 function ownDataValue(value: unknown, key: string): unknown {
   if (value === null || typeof value !== "object") return undefined;
-  if (!Object.prototype.hasOwnProperty.call(value, key)) return undefined;
-  const descriptor = Object.getOwnPropertyDescriptor(value, key);
-  return descriptor && "value" in descriptor ? descriptor.value : undefined;
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    return descriptor && "value" in descriptor ? descriptor.value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function hasOwnDataValue(value: unknown, key: string): boolean {
+  if (value === null || typeof value !== "object") return false;
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    return descriptor !== undefined && "value" in descriptor;
+  } catch {
+    return false;
+  }
+}
+
+function plainArraySnapshot(value: unknown): readonly unknown[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  try {
+    if (Object.getPrototypeOf(value) !== Array.prototype) return undefined;
+    if (Object.getOwnPropertySymbols(value).length > 0) return undefined;
+    const descriptors = Object.getOwnPropertyDescriptors(value) as Record<
+      string,
+      PropertyDescriptor
+    >;
+    const names = Object.getOwnPropertyNames(value);
+    const length = descriptors.length;
+    if (
+      !length ||
+      !("value" in length) ||
+      typeof length.value !== "number" ||
+      !Number.isSafeInteger(length.value) ||
+      length.value < 0 ||
+      length.enumerable
+    ) {
+      return undefined;
+    }
+    const indexKeys = names.filter((key) => key !== "length");
+    if (indexKeys.length !== length.value) return undefined;
+    for (const key of indexKeys) {
+      const index = Number(key);
+      const descriptor = descriptors[key];
+      if (
+        !Number.isSafeInteger(index) ||
+        index < 0 ||
+        index >= length.value ||
+        String(index) !== key ||
+        descriptor === undefined ||
+        !("value" in descriptor) ||
+        !descriptor.enumerable
+      ) {
+        return undefined;
+      }
+    }
+    const snapshot: unknown[] = [];
+    for (let index = 0; index < length.value; index += 1) {
+      const descriptor = descriptors[String(index)];
+      if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) {
+        return undefined;
+      }
+      snapshot.push(descriptor.value);
+    }
+    return Object.freeze(snapshot);
+  } catch {
+    return undefined;
+  }
+}
+
+function plainStringArraySnapshot(value: unknown): readonly string[] | undefined {
+  const snapshot = plainArraySnapshot(value);
+  if (!snapshot) return undefined;
+  for (let index = 0; index < snapshot.length; index += 1) {
+    if (typeof snapshot[index] !== "string") return undefined;
+  }
+  return snapshot as readonly string[];
 }
 
 export function validateBaseManifestSpec(
@@ -211,19 +286,36 @@ export function validateBaseManifestSpec(
   const push = (code: BaseManifestValidationError["code"], message: string) =>
     errors.push({ code, message });
 
-  if (spec.moduleIds.length !== 10) {
-    push("module-count", `Base manifest must declare 10 modules, has ${spec.moduleIds.length}.`);
+  const moduleIds = plainStringArraySnapshot(ownDataValue(spec, "moduleIds"));
+  if (!moduleIds) {
+    push(
+      "invalid-array-shape",
+      "Base manifest moduleIds must be a plain dense string array.",
+    );
+    return { ok: false, errors };
   }
-  for (const duplicate of findDuplicates(spec.moduleIds)) {
+  if (moduleIds.length !== 10) {
+    push("module-count", `Base manifest must declare 10 modules, has ${moduleIds.length}.`);
+  }
+  for (const duplicate of findDuplicates(moduleIds)) {
     push("duplicate-module-id", `Module id "${duplicate}" appears more than once.`);
   }
 
   const lessonIds: string[] = [];
-  for (const moduleId of spec.moduleIds) {
-    const moduleLessonsValue = ownDataValue(spec.lessonIdsByModule, moduleId);
-    const moduleLessons = Array.isArray(moduleLessonsValue)
-      ? moduleLessonsValue
-      : [];
+  const lessonIdsByModule = ownDataValue(spec, "lessonIdsByModule");
+  const lessonContracts = ownDataValue(spec, "lessonContracts");
+  for (let moduleIndex = 0; moduleIndex < moduleIds.length; moduleIndex += 1) {
+    const moduleId = moduleIds[moduleIndex] as ModuleId;
+    const moduleLessons = plainStringArraySnapshot(
+      ownDataValue(lessonIdsByModule, moduleId),
+    );
+    if (!moduleLessons) {
+      push(
+        "invalid-array-shape",
+        `Module "${moduleId}" lesson IDs must be a plain dense string array.`,
+      );
+      continue;
+    }
     if (moduleLessons.length !== 4) {
       push(
         "lessons-per-module",
@@ -236,7 +328,7 @@ export function validateBaseManifestSpec(
         continue;
       }
       lessonIds.push(lessonId);
-      const actualContract = ownDataValue(spec.lessonContracts, lessonId);
+      const actualContract = ownDataValue(lessonContracts, lessonId);
       if (typeof actualContract !== "string") {
         push("missing-lesson-contract", `Lesson "${lessonId}" has no contract.`);
       } else {
@@ -254,17 +346,31 @@ export function validateBaseManifestSpec(
     push("duplicate-lesson-id", `Lesson id "${duplicate}" appears more than once.`);
   }
 
-  spec.moduleIds.forEach((moduleId, index) => {
-    const expected = index === 0 ? [] : [spec.moduleIds[index - 1]];
-    const actual = ownDataValue(spec.modulePrerequisites, moduleId);
-    if (!Array.isArray(actual)) {
+  const modulePrerequisites = ownDataValue(spec, "modulePrerequisites");
+  for (let moduleIndex = 0; moduleIndex < moduleIds.length; moduleIndex += 1) {
+    const moduleId = moduleIds[moduleIndex] as ModuleId;
+    const expected = moduleIndex === 0 ? [] : [moduleIds[moduleIndex - 1]];
+    const actualValue = ownDataValue(modulePrerequisites, moduleId);
+    if (!hasOwnDataValue(modulePrerequisites, moduleId)) {
       push("missing-prerequisite-record", `Module "${moduleId}" has no modulePrerequisites record.`);
-      return;
+      continue;
     }
-    if (actual.length !== expected.length || actual.some((id, i) => id !== expected[i])) {
+    const actual = plainStringArraySnapshot(actualValue);
+    if (!actual) {
+      push(
+        "invalid-array-shape",
+        `Module "${moduleId}" prerequisites must be a plain dense string array.`,
+      );
+      continue;
+    }
+    let followsChain = actual.length === expected.length;
+    for (let index = 0; index < actual.length && followsChain; index += 1) {
+      if (actual[index] !== expected[index]) followsChain = false;
+    }
+    if (!followsChain) {
       push("prerequisite-chain", `Module "${moduleId}" does not follow the linear prerequisite chain.`);
     }
-  });
+  }
 
   return errors.length === 0 ? { ok: true } : { ok: false, errors };
 }

@@ -73,6 +73,16 @@ function mutableBaseManifestSpec() {
   };
 }
 
+class HiddenIterator<T> extends Array<T> {
+  override includes(_searchElement: T, _fromIndex?: number): boolean {
+    return true;
+  }
+
+  override *[Symbol.iterator](): IterableIterator<T> {
+    throw new Error("manifest must not use the supplied iterator");
+  }
+}
+
 describe("Base manifest", () => {
   it("locks the exact 10-module / 40-lesson order", () => {
     expect(BASE_MODULE_IDS).toEqual(BASE_MODULE_ORDER);
@@ -203,6 +213,66 @@ describe("Base manifest", () => {
 
     expect(() => validateBaseManifestSpec(spec)).not.toThrow();
     expect(validateBaseManifestSpec(spec).ok).toBe(false);
+  });
+
+  it("uses only plain descriptor-safe array snapshots for manifest graph arrays", () => {
+    expect(validateBaseManifestSpec(mutableBaseManifestSpec())).toEqual({ ok: true });
+
+    const malformedSpecs = [
+      (() => {
+        const spec = mutableBaseManifestSpec();
+        spec.moduleIds = new HiddenIterator(...spec.moduleIds);
+        return spec;
+      })(),
+      (() => {
+        const spec = mutableBaseManifestSpec();
+        spec.lessonIdsByModule.sounds = new HiddenIterator(
+          ...spec.lessonIdsByModule.sounds,
+        );
+        return spec;
+      })(),
+      (() => {
+        const spec = mutableBaseManifestSpec();
+        spec.modulePrerequisites["sentence-foundations"] = new HiddenIterator(
+          ...spec.modulePrerequisites["sentence-foundations"],
+        );
+        return spec;
+      })(),
+      (() => {
+        const spec = mutableBaseManifestSpec();
+        const moduleIds = [...spec.moduleIds];
+        Object.defineProperty(moduleIds, Symbol.iterator, {
+          enumerable: false,
+          value: () => {
+            throw new Error("manifest must not use an own iterator");
+          },
+        });
+        spec.moduleIds = moduleIds;
+        return spec;
+      })(),
+      (() => {
+        const spec = mutableBaseManifestSpec();
+        const lessonIds = [...spec.lessonIdsByModule.sounds];
+        Object.defineProperty(lessonIds, "includes", {
+          enumerable: false,
+          value: () => true,
+        });
+        spec.lessonIdsByModule.sounds = lessonIds;
+        return spec;
+      })(),
+    ];
+
+    for (const spec of malformedSpecs) {
+      expect(() => validateBaseManifestSpec(spec)).not.toThrow();
+      expect(validateBaseManifestSpec(spec)).toEqual(
+        expect.objectContaining({
+          ok: false,
+          errors: expect.arrayContaining([
+            expect.objectContaining({ code: "invalid-array-shape" }),
+          ]),
+        }),
+      );
+    }
   });
 });
 
