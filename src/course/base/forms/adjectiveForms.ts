@@ -43,30 +43,39 @@ export type BasePredicateValidationInput =
       readonly predicateKind: "i-adjective";
       readonly lexemeId: string;
       readonly ending: "da" | "desu" | "none";
+      readonly surface?: string;
     }>
   | Readonly<{
       readonly predicateKind: "na-adjective";
       readonly lexemeId: string;
       readonly position: "attributive";
       readonly hasNa: boolean;
+      readonly surface?: string;
     }>
   | Readonly<{
       readonly predicateKind: "na-adjective";
       readonly lexemeId: string;
       readonly position: "predicate";
       readonly copula: "none" | "desu" | "da";
+      readonly surface?: string;
     }>;
 
 export type BasePredicateValidationErrorCode =
   | "i-adjective-copula-da"
   | "na-adjective-missing-na"
-  | "na-adjective-missing-copula";
+  | "na-adjective-missing-copula"
+  | "unknown-lexeme"
+  | "not-an-adjective"
+  | "predicate-kind-lexeme-mismatch";
 
 export type BasePredicateValidationResult =
   | Readonly<{ readonly ok: true }>
   | Readonly<{
       readonly ok: false;
-      readonly error: Readonly<{ readonly code: BasePredicateValidationErrorCode }>;
+      readonly error: Readonly<{
+        readonly code: BasePredicateValidationErrorCode;
+        readonly lexemeId: string;
+      }>;
     }>;
 
 function ok<T>(value: T): BaseAdjectiveFormResult<T> {
@@ -253,34 +262,49 @@ export function realizeIAdjectivePredicate(
 
 function validationError(
   code: BasePredicateValidationErrorCode,
+  lexemeId: string,
 ): BasePredicateValidationResult {
-  return Object.freeze({ ok: false, error: Object.freeze({ code }) });
+  return Object.freeze({ ok: false, error: Object.freeze({ code, lexemeId }) });
 }
 
 export function validateBasePredicate(
-  input: BasePredicateValidationInput | string,
+  input: BasePredicateValidationInput,
 ): BasePredicateValidationResult {
-  if (typeof input === "string") {
-    return input.endsWith("いだ")
-      ? validationError("i-adjective-copula-da")
-      : Object.freeze({ ok: true });
+  const lexeme = BASE_LEXEME_BY_ID.get(input.lexemeId);
+  if (!lexeme) {
+    return validationError("unknown-lexeme", input.lexemeId);
   }
-  if (input.predicateKind === "i-adjective" && input.ending === "da") {
-    return validationError("i-adjective-copula-da");
+  if (lexeme.category !== "adjective") {
+    return validationError("not-an-adjective", input.lexemeId);
+  }
+  if (
+    (input.predicateKind === "i-adjective" && lexeme.adjectiveClass !== "i") ||
+    (input.predicateKind === "na-adjective" && lexeme.adjectiveClass !== "na")
+  ) {
+    return validationError("predicate-kind-lexeme-mismatch", input.lexemeId);
+  }
+  if (
+    input.predicateKind === "i-adjective" &&
+    lexeme.adjectiveClass === "i" &&
+    input.ending === "da"
+  ) {
+    return validationError("i-adjective-copula-da", input.lexemeId);
   }
   if (
     input.predicateKind === "na-adjective" &&
+    lexeme.adjectiveClass === "na" &&
     input.position === "attributive" &&
     !input.hasNa
   ) {
-    return validationError("na-adjective-missing-na");
+    return validationError("na-adjective-missing-na", input.lexemeId);
   }
   if (
     input.predicateKind === "na-adjective" &&
+    lexeme.adjectiveClass === "na" &&
     input.position === "predicate" &&
     input.copula === "none"
   ) {
-    return validationError("na-adjective-missing-copula");
+    return validationError("na-adjective-missing-copula", input.lexemeId);
   }
   return Object.freeze({ ok: true });
 }

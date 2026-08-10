@@ -111,6 +111,36 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
     category: "adjective",
     adjectiveClass: "na",
   },
+  {
+    id: "adjective-kirei",
+    kana: "きれい",
+    romaji: "kirei",
+    meaningCopyId: "adjective-kirei-meaning",
+    firstTeachLessonId: "copula-adjectives-4",
+    countable: true,
+    category: "adjective",
+    adjectiveClass: "na",
+  },
+  {
+    id: "adjective-yuumei",
+    kana: "ゆうめい",
+    romaji: "yuumei",
+    meaningCopyId: "adjective-yuumei-meaning",
+    firstTeachLessonId: "copula-adjectives-4",
+    countable: true,
+    category: "adjective",
+    adjectiveClass: "na",
+  },
+  {
+    id: "adjective-kirai",
+    kana: "きらい",
+    romaji: "kirai",
+    meaningCopyId: "adjective-kirai-meaning",
+    firstTeachLessonId: "copula-adjectives-4",
+    countable: true,
+    category: "adjective",
+    adjectiveClass: "na",
+  },
 ]);
 
 export const BASE_LEXEME_BY_ID: ReadonlyMap<string, BaseLexeme> =

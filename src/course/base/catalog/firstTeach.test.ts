@@ -25,7 +25,7 @@ describe("Base first-teach ownership", () => {
           interactionKind: "choice",
           mode: "non-spoken",
           targetId: "target-1",
-          targetOperationFingerprint: "operation-1",
+          operation: "recognize-meaning",
           instructionCopyId: "instruction-1",
           acceptedFeedbackCopyId: "accepted-1",
           retryFeedbackCopyId: "retry-1",

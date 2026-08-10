@@ -1,5 +1,5 @@
 import type { AssembledToken } from "../../../romaji/types";
-import type { LessonId } from "../../foundations/types";
+import type { LessonId, SemanticArgumentRole } from "../../foundations/types";
 import { deepFreeze } from "../../foundations/deepFreeze";
 import type { BaseLessonContract } from "../types";
 import type {
@@ -28,6 +28,32 @@ export type BaseInteractionKind =
 
 export type BaseActivityMode = "non-spoken" | "audio";
 export type BaseActivityKind = BaseActivityCategory | "listening" | "spoken";
+export type BaseActivityOperation =
+  | "recognize-meaning"
+  | "discriminate-form-function"
+  | "order-chunks"
+  | "produce-controlled"
+  | "transform-form"
+  | "diagnose-error"
+  | "select-contextual-response"
+  | "retrieve-cumulative"
+  | "identify-audio"
+  | "produce-spoken";
+
+export const BASE_ACTIVITY_OPERATION_BY_CATEGORY: Readonly<
+  Record<BaseActivityKind, BaseActivityOperation>
+> = Object.freeze({
+  "meaning-comprehension": "recognize-meaning",
+  "form-function-discrimination": "discriminate-form-function",
+  ordering: "order-chunks",
+  "controlled-production": "produce-controlled",
+  transformation: "transform-form",
+  "error-diagnosis": "diagnose-error",
+  "contextual-response": "select-contextual-response",
+  "cumulative-retrieval": "retrieve-cumulative",
+  listening: "identify-audio",
+  spoken: "produce-spoken",
+});
 
 export interface BaseActivityDefinition {
   readonly id: string;
@@ -35,7 +61,8 @@ export interface BaseActivityDefinition {
   readonly interactionKind: BaseInteractionKind;
   readonly mode: BaseActivityMode;
   readonly targetId: string;
-  readonly targetOperationFingerprint: string;
+  readonly operation: BaseActivityOperation;
+  readonly activityPromptTokens?: readonly AssembledToken[];
   readonly instructionCopyId: string;
   readonly acceptedFeedbackCopyId: string;
   readonly retryFeedbackCopyId: string;
@@ -130,12 +157,12 @@ export interface BaseExample {
   readonly conceptIds: readonly string[];
   readonly formIds: readonly string[];
   readonly patternCellIds: readonly string[];
-  readonly semanticFingerprint: string;
+  readonly semanticRoleIds: readonly SemanticArgumentRole[];
+  readonly discourseFrameId: string;
   readonly teachingPurposeCopyId: string;
   readonly translationCopy: BaseTranslationCopy;
   readonly predicateAspect: BasePredicateAspect;
   readonly interpretationTags: readonly BaseInterpretationTag[];
-  readonly acceptedAnswerTokens?: readonly AssembledToken[];
   readonly particleFrame?: Readonly<{
     readonly predicateSenseId: string;
     readonly provided: Readonly<
@@ -151,7 +178,16 @@ export interface BaseDialogueTurn {
   readonly conceptIds: readonly string[];
   readonly formIds: readonly string[];
   readonly patternCellIds: readonly string[];
-  readonly semanticFingerprint: string;
+  readonly semanticRoleIds: readonly SemanticArgumentRole[];
+  readonly discourseFrameId: string;
+  readonly predicateAspect: BasePredicateAspect;
+  readonly interpretationTags: readonly BaseInterpretationTag[];
+  readonly particleFrame?: Readonly<{
+    readonly predicateSenseId: string;
+    readonly provided: Readonly<
+      Partial<Record<BaseParticleRole, BaseParticleSense>>
+    >;
+  }>;
 }
 
 export interface BaseDialogue {
@@ -223,7 +259,7 @@ export interface BaseValidationCatalogs {
   readonly concepts: ReadonlyMap<string, BaseConcept>;
   readonly examples: ReadonlyMap<string, BaseExample>;
   readonly dialogues: ReadonlyMap<string, BaseDialogue>;
-  readonly audioIds: ReadonlySet<string>;
+  readonly audioTargets: ReadonlyMap<string, readonly AssembledToken[]>;
   readonly copyIds: ReadonlySet<string>;
   readonly referenceSnapshotIds: ReadonlySet<string>;
   readonly patternCellIds: ReadonlySet<string>;
@@ -301,7 +337,7 @@ export function defineBaseLessonContent<T extends BaseLessonContent>(lesson: T):
   for (const activity of lesson.activities) {
     assertNonemptyId(activity.id, "activity id");
     assertNonemptyId(activity.targetId, "activity targetId");
-    assertNonemptyId(activity.targetOperationFingerprint, "activity targetOperationFingerprint");
+    assertNonemptyId(activity.operation, "activity operation");
     if (activityIds.has(activity.id)) {
       throw new BaseLessonContentDefinitionError(
         "duplicate-activity-id",

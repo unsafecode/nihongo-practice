@@ -33,12 +33,13 @@ function example(index: number): BaseExample {
     conceptIds: ["dictionary-lemma"],
     formIds: ["masu-nonpast"],
     patternCellIds: [index % 2 === 0 ? "cell-1" : "cell-2"],
-    semanticFingerprint: `example-fingerprint-${index}`,
     teachingPurposeCopyId: `purpose-${index}`,
     translationCopy: { copyId: `translation-${index}` },
     predicateAspect: "dynamic",
     interpretationTags: ["habitual"],
-  };
+    semanticRoleIds: ["agent", "theme"],
+    discourseFrameId: `example-frame-${index}`,
+  } as BaseExample;
 }
 
 const EXAMPLES = Array.from({ length: 14 }, (_, index) => example(index + 1));
@@ -53,9 +54,25 @@ const DIALOGUE: BaseDialogue = {
     conceptIds: ["dictionary-lemma"],
     formIds: ["masu-nonpast"],
     patternCellIds: ["cell-1"],
-    semanticFingerprint: `dialogue-fingerprint-${index}`,
-  })),
+    predicateAspect: "dynamic",
+    interpretationTags: ["habitual"],
+    semanticRoleIds: ["agent", "theme"],
+    discourseFrameId: `dialogue-frame-${index}`,
+  })) as BaseDialogue["turns"],
 };
+
+const OPERATION_BY_CATEGORY = {
+  "meaning-comprehension": "recognize-meaning",
+  "form-function-discrimination": "discriminate-form-function",
+  ordering: "order-chunks",
+  "controlled-production": "produce-controlled",
+  transformation: "transform-form",
+  "error-diagnosis": "diagnose-error",
+  "contextual-response": "select-contextual-response",
+  "cumulative-retrieval": "retrieve-cumulative",
+  listening: "identify-audio",
+  spoken: "produce-spoken",
+} as const;
 
 function activity(
   index: number,
@@ -69,13 +86,14 @@ function activity(
       category === "listening" ? "listening" : category === "spoken" ? "spoken" : "choice",
     mode,
     targetId: mode === "audio" && category === "listening" ? "audio-1" : `answer-${index}`,
-    targetOperationFingerprint: `operation-${index}`,
+    operation: OPERATION_BY_CATEGORY[category],
+    activityPromptTokens: [token(`prompt-${index}`, `問${index}`)],
     instructionCopyId: `instruction-${index}`,
     acceptedFeedbackCopyId: `accepted-${index}`,
     retryFeedbackCopyId: `retry-${index}`,
     assessedConceptIds: ["dictionary-lemma"],
     assessedLexemeIds: ["verb-kaku"],
-  };
+  } as BaseActivityDefinition;
 }
 
 const SEMANTIC_ACTIVITIES: readonly BaseActivityDefinition[] = [
@@ -103,7 +121,7 @@ const COPY_IDS = new Set([
     `purpose-${index + 1}`,
     `translation-${index + 1}`,
   ]).flat(),
-  ...Array.from({ length: 10 }, (_, index) => [
+  ...Array.from({ length: 11 }, (_, index) => [
     `instruction-${index + 1}`,
     `accepted-${index + 1}`,
     `retry-${index + 1}`,
@@ -115,12 +133,17 @@ const CATALOGS: BaseValidationCatalogs = {
   concepts: BASE_CONCEPT_BY_ID,
   examples: new Map(EXAMPLES.map((entry) => [entry.id, entry])),
   dialogues: new Map([[DIALOGUE.id, DIALOGUE]]),
-  audioIds: new Set(["audio-1", "audio-2", "audio-3", "audio-4", "audio-5", "audio-6"]),
+  audioTargets: new Map(
+    Array.from({ length: 6 }, (_, index) => [
+      `audio-${index + 1}`,
+      [token(`audio-${index + 1}-token`, `音${index + 1}`)],
+    ]),
+  ),
   copyIds: COPY_IDS,
   referenceSnapshotIds: new Set(["reference-sentence-order"]),
   patternCellIds: new Set(["cell-1", "cell-2"]),
   acceptedAnswerTokens: new Map(
-    Array.from({ length: 10 }, (_, index) => [
+    Array.from({ length: 11 }, (_, index) => [
       `answer-${index + 1}`,
       [token(`answer-${index + 1}-token`, `答${index + 1}`)],
     ]),
@@ -245,9 +268,10 @@ describe("Base lesson depth rules", () => {
   it("rejects missing pattern cells, cosmetic duplicate fingerprints, category caps, dialogue overlap, and unresolved references", () => {
     const lesson = systemLesson();
     const duplicateExample = {
-      ...EXAMPLES[1],
-      semanticFingerprint: EXAMPLES[0].semanticFingerprint,
-    };
+      ...EXAMPLES[0],
+      id: "example-2",
+      tokens: [token("duplicate-example-token", "例1")],
+    } as BaseExample;
     const catalogs: BaseValidationCatalogs = {
       ...CATALOGS,
       examples: new Map([
@@ -259,7 +283,15 @@ describe("Base lesson depth rules", () => {
           "dialogue-1",
           {
             ...DIALOGUE,
-            turns: [{ ...DIALOGUE.turns[0], semanticFingerprint: EXAMPLES[0].semanticFingerprint }],
+            turns: [
+              {
+                ...DIALOGUE.turns[0],
+                tokens: [token("duplicate-dialogue-token", "例1")],
+                formIds: EXAMPLES[0].formIds,
+                semanticRoleIds: EXAMPLES[0].semanticRoleIds,
+                discourseFrameId: EXAMPLES[0].discourseFrameId,
+              },
+            ],
           },
         ],
       ]),
@@ -268,7 +300,7 @@ describe("Base lesson depth rules", () => {
       ...lesson,
       activities: [
         ...lesson.activities,
-        { ...lesson.activities[0], id: "activity-extra", targetOperationFingerprint: "operation-extra" },
+        { ...lesson.activities[0], id: "activity-extra" },
       ],
       workedExampleIds: [
         "example-1",
@@ -304,16 +336,113 @@ describe("Base lesson depth rules", () => {
       activities: [
         { ...lesson.activities[0], targetId: "example-1" },
         ...lesson.activities.slice(1, 7),
-        { ...lesson.activities[8], targetOperationFingerprint: "operation-7" },
+        { ...lesson.activities[6], id: "activity-duplicate" },
       ],
     };
 
     expect(codes(mutated)).toEqual(
       expect.arrayContaining([
-        "semantic-nonspoken-activity-count",
         "duplicate-target-operation",
         "worked-example-reused-by-activity",
         "semantic-spoken-audio-count",
+      ]),
+    );
+  });
+
+  it("accepts nine semantic nonspoken activities across at least six capped categories", () => {
+    const lesson = {
+      ...systemLesson(),
+      activities: [...SEMANTIC_ACTIVITIES, activity(11, "contextual-response")],
+    };
+
+    expect(validateBaseLessonDepth(lesson, CATALOGS)).toEqual([]);
+  });
+
+  it("derives example uniqueness and pattern coverage from canonical semantic data", () => {
+    const cosmeticDuplicate = {
+      ...EXAMPLES[0],
+      id: "example-2",
+      tokens: [token("cosmetic-token", "例1")],
+      patternCellIds: ["cell-3"],
+      teachingPurposeCopyId: "purpose-2",
+      translationCopy: { copyId: "translation-2" },
+      semanticFingerprint: "fake-cosmetic-fingerprint",
+    } as unknown as BaseExample;
+    const catalogs: BaseValidationCatalogs = {
+      ...CATALOGS,
+      examples: new Map([...CATALOGS.examples, [cosmeticDuplicate.id, cosmeticDuplicate]]),
+      patternCellIds: new Set([...CATALOGS.patternCellIds, "cell-3"]),
+    };
+
+    expect(
+      validateBaseLessonDepth(
+        { ...systemLesson(), patternCellIds: ["cell-3"] },
+        catalogs,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "duplicate-semantic-fingerprint" }),
+        expect.objectContaining({
+          code: "system-pattern-cell-unrepresented",
+          referenceId: "cell-3",
+        }),
+      ]),
+    );
+  });
+
+  it("does not collapse identical Japanese when form, roles, or discourse differ", () => {
+    const semanticallyDistinct = {
+      ...EXAMPLES[1],
+      tokens: [token("distinct-token", "例1")],
+      formIds: ["te-imasu"],
+      semanticRoleIds: ["topic"],
+      discourseFrameId: "different-frame",
+      semanticFingerprint: "fake-distinct-fingerprint",
+    } as unknown as BaseExample;
+    const catalogs: BaseValidationCatalogs = {
+      ...CATALOGS,
+      examples: new Map([...CATALOGS.examples, [semanticallyDistinct.id, semanticallyDistinct]]),
+    };
+
+    expect(
+      validateBaseLessonDepth(systemLesson(), catalogs).map((error) => error.code),
+    ).not.toContain("duplicate-semantic-fingerprint");
+  });
+
+  it("derives dialogue and activity collisions without trusting authored labels or widgets", () => {
+    const matchingTurn = {
+      ...DIALOGUE.turns[0],
+      speakerId: "another-speaker",
+      tokens: [token("dialogue-cosmetic-token", "例1")],
+      formIds: EXAMPLES[0].formIds,
+      semanticRoleIds: EXAMPLES[0].semanticRoleIds,
+      discourseFrameId: EXAMPLES[0].discourseFrameId,
+      semanticFingerprint: "fake-dialogue-fingerprint",
+    } as unknown as BaseDialogue["turns"][number];
+    const duplicateActivity = {
+      ...SEMANTIC_ACTIVITIES[0],
+      id: "activity-cosmetic-duplicate",
+      category: "ordering",
+      interactionKind: "tile-ordering",
+      targetId: "answer-1",
+      operation: "recognize-meaning",
+      targetOperationFingerprint: "fake-operation-fingerprint",
+    } as unknown as BaseActivityDefinition;
+    const catalogs: BaseValidationCatalogs = {
+      ...CATALOGS,
+      dialogues: new Map([[DIALOGUE.id, { ...DIALOGUE, turns: [matchingTurn] }]]),
+    };
+
+    expect(
+      validateBaseLessonDepth(
+        { ...systemLesson(), activities: [...SEMANTIC_ACTIVITIES, duplicateActivity] },
+        catalogs,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "dialogue-example-fingerprint-overlap" }),
+        expect.objectContaining({ code: "duplicate-target-operation" }),
+        expect.objectContaining({ code: "activity-category-operation-mismatch" }),
       ]),
     );
   });
@@ -325,10 +454,13 @@ describe("Base sequence rules", () => {
       ...systemLesson(),
       lessonId: "requests-connection-4",
       workedExampleIds: ["example-1"],
-      activities: [{ ...SEMANTIC_ACTIVITIES[0], targetId: "answer-1" }],
+      activities: [
+        { ...SEMANTIC_ACTIVITIES[0], targetId: "answer-1" },
+        SEMANTIC_ACTIVITIES[8],
+      ],
     };
 
-    expect(visibleJapaneseFor([lesson], CATALOGS)).toBe("例1会1会2会3会4答1");
+    expect(visibleJapaneseFor([lesson], CATALOGS)).toBe("例1会1会2会3会4問1答1問9音1");
   });
 
   it("rejects forward adjective cells, ongoing dynamic nonpast, forbidden explanatory forms, and unlicensed particles", () => {

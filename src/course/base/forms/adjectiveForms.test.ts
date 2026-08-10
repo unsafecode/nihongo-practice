@@ -6,6 +6,7 @@ import {
   realizeNounPredicate,
   validateBasePredicate,
 } from "./adjectiveForms";
+import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
 
 function japanese(tokens: readonly { readonly jp: string }[]): string {
   return tokens.map((token) => token.jp).join("");
@@ -67,18 +68,49 @@ describe("Base adjective and copula forms", () => {
     }
   });
 
-  it("rejects the high-i plus da hazard deterministically", () => {
-    expect(validateBasePredicate("たかいだ")).toEqual({
+  it("rejects i-adjective plus da from its canonical lexeme class, not spelling", () => {
+    expect(
+      validateBasePredicate({
+        predicateKind: "i-adjective",
+        lexemeId: "adjective-takai",
+        ending: "da",
+        surface: "たかいだ",
+      }),
+    ).toEqual({
       ok: false,
-      error: { code: "i-adjective-copula-da" },
+      error: { code: "i-adjective-copula-da", lexemeId: "adjective-takai" },
     });
     expect(
       validateBasePredicate({
         predicateKind: "i-adjective",
         lexemeId: "adjective-takai",
         ending: "da",
+        surface: "高いだ",
       }),
-    ).toMatchObject({ ok: false, error: { code: "i-adjective-copula-da" } });
+    ).toEqual({
+      ok: false,
+      error: { code: "i-adjective-copula-da", lexemeId: "adjective-takai" },
+    });
+    expect(BASE_LEXEME_BY_ID.get("adjective-kirei")).toMatchObject({
+      category: "adjective",
+      adjectiveClass: "na",
+      firstTeachLessonId: "copula-adjectives-4",
+    });
+    for (const [lexemeId, surface] of [
+      ["adjective-kirei", "きれいだ"],
+      ["adjective-yuumei", "ゆうめいだ"],
+      ["adjective-kirai", "きらいだ"],
+    ] as const) {
+      expect(
+        validateBasePredicate({
+          predicateKind: "na-adjective",
+          lexemeId,
+          position: "predicate",
+          copula: "da",
+          surface,
+        }),
+      ).toEqual({ ok: true });
+    }
   });
 
   it("rejects a na modifier without な and a na predicate without its copula", () => {
@@ -105,5 +137,31 @@ describe("Base adjective and copula forms", () => {
       ok: false,
       error: { code: "not-an-i-adjective", lexemeId: "verb-kaku" },
     });
+    expect(
+      validateBasePredicate({
+        predicateKind: "i-adjective",
+        lexemeId: "verb-kaku",
+        ending: "none",
+        surface: "かく",
+      }),
+    ).toEqual({
+      ok: false,
+      error: { code: "not-an-adjective", lexemeId: "verb-kaku" },
+    });
+    expect(
+      validateBasePredicate({
+        predicateKind: "i-adjective",
+        lexemeId: "missing-adjective",
+        ending: "none",
+      }),
+    ).toEqual({
+      ok: false,
+      error: { code: "unknown-lexeme", lexemeId: "missing-adjective" },
+    });
+  });
+
+  it("does not expose a string overload that guesses an adjective class", () => {
+    // @ts-expect-error surfaces alone cannot classify adjective morphology
+    validateBasePredicate("たかいだ");
   });
 });

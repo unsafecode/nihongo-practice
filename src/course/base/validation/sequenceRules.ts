@@ -240,24 +240,38 @@ export function visibleJapaneseFor(
   catalogs: BaseValidationCatalogs,
 ): string {
   const surfaces: string[] = [];
+  const emitted = new Set<string>();
+  const append = (key: string, tokens: readonly { readonly jp: string }[]): void => {
+    if (emitted.has(key)) return;
+    emitted.add(key);
+    surfaces.push(tokensJapanese(tokens));
+  };
   for (const lesson of lessons) {
     if (lesson.contract === "phonetic") continue;
     for (const example of examplesFor(lesson, catalogs)) {
-      surfaces.push(tokensJapanese(example.tokens));
+      append(`example:${example.id}`, example.tokens);
     }
     if (lesson.dialogueId) {
       const dialogue = catalogs.dialogues.get(lesson.dialogueId);
       if (dialogue) {
-        for (const turn of dialogue.turns) {
-          surfaces.push(tokensJapanese(turn.tokens));
+        for (const [index, turn] of dialogue.turns.entries()) {
+          append(`dialogue:${dialogue.id}:${index}`, turn.tokens);
         }
       }
     }
     for (const activity of lesson.activities) {
-      const accepted =
+      if (activity.activityPromptTokens) {
+        append(`activity-prompt:${lesson.lessonId}:${activity.id}`, activity.activityPromptTokens);
+      }
+      const example = catalogs.examples.get(activity.targetId);
+      if (example) {
+        append(`example:${example.id}`, example.tokens);
+        continue;
+      }
+      const target =
         catalogs.acceptedAnswerTokens.get(activity.targetId) ??
-        catalogs.examples.get(activity.targetId)?.acceptedAnswerTokens;
-      if (accepted) surfaces.push(tokensJapanese(accepted));
+        catalogs.audioTargets.get(activity.targetId);
+      if (target) append(`activity-target:${activity.targetId}`, target);
     }
   }
   return surfaces.join("");

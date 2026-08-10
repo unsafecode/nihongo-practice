@@ -5,6 +5,11 @@ import type {
   BaseLessonContent,
   BaseValidationCatalogs,
 } from "../catalog/types";
+import { BASE_ACTIVITY_OPERATION_BY_CATEGORY } from "../catalog/types";
+import {
+  activityTargetOperationFingerprintFor,
+  semanticFingerprintFor,
+} from "./fingerprints";
 
 export type BaseValidationErrorCode =
   | "phonetic-contrast-count"
@@ -33,6 +38,8 @@ export type BaseValidationErrorCode =
   | "semantic-spoken-audio-count"
   | "duplicate-activity-id"
   | "duplicate-target-operation"
+  | "activity-category-operation-mismatch"
+  | "fingerprint-resolution"
   | "worked-example-reused-by-activity"
   | "duplicate-semantic-fingerprint"
   | "dialogue-example-fingerprint-overlap"
@@ -121,15 +128,29 @@ function validateActivities(
   for (const activity of lesson.activities) {
     if (activityIds.has(activity.id)) push("duplicate-activity-id", activity.id);
     activityIds.add(activity.id);
-    if (operations.has(activity.targetOperationFingerprint)) {
-      push("duplicate-target-operation", activity.targetOperationFingerprint);
+    if (
+      BASE_ACTIVITY_OPERATION_BY_CATEGORY[activity.category] !== activity.operation
+    ) {
+      push(
+        "activity-category-operation-mismatch",
+        activity.id,
+        `${activity.category}:${activity.operation}`,
+      );
     }
-    operations.add(activity.targetOperationFingerprint);
-    const targetResolves =
-      catalogs.examples.has(activity.targetId) ||
-      catalogs.acceptedAnswerTokens.has(activity.targetId) ||
-      catalogs.audioIds.has(activity.targetId);
-    validateReference(activity.targetId, targetResolves, "activity target", push);
+    const targetOperation = activityTargetOperationFingerprintFor(activity, catalogs);
+    if (targetOperation.ok) {
+      if (operations.has(targetOperation.fingerprint)) {
+        push("duplicate-target-operation", targetOperation.fingerprint);
+      }
+      operations.add(targetOperation.fingerprint);
+    } else {
+      push(
+        "fingerprint-resolution",
+        activity.targetId,
+        targetOperation.error.code,
+      );
+      push("unresolved-reference", activity.targetId, "activity target");
+    }
     validateReference(
       activity.instructionCopyId,
       catalogs.copyIds.has(activity.instructionCopyId),
@@ -181,7 +202,7 @@ function validateActivities(
   }
 
   if (semantic) {
-    if (nonspokenCount !== 8) {
+    if (nonspokenCount < 8) {
       push("semantic-nonspoken-activity-count", undefined, `${nonspokenCount}`);
     }
     if (categoryCounts.size < 6) {
@@ -214,13 +235,17 @@ function validateExampleReferences(
     referenceId?: string,
     detail?: string,
   ) => void,
-): void {
+): readonly BaseExample[] {
   const fingerprints = new Set<string>();
+  const uniqueExamples: BaseExample[] = [];
   for (const example of examples) {
-    if (fingerprints.has(example.semanticFingerprint)) {
-      push("duplicate-semantic-fingerprint", example.semanticFingerprint);
+    const fingerprint = semanticFingerprintFor(example);
+    if (fingerprints.has(fingerprint)) {
+      push("duplicate-semantic-fingerprint", fingerprint);
+    } else {
+      uniqueExamples.push(example);
     }
-    fingerprints.add(example.semanticFingerprint);
+    fingerprints.add(fingerprint);
     validateReference(
       example.teachingPurposeCopyId,
       catalogs.copyIds.has(example.teachingPurposeCopyId),
@@ -266,6 +291,7 @@ function validateExampleReferences(
       );
     }
   }
+  return uniqueExamples;
 }
 
 export function validateBaseLessonDepth(
@@ -308,11 +334,19 @@ export function validateBaseLessonDepth(
       validateReference(lexemeId, catalogs.lexemes.has(lexemeId), "phonetic anchor", push);
     }
     for (const audioId of lesson.audioExemplarIds) {
-      validateReference(audioId, catalogs.audioIds.has(audioId), "phonetic audio exemplar", push);
+      validateReference(
+        audioId,
+        catalogs.audioTargets.has(audioId),
+        "phonetic audio exemplar",
+        push,
+      );
     }
     const nonspoken = lesson.activities.filter((activity) => activity.mode === "non-spoken");
     const operations = new Set(
-      nonspoken.map((activity) => `${activity.category}:${activity.targetOperationFingerprint}`),
+      nonspoken.flatMap((activity) => {
+        const fingerprint = activityTargetOperationFingerprintFor(activity, catalogs);
+        return fingerprint.ok ? [fingerprint.fingerprint] : [];
+      }),
     );
     if (nonspoken.length < 6 || operations.size < 6) {
       push("phonetic-nonspoken-operations", undefined, `${operations.size}`);
@@ -358,7 +392,7 @@ export function validateBaseLessonDepth(
   }
 
   const examples = resolvedExamples(lesson, catalogs, push);
-  validateExampleReferences(examples, catalogs, push);
+  const uniqueExamples = validateExampleReferences(examples, catalogs, push);
   validateActivities(lesson, catalogs, true, push);
 
   const dialogue = lesson.dialogueId ? catalogs.dialogues.get(lesson.dialogueId) : undefined;
@@ -372,16 +406,17 @@ export function validateBaseLessonDepth(
       "dialogue outcome copy",
       push,
     );
-    const exampleFingerprints = new Set(examples.map((example) => example.semanticFingerprint));
+    const exampleFingerprints = new Set(examples.map(semanticFingerprintFor));
     const dialogueFingerprints = new Set<string>();
     for (const turn of dialogue.turns) {
+      const fingerprint = semanticFingerprintFor(turn);
       if (
-        exampleFingerprints.has(turn.semanticFingerprint) ||
-        dialogueFingerprints.has(turn.semanticFingerprint)
+        exampleFingerprints.has(fingerprint) ||
+        dialogueFingerprints.has(fingerprint)
       ) {
-        push("dialogue-example-fingerprint-overlap", turn.semanticFingerprint);
+        push("dialogue-example-fingerprint-overlap", fingerprint);
       }
-      dialogueFingerprints.add(turn.semanticFingerprint);
+      dialogueFingerprints.add(fingerprint);
     }
     if (lesson.interactive && !isCountWithin(dialogue.turns.length, 4, 8)) {
       push(
@@ -412,7 +447,7 @@ export function validateBaseLessonDepth(
       push("system-example-count", undefined, `${uniqueIds(lesson.workedExampleIds).length}`);
     }
     for (const patternCellId of lesson.patternCellIds) {
-      if (!examples.some((example) => example.patternCellIds.includes(patternCellId))) {
+      if (!uniqueExamples.some((example) => example.patternCellIds.includes(patternCellId))) {
         push("system-pattern-cell-unrepresented", patternCellId);
       }
     }
