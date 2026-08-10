@@ -17,6 +17,12 @@ export interface BasePredicateGrid {
   readonly pastNegative: BasePredicateCell;
 }
 
+export type BasePredicateForm =
+  | "affirmative"
+  | "negative"
+  | "pastAffirmative"
+  | "pastNegative";
+
 export interface BaseNounPredicateInput {
   readonly id: string;
   readonly kana: string;
@@ -42,28 +48,31 @@ export type BasePredicateValidationInput =
   | Readonly<{
       readonly predicateKind: "i-adjective";
       readonly lexemeId: string;
-      readonly ending: "da" | "desu" | "none";
-      readonly surface?: string;
+      readonly form: BasePredicateForm;
+      readonly surface: string;
+      readonly ending?: "da" | "desu" | "none";
     }>
   | Readonly<{
       readonly predicateKind: "na-adjective";
       readonly lexemeId: string;
       readonly position: "attributive";
-      readonly hasNa: boolean;
-      readonly surface?: string;
+      readonly surface: string;
+      readonly hasNa?: boolean;
     }>
   | Readonly<{
       readonly predicateKind: "na-adjective";
       readonly lexemeId: string;
       readonly position: "predicate";
+      readonly form: BasePredicateForm | "plainAffirmative";
       readonly copula: "none" | "desu" | "da";
-      readonly surface?: string;
+      readonly surface: string;
     }>;
 
 export type BasePredicateValidationErrorCode =
   | "i-adjective-copula-da"
   | "na-adjective-missing-na"
   | "na-adjective-missing-copula"
+  | "surface-form-mismatch"
   | "unknown-lexeme"
   | "not-an-adjective"
   | "predicate-kind-lexeme-mismatch";
@@ -310,6 +319,23 @@ function validationError(
   return Object.freeze({ ok: false, error: Object.freeze({ code, lexemeId }) });
 }
 
+function japaneseSurface(tokens: readonly AssembledToken[]): string {
+  return tokens.map((token) => token.jp).join("").normalize("NFKC").trim();
+}
+
+function normalizedSurface(surface: unknown): string {
+  return typeof surface === "string" ? surface.normalize("NFKC").trim() : "";
+}
+
+function isPredicateForm(value: unknown): value is BasePredicateForm {
+  return (
+    value === "affirmative" ||
+    value === "negative" ||
+    value === "pastAffirmative" ||
+    value === "pastNegative"
+  );
+}
+
 export function validateBasePredicate(
   input: BasePredicateValidationInput,
 ): BasePredicateValidationResult {
@@ -329,25 +355,76 @@ export function validateBasePredicate(
   if (
     input.predicateKind === "i-adjective" &&
     lexeme.adjectiveClass === "i" &&
-    input.ending === "da"
+    (input.ending === "da" || normalizedSurface(input.surface).endsWith("だ"))
   ) {
     return validationError("i-adjective-copula-da", input.lexemeId);
   }
-  if (
-    input.predicateKind === "na-adjective" &&
-    lexeme.adjectiveClass === "na" &&
-    input.position === "attributive" &&
-    !input.hasNa
-  ) {
-    return validationError("na-adjective-missing-na", input.lexemeId);
+
+  if (input.predicateKind === "i-adjective") {
+    const realized = realizeIAdjectivePredicate(input.lexemeId);
+    if (!realized.ok) {
+      return validationError("not-an-adjective", input.lexemeId);
+    }
+    if (!isPredicateForm(input.form)) {
+      return validationError("surface-form-mismatch", input.lexemeId);
+    }
+    const cell = realized.value[input.form];
+    if (
+      input.ending !== undefined &&
+      input.ending !== "desu"
+    ) {
+      return validationError("surface-form-mismatch", input.lexemeId);
+    }
+    return japaneseSurface(cell.tokens) === normalizedSurface(input.surface)
+      ? Object.freeze({ ok: true })
+      : validationError("surface-form-mismatch", input.lexemeId);
   }
+
+  if (input.position === "attributive") {
+    const realized = realizeNaAdjectiveAttributive(input.lexemeId);
+    if (!realized.ok) {
+      return validationError("not-an-adjective", input.lexemeId);
+    }
+    const surface = normalizedSurface(input.surface);
+    if (
+      input.hasNa === false ||
+      surface === japaneseSurface(
+        realized.value.slice(0, realized.value.length - 1),
+      )
+    ) {
+      return validationError("na-adjective-missing-na", input.lexemeId);
+    }
+    return japaneseSurface(realized.value) === surface
+      ? Object.freeze({ ok: true })
+      : validationError("surface-form-mismatch", input.lexemeId);
+  }
+
+  const surface = normalizedSurface(input.surface);
   if (
-    input.predicateKind === "na-adjective" &&
-    lexeme.adjectiveClass === "na" &&
-    input.position === "predicate" &&
-    input.copula === "none"
+    input.copula === "none" ||
+    surface === lexeme.kana.normalize("NFKC").trim()
   ) {
     return validationError("na-adjective-missing-copula", input.lexemeId);
   }
-  return Object.freeze({ ok: true });
+  if (input.form === "plainAffirmative") {
+    if (input.copula !== "da") {
+      return validationError("surface-form-mismatch", input.lexemeId);
+    }
+    return surface === `${lexeme.kana}だ`
+      ? Object.freeze({ ok: true })
+      : validationError("surface-form-mismatch", input.lexemeId);
+  }
+  if (!isPredicateForm(input.form)) {
+    return validationError("surface-form-mismatch", input.lexemeId);
+  }
+  if (input.copula !== "desu") {
+    return validationError("surface-form-mismatch", input.lexemeId);
+  }
+  const realized = realizeNaAdjectivePredicate(input.lexemeId);
+  if (!realized.ok) {
+    return validationError("not-an-adjective", input.lexemeId);
+  }
+  return japaneseSurface(realized.value[input.form].tokens) === surface
+    ? Object.freeze({ ok: true })
+    : validationError("surface-form-mismatch", input.lexemeId);
 }

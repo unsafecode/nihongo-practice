@@ -50,6 +50,7 @@ export interface BaseParticleSenseDefinition {
 
 export interface BasePredicateParticleFrame {
   readonly id: BasePredicateSenseId;
+  readonly allowedPredicateLexemeIds: readonly string[];
   readonly requiredRoles: readonly BaseParticleRole[];
   readonly particleSensesByRole: Readonly<
     Partial<Record<BaseParticleRole, readonly BaseParticleSense[]>>
@@ -144,66 +145,77 @@ export function particleSenseFirstTeachContentId(
 const BASE_PREDICATE_PARTICLE_FRAMES: readonly BasePredicateParticleFrame[] = deepFreeze([
   {
     id: "eat",
+    allowedPredicateLexemeIds: ["verb-taberu"],
     requiredRoles: ["theme"],
     particleSensesByRole: { theme: ["object-o"] },
     particleOwnerLessonId: "argument-particles-1",
   },
   {
     id: "read",
+    allowedPredicateLexemeIds: [],
     requiredRoles: ["theme"],
     particleSensesByRole: { theme: ["object-o"] },
     particleOwnerLessonId: "argument-particles-1",
   },
   {
     id: "write",
+    allowedPredicateLexemeIds: ["verb-kaku"],
     requiredRoles: ["theme"],
     particleSensesByRole: { theme: ["object-o"] },
     particleOwnerLessonId: "argument-particles-1",
   },
   {
     id: "buy",
+    allowedPredicateLexemeIds: ["verb-kau"],
     requiredRoles: ["theme"],
     particleSensesByRole: { theme: ["object-o"] },
     particleOwnerLessonId: "argument-particles-1",
   },
   {
     id: "go",
+    allowedPredicateLexemeIds: ["verb-iku"],
     requiredRoles: ["goal"],
     particleSensesByRole: { goal: ["goal-ni", "direction-he"] },
     particleOwnerLessonId: "argument-particles-2",
   },
   {
     id: "come",
+    allowedPredicateLexemeIds: ["verb-kuru", "verb-motte-kuru"],
     requiredRoles: ["goal"],
     particleSensesByRole: { goal: ["goal-ni", "direction-he"] },
     particleOwnerLessonId: "argument-particles-2",
   },
   {
     id: "return",
+    allowedPredicateLexemeIds: ["verb-kaeru"],
     requiredRoles: ["goal"],
     particleSensesByRole: { goal: ["goal-ni", "direction-he"] },
     particleOwnerLessonId: "argument-particles-2",
   },
   {
     id: "study",
+    allowedPredicateLexemeIds: ["verb-benkyou-suru"],
     requiredRoles: ["action-place"],
     particleSensesByRole: { "action-place": ["action-place-de"] },
     particleOwnerLessonId: "argument-particles-3",
   },
   {
     id: "work",
+    allowedPredicateLexemeIds: [],
     requiredRoles: ["action-place"],
     particleSensesByRole: { "action-place": ["action-place-de"] },
     particleOwnerLessonId: "argument-particles-3",
   },
   {
     id: "travel",
+    allowedPredicateLexemeIds: [],
     requiredRoles: ["means"],
     particleSensesByRole: { means: ["means-de"] },
     particleOwnerLessonId: "argument-particles-3",
   },
   {
     id: "aru",
+    allowedPredicateLexemeIds: ["verb-aru"],
     requiredRoles: ["existence-location", "existential-subject"],
     particleSensesByRole: {
       "existence-location": ["existence-location-ni"],
@@ -213,6 +225,7 @@ const BASE_PREDICATE_PARTICLE_FRAMES: readonly BasePredicateParticleFrame[] = de
   },
   {
     id: "iru",
+    allowedPredicateLexemeIds: ["verb-iru"],
     requiredRoles: ["existence-location", "existential-subject"],
     particleSensesByRole: {
       "existence-location": ["existence-location-ni"],
@@ -229,8 +242,40 @@ export const BASE_PARTICLE_FRAME_BY_PREDICATE: ReadonlyMap<
   BASE_PREDICATE_PARTICLE_FRAMES.map((frame) => [frame.id, frame]),
 );
 
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+const BASE_PARTICLE_ROLE_BY_ID: ReadonlyMap<BaseParticleRole, BaseParticleRole> =
+  immutableReadonlyMap(
+    ([
+      "theme",
+      "goal",
+      "action-place",
+      "means",
+      "existence-location",
+      "existential-subject",
+    ] as const).map((role) => [role, role]),
+  );
+
+const BASE_PARTICLE_SENSE_BY_ID: ReadonlyMap<BaseParticleSense, BaseParticleSense> =
+  immutableReadonlyMap(BASE_PARTICLE_SENSES.map((sense) => [sense.id, sense.id]));
+
+const hasOwn: (value: object, key: PropertyKey) => boolean =
+  (Object as unknown as {
+    hasOwn?: (value: object, key: PropertyKey) => boolean;
+  }).hasOwn ??
+  ((value, key) => Object.prototype.hasOwnProperty.call(value, key));
+
+function isPlainRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function hasOnlyOwnDataProperties(value: Readonly<Record<string, unknown>>): boolean {
+  if (Object.getOwnPropertySymbols(value).length > 0) return false;
+  return Object.values(Object.getOwnPropertyDescriptors(value)).every(
+    (descriptor) => "value" in descriptor,
+  );
 }
 
 export function validateParticleFrame(
@@ -260,19 +305,43 @@ export function validateParticleFrame(
   }
 
   const errors: BaseParticleFrameError[] = [];
-  if (!isRecord(provided)) {
+  const plainProvided = isPlainRecord(provided);
+  const ownDataProvided =
+    plainProvided && hasOnlyOwnDataProperties(provided);
+  if (!ownDataProvided) {
     errors.push({ code: "invalid-particle-frame", predicateSenseId });
-    return Object.freeze({ ok: false, errors: deepFreeze(errors) });
   }
   for (const role of frame.requiredRoles) {
-    if (typeof provided[role] !== "string" || provided[role].trim().length === 0) {
+    const property =
+      ownDataProvided && hasOwn(provided, role)
+        ? Object.getOwnPropertyDescriptor(provided, role)
+        : undefined;
+    if (
+      !property ||
+      !("value" in property) ||
+      typeof property.value !== "string" ||
+      property.value.trim().length === 0
+    ) {
       errors.push({ code: "missing-role", predicateSenseId, role });
     }
   }
-  for (const [role, particleSense] of Object.entries(provided)) {
+  if (!ownDataProvided) {
+    return Object.freeze({ ok: false, errors: deepFreeze(errors) });
+  }
+  for (const role of Object.keys(provided)) {
+    const descriptor = Object.getOwnPropertyDescriptor(provided, role);
+    const particleSense = descriptor && "value" in descriptor ? descriptor.value : undefined;
     if (typeof particleSense !== "string" || particleSense.trim().length === 0) {
       errors.push({
         code: "invalid-particle-frame",
+        predicateSenseId,
+        role: role as BaseParticleRole,
+      });
+      continue;
+    }
+    if (!BASE_PARTICLE_ROLE_BY_ID.has(role as BaseParticleRole)) {
+      errors.push({
+        code: "extra-role",
         predicateSenseId,
         role: role as BaseParticleRole,
       });
@@ -285,7 +354,10 @@ export function validateParticleFrame(
         predicateSenseId,
         role: role as BaseParticleRole,
       });
-    } else if (!allowed.includes(particleSense as BaseParticleSense)) {
+    } else if (
+      !BASE_PARTICLE_SENSE_BY_ID.has(particleSense as BaseParticleSense) ||
+      !allowed.includes(particleSense as BaseParticleSense)
+    ) {
       errors.push({
         code: "unlicensed-particle",
         predicateSenseId,

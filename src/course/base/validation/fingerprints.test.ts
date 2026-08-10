@@ -38,6 +38,8 @@ function example(overrides: Partial<BaseExample> = {}): BaseExample {
     predicateAspect: "dynamic",
     interpretationTags: ["habitual"],
     semanticRoleIds: ["agent", "theme"],
+    predicateSenseId: null,
+    predicateLexemeId: null,
     discourseFrameId: "routine-1",
     particleFrame: {
       predicateSenseId: "see",
@@ -136,5 +138,20 @@ describe("Base canonical fingerprints", () => {
     expect(semanticFingerprintFor(null as unknown as BaseExample)).toBe(
       semanticFingerprintFor(emptyTarget),
     );
+  });
+
+  it("normalizes only own plain-record particle entries without reading inherited values", () => {
+    const inheritedProvided = Object.create({ theme: "object-o" }) as Record<string, unknown>;
+    const inheritedFrame = Object.create({
+      predicateSenseId: "eat",
+      provided: inheritedProvided,
+    }) as BaseExample["particleFrame"];
+    const absent = example({ particleFrame: undefined });
+    const inherited = example({
+      particleFrame: inheritedFrame,
+    });
+
+    expect(() => semanticFingerprintFor(inherited)).not.toThrow();
+    expect(semanticFingerprintFor(inherited)).toBe(semanticFingerprintFor(absent));
   });
 });

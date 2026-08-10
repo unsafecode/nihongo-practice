@@ -21,7 +21,35 @@ export type ActivityFingerprintResolution =
     }>;
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+const hasOwn: (value: object, key: PropertyKey) => boolean =
+  (Object as unknown as {
+    hasOwn?: (value: object, key: PropertyKey) => boolean;
+  }).hasOwn ??
+  ((value, key) => Object.prototype.hasOwnProperty.call(value, key));
+
+function ownDataValue(
+  value: Readonly<Record<string, unknown>>,
+  key: string,
+): unknown {
+  if (!hasOwn(value, key)) return undefined;
+  const descriptor = Object.getOwnPropertyDescriptor(value, key);
+  return descriptor && "value" in descriptor ? descriptor.value : undefined;
+}
+
+function ownStringEntries(
+  value: Readonly<Record<string, unknown>>,
+): readonly (readonly [string, string])[] {
+  return Object.keys(value).flatMap((key) => {
+    const entry = ownDataValue(value, key);
+    return typeof entry === "string" ? ([[key, entry]] as const) : [];
+  });
 }
 
 function normalizeText(value: unknown): string {
@@ -54,12 +82,11 @@ function normalizedParticleFrame(
   readonly provided: readonly (readonly [string, string])[];
 }> | null {
   if (!isRecord(particleFrame)) return null;
-  const provided = isRecord(particleFrame.provided)
-    ? Object.entries(particleFrame.provided)
-        .filter(
-          (entry): entry is [string, string] =>
-            typeof entry[0] === "string" && typeof entry[1] === "string",
-        )
+  const predicateSenseId = ownDataValue(particleFrame, "predicateSenseId");
+  if (typeof predicateSenseId !== "string") return null;
+  const providedValue = ownDataValue(particleFrame, "provided");
+  const provided = isRecord(providedValue)
+    ? ownStringEntries(providedValue)
         .map(
           ([role, sense]) =>
             [normalizeText(role), normalizeText(sense)] as const,
@@ -68,7 +95,7 @@ function normalizedParticleFrame(
         .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
     : [];
   return {
-    predicateSenseId: normalizeText(particleFrame.predicateSenseId),
+    predicateSenseId: normalizeText(predicateSenseId),
     provided,
   };
 }
@@ -118,6 +145,7 @@ function targetMetadataFor(
 }
 
 export function activityTargetVisibleSurfaceFor(
+  _lessonId: string,
   activity: BaseActivityDefinition,
   catalogs: BaseValidationCatalogs,
 ): string | undefined {
@@ -126,6 +154,7 @@ export function activityTargetVisibleSurfaceFor(
 }
 
 export function activityTargetOperationFingerprintFor(
+  _lessonId: string,
   activity: BaseActivityDefinition,
   catalogs: BaseValidationCatalogs,
 ): ActivityFingerprintResolution {

@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import * as sequenceRules from "./sequenceRules";
+import * as visibleTargets from "../catalog/visibleTargets";
+import * as catalogTypes from "../catalog/types";
 import type { AssembledToken } from "../../../romaji/types";
 import {
   BASE_CONCEPT_BY_ID,
+  BASE_REFERENCE_SNAPSHOT_BY_ID,
   BASE_RETRIEVAL_SYSTEM_BY_ID,
 } from "../catalog/concepts";
 import { BASE_FIRST_TEACH_OWNERS } from "../catalog/firstTeach";
@@ -20,6 +23,8 @@ import type {
 } from "../catalog/types";
 import { validateBaseLessonDepth } from "./lessonRules";
 import { validateFirstTeachOrder, visibleJapaneseFor } from "./sequenceRules";
+import { BASE_LESSON_IDS, BASE_LESSON_MANIFEST } from "../manifest";
+import { validateTokenSequence } from "./lessonRules";
 
 function token(id: string, jp: string): AssembledToken {
   return {
@@ -44,6 +49,8 @@ function visibleTarget(
     patternCellIds: ["cell-1"],
     semanticRoleIds: ["agent", "theme"],
     interpretationTags: ["habitual"],
+    predicateSenseId: null,
+    predicateLexemeId: null,
     predicateAspect: "dynamic",
     discourseFrameId: "target-frame",
     ...overrides,
@@ -63,6 +70,8 @@ function example(index: number): BaseExample {
     predicateAspect: "dynamic",
     interpretationTags: ["habitual"],
     semanticRoleIds: ["agent", "theme"],
+    predicateSenseId: null,
+    predicateLexemeId: null,
     discourseFrameId: `example-frame-${index}`,
   } as BaseExample;
 }
@@ -160,6 +169,8 @@ const DIALOGUE: BaseDialogue = {
     predicateAspect: "dynamic",
     interpretationTags: ["habitual"],
     semanticRoleIds: ["agent", "theme"],
+    predicateSenseId: null,
+    predicateLexemeId: null,
     discourseFrameId: `dialogue-frame-${index}`,
   })) as BaseDialogue["turns"],
 };
@@ -256,15 +267,20 @@ const CATALOGS: BaseValidationCatalogs = {
     ]),
   ),
   activityPromptTargets: new Map(
-    Array.from({ length: 11 }, (_, index) => [
-      `activity-${index + 1}`,
-      visibleTarget([token(`prompt-${index + 1}`, `問${index + 1}`)]),
-    ]),
+    BASE_LESSON_IDS.flatMap((lessonId) =>
+      Array.from({ length: 11 }, (_, index) => [
+        visibleTargets.baseActivityPromptKey(lessonId, `activity-${index + 1}`),
+        visibleTarget([token(`prompt-${lessonId}-${index + 1}`, `問${index + 1}`)]),
+      ]),
+    ),
   ),
   copyIds: COPY_IDS,
   contrastMapIds: new Set(["contrast-map-1"]),
-  referenceSnapshotIds: new Set(["reference-sentence-order"]),
+  referenceSnapshots: BASE_REFERENCE_SNAPSHOT_BY_ID,
   patternCellIds: new Set(["cell-1", "cell-2"]),
+  patternCellIdsByLesson: new Map([
+    ["copula-adjectives-4", ["cell-1", "cell-2"]],
+  ]),
   systems: BASE_RETRIEVAL_SYSTEM_BY_ID,
   acceptedAnswerTargets: new Map(
     [
@@ -424,6 +440,20 @@ describe("Base lesson depth rules", () => {
       "dictionary-lemma",
       "four-polite-tense-cells",
     ];
+    const reviewLexemeIds = [
+      "verb-kaku",
+      "verb-oyogu",
+      "verb-hanasu",
+      "verb-matsu",
+      "verb-shinu",
+      "verb-asobu",
+      "verb-nomu",
+      "verb-kau",
+      "verb-taberu",
+      "verb-miru",
+      "verb-suru",
+      "verb-kuru",
+    ];
     const systems = new Map(
       systemIds.map((id, index) => [
         id,
@@ -447,37 +477,45 @@ describe("Base lesson depth rules", () => {
         componentId === "four-polite-tense-cells" ? [] : [componentId],
       formIds:
         componentId === "four-polite-tense-cells" ? [componentId] : [],
+      lexemeIds: reviewLexemeIds,
       discourseFrameId: `retrieved-system-frame-${index + 1}`,
     }));
+    const cumulativeTarget = visibleTarget(
+     [token("cumulative-retrieval-target", "復習")],
+     {
+       lexemeIds: reviewLexemeIds,
+       conceptIds: componentIds.slice(0, 3),
+       formIds: [componentIds[3]],
+     },
+    );
     const catalogs = {
-      ...CATALOGS,
+     ...CATALOGS,
       examples: new Map([
         ...CATALOGS.examples,
         ...retrievedExamples.map((entry) => [entry.id, entry] as const),
       ]),
       systems,
+      acceptedAnswerTargets: new Map([
+        ...CATALOGS.acceptedAnswerTargets,
+        ["answer-11", cumulativeTarget],
+      ]),
+      activityPromptTargets: new Map([
+        ...CATALOGS.activityPromptTargets,
+        [
+          visibleTargets.baseActivityPromptKey("base-synthesis-4", "activity-11"),
+          cumulativeTarget,
+        ],
+      ]),
     } as unknown as BaseValidationCatalogs;
     const synthesis: BaseLessonContent = {
       ...systemLesson(),
       lessonId: "base-synthesis-4",
       contract: "synthesis",
+      prerequisiteLessonIds: ["base-synthesis-3"],
       newLexemeIds: [],
       introducedConceptIds: [],
       reviewedConceptIds: [],
-      reviewLexemeIds: [
-        "verb-kaku",
-        "verb-oyogu",
-        "verb-hanasu",
-        "verb-matsu",
-        "verb-shinu",
-        "verb-asobu",
-        "verb-nomu",
-        "verb-kau",
-        "verb-taberu",
-        "verb-miru",
-        "verb-suru",
-        "verb-kuru",
-      ],
+      reviewLexemeIds,
       workedExampleIds: [
         ...retrievedExamples.map((entry) => entry.id),
         EXAMPLES[4].id,
@@ -488,7 +526,8 @@ describe("Base lesson depth rules", () => {
         ...SEMANTIC_ACTIVITIES,
         {
           ...activity(11, "cumulative-retrieval"),
-          assessedConceptIds: componentIds,
+          assessedConceptIds: [],
+          assessedLexemeIds: [],
         },
       ],
     };
@@ -507,16 +546,37 @@ describe("Base lesson depth rules", () => {
         }),
       ]),
     );
+    const noRetrievalTarget = visibleTarget([
+      token("no-cumulative-retrieval-target", "なし"),
+    ]);
+    const noRetrievalCatalogs = {
+      ...catalogs,
+      acceptedAnswerTargets: new Map([
+        ...catalogs.acceptedAnswerTargets,
+        ["answer-11", noRetrievalTarget],
+      ]),
+      activityPromptTargets: new Map([
+        ...catalogs.activityPromptTargets,
+        [
+          visibleTargets.baseActivityPromptKey("base-synthesis-4", "activity-11"),
+          noRetrievalTarget,
+        ],
+      ]),
+    } as unknown as BaseValidationCatalogs;
     expect(
       validateBaseLessonDepth(
         {
           ...synthesis,
           activities: [
             ...SEMANTIC_ACTIVITIES,
-            { ...activity(11, "cumulative-retrieval"), assessedConceptIds: [] },
+            {
+              ...activity(11, "cumulative-retrieval"),
+              assessedConceptIds: [],
+              assessedLexemeIds: [],
+            },
           ],
         },
-        catalogs,
+        noRetrievalCatalogs,
       ),
     ).toEqual(
       expect.arrayContaining([
@@ -753,6 +813,9 @@ describe("Base lesson depth rules", () => {
           },
         ],
       ]),
+      patternCellIdsByLesson: new Map([
+        ["copula-adjectives-4", ["cell-1", "cell-2", "missing-cell"]],
+      ]),
     };
     const mutated = {
       ...lesson,
@@ -878,6 +941,9 @@ describe("Base lesson depth rules", () => {
       ...CATALOGS,
       examples: new Map([...CATALOGS.examples, [target.id, target]]),
       patternCellIds: new Set([...CATALOGS.patternCellIds, "activity-only-cell"]),
+      patternCellIdsByLesson: new Map([
+        ["copula-adjectives-4", ["activity-only-cell", "cell-1"]],
+      ]),
     };
     const lesson = {
       ...systemLesson(),
@@ -960,6 +1026,9 @@ describe("Base lesson depth rules", () => {
       ...CATALOGS,
       examples: new Map([...CATALOGS.examples, [cosmeticDuplicate.id, cosmeticDuplicate]]),
       patternCellIds: new Set([...CATALOGS.patternCellIds, "cell-3"]),
+      patternCellIdsByLesson: new Map([
+        ["copula-adjectives-4", ["cell-3", "cell-1"]],
+      ]),
     };
 
     expect(
@@ -996,6 +1065,9 @@ describe("Base lesson depth rules", () => {
       ...CATALOGS,
       examples: new Map([...CATALOGS.examples, [segmented.id, segmented]]),
       patternCellIds: new Set([...CATALOGS.patternCellIds, "cell-3"]),
+      patternCellIdsByLesson: new Map([
+        ["copula-adjectives-4", ["cell-3", "cell-1"]],
+      ]),
     };
     const lesson = {
       ...systemLesson(),
@@ -1315,7 +1387,13 @@ describe("Base lesson depth rules", () => {
       ...CATALOGS,
       activityPromptTargets: new Map([
         ...CATALOGS.activityPromptTargets,
-        ["activity-1", visibleTarget([invalid])],
+        [
+          visibleTargets.baseActivityPromptKey(
+            "copula-adjectives-4",
+            "activity-1",
+          ),
+          visibleTarget([invalid]),
+        ],
       ]),
       acceptedAnswerTargets: new Map([
         ...CATALOGS.acceptedAnswerTargets,
@@ -1834,6 +1912,8 @@ describe("Base sequence rules", () => {
       patternCellIds: [],
       semanticRoleIds: [],
       interpretationTags: [],
+      predicateSenseId: null,
+      predicateLexemeId: null,
     };
     const phonetic = phoneticLesson();
     if (phonetic.contract !== "phonetic") throw new Error("fixture contract");
@@ -1865,7 +1945,12 @@ describe("Base sequence rules", () => {
     };
     const catalogs = {
       ...CATALOGS,
-      activityPromptTargets: new Map([["activity-1", futureTarget]]),
+      activityPromptTargets: new Map([
+        [
+          visibleTargets.baseActivityPromptKey("sounds-1", "activity-1"),
+          futureTarget,
+        ],
+      ]),
       acceptedAnswerTargets: new Map([["future-accepted", futureTarget]]),
       audioTargets: new Map([["future-audio", futureTarget]]),
     } as unknown as BaseValidationCatalogs;
@@ -1906,6 +1991,8 @@ describe("Base sequence rules", () => {
       patternCellIds: ["missing-target-pattern"],
       semanticRoleIds: [],
       interpretationTags: [],
+      predicateSenseId: "eat",
+      predicateLexemeId: "missing-target-lexeme",
       particleFrame: {
         predicateSenseId: "eat",
         provided: { theme: "goal-ni" },
@@ -1921,7 +2008,8 @@ describe("Base sequence rules", () => {
     const catalogs = {
       ...CATALOGS,
       acceptedAnswerTargets: new Map([
-        ["invalid-provenance-target", invalidTarget],
+        ...CATALOGS.acceptedAnswerTargets,
+        ["invalid-provenance-target", invalidTarget as BaseVisibleTarget],
       ]),
     } as unknown as BaseValidationCatalogs;
 
@@ -2065,6 +2153,380 @@ describe("Base sequence rules", () => {
         expect.objectContaining({
           code: "first-teach-before-owner",
           referenceId: "adjective-takai",
+        }),
+      ]),
+    );
+  });
+});
+
+describe("Task7 Base catalog integrity regressions", () => {
+  it("scopes prompt provenance by lesson and activity with a collision-safe key", () => {
+    const keyFor = (
+      visibleTargets as unknown as {
+        baseActivityPromptKey?: (lessonId: string, activityId: string) => string;
+      }
+    ).baseActivityPromptKey;
+    const resolvePrompt = (
+      visibleTargets as unknown as {
+        activityPromptTargetReferenceFor?: (
+          lessonId: string,
+          activity: BaseActivityDefinition,
+          catalogs: BaseValidationCatalogs,
+        ) => { readonly target: BaseVisibleTarget } | undefined;
+      }
+    ).activityPromptTargetReferenceFor;
+    expect(keyFor).toBeTypeOf("function");
+    expect(resolvePrompt).toBeTypeOf("function");
+    if (!keyFor || !resolvePrompt) return;
+
+    const firstKey = keyFor("sounds-1", "activity-1");
+    const secondKey = keyFor("sounds-2", "activity-1");
+    const first = visibleTarget([token("scoped-prompt-one", "一")]);
+    const second = visibleTarget([token("scoped-prompt-two", "二")]);
+    const catalogs: BaseValidationCatalogs = {
+      ...CATALOGS,
+      activityPromptTargets: new Map([
+        [firstKey, first],
+        [secondKey, second],
+      ]),
+    };
+
+    expect(firstKey).not.toBe(secondKey);
+    expect(
+      resolvePrompt("sounds-1", activity(1, "meaning-comprehension"), catalogs)?.target.tokens[0]
+        .jp,
+    ).toBe("一");
+    expect(
+      resolvePrompt("sounds-2", activity(1, "meaning-comprehension"), catalogs)?.target.tokens[0]
+        .jp,
+    ).toBe("二");
+  });
+
+  it("requires the canonical immediate predecessor for every non-initial Base lesson", () => {
+    const requiredByLesson = (
+      sequenceRules as unknown as {
+        BASE_REQUIRED_PREREQUISITE_BY_LESSON?: ReadonlyMap<string, string | null>;
+      }
+    ).BASE_REQUIRED_PREREQUISITE_BY_LESSON;
+    expect(requiredByLesson).toBeDefined();
+    expect(requiredByLesson?.get("sounds-1")).toBeNull();
+    expect(requiredByLesson?.get("sounds-2")).toBe("sounds-1");
+
+    expect(validateBaseLessonDepth({ ...phoneticLesson(), prerequisiteLessonIds: [] }, CATALOGS)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "missing-required-prerequisite",
+          referenceId: "sounds-1",
+        }),
+      ]),
+    );
+
+    const closureFixtures = BASE_LESSON_IDS.map(
+      (lessonId, index) =>
+        ({
+          lessonId,
+          contract: BASE_LESSON_MANIFEST[lessonId].contract,
+          prerequisiteLessonIds: index === 0 ? [] : [BASE_LESSON_IDS[index - 1]],
+        }) as unknown as BaseLessonContent,
+    );
+    expect(sequenceRules.validateBaseLessonPrerequisiteGraph(closureFixtures)).toEqual([]);
+  });
+
+  it("requires assessed claims to be visible in the actual prompt or target provenance", () => {
+    const lesson = {
+      ...systemLesson(),
+      activities: [
+        {
+          ...systemLesson().activities[0],
+          assessedLexemeIds: ["verb-iku"],
+          assessedConceptIds: ["goal-ni"],
+        },
+        ...systemLesson().activities.slice(1),
+      ],
+    };
+
+    expect(validateBaseLessonDepth(lesson, CATALOGS)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "assessed-id-not-visible",
+          referenceId: "verb-iku",
+        }),
+        expect.objectContaining({
+          code: "assessed-id-not-visible",
+          referenceId: "goal-ni",
+        }),
+      ]),
+    );
+  });
+
+  it("does not treat declared assessments as retrieval evidence", () => {
+    const taberuExample: BaseExample = {
+      ...EXAMPLES[0],
+      id: "taberu-visible-example",
+      tokens: [token("taberu-visible-token", "食べる")],
+      lexemeIds: ["verb-taberu"],
+      discourseFrameId: "taberu-visible-frame",
+    };
+    const catalogs: BaseValidationCatalogs = {
+      ...CATALOGS,
+      examples: new Map([...CATALOGS.examples, [taberuExample.id, taberuExample]]),
+    };
+    const lesson = {
+      ...systemLesson(),
+      newLexemeIds: ["verb-taberu"],
+      introducedConceptIds: [],
+      workedExampleIds: [taberuExample.id, ...EXAMPLES.slice(0, 9).map((example) => example.id)],
+      activities: systemLesson().activities.map((entry) => ({
+        ...entry,
+        assessedLexemeIds: ["verb-taberu"],
+      })),
+    };
+
+    expect(validateBaseLessonDepth(lesson, catalogs)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "new-lexeme-not-retrieved",
+          referenceId: "verb-taberu",
+        }),
+      ]),
+    );
+  });
+
+  it("requires each synthesis review lexeme to be visibly and actually retrieved", () => {
+    const reviewLexemeIds = [
+      "verb-kaku",
+      "verb-oyogu",
+      "verb-hanasu",
+      "verb-matsu",
+      "verb-shinu",
+      "verb-asobu",
+      "verb-nomu",
+      "verb-kau",
+      "verb-taberu",
+      "verb-miru",
+      "verb-suru",
+      "verb-kuru",
+    ];
+    const synthesis: BaseLessonContent = {
+      ...systemLesson(),
+      lessonId: "base-synthesis-4",
+      contract: "synthesis",
+      prerequisiteLessonIds: ["base-synthesis-3"],
+      newLexemeIds: [],
+      introducedConceptIds: [],
+      reviewLexemeIds,
+      workedExampleIds: EXAMPLES.slice(0, 6).map((example) => example.id),
+      dialogueId: null,
+      activities: [
+        ...SEMANTIC_ACTIVITIES,
+        {
+          ...activity(11, "cumulative-retrieval"),
+          assessedLexemeIds: reviewLexemeIds,
+        },
+      ],
+    };
+
+    expect(validateBaseLessonDepth(synthesis, CATALOGS)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "review-lexeme-not-visible",
+          referenceId: "verb-taberu",
+        }),
+        expect.objectContaining({
+          code: "review-lexeme-not-retrieved",
+          referenceId: "verb-taberu",
+        }),
+      ]),
+    );
+  });
+
+  it("binds a particle frame to a visible predicate lexeme licensed by its sense", () => {
+    const fakeEatOnIku = visibleTarget(
+      [token("fake-eat-on-iku", "行く")],
+      {
+        lexemeIds: ["verb-iku"],
+        predicateSenseId: "eat",
+        predicateLexemeId: "verb-iku",
+        particleFrame: {
+          predicateSenseId: "eat",
+          provided: { theme: "object-o" },
+        },
+      } as unknown as Partial<BaseVisibleTarget>,
+    );
+    const realEat = visibleTarget(
+      [token("real-eat", "食べる")],
+      {
+        lexemeIds: ["verb-taberu"],
+        predicateSenseId: "eat",
+        predicateLexemeId: "verb-taberu",
+        particleFrame: {
+          predicateSenseId: "eat",
+          provided: { theme: "object-o" },
+        },
+      } as unknown as Partial<BaseVisibleTarget>,
+    );
+    const phonetic = phoneticLesson();
+    const fakeCatalogs: BaseValidationCatalogs = {
+      ...CATALOGS,
+      acceptedAnswerTargets: new Map([
+        ...CATALOGS.acceptedAnswerTargets,
+        ["fake-eat-on-iku", fakeEatOnIku],
+      ]),
+    };
+    const realCatalogs: BaseValidationCatalogs = {
+      ...CATALOGS,
+      acceptedAnswerTargets: new Map([
+        ...CATALOGS.acceptedAnswerTargets,
+        ["real-eat", realEat],
+      ]),
+    };
+    const fakeLesson = {
+      ...phonetic,
+      activities: [
+        { ...phonetic.activities[0], targetId: "fake-eat-on-iku" },
+        ...phonetic.activities.slice(1),
+      ],
+    };
+    const realLesson = {
+      ...phonetic,
+      activities: [
+        { ...phonetic.activities[0], targetId: "real-eat" },
+        ...phonetic.activities.slice(1),
+      ],
+    };
+
+    expect(validateBaseLessonDepth(fakeLesson, fakeCatalogs)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "particle-frame-predicate-mismatch",
+          referenceId: "fake-eat-on-iku",
+        }),
+      ]),
+    );
+    expect(
+      validateBaseLessonDepth(realLesson, realCatalogs).map((error) => error.code),
+    ).not.toContain("particle-frame-predicate-mismatch");
+  });
+
+  it("requires a nonempty canonical system matrix and an exact declaration", () => {
+    const emptyMatrixCatalogs = {
+      ...CATALOGS,
+      patternCellIdsByLesson: new Map([["copula-adjectives-4", []]]),
+    } as unknown as BaseValidationCatalogs;
+    const canonicalMatrixCatalogs = {
+      ...CATALOGS,
+      patternCellIdsByLesson: new Map([["copula-adjectives-4", ["cell-1", "cell-2"]]]),
+    } as unknown as BaseValidationCatalogs;
+
+    expect(validateBaseLessonDepth(systemLesson(), emptyMatrixCatalogs)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "system-pattern-matrix-empty" }),
+      ]),
+    );
+    expect(
+      validateBaseLessonDepth(
+        { ...systemLesson(), patternCellIds: ["cell-1"] },
+        canonicalMatrixCatalogs,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "system-pattern-cell-set-mismatch" }),
+      ]),
+    );
+  });
+
+  it("rejects runtime token enum casts before invoking formatRomaji", () => {
+    const invalids = [
+      { ...token("bad-kind", "悪"), kind: "word" },
+      { ...token("bad-boundary", "悪"), boundaryBefore: "gap" },
+      { ...token("bad-domain", "悪"), source: { domain: "unknown", referenceId: "bad" } },
+      { ...token("bad-reading", "悪"), reading: 123 },
+      {
+        ...token("inherited-source", "悪"),
+        source: Object.create({ domain: "test", referenceId: "inherited" }),
+      },
+    ];
+    for (const invalid of invalids) {
+      expect(() => validateTokenSequence([invalid] as unknown)).not.toThrow();
+      expect(validateTokenSequence([invalid] as unknown)).toMatchObject({ ok: false });
+    }
+
+    const invalidTarget = visibleTarget([invalids[0] as unknown as AssembledToken]);
+    const phonetic = phoneticLesson();
+    const catalogs: BaseValidationCatalogs = {
+      ...CATALOGS,
+      acceptedAnswerTargets: new Map([
+        ...CATALOGS.acceptedAnswerTargets,
+        ["invalid-runtime-token", invalidTarget],
+      ]),
+    };
+    expect(
+      validateBaseLessonDepth(
+        {
+          ...phonetic,
+          activities: [
+            { ...phonetic.activities[0], targetId: "invalid-runtime-token" },
+            ...phonetic.activities.slice(1),
+          ],
+        },
+        catalogs,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "token-sequence-invalid",
+          referenceId: "invalid-runtime-token",
+        }),
+      ]),
+    );
+  });
+
+  it("publishes target views as deep cloned immutable provenance", () => {
+    const targetFromExample = (
+      catalogTypes as unknown as {
+        visibleTargetFromExample?: (example: BaseExample) => BaseVisibleTarget;
+      }
+    ).visibleTargetFromExample;
+    expect(targetFromExample).toBeTypeOf("function");
+    if (!targetFromExample) return;
+
+    const source: BaseExample = {
+      ...EXAMPLES[0],
+      tokens: [
+        {
+          ...EXAMPLES[0].tokens[0],
+          source: { domain: "test", referenceId: "original-token-source" },
+        },
+      ],
+      lexemeIds: ["verb-kaku"],
+      particleFrame: {
+        predicateSenseId: "eat",
+        provided: { theme: "object-o" },
+      },
+    };
+    const target = targetFromExample(source);
+    (source.lexemeIds as string[]).push("verb-taberu");
+    (source.tokens[0].source as { referenceId: string }).referenceId = "mutated-token-source";
+    (source.particleFrame?.provided as { theme: string }).theme = "goal-ni";
+
+    expect(target.lexemeIds).toEqual(["verb-kaku"]);
+    expect(target.tokens[0].source.referenceId).toBe("original-token-source");
+    expect(target.particleFrame?.provided).toEqual({ theme: "object-o" });
+    expect(Object.isFrozen(target.tokens[0].source)).toBe(true);
+    expect(Object.isFrozen(target.particleFrame?.provided)).toBe(true);
+  });
+
+  it("reports every used reference that has no canonical first-teach owner", () => {
+    const ownersWithoutKaku = BASE_FIRST_TEACH_OWNERS.filter(
+      (owner) => !(owner.kind === "lexeme" && owner.contentId === "verb-kaku"),
+    );
+    expect(
+      validateFirstTeachOrder([systemLesson()], ownersWithoutKaku, CATALOGS),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "missing-first-teach-owner",
+          referenceId: "verb-kaku",
         }),
       ]),
     );

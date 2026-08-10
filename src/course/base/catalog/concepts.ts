@@ -3,6 +3,7 @@ import { immutableReadonlyMap } from "../../foundations/immutableReadonlyMap";
 import type {
   BaseConcept,
   BaseConceptKind,
+  BaseReferenceSnapshotDefinition,
   BaseRetrievalSystem,
 } from "./types";
 
@@ -140,6 +141,35 @@ export const BASE_CONCEPTS: readonly BaseConcept[] = deepFreeze([
 
 export const BASE_CONCEPT_BY_ID: ReadonlyMap<string, BaseConcept> =
   immutableReadonlyMap(BASE_CONCEPTS.map((entry) => [entry.id, entry]));
+
+function referenceSnapshot(
+  id: string,
+  firstTeachLessonId: string,
+): BaseReferenceSnapshotDefinition {
+  return {
+    id,
+    firstTeachLessonId,
+    titleCopyId: `${id}-title`,
+  };
+}
+
+/**
+ * Reference snapshots are catalog records rather than a bare ID set so their
+ * first-teach ownership remains independently auditable.
+ */
+export const BASE_REFERENCE_SNAPSHOTS: readonly BaseReferenceSnapshotDefinition[] =
+  deepFreeze(
+    BASE_CONCEPTS.filter((concept) => concept.kind === "reference-entry").map(
+      (concept) => referenceSnapshot(concept.id, concept.firstTeachLessonId),
+    ),
+  );
+
+export const BASE_REFERENCE_SNAPSHOT_BY_ID: ReadonlyMap<
+  string,
+  BaseReferenceSnapshotDefinition
+> = immutableReadonlyMap(
+  BASE_REFERENCE_SNAPSHOTS.map((snapshot) => [snapshot.id, snapshot]),
+);
 
 function retrievalSystem(
   id: string,

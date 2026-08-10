@@ -4,6 +4,7 @@ import { deepFreeze } from "../../foundations/deepFreeze";
 import {
   BASE_CANONICAL_POSITIONS,
   BASE_LESSON_MANIFEST,
+  requiredBaseLessonPrerequisiteFor,
 } from "../manifest";
 import { firstTeachLessonPosition } from "../catalog/firstTeach";
 import type {
@@ -18,7 +19,10 @@ import {
   activityTargetReferenceFor,
   audioTargetReferenceFor,
 } from "../catalog/visibleTargets";
-import { validateParticleFrame } from "../forms/particleLicensing";
+import {
+  BASE_PARTICLE_FRAME_BY_PREDICATE,
+  validateParticleFrame,
+} from "../forms/particleLicensing";
 import {
   BASE_ACTIVITY_INTERACTIONS_BY_CATEGORY,
   BASE_ACTIVITY_OPERATION_BY_CATEGORY,
@@ -44,6 +48,12 @@ export type BaseValidationErrorCode =
   | "system-new-lexeme-count"
   | "system-example-count"
   | "system-pattern-cell-unrepresented"
+  | "system-pattern-matrix-missing"
+  | "system-pattern-matrix-empty"
+  | "system-pattern-matrix-not-substantive"
+  | "system-pattern-matrix-duplicate"
+  | "system-pattern-matrix-unresolved"
+  | "system-pattern-cell-set-mismatch"
   | "synthesis-new-content"
   | "synthesis-review-lexeme-count"
   | "synthesis-retrieved-system-count"
@@ -54,6 +64,7 @@ export type BaseValidationErrorCode =
   | "missing-explanation-block"
   | "missing-reference-snapshot"
   | "invalid-prerequisite"
+  | "missing-required-prerequisite"
   | "semantic-nonspoken-activity-count"
   | "semantic-category-coverage"
   | "activity-category-cap"
@@ -70,6 +81,8 @@ export type BaseValidationErrorCode =
   | "dialogue-example-fingerprint-overlap"
   | "unresolved-reference"
   | "first-teach-before-owner"
+  | "missing-first-teach-owner"
+  | "owner-catalog-mismatch"
   | "introduced-id-owner-mismatch"
   | "new-lexeme-owner-mismatch"
   | "concept-prerequisite-order"
@@ -81,8 +94,10 @@ export type BaseValidationErrorCode =
   | "forbidden-explanatory-no"
   | "unlicensed-particle"
   | "invalid-token-sequence"
+  | "token-sequence-invalid"
   | "invalid-visible-target"
   | "invalid-particle-frame"
+  | "particle-frame-predicate-mismatch"
   | "target-provenance-mismatch"
   | "new-lexeme-not-visible"
   | "new-lexeme-not-retrieved"
@@ -90,6 +105,9 @@ export type BaseValidationErrorCode =
   | "introduced-content-not-retrieved"
   | "duplicate-new-lexeme"
   | "new-lexeme-not-countable"
+  | "assessed-id-not-visible"
+  | "review-lexeme-not-visible"
+  | "review-lexeme-not-retrieved"
   | "synthesis-retrieved-system-duplicate"
   | "synthesis-system-before-teach"
   | "synthesis-system-not-visible"
@@ -153,25 +171,77 @@ function validateReference(
  * Keeps every authoring token sequence on the same romaji and boundary rules,
  * regardless of whether it belongs to an example, prompt, answer, or audio.
  */
+const TOKEN_KINDS = new Set(["lexical", "particle", "morpheme", "punctuation"]);
+const TOKEN_BOUNDARIES = new Set(["attach", "space"]);
+const TOKEN_SOURCE_DOMAINS = new Set([
+  "catalog",
+  "lab",
+  "exercise",
+  "speech",
+  "test",
+  "family",
+]);
+
+const hasOwn: (value: object, key: PropertyKey) => boolean =
+  (Object as unknown as {
+    hasOwn?: (value: object, key: PropertyKey) => boolean;
+  }).hasOwn ??
+  ((value, key) => Object.prototype.hasOwnProperty.call(value, key));
+
+function isPlainDataRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return false;
+  if (Object.getOwnPropertySymbols(value).length > 0) return false;
+  return Object.values(Object.getOwnPropertyDescriptors(value)).every(
+    (descriptor) => "value" in descriptor,
+  );
+}
+
+function ownDataValue(
+  record: Readonly<Record<string, unknown>>,
+  key: string,
+): unknown {
+  if (!hasOwn(record, key)) return undefined;
+  const descriptor = Object.getOwnPropertyDescriptor(record, key);
+  return descriptor && "value" in descriptor ? descriptor.value : undefined;
+}
+
+function isStrictRuntimeToken(token: unknown): token is AssembledToken {
+  if (!isPlainDataRecord(token)) return false;
+  const source = ownDataValue(token, "source");
+  if (!isPlainDataRecord(source)) return false;
+  const referenceId = ownDataValue(source, "referenceId");
+  const domain = ownDataValue(source, "domain");
+  const reading = ownDataValue(token, "reading");
+  return (
+    typeof ownDataValue(token, "id") === "string" &&
+    typeof ownDataValue(token, "jp") === "string" &&
+    typeof ownDataValue(token, "romaji") === "string" &&
+    typeof ownDataValue(token, "kind") === "string" &&
+    TOKEN_KINDS.has(ownDataValue(token, "kind") as string) &&
+    typeof ownDataValue(token, "boundaryBefore") === "string" &&
+    TOKEN_BOUNDARIES.has(ownDataValue(token, "boundaryBefore") as string) &&
+    typeof domain === "string" &&
+    TOKEN_SOURCE_DOMAINS.has(domain) &&
+    typeof referenceId === "string" &&
+    referenceId.trim().length > 0 &&
+    (reading === undefined || typeof reading === "string")
+  );
+}
+
+function isStrictRuntimeTokenSequence(
+  tokens: readonly AssembledToken[] | unknown,
+): tokens is readonly AssembledToken[] {
+  return Array.isArray(tokens) && tokens.every(isStrictRuntimeToken);
+}
+
 export function validateTokenSequence(
   tokens: readonly AssembledToken[] | unknown,
 ): ReturnType<typeof formatRomaji> {
-  if (
-    !Array.isArray(tokens) ||
-    !tokens.every(
-      (token) =>
-        token !== null &&
-        typeof token === "object" &&
-        typeof token.id === "string" &&
-        typeof token.jp === "string" &&
-        typeof token.romaji === "string" &&
-        typeof token.kind === "string" &&
-        typeof token.boundaryBefore === "string" &&
-        token.source !== null &&
-        typeof token.source === "object" &&
-        typeof token.source.referenceId === "string",
-    )
-  ) {
+  if (!isStrictRuntimeTokenSequence(tokens)) {
     return {
       ok: false,
       errors: [{ code: "unresolved-token" }],
@@ -190,6 +260,10 @@ function validateTokens(
     detail?: string,
   ) => void,
 ): void {
+  if (!isStrictRuntimeTokenSequence(tokens)) {
+    push("token-sequence-invalid", referenceId, `${label}:invalid-runtime-token`);
+    return;
+  }
   const formatted = validateTokenSequence(tokens);
   if (!formatted.ok) {
     push(
@@ -275,7 +349,11 @@ function validateActivities(
         `${activity.category}:${activity.mode}:${activity.interactionKind}:${activity.operation}`,
       );
     }
-    const targetOperation = activityTargetOperationFingerprintFor(activity, catalogs);
+    const targetOperation = activityTargetOperationFingerprintFor(
+      lesson.lessonId,
+      activity,
+      catalogs,
+    );
     if (targetOperation.ok) {
       if (operations.has(targetOperation.fingerprint)) {
         push("duplicate-target-operation", targetOperation.fingerprint);
@@ -289,7 +367,11 @@ function validateActivities(
       );
       push("unresolved-reference", activity.targetId, "activity target");
     }
-    const promptTarget = activityPromptTargetReferenceFor(activity, catalogs);
+    const promptTarget = activityPromptTargetReferenceFor(
+      lesson.lessonId,
+      activity,
+      catalogs,
+    );
     if (promptTarget) {
       validateSentenceLikeReferences(
         promptTarget.target,
@@ -333,7 +415,37 @@ function validateActivities(
     for (const lexemeId of activity.assessedLexemeIds) {
       validateReference(lexemeId, catalogs.lexemes.has(lexemeId), "assessed lexeme", push);
     }
-    const targetSurface = activityTargetVisibleSurfaceFor(activity, catalogs);
+    const visibleLexemeIds = new Set<string>();
+    const visibleContentIds = new Set<string>();
+    for (const provenance of [promptTarget, activityTarget]) {
+      if (!provenance) continue;
+      targetStringField(provenance.target, "lexemeIds").forEach((id) =>
+        visibleLexemeIds.add(id),
+      );
+      targetStringField(provenance.target, "conceptIds").forEach((id) =>
+        visibleContentIds.add(id),
+      );
+      // Forms are content IDs too: assessments may name either a concept or
+      // its form record, so the canonical union deliberately includes both.
+      targetStringField(provenance.target, "formIds").forEach((id) =>
+        visibleContentIds.add(id),
+      );
+    }
+    for (const lexemeId of activity.assessedLexemeIds) {
+      if (!visibleLexemeIds.has(lexemeId)) {
+        push("assessed-id-not-visible", lexemeId, `activity:${activity.id}:lexeme`);
+      }
+    }
+    for (const conceptId of activity.assessedConceptIds) {
+      if (!visibleContentIds.has(conceptId)) {
+        push("assessed-id-not-visible", conceptId, `activity:${activity.id}:content`);
+      }
+    }
+    const targetSurface = activityTargetVisibleSurfaceFor(
+      lesson.lessonId,
+      activity,
+      catalogs,
+    );
     if (targetSurface !== undefined) {
       if (visibleTargets.has(targetSurface)) {
         push("duplicate-visible-target", activity.targetId, activity.id);
@@ -437,7 +549,46 @@ function isStringArray(value: unknown): value is readonly string[] {
 }
 
 function isParticleFrame(value: unknown): value is Readonly<Record<string, unknown>> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+  return isPlainDataRecord(value);
+}
+
+function validateParticlePredicateProvenance(
+  target: Readonly<Record<string, unknown>>,
+  frame: Readonly<Record<string, unknown>>,
+  referenceId: string,
+  label: string,
+  push: (
+    code: BaseValidationErrorCode,
+    referenceId?: string,
+    detail?: string,
+  ) => void,
+): void {
+  const framePredicateSenseId = ownDataValue(frame, "predicateSenseId");
+  const targetPredicateSenseId = ownDataValue(target, "predicateSenseId");
+  const targetPredicateLexemeId = ownDataValue(target, "predicateLexemeId");
+  const targetLexemeIds = target.lexemeIds;
+  const registry =
+    typeof framePredicateSenseId === "string"
+      ? BASE_PARTICLE_FRAME_BY_PREDICATE.get(
+          framePredicateSenseId as Parameters<
+            typeof BASE_PARTICLE_FRAME_BY_PREDICATE.get
+          >[0],
+        )
+      : undefined;
+  const valid =
+    typeof framePredicateSenseId === "string" &&
+    targetPredicateSenseId === framePredicateSenseId &&
+    typeof targetPredicateLexemeId === "string" &&
+    Array.isArray(targetLexemeIds) &&
+    targetLexemeIds.includes(targetPredicateLexemeId) &&
+    registry?.allowedPredicateLexemeIds.includes(targetPredicateLexemeId) === true;
+  if (!valid) {
+    push(
+      "particle-frame-predicate-mismatch",
+      referenceId,
+      `${label}:predicate-provenance`,
+    );
+  }
 }
 
 function validateCanonicalTokenSourceProvenance(
@@ -457,21 +608,11 @@ function validateCanonicalTokenSourceProvenance(
   if (!Array.isArray(tokens)) return;
   const reported = new Set<string>();
   for (const token of tokens) {
-    if (token === null || typeof token !== "object" || Array.isArray(token)) {
-      continue;
-    }
-    const source = (token as Readonly<Record<string, unknown>>).source;
-    if (
-      source === null ||
-      typeof source !== "object" ||
-      Array.isArray(source) ||
-      typeof (source as Readonly<Record<string, unknown>>).referenceId !== "string"
-    ) {
-      continue;
-    }
-    const sourceReferenceId = (
-      source as Readonly<Record<string, unknown>>
-    ).referenceId as string;
+    if (!isPlainDataRecord(token)) continue;
+    const source = ownDataValue(token, "source");
+    if (!isPlainDataRecord(source)) continue;
+    const sourceReferenceId = ownDataValue(source, "referenceId");
+    if (typeof sourceReferenceId !== "string") continue;
     const isMissingLexemeProvenance =
       catalogs.lexemes.has(sourceReferenceId) &&
       !lexemeIds.includes(sourceReferenceId);
@@ -522,6 +663,24 @@ function validateSentenceLikeReferences(
     push("invalid-visible-target", referenceId, label);
     return;
   }
+  const predicateSenseId = ownDataValue(target, "predicateSenseId");
+  const predicateLexemeId = ownDataValue(target, "predicateLexemeId");
+  if (
+    !(
+      (typeof predicateSenseId === "string" || predicateSenseId === null) &&
+      (typeof predicateLexemeId === "string" || predicateLexemeId === null)
+    )
+  ) {
+    push("invalid-visible-target", referenceId, `${label}:predicate-provenance`);
+    if (target.particleFrame !== undefined) {
+      push(
+        "particle-frame-predicate-mismatch",
+        referenceId,
+        `${label}:predicate-provenance`,
+      );
+    }
+    return;
+  }
   validateTokens(target.tokens, referenceId, label, push);
   if (
     !isStringArray(target.lexemeIds) ||
@@ -560,17 +719,26 @@ function validateSentenceLikeReferences(
     push,
   );
   if (target.particleFrame !== undefined) {
+    if (isParticleFrame(target.particleFrame)) {
+      validateParticlePredicateProvenance(
+        target,
+        target.particleFrame,
+        referenceId,
+        label,
+        push,
+      );
+    }
     if (
       !isParticleFrame(target.particleFrame) ||
-      typeof target.particleFrame.predicateSenseId !== "string" ||
-      !isParticleFrame(target.particleFrame.provided)
+      typeof ownDataValue(target.particleFrame, "predicateSenseId") !== "string" ||
+      !isParticleFrame(ownDataValue(target.particleFrame, "provided"))
     ) {
       push("invalid-particle-frame", referenceId, `${label}:malformed`);
       return;
     }
     const frame = validateParticleFrame(
-      target.particleFrame.predicateSenseId,
-      target.particleFrame.provided,
+      ownDataValue(target.particleFrame, "predicateSenseId"),
+      ownDataValue(target.particleFrame, "provided"),
     );
     if (!frame.ok) {
       for (const error of frame.errors) {
@@ -711,9 +879,11 @@ function collectDeclaredContentEvidence(
   dialogue?.turns.forEach(addVisible);
   for (const activity of lesson.activities) {
     if (activity.mode !== "non-spoken") continue;
-    activity.assessedLexemeIds.forEach((id) => retrievedLexemeIds.add(id));
-    activity.assessedConceptIds.forEach((id) => retrievedContentIds.add(id));
-    const prompt = activityPromptTargetReferenceFor(activity, catalogs);
+    const prompt = activityPromptTargetReferenceFor(
+      lesson.lessonId,
+      activity,
+      catalogs,
+    );
     if (prompt) addRetrieved(prompt.target);
     const target = activityTargetReferenceFor(activity, catalogs);
     if (target) addRetrieved(target.target);
@@ -779,7 +949,9 @@ function contentIdsForTarget(target: BaseVisibleTarget | unknown): readonly stri
 }
 
 interface SynthesisSystemEvidence {
+  readonly visibleLexemeIds: ReadonlySet<string>;
   readonly visibleContentIds: ReadonlySet<string>;
+  readonly activeRetrievalLexemeIds: ReadonlySet<string>;
   readonly activeRetrievalContentIds: ReadonlySet<string>;
 }
 
@@ -789,10 +961,21 @@ function collectSynthesisSystemEvidence(
   dialogue: { readonly turns: readonly BaseVisibleTarget[] } | undefined,
   catalogs: BaseValidationCatalogs,
 ): SynthesisSystemEvidence {
+  const visibleLexemeIds = new Set<string>();
   const visibleContentIds = new Set<string>();
+  const activeRetrievalLexemeIds = new Set<string>();
   const activeRetrievalContentIds = new Set<string>();
   const addVisible = (target: BaseVisibleTarget): void => {
+    targetStringField(target, "lexemeIds").forEach((id) => visibleLexemeIds.add(id));
     contentIdsForTarget(target).forEach((id) => visibleContentIds.add(id));
+  };
+  const addRetrieved = (target: BaseVisibleTarget): void => {
+    targetStringField(target, "lexemeIds").forEach((id) =>
+      activeRetrievalLexemeIds.add(id),
+    );
+    contentIdsForTarget(target).forEach((id) =>
+      activeRetrievalContentIds.add(id),
+    );
   };
   workedExamples.forEach(addVisible);
   dialogue?.turns.forEach(addVisible);
@@ -804,21 +987,25 @@ function collectSynthesisSystemEvidence(
     ) {
       continue;
     }
-    activity.assessedConceptIds.forEach((id) => activeRetrievalContentIds.add(id));
-    const prompt = activityPromptTargetReferenceFor(activity, catalogs);
+    const prompt = activityPromptTargetReferenceFor(
+      lesson.lessonId,
+      activity,
+      catalogs,
+    );
     if (prompt) {
-      contentIdsForTarget(prompt.target).forEach((id) =>
-        activeRetrievalContentIds.add(id),
-      );
+      addRetrieved(prompt.target);
     }
     const target = activityTargetReferenceFor(activity, catalogs);
     if (target) {
-      contentIdsForTarget(target.target).forEach((id) =>
-        activeRetrievalContentIds.add(id),
-      );
+      addRetrieved(target.target);
     }
   }
-  return { visibleContentIds, activeRetrievalContentIds };
+  return {
+    visibleLexemeIds,
+    visibleContentIds,
+    activeRetrievalLexemeIds,
+    activeRetrievalContentIds,
+  };
 }
 
 function validateSynthesisRetrievalSystems(
@@ -841,6 +1028,15 @@ function validateSynthesisRetrievalSystems(
   const seen = new Set<string>();
   let validSystemCount = 0;
   const lessonPosition = firstTeachLessonPosition(lesson.lessonId);
+
+  for (const lexemeId of uniqueIds(lesson.reviewLexemeIds)) {
+    if (!evidence.visibleLexemeIds.has(lexemeId)) {
+      push("review-lexeme-not-visible", lexemeId);
+    }
+    if (!evidence.activeRetrievalLexemeIds.has(lexemeId)) {
+      push("review-lexeme-not-retrieved", lexemeId);
+    }
+  }
 
   for (const systemId of lesson.retrievedSystemIds) {
     if (seen.has(systemId)) {
@@ -920,6 +1116,14 @@ export function validateBaseLessonDepth(
   validateReference(lesson.recapCopyId, catalogs.copyIds.has(lesson.recapCopyId), "recap copy", push);
   const seenPrerequisites = new Set<string>();
   const lessonPosition = BASE_CANONICAL_POSITIONS[lesson.lessonId];
+  const requiredPrerequisite = requiredBaseLessonPrerequisiteFor(lesson.lessonId);
+  if (
+    requiredPrerequisite !== undefined &&
+    requiredPrerequisite !== null &&
+    !lesson.prerequisiteLessonIds.includes(requiredPrerequisite)
+  ) {
+    push("missing-required-prerequisite", requiredPrerequisite);
+  }
   for (const prerequisiteId of lesson.prerequisiteLessonIds) {
     if (seenPrerequisites.has(prerequisiteId)) {
       push("duplicate-prerequisite", prerequisiteId);
@@ -1025,7 +1229,7 @@ export function validateBaseLessonDepth(
   for (const snapshotId of lesson.referenceSnapshotIds) {
     validateReference(
       snapshotId,
-      catalogs.referenceSnapshotIds.has(snapshotId),
+      catalogs.referenceSnapshots.has(snapshotId),
       "reference snapshot",
       push,
     );
@@ -1117,13 +1321,53 @@ export function validateBaseLessonDepth(
     if (!isCountWithin(uniqueIds(lesson.workedExampleIds).length, 10, 14)) {
       push("system-example-count", undefined, `${uniqueIds(lesson.workedExampleIds).length}`);
     }
-    for (const patternCellId of lesson.patternCellIds) {
-      if (
-        !uniqueWorkedExamples.some((example) =>
-          example.patternCellIds.includes(patternCellId),
-        )
-      ) {
-        push("system-pattern-cell-unrepresented", patternCellId);
+    const canonicalMatrix = catalogs.patternCellIdsByLesson.get(lesson.lessonId);
+    if (!canonicalMatrix) {
+      push("system-pattern-matrix-missing", lesson.lessonId);
+    } else {
+      const substantiveCells = canonicalMatrix.filter(
+        (cellId) => typeof cellId === "string" && cellId.trim().length > 0,
+      );
+      const canonicalCellSet = new Set(substantiveCells);
+      if (canonicalMatrix.length === 0) {
+        push("system-pattern-matrix-empty", lesson.lessonId);
+      }
+      if (canonicalCellSet.size < 2) {
+        push("system-pattern-matrix-not-substantive", lesson.lessonId);
+      }
+      if (canonicalCellSet.size !== canonicalMatrix.length) {
+        push("system-pattern-matrix-duplicate", lesson.lessonId);
+      }
+      for (const patternCellId of canonicalMatrix) {
+        if (
+          typeof patternCellId !== "string" ||
+          patternCellId.trim().length === 0 ||
+          !catalogs.patternCellIds.has(patternCellId)
+        ) {
+          push("system-pattern-matrix-unresolved", String(patternCellId));
+        }
+      }
+      const declaredCellSet = new Set(lesson.patternCellIds);
+      for (const patternCellId of lesson.patternCellIds) {
+        if (!catalogs.patternCellIds.has(patternCellId)) {
+          push("system-pattern-matrix-unresolved", patternCellId);
+        }
+      }
+      const declarationMatches =
+        lesson.patternCellIds.length === declaredCellSet.size &&
+        declaredCellSet.size === canonicalCellSet.size &&
+        [...canonicalCellSet].every((cellId) => declaredCellSet.has(cellId));
+      if (!declarationMatches) {
+        push("system-pattern-cell-set-mismatch", lesson.lessonId);
+      }
+      for (const patternCellId of canonicalCellSet) {
+        if (
+          !uniqueWorkedExamples.some((example) =>
+            example.patternCellIds.includes(patternCellId),
+          )
+        ) {
+          push("system-pattern-cell-unrepresented", patternCellId);
+        }
       }
     }
   }

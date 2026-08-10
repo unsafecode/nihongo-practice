@@ -72,6 +72,53 @@ describe("Base particle frame licensing", () => {
     });
   });
 
+  it("rejects inherited or accessor particle roles and treats only own data keys as evidence", () => {
+    const inheritedTheme = Object.create({ theme: "object-o" }) as Record<string, unknown>;
+    const accessorTheme = {} as Record<string, unknown>;
+    Object.defineProperty(accessorTheme, "theme", {
+      enumerable: true,
+      get: () => "object-o",
+    });
+
+    expect(validateParticleFrame("eat", inheritedTheme)).toEqual(
+      expect.objectContaining({
+        ok: false,
+        errors: expect.arrayContaining([
+          expect.objectContaining({ code: "missing-role", role: "theme" }),
+          expect.objectContaining({ code: "invalid-particle-frame" }),
+        ]),
+      }),
+    );
+    expect(validateParticleFrame("eat", accessorTheme)).toEqual(
+      expect.objectContaining({
+        ok: false,
+        errors: expect.arrayContaining([
+          expect.objectContaining({ code: "missing-role", role: "theme" }),
+          expect.objectContaining({ code: "invalid-particle-frame" }),
+        ]),
+      }),
+    );
+  });
+
+  it("reports a literal toString role without invoking inherited methods", () => {
+    const provided = Object.create(null) as Record<string, unknown>;
+    provided.theme = "object-o";
+    Object.defineProperty(provided, "toString", {
+      enumerable: true,
+      value: "object-o",
+    });
+
+    expect(() => validateParticleFrame("eat", provided)).not.toThrow();
+    expect(validateParticleFrame("eat", provided)).toEqual(
+      expect.objectContaining({
+        ok: false,
+        errors: expect.arrayContaining([
+          expect.objectContaining({ code: "extra-role", role: "toString" }),
+        ]),
+      }),
+    );
+  });
+
   it("exposes particle frames through a mutation-proof lookup", () => {
     const mutable = BASE_PARTICLE_FRAME_BY_PREDICATE as unknown as {
       clear?: () => void;
@@ -84,5 +131,8 @@ describe("Base particle frame licensing", () => {
     expect(BASE_PARTICLE_FRAME_BY_PREDICATE.get("go")?.particleOwnerLessonId).toBe(
       "argument-particles-2",
     );
+    expect(BASE_PARTICLE_FRAME_BY_PREDICATE.get("eat")?.allowedPredicateLexemeIds).toEqual([
+      "verb-taberu",
+    ]);
   });
 });

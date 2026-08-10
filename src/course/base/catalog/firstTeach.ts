@@ -8,9 +8,14 @@ import {
   COURSE_LEVEL_IDS,
   type CourseLevelId,
 } from "../../levels/types";
-import { BASE_CONCEPTS } from "./concepts";
+import { BASE_CONCEPTS, BASE_REFERENCE_SNAPSHOTS } from "./concepts";
 import { BASE_LEXICON } from "./lexicon";
-import type { BaseConcept, BaseConceptKind, BaseLexeme } from "./types";
+import type {
+  BaseConcept,
+  BaseConceptKind,
+  BaseLexeme,
+  BaseReferenceSnapshotDefinition,
+} from "./types";
 import {
   BASE_PARTICLE_SENSES,
   particleSenseFirstTeachContentId,
@@ -31,6 +36,7 @@ export interface FirstTeachOwner {
 export type FirstTeachValidationErrorCode =
   | "duplicate-owner"
   | "missing-owner"
+  | "owner-catalog-mismatch"
   | "missing-lesson"
   | "owner-level-mismatch"
   | "prerequisite-after-dependent"
@@ -125,6 +131,42 @@ function ownerKindForConcept(concept: BaseConcept): FirstTeachOwnerKind {
   return concept.kind;
 }
 
+interface CatalogOwnerDefinition {
+  readonly contentId: string;
+  readonly kind: FirstTeachOwnerKind;
+  readonly levelId: CourseLevelId;
+  readonly lessonId: string;
+}
+
+function catalogOwnerDefinitions(
+  concepts: readonly BaseConcept[],
+  lexemes: readonly BaseLexeme[],
+  referenceSnapshots: readonly BaseReferenceSnapshotDefinition[],
+): readonly CatalogOwnerDefinition[] {
+  const levelFor = (lessonId: string): CourseLevelId =>
+    lessonOwner(lessonId)?.levelId ?? "a0";
+  return [
+    ...lexemes.map((lexeme) => ({
+      contentId: lexeme.id,
+      kind: "lexeme" as const,
+      levelId: levelFor(lexeme.firstTeachLessonId),
+      lessonId: lexeme.firstTeachLessonId,
+    })),
+    ...concepts.map((concept) => ({
+      contentId: concept.id,
+      kind: ownerKindForConcept(concept),
+      levelId: levelFor(concept.firstTeachLessonId),
+      lessonId: concept.firstTeachLessonId,
+    })),
+    ...referenceSnapshots.map((snapshot) => ({
+      contentId: snapshot.id,
+      kind: "reference-entry" as const,
+      levelId: levelFor(snapshot.firstTeachLessonId),
+      lessonId: snapshot.firstTeachLessonId,
+    })),
+  ];
+}
+
 const CANONICAL_LESSON_POSITION_BY_ID: ReadonlyMap<string, number> = (() => {
   let position = 0;
   return immutableReadonlyMap(
@@ -170,6 +212,7 @@ export function validateFirstTeachOwners(
   owners: readonly FirstTeachOwner[],
   concepts: readonly BaseConcept[],
   lexemes: readonly BaseLexeme[] = BASE_LEXICON,
+  referenceSnapshots: readonly BaseReferenceSnapshotDefinition[] = BASE_REFERENCE_SNAPSHOTS,
 ): readonly FirstTeachValidationError[] {
   const errors: FirstTeachValidationError[] = [];
   const counts = new Map<string, number>();
@@ -199,14 +242,28 @@ export function validateFirstTeachOwners(
   }
 
   const lookup = ownerLookup(owners);
-  for (const lexeme of lexemes) {
-    if (!lookup.has(firstTeachOwnerKey("lexeme", lexeme.id))) {
-      errors.push({ code: "missing-owner", contentId: lexeme.id });
+  for (const expected of catalogOwnerDefinitions(
+    concepts,
+    lexemes,
+    referenceSnapshots,
+  )) {
+    const expectedKey = firstTeachOwnerKey(expected.kind, expected.contentId);
+    const matchingOwners = owners.filter(
+      (owner) =>
+        owner.contentId === expected.contentId &&
+        owner.kind === expected.kind &&
+        owner.levelId === expected.levelId &&
+        owner.lessonId === expected.lessonId,
+    );
+    if (!lookup.has(expectedKey)) {
+      errors.push({ code: "missing-owner", contentId: expected.contentId });
     }
-  }
-  for (const concept of concepts) {
-    if (!lookup.has(firstTeachOwnerKey(ownerKindForConcept(concept), concept.id))) {
-      errors.push({ code: "missing-owner", contentId: concept.id });
+    if (matchingOwners.length !== 1) {
+      errors.push({
+        code: "owner-catalog-mismatch",
+        contentId: expected.contentId,
+        lessonId: expected.lessonId,
+      });
     }
   }
 

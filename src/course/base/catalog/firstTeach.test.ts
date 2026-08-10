@@ -14,6 +14,7 @@ import {
   firstTeachOwnerKey,
   validateFirstTeachOwners,
 } from "./firstTeach";
+import { BASE_LEXICON } from "./lexicon";
 import {
   BASE_PARTICLE_SENSE_CONTENT_ID_BY_SENSE,
   BASE_PARTICLE_SENSES,
@@ -162,6 +163,88 @@ describe("Base first-teach ownership", () => {
     ).toThrow(expect.objectContaining({ code: "wrong-contract-fields" }));
   });
 
+  it("rejects opposite contract fields and publishes a clone of shallow-frozen authoring input", () => {
+    const lesson: BasePhoneticLessonContent = {
+      lessonId: "sounds-1",
+      contract: "phonetic",
+      prerequisiteLessonIds: [],
+      recapCopyId: "recap",
+      activities: [
+        {
+          id: "activity-1",
+          category: "meaning-comprehension",
+          interactionKind: "choice",
+          mode: "non-spoken",
+          targetId: "target-1",
+          operation: "recognize-meaning",
+          instructionCopyId: "instruction-1",
+          acceptedFeedbackCopyId: "accepted-1",
+          retryFeedbackCopyId: "retry-1",
+          assessedConceptIds: [],
+          assessedLexemeIds: [],
+        },
+      ],
+      contrastiveItemIds: ["contrast-1"],
+      anchorLexemeIds: ["verb-kaku"],
+      audioExemplarIds: ["audio-1"],
+      phoneticExplanationCopyId: "explanation-1",
+      contrastMapId: "contrast-map-1",
+    };
+    const shallowFrozen = Object.freeze(lesson);
+    const defined = defineBaseLessonContent(shallowFrozen);
+
+    (lesson.activities[0] as { targetId: string }).targetId = "mutated-target";
+    (lesson.activities[0].assessedLexemeIds as string[]).push("verb-taberu");
+
+    expect(defined.activities[0]).toMatchObject({
+      targetId: "target-1",
+      assessedLexemeIds: [],
+    });
+    expect(Object.isFrozen(defined.activities[0].assessedLexemeIds)).toBe(true);
+    expect(() =>
+      defineBaseLessonContent({
+        ...lesson,
+        newLexemeIds: [],
+        introducedConceptIds: [],
+      } as unknown as BasePhoneticLessonContent),
+    ).toThrow(expect.objectContaining({ code: "wrong-contract-fields" }));
+
+    const semanticLesson: BaseSystemLessonContent = {
+      lessonId: "sentence-foundations-3",
+      contract: "system",
+      prerequisiteLessonIds: ["sentence-foundations-2"],
+      recapCopyId: "recap",
+      activities: [],
+      newLexemeIds: [],
+      reviewLexemeIds: [],
+      introducedConceptIds: [],
+      reviewedConceptIds: [],
+      explanationBlockIds: {
+        main: "main",
+        construction: "construction",
+        constraints: "constraints",
+        commonError: "common-error",
+        nearestContrast: "nearest-contrast",
+      },
+      patternCellIds: [],
+      workedExampleIds: [],
+      dialogueId: null,
+      referenceSnapshotIds: [],
+      interactive: false,
+      retrievedSystemIds: [],
+    };
+    expect(() =>
+      defineBaseLessonContent({
+        ...semanticLesson,
+        contrastiveItemIds: [],
+        anchorLexemeIds: [],
+        audioExemplarIds: [],
+        phoneticExplanationCopyId: "hidden",
+        contrastMapId: "hidden",
+      } as unknown as BaseSystemLessonContent),
+    ).toThrow(expect.objectContaining({ code: "wrong-contract-fields" }));
+  });
+
   it("assigns one frozen a0 owner to each lexeme, concept, form, and reference entry", () => {
     expect(BASE_FIRST_TEACH_OWNERS.length).toBeGreaterThan(40);
     expect(Object.isFrozen(BASE_FIRST_TEACH_OWNERS)).toBe(true);
@@ -271,6 +354,60 @@ describe("Base first-teach ownership", () => {
 
   it("accepts the canonical owner graph and its prerequisite order", () => {
     expect(validateFirstTeachOwners(BASE_FIRST_TEACH_OWNERS, BASE_CONCEPTS)).toEqual([]);
+  });
+
+  it("requires every catalog owner to match its canonical lesson and kind", () => {
+    const movedKaku = BASE_FIRST_TEACH_OWNERS.map((owner) =>
+      owner.kind === "lexeme" && owner.contentId === "verb-kaku"
+        ? { ...owner, lessonId: "sounds-1" }
+        : owner,
+    );
+    const kindMismatch = BASE_FIRST_TEACH_OWNERS.map((owner) =>
+      owner.kind === "form" && owner.contentId === "te-imasu"
+        ? { ...owner, kind: "concept" as const }
+        : owner,
+    );
+
+    expect(validateFirstTeachOwners(movedKaku, BASE_CONCEPTS, BASE_LEXICON)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "owner-catalog-mismatch",
+          contentId: "verb-kaku",
+        }),
+      ]),
+    );
+    expect(validateFirstTeachOwners(kindMismatch, BASE_CONCEPTS, BASE_LEXICON)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "owner-catalog-mismatch",
+          contentId: "te-imasu",
+        }),
+      ]),
+    );
+  });
+
+  it("requires metadata-bearing reference snapshots to have reference-entry owners", () => {
+    const orphanSnapshot = {
+      id: "reference-orphan",
+      firstTeachLessonId: "sentence-foundations-3",
+      titleCopyId: "reference-orphan-title",
+    };
+
+    expect(
+      validateFirstTeachOwners(
+        BASE_FIRST_TEACH_OWNERS,
+        BASE_CONCEPTS,
+        BASE_LEXICON,
+        [orphanSnapshot],
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "missing-owner",
+          contentId: orphanSnapshot.id,
+        }),
+      ]),
+    );
   });
 
   it("reports duplicate ownership additively", () => {

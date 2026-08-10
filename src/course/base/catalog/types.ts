@@ -225,6 +225,12 @@ export interface BaseVisibleTarget {
   readonly patternCellIds: readonly string[];
   readonly semanticRoleIds: readonly SemanticArgumentRole[];
   readonly interpretationTags: readonly BaseInterpretationTag[];
+  /**
+   * Canonical predicate provenance. A particle frame can only describe this
+   * named sense and one visible lexeme that realizes it.
+   */
+  readonly predicateSenseId: string | null;
+  readonly predicateLexemeId: string | null;
   readonly predicateAspect?: BasePredicateAspect;
   readonly discourseFrameId?: string;
   readonly particleFrame?: BaseParticleFrame;
@@ -250,35 +256,83 @@ export interface BaseDialogue {
   readonly turns: readonly BaseDialogueTurn[];
 }
 
+function cloneForBasePublication<T>(
+  value: T,
+  seen: WeakMap<object, unknown> = new WeakMap(),
+): T {
+  if (value === null || typeof value !== "object") return value;
+  const source = value as object;
+  const existing = seen.get(source);
+  if (existing !== undefined) return existing as T;
+  if (Array.isArray(value)) {
+    const clone: unknown[] = [];
+    seen.set(source, clone);
+    clone.push(...value.map((entry) => cloneForBasePublication(entry, seen)));
+    return clone as T;
+  }
+  const prototype = Object.getPrototypeOf(source);
+  if (prototype !== Object.prototype && prototype !== null) return value;
+  const clone = Object.create(prototype) as Record<string, unknown>;
+  seen.set(source, clone);
+  for (const key of Object.keys(source)) {
+    clone[key] = cloneForBasePublication(
+      (source as Readonly<Record<string, unknown>>)[key],
+      seen,
+    );
+  }
+  return clone as T;
+}
+
 function visibleTargetView(source: BaseVisibleTarget): BaseVisibleTarget {
-  return Object.freeze({
-    tokens: source.tokens,
-    lexemeIds: source.lexemeIds,
-    conceptIds: source.conceptIds,
-    formIds: source.formIds,
-    patternCellIds: source.patternCellIds,
-    semanticRoleIds: source.semanticRoleIds,
-    interpretationTags: source.interpretationTags,
-    ...(source.predicateAspect
-      ? { predicateAspect: source.predicateAspect }
-      : {}),
-    ...(source.discourseFrameId
-      ? { discourseFrameId: source.discourseFrameId }
-      : {}),
-    ...(source.particleFrame ? { particleFrame: source.particleFrame } : {}),
-  });
+  return deepFreeze(
+    cloneForBasePublication({
+      tokens: source.tokens,
+      lexemeIds: source.lexemeIds,
+      conceptIds: source.conceptIds,
+      formIds: source.formIds,
+      patternCellIds: source.patternCellIds,
+      semanticRoleIds: source.semanticRoleIds,
+      interpretationTags: source.interpretationTags,
+      predicateSenseId: source.predicateSenseId,
+      predicateLexemeId: source.predicateLexemeId,
+      ...(source.predicateAspect
+        ? { predicateAspect: source.predicateAspect }
+        : {}),
+      ...(source.discourseFrameId
+        ? { discourseFrameId: source.discourseFrameId }
+        : {}),
+      ...(source.particleFrame ? { particleFrame: source.particleFrame } : {}),
+    }),
+  );
+}
+
+/** Clones and freezes arbitrary canonical target provenance before publication. */
+export function visibleTargetFromTarget(target: BaseVisibleTarget): BaseVisibleTarget {
+  return visibleTargetView(target);
 }
 
 /** Adapts an authored example to the canonical visible-target provenance view. */
-export function baseVisibleTargetForExample(example: BaseExample): BaseVisibleTarget {
+export function visibleTargetFromExample(example: BaseExample): BaseVisibleTarget {
   return visibleTargetView(example);
 }
 
 /** Adapts an authored dialogue turn to the canonical visible-target provenance view. */
-export function baseVisibleTargetForDialogueTurn(
+export function visibleTargetFromDialogueTurn(
   turn: BaseDialogueTurn,
 ): BaseVisibleTarget {
   return visibleTargetView(turn);
+}
+
+/** @deprecated Use `visibleTargetFromExample` for clone-safe publication. */
+export function baseVisibleTargetForExample(example: BaseExample): BaseVisibleTarget {
+  return visibleTargetFromExample(example);
+}
+
+/** @deprecated Use `visibleTargetFromDialogueTurn` for clone-safe publication. */
+export function baseVisibleTargetForDialogueTurn(
+  turn: BaseDialogueTurn,
+): BaseVisibleTarget {
+  return visibleTargetFromDialogueTurn(turn);
 }
 
 export interface BaseLexemeCommon {
@@ -348,6 +402,12 @@ export interface BaseRetrievalSystem {
   readonly componentContentIds: readonly string[];
 }
 
+export interface BaseReferenceSnapshotDefinition {
+  readonly id: string;
+  readonly firstTeachLessonId: LessonId;
+  readonly titleCopyId: string;
+}
+
 export interface BaseValidationCatalogs {
   readonly lexemes: ReadonlyMap<string, BaseLexeme>;
   readonly concepts: ReadonlyMap<string, BaseConcept>;
@@ -355,12 +415,13 @@ export interface BaseValidationCatalogs {
   readonly dialogues: ReadonlyMap<string, BaseDialogue>;
   readonly audioTargets: ReadonlyMap<string, BaseVisibleTarget>;
   readonly acceptedAnswerTargets: ReadonlyMap<string, BaseVisibleTarget>;
-  /** Prompt provenance is keyed by `BaseActivityDefinition.id`. */
+  /** Prompt provenance is keyed by `baseActivityPromptKey(lessonId, activityId)`. */
   readonly activityPromptTargets: ReadonlyMap<string, BaseVisibleTarget>;
   readonly copyIds: ReadonlySet<string>;
   readonly contrastMapIds: ReadonlySet<string>;
-  readonly referenceSnapshotIds: ReadonlySet<string>;
+  readonly referenceSnapshots: ReadonlyMap<string, BaseReferenceSnapshotDefinition>;
   readonly patternCellIds: ReadonlySet<string>;
+  readonly patternCellIdsByLesson: ReadonlyMap<LessonId, readonly string[]>;
   readonly systems: ReadonlyMap<string, BaseRetrievalSystem>;
 }
 
@@ -463,6 +524,38 @@ const SEMANTIC_EXPLANATION_KEYS = [
   "nearestContrast",
 ] as const;
 
+const PHONETIC_FIELD_KEYS = [
+  "contrastiveItemIds",
+  "anchorLexemeIds",
+  "audioExemplarIds",
+  "phoneticExplanationCopyId",
+  "contrastMapId",
+] as const;
+
+const SEMANTIC_FIELD_KEYS = [
+  "newLexemeIds",
+  "reviewLexemeIds",
+  "introducedConceptIds",
+  "reviewedConceptIds",
+  "explanationBlockIds",
+  "patternCellIds",
+  "workedExampleIds",
+  "dialogueId",
+  "referenceSnapshotIds",
+  "interactive",
+  "retrievedSystemIds",
+] as const;
+
+const hasOwn: (value: object, key: PropertyKey) => boolean =
+  (Object as unknown as {
+    hasOwn?: (value: object, key: PropertyKey) => boolean;
+  }).hasOwn ??
+  ((value, key) => Object.prototype.hasOwnProperty.call(value, key));
+
+function hasOwnAny(value: Readonly<Record<string, unknown>>, keys: readonly string[]): boolean {
+  return keys.some((key) => hasOwn(value, key));
+}
+
 function hasExplanationBlocks(value: unknown): boolean {
   if (!isRecord(value)) return false;
   const keys = Object.getOwnPropertyNames(value);
@@ -535,7 +628,7 @@ export function defineBaseLessonContent<T extends BaseLessonContent>(lesson: T):
   }
 
   if (lesson.contract === "phonetic") {
-    if (!hasPhoneticFields(lesson)) {
+    if (!hasPhoneticFields(lesson) || hasOwnAny(lesson, SEMANTIC_FIELD_KEYS)) {
       throw new BaseLessonContentDefinitionError(
         "wrong-contract-fields",
         "Phonetic lesson does not provide phonetic fields.",
@@ -544,7 +637,7 @@ export function defineBaseLessonContent<T extends BaseLessonContent>(lesson: T):
     const phonetic = lesson;
     assertNonemptyId(phonetic.phoneticExplanationCopyId, "phoneticExplanationCopyId");
     assertNonemptyId(phonetic.contrastMapId, "contrastMapId");
-  } else if (hasSemanticFields(lesson)) {
+  } else if (hasSemanticFields(lesson) && !hasOwnAny(lesson, PHONETIC_FIELD_KEYS)) {
     const semantic = lesson;
     for (const id of Object.values(semantic.explanationBlockIds)) {
       assertNonemptyId(id, "explanation block id");
@@ -556,5 +649,5 @@ export function defineBaseLessonContent<T extends BaseLessonContent>(lesson: T):
     );
   }
 
-  return deepFreeze(lesson);
+  return deepFreeze(cloneForBasePublication(lesson));
 }

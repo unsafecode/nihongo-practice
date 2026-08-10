@@ -151,6 +151,7 @@ describe("Base adjective and copula forms", () => {
       validateBasePredicate({
         predicateKind: "i-adjective",
         lexemeId: "adjective-takai",
+        form: "affirmative",
         ending: "da",
         surface: "たかいだ",
       }),
@@ -162,6 +163,7 @@ describe("Base adjective and copula forms", () => {
       validateBasePredicate({
         predicateKind: "i-adjective",
         lexemeId: "adjective-takai",
+        form: "affirmative",
         ending: "da",
         surface: "高いだ",
       }),
@@ -184,6 +186,7 @@ describe("Base adjective and copula forms", () => {
           predicateKind: "na-adjective",
           lexemeId,
           position: "predicate",
+          form: "plainAffirmative",
           copula: "da",
           surface,
         }),
@@ -198,6 +201,7 @@ describe("Base adjective and copula forms", () => {
         lexemeId: "adjective-shizuka",
         position: "attributive",
         hasNa: false,
+        surface: "しずか",
       }),
     ).toMatchObject({ ok: false, error: { code: "na-adjective-missing-na" } });
     expect(
@@ -205,9 +209,106 @@ describe("Base adjective and copula forms", () => {
         predicateKind: "na-adjective",
         lexemeId: "adjective-shizuka",
         position: "predicate",
+        form: "affirmative",
         copula: "none",
+        surface: "しずか",
       }),
     ).toMatchObject({ ok: false, error: { code: "na-adjective-missing-copula" } });
+  });
+
+  it("binds adjective metadata to the canonical selected form and visible surface", () => {
+    expect(
+      validateBasePredicate({
+        predicateKind: "i-adjective",
+        lexemeId: "adjective-takai",
+        form: "affirmative",
+        ending: "desu",
+        surface: "たかいです",
+      } as never),
+    ).toEqual({ ok: true });
+    expect(
+      validateBasePredicate({
+        predicateKind: "i-adjective",
+        lexemeId: "adjective-takai",
+        form: "affirmative",
+        ending: "desu",
+        surface: "たかいだ",
+      } as never),
+    ).toEqual({
+      ok: false,
+      error: { code: "i-adjective-copula-da", lexemeId: "adjective-takai" },
+    });
+    expect(
+      validateBasePredicate({
+        predicateKind: "i-adjective",
+        lexemeId: "adjective-takai",
+        form: "affirmative",
+        ending: "desu",
+        surface: "高いだ",
+      } as never),
+    ).toEqual({
+      ok: false,
+      error: { code: "i-adjective-copula-da", lexemeId: "adjective-takai" },
+    });
+    expect(
+      validateBasePredicate({
+        predicateKind: "i-adjective",
+        lexemeId: "adjective-takai",
+        form: "negative",
+        ending: "desu",
+        surface: "たかいです",
+      } as never),
+    ).toEqual({
+      ok: false,
+      error: { code: "surface-form-mismatch", lexemeId: "adjective-takai" },
+    });
+    expect(
+      validateBasePredicate({
+        predicateKind: "na-adjective",
+        lexemeId: "adjective-shizuka",
+        position: "attributive",
+        hasNa: true,
+        surface: "しずか",
+      } as never),
+    ).toEqual({
+      ok: false,
+      error: { code: "na-adjective-missing-na", lexemeId: "adjective-shizuka" },
+    });
+    expect(
+      validateBasePredicate({
+        predicateKind: "na-adjective",
+        lexemeId: "adjective-shizuka",
+        position: "attributive",
+        hasNa: true,
+        surface: "しずかな",
+      } as never),
+    ).toEqual({ ok: true });
+    expect(
+      validateBasePredicate({
+        predicateKind: "na-adjective",
+        lexemeId: "adjective-shizuka",
+        position: "predicate",
+        form: "affirmative",
+        copula: "desu",
+        surface: "しずか",
+      } as never),
+    ).toEqual({
+      ok: false,
+      error: {
+        code: "na-adjective-missing-copula",
+        lexemeId: "adjective-shizuka",
+      },
+    });
+    expect(
+      validateBasePredicate({
+        predicateKind: "na-adjective",
+        lexemeId: "adjective-kirei",
+        position: "predicate",
+        form: "plainAffirmative",
+        copula: "da",
+        surface: "きれいだ",
+      } as never),
+    ).toEqual({ ok: true });
   });
 
   it("returns structured errors when an adjective API receives a non-adjective", () => {
@@ -219,6 +320,7 @@ describe("Base adjective and copula forms", () => {
       validateBasePredicate({
         predicateKind: "i-adjective",
         lexemeId: "verb-kaku",
+        form: "affirmative",
         ending: "none",
         surface: "かく",
       }),
@@ -230,7 +332,9 @@ describe("Base adjective and copula forms", () => {
       validateBasePredicate({
         predicateKind: "i-adjective",
         lexemeId: "missing-adjective",
+        form: "affirmative",
         ending: "none",
+        surface: "missing",
       }),
     ).toEqual({
       ok: false,

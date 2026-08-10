@@ -1,7 +1,9 @@
 import { deepFreeze } from "../../foundations/deepFreeze";
+import { lessonOwner } from "../../levels/ownership";
 import {
   BASE_CANONICAL_POSITIONS,
   BASE_LESSON_MANIFEST,
+  requiredBaseLessonPrerequisiteFor,
 } from "../manifest";
 import {
   firstTeachOwnerKey,
@@ -23,10 +25,16 @@ import {
   audioTargetReferenceFor,
 } from "../catalog/visibleTargets";
 import {
+  BASE_PARTICLE_FRAME_BY_PREDICATE,
   particleSenseFirstTeachContentId,
   validateParticleFrame,
 } from "../forms/particleLicensing";
 import type { BaseValidationError, BaseValidationErrorCode } from "./lessonRules";
+
+export {
+  BASE_REQUIRED_PREREQUISITE_BY_LESSON,
+  requiredBaseLessonPrerequisiteFor,
+} from "../manifest";
 
 const ADJECTIVE_CELL_IDS = new Set([
   "remaining-copula-cells",
@@ -128,6 +136,14 @@ export function validateBaseLessonPrerequisiteGraph(
   for (const lesson of lessons) {
     const seen = new Set<string>();
     const lessonPosition = BASE_CANONICAL_POSITIONS[lesson.lessonId];
+    const requiredPrerequisite = requiredBaseLessonPrerequisiteFor(lesson.lessonId);
+    if (
+      requiredPrerequisite !== undefined &&
+      requiredPrerequisite !== null &&
+      !lesson.prerequisiteLessonIds.includes(requiredPrerequisite)
+    ) {
+      push(lesson.lessonId, "missing-required-prerequisite", requiredPrerequisite);
+    }
     for (const prerequisiteId of lesson.prerequisiteLessonIds) {
       if (seen.has(prerequisiteId)) {
         push(lesson.lessonId, "duplicate-prerequisite", prerequisiteId);
@@ -209,6 +225,29 @@ export function validateFirstTeachOrder(
     reportedId = id,
   ): void => {
     const owner = ownerByKey.get(firstTeachOwnerKey(kind, id));
+    const catalogFirstTeachLessonId =
+      kind === "lexeme"
+        ? catalogs.lexemes.get(id)?.firstTeachLessonId
+        : kind === "reference-entry"
+          ? catalogs.referenceSnapshots.get(id)?.firstTeachLessonId
+          : catalogs.concepts.get(id)?.firstTeachLessonId;
+    if (!owner) {
+      push(lesson.lessonId, "missing-first-teach-owner", reportedId, sourceLabel);
+      if (owners.some((candidate) => candidate.contentId === id)) {
+        push(lesson.lessonId, "owner-catalog-mismatch", reportedId, sourceLabel);
+      }
+      return;
+    }
+    const catalogLesson = catalogFirstTeachLessonId
+      ? lessonOwner(catalogFirstTeachLessonId)
+      : undefined;
+    if (
+      catalogFirstTeachLessonId !== undefined &&
+      (owner.lessonId !== catalogFirstTeachLessonId ||
+        (catalogLesson != null && owner.levelId !== catalogLesson.levelId))
+    ) {
+      push(lesson.lessonId, "owner-catalog-mismatch", reportedId, sourceLabel);
+    }
     const lessonPosition = positionFor(lesson.lessonId);
     const ownerPosition = owner ? positionFor(owner.lessonId) : undefined;
     if (owner && lessonPosition !== undefined && ownerPosition !== undefined && ownerPosition > lessonPosition) {
@@ -290,6 +329,26 @@ export function validateFirstTeachOrder(
       push(lesson.lessonId, "dynamic-nonpast-ongoing-now", referenceId);
     }
     if (sentence.particleFrame) {
+      const predicateFrame = BASE_PARTICLE_FRAME_BY_PREDICATE.get(
+        sentence.particleFrame.predicateSenseId as Parameters<
+          typeof BASE_PARTICLE_FRAME_BY_PREDICATE.get
+        >[0],
+      );
+      if (
+        sentence.predicateSenseId !== sentence.particleFrame.predicateSenseId ||
+        typeof sentence.predicateLexemeId !== "string" ||
+        !sentence.lexemeIds.includes(sentence.predicateLexemeId) ||
+        predicateFrame?.allowedPredicateLexemeIds.includes(
+          sentence.predicateLexemeId,
+        ) !== true
+      ) {
+        push(
+          lesson.lessonId,
+          "particle-frame-predicate-mismatch",
+          referenceId,
+          sourceLabel,
+        );
+      }
       const provided = sentence.particleFrame.provided;
       if (
         provided !== null &&
@@ -340,7 +399,11 @@ export function validateFirstTeachOrder(
           `activity assessment:${activity.id}`,
         );
       }
-      const promptTarget = activityPromptTargetReferenceFor(activity, catalogs);
+      const promptTarget = activityPromptTargetReferenceFor(
+        lesson.lessonId,
+        activity,
+        catalogs,
+      );
       if (promptTarget) {
         validateSentence(
           lesson,
@@ -431,6 +494,7 @@ export function validateFirstTeachOrder(
     owners,
     [...catalogs.concepts.values()],
     [...catalogs.lexemes.values()],
+    [...catalogs.referenceSnapshots.values()],
   );
   for (const ownerError of ownerErrors) {
     const firstLessonId = lessons[0]?.lessonId ?? "unknown-lesson";
@@ -443,6 +507,10 @@ export function validateFirstTeachOrder(
       );
     } else if (ownerError.code === "prerequisite-cycle") {
       push(firstLessonId, "concept-prerequisite-cycle", ownerError.contentId);
+    } else if (ownerError.code === "missing-owner") {
+      push(firstLessonId, "missing-first-teach-owner", ownerError.contentId);
+    } else if (ownerError.code === "owner-catalog-mismatch") {
+      push(firstLessonId, "owner-catalog-mismatch", ownerError.contentId);
     } else {
       push(firstLessonId, "first-teach-owner-invalid", ownerError.contentId, ownerError.code);
     }
@@ -486,7 +554,11 @@ export function visibleJapaneseFor(
       }
     }
     for (const activity of lesson.activities) {
-      const promptTarget = activityPromptTargetReferenceFor(activity, catalogs);
+      const promptTarget = activityPromptTargetReferenceFor(
+        lesson.lessonId,
+        activity,
+        catalogs,
+      );
       if (promptTarget) {
         append(
           `activity-prompt:${lesson.lessonId}:${activity.id}`,

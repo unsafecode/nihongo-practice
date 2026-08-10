@@ -1,4 +1,5 @@
 import { deepFreeze } from "../foundations/deepFreeze";
+import { immutableReadonlyMap } from "../foundations/immutableReadonlyMap";
 import type { LessonId, ModuleId } from "../foundations/types";
 import type {
   BaseLessonContract,
@@ -87,6 +88,27 @@ export const BASE_LESSON_IDS_BY_MODULE: Readonly<
 export const BASE_LESSON_IDS: readonly LessonId[] = deepFreeze(
   BASE_MODULE_IDS.flatMap((moduleId) => [...BASE_LESSON_IDS_BY_MODULE[moduleId]]),
 );
+
+/**
+ * The Base lesson graph has a mandatory linear spine. Additional earlier
+ * prerequisites may be declared, but no lesson may skip its immediate
+ * canonical predecessor.
+ */
+export const BASE_REQUIRED_PREREQUISITE_BY_LESSON: ReadonlyMap<
+  LessonId,
+  LessonId | null
+> = immutableReadonlyMap(
+  BASE_LESSON_IDS.map((lessonId, index) => [
+    lessonId,
+    index === 0 ? null : BASE_LESSON_IDS[index - 1],
+  ]),
+);
+
+export function requiredBaseLessonPrerequisiteFor(
+  lessonId: string,
+): LessonId | null | undefined {
+  return BASE_REQUIRED_PREREQUISITE_BY_LESSON.get(lessonId as LessonId);
+}
 
 export const BASE_CANONICAL_POSITIONS: Readonly<Record<LessonId, number>> =
   deepFreeze(

@@ -3,7 +3,18 @@ import type {
   BaseValidationCatalogs,
   BaseVisibleTarget,
 } from "./types";
-import { baseVisibleTargetForExample } from "./types";
+import {
+  visibleTargetFromExample,
+  visibleTargetFromTarget,
+} from "./types";
+
+/**
+ * A length-delimited key keeps prompt IDs stable and collision-safe even when
+ * lesson or activity IDs contain punctuation.
+ */
+export function baseActivityPromptKey(lessonId: string, activityId: string): string {
+  return `base-prompt:${lessonId.length}:${lessonId}${activityId.length}:${activityId}`;
+}
 
 export interface BaseVisibleTargetReference {
   readonly target: BaseVisibleTarget;
@@ -23,7 +34,7 @@ export function activityTargetReferenceFor(
   const example = catalogs.examples.get(activity.targetId);
   if (example) {
     return {
-      target: baseVisibleTargetForExample(example),
+      target: visibleTargetFromExample(example),
       referenceId: activity.targetId,
       label: "activity target example",
       source: "example",
@@ -32,7 +43,7 @@ export function activityTargetReferenceFor(
   const acceptedAnswer = catalogs.acceptedAnswerTargets.get(activity.targetId);
   if (acceptedAnswer) {
     return {
-      target: acceptedAnswer,
+      target: visibleTargetFromTarget(acceptedAnswer),
       referenceId: activity.targetId,
       label: "activity accepted target",
       source: "accepted-answer",
@@ -41,7 +52,7 @@ export function activityTargetReferenceFor(
   const audioTarget = catalogs.audioTargets.get(activity.targetId);
   if (audioTarget) {
     return {
-      target: audioTarget,
+      target: visibleTargetFromTarget(audioTarget),
       referenceId: activity.targetId,
       label: "activity audio target",
       source: "audio",
@@ -50,15 +61,18 @@ export function activityTargetReferenceFor(
   return undefined;
 }
 
-/** Resolves prompt provenance by the activity ID, the canonical prompt key. */
+/** Resolves prompt provenance by the lesson-scoped canonical prompt key. */
 export function activityPromptTargetReferenceFor(
+  lessonId: string,
   activity: BaseActivityDefinition,
   catalogs: BaseValidationCatalogs,
 ): BaseVisibleTargetReference | undefined {
-  const target = catalogs.activityPromptTargets.get(activity.id);
+  const target = catalogs.activityPromptTargets.get(
+    baseActivityPromptKey(lessonId, activity.id),
+  );
   return target
     ? {
-        target,
+        target: visibleTargetFromTarget(target),
         referenceId: activity.id,
         label: "activity prompt",
         source: "activity-prompt",
@@ -74,7 +88,7 @@ export function audioTargetReferenceFor(
   const target = catalogs.audioTargets.get(audioTargetId);
   return target
     ? {
-        target,
+        target: visibleTargetFromTarget(target),
         referenceId: audioTargetId,
         label,
         source: "audio",
