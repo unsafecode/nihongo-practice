@@ -27,6 +27,19 @@ describe("Base particle frame licensing", () => {
       value: { predicateSenseId: "eat" },
     });
     expect(validateParticleFrame("write", { theme: "object-o" }).ok).toBe(true);
+    expect(validateParticleFrame("read", { theme: "topic-wa" }).ok).toBe(true);
+    expect(
+      validateParticleFrame("read", {
+        topic: "topic-wa",
+        theme: "object-o",
+      }).ok,
+    ).toBe(true);
+    expect(
+      validateParticleFrame("read", {
+        topic: "question-ka",
+        theme: "object-o",
+      }).ok,
+    ).toBe(false);
   });
 
   it("allows only the declared goal alternatives for movement", () => {
@@ -243,5 +256,60 @@ describe("Base particle frame licensing", () => {
     expect(validatePredicateParticleFrameCatalog(mutated)).toEqual([
       expect.stringMatching(/^argument-particle-role:/u),
     ]);
+  });
+
+  it("rejects colluding edits to surface senses and canonical argument particles", () => {
+    const frames = [...BASE_PARTICLE_FRAME_BY_PREDICATE.values()];
+    const eatIndex = frames.findIndex(({ id }) => id === "eat");
+    const eat = frames[eatIndex];
+    const forged = [
+      ...frames.slice(0, eatIndex),
+      {
+        ...eat,
+        particleSensesByRole: {
+          ...eat.particleSensesByRole,
+          theme: ["goal-ni"] as const,
+        },
+        argumentParticleByRole: {
+          ...eat.argumentParticleByRole,
+          theme: ["ni"] as const,
+        },
+      },
+      ...frames.slice(eatIndex + 1),
+    ];
+    expect(validatePredicateParticleFrameCatalog(forged)).toContain(
+      "argument-particle-role:eat:theme",
+    );
+
+    const extraRole = [
+      ...frames.slice(0, eatIndex),
+      {
+        ...eat,
+        argumentParticleByRole: {
+          ...eat.argumentParticleByRole,
+          goal: ["ni"] as const,
+        },
+      },
+      ...frames.slice(eatIndex + 1),
+    ];
+    expect(validatePredicateParticleFrameCatalog(extraRole)).toContain(
+      "argument-particle-role:eat:goal",
+    );
+
+    const unknownPredicate = [
+      {
+        ...eat,
+        id: "forged-predicate",
+      },
+      ...frames.slice(1),
+    ] as unknown as Parameters<
+      typeof validatePredicateParticleFrameCatalog
+    >[0];
+    expect(() =>
+      validatePredicateParticleFrameCatalog(unknownPredicate),
+    ).not.toThrow();
+    expect(
+      validatePredicateParticleFrameCatalog(unknownPredicate),
+    ).toContain("unknown-predicate:forged-predicate");
   });
 });

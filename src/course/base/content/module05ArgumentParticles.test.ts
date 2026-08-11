@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import type { AssembledToken } from "../../../romaji/types";
 import { BASE_FIRST_TEACH_OWNERS, firstTeachLessonPosition } from "../catalog/firstTeach";
 import { baseNavigationCopyEn } from "../copy/en";
 import { baseNavigationCopyIt } from "../copy/it";
 import {
+  BASE_PARTICLE_SENSES,
   baseParticleSurfaceTokens,
   validateParticleFrame,
 } from "../forms/particleLicensing";
@@ -15,6 +17,7 @@ import {
   BASE_ARGUMENT_PARTICLES_VALIDATION_CATALOGS,
   validateBaseArgumentParticlesModule,
 } from "./module05ArgumentParticles";
+import { validateTask11SemanticReview } from "./module04PoliteVerbs";
 
 function jp(tokens: readonly { readonly jp: string }[]): string {
   return tokens.map(({ jp }) => jp).join("");
@@ -43,15 +46,9 @@ function governedParticleMultiset(target: {
     readonly provided: Readonly<Record<string, string>>;
   };
 }): Readonly<{ visible: readonly string[]; declared: readonly string[] }> {
-  const counted = new Set([
-    "topic-wa",
-    "additive-mo",
-    "object-o",
-    "goal-ni",
-    "direction-he",
-    "action-place-de",
-    "means-de",
-  ]);
+  const counted: ReadonlySet<string> = new Set(
+    BASE_PARTICLE_SENSES.map(({ id }) => id),
+  );
   return {
     visible: target.tokens
       .filter(
@@ -153,6 +150,20 @@ describe("Base argument-particles module", () => {
           jp(target.tokens),
         ).toMatchObject({ ok: true });
         for (const role of Object.keys(target.particleFrame?.provided ?? {})) {
+          if (
+            ![
+              "theme",
+              "goal",
+              "topic",
+              "action-place",
+              "means",
+              "time",
+              "source",
+              "limit",
+            ].includes(role)
+          ) {
+            continue;
+          }
           expect(target.semanticRoleIds).toContain(
             role === "action-place" ? "location" : role,
           );
@@ -230,6 +241,163 @@ describe("Base argument-particles module", () => {
     }
   });
 
+  it("rejects token-only AP1 A7 particle and attachment mutations with the authored frame unchanged", () => {
+    const lessonRecord = BASE_ARGUMENT_PARTICLES_MODULE.lessons[0];
+    const lesson = lessonRecord.content;
+    const design = lessonRecord.activityDesigns[6];
+    const original = design.acceptedAnswerTarget;
+    expect(jp(original.tokens)).toBe("たなかさんはしゃしんをみます");
+    expect(original.particleFrame).toMatchObject({
+      provided: {
+        topic: "topic-wa",
+        theme: "object-o",
+      },
+      attachmentLexemeIdByRole: {
+        topic: "noun-tanaka",
+        theme: "anchor-shashin",
+      },
+    });
+
+    const replaceAccepted = (
+      target: typeof original,
+    ): ReturnType<typeof validateBaseLessonDepth> => {
+      const catalogs = {
+        ...BASE_ARGUMENT_PARTICLES_VALIDATION_CATALOGS,
+        acceptedAnswerTargets: new Map([
+          ...BASE_ARGUMENT_PARTICLES_VALIDATION_CATALOGS.acceptedAnswerTargets,
+          [design.acceptedAnswerTargetId, target],
+        ]),
+      };
+      return validateBaseLessonDepth(lesson, catalogs);
+    };
+    const objectIndex = original.tokens.findIndex(
+      ({ source }) => source.referenceId === "object-o",
+    );
+    const topicNounIndex = original.tokens.findIndex(
+      ({ source }) => source.referenceId === "noun-tanaka",
+    );
+    const themeNounIndex = original.tokens.findIndex(
+      ({ source }) => source.referenceId === "anchor-shashin",
+    );
+    expect(objectIndex).toBeGreaterThanOrEqual(0);
+    expect(topicNounIndex).toBeGreaterThanOrEqual(0);
+    expect(themeNounIndex).toBeGreaterThanOrEqual(0);
+
+    const deleted = {
+      ...original,
+      tokens: original.tokens.filter((_, index) => index !== objectIndex),
+      conceptIds: ["licensed-object-o", "topicalized-object-wa"],
+    };
+    const replaced = {
+      ...original,
+      tokens: original.tokens.map((token, index) =>
+        index === objectIndex
+          ? { ...baseParticleSurfaceTokens("goal-ni")[0], id: token.id }
+          : token,
+      ),
+      conceptIds: ["licensed-object-o", "goal-ni"],
+    };
+    const inserted = {
+      ...original,
+      tokens: [
+        ...original.tokens.slice(0, objectIndex + 1),
+        {
+          ...baseParticleSurfaceTokens("additive-mo")[0],
+          id: "adversarial-stray-mo",
+        },
+        ...original.tokens.slice(objectIndex + 1),
+      ],
+      conceptIds: ["licensed-object-o", "topic-wa", "additive-mo"],
+    };
+    const unenumerated = [
+      "focus-subject-ga",
+      "companion-to",
+      "question-ka",
+      "possessive-attributive-no",
+    ].map((sense, index) => ({
+      ...original,
+      tokens: [
+        ...original.tokens,
+        {
+          ...baseParticleSurfaceTokens(
+            sense as Parameters<typeof baseParticleSurfaceTokens>[0],
+          )[0],
+          id: `adversarial-unenumerated-${index}`,
+        },
+      ],
+      conceptIds: [...original.conceptIds, sense],
+    }));
+    const attachmentSwap = {
+      ...original,
+      tokens: original.tokens.map((token, index) => {
+        if (index === topicNounIndex) {
+          const replacement = original.tokens[themeNounIndex];
+          return { ...replacement, id: token.id };
+        }
+        if (index === themeNounIndex) {
+          const replacement = original.tokens[topicNounIndex];
+          return { ...replacement, id: token.id };
+        }
+        return token;
+      }),
+      conceptIds: ["licensed-object-o", "topic-wa"],
+    };
+
+    for (const mutation of [
+      deleted,
+      replaced,
+      inserted,
+      attachmentSwap,
+      ...unenumerated,
+    ]) {
+      const mismatches = replaceAccepted(mutation)
+        .map(({ code }) => code)
+        .filter((code) => code === "particle-frame-token-mismatch");
+      expect(new Set(mismatches), jp(mutation.tokens)).toEqual(
+        new Set(["particle-frame-token-mismatch"]),
+      );
+      expect(mutation.particleFrame).toBe(original.particleFrame);
+    }
+
+    const forgedNonNominalAttachment = {
+      ...original,
+      tokens: original.tokens.map((token, index) =>
+        index === themeNounIndex
+          ? {
+              ...token,
+              source: {
+                ...token.source,
+                referenceId: "analysis-future",
+              },
+            }
+          : token,
+      ),
+      lexemeIds: [...original.lexemeIds, "analysis-future"],
+      particleFrame: {
+        ...original.particleFrame!,
+        attachmentLexemeIdByRole: {
+          ...original.particleFrame!.attachmentLexemeIdByRole,
+          theme: "analysis-future",
+        },
+      },
+    };
+    expect(
+      replaceAccepted(forgedNonNominalAttachment)
+        .map(({ code }) => code)
+        .filter((code) => code === "particle-frame-token-mismatch"),
+    ).toEqual(expect.arrayContaining(["particle-frame-token-mismatch"]));
+
+    const {
+        particleFrame: _removedParticleFrame,
+        ...missingParticleFrame
+    } = original;
+    expect(
+        replaceAccepted(missingParticleFrame)
+          .map(({ code }) => code)
+          .filter((code) => code === "particle-frame-token-mismatch"),
+    ).toEqual(expect.arrayContaining(["particle-frame-token-mismatch"]));
+  });
+
   it("teaches transitive theme o and a licensed topicalized theme", () => {
     const lesson = BASE_ARGUMENT_PARTICLES_MODULE.lessons[0];
     expect(lesson.examples.some(({ tokens }) => jp(tokens).includes("を"))).toBe(true);
@@ -240,6 +408,96 @@ describe("Base argument-particles module", () => {
           jp(tokens).includes("は") &&
           semanticRoleIds.includes("theme") &&
           predicateSenseId !== null,
+      ),
+    ).toBe(true);
+  });
+
+  it("uses genuine clause contrasts instead of label-only AP3 choices", () => {
+    const lesson = BASE_ARGUMENT_PARTICLES_MODULE.lessons[2];
+    const withoutRoleLabel = (target: (typeof lesson.activityDesigns)[number]["optionTargets"][number]) =>
+      target.tokens
+        .filter(
+          ({ source }) =>
+            source.referenceId !== "analysis-action-place" &&
+            source.referenceId !== "analysis-means" &&
+            source.referenceId !== "japanese-comma" &&
+            source.referenceId !== "japanese-period",
+        )
+        .map(({ jp }) => jp)
+        .join("");
+    for (const index of [0, 1, 3, 4, 6, 7]) {
+      const design = lesson.activityDesigns[index];
+      expect(design.optionTargets, design.id).toHaveLength(2);
+      expect(
+        withoutRoleLabel(design.optionTargets[0]),
+        design.id,
+      ).not.toBe(withoutRoleLabel(design.optionTargets[1]));
+      expect(
+        design.optionTargets.map(({ predicateLexemeId }) => predicateLexemeId),
+        design.id,
+      ).toEqual([
+        design.reviewEvidence.heldConstantPredicateLexemeId,
+        design.reviewEvidence.heldConstantPredicateLexemeId,
+      ]);
+    }
+  });
+
+  it("keeps AP1 drinking feedback and AP4 diagnosis aligned to one causal repair", () => {
+    const ap1Retry = [
+      baseNavigationCopyEn.content[
+        "argument-particles-1-activity-2-retry-feedback"
+      ],
+      baseNavigationCopyIt.content[
+        "argument-particles-1-activity-2-retry-feedback"
+      ],
+    ].join(" ");
+    expect(ap1Retry.toLowerCase()).not.toMatch(/(?:buy|buying|compra|comprare)/u);
+
+    const design = BASE_ARGUMENT_PARTICLES_MODULE.lessons[3].activityDesigns[5];
+    expect(design.reviewEvidence.error).toMatchObject({
+      code: "means-context-mismatch",
+      changedTokenSourceIds: ["noun-kasa", "noun-enpitsu"],
+    });
+    expect(
+      design.promptTarget.tokens
+        .filter(({ kind }) => kind === "particle")
+        .map(({ source }) => source.referenceId),
+    ).toEqual(
+      design.acceptedAnswerTarget.tokens
+        .filter(({ kind }) => kind === "particle")
+        .map(({ source }) => source.referenceId),
+    );
+
+    const lesson = structuredClone(
+      BASE_ARGUMENT_PARTICLES_MODULE.lessons[3],
+    );
+    const cloned = lesson.activityDesigns[5];
+    const accepted = cloned.acceptedAnswerTarget as unknown as {
+      tokens: AssembledToken[];
+    };
+    const topicIndex = accepted.tokens.findIndex(
+      ({ source }) => source.referenceId === "topic-wa",
+    );
+    expect(topicIndex).toBeGreaterThanOrEqual(0);
+    accepted.tokens[topicIndex] = {
+      ...baseParticleSurfaceTokens("additive-mo")[0],
+      id: accepted.tokens[topicIndex].id,
+    };
+    (
+      cloned.reviewEvidence.error as unknown as {
+        changedTokenSourceIds: string[];
+      }
+    ).changedTokenSourceIds = [
+      "noun-kasa",
+      "noun-enpitsu",
+      "topic-wa",
+      "additive-mo",
+    ];
+    const errors = validateTask11SemanticReview([lesson]);
+    expect(
+      errors.some(
+        ({ code, activityId }) =>
+          code === "error-delta-invalid" && activityId === cloned.id,
       ),
     ).toBe(true);
   });

@@ -7,6 +7,7 @@ import {
   requiredBaseLessonPrerequisiteFor,
 } from "../manifest";
 import { firstTeachLessonPosition } from "../catalog/firstTeach";
+import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
 import type {
   BaseActivityDefinition,
   BaseExample,
@@ -24,6 +25,7 @@ import {
 } from "../catalog/visibleTargets";
 import {
   BASE_PARTICLE_FRAME_BY_PREDICATE,
+  BASE_PARTICLE_SENSES,
   particleProvidedEntries,
   validateParticleFrameEntries,
 } from "../forms/particleLicensing";
@@ -892,20 +894,28 @@ function validateParticlePredicateProvenance(
   }
 }
 
-const PARTICLE_FRAME_TOKEN_SENSES = new Set([
-    "topic-wa",
-    "additive-mo",
-    "object-o",
-    "goal-ni",
-    "direction-he",
-    "action-place-de",
-    "means-de",
-    "time-ni",
-    "source-kara",
-    "limit-made",
-    "existence-location-ni",
-    "existential-subject-ga",
-  ]);
+const PARTICLE_FRAME_TOKEN_SENSES: ReadonlySet<string> = new Set(
+  BASE_PARTICLE_SENSES.map(({ id }) => id),
+);
+
+const CLAUSE_FINAL_PARTICLE_SENSES = new Set([
+  "question-ka",
+  "interactional-ne",
+  "interactional-yo",
+]);
+const CLAUSE_FINAL_PARTICLE_ROLES = new Set(["question", "interaction"]);
+const PREDICATE_GOVERNED_PARTICLE_SENSES = new Set([
+  "object-o",
+  "goal-ni",
+  "direction-he",
+  "action-place-de",
+  "means-de",
+  "time-ni",
+  "source-kara",
+  "limit-made",
+  "existence-location-ni",
+  "existential-subject-ga",
+]);
 
 function validateParticleTokenMultiset(
   target: BaseVisibleTarget,
@@ -916,21 +926,65 @@ function validateParticleTokenMultiset(
     detail?: string,
   ) => void,
 ): void {
-  if (!target.particleFrame) return;
+  if (!target.particleFrame) {
+    const requiresFrame =
+      target.predicateSenseId !== null &&
+      (target.tokens.some(
+          ({ kind, source }) =>
+            kind === "particle" &&
+            PREDICATE_GOVERNED_PARTICLE_SENSES.has(source.referenceId),
+        ) ||
+        (target.semanticRoleIds.includes("theme") &&
+          target.tokens.some(
+            ({ kind, source }) =>
+              kind === "particle" &&
+              (source.referenceId === "topic-wa" ||
+                source.referenceId === "additive-mo"),
+          )));
+    if (requiresFrame) {
+      push("particle-frame-token-mismatch", referenceId, "missing-frame");
+    }
+    return;
+  }
   const visible = target.tokens
-    .flatMap(({ kind, source }) =>
-      kind === "particle" &&
-      PARTICLE_FRAME_TOKEN_SENSES.has(source.referenceId)
-        ? [source.referenceId]
-        : [],
+    .flatMap((token, index) => {
+      const sense = token.source.referenceId;
+      if (
+        token.kind !== "particle" ||
+        !PARTICLE_FRAME_TOKEN_SENSES.has(sense)
+      ) {
+        return [];
+      }
+      const attachmentLexemeId = CLAUSE_FINAL_PARTICLE_SENSES.has(sense)
+        ? target.predicateLexemeId
+        : target.tokens[index - 1]?.source.referenceId;
+      return [`${sense}@${attachmentLexemeId ?? ""}`];
+    })
+    .sort();
+  const provided = particleProvidedEntries(target.particleFrame.provided);
+  const attachmentEntries = Object.entries(
+    target.particleFrame.attachmentLexemeIdByRole,
+  );
+  const attachmentByRole = new Map(attachmentEntries);
+  const declared = provided.entries
+    .map(
+      ([role, sense]) =>
+        `${sense}@${attachmentByRole.get(role) ?? ""}`,
     )
     .sort();
-  const declared = particleProvidedEntries(
-    target.particleFrame.provided,
-  ).entries
-    .map(([, sense]) => sense)
-    .sort();
+  const declaredRoles = provided.entries.map(([role]) => role).sort();
+  const attachmentRoles = attachmentEntries.map(([role]) => role).sort();
+  const attachmentsAreCanonical = attachmentEntries.every(
+    ([role, lexemeId]) =>
+      CLAUSE_FINAL_PARTICLE_ROLES.has(role)
+        ? lexemeId === target.predicateLexemeId
+        : target.lexemeIds.includes(lexemeId) &&
+          BASE_LEXEME_BY_ID.get(lexemeId)?.category === "noun",
+  );
   if (
+    !attachmentsAreCanonical ||
+    declaredRoles.length !== attachmentRoles.length ||
+    declaredRoles.some((role, index) => role !== attachmentRoles[index]) ||
     visible.length !== declared.length ||
     visible.some((sense, index) => sense !== declared[index])
   ) {
@@ -1131,8 +1185,8 @@ function validateSentenceLikeReferences(
         );
       }
     }
-    validateParticleTokenMultiset(target, referenceId, push);
   }
+  validateParticleTokenMultiset(target, referenceId, push);
 }
 
 interface CanonicalExampleReference {

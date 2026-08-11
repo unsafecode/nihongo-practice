@@ -116,12 +116,14 @@ describe("Base canonical fingerprints", () => {
       particleFrame: {
         predicateSenseId: "eat",
         provided: { theme: undefined },
+        attachmentLexemeIdByRole: { theme: "noun-gohan" },
       },
     });
     const missing = example({
       particleFrame: {
         predicateSenseId: "eat",
         provided: {},
+        attachmentLexemeIdByRole: { theme: "noun-gohan" },
       },
     });
 
@@ -182,12 +184,14 @@ describe("Base canonical fingerprints", () => {
       particleFrame: {
         predicateSenseId: "eat",
         provided: { theme: "object-o" },
+        attachmentLexemeIdByRole: { theme: "noun-gohan" },
       },
     });
     const hidden = example({
       particleFrame: {
         predicateSenseId: "eat",
         provided: hiddenProvided,
+        attachmentLexemeIdByRole: { theme: "noun-gohan" },
       } as BaseExample["particleFrame"],
     });
 

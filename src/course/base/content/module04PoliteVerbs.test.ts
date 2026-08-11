@@ -207,13 +207,13 @@ describe("Base polite-verbs module", () => {
     );
   });
 
-  it("holds the predicate constant for class, stem, and polite-form contrasts", () => {
-    for (const lesson of BASE_POLITE_VERBS_MODULE.lessons.slice(1)) {
+  it("holds the predicate constant for every visible verb-analysis contrast", () => {
+    for (const lesson of BASE_POLITE_VERBS_MODULE.lessons) {
       for (const design of lesson.activityDesigns) {
         const evidence = reviewEvidence(design);
         if (
           !evidence ||
-          !["verb-class", "polite-stem", "polite-form"].includes(
+          !["meaning", "verb-class", "polite-stem", "polite-form"].includes(
             evidence.contrastAxis,
           ) ||
           design.optionTargets.length !== 2
@@ -268,6 +268,18 @@ describe("Base polite-verbs module", () => {
         ),
       ]);
     for (const malformed of [
+      "かぞく、よむ",
+      "きっぷ、かう",
+      "せんせい、はたらく",
+      "わたし、のむ",
+      "たなかさん、はたらく",
+      "ぱん、のむ",
+      "ぱん、かう",
+      "よむ、がくせい",
+      "ほん、よむ",
+      "かぎ、かう",
+      "がくせい、はたらく",
+      "ともだち、あそぶ",
       "たなかさん、いえかえる",
       "まりさん、いえかえり",
       "すずきさん、いえし",
@@ -276,6 +288,66 @@ describe("Base polite-verbs module", () => {
     ]) {
       expect(visible, malformed).not.toContain(malformed);
     }
+
+    for (const target of BASE_POLITE_VERBS_MODULE.lessons[0].examples) {
+      const commaIndex = target.tokens.findIndex(({ jp }) => jp === "、");
+      if (commaIndex < 0) continue;
+      expect(
+        target.tokens.some(
+          ({ source }) =>
+            source.referenceId.startsWith("analysis-") ||
+            source.referenceId === "dictionary-lemma" ||
+            source.referenceId === "verb-predicate-recognition",
+        ),
+        jp(target.tokens),
+      ).toBe(true);
+    }
+  });
+
+  it("keeps PV2 and PV4 activity copy aligned with the authored analyses", () => {
+    const copies = {
+      pv2a3: [
+        baseNavigationCopyEn.content[
+          "polite-verbs-2-activity-3-accepted-feedback"
+        ],
+        baseNavigationCopyEn.content[
+          "polite-verbs-2-activity-3-retry-feedback"
+        ],
+        baseNavigationCopyIt.content[
+          "polite-verbs-2-activity-3-accepted-feedback"
+        ],
+        baseNavigationCopyIt.content[
+          "polite-verbs-2-activity-3-retry-feedback"
+        ],
+      ].join(" "),
+      pv4a1: [
+        baseNavigationCopyEn.content[
+          "polite-verbs-4-activity-1-instruction"
+        ],
+        baseNavigationCopyEn.content[
+          "polite-verbs-4-activity-1-retry-feedback"
+        ],
+        baseNavigationCopyIt.content[
+          "polite-verbs-4-activity-1-instruction"
+        ],
+        baseNavigationCopyIt.content[
+          "polite-verbs-4-activity-1-retry-feedback"
+        ],
+      ].join(" "),
+    };
+    expect(copies.pv2a3.toLowerCase()).not.toMatch(
+      /(?:final slot|keep (?:the )?tiles|posizione finale|mantieni (?:le )?tessere|がくせい)/u,
+    );
+    expect(copies.pv4a1.toLowerCase()).not.toMatch(
+      /(?:sleep|sleeping|dormire|dormendo)/u,
+    );
+    const pv4a1 = BASE_POLITE_VERBS_MODULE.lessons[3].activityDesigns[0];
+    expect(jp(pv4a1.promptTarget.tokens)).not.toContain("ねる、じしょ、いく、じしょ");
+    expect(
+      pv4a1.optionTargets.every(
+        ({ predicateLexemeId }) => predicateLexemeId === "verb-okiru",
+      ),
+    ).toBe(true);
   });
 
   it("teaches lookup lemmas, then classes, then stems, then productive masu", () => {

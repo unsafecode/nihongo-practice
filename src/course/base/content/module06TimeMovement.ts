@@ -34,7 +34,6 @@ import {
 } from "./module02SentenceFoundations";
 import {
   TASK11_COMMA,
-  TASK11_PERIOD,
   BASE_POLITE_VERBS_MODULE,
   buildTask11Lesson,
   task11AnalysisLabel,
@@ -232,6 +231,8 @@ function interpretedNonpast(
   lemmaId: string,
   patternCellId: typeof HABITUAL | typeof FUTURE,
   prefix: readonly BaseTask11Part[],
+  habitualAnalysisId: "analysis-habitual" | "analysis-routine" =
+    "analysis-habitual",
 ): BaseTask11TargetSpec {
   const target = semanticNonpast(lemmaId, patternCellId, prefix);
   return {
@@ -240,9 +241,25 @@ function interpretedNonpast(
       ...target.parts,
       C,
       task11AnalysisLabel(
-        patternCellId === HABITUAL ? "analysis-habitual" : "analysis-future",
+        patternCellId === HABITUAL ? habitualAnalysisId : "analysis-future",
       ),
     ],
+  };
+}
+
+function interpretationErrorPrompt(
+  lemmaId: string,
+  topicId: string,
+): BaseTask11TargetSpec {
+  const target = semanticNonpast(lemmaId, HABITUAL, TOPIC(topicId));
+  return {
+    ...target,
+    parts: [
+      task11AnalysisLabel("analysis-habitual"),
+      C,
+      ...target.parts,
+    ],
+    patternCellIds: [],
   };
 }
 
@@ -255,11 +272,12 @@ const L1: BaseTask11LessonSpec = {
     "verb-ryokou-suru",
     "verb-ryouri-suru",
     "verb-dekakeru",
+    "verb-yasumu",
+    "verb-neru",
   ],
   reviewLexemeIds: [
     "verb-hataraku",
     "verb-benkyou-suru",
-    "verb-yasumu",
     "verb-aruku",
     "verb-utau",
     "verb-iku",
@@ -290,19 +308,19 @@ const L1: BaseTask11LessonSpec = {
     ex(semanticNonpast("verb-ryokou-suru", FUTURE), "grounded-travel-plan", "We will travel. (group recoverable)", "Viaggeremo. (gruppo recuperabile)", "Keeps the planned group implicit.", "Mantiene implicito il gruppo del piano.", "future"),
     ex(semanticNonpast("verb-ryouri-suru", HABITUAL, [L("noun-suzuki"), P("additive-mo")]), "suzuki-also-cooks", "Suzuki cooks too.", "Anche Suzuki cucina.", "Combines an owned additive topic with habitual nonpast.", "Combina un tema additivo noto con il non-passato abituale.", "habitual"),
     ex(semanticNonpast("verb-dekakeru", HABITUAL, TOPIC("noun-mari")), "mari-goes-out", "Mari goes out regularly.", "Mari esce regolarmente.", "Contrasts a routine with the earlier plan.", "Contrappone una routine al piano precedente.", "habitual"),
-    ex(semanticNonpast("verb-hataraku", HABITUAL, TOPIC("noun-yuki-san")), "yuki-works", "Yuki works regularly.", "Yuki lavora regolarmente.", "Reviews an earlier predicate under the new semantic distinction.", "Ripassa un predicato precedente con la nuova distinzione.", "habitual"),
-    ex(semanticNonpast("verb-benkyou-suru", FUTURE, TOPIC("noun-tomodachi")), "friend-will-study", "My friend will study.", "Il mio amico studierà.", "Requires future rather than ongoing-now.", "Richiede il futuro, non un'azione in corso.", "future"),
+    ex(semanticNonpast("verb-yasumu", HABITUAL, TOPIC("noun-yuki-san")), "yuki-rests", "Yuki rests regularly.", "Yuki riposa regolarmente.", "Adds a regular rest event under the habitual reading.", "Aggiunge un riposo regolare con lettura abituale.", "habitual"),
+    ex(semanticNonpast("verb-neru", FUTURE, TOPIC("noun-tomodachi")), "friend-will-sleep", "My friend will sleep.", "Il mio amico dormirà.", "Uses a scheduled sleep event, never an ongoing reading.", "Usa un evento di sonno programmato, mai una lettura progressiva.", "future"),
   ],
   activities: [
-    act(task11Cue(L("noun-watashi")), interpretedNonpast("verb-hashiru", HABITUAL, [L("noun-watashi"), P("additive-mo")]), (() => { const target = interpretedNonpast("verb-hashiru", FUTURE, TOPIC("noun-watashi")); return { ...target, parts: [...target.parts, TASK11_PERIOD] }; })(), 0, "time-movement-1", 1, HABITUAL, BASE_MEANING_ACTIVITY_SHAPE, "learner", "learner-runs"),
-    act(task11Cue(L("noun-tanaka")), interpretedNonpast("verb-ryokou-suru", FUTURE, [L("noun-tanaka"), P("additive-mo")]), interpretedNonpast("verb-ryokou-suru", HABITUAL, TOPIC("noun-tanaka")), 1, "time-movement-1", 2, FUTURE, BASE_FORM_ACTIVITY_SHAPE),
-    act(task11Cue(L("noun-yamada")), semanticNonpast("verb-ryouri-suru", HABITUAL, [L("noun-yamada"), P("additive-mo")]), task11Target([task11VerbForm("verb-ryouri-suru", "polite-nonpast"), P("additive-mo"), L("noun-yamada")], { conceptIds: ["dynamic-nonpast-semantics"], patternCellIds: [HABITUAL], semanticRoleIds: ["topic"], interpretationTags: ["habitual"], predicateSenseId: "ryouri-suru", predicateLexemeId: "verb-ryouri-suru", predicateAspect: "dynamic" }), 0, "time-movement-1", 3, HABITUAL, BASE_ORDERING_ACTIVITY_SHAPE),
-    act(task11Cue(L("noun-satou")), interpretedNonpast("verb-dekakeru", FUTURE, [L("noun-satou"), P("additive-mo")]), interpretedNonpast("verb-dekakeru", HABITUAL, TOPIC("noun-satou")), 1, "time-movement-1", 4, FUTURE, BASE_CONTROLLED_ACTIVITY_SHAPE, "satou", "satou-goes-out"),
-    act(task11Cue(L("noun-suzuki")), interpretedNonpast("verb-hashiru", HABITUAL, TOPIC("noun-suzuki")), interpretedNonpast("verb-hashiru", FUTURE, [L("noun-suzuki"), P("additive-mo")]), 0, "time-movement-1", 5, HABITUAL, BASE_CONTEXT_ACTIVITY_SHAPE),
-    act(promptOf(interpretedNonpast("verb-dekakeru", HABITUAL, TOPIC("noun-mari"))), interpretedNonpast("verb-dekakeru", FUTURE, TOPIC("noun-mari")), interpretedNonpast("verb-dekakeru", HABITUAL, [L("noun-mari"), P("additive-mo")]), 1, "time-movement-1", 6, FUTURE, BASE_ERROR_ACTIVITY_SHAPE, "mari", "mari-will-go-out", "dynamic-nonpast-interpretation-mismatch", { contrastAxis: "interpretation", heldConstantPredicateLexemeId: "verb-dekakeru", optionAnalysisIds: ["analysis-future", "analysis-habitual"], errorDefectAxis: "interpretation", changedTokenSourceIds: ["analysis-habitual", "analysis-future", "interpretation-tag"] }),
-    act(task11Cue(L("noun-yuki-san")), interpretedNonpast("verb-hataraku", HABITUAL, [L("noun-yuki-san"), P("additive-mo")]), interpretedNonpast("verb-hataraku", FUTURE, TOPIC("noun-yuki-san")), 0, "time-movement-1", 7, HABITUAL, BASE_RETRIEVAL_ACTIVITY_SHAPE),
-    act(task11Cue(L("noun-tomodachi")), interpretedNonpast("verb-benkyou-suru", FUTURE, [L("noun-tomodachi"), P("additive-mo")]), interpretedNonpast("verb-benkyou-suru", HABITUAL, TOPIC("noun-tomodachi")), 0, "time-movement-1", 8, FUTURE, BASE_CONTROLLED_ACTIVITY_SHAPE),
-    act(task11Cue(L("noun-yamada")), interpretedNonpast("verb-ryokou-suru", FUTURE, TOPIC("noun-yamada")), interpretedNonpast("verb-ryokou-suru", HABITUAL, [L("noun-yamada"), P("additive-mo")]), 1, "time-movement-1", 9, FUTURE, BASE_LISTENING_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-watashi")), interpretedNonpast("verb-hashiru", HABITUAL, TOPIC("noun-watashi"), "analysis-routine"), interpretedNonpast("verb-hashiru", FUTURE, TOPIC("noun-watashi")), 0, "time-movement-1", 1, HABITUAL, BASE_MEANING_ACTIVITY_SHAPE, "learner", "learner-runs"),
+    act(task11Cue(L("noun-tanaka")), interpretedNonpast("verb-ryokou-suru", FUTURE, TOPIC("noun-tanaka")), interpretedNonpast("verb-ryokou-suru", HABITUAL, TOPIC("noun-tanaka")), 1, "time-movement-1", 2, FUTURE, BASE_FORM_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-yamada")), interpretedNonpast("verb-ryouri-suru", HABITUAL, TOPIC("noun-yamada")), task11Target([task11VerbForm("verb-ryouri-suru", "polite-nonpast"), C, task11AnalysisLabel("analysis-habitual"), L("noun-yamada"), P("topic-wa")], { conceptIds: ["dynamic-nonpast-semantics"], patternCellIds: [HABITUAL], semanticRoleIds: ["topic"], interpretationTags: ["habitual"], predicateSenseId: "ryouri-suru", predicateLexemeId: "verb-ryouri-suru", predicateAspect: "dynamic" }), 0, "time-movement-1", 3, HABITUAL, BASE_ORDERING_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-satou")), interpretedNonpast("verb-dekakeru", FUTURE, TOPIC("noun-satou")), interpretedNonpast("verb-dekakeru", HABITUAL, TOPIC("noun-satou")), 1, "time-movement-1", 4, FUTURE, BASE_CONTROLLED_ACTIVITY_SHAPE, "satou", "satou-goes-out"),
+    act(task11Cue(L("noun-suzuki")), interpretedNonpast("verb-hashiru", HABITUAL, TOPIC("noun-suzuki")), interpretedNonpast("verb-hashiru", FUTURE, TOPIC("noun-suzuki")), 0, "time-movement-1", 5, HABITUAL, BASE_CONTEXT_ACTIVITY_SHAPE),
+    act(interpretationErrorPrompt("verb-dekakeru", "noun-mari"), interpretedNonpast("verb-dekakeru", FUTURE, TOPIC("noun-mari")), interpretedNonpast("verb-dekakeru", HABITUAL, TOPIC("noun-mari")), 1, "time-movement-1", 6, FUTURE, BASE_ERROR_ACTIVITY_SHAPE, "mari", "mari-will-go-out", "dynamic-nonpast-interpretation-mismatch", { contrastAxis: "interpretation", heldConstantPredicateLexemeId: "verb-dekakeru", optionAnalysisIds: ["analysis-future", "analysis-habitual"], errorDefectAxis: "interpretation", changedTokenSourceIds: ["analysis-habitual", "analysis-future", "interpretation-tag"] }),
+    act(task11Cue(L("noun-yuki-san")), interpretedNonpast("verb-yasumu", HABITUAL, TOPIC("noun-yuki-san")), interpretedNonpast("verb-yasumu", FUTURE, TOPIC("noun-yuki-san")), 0, "time-movement-1", 7, HABITUAL, BASE_RETRIEVAL_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-tomodachi")), interpretedNonpast("verb-neru", FUTURE, TOPIC("noun-tomodachi")), interpretedNonpast("verb-neru", HABITUAL, TOPIC("noun-tomodachi")), 0, "time-movement-1", 8, FUTURE, BASE_CONTROLLED_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-yamada")), interpretedNonpast("verb-ryokou-suru", FUTURE, TOPIC("noun-yamada")), interpretedNonpast("verb-ryokou-suru", HABITUAL, TOPIC("noun-yamada")), 1, "time-movement-1", 9, FUTURE, BASE_LISTENING_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-suzuki")), semanticNonpast("verb-dekakeru", FUTURE, TOPIC("noun-suzuki")), semanticNonpast("verb-ryouri-suru", HABITUAL, TOPIC("noun-suzuki")), 1, "time-movement-1", 10, FUTURE, BASE_SPOKEN_ACTIVITY_SHAPE),
   ],
   dialogue: null,
@@ -332,7 +350,17 @@ function specificTime(
     [tag],
     topicId ? ["topic", "time"] : ["time"],
     ["time-ni"],
-    { predicateSenseId: "action-time", provided: { time: "time-ni" } },
+    {
+      predicateSenseId: "action-time",
+      provided: {
+        time: "time-ni",
+        ...(topicId ? { topic: "topic-wa" as const } : {}),
+      },
+      attachmentLexemeIdByRole: {
+        time: timeId,
+        ...(topicId ? { topic: topicId } : {}),
+      },
+    },
   );
 }
 
@@ -401,7 +429,18 @@ function bounds(
       ...(hasStart ? ["source-kara"] : []),
       ...(hasEnd ? ["limit-made"] : []),
     ],
-    { predicateSenseId, provided },
+    {
+      predicateSenseId,
+      provided: {
+        ...provided,
+        ...(topicId ? { topic: "topic-wa" as const } : {}),
+      },
+      attachmentLexemeIdByRole: {
+        ...(startId ? { source: startId } : {}),
+        ...(endId ? { limit: endId } : {}),
+        ...(topicId ? { topic: topicId } : {}),
+      },
+    },
   );
 }
 
@@ -466,12 +505,12 @@ const L2: BaseTask11LessonSpec = {
     ex(bounds("noun-eki", null, "verb-kaeru", "movement"), "return-from-station", "I will return from the station.", "Tornerò dalla stazione.", "Uses から for a movement source.", "Usa から per l'origine del movimento.", "future"),
   ],
   activities: [
-    act(task11Cue(L("noun-shichiji")), specificTime("noun-shichiji", "verb-okiru", SPECIFIC_TIME, "noun-watashi"), (() => { const target = relativeTime("noun-kyou", "verb-okiru", RELATIVE_TIME, "future", "noun-watashi"); return { ...target, parts: [L("expression-hai"), C, ...target.parts] }; })(), 1, "time-movement-2", 1, SPECIFIC_TIME, BASE_MEANING_ACTIVITY_SHAPE, "learner", "learner-wakes-seven"),
-    act(task11Cue(L("noun-kyou")), relativeTime("noun-kyou", "verb-yasumu", RELATIVE_TIME, "future", "noun-tanaka"), (() => { const target = specificTime("noun-kuji", "verb-yasumu", SPECIFIC_TIME, "noun-tanaka"); return { ...target, parts: [L("expression-hai"), C, ...target.parts] }; })(), 1, "time-movement-2", 2, RELATIVE_TIME, BASE_FORM_ACTIVITY_SHAPE),
-    act(task11Cue(L("noun-getsuyoubi")), specificTime("noun-getsuyoubi", "verb-benkyou-suru", SPECIFIC_TIME, "noun-yamada", "future"), task11Target([L("noun-yamada"), P("topic-wa"), P("time-ni"), L("noun-getsuyoubi"), task11VerbForm("verb-benkyou-suru", "polite-nonpast")], { conceptIds: ["time-ni"], patternCellIds: [SPECIFIC_TIME], semanticRoleIds: ["topic", "time"], interpretationTags: ["future"], predicateSenseId: "action-time", predicateLexemeId: "verb-benkyou-suru", predicateAspect: "dynamic", particleFrame: { predicateSenseId: "action-time", provided: { time: "time-ni" } } }), 0, "time-movement-2", 3, SPECIFIC_TIME, BASE_ORDERING_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-shichiji")), specificTime("noun-shichiji", "verb-okiru", SPECIFIC_TIME, "noun-watashi"), relativeTime("noun-kyou", "verb-okiru", RELATIVE_TIME, "future", "noun-watashi"), 1, "time-movement-2", 1, SPECIFIC_TIME, BASE_MEANING_ACTIVITY_SHAPE, "learner", "learner-wakes-seven"),
+    act(task11Cue(L("noun-kyou")), relativeTime("noun-kyou", "verb-yasumu", RELATIVE_TIME, "future", "noun-tanaka"), specificTime("noun-getsuyoubi", "verb-yasumu", SPECIFIC_TIME, "noun-tanaka"), 1, "time-movement-2", 2, RELATIVE_TIME, BASE_FORM_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-getsuyoubi")), specificTime("noun-getsuyoubi", "verb-benkyou-suru", SPECIFIC_TIME, "noun-yamada", "future"), task11Target([L("noun-yamada"), P("topic-wa"), task11VerbForm("verb-benkyou-suru", "polite-nonpast"), L("noun-getsuyoubi"), P("time-ni")], { conceptIds: ["time-ni"], patternCellIds: [SPECIFIC_TIME], semanticRoleIds: ["topic", "time"], interpretationTags: ["future"], predicateSenseId: "action-time", predicateLexemeId: "verb-benkyou-suru", predicateAspect: "dynamic", particleFrame: { predicateSenseId: "action-time", provided: { time: "time-ni", topic: "topic-wa" }, attachmentLexemeIdByRole: { time: "noun-getsuyoubi", topic: "noun-yamada" } } }), 0, "time-movement-2", 3, SPECIFIC_TIME, BASE_ORDERING_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-ashita")), relativeTime("noun-ashita", "verb-iku", RELATIVE_TIME, "future", "noun-satou"), specificTime("noun-kuji", "verb-iku", SPECIFIC_TIME, "noun-satou", "future"), 0, "time-movement-2", 4, RELATIVE_TIME, BASE_CONTROLLED_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-kuji"), P("source-kara"), L("noun-goji"), P("limit-made")), bounds("noun-kuji", "noun-goji", "verb-benkyou-suru", "time", "noun-tanaka"), specificTime("noun-kuji", "verb-benkyou-suru", TIME_BOUNDS, "noun-tanaka", "future"), 0, "time-movement-2", 5, TIME_BOUNDS, BASE_CONTEXT_ACTIVITY_SHAPE, "tanaka", "tanaka-study-nine-to-five"),
-    act(promptOf(bounds("noun-eki", null, "verb-iku", "movement", "noun-mari")), bounds("noun-eki", "noun-daigaku", "verb-iku", "movement", "noun-mari"), (() => { const target = bounds("noun-eki", null, "verb-iku", "movement"); return { ...target, parts: [L("expression-hai"), C, ...target.parts] }; })(), 1, "time-movement-2", 6, MOVEMENT_BOUNDS, BASE_ERROR_ACTIVITY_SHAPE, "mari", "mari-station-university", "movement-bound-incomplete"),
+    act(promptOf(bounds("noun-eki", null, "verb-iku", "movement", "noun-mari")), bounds("noun-eki", "noun-daigaku", "verb-iku", "movement", "noun-mari"), (() => { const target = bounds("noun-eki", null, "verb-iku", "movement", "noun-mari"); return { ...target, parts: [...target.parts, C, task11AnalysisLabel("analysis-direction")] }; })(), 1, "time-movement-2", 6, MOVEMENT_BOUNDS, BASE_ERROR_ACTIVITY_SHAPE, "mari", "mari-station-university", "movement-bound-incomplete"),
     act(task11Cue(L("noun-goji")), bounds(null, "noun-goji", "verb-benkyou-suru", "time", "noun-suzuki"), specificTime("noun-goji", "verb-benkyou-suru", SPECIFIC_TIME, "noun-suzuki", "future"), 0, "time-movement-2", 7, TIME_BOUNDS, BASE_RETRIEVAL_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-eki")), bounds("noun-eki", null, "verb-kaeru", "movement", "noun-yamada"), relativeTime("noun-ashita", "verb-kaeru", RELATIVE_TIME, "future", "noun-yamada"), 1, "time-movement-2", 8, MOVEMENT_BOUNDS, BASE_CONTROLLED_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-ashita")), relativeTime("noun-ashita", "verb-iku", RELATIVE_TIME, "future", "noun-suzuki"), relativeTime("noun-kyou", "verb-iku", RELATIVE_TIME, "future", "noun-suzuki"), 0, "time-movement-2", 9, RELATIVE_TIME, BASE_LISTENING_ACTIVITY_SHAPE),
@@ -592,14 +631,14 @@ const L3: BaseTask11LessonSpec = {
     ex(tenseTarget("noun-raishuu", "verb-benkyou-suru", "nonpast-negative", NONPAST_NEGATIVE, "future", "noun-yamada"), "yamada-will-not-study", "Yamada will not study next week.", "Yamada non studierà la prossima settimana.", "Completes the four-cell contrast in a grounded plan.", "Completa il contrasto delle quattro celle in un piano fondato.", "future"),
   ],
   activities: [
-    act(task11Cue(L("noun-konshuu")), (() => { const target = tenseTarget("noun-konshuu", "verb-hataraku", "polite-nonpast", NONPAST_AFFIRMATIVE, "future", "noun-watashi"); return { ...target, parts: [...target.parts, TASK11_PERIOD] }; })(), tenseTarget("noun-konshuu", "verb-hataraku", "nonpast-negative", NONPAST_NEGATIVE, "future", "noun-watashi"), 0, "time-movement-3", 1, NONPAST_AFFIRMATIVE, BASE_MEANING_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-konshuu")), tenseTarget("noun-konshuu", "verb-hataraku", "polite-nonpast", NONPAST_AFFIRMATIVE, "future", "noun-watashi"), tenseTarget("noun-konshuu", "verb-hataraku", "nonpast-negative", NONPAST_NEGATIVE, "future", "noun-watashi"), 0, "time-movement-3", 1, NONPAST_AFFIRMATIVE, BASE_MEANING_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-raishuu")), tenseTarget("noun-raishuu", "verb-hataraku", "polite-nonpast", NONPAST_AFFIRMATIVE, "future", "noun-tanaka"), tenseTarget("noun-raishuu", "verb-hataraku", "past-affirmative", PAST_AFFIRMATIVE, "past", "noun-tanaka"), 0, "time-movement-3", 2, NONPAST_AFFIRMATIVE, BASE_FORM_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-kinou")), tenseTarget("noun-kinou", "verb-hataraku", "past-affirmative", PAST_AFFIRMATIVE, "past", "noun-yamada"), task11Target([L("noun-yamada"), P("topic-wa"), task11VerbForm("verb-hataraku", "past-affirmative"), L("noun-kinou")], { conceptIds: ["four-polite-tense-cells", "relative-time-omission"], patternCellIds: [PAST_AFFIRMATIVE], semanticRoleIds: ["topic", "time"], interpretationTags: ["past"], predicateSenseId: "hataraku", predicateLexemeId: "verb-hataraku", predicateAspect: "dynamic" }), 0, "time-movement-3", 3, PAST_AFFIRMATIVE, BASE_ORDERING_ACTIVITY_SHAPE),
     act((() => { const target = eventTarget("verb-benkyou-suru", "polite-stem", [], null, ["metalinguistic"], [], []); return { ...target, parts: [task11VerbForm("verb-benkyou-suru", "dictionary"), C, task11VerbForm("verb-benkyou-suru", "polite-stem")] }; })(), tenseTarget("noun-senshuu", "verb-benkyou-suru", "past-affirmative", PAST_AFFIRMATIVE, "past", "noun-satou"), tenseTarget("noun-senshuu", "verb-benkyou-suru", "past-negative", PAST_NEGATIVE, "past", "noun-satou"), 1, "time-movement-3", 4, PAST_AFFIRMATIVE, BASE_TRANSFORMATION_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-kinou")), tenseTarget("noun-kinou", "verb-hataraku", "past-negative", PAST_NEGATIVE, "past", "noun-suzuki"), tenseTarget("noun-kinou", "verb-hataraku", "past-affirmative", PAST_AFFIRMATIVE, "past", "noun-suzuki"), 0, "time-movement-3", 5, PAST_NEGATIVE, BASE_CONTROLLED_ACTIVITY_SHAPE),
     act(promptOf(tenseTarget("noun-raishuu", "verb-kau", "past-affirmative", PAST_AFFIRMATIVE, "past", "noun-mari")), tenseTarget("noun-raishuu", "verb-kau", "nonpast-negative", NONPAST_NEGATIVE, "future", "noun-mari"), tenseTarget("noun-raishuu", "verb-kau", "polite-nonpast", NONPAST_AFFIRMATIVE, "future", "noun-mari"), 1, "time-movement-3", 6, NONPAST_NEGATIVE, BASE_ERROR_ACTIVITY_SHAPE, "mari", "mari-will-not-buy", "time-form-mismatch"),
     act(task11Cue(L("noun-senshuu")), tenseTarget("noun-senshuu", "verb-asobu", "past-negative", PAST_NEGATIVE, "past", "noun-tanaka"), tenseTarget("noun-senshuu", "verb-asobu", "past-affirmative", PAST_AFFIRMATIVE, "past", "noun-tanaka"), 1, "time-movement-3", 7, PAST_NEGATIVE, BASE_RETRIEVAL_ACTIVITY_SHAPE),
-    act(task11Cue(L("noun-konshuu")), tenseTarget("noun-konshuu", "verb-yasumu", "nonpast-negative", NONPAST_NEGATIVE, "future", "noun-yamada"), tenseTarget("noun-konshuu", "verb-yasumu", "polite-nonpast", NONPAST_AFFIRMATIVE, "habitual", "noun-yamada"), 1, "time-movement-3", 8, NONPAST_NEGATIVE, BASE_CONTEXT_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-konshuu")), tenseTarget("noun-konshuu", "verb-yasumu", "nonpast-negative", NONPAST_NEGATIVE, "future", "noun-yamada"), tenseTarget("noun-raishuu", "verb-yasumu", "nonpast-negative", NONPAST_NEGATIVE, "future", "noun-yamada"), 1, "time-movement-3", 8, NONPAST_NEGATIVE, BASE_CONTEXT_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-kinou")), tenseTarget("noun-kinou", "verb-kaku", "past-affirmative", PAST_AFFIRMATIVE, "past", "noun-satou"), tenseTarget("noun-kinou", "verb-kaku", "past-negative", PAST_NEGATIVE, "past", "noun-satou"), 0, "time-movement-3", 9, PAST_AFFIRMATIVE, BASE_LISTENING_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-raishuu")), tenseTarget("noun-raishuu", "verb-benkyou-suru", "nonpast-negative", NONPAST_NEGATIVE, "future", "noun-suzuki"), tenseTarget("noun-senshuu", "verb-benkyou-suru", "past-affirmative", PAST_AFFIRMATIVE, "past", "noun-suzuki"), 1, "time-movement-3", 10, NONPAST_NEGATIVE, BASE_SPOKEN_ACTIVITY_SHAPE),
   ],
@@ -616,16 +655,32 @@ function scheduledObject(
   predicateSenseId: "do" | "eat" | "see",
   form: BaseTask11VerbFormKind = "polite-nonpast",
   tags: readonly BaseInterpretationTag[] = ["future"],
+  topicId?: string,
 ): BaseTask11TargetSpec {
   return eventTarget(
     lemmaId,
     form,
-    [L(timeId), L(nounId), P("object-o")],
+    [
+      ...(topicId ? [L(topicId), P("topic-wa")] : []),
+      L(timeId),
+      L(nounId),
+      P("object-o"),
+    ],
     SCHEDULE,
     tags,
-    ["time", "theme"],
+    topicId ? ["topic", "time", "theme"] : ["time", "theme"],
     ["predicate-led-particle-selection", "relative-time-omission"],
-    { predicateSenseId, provided: { theme: "object-o" } },
+    {
+      predicateSenseId,
+      provided: {
+        theme: "object-o",
+        ...(topicId ? { topic: "topic-wa" as const } : {}),
+      },
+      attachmentLexemeIdByRole: {
+        theme: nounId,
+        ...(topicId ? { topic: topicId } : {}),
+      },
+    },
   );
 }
 
@@ -709,20 +764,20 @@ const L4: BaseTask11LessonSpec = {
     ex(scheduleExample("noun-konban", "verb-ryouri-suru", "polite-nonpast", ["future"]), "cook-tonight", "I will cook tonight.", "Cucinerò stasera.", "Uses a future reading, never ongoing-now.", "Usa una lettura futura, mai progressiva.", "future"),
     ex(specificTime("noun-nichiyoubi", "verb-yasumu", SCHEDULE, undefined, "habitual"), "rest-sunday", "I rest on Sunday.", "La domenica riposo.", "Uses に with a named recurring day.", "Usa に con un giorno ricorrente nominato.", "habitual"),
     ex(scheduledObject("noun-ashita", "noun-yotei", "verb-miru", "see"), "check-plan", "I will check the schedule tomorrow.", "Controllerò il programma domani.", "Makes the schedule the licensed theme of checking.", "Rende il programma il tema ammesso di controllare.", "future"),
-    ex(eventTarget("verb-iku", "polite-nonpast", [L("noun-konban"), L("noun-eki"), P("direction-he")], ROUTE, ["future"], ["time", "goal"], ["relative-time-omission", "direction-he"], { predicateSenseId: "go-direction", provided: { goal: "direction-he" } }), "station-tonight", "I will head toward the station tonight.", "Stasera mi dirigerò verso la stazione.", "Adds a coherent future movement item to the schedule.", "Aggiunge al programma un movimento futuro coerente.", "future"),
-    ex(eventTarget("verb-suru", "nonpast-negative", [L("noun-konban"), L("noun-kaigi"), P("object-o")], SCHEDULE, ["future", "negative"], ["time", "theme"], ["predicate-led-particle-selection", "relative-time-omission", "four-polite-tense-cells"], { predicateSenseId: "do", provided: { theme: "object-o" } }), "no-meeting-tonight", "I will not have the meeting tonight.", "Non terrò la riunione stasera.", "Uses the nonpast negative for a cancelled future event.", "Usa il non-passato negativo per un evento futuro annullato.", "future"),
+    ex(eventTarget("verb-iku", "polite-nonpast", [L("noun-konban"), L("noun-eki"), P("direction-he")], ROUTE, ["future"], ["time", "goal"], ["relative-time-omission", "direction-he"], { predicateSenseId: "go-direction", provided: { goal: "direction-he" }, attachmentLexemeIdByRole: { goal: "noun-eki" } }), "station-tonight", "I will head toward the station tonight.", "Stasera mi dirigerò verso la stazione.", "Adds a coherent future movement item to the schedule.", "Aggiunge al programma un movimento futuro coerente.", "future"),
+    ex(eventTarget("verb-suru", "nonpast-negative", [L("noun-konban"), L("noun-kaigi"), P("object-o")], SCHEDULE, ["future", "negative"], ["time", "theme"], ["predicate-led-particle-selection", "relative-time-omission", "four-polite-tense-cells"], { predicateSenseId: "do", provided: { theme: "object-o" }, attachmentLexemeIdByRole: { theme: "noun-kaigi" } }), "no-meeting-tonight", "I will not have the meeting tonight.", "Non terrò la riunione stasera.", "Uses the nonpast negative for a cancelled future event.", "Usa il non-passato negativo per un evento futuro annullato.", "future"),
   ],
   activities: [
     act(task11Cue(L("noun-kesa")), eventTarget("verb-hashiru", "past-affirmative", [L("noun-watashi"), P("topic-wa"), L("noun-kesa")], SCHEDULE, ["past"], ["topic", "time"], ["relative-time-omission", "four-polite-tense-cells"]), eventTarget("verb-hashiru", "past-negative", [L("noun-watashi"), P("topic-wa"), L("noun-kesa")], SCHEDULE, ["past", "negative"], ["topic", "time"], ["relative-time-omission", "four-polite-tense-cells"]), 0, "time-movement-4", 1, SCHEDULE, BASE_MEANING_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-kaigi")), scheduledObject("noun-ashita", "noun-kaigi", "verb-suru", "do"), scheduledObject("noun-kyou", "noun-kaigi", "verb-suru", "do"), 1, "time-movement-4", 2, SCHEDULE, BASE_FORM_ACTIVITY_SHAPE, "meeting", "meeting-tomorrow"),
-    act(task11Cue(L("noun-shigoto")), scheduledObject("noun-konban", "noun-shigoto", "verb-suru", "do"), task11Target([L("noun-shigoto"), P("object-o"), L("noun-konban"), task11VerbForm("verb-suru", "polite-nonpast")], { conceptIds: ["predicate-led-particle-selection", "relative-time-omission"], patternCellIds: [SCHEDULE], semanticRoleIds: ["time", "theme"], interpretationTags: ["future"], predicateSenseId: "do", predicateLexemeId: "verb-suru", predicateAspect: "dynamic", particleFrame: { predicateSenseId: "do", provided: { theme: "object-o" } } }), 1, "time-movement-4", 3, SCHEDULE, BASE_ORDERING_ACTIVITY_SHAPE),
-    act(task11Cue(L("noun-hirugohan")), scheduledObject("noun-ashita", "noun-hirugohan", "verb-taberu", "eat"), (() => { const target = scheduledObject("noun-kyou", "noun-hirugohan", "verb-taberu", "eat"); return { ...target, parts: [L("expression-iie"), C, ...target.parts] }; })(), 1, "time-movement-4", 4, SCHEDULE, BASE_CONTROLLED_ACTIVITY_SHAPE),
-    act(task11Cue(L("noun-yoru")), specificTime("noun-yoru", "verb-hataraku", SCHEDULE, "noun-tanaka", "habitual"), relativeTime("noun-konban", "verb-hataraku", SCHEDULE, "future", "noun-tanaka"), 0, "time-movement-4", 5, SCHEDULE, BASE_CONTEXT_ACTIVITY_SHAPE),
-    act(promptOf(eventTarget("verb-suru", "polite-nonpast", [L("noun-watashi"), P("topic-wa"), L("noun-konban"), L("noun-kaigi"), P("object-o")], SCHEDULE, ["future"], ["topic", "time", "theme"], ["predicate-led-particle-selection", "relative-time-omission"], { predicateSenseId: "do", provided: { theme: "object-o" } })), eventTarget("verb-suru", "nonpast-negative", [L("noun-watashi"), P("topic-wa"), L("noun-konban"), L("noun-kaigi"), P("object-o")], SCHEDULE, ["future", "negative"], ["topic", "time", "theme"], ["predicate-led-particle-selection", "relative-time-omission", "four-polite-tense-cells"], { predicateSenseId: "do", provided: { theme: "object-o" } }), eventTarget("verb-suru", "polite-nonpast", [L("expression-hai"), C, L("noun-konban"), L("noun-kaigi"), P("object-o")], SCHEDULE, ["future"], ["time", "theme"], ["predicate-led-particle-selection", "relative-time-omission"], { predicateSenseId: "do", provided: { theme: "object-o" } }), 1, "time-movement-4", 6, SCHEDULE, BASE_ERROR_ACTIVITY_SHAPE, "meeting", "meeting-tonight-cancelled", "polarity-mismatch"),
+    act(task11Cue(L("noun-shigoto")), scheduledObject("noun-konban", "noun-shigoto", "verb-suru", "do"), task11Target([L("noun-shigoto"), P("object-o"), task11VerbForm("verb-suru", "polite-nonpast"), L("noun-konban")], { conceptIds: ["predicate-led-particle-selection", "relative-time-omission"], patternCellIds: [SCHEDULE], semanticRoleIds: ["time", "theme"], interpretationTags: ["future"], predicateSenseId: "do", predicateLexemeId: "verb-suru", predicateAspect: "dynamic", particleFrame: { predicateSenseId: "do", provided: { theme: "object-o" }, attachmentLexemeIdByRole: { theme: "noun-shigoto" } } }), 1, "time-movement-4", 3, SCHEDULE, BASE_ORDERING_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-hirugohan")), scheduledObject("noun-ashita", "noun-hirugohan", "verb-taberu", "eat", "polite-nonpast", ["future"], "noun-yamada"), scheduledObject("noun-kyou", "noun-hirugohan", "verb-taberu", "eat", "polite-nonpast", ["future"], "noun-yamada"), 1, "time-movement-4", 4, SCHEDULE, BASE_CONTROLLED_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-yoru")), specificTime("noun-yoru", "verb-hataraku", SCHEDULE, "noun-tanaka", "habitual"), relativeTime("noun-kyou", "verb-hataraku", SCHEDULE, "future", "noun-tanaka"), 0, "time-movement-4", 5, SCHEDULE, BASE_CONTEXT_ACTIVITY_SHAPE),
+    act(promptOf(eventTarget("verb-suru", "polite-nonpast", [L("noun-watashi"), P("topic-wa"), L("noun-konban"), L("noun-kaigi"), P("object-o")], SCHEDULE, ["future"], ["topic", "time", "theme"], ["predicate-led-particle-selection", "relative-time-omission"], { predicateSenseId: "do", provided: { theme: "object-o", topic: "topic-wa" }, attachmentLexemeIdByRole: { theme: "noun-kaigi", topic: "noun-watashi" } })), eventTarget("verb-suru", "nonpast-negative", [L("noun-watashi"), P("topic-wa"), L("noun-konban"), L("noun-kaigi"), P("object-o")], SCHEDULE, ["future", "negative"], ["topic", "time", "theme"], ["predicate-led-particle-selection", "relative-time-omission", "four-polite-tense-cells"], { predicateSenseId: "do", provided: { theme: "object-o", topic: "topic-wa" }, attachmentLexemeIdByRole: { theme: "noun-kaigi", topic: "noun-watashi" } }), (() => { const target = eventTarget("verb-suru", "polite-nonpast", [L("noun-watashi"), P("topic-wa"), L("noun-konban"), L("noun-kaigi"), P("object-o")], SCHEDULE, ["future"], ["topic", "time", "theme"], ["predicate-led-particle-selection", "relative-time-omission"], { predicateSenseId: "do", provided: { theme: "object-o", topic: "topic-wa" }, attachmentLexemeIdByRole: { theme: "noun-kaigi", topic: "noun-watashi" } }); return { ...target, parts: [...target.parts, C, task11AnalysisLabel("analysis-future")] }; })(), 1, "time-movement-4", 6, SCHEDULE, BASE_ERROR_ACTIVITY_SHAPE, "meeting", "meeting-tonight-cancelled", "polarity-mismatch"),
     act(task11Cue(L("noun-nichiyoubi")), specificTime("noun-nichiyoubi", "verb-yasumu", SCHEDULE, "noun-tanaka", "habitual"), relativeTime("noun-konban", "verb-yasumu", SCHEDULE, "future", "noun-tanaka"), 0, "time-movement-4", 7, SCHEDULE, BASE_RETRIEVAL_ACTIVITY_SHAPE),
-    act(task11Cue(L("noun-yotei")), eventTarget("verb-miru", "polite-nonpast", [L("noun-yamada"), P("topic-wa"), L("noun-ashita"), L("noun-yotei"), P("object-o")], SCHEDULE, ["future"], ["topic", "time", "theme"], ["predicate-led-particle-selection", "relative-time-omission"], { predicateSenseId: "see", provided: { theme: "object-o" } }), eventTarget("verb-miru", "polite-nonpast", [L("noun-yamada"), P("topic-wa"), L("noun-kyou"), L("noun-yotei"), P("object-o")], SCHEDULE, ["future"], ["topic", "time", "theme"], ["predicate-led-particle-selection", "relative-time-omission"], { predicateSenseId: "see", provided: { theme: "object-o" } }), 0, "time-movement-4", 8, SCHEDULE, BASE_CONTROLLED_ACTIVITY_SHAPE),
-    act(task11Cue(L("noun-densha")), eventTarget("verb-iku", "polite-nonpast", [L("noun-watashi"), P("topic-wa"), L("noun-densha"), P("means-de")], ROUTE, ["future"], ["topic", "means"], ["means-de"], { predicateSenseId: "travel-means", provided: { means: "means-de" } }), eventTarget("verb-iku", "nonpast-negative", [L("noun-densha"), P("means-de")], ROUTE, ["future", "negative"], ["means"], ["means-de", "four-polite-tense-cells"], { predicateSenseId: "travel-means", provided: { means: "means-de" } }), 0, "time-movement-4", 9, ROUTE, BASE_LISTENING_ACTIVITY_SHAPE),
-    act(task11Cue(L("noun-konban")), eventTarget("verb-suru", "polite-nonpast", [L("noun-suzuki"), P("topic-wa"), L("noun-konban"), L("noun-kaigi"), P("object-o")], SCHEDULE, ["future"], ["topic", "time", "theme"], ["predicate-led-particle-selection", "relative-time-omission"], { predicateSenseId: "do", provided: { theme: "object-o" } }), scheduleExample("noun-kesa", "verb-dekakeru", "past-affirmative", ["past"]), 1, "time-movement-4", 10, SCHEDULE, BASE_SPOKEN_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-yotei")), eventTarget("verb-miru", "polite-nonpast", [L("noun-yamada"), P("topic-wa"), L("noun-konban"), L("noun-yotei"), P("object-o")], SCHEDULE, ["future"], ["topic", "time", "theme"], ["predicate-led-particle-selection", "relative-time-omission"], { predicateSenseId: "see", provided: { theme: "object-o", topic: "topic-wa" }, attachmentLexemeIdByRole: { theme: "noun-yotei", topic: "noun-yamada" } }), eventTarget("verb-miru", "polite-nonpast", [L("noun-yamada"), P("topic-wa"), L("noun-kyou"), L("noun-yotei"), P("object-o")], SCHEDULE, ["future"], ["topic", "time", "theme"], ["predicate-led-particle-selection", "relative-time-omission"], { predicateSenseId: "see", provided: { theme: "object-o", topic: "topic-wa" }, attachmentLexemeIdByRole: { theme: "noun-yotei", topic: "noun-yamada" } }), 0, "time-movement-4", 8, SCHEDULE, BASE_CONTROLLED_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-densha")), eventTarget("verb-iku", "polite-nonpast", [L("noun-tanaka"), P("topic-wa"), L("noun-densha"), P("means-de")], ROUTE, ["future"], ["topic", "means"], ["means-de"], { predicateSenseId: "travel-means", provided: { means: "means-de", topic: "topic-wa" }, attachmentLexemeIdByRole: { means: "noun-densha", topic: "noun-tanaka" } }), eventTarget("verb-iku", "nonpast-negative", [L("noun-tanaka"), P("topic-wa"), L("noun-densha"), P("means-de")], ROUTE, ["future", "negative"], ["topic", "means"], ["means-de", "four-polite-tense-cells"], { predicateSenseId: "travel-means", provided: { means: "means-de", topic: "topic-wa" }, attachmentLexemeIdByRole: { means: "noun-densha", topic: "noun-tanaka" } }), 0, "time-movement-4", 9, ROUTE, BASE_LISTENING_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-konban")), eventTarget("verb-suru", "polite-nonpast", [L("noun-suzuki"), P("topic-wa"), L("noun-konban"), L("noun-kaigi"), P("object-o")], SCHEDULE, ["future"], ["topic", "time", "theme"], ["predicate-led-particle-selection", "relative-time-omission"], { predicateSenseId: "do", provided: { theme: "object-o", topic: "topic-wa" }, attachmentLexemeIdByRole: { theme: "noun-kaigi", topic: "noun-suzuki" } }), scheduleExample("noun-kesa", "verb-dekakeru", "past-affirmative", ["past"]), 1, "time-movement-4", 10, SCHEDULE, BASE_SPOKEN_ACTIVITY_SHAPE),
   ],
   dialogue: [
     {
@@ -743,7 +798,16 @@ const L4: BaseTask11LessonSpec = {
         ["time-ni", "goal-ni"],
         {
           predicateSenseId: "go-time-goal",
-          provided: { time: "time-ni", goal: "goal-ni" },
+          provided: {
+            time: "time-ni",
+            goal: "goal-ni",
+            question: "question-ka",
+          },
+          attachmentLexemeIdByRole: {
+            time: "noun-getsuyoubi",
+            goal: "noun-daigaku",
+            question: "verb-iku",
+          },
         },
       ),
       frame: "ask-monday-goal",
@@ -763,7 +827,11 @@ const L4: BaseTask11LessonSpec = {
         ["future"],
         ["time"],
         ["time-ni"],
-        { predicateSenseId: "action-time", provided: { time: "time-ni" } },
+        {
+          predicateSenseId: "action-time",
+          provided: { time: "time-ni" },
+          attachmentLexemeIdByRole: { time: "noun-shichiji" },
+        },
       ),
       frame: "confirm-seven-departure",
       utteranceKind: "complete-clause",
@@ -790,7 +858,16 @@ const L4: BaseTask11LessonSpec = {
         ["source-kara", "limit-made"],
         {
           predicateSenseId: "movement-bounds",
-          provided: { source: "source-kara", limit: "limit-made" },
+          provided: {
+            source: "source-kara",
+            limit: "limit-made",
+            question: "question-ka",
+          },
+          attachmentLexemeIdByRole: {
+            source: "noun-eki",
+            limit: "noun-daigaku",
+            question: "verb-iku",
+          },
         },
       ),
       frame: "ask-route-bounds",
@@ -805,12 +882,26 @@ const L4: BaseTask11LessonSpec = {
       target: eventTarget(
         "verb-iku",
         "polite-nonpast",
-        [L("expression-hai"), C, L("noun-densha"), P("means-de")],
+        [
+          L("expression-hai"),
+          C,
+          L("noun-watashi"),
+          P("topic-wa"),
+          L("noun-densha"),
+          P("means-de"),
+        ],
         ROUTE,
         ["future"],
         ["means"],
         ["means-de"],
-        { predicateSenseId: "travel-means", provided: { means: "means-de" } },
+        {
+          predicateSenseId: "travel-means",
+          provided: { means: "means-de", topic: "topic-wa" },
+          attachmentLexemeIdByRole: {
+            means: "noun-densha",
+            topic: "noun-watashi",
+          },
+        },
       ),
       frame: "confirm-train-means",
       utteranceKind: "complete-clause",
@@ -830,7 +921,14 @@ const L4: BaseTask11LessonSpec = {
         ["future"],
         ["time", "theme"],
         ["relative-time-omission", "predicate-led-particle-selection"],
-        { predicateSenseId: "do", provided: { theme: "object-o" } },
+        {
+          predicateSenseId: "do",
+          provided: { theme: "object-o", question: "question-ka" },
+          attachmentLexemeIdByRole: {
+            theme: "noun-kaigi",
+            question: "verb-suru",
+          },
+        },
       ),
       frame: "ask-evening-meeting",
       utteranceKind: "complete-clause",

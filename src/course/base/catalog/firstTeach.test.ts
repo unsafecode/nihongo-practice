@@ -334,6 +334,7 @@ describe("Base first-teach ownership", () => {
       particleFrame: {
         predicateSenseId: "eat",
         provided: { theme: unsafeDate as unknown as "object-o" },
+        attachmentLexemeIdByRole: { theme: "noun-gohan" },
       },
     };
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { AssembledToken } from "../../../romaji/types";
 import {
   BASE_FIRST_TEACH_OWNERS,
   firstTeachLessonPosition,
@@ -30,6 +31,7 @@ import {
 import { BASE_SENTENCE_FOUNDATIONS_MODULE } from "./module02SentenceFoundations";
 import { BASE_TOPIC_QUESTIONS_MODULE } from "./module03TopicQuestions";
 import { BASE_POLITE_VERBS_MODULE } from "./module04PoliteVerbs";
+import { validateTask11SemanticReview } from "./module04PoliteVerbs";
 import { BASE_ARGUMENT_PARTICLES_MODULE } from "./module05ArgumentParticles";
 
 function jp(tokens: readonly { readonly jp: string }[]): string {
@@ -160,6 +162,37 @@ describe("Base time-movement module", () => {
       .toBe(true);
   });
 
+  it("holds every TM1 clause constant while varying only interpretation", () => {
+    const lesson = BASE_TIME_MOVEMENT_MODULE.lessons[0];
+    for (const design of lesson.activityDesigns.filter(
+      ({ operation, optionTargets }) =>
+        operation !== "produce-spoken" &&
+        operation !== "order-chunks" &&
+        optionTargets.length === 2,
+    )) {
+      const clauseSources = design.optionTargets.map(({ tokens }) =>
+        tokens
+          .filter(
+            ({ source }) =>
+              source.referenceId !== "analysis-habitual" &&
+              source.referenceId !== "analysis-routine" &&
+              source.referenceId !== "analysis-future" &&
+              source.referenceId !== "japanese-comma" &&
+              source.referenceId !== "japanese-period",
+          )
+          .map(({ source }) => source.referenceId),
+      );
+      expect(clauseSources[0], design.id).toEqual(clauseSources[1]);
+      expect(
+        design.optionTargets.map(({ predicateLexemeId }) => predicateLexemeId),
+        design.id,
+      ).toEqual([
+        design.reviewEvidence.heldConstantPredicateLexemeId,
+        design.reviewEvidence.heldConstantPredicateLexemeId,
+      ]);
+    }
+  });
+
   it("keeps EN and IT translations aligned to habit/future rather than ongoing-now", () => {
     for (const lesson of BASE_TIME_MOVEMENT_MODULE.lessons) {
       for (const reviewed of lesson.reviewedTranslations) {
@@ -225,7 +258,29 @@ describe("Base time-movement module", () => {
       "えきにかえります",
       "がっこうへきます",
     ]) {
-      expect(visible, rejected).not.toContain(rejected);
+      expect(
+        visible.some((surface) => surface.includes(rejected)),
+        rejected,
+      ).toBe(false);
+    }
+    expect(
+      visible.some((surface) => surface.startsWith("こんばんはたらきます")),
+    ).toBe(false);
+    for (const target of allTargets().filter(
+      ({ predicateLexemeId }) => predicateLexemeId !== null,
+    )) {
+      for (const [index, token] of target.tokens.entries()) {
+        if (
+          token.source.referenceId !== "noun-getsuyoubi" &&
+          token.source.referenceId !== "noun-nichiyoubi"
+        ) {
+          continue;
+        }
+        expect(
+          target.tokens[index + 1]?.source.referenceId,
+          jp(target.tokens),
+        ).toBe("time-ni");
+      }
     }
   });
 
@@ -252,6 +307,51 @@ describe("Base time-movement module", () => {
     expect(design.promptTarget.predicateLexemeId).toBe(
       design.acceptedAnswerTarget.predicateLexemeId,
     );
+  });
+
+  it("rejects an unrelated extra edit for every declared diagnosis code", () => {
+    for (const sourceLesson of [
+      ...BASE_POLITE_VERBS_MODULE.lessons,
+      ...BASE_ARGUMENT_PARTICLES_MODULE.lessons,
+      ...BASE_TIME_MOVEMENT_MODULE.lessons,
+    ]) {
+      for (const [designIndex, sourceDesign] of sourceLesson.activityDesigns.entries()) {
+        if (sourceDesign.operation !== "diagnose-error") continue;
+        const lesson = structuredClone(sourceLesson);
+        const design = lesson.activityDesigns[designIndex];
+        const answer = design.acceptedAnswerTarget as unknown as {
+          tokens: AssembledToken[];
+        };
+        answer.tokens = [
+          ...answer.tokens,
+          {
+            id: `${design.id}-adversarial-unrelated-edit`,
+            jp: "そう",
+            romaji: "sou",
+            kind: "lexical",
+            boundaryBefore: "attach",
+            source: {
+              domain: "catalog",
+              referenceId: "expression-sou",
+            },
+          },
+        ];
+        const error = design.reviewEvidence.error as unknown as {
+          changedTokenSourceIds: string[];
+        };
+        error.changedTokenSourceIds = [
+          ...error.changedTokenSourceIds,
+          "expression-sou",
+        ];
+        expect(
+          validateTask11SemanticReview([lesson]).some(
+            ({ code, activityId }) =>
+              code === "error-delta-invalid" && activityId === design.id,
+          ),
+          design.id,
+        ).toBe(true);
+      }
+    }
   });
 
   it("contains no te forms, teimasu, adjectives, or later concepts on any surface", () => {
@@ -513,6 +613,103 @@ describe("Base time-movement module", () => {
     expect(leaks).toEqual([]);
   });
 
+  it("rejects paraphrased analysis and hyphenated cell labels before an attempt", () => {
+    const lesson = structuredClone(BASE_TIME_MOVEMENT_MODULE.lessons[2]);
+    const design = lesson.activityDesigns[7];
+    const instructionCopyId =
+      lesson.content.activities[7].instructionCopyId;
+    const en = {
+      ...baseNavigationCopyEn.content,
+      [instructionCopyId]:
+        "Choose the past-negative cell for the crossed-out event.",
+    };
+    const it = {
+      ...baseNavigationCopyIt.content,
+      [instructionCopyId]:
+        "Scegli la cella passato-negativa per l'evento barrato.",
+    };
+    expect(
+      validateTask11SemanticReview([lesson], en, it),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "instruction-answer-leakage",
+          activityId: design.id,
+        }),
+      ]),
+    );
+
+    const integrated = structuredClone(
+      BASE_TIME_MOVEMENT_MODULE.lessons[3],
+    );
+    const integratedDesign = integrated.activityDesigns[0];
+    const integratedCopyId =
+      integrated.content.activities[0].instructionCopyId;
+    expect(
+      validateTask11SemanticReview(
+        [integrated],
+        {
+          ...baseNavigationCopyEn.content,
+          [integratedCopyId]: "Choose the past-affirmative cell.",
+        },
+        baseNavigationCopyIt.content,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "instruction-answer-leakage",
+          activityId: integratedDesign.id,
+        }),
+      ]),
+    );
+
+    const mixed = structuredClone(
+      BASE_ARGUMENT_PARTICLES_MODULE.lessons[3],
+    );
+    const mixedDesign = mixed.activityDesigns[4];
+    const mixedCopyId = mixed.content.activities[4].instructionCopyId;
+    expect(
+      validateTask11SemanticReview(
+        [mixed],
+        {
+          ...baseNavigationCopyEn.content,
+          [mixedCopyId]: "Choose the direction analysis.",
+        },
+        baseNavigationCopyIt.content,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "instruction-answer-leakage",
+          activityId: mixedDesign.id,
+        }),
+      ]),
+    );
+  });
+
+  it("uses situational instructions instead of naming the answer analysis", () => {
+    const forbidden = {
+      en: /(?:past-negative|past negative|unnegated event|completed time and negative polarity|time and polarity|without obligatory|special-class analysis|endpoint|the setting|instrument)/iu,
+      it: /(?:passato-negativ|evento non negato|tempo concluso e polarità negativa|tempo e polarità|senza .*obbligatori|analisi della classe speciale|punto d.arrivo|l.ambiente|lo strumento)/iu,
+    };
+    for (const lesson of [
+      ...BASE_POLITE_VERBS_MODULE.lessons,
+      ...BASE_ARGUMENT_PARTICLES_MODULE.lessons,
+      ...BASE_TIME_MOVEMENT_MODULE.lessons,
+    ]) {
+      for (const activity of lesson.content.activities) {
+        expect(
+          baseNavigationCopyEn.content[activity.instructionCopyId],
+          `EN:${activity.id}`,
+        ).not.toMatch(forbidden.en);
+        expect(
+          baseNavigationCopyIt.content[activity.instructionCopyId],
+          `IT:${activity.id}`,
+        ).not.toMatch(forbidden.it);
+      }
+    }
+  });
+
   it("does not reuse worked examples as prompts, options, or error candidates", () => {
     const lessons = [
       ...BASE_POLITE_VERBS_MODULE.lessons,
@@ -556,6 +753,121 @@ describe("Base time-movement module", () => {
         }
       }
     }
+  });
+
+  it("treats bare yes/no prefixes as discourse-neutral for corpus reuse", () => {
+    const lessons = [
+      ...BASE_POLITE_VERBS_MODULE.lessons,
+      ...BASE_ARGUMENT_PARTICLES_MODULE.lessons,
+      ...BASE_TIME_MOVEMENT_MODULE.lessons,
+    ];
+    const normalized = (tokens: readonly { readonly jp: string }[]) =>
+      jp(tokens)
+        .normalize("NFKC")
+        .replace(/^(?:はい|いいえ)[、,]?/u, "")
+        .replace(/[、。,\s]/gu, "");
+    const demonstrations = new Map<string, string>();
+    for (const lesson of lessons) {
+      for (const target of [
+        ...lesson.examples,
+        ...(lesson.dialogue?.turns ?? []),
+      ]) {
+        demonstrations.set(
+          normalized(target.tokens),
+          "id" in target ? String(target.id) : lesson.dialogue?.id ?? "",
+        );
+      }
+    }
+    for (const lesson of lessons) {
+      for (const design of lesson.activityDesigns) {
+        for (const target of [
+          design.promptTarget,
+          ...design.optionTargets,
+        ]) {
+          expect(
+            demonstrations.get(normalized(target.tokens)),
+            `${design.id}:${jp(target.tokens)}`,
+          ).toBeUndefined();
+        }
+      }
+    }
+
+    const mutated = structuredClone(BASE_ARGUMENT_PARTICLES_MODULE.lessons[0]);
+    const example = mutated.examples[0];
+    const option = mutated.activityDesigns[0]
+      .optionTargets[0] as unknown as { tokens: AssembledToken[] };
+    option.tokens = [
+      {
+        id: "adversarial-hai",
+        jp: "はい",
+        romaji: "hai",
+        kind: "lexical",
+        boundaryBefore: "attach",
+        source: { domain: "catalog", referenceId: "expression-hai" },
+      },
+      {
+        id: "adversarial-comma",
+        jp: "、",
+        romaji: ",",
+        kind: "punctuation",
+        boundaryBefore: "attach",
+        source: { domain: "catalog", referenceId: "japanese-comma" },
+      },
+      ...example.tokens,
+    ];
+    expect(
+      validateTask11SemanticReview([mutated]),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "worked-surface-reused",
+          activityId: mutated.activityDesigns[0].id,
+        }),
+      ]),
+    );
+  });
+
+  it("does not reveal the correct option through terminal punctuation", () => {
+    for (const lesson of [
+      ...BASE_POLITE_VERBS_MODULE.lessons,
+      ...BASE_ARGUMENT_PARTICLES_MODULE.lessons,
+      ...BASE_TIME_MOVEMENT_MODULE.lessons,
+    ]) {
+      for (const design of lesson.activityDesigns.filter(
+        ({ optionTargets }) => optionTargets.length === 2,
+      )) {
+        const punctuation = design.optionTargets.map(({ tokens }) =>
+          tokens[tokens.length - 1]?.kind === "punctuation"
+            ? tokens[tokens.length - 1].jp
+            : "",
+        );
+        expect(punctuation[0], design.id).toEqual(punctuation[1]);
+      }
+    }
+    const mutated = structuredClone(BASE_POLITE_VERBS_MODULE.lessons[3]);
+    const design = mutated.activityDesigns[0];
+    const option = design.optionTargets[0] as unknown as {
+      tokens: AssembledToken[];
+    };
+    option.tokens = [
+      ...option.tokens,
+      {
+        id: "adversarial-period",
+        jp: "。",
+        romaji: ".",
+        kind: "punctuation",
+        boundaryBefore: "attach",
+        source: { domain: "catalog", referenceId: "japanese-period" },
+      },
+    ];
+    expect(validateTask11SemanticReview([mutated])).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "option-punctuation-tell",
+          activityId: design.id,
+        }),
+      ]),
+    );
   });
 
   it("publishes exact visible grounding for every world fact", () => {

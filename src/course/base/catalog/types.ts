@@ -149,6 +149,13 @@ export interface BaseParticleFrame {
   readonly provided: Readonly<
     Partial<Record<BaseParticleRole, BaseParticleSense>>
   >;
+  /**
+   * The canonical lexeme each overt particle attaches to. This authored map is
+   * intentionally independent from the rendered token sequence.
+   */
+  readonly attachmentLexemeIdByRole: Readonly<
+    Partial<Record<BaseParticleRole, string>>
+  >;
 }
 
 /**

@@ -1430,6 +1430,7 @@ describe("Base lesson depth rules", () => {
           particleFrame: {
             predicateSenseId: "eat",
             provided: { theme: "goal-ni" },
+            attachmentLexemeIdByRole: { theme: "noun-gohan" },
           },
         },
       ],
@@ -1557,6 +1558,7 @@ describe("Base lesson depth rules", () => {
       particleFrame: {
         predicateSenseId: "eat",
         provided: { theme: "goal-ni" },
+        attachmentLexemeIdByRole: { theme: "noun-gohan" },
       },
     };
     const catalogs: BaseValidationCatalogs = {
@@ -1860,6 +1862,7 @@ describe("Base sequence rules", () => {
       particleFrame: {
         predicateSenseId: "eat",
         provided: { theme: "focus-subject-ga" },
+        attachmentLexemeIdByRole: { theme: "noun-gohan" },
       },
     };
     const catalogs: BaseValidationCatalogs = {
@@ -2098,6 +2101,7 @@ describe("Base sequence rules", () => {
       particleFrame: {
         predicateSenseId: "eat",
         provided: { theme: "object-o" },
+        attachmentLexemeIdByRole: { theme: "noun-gohan" },
       },
     };
     const catalogs: BaseValidationCatalogs = {
@@ -2252,6 +2256,7 @@ describe("Base sequence rules", () => {
       particleFrame: {
         predicateSenseId: "eat",
         provided: { theme: "goal-ni" },
+        attachmentLexemeIdByRole: { theme: "noun-gohan" },
       },
     };
     const lesson = {
@@ -2300,6 +2305,7 @@ describe("Base sequence rules", () => {
       particleFrame: {
         predicateSenseId: "eat",
         provided: { theme: undefined },
+        attachmentLexemeIdByRole: { theme: "noun-gohan" },
       },
     });
     const catalogs: BaseValidationCatalogs = {
@@ -2606,6 +2612,7 @@ describe("Task7 Base catalog integrity regressions", () => {
         particleFrame: {
           predicateSenseId: "eat",
           provided: { theme: "object-o" },
+          attachmentLexemeIdByRole: { theme: "noun-gohan" },
         },
       } as unknown as Partial<BaseVisibleTarget>,
     );
@@ -2618,6 +2625,7 @@ describe("Task7 Base catalog integrity regressions", () => {
         particleFrame: {
           predicateSenseId: "eat",
           provided: { theme: "object-o" },
+          attachmentLexemeIdByRole: { theme: "noun-gohan" },
         },
       } as unknown as Partial<BaseVisibleTarget>,
     );
@@ -2758,6 +2766,7 @@ describe("Task7 Base catalog integrity regressions", () => {
       particleFrame: {
         predicateSenseId: "eat",
         provided: { theme: "object-o" },
+        attachmentLexemeIdByRole: { theme: "noun-gohan" },
       },
     };
     const target = targetFromExample(source);
@@ -4081,6 +4090,7 @@ describe("Task7 final Base array snapshot regressions", () => {
       particleFrame: {
         predicateSenseId: "eat",
         provided: { theme: "object-o" },
+        attachmentLexemeIdByRole: { theme: "noun-gohan" },
       },
     };
     const catalogs: BaseValidationCatalogs = {
@@ -4097,6 +4107,7 @@ describe("Task7 final Base array snapshot regressions", () => {
             particleFrame: {
               predicateSenseId: "eat",
               provided: { theme: "object-o" },
+              attachmentLexemeIdByRole: { theme: "noun-gohan" },
             },
           }),
         ],

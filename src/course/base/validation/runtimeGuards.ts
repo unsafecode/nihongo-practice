@@ -37,6 +37,7 @@ const PARTICLE_FRAME_ROLES = new Set([
   "theme",
   "goal",
   "topic",
+  "focus-subject",
   "action-place",
   "means",
   "time",
@@ -44,6 +45,12 @@ const PARTICLE_FRAME_ROLES = new Set([
   "limit",
   "existence-location",
   "existential-subject",
+  "possessor",
+  "companion",
+  "listing",
+  "nominal-complement",
+  "question",
+  "interaction",
 ]);
 const PARTICLE_FRAME_SENSES = new Set([
   "topic-wa",
@@ -103,8 +110,16 @@ const TOKEN_REQUIRED_KEYS = [
 ] as const;
 const TOKEN_SOURCE_KEYS = new Set(["domain", "referenceId"]);
 const TOKEN_SOURCE_REQUIRED_KEYS = ["domain", "referenceId"] as const;
-const PARTICLE_FRAME_KEYS = new Set(["predicateSenseId", "provided"]);
-const PARTICLE_FRAME_REQUIRED_KEYS = ["predicateSenseId", "provided"] as const;
+const PARTICLE_FRAME_KEYS = new Set([
+  "predicateSenseId",
+  "provided",
+  "attachmentLexemeIdByRole",
+]);
+const PARTICLE_FRAME_REQUIRED_KEYS = [
+  "predicateSenseId",
+  "provided",
+  "attachmentLexemeIdByRole",
+] as const;
 const BASE_VISIBLE_TARGET_REQUIRED_KEYS = [
   "tokens",
   "lexemeIds",
@@ -431,6 +446,32 @@ function strictParticleProvided(
   return Object.freeze(snapshot) as BaseParticleFrame["provided"];
 }
 
+function strictParticleAttachments(
+  value: unknown,
+): BaseParticleFrame["attachmentLexemeIdByRole"] | undefined {
+  const attachments = exactEnumerableDataRecord(
+    value,
+    PARTICLE_FRAME_ROLES,
+    [],
+  );
+  if (!attachments) return undefined;
+  const snapshot = Object.create(null) as Record<string, string>;
+  for (const role of Object.getOwnPropertyNames(attachments)) {
+    const lexemeId = ownDataValue(attachments, role);
+    if (
+      !PARTICLE_FRAME_ROLES.has(role) ||
+      typeof lexemeId !== "string" ||
+      lexemeId.trim().length === 0
+    ) {
+      return undefined;
+    }
+    snapshot[role] = lexemeId;
+  }
+  return Object.freeze(
+    snapshot,
+  ) as BaseParticleFrame["attachmentLexemeIdByRole"];
+}
+
 function strictRuntimeParticleFrame(value: unknown): BaseParticleFrame | undefined {
   const frame = exactEnumerableDataRecord(
     value,
@@ -440,8 +481,21 @@ function strictRuntimeParticleFrame(value: unknown): BaseParticleFrame | undefin
   if (!frame) return undefined;
   const predicateSenseId = ownDataValue(frame, "predicateSenseId");
   const provided = strictParticleProvided(ownDataValue(frame, "provided"));
-  if (typeof predicateSenseId !== "string" || !provided) return undefined;
-  return Object.freeze({ predicateSenseId, provided });
+  const attachmentLexemeIdByRole = strictParticleAttachments(
+    ownDataValue(frame, "attachmentLexemeIdByRole"),
+  );
+  if (
+    typeof predicateSenseId !== "string" ||
+    !provided ||
+    !attachmentLexemeIdByRole
+  ) {
+    return undefined;
+  }
+  return Object.freeze({
+    predicateSenseId,
+    provided,
+    attachmentLexemeIdByRole,
+  });
 }
 
 export function isSafeParticleFrame(value: unknown): boolean {

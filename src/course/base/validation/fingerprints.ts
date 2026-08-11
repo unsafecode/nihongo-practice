@@ -55,6 +55,7 @@ function normalizedParticleFrame(
 ): Readonly<{
   readonly predicateSenseId: string;
   readonly provided: readonly (readonly [string, string])[];
+  readonly attachmentLexemeIdByRole: readonly (readonly [string, string])[];
 }> | null {
   if (!isPlainDataRecord(particleFrame)) return null;
   const predicateSenseId = ownDataValue(particleFrame, "predicateSenseId");
@@ -67,9 +68,19 @@ function normalizedParticleFrame(
     )
     .filter(([, sense]) => sense.length > 0)
     .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0));
+  const attachmentLexemeIdByRole = particleProvidedEntries(
+    ownDataValue(particleFrame, "attachmentLexemeIdByRole"),
+  ).entries
+    .map(
+      ([role, lexemeId]) =>
+        [normalizeText(role), normalizeText(lexemeId)] as const,
+    )
+    .filter(([, lexemeId]) => lexemeId.length > 0)
+    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0));
   return {
     predicateSenseId: normalizeText(predicateSenseId),
     provided,
+    attachmentLexemeIdByRole,
   };
 }
 
