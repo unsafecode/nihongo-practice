@@ -88,6 +88,21 @@ describe("Base canonical audio catalog", () => {
     }
   });
 
+  it("uses identical canonical audio for merged じ/ぢ and ず/づ pronunciation", () => {
+    const byId = new Map(BASE_AUDIO_CATALOG.map((record) => [record.id, record]));
+    for (const [left, right] of [
+      ["snd2-ji", "snd2-di"],
+      ["snd2-zu", "snd2-dzu"],
+    ] as const) {
+      expect(byId.get(left)?.sha256).toBe(byId.get(right)?.sha256);
+      expect(
+        readFileSync(resolve("public", byId.get(left)!.src.slice(1))),
+      ).toEqual(
+        readFileSync(resolve("public", byId.get(right)!.src.slice(1))),
+      );
+    }
+  });
+
   it("localizes retained failure context and never declares a TTS fallback", () => {
     for (const record of BASE_AUDIO_CATALOG) {
       expect(record.kana).not.toBe("");

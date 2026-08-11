@@ -733,7 +733,7 @@ const RAW_AUDIO_CATALOG: readonly BaseAudioRecord[] = [
   {
     "id": "snd2-di",
     "src": "/audio/base/snd2-di.wav",
-    "sha256": "1d5cea0e3e48f85b99e6098fd51278b89631c22c72c3a62e4e7ca19733ee06a5",
+    "sha256": "4eaafa6d5f4582ad43eecb154bdfd6563c02569d392743df9f3e74633a682eb7",
     "kana": "ぢ",
     "morae": [
       "ぢ"
@@ -742,8 +742,8 @@ const RAW_AUDIO_CATALOG: readonly BaseAudioRecord[] = [
       "en": "Canonical sound exemplar for ぢ.",
       "it": "Esempio sonoro canonico per ぢ."
     },
-    "sourceNote": "Original locally generated with the operating-system Japanese speech synthesizer (Kyoko); no human speaker and pending independent listening review.",
-    "fingerprint": "fe4b66b23a058d37d8b0bc3bd043cd226c45785941ebc5aeaf40c99f079ca7a8",
+    "sourceNote": "Original locally generated with the operating-system Japanese speech synthesizer (Kyoko); the merged じ/ぢ pronunciation reuses that local recording, with no human speaker and pending independent listening review.",
+    "fingerprint": "0264184345590d2f57dcdd6fa8f6f1e5aecd81e6233e25f0e19677ebd3287ce2",
     "failureStateIds": {
       "failed": "base-audio-failed",
       "unavailable": "base-audio-unavailable",

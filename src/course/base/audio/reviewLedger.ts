@@ -113,7 +113,7 @@ const RAW_BASE_AUDIO_REVIEW_LEDGER: readonly BaseAudioReviewEntry[] = [
     "status": "pending"
   },
   {
-    "fingerprint": "fe4b66b23a058d37d8b0bc3bd043cd226c45785941ebc5aeaf40c99f079ca7a8",
+    "fingerprint": "0264184345590d2f57dcdd6fa8f6f1e5aecd81e6233e25f0e19677ebd3287ce2",
     "status": "pending"
   },
   {

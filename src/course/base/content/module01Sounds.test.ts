@@ -17,6 +17,7 @@ import {
   KATAKANA_BRIDGE,
   SOUND_ACTIVITY_OPERATIONS,
   YOON_HIRAGANA,
+  type BaseSoundDisplayTarget,
   validateBaseSoundModule,
 } from "./module01Sounds";
 
@@ -51,7 +52,10 @@ describe("Base module 1 complete sound system", () => {
             soundModule.BASE_SOUND_TARGET_BY_ID.get(design.answerTargetId)?.kana ??
             "";
           const anchor =
-            soundModule.BASE_SOUND_TARGET_BY_ID.get(design.anchorTargetId)?.kana ??
+            (design.anchorTargetId
+              ? soundModule.BASE_SOUND_TARGET_BY_ID.get(design.anchorTargetId)
+                  ?.kana
+              : undefined) ??
             "";
           const audio =
             BASE_AUDIO_CATALOG.find(
@@ -87,36 +91,46 @@ describe("Base module 1 complete sound system", () => {
     }
   });
 
-  it("distinguishes orthographic じ/ぢ and ず/づ in optional romaji", () => {
+  it("uses truthful Hepburn for merged じ/ぢ and ず/づ pronunciation", () => {
     expect(soundModule.romanizeBaseSoundSurface("じ・ぢ・ず・づ")).toBe(
-      "ji di zu du",
+      "ji ji zu zu",
     );
     const orthography = BASE_SOUND_MODULE.lessons[1].activityDesigns.find(
       (design) => design.activityId === "snd2-recognize-jidi",
     )!;
-    const optionRomaji = orthography.optionTargetIds.map(
-      (id) => soundModule.BASE_SOUND_TARGET_BY_ID.get(id)?.romaji,
-    );
-    expect(new Set(optionRomaji).size).toBe(optionRomaji.length);
+    expect(orthography.requiresKanaScript).toBe(true);
+    expect(
+      soundModule.BASE_SOUND_TARGET_BY_ID.get(orthography.promptTargetId)
+        ?.kana,
+    ).toBe("ち　＿　む　　つ　＿　く");
+    expect(
+      orthography.optionTargetIds.map(
+        (id) => soundModule.BASE_SOUND_TARGET_BY_ID.get(id)?.kana,
+      ),
+    ).toEqual(["ちぢむ・つづく", "ちじむ・つずく"]);
   });
 
-  it("keeps small っ as its own segment in mora-delimited romaji", () => {
+  it("keeps small っ as a typed timing unit without a fake romaji glyph", () => {
     expect(soundModule.romanizeBaseSoundSurface("が・っ・こ・う")).toBe(
-      "ga · q · ko · u",
+      "gakkou",
     );
     expect(soundModule.romanizeBaseSoundSurface("き・っ・ぷ")).toBe(
-      "ki · q · pu",
+      "kippu",
     );
     expect(soundModule.romanizeBaseSoundSurface("がっこう")).toBe("gakkou");
-    for (const kana of ["が・っ・こ・う", "ぷ・き・っ"]) {
-      const target = [...soundModule.BASE_SOUND_TARGET_BY_ID.values()].find(
-        (entry) => entry.kana === kana,
-      )!;
-      expect(target.romaji.split(" · ")).toHaveLength(kana.split("・").length);
-    }
+    const target = [...soundModule.BASE_SOUND_TARGET_BY_ID.values()].find(
+      (entry) => entry.kana === "が・っ・こ・う",
+    )!;
+    expect(target.moraSegments).toEqual([
+      { kana: "が", romaji: "ga" },
+      { kana: "っ", romaji: null },
+      { kana: "こ", romaji: "ko" },
+      { kana: "う", romaji: "u" },
+    ]);
+    expect(target.romaji).not.toContain("q");
   });
 
-  it("gives vowel discrimination a unique non-answer criterion", () => {
+  it("grounds vowel discrimination in a visible anchor without technical jargon", () => {
     const activity = BASE_SOUND_MODULE.lessons[0].activityDesigns.find(
       (design) => design.activityId === "snd1-discriminate-vowels",
     )!;
@@ -124,10 +138,83 @@ describe("Base module 1 complete sound system", () => {
       (id) => soundModule.BASE_SOUND_TARGET_BY_ID.get(id)?.kana,
     );
     expect(options).toEqual(["い", "え"]);
-    expect(getCourseCopy("en").baseContent[`${activity.activityId}-instruction`])
-      .toContain("close");
-    expect(getCourseCopy("it").baseContent[`${activity.activityId}-instruction`])
-      .toContain("chiusa");
+    expect(
+      soundModule.BASE_SOUND_TARGET_BY_ID.get(activity.promptTargetId)?.kana,
+    ).toBe("いえ　＿");
+    for (const locale of ["en", "it"] as const) {
+      const instruction =
+        getCourseCopy(locale).baseContent[`${activity.activityId}-instruction`];
+      expect(instruction.toLowerCase()).not.toMatch(
+        /close|high|front|mid|chius|alta|anteriore|media/,
+      );
+    }
+  });
+
+  it("gives every segmentation prompt one word and exactly one valid mora answer", () => {
+    for (const definition of BASE_SOUND_MODULE.lessons) {
+      const activity = definition.activityDesigns.find(
+        (design) => design.operation === "segment-morae",
+      )!;
+      const anchor = definition.anchorWords.find(
+        (entry) => entry.id === activity.anchorLexemeId,
+      )!;
+      const prompt = soundModule.BASE_SOUND_TARGET_BY_ID.get(
+        activity.promptTargetId,
+      )!;
+      expect(prompt.kana).toBe(anchor.kana);
+      const valid = activity.optionTargetIds.filter((id) => {
+        const target = soundModule.BASE_SOUND_TARGET_BY_ID.get(id)!;
+        return (
+          target.moraSegments?.map((segment) => segment.kana).join("") ===
+            prompt.kana &&
+          target.moraSegments.map((segment) => segment.kana).join("・") ===
+            anchor.morae.join("・")
+        );
+      });
+      expect(valid).toEqual([activity.correctOptionTargetId]);
+    }
+  });
+
+  it("marks every romaji-colliding activity as kana-script-only", () => {
+    const fingerprint = (
+      target: BaseSoundDisplayTarget,
+      useMoraSegments: boolean,
+    ) =>
+      useMoraSegments && target.moraSegments
+        ? target.moraSegments
+            .map((segment) => segment.romaji ?? "[timing]")
+            .join("|")
+        : target.romaji;
+    const scriptOnly = new Set([
+      "snd2-recognize-jidi",
+      "snd4-recognize-small-yoon",
+      "snd4-map-katakana",
+    ]);
+    for (const definition of BASE_SOUND_MODULE.lessons) {
+      for (const activity of definition.activityDesigns) {
+        const prompt = soundModule.BASE_SOUND_TARGET_BY_ID.get(
+          activity.promptTargetId,
+        )!;
+        const answer = soundModule.BASE_SOUND_TARGET_BY_ID.get(
+          activity.answerTargetId,
+        )!;
+        if (
+          activity.operation !== "produce-spoken" &&
+          fingerprint(prompt, activity.operation === "segment-morae") ===
+          fingerprint(answer, activity.operation === "segment-morae")
+        ) {
+          expect(activity.requiresKanaScript, activity.activityId).toBe(true);
+        }
+        expect(activity.requiresKanaScript).toBe(
+          scriptOnly.has(activity.activityId),
+        );
+      }
+    }
+    expect(
+      BASE_SOUND_MODULE.lessons[3].activityDesigns.find(
+        (activity) => activity.activityId === "snd4-map-katakana",
+      )?.requiresKanaScript,
+    ).toBe(true);
   });
 
   it("identifies small yoon against a full-size kana without copying prompt order", () => {
@@ -168,7 +255,7 @@ describe("Base module 1 complete sound system", () => {
           ...design.optionTargetIds,
           design.answerTargetId,
           design.anchorTargetId,
-        ]) {
+        ].filter((id): id is string => id !== null)) {
           expect(
             owns?.(
               definition.content.lessonId,
@@ -181,11 +268,16 @@ describe("Base module 1 complete sound system", () => {
     }
   });
 
-  it("requires a nontrivial prompt transformation for every non-spoken answer", () => {
+  it("requires a nontrivial prompt transformation outside segmentation and read-aloud", () => {
     const fingerprint = (value: string) => value.replace(/[\s・／＿]/g, "");
     for (const definition of BASE_SOUND_MODULE.lessons) {
       for (const design of definition.activityDesigns) {
-        if (design.operation === "produce-spoken") continue;
+        if (
+          design.operation === "produce-spoken" ||
+          design.operation === "segment-morae"
+        ) {
+          continue;
+        }
         const prompt = soundModule.BASE_SOUND_TARGET_BY_ID.get(
           design.promptTargetId,
         )!;
@@ -211,6 +303,48 @@ describe("Base module 1 complete sound system", () => {
       const zero = positions.filter((position) => position === 0).length;
       const one = positions.filter((position) => position === 1).length;
       expect(Math.abs(zero - one)).toBe(1);
+    }
+  });
+
+  it("links anchors only when they contribute a visible word or mora", () => {
+    const normalize = (value: string) => value.replace(/[\s・＿]/g, "");
+    for (const definition of BASE_SOUND_MODULE.lessons) {
+      for (const activity of definition.activityDesigns) {
+        if (activity.anchorTargetId === null) {
+          expect(activity.anchorLexemeId).toBeNull();
+          continue;
+        }
+        const anchor = definition.anchorWords.find(
+          (entry) => entry.id === activity.anchorLexemeId,
+        )!;
+        const surfaces = [
+          activity.promptTargetId,
+          ...activity.optionTargetIds,
+          activity.answerTargetId,
+          ...(activity.canonicalAudioId ? [activity.canonicalAudioId] : []),
+        ].map(
+          (id) =>
+            soundModule.BASE_SOUND_TARGET_BY_ID.get(id)?.kana ??
+            BASE_AUDIO_CATALOG.find((record) => record.id === id)?.kana ??
+            "",
+        );
+        expect(
+          anchor.morae.some((mora) =>
+            surfaces.some((surface) =>
+              normalize(surface).includes(normalize(mora)),
+            ),
+          ),
+          activity.activityId,
+        ).toBe(true);
+      }
+      for (const anchor of definition.anchorWords) {
+        expect(
+          definition.activityDesigns.some(
+            (activity) => activity.anchorLexemeId === anchor.id,
+          ),
+          anchor.id,
+        ).toBe(true);
+      }
     }
   });
 
@@ -300,10 +434,14 @@ describe("Base module 1 complete sound system", () => {
       for (const design of definition.activityDesigns) {
         const prompt = targetCatalog?.get(design.promptTargetId);
         const answer = targetCatalog?.get(design.answerTargetId);
-        const anchor = targetCatalog?.get(design.anchorTargetId);
+        const anchor = design.anchorTargetId
+          ? targetCatalog?.get(design.anchorTargetId)
+          : undefined;
         expect(prompt?.role).toBe("prompt");
         expect(answer?.role).toBe("answer");
-        expect(anchor?.role).toBe("anchor");
+        expect(anchor?.role).toBe(
+          design.anchorTargetId === null ? undefined : "anchor",
+        );
         expect(prompt?.kana).not.toMatch(kanji);
         if (!sound4) expect(prompt?.kana).not.toMatch(katakana);
         expect(prompt?.kana).not.toContain("せんたく");
@@ -478,7 +616,10 @@ describe("Base module 1 complete sound system", () => {
           soundModule.BASE_SOUND_TARGET_BY_ID.get(design.promptTargetId)?.kana,
         );
         expect(
-          soundModule.BASE_SOUND_TARGET_BY_ID.get(design.anchorTargetId)?.kana,
+          design.anchorTargetId
+            ? soundModule.BASE_SOUND_TARGET_BY_ID.get(design.anchorTargetId)
+                ?.kana
+            : undefined,
         ).toBe(
           definition.anchorWords.find(
             (anchor) => anchor.id === design.anchorLexemeId,
@@ -497,6 +638,7 @@ describe("Base module 1 complete sound system", () => {
           definition.activityDesigns.some(
             (design) =>
               design.anchorLexemeId === anchorId &&
+              design.anchorTargetId !== null &&
               soundModule.BASE_SOUND_TARGET_BY_ID.get(design.anchorTargetId)
                 ?.role === "anchor",
           ),
@@ -522,9 +664,9 @@ describe("Base module 1 complete sound system", () => {
         const answer = soundModule.BASE_SOUND_TARGET_BY_ID.get(
           design.answerTargetId,
         );
-        const anchor = soundModule.BASE_SOUND_TARGET_BY_ID.get(
-          design.anchorTargetId,
-        );
+        const anchor = design.anchorTargetId
+          ? soundModule.BASE_SOUND_TARGET_BY_ID.get(design.anchorTargetId)
+          : undefined;
         if (design.operation === "segment-morae") {
           expect(answer?.kana).toContain("・");
         }
@@ -808,7 +950,7 @@ describe("Base module 1 complete sound system", () => {
 
     const untypedPrompt = cloneModule();
     untypedPrompt.lessons[0].activityDesigns[0].promptTargetId =
-      untypedPrompt.lessons[0].activityDesigns[0].anchorTargetId;
+      untypedPrompt.lessons[0].activityDesigns[0].anchorTargetId!;
     expect(validateBaseSoundModule(untypedPrompt).errors).toContain(
       "invalid-activity-evidence",
     );
