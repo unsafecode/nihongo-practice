@@ -973,18 +973,12 @@ const PARTICLE_ROLES_BY_SEMANTIC_ROLE: Readonly<
   listing: ["listing"],
   companion: ["companion"],
 };
-const PARTICLELESS_TIME_LEXEME_IDS = new Set([
-  "noun-fudan",
-  "noun-maishuu",
-  "noun-ashita",
-  "noun-kyou",
-  "noun-kinou",
-  "noun-senshuu",
-  "noun-konshuu",
-  "noun-raishuu",
-  "noun-kesa",
-  "noun-konban",
-]);
+function timeSemanticsForLexeme(
+  lexemeId: string,
+): "relative" | "recurring" | "specific" | undefined {
+  const lexeme = BASE_LEXEME_BY_ID.get(lexemeId);
+  return lexeme?.category === "noun" ? lexeme.timeSemantics : undefined;
+}
 
 function validateParticleTokenMultiset(
   target: BaseVisibleTarget,
@@ -1064,15 +1058,31 @@ function validateParticleTokenMultiset(
       if (semanticRole !== "time" || matchingBindings.length !== 0) {
         return false;
       }
+      if (
+        bindings.some(
+          ({ role, attachmentLexemeId }) =>
+            (role === "source" || role === "limit") &&
+            timeSemanticsForLexeme(attachmentLexemeId) !== undefined,
+        )
+      ) {
+        return true;
+      }
       return (
         (target.conceptIds.includes("relative-time-omission") ||
           target.conceptIds.includes("habit-future-time-cues")) &&
-        target.lexemeIds.some((lexemeId) =>
-          PARTICLELESS_TIME_LEXEME_IDS.has(lexemeId),
-        )
+        target.lexemeIds.some((lexemeId) => {
+          const semantics = timeSemanticsForLexeme(lexemeId);
+          return semantics === "relative" || semantics === "recurring";
+        })
       );
     },
   );
+  const visibleTimeRoleAgrees =
+    target.predicateLexemeId === null ||
+    !target.lexemeIds.some(
+      (lexemeId) => timeSemanticsForLexeme(lexemeId) !== undefined,
+    ) ||
+    target.semanticRoleIds.includes("time");
   const frameEntries = target.particleFrame
     ? particleProvidedEntries(target.particleFrame.provided).entries
     : [];
@@ -1120,6 +1130,7 @@ function validateParticleTokenMultiset(
     !bindingsAreUnique ||
     !bindingRolesAgree ||
     !semanticRolesRealized ||
+    !visibleTimeRoleAgrees ||
     !frameBindingsAgree ||
     visible.length !== declared.length ||
     visible.some((sense, index) => sense !== declared[index])

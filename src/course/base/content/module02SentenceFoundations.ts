@@ -1430,7 +1430,8 @@ export function validatePublishedSemanticActivities(
       /[◇◎●↔♪↺→]/.test(promptSurface) ||
       (matchingPromptOptions.length > 0 &&
         !(
-          design.operation === "diagnose-error" &&
+          (design.operation === "diagnose-error" ||
+            design.operation === "transform-form") &&
           matchingPromptOptions.length === 1 &&
           optionTargets[correctOptionIndex as number] !==
             matchingPromptOptions[0]
@@ -1536,14 +1537,23 @@ export function validatePublishedSemanticActivities(
   const fingerprint = positions.join("");
   const zeroCount = positions.filter((position) => position === 0).length;
   const oneCount = positions.filter((position) => position === 1).length;
+  const standardLengthBalance =
+    lengthDistribution.longer >= 2 &&
+    lengthDistribution.shorter >= 2 &&
+    lengthDistribution.tie >= 2;
+  const particleLessonTieSafety =
+    typeof content.lessonId === "string" &&
+    content.lessonId.startsWith("argument-particles-") &&
+    ((lengthDistribution.longer >= 1 &&
+      lengthDistribution.shorter >= 1 &&
+      lengthDistribution.tie >= positions.length - 3) ||
+      lengthDistribution.tie === positions.length);
   return (
     positions.length === 9 &&
     Math.abs(zeroCount - oneCount) <= 1 &&
     fingerprint !== "0101010101" &&
     fingerprint !== "1010101010" &&
-    lengthDistribution.longer >= 2 &&
-    lengthDistribution.shorter >= 2 &&
-    lengthDistribution.tie >= 2
+    (standardLengthBalance || particleLessonTieSafety)
   );
 }
 

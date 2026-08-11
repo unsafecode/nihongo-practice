@@ -193,6 +193,109 @@ describe("Base argument-particles module", () => {
     }
   });
 
+  it("holds every declared particle contrast constant outside its particle sense", () => {
+    const particleAnalysisIds = new Set([
+      "analysis-action-place",
+      "analysis-means",
+      "analysis-goal",
+      "analysis-direction",
+    ]);
+    const structuralSignature = (
+      target: (typeof BASE_ARGUMENT_PARTICLES_MODULE.lessons)[number]["activityDesigns"][number]["optionTargets"][number],
+    ) =>
+      target.tokens.map(({ jp, kind, source }) =>
+        kind === "particle"
+          ? "<particle>"
+          : particleAnalysisIds.has(source.referenceId)
+            ? "<particle-analysis>"
+            : `${source.referenceId}:${jp}`,
+      );
+    const roleSignature = (
+      target: (typeof BASE_ARGUMENT_PARTICLES_MODULE.lessons)[number]["activityDesigns"][number]["optionTargets"][number],
+    ) =>
+      [...target.semanticRoleIds]
+        .map((role) =>
+          role === "topic" || role === "additive-topic"
+            ? "discourse-topic"
+            : role === "goal" || role === "direction"
+              ? "movement-target"
+              : role === "action-place" || role === "means"
+                ? "de-argument"
+                : role,
+        )
+        .sort();
+
+    for (const lesson of BASE_ARGUMENT_PARTICLES_MODULE.lessons) {
+      for (const design of lesson.activityDesigns.filter(
+        ({ reviewEvidence, optionTargets }) =>
+          reviewEvidence.contrastAxis === "particle" &&
+          optionTargets.length === 2,
+      )) {
+        const [left, right] = design.optionTargets;
+        expect(structuralSignature(left), design.id).toEqual(
+          structuralSignature(right),
+        );
+        expect(
+          left.particleBindings?.map(
+            ({ attachmentLexemeId }) => attachmentLexemeId,
+          ),
+          design.id,
+        ).toEqual(
+          right.particleBindings?.map(
+            ({ attachmentLexemeId }) => attachmentLexemeId,
+          ),
+        );
+        expect(roleSignature(left), design.id).toEqual(roleSignature(right));
+      }
+    }
+  });
+
+  it("rejects a forged lexical change under a particle contrast", () => {
+    const lesson = structuredClone(
+      BASE_ARGUMENT_PARTICLES_MODULE.lessons[0],
+    );
+    const design = lesson.activityDesigns[3];
+    const target = design.optionTargets[1] as unknown as {
+      tokens: AssembledToken[];
+      lexemeIds: string[];
+    };
+    const subjectIndex = target.tokens.findIndex(
+      ({ source }) => source.referenceId === "noun-satou",
+    );
+    target.tokens[subjectIndex] = {
+      ...target.tokens[subjectIndex],
+      jp: "やまださん",
+      romaji: "Yamada-san",
+      source: { domain: "catalog", referenceId: "noun-yamada" },
+    };
+    target.lexemeIds = target.lexemeIds.map((lexemeId) =>
+      lexemeId === "noun-satou" ? "noun-yamada" : lexemeId,
+    );
+    expect(validateTask11SemanticReview([lesson])).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "particle-contrast-not-isolated",
+          activityId: design.id,
+        }),
+      ]),
+    );
+  });
+
+  it("uses the unchanged source as the incorrect choice in particle transformations", () => {
+    for (const design of [
+      BASE_ARGUMENT_PARTICLES_MODULE.lessons[0].activityDesigns[4],
+      BASE_ARGUMENT_PARTICLES_MODULE.lessons[1].activityDesigns[4],
+    ]) {
+      expect(design.operation).toBe("transform-form");
+      const prompt = jp(design.promptTarget.tokens);
+      const matchingIndex = design.optionTargets.findIndex(
+        ({ tokens }) => jp(tokens) === prompt,
+      );
+      expect(matchingIndex, design.id).toBeGreaterThanOrEqual(0);
+      expect(matchingIndex, design.id).not.toBe(design.correctOptionIndex);
+    }
+  });
+
   it("matches every visible Module 5 case/topic particle to the declared role multiset", () => {
     for (const lesson of BASE_ARGUMENT_PARTICLES_MODULE.lessons) {
       for (const target of targetsForLesson(lesson)) {

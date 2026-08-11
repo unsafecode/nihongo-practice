@@ -1,7 +1,7 @@
 import type { AssembledToken } from "../../../romaji/types";
 import { deepFreeze } from "../../foundations/deepFreeze";
 import { immutableReadonlyMap } from "../../foundations/immutableReadonlyMap";
-import type { BaseLexeme, BaseVerbLexeme } from "./types";
+import type { BaseLexeme, BaseNounLexeme, BaseVerbLexeme } from "./types";
 
 const DYNAMIC_TE_CONSTRUCTIONS: readonly BaseVerbLexeme["allowedTeConstructions"][number][] =
   deepFreeze(["te", "request", "sequence", "te-imasu"]);
@@ -54,7 +54,8 @@ function noun(
   kana: string,
   romaji: string,
   firstTeachLessonId: string,
-): BaseLexeme {
+  timeSemantics?: BaseNounLexeme["timeSemantics"],
+): BaseNounLexeme {
   return {
     id,
     kana,
@@ -63,6 +64,7 @@ function noun(
     firstTeachLessonId,
     countable: true,
     category: "noun",
+    ...(timeSemantics ? { timeSemantics } : {}),
   };
 }
 
@@ -666,26 +668,26 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
   noun("noun-jimusho", "じむしょ", "jimusho", "argument-particles-4"),
   noun("noun-kasa", "かさ", "kasa", "argument-particles-4"),
   noun("noun-nikki", "にっき", "nikki", "argument-particles-4"),
-  noun("noun-kyou", "きょう", "kyou", "time-movement-2"),
-  noun("noun-ashita", "あした", "ashita", "time-movement-1"),
-  noun("noun-maishuu", "まいしゅう", "maishuu", "time-movement-1"),
-  noun("noun-fudan", "ふだん", "fudan", "time-movement-1"),
-  noun("noun-getsuyoubi", "げつようび", "getsuyoubi", "time-movement-2"),
-  noun("noun-shichiji", "しちじ", "shichiji", "time-movement-2"),
-  noun("noun-kuji", "くじ", "kuji", "time-movement-2"),
-  noun("noun-goji", "ごじ", "goji", "time-movement-2"),
-  noun("noun-kinou", "きのう", "kinou", "time-movement-3"),
-  noun("noun-senshuu", "せんしゅう", "senshuu", "time-movement-3"),
-  noun("noun-konshuu", "こんしゅう", "konshuu", "time-movement-3"),
-  noun("noun-raishuu", "らいしゅう", "raishuu", "time-movement-3"),
+  noun("noun-kyou", "きょう", "kyou", "time-movement-2", "relative"),
+  noun("noun-ashita", "あした", "ashita", "time-movement-1", "relative"),
+  noun("noun-maishuu", "まいしゅう", "maishuu", "time-movement-1", "recurring"),
+  noun("noun-fudan", "ふだん", "fudan", "time-movement-1", "recurring"),
+  noun("noun-getsuyoubi", "げつようび", "getsuyoubi", "time-movement-2", "specific"),
+  noun("noun-shichiji", "しちじ", "shichiji", "time-movement-2", "specific"),
+  noun("noun-kuji", "くじ", "kuji", "time-movement-2", "specific"),
+  noun("noun-goji", "ごじ", "goji", "time-movement-2", "specific"),
+  noun("noun-kinou", "きのう", "kinou", "time-movement-3", "relative"),
+  noun("noun-senshuu", "せんしゅう", "senshuu", "time-movement-3", "relative"),
+  noun("noun-konshuu", "こんしゅう", "konshuu", "time-movement-3", "relative"),
+  noun("noun-raishuu", "らいしゅう", "raishuu", "time-movement-3", "relative"),
   noun("noun-kaigi", "かいぎ", "kaigi", "time-movement-4"),
   noun("noun-shigoto", "しごと", "shigoto", "time-movement-4"),
   noun("noun-yotei", "よてい", "yotei", "time-movement-4"),
   noun("noun-hirugohan", "ひるごはん", "hirugohan", "time-movement-4"),
-  noun("noun-yoru", "よる", "yoru", "time-movement-4"),
-  noun("noun-kesa", "けさ", "kesa", "time-movement-4"),
-  noun("noun-konban", "こんばん", "konban", "time-movement-4"),
-  noun("noun-nichiyoubi", "にちようび", "nichiyoubi", "time-movement-4"),
+  noun("noun-yoru", "よる", "yoru", "time-movement-4", "specific"),
+  noun("noun-kesa", "けさ", "kesa", "time-movement-4", "relative"),
+  noun("noun-konban", "こんばん", "konban", "time-movement-4", "relative"),
+  noun("noun-nichiyoubi", "にちようび", "nichiyoubi", "time-movement-4", "specific"),
   {
     id: "anchor-asa",
     kana: "あさ",
@@ -694,6 +696,7 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
     firstTeachLessonId: "sounds-1",
     countable: true,
     category: "noun",
+    timeSemantics: "specific",
   },
   {
     id: "anchor-ie",

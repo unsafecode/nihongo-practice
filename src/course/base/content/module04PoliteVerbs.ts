@@ -171,6 +171,7 @@ export type BaseTask11ContrastAxis =
   | "time-marking"
   | "tense-polarity"
   | "interpretation"
+  | "word-order"
   | "schedule-route";
 
 export interface BaseTask11ReviewEvidence {
@@ -1313,6 +1314,7 @@ export function task11PlainDataEqual(
 export type BaseTask11SemanticReviewErrorCode =
   | "class-analysis-invalid"
   | "predicate-contrast-not-held"
+  | "particle-contrast-not-isolated"
   | "error-delta-invalid"
   | "world-grounding-invalid"
   | "worked-surface-reused"
@@ -1347,43 +1349,60 @@ function normalizedTask11Surface(target: BaseVisibleTarget): string {
     .replace(/[、。,\s]/gu, "");
 }
 
-const TASK11_TIME_LEXEME_IDS = new Set([
-  "noun-fudan",
-  "noun-maishuu",
-  "noun-ashita",
-  "noun-kyou",
-  "noun-getsuyoubi",
-  "noun-shichiji",
-  "noun-kuji",
-  "noun-goji",
-  "noun-kinou",
-  "noun-senshuu",
-  "noun-konshuu",
-  "noun-raishuu",
-  "noun-kesa",
-  "noun-konban",
-  "noun-nichiyoubi",
-  "noun-yoru",
-]);
+const TASK11_BOUNDARY_PARTICLE_SENSES: readonly BaseParticleSense[] = [
+  "topic-wa",
+  "action-place-de",
+  "means-de",
+  "goal-ni",
+  "time-ni",
+  "existence-location-ni",
+  "additive-mo",
+  "object-o",
+  "direction-he",
+  "companion-to",
+  "listing-to",
+  "focus-subject-ga",
+  "existential-subject-ga",
+  "source-kara",
+  "limit-made",
+];
+const TASK11_BOUNDARY_PARTICLE_KANA = new Set(
+  TASK11_BOUNDARY_PARTICLE_SENSES.flatMap((sense) =>
+    baseParticleSurfaceTokens(sense).map(({ jp }) => jp),
+  ),
+);
+
+function isCanonicalTimeLexeme(lexemeId: string): boolean {
+  const lexeme = BASE_LEXEME_BY_ID.get(lexemeId);
+  return lexeme?.category === "noun" && lexeme.timeSemantics !== undefined;
+}
+
+export function task11VerbNeedsKanaSeparator(lemmaId: string): boolean {
+  const lexeme = BASE_LEXEME_BY_ID.get(lemmaId);
+  return (
+    lexeme?.category === "verb" &&
+    [...TASK11_BOUNDARY_PARTICLE_KANA].some((kana) =>
+      lexeme.kana.startsWith(kana),
+    )
+  );
+}
 
 function hasAmbiguousTimeVerbBoundary(target: BaseVisibleTarget): boolean {
   for (const [timeIndex, token] of target.tokens.entries()) {
-    if (!TASK11_TIME_LEXEME_IDS.has(token.source.referenceId)) continue;
+    if (!isCanonicalTimeLexeme(token.source.referenceId)) continue;
     let nextIndex = timeIndex + 1;
     const separator = target.tokens[nextIndex];
     if (separator?.kind === "punctuation") continue;
     if (separator?.kind === "particle") {
-      if (
-        separator.source.referenceId === "topic-wa" ||
-        separator.source.referenceId === "additive-mo"
-      ) {
-        continue;
-      }
       nextIndex += 1;
+      if (target.tokens[nextIndex]?.kind === "punctuation") continue;
     }
     const next = target.tokens[nextIndex];
     if (
-      next?.jp.startsWith("は") &&
+      next &&
+      [...TASK11_BOUNDARY_PARTICLE_KANA].some((kana) =>
+        next.jp.startsWith(kana),
+      ) &&
       (next.source.referenceId === target.predicateLexemeId ||
         BASE_LEXEME_BY_ID.get(next.source.referenceId)?.category === "verb")
     ) {
@@ -1408,6 +1427,62 @@ function inferredPoliteCellId(target: BaseVisibleTarget): string | null {
     return "verb-polite-nonpast-affirmative";
   }
   return null;
+}
+
+const TASK11_PARTICLE_ANALYSIS_SOURCE_IDS = new Set([
+  "analysis-action-place",
+  "analysis-means",
+  "analysis-goal",
+  "analysis-direction",
+]);
+
+function normalizedParticleRole(role: string): string {
+  if (role === "topic" || role === "additive-topic") return "discourse-topic";
+  if (role === "goal" || role === "direction") return "movement-target";
+  if (role === "action-place" || role === "means") return "de-argument";
+  return role;
+}
+
+function particleContrastIsIsolated(
+  targets: readonly [BaseVisibleTarget, BaseVisibleTarget],
+): boolean {
+  const [left, right] = targets;
+  const tokenSignature = (target: BaseVisibleTarget) =>
+    target.tokens.map(({ jp, kind, source }) =>
+      kind === "particle"
+        ? "<particle>"
+        : TASK11_PARTICLE_ANALYSIS_SOURCE_IDS.has(source.referenceId)
+          ? "<particle-analysis>"
+          : `${source.referenceId}:${jp}`,
+    );
+  const roleSignature = (target: BaseVisibleTarget) =>
+    [...target.semanticRoleIds].map(normalizedParticleRole).sort();
+  const bindingSignature = (target: BaseVisibleTarget) =>
+    (target.particleBindings ?? []).map(
+      ({ role, attachmentLexemeId }) =>
+        `${normalizedParticleRole(role)}@${attachmentLexemeId}`,
+    );
+  const particleSenseSignature = (target: BaseVisibleTarget) =>
+    (target.particleBindings ?? []).map(({ particleSense }) => particleSense);
+  const analysisSignature = (target: BaseVisibleTarget) =>
+    target.tokens.flatMap(({ source }) =>
+      TASK11_PARTICLE_ANALYSIS_SOURCE_IDS.has(source.referenceId)
+        ? [source.referenceId]
+        : [],
+    );
+  const equal = (a: readonly string[], b: readonly string[]) =>
+    a.length === b.length && a.every((value, index) => value === b[index]);
+
+  return (
+    left.predicateLexemeId !== null &&
+    left.predicateLexemeId === right.predicateLexemeId &&
+    equal(tokenSignature(left), tokenSignature(right)) &&
+    equal([...left.lexemeIds].sort(), [...right.lexemeIds].sort()) &&
+    equal(roleSignature(left), roleSignature(right)) &&
+    equal(bindingSignature(left), bindingSignature(right)) &&
+    (!equal(particleSenseSignature(left), particleSenseSignature(right)) ||
+      !equal(analysisSignature(left), analysisSignature(right)))
+  );
 }
 
 const TASK11_ERROR_CHANGED_SOURCES: Readonly<Record<string, readonly string[]>> =
@@ -1688,6 +1763,15 @@ export function validateTask11SemanticReview(
         ) {
           push("predicate-contrast-not-held");
         }
+        if (
+          design.reviewEvidence.contrastAxis === "particle" &&
+          !particleContrastIsIsolated([
+            design.optionTargets[0],
+            design.optionTargets[1],
+          ])
+        ) {
+          push("particle-contrast-not-isolated");
+        }
       }
 
       if (design.operation === "diagnose-error") {
@@ -1890,11 +1974,12 @@ export function validateTask11SemanticReview(
       ]) {
         const surface = normalizedTask11Surface(target);
         const prior = practiceSurfaces.get(surface);
-        const repeatedDiagnosisCandidate =
-          design.operation === "diagnose-error" &&
+        const repeatedSourceCandidate =
+          (design.operation === "diagnose-error" ||
+            design.operation === "transform-form") &&
           prior === `${design.id}:prompt` &&
           surface === normalizedTask11Surface(design.promptTarget);
-        if (prior && !repeatedDiagnosisCandidate) {
+        if (prior && !repeatedSourceCandidate) {
           push("worked-surface-reused", `practice:${prior}`);
         } else if (!prior) {
           practiceSurfaces.set(surface, design.id);
@@ -1987,15 +2072,61 @@ export function validateTask11SemanticReview(
               : ["tema", "predicato"]
             : []),
         ]);
+        const competingTargets =
+          design.operation === "produce-spoken"
+            ? [design.promptTarget]
+            : design.optionTargets.filter(
+              (_, optionIndex) => optionIndex !== design.correctOptionIndex,
+            );
+        const decisiveLexemeTerms = design.acceptedAnswerTarget.lexemeIds
+          .filter((lexemeId) =>
+            competingTargets.some(
+              (target) => !target.lexemeIds.includes(lexemeId),
+            ),
+          )
+          .flatMap((lexemeId) => {
+            const lexeme = BASE_LEXEME_BY_ID.get(lexemeId);
+            if (!lexeme) return [];
+            const localizedMeaning = (locale === "en" ? copyEn : copyIt)[
+              lexeme.meaningCopyId
+            ];
+            return typeof localizedMeaning === "string"
+              ? localizedMeaning
+                  .toLowerCase()
+                  .split(/[;,/()]/u)
+                  .map((term) => term.trim())
+                  .filter((term) => term.length >= 3)
+              : [];
+          });
+        const retryForbidden = new Set([
+          ...forbidden,
+          ...design.acceptedAnswerTarget.tokens.flatMap((token) =>
+            token.kind === "punctuation" ? [] : [token.jp.toLowerCase()],
+          ),
+          ...decisiveLexemeTerms,
+        ]);
+        const retryPositionPattern =
+          locale === "en"
+            ? /\b(?:first|last|final|before|after|left|right|precede(?:s|d)?|position)\b|at the end|without (?:re)?moving/iu
+            : /\b(?:prima|dopo|ultimo|ultima|finale|posizione|sinistra|destra)\b|alla fine|in fondo|senza (?:ri)?spostar/iu;
         const leaked = [...forbidden].find(
           (value) => value.length > 0 && copy.includes(value),
         );
+        const retryLeaked = [...retryForbidden].find(
+          (value) => value.length > 0 && retryCopy.includes(value),
+        );
         if (leaked) push("instruction-answer-leakage", `${locale}:${leaked}`);
+        if (retryLeaked) {
+          push("instruction-answer-leakage", `${locale}:retry:${retryLeaked}`);
+        }
         if (roleTermPattern.test(copy)) {
           push("instruction-answer-leakage", `${locale}:role-term`);
         }
         if (roleTermPattern.test(retryCopy)) {
           push("instruction-answer-leakage", `${locale}:retry-role-term`);
+        }
+        if (retryPositionPattern.test(retryCopy)) {
+          push("instruction-answer-leakage", `${locale}:retry-position`);
         }
       }
     }

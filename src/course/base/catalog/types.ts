@@ -371,6 +371,12 @@ export interface BaseAdjectiveLexeme extends BaseLexemeCommon {
 
 export interface BaseNounLexeme extends BaseLexemeCommon {
   readonly category: "noun";
+  /**
+   * Canonical scheduling behavior for nouns that denote a time expression.
+   * Relative and recurring expressions may stand particleless in the owned
+   * Task 11 patterns; specific times require an authored marker or bound.
+   */
+  readonly timeSemantics?: "relative" | "recurring" | "specific";
 }
 
 export interface BaseExpressionLexeme extends BaseLexemeCommon {

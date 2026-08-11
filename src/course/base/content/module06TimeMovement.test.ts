@@ -553,6 +553,44 @@ describe("Base time-movement module", () => {
     }
   });
 
+  it("catalogs time nouns by grammatical time behavior", () => {
+    const expected = new Map([
+      ["noun-ashita", "relative"],
+      ["noun-maishuu", "recurring"],
+      ["noun-shichiji", "specific"],
+      ["noun-konshuu", "relative"],
+      ["noun-yoru", "specific"],
+    ]);
+    for (const [lexemeId, timeSemantics] of expected) {
+      const lexeme = BASE_LEXEME_BY_ID.get(lexemeId);
+      expect(
+        lexeme?.category === "noun" ? lexeme.timeSemantics : undefined,
+        lexemeId,
+      ).toBe(timeSemantics);
+    }
+  });
+
+  it("rejects a particleless event time whose semantic role is removed", () => {
+    const lessonRecord = BASE_TIME_MOVEMENT_MODULE.lessons[0];
+    const lesson = lessonRecord.content;
+    const original = lessonRecord.examples[4];
+    expect(original.semanticRoleIds).toContain("time");
+    const mutated = {
+      ...original,
+      semanticRoleIds: original.semanticRoleIds.filter((role) => role !== "time"),
+    };
+    const catalogs = {
+      ...BASE_TIME_MOVEMENT_VALIDATION_CATALOGS,
+      examples: new Map([
+        ...BASE_TIME_MOVEMENT_VALIDATION_CATALOGS.examples,
+        [original.id, mutated],
+      ]),
+    };
+    expect(
+      validateBaseLessonDepth(lesson, catalogs).map(({ code }) => code),
+    ).toContain("particle-frame-token-mismatch");
+  });
+
   it("grounds TM4 recurring study and makes the spoken cue recoverable", () => {
     const lesson = BASE_TIME_MOVEMENT_MODULE.lessons[3];
     const a5 = lesson.activityDesigns[4];
@@ -618,6 +656,66 @@ describe("Base time-movement module", () => {
       expect.arrayContaining([
         expect.objectContaining({ code: "kana-boundary-ambiguous" }),
       ]),
+    );
+
+    const withVerbOnset = (
+      lemmaId: string,
+      kana: string,
+      romaji: string,
+    ) => {
+      const lesson = structuredClone(mutated);
+      const target = lesson.examples[0] as unknown as {
+        tokens: AssembledToken[];
+        lexemeIds: string[];
+        predicateLexemeId: string;
+        predicateSenseId: string;
+      };
+      const verbIndex = target.tokens.findIndex(
+        ({ source }) => source.referenceId === "verb-hashiru",
+      );
+      target.tokens[verbIndex] = {
+        ...target.tokens[verbIndex],
+        jp: kana,
+        romaji,
+        source: { domain: "catalog", referenceId: lemmaId },
+      };
+      target.lexemeIds = target.lexemeIds.map((lexemeId) =>
+        lexemeId === "verb-hashiru" ? lemmaId : lexemeId,
+      );
+      target.predicateLexemeId = lemmaId;
+      target.predicateSenseId = lemmaId.slice("verb-".length);
+      return lesson;
+    };
+    for (const probe of [
+      withVerbOnset("verb-dekakeru", "でかけ", "dekake"),
+      withVerbOnset("verb-motte-kuru", "もってき", "motte ki"),
+    ]) {
+      expect(validateTask11SemanticReview([probe])).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "kana-boundary-ambiguous" }),
+        ]),
+      );
+    }
+
+    const explicitTopic = structuredClone(mutated);
+    const explicitTarget = explicitTopic.examples[0] as unknown as {
+      tokens: AssembledToken[];
+    };
+    explicitTarget.tokens.splice(1, 0, {
+      ...baseParticleSurfaceTokens("topic-wa")[0],
+      id: "adversarial-time-topic",
+    });
+    expect(validateTask11SemanticReview([explicitTopic])).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "kana-boundary-ambiguous" }),
+      ]),
+    );
+  });
+
+  it("separates the TM1 correction whose verb begins like a particle", () => {
+    const diagnosis = BASE_TIME_MOVEMENT_MODULE.lessons[0].activityDesigns[5];
+    expect(jp(diagnosis.optionTargets[0].tokens)).toContain(
+      "まいしゅう、でかけます",
     );
   });
 
@@ -1198,6 +1296,107 @@ describe("Base time-movement module", () => {
         }),
       ]),
     );
+  });
+
+  it("rejects answer-bearing retry copy across every decisive axis", () => {
+    const scenarios = [
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[1],
+        index: 0,
+        locale: "en",
+        retry: "Choose godan.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[0],
+        index: 1,
+        locale: "it",
+        retry: "Usa l'analisi del lemma.",
+      },
+      {
+        lesson: BASE_ARGUMENT_PARTICLES_MODULE.lessons[1],
+        index: 1,
+        locale: "en",
+        retry: "Use へ rather than に.",
+      },
+      {
+        lesson: BASE_ARGUMENT_PARTICLES_MODULE.lessons[1],
+        index: 8,
+        locale: "en",
+        retry: "Listen for に after home.",
+      },
+      {
+        lesson: BASE_ARGUMENT_PARTICLES_MODULE.lessons[1],
+        index: 9,
+        locale: "it",
+        retry: "Pronuncia へ come e.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[2],
+        index: 0,
+        locale: "it",
+        retry: "Scegli il non-passato affermativo.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[2],
+        index: 3,
+        locale: "en",
+        retry: "Build ました.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[0],
+        index: 1,
+        locale: "en",
+        retry: "Follow tomorrow.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[0],
+        index: 1,
+        locale: "it",
+        retry: "Segui domani.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[2],
+        index: 2,
+        locale: "en",
+        retry: "Keep the stem final.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[2],
+        index: 2,
+        locale: "it",
+        retry: "Metti la base alla fine.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[0],
+        index: 5,
+        locale: "en",
+        retry: "Replace the phrase without moving it.",
+      },
+    ] as const;
+
+    for (const { lesson, index, locale, retry } of scenarios) {
+      const activity = lesson.content.activities[index];
+      const retryCopyId = activity.retryFeedbackCopyId;
+      const en = {
+        ...baseNavigationCopyEn.content,
+        ...(locale === "en" ? { [retryCopyId]: retry } : {}),
+      };
+      const it = {
+        ...baseNavigationCopyIt.content,
+        ...(locale === "it" ? { [retryCopyId]: retry } : {}),
+      };
+      expect(
+        validateTask11SemanticReview([lesson], en, it),
+        `${locale}:${activity.id}:${retry}`,
+      ).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "instruction-answer-leakage",
+            activityId: activity.id,
+          }),
+        ]),
+      );
+    }
   });
 
   it("does not reuse worked examples as prompts, options, or error candidates", () => {
