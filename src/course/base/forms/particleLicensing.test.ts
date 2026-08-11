@@ -3,6 +3,7 @@ import {
   baseParticleSurfaceTokens,
   BASE_PARTICLE_FRAME_BY_PREDICATE,
   BASE_PARTICLE_SENSES,
+  validatePredicateParticleFrameCatalog,
   validateParticleFrame,
 } from "./particleLicensing";
 import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
@@ -220,5 +221,27 @@ describe("Base particle frame licensing", () => {
       verbClass: "godan",
       firstTeachLessonId: "polite-verbs-1",
     });
+  });
+
+  it("requires canonical argumentParticleByRole licensing for every required role", () => {
+    expect(validatePredicateParticleFrameCatalog()).toEqual([]);
+    expect(
+      BASE_PARTICLE_FRAME_BY_PREDICATE.get("eat")?.argumentParticleByRole,
+    ).toEqual({ theme: ["o"] });
+    expect(
+      BASE_PARTICLE_FRAME_BY_PREDICATE.get("go")?.argumentParticleByRole,
+    ).toEqual({ goal: ["ni", "he"] });
+    const frames = [...BASE_PARTICLE_FRAME_BY_PREDICATE.values()];
+    const first = frames[0];
+    const mutated = [
+      {
+        ...first,
+        argumentParticleByRole: {},
+      },
+      ...frames.slice(1),
+    ];
+    expect(validatePredicateParticleFrameCatalog(mutated)).toEqual([
+      expect.stringMatching(/^argument-particle-role:/u),
+    ]);
   });
 });

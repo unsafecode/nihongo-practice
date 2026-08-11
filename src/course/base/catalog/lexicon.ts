@@ -680,7 +680,7 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
   noun("noun-shigoto", "しごと", "shigoto", "time-movement-4"),
   noun("noun-yotei", "よてい", "yotei", "time-movement-4"),
   noun("noun-hirugohan", "ひるごはん", "hirugohan", "time-movement-4"),
-  noun("noun-ban", "ばん", "ban", "time-movement-4"),
+  noun("noun-yoru", "よる", "yoru", "time-movement-4"),
   noun("noun-kesa", "けさ", "kesa", "time-movement-4"),
   noun("noun-konban", "こんばん", "konban", "time-movement-4"),
   noun("noun-nichiyoubi", "にちようび", "nichiyoubi", "time-movement-4"),
@@ -836,100 +836,84 @@ export const BASE_LEXEME_BY_ID: ReadonlyMap<string, BaseLexeme> =
 export interface BaseLexemeRecurrencePlan {
   readonly lexemeId: string;
   readonly plannedLessonIds: readonly string[];
+  readonly plannedSynthesisLessonIds: readonly string[];
 }
 
 function recurrence(
   lexemeIds: readonly string[],
-  plannedLessonIds: readonly string[],
+  plannedLessonIds: readonly string[] = [],
+  plannedSynthesisLessonIds: readonly string[] = [],
 ): readonly BaseLexemeRecurrencePlan[] {
-  return lexemeIds.map((lexemeId) => ({ lexemeId, plannedLessonIds }));
+  return lexemeIds.map((lexemeId) => ({
+    lexemeId,
+    plannedLessonIds,
+    plannedSynthesisLessonIds,
+  }));
 }
 
 export const BASE_TASK11_LEXEME_RECURRENCE_PLANS: readonly BaseLexemeRecurrencePlan[] =
   deepFreeze([
     ...recurrence(
-      ["verb-kaku", "verb-yomu", "verb-nomu", "verb-kau"],
-      ["argument-particles-1", "time-movement-3"],
+      ["verb-kaku", "verb-yomu", "verb-nomu", "verb-kau", "verb-taberu", "verb-miru"],
+      ["argument-particles-1"],
     ),
-    ...recurrence(
-      ["verb-hataraku", "verb-asobu"],
-      ["argument-particles-3", "time-movement-1"],
-    ),
-    ...recurrence(["verb-oyogu"], ["requests-connection-1"]),
-    ...recurrence(["verb-taberu", "verb-miru"], ["argument-particles-1"]),
+    ...recurrence(["verb-hataraku", "verb-asobu"], ["argument-particles-3"]),
+    ...recurrence(["verb-oyogu"], [], ["base-synthesis-3"]),
     ...recurrence(["verb-kaeru", "verb-kuru"], ["argument-particles-2"]),
     ...recurrence(["verb-suru"], ["time-movement-4"]),
     ...recurrence(["verb-benkyou-suru"], ["argument-particles-3"]),
-    ...recurrence(
-      ["verb-denwa-suru", "verb-sanpo-suru", "verb-matsu"],
-      ["requests-connection-1"],
-    ),
-    ...recurrence(
-      ["verb-yasumu", "verb-okiru", "verb-neru", "verb-aruku"],
-      ["time-movement-1", "time-movement-2"],
-    ),
-    ...recurrence(
-      ["verb-kiku", "verb-tsukuru", "verb-au", "verb-utau", "verb-hanasu"],
-      ["time-movement-4", "requests-connection-2"],
-    ),
-    ...recurrence(["verb-iku"], ["argument-particles-2"]),
-    ...recurrence(
-      ["noun-gohan", "noun-mizu", "noun-kudamono"],
-      ["copula-adjectives-3"],
-    ),
-    ...recurrence(
-      ["noun-tegami", "noun-zasshi"],
-      ["requests-connection-2"],
-    ),
-    ...recurrence(
-      ["noun-eki", "noun-daigaku", "noun-byouin", "noun-mise"],
-      ["existence-location-4"],
-    ),
-    ...recurrence(
-      ["noun-toshokan", "noun-kouen"],
-      ["existence-location-4"],
-    ),
-    ...recurrence(
-      ["noun-densha", "noun-jitensha", "noun-enpitsu"],
-      ["requests-connection-2"],
-    ),
-    ...recurrence(
-      ["noun-shokudou", "noun-jimusho"],
-      ["existence-location-4"],
-    ),
-    ...recurrence(["noun-kasa", "noun-nikki"], ["requests-connection-2"]),
-    ...recurrence(
-      ["verb-hashiru", "verb-ryokou-suru", "verb-ryouri-suru", "verb-dekakeru"],
-      ["requests-connection-1", "base-synthesis-3"],
-    ),
+    ...recurrence(["verb-denwa-suru", "verb-sanpo-suru"], [], ["base-synthesis-3"]),
+    ...recurrence(["verb-matsu"], ["polite-verbs-4"]),
+    ...recurrence(["verb-yasumu", "verb-okiru"], ["time-movement-2"]),
     ...recurrence(
       [
-        "noun-kyou",
-        "noun-ashita",
-        "noun-getsuyoubi",
-        "noun-shichiji",
-        "noun-kuji",
-        "noun-goji",
+        "verb-neru",
+        "verb-aruku",
+        "verb-kiku",
+        "verb-tsukuru",
+        "verb-au",
+        "verb-utau",
+        "verb-hanasu",
       ],
-      ["time-movement-3", "time-movement-4"],
+      [],
+      ["base-synthesis-3"],
     ),
+    ...recurrence(["verb-iku"], ["argument-particles-2"]),
+    ...recurrence(["noun-gohan", "noun-kudamono"], ["argument-particles-4"]),
+    ...recurrence(["noun-mizu", "noun-tegami", "noun-zasshi"], [], ["base-synthesis-3"]),
+    ...recurrence(["noun-eki", "noun-daigaku"], ["time-movement-2"]),
+    ...recurrence(["noun-byouin", "noun-mise"], ["argument-particles-3"]),
+    ...recurrence(["noun-kouen"], ["argument-particles-4"]),
+    ...recurrence(["noun-toshokan", "noun-jitensha"], [], ["base-synthesis-3"]),
+    ...recurrence(["noun-densha", "noun-enpitsu"], ["argument-particles-4"]),
+    ...recurrence(
+      ["noun-shokudou", "noun-jimusho", "noun-kasa", "noun-nikki"],
+      [],
+      ["base-synthesis-3"],
+    ),
+    ...recurrence(["verb-hashiru", "verb-ryouri-suru"], ["time-movement-4"]),
+    ...recurrence(["verb-ryokou-suru"], ["time-movement-3"]),
+    ...recurrence(["verb-dekakeru"], ["time-movement-2"]),
+    ...recurrence(["noun-kyou", "noun-ashita", "noun-getsuyoubi", "noun-shichiji"], ["time-movement-4"]),
+    ...recurrence(["noun-kuji", "noun-goji"], [], ["base-synthesis-3"]),
     ...recurrence(
       ["noun-kinou", "noun-senshuu", "noun-konshuu", "noun-raishuu"],
-      ["time-movement-4", "base-synthesis-3"],
-    ),
-    ...recurrence(
-      ["noun-kaigi", "noun-shigoto", "noun-yotei"],
+      [],
       ["base-synthesis-3"],
     ),
     ...recurrence(
       [
+        "noun-kaigi",
+        "noun-shigoto",
+        "noun-yotei",
         "noun-hirugohan",
-        "noun-ban",
+        "noun-yoru",
         "noun-kesa",
         "noun-konban",
         "noun-nichiyoubi",
       ],
-      ["requests-connection-3", "base-synthesis-3"],
+      [],
+      ["base-synthesis-3"],
     ),
   ]);
 

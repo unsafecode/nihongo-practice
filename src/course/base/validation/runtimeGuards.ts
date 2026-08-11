@@ -36,6 +36,7 @@ const TOKEN_SOURCE_DOMAINS = new Set([
 const PARTICLE_FRAME_ROLES = new Set([
   "theme",
   "goal",
+  "topic",
   "action-place",
   "means",
   "time",

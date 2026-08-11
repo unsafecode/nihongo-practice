@@ -25,6 +25,7 @@ import {
   BASE_TIME_MOVEMENT_TENSE_CELLS,
   BASE_TIME_MOVEMENT_VALIDATION_CATALOGS,
   validateBaseTimeMovementModule,
+  validateTask11RecurrencePlans,
 } from "./module06TimeMovement";
 import { BASE_SENTENCE_FOUNDATIONS_MODULE } from "./module02SentenceFoundations";
 import { BASE_TOPIC_QUESTIONS_MODULE } from "./module03TopicQuestions";
@@ -105,10 +106,10 @@ describe("Base time-movement module", () => {
     expect(grid.ok).toBe(true);
     if (!grid.ok) return;
     expect(BASE_TIME_MOVEMENT_TENSE_CELLS.map(({ id }) => id)).toEqual([
-      "tm3-nonpast-affirmative",
-      "tm3-nonpast-negative",
-      "tm3-past-affirmative",
-      "tm3-past-negative",
+      "verb-polite-nonpast-affirmative",
+      "verb-polite-nonpast-negative",
+      "verb-polite-past-affirmative",
+      "verb-polite-past-negative",
     ]);
     expect(BASE_TIME_MOVEMENT_TENSE_CELLS.map(({ tokens }) => jp(tokens))).toEqual([
       "かきます",
@@ -122,6 +123,20 @@ describe("Base time-movement module", () => {
       grid.value.pastAffirmative,
       grid.value.pastNegative,
     ]);
+  });
+
+  it("authors all four はたらく cells as same-verb minimal contrasts", () => {
+    const surfaces = BASE_TIME_MOVEMENT_MODULE.lessons[2].examples.map(
+      ({ tokens }) => jp(tokens),
+    );
+    expect(surfaces).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("はたらきます"),
+        expect.stringContaining("はたらきません"),
+        expect.stringContaining("はたらきました"),
+        expect.stringContaining("はたらきませんでした"),
+      ]),
+    );
   });
 
   it("uses dynamic nonpast only for habitual or future readings", () => {
@@ -202,6 +217,43 @@ describe("Base time-movement module", () => {
     }
   });
 
+  it("removes rejected punctual-work and unnatural movement/time surfaces", () => {
+    const visible = allTargets().map(({ tokens }) => jp(tokens));
+    for (const rejected of [
+      "くじにはたらきます",
+      "ばんはたらきます",
+      "えきにかえります",
+      "がっこうへきます",
+    ]) {
+      expect(visible, rejected).not.toContain(rejected);
+    }
+  });
+
+  it("declares a detectable time-interpretation error for TM1 diagnosis", () => {
+    const design = BASE_TIME_MOVEMENT_MODULE.lessons[0].activityDesigns[5] as
+      typeof BASE_TIME_MOVEMENT_MODULE.lessons[0]["activityDesigns"][number] & {
+        readonly reviewEvidence?: {
+          readonly error: {
+            readonly code: string;
+            readonly defectAxis: string;
+            readonly changedTokenSourceIds: readonly string[];
+          } | null;
+        };
+      };
+    expect(design.reviewEvidence?.error).toMatchObject({
+      code: "dynamic-nonpast-interpretation-mismatch",
+      defectAxis: "interpretation",
+      changedTokenSourceIds: [
+        "analysis-habitual",
+        "analysis-future",
+        "interpretation-tag",
+      ],
+    });
+    expect(design.promptTarget.predicateLexemeId).toBe(
+      design.acceptedAnswerTarget.predicateLexemeId,
+    );
+  });
+
   it("contains no te forms, teimasu, adjectives, or later concepts on any surface", () => {
     const forbidden = new Set([
       "te-allomorphy",
@@ -268,9 +320,46 @@ describe("Base time-movement module", () => {
     ).toEqual([...newLexemeIds].sort());
     for (const lexemeId of newLexemeIds) {
       const lexeme = BASE_LEXEME_BY_ID.get(lexemeId)!;
-      const plan = BASE_TASK11_LEXEME_RECURRENCE_BY_ID.get(lexemeId)!;
-      expect(plan.plannedLessonIds.length, lexemeId).toBeGreaterThan(0);
+      const plan = BASE_TASK11_LEXEME_RECURRENCE_BY_ID.get(lexemeId)! as
+        | (typeof BASE_TASK11_LEXEME_RECURRENCE_PLANS)[number]
+        | undefined;
+      expect(plan, lexemeId).toBeDefined();
+      if (!plan) continue;
+      expect(
+        plan.plannedLessonIds.length +
+          (plan.plannedSynthesisLessonIds?.length ?? 0),
+        lexemeId,
+      ).toBeGreaterThan(0);
       for (const lessonId of plan.plannedLessonIds) {
+        expect(firstTeachLessonPosition(lessonId), lessonId).toBeGreaterThan(
+          firstTeachLessonPosition(lexeme.firstTeachLessonId)!,
+        );
+        const authoredLesson = [
+          ...BASE_POLITE_VERBS_MODULE.lessons,
+          ...BASE_ARGUMENT_PARTICLES_MODULE.lessons,
+          ...BASE_TIME_MOVEMENT_MODULE.lessons,
+        ].find(({ content }) => content.lessonId === lessonId);
+        if (authoredLesson) {
+          expect(
+            [
+              ...authoredLesson.examples,
+              ...(authoredLesson.dialogue?.turns ?? []),
+              ...authoredLesson.activityDesigns.flatMap(
+                ({ promptTarget, optionTargets, acceptedAnswerTarget }) => [
+                  promptTarget,
+                  ...optionTargets,
+                  acceptedAnswerTarget,
+                ],
+              ),
+            ].some(({ lexemeIds }) => lexemeIds.includes(lexemeId)),
+            `${lexemeId}:${lessonId}`,
+          ).toBe(true);
+        } else {
+          throw new Error(`Non-authored recurrence: ${lexemeId}:${lessonId}`);
+        }
+      }
+      for (const lessonId of plan.plannedSynthesisLessonIds ?? []) {
+        expect(lessonId).toMatch(/^base-synthesis-/u);
         expect(firstTeachLessonPosition(lessonId), lessonId).toBeGreaterThan(
           firstTeachLessonPosition(lexeme.firstTeachLessonId)!,
         );
@@ -279,6 +368,27 @@ describe("Base time-movement module", () => {
     expect(BASE_LEXEME_BY_ID.size).toBeLessThanOrEqual(250);
     expect(Object.isFrozen(BASE_TASK11_LEXEME_RECURRENCE_PLANS)).toBe(true);
     expect("clear" in BASE_TASK11_LEXEME_RECURRENCE_BY_ID).toBe(false);
+    const forged = BASE_TASK11_LEXEME_RECURRENCE_PLANS.map((plan, index) =>
+      index === 0
+        ? {
+            ...plan,
+            plannedLessonIds: ["time-movement-4"],
+            plannedSynthesisLessonIds: [],
+          }
+        : plan,
+    );
+    expect(
+      validateTask11RecurrencePlans(
+        [
+          ...BASE_POLITE_VERBS_MODULE.lessons,
+          ...BASE_ARGUMENT_PARTICLES_MODULE.lessons,
+          ...BASE_TIME_MOVEMENT_MODULE.lessons,
+        ],
+        forged,
+      ),
+    ).toEqual([
+      expect.stringMatching(/^recurrence-plan-unrealized:/u),
+    ]);
   });
 
   it("publishes complete localized copy and a grounded schedule dialogue", () => {
@@ -331,6 +441,168 @@ describe("Base time-movement module", () => {
         );
       }
     }
+  });
+
+  it("keeps pre-attempt EN and IT instructions free of accepted answers", () => {
+    const task11Lessons = [
+      ...BASE_POLITE_VERBS_MODULE.lessons,
+      ...BASE_ARGUMENT_PARTICLES_MODULE.lessons,
+      ...BASE_TIME_MOVEMENT_MODULE.lessons,
+    ];
+    const classTerms = {
+      en: [
+        ["godan-verb-class", "godan"],
+        ["ichidan-verb-class", "ichidan"],
+        ["suru-verb-class", "suru"],
+        ["kuru-verb-class", "kuru"],
+      ],
+      it: [
+        ["godan-verb-class", "godan"],
+        ["ichidan-verb-class", "ichidan"],
+        ["suru-verb-class", "suru"],
+        ["kuru-verb-class", "kuru"],
+      ],
+    } as const;
+    const cellTerms = {
+      en: new Map([
+        ["verb-polite-nonpast-affirmative", "nonpast affirmative"],
+        ["verb-polite-nonpast-negative", "nonpast negative"],
+        ["verb-polite-past-affirmative", "past affirmative"],
+        ["verb-polite-past-negative", "past negative"],
+      ]),
+      it: new Map([
+        ["verb-polite-nonpast-affirmative", "non-passato affermativo"],
+        ["verb-polite-nonpast-negative", "non-passato negativo"],
+        ["verb-polite-past-affirmative", "passato affermativo"],
+        ["verb-polite-past-negative", "passato negativo"],
+      ]),
+    };
+    const leaks: string[] = [];
+    for (const lesson of task11Lessons) {
+      for (const [index, design] of lesson.activityDesigns.entries()) {
+        const activity = lesson.content.activities[index];
+        for (const locale of ["en", "it"] as const) {
+          const copy =
+            (locale === "en" ? baseNavigationCopyEn : baseNavigationCopyIt)
+              .content[activity.instructionCopyId]
+              ?.toLowerCase() ?? "";
+          const forbidden = new Set<string>([
+            jp(design.acceptedAnswerTarget.tokens).toLowerCase(),
+            ...design.acceptedAnswerTarget.lexemeIds.flatMap((id) => {
+              const lexeme = BASE_LEXEME_BY_ID.get(id);
+              return lexeme ? [lexeme.kana.toLowerCase()] : [];
+            }),
+            ...design.acceptedAnswerTarget.tokens.flatMap((token) =>
+              token.kind === "particle" ? [token.jp] : [],
+            ),
+            ...classTerms[locale].flatMap(([conceptId, term]) =>
+              design.acceptedAnswerTarget.conceptIds.includes(conceptId)
+                ? [term]
+                : [],
+            ),
+            cellTerms[locale].get(design.patternCellId) ?? "",
+          ]);
+          for (const value of forbidden) {
+            if (value.length > 0 && copy.includes(value)) {
+              leaks.push(`${locale}:${activity.id}:${value}`);
+            }
+          }
+        }
+      }
+    }
+    expect(leaks).toEqual([]);
+  });
+
+  it("does not reuse worked examples as prompts, options, or error candidates", () => {
+    const lessons = [
+      ...BASE_POLITE_VERBS_MODULE.lessons,
+      ...BASE_ARGUMENT_PARTICLES_MODULE.lessons,
+      ...BASE_TIME_MOVEMENT_MODULE.lessons,
+    ];
+    const demonstrations = new Map<string, string>();
+    for (const lesson of lessons) {
+      for (const target of [
+        ...lesson.examples,
+        ...(lesson.dialogue?.turns ?? []),
+      ]) {
+        demonstrations.set(
+          visibleSurfaceFingerprint(target.tokens),
+          "id" in target ? String(target.id) : lesson.dialogue?.id ?? "",
+        );
+      }
+    }
+    for (const lesson of lessons) {
+      for (const design of lesson.activityDesigns) {
+        for (const [kind, target] of [
+          ["prompt", design.promptTarget],
+          ...design.optionTargets.map(
+            (option) => ["option", option] as const,
+          ),
+        ] as const) {
+          const duplicate = demonstrations.get(
+            visibleSurfaceFingerprint(target.tokens),
+          );
+          if (!duplicate) continue;
+          expect(design.category, `${design.id}:${kind}:${duplicate}`).toBe(
+            "cumulative-retrieval",
+          );
+          expect(
+            design.operationEvidence.sourceTargetId,
+            `${design.id}:${kind}:${duplicate}`,
+          ).toBeTypeOf("string");
+          expect(design.operation, `${design.id}:${kind}:${duplicate}`).not.toBe(
+            "diagnose-error",
+          );
+        }
+      }
+    }
+  });
+
+  it("publishes exact visible grounding for every world fact", () => {
+    for (const module of [
+      BASE_POLITE_VERBS_MODULE,
+      BASE_ARGUMENT_PARTICLES_MODULE,
+      BASE_TIME_MOVEMENT_MODULE,
+    ]) {
+      expect(new Set(module.worldFactIds).size).toBe(module.worldFactIds.length);
+      expect(module.worldFactLedger.map(({ id }) => id)).toEqual(
+        [...new Set(module.worldFactIds)],
+      );
+      for (const lesson of module.lessons) {
+        for (const design of lesson.activityDesigns) {
+          if (design.worldFactId === null) continue;
+          const grounding = (
+            design as typeof design & {
+              readonly worldFactGrounding?: {
+                readonly factId: string;
+                readonly referentId: string;
+                readonly acceptedTargetId: string;
+                readonly conflictingTargetIds: readonly string[];
+              };
+            }
+          ).worldFactGrounding;
+          expect(grounding, design.id).toEqual({
+            factId: design.worldFactId,
+            referentId: design.referentId,
+            acceptedTargetId: design.acceptedAnswerTargetId,
+            conflictingTargetIds: expect.any(Array),
+          });
+          expect(
+            design.acceptedAnswerTarget.lexemeIds.some(
+              (id) =>
+                id === design.referentId ||
+                id.endsWith(`-${design.referentId}`),
+            ) || design.contextTarget.copyId.length > 0,
+            design.id,
+          ).toBe(true);
+        }
+      }
+    }
+    expect(BASE_POLITE_VERBS_MODULE.worldFacts.yukiRoutine).toBe("works");
+    const practicalFacts = BASE_TIME_MOVEMENT_MODULE.lessons[3].activityDesigns
+      .map(({ worldFactId }) => worldFactId)
+      .filter((id): id is string => id !== null);
+    expect(new Set(practicalFacts).size).toBe(practicalFacts.length);
   });
 
   it("keeps every practice target distinct from examples and dialogue", () => {

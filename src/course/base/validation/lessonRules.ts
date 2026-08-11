@@ -138,6 +138,7 @@ export type BaseValidationErrorCode =
   | "invalid-visible-target-shape"
   | "invalid-catalog-entry"
   | "invalid-particle-frame"
+  | "particle-frame-token-mismatch"
   | "particle-frame-predicate-mismatch"
   | "target-provenance-mismatch"
   | "new-lexeme-not-visible"
@@ -891,6 +892,56 @@ function validateParticlePredicateProvenance(
   }
 }
 
+const PARTICLE_FRAME_TOKEN_SENSES = new Set([
+    "topic-wa",
+    "additive-mo",
+    "object-o",
+    "goal-ni",
+    "direction-he",
+    "action-place-de",
+    "means-de",
+    "time-ni",
+    "source-kara",
+    "limit-made",
+    "existence-location-ni",
+    "existential-subject-ga",
+  ]);
+
+function validateParticleTokenMultiset(
+  target: BaseVisibleTarget,
+  referenceId: string,
+  push: (
+    code: BaseValidationErrorCode,
+    referenceId?: string,
+    detail?: string,
+  ) => void,
+): void {
+  if (!target.particleFrame) return;
+  const visible = target.tokens
+    .flatMap(({ kind, source }) =>
+      kind === "particle" &&
+      PARTICLE_FRAME_TOKEN_SENSES.has(source.referenceId)
+        ? [source.referenceId]
+        : [],
+    )
+    .sort();
+  const declared = particleProvidedEntries(
+    target.particleFrame.provided,
+  ).entries
+    .map(([, sense]) => sense)
+    .sort();
+  if (
+    visible.length !== declared.length ||
+    visible.some((sense, index) => sense !== declared[index])
+  ) {
+    push(
+      "particle-frame-token-mismatch",
+      referenceId,
+      `${visible.join(",")}:${declared.join(",")}`,
+    );
+  }
+}
+
 function validateCanonicalTokenSourceProvenance(
   tokens: unknown,
   lexemeIds: readonly string[],
@@ -1080,6 +1131,7 @@ function validateSentenceLikeReferences(
         );
       }
     }
+    validateParticleTokenMultiset(target, referenceId, push);
   }
 }
 

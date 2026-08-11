@@ -416,7 +416,17 @@ function politeCells(
   ];
 }
 
-const KAKU_POLITE_CELLS = politeCells("tense-kaku", KAKU_POLITE_GRID);
+const KAKU_POLITE_CELLS = politeCells("tense-kaku", KAKU_POLITE_GRID).map(
+  (canonicalCell, index) => ({
+    ...canonicalCell,
+    id: [
+      "verb-polite-nonpast-affirmative",
+      "verb-polite-nonpast-negative",
+      "verb-polite-past-affirmative",
+      "verb-polite-past-negative",
+    ][index],
+  }),
+);
 const STUDENT_NOUN = NOUN_GRID.affirmative.tokens.slice(0, 1);
 const TEACHER_NOUN = TEACHER_NOUN_GRID.affirmative.tokens.slice(0, 1);
 const SAKURA_NAME_LEXEME = BASE_LEXEME_BY_ID.get("name-sakura");
@@ -845,8 +855,8 @@ const TENSE_ENTRIES = [
     "dynamic-nonpast-semantics",
     ["Dynamic nonpast", "Non-passato dinamico"],
     [
-      "Dynamic nonpast expresses a habit or future event, not an ongoing present.",
-      "Il non-passato dinamico esprime abitudine o futuro, non un presente in corso.",
+      "Dynamic nonpast expresses a habit or future event, not an action in progress now.",
+      "Il non-passato dinamico esprime abitudine o futuro, non un'azione in corso adesso.",
     ],
     [KAKU_POLITE_CELLS[0]],
     [],

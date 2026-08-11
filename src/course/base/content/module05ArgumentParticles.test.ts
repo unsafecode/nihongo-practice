@@ -34,6 +34,36 @@ function targetsForLesson(
   ];
 }
 
+function governedParticleMultiset(target: {
+  readonly tokens: readonly {
+    readonly kind: string;
+    readonly source: { readonly referenceId: string };
+  }[];
+  readonly particleFrame?: {
+    readonly provided: Readonly<Record<string, string>>;
+  };
+}): Readonly<{ visible: readonly string[]; declared: readonly string[] }> {
+  const counted = new Set([
+    "topic-wa",
+    "additive-mo",
+    "object-o",
+    "goal-ni",
+    "direction-he",
+    "action-place-de",
+    "means-de",
+  ]);
+  return {
+    visible: target.tokens
+      .filter(
+        ({ kind, source }) =>
+          kind === "particle" && counted.has(source.referenceId),
+      )
+      .map(({ source }) => source.referenceId)
+      .sort(),
+    declared: Object.values(target.particleFrame?.provided ?? {}).sort(),
+  };
+}
+
 describe("Base argument-particles module", () => {
   it("publishes four system lessons in the exact canonical order", () => {
     expect(
@@ -128,6 +158,75 @@ describe("Base argument-particles module", () => {
           );
         }
       }
+    }
+  });
+
+  it("holds the predicate constant when contrasting particle roles and surfaces", () => {
+    for (const lesson of BASE_ARGUMENT_PARTICLES_MODULE.lessons) {
+      for (const design of lesson.activityDesigns.filter(
+        ({ operation }) =>
+          operation !== "recognize-meaning" &&
+          operation !== "produce-spoken",
+      )) {
+        expect(design.optionTargets, design.id).toHaveLength(2);
+        const predicates = design.optionTargets.map(
+          ({ predicateLexemeId }) => predicateLexemeId,
+        );
+        expect(predicates[0], design.id).not.toBeNull();
+        expect(predicates[1], design.id).toBe(predicates[0]);
+      }
+    }
+  });
+
+  it("matches every visible Module 5 case/topic particle to the declared role multiset", () => {
+    for (const lesson of BASE_ARGUMENT_PARTICLES_MODULE.lessons) {
+      for (const target of targetsForLesson(lesson)) {
+        const { visible, declared } = governedParticleMultiset(target);
+        if (visible.length === 0) continue;
+        expect(declared, jp(target.tokens)).toEqual(visible);
+      }
+    }
+  });
+
+  it("reports token/frame mismatches for replaced, deleted, and inserted particles", () => {
+    const lesson = BASE_ARGUMENT_PARTICLES_MODULE.lessons[0].content;
+    const original = BASE_ARGUMENT_PARTICLES_MODULE.lessons[0].examples[0];
+    const mutations = [
+      original.tokens.map((token) =>
+        token.source.referenceId === "object-o"
+          ? {
+              ...token,
+              jp: "に",
+              romaji: "ni",
+              source: { ...token.source, referenceId: "goal-ni" },
+            }
+          : token,
+      ),
+      original.tokens.filter(
+        ({ source }) => source.referenceId !== "object-o",
+      ),
+      [
+        ...original.tokens,
+        {
+          ...baseParticleSurfaceTokens("goal-ni")[0],
+          id: "adversarial-extra-goal",
+        },
+      ],
+    ];
+    for (const tokens of mutations) {
+      const mutated = { ...original, tokens };
+      const catalogs = {
+        ...BASE_ARGUMENT_PARTICLES_VALIDATION_CATALOGS,
+        examples: new Map([
+          ...BASE_ARGUMENT_PARTICLES_VALIDATION_CATALOGS.examples,
+          [original.id, mutated],
+        ]),
+      };
+      expect(
+        validateBaseLessonDepth(lesson, catalogs)
+          .map(({ code }) => code as string)
+          .filter((code) => code === "particle-frame-token-mismatch"),
+      ).toEqual(["particle-frame-token-mismatch"]);
     }
   });
 

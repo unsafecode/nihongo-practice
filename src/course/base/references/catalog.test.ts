@@ -295,6 +295,14 @@ describe("Base reference catalog", () => {
     expect(referenceById["tense-polarity"].cells.map(({ tokens }) => tokens)).toEqual(
       Object.values(expected.value),
     );
+    expect(
+      referenceById["tense-polarity"].cells.map(({ id }) => id),
+    ).toEqual([
+      "verb-polite-nonpast-affirmative",
+      "verb-polite-nonpast-negative",
+      "verb-polite-past-affirmative",
+      "verb-polite-past-negative",
+    ]);
   });
 
   it("publishes every entry cell without lossy last-wins dedupe", () => {

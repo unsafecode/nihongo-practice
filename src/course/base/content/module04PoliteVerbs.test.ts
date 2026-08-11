@@ -24,6 +24,29 @@ function jp(tokens: readonly { readonly jp: string }[]): string {
   return tokens.map(({ jp }) => jp).join("");
 }
 
+type ReviewEvidence = Readonly<{
+  readonly contrastAxis: string;
+  readonly heldConstantPredicateLexemeId: string | null;
+  readonly optionAnalysisIds: readonly string[];
+  readonly error:
+    | Readonly<{
+        readonly code: string;
+        readonly defectAxis: string;
+        readonly erroneousTargetId: string;
+        readonly repairTargetId: string;
+        readonly changedTokenSourceIds: readonly string[];
+      }>
+    | null;
+}>;
+
+function reviewEvidence(value: unknown): ReviewEvidence | undefined {
+  return (
+    value as {
+      readonly reviewEvidence?: ReviewEvidence;
+    }
+  ).reviewEvidence;
+}
+
 function expectedForm(
   lemmaId: string,
   kind: typeof BASE_POLITE_VERB_FORM_RECORDS[number]["kind"],
@@ -152,6 +175,107 @@ describe("Base polite-verbs module", () => {
     expect(byLemma("verb-taberu", "polite-stem")).toBe("たべ");
     expect(byLemma("verb-suru", "polite-stem")).toBe("し");
     expect(byLemma("verb-kuru", "polite-stem")).toBe("き");
+  });
+
+  it("assesses PV2 class analysis on the same lemma instead of unrelated meanings", () => {
+    const lesson = BASE_POLITE_VERBS_MODULE.lessons[1];
+    for (const design of lesson.activityDesigns.filter(
+      ({ operation }) => operation !== "produce-spoken",
+    )) {
+      const evidence = reviewEvidence(design);
+      expect(evidence?.contrastAxis, design.id).toBe("verb-class");
+      expect(evidence?.heldConstantPredicateLexemeId, design.id).toBeTypeOf(
+        "string",
+      );
+      expect(evidence?.optionAnalysisIds, design.id).toHaveLength(2);
+      expect(new Set(evidence?.optionAnalysisIds).size, design.id).toBe(2);
+      expect(
+        design.optionTargets.map(({ predicateLexemeId }) => predicateLexemeId),
+        design.id,
+      ).toEqual([
+        evidence?.heldConstantPredicateLexemeId,
+        evidence?.heldConstantPredicateLexemeId,
+      ]);
+    }
+    const kaeru = lesson.activityDesigns[4];
+    expect(kaeru.promptTarget.lexemeIds).toContain("verb-kaeru");
+    expect(kaeru.optionTargets.map(({ conceptIds }) => conceptIds)).toEqual(
+      expect.arrayContaining([
+        expect.arrayContaining(["godan-verb-class"]),
+        expect.arrayContaining(["ichidan-verb-class"]),
+      ]),
+    );
+  });
+
+  it("holds the predicate constant for class, stem, and polite-form contrasts", () => {
+    for (const lesson of BASE_POLITE_VERBS_MODULE.lessons.slice(1)) {
+      for (const design of lesson.activityDesigns) {
+        const evidence = reviewEvidence(design);
+        if (
+          !evidence ||
+          !["verb-class", "polite-stem", "polite-form"].includes(
+            evidence.contrastAxis,
+          ) ||
+          design.optionTargets.length !== 2
+        ) {
+          continue;
+        }
+        expect(
+          design.optionTargets.map(({ predicateLexemeId }) => predicateLexemeId),
+          design.id,
+        ).toEqual([
+          evidence.heldConstantPredicateLexemeId,
+          evidence.heldConstantPredicateLexemeId,
+        ]);
+      }
+    }
+  });
+
+  it("declares detectable structural errors and limits each diagnosis repair", () => {
+    for (const [lessonIndex, activityIndex, code] of [
+      [1, 4, "verb-class-mismatch"],
+      [2, 5, "incorrect-ichidan-stem"],
+      [3, 5, "malformed-polite-form"],
+    ] as const) {
+      const design =
+        BASE_POLITE_VERBS_MODULE.lessons[lessonIndex].activityDesigns[
+          activityIndex
+        ];
+      const error = reviewEvidence(design)?.error;
+      expect(error, design.id).toMatchObject({
+        code,
+        erroneousTargetId: expect.any(String),
+        repairTargetId: design.acceptedAnswerTargetId,
+      });
+      expect(error?.changedTokenSourceIds.length, design.id).toBeGreaterThan(0);
+      expect(new Set(error?.changedTokenSourceIds).size, design.id).toBe(
+        error?.changedTokenSourceIds.length,
+      );
+    }
+  });
+
+  it("removes pseudo-sentence form cards before argument particles", () => {
+    const visible = BASE_POLITE_VERBS_MODULE.lessons
+      .slice(0, 3)
+      .flatMap((lesson) => [
+        ...lesson.examples.map(({ tokens }) => jp(tokens)),
+        ...lesson.activityDesigns.flatMap(
+          ({ promptTarget, optionTargets, acceptedAnswerTarget }) => [
+            jp(promptTarget.tokens),
+            ...optionTargets.map(({ tokens }) => jp(tokens)),
+            jp(acceptedAnswerTarget.tokens),
+          ],
+        ),
+      ]);
+    for (const malformed of [
+      "たなかさん、いえかえる",
+      "まりさん、いえかえり",
+      "すずきさん、いえし",
+      "ともだち、うみおよぐ",
+      "ともだち、ほんべんきょうし",
+    ]) {
+      expect(visible, malformed).not.toContain(malformed);
+    }
   });
 
   it("teaches lookup lemmas, then classes, then stems, then productive masu", () => {

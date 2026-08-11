@@ -1,4 +1,7 @@
-import type { SemanticArgumentRole } from "../../foundations/types";
+import type {
+  SemanticArgumentRole,
+  SemanticParticleId,
+} from "../../foundations/types";
 import type { AssembledToken } from "../../../romaji/types";
 import { deepFreeze } from "../../foundations/deepFreeze";
 import { immutableReadonlyMap } from "../../foundations/immutableReadonlyMap";
@@ -38,6 +41,7 @@ export type BaseParticleSense =
 
 export type BaseParticleRole =
   | Extract<SemanticArgumentRole, "theme" | "goal">
+  | "topic"
   | "action-place"
   | "means"
   | "time"
@@ -72,6 +76,7 @@ export type BasePredicateSenseId =
   | "eat-place"
   | "travel-means"
   | "write-means"
+  | "write-place"
   | "action-time"
   | "go-time-goal"
   | "movement-source"
@@ -102,7 +107,7 @@ export interface BasePredicateParticleFrame {
   >;
   /** Canonical argument licensing; retained beside the legacy field for callers. */
   readonly argumentParticleByRole?: Readonly<
-    Partial<Record<BaseParticleRole, readonly BaseParticleSense[]>>
+    Partial<Record<BaseParticleRole, readonly SemanticParticleId[]>>
   >;
   readonly particleOwnerLessonId: string;
 }
@@ -428,6 +433,13 @@ const BASE_PREDICATE_PARTICLE_FRAMES: readonly BasePredicateParticleFrame[] = de
     particleOwnerLessonId: "argument-particles-3",
   },
   {
+    id: "write-place",
+    allowedPredicateLexemeIds: ["verb-kaku"],
+    requiredRoles: ["action-place"],
+    particleSensesByRole: { "action-place": ["action-place-de"] },
+    particleOwnerLessonId: "argument-particles-3",
+  },
+  {
     id: "action-time",
     allowedPredicateLexemeIds: [
       "verb-kaku",
@@ -548,16 +560,68 @@ export const BASE_PARTICLE_FRAME_BY_PREDICATE: ReadonlyMap<
     frame.id,
     deepFreeze({
       ...frame,
-      argumentParticleByRole: frame.particleSensesByRole,
+      argumentParticleByRole: Object.fromEntries(
+        Object.entries(frame.particleSensesByRole).map(([role, senses]) => [
+          role,
+          [
+            ...new Set(
+              (senses ?? []).map((sense) => {
+                const surface = BASE_PARTICLE_SURFACE_BY_SENSE[sense];
+                return surface.romaji === "e"
+                  ? "he"
+                  : (surface.romaji as SemanticParticleId);
+              }),
+            ),
+          ],
+        ]),
+      ),
     }),
   ]),
 );
+
+export function validatePredicateParticleFrameCatalog(
+  frames: readonly BasePredicateParticleFrame[] = [
+    ...BASE_PARTICLE_FRAME_BY_PREDICATE.values(),
+  ],
+): readonly string[] {
+  const errors: string[] = [];
+  const seen = new Set<string>();
+  for (const frame of frames) {
+    if (seen.has(frame.id)) errors.push(`duplicate-predicate:${frame.id}`);
+    seen.add(frame.id);
+    if (frame.allowedPredicateLexemeIds.length === 0) {
+      errors.push(`predicate-without-lexeme:${frame.id}`);
+    }
+    for (const role of frame.requiredRoles) {
+      const canonical = frame.particleSensesByRole[role];
+      const argument = frame.argumentParticleByRole?.[role];
+      const canonicalParticles = canonical?.map((sense) => {
+        const surface = BASE_PARTICLE_SURFACE_BY_SENSE[sense];
+        return surface.romaji === "e"
+          ? "he"
+          : (surface.romaji as SemanticParticleId);
+      });
+      if (
+        !canonical ||
+        canonical.length === 0 ||
+        !argument ||
+        !canonicalParticles ||
+        argument.length !== new Set(canonicalParticles).size ||
+        argument.some((particle) => !canonicalParticles.includes(particle))
+      ) {
+        errors.push(`argument-particle-role:${frame.id}:${role}`);
+      }
+    }
+  }
+  return deepFreeze(errors);
+}
 
 const BASE_PARTICLE_ROLE_BY_ID: ReadonlyMap<BaseParticleRole, BaseParticleRole> =
   immutableReadonlyMap(
     ([
       "theme",
       "goal",
+      "topic",
       "action-place",
       "means",
       "time",
@@ -632,13 +696,23 @@ export function validateParticleFrameEntries(
       continue;
     }
     const allowedDescriptor = Object.getOwnPropertyDescriptor(
-      frame.argumentParticleByRole ?? frame.particleSensesByRole,
+      frame.particleSensesByRole,
       role,
     );
     const allowed =
       allowedDescriptor && "value" in allowedDescriptor
         ? (allowedDescriptor.value as readonly BaseParticleSense[])
         : undefined;
+    if (
+      role === "topic" &&
+      (particleSense === "topic-wa" || particleSense === "additive-mo")
+    ) {
+      continue;
+    }
+    const topicalizedTheme =
+      role === "theme" &&
+      particleSense === "topic-wa" &&
+      allowed?.includes("object-o") === true;
     if (!allowed) {
       errors.push({
         code: "extra-role",
@@ -646,8 +720,9 @@ export function validateParticleFrameEntries(
         role: role as BaseParticleRole,
       });
     } else if (
-      !BASE_PARTICLE_SENSE_BY_ID.has(particleSense as BaseParticleSense) ||
-      !allowed.includes(particleSense as BaseParticleSense)
+      !topicalizedTheme &&
+      (!BASE_PARTICLE_SENSE_BY_ID.has(particleSense as BaseParticleSense) ||
+        !allowed.includes(particleSense as BaseParticleSense))
     ) {
       errors.push({
         code: "unlicensed-particle",
