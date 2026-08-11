@@ -81,10 +81,6 @@ describe("Base reference catalog", () => {
     expect(cellsFor("base-verb-dictionary-form")[0]?.sourceContentIds).toContain(
       "dictionary-lemma",
     );
-    expect(
-      cellsFor("base-verb-class-suru").find(({ id }) => id === "verb-stem-suru")
-        ?.sourceContentIds,
-    ).toContain("polite-stems");
     for (const semanticId of [
       "base-verb-class-suru",
       "base-verb-class-kuru",
@@ -93,22 +89,31 @@ describe("Base reference catalog", () => {
       const lemmaId =
         semanticId === "base-verb-class-suru" ? "verb-suru" : "verb-kuru";
       const irregularDictionary = realizeVerbDictionary(lemmaId);
-      const irregularStem = realizePoliteStem(lemmaId);
-      expect(irregularDictionary.ok && irregularStem.ok).toBe(true);
-      if (!irregularDictionary.ok || !irregularStem.ok) continue;
-      expect(irregularCells.map(({ columnId }) => columnId)).toEqual([
-        "form",
-        "stem",
-      ]);
+      expect(irregularDictionary.ok).toBe(true);
+      if (!irregularDictionary.ok) continue;
+      expect(irregularCells.map(({ columnId }) => columnId)).toEqual(["form"]);
       expect(irregularCells.map(({ tokens }) => tokens)).toEqual([
         irregularDictionary.value,
-        irregularStem.value,
       ]);
       expect(
         referenceById["verb-classes-conjugation"].entries.find(
           (entry) => entry.semanticId === semanticId,
         )?.firstTeachLessonId,
-      ).toBe("polite-verbs-3");
+      ).toBe("polite-verbs-2");
+    }
+    const suruStem = realizePoliteStem("verb-suru");
+    const kuruStem = realizePoliteStem("verb-kuru");
+    expect(suruStem.ok && kuruStem.ok).toBe(true);
+    if (suruStem.ok && kuruStem.ok) {
+      expect(cellsFor("base-verb-polite-stem-suru")[0]?.tokens).toEqual(
+        suruStem.value,
+      );
+      expect(cellsFor("base-verb-polite-stem-kuru")[0]?.tokens).toEqual(
+        kuruStem.value,
+      );
+      expect(
+        cellsFor("base-verb-polite-stem-suru")[0]?.sourceContentIds,
+      ).toContain("polite-stems");
     }
     const sequential = cellsFor("base-verb-sequential-te")[0];
     expect(sequential?.sourceContentIds).toContain("sequential-te");
@@ -191,16 +196,18 @@ describe("Base reference catalog", () => {
     }
 
     const catalog = mutableCatalog();
-    const suru = catalog
+    const tense = catalog
       .find(({ id }) => id === "verb-classes-conjugation")!
-      .entries.find(({ semanticId }) => semanticId === "base-verb-class-suru")!;
-    const cells = suru.canonicalFormCells as unknown as { columnId: string }[];
+      .entries.find(
+        ({ semanticId }) => semanticId === "base-verb-polite-tense-forms",
+      )!;
+    const cells = tense.canonicalFormCells as unknown as { columnId: string }[];
     cells[1].columnId = cells[0].columnId;
     expect(validateBaseReferenceCatalog(catalog)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           code: "invalid-cell-reference",
-          semanticId: "base-verb-class-suru",
+          semanticId: "base-verb-polite-tense-forms",
         }),
       ]),
     );
@@ -820,6 +827,8 @@ describe("Base reference catalog", () => {
         "base-verb-class-kuru",
         "base-verb-exceptions",
         "base-verb-polite-stems",
+        "base-verb-polite-stem-suru",
+        "base-verb-polite-stem-kuru",
         "base-verb-polite-forms",
         "base-verb-te-forms",
         "base-verb-te-imasu",

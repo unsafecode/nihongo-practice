@@ -40,11 +40,17 @@ export type BaseParticleRole =
   | Extract<SemanticArgumentRole, "theme" | "goal">
   | "action-place"
   | "means"
+  | "time"
+  | "source"
+  | "limit"
   | "existence-location"
   | "existential-subject";
 
 export type BasePredicateSenseId =
   | "eat"
+  | "drink"
+  | "see"
+  | "do"
   | "read"
   | "write"
   | "buy"
@@ -54,6 +60,26 @@ export type BasePredicateSenseId =
   | "study"
   | "work"
   | "travel"
+  | "go-goal"
+  | "go-direction"
+  | "come-goal"
+  | "come-direction"
+  | "return-goal"
+  | "return-direction"
+  | "study-place"
+  | "work-place"
+  | "play-place"
+  | "eat-place"
+  | "travel-means"
+  | "write-means"
+  | "action-time"
+  | "go-time-goal"
+  | "movement-source"
+  | "movement-limit"
+  | "movement-bounds"
+  | "time-source"
+  | "time-limit"
+  | "time-bounds"
   | "aru"
   | "iru";
 
@@ -72,6 +98,10 @@ export interface BasePredicateParticleFrame {
   readonly allowedPredicateLexemeIds: readonly string[];
   readonly requiredRoles: readonly BaseParticleRole[];
   readonly particleSensesByRole: Readonly<
+    Partial<Record<BaseParticleRole, readonly BaseParticleSense[]>>
+  >;
+  /** Canonical argument licensing; retained beside the legacy field for callers. */
+  readonly argumentParticleByRole?: Readonly<
     Partial<Record<BaseParticleRole, readonly BaseParticleSense[]>>
   >;
   readonly particleOwnerLessonId: string;
@@ -230,6 +260,27 @@ const BASE_PREDICATE_PARTICLE_FRAMES: readonly BasePredicateParticleFrame[] = de
     particleOwnerLessonId: "argument-particles-1",
   },
   {
+    id: "drink",
+    allowedPredicateLexemeIds: ["verb-nomu"],
+    requiredRoles: ["theme"],
+    particleSensesByRole: { theme: ["object-o"] },
+    particleOwnerLessonId: "argument-particles-1",
+  },
+  {
+    id: "see",
+    allowedPredicateLexemeIds: ["verb-miru"],
+    requiredRoles: ["theme"],
+    particleSensesByRole: { theme: ["object-o"] },
+    particleOwnerLessonId: "argument-particles-1",
+  },
+  {
+    id: "do",
+    allowedPredicateLexemeIds: ["verb-suru"],
+    requiredRoles: ["theme"],
+    particleSensesByRole: { theme: ["object-o"] },
+    particleOwnerLessonId: "argument-particles-1",
+  },
+  {
     id: "read",
     allowedPredicateLexemeIds: ["verb-yomu"],
     requiredRoles: ["theme"],
@@ -293,6 +344,181 @@ const BASE_PREDICATE_PARTICLE_FRAMES: readonly BasePredicateParticleFrame[] = de
     particleOwnerLessonId: "argument-particles-3",
   },
   {
+    id: "go-goal",
+    allowedPredicateLexemeIds: ["verb-iku"],
+    requiredRoles: ["goal"],
+    particleSensesByRole: { goal: ["goal-ni"] },
+    particleOwnerLessonId: "argument-particles-2",
+  },
+  {
+    id: "go-direction",
+    allowedPredicateLexemeIds: ["verb-iku"],
+    requiredRoles: ["goal"],
+    particleSensesByRole: { goal: ["direction-he"] },
+    particleOwnerLessonId: "argument-particles-2",
+  },
+  {
+    id: "come-goal",
+    allowedPredicateLexemeIds: ["verb-kuru"],
+    requiredRoles: ["goal"],
+    particleSensesByRole: { goal: ["goal-ni"] },
+    particleOwnerLessonId: "argument-particles-2",
+  },
+  {
+    id: "come-direction",
+    allowedPredicateLexemeIds: ["verb-kuru"],
+    requiredRoles: ["goal"],
+    particleSensesByRole: { goal: ["direction-he"] },
+    particleOwnerLessonId: "argument-particles-2",
+  },
+  {
+    id: "return-goal",
+    allowedPredicateLexemeIds: ["verb-kaeru"],
+    requiredRoles: ["goal"],
+    particleSensesByRole: { goal: ["goal-ni"] },
+    particleOwnerLessonId: "argument-particles-2",
+  },
+  {
+    id: "return-direction",
+    allowedPredicateLexemeIds: ["verb-kaeru"],
+    requiredRoles: ["goal"],
+    particleSensesByRole: { goal: ["direction-he"] },
+    particleOwnerLessonId: "argument-particles-2",
+  },
+  {
+    id: "study-place",
+    allowedPredicateLexemeIds: ["verb-benkyou-suru"],
+    requiredRoles: ["action-place"],
+    particleSensesByRole: { "action-place": ["action-place-de"] },
+    particleOwnerLessonId: "argument-particles-3",
+  },
+  {
+    id: "work-place",
+    allowedPredicateLexemeIds: ["verb-hataraku"],
+    requiredRoles: ["action-place"],
+    particleSensesByRole: { "action-place": ["action-place-de"] },
+    particleOwnerLessonId: "argument-particles-3",
+  },
+  {
+    id: "play-place",
+    allowedPredicateLexemeIds: ["verb-asobu"],
+    requiredRoles: ["action-place"],
+    particleSensesByRole: { "action-place": ["action-place-de"] },
+    particleOwnerLessonId: "argument-particles-3",
+  },
+  {
+    id: "eat-place",
+    allowedPredicateLexemeIds: ["verb-taberu"],
+    requiredRoles: ["action-place"],
+    particleSensesByRole: { "action-place": ["action-place-de"] },
+    particleOwnerLessonId: "argument-particles-3",
+  },
+  {
+    id: "travel-means",
+    allowedPredicateLexemeIds: ["verb-iku", "verb-kuru", "verb-kaeru"],
+    requiredRoles: ["means"],
+    particleSensesByRole: { means: ["means-de"] },
+    particleOwnerLessonId: "argument-particles-3",
+  },
+  {
+    id: "write-means",
+    allowedPredicateLexemeIds: ["verb-kaku"],
+    requiredRoles: ["means"],
+    particleSensesByRole: { means: ["means-de"] },
+    particleOwnerLessonId: "argument-particles-3",
+  },
+  {
+    id: "action-time",
+    allowedPredicateLexemeIds: [
+      "verb-kaku",
+      "verb-yomu",
+      "verb-nomu",
+      "verb-kau",
+      "verb-hataraku",
+      "verb-asobu",
+      "verb-taberu",
+      "verb-miru",
+      "verb-suru",
+      "verb-benkyou-suru",
+      "verb-yasumu",
+      "verb-okiru",
+      "verb-neru",
+      "verb-aruku",
+      "verb-kiku",
+      "verb-tsukuru",
+      "verb-au",
+      "verb-utau",
+      "verb-hanasu",
+      "verb-matsu",
+      "verb-iku",
+      "verb-hashiru",
+      "verb-ryokou-suru",
+      "verb-ryouri-suru",
+      "verb-dekakeru",
+    ],
+    requiredRoles: ["time"],
+    particleSensesByRole: { time: ["time-ni"] },
+    particleOwnerLessonId: "time-movement-2",
+  },
+  {
+    id: "go-time-goal",
+    allowedPredicateLexemeIds: ["verb-iku"],
+    requiredRoles: ["time", "goal"],
+    particleSensesByRole: {
+      time: ["time-ni"],
+      goal: ["goal-ni"],
+    },
+    particleOwnerLessonId: "time-movement-2",
+  },
+  {
+    id: "movement-source",
+    allowedPredicateLexemeIds: ["verb-iku", "verb-kuru", "verb-kaeru", "verb-ryokou-suru"],
+    requiredRoles: ["source"],
+    particleSensesByRole: { source: ["source-kara"] },
+    particleOwnerLessonId: "time-movement-2",
+  },
+  {
+    id: "movement-limit",
+    allowedPredicateLexemeIds: ["verb-iku", "verb-kuru", "verb-kaeru", "verb-ryokou-suru"],
+    requiredRoles: ["limit"],
+    particleSensesByRole: { limit: ["limit-made"] },
+    particleOwnerLessonId: "time-movement-2",
+  },
+  {
+    id: "movement-bounds",
+    allowedPredicateLexemeIds: ["verb-iku", "verb-kuru", "verb-kaeru", "verb-ryokou-suru"],
+    requiredRoles: ["source", "limit"],
+    particleSensesByRole: {
+      source: ["source-kara"],
+      limit: ["limit-made"],
+    },
+    particleOwnerLessonId: "time-movement-2",
+  },
+  {
+    id: "time-source",
+    allowedPredicateLexemeIds: ["verb-hataraku", "verb-benkyou-suru", "verb-yasumu"],
+    requiredRoles: ["source"],
+    particleSensesByRole: { source: ["source-kara"] },
+    particleOwnerLessonId: "time-movement-2",
+  },
+  {
+    id: "time-limit",
+    allowedPredicateLexemeIds: ["verb-hataraku", "verb-benkyou-suru", "verb-yasumu"],
+    requiredRoles: ["limit"],
+    particleSensesByRole: { limit: ["limit-made"] },
+    particleOwnerLessonId: "time-movement-2",
+  },
+  {
+    id: "time-bounds",
+    allowedPredicateLexemeIds: ["verb-hataraku", "verb-benkyou-suru", "verb-yasumu"],
+    requiredRoles: ["source", "limit"],
+    particleSensesByRole: {
+      source: ["source-kara"],
+      limit: ["limit-made"],
+    },
+    particleOwnerLessonId: "time-movement-2",
+  },
+  {
     id: "aru",
     allowedPredicateLexemeIds: ["verb-aru"],
     requiredRoles: ["existence-location", "existential-subject"],
@@ -318,7 +544,13 @@ export const BASE_PARTICLE_FRAME_BY_PREDICATE: ReadonlyMap<
   BasePredicateSenseId,
   BasePredicateParticleFrame
 > = immutableReadonlyMap(
-  BASE_PREDICATE_PARTICLE_FRAMES.map((frame) => [frame.id, frame]),
+  BASE_PREDICATE_PARTICLE_FRAMES.map((frame) => [
+    frame.id,
+    deepFreeze({
+      ...frame,
+      argumentParticleByRole: frame.particleSensesByRole,
+    }),
+  ]),
 );
 
 const BASE_PARTICLE_ROLE_BY_ID: ReadonlyMap<BaseParticleRole, BaseParticleRole> =
@@ -328,6 +560,9 @@ const BASE_PARTICLE_ROLE_BY_ID: ReadonlyMap<BaseParticleRole, BaseParticleRole> 
       "goal",
       "action-place",
       "means",
+      "time",
+      "source",
+      "limit",
       "existence-location",
       "existential-subject",
     ] as const).map((role) => [role, role]),
@@ -397,7 +632,7 @@ export function validateParticleFrameEntries(
       continue;
     }
     const allowedDescriptor = Object.getOwnPropertyDescriptor(
-      frame.particleSensesByRole,
+      frame.argumentParticleByRole ?? frame.particleSensesByRole,
       role,
     );
     const allowed =

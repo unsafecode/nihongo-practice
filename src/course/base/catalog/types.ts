@@ -131,6 +131,7 @@ export type BasePredicateAspect =
   | "adjectival";
 
 export type BaseInterpretationTag =
+  | "metalinguistic"
   | "habitual"
   | "future"
   | "present-state"

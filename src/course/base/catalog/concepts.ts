@@ -59,15 +59,30 @@ export const BASE_CONCEPTS: readonly BaseConcept[] = deepFreeze([
   concept("verb-predicate-recognition", "concept", "polite-verbs-1", ["sentence-order"]),
   concept("godan-verb-class", "concept", "polite-verbs-2", ["dictionary-lemma"]),
   concept("ichidan-verb-class", "concept", "polite-verbs-2", ["dictionary-lemma"]),
-  concept("suru-verb-class", "concept", "polite-verbs-3", ["dictionary-lemma"]),
-  concept("kuru-verb-class", "concept", "polite-verbs-3", ["dictionary-lemma"]),
-  concept("polite-stems", "form", "polite-verbs-3", ["dictionary-lemma"]),
+  concept("suru-verb-class", "concept", "polite-verbs-2", ["dictionary-lemma"]),
+  concept("kuru-verb-class", "concept", "polite-verbs-2", ["dictionary-lemma"]),
+  concept("verb-class-exceptions", "concept", "polite-verbs-2", [
+    "dictionary-lemma",
+  ]),
+  concept("polite-stems", "form", "polite-verbs-3", [
+    "godan-verb-class",
+    "ichidan-verb-class",
+    "suru-verb-class",
+    "kuru-verb-class",
+  ]),
   concept("masu-nonpast", "form", "polite-verbs-4", ["polite-stems"]),
   concept("licensed-object-o", "concept", "argument-particles-1"),
+  concept("topicalized-object-wa", "concept", "argument-particles-1", ["topic-wa"]),
   concept("goal-ni", "concept", "argument-particles-2"),
   concept("direction-he", "concept", "argument-particles-2"),
   concept("action-place-de", "concept", "argument-particles-3"),
   concept("means-de", "concept", "argument-particles-3"),
+  concept(
+    "predicate-led-particle-selection",
+    "concept",
+    "argument-particles-4",
+    ["licensed-object-o", "goal-ni", "action-place-de", "means-de"],
+  ),
   concept(
     "dynamic-nonpast-semantics",
     "concept",
@@ -75,6 +90,9 @@ export const BASE_CONCEPTS: readonly BaseConcept[] = deepFreeze([
     ["masu-nonpast"],
   ),
   concept("time-ni", "concept", "time-movement-2"),
+  concept("relative-time-omission", "concept", "time-movement-2", [
+    "dynamic-nonpast-semantics",
+  ]),
   concept("source-kara", "concept", "time-movement-2"),
   concept("limit-made", "concept", "time-movement-2"),
   concept(
@@ -162,6 +180,18 @@ export const BASE_CONCEPTS: readonly BaseConcept[] = deepFreeze([
     "reference-entry",
     "argument-particles-4",
     ["licensed-object-o", "goal-ni", "action-place-de"],
+  ),
+  concept(
+    "verb-classes-conjugation",
+    "reference-entry",
+    "polite-verbs-1",
+    [],
+  ),
+  concept(
+    "tense-polarity",
+    "reference-entry",
+    "time-movement-1",
+    [],
   ),
   concept(
     "reference-adjective-grid",

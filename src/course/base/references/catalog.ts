@@ -715,7 +715,6 @@ const VERB_ENTRIES = [
     ["The する class has an explicit stem.", "La classe する ha un tema esplicito."],
     [
       cell("verb-class-suru", "form", "Dictionary", "Dizionario", SURU_DICTIONARY),
-      cell("verb-stem-suru", "stem", "Polite stem", "Tema cortese", SURU_POLITE_STEM),
     ],
     ["base-verb-dictionary-form"],
   ),
@@ -726,7 +725,6 @@ const VERB_ENTRIES = [
     ["The くる class has an explicit stem.", "La classe くる ha un tema esplicito."],
     [
       cell("verb-class-kuru", "form", "Dictionary", "Dizionario", KURU_DICTIONARY),
-      cell("verb-stem-kuru", "stem", "Polite stem", "Tema cortese", KURU_POLITE_STEM),
     ],
     ["base-verb-dictionary-form"],
     ["base-verb-class-suru"],
@@ -741,6 +739,28 @@ const VERB_ENTRIES = [
     ],
     [cell("verb-polite-stem-kaku", "form", "Polite stem", "Tema cortese", KAKU_POLITE_STEM)],
     ["base-verb-class-godan"],
+  ),
+  entry(
+    "base-verb-polite-stem-suru",
+    "polite-stems",
+    ["する polite stem", "Tema cortese di する"],
+    [
+      "The explicit する polite stem is し.",
+      "Il tema cortese esplicito di する è し.",
+    ],
+    [cell("verb-stem-suru", "stem", "Polite stem", "Tema cortese", SURU_POLITE_STEM)],
+    ["base-verb-class-suru"],
+  ),
+  entry(
+    "base-verb-polite-stem-kuru",
+    "polite-stems",
+    ["くる polite stem", "Tema cortese di くる"],
+    [
+      "The explicit くる polite stem is き.",
+      "Il tema cortese esplicito di くる è き.",
+    ],
+    [cell("verb-stem-kuru", "stem", "Polite stem", "Tema cortese", KURU_POLITE_STEM)],
+    ["base-verb-class-kuru"],
   ),
   entry(
     "base-verb-polite-forms",

@@ -187,6 +187,9 @@ export type SemanticArgumentRole =
   | "topic"
   | "location"
   | "time"
+  | "means"
+  | "source"
+  | "limit"
   | "companion"
   | "goal";
 

@@ -38,6 +38,9 @@ const PARTICLE_FRAME_ROLES = new Set([
   "goal",
   "action-place",
   "means",
+  "time",
+  "source",
+  "limit",
   "existence-location",
   "existential-subject",
 ]);
@@ -70,6 +73,7 @@ const PREDICATE_ASPECTS = new Set([
   "adjectival",
 ]);
 const INTERPRETATION_TAGS = new Set([
+  "metalinguistic",
   "habitual",
   "future",
   "present-state",

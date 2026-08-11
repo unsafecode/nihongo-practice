@@ -213,12 +213,12 @@ describe("Base particle frame licensing", () => {
     expect(BASE_LEXEME_BY_ID.get("verb-yomu")).toMatchObject({
       category: "verb",
       verbClass: "godan",
-      firstTeachLessonId: "polite-verbs-2",
+      firstTeachLessonId: "polite-verbs-1",
     });
     expect(BASE_LEXEME_BY_ID.get("verb-hataraku")).toMatchObject({
       category: "verb",
       verbClass: "godan",
-      firstTeachLessonId: "polite-verbs-2",
+      firstTeachLessonId: "polite-verbs-1",
     });
   });
 });

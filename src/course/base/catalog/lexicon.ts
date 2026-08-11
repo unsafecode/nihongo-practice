@@ -49,33 +49,74 @@ function verb(
   };
 }
 
+function noun(
+  id: string,
+  kana: string,
+  romaji: string,
+  firstTeachLessonId: string,
+): BaseLexeme {
+  return {
+    id,
+    kana,
+    romaji,
+    meaningCopyId: `${id}-meaning`,
+    firstTeachLessonId,
+    countable: true,
+    category: "noun",
+  };
+}
+
 export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
   verb("verb-kaku", "かく", "kaku", "godan", "dynamic", "polite-verbs-1", DYNAMIC_TE_CONSTRUCTIONS),
-  verb("verb-oyogu", "およぐ", "oyogu", "godan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
-  verb("verb-hanasu", "はなす", "hanasu", "godan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
-  verb("verb-matsu", "まつ", "matsu", "godan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
-  verb("verb-shinu", "しぬ", "shinu", "godan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
-  verb("verb-asobu", "あそぶ", "asobu", "godan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
-  verb("verb-nomu", "のむ", "nomu", "godan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
-  verb("verb-kau", "かう", "kau", "godan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
-  verb("verb-yomu", "よむ", "yomu", "godan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-yomu", "よむ", "yomu", "godan", "dynamic", "polite-verbs-1", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-nomu", "のむ", "nomu", "godan", "dynamic", "polite-verbs-1", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-kau", "かう", "kau", "godan", "dynamic", "polite-verbs-1", DYNAMIC_TE_CONSTRUCTIONS),
   verb(
     "verb-hataraku",
     "はたらく",
     "hataraku",
     "godan",
     "dynamic",
+    "polite-verbs-1",
+    DYNAMIC_TE_CONSTRUCTIONS,
+  ),
+  verb("verb-asobu", "あそぶ", "asobu", "godan", "dynamic", "polite-verbs-1", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-oyogu", "およぐ", "oyogu", "godan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-taberu", "たべる", "taberu", "ichidan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-miru", "みる", "miru", "ichidan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
+  verb(
+    "verb-kaeru",
+    "かえる",
+    "kaeru",
+    "godan",
+    "dynamic",
     "polite-verbs-2",
     DYNAMIC_TE_CONSTRUCTIONS,
   ),
-  verb("verb-taberu", "たべる", "taberu", "ichidan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
-  verb("verb-miru", "みる", "miru", "ichidan", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
-  verb("verb-suru", "する", "suru", "suru", "dynamic", "polite-verbs-3", DYNAMIC_TE_CONSTRUCTIONS),
-  verb("verb-kuru", "くる", "kuru", "kuru", "dynamic", "polite-verbs-3", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-suru", "する", "suru", "suru", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-kuru", "くる", "kuru", "kuru", "dynamic", "polite-verbs-2", DYNAMIC_TE_CONSTRUCTIONS),
   verb(
     "verb-benkyou-suru",
     "べんきょうする",
     "benkyou suru",
+    "suru",
+    "dynamic",
+    "polite-verbs-3",
+    DYNAMIC_TE_CONSTRUCTIONS,
+  ),
+  verb(
+    "verb-denwa-suru",
+    "でんわする",
+    "denwa suru",
+    "suru",
+    "dynamic",
+    "polite-verbs-3",
+    DYNAMIC_TE_CONSTRUCTIONS,
+  ),
+  verb(
+    "verb-sanpo-suru",
+    "さんぽする",
+    "sanpo suru",
     "suru",
     "dynamic",
     "polite-verbs-3",
@@ -87,7 +128,7 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
     "motte kuru",
     "kuru",
     "dynamic",
-    "polite-verbs-3",
+    "requests-connection-1",
     DYNAMIC_TE_CONSTRUCTIONS,
   ),
   {
@@ -97,7 +138,7 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
       "iku",
       "godan",
       "dynamic",
-      "time-movement-1",
+      "polite-verbs-4",
       DYNAMIC_TE_CONSTRUCTIONS,
     ),
     teFormException: {
@@ -107,11 +148,41 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
       endingRomaji: "tte",
     },
   },
+  verb("verb-yasumu", "やすむ", "yasumu", "godan", "dynamic", "polite-verbs-4", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-okiru", "おきる", "okiru", "ichidan", "dynamic", "polite-verbs-4", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-neru", "ねる", "neru", "ichidan", "dynamic", "polite-verbs-4", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-aruku", "あるく", "aruku", "godan", "dynamic", "polite-verbs-4", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-kiku", "きく", "kiku", "godan", "dynamic", "polite-verbs-4", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-tsukuru", "つくる", "tsukuru", "godan", "dynamic", "polite-verbs-4", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-au", "あう", "au", "godan", "dynamic", "polite-verbs-4", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-utau", "うたう", "utau", "godan", "dynamic", "polite-verbs-4", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-hanasu", "はなす", "hanasu", "godan", "dynamic", "polite-verbs-4", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-matsu", "まつ", "matsu", "godan", "dynamic", "polite-verbs-3", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-shinu", "しぬ", "shinu", "godan", "dynamic", "requests-connection-1", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-hashiru", "はしる", "hashiru", "godan", "dynamic", "time-movement-1", DYNAMIC_TE_CONSTRUCTIONS),
   verb(
-    "verb-kaeru",
-    "かえる",
-    "kaeru",
-    "godan",
+    "verb-ryokou-suru",
+    "りょこうする",
+    "ryokou suru",
+    "suru",
+    "dynamic",
+    "time-movement-1",
+    DYNAMIC_TE_CONSTRUCTIONS,
+  ),
+  verb(
+    "verb-ryouri-suru",
+    "りょうりする",
+    "ryouri suru",
+    "suru",
+    "dynamic",
+    "time-movement-1",
+    DYNAMIC_TE_CONSTRUCTIONS,
+  ),
+  verb(
+    "verb-dekakeru",
+    "でかける",
+    "dekakeru",
+    "ichidan",
     "dynamic",
     "time-movement-1",
     DYNAMIC_TE_CONSTRUCTIONS,
@@ -577,6 +648,42 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
     countable: true,
     category: "noun",
   },
+  noun("noun-gohan", "ごはん", "gohan", "argument-particles-1"),
+  noun("noun-mizu", "みず", "mizu", "argument-particles-1"),
+  noun("noun-tegami", "てがみ", "tegami", "argument-particles-1"),
+  noun("noun-kudamono", "くだもの", "kudamono", "argument-particles-1"),
+  noun("noun-zasshi", "ざっし", "zasshi", "argument-particles-1"),
+  noun("noun-eki", "えき", "eki", "argument-particles-2"),
+  noun("noun-daigaku", "だいがく", "daigaku", "argument-particles-2"),
+  noun("noun-byouin", "びょういん", "byouin", "argument-particles-2"),
+  noun("noun-mise", "みせ", "mise", "argument-particles-2"),
+  noun("noun-toshokan", "としょかん", "toshokan", "argument-particles-3"),
+  noun("noun-kouen", "こうえん", "kouen", "argument-particles-3"),
+  noun("noun-densha", "でんしゃ", "densha", "argument-particles-3"),
+  noun("noun-jitensha", "じてんしゃ", "jitensha", "argument-particles-3"),
+  noun("noun-enpitsu", "えんぴつ", "enpitsu", "argument-particles-3"),
+  noun("noun-shokudou", "しょくどう", "shokudou", "argument-particles-4"),
+  noun("noun-jimusho", "じむしょ", "jimusho", "argument-particles-4"),
+  noun("noun-kasa", "かさ", "kasa", "argument-particles-4"),
+  noun("noun-nikki", "にっき", "nikki", "argument-particles-4"),
+  noun("noun-kyou", "きょう", "kyou", "time-movement-2"),
+  noun("noun-ashita", "あした", "ashita", "time-movement-2"),
+  noun("noun-getsuyoubi", "げつようび", "getsuyoubi", "time-movement-2"),
+  noun("noun-shichiji", "しちじ", "shichiji", "time-movement-2"),
+  noun("noun-kuji", "くじ", "kuji", "time-movement-2"),
+  noun("noun-goji", "ごじ", "goji", "time-movement-2"),
+  noun("noun-kinou", "きのう", "kinou", "time-movement-3"),
+  noun("noun-senshuu", "せんしゅう", "senshuu", "time-movement-3"),
+  noun("noun-konshuu", "こんしゅう", "konshuu", "time-movement-3"),
+  noun("noun-raishuu", "らいしゅう", "raishuu", "time-movement-3"),
+  noun("noun-kaigi", "かいぎ", "kaigi", "time-movement-4"),
+  noun("noun-shigoto", "しごと", "shigoto", "time-movement-4"),
+  noun("noun-yotei", "よてい", "yotei", "time-movement-4"),
+  noun("noun-hirugohan", "ひるごはん", "hirugohan", "time-movement-4"),
+  noun("noun-ban", "ばん", "ban", "time-movement-4"),
+  noun("noun-kesa", "けさ", "kesa", "time-movement-4"),
+  noun("noun-konban", "こんばん", "konban", "time-movement-4"),
+  noun("noun-nichiyoubi", "にちようび", "nichiyoubi", "time-movement-4"),
   {
     id: "anchor-asa",
     kana: "あさ",
@@ -725,6 +832,113 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
 
 export const BASE_LEXEME_BY_ID: ReadonlyMap<string, BaseLexeme> =
   immutableReadonlyMap(BASE_LEXICON.map((lexeme) => [lexeme.id, lexeme]));
+
+export interface BaseLexemeRecurrencePlan {
+  readonly lexemeId: string;
+  readonly plannedLessonIds: readonly string[];
+}
+
+function recurrence(
+  lexemeIds: readonly string[],
+  plannedLessonIds: readonly string[],
+): readonly BaseLexemeRecurrencePlan[] {
+  return lexemeIds.map((lexemeId) => ({ lexemeId, plannedLessonIds }));
+}
+
+export const BASE_TASK11_LEXEME_RECURRENCE_PLANS: readonly BaseLexemeRecurrencePlan[] =
+  deepFreeze([
+    ...recurrence(
+      ["verb-kaku", "verb-yomu", "verb-nomu", "verb-kau"],
+      ["argument-particles-1", "time-movement-3"],
+    ),
+    ...recurrence(
+      ["verb-hataraku", "verb-asobu"],
+      ["argument-particles-3", "time-movement-1"],
+    ),
+    ...recurrence(["verb-oyogu"], ["requests-connection-1"]),
+    ...recurrence(["verb-taberu", "verb-miru"], ["argument-particles-1"]),
+    ...recurrence(["verb-kaeru", "verb-kuru"], ["argument-particles-2"]),
+    ...recurrence(["verb-suru"], ["time-movement-4"]),
+    ...recurrence(["verb-benkyou-suru"], ["argument-particles-3"]),
+    ...recurrence(
+      ["verb-denwa-suru", "verb-sanpo-suru", "verb-matsu"],
+      ["requests-connection-1"],
+    ),
+    ...recurrence(
+      ["verb-yasumu", "verb-okiru", "verb-neru", "verb-aruku"],
+      ["time-movement-1", "time-movement-2"],
+    ),
+    ...recurrence(
+      ["verb-kiku", "verb-tsukuru", "verb-au", "verb-utau", "verb-hanasu"],
+      ["time-movement-4", "requests-connection-2"],
+    ),
+    ...recurrence(["verb-iku"], ["argument-particles-2"]),
+    ...recurrence(
+      ["noun-gohan", "noun-mizu", "noun-kudamono"],
+      ["copula-adjectives-3"],
+    ),
+    ...recurrence(
+      ["noun-tegami", "noun-zasshi"],
+      ["requests-connection-2"],
+    ),
+    ...recurrence(
+      ["noun-eki", "noun-daigaku", "noun-byouin", "noun-mise"],
+      ["existence-location-4"],
+    ),
+    ...recurrence(
+      ["noun-toshokan", "noun-kouen"],
+      ["existence-location-4"],
+    ),
+    ...recurrence(
+      ["noun-densha", "noun-jitensha", "noun-enpitsu"],
+      ["requests-connection-2"],
+    ),
+    ...recurrence(
+      ["noun-shokudou", "noun-jimusho"],
+      ["existence-location-4"],
+    ),
+    ...recurrence(["noun-kasa", "noun-nikki"], ["requests-connection-2"]),
+    ...recurrence(
+      ["verb-hashiru", "verb-ryokou-suru", "verb-ryouri-suru", "verb-dekakeru"],
+      ["requests-connection-1", "base-synthesis-3"],
+    ),
+    ...recurrence(
+      [
+        "noun-kyou",
+        "noun-ashita",
+        "noun-getsuyoubi",
+        "noun-shichiji",
+        "noun-kuji",
+        "noun-goji",
+      ],
+      ["time-movement-3", "time-movement-4"],
+    ),
+    ...recurrence(
+      ["noun-kinou", "noun-senshuu", "noun-konshuu", "noun-raishuu"],
+      ["time-movement-4", "base-synthesis-3"],
+    ),
+    ...recurrence(
+      ["noun-kaigi", "noun-shigoto", "noun-yotei"],
+      ["base-synthesis-3"],
+    ),
+    ...recurrence(
+      [
+        "noun-hirugohan",
+        "noun-ban",
+        "noun-kesa",
+        "noun-konban",
+        "noun-nichiyoubi",
+      ],
+      ["requests-connection-3", "base-synthesis-3"],
+    ),
+  ]);
+
+export const BASE_TASK11_LEXEME_RECURRENCE_BY_ID: ReadonlyMap<
+  string,
+  BaseLexemeRecurrencePlan
+> = immutableReadonlyMap(
+  BASE_TASK11_LEXEME_RECURRENCE_PLANS.map((plan) => [plan.lexemeId, plan]),
+);
 
 export function baseLexemeById(id: string): BaseLexeme | undefined {
   return BASE_LEXEME_BY_ID.get(id);

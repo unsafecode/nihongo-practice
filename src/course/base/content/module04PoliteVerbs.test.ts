@@ -1,0 +1,310 @@
+import { describe, expect, it } from "vitest";
+import { BASE_FIRST_TEACH_OWNERS, firstTeachLessonPosition } from "../catalog/firstTeach";
+import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
+import { baseNavigationCopyEn } from "../copy/en";
+import { baseNavigationCopyIt } from "../copy/it";
+import {
+  realizePoliteNonpast,
+  realizePoliteGrid,
+  realizePoliteStem,
+  realizeVerbDictionary,
+} from "../forms/verbForms";
+import { visibleSurfaceFingerprint } from "../validation/fingerprints";
+import { validateBaseLessonDepth } from "../validation/lessonRules";
+import { validateFirstTeachOrder, visibleJapaneseFor } from "../validation/sequenceRules";
+import {
+  BASE_POLITE_VERB_FORM_RECORDS,
+  BASE_POLITE_VERBS_LESSONS,
+  BASE_POLITE_VERBS_MODULE,
+  BASE_POLITE_VERBS_VALIDATION_CATALOGS,
+  validateBasePoliteVerbsModule,
+} from "./module04PoliteVerbs";
+
+function jp(tokens: readonly { readonly jp: string }[]): string {
+  return tokens.map(({ jp }) => jp).join("");
+}
+
+function expectedForm(
+  lemmaId: string,
+  kind: typeof BASE_POLITE_VERB_FORM_RECORDS[number]["kind"],
+): readonly { readonly jp: string }[] {
+  if (kind === "dictionary") {
+    const result = realizeVerbDictionary(lemmaId);
+    expect(result.ok, `${lemmaId}:${kind}`).toBe(true);
+    if (!result.ok) throw new Error(`${lemmaId}:${kind}`);
+    return result.value;
+  }
+  if (kind === "polite-stem") {
+    const result = realizePoliteStem(lemmaId);
+    expect(result.ok, `${lemmaId}:${kind}`).toBe(true);
+    if (!result.ok) throw new Error(`${lemmaId}:${kind}`);
+    return result.value;
+  }
+  if (kind === "polite-nonpast") {
+    const result = realizePoliteNonpast(lemmaId);
+    expect(result.ok, `${lemmaId}:${kind}`).toBe(true);
+    if (!result.ok) throw new Error(`${lemmaId}:${kind}`);
+    return result.value;
+  }
+  const result = realizePoliteGrid(lemmaId);
+  expect(result.ok, `${lemmaId}:${kind}`).toBe(true);
+  if (!result.ok) throw new Error(`${lemmaId}:${kind}`);
+  return kind === "nonpast-negative"
+    ? result.value.negative
+    : kind === "past-affirmative"
+      ? result.value.pastAffirmative
+      : result.value.pastNegative;
+}
+
+function requiredCopyIds(): readonly string[] {
+  return BASE_POLITE_VERBS_MODULE.lessons.flatMap((lesson) => [
+    lesson.titleCopyId,
+    lesson.objectiveCopyId,
+    lesson.content.recapCopyId,
+    ...Object.values(lesson.explanation),
+    ...lesson.examples.flatMap((example) => [
+      example.teachingPurposeCopyId,
+      "copyId" in example.translationCopy ? example.translationCopy.copyId : "",
+    ]),
+    ...lesson.content.activities.flatMap((activity) => [
+      activity.instructionCopyId,
+      activity.acceptedFeedbackCopyId,
+      activity.retryFeedbackCopyId,
+    ]),
+    ...lesson.activityDesigns.map(({ promptContextCopyId }) => promptContextCopyId),
+    ...(lesson.dialogue
+      ? [
+          lesson.dialogue.practicalOutcomeCopyId,
+          ...lesson.dialogue.turnCopy.flatMap(({ purposeCopyId, translationCopyId }) => [
+            purposeCopyId,
+            translationCopyId,
+          ]),
+        ]
+      : []),
+  ]);
+}
+
+describe("Base polite-verbs module", () => {
+  it("publishes the exact lesson order, contracts, and prerequisites", () => {
+    expect(
+      BASE_POLITE_VERBS_LESSONS.map(
+        ({ lessonId, contract, prerequisiteLessonIds }) => [
+          lessonId,
+          contract,
+          prerequisiteLessonIds,
+        ],
+      ),
+    ).toEqual([
+      ["polite-verbs-1", "system", ["topic-questions-4"]],
+      ["polite-verbs-2", "system", ["polite-verbs-1"]],
+      ["polite-verbs-3", "system", ["polite-verbs-2"]],
+      ["polite-verbs-4", "content", ["polite-verbs-3"]],
+    ]);
+  });
+
+  it("meets production depth, sequence, dialogue, and 8+2 activity gates", () => {
+    for (const lesson of BASE_POLITE_VERBS_MODULE.lessons) {
+      expect(
+        validateBaseLessonDepth(
+          lesson.content,
+          BASE_POLITE_VERBS_VALIDATION_CATALOGS,
+        ),
+        lesson.content.lessonId,
+      ).toEqual([]);
+      expect(lesson.activityDesigns).toHaveLength(10);
+      expect(
+        new Set(
+          lesson.activityDesigns
+            .filter(({ mode }) => mode === "non-spoken")
+            .map(({ category }) => category),
+        ).size,
+      ).toBeGreaterThanOrEqual(6);
+    }
+    expect(BASE_POLITE_VERBS_MODULE.lessons.slice(0, 3).map(({ examples }) => examples.length))
+      .toEqual([10, 10, 10]);
+    expect(BASE_POLITE_VERBS_MODULE.lessons[3].examples.length).toBeGreaterThanOrEqual(6);
+    expect(BASE_POLITE_VERBS_MODULE.lessons[3].dialogue?.turns.length).toBeGreaterThanOrEqual(4);
+    expect(
+      validateFirstTeachOrder(
+        BASE_POLITE_VERBS_MODULE.sequence,
+        BASE_FIRST_TEACH_OWNERS,
+        BASE_POLITE_VERBS_VALIDATION_CATALOGS,
+      ),
+    ).toEqual([]);
+    expect(validateBasePoliteVerbsModule(BASE_POLITE_VERBS_MODULE)).toEqual({
+      ok: true,
+      errors: [],
+    });
+  });
+
+  it("derives every published dictionary, stem, and masu form from Task 7", () => {
+    for (const record of BASE_POLITE_VERB_FORM_RECORDS) {
+      expect(record.tokens).toEqual(expectedForm(record.lemmaId, record.kind));
+      expect(record.tokens.every(Object.isFrozen)).toBe(true);
+    }
+    const byLemma = (lemmaId: string, kind: typeof BASE_POLITE_VERB_FORM_RECORDS[number]["kind"]) =>
+      jp(
+        BASE_POLITE_VERB_FORM_RECORDS.find(
+          (record) => record.lemmaId === lemmaId && record.kind === kind,
+        )?.tokens ?? [],
+      );
+    expect(byLemma("verb-kaeru", "polite-stem")).toBe("かえり");
+    expect(byLemma("verb-taberu", "polite-stem")).toBe("たべ");
+    expect(byLemma("verb-suru", "polite-stem")).toBe("し");
+    expect(byLemma("verb-kuru", "polite-stem")).toBe("き");
+  });
+
+  it("teaches lookup lemmas, then classes, then stems, then productive masu", () => {
+    const owner = (contentId: string) =>
+      BASE_FIRST_TEACH_OWNERS.find(({ contentId: id }) => id === contentId)?.lessonId;
+    expect(owner("dictionary-lemma")).toBe("polite-verbs-1");
+    expect(owner("verb-predicate-recognition")).toBe("polite-verbs-1");
+    expect(owner("godan-verb-class")).toBe("polite-verbs-2");
+    expect(owner("ichidan-verb-class")).toBe("polite-verbs-2");
+    expect(owner("polite-stems")).toBe("polite-verbs-3");
+    expect(owner("masu-nonpast")).toBe("polite-verbs-4");
+    expect(firstTeachLessonPosition(owner("godan-verb-class")!)).toBeLessThan(
+      firstTeachLessonPosition(owner("polite-stems")!)!,
+    );
+    expect(firstTeachLessonPosition(owner("polite-stems")!)).toBeLessThan(
+      firstTeachLessonPosition(owner("masu-nonpast")!)!,
+    );
+  });
+
+  it("advances the exact owned reference snapshots without future rows", () => {
+    expect(
+      BASE_POLITE_VERBS_MODULE.lessons.map(
+        ({ content }) => content.referenceSnapshotIds,
+      ),
+    ).toEqual(
+      Array.from({ length: 4 }, () => [
+        "sentence-anatomy",
+        "particle-atlas",
+        "verb-classes-conjugation",
+      ]),
+    );
+  });
+
+  it("keeps argument particles and later forms out of productive Module 4 surfaces", () => {
+    const visible = visibleJapaneseFor(
+      BASE_POLITE_VERBS_MODULE.sequence.slice(-4),
+      BASE_POLITE_VERBS_VALIDATION_CATALOGS,
+    );
+    expect(visible).not.toContain("ています");
+    const forbiddenArgumentSenses = new Set([
+      "object-o",
+      "goal-ni",
+      "direction-he",
+      "action-place-de",
+      "means-de",
+      "time-ni",
+      "source-kara",
+      "limit-made",
+    ]);
+    for (const lesson of BASE_POLITE_VERBS_MODULE.lessons) {
+      for (const target of [
+        ...lesson.examples,
+        ...(lesson.dialogue?.turns ?? []),
+        ...lesson.activityDesigns.flatMap(({ promptTarget, optionTargets, acceptedAnswerTarget }) => [
+          promptTarget,
+          ...optionTargets,
+          acceptedAnswerTarget,
+        ]),
+      ]) {
+        expect(
+          target.tokens.some(
+            ({ kind, source }) =>
+              kind === "particle" &&
+              forbiddenArgumentSenses.has(source.referenceId),
+          ),
+        ).toBe(false);
+        expect(target.formIds).not.toContain("four-polite-tense-cells");
+        expect(target.formIds).not.toContain("te-imasu");
+        expect(target.interpretationTags).not.toContain("ongoing-now");
+      }
+    }
+  });
+
+  it("uses only owned masu predicates in the practical lesson", () => {
+    const lesson = BASE_POLITE_VERBS_MODULE.lessons[3];
+    for (const target of [...lesson.examples, ...(lesson.dialogue?.turns ?? [])]) {
+      expect(target.formIds).toContain("masu-nonpast");
+      expect(jp(target.tokens)).toContain("ます");
+      expect(target.predicateAspect).toBe("dynamic");
+      expect(target.interpretationTags.some((tag) => tag === "habitual" || tag === "future"))
+        .toBe(true);
+    }
+  });
+
+  it("uses and retrieves every genuinely new lexeme in its owning lesson", () => {
+    for (const lesson of BASE_POLITE_VERBS_MODULE.lessons) {
+      const visible = new Set(lesson.examples.flatMap(({ lexemeIds }) => lexemeIds));
+      lesson.dialogue?.turns.forEach(({ lexemeIds }) =>
+        lexemeIds.forEach((id) => visible.add(id)),
+      );
+      const retrieved = new Set(
+        lesson.activityDesigns
+          .filter(({ mode }) => mode === "non-spoken")
+          .flatMap(({ promptTarget, optionTargets, acceptedAnswerTarget }) => [
+            ...promptTarget.lexemeIds,
+            ...optionTargets.flatMap(({ lexemeIds }) => lexemeIds),
+            ...acceptedAnswerTarget.lexemeIds,
+          ]),
+      );
+      for (const id of lesson.content.newLexemeIds) {
+        expect(BASE_LEXEME_BY_ID.get(id)?.firstTeachLessonId).toBe(
+          lesson.content.lessonId,
+        );
+        expect(visible.has(id), `visible:${id}`).toBe(true);
+        expect(retrieved.has(id), `retrieved:${id}`).toBe(true);
+      }
+    }
+  });
+
+  it("publishes independent EN and IT copy for every visible copy ID", () => {
+    for (const id of requiredCopyIds()) {
+      expect(baseNavigationCopyEn.content[id], `EN:${id}`).toBeTypeOf("string");
+      expect(baseNavigationCopyIt.content[id], `IT:${id}`).toBeTypeOf("string");
+      expect(baseNavigationCopyEn.content[id].trim()).not.toBe("");
+      expect(baseNavigationCopyIt.content[id].trim()).not.toBe("");
+      expect(baseNavigationCopyEn.content[id]).not.toBe(baseNavigationCopyIt.content[id]);
+    }
+  });
+
+  it("does not recycle examples or dialogue turns as accepted answers", () => {
+    for (const lesson of BASE_POLITE_VERBS_MODULE.lessons) {
+      const preAttempt = new Set([
+        ...lesson.examples.map(({ tokens }) => visibleSurfaceFingerprint(tokens)),
+        ...(lesson.dialogue?.turns.map(({ tokens }) => visibleSurfaceFingerprint(tokens)) ?? []),
+      ]);
+      for (const { acceptedAnswerTarget } of lesson.activityDesigns) {
+        expect(preAttempt.has(visibleSurfaceFingerprint(acceptedAnswerTarget.tokens))).toBe(false);
+      }
+    }
+  });
+
+  it("fails closed for malformed module data and exports deep-frozen snapshots", () => {
+    expect(Object.isFrozen(BASE_POLITE_VERBS_MODULE)).toBe(true);
+    expect(Object.isFrozen(BASE_POLITE_VERBS_MODULE.lessons[0].examples)).toBe(true);
+    const sparse = new Array(4);
+    sparse[0] = BASE_POLITE_VERBS_MODULE.lessons[0];
+    expect(
+      validateBasePoliteVerbsModule({
+        ...BASE_POLITE_VERBS_MODULE,
+        lessons: sparse,
+      }),
+    ).toMatchObject({ ok: false });
+    const inherited = Object.create(BASE_POLITE_VERBS_MODULE);
+    expect(validateBasePoliteVerbsModule(inherited)).toMatchObject({ ok: false });
+    const hostile = new Proxy(
+      {},
+      {
+        getPrototypeOf() {
+          throw new Error("hostile prototype trap");
+        },
+      },
+    );
+    expect(() => validateBasePoliteVerbsModule(hostile)).not.toThrow();
+    expect(validateBasePoliteVerbsModule(hostile)).toMatchObject({ ok: false });
+  });
+});
