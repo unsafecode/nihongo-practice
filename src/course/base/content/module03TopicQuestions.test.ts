@@ -291,6 +291,54 @@ describe("Base topic-questions module", () => {
     expect(activity.worldFactId).toBe("speaker-role");
   });
 
+  it("keeps TQ2 spoken focus in person-ga-role order", () => {
+    const spoken = BASE_TOPIC_QUESTIONS_MODULE.lessons[1].activityDesigns[9];
+    expect(jp(spoken.promptTarget.tokens)).toBe("ひと");
+    expect(jp(spoken.acceptedAnswerTarget.tokens)).toBe(
+      "わたしががくせいです",
+    );
+    expect(spoken.worldFactId).toBe("speaker-role");
+  });
+
+  it("keeps omission prompts from exposing their accepted chunks", () => {
+    const sf2 = BASE_SENTENCE_FOUNDATIONS_MODULE.lessons[1].activityDesigns;
+    expect(jp(sf2[4].promptTarget.tokens)).toBe("でんわ、がっこう");
+    expect(jp(sf2[6].promptTarget.tokens)).toBe("しゃしん");
+    expect(jp(sf2[7].promptTarget.tokens)).toBe("がっこう");
+    const sf4 = BASE_SENTENCE_FOUNDATIONS_MODULE.lessons[3].activityDesigns;
+    expect(jp(sf4[4].promptTarget.tokens)).toBe("わたし");
+    for (const design of [sf2[4], sf2[6], sf2[7], sf4[4]]) {
+      expect(design.promptTarget.lexemeIds).not.toEqual(
+        expect.arrayContaining([...design.acceptedAnswerTarget.lexemeIds]),
+      );
+    }
+  });
+
+  it("keeps the dialogue role and country facts explicit and coherent", () => {
+    const tq4 = BASE_TOPIC_QUESTIONS_MODULE.lessons[3];
+    expect(jp(tq4.dialogue?.turns[0].tokens ?? [])).toBe(
+      "りゅうがくせいはだれですか",
+    );
+    expect(jp(tq4.dialogue?.turns[2].tokens ?? [])).toBe(
+      "ゆきさんのくにはにほんですか",
+    );
+    expect(
+      baseNavigationCopyEn.content[
+        "topic-questions-4-clarification-dialogue-turn-3-translation"
+      ],
+    ).toBe("Is Yuki's country Japan?");
+    expect(
+      baseNavigationCopyIt.content[
+        "topic-questions-4-clarification-dialogue-turn-3-translation"
+      ],
+    ).toBe("Il paese di Yuki è il Giappone?");
+    expect(
+      baseNavigationCopyEn.content[
+        "topic-questions-4-clarification-dialogue-turn-3-purpose"
+      ],
+    ).not.toMatch(/は/);
+  });
+
   it("grounds reviewed contexts in the actual visible scene or fact", () => {
     const copy = baseNavigationCopyEn.content;
     expect(copy["sentence-foundations-1-activity-1-instruction"]).toMatch(
@@ -466,6 +514,7 @@ describe("Base topic-questions module", () => {
       suzuki: "teacher",
       mari: "doctor",
       yukiCountry: "japan",
+      yukiRole: "international-student",
       speakerCity: "tokyo",
     });
   });
@@ -473,9 +522,9 @@ describe("Base topic-questions module", () => {
   it("has a coherent six-turn name, country, and companion clarification", () => {
     const dialogue = BASE_TOPIC_QUESTIONS_MODULE.lessons[3].dialogue;
     expect(dialogue?.turns.map(({ tokens }) => jp(tokens))).toEqual([
-      "せんせいはだれですか",
+      "りゅうがくせいはだれですか",
       "ゆきですよ",
-      "にほんですか",
+      "ゆきさんのくにはにほんですか",
       "はい、にほんです",
       "たなかさんとともだちですか",
       "はい、そうですよ",
@@ -485,6 +534,7 @@ describe("Base topic-questions module", () => {
       partner: "yuki",
       country: "japan",
       companion: "tanaka",
+      role: "international-student",
     });
   });
 

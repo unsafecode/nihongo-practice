@@ -77,6 +77,7 @@ export interface BaseAuthoredDialogue {
     readonly partner: "yuki";
     readonly country: "japan";
     readonly companion: "tanaka";
+    readonly role: "international-student";
   }>;
 }
 
@@ -113,6 +114,7 @@ export interface BaseTopicQuestionsModule {
     readonly suzuki: "teacher";
     readonly mari: "doctor";
     readonly yukiCountry: "japan";
+    readonly yukiRole: "international-student";
     readonly speakerCity: "tokyo";
   }>;
   readonly worldFactIds: readonly string[];
@@ -301,6 +303,7 @@ function authoredDialogue(
         partner: "yuki",
         country: "japan",
         companion: "tanaka",
+        role: "international-student",
       },
     }),
     canonical: deepFreeze({ id, turns, practicalOutcomeCopyId }),
@@ -614,7 +617,7 @@ const LESSON_SPECS: readonly LessonSpec[] = deepFreeze([
       act(["noun-kangoshi"], ["noun-kangoshi", "wa", "noun-tanaka", "desu"], ["noun-kangoshi", "ga", "noun-suzuki", "desu"], 1, "topic-questions-2-activity-7-instruction", "tq2-wa-ga-contrast", "established-topic", BASE_CONTEXT_ACTIVITY_SHAPE, "tanaka", "tanaka-role"),
       act(["noun-bengoshi"], ["noun-bengoshi", "wa", "noun-yamada", "desu"], ["noun-bengoshi", "ga", "noun-mari", "desu"], 0, "topic-questions-2-activity-8-instruction", "tq2-wa-ga-contrast", "established-topic", BASE_RETRIEVAL_ACTIVITY_SHAPE, "yamada", "yamada-role"),
       act(["noun-ryuugakusei"], ["noun-ryuugakusei", "wa", "noun-tomodachi", "desu"], ["noun-ryuugakusei", "ga", "noun-satou", "desu"], 1, "topic-questions-2-activity-9-instruction", "tq2-wa-ga-contrast", "established-topic", BASE_LISTENING_ACTIVITY_SHAPE, "friend", "friend-role"),
-      act(["noun-hito"], ["noun-daigakusei", "ga", "noun-watashi", "desu"], ["noun-watashi", "wa", "noun-gakusei", "desu"], 0, "topic-questions-2-activity-10-instruction", "tq2-focused-subject", "focused-new-subject", BASE_SPOKEN_ACTIVITY_SHAPE, "speaker", "speaker-role"),
+      act(["noun-hito"], ["noun-watashi", "ga", "noun-gakusei", "desu"], ["noun-watashi", "wa", "noun-gakusei", "desu"], 0, "topic-questions-2-activity-10-instruction", "tq2-focused-subject", "focused-new-subject", BASE_SPOKEN_ACTIVITY_SHAPE, "speaker", "speaker-role"),
     ],
     dialogue: null,
     translationSemanticTags: [
@@ -774,9 +777,9 @@ const LESSON_SPECS: readonly LessonSpec[] = deepFreeze([
       act(["noun-nihon", "desu"], ["noun-kuni", "wa", "noun-nan", "desu", "ka"], ["noun-kuni", "wa", "noun-nihon", "desu", "ka"], 0, "topic-questions-4-activity-10-instruction", "tq4-question-answer", "not-applicable", BASE_SPOKEN_ACTIVITY_SHAPE),
     ],
     dialogue: [
-      { speakerId: "learner", parts: ["noun-sensei", "wa", "noun-dare", "desu", "ka"], frame: "open-role-question", patternCellIds: ["tq4-question-answer"], utteranceKind: "complete-clause" },
+      { speakerId: "learner", parts: ["noun-ryuugakusei", "wa", "noun-dare", "desu", "ka"], frame: "open-role-question", patternCellIds: ["tq4-question-answer"], utteranceKind: "complete-clause" },
       { speakerId: "partner", parts: ["noun-yuki", "desu", "yo"], frame: "identity-answer", patternCellIds: ["tq4-interactional-yo"], utteranceKind: "complete-clause" },
-      { speakerId: "learner", parts: ["noun-nihon", "desu", "ka"], frame: "country-clarification", patternCellIds: ["tq4-question-answer"], utteranceKind: "complete-clause" },
+      { speakerId: "learner", parts: ["noun-yuki-san", "no", "noun-kuni", "wa", "noun-nihon", "desu", "ka"], frame: "country-clarification", patternCellIds: ["tq4-question-answer"], utteranceKind: "complete-clause" },
       { speakerId: "partner", parts: ["expression-hai", "comma", "noun-nihon", "desu"], frame: "country-confirmation", patternCellIds: ["tq4-question-answer"], utteranceKind: "complete-clause" },
       { speakerId: "learner", parts: ["noun-tanaka", "to-companion", "noun-tomodachi", "desu", "ka"], frame: "relationship-check", patternCellIds: ["tq4-question-answer", "tq3-companion"], utteranceKind: "complete-clause" },
       { speakerId: "partner", parts: ["expression-hai", "comma", "expression-sou", "desu", "yo"], frame: "closing-confirmation", patternCellIds: ["tq4-interactional-yo"], utteranceKind: "complete-clause" },
@@ -955,6 +958,7 @@ const RAW_BASE_TOPIC_QUESTIONS_MODULE: BaseTopicQuestionsModule = {
     suzuki: "teacher",
     mari: "doctor",
     yukiCountry: "japan",
+    yukiRole: "international-student",
     speakerCity: "tokyo",
   },
   worldFactIds: RAW_TOPIC_LESSONS.flatMap((lesson) =>
@@ -1081,6 +1085,7 @@ export function validateBaseTopicQuestionsModule(
     worldFacts.suzuki !== "teacher" ||
     worldFacts.mari !== "doctor" ||
     worldFacts.yukiCountry !== "japan"
+    || worldFacts.yukiRole !== "international-student"
     || worldFacts.speakerCity !== "tokyo" ||
     !worldFactIds
   ) {
