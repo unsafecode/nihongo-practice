@@ -529,7 +529,7 @@ const TOPIC_QUESTIONS_COPY_EN: Readonly<Record<string, string>> = {
       'An occupational role is already the topic. Choose the person value established by the roster.',
       'Retrieve the earlier role-as-topic pattern and apply it to the next roster entry.',
       'Listen for an established role followed by its person value, then choose the exact statement.',
-      'A registration roster opens the person slot for the previously established student role. Give the focused identification from memory.',
+      'A registration roster opens the person slot for the previously established university-student role. Give the focused identification from memory.',
     ],
     accepted: [
       "The newly selected person receives focus marking and matches the roster's open slot.",
@@ -548,7 +548,7 @@ const TOPIC_QUESTIONS_COPY_EN: Readonly<Record<string, string>> = {
       "The person is already under discussion, so continue that topic instead of refocusing it.",
       "Arrange the same person, marker, and occupation chunks; do not reverse identity and role.",
       "Continue the established person and select the profession assigned in the roster.",
-      "Preserve the speaker's student fact while changing the hanging-topic source into corrective focus.",
+      "Preserve Mari's friend relationship while changing the hanging-topic source into corrective focus.",
       "The displayed candidate names the wrong role holder; keep が and focus the correct person.",
       "Keep the occupation topical and retrieve its person value from the roster.",
       "Apply the role-topic pattern to the lawyer entry rather than selecting an unrelated doctor.",
@@ -655,7 +655,7 @@ const TOPIC_QUESTIONS_COPY_EN: Readonly<Record<string, string>> = {
       "Yes—I'm Yuki, just so you know.",
       "No—it's Japan.",
       "It is Japan, right?",
-      "Is that Yuki?",
+      "Are they a student?",
       "That's right, isn't it?",
     ],
     purposes: [
@@ -666,7 +666,7 @@ const TOPIC_QUESTIONS_COPY_EN: Readonly<Record<string, string>> = {
       "Introduces よ as an assertive identity update.",
       "Uses いいえ plus よ for a corrected country value.",
       "Introduces ね for shared country confirmation.",
-      "Uses the respectful third-person name in an identification question.",
+      "Checks a student role with a completed yes-no question.",
       "Uses ね in a short acknowledgment of shared understanding.",
     ],
     instructions: [
@@ -708,12 +708,12 @@ const TOPIC_QUESTIONS_COPY_EN: Readonly<Record<string, string>> = {
   }),
   "topic-questions-4-clarification-dialogue-outcome":
     "The speakers learn Yuki's name, confirm Japan, and confirm the friendship with Tanaka.",
-  "topic-questions-4-clarification-dialogue-turn-1-translation": "Who is the international student?",
+  "topic-questions-4-clarification-dialogue-turn-1-translation": "Is that Yuki?",
   "topic-questions-4-clarification-dialogue-turn-1-purpose":
-    "Opens by identifying the international student.",
-  "topic-questions-4-clarification-dialogue-turn-2-translation": "I'm Yuki.",
+    "Opens with a respectful identity confirmation.",
+  "topic-questions-4-clarification-dialogue-turn-2-translation": "Yes, I'm Yuki.",
   "topic-questions-4-clarification-dialogue-turn-2-purpose":
-    "Answers the open question with assertive-update よ.",
+    "Confirms the identity directly without adding a new role.",
   "topic-questions-4-clarification-dialogue-turn-3-translation":
     "Is Yuki's country Japan?",
   "topic-questions-4-clarification-dialogue-turn-3-purpose":

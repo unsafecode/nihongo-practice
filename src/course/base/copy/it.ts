@@ -508,7 +508,7 @@ const TOPIC_QUESTIONS_COPY_IT: Readonly<Record<string, string>> = {
       'Un ruolo professionale è già tema. Scegli il valore-persona stabilito dall’elenco.',
       'Recupera il modello ruolo-come-tema e applicalo alla voce successiva.',
       'Ascolta un ruolo stabilito seguito dal valore-persona, poi scegli la frase esatta.',
-      'Un elenco d’iscrizione apre il campo persona per il ruolo studente già stabilito. Dai l’identificazione focalizzata a memoria.',
+      'Un elenco d’iscrizione apre il campo persona per il ruolo studente universitario già stabilito. Dai l’identificazione focalizzata a memoria.',
     ],
     accepted: [
       "La persona appena selezionata riceve il focus e corrisponde al campo aperto dell’elenco.",
@@ -527,7 +527,7 @@ const TOPIC_QUESTIONS_COPY_IT: Readonly<Record<string, string>> = {
       "La persona è già in discussione: continua quel tema invece di rifocalizzarla.",
       "Ordina gli stessi blocchi persona, marcatore e professione senza invertire ruolo e identità.",
       "Continua la persona stabilita e scegli la professione assegnata nell’elenco.",
-      "Conserva il fatto sul parlante studente cambiando il tema sospeso in focus correttivo.",
+      "Conserva la relazione di amicizia di Mari cambiando il tema sospeso in focus correttivo.",
       "Il candidato nomina il titolare sbagliato: mantieni が e focalizza la persona corretta.",
       "Mantieni tematica la professione e recupera dall’elenco il valore-persona.",
       "Applica il modello ruolo-tema alla voce dell’avvocato, non a un medico estraneo.",
@@ -634,7 +634,7 @@ const TOPIC_QUESTIONS_COPY_IT: Readonly<Record<string, string>> = {
       "Sì—sono Yuki, te lo dico.",
       "No—è il Giappone.",
       "È il Giappone, vero?",
-      "È Yuki?",
+      "È studente?",
       "È così, vero?",
     ],
     purposes: [
@@ -645,7 +645,7 @@ const TOPIC_QUESTIONS_COPY_IT: Readonly<Record<string, string>> = {
       "Introduce よ come aggiornamento assertivo d’identità.",
       "Usa いいえ più よ per correggere il paese.",
       "Introduce ね per una conferma condivisa.",
-      "Usa il nome rispettoso in terza persona in una domanda di identificazione.",
+      "Controlla il ruolo studente con una domanda sì-no completa.",
       "Usa ね in un breve riconoscimento condiviso.",
     ],
     instructions: [
@@ -687,12 +687,12 @@ const TOPIC_QUESTIONS_COPY_IT: Readonly<Record<string, string>> = {
   }),
   "topic-questions-4-clarification-dialogue-outcome":
     "Gli interlocutori apprendono il nome Yuki, confermano il Giappone e l'amicizia con Tanaka.",
-  "topic-questions-4-clarification-dialogue-turn-1-translation": "Chi è lo studente internazionale?",
+  "topic-questions-4-clarification-dialogue-turn-1-translation": "È Yuki?",
   "topic-questions-4-clarification-dialogue-turn-1-purpose":
-    "Apre identificando lo studente internazionale.",
-  "topic-questions-4-clarification-dialogue-turn-2-translation": "Sono Yuki.",
+    "Apre con una conferma rispettosa dell’identità.",
+  "topic-questions-4-clarification-dialogue-turn-2-translation": "Sì, sono Yuki.",
   "topic-questions-4-clarification-dialogue-turn-2-purpose":
-    "Risponde alla domanda aperta con よ assertivo.",
+    "Conferma direttamente l’identità senza aggiungere un nuovo ruolo.",
   "topic-questions-4-clarification-dialogue-turn-3-translation":
     "Il paese di Yuki è il Giappone?",
   "topic-questions-4-clarification-dialogue-turn-3-purpose":

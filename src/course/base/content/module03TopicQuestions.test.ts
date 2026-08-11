@@ -282,22 +282,22 @@ describe("Base topic-questions module", () => {
     ).toBe("ちゅうごくとにほんです");
   });
 
-  it("keeps TQ2 A5 aligned to the speaker university-role fact", () => {
-    const activity = BASE_TOPIC_QUESTIONS_MODULE.lessons[1].activityDesigns[4];
-    expect(jp(activity.promptTarget.tokens)).toBe("わたし、だいがくせいです");
-    expect(jp(activity.acceptedAnswerTarget.tokens)).toBe(
-      "わたしがだいがくせいです",
-    );
-    expect(activity.worldFactId).toBe("speaker-role");
-  });
-
   it("keeps TQ2 spoken focus in person-ga-role order", () => {
     const spoken = BASE_TOPIC_QUESTIONS_MODULE.lessons[1].activityDesigns[9];
     expect(jp(spoken.promptTarget.tokens)).toBe("ひと");
     expect(jp(spoken.acceptedAnswerTarget.tokens)).toBe(
-      "わたしががくせいです",
+      "わたしがだいがくせいです",
     );
     expect(spoken.worldFactId).toBe("speaker-role");
+  });
+
+  it("moves TQ2 transformation to Mari's distinct relationship fact", () => {
+    const activity = BASE_TOPIC_QUESTIONS_MODULE.lessons[1].activityDesigns[4];
+    expect(jp(activity.promptTarget.tokens)).toBe("まりさん、ともだちです");
+    expect(jp(activity.acceptedAnswerTarget.tokens)).toBe(
+      "まりさんがともだちです",
+    );
+    expect(activity.worldFactId).toBe("mari-relationship");
   });
 
   it("keeps omission prompts from exposing their accepted chunks", () => {
@@ -316,9 +316,8 @@ describe("Base topic-questions module", () => {
 
   it("keeps the dialogue role and country facts explicit and coherent", () => {
     const tq4 = BASE_TOPIC_QUESTIONS_MODULE.lessons[3];
-    expect(jp(tq4.dialogue?.turns[0].tokens ?? [])).toBe(
-      "りゅうがくせいはだれですか",
-    );
+    expect(jp(tq4.dialogue?.turns[0].tokens ?? [])).toBe("ゆきさんですか");
+    expect(jp(tq4.dialogue?.turns[1].tokens ?? [])).toBe("はい、ゆきです");
     expect(jp(tq4.dialogue?.turns[2].tokens ?? [])).toBe(
       "ゆきさんのくにはにほんですか",
     );
@@ -337,6 +336,13 @@ describe("Base topic-questions module", () => {
         "topic-questions-4-clarification-dialogue-turn-3-purpose"
       ],
     ).not.toMatch(/は/);
+  });
+
+  it("classifies SF4 A5 as meaning selection rather than transformation", () => {
+    const activity = BASE_SENTENCE_FOUNDATIONS_MODULE.lessons[3].activityDesigns[4];
+    expect(activity.category).toBe("meaning-comprehension");
+    expect(activity.operation).toBe("recognize-meaning");
+    expect(activity.operationEvidence.kind).toBe("recognize-meaning");
   });
 
   it("grounds reviewed contexts in the actual visible scene or fact", () => {
@@ -514,7 +520,6 @@ describe("Base topic-questions module", () => {
       suzuki: "teacher",
       mari: "doctor",
       yukiCountry: "japan",
-      yukiRole: "international-student",
       speakerCity: "tokyo",
     });
   });
@@ -522,8 +527,8 @@ describe("Base topic-questions module", () => {
   it("has a coherent six-turn name, country, and companion clarification", () => {
     const dialogue = BASE_TOPIC_QUESTIONS_MODULE.lessons[3].dialogue;
     expect(dialogue?.turns.map(({ tokens }) => jp(tokens))).toEqual([
-      "りゅうがくせいはだれですか",
-      "ゆきですよ",
+      "ゆきさんですか",
+      "はい、ゆきです",
       "ゆきさんのくにはにほんですか",
       "はい、にほんです",
       "たなかさんとともだちですか",
@@ -534,7 +539,6 @@ describe("Base topic-questions module", () => {
       partner: "yuki",
       country: "japan",
       companion: "tanaka",
-      role: "international-student",
     });
   });
 
