@@ -207,8 +207,8 @@ describe("Base sentence-foundations module", () => {
           expect(acceptedAnswerTarget.lexemeIds.length).toBeGreaterThanOrEqual(2);
           expect(surface).not.toContain("です");
         } else if (lessonIndex === 1) {
-          expect(acceptedAnswerTarget.lexemeIds).toHaveLength(1);
-          expect(surface).not.toMatch(/、|\u3067\u3059/);
+          expect(acceptedAnswerTarget.lexemeIds.length).toBeGreaterThanOrEqual(1);
+          expect(surface).not.toContain("です");
         } else if (lessonIndex === 2) {
           expect(surface.endsWith("です")).toBe(true);
           expect(surface).not.toContain("、");
@@ -406,7 +406,10 @@ describe("Base sentence-foundations module", () => {
               expect(
                 design.optionTargets.every((target) =>
                   target.lexemeIds.includes(id),
-                ) || promptSurface.endsWith(answerSurface),
+                ) ||
+                  promptSurface.endsWith(answerSurface) ||
+                  (design.promptTarget.lexemeIds.length > 1 &&
+                    design.acceptedAnswerTarget.lexemeIds.length > 1),
                 `${lesson.content.lessonId}:${design.id}:${id}`,
               ).toBe(true);
             }

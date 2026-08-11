@@ -217,6 +217,76 @@ describe("Base topic-questions module", () => {
     expect(duplicates).toEqual([]);
   });
 
+  it("keeps every practice and audio target distinct from pre-attempt surfaces", () => {
+    for (const lesson of [
+      ...BASE_SENTENCE_FOUNDATIONS_MODULE.lessons,
+      ...BASE_TOPIC_QUESTIONS_MODULE.lessons,
+    ]) {
+      const preAttempt = new Set([
+        ...lesson.examples.map(({ tokens }) => surfaceFingerprint(tokens)),
+        ...("dialogue" in lesson
+          ? lesson.dialogue?.turns.map(({ tokens }) => surfaceFingerprint(tokens)) ?? []
+          : []),
+      ]);
+      const collisions = lesson.activityDesigns.flatMap(
+        ({ optionTargets, acceptedAnswerTarget }) =>
+          [acceptedAnswerTarget, ...optionTargets]
+            .filter((target) => preAttempt.has(surfaceFingerprint(target.tokens)))
+            .map((target) => jp(target.tokens)),
+      );
+      expect(collisions, lesson.content.lessonId).toEqual([]);
+    }
+  });
+
+  it("uses peer countries for TQ3 listing transfer", () => {
+    expect(
+      jp(
+        BASE_TOPIC_QUESTIONS_MODULE.lessons[2].activityDesigns[6]
+          .acceptedAnswerTarget.tokens,
+      ),
+    ).toBe("ちゅうごくとにほんです");
+  });
+
+  it("keeps TQ2 A5 aligned to the speaker university-role fact", () => {
+    const activity = BASE_TOPIC_QUESTIONS_MODULE.lessons[1].activityDesigns[4];
+    expect(jp(activity.promptTarget.tokens)).toBe("わたし、だいがくせいです");
+    expect(jp(activity.acceptedAnswerTarget.tokens)).toBe(
+      "わたしがだいがくせいです",
+    );
+    expect(activity.worldFactId).toBe("speaker-role");
+  });
+
+  it("grounds reviewed contexts in the actual visible scene or fact", () => {
+    const copy = baseNavigationCopyEn.content;
+    expect(copy["sentence-foundations-1-activity-1-instruction"]).toMatch(
+      /foreground|speaker badge/i,
+    );
+    expect(copy["sentence-foundations-3-activity-4-instruction"]).toMatch(
+      /highlights.*school building/i,
+    );
+    expect(copy["sentence-foundations-3-activity-6-instruction"]).toMatch(
+      /key.*displayed|displayed.*key/i,
+    );
+    expect(copy["topic-questions-1-activity-1-instruction"]).toMatch(
+      /tokyo skyline|capital skyline/i,
+    );
+    expect(jp(BASE_TOPIC_QUESTIONS_MODULE.lessons[3].activityDesigns[3].optionTargets[1].tokens))
+      .toBe("ともだちはだれですか");
+  });
+
+  it("requires learner-visible grounding metadata for every world fact", () => {
+    for (const lesson of [
+      ...BASE_SENTENCE_FOUNDATIONS_MODULE.lessons,
+      ...BASE_TOPIC_QUESTIONS_MODULE.lessons,
+    ]) {
+      for (const design of lesson.activityDesigns) {
+        if (!design.worldFactId) continue;
+        expect(design.referentId).toBeTruthy();
+        expect(design.promptContextCopyId).toBeTruthy();
+      }
+    }
+  });
+
   it("grounds the two spoken recalls in visible lesson facts", () => {
     const sf2 = BASE_SENTENCE_FOUNDATIONS_MODULE.lessons[1].activityDesigns[9];
     expect(jp(sf2.promptTarget.tokens)).toBe("しゃしん");
@@ -248,7 +318,7 @@ describe("Base topic-questions module", () => {
       "かんごし",
       "べんごし",
       "りゅうがくせい",
-      "わたしはだいがくせい",
+      "だいがくせいはわたし",
     ]);
   });
 
