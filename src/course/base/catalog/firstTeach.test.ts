@@ -554,8 +554,13 @@ describe("Base first-teach ownership", () => {
 
     expect(owner("concept", "topic-wa")).toBe("topic-questions-1");
     expect(owner("concept", "focus-subject-ga")).toBe("topic-questions-2");
+    expect(owner("concept", "modifier-before-noun")).toBe("sentence-foundations-4");
     expect(owner("concept", "possessive-no")).toBe("topic-questions-3");
+    expect(owner("concept", "nominal-listing-to")).toBe("topic-questions-3");
+    expect(owner("concept", "companion-to")).toBe("topic-questions-3");
     expect(owner("concept", "question-ka")).toBe("topic-questions-4");
+    expect(owner("concept", "interactional-ne")).toBe("topic-questions-4");
+    expect(owner("concept", "interactional-yo")).toBe("topic-questions-4");
     expect(owner("concept", "godan-verb-class")).toBe("polite-verbs-2");
     expect(owner("form", "four-polite-tense-cells")).toBe("time-movement-3");
     expect(owner("concept", "existence-location-frame")).toBe("existence-location-1");

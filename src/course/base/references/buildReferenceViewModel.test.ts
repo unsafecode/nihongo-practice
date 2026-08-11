@@ -52,7 +52,10 @@ describe("buildBaseReferenceViewModel", () => {
         ? result.model.entries.map(({ semanticId }) => semanticId)
         : [];
     };
-    expect(idsAt("topic-questions-2")).not.toContain(
+    expect(idsAt("sentence-foundations-3")).not.toContain(
+      "base-sentence-modifier-order",
+    );
+    expect(idsAt("sentence-foundations-4")).toContain(
       "base-sentence-modifier-order",
     );
     expect(idsAt("topic-questions-3")).toContain(
@@ -90,6 +93,41 @@ describe("buildBaseReferenceViewModel", () => {
           ({ semanticId }) => semanticId === "base-particle-existence-ni",
         ),
     ).toBe(true);
+  });
+
+  it("reveals と at TQ3 and interactional endings only at TQ4", () => {
+    const tq3 = buildBaseReferenceViewModel(
+      "particle-atlas",
+      "topic-questions-3",
+      "en",
+    );
+    const tq4 = buildBaseReferenceViewModel(
+      "particle-atlas",
+      "topic-questions-4",
+      "en",
+    );
+    const ids = (result: typeof tq3) =>
+      result.ok ? result.model.entries.map(({ semanticId }) => semanticId) : [];
+    expect(ids(tq3)).toEqual(
+      expect.arrayContaining([
+        "base-particle-listing-to",
+        "base-particle-nominal-to",
+        "base-particle-companion-to",
+      ]),
+    );
+    expect(ids(tq3)).not.toEqual(
+      expect.arrayContaining([
+        "base-particle-interactional-ne",
+        "base-particle-interactional-yo",
+      ]),
+    );
+    expect(ids(tq4)).toEqual(
+      expect.arrayContaining([
+        "base-particle-question-ka",
+        "base-particle-interactional-ne",
+        "base-particle-interactional-yo",
+      ]),
+    );
   });
 
   it("has exact progressive checkpoints with no te-form leakage", () => {

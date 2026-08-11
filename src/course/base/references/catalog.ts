@@ -419,6 +419,20 @@ function politeCells(
 const KAKU_POLITE_CELLS = politeCells("tense-kaku", KAKU_POLITE_GRID);
 const STUDENT_NOUN = NOUN_GRID.affirmative.tokens.slice(0, 1);
 const TEACHER_NOUN = TEACHER_NOUN_GRID.affirmative.tokens.slice(0, 1);
+const SAKURA_NAME_LEXEME = BASE_LEXEME_BY_ID.get("name-sakura");
+if (!SAKURA_NAME_LEXEME) {
+  throw new Error("Missing canonical bare Sakura name.");
+}
+const SAKURA_NAME: readonly AssembledToken[] = [
+  {
+    id: "reference-name-sakura",
+    jp: SAKURA_NAME_LEXEME.kana,
+    romaji: SAKURA_NAME_LEXEME.romaji,
+    kind: "lexical",
+    boundaryBefore: "attach",
+    source: { domain: "catalog", referenceId: SAKURA_NAME_LEXEME.id },
+  },
+];
 
 function composedTokens(
   parts: readonly {
@@ -440,12 +454,8 @@ const TEACHER_SUBJECT = composedTokens([
     boundaryBefore: "space",
   },
 ]);
-const STUDENT_TEACHER_MODIFIER = composedTokens([
-  { tokens: STUDENT_NOUN },
-  {
-    tokens: baseParticleSurfaceTokens("possessive-attributive-no"),
-    boundaryBefore: "space",
-  },
+const NAME_TITLE_MODIFIER = composedTokens([
+  { tokens: SAKURA_NAME },
   { tokens: TEACHER_NOUN, boundaryBefore: "space" },
 ]);
 const STANDALONE_DESU = formValue(
@@ -538,7 +548,7 @@ const SENTENCE_ANATOMY_ENTRIES = [
   ),
   entry(
     "base-sentence-modifier-order",
-    "possessive-no",
+    "modifier-before-noun",
     ["Modifier order", "Ordine dei modificatori"],
     [
       "Modifiers come before the noun they describe.",
@@ -550,7 +560,7 @@ const SENTENCE_ANATOMY_ENTRIES = [
         "canonical-target",
         "Modifier before noun",
         "Modificatore prima del nome",
-        STUDENT_TEACHER_MODIFIER,
+        NAME_TITLE_MODIFIER,
       ),
     ],
     ["base-sentence-chunks"],
@@ -642,6 +652,8 @@ const PARTICLE_ATLAS_ENTRIES = [
   particleEntry("nominal-to", ["Nominal link", "Collegamento nominale"], ["Links nominal elements.", "Collega elementi nominali."], ["base-particle-listing-to"], ["base-particle-listing-to"]),
   particleEntry("companion-to", ["Companion", "Compagnia"], ["Marks a companion.", "Segna una persona in compagnia."], ["base-particle-listing-to"], ["base-particle-listing-to"]),
   particleEntry("question-ka", ["Question", "Domanda"], ["Marks a question.", "Segna una domanda."]),
+  particleEntry("interactional-ne", ["Shared confirmation", "Conferma condivisa"], ["Invites or acknowledges shared agreement.", "Invita o riconosce un accordo condiviso."], ["base-particle-question-ka"], ["base-particle-interactional-yo"]),
+  particleEntry("interactional-yo", ["Assertive update", "Informazione assertiva"], ["Presents information as an update for the listener.", "Presenta un'informazione nuova per l'interlocutore."], ["base-particle-question-ka"], ["base-particle-interactional-ne"]),
   particleEntry("object-o", ["Direct object", "Oggetto diretto"], ["Marks a licensed direct object.", "Segna un oggetto diretto consentito."]),
   particleEntry("goal-ni", ["Goal", "Meta"], ["Marks a movement goal.", "Segna una meta di movimento."]),
   particleEntry("direction-he", ["Direction", "Direzione"], ["Marks a direction.", "Segna una direzione."], ["base-particle-goal-ni"], ["base-particle-goal-ni"]),

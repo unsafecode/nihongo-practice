@@ -650,12 +650,12 @@ describe("Base reference catalog", () => {
         .join("");
     expect(surface("base-sentence-topic-subject-status")).toBe("がくせいは");
     expect(surface("base-sentence-topic-subject-status", 1)).toBe("せんせいが");
-    expect(surface("base-sentence-modifier-order")).toBe("がくせいのせんせい");
+    expect(surface("base-sentence-modifier-order")).toBe("さくらせんせい");
     expect(
       entries.find(
         ({ semanticId }) => semanticId === "base-sentence-modifier-order",
       )?.firstTeachLessonId,
-    ).toBe("topic-questions-3");
+    ).toBe("sentence-foundations-4");
 
     const firstCellSurfaces = entries.map(({ canonicalFormCells }) =>
       canonicalFormCells[0].tokens.map(({ jp }) => jp).join(""),
@@ -842,6 +842,8 @@ describe("Base reference catalog", () => {
       "base-particle-nominal-to",
       "base-particle-companion-to",
       "base-particle-question-ka",
+      "base-particle-interactional-ne",
+      "base-particle-interactional-yo",
       "base-particle-object-o",
       "base-particle-goal-ni",
       "base-particle-direction-he",
@@ -853,6 +855,11 @@ describe("Base reference catalog", () => {
       "base-particle-existence-ni",
       "base-particle-existential-ga",
     ]);
+    expect(
+      referenceById["sentence-anatomy"].entries.find(
+        ({ semanticId }) => semanticId === "base-sentence-modifier-order",
+      )?.sourceContentIds,
+    ).toContain("modifier-before-noun");
   });
 
   it("is deeply immutable", () => {

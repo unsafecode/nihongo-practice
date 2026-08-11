@@ -60,6 +60,8 @@ const PARTICLE_FRAME_SENSES = new Set([
   "listing-to",
   "nominal-to",
   "question-ka",
+  "interactional-ne",
+  "interactional-yo",
 ]);
 const PREDICATE_ASPECTS = new Set([
   "dynamic",

@@ -82,6 +82,20 @@ describe("Base sentence-foundations module", () => {
     ).not.toContain("affirmative-desu");
   });
 
+  it("assigns modifier-before-noun to SF4 with a genuine name-title model", () => {
+    const sf4 = BASE_SENTENCE_FOUNDATIONS_MODULE.lessons[3];
+    expect(sf4.content.introducedConceptIds).toContain("modifier-before-noun");
+    expect(
+      BASE_FIRST_TEACH_OWNERS.find(
+        ({ contentId }) => contentId === "modifier-before-noun",
+      )?.lessonId,
+    ).toBe("sentence-foundations-4");
+    expect(sf4.patternCellIds).toContain("sf4-modifier-before-noun");
+    expect(sf4.examples.map(({ tokens }) => jp(tokens))).toEqual(
+      expect.arrayContaining(["さくらせんせいです。", "けんせんせいです。"]),
+    );
+  });
+
   it("has 10-14 unique worked examples, complete matrices, and the full 8+2 practice contract", () => {
     for (const lesson of BASE_SENTENCE_FOUNDATIONS_MODULE.lessons) {
       expect(lesson.examples.length).toBeGreaterThanOrEqual(10);
@@ -167,7 +181,7 @@ describe("Base sentence-foundations module", () => {
       expect(authored.every(({ reviewed }) => reviewed)).toBe(true);
       expect(authored.every(({ promptContextCopyId }) => promptContextCopyId.length > 0))
         .toBe(true);
-      if (lesson.content.lessonId !== "sentence-foundations-4") {
+      if (lesson.content.lessonId === "sentence-foundations-3") {
         expect(authored.every(({ acceptedAnswerTarget }) =>
           !jp(acceptedAnswerTarget.tokens).includes("、"),
         )).toBe(true);
@@ -188,12 +202,11 @@ describe("Base sentence-foundations module", () => {
     BASE_SENTENCE_FOUNDATIONS_MODULE.lessons.forEach((lesson, lessonIndex) => {
       for (const { acceptedAnswerTarget } of lesson.activityDesigns) {
         const surface = jp(acceptedAnswerTarget.tokens);
-        if (lessonIndex < 2) {
-          if (surface.includes("→")) {
-            expect(acceptedAnswerTarget.lexemeIds.length).toBeGreaterThanOrEqual(2);
-          } else {
-            expect(acceptedAnswerTarget.lexemeIds).toHaveLength(1);
-          }
+        if (lessonIndex === 0) {
+          expect(acceptedAnswerTarget.lexemeIds.length).toBeGreaterThanOrEqual(2);
+          expect(surface).not.toContain("です");
+        } else if (lessonIndex === 1) {
+          expect(acceptedAnswerTarget.lexemeIds).toHaveLength(1);
           expect(surface).not.toMatch(/、|\u3067\u3059/);
         } else if (lessonIndex === 2) {
           expect(surface.endsWith("です")).toBe(true);
@@ -224,12 +237,17 @@ describe("Base sentence-foundations module", () => {
       const correctPositions = lesson.activityDesigns.map(({ correctOptionIndex }) =>
         correctOptionIndex,
       );
-      expect(correctPositions.filter((index) => index === 0)).toHaveLength(5);
-      expect(correctPositions.filter((index) => index === 1)).toHaveLength(5);
+      expect(
+        Math.abs(
+          correctPositions.filter((index) => index === 0).length -
+          correctPositions.filter((index) => index === 1).length,
+        ),
+      ).toBeLessThanOrEqual(1);
+      expect(correctPositions.filter((index) => index === null)).toHaveLength(1);
       sequences.push(correctPositions.join(""));
       expect(lesson.content.activities.map(({ optionTargetIds }) =>
         optionTargetIds?.length,
-      )).toEqual(Array(10).fill(2));
+      )).toEqual([...Array(9).fill(2), 0]);
       expect(lesson.activityDesigns.every(({ optionTargets }, index) =>
         lesson.content.activities[index].optionTargetIds?.every(
           (id, optionIndex) =>
@@ -382,10 +400,12 @@ describe("Base sentence-foundations module", () => {
         ) {
           for (const id of promptLexemes) {
             if (design.acceptedAnswerTarget.lexemeIds.includes(id)) {
+              const promptSurface = normalized(design.promptTarget.tokens);
+              const answerSurface = normalized(design.acceptedAnswerTarget.tokens);
               expect(
                 design.optionTargets.every((target) =>
                   target.lexemeIds.includes(id),
-                ),
+                ) || promptSurface.endsWith(answerSurface),
                 `${lesson.content.lessonId}:${design.id}:${id}`,
               ).toBe(true);
             }
@@ -431,6 +451,67 @@ describe("Base sentence-foundations module", () => {
         expect(example.tokens.every(({ jp }) => jp !== "→")).toBe(true);
         expect(example.roleModelId).toBeTruthy();
         expect(example.recoverableContextId).toBeTruthy();
+      }
+    }
+  });
+
+  it("uses multi-chunk SF1 fragments and explicit SF2 omission pairs without padding", () => {
+    const [sf1, sf2] = BASE_SENTENCE_FOUNDATIONS_MODULE.lessons;
+    expect(
+      sf1.examples.every(
+        ({ tokens }) => tokens.filter(({ kind }) => kind === "lexical").length >= 2,
+      ),
+    ).toBe(true);
+    const sf1Surfaces = new Set(sf1.examples.map(({ tokens }) => normalized(tokens)));
+    expect(
+      sf2.examples.some(({ tokens }) => sf1Surfaces.has(normalized(tokens))),
+    ).toBe(false);
+    const pairs = new Map<string | null | undefined, typeof sf2.examples[number][]>();
+    for (const example of sf2.examples) {
+      const pair = pairs.get(example.recoverableContextId) ?? [];
+      pair.push(example);
+      pairs.set(example.recoverableContextId, pair);
+    }
+    expect(pairs.size).toBe(5);
+    for (const pair of pairs.values()) {
+      expect(pair).toHaveLength(2);
+      expect(
+        pair.map(({ tokens }) =>
+          tokens.filter(({ kind }) => kind === "lexical").length,
+        ).sort(),
+      ).toEqual([1, 2]);
+    }
+  });
+
+  it("keeps spoken answers hidden while retaining a canonical grading target", () => {
+    for (const lesson of BASE_SENTENCE_FOUNDATIONS_MODULE.lessons) {
+      const index = lesson.activityDesigns.findIndex(
+        ({ operation }) => operation === "produce-spoken",
+      );
+      const design = lesson.activityDesigns[index] as typeof lesson.activityDesigns[number] & {
+        readonly acceptedAnswerTargetId?: string;
+      };
+      expect(design.optionTargetIds).toEqual([]);
+      expect(design.optionTargets).toEqual([]);
+      expect(design.correctOptionIndex).toBeNull();
+      expect(design.acceptedAnswerTargetId).toBe(
+        lesson.content.activities[index].targetId,
+      );
+      expect(lesson.content.activities[index].optionTargetIds).toEqual([]);
+    }
+  });
+
+  it("uses only shared fact ids and leaves structural activities non-factual", () => {
+    for (const lesson of BASE_SENTENCE_FOUNDATIONS_MODULE.lessons) {
+      for (const design of lesson.activityDesigns) {
+        expect(design.worldFactId ?? "").not.toMatch(/-fact-\d+$/);
+        if (
+          ["order-chunks", "transform-form", "discriminate-form-function"].includes(
+            design.operation,
+          )
+        ) {
+          expect(design.worldFactId).toBeNull();
+        }
       }
     }
   });
@@ -495,16 +576,18 @@ describe("Base sentence-foundations module", () => {
     );
     for (const lesson of BASE_SENTENCE_FOUNDATIONS_MODULE.lessons) {
       lesson.activityDesigns.forEach((design, index) => {
-        expect(design.worldFactId).toBeTruthy();
+        if (!design.worldFactId) return;
         expect(BASE_SENTENCE_FOUNDATIONS_MODULE.worldFactIds)
           .toContain(design.worldFactId);
         const fact = ledger.find(({ id }) => id === design.worldFactId);
         expect(fact?.acceptedTargetIds).toContain(
-          design.optionTargetIds[design.correctOptionIndex ?? 0],
+          design.acceptedAnswerTargetId,
         );
-        expect(fact?.rejectedTargetIds).toContain(
-          design.optionTargetIds[design.correctOptionIndex === 0 ? 1 : 0],
-        );
+        if (design.correctOptionIndex !== null) {
+          expect(fact?.rejectedTargetIds).toContain(
+            design.optionTargetIds[design.correctOptionIndex === 0 ? 1 : 0],
+          );
+        }
         expect(index).toBeGreaterThanOrEqual(0);
       });
     }
@@ -701,8 +784,8 @@ describe("Base sentence-foundations module", () => {
     const reviewed = [
       ["sentence-foundations-3-example-1-translation", "かんごしです", "They're a nurse.", "È infermiere."],
       ["sentence-foundations-3-example-2-translation", "べんごしです", "They're a lawyer.", "È avvocato."],
-      ["sentence-foundations-4-example-2-translation", "たなかさん、かんごしです", "As for Tanaka—they're a nurse.", "Quanto a Tanaka, è infermiere."],
-      ["sentence-foundations-4-example-3-translation", "やまださん、ひとです", "As for Yamada—they're a person.", "Quanto a Yamada, è una persona."],
+      ["sentence-foundations-4-example-1-translation", "さくらせんせいです。", "This is Professor Sakura.", "È la professoressa Sakura."],
+      ["sentence-foundations-4-example-2-translation", "けんせんせいです。", "This is Professor Ken.", "È il professor Ken."],
     ] as const;
     const examples = new Map(
       BASE_SENTENCE_FOUNDATIONS_EXAMPLES.map((example) => [

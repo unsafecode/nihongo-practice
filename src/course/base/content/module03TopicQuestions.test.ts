@@ -16,6 +16,7 @@ import {
   validateBaseTopicQuestionsModule,
 } from "./module03TopicQuestions";
 import { baseActivityPromptKey } from "../catalog/visibleTargets";
+import { BASE_SENTENCE_FOUNDATIONS_MODULE } from "./module02SentenceFoundations";
 
 function jp(tokens: readonly { readonly jp: string }[]): string {
   return tokens.map(({ jp }) => jp).join("");
@@ -88,12 +89,156 @@ describe("Base topic-questions module", () => {
     expect(owner("focus-subject-ga")).toBe("topic-questions-2");
     expect(owner("possessive-attributive-no")).toBe("topic-questions-3");
     expect(owner("additive-mo")).toBe("topic-questions-3");
-    expect(owner("nominal-to")).toBe("topic-questions-4");
-    expect(owner("listing-to")).toBe("topic-questions-4");
-    expect(owner("companion-to")).toBe("topic-questions-4");
+    expect(owner("nominal-to")).toBe("topic-questions-3");
+    expect(owner("listing-to")).toBe("topic-questions-3");
+    expect(owner("companion-to")).toBe("topic-questions-3");
     expect(owner("question-ka")).toBe("topic-questions-4");
+    expect(owner("interactional-ne" as never)).toBe("topic-questions-4");
+    expect(owner("interactional-yo" as never)).toBe("topic-questions-4");
     expect(module03ConceptIds).toContain("possessive-no");
     expect(module03ConceptIds).not.toContain("explanatory-no");
+  });
+
+  it("implements the authoritative TQ3 and TQ4 concept sequence", () => {
+    const [,, tq3, tq4] = BASE_TOPIC_QUESTIONS_MODULE.lessons;
+    expect(tq3.content.introducedConceptIds).toEqual(
+      expect.arrayContaining([
+        "possessive-no",
+        "additive-mo",
+        "nominal-listing-to",
+        "companion-to",
+      ]),
+    );
+    expect(tq3.content.introducedConceptIds).not.toContain("modifier-before-noun");
+    expect(tq3.content.reviewedConceptIds).toContain("modifier-before-noun");
+    expect(tq4.content.introducedConceptIds).toEqual(
+      expect.arrayContaining(["question-ka", "interactional-ne", "interactional-yo"]),
+    );
+    expect(tq4.content.introducedConceptIds).not.toContain("companion-to");
+    expect(tq3.patternCellIds).toEqual(
+      expect.arrayContaining([
+        "tq3-attributive-no",
+        "tq3-additive-mo",
+        "tq3-nominal-list",
+        "tq3-companion",
+      ]),
+    );
+    expect(tq4.patternCellIds).toEqual(
+      expect.arrayContaining([
+        "tq4-question-answer",
+        "tq4-interactional-ne",
+        "tq4-interactional-yo",
+      ]),
+    );
+  });
+
+  it("uses hiragana-first country spellings and no unowned katakana", () => {
+    const visible = visibleJapaneseFor(
+      BASE_TOPIC_QUESTIONS_MODULE.sequence,
+      BASE_TOPIC_QUESTIONS_VALIDATION_CATALOGS,
+    );
+    expect(visible).toContain("あめりか");
+    expect(visible).toContain("いたりあ");
+    expect(visible).not.toMatch(/[\u30A0-\u30FF]/u);
+  });
+
+  it("uses negative polarity for correction and grammatical question competitors", () => {
+    const tq2Diagnosis = BASE_TOPIC_QUESTIONS_MODULE.lessons[1].activityDesigns[5];
+    expect(jp(tq2Diagnosis.acceptedAnswerTarget.tokens)).toBe(
+      "すずきさんがせんせいです",
+    );
+    const tq4 = BASE_TOPIC_QUESTIONS_MODULE.lessons[3];
+    expect(jp(tq4.activityDesigns[5].acceptedAnswerTarget.tokens)).toBe(
+      "いいえ、いたりあですよ",
+    );
+    expect(jp(tq4.activityDesigns[6].acceptedAnswerTarget.tokens)).not.toBe(
+      jp(tq4.activityDesigns[5].acceptedAnswerTarget.tokens),
+    );
+    const visible = tq4.activityDesigns.flatMap(
+      ({ promptTarget, optionTargets, acceptedAnswerTarget }) => [
+        jp(promptTarget.tokens),
+        jp(acceptedAnswerTarget.tokens),
+        ...optionTargets.map(({ tokens }) => jp(tokens)),
+      ],
+    );
+    expect(visible.some((surface) => surface.includes("だれは"))).toBe(false);
+  });
+
+  it("keeps spoken grading targets hidden from learner-visible options", () => {
+    for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
+      const index = lesson.activityDesigns.findIndex(
+        ({ operation }) => operation === "produce-spoken",
+      );
+      const design = lesson.activityDesigns[index] as typeof lesson.activityDesigns[number] & {
+        readonly acceptedAnswerTargetId?: string;
+      };
+      expect(design.optionTargetIds).toEqual([]);
+      expect(design.optionTargets).toEqual([]);
+      expect(design.correctOptionIndex).toBeNull();
+      expect(design.acceptedAnswerTargetId).toBe(
+        lesson.content.activities[index].targetId,
+      );
+      expect(lesson.content.activities[index].optionTargetIds).toEqual([]);
+    }
+  });
+
+  it("has no accidental normalized example reuse across the eight lessons", () => {
+    const allLessons = [
+      ...BASE_SENTENCE_FOUNDATIONS_MODULE.lessons,
+      ...BASE_TOPIC_QUESTIONS_MODULE.lessons,
+    ];
+    const seen = new Map<string, string>();
+    for (const lesson of allLessons) {
+      for (const example of lesson.examples) {
+        const surface = normalized(example.tokens);
+        expect(seen.get(surface), surface).toBeUndefined();
+        seen.set(surface, lesson.content.lessonId);
+      }
+    }
+  });
+
+  it("links selection prompts to every option or to an explicit shared fact", () => {
+    for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
+      for (const design of lesson.activityDesigns) {
+        if (
+          ["order-chunks", "transform-form", "diagnose-error", "identify-audio", "produce-spoken"]
+            .includes(design.operation)
+        ) {
+          continue;
+        }
+        const promptLexemes = design.promptTarget.lexemeIds;
+        const shared = promptLexemes.some((id) =>
+          design.optionTargets.every(({ lexemeIds }) => lexemeIds.includes(id)),
+        );
+        expect(
+          shared || (design.worldFactId !== null && design.referentId !== null),
+          `${lesson.content.lessonId}:${design.id}`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("does not describe wa-marked examples as focused", () => {
+    const tq2 = BASE_TOPIC_QUESTIONS_MODULE.lessons[1];
+    tq2.examples.forEach((example, index) => {
+      if (!particleSenses(example).includes("topic-wa")) return;
+      const purposeId = `topic-questions-2-example-${index + 1}-purpose`;
+      expect(baseNavigationCopyEn.content[purposeId]).not.toMatch(/focus/i);
+      expect(baseNavigationCopyIt.content[purposeId]).not.toMatch(/focal/i);
+    });
+  });
+
+  it("uses shared fact ids only for factual activities", () => {
+    for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
+      for (const design of lesson.activityDesigns) {
+        expect(design.worldFactId ?? "").not.toMatch(/-fact-\d+$/);
+        if (!design.worldFactId) {
+          expect(design.operationEvidence.errorCode).not.toBe(
+            "world-fact-mismatch",
+          );
+        }
+      }
+    }
   });
 
   it("has system/content example density plus a genuine additional clarification dialogue", () => {
@@ -150,11 +295,11 @@ describe("Base topic-questions module", () => {
     const dialogue = BASE_TOPIC_QUESTIONS_MODULE.lessons[3].dialogue;
     expect(dialogue?.turns.map(({ tokens }) => jp(tokens))).toEqual([
       "なまえはなんですか",
-      "ゆきです",
-      "くにはイタリアですか",
-      "はい、イタリアです",
+      "ゆきですよ",
+      "くにはいたりあですか",
+      "はい、いたりあです",
       "たなかさんとともだちですか",
-      "はい、そうです",
+      "はい、そうですよ",
     ]);
     expect(dialogue?.referentLedger).toEqual({
       learner: "speaker",
@@ -174,13 +319,19 @@ describe("Base topic-questions module", () => {
         expect(lesson.content.activities[index].optionTargetIds).toEqual(
           design.optionTargetIds,
         );
-        expect(design.optionTargets).toHaveLength(2);
-        expect(design.optionFactStatus[design.correctOptionIndex ?? 0]).toBe(
-          "accepted-world",
+        expect(design.optionTargets).toHaveLength(
+          design.operation === "produce-spoken" ? 0 : 2,
         );
-        expect(
-          design.optionFactStatus.filter((status) => status === "rejected-context"),
-        ).toHaveLength(1);
+        if (design.correctOptionIndex === null) {
+          expect(design.optionFactStatus).toEqual([]);
+        } else {
+          expect(design.optionFactStatus[design.correctOptionIndex]).toBe(
+            "accepted-world",
+          );
+          expect(
+            design.optionFactStatus.filter((status) => status === "rejected-context"),
+          ).toHaveLength(1);
+        }
         design.optionTargetIds.forEach((id, optionIndex) => {
           expect(
             BASE_TOPIC_QUESTIONS_VALIDATION_CATALOGS.acceptedAnswerTargets.get(id),
@@ -249,8 +400,13 @@ describe("Base topic-questions module", () => {
       lesson.activityDesigns.map(({ correctOptionIndex }) => correctOptionIndex),
     );
     sequences.forEach((sequence) => {
-      expect(sequence.filter((index) => index === 0)).toHaveLength(5);
-      expect(sequence.filter((index) => index === 1)).toHaveLength(5);
+      expect(
+        Math.abs(
+          sequence.filter((index) => index === 0).length -
+          sequence.filter((index) => index === 1).length,
+        ),
+      ).toBeLessThanOrEqual(1);
+      expect(sequence.filter((index) => index === null)).toHaveLength(1);
     });
     expect(new Set(sequences.map((sequence) => sequence.join(""))).size).toBe(4);
     for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
@@ -277,7 +433,10 @@ describe("Base topic-questions module", () => {
             answers.filter((_, answerIndex) => answerIndex !== index),
           );
           expect(
-            otherAnswers.has(jp(promptTarget.tokens)),
+            otherAnswers.has(jp(promptTarget.tokens)) &&
+              !jp(promptTarget.tokens).endsWith(
+                jp(lesson.activityDesigns[index].acceptedAnswerTarget.tokens),
+              ),
             `${lesson.content.lessonId}:${index + 1}:prompt:${jp(promptTarget.tokens)}`,
           ).toBe(false);
           optionTargets.forEach((target, optionIndex) => {
@@ -315,13 +474,15 @@ describe("Base topic-questions module", () => {
     BASE_TOPIC_QUESTIONS_MODULE.lessons.forEach((lesson, lessonIndex) => {
       for (const { acceptedAnswerTarget } of lesson.activityDesigns) {
         const surface = jp(acceptedAnswerTarget.tokens);
+        const clause = surface.replace(/。$/u, "");
         if (lessonIndex < 3) {
-          expect(surface.endsWith("です")).toBe(true);
+          expect(clause.endsWith("です")).toBe(true);
         } else {
           expect(
-            surface.endsWith("です") ||
-              surface.endsWith("ですか") ||
-              ["アメリカとイタリア", "くにとなまえ"].includes(surface),
+            clause.endsWith("です") ||
+              clause.endsWith("ですか") ||
+              clause.endsWith("ですね") ||
+              clause.endsWith("ですよ"),
           ).toBe(true);
         }
       }
@@ -405,9 +566,11 @@ describe("Base topic-questions module", () => {
       "tq2-wa-ga-contrast": ["topic-wa"],
       "tq3-attributive-no": ["possessive-attributive-no"],
       "tq3-additive-mo": ["additive-mo"],
+      "tq3-nominal-list": ["listing-to", "nominal-to"],
+      "tq3-companion": ["companion-to"],
       "tq4-question-answer": ["question-ka", "response-expression"],
-      "tq4-nominal-list": ["listing-to", "nominal-to"],
-      "tq4-companion": ["companion-to"],
+      "tq4-interactional-ne": ["interactional-ne"],
+      "tq4-interactional-yo": ["interactional-yo"],
     };
     for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
       for (const design of lesson.activityDesigns) {
@@ -424,7 +587,7 @@ describe("Base topic-questions module", () => {
             : []),
         ];
         expect(
-          expectedSenseByCell[design.patternCellId].some((sense) =>
+          (expectedSenseByCell[design.patternCellId] ?? []).some((sense) =>
             realizedSenses.includes(sense),
           ),
           `${lesson.content.lessonId}:${design.id}:${design.patternCellId}`,
@@ -463,7 +626,7 @@ describe("Base topic-questions module", () => {
           ),
         ).toBe(true);
         const visibleContent = new Set(
-          design.optionTargets.flatMap((target) => [
+          [design.acceptedAnswerTarget, ...design.optionTargets].flatMap((target) => [
             ...target.conceptIds,
             ...target.formIds,
           ]),
@@ -490,7 +653,8 @@ describe("Base topic-questions module", () => {
               expect(
                 design.optionTargets.every((target) =>
                   target.lexemeIds.includes(id),
-                ),
+                ) ||
+                  (design.worldFactId !== null && design.referentId !== null),
                 `${lesson.content.lessonId}:${design.id}:${id}`,
               ).toBe(true);
             }
@@ -570,7 +734,7 @@ describe("Base topic-questions module", () => {
     );
     for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
       for (const design of lesson.activityDesigns) {
-        expect(design.worldFactId).toBeTruthy();
+        if (!design.worldFactId) continue;
         expect(BASE_TOPIC_QUESTIONS_MODULE.worldFactIds)
           .toContain(design.worldFactId);
         if (design.operationEvidence.errorCode === "world-fact-mismatch") {
@@ -583,11 +747,13 @@ describe("Base topic-questions module", () => {
         }
         const fact = ledger.find(({ id }) => id === design.worldFactId);
         expect(fact?.acceptedTargetIds).toContain(
-          design.optionTargetIds[design.correctOptionIndex ?? 0],
+          design.acceptedAnswerTargetId,
         );
-        expect(fact?.rejectedTargetIds).toContain(
-          design.optionTargetIds[design.correctOptionIndex === 0 ? 1 : 0],
-        );
+        if (design.correctOptionIndex !== null) {
+          expect(fact?.rejectedTargetIds).toContain(
+            design.optionTargetIds[design.correctOptionIndex === 0 ? 1 : 0],
+          );
+        }
       }
     }
   });
@@ -614,10 +780,11 @@ describe("Base topic-questions module", () => {
       expect(lesson.dialogue?.turns.every(({ utteranceKind }) => utteranceKind) ?? true)
         .toBe(true);
     }
-    const list = BASE_TOPIC_QUESTIONS_MODULE.lessons[3].examples.find(
-      ({ tokens }) => jp(tokens) === "なまえとくに",
-    );
-    expect(list?.utteranceKind).toBe("contextual-fragment");
+    expect(
+      BASE_TOPIC_QUESTIONS_MODULE.lessons[3].examples.every(
+        ({ utteranceKind }) => utteranceKind === "complete-clause",
+      ),
+    ).toBe(true);
   });
 
   it("keeps instructions free of target strings and Japanese answer leakage", () => {
@@ -640,16 +807,15 @@ describe("Base topic-questions module", () => {
   it("keeps Yuki's country Italy in every accepted world surface", () => {
     const tq4 = BASE_TOPIC_QUESTIONS_MODULE.lessons[3];
     for (const design of tq4.activityDesigns.filter(
-      ({ referentId }) => referentId === "yuki",
+      ({ worldFactId }) => worldFactId === "yuki-country",
     )) {
       const accepted = jp(design.acceptedAnswerTarget.tokens);
-      const rejected = jp(
-        design.optionTargets[design.correctOptionIndex === 0 ? 1 : 0].tokens,
-      );
       expect(accepted).not.toContain("アメリカ");
       if (design.worldFactId === "yuki-country") {
-        expect(accepted).toContain("イタリア");
-        expect(rejected).toContain("アメリカ");
+        expect(accepted).toContain("いたりあ");
+        if (design.operationEvidence.errorCode === "world-fact-mismatch") {
+          expect(jp(design.promptTarget.tokens)).toContain("あめりか");
+        }
       }
     }
   });
@@ -727,7 +893,7 @@ describe("Base topic-questions module", () => {
     const reviewed = [
       [
         "topic-questions-2-example-1-translation",
-        "たなかさんがかんごしです",
+        "たなかさんがかんごしです。",
         "Tanaka is the one who is the nurse.",
         "È Tanaka a essere l'infermiere.",
       ],
@@ -738,14 +904,14 @@ describe("Base topic-questions module", () => {
         "Lo studente è Satou.",
       ],
       [
-        "topic-questions-3-example-5-translation",
-        "たなかさんのおとうさんです",
+        "topic-questions-3-example-3-translation",
+        "たなかさんのおとうさんです。",
         "This is Tanaka's father (respectful reference).",
         "È il padre di Tanaka (riferimento rispettoso).",
       ],
       [
-        "topic-questions-4-example-3-translation",
-        "なまえはゆきですか",
+        "topic-questions-4-example-2-translation",
+        "なまえはゆきですか。",
         "Is the name Yuki?",
         "Il nome è Yuki?",
       ],
@@ -762,13 +928,13 @@ describe("Base topic-questions module", () => {
 
   it("keeps activity instructions semantically aligned in both locales", () => {
     expect(baseNavigationCopyEn.content["topic-questions-4-activity-8-instruction"])
-      .toMatch(/relationship|companion/i);
+      .toMatch(/new information|update/i);
     expect(baseNavigationCopyIt.content["topic-questions-4-activity-8-instruction"])
-      .toMatch(/relazione|compagnia/i);
+      .toMatch(/informazione nuova|aggiornamento/i);
     expect(baseNavigationCopyEn.content["topic-questions-2-activity-1-instruction"])
       .toMatch(/newly selected|open/i);
     expect(baseNavigationCopyIt.content["topic-questions-2-activity-1-instruction"])
-      .toMatch(/appena selezionata|aperto/i);
+      .toMatch(/appena selezionata|si apre|aperto/i);
   });
 
   it("uses operation-specific diagnostic copy", () => {

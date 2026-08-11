@@ -32,7 +32,9 @@ export type BaseParticleSense =
   | "companion-to"
   | "listing-to"
   | "nominal-to"
-  | "question-ka";
+  | "question-ka"
+  | "interactional-ne"
+  | "interactional-yo";
 
 export type BaseParticleRole =
   | Extract<SemanticArgumentRole, "theme" | "goal">
@@ -119,10 +121,12 @@ export const BASE_PARTICLE_SENSES: readonly BaseParticleSenseDefinition[] = deep
   { id: "limit-made", firstTeachLessonId: "time-movement-2" },
   { id: "possessive-attributive-no", firstTeachLessonId: "topic-questions-3" },
   { id: "additive-mo", firstTeachLessonId: "topic-questions-3" },
-  { id: "companion-to", firstTeachLessonId: "topic-questions-4" },
-  { id: "listing-to", firstTeachLessonId: "topic-questions-4" },
-  { id: "nominal-to", firstTeachLessonId: "topic-questions-4" },
+  { id: "companion-to", firstTeachLessonId: "topic-questions-3" },
+  { id: "listing-to", firstTeachLessonId: "topic-questions-3" },
+  { id: "nominal-to", firstTeachLessonId: "topic-questions-3" },
   { id: "question-ka", firstTeachLessonId: "topic-questions-4" },
+  { id: "interactional-ne", firstTeachLessonId: "topic-questions-4" },
+  { id: "interactional-yo", firstTeachLessonId: "topic-questions-4" },
 ]);
 
 const BASE_PARTICLE_SURFACE_BY_SENSE: Readonly<
@@ -146,6 +150,8 @@ const BASE_PARTICLE_SURFACE_BY_SENSE: Readonly<
   "listing-to": { kana: "と", romaji: "to" },
   "nominal-to": { kana: "と", romaji: "to" },
   "question-ka": { kana: "か", romaji: "ka" },
+  "interactional-ne": { kana: "ね", romaji: "ne" },
+  "interactional-yo": { kana: "よ", romaji: "yo" },
 });
 
 /** Returns the one canonical token sequence for a licensed particle sense. */
@@ -192,6 +198,8 @@ const PARTICLE_SENSE_CONTENT_ENTRIES: readonly (readonly [
   ["listing-to", "nominal-listing-to"],
   ["nominal-to", "nominal-listing-to"],
   ["question-ka", "question-ka"],
+  ["interactional-ne", "interactional-ne"],
+  ["interactional-yo", "interactional-yo"],
 ];
 
 export const BASE_PARTICLE_SENSE_CONTENT_ID_BY_SENSE: Readonly<

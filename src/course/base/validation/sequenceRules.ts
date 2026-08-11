@@ -977,7 +977,9 @@ export function visibleJapaneseFor(
           );
         }
       }
-      appendActivityTarget(activity);
+      if (activity.operation !== "produce-spoken") {
+        appendActivityTarget(activity);
+      }
     }
     if (lesson.contract === "phonetic") {
       for (const audioExemplarId of lesson.audioExemplarIds) {
