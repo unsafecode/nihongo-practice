@@ -53,6 +53,12 @@ export default defineConfig(({ mode }) => {
             ) {
               return "course-foundations";
             }
+            // Base copy is leaf localization data imported by the course i18n
+            // catalog. It has no runtime import back into that catalog, so this
+            // narrow split trims the entry without creating a static chunk
+            // cycle or pulling the currently-unbundled Base content/audio data
+            // into production ahead of Tasks 13–15.
+            if (id.includes("/src/course/base/copy/")) return "course-base-copy";
             if (id.includes("/src/course/a1/catalog/")) return "course-a1-catalog";
             if (id.includes("/src/course/a2/content/")) return "course-a2-content";
             if (id.includes("node_modules")) {
