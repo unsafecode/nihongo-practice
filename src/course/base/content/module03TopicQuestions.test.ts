@@ -20,6 +20,21 @@ function jp(tokens: readonly { readonly jp: string }[]): string {
   return tokens.map(({ jp }) => jp).join("");
 }
 
+function normalized(tokens: readonly { readonly jp: string }[]): string {
+  return jp(tokens).normalize("NFKC").replace(/[、◇◎●♪↺]/g, "").replace(/ですか?$/, "");
+}
+
+function particleSenses(target: {
+  readonly tokens: readonly {
+    readonly kind: string;
+    readonly source: { readonly referenceId: string };
+  }[];
+}): readonly string[] {
+  return target.tokens
+    .filter(({ kind }) => kind === "particle")
+    .map(({ source }) => source.referenceId);
+}
+
 describe("Base topic-questions module", () => {
   it("publishes the exact stable route order and contracts", () => {
     expect(BASE_TOPIC_QUESTIONS_LESSONS.map(({ lessonId, contract }) => [
@@ -175,7 +190,12 @@ describe("Base topic-questions module", () => {
           design.acceptedAnswerTarget,
           ...design.optionTargets,
         ]) {
-          expect(target.lexemeIds.every((id) => declared.has(id))).toBe(true);
+          expect(
+            target.lexemeIds.every((id) => declared.has(id)),
+            `${lesson.content.lessonId}:${design.id}:${target.lexemeIds
+              .filter((id) => !declared.has(id))
+              .join(",")}`,
+          ).toBe(true);
         }
       });
     }
@@ -255,7 +275,10 @@ describe("Base topic-questions module", () => {
           const otherAnswers = new Set(
             answers.filter((_, answerIndex) => answerIndex !== index),
           );
-          expect(otherAnswers.has(jp(promptTarget.tokens))).toBe(false);
+          expect(
+            otherAnswers.has(jp(promptTarget.tokens)),
+            `${lesson.content.lessonId}:${index + 1}:prompt:${jp(promptTarget.tokens)}`,
+          ).toBe(false);
           optionTargets.forEach((target, optionIndex) => {
             if (optionIndex !== correctOptionIndex) {
               expect(
@@ -316,6 +339,227 @@ describe("Base topic-questions module", () => {
     expect(tq2.activityDesigns.every(({ prompt, acceptedAnswers }) =>
       !acceptedAnswers.includes(prompt),
     )).toBe(true);
+    for (const design of tq2.activityDesigns.slice(0, 4)) {
+      expect(design.promptTarget.lexemeIds).toEqual([]);
+      expect(design.contextTarget.kind).toBe("information-structure");
+      expect(design.contextTarget.informationStructure).toBe(
+        design.informationStructure,
+      );
+      expect(
+        design.informationStructure === "focused-new-subject"
+          ? particleSenses(design.acceptedAnswerTarget).includes("focus-subject-ga")
+          : particleSenses(design.acceptedAnswerTarget).includes("topic-wa"),
+      ).toBe(true);
+    }
+    for (const design of tq2.activityDesigns.slice(4, 6)) {
+      expect(design.promptTarget.tokens.length).toBeGreaterThanOrEqual(3);
+      expect(design.contextTarget.kind).toBe("information-structure");
+    }
+  });
+
+  it("authors explicit operation metadata and operation-specific evidence", () => {
+    for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
+      lesson.activityDesigns.forEach((design, index) => {
+        const activity = lesson.content.activities[index];
+        expect({
+          category: design.category,
+          interactionKind: design.interactionKind,
+          mode: design.mode,
+          operation: design.operation,
+        }).toEqual({
+          category: activity.category,
+          interactionKind: activity.interactionKind,
+          mode: activity.mode,
+          operation: activity.operation,
+        });
+        expect(design.operationEvidence.kind).toBe(design.operation);
+        if (design.operation === "order-chunks") {
+          expect(design.operationEvidence.tileTargetIds?.length)
+            .toBeGreaterThanOrEqual(2);
+        }
+        if (design.operation === "transform-form") {
+          expect(design.operationEvidence.sourceTargetId).toBeTruthy();
+        }
+        if (design.operation === "diagnose-error") {
+          expect(design.operationEvidence.errorCode).toBeTruthy();
+          expect(design.operationEvidence.candidateTargetId).toBe(
+            design.optionTargetIds[design.correctOptionIndex === 0 ? 1 : 0],
+          );
+        }
+        if (design.operation === "identify-audio") {
+          expect(design.contextTarget.audioRequired).toBe(true);
+        }
+        if (design.operation === "produce-spoken") {
+          expect(design.contextTarget.recallRequired).toBe(true);
+        }
+      });
+    }
+  });
+
+  it("realizes each authored particle pattern cell in the accepted answer", () => {
+    const expectedSenseByCell: Readonly<Record<string, readonly string[]>> = {
+      "tq1-topic-comment": ["topic-wa"],
+      "tq1-topic-contrast": ["topic-wa"],
+      "tq2-focused-subject": ["focus-subject-ga"],
+      "tq2-wa-ga-contrast": ["topic-wa"],
+      "tq3-attributive-no": ["possessive-attributive-no"],
+      "tq3-additive-mo": ["additive-mo"],
+      "tq4-question-answer": ["question-ka", "response-expression"],
+      "tq4-nominal-list": ["listing-to", "nominal-to"],
+      "tq4-companion": ["companion-to"],
+    };
+    for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
+      for (const design of lesson.activityDesigns) {
+        expect(design.patternCellId).toBe(
+          design.acceptedAnswerTarget.patternCellIds[0],
+        );
+        const senses = particleSenses(design.acceptedAnswerTarget);
+        const realizedSenses = [
+          ...senses,
+          ...(design.acceptedAnswerTarget.lexemeIds.some((id) =>
+            ["expression-hai", "expression-iie"].includes(id),
+          )
+            ? ["response-expression"]
+            : []),
+        ];
+        expect(
+          expectedSenseByCell[design.patternCellId].some((sense) =>
+            realizedSenses.includes(sense),
+          ),
+          `${lesson.content.lessonId}:${design.id}:${design.patternCellId}`,
+        ).toBe(true);
+        design.optionTargets.forEach((target, optionIndex) => {
+          expect(target.patternCellIds).toEqual(
+            optionIndex === design.correctOptionIndex
+              ? [design.patternCellId]
+              : [],
+          );
+        });
+      }
+    }
+  });
+
+  it("derives concept evidence only from visible answer and option forms", () => {
+    for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
+      lesson.activityDesigns.forEach((design, index) => {
+        expect(design.promptTarget.patternCellIds).toEqual([]);
+        const promptParticleContentIds = new Set(
+          particleSenses(design.promptTarget).map((sense) => {
+            if (sense === "possessive-attributive-no") return "possessive-no";
+            if (sense === "listing-to" || sense === "nominal-to") {
+              return "nominal-listing-to";
+            }
+            return sense;
+          }),
+        );
+        if (particleSenses(design.promptTarget).includes("possessive-attributive-no")) {
+          promptParticleContentIds.add("modifier-before-noun");
+        }
+        expect(
+          design.promptTarget.conceptIds.every((id) =>
+            promptParticleContentIds.has(id),
+          ),
+        ).toBe(true);
+        const visibleContent = new Set(
+          design.optionTargets.flatMap((target) => [
+            ...target.conceptIds,
+            ...target.formIds,
+          ]),
+        );
+        expect(
+          lesson.content.activities[index].assessedConceptIds.every((id) =>
+            visibleContent.has(id),
+          ),
+        ).toBe(true);
+      });
+    }
+  });
+
+  it("uses typed non-echo contexts for listening, speaking, and natural nan", () => {
+    for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
+      for (const design of lesson.activityDesigns) {
+        const promptLexemes = new Set(design.promptTarget.lexemeIds);
+        if (
+          design.operation !== "transform-form" &&
+          design.operation !== "diagnose-error"
+        ) {
+          expect(
+            design.acceptedAnswerTarget.lexemeIds.some((id) =>
+              promptLexemes.has(id),
+            ),
+            `${lesson.content.lessonId}:${design.id}`,
+          ).toBe(false);
+          expect(normalized(design.promptTarget.tokens)).not.toBe(
+            normalized(design.acceptedAnswerTarget.tokens),
+          );
+        } else {
+          expect(jp(design.promptTarget.tokens)).not.toBe(
+            jp(design.acceptedAnswerTarget.tokens),
+          );
+        }
+        if (design.operation === "identify-audio") {
+          expect(design.contextTarget.audioRequired).toBe(true);
+        }
+        if (design.operation === "produce-spoken") {
+          expect(design.contextTarget.recallRequired).toBe(true);
+        }
+      }
+    }
+    const nanTargets = BASE_TOPIC_QUESTIONS_MODULE.lessons.flatMap(
+      ({ examples, dialogue, activityDesigns }) => [
+        ...examples,
+        ...(dialogue?.turns ?? []),
+        ...activityDesigns.flatMap(({ promptTarget, optionTargets }) => [
+          promptTarget,
+          ...optionTargets,
+        ]),
+      ],
+    ).filter(({ lexemeIds }) => lexemeIds.includes("noun-nan"));
+    expect(nanTargets.length).toBeGreaterThan(0);
+    expect(nanTargets.every((target) => jp(target.tokens).includes("なんですか")))
+      .toBe(true);
+  });
+
+  it("keeps Yuki's country Italy in every accepted world surface", () => {
+    const tq4 = BASE_TOPIC_QUESTIONS_MODULE.lessons[3];
+    for (const design of tq4.activityDesigns.filter(
+      ({ referentId }) => referentId === "yuki",
+    )) {
+      const accepted = jp(design.acceptedAnswerTarget.tokens);
+      const rejected = jp(
+        design.optionTargets[design.correctOptionIndex === 0 ? 1 : 0].tokens,
+      );
+      expect(accepted).not.toContain("アメリカ");
+      if (design.worldFactId === "yuki-country") {
+        expect(accepted).toContain("イタリア");
+        expect(rejected).toContain("アメリカ");
+      }
+    }
+  });
+
+  it("mixes non-alternating position and length fingerprints", () => {
+    const fingerprints = new Set<string>();
+    for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
+      const fingerprint = lesson.activityDesigns
+        .map(({ correctOptionIndex }) => correctOptionIndex)
+        .join("");
+      fingerprints.add(fingerprint);
+      expect(fingerprint).not.toBe("0101010101");
+      expect(fingerprint).not.toBe("1010101010");
+      const distribution = { longer: 0, shorter: 0, tie: 0 };
+      lesson.activityDesigns.forEach(({ optionTargets, correctOptionIndex }) => {
+        const lengths = optionTargets.map(({ tokens }) => jp(tokens).length);
+        const correct = correctOptionIndex ?? 0;
+        const other = correct === 0 ? 1 : 0;
+        if (lengths[correct] > lengths[other]) distribution.longer += 1;
+        else if (lengths[correct] < lengths[other]) distribution.shorter += 1;
+        else distribution.tie += 1;
+      });
+      expect(distribution.longer).toBeGreaterThanOrEqual(2);
+      expect(distribution.shorter).toBeGreaterThanOrEqual(2);
+      expect(distribution.tie).toBeGreaterThanOrEqual(2);
+    }
+    expect(fingerprints.size).toBe(4);
   });
 
   it("maps reviewed Japanese meanings to explicit EN and IT records", () => {
@@ -329,6 +573,18 @@ describe("Base topic-questions module", () => {
       expect(lesson.reviewedTranslations).toHaveLength(lesson.examples.length);
     }
     const reviewed = [
+      [
+        "topic-questions-2-example-1-translation",
+        "たなかさんがかんごしです",
+        "Tanaka is the one who is the nurse.",
+        "È Tanaka a essere l'infermiere.",
+      ],
+      [
+        "topic-questions-2-example-4-translation",
+        "がくせいはさとうさんです",
+        "The student is Satou.",
+        "Lo studente è Satou.",
+      ],
       [
         "topic-questions-3-example-5-translation",
         "たなかさんのおとうさんです",
@@ -350,6 +606,25 @@ describe("Base topic-questions module", () => {
         expect.objectContaining({ copyId, japanese, en, it }),
       );
     }
+  });
+
+  it("keeps activity instructions semantically aligned in both locales", () => {
+    expect(baseNavigationCopyEn.content["topic-questions-4-activity-8-instruction"])
+      .toContain("friends with Yuki");
+    expect(baseNavigationCopyIt.content["topic-questions-4-activity-8-instruction"])
+      .toMatch(/amico\/a di Yuki/);
+    expect(baseNavigationCopyIt.content["topic-questions-3-activity-10-instruction"])
+      .toContain("おかあさん");
+    expect(baseNavigationCopyIt.content["topic-questions-3-activity-10-instruction"])
+      .not.toContain("madre rispettosa");
+    expect(baseNavigationCopyEn.content["topic-questions-1-activity-1-instruction"])
+      .toMatch(/Tokyo.*not.*city/i);
+    expect(baseNavigationCopyIt.content["topic-questions-1-activity-1-instruction"])
+      .toMatch(/Tokyo.*non.*città/i);
+    expect(baseNavigationCopyEn.content["topic-questions-1-activity-4-instruction"])
+      .toMatch(/university student/i);
+    expect(baseNavigationCopyEn.content["sentence-foundations-4-activity-4-instruction"])
+      .toMatch(/student.*international/i);
   });
 
   it("uses operation-specific diagnostic copy", () => {
@@ -601,6 +876,25 @@ describe("Base topic-questions module", () => {
                 ...firstLesson.content.activities.slice(1),
               ],
             },
+          },
+          ...BASE_TOPIC_QUESTIONS_MODULE.lessons.slice(1),
+        ],
+      }).ok,
+    ).toBe(false);
+    expect(
+      validateBaseTopicQuestionsModule({
+        ...BASE_TOPIC_QUESTIONS_MODULE,
+        lessons: [
+          {
+            ...firstLesson,
+            activityDesigns: [
+              {
+                ...firstLesson.activityDesigns[0],
+                patternCellId: "tq1-topic-contrast",
+                operationEvidence: { kind: "diagnose-error" },
+              },
+              ...firstLesson.activityDesigns.slice(1),
+            ],
           },
           ...BASE_TOPIC_QUESTIONS_MODULE.lessons.slice(1),
         ],

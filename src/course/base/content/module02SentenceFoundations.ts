@@ -58,6 +58,46 @@ export interface BaseSemanticActivityDesign {
     | "established-topic"
     | "focused-new-subject"
     | "not-applicable";
+  readonly category: BaseActivityDefinition["category"];
+  readonly interactionKind: BaseActivityDefinition["interactionKind"];
+  readonly mode: BaseActivityDefinition["mode"];
+  readonly operation: BaseActivityDefinition["operation"];
+  readonly patternCellId: string;
+  readonly contextTarget: BaseSemanticContextTarget;
+  readonly operationEvidence: BaseSemanticOperationEvidence;
+  readonly referentId?: string | null;
+  readonly worldFactId?: string | null;
+}
+
+export interface BaseSemanticContextTarget {
+  readonly id: string;
+  readonly copyId: string;
+  readonly kind:
+    | "meaning-context"
+    | "information-structure"
+    | "ordering-context"
+    | "transformation-context"
+    | "diagnostic-context"
+    | "response-context"
+    | "retrieval-context"
+    | "audio-context"
+    | "recall-context";
+  readonly informationStructure:
+    | "established-topic"
+    | "focused-new-subject"
+    | "not-applicable";
+  readonly revealsAnswer: false;
+  readonly audioRequired: boolean;
+  readonly recallRequired: boolean;
+}
+
+export interface BaseSemanticOperationEvidence {
+  readonly kind: BaseActivityDefinition["operation"];
+  readonly sourceTargetId?: string;
+  readonly candidateTargetId?: string;
+  readonly errorCode?: string;
+  readonly tileTargetIds?: readonly string[];
+  readonly orderedAnswerTargetId?: string;
 }
 
 export interface BaseAuthoredSemanticLesson {
@@ -106,7 +146,14 @@ export type BaseAuthoredTokenPart =
   | "to-listing"
   | "to-nominal"
   | "to-companion"
-  | "ka";
+  | "ka"
+  | "cue-context"
+  | "cue-topic"
+  | "cue-focus"
+  | "cue-order"
+  | "cue-audio"
+  | "cue-recall"
+  | "cue-error";
 type TokenPart = BaseAuthoredTokenPart;
 
 interface ExampleSpec {
@@ -125,7 +172,19 @@ interface ActivitySpec {
   readonly promptContextCopyId: string;
   readonly patternCellId: string;
   readonly informationStructure?: BaseSemanticActivityDesign["informationStructure"];
+  readonly shape: BaseSemanticActivityShape;
+  readonly referentId?: string | null;
+  readonly worldFactId?: string | null;
+  readonly errorCode?: string | null;
 }
+
+export type BaseSemanticActivityShape = Readonly<{
+  readonly category: BaseActivityDefinition["category"];
+  readonly interactionKind: BaseActivityDefinition["interactionKind"];
+  readonly mode: BaseActivityDefinition["mode"];
+  readonly operation: BaseActivityDefinition["operation"];
+  readonly contextKind: BaseSemanticContextTarget["kind"];
+}>;
 
 interface LessonSpec {
   readonly lessonId:
@@ -143,73 +202,76 @@ interface LessonSpec {
   readonly activities: readonly ActivitySpec[];
 }
 
-const CATEGORY_SHAPES: readonly Readonly<{
-  category: BaseActivityDefinition["category"];
-  interactionKind: BaseActivityDefinition["interactionKind"];
-  mode: BaseActivityDefinition["mode"];
-  operation: BaseActivityDefinition["operation"];
-}>[] = deepFreeze([
-  {
+export const BASE_MEANING_ACTIVITY_SHAPE: BaseSemanticActivityShape = deepFreeze({
     category: "meaning-comprehension",
     interactionKind: "choice",
     mode: "non-spoken",
     operation: "recognize-meaning",
-  },
-  {
+    contextKind: "meaning-context",
+  });
+export const BASE_FORM_ACTIVITY_SHAPE: BaseSemanticActivityShape = deepFreeze({
     category: "form-function-discrimination",
     interactionKind: "choice",
     mode: "non-spoken",
     operation: "discriminate-form-function",
-  },
-  {
+    contextKind: "information-structure",
+  });
+export const BASE_ORDERING_ACTIVITY_SHAPE: BaseSemanticActivityShape = deepFreeze({
     category: "ordering",
     interactionKind: "tile-ordering",
     mode: "non-spoken",
     operation: "order-chunks",
-  },
-  {
+    contextKind: "ordering-context",
+  });
+export const BASE_CONTROLLED_ACTIVITY_SHAPE: BaseSemanticActivityShape = deepFreeze({
     category: "controlled-production",
     interactionKind: "completion",
     mode: "non-spoken",
     operation: "produce-controlled",
-  },
-  {
+    contextKind: "response-context",
+  });
+export const BASE_TRANSFORMATION_ACTIVITY_SHAPE: BaseSemanticActivityShape = deepFreeze({
     category: "transformation",
     interactionKind: "transformation",
     mode: "non-spoken",
     operation: "transform-form",
-  },
-  {
+    contextKind: "transformation-context",
+  });
+export const BASE_ERROR_ACTIVITY_SHAPE: BaseSemanticActivityShape = deepFreeze({
     category: "error-diagnosis",
     interactionKind: "choice",
     mode: "non-spoken",
     operation: "diagnose-error",
-  },
-  {
+    contextKind: "diagnostic-context",
+  });
+export const BASE_CONTEXT_ACTIVITY_SHAPE: BaseSemanticActivityShape = deepFreeze({
     category: "contextual-response",
     interactionKind: "constrained-construction",
     mode: "non-spoken",
     operation: "select-contextual-response",
-  },
-  {
+    contextKind: "response-context",
+  });
+export const BASE_RETRIEVAL_ACTIVITY_SHAPE: BaseSemanticActivityShape = deepFreeze({
     category: "cumulative-retrieval",
     interactionKind: "completion",
     mode: "non-spoken",
     operation: "retrieve-cumulative",
-  },
-  {
+    contextKind: "retrieval-context",
+  });
+export const BASE_LISTENING_ACTIVITY_SHAPE: BaseSemanticActivityShape = deepFreeze({
     category: "listening",
     interactionKind: "listening",
     mode: "audio",
     operation: "identify-audio",
-  },
-  {
+    contextKind: "audio-context",
+  });
+export const BASE_SPOKEN_ACTIVITY_SHAPE: BaseSemanticActivityShape = deepFreeze({
     category: "spoken",
     interactionKind: "spoken",
     mode: "audio",
     operation: "produce-spoken",
-  },
-]);
+    contextKind: "recall-context",
+  });
 
 function lexicalToken(lexemeId: string, tokenId: string): AssembledToken {
   const lexeme = BASE_LEXEME_BY_ID.get(lexemeId);
@@ -256,6 +318,26 @@ function tokensFor(parts: readonly TokenPart[], id: string): readonly AssembledT
         source: { domain: "catalog", referenceId: "sentence-chunks" },
       };
     }
+    const cueSurfaceByPart: Readonly<Record<string, string>> = {
+      "cue-context": "◇",
+      "cue-topic": "◎",
+      "cue-focus": "●",
+      "cue-order": "↔",
+      "cue-audio": "♪",
+      "cue-recall": "↺",
+      "cue-error": "!",
+    };
+    const cueSurface = cueSurfaceByPart[part];
+    if (cueSurface) {
+      return {
+        id: `${id}-${index}-${part}`,
+        jp: cueSurface,
+        romaji: cueSurface,
+        kind: "punctuation",
+        boundaryBefore: "attach",
+        source: { domain: "catalog", referenceId: part },
+      };
+    }
     const particleSenseByPart: Readonly<
       Partial<Record<BaseAuthoredTokenPart, BaseParticleSense>>
     > = {
@@ -294,6 +376,13 @@ function lexemeIdsFor(parts: readonly TokenPart[]): readonly string[] {
     "to-nominal",
     "to-companion",
     "ka",
+    "cue-context",
+    "cue-topic",
+    "cue-focus",
+    "cue-order",
+    "cue-audio",
+    "cue-recall",
+    "cue-error",
   ]);
   return [...new Set(parts.filter((part) => !grammarParts.has(part)))];
 }
@@ -341,9 +430,60 @@ function exampleFor(
   });
 }
 
+function sentenceConceptIdsFor(
+  parts: readonly TokenPart[],
+  patternCellId?: string,
+): readonly string[] {
+  const ids = new Set<string>();
+  if (parts.includes("chunk-arrow")) ids.add("sentence-chunks");
+  if (parts.includes("desu")) ids.add("affirmative-desu");
+  if (parts.includes("comma")) ids.add("discourse-roles");
+  if (patternCellId === "sf2-predicate-final") ids.add("sentence-order");
+  if (patternCellId === "sf2-recoverable-omission") ids.add("sentence-omission");
+  if (patternCellId === "sf4-recoverable-reference") ids.add("sentence-omission");
+  if (patternCellId?.startsWith("sf4-")) ids.add("discourse-roles");
+  return [...ids];
+}
+
+function cuePartFor(shape: BaseSemanticActivityShape): TokenPart {
+  if (shape.operation === "order-chunks") return "cue-order";
+  if (shape.operation === "identify-audio") return "cue-audio";
+  if (shape.operation === "produce-spoken") return "cue-recall";
+  if (shape.operation === "diagnose-error") return "cue-error";
+  return "cue-context";
+}
+
+function operationEvidenceFor(
+  shape: BaseSemanticActivityShape,
+  promptTargetId: string,
+  optionTargetIds: readonly string[],
+  optionTargets: readonly BaseVisibleTarget[],
+  correctOptionIndex: 0 | 1,
+  errorCode: string | null | undefined,
+): BaseSemanticOperationEvidence {
+  const wrongIndex = correctOptionIndex === 0 ? 1 : 0;
+  if (shape.operation === "order-chunks") {
+    return {
+      kind: shape.operation,
+      tileTargetIds: optionTargets[correctOptionIndex].tokens.map(({ id }) => id),
+      orderedAnswerTargetId: optionTargetIds[correctOptionIndex],
+    };
+  }
+  if (shape.operation === "transform-form") {
+    return { kind: shape.operation, sourceTargetId: promptTargetId };
+  }
+  if (shape.operation === "diagnose-error") {
+    return {
+      kind: shape.operation,
+      candidateTargetId: optionTargetIds[wrongIndex],
+      errorCode: errorCode ?? "context-form-mismatch",
+    };
+  }
+  return { kind: shape.operation };
+}
+
 function activitiesFor(
   spec: LessonSpec,
-  concepts: readonly string[],
 ): Readonly<{
   definitions: readonly BaseActivityDefinition[];
   designs: readonly BaseSemanticActivityDesign[];
@@ -358,15 +498,9 @@ function activitiesFor(
   const audioTargets: (readonly [string, BaseVisibleTarget])[] = [];
 
   spec.activities.forEach((activity, index) => {
-    const shape = CATEGORY_SHAPES[index];
+    const shape = activity.shape;
     const id = `${spec.lessonId}-activity-${index + 1}`;
     const promptId = `${id}-prompt`;
-    const promptTarget = authoredVisibleTarget(
-      activity.prompt,
-      promptId,
-      concepts,
-      [activity.patternCellId],
-    );
     const optionTargetIds = activity.options.map(
       (_, optionIndex) => `${id}-option-${optionIndex + 1}`,
     );
@@ -374,11 +508,34 @@ function activitiesFor(
       authoredVisibleTarget(
         parts,
         optionTargetIds[optionIndex],
-        concepts,
-        [activity.patternCellId],
+        sentenceConceptIdsFor(
+          parts,
+          optionIndex === activity.correctOptionIndex
+            ? activity.patternCellId
+            : undefined,
+        ),
+        optionIndex === activity.correctOptionIndex
+          ? [activity.patternCellId]
+          : [],
       ),
     );
     const acceptedAnswerTarget = optionTargets[activity.correctOptionIndex];
+    const wrongOptionIndex = activity.correctOptionIndex === 0 ? 1 : 0;
+    const promptParts =
+      shape.operation === "transform-form"
+        ? activity.prompt
+        : shape.operation === "diagnose-error"
+          ? activity.options[wrongOptionIndex]
+          : [cuePartFor(shape)];
+    const promptTarget = authoredVisibleTarget(
+      promptParts,
+      promptId,
+      shape.operation === "transform-form" ||
+        shape.operation === "diagnose-error"
+        ? sentenceConceptIdsFor(promptParts)
+        : [],
+      [],
+    );
     const targetId =
       shape.mode === "audio" && shape.category === "listening"
         ? `${id}-audio`
@@ -398,7 +555,12 @@ function activitiesFor(
       instructionCopyId: `${id}-instruction`,
       acceptedFeedbackCopyId: `${shape.operation}-feedback-accepted`,
       retryFeedbackCopyId: `${shape.operation}-feedback-retry`,
-      assessedConceptIds: concepts,
+      assessedConceptIds: [...new Set(
+        optionTargets.flatMap((target) => [
+          ...target.conceptIds,
+          ...target.formIds,
+        ]),
+      )],
       assessedLexemeIds,
       optionTargetIds,
     });
@@ -422,9 +584,33 @@ function activitiesFor(
           : "rejected-context",
       ),
       audioTargetId: targetId.endsWith("-audio") ? targetId : null,
-      promptContextCopyId: `${id}-instruction`,
+      promptContextCopyId: activity.promptContextCopyId,
       reviewed: true,
       informationStructure: activity.informationStructure ?? "not-applicable",
+      category: shape.category,
+      interactionKind: shape.interactionKind,
+      mode: shape.mode,
+      operation: shape.operation,
+      patternCellId: activity.patternCellId,
+      contextTarget: {
+        id: `${id}-context`,
+        copyId: activity.promptContextCopyId,
+        kind: shape.contextKind,
+        informationStructure: activity.informationStructure ?? "not-applicable",
+        revealsAnswer: false,
+        audioRequired: shape.operation === "identify-audio",
+        recallRequired: shape.operation === "produce-spoken",
+      },
+      operationEvidence: operationEvidenceFor(
+        shape,
+        baseActivityPromptKey(spec.lessonId, id),
+        optionTargetIds,
+        optionTargets,
+        activity.correctOptionIndex,
+        activity.errorCode,
+      ),
+      referentId: activity.referentId ?? null,
+      worldFactId: activity.worldFactId ?? null,
     });
     prompts.push([
       baseActivityPromptKey(spec.lessonId, id),
@@ -463,6 +649,10 @@ function activity(
   correctOptionIndex: 0 | 1,
   promptContextCopyId: string,
   patternCellId: string,
+  shape: BaseSemanticActivityShape,
+  referentId: string | null = null,
+  worldFactId: string | null = null,
+  errorCode: string | null = null,
 ): ActivitySpec {
   return {
     prompt,
@@ -475,6 +665,10 @@ function activity(
     promptContextCopyId,
     patternCellId,
     informationStructure: "not-applicable",
+    shape,
+    referentId,
+    worldFactId,
+    errorCode,
   };
 }
 
@@ -497,7 +691,6 @@ const LESSON_SPECS: readonly LessonSpec[] = deepFreeze([
       "anchor-kippu",
       "anchor-kyaku",
       "anchor-shashin",
-      "anchor-chuui",
       "anchor-ryokou",
       "anchor-obaasan",
     ],
@@ -517,16 +710,16 @@ const LESSON_SPECS: readonly LessonSpec[] = deepFreeze([
       example(["anchor-pan", "chunk-arrow", "anchor-hon"], "bread-to-book-analysis", "sf1-context-chunk", "anatomy-model", "sentence-foundations-1-example-10-context"),
     ],
     activities: [
-      activity(["anchor-shashin", "chunk-arrow"], ["noun-watashi"], ["anchor-obaasan"], 0, "sentence-foundations-1-activity-1-context", "sf1-context-chunk"),
-      activity(["anchor-gakkou", "chunk-arrow"], ["noun-gakusei"], ["anchor-ryokou"], 1, "sentence-foundations-1-activity-2-context", "sf1-identifying-chunk"),
-      activity(["anchor-gakkou", "chunk-arrow"], ["noun-sensei"], ["anchor-kaze"], 0, "sentence-foundations-1-activity-3-context", "sf1-identifying-chunk"),
-      activity(["anchor-shashin", "chunk-arrow"], ["anchor-neko"], ["anchor-obaasan"], 1, "sentence-foundations-1-activity-4-context", "sf1-context-chunk"),
-      activity(["anchor-gakkou", "chunk-arrow"], ["anchor-hon"], ["anchor-ryokou"], 0, "sentence-foundations-1-activity-5-context", "sf1-context-chunk"),
-      activity(["anchor-kagi", "chunk-arrow"], ["anchor-ie"], ["anchor-denwa"], 1, "sentence-foundations-1-activity-6-context", "sf1-context-chunk"),
-      activity(["anchor-kaze", "chunk-arrow"], ["anchor-umi"], ["anchor-asa"], 0, "sentence-foundations-1-activity-7-context", "sf1-context-chunk"),
-      activity(["anchor-asa", "chunk-arrow"], ["anchor-gakkou"], ["anchor-kaze"], 1, "sentence-foundations-1-activity-8-context", "sf1-context-chunk"),
-      activity(["anchor-denwa", "chunk-arrow"], ["anchor-shashin"], ["anchor-kagi"], 0, "sentence-foundations-1-activity-9-context", "sf1-context-chunk"),
-      activity(["anchor-ryokou", "chunk-arrow"], ["anchor-kippu"], ["anchor-pan"], 1, "sentence-foundations-1-activity-10-context", "sf1-context-chunk"),
+      activity(["anchor-shashin", "chunk-arrow"], ["noun-watashi"], ["anchor-obaasan"], 0, "sentence-foundations-1-activity-1-instruction", "sf1-context-chunk", BASE_MEANING_ACTIVITY_SHAPE),
+      activity(["anchor-gakkou", "chunk-arrow"], ["noun-gakusei"], ["anchor-ryokou"], 0, "sentence-foundations-1-activity-2-instruction", "sf1-identifying-chunk", BASE_MEANING_ACTIVITY_SHAPE),
+      activity(["cue-order"], ["noun-sensei", "chunk-arrow", "noun-watashi"], ["noun-gakusei", "chunk-arrow", "noun-sensei"], 1, "sentence-foundations-1-activity-3-instruction", "sf1-identifying-chunk", BASE_ORDERING_ACTIVITY_SHAPE),
+      activity(["anchor-shashin", "chunk-arrow"], ["anchor-neko"], ["anchor-obaasan"], 0, "sentence-foundations-1-activity-4-instruction", "sf1-context-chunk", BASE_CONTROLLED_ACTIVITY_SHAPE),
+      activity(["anchor-gakkou", "chunk-arrow", "anchor-ryokou"], ["anchor-gakkou", "chunk-arrow", "anchor-hon"], ["anchor-hon", "chunk-arrow", "anchor-gakkou"], 1, "sentence-foundations-1-activity-5-instruction", "sf1-context-chunk", BASE_TRANSFORMATION_ACTIVITY_SHAPE),
+      activity(["anchor-kagi", "chunk-arrow"], ["anchor-ie"], ["anchor-denwa"], 1, "sentence-foundations-1-activity-6-instruction", "sf1-context-chunk", BASE_ERROR_ACTIVITY_SHAPE, null, null, "context-meaning-mismatch"),
+      activity(["anchor-kaze", "chunk-arrow"], ["anchor-umi"], ["anchor-asa"], 0, "sentence-foundations-1-activity-7-instruction", "sf1-context-chunk", BASE_CONTEXT_ACTIVITY_SHAPE),
+      activity(["anchor-asa", "chunk-arrow"], ["anchor-gakkou"], ["anchor-kaze"], 1, "sentence-foundations-1-activity-8-instruction", "sf1-context-chunk", BASE_RETRIEVAL_ACTIVITY_SHAPE),
+      activity(["anchor-denwa", "chunk-arrow"], ["anchor-shashin"], ["anchor-kagi"], 0, "sentence-foundations-1-activity-9-instruction", "sf1-context-chunk", BASE_LISTENING_ACTIVITY_SHAPE),
+      activity(["anchor-ryokou", "chunk-arrow"], ["anchor-kippu"], ["anchor-pan"], 1, "sentence-foundations-1-activity-10-instruction", "sf1-context-chunk", BASE_SPOKEN_ACTIVITY_SHAPE),
     ],
   },
   {
@@ -566,16 +759,16 @@ const LESSON_SPECS: readonly LessonSpec[] = deepFreeze([
       example(["anchor-ie", "chunk-arrow", "anchor-denwa"], "home-cue-to-phone", "sf2-recoverable-omission", "anatomy-model", "sentence-foundations-2-example-10-context"),
     ],
     activities: [
-      activity(["anchor-shashin", "chunk-arrow"], ["noun-tanaka"], ["anchor-denwa"], 0, "sentence-foundations-2-activity-1-context", "sf2-recoverable-omission"),
-      activity(["anchor-shashin", "chunk-arrow"], ["noun-yamada"], ["anchor-kagi"], 0, "sentence-foundations-2-activity-2-context", "sf2-recoverable-omission"),
-      activity(["noun-hito", "chunk-arrow"], ["noun-hito"], ["anchor-denwa"], 1, "sentence-foundations-2-activity-3-context", "sf2-recoverable-omission"),
-      activity(["noun-hito", "chunk-arrow"], ["noun-gakusei"], ["anchor-obaasan"], 1, "sentence-foundations-2-activity-4-context", "sf2-predicate-final"),
-      activity(["noun-hito", "chunk-arrow"], ["noun-sensei"], ["anchor-kippu"], 0, "sentence-foundations-2-activity-5-context", "sf2-predicate-final"),
-      activity(["anchor-shashin", "chunk-arrow"], ["noun-watashi"], ["anchor-denwa"], 0, "sentence-foundations-2-activity-6-context", "sf2-recoverable-omission"),
-      activity(["anchor-shashin", "chunk-arrow"], ["anchor-neko"], ["anchor-kagi"], 1, "sentence-foundations-2-activity-7-context", "sf2-recoverable-omission"),
-      activity(["anchor-gakkou", "chunk-arrow"], ["anchor-hon"], ["anchor-kippu"], 1, "sentence-foundations-2-activity-8-context", "sf2-recoverable-omission"),
-      activity(["anchor-kagi", "chunk-arrow"], ["anchor-ie"], ["anchor-denwa"], 0, "sentence-foundations-2-activity-9-context", "sf2-recoverable-omission"),
-      activity(["anchor-denwa", "chunk-arrow"], ["anchor-shashin"], ["anchor-kagi"], 1, "sentence-foundations-2-activity-10-context", "sf2-recoverable-omission"),
+      activity(["anchor-shashin", "chunk-arrow"], ["noun-tanaka"], ["anchor-denwa"], 1, "sentence-foundations-2-activity-1-instruction", "sf2-recoverable-omission", BASE_MEANING_ACTIVITY_SHAPE),
+      activity(["anchor-shashin", "chunk-arrow"], ["noun-yamada"], ["anchor-kagi"], 0, "sentence-foundations-2-activity-2-instruction", "sf2-recoverable-omission", BASE_MEANING_ACTIVITY_SHAPE),
+      activity(["cue-order"], ["noun-watashi", "chunk-arrow", "noun-hito"], ["noun-sensei", "chunk-arrow", "noun-hito"], 0, "sentence-foundations-2-activity-3-instruction", "sf2-predicate-final", BASE_ORDERING_ACTIVITY_SHAPE),
+      activity(["noun-hito", "chunk-arrow"], ["noun-gakusei"], ["anchor-obaasan"], 1, "sentence-foundations-2-activity-4-instruction", "sf2-predicate-final", BASE_CONTROLLED_ACTIVITY_SHAPE),
+      activity(["noun-hito", "chunk-arrow", "noun-gakusei"], ["noun-hito", "chunk-arrow", "noun-sensei"], ["noun-sensei", "chunk-arrow", "noun-hito"], 0, "sentence-foundations-2-activity-5-instruction", "sf2-predicate-final", BASE_TRANSFORMATION_ACTIVITY_SHAPE),
+      activity(["anchor-shashin", "chunk-arrow"], ["noun-watashi"], ["anchor-denwa"], 1, "sentence-foundations-2-activity-6-instruction", "sf2-recoverable-omission", BASE_ERROR_ACTIVITY_SHAPE, null, null, "context-meaning-mismatch"),
+      activity(["anchor-shashin", "chunk-arrow"], ["anchor-neko"], ["anchor-kagi"], 1, "sentence-foundations-2-activity-7-instruction", "sf2-recoverable-omission", BASE_CONTEXT_ACTIVITY_SHAPE),
+      activity(["anchor-gakkou", "chunk-arrow"], ["anchor-hon"], ["anchor-kippu"], 0, "sentence-foundations-2-activity-8-instruction", "sf2-recoverable-omission", BASE_RETRIEVAL_ACTIVITY_SHAPE),
+      activity(["anchor-kagi", "chunk-arrow"], ["anchor-ie"], ["anchor-denwa"], 1, "sentence-foundations-2-activity-9-instruction", "sf2-recoverable-omission", BASE_LISTENING_ACTIVITY_SHAPE),
+      activity(["anchor-denwa", "chunk-arrow"], ["anchor-shashin"], ["anchor-kagi"], 0, "sentence-foundations-2-activity-10-instruction", "sf2-recoverable-omission", BASE_SPOKEN_ACTIVITY_SHAPE),
     ],
   },
   {
@@ -607,7 +800,6 @@ const LESSON_SPECS: readonly LessonSpec[] = deepFreeze([
       "anchor-kagi",
       "anchor-denwa",
       "anchor-pan",
-      "anchor-chuui",
       "anchor-ryokou",
       "anchor-obaasan",
     ],
@@ -627,16 +819,16 @@ const LESSON_SPECS: readonly LessonSpec[] = deepFreeze([
       example(["anchor-ie", "desu"], "answer-place-identity", "sf3-polite-copula", "complete-clause", "sentence-foundations-3-example-10-context"),
     ],
     activities: [
-      activity(["noun-kangoshi"], ["noun-tanaka", "desu"], ["anchor-obaasan", "desu"], 1, "sentence-foundations-3-activity-1-context", "sf3-noun-predicate"),
-      activity(["noun-bengoshi"], ["noun-yamada", "desu"], ["anchor-obaasan", "desu"], 0, "sentence-foundations-3-activity-2-context", "sf3-noun-predicate"),
-      activity(["anchor-kippu"], ["anchor-kippu", "desu"], ["anchor-shashin", "desu"], 0, "sentence-foundations-3-activity-3-context", "sf3-polite-copula"),
-      activity(["anchor-gakkou"], ["anchor-gakkou", "desu"], ["anchor-obaasan", "desu"], 1, "sentence-foundations-3-activity-4-context", "sf3-polite-copula"),
-      activity(["noun-tomodachi"], ["anchor-asa", "desu"], ["anchor-kaze", "desu"], 1, "sentence-foundations-3-activity-5-context", "sf3-polite-copula"),
-      activity(["anchor-kagi"], ["anchor-kagi", "desu"], ["anchor-umi", "desu"], 0, "sentence-foundations-3-activity-6-context", "sf3-polite-copula"),
-      activity(["noun-isha"], ["anchor-denwa", "desu"], ["anchor-shashin", "desu"], 1, "sentence-foundations-3-activity-7-context", "sf3-polite-copula"),
-      activity(["anchor-kyaku"], ["anchor-kyaku", "desu"], ["anchor-shashin", "desu"], 0, "sentence-foundations-3-activity-8-context", "sf3-polite-copula"),
-      activity(["anchor-chuui"], ["anchor-chuui", "desu"], ["anchor-obaasan", "desu"], 0, "sentence-foundations-3-activity-9-context", "sf3-polite-copula"),
-      activity(["anchor-ryokou"], ["anchor-ryokou", "desu"], ["anchor-obaasan", "desu"], 1, "sentence-foundations-3-activity-10-context", "sf3-polite-copula"),
+      activity(["cue-context"], ["noun-tanaka", "desu"], ["noun-kangoshi"], 0, "sentence-foundations-3-activity-1-instruction", "sf3-noun-predicate", BASE_MEANING_ACTIVITY_SHAPE),
+      activity(["cue-context"], ["noun-yamada", "desu"], ["noun-bengoshi"], 1, "sentence-foundations-3-activity-2-instruction", "sf3-noun-predicate", BASE_FORM_ACTIVITY_SHAPE),
+      activity(["anchor-kippu"], ["anchor-kippu", "desu"], ["anchor-obaasan", "desu"], 1, "sentence-foundations-3-activity-3-instruction", "sf3-polite-copula", BASE_ORDERING_ACTIVITY_SHAPE),
+      activity(["anchor-gakkou"], ["anchor-gakkou", "desu"], ["anchor-obaasan", "desu"], 0, "sentence-foundations-3-activity-4-instruction", "sf3-polite-copula", BASE_CONTROLLED_ACTIVITY_SHAPE),
+      activity(["anchor-asa", "chunk-arrow", "desu"], ["anchor-asa", "desu"], ["noun-tomodachi"], 0, "sentence-foundations-3-activity-5-instruction", "sf3-polite-copula", BASE_TRANSFORMATION_ACTIVITY_SHAPE),
+      activity(["anchor-kagi"], ["anchor-kagi", "desu"], ["anchor-umi", "desu"], 1, "sentence-foundations-3-activity-6-instruction", "sf3-polite-copula", BASE_ERROR_ACTIVITY_SHAPE, null, null, "context-meaning-mismatch"),
+      activity(["cue-context"], ["anchor-denwa", "desu"], ["noun-isha"], 0, "sentence-foundations-3-activity-7-instruction", "sf3-polite-copula", BASE_CONTEXT_ACTIVITY_SHAPE),
+      activity(["anchor-kyaku"], ["anchor-kyaku", "desu"], ["anchor-kaze", "desu"], 1, "sentence-foundations-3-activity-8-instruction", "sf3-polite-copula", BASE_RETRIEVAL_ACTIVITY_SHAPE),
+      activity(["cue-audio"], ["anchor-shashin", "desu"], ["anchor-obaasan", "desu"], 1, "sentence-foundations-3-activity-9-instruction", "sf3-polite-copula", BASE_LISTENING_ACTIVITY_SHAPE),
+      activity(["anchor-ryokou"], ["anchor-ryokou", "desu"], ["anchor-obaasan", "desu"], 0, "sentence-foundations-3-activity-10-instruction", "sf3-polite-copula", BASE_SPOKEN_ACTIVITY_SHAPE),
     ],
   },
   {
@@ -679,16 +871,16 @@ const LESSON_SPECS: readonly LessonSpec[] = deepFreeze([
       example(["noun-hito", "desu"], "omitted-human-category", "sf4-recoverable-reference", "complete-clause", "sentence-foundations-4-example-10-context"),
     ],
     activities: [
-      activity(["noun-watashi"], ["noun-watashi", "comma", "noun-daigakusei", "desu"], ["noun-watashi", "comma", "noun-sensei", "desu"], 1, "sentence-foundations-4-activity-1-context", "sf4-explicit-reference"),
-      activity(["noun-tanaka"], ["noun-tanaka", "comma", "noun-tomodachi", "desu"], ["noun-tanaka", "comma", "noun-isha", "desu"], 1, "sentence-foundations-4-activity-2-context", "sf4-explicit-reference"),
-      activity(["noun-yamada"], ["noun-yamada", "comma", "noun-tomodachi", "desu"], ["noun-yamada", "comma", "noun-isha", "desu"], 0, "sentence-foundations-4-activity-3-context", "sf4-explicit-reference"),
-      activity(["noun-ryuugakusei"], ["noun-tomodachi", "comma", "noun-gakusei", "desu"], ["noun-tomodachi", "comma", "noun-sensei", "desu"], 0, "sentence-foundations-4-activity-4-context", "sf4-explicit-reference"),
-      activity(["anchor-umi"], ["anchor-umi", "desu"], ["anchor-hon", "desu"], 1, "sentence-foundations-4-activity-5-context", "sf4-recoverable-reference"),
-      activity(["noun-kazoku"], ["anchor-neko", "desu"], ["noun-tomodachi", "desu"], 0, "sentence-foundations-4-activity-6-context", "sf4-recoverable-reference"),
-      activity(["anchor-denwa"], ["anchor-denwa", "desu"], ["anchor-shashin", "desu"], 0, "sentence-foundations-4-activity-7-context", "sf4-recoverable-reference"),
-      activity(["anchor-ie"], ["anchor-ie", "desu"], ["anchor-hon", "desu"], 1, "sentence-foundations-4-activity-8-context", "sf4-recoverable-reference"),
-      activity(["anchor-kippu"], ["anchor-kippu", "desu"], ["anchor-hon", "desu"], 1, "sentence-foundations-4-activity-9-context", "sf4-recoverable-reference"),
-      activity(["anchor-gakkou"], ["anchor-gakkou", "desu"], ["anchor-shashin", "desu"], 0, "sentence-foundations-4-activity-10-context", "sf4-recoverable-reference"),
+      activity(["noun-watashi"], ["noun-watashi", "comma", "noun-daigakusei", "desu"], ["noun-watashi", "comma", "noun-sensei", "desu"], 1, "sentence-foundations-4-activity-1-instruction", "sf4-explicit-reference", BASE_MEANING_ACTIVITY_SHAPE),
+      activity(["noun-tanaka"], ["noun-tanaka", "comma", "noun-tomodachi", "desu"], ["noun-tomodachi", "desu"], 1, "sentence-foundations-4-activity-2-instruction", "sf4-explicit-reference", BASE_FORM_ACTIVITY_SHAPE),
+      activity(["noun-yamada"], ["noun-yamada", "comma", "noun-tomodachi", "desu"], ["noun-tomodachi", "comma", "noun-yamada", "desu"], 0, "sentence-foundations-4-activity-3-instruction", "sf4-explicit-reference", BASE_ORDERING_ACTIVITY_SHAPE),
+      activity(["cue-context"], ["noun-tomodachi", "comma", "noun-gakusei", "desu"], ["noun-hito", "comma", "noun-ryuugakusei", "desu"], 0, "sentence-foundations-4-activity-4-instruction", "sf4-explicit-reference", BASE_CONTROLLED_ACTIVITY_SHAPE),
+      activity(["noun-watashi", "comma", "anchor-umi", "desu"], ["anchor-umi", "desu"], ["anchor-hon", "desu"], 1, "sentence-foundations-4-activity-5-instruction", "sf4-recoverable-reference", BASE_TRANSFORMATION_ACTIVITY_SHAPE),
+      activity(["cue-error"], ["anchor-neko", "desu"], ["anchor-shashin", "comma", "noun-kazoku", "desu"], 0, "sentence-foundations-4-activity-6-instruction", "sf4-recoverable-reference", BASE_ERROR_ACTIVITY_SHAPE, null, null, "context-meaning-mismatch"),
+      activity(["anchor-denwa"], ["anchor-denwa", "desu"], ["anchor-shashin", "desu"], 1, "sentence-foundations-4-activity-7-instruction", "sf4-recoverable-reference", BASE_CONTEXT_ACTIVITY_SHAPE),
+      activity(["anchor-ie"], ["anchor-ie", "desu"], ["anchor-hon", "desu"], 0, "sentence-foundations-4-activity-8-instruction", "sf4-recoverable-reference", BASE_RETRIEVAL_ACTIVITY_SHAPE),
+      activity(["anchor-kippu"], ["anchor-kippu", "desu"], ["anchor-hon", "desu"], 0, "sentence-foundations-4-activity-9-instruction", "sf4-recoverable-reference", BASE_LISTENING_ACTIVITY_SHAPE),
+      activity(["anchor-gakkou"], ["anchor-gakkou", "desu"], ["anchor-shashin", "desu"], 1, "sentence-foundations-4-activity-10-instruction", "sf4-recoverable-reference", BASE_SPOKEN_ACTIVITY_SHAPE),
     ],
   },
 ]);
@@ -706,7 +898,7 @@ const RAW_LESSON_DEFINITIONS: readonly BaseAuthoredSemanticLesson[] =
       exampleFor(spec.lessonId, entry, index, concepts),
     );
     examples.forEach((example) => exampleEntries.push([example.id, example]));
-    const activitySet = activitiesFor(spec, concepts);
+    const activitySet = activitiesFor(spec);
     acceptedAnswerEntries.push(...activitySet.acceptedAnswers);
     activityPromptEntries.push(...activitySet.prompts);
     audioTargetEntries.push(...activitySet.audioTargets);
@@ -822,6 +1014,152 @@ function plainRecord(value: unknown): Readonly<Record<string, unknown>> | undefi
   return value as Readonly<Record<string, unknown>>;
 }
 
+function targetSurface(value: unknown): string | undefined {
+  const target = plainRecord(value);
+  const tokens = target ? denseArray(target.tokens) : undefined;
+  if (!tokens) return undefined;
+  const surfaces: string[] = [];
+  for (const token of tokens) {
+    const record = plainRecord(token);
+    if (!record || typeof record.jp !== "string") return undefined;
+    surfaces.push(record.jp);
+  }
+  return surfaces.join("");
+}
+
+function targetPatternCells(value: unknown): readonly unknown[] | undefined {
+  const target = plainRecord(value);
+  return target ? denseArray(target.patternCellIds) : undefined;
+}
+
+export function validatePublishedSemanticActivities(
+  lessonValue: unknown,
+): boolean {
+  const lesson = plainRecord(lessonValue);
+  const content = lesson ? plainRecord(lesson.content) : undefined;
+  const activities = content ? denseArray(content.activities) : undefined;
+  const designs = lesson ? denseArray(lesson.activityDesigns) : undefined;
+  const cells = lesson ? denseArray(lesson.patternCellIds) : undefined;
+  if (
+    !lesson ||
+    !content ||
+    !activities ||
+    !designs ||
+    !cells ||
+    activities.length !== 10 ||
+    designs.length !== activities.length
+  ) {
+    return false;
+  }
+  const positions: number[] = [];
+  const lengthDistribution = { longer: 0, shorter: 0, tie: 0 };
+  for (let index = 0; index < designs.length; index += 1) {
+    const design = plainRecord(designs[index]);
+    const activity = plainRecord(activities[index]);
+    if (!design || !activity) return false;
+    for (const key of [
+      "category",
+      "interactionKind",
+      "mode",
+      "operation",
+    ] as const) {
+      if (design[key] !== activity[key]) return false;
+    }
+    const patternCellId = design.patternCellId;
+    const correctOptionIndex = design.correctOptionIndex;
+    if (
+      typeof patternCellId !== "string" ||
+      !cells.includes(patternCellId) ||
+      (correctOptionIndex !== 0 && correctOptionIndex !== 1)
+    ) {
+      return false;
+    }
+    positions.push(correctOptionIndex);
+    const optionTargets = denseArray(design.optionTargets);
+    const optionTargetIds = denseArray(design.optionTargetIds);
+    const activityOptionIds = denseArray(activity.optionTargetIds);
+    if (
+      !optionTargets ||
+      !optionTargetIds ||
+      !activityOptionIds ||
+      optionTargets.length !== 2 ||
+      optionTargetIds.length !== 2 ||
+      activityOptionIds.length !== 2 ||
+      optionTargetIds.some((id, optionIndex) => id !== activityOptionIds[optionIndex])
+    ) {
+      return false;
+    }
+    const acceptedTarget = design.acceptedAnswerTarget;
+    if (acceptedTarget !== optionTargets[correctOptionIndex]) return false;
+    for (let optionIndex = 0; optionIndex < optionTargets.length; optionIndex += 1) {
+      const targetCells = targetPatternCells(optionTargets[optionIndex]);
+      if (
+        !targetCells ||
+        (optionIndex === correctOptionIndex
+          ? targetCells.length !== 1 || targetCells[0] !== patternCellId
+          : targetCells.length !== 0)
+      ) {
+        return false;
+      }
+    }
+    const contextTarget = plainRecord(design.contextTarget);
+    const evidence = plainRecord(design.operationEvidence);
+    if (
+      !contextTarget ||
+      !evidence ||
+      contextTarget.copyId !== design.promptContextCopyId ||
+      contextTarget.revealsAnswer !== false ||
+      evidence.kind !== design.operation
+    ) {
+      return false;
+    }
+    if (
+      design.operation === "order-chunks" &&
+      (denseArray(evidence.tileTargetIds)?.length ?? 0) < 2
+    ) {
+      return false;
+    }
+    if (
+      design.operation === "transform-form" &&
+      typeof evidence.sourceTargetId !== "string"
+    ) {
+      return false;
+    }
+    if (
+      design.operation === "diagnose-error" &&
+      (typeof evidence.candidateTargetId !== "string" ||
+        typeof evidence.errorCode !== "string")
+    ) {
+      return false;
+    }
+    if (
+      contextTarget.audioRequired !== (design.operation === "identify-audio") ||
+      contextTarget.recallRequired !== (design.operation === "produce-spoken")
+    ) {
+      return false;
+    }
+    const promptCells = targetPatternCells(design.promptTarget);
+    if (!promptCells || promptCells.length !== 0) return false;
+    const optionLengths = optionTargets.map((target) => targetSurface(target)?.length);
+    if (optionLengths.some((length) => length === undefined)) return false;
+    const correctLength = optionLengths[correctOptionIndex] as number;
+    const otherLength = optionLengths[correctOptionIndex === 0 ? 1 : 0] as number;
+    if (correctLength > otherLength) lengthDistribution.longer += 1;
+    else if (correctLength < otherLength) lengthDistribution.shorter += 1;
+    else lengthDistribution.tie += 1;
+  }
+  const fingerprint = positions.join("");
+  return (
+    positions.filter((position) => position === 0).length === 5 &&
+    positions.filter((position) => position === 1).length === 5 &&
+    fingerprint !== "0101010101" &&
+    fingerprint !== "1010101010" &&
+    lengthDistribution.longer >= 2 &&
+    lengthDistribution.shorter >= 2 &&
+    lengthDistribution.tie >= 2
+  );
+}
+
 export function validateBaseSentenceFoundationsModule(
   value: unknown,
 ): BaseSemanticModuleValidation {
@@ -880,6 +1218,9 @@ export function validateBaseSentenceFoundationsModule(
     ) {
       errors.add("canonical-depth-failure");
     }
+    if (!validatePublishedSemanticActivities(record)) {
+      errors.add("invalid-lesson-shape");
+    }
   }
   const en = baseNavigationCopyEn.content;
   const it = baseNavigationCopyIt.content;
@@ -936,8 +1277,13 @@ export const BASE_SENTENCE_FOUNDATIONS_MODULE: BaseSentenceFoundationsModule =
   deepFreeze(RAW_BASE_SENTENCE_FOUNDATIONS_MODULE);
 
 export const BASE_SEMANTIC_ACTIVITY_CATEGORIES: readonly BaseActivityCategory[] =
-  deepFreeze(
-    CATEGORY_SHAPES.slice(0, 8).map(
-      ({ category }) => category as BaseActivityCategory,
-    ),
-  );
+  deepFreeze([
+    "meaning-comprehension",
+    "form-function-discrimination",
+    "ordering",
+    "controlled-production",
+    "transformation",
+    "error-diagnosis",
+    "contextual-response",
+    "cumulative-retrieval",
+  ]);
