@@ -488,6 +488,10 @@ describe("Base sentence-foundations module", () => {
   });
 
   it("keeps spoken answers hidden while retaining a canonical grading target", () => {
+    const auditSurface = visibleJapaneseFor(
+      BASE_SENTENCE_FOUNDATIONS_MODULE.lessons.map(({ content }) => content),
+      BASE_SENTENCE_FOUNDATIONS_VALIDATION_CATALOGS,
+    );
     for (const lesson of BASE_SENTENCE_FOUNDATIONS_MODULE.lessons) {
       const index = lesson.activityDesigns.findIndex(
         ({ operation }) => operation === "produce-spoken",
@@ -502,6 +506,7 @@ describe("Base sentence-foundations module", () => {
         lesson.content.activities[index].targetId,
       );
       expect(lesson.content.activities[index].optionTargetIds).toEqual([]);
+      expect(auditSurface).toContain(jp(design.acceptedAnswerTarget.tokens));
     }
   });
 
@@ -648,6 +653,37 @@ describe("Base sentence-foundations module", () => {
         ).toBe(true);
       }
     }
+  });
+
+  it("still validates non-ordering token integrity in scrambled candidates", () => {
+    const lesson = BASE_SENTENCE_FOUNDATIONS_MODULE.lessons[2];
+    const activity = lesson.content.activities.find(
+      ({ operation }) => operation === "order-chunks",
+    )!;
+    const distractorId = activity.optionTargetIds?.find(
+      (id) => id !== activity.targetId,
+    )!;
+    const original =
+      BASE_SENTENCE_FOUNDATIONS_VALIDATION_CATALOGS.acceptedAnswerTargets.get(
+        distractorId,
+      )!;
+    const forged = {
+      ...original,
+      tokens: original.tokens.map((token) => ({
+        ...token,
+        id: "duplicate-ordering-token",
+      })),
+    };
+    const acceptedAnswerTargets = new Map(
+      BASE_SENTENCE_FOUNDATIONS_VALIDATION_CATALOGS.acceptedAnswerTargets,
+    );
+    acceptedAnswerTargets.set(distractorId, forged);
+    expect(
+      validateBaseLessonDepth(lesson.content, {
+        ...BASE_SENTENCE_FOUNDATIONS_VALIDATION_CATALOGS,
+        acceptedAnswerTargets,
+      }).map(({ code }) => code),
+    ).toContain("invalid-token-sequence");
   });
 
   it("uses a complete erroneous noun predicate for post-copula diagnosis", () => {

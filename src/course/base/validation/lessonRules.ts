@@ -404,6 +404,7 @@ function validateTokens(
     referenceId?: string,
     detail?: string,
   ) => void,
+  ignoredFormatErrors: ReadonlySet<string> = new Set(),
 ): void {
   if (!isStrictRuntimeTokenSequence(tokens)) {
     push("token-sequence-invalid", referenceId, `${label}:invalid-runtime-token`);
@@ -411,10 +412,14 @@ function validateTokens(
   }
   const formatted = validateTokenSequence(tokens);
   if (!formatted.ok) {
+    const errors = formatted.errors.filter(
+      ({ code }) => !ignoredFormatErrors.has(code),
+    );
+    if (errors.length === 0) return;
     push(
       "invalid-token-sequence",
       referenceId,
-      `${label}:${formatted.errors.map((error) => error.code).join(",")}`,
+      `${label}:${errors.map((error) => error.code).join(",")}`,
     );
   }
 }
@@ -973,9 +978,15 @@ function validateSentenceLikeReferences(
   const conceptIds = target.conceptIds;
   const formIds = target.formIds;
   const patternCellIds = target.patternCellIds;
-  if (!allowIntentionalOrderingError) {
-    validateTokens(tokens, referenceId, label, push);
-  }
+  validateTokens(
+    tokens,
+    referenceId,
+    label,
+    push,
+    allowIntentionalOrderingError
+      ? new Set(["invalid-first-boundary", "illegal-punctuation-spacing"])
+      : new Set(),
+  );
   for (const lexemeId of lexemeIds) {
     validateReference(lexemeId, catalogs.lexemes.has(lexemeId), `${label} lexeme`, push);
     const lexeme = catalogs.lexemes.get(lexemeId);

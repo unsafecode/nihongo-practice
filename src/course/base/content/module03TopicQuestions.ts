@@ -1110,22 +1110,22 @@ export function validateBaseTopicQuestionsModule(
   ) {
     errors.add("invalid-lesson-allocation");
   }
+  const sequence = denseArray(module.sequence);
+  if (
+    !sequence ||
+    validateFirstTeachOrder(
+      sequence,
+      BASE_FIRST_TEACH_OWNERS,
+      BASE_TOPIC_QUESTIONS_VALIDATION_CATALOGS,
+    ).length > 0
+  ) {
+    errors.add("canonical-depth-failure");
+  }
   for (const lesson of lessons) {
     const record = plainRecord(lesson);
     if (!record?.content) {
       errors.add("invalid-lesson-shape");
       continue;
-    }
-    const sequence = denseArray(module.sequence);
-    if (
-      !sequence ||
-      validateFirstTeachOrder(
-        sequence,
-        BASE_FIRST_TEACH_OWNERS,
-        BASE_TOPIC_QUESTIONS_VALIDATION_CATALOGS,
-      ).length > 0
-    ) {
-      errors.add("canonical-depth-failure");
     }
     if (
       validateBaseLessonDepth(

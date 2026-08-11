@@ -1802,7 +1802,7 @@ describe("Base sequence rules", () => {
     );
   });
 
-  it("includes phonetic prompts and audio while hiding the spoken grading target", () => {
+  it("includes spoken grading targets in audit surfaces while keeping options separate", () => {
     const phonetic = phoneticLesson();
     const brokenAudio = {
       ...phonetic,
@@ -1817,7 +1817,7 @@ describe("Base sequence rules", () => {
     } as BaseLessonContent;
 
     expect(visibleJapaneseFor([phonetic], CATALOGS)).toBe(
-      "問1答1問2答2問3答3問4答4問5答5問6答6問7音1問8音2音3音4音5音6",
+      "問1答1問2答2問3答3問4答4問5答5問6答6問7音1問8答8音2音3音4音5音6",
     );
     expect(validateBaseLessonDepth(brokenAudio, CATALOGS)).toEqual(
       expect.arrayContaining([

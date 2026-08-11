@@ -17,6 +17,7 @@ import {
 } from "./module03TopicQuestions";
 import { baseActivityPromptKey } from "../catalog/visibleTargets";
 import { BASE_SENTENCE_FOUNDATIONS_MODULE } from "./module02SentenceFoundations";
+import { visibleSurfaceFingerprint } from "../validation/fingerprints";
 
 function jp(tokens: readonly { readonly jp: string }[]): string {
   return tokens.map(({ jp }) => jp).join("");
@@ -27,10 +28,7 @@ function normalized(tokens: readonly { readonly jp: string }[]): string {
 }
 
 function surfaceFingerprint(tokens: readonly { readonly jp: string }[]): string {
-  return jp(tokens)
-    .normalize("NFKC")
-    .replace(/\s+/g, "")
-    .replace(/[、。？！?!]+$/g, "");
+  return visibleSurfaceFingerprint(tokens);
 }
 
 function particleSenses(target: {

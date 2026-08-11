@@ -28,6 +28,7 @@ import {
 } from "../forms/particleLicensing";
 import { validateBaseLessonDepth } from "../validation/lessonRules";
 import { validateFirstTeachOrder } from "../validation/sequenceRules";
+import { visibleSurfaceFingerprint } from "../validation/fingerprints";
 
 type LocalizedExplanation = Readonly<{
   readonly mainCopyId: string;
@@ -1149,10 +1150,10 @@ function targetTokenMultiset(value: unknown): string | undefined {
 }
 
 function normalizedPreAttemptSurface(value: unknown): string | undefined {
-  return targetSurface(value)
-    ?.normalize("NFKC")
-    .replace(/\s+/gu, "")
-    .replace(/[、。？！?!]+$/gu, "");
+  const target = plainRecord(value);
+  if (!target) return undefined;
+  const surface = visibleSurfaceFingerprint(target.tokens);
+  return surface.length > 0 ? surface : undefined;
 }
 
 export function worldFactLedgerFor(
@@ -1585,22 +1586,22 @@ export function validateBaseSentenceFoundationsModule(
   ) {
     errors.add("invalid-lesson-allocation");
   }
+  if (
+    lessons.length === BASE_SENTENCE_FOUNDATIONS_LESSONS.length &&
+    validateFirstTeachOrder(
+      lessons.map((lesson) => (plainRecord(lesson)?.content ?? null)),
+      BASE_FIRST_TEACH_OWNERS,
+      BASE_SENTENCE_FOUNDATIONS_VALIDATION_CATALOGS,
+    ).length > 0
+  ) {
+    errors.add("canonical-depth-failure");
+  }
   for (const lesson of lessons) {
     const record = plainRecord(lesson);
     const content = record?.content;
     if (!record || !content) {
       errors.add("invalid-lesson-shape");
       continue;
-    }
-    if (
-      lessons.length === BASE_SENTENCE_FOUNDATIONS_LESSONS.length &&
-      validateFirstTeachOrder(
-        lessons.map((lesson) => (plainRecord(lesson)?.content ?? null)),
-        BASE_FIRST_TEACH_OWNERS,
-        BASE_SENTENCE_FOUNDATIONS_VALIDATION_CATALOGS,
-      ).length > 0
-    ) {
-      errors.add("canonical-depth-failure");
     }
     if (
       validateBaseLessonDepth(
