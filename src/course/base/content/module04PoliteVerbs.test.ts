@@ -9,6 +9,7 @@ import {
   realizePoliteStem,
   realizeVerbDictionary,
 } from "../forms/verbForms";
+import { baseParticleSurfaceTokens } from "../forms/particleLicensing";
 import { visibleSurfaceFingerprint } from "../validation/fingerprints";
 import { validateBaseLessonDepth } from "../validation/lessonRules";
 import { validateFirstTeachOrder, visibleJapaneseFor } from "../validation/sequenceRules";
@@ -348,6 +349,128 @@ describe("Base polite-verbs module", () => {
         ({ predicateLexemeId }) => predicateLexemeId === "verb-okiru",
       ),
     ).toBe(true);
+  });
+
+  it("grounds PV2/PV3 prompts in the exact verb being analyzed", () => {
+    const pv2a3 = BASE_POLITE_VERBS_MODULE.lessons[1].activityDesigns[2];
+    expect(pv2a3.promptTarget.lexemeIds).toContain("verb-taberu");
+    expect(pv2a3.promptTarget.lexemeIds).not.toContain("noun-gakusei");
+
+    const pv3 = BASE_POLITE_VERBS_MODULE.lessons[2].activityDesigns;
+    expect(pv3[0].promptTarget.lexemeIds).toContain("verb-kaku");
+    expect(pv3[0].promptTarget.lexemeIds).not.toContain("verb-matsu");
+    expect(pv3[3].promptTarget.lexemeIds).toContain("verb-suru");
+    expect(pv3[3].promptTarget.lexemeIds).not.toContain("noun-satou");
+  });
+
+  it("makes PV1 ordering uniquely resolvable from each localized instruction", () => {
+    expect(
+      baseNavigationCopyEn.content[
+        "polite-verbs-1-activity-5-instruction"
+      ].toLowerCase(),
+    ).toMatch(/(?:left|first|begins)/u);
+    expect(
+      baseNavigationCopyIt.content[
+        "polite-verbs-1-activity-5-instruction"
+      ].toLowerCase(),
+    ).toMatch(/(?:sinistr|prima|inizia)/u);
+  });
+
+  it("does not derive half of PV4 practice by swapping only wa and mo", () => {
+    const lesson = BASE_POLITE_VERBS_MODULE.lessons[3];
+    const normalizeDiscourse = (
+      target: (typeof lesson.examples)[number] | (typeof lesson.activityDesigns)[number]["acceptedAnswerTarget"],
+    ) =>
+      target.tokens
+        .map(({ jp, source }) =>
+          source.referenceId === "topic-wa" ||
+          source.referenceId === "additive-mo"
+            ? "<discourse>"
+            : jp,
+        )
+        .join("");
+    const examples = new Set(lesson.examples.map(normalizeDiscourse));
+    for (const index of [3, 4, 6, 7]) {
+      const design = lesson.activityDesigns[index];
+      expect(
+        examples.has(normalizeDiscourse(design.acceptedAnswerTarget)),
+        design.id,
+      ).toBe(false);
+    }
+  });
+
+  it("rejects frameless PV4 additive mutations independently of conceptIds", () => {
+    const lessonRecord = BASE_POLITE_VERBS_MODULE.lessons[3];
+    const lesson = lessonRecord.content;
+    const design = lessonRecord.activityDesigns[3];
+    const original = design.acceptedAnswerTarget;
+    expect(jp(original.tokens)).toContain("も");
+    expect(
+      (original as typeof original & { readonly particleBindings?: unknown })
+        .particleBindings,
+    ).toBeDefined();
+    const additiveIndex = original.tokens.findIndex(
+      ({ source }) => source.referenceId === "additive-mo",
+    );
+    const nounIndex = additiveIndex - 1;
+    const replaceAccepted = (target: typeof original) => {
+      const catalogs = {
+        ...BASE_POLITE_VERBS_VALIDATION_CATALOGS,
+        acceptedAnswerTargets: new Map([
+          ...BASE_POLITE_VERBS_VALIDATION_CATALOGS.acceptedAnswerTargets,
+          [design.acceptedAnswerTargetId, target],
+        ]),
+      };
+      return validateBaseLessonDepth(lesson, catalogs).map(({ code }) => code);
+    };
+    const mutations = [
+      {
+        ...original,
+        tokens: original.tokens.filter((_, index) => index !== additiveIndex),
+        conceptIds: ["topic-wa", "additive-mo"],
+      },
+      {
+        ...original,
+        tokens: original.tokens.map((token, index) =>
+          index === additiveIndex
+            ? { ...baseParticleSurfaceTokens("topic-wa")[0], id: token.id }
+            : token,
+        ),
+        conceptIds: ["additive-mo"],
+      },
+      {
+        ...original,
+        tokens: [
+          ...original.tokens,
+          {
+            ...baseParticleSurfaceTokens("topic-wa")[0],
+            id: "adversarial-extra-topic",
+          },
+        ],
+      },
+      {
+        ...original,
+        tokens: original.tokens.map((token, index) =>
+          index === nounIndex
+            ? {
+                ...token,
+                jp: "たなかさん",
+                romaji: "tanaka-san",
+                source: {
+                  ...token.source,
+                  referenceId: "noun-tanaka",
+                },
+              }
+            : token,
+        ),
+        conceptIds: ["additive-mo", "topic-wa"],
+      },
+    ];
+    for (const mutation of mutations) {
+      expect(replaceAccepted(mutation), jp(mutation.tokens)).toContain(
+        "particle-frame-token-mismatch",
+      );
+    }
   });
 
   it("teaches lookup lemmas, then classes, then stems, then productive masu", () => {

@@ -190,7 +190,7 @@ function withFinalParticle(
   }
   return {
     ...target,
-    parts: [...target.parts, P(sense)],
+    parts: [...target.parts, P(sense, role, target.predicateLexemeId)],
     particleFrame: {
       ...target.particleFrame,
       provided: {
@@ -242,9 +242,13 @@ const object = (
       ...(topicId ? { topic: topicId } : {}),
     },
     [
-      ...(topicId ? [L(topicId), P("topic-wa")] : []),
+      ...(topicId ? [L(topicId), P("topic-wa", "topic", topicId)] : []),
       L(nounId),
-      P(patternCellId === TOPICALIZED_OBJECT ? "topic-wa" : "object-o"),
+      P(
+        patternCellId === TOPICALIZED_OBJECT ? "topic-wa" : "object-o",
+        "theme",
+        nounId,
+      ),
     ],
     patternCellId,
     topicId ? ["topic", "theme"] : ["theme"],
@@ -302,13 +306,13 @@ const L1: BaseTask11LessonSpec = {
   activities: [
     act(task11Cue(L("noun-gohan")), object("noun-gohan", "verb-taberu", "eat", OBJECT_O, "noun-watashi"), object("noun-gohan", "verb-taberu", "eat", TOPICALIZED_OBJECT, "noun-watashi"), 0, "argument-particles-1", 1, OBJECT_O, BASE_MEANING_ACTIVITY_SHAPE, "learner", "learner-eats-rice"),
     act(task11Cue(L("noun-mizu")), object("noun-mizu", "verb-nomu", "drink", OBJECT_O, "noun-tanaka"), object("noun-mizu", "verb-nomu", "drink", TOPICALIZED_OBJECT, "noun-tanaka"), 1, "argument-particles-1", 2, OBJECT_O, BASE_FORM_ACTIVITY_SHAPE),
-    act(task11Cue(L("noun-tegami")), object("noun-tegami", "verb-kaku", "write", OBJECT_O, "noun-yamada"), permutedArgumentTarget("verb-kaku", "write", { theme: "object-o", topic: "topic-wa" }, { theme: "noun-tegami", topic: "noun-yamada" }, [L("noun-yamada"), P("topic-wa"), task11VerbForm("verb-kaku", "polite-nonpast"), L("noun-tegami"), P("object-o")], OBJECT_O, ["topic", "theme"]), 0, "argument-particles-1", 3, OBJECT_O, BASE_ORDERING_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-tegami")), object("noun-tegami", "verb-kaku", "write", OBJECT_O, "noun-yamada"), permutedArgumentTarget("verb-kaku", "write", { theme: "object-o", topic: "topic-wa" }, { theme: "noun-tegami", topic: "noun-yamada" }, [L("noun-yamada"), P("topic-wa", "topic", "noun-yamada"), task11VerbForm("verb-kaku", "polite-nonpast"), L("noun-tegami"), P("object-o", "theme", "noun-tegami")], OBJECT_O, ["topic", "theme"]), 0, "argument-particles-1", 3, OBJECT_O, BASE_ORDERING_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-kudamono")), object("noun-kudamono", "verb-kau", "buy", OBJECT_O, "noun-satou"), object("noun-kudamono", "verb-kau", "buy", TOPICALIZED_OBJECT), 0, "argument-particles-1", 4, OBJECT_O, BASE_CONTROLLED_ACTIVITY_SHAPE, "satou", "satou-buys-fruit"),
     act(promptOf(object("noun-zasshi", "verb-kau", "buy", OBJECT_O)), object("noun-zasshi", "verb-kau", "buy", TOPICALIZED_OBJECT), object("noun-zasshi", "verb-kau", "buy", OBJECT_O, "noun-watashi"), 1, "argument-particles-1", 5, TOPICALIZED_OBJECT, BASE_TRANSFORMATION_ACTIVITY_SHAPE),
     act(promptOf(object("anchor-hon", "verb-kau", "buy", TOPICALIZED_OBJECT)), object("anchor-hon", "verb-kau", "buy", OBJECT_O), withFinalParticle(object("anchor-hon", "verb-kau", "buy", TOPICALIZED_OBJECT), "interaction", "interactional-yo"), 1, "argument-particles-1", 6, OBJECT_O, BASE_ERROR_ACTIVITY_SHAPE, null, null, "object-topicalization-mismatch"),
     act(task11Cue(L("anchor-shashin")), object("anchor-shashin", "verb-miru", "see", OBJECT_O, "noun-tanaka"), object("anchor-shashin", "verb-miru", "see", TOPICALIZED_OBJECT, "noun-tanaka"), 0, "argument-particles-1", 7, OBJECT_O, BASE_CONTEXT_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-tegami")), object("noun-tegami", "verb-kaku", "write", OBJECT_O, "noun-watashi"), withFinalParticle(object("noun-tegami", "verb-kaku", "write", TOPICALIZED_OBJECT), "question", "question-ka"), 1, "argument-particles-1", 8, OBJECT_O, BASE_RETRIEVAL_ACTIVITY_SHAPE),
-    act(task11Cue(L("noun-kudamono")), withFinalParticle(object("noun-kudamono", "verb-kau", "buy", TOPICALIZED_OBJECT), "interaction", "interactional-ne"), object("noun-kudamono", "verb-kau", "buy", OBJECT_O, "noun-mari"), 0, "argument-particles-1", 9, TOPICALIZED_OBJECT, BASE_LISTENING_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-mizu")), object("noun-mizu", "verb-kau", "buy", OBJECT_O, "noun-mari"), object("noun-mizu", "verb-kau", "buy", TOPICALIZED_OBJECT, "noun-mari"), 0, "argument-particles-1", 9, OBJECT_O, BASE_LISTENING_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-zasshi")), object("noun-zasshi", "verb-yomu", "read", OBJECT_O, "noun-yamada"), object("noun-mizu", "verb-nomu", "drink", OBJECT_O, "noun-yamada"), 1, "argument-particles-1", 10, OBJECT_O, BASE_SPOKEN_ACTIVITY_SHAPE),
   ],
   dialogue: null,
@@ -344,9 +348,9 @@ function motion(
       ...(topicId ? { topic: topicId } : {}),
     },
     [
-      ...(topicId ? [L(topicId), P(topicSense)] : []),
+      ...(topicId ? [L(topicId), P(topicSense, "topic", topicId)] : []),
       L(destinationId),
-      P(direction ? "direction-he" : "goal-ni"),
+      P(direction ? "direction-he" : "goal-ni", "goal", destinationId),
     ],
     direction ? DIRECTION_E : GOAL_NI,
     topicId ? ["topic", "goal"] : ["goal"],
@@ -402,7 +406,7 @@ const L2: BaseTask11LessonSpec = {
   activities: [
     act(task11Cue(L("noun-eki")), roleAnnotated(motion("noun-eki", "verb-iku", "go-goal", "noun-watashi"), "analysis-goal"), roleAnnotated(motion("noun-eki", "verb-iku", "go-direction", "noun-watashi"), "analysis-direction"), 0, "argument-particles-2", 1, GOAL_NI, BASE_MEANING_ACTIVITY_SHAPE, "learner", "learner-goes-station"),
     act(task11Cue(L("noun-daigaku")), roleAnnotated(motion("noun-daigaku", "verb-iku", "go-direction", "noun-tanaka"), "analysis-direction"), roleAnnotated(motion("noun-daigaku", "verb-iku", "go-goal", "noun-tanaka"), "analysis-goal"), 1, "argument-particles-2", 2, DIRECTION_E, BASE_FORM_ACTIVITY_SHAPE),
-    act(task11Cue(L("noun-byouin")), motion("noun-byouin", "verb-iku", "go-goal", "noun-yamada"), permutedArgumentTarget("verb-iku", "go-goal", { goal: "goal-ni", topic: "topic-wa" }, { goal: "noun-byouin", topic: "noun-yamada" }, [L("noun-yamada"), P("topic-wa"), task11VerbForm("verb-iku", "polite-nonpast"), L("noun-byouin"), P("goal-ni")], GOAL_NI, ["topic", "goal"]), 0, "argument-particles-2", 3, GOAL_NI, BASE_ORDERING_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-byouin")), motion("noun-byouin", "verb-iku", "go-goal", "noun-yamada"), permutedArgumentTarget("verb-iku", "go-goal", { goal: "goal-ni", topic: "topic-wa" }, { goal: "noun-byouin", topic: "noun-yamada" }, [L("noun-yamada"), P("topic-wa", "topic", "noun-yamada"), task11VerbForm("verb-iku", "polite-nonpast"), L("noun-byouin"), P("goal-ni", "goal", "noun-byouin")], GOAL_NI, ["topic", "goal"]), 0, "argument-particles-2", 3, GOAL_NI, BASE_ORDERING_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-mise")), roleAnnotated(motion("noun-mise", "verb-iku", "go-direction", "noun-satou"), "analysis-direction"), roleAnnotated(motion("noun-mise", "verb-iku", "go-goal", "noun-satou"), "analysis-goal"), 1, "argument-particles-2", 4, DIRECTION_E, BASE_CONTROLLED_ACTIVITY_SHAPE),
     act(promptOf(motion("anchor-gakkou", "verb-iku", "go-goal", "noun-suzuki")), motion("anchor-gakkou", "verb-iku", "go-direction", "noun-suzuki"), roleAnnotated(motion("anchor-gakkou", "verb-iku", "go-goal", "noun-suzuki"), "analysis-goal"), 1, "argument-particles-2", 5, DIRECTION_E, BASE_TRANSFORMATION_ACTIVITY_SHAPE),
     act(promptOf(motion("anchor-ie", "verb-iku", "go-direction", "noun-mari")), motion("anchor-ie", "verb-iku", "go-goal", "noun-mari"), withFinalParticle(motion("anchor-ie", "verb-iku", "go-direction", "noun-mari"), "interaction", "interactional-yo"), 0, "argument-particles-2", 6, GOAL_NI, BASE_ERROR_ACTIVITY_SHAPE, "mari", "mari-goes-home", "goal-direction-context-mismatch"),
@@ -441,9 +445,9 @@ function place(
       ...(topicId ? { topic: topicId } : {}),
     },
     [
-      ...(topicId ? [L(topicId), P("topic-wa")] : []),
+      ...(topicId ? [L(topicId), P("topic-wa", "topic", topicId)] : []),
       L(placeId),
-      P("action-place-de"),
+      P("action-place-de", "action-place", placeId),
     ],
     ACTION_PLACE,
     topicId ? ["topic", "location"] : ["location"],
@@ -473,9 +477,9 @@ function means(
       ...(topicId ? { topic: topicId } : {}),
     },
     [
-      ...(topicId ? [L(topicId), P("topic-wa")] : []),
+      ...(topicId ? [L(topicId), P("topic-wa", "topic", topicId)] : []),
       L(meansId),
-      P("means-de"),
+      P("means-de", "means", meansId),
     ],
     MEANS,
     topicId ? ["topic", "means"] : ["means"],
@@ -535,7 +539,7 @@ const L3: BaseTask11LessonSpec = {
   activities: [
     act(task11Cue(L("noun-toshokan")), place("noun-toshokan", "verb-kaku", "write-place", "noun-watashi"), means("noun-enpitsu", "verb-kaku", "write-means", "noun-watashi"), 0, "argument-particles-3", 1, ACTION_PLACE, BASE_MEANING_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-mise")), place("noun-mise", "verb-kaku", "write-place", "noun-tanaka"), means("noun-enpitsu", "verb-kaku", "write-means", "noun-tanaka"), 1, "argument-particles-3", 2, ACTION_PLACE, BASE_FORM_ACTIVITY_SHAPE),
-    act(task11Cue(L("noun-densha")), means("noun-densha", "verb-iku", "travel-means", "noun-yamada"), permutedArgumentTarget("verb-iku", "travel-means", { means: "means-de", topic: "topic-wa" }, { means: "noun-densha", topic: "noun-yamada" }, [L("noun-yamada"), P("topic-wa"), task11VerbForm("verb-iku", "polite-nonpast"), L("noun-densha"), P("means-de")], MEANS, ["topic", "means"]), 0, "argument-particles-3", 3, MEANS, BASE_ORDERING_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-densha")), means("noun-densha", "verb-iku", "travel-means", "noun-yamada"), permutedArgumentTarget("verb-iku", "travel-means", { means: "means-de", topic: "topic-wa" }, { means: "noun-densha", topic: "noun-yamada" }, [L("noun-yamada"), P("topic-wa", "topic", "noun-yamada"), task11VerbForm("verb-iku", "polite-nonpast"), L("noun-densha"), P("means-de", "means", "noun-densha")], MEANS, ["topic", "means"]), 0, "argument-particles-3", 3, MEANS, BASE_ORDERING_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-jitensha")), means("noun-jitensha", "verb-iku", "travel-means", "noun-satou"), means("noun-densha", "verb-iku", "travel-means", "noun-satou"), 1, "argument-particles-3", 4, MEANS, BASE_CONTROLLED_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-enpitsu")), means("noun-enpitsu", "verb-kaku", "write-means", "noun-suzuki"), place("noun-mise", "verb-kaku", "write-place", "noun-suzuki"), 0, "argument-particles-3", 5, MEANS, BASE_CONTEXT_ACTIVITY_SHAPE),
     act(promptOf(roleAnnotated(place("noun-mise", "verb-kaku", "write-place", "noun-mari"), "analysis-means")), roleAnnotated(place("noun-mise", "verb-kaku", "write-place", "noun-mari"), "analysis-action-place"), roleAnnotated(place("noun-mise", "verb-kaku", "write-place"), "analysis-means"), 0, "argument-particles-3", 6, ACTION_PLACE, BASE_ERROR_ACTIVITY_SHAPE, "mari", "mari-writes-shop", "de-role-context-mismatch"),
@@ -616,9 +620,9 @@ const L4: BaseTask11LessonSpec = {
     ex(mixed(place("noun-kouen", "verb-taberu", "eat-place")), "park-meal", "I eat at the park.", "Mangio al parco.", "Retrieves action-place で through an eating venue.", "Recupera で di luogo attraverso il posto del pasto.", "predicate-led"),
   ],
   activities: [
-    act(task11Cue(L("noun-shokudou")), mixed(place("noun-shokudou", "verb-taberu", "eat-place", "noun-watashi")), mixed(argumentTarget("verb-taberu", "eat", { theme: "object-o", topic: "additive-mo" }, { theme: "noun-gohan", topic: "noun-watashi" }, [L("noun-watashi"), P("additive-mo"), L("noun-gohan"), P("object-o")], OBJECT_O, ["topic", "theme"])), 0, "argument-particles-4", 1, MIXED, BASE_MEANING_ACTIVITY_SHAPE, "learner", "learner-eats-cafeteria"),
+    act(task11Cue(L("noun-shokudou")), mixed(place("noun-shokudou", "verb-taberu", "eat-place", "noun-watashi")), mixed(argumentTarget("verb-taberu", "eat", { theme: "object-o", topic: "additive-mo" }, { theme: "noun-gohan", topic: "noun-watashi" }, [L("noun-watashi"), P("additive-mo", "topic", "noun-watashi"), L("noun-gohan"), P("object-o", "theme", "noun-gohan")], OBJECT_O, ["topic", "theme"])), 0, "argument-particles-4", 1, MIXED, BASE_MEANING_ACTIVITY_SHAPE, "learner", "learner-eats-cafeteria"),
     act(task11Cue(L("noun-jimusho")), mixed(roleAnnotated(place("noun-jimusho", "verb-kaku", "write-place", "noun-tanaka"), "analysis-action-place")), mixed(roleAnnotated(means("noun-enpitsu", "verb-kaku", "write-means", "noun-tanaka"), "analysis-means")), 1, "argument-particles-4", 2, MIXED, BASE_FORM_ACTIVITY_SHAPE),
-    act(task11Cue(L("noun-kasa")), mixed(object("noun-kasa", "verb-kau", "buy", OBJECT_O, "noun-yamada")), permutedArgumentTarget("verb-kau", "buy", { theme: "object-o", topic: "topic-wa" }, { theme: "noun-kasa", topic: "noun-yamada" }, [L("noun-yamada"), P("topic-wa"), task11VerbForm("verb-kau", "polite-nonpast"), L("noun-kasa"), P("object-o")], MIXED, ["topic", "theme"], ["predicate-led-particle-selection"]), 0, "argument-particles-4", 3, MIXED, BASE_ORDERING_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-kasa")), mixed(object("noun-kasa", "verb-kau", "buy", OBJECT_O, "noun-yamada")), permutedArgumentTarget("verb-kau", "buy", { theme: "object-o", topic: "topic-wa" }, { theme: "noun-kasa", topic: "noun-yamada" }, [L("noun-yamada"), P("topic-wa", "topic", "noun-yamada"), task11VerbForm("verb-kau", "polite-nonpast"), L("noun-kasa"), P("object-o", "theme", "noun-kasa")], MIXED, ["topic", "theme"], ["predicate-led-particle-selection"]), 0, "argument-particles-4", 3, MIXED, BASE_ORDERING_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-nikki")), mixed(object("noun-nikki", "verb-kaku", "write", OBJECT_O, "noun-satou")), mixed(object("noun-nikki", "verb-kaku", "write", TOPICALIZED_OBJECT)), 1, "argument-particles-4", 4, MIXED, BASE_CONTROLLED_ACTIVITY_SHAPE, "satou", "satou-writes-diary"),
     act(task11Cue(L("noun-eki")), mixed(motion("noun-eki", "verb-iku", "go-direction", "noun-suzuki")), mixed(motion("noun-eki", "verb-iku", "go-goal", "noun-suzuki")), 0, "argument-particles-4", 5, MIXED, BASE_CONTEXT_ACTIVITY_SHAPE),
     act(promptOf(mixed(withFinalParticle(means("noun-kasa", "verb-kaku", "write-means", "noun-mari"), "interaction", "interactional-ne"))), mixed(withFinalParticle(means("noun-enpitsu", "verb-kaku", "write-means", "noun-mari"), "interaction", "interactional-ne")), mixed(withFinalParticle(means("noun-kasa", "verb-kaku", "write-means", "noun-mari"), "interaction", "interactional-yo")), 1, "argument-particles-4", 6, MIXED, BASE_ERROR_ACTIVITY_SHAPE, "mari", "mari-writes-pencil", "means-context-mismatch"),

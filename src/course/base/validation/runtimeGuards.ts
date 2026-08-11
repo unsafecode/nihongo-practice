@@ -120,6 +120,16 @@ const PARTICLE_FRAME_REQUIRED_KEYS = [
   "provided",
   "attachmentLexemeIdByRole",
 ] as const;
+const PARTICLE_BINDING_KEYS = new Set([
+  "role",
+  "particleSense",
+  "attachmentLexemeId",
+]);
+const PARTICLE_BINDING_REQUIRED_KEYS = [
+  "role",
+  "particleSense",
+  "attachmentLexemeId",
+] as const;
 const BASE_VISIBLE_TARGET_REQUIRED_KEYS = [
   "tokens",
   "lexemeIds",
@@ -135,6 +145,7 @@ const BASE_VISIBLE_TARGET_OPTIONAL_KEYS = [
   "predicateAspect",
   "discourseFrameId",
   "particleFrame",
+  "particleBindings",
 ] as const;
 const BASE_VISIBLE_TARGET_KEYS = new Set([
   ...BASE_VISIBLE_TARGET_REQUIRED_KEYS,
@@ -498,6 +509,46 @@ function strictRuntimeParticleFrame(value: unknown): BaseParticleFrame | undefin
   });
 }
 
+function strictRuntimeParticleBindings(
+  value: unknown,
+): BaseVisibleTarget["particleBindings"] | undefined {
+  const entries = ownDataArrayValues(value);
+  if (!entries) return undefined;
+  const bindings: NonNullable<BaseVisibleTarget["particleBindings"]>[number][] =
+    [];
+  for (const entry of entries) {
+    const binding = exactEnumerableDataRecord(
+      entry,
+      PARTICLE_BINDING_KEYS,
+      PARTICLE_BINDING_REQUIRED_KEYS,
+    );
+    if (!binding) return undefined;
+    const role = ownDataValue(binding, "role");
+    const particleSense = ownDataValue(binding, "particleSense");
+    const attachmentLexemeId = ownDataValue(binding, "attachmentLexemeId");
+    if (
+      typeof role !== "string" ||
+      !PARTICLE_FRAME_ROLES.has(role) ||
+      typeof particleSense !== "string" ||
+      !PARTICLE_FRAME_SENSES.has(particleSense) ||
+      typeof attachmentLexemeId !== "string" ||
+      attachmentLexemeId.trim().length === 0
+    ) {
+      return undefined;
+    }
+    bindings.push(
+      Object.freeze({
+        role,
+        particleSense,
+        attachmentLexemeId,
+      }) as NonNullable<
+        BaseVisibleTarget["particleBindings"]
+      >[number],
+    );
+  }
+  return Object.freeze(bindings);
+}
+
 export function isSafeParticleFrame(value: unknown): boolean {
   return strictRuntimeParticleFrame(value) !== undefined;
 }
@@ -602,6 +653,12 @@ export function runtimeVisibleTargetIssue(
   ) {
     return "invalid-particle-frame";
   }
+  if (
+    hasOwnDataValue(target, "particleBindings") &&
+    !strictRuntimeParticleBindings(ownDataValue(target, "particleBindings"))
+  ) {
+    return "invalid-particle-frame";
+  }
   return undefined;
 }
 
@@ -648,12 +705,16 @@ function strictRuntimeVisibleTargetForShape(
   const particleFrame = hasOwnDataValue(target, "particleFrame")
     ? strictRuntimeParticleFrame(ownDataValue(target, "particleFrame"))
     : undefined;
+  const particleBindings = hasOwnDataValue(target, "particleBindings")
+    ? strictRuntimeParticleBindings(ownDataValue(target, "particleBindings"))
+    : undefined;
   if (
     !(
       (typeof predicateSenseId === "string" || predicateSenseId === null) &&
       (typeof predicateLexemeId === "string" || predicateLexemeId === null)
     ) ||
-    (hasOwnDataValue(target, "particleFrame") && !particleFrame)
+    (hasOwnDataValue(target, "particleFrame") && !particleFrame) ||
+    (hasOwnDataValue(target, "particleBindings") && !particleBindings)
   ) {
     return undefined;
   }
@@ -670,6 +731,7 @@ function strictRuntimeVisibleTargetForShape(
     ...(typeof predicateAspect === "string" ? { predicateAspect } : {}),
     ...(typeof discourseFrameId === "string" ? { discourseFrameId } : {}),
     ...(particleFrame ? { particleFrame } : {}),
+    ...(particleBindings ? { particleBindings } : {}),
   } as BaseVisibleTarget);
 }
 

@@ -396,6 +396,39 @@ describe("Base argument-particles module", () => {
           .map(({ code }) => code)
           .filter((code) => code === "particle-frame-token-mismatch"),
     ).toEqual(expect.arrayContaining(["particle-frame-token-mismatch"]));
+
+    const verbIndex = original.tokens.findIndex(
+      ({ source }) => source.referenceId === "verb-miru",
+    );
+    const forgedExtraRole = {
+      ...original,
+      tokens: [
+        ...original.tokens.slice(0, verbIndex),
+        {
+          ...original.tokens[topicNounIndex],
+          id: "adversarial-extra-goal-noun",
+        },
+        {
+          ...baseParticleSurfaceTokens("goal-ni")[0],
+          id: "adversarial-extra-goal-particle",
+        },
+        ...original.tokens.slice(verbIndex),
+      ],
+      semanticRoleIds: [...original.semanticRoleIds, "goal" as const],
+      particleBindings: [
+        ...(original.particleBindings ?? []),
+        {
+          role: "goal" as const,
+          particleSense: "goal-ni" as const,
+          attachmentLexemeId: "noun-tanaka",
+        },
+      ],
+    };
+    expect(
+      replaceAccepted(forgedExtraRole)
+        .map(({ code }) => code)
+        .filter((code) => code === "particle-frame-token-mismatch"),
+    ).toEqual(expect.arrayContaining(["particle-frame-token-mismatch"]));
   });
 
   it("teaches transitive theme o and a licensed topicalized theme", () => {
@@ -410,6 +443,40 @@ describe("Base argument-particles module", () => {
           predicateSenseId !== null,
       ),
     ).toBe(true);
+  });
+
+  it("makes AP1 packaging contexts determinate without later particles", () => {
+    for (const activityNumber of [2, 7]) {
+      const en =
+        baseNavigationCopyEn.content[
+          `argument-particles-1-activity-${activityNumber}-instruction`
+        ].toLowerCase();
+      const it =
+        baseNavigationCopyIt.content[
+          `argument-particles-1-activity-${activityNumber}-instruction`
+        ].toLowerCase();
+      expect(en, `EN:A${activityNumber}`).toMatch(
+        /(?:new information|already under discussion|neutral packaging|established topic)/u,
+      );
+      expect(it, `IT:A${activityNumber}`).toMatch(
+        /(?:informazione nuova|già al centro|organizzazione neutra|tema stabilito)/u,
+      );
+    }
+
+    const listening = BASE_ARGUMENT_PARTICLES_MODULE.lessons[0].activityDesigns[8];
+    const visibleSenses = listening.optionTargets.flatMap(({ tokens }) =>
+      tokens
+        .filter(({ kind }) => kind === "particle")
+        .map(({ source }) => source.referenceId),
+    );
+    expect(visibleSenses).not.toEqual(
+      expect.arrayContaining([
+        "question-ka",
+        "interactional-ne",
+        "interactional-yo",
+      ]),
+    );
+    expect(jp(listening.optionTargets[0].tokens)).not.toContain("ね");
   });
 
   it("uses genuine clause contrasts instead of label-only AP3 choices", () => {

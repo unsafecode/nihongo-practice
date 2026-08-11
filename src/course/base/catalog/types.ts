@@ -158,6 +158,12 @@ export interface BaseParticleFrame {
   >;
 }
 
+export interface BaseParticleBinding {
+  readonly role: BaseParticleRole;
+  readonly particleSense: BaseParticleSense;
+  readonly attachmentLexemeId: string;
+}
+
 /**
  * Canonical provenance carried by every learner-visible Japanese target.
  *
@@ -182,6 +188,8 @@ export interface BaseVisibleTarget {
   readonly predicateAspect?: BasePredicateAspect;
   readonly discourseFrameId?: string;
   readonly particleFrame?: BaseParticleFrame;
+  /** Authored surface binding for every visible particle token. */
+  readonly particleBindings?: readonly BaseParticleBinding[];
 }
 
 export interface BaseExample extends BaseVisibleTarget {

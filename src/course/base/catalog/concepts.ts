@@ -89,9 +89,13 @@ export const BASE_CONCEPTS: readonly BaseConcept[] = deepFreeze([
     "time-movement-1",
     ["masu-nonpast"],
   ),
+  concept("habit-future-time-cues", "concept", "time-movement-1", [
+    "masu-nonpast",
+  ]),
   concept("time-ni", "concept", "time-movement-2"),
   concept("relative-time-omission", "concept", "time-movement-2", [
     "dynamic-nonpast-semantics",
+    "habit-future-time-cues",
   ]),
   concept("source-kara", "concept", "time-movement-2"),
   concept("limit-made", "concept", "time-movement-2"),

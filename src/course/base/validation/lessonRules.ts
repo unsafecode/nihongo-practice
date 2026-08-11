@@ -1,6 +1,7 @@
 import type { AssembledToken } from "../../../romaji/types";
 import { formatRomaji } from "../../../romaji/formatRomaji";
 import { deepFreeze } from "../../foundations/deepFreeze";
+import type { SemanticArgumentRole } from "../../foundations/types";
 import {
   baseCanonicalPosition,
   baseLessonManifestEntry,
@@ -27,6 +28,7 @@ import {
   BASE_PARTICLE_FRAME_BY_PREDICATE,
   BASE_PARTICLE_SENSES,
   particleProvidedEntries,
+  type BaseParticleRole,
   validateParticleFrameEntries,
 } from "../forms/particleLicensing";
 import {
@@ -904,18 +906,32 @@ const CLAUSE_FINAL_PARTICLE_SENSES = new Set([
   "interactional-yo",
 ]);
 const CLAUSE_FINAL_PARTICLE_ROLES = new Set(["question", "interaction"]);
-const PREDICATE_GOVERNED_PARTICLE_SENSES = new Set([
-  "object-o",
-  "goal-ni",
-  "direction-he",
-  "action-place-de",
-  "means-de",
-  "time-ni",
-  "source-kara",
-  "limit-made",
-  "existence-location-ni",
-  "existential-subject-ga",
+const PREDICATE_FRAME_PARTICLE_ROLES = new Set([
+  "theme",
+  "goal",
+  "action-place",
+  "means",
+  "time",
+  "source",
+  "limit",
+  "existence-location",
+  "existential-subject",
 ]);
+const TASK11_REFERENCE_PREFIX =
+  /^(?:polite-verbs|argument-particles|time-movement)-/u;
+const SEMANTIC_ROLE_BY_PARTICLE_ROLE: Readonly<
+  Partial<Record<BaseParticleRole, SemanticArgumentRole>>
+> = {
+  topic: "topic",
+  theme: "theme",
+  goal: "goal",
+  "action-place": "location",
+  means: "means",
+  time: "time",
+  source: "source",
+  limit: "limit",
+  companion: "companion",
+};
 
 function validateParticleTokenMultiset(
   target: BaseVisibleTarget,
@@ -926,23 +942,10 @@ function validateParticleTokenMultiset(
     detail?: string,
   ) => void,
 ): void {
-  if (!target.particleFrame) {
-    const requiresFrame =
-      target.predicateSenseId !== null &&
-      (target.tokens.some(
-          ({ kind, source }) =>
-            kind === "particle" &&
-            PREDICATE_GOVERNED_PARTICLE_SENSES.has(source.referenceId),
-        ) ||
-        (target.semanticRoleIds.includes("theme") &&
-          target.tokens.some(
-            ({ kind, source }) =>
-              kind === "particle" &&
-              (source.referenceId === "topic-wa" ||
-                source.referenceId === "additive-mo"),
-          )));
-    if (requiresFrame) {
-      push("particle-frame-token-mismatch", referenceId, "missing-frame");
+  const bindings = target.particleBindings;
+  if (!bindings) {
+    if (TASK11_REFERENCE_PREFIX.test(referenceId)) {
+      push("particle-frame-token-mismatch", referenceId, "missing-bindings");
     }
     return;
   }
@@ -961,30 +964,68 @@ function validateParticleTokenMultiset(
       return [`${sense}@${attachmentLexemeId ?? ""}`];
     })
     .sort();
-  const provided = particleProvidedEntries(target.particleFrame.provided);
-  const attachmentEntries = Object.entries(
-    target.particleFrame.attachmentLexemeIdByRole,
-  );
-  const attachmentByRole = new Map(attachmentEntries);
-  const declared = provided.entries
+  const declared = bindings
     .map(
-      ([role, sense]) =>
-        `${sense}@${attachmentByRole.get(role) ?? ""}`,
+      ({ particleSense, attachmentLexemeId }) =>
+        `${particleSense}@${attachmentLexemeId}`,
     )
     .sort();
-  const declaredRoles = provided.entries.map(([role]) => role).sort();
-  const attachmentRoles = attachmentEntries.map(([role]) => role).sort();
-  const attachmentsAreCanonical = attachmentEntries.every(
-    ([role, lexemeId]) =>
+  const attachmentsAreCanonical = bindings.every(
+    ({ role, attachmentLexemeId }) =>
       CLAUSE_FINAL_PARTICLE_ROLES.has(role)
-        ? lexemeId === target.predicateLexemeId
-        : target.lexemeIds.includes(lexemeId) &&
-          BASE_LEXEME_BY_ID.get(lexemeId)?.category === "noun",
+        ? attachmentLexemeId === target.predicateLexemeId
+        : target.lexemeIds.includes(attachmentLexemeId) &&
+          BASE_LEXEME_BY_ID.get(attachmentLexemeId)?.category === "noun",
   );
+  const semanticRolesAgree = bindings.every(({ role }) => {
+    const semanticRole = SEMANTIC_ROLE_BY_PARTICLE_ROLE[role];
+    return !semanticRole || target.semanticRoleIds.includes(semanticRole);
+  });
+  const frameEntries = target.particleFrame
+    ? particleProvidedEntries(target.particleFrame.provided).entries
+    : [];
+  const frameBindingMatches = (
+    role: string,
+    particleSense: string,
+  ): boolean => {
+    const attachmentLexemeId =
+      target.particleFrame?.attachmentLexemeIdByRole[
+        role as keyof NonNullable<
+          typeof target.particleFrame
+        >["attachmentLexemeIdByRole"]
+      ];
+    return bindings.some(
+      (binding) =>
+        binding.role === role &&
+        binding.particleSense === particleSense &&
+        binding.attachmentLexemeId === attachmentLexemeId,
+    );
+  };
+  const frameBindingsAgree = !target.particleFrame
+    ? !(
+        target.predicateSenseId !== null &&
+        bindings.some(({ role }) =>
+          PREDICATE_FRAME_PARTICLE_ROLES.has(role),
+        )
+      )
+    : frameEntries.every(([role, particleSense]) =>
+        frameBindingMatches(role, particleSense),
+      ) &&
+      bindings.every(({ role, particleSense, attachmentLexemeId }) => {
+        const frameSense = frameEntries.find(
+          ([frameRole]) => frameRole === role,
+        )?.[1];
+        return (
+          frameSense === particleSense &&
+          target.particleFrame?.attachmentLexemeIdByRole[
+            role as keyof typeof target.particleFrame.attachmentLexemeIdByRole
+          ] === attachmentLexemeId
+        );
+      });
   if (
     !attachmentsAreCanonical ||
-    declaredRoles.length !== attachmentRoles.length ||
-    declaredRoles.some((role, index) => role !== attachmentRoles[index]) ||
+    !semanticRolesAgree ||
+    !frameBindingsAgree ||
     visible.length !== declared.length ||
     visible.some((sense, index) => sense !== declared[index])
   ) {

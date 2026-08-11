@@ -84,6 +84,38 @@ function normalizedParticleFrame(
   };
 }
 
+function normalizedParticleBindings(
+  value: unknown,
+): readonly (readonly [string, string, string])[] {
+  const entries = ownDataArrayValues(value);
+  if (!entries) return [];
+  return entries
+    .flatMap((entry) => {
+      if (!isPlainDataRecord(entry)) return [];
+      const role = normalizeText(ownDataValue(entry, "role"));
+      const particleSense = normalizeText(
+        ownDataValue(entry, "particleSense"),
+      );
+      const attachmentLexemeId = normalizeText(
+        ownDataValue(entry, "attachmentLexemeId"),
+      );
+      return role && particleSense && attachmentLexemeId
+        ? [[role, particleSense, attachmentLexemeId] as const]
+        : [];
+    })
+    .sort(([leftRole, leftSense], [rightRole, rightSense]) =>
+      leftRole === rightRole
+        ? leftSense < rightSense
+          ? -1
+          : leftSense > rightSense
+            ? 1
+            : 0
+        : leftRole < rightRole
+          ? -1
+          : 1,
+    );
+}
+
 /**
  * Produces a stable learner-visible Japanese surface. Token identity, token
  * boundaries, segmentation, and romaji/copy metadata cannot affect it.
@@ -119,6 +151,9 @@ function semanticPayload(input: SemanticFingerprintSubject | unknown): Readonly<
     predicateAspect: normalizedOptionalText(ownDataValue(target, "predicateAspect")),
     interpretationTags: sortedNormalized(ownDataValue(target, "interpretationTags")),
     particleFrame: normalizedParticleFrame(ownDataValue(target, "particleFrame")),
+    particleBindings: normalizedParticleBindings(
+      ownDataValue(target, "particleBindings"),
+    ),
   };
 }
 
@@ -191,6 +226,9 @@ export function activityTargetOperationFingerprintFor(
       ),
       targetParticleFrame: normalizedParticleFrame(
         ownDataValue(targetRecord, "particleFrame"),
+      ),
+      targetParticleBindings: normalizedParticleBindings(
+        ownDataValue(targetRecord, "particleBindings"),
       ),
     })}`,
   });
