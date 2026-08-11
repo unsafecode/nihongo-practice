@@ -369,6 +369,35 @@ describe("Base polite-verbs module", () => {
     ).toBe(true);
   });
 
+  it("makes PV2 and PV4 listening depend on the recording", () => {
+    const pv2 = BASE_POLITE_VERBS_MODULE.lessons[1].activityDesigns[8];
+    expect(pv2.operation).toBe("identify-audio");
+    expect(
+      pv2.optionTargets.map(({ predicateLexemeId }) => predicateLexemeId),
+    ).toEqual(["verb-kau", "verb-kau"]);
+    expect(pv2.optionTargets[0].conceptIds).toContain("godan-verb-class");
+    expect(pv2.optionTargets[1].conceptIds).toContain("dictionary-lemma");
+    expect(pv2.optionTargets[1].conceptIds).not.toContain(
+      "ichidan-verb-class",
+    );
+
+    const pv4 = BASE_POLITE_VERBS_MODULE.lessons[3].activityDesigns[8];
+    expect(pv4.operation).toBe("identify-audio");
+    expect(
+      pv4.optionTargets.map(({ predicateLexemeId }) => predicateLexemeId),
+    ).toEqual(["verb-hataraku", "verb-hataraku"]);
+    expect(
+      pv4.optionTargets.every(({ tokens }) =>
+        tokens.some(({ source }) => source.referenceId === "masu"),
+      ),
+    ).toBe(true);
+    expect(
+      pv4.optionTargets.map(({ tokens }) =>
+        tokens.some(({ source }) => source.referenceId === "question-ka"),
+      ),
+    ).toEqual([false, true]);
+  });
+
   it("grounds PV2/PV3 prompts in the exact verb being analyzed", () => {
     const pv2a3 = BASE_POLITE_VERBS_MODULE.lessons[1].activityDesigns[2];
     expect(pv2a3.promptTarget.lexemeIds).toContain("verb-taberu");

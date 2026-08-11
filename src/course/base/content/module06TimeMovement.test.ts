@@ -1399,6 +1399,222 @@ describe("Base time-movement module", () => {
     }
   });
 
+  it("keeps all twelve listening activities neutral and audio-required", () => {
+    const lessons = [
+      ...BASE_POLITE_VERBS_MODULE.lessons,
+      ...BASE_ARGUMENT_PARTICLES_MODULE.lessons,
+      ...BASE_TIME_MOVEMENT_MODULE.lessons,
+    ];
+    const listening = lessons.flatMap((lesson) =>
+      lesson.activityDesigns
+        .map((design, index) => ({
+          design,
+          definition: lesson.content.activities[index],
+        }))
+        .filter(({ design }) => design.operation === "identify-audio"),
+    );
+    expect(listening).toHaveLength(12);
+    const listeningIds = new Set(
+      listening.map(({ design }) => design.id),
+    );
+    expect(
+      validateTask11SemanticReview(lessons).filter(
+        ({ code, activityId }) =>
+          code === "instruction-answer-leakage" &&
+          listeningIds.has(activityId),
+      ),
+    ).toEqual([]);
+    for (const { design, definition } of listening) {
+      expect(design.contextTarget.audioRequired, design.id).toBe(true);
+      expect(design.audioContract, design.id).toMatchObject({
+        kind: "semantic-synthesis",
+        promptVisible: false,
+      });
+      expect(design.audioTargetId, design.id).not.toBeNull();
+      expect(
+        baseNavigationCopyEn.content[definition.instructionCopyId],
+        `EN:${design.id}`,
+      ).toMatch(/\blisten\b/iu);
+      expect(
+        baseNavigationCopyIt.content[definition.instructionCopyId],
+        `IT:${design.id}`,
+      ).toMatch(/\bascolta\b/iu);
+    }
+  });
+
+  it("rejects accepted-side listening synonyms in both locales", () => {
+    const scenarios = [
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[2],
+        locale: "en",
+        instruction:
+          "Listen to the viewing-stem card and choose its written match.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[2],
+        locale: "it",
+        instruction:
+          "Ascolta la scheda della base pre-ます e scegli la forma scritta.",
+      },
+      {
+        lesson: BASE_ARGUMENT_PARTICLES_MODULE.lessons[1],
+        locale: "en",
+        instruction:
+          "Listen for the trip whose final stop is home and choose its match.",
+      },
+      {
+        lesson: BASE_ARGUMENT_PARTICLES_MODULE.lessons[1],
+        locale: "it",
+        instruction:
+          "Ascolta il viaggio con fermata finale a casa e scegli la forma.",
+      },
+      {
+        lesson: BASE_ARGUMENT_PARTICLES_MODULE.lessons[3],
+        locale: "en",
+        instruction:
+          "Listen to the route toward the park and choose its match.",
+      },
+      {
+        lesson: BASE_ARGUMENT_PARTICLES_MODULE.lessons[3],
+        locale: "it",
+        instruction:
+          "Ascolta il percorso verso il parco e scegli la forma scritta.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[1],
+        locale: "en",
+        instruction: "Listen to the tomorrow plan and choose its match.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[1],
+        locale: "it",
+        instruction: "Ascolta il piano di domani e scegli la forma scritta.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[2],
+        locale: "en",
+        instruction:
+          "Listen to the yesterday-writing sentence and choose its match.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[2],
+        locale: "it",
+        instruction:
+          "Ascolta la frase sulla scrittura di ieri e scegli la forma.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[3],
+        locale: "en",
+        instruction:
+          "Listen to the scheduled train trip and choose its written match.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[3],
+        locale: "it",
+        instruction:
+          "Ascolta il viaggio in treno programmato e scegli la forma scritta.",
+      },
+    ] as const;
+
+    for (const { lesson, locale, instruction } of scenarios) {
+      const activity = lesson.content.activities[8];
+      const copyId = activity.instructionCopyId;
+      const en = {
+        ...baseNavigationCopyEn.content,
+        ...(locale === "en" ? { [copyId]: instruction } : {}),
+      };
+      const it = {
+        ...baseNavigationCopyIt.content,
+        ...(locale === "it" ? { [copyId]: instruction } : {}),
+      };
+      expect(
+        validateTask11SemanticReview([lesson], en, it),
+        `${locale}:${activity.id}:${instruction}`,
+      ).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "instruction-answer-leakage",
+            activityId: activity.id,
+          }),
+        ]),
+      );
+    }
+  });
+
+  it("keeps TM2 time-bound instructions factually parallel without naming the cell", () => {
+    const lesson = BASE_TIME_MOVEMENT_MODULE.lessons[1];
+    const copyId = lesson.content.activities[4].instructionCopyId;
+    expect(baseNavigationCopyEn.content[copyId]).toMatch(
+      /\bnine\b.*\bfive\b/iu,
+    );
+    expect(baseNavigationCopyIt.content[copyId]).toBe(
+      "La scheda di studio di Tanaka indica l’inizio alle nove e la fine alle cinque. Scegli la frase corrispondente.",
+    );
+    expect(baseNavigationCopyIt.content[copyId]).not.toMatch(
+      /lettura delimitata/iu,
+    );
+  });
+
+  it("rejects meta-label synonyms for both TM2 bound cells", () => {
+    const lesson = BASE_TIME_MOVEMENT_MODULE.lessons[1];
+    const scenarios = [
+      {
+        index: 4,
+        locale: "en",
+        instruction: "Choose the bounded reading.",
+      },
+      {
+        index: 4,
+        locale: "en",
+        instruction: "Choose the start-and-finish pattern.",
+      },
+      {
+        index: 4,
+        locale: "it",
+        instruction: "Scegli la lettura delimitata.",
+      },
+      {
+        index: 4,
+        locale: "it",
+        instruction: "Scegli lo schema di inizio e fine.",
+      },
+      {
+        index: 5,
+        locale: "en",
+        instruction: "Choose the bounded route.",
+      },
+      {
+        index: 5,
+        locale: "it",
+        instruction: "Scegli il percorso delimitato.",
+      },
+    ] as const;
+
+    for (const { index, locale, instruction } of scenarios) {
+      const activity = lesson.content.activities[index];
+      const copyId = activity.instructionCopyId;
+      const en = {
+        ...baseNavigationCopyEn.content,
+        ...(locale === "en" ? { [copyId]: instruction } : {}),
+      };
+      const it = {
+        ...baseNavigationCopyIt.content,
+        ...(locale === "it" ? { [copyId]: instruction } : {}),
+      };
+      expect(
+        validateTask11SemanticReview([lesson], en, it),
+        `${locale}:${activity.id}:${instruction}`,
+      ).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "instruction-answer-leakage",
+            activityId: activity.id,
+          }),
+        ]),
+      );
+    }
+  });
+
   it("does not reuse worked examples as prompts, options, or error candidates", () => {
     const lessons = [
       ...BASE_POLITE_VERBS_MODULE.lessons,

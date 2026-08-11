@@ -847,7 +847,7 @@ const POLITE_VERBS_COPY_IT: Readonly<Record<string, string>> = {
       "La tabella ha una riga separata per il verbo di base usato per fare un'azione. Scegli la voce registrata.",
       "La tabella ha una riga separata per il verbo usato quando qualcuno viene. Recupera la voce registrata.",
       "Una scheda sull’azione di leggere richiede un’analisi di classe. Scegli quella sostenuta.",
-      "Ascolta l’analisi completa della scheda, poi scegli la forma scritta.",
+      "Ascolta una scheda di analisi completa, poi scegli la corrispondenza scritta esatta.",
       "Dalla scheda verbale mostrata, pronuncia a memoria la scheda nascosta di analisi della classe.",
     ],
     accepted: [
@@ -924,7 +924,7 @@ const POLITE_VERBS_COPY_IT: Readonly<Record<string, string>> = {
       "La forma di ritorno segue la classe sbagliata. Scegli la riparazione.",
       "Una scheda sull’azione di telefonare richiede l’analisi della base pre-ます generata. Scegli la derivazione corretta.",
       "Recupera l'analisi della base pre-ます generata per il composto passeggiare mostrato.",
-      "Ascolta la scheda della base pre-ます di guardare e scegli la forma scritta.",
+      "Ascolta quale delle due analisi presenta la registrazione, poi scegli la corrispondenza scritta esatta.",
       "Dalla forma di consultazione di leggere, pronuncia l'analisi nascosta della base pre-ます.",
     ],
     accepted: [
@@ -997,7 +997,7 @@ const POLITE_VERBS_COPY_IT: Readonly<Record<string, string>> = {
       "La forma completa mostrata collega il finale cortese alla base sbagliata. Ripara soltanto questo difetto.",
       "Yuki riposa per prima; l'elenco aggiunge l'insegnante alla stessa routine. Scegli l'enunciato dell'insegnante.",
       "L'amico dormirà per primo; il programma aggiunge Mari allo stesso piano. Recupera l'enunciato di Mari.",
-      "Ascolta la frase completa sul lavoro programmato dell'insegnante e scegli la forma scritta.",
+      "Ascolta se la frase sul lavoro dell’insegnante è un’affermazione o una domanda, poi scegli la corrispondenza scritta esatta.",
       "Dall'indizio studente, pronuncia la frase nascosta sull'attesa.",
     ],
     accepted: [
@@ -1202,7 +1202,7 @@ const ARGUMENT_PARTICLES_COPY_IT: Readonly<Record<string, string>> = {
       "L'itinerario di Mari mostra soltanto un proseguimento, anche se il viaggio termina a casa. Ripara soltanto la prospettiva.",
       "La freccia sulla mappa di Tanaka punta verso Tokyo e prosegue oltre. Scegli la frase.",
       "Il biglietto di Yamada indica Kyoto come fermata in cui termina il viaggio. Recupera il percorso.",
-      "Ascolta il viaggio di Satou la cui fermata finale è casa e scegli la forma scritta.",
+      "Ascolta quale lettura del percorso presenta la registrazione, poi scegli la corrispondenza scritta esatta.",
       "La freccia sulla mappa di Suzuki punta verso l'ospedale. Pronuncia la frase nascosta.",
     ],
     accepted: [
@@ -1356,7 +1356,7 @@ const ARGUMENT_PARTICLES_COPY_IT: Readonly<Record<string, string>> = {
       "La scheda sulla scrivania di Mari contraddice il nome implausibile nella frase mostrata. Sostituisci soltanto quel nome.",
       "Il diario è già al centro del discorso. Recupera la frase di lettura corrispondente.",
       "Il biglietto di Yamada indica l'università come fermata in cui termina il viaggio. Completa la scheda.",
-      "Ascolta il percorso di Satou verso il parco e scegli la forma scritta.",
+      "Ascolta quale lettura del percorso presenta la registrazione, poi scegli la corrispondenza scritta esatta.",
       "Pronuncia la frase nascosta di Suzuki sull'ombrello.",
     ],
     accepted: [
@@ -1528,11 +1528,11 @@ const TIME_MOVEMENT_COPY_IT: Readonly<Record<string, string>> = {
       "La nota sul giorno libero di Tanaka è datata oggi. Scegli la frase corrispondente.",
       "Disponi ogni tessera secondo il programma di lunedì mostrato.",
       "Completa il piano di Satou per domani.",
-      "L’intervallo di studio di Tanaka ha inizio e termine dichiarati. Scegli la lettura delimitata.",
+      "La scheda di studio di Tanaka indica l’inizio alle nove e la fine alle cinque. Scegli la frase corrispondente.",
       "La scheda di percorso di Mari indica solo l’origine, ma il piano richiede entrambi i limiti. Aggiungi soltanto il termine mancante.",
       "Recupera la frase di Suzuki sullo studio fino alle cinque.",
       "Completa il ritorno di Yamada dalla stazione.",
-      "Ascolta il piano di Suzuki per domani e scegli la forma scritta.",
+      "Ascolta quale espressione temporale usa la registrazione, poi scegli la corrispondenza scritta esatta.",
       "Pronuncia il percorso nascosto di Satou dalla stazione all'università.",
     ],
     accepted: [
@@ -1613,7 +1613,7 @@ const TIME_MOVEMENT_COPY_IT: Readonly<Record<string, string>> = {
       "Mari ha annullato l'acquisto della prossima settimana, ma la forma mostrata lo presenta come concluso. Ripara la forma.",
       "Nel registro di Tanaka non compare alcun canto la settimana scorsa. Recupera la frase.",
       "Nel calendario di Yamada non compare alcun incontro questa settimana. Scegli la frase.",
-      "Ascolta la frase di Satou sulla scrittura di ieri e scegli.",
+      "Ascolta quale polarità presenta la registrazione, poi scegli la corrispondenza scritta esatta.",
       "Nel calendario di Suzuki non c'è alcuna sessione di studio la prossima settimana. Pronuncia la frase nascosta.",
     ],
     accepted: [
@@ -1690,7 +1690,7 @@ const TIME_MOVEMENT_COPY_IT: Readonly<Record<string, string>> = {
       "La riunione è annullata, ma la frase mostrata dice ancora che avverrà. Ripara soltanto il finale.",
       "Recupera la routine di riposo domenicale di Tanaka.",
       "La revisione del programma di Yamada è segnata per stasera. Completa la frase.",
-      "Ascolta il viaggio in treno programmato per Tanaka e scegli la forma scritta.",
+      "Ascolta quale polarità presenta la frase di viaggio registrata, poi scegli la corrispondenza scritta esatta.",
       "La riunione di Suzuki è nel calendario di stasera. Pronuncia la frase nascosta.",
     ],
     accepted: [

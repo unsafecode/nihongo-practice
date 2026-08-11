@@ -868,7 +868,7 @@ const POLITE_VERBS_COPY_EN: Readonly<Record<string, string>> = {
       "The chart has a separate row for the basic verb used to do an action. Choose its stored entry.",
       "The chart has a separate row for the verb used when someone comes. Retrieve its stored entry.",
       "A reading-action lookup card needs a class analysis. Choose the supported analysis.",
-      "Listen to the complete lookup-card analysis, then choose its written match.",
+      "Listen to one complete analysis card, then choose its exact written match.",
       "From the displayed verb card, say the hidden class-analysis card from memory.",
     ],
     accepted: [
@@ -945,7 +945,7 @@ const POLITE_VERBS_COPY_EN: Readonly<Record<string, string>> = {
       "The displayed return stem follows the wrong class. Choose the repair.",
       "A telephone-action card needs its generated stem analysis. Choose the supported derivation.",
       "Retrieve the generated stem analysis for the displayed walking compound.",
-      "Listen to the viewing-stem card and choose its written match.",
+      "Listen for which of the two analyses the recording presents, then choose its exact written match.",
       "From the displayed reading lookup form, say the hidden stem analysis.",
     ],
     accepted: [
@@ -1018,7 +1018,7 @@ const POLITE_VERBS_COPY_EN: Readonly<Record<string, string>> = {
       "The displayed complete form attaches the polite ending to the wrong base. Choose the one-defect repair.",
       "Yuki rests first; the roster adds the teacher to the same routine. Choose the teacher’s statement.",
       "The friend will sleep first; the schedule adds Mari to the same plan. Retrieve Mari’s statement.",
-      "Listen to the complete sentence about the teacher’s scheduled work and choose its written match.",
+      "Listen for whether the teacher’s work sentence is a statement or a question, then choose its exact written match.",
       "From the student cue, say the hidden planned-waiting sentence.",
     ],
     accepted: [
@@ -1042,7 +1042,7 @@ const POLITE_VERBS_COPY_EN: Readonly<Record<string, string>> = {
       "Compare the displayed malformed form with the one-defect repair.",
       "Use the roster context to rebuild the teacher’s complete statement.",
       "Retrieve Mari’s additional sleep plan.",
-      "Replay the whole recording and compare both written statements.",
+      "Replay the whole recording and compare both written sentences.",
       "Recall the hidden waiting sentence from the cue.",
     ],
   }),
@@ -1223,7 +1223,7 @@ const ARGUMENT_PARTICLES_COPY_EN: Readonly<Record<string, string>> = {
       "Mari’s home itinerary is drawn as merely heading onward, although home is where this trip ends. Repair only that view.",
       "Tanaka’s map arrow points toward Tokyo and continues beyond it. Choose the matching sentence.",
       "Yamada’s ticket names Kyoto as the stop where the trip ends. Retrieve the matching route.",
-      "Listen for Satou’s trip whose final stop is home and choose its written match.",
+      "Listen for which route reading the recording presents, then choose its exact written match.",
       "Suzuki’s map arrow points toward the hospital. Say the hidden sentence.",
     ],
     accepted: [
@@ -1377,7 +1377,7 @@ const ARGUMENT_PARTICLES_COPY_EN: Readonly<Record<string, string>> = {
       "Mari’s desk record conflicts with the implausible noun on the displayed writing card. Replace only that noun.",
       "The diary is already under discussion. Retrieve the matching reading sentence.",
       "Yamada’s ticket lists the university as the stop where the trip ends. Complete the matching card.",
-      "Listen to Satou’s route toward the park and choose its written match.",
+      "Listen for which route reading the recording presents, then choose its exact written match.",
       "Say Suzuki’s hidden umbrella-purchase sentence.",
     ],
     accepted: [
@@ -1553,7 +1553,7 @@ const TIME_MOVEMENT_COPY_EN: Readonly<Record<string, string>> = {
       "Mari’s route card states only a source where the plan requires both bounds. Repair only the missing limit.",
       "Retrieve Suzuki’s study-until-five sentence.",
       "Complete Yamada’s return from the station.",
-      "Listen to Suzuki’s tomorrow plan and choose its written match.",
+      "Listen for which time expression the recording uses, then choose its exact written match.",
       "Say Satou’s hidden station-to-university route.",
     ],
     accepted: [
@@ -1634,7 +1634,7 @@ const TIME_MOVEMENT_COPY_EN: Readonly<Record<string, string>> = {
       "Mari called off next week’s purchase, but the displayed form reports it as completed. Repair the form.",
       "Tanaka’s log has no singing entry for last week. Retrieve the matching sentence.",
       "Yamada’s calendar has no meeting this week. Choose the matching sentence.",
-      "Listen to Satou’s yesterday-writing sentence and choose its match.",
+      "Listen for which polarity the recording gives the sentence, then choose its exact written match.",
       "Suzuki’s calendar has no study session next week. Say the hidden sentence.",
     ],
     accepted: [
@@ -1711,7 +1711,7 @@ const TIME_MOVEMENT_COPY_EN: Readonly<Record<string, string>> = {
       "The meeting was cancelled, but the displayed sentence still says it will happen. Repair only the ending.",
       "Retrieve Tanaka’s Sunday rest routine.",
       "Yamada’s schedule review is marked for tonight. Complete the matching sentence.",
-      "Listen to Tanaka’s scheduled train trip and choose its written match.",
+      "Listen for which polarity the recording gives the travel sentence, then choose its exact written match.",
       "Suzuki’s meeting is on tonight’s calendar. Say the hidden sentence.",
     ],
     accepted: [
