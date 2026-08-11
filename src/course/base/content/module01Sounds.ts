@@ -1086,7 +1086,16 @@ if (!baseSoundCopyRegistryValidation.ok) {
 }
 
 export const BASE_SOUND_COPY_IDS: readonly string[] = deepFreeze(
-  [...Object.keys(baseNavigationCopyEn.content)].sort(),
+  Object.keys(baseNavigationCopyEn.content)
+    .filter(
+      (id) =>
+        id.startsWith("base-audio-") ||
+        id.startsWith("base-sounds-") ||
+        id.startsWith("sounds-") ||
+        id.startsWith("snd") ||
+        id.startsWith("anchor-"),
+    )
+    .sort(),
 );
 
 export const BASE_SOUND_VALIDATION_CATALOGS: BaseValidationCatalogs =

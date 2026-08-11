@@ -119,9 +119,9 @@ export const BASE_PARTICLE_SENSES: readonly BaseParticleSenseDefinition[] = deep
   { id: "limit-made", firstTeachLessonId: "time-movement-2" },
   { id: "possessive-attributive-no", firstTeachLessonId: "topic-questions-3" },
   { id: "additive-mo", firstTeachLessonId: "topic-questions-3" },
-  { id: "companion-to", firstTeachLessonId: "topic-questions-3" },
-  { id: "listing-to", firstTeachLessonId: "topic-questions-3" },
-  { id: "nominal-to", firstTeachLessonId: "topic-questions-3" },
+  { id: "companion-to", firstTeachLessonId: "topic-questions-4" },
+  { id: "listing-to", firstTeachLessonId: "topic-questions-4" },
+  { id: "nominal-to", firstTeachLessonId: "topic-questions-4" },
   { id: "question-ka", firstTeachLessonId: "topic-questions-4" },
 ]);
 
