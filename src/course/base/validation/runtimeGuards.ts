@@ -125,10 +125,13 @@ const BASE_EXAMPLE_KEYS = new Set([
   "translationCopy",
   "utteranceKind",
   "contextCopyId",
+  "roleModelId",
+  "recoverableContextId",
 ]);
 const BASE_DIALOGUE_TURN_KEYS = new Set([
   ...BASE_VISIBLE_TARGET_KEYS,
   "speakerId",
+  "utteranceKind",
 ]);
 const BASE_DIALOGUE_KEYS = new Set(["id", "practicalOutcomeCopyId", "turns"]);
 const BASE_DIALOGUE_REQUIRED_KEYS = [
@@ -661,6 +664,8 @@ export function strictRuntimeExample(value: unknown): BaseExample | undefined {
   const discourseFrameId = ownDataValue(example, "discourseFrameId");
   const utteranceKind = ownDataValue(example, "utteranceKind");
   const contextCopyId = ownDataValue(example, "contextCopyId");
+  const roleModelId = ownDataValue(example, "roleModelId");
+  const recoverableContextId = ownDataValue(example, "recoverableContextId");
   if (
     !target ||
     typeof id !== "string" ||
@@ -677,7 +682,13 @@ export function strictRuntimeExample(value: unknown): BaseExample | undefined {
       ].includes(utteranceKind as string)) ||
     (contextCopyId !== undefined &&
       contextCopyId !== null &&
-      typeof contextCopyId !== "string")
+      typeof contextCopyId !== "string") ||
+    (roleModelId !== undefined &&
+      roleModelId !== null &&
+      typeof roleModelId !== "string") ||
+    (recoverableContextId !== undefined &&
+      recoverableContextId !== null &&
+      typeof recoverableContextId !== "string")
   ) {
     return undefined;
   }
@@ -693,6 +704,12 @@ export function strictRuntimeExample(value: unknown): BaseExample | undefined {
       : {}),
     ...(contextCopyId === null || typeof contextCopyId === "string"
       ? { contextCopyId }
+      : {}),
+    ...(roleModelId === null || typeof roleModelId === "string"
+      ? { roleModelId }
+      : {}),
+    ...(recoverableContextId === null || typeof recoverableContextId === "string"
+      ? { recoverableContextId }
       : {}),
   });
 }
@@ -714,11 +731,16 @@ export function strictRuntimeDialogueTurn(
   const speakerId = ownDataValue(turn, "speakerId");
   const predicateAspect = ownDataValue(turn, "predicateAspect");
   const discourseFrameId = ownDataValue(turn, "discourseFrameId");
+  const utteranceKind = ownDataValue(turn, "utteranceKind");
   if (
     !target ||
     typeof speakerId !== "string" ||
     typeof predicateAspect !== "string" ||
-    typeof discourseFrameId !== "string"
+    typeof discourseFrameId !== "string" ||
+    (utteranceKind !== undefined &&
+      !["contextual-fragment", "complete-clause", "hanging-topic"].includes(
+        utteranceKind as string,
+      ))
   ) {
     return undefined;
   }
@@ -727,6 +749,9 @@ export function strictRuntimeDialogueTurn(
     speakerId,
     predicateAspect: predicateAspect as BaseDialogueTurn["predicateAspect"],
     discourseFrameId,
+    ...(typeof utteranceKind === "string"
+      ? { utteranceKind: utteranceKind as BaseDialogueTurn["utteranceKind"] }
+      : {}),
   });
 }
 

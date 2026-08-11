@@ -533,6 +533,15 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
     category: "noun",
   },
   {
+    id: "noun-yuki-san",
+    kana: "ゆきさん",
+    romaji: "Yuki-san",
+    meaningCopyId: "noun-yuki-san-meaning",
+    firstTeachLessonId: "topic-questions-4",
+    countable: true,
+    category: "noun",
+  },
+  {
     id: "anchor-asa",
     kana: "あさ",
     romaji: "asa",

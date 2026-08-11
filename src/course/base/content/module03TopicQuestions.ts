@@ -40,9 +40,12 @@ import {
   BASE_SPOKEN_ACTIVITY_SHAPE,
   BASE_TRANSFORMATION_ACTIVITY_SHAPE,
   validatePublishedSemanticActivities,
+  validatePublishedWorldFactLedger,
+  worldFactLedgerFor,
   type BaseAuthoredTokenPart,
   type BaseSemanticActivityDesign,
   type BaseSemanticActivityShape,
+  type BaseWorldFactRecord,
 } from "./module02SentenceFoundations";
 
 type TopicLessonId =
@@ -111,6 +114,8 @@ export interface BaseTopicQuestionsModule {
     readonly yukiCountry: "italy";
     readonly speakerCity: "tokyo";
   }>;
+  readonly worldFactIds: readonly string[];
+  readonly worldFactLedger: readonly BaseWorldFactRecord[];
 }
 
 export type BaseTopicQuestionsModuleError =
@@ -124,6 +129,7 @@ interface ExampleSpec {
   readonly parts: readonly BaseAuthoredTokenPart[];
   readonly frame: string;
   readonly patternCellId: string;
+  readonly utteranceKind: NonNullable<BaseExample["utteranceKind"]>;
 }
 
 interface ActivitySpec {
@@ -145,6 +151,7 @@ interface DialogueTurnSpec {
   readonly parts: readonly BaseAuthoredTokenPart[];
   readonly frame: string;
   readonly patternCellIds: readonly string[];
+  readonly utteranceKind: NonNullable<BaseDialogueTurn["utteranceKind"]>;
 }
 
 interface LessonSpec {
@@ -197,6 +204,33 @@ function targetFor(
   );
 }
 
+function topicPatternCellsFor(
+  parts: readonly BaseAuthoredTokenPart[],
+  patternCellId: string,
+): readonly string[] {
+  const realizes =
+    patternCellId.startsWith("tq1-")
+      ? parts.includes("wa")
+      : patternCellId === "tq2-focused-subject"
+        ? parts.includes("ga")
+        : patternCellId === "tq2-wa-ga-contrast"
+          ? parts.includes("wa")
+          : patternCellId === "tq3-attributive-no"
+            ? parts.includes("no")
+            : patternCellId === "tq3-additive-mo"
+              ? parts.includes("mo")
+              : patternCellId === "tq4-nominal-list"
+                ? parts.includes("to-listing") || parts.includes("to-nominal")
+                : patternCellId === "tq4-companion"
+                  ? parts.includes("to-companion")
+                  : patternCellId === "tq4-question-answer"
+                    ? parts.includes("ka") ||
+                      parts.includes("expression-hai") ||
+                      parts.includes("expression-iie")
+                    : false;
+  return realizes ? [patternCellId] : [];
+}
+
 function exampleFor(
   lessonId: TopicLessonId,
   spec: ExampleSpec,
@@ -211,6 +245,7 @@ function exampleFor(
     predicateAspect: "nominal",
     discourseFrameId: spec.frame,
     interpretationTags: ["present-state"],
+    utteranceKind: spec.utteranceKind,
   });
 }
 
@@ -233,6 +268,7 @@ function authoredDialogue(
       predicateAspect: "nominal" as const,
       discourseFrameId: spec.frame,
       interpretationTags: ["present-state" as const],
+      utteranceKind: spec.utteranceKind,
     }),
   );
   const practicalOutcomeCopyId = `${id}-outcome`;
@@ -255,16 +291,6 @@ function authoredDialogue(
     }),
     canonical: deepFreeze({ id, turns, practicalOutcomeCopyId }),
   };
-}
-
-function topicCuePartFor(entry: ActivitySpec): BaseAuthoredTokenPart {
-  if (entry.shape.operation === "order-chunks") return "cue-order";
-  if (entry.shape.operation === "identify-audio") return "cue-audio";
-  if (entry.shape.operation === "produce-spoken") return "cue-recall";
-  if (entry.shape.operation === "diagnose-error") return "cue-error";
-  if (entry.informationStructure === "focused-new-subject") return "cue-focus";
-  if (entry.informationStructure === "established-topic") return "cue-topic";
-  return "cue-context";
 }
 
 function activitiesFor(
@@ -291,19 +317,11 @@ function activitiesFor(
       targetFor(
         parts,
         optionTargetIds[optionIndex],
-        optionIndex === entry.correctOptionIndex
-          ? [entry.patternCellId]
-          : [],
+        topicPatternCellsFor(parts, entry.patternCellId),
       ),
     );
     const acceptedAnswerTarget = optionTargets[entry.correctOptionIndex];
-    const wrongIndex = entry.correctOptionIndex === 0 ? 1 : 0;
-    const promptParts =
-      shape.operation === "transform-form"
-        ? entry.prompt
-        : shape.operation === "diagnose-error"
-          ? entry.options[wrongIndex]
-          : [topicCuePartFor(entry)];
+    const promptParts = entry.prompt;
     const promptTarget = targetFor(promptParts, `${id}-prompt`);
     const answerId = optionTargetIds[entry.correctOptionIndex];
     const targetId =
@@ -328,8 +346,8 @@ function activitiesFor(
       targetId,
       operation: shape.operation,
       instructionCopyId: `${id}-instruction`,
-      acceptedFeedbackCopyId: `${shape.operation}-feedback-accepted`,
-      retryFeedbackCopyId: `${shape.operation}-feedback-retry`,
+      acceptedFeedbackCopyId: `${spec.lessonId}-activity-${index + 1}-feedback-accepted`,
+      retryFeedbackCopyId: `${spec.lessonId}-activity-${index + 1}-feedback-retry`,
       assessedConceptIds,
       assessedLexemeIds,
       optionTargetIds,
@@ -385,12 +403,21 @@ function activitiesFor(
             : shape.operation === "diagnose-error"
               ? {
                   kind: shape.operation,
-                  candidateTargetId: optionTargetIds[wrongIndex],
+                  candidateTargetId: baseActivityPromptKey(spec.lessonId, id),
                   errorCode: entry.errorCode ?? "context-particle-mismatch",
                 }
               : { kind: shape.operation },
       referentId: entry.referentId,
-      worldFactId: entry.worldFactId,
+      worldFactId: entry.worldFactId ?? `${spec.lessonId}-fact-${index + 1}`,
+      audioContract:
+        shape.operation === "identify-audio"
+          ? {
+              kind: "semantic-synthesis",
+              targetId,
+              locale: "ja-JP",
+              promptVisible: false,
+            }
+          : null,
     });
     prompts.push([baseActivityPromptKey(spec.lessonId, id), promptTarget]);
     optionTargetIds.forEach((optionTargetId, optionIndex) => {
@@ -405,8 +432,9 @@ function ex(
   parts: readonly BaseAuthoredTokenPart[],
   frame: string,
   patternCellId: string,
+  utteranceKind: NonNullable<BaseExample["utteranceKind"]>,
 ): ExampleSpec {
-  return { parts, frame, patternCellId };
+  return { parts, frame, patternCellId, utteranceKind };
 }
 
 function act(
@@ -467,28 +495,28 @@ const LESSON_SPECS: readonly LessonSpec[] = deepFreeze([
     reviewedConceptIds: ["discourse-roles", "affirmative-desu"],
     patternCellIds: ["tq1-topic-comment", "tq1-topic-contrast"],
     examples: [
-      ex(["noun-watashi", "wa", "noun-gakusei", "desu"], "self-topic", "tq1-topic-comment"),
-      ex(["noun-tanaka", "wa", "noun-tomodachi", "desu"], "known-person-relationship-topic", "tq1-topic-comment"),
-      ex(["noun-yamada", "wa", "noun-tomodachi", "desu"], "contrasted-person-relationship-topic", "tq1-topic-contrast"),
-      ex(["noun-tokyo", "wa", "noun-toshi", "desu"], "place-topic", "tq1-topic-comment"),
-      ex(["noun-kyoto", "wa", "noun-toshi", "desu"], "return-to-kyoto-topic", "tq1-topic-contrast"),
-      ex(["noun-osaka", "wa", "noun-toshi", "desu"], "correct-osaka-category", "tq1-topic-contrast"),
-      ex(["noun-tomodachi", "wa", "noun-gakusei", "desu"], "relationship-category-topic", "tq1-topic-comment"),
-      ex(["noun-kazoku", "wa", "noun-tanaka", "desu"], "family-member-selection-topic", "tq1-topic-comment"),
-      ex(["anchor-neko", "wa", "noun-tomodachi", "desu"], "affective-animal-topic", "tq1-topic-comment"),
-      ex(["noun-watashi", "wa", "noun-tokyo", "desu"], "speaker-city-answer-topic", "tq1-topic-contrast"),
+      ex(["noun-watashi", "wa", "noun-gakusei", "desu"], "self-topic", "tq1-topic-comment", "complete-clause"),
+      ex(["noun-kangoshi", "wa", "noun-tanaka", "desu"], "known-role-topic", "tq1-topic-comment", "complete-clause"),
+      ex(["noun-bengoshi", "wa", "noun-yamada", "desu"], "contrasted-role-topic", "tq1-topic-contrast", "complete-clause"),
+      ex(["noun-tokyo", "wa", "noun-toshi", "desu"], "place-topic", "tq1-topic-comment", "complete-clause"),
+      ex(["noun-kyoto", "wa", "noun-toshi", "desu"], "return-to-kyoto-topic", "tq1-topic-contrast", "complete-clause"),
+      ex(["noun-osaka", "wa", "noun-toshi", "desu"], "correct-osaka-category", "tq1-topic-contrast", "complete-clause"),
+      ex(["noun-ryuugakusei", "wa", "noun-tomodachi", "desu"], "relationship-role-topic", "tq1-topic-comment", "complete-clause"),
+      ex(["anchor-shashin", "wa", "noun-kazoku", "desu"], "photo-family-topic", "tq1-topic-comment", "complete-clause"),
+      ex(["anchor-shashin", "wa", "anchor-neko", "desu"], "pictured-animal-topic", "tq1-topic-comment", "complete-clause"),
+      ex(["anchor-kippu", "wa", "noun-osaka", "desu"], "counter-destination-topic", "tq1-topic-contrast", "complete-clause"),
     ],
     activities: [
-      act(["noun-tokyo"], ["anchor-shashin", "wa", "noun-tokyo", "desu"], ["anchor-shashin", "wa", "noun-toshi", "desu"], 0, "topic-questions-1-activity-1-instruction", "tq1-topic-comment", "not-applicable", BASE_MEANING_ACTIVITY_SHAPE),
-      act(["noun-kyoto"], ["anchor-shashin", "wa", "noun-kyoto", "desu"], ["anchor-shashin", "comma", "noun-kyoto", "desu"], 0, "topic-questions-1-activity-2-instruction", "tq1-topic-contrast", "not-applicable", BASE_FORM_ACTIVITY_SHAPE),
+      act(["anchor-shashin"], ["anchor-shashin", "wa", "noun-tokyo", "desu"], ["anchor-shashin", "wa", "noun-toshi", "desu"], 0, "topic-questions-1-activity-1-instruction", "tq1-topic-comment", "not-applicable", BASE_MEANING_ACTIVITY_SHAPE),
+      act(["anchor-shashin"], ["anchor-shashin", "wa", "noun-kyoto", "desu"], ["anchor-shashin", "comma", "noun-kyoto", "desu"], 0, "topic-questions-1-activity-2-instruction", "tq1-topic-contrast", "not-applicable", BASE_FORM_ACTIVITY_SHAPE),
       act(["noun-osaka"], ["anchor-shashin", "wa", "noun-osaka", "desu"], ["noun-osaka", "wa", "anchor-shashin", "desu"], 1, "topic-questions-1-activity-3-instruction", "tq1-topic-comment", "not-applicable", BASE_ORDERING_ACTIVITY_SHAPE),
       act(["noun-watashi"], ["noun-watashi", "wa", "noun-daigakusei", "desu"], ["noun-watashi", "wa", "noun-kangoshi", "desu"], 0, "topic-questions-1-activity-4-instruction", "tq1-topic-contrast", "not-applicable", BASE_CONTROLLED_ACTIVITY_SHAPE),
       act(["noun-tanaka", "comma", "noun-kangoshi", "desu"], ["noun-tanaka", "wa", "noun-kangoshi", "desu"], ["noun-tanaka", "wa", "noun-bengoshi", "desu"], 1, "topic-questions-1-activity-5-instruction", "tq1-topic-comment", "not-applicable", BASE_TRANSFORMATION_ACTIVITY_SHAPE),
-      act(["noun-yamada"], ["noun-yamada", "wa", "noun-bengoshi", "desu"], ["noun-yamada", "wa", "noun-kangoshi", "desu"], 1, "topic-questions-1-activity-6-instruction", "tq1-topic-contrast", "not-applicable", BASE_ERROR_ACTIVITY_SHAPE, null, null, "world-fact-mismatch"),
+      act(["noun-yamada", "wa", "noun-kangoshi", "desu"], ["noun-yamada", "wa", "noun-bengoshi", "desu"], ["noun-tanaka", "wa", "noun-bengoshi", "desu"], 1, "topic-questions-1-activity-6-instruction", "tq1-topic-contrast", "not-applicable", BASE_ERROR_ACTIVITY_SHAPE, null, null, "world-fact-mismatch"),
       act(["noun-tomodachi"], ["noun-tomodachi", "wa", "noun-ryuugakusei", "desu"], ["noun-tomodachi", "wa", "noun-sensei", "desu"], 0, "topic-questions-1-activity-7-instruction", "tq1-topic-comment", "not-applicable", BASE_CONTEXT_ACTIVITY_SHAPE),
       act(["anchor-neko"], ["anchor-neko", "wa", "noun-kazoku", "desu"], ["anchor-neko", "wa", "noun-gakusei", "desu"], 1, "topic-questions-1-activity-8-instruction", "tq1-topic-contrast", "not-applicable", BASE_RETRIEVAL_ACTIVITY_SHAPE),
-      act(["anchor-ie"], ["anchor-ie", "wa", "noun-tokyo", "desu"], ["anchor-ie", "wa", "noun-osaka", "desu"], 0, "topic-questions-1-activity-9-instruction", "tq1-topic-comment", "not-applicable", BASE_LISTENING_ACTIVITY_SHAPE),
-      act(["anchor-kippu"], ["anchor-kippu", "wa", "noun-kyoto", "desu"], ["anchor-kippu", "wa", "noun-tokyo", "desu"], 1, "topic-questions-1-activity-10-instruction", "tq1-topic-contrast", "not-applicable", BASE_SPOKEN_ACTIVITY_SHAPE),
+      act(["anchor-ie"], ["anchor-shashin", "wa", "noun-tanaka", "desu"], ["anchor-shashin", "wa", "noun-yamada", "desu"], 0, "topic-questions-1-activity-9-instruction", "tq1-topic-comment", "not-applicable", BASE_LISTENING_ACTIVITY_SHAPE),
+      act(["anchor-shashin"], ["anchor-kippu", "wa", "noun-kyoto", "desu"], ["anchor-kippu", "wa", "noun-tokyo", "desu"], 1, "topic-questions-1-activity-10-instruction", "tq1-topic-contrast", "not-applicable", BASE_SPOKEN_ACTIVITY_SHAPE),
     ],
     dialogue: null,
     translationSemanticTags: [
@@ -533,28 +561,28 @@ const LESSON_SPECS: readonly LessonSpec[] = deepFreeze([
     reviewedConceptIds: ["topic-wa", "affirmative-desu"],
     patternCellIds: ["tq2-focused-subject", "tq2-wa-ga-contrast"],
     examples: [
-      ex(["noun-tanaka", "ga", "noun-kangoshi", "desu"], "open-focus-answer", "tq2-focused-subject"),
-      ex(["noun-yamada", "ga", "noun-bengoshi", "desu"], "corrective-focus-answer", "tq2-focused-subject"),
-      ex(["noun-tomodachi", "ga", "noun-ryuugakusei", "desu"], "exhaustive-role-selection", "tq2-focused-subject"),
-      ex(["noun-gakusei", "wa", "noun-satou", "desu"], "student-role-topic", "tq2-wa-ga-contrast"),
-      ex(["noun-sensei", "wa", "noun-suzuki", "desu"], "teacher-role-topic", "tq2-wa-ga-contrast"),
-      ex(["noun-isha", "wa", "noun-mari", "desu"], "doctor-role-topic", "tq2-wa-ga-contrast"),
-      ex(["noun-hito", "ga", "noun-watashi", "desu"], "photo-person-focus", "tq2-focused-subject"),
-      ex(["noun-kazoku", "ga", "noun-tanaka", "desu"], "family-member-focus", "tq2-focused-subject"),
-      ex(["noun-watashi", "wa", "noun-daigakusei", "desu"], "self-topic", "tq2-wa-ga-contrast"),
-      ex(["noun-kazoku", "wa", "noun-tanaka", "desu"], "family-member-topic", "tq2-wa-ga-contrast"),
+      ex(["noun-tanaka", "ga", "noun-kangoshi", "desu"], "open-focus-answer", "tq2-focused-subject", "complete-clause"),
+      ex(["noun-yamada", "ga", "noun-bengoshi", "desu"], "corrective-focus-answer", "tq2-focused-subject", "complete-clause"),
+      ex(["noun-tomodachi", "ga", "noun-ryuugakusei", "desu"], "exhaustive-role-selection", "tq2-focused-subject", "complete-clause"),
+      ex(["noun-gakusei", "wa", "noun-satou", "desu"], "student-role-topic", "tq2-wa-ga-contrast", "complete-clause"),
+      ex(["noun-sensei", "wa", "noun-suzuki", "desu"], "teacher-role-topic", "tq2-wa-ga-contrast", "complete-clause"),
+      ex(["noun-isha", "wa", "noun-mari", "desu"], "doctor-role-topic", "tq2-wa-ga-contrast", "complete-clause"),
+      ex(["noun-tanaka", "wa", "noun-kangoshi", "desu"], "nurse-holder-topic-contrast", "tq2-wa-ga-contrast", "complete-clause"),
+      ex(["noun-yamada", "wa", "noun-bengoshi", "desu"], "lawyer-holder-topic-contrast", "tq2-wa-ga-contrast", "complete-clause"),
+      ex(["noun-watashi", "wa", "noun-daigakusei", "desu"], "self-topic", "tq2-wa-ga-contrast", "complete-clause"),
+      ex(["noun-daigakusei", "wa", "noun-watashi", "desu"], "university-role-topic", "tq2-wa-ga-contrast", "complete-clause"),
     ],
     activities: [
-      act(["cue-focus"], ["noun-hito", "ga", "noun-satou", "desu"], ["noun-hito", "ga", "noun-suzuki", "desu"], 1, "topic-questions-2-activity-1-instruction", "tq2-focused-subject", "focused-new-subject", BASE_MEANING_ACTIVITY_SHAPE),
-      act(["cue-topic"], ["noun-satou", "wa", "noun-gakusei", "desu"], ["noun-satou", "ga", "noun-gakusei", "desu"], 0, "topic-questions-2-activity-2-instruction", "tq2-wa-ga-contrast", "established-topic", BASE_FORM_ACTIVITY_SHAPE),
-      act(["cue-order"], ["noun-mari", "ga", "noun-isha", "desu"], ["noun-isha", "ga", "noun-mari", "desu"], 0, "topic-questions-2-activity-3-instruction", "tq2-focused-subject", "focused-new-subject", BASE_ORDERING_ACTIVITY_SHAPE),
-      act(["cue-topic"], ["noun-mari", "wa", "noun-isha", "desu"], ["noun-suzuki", "ga", "noun-isha", "desu"], 1, "topic-questions-2-activity-4-instruction", "tq2-wa-ga-contrast", "established-topic", BASE_CONTROLLED_ACTIVITY_SHAPE),
+      act(["noun-tanaka", "wa", "noun-kangoshi", "desu"], ["noun-satou", "ga", "noun-gakusei", "desu"], ["noun-suzuki", "ga", "noun-gakusei", "desu"], 1, "topic-questions-2-activity-1-instruction", "tq2-focused-subject", "focused-new-subject", BASE_CONTEXT_ACTIVITY_SHAPE),
+      act(["noun-tanaka", "wa", "noun-kangoshi", "desu"], ["noun-satou", "wa", "noun-gakusei", "desu"], ["noun-satou", "ga", "noun-daigakusei", "desu"], 0, "topic-questions-2-activity-2-instruction", "tq2-wa-ga-contrast", "established-topic", BASE_FORM_ACTIVITY_SHAPE),
+      act(["noun-tanaka", "ga", "noun-kangoshi", "desu"], ["noun-mari", "ga", "noun-isha", "desu"], ["noun-isha", "ga", "noun-mari", "desu"], 0, "topic-questions-2-activity-3-instruction", "tq2-focused-subject", "focused-new-subject", BASE_ORDERING_ACTIVITY_SHAPE),
+      act(["noun-yamada", "wa", "noun-bengoshi", "desu"], ["noun-mari", "wa", "noun-isha", "desu"], ["noun-mari", "ga", "noun-gakusei", "desu"], 1, "topic-questions-2-activity-4-instruction", "tq2-wa-ga-contrast", "established-topic", BASE_MEANING_ACTIVITY_SHAPE),
       act(["noun-suzuki", "comma", "noun-sensei", "desu"], ["noun-suzuki", "ga", "noun-sensei", "desu"], ["noun-satou", "ga", "noun-sensei", "desu"], 0, "topic-questions-2-activity-5-instruction", "tq2-focused-subject", "focused-new-subject", BASE_TRANSFORMATION_ACTIVITY_SHAPE),
-      act(["cue-error"], ["noun-suzuki", "wa", "noun-sensei", "desu"], ["noun-mari", "ga", "noun-sensei", "desu"], 1, "topic-questions-2-activity-6-instruction", "tq2-wa-ga-contrast", "established-topic", BASE_ERROR_ACTIVITY_SHAPE, null, null, "world-fact-mismatch"),
-      act(["cue-context"], ["noun-kangoshi", "wa", "noun-tanaka", "desu"], ["noun-kangoshi", "ga", "noun-suzuki", "desu"], 1, "topic-questions-2-activity-7-instruction", "tq2-wa-ga-contrast", "established-topic", BASE_CONTEXT_ACTIVITY_SHAPE),
-      act(["cue-context"], ["noun-bengoshi", "wa", "noun-yamada", "desu"], ["noun-bengoshi", "ga", "noun-mari", "desu"], 0, "topic-questions-2-activity-8-instruction", "tq2-wa-ga-contrast", "established-topic", BASE_RETRIEVAL_ACTIVITY_SHAPE),
-      act(["cue-audio"], ["noun-ryuugakusei", "wa", "noun-tomodachi", "desu"], ["noun-ryuugakusei", "ga", "noun-satou", "desu"], 1, "topic-questions-2-activity-9-instruction", "tq2-wa-ga-contrast", "established-topic", BASE_LISTENING_ACTIVITY_SHAPE),
-      act(["noun-watashi"], ["noun-watashi", "ga", "noun-daigakusei", "desu"], ["noun-watashi", "wa", "noun-gakusei", "desu"], 0, "topic-questions-2-activity-10-instruction", "tq2-focused-subject", "focused-new-subject", BASE_SPOKEN_ACTIVITY_SHAPE),
+      act(["noun-mari", "ga", "noun-sensei", "desu"], ["noun-suzuki", "wa", "noun-sensei", "desu"], ["noun-mari", "wa", "noun-sensei", "desu"], 1, "topic-questions-2-activity-6-instruction", "tq2-wa-ga-contrast", "established-topic", BASE_ERROR_ACTIVITY_SHAPE, null, null, "world-fact-mismatch"),
+      act(["noun-watashi", "wa", "noun-daigakusei", "desu"], ["noun-kangoshi", "wa", "noun-tanaka", "desu"], ["noun-kangoshi", "ga", "noun-suzuki", "desu"], 1, "topic-questions-2-activity-7-instruction", "tq2-wa-ga-contrast", "established-topic", BASE_CONTEXT_ACTIVITY_SHAPE),
+      act(["noun-watashi", "wa", "noun-daigakusei", "desu"], ["noun-bengoshi", "wa", "noun-yamada", "desu"], ["noun-bengoshi", "ga", "noun-mari", "desu"], 0, "topic-questions-2-activity-8-instruction", "tq2-wa-ga-contrast", "established-topic", BASE_RETRIEVAL_ACTIVITY_SHAPE),
+      act(["noun-watashi", "wa", "noun-daigakusei", "desu"], ["noun-ryuugakusei", "wa", "noun-tomodachi", "desu"], ["noun-ryuugakusei", "ga", "noun-satou", "desu"], 1, "topic-questions-2-activity-9-instruction", "tq2-wa-ga-contrast", "established-topic", BASE_LISTENING_ACTIVITY_SHAPE),
+      act(["noun-tanaka", "ga", "noun-kangoshi", "desu"], ["noun-watashi", "ga", "noun-daigakusei", "desu"], ["noun-watashi", "wa", "noun-gakusei", "desu"], 0, "topic-questions-2-activity-10-instruction", "tq2-focused-subject", "focused-new-subject", BASE_SPOKEN_ACTIVITY_SHAPE),
     ],
     dialogue: null,
     translationSemanticTags: [
@@ -592,34 +620,35 @@ const LESSON_SPECS: readonly LessonSpec[] = deepFreeze([
       "noun-bengoshi",
       "noun-satou",
       "noun-suzuki",
+      "noun-mari",
       "noun-ryuugakusei",
     ],
     introducedConceptIds: ["possessive-no", "modifier-before-noun", "additive-mo"],
     reviewedConceptIds: ["topic-wa", "affirmative-desu"],
     patternCellIds: ["tq3-attributive-no", "tq3-additive-mo"],
     examples: [
-      ex(["noun-watashi", "no", "noun-chichi", "desu"], "family-identification", "tq3-attributive-no"),
-      ex(["noun-watashi", "no", "noun-haha", "desu"], "family-identification", "tq3-attributive-no"),
-      ex(["noun-watashi", "no", "noun-ani", "desu"], "family-identification", "tq3-attributive-no"),
-      ex(["noun-watashi", "no", "noun-ane", "desu"], "family-identification", "tq3-attributive-no"),
-      ex(["noun-tanaka", "no", "noun-otousan", "desu"], "other-person-father", "tq3-attributive-no"),
-      ex(["noun-yamada", "no", "noun-okaasan", "desu"], "other-person-mother", "tq3-attributive-no"),
-      ex(["noun-chichi", "mo", "noun-sensei", "desu"], "addition", "tq3-additive-mo"),
-      ex(["noun-haha", "mo", "noun-isha", "desu"], "addition", "tq3-additive-mo"),
-      ex(["noun-ani", "mo", "noun-gakusei", "desu"], "addition", "tq3-additive-mo"),
-      ex(["noun-ane", "mo", "noun-bengoshi", "desu"], "addition", "tq3-additive-mo"),
+      ex(["noun-watashi", "no", "noun-chichi", "desu"], "family-identification", "tq3-attributive-no", "complete-clause"),
+      ex(["noun-watashi", "no", "noun-haha", "desu"], "family-identification", "tq3-attributive-no", "complete-clause"),
+      ex(["noun-watashi", "no", "noun-ani", "desu"], "family-identification", "tq3-attributive-no", "complete-clause"),
+      ex(["noun-watashi", "no", "noun-ane", "desu"], "family-identification", "tq3-attributive-no", "complete-clause"),
+      ex(["noun-tanaka", "no", "noun-otousan", "desu"], "other-person-father", "tq3-attributive-no", "complete-clause"),
+      ex(["noun-yamada", "no", "noun-okaasan", "desu"], "other-person-mother", "tq3-attributive-no", "complete-clause"),
+      ex(["noun-chichi", "mo", "noun-sensei", "desu"], "addition", "tq3-additive-mo", "complete-clause"),
+      ex(["noun-haha", "mo", "noun-isha", "desu"], "addition", "tq3-additive-mo", "complete-clause"),
+      ex(["noun-ani", "mo", "noun-gakusei", "desu"], "addition", "tq3-additive-mo", "complete-clause"),
+      ex(["noun-ane", "mo", "noun-bengoshi", "desu"], "addition", "tq3-additive-mo", "complete-clause"),
     ],
     activities: [
-      act(["noun-tanaka"], ["noun-tanaka", "no", "noun-otousan", "mo", "noun-sensei", "desu"], ["noun-tanaka", "no", "noun-otousan", "wa", "noun-ryuugakusei", "desu"], 0, "topic-questions-3-activity-1-instruction", "tq3-attributive-no", "not-applicable", BASE_MEANING_ACTIVITY_SHAPE),
-      act(["noun-yamada"], ["noun-yamada", "no", "noun-okaasan", "mo", "noun-isha", "desu"], ["noun-yamada", "no", "noun-okaasan", "wa", "noun-isha", "desu"], 1, "topic-questions-3-activity-2-instruction", "tq3-attributive-no", "not-applicable", BASE_FORM_ACTIVITY_SHAPE),
+      act(["noun-chichi", "mo", "noun-sensei", "desu"], ["noun-tanaka", "no", "noun-otousan", "mo", "noun-sensei", "desu"], ["noun-tanaka", "no", "noun-otousan", "wa", "noun-sensei", "desu"], 0, "topic-questions-3-activity-1-instruction", "tq3-additive-mo", "not-applicable", BASE_CONTEXT_ACTIVITY_SHAPE),
+      act(["noun-haha", "mo", "noun-isha", "desu"], ["noun-yamada", "no", "noun-okaasan", "mo", "noun-isha", "desu"], ["noun-yamada", "no", "noun-okaasan", "wa", "noun-isha", "desu"], 1, "topic-questions-3-activity-2-instruction", "tq3-additive-mo", "not-applicable", BASE_FORM_ACTIVITY_SHAPE),
       act(["noun-watashi"], ["noun-watashi", "no", "noun-ani", "mo", "noun-gakusei", "desu"], ["noun-ani", "no", "noun-watashi", "mo", "noun-gakusei", "desu"], 1, "topic-questions-3-activity-3-instruction", "tq3-attributive-no", "not-applicable", BASE_ORDERING_ACTIVITY_SHAPE),
-      act(["noun-watashi"], ["noun-watashi", "no", "noun-ane", "mo", "noun-bengoshi", "desu"], ["noun-ane", "wa", "noun-bengoshi", "desu"], 0, "topic-questions-3-activity-4-instruction", "tq3-attributive-no", "not-applicable", BASE_CONTROLLED_ACTIVITY_SHAPE),
+      act(["noun-yamada", "wa", "noun-bengoshi", "desu"], ["noun-watashi", "no", "noun-ane", "mo", "noun-bengoshi", "desu"], ["noun-ane", "wa", "noun-bengoshi", "desu"], 0, "topic-questions-3-activity-4-instruction", "tq3-attributive-no", "not-applicable", BASE_CONTROLLED_ACTIVITY_SHAPE),
       act(["noun-watashi", "no", "noun-chichi", "wa", "noun-sensei", "desu"], ["noun-watashi", "no", "noun-chichi", "mo", "noun-sensei", "desu"], ["noun-watashi", "no", "noun-chichi", "ga", "noun-sensei", "desu"], 0, "topic-questions-3-activity-5-instruction", "tq3-additive-mo", "not-applicable", BASE_TRANSFORMATION_ACTIVITY_SHAPE),
-      act(["cue-error"], ["noun-watashi", "no", "noun-haha", "mo", "noun-isha", "desu"], ["noun-watashi", "no", "noun-haha", "ga", "noun-isha", "desu"], 1, "topic-questions-3-activity-6-instruction", "tq3-additive-mo", "not-applicable", BASE_ERROR_ACTIVITY_SHAPE, null, null, "additive-particle-mismatch"),
-      act(["cue-context"], ["noun-otousan", "mo", "noun-sensei", "desu"], ["noun-chichi", "ga", "noun-sensei", "desu"], 0, "topic-questions-3-activity-7-instruction", "tq3-additive-mo", "not-applicable", BASE_CONTEXT_ACTIVITY_SHAPE),
-      act(["cue-context"], ["noun-okaasan", "mo", "noun-isha", "desu"], ["noun-okaasan", "wa", "noun-isha", "desu"], 1, "topic-questions-3-activity-8-instruction", "tq3-additive-mo", "not-applicable", BASE_RETRIEVAL_ACTIVITY_SHAPE),
-      act(["cue-audio"], ["noun-satou", "no", "noun-otousan", "desu"], ["noun-satou", "no", "noun-otousan", "wa", "noun-ryuugakusei", "desu"], 1, "topic-questions-3-activity-9-instruction", "tq3-attributive-no", "not-applicable", BASE_LISTENING_ACTIVITY_SHAPE),
-      act(["cue-recall"], ["noun-suzuki", "no", "noun-okaasan", "desu"], ["noun-suzuki", "ga", "noun-okaasan", "desu"], 0, "topic-questions-3-activity-10-instruction", "tq3-attributive-no", "not-applicable", BASE_SPOKEN_ACTIVITY_SHAPE),
+      act(["noun-watashi", "no", "noun-haha", "ga", "noun-isha", "desu"], ["noun-watashi", "no", "noun-haha", "mo", "noun-isha", "desu"], ["noun-haha", "wa", "noun-isha", "desu"], 1, "topic-questions-3-activity-6-instruction", "tq3-additive-mo", "not-applicable", BASE_ERROR_ACTIVITY_SHAPE, null, null, "additive-particle-mismatch"),
+      act(["noun-sensei", "wa", "noun-suzuki", "desu"], ["noun-satou", "no", "noun-otousan", "mo", "noun-sensei", "desu"], ["noun-satou", "no", "noun-otousan", "ga", "noun-watashi", "no", "noun-sensei", "desu"], 0, "topic-questions-3-activity-7-instruction", "tq3-additive-mo", "not-applicable", BASE_MEANING_ACTIVITY_SHAPE),
+      act(["noun-isha", "wa", "noun-mari", "desu"], ["noun-suzuki", "no", "noun-okaasan", "mo", "noun-isha", "desu"], ["noun-suzuki", "no", "noun-okaasan", "wa", "noun-isha", "desu"], 1, "topic-questions-3-activity-8-instruction", "tq3-additive-mo", "not-applicable", BASE_RETRIEVAL_ACTIVITY_SHAPE),
+      act(["noun-watashi", "no", "noun-chichi", "desu"], ["noun-satou", "no", "noun-otousan", "desu"], ["noun-satou", "no", "noun-otousan", "wa", "noun-ryuugakusei", "desu"], 1, "topic-questions-3-activity-9-instruction", "tq3-attributive-no", "not-applicable", BASE_LISTENING_ACTIVITY_SHAPE),
+      act(["noun-watashi", "no", "noun-haha", "desu"], ["noun-suzuki", "no", "noun-okaasan", "desu"], ["noun-suzuki", "ga", "noun-okaasan", "desu"], 0, "topic-questions-3-activity-10-instruction", "tq3-attributive-no", "not-applicable", BASE_SPOKEN_ACTIVITY_SHAPE),
     ],
     dialogue: null,
     translationSemanticTags: [
@@ -650,40 +679,42 @@ const LESSON_SPECS: readonly LessonSpec[] = deepFreeze([
       "expression-iie",
       "expression-sou",
       "noun-yuki",
+      "noun-yuki-san",
     ],
     reviewLexemeIds: ["noun-tanaka", "noun-tomodachi", "noun-hito"],
     introducedConceptIds: ["nominal-listing-to", "companion-to", "question-ka"],
     reviewedConceptIds: ["topic-wa", "possessive-no", "additive-mo", "affirmative-desu"],
     patternCellIds: ["tq4-question-answer", "tq4-nominal-list", "tq4-companion"],
     examples: [
-      ex(["noun-dare", "desu", "ka"], "identity-question", "tq4-question-answer"),
-      ex(["noun-amerika", "desu", "ka"], "country-confirmation-fragment", "tq4-question-answer"),
-      ex(["noun-namae", "wa", "noun-yuki", "desu", "ka"], "name-confirmation", "tq4-question-answer"),
-      ex(["noun-amerika", "to-listing", "noun-itaria", "desu"], "country-list", "tq4-nominal-list"),
-      ex(["noun-namae", "to-nominal", "noun-kuni"], "requested-details", "tq4-nominal-list"),
-      ex(["noun-tanaka", "to-companion", "noun-tomodachi", "desu"], "companion-relation", "tq4-companion"),
-      ex(["expression-hai", "comma", "noun-yuki", "desu"], "name-confirmation-answer", "tq4-question-answer"),
-      ex(["expression-iie", "comma", "noun-itaria", "desu"], "correction", "tq4-question-answer"),
+      ex(["noun-dare", "desu", "ka"], "identity-question", "tq4-question-answer", "complete-clause"),
+      ex(["noun-amerika", "desu", "ka"], "country-confirmation-fragment", "tq4-question-answer", "complete-clause"),
+      ex(["noun-namae", "wa", "noun-yuki", "desu", "ka"], "name-confirmation", "tq4-question-answer", "complete-clause"),
+      ex(["noun-amerika", "to-listing", "noun-itaria", "desu"], "country-list", "tq4-nominal-list", "complete-clause"),
+      ex(["noun-namae", "to-nominal", "noun-kuni"], "requested-details", "tq4-nominal-list", "contextual-fragment"),
+      ex(["noun-tanaka", "to-companion", "noun-tomodachi", "desu"], "companion-relation", "tq4-companion", "complete-clause"),
+      ex(["expression-hai", "comma", "noun-yuki", "desu"], "name-confirmation-answer", "tq4-question-answer", "complete-clause"),
+      ex(["expression-iie", "comma", "noun-itaria", "desu"], "correction", "tq4-question-answer", "complete-clause"),
+      ex(["noun-yuki-san", "desu", "ka"], "third-person-identification", "tq4-question-answer", "complete-clause"),
     ],
     activities: [
-      act(["cue-context"], ["noun-namae", "wa", "noun-nan", "desu", "ka"], ["noun-kuni", "wa", "noun-itaria", "desu", "ka"], 1, "topic-questions-4-activity-1-instruction", "tq4-question-answer", "not-applicable", BASE_MEANING_ACTIVITY_SHAPE),
+      act(["noun-yuki", "desu"], ["noun-namae", "wa", "noun-nan", "desu", "ka"], ["noun-kuni", "wa", "noun-itaria", "desu", "ka"], 1, "topic-questions-4-activity-1-instruction", "tq4-question-answer", "not-applicable", BASE_MEANING_ACTIVITY_SHAPE),
       act(["noun-kuni"], ["noun-kuni", "wa", "noun-amerika", "desu", "ka"], ["noun-kuni", "wa", "noun-amerika", "desu"], 1, "topic-questions-4-activity-2-instruction", "tq4-question-answer", "not-applicable", BASE_FORM_ACTIVITY_SHAPE),
       act(["noun-amerika"], ["noun-amerika", "to-listing", "noun-itaria"], ["noun-amerika", "noun-itaria", "to-listing"], 0, "topic-questions-4-activity-3-instruction", "tq4-nominal-list", "not-applicable", BASE_ORDERING_ACTIVITY_SHAPE),
-      act(["noun-namae"], ["noun-kuni", "to-nominal", "noun-namae"], ["noun-kuni", "no", "noun-namae"], 0, "topic-questions-4-activity-4-instruction", "tq4-nominal-list", "not-applicable", BASE_CONTROLLED_ACTIVITY_SHAPE),
+      act(["noun-namae"], ["noun-kuni", "to-nominal", "noun-namae"], ["noun-kuni", "no", "noun-namae"], 0, "topic-questions-4-activity-4-instruction", "tq4-nominal-list", "not-applicable", BASE_CONTEXT_ACTIVITY_SHAPE),
       act(["expression-sou", "desu"], ["expression-sou", "desu", "ka"], ["noun-dare", "no", "noun-tomodachi", "desu", "ka"], 1, "topic-questions-4-activity-5-instruction", "tq4-question-answer", "not-applicable", BASE_TRANSFORMATION_ACTIVITY_SHAPE),
-      act(["cue-error"], ["expression-hai", "comma", "noun-itaria", "desu"], ["expression-hai", "comma", "noun-amerika", "desu"], 0, "topic-questions-4-activity-6-instruction", "tq4-question-answer", "not-applicable", BASE_ERROR_ACTIVITY_SHAPE, "yuki", "yuki-country", "world-fact-mismatch"),
-      act(["cue-context"], ["expression-iie", "comma", "noun-kuni", "wa", "noun-itaria", "desu"], ["expression-hai", "comma", "noun-kuni", "wa", "noun-amerika", "desu"], 1, "topic-questions-4-activity-7-instruction", "tq4-question-answer", "not-applicable", BASE_CONTEXT_ACTIVITY_SHAPE, "yuki", "yuki-country"),
-      act(["cue-context"], ["noun-yuki", "to-companion", "noun-tomodachi", "desu", "ka"], ["noun-yuki", "wa", "noun-tomodachi", "desu"], 0, "topic-questions-4-activity-8-instruction", "tq4-companion", "not-applicable", BASE_RETRIEVAL_ACTIVITY_SHAPE, "learner", null),
-      act(["noun-yuki"], ["noun-yuki", "to-companion", "noun-tomodachi", "desu"], ["noun-yuki", "no", "noun-tomodachi", "desu"], 0, "topic-questions-4-activity-9-instruction", "tq4-companion", "not-applicable", BASE_LISTENING_ACTIVITY_SHAPE),
-      act(["noun-dare"], ["noun-dare", "to-companion", "noun-tomodachi", "desu", "ka"], ["noun-dare", "wa", "noun-tomodachi", "desu"], 1, "topic-questions-4-activity-10-instruction", "tq4-question-answer", "not-applicable", BASE_SPOKEN_ACTIVITY_SHAPE),
+      act(["expression-hai", "comma", "noun-amerika", "desu"], ["expression-hai", "comma", "noun-itaria", "desu"], ["expression-iie", "comma", "noun-amerika", "desu"], 0, "topic-questions-4-activity-6-instruction", "tq4-question-answer", "not-applicable", BASE_ERROR_ACTIVITY_SHAPE, "yuki", "yuki-country", "world-fact-mismatch"),
+      act(["noun-kuni", "wa", "noun-amerika", "desu"], ["expression-iie", "comma", "noun-kuni", "wa", "noun-itaria", "desu"], ["expression-hai", "comma", "noun-kuni", "wa", "noun-amerika", "desu"], 1, "topic-questions-4-activity-7-instruction", "tq4-question-answer", "not-applicable", BASE_CONTEXT_ACTIVITY_SHAPE, "yuki", "yuki-country"),
+      act(["noun-tanaka", "to-companion", "noun-tomodachi", "desu"], ["noun-yuki-san", "to-companion", "noun-tomodachi", "desu", "ka"], ["noun-yuki-san", "wa", "noun-tomodachi", "desu"], 0, "topic-questions-4-activity-8-instruction", "tq4-companion", "not-applicable", BASE_CONTROLLED_ACTIVITY_SHAPE, "learner", null),
+      act(["noun-kuni", "wa", "noun-itaria", "desu"], ["noun-yuki-san", "to-companion", "noun-tomodachi", "desu"], ["noun-yuki-san", "no", "noun-tomodachi", "desu"], 0, "topic-questions-4-activity-9-instruction", "tq4-companion", "not-applicable", BASE_LISTENING_ACTIVITY_SHAPE),
+      act(["noun-kuni", "wa", "noun-itaria", "desu"], ["noun-dare", "to-companion", "noun-tomodachi", "desu", "ka"], ["noun-dare", "wa", "noun-tomodachi", "desu"], 1, "topic-questions-4-activity-10-instruction", "tq4-question-answer", "not-applicable", BASE_SPOKEN_ACTIVITY_SHAPE),
     ],
     dialogue: [
-      { speakerId: "learner", parts: ["noun-namae", "wa", "noun-nan", "desu", "ka"], frame: "open-name-question", patternCellIds: ["tq4-question-answer"] },
-      { speakerId: "partner", parts: ["noun-yuki", "desu"], frame: "identity-answer", patternCellIds: ["tq4-question-answer"] },
-      { speakerId: "learner", parts: ["noun-kuni", "wa", "noun-itaria", "desu", "ka"], frame: "country-clarification", patternCellIds: ["tq4-question-answer"] },
-      { speakerId: "partner", parts: ["expression-hai", "comma", "noun-itaria", "desu"], frame: "country-confirmation", patternCellIds: ["tq4-question-answer"] },
-      { speakerId: "learner", parts: ["noun-tanaka", "to-companion", "noun-tomodachi", "desu", "ka"], frame: "relationship-check", patternCellIds: ["tq4-question-answer", "tq4-companion"] },
-      { speakerId: "partner", parts: ["expression-hai", "comma", "expression-sou", "desu"], frame: "closing-confirmation", patternCellIds: ["tq4-question-answer"] },
+      { speakerId: "learner", parts: ["noun-namae", "wa", "noun-nan", "desu", "ka"], frame: "open-name-question", patternCellIds: ["tq4-question-answer"], utteranceKind: "complete-clause" },
+      { speakerId: "partner", parts: ["noun-yuki", "desu"], frame: "identity-answer", patternCellIds: ["tq4-question-answer"], utteranceKind: "complete-clause" },
+      { speakerId: "learner", parts: ["noun-kuni", "wa", "noun-itaria", "desu", "ka"], frame: "country-clarification", patternCellIds: ["tq4-question-answer"], utteranceKind: "complete-clause" },
+      { speakerId: "partner", parts: ["expression-hai", "comma", "noun-itaria", "desu"], frame: "country-confirmation", patternCellIds: ["tq4-question-answer"], utteranceKind: "complete-clause" },
+      { speakerId: "learner", parts: ["noun-tanaka", "to-companion", "noun-tomodachi", "desu", "ka"], frame: "relationship-check", patternCellIds: ["tq4-question-answer", "tq4-companion"], utteranceKind: "complete-clause" },
+      { speakerId: "partner", parts: ["expression-hai", "comma", "expression-sou", "desu"], frame: "closing-confirmation", patternCellIds: ["tq4-question-answer"], utteranceKind: "complete-clause" },
     ],
     translationSemanticTags: [
       "identity-question",
@@ -694,6 +725,7 @@ const LESSON_SPECS: readonly LessonSpec[] = deepFreeze([
       "companion-relation",
       "affirmative-confirmation",
       "negative-correction",
+      "third-person-identification",
     ],
   },
 ]);
@@ -858,6 +890,10 @@ const RAW_BASE_TOPIC_QUESTIONS_MODULE: BaseTopicQuestionsModule = {
     yukiCountry: "italy",
     speakerCity: "tokyo",
   },
+  worldFactIds: RAW_TOPIC_LESSONS.flatMap((lesson) =>
+    lesson.activityDesigns.map(({ worldFactId }) => worldFactId ?? ""),
+  ),
+  worldFactLedger: worldFactLedgerFor(RAW_TOPIC_LESSONS),
 };
 
 function denseArray(value: unknown): readonly unknown[] | undefined {
@@ -960,6 +996,7 @@ export function validateBaseTopicQuestionsModule(
     return { ok: false, errors: ["invalid-lesson-shape"] };
   }
   const worldFacts = plainRecord(module.worldFacts);
+  const worldFactIds = denseArray(module.worldFactIds);
   if (
     !worldFacts ||
     worldFacts.speaker !== "university-student" ||
@@ -969,8 +1006,12 @@ export function validateBaseTopicQuestionsModule(
     worldFacts.suzuki !== "teacher" ||
     worldFacts.mari !== "doctor" ||
     worldFacts.yukiCountry !== "italy"
-    || worldFacts.speakerCity !== "tokyo"
+    || worldFacts.speakerCity !== "tokyo" ||
+    !worldFactIds
   ) {
+    errors.add("invalid-module-shape");
+  }
+  if (!validatePublishedWorldFactLedger(module)) {
     errors.add("invalid-module-shape");
   }
   const expected = LESSON_SPECS.map(({ lessonId }) => lessonId);
@@ -1012,6 +1053,55 @@ export function validateBaseTopicQuestionsModule(
     if (
       !validatePublishedSemanticActivities(record) ||
       !validatesParticleCellRealization(record)
+    ) {
+      errors.add("invalid-lesson-shape");
+    }
+    const designs = denseArray(record.activityDesigns);
+    const examples = denseArray(record.examples);
+    const dialogue = record.dialogue === null ? null : plainRecord(record.dialogue);
+    const dialogueTurns = dialogue ? denseArray(dialogue.turns) : [];
+    if (
+      !designs ||
+      designs.some((design) => {
+        const item = plainRecord(design);
+        return !item || worldFactIds?.includes(item.worldFactId) !== true;
+      }) ||
+      !examples ||
+      examples.some(
+        (example) => typeof plainRecord(example)?.utteranceKind !== "string",
+      ) ||
+      dialogueTurns === undefined ||
+      dialogueTurns.some(
+        (turn) => typeof plainRecord(turn)?.utteranceKind !== "string",
+      )
+    ) {
+      errors.add("invalid-module-shape");
+    }
+    const semanticTargets = [
+      ...(examples ?? []),
+      ...(dialogueTurns ?? []),
+      ...(designs ?? []).flatMap((design) => {
+        const item = plainRecord(design);
+        return [
+          item?.promptTarget,
+          ...(denseArray(item?.optionTargets) ?? []),
+        ];
+      }),
+    ];
+    if (
+      semanticTargets.some((target) => {
+        const item = plainRecord(target);
+        const lexemeIds = item ? denseArray(item.lexemeIds) : undefined;
+        if (!lexemeIds?.includes("noun-nan")) return false;
+        const tokens = item ? denseArray(item.tokens) : undefined;
+        return (
+          !tokens ||
+          tokens
+            .map((token) => String(plainRecord(token)?.jp ?? ""))
+            .join("")
+            .includes("なんですか") === false
+        );
+      })
     ) {
       errors.add("invalid-lesson-shape");
     }

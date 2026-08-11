@@ -8,6 +8,7 @@ import { validateBaseLessonDepth } from "../validation/lessonRules";
 import { validateFirstTeachOrder, visibleJapaneseFor } from "../validation/sequenceRules";
 import { baseNavigationCopyEn } from "../copy/en";
 import { baseNavigationCopyIt } from "../copy/it";
+import { baseActivityPromptKey } from "../catalog/visibleTargets";
 import {
   BASE_SENTENCE_FOUNDATIONS_EXAMPLES,
   BASE_SENTENCE_FOUNDATIONS_LESSONS,
@@ -139,11 +140,24 @@ describe("Base sentence-foundations module", () => {
       yamada: "lawyer",
       friend: "international-student",
     });
+
     const surfaces = BASE_SENTENCE_FOUNDATIONS_EXAMPLES.map(({ tokens }) =>
       jp(tokens),
     ).join("\n");
     expect(surfaces).not.toMatch(/たなかさん、(?:べんごし|いしゃ)です/);
     expect(surfaces).not.toMatch(/やまださん、(?:かんごし|いしゃ)です/);
+  });
+
+  it("never recasts a named professional as the generic friend category", () => {
+    const visible = BASE_SENTENCE_FOUNDATIONS_MODULE.lessons.flatMap((lesson) => [
+      ...lesson.examples.map(({ tokens }) => jp(tokens)),
+      ...lesson.activityDesigns.flatMap(({ promptTarget, optionTargets }) => [
+        jp(promptTarget.tokens),
+        ...optionTargets.map(({ tokens }) => jp(tokens)),
+      ]),
+    ]);
+    expect(visible).not.toContain("たなかさん、ともだちです");
+    expect(visible).not.toContain("やまださん、ともだちです");
   });
 
   it("authors every activity independently as one well-formed utterance", () => {
@@ -316,11 +330,12 @@ describe("Base sentence-foundations module", () => {
         );
         expect(lesson.patternCellIds).toContain(design.patternCellId);
         design.optionTargets.forEach((target, optionIndex) => {
-          expect(target.patternCellIds).toEqual(
-            optionIndex === design.correctOptionIndex
-              ? [design.patternCellId]
-              : [],
-          );
+          expect(
+            target.patternCellIds.every((id) => id === design.patternCellId),
+          ).toBe(true);
+          if (optionIndex === design.correctOptionIndex) {
+            expect(target.patternCellIds).toContain(design.patternCellId);
+          }
         });
       });
     }
@@ -344,7 +359,7 @@ describe("Base sentence-foundations module", () => {
         if (design.operation === "diagnose-error") {
           expect(design.operationEvidence.errorCode?.length).toBeGreaterThan(0);
           expect(design.operationEvidence.candidateTargetId).toBe(
-            design.optionTargetIds[design.correctOptionIndex === 0 ? 1 : 0],
+            baseActivityPromptKey(lesson.content.lessonId, design.id),
           );
         }
         if (design.operation === "identify-audio") {
@@ -365,16 +380,21 @@ describe("Base sentence-foundations module", () => {
           design.operation !== "transform-form" &&
           design.operation !== "diagnose-error"
         ) {
-          expect(
-            design.acceptedAnswerTarget.lexemeIds.some((id) =>
-              promptLexemes.has(id),
-            ),
-            `${lesson.content.lessonId}:${design.id}`,
-          ).toBe(false);
+          for (const id of promptLexemes) {
+            if (design.acceptedAnswerTarget.lexemeIds.includes(id)) {
+              expect(
+                design.optionTargets.every((target) =>
+                  target.lexemeIds.includes(id),
+                ),
+                `${lesson.content.lessonId}:${design.id}:${id}`,
+              ).toBe(true);
+            }
+          }
         }
         if (
           design.operation === "transform-form" ||
-          design.operation === "diagnose-error"
+          design.operation === "diagnose-error" ||
+          design.operation === "order-chunks"
         ) {
           expect(jp(design.promptTarget.tokens)).not.toBe(
             jp(design.acceptedAnswerTarget.tokens),
@@ -385,6 +405,108 @@ describe("Base sentence-foundations module", () => {
           );
         }
       }
+    }
+  });
+
+  it("publishes no scaffolding glyphs or arrow pseudo-Japanese", () => {
+    const visible = visibleJapaneseFor(
+      BASE_SENTENCE_FOUNDATIONS_LESSONS,
+      BASE_SENTENCE_FOUNDATIONS_VALIDATION_CATALOGS,
+    );
+    expect(visible).not.toMatch(/[◇◎●↔♪↺→]/);
+    for (const lesson of BASE_SENTENCE_FOUNDATIONS_MODULE.lessons) {
+      for (const design of lesson.activityDesigns) {
+        expect(jp(design.promptTarget.tokens)).not.toMatch(/[◇◎●↔♪↺→]/);
+        expect(design.optionTargets.map((target) => jp(target.tokens)))
+          .not.toContain(jp(design.promptTarget.tokens));
+      }
+    }
+  });
+
+  it("keeps SF1/SF2 Japanese as contextual fragments with role metadata", () => {
+    for (const lesson of BASE_SENTENCE_FOUNDATIONS_MODULE.lessons.slice(0, 2)) {
+      expect(lesson.roleModels.length).toBeGreaterThanOrEqual(2);
+      for (const example of lesson.examples) {
+        expect(example.utteranceKind).toBe("contextual-fragment");
+        expect(example.tokens.every(({ jp }) => jp !== "→")).toBe(true);
+        expect(example.roleModelId).toBeTruthy();
+        expect(example.recoverableContextId).toBeTruthy();
+      }
+    }
+  });
+
+  it("keeps diagnosis prompt distinct from both repair choices", () => {
+    for (const lesson of BASE_SENTENCE_FOUNDATIONS_MODULE.lessons) {
+      for (const design of lesson.activityDesigns.filter(
+        ({ operation }) => operation === "diagnose-error",
+      )) {
+        const prompt = jp(design.promptTarget.tokens);
+        expect(design.optionTargets.map((target) => jp(target.tokens)))
+          .not.toContain(prompt);
+        expect(design.operationEvidence.candidateTargetId).toBe(
+          baseActivityPromptKey(lesson.content.lessonId, design.id),
+        );
+      }
+    }
+  });
+
+  it("uses typed semantic audio contracts without visible answer cues", () => {
+    for (const lesson of BASE_SENTENCE_FOUNDATIONS_MODULE.lessons) {
+      const listening = lesson.activityDesigns.find(
+        ({ operation }) => operation === "identify-audio",
+      );
+      expect(listening?.audioContract).toEqual(
+        expect.objectContaining({
+          kind: "semantic-synthesis",
+          targetId: listening?.audioTargetId,
+          promptVisible: false,
+        }),
+      );
+    }
+  });
+
+  it("keeps every instruction free of Japanese target and gloss leakage", () => {
+    for (const lesson of BASE_SENTENCE_FOUNDATIONS_MODULE.lessons) {
+      lesson.activityDesigns.forEach((design, index) => {
+        const copyId = lesson.content.activities[index].instructionCopyId;
+        for (const text of [
+          baseNavigationCopyEn.content[copyId],
+          baseNavigationCopyIt.content[copyId],
+        ]) {
+          expect(text).not.toMatch(/[\u3040-\u30ff\u4e00-\u9fff]/);
+          for (const target of design.optionTargets) {
+            expect(text).not.toContain(jp(target.tokens));
+          }
+        }
+      });
+    }
+  });
+
+  it("covers every accepted activity with the canonical world ledger", () => {
+    const ledger = (BASE_SENTENCE_FOUNDATIONS_MODULE as unknown as {
+      worldFactLedger: readonly {
+        id: string;
+        acceptedTargetIds: readonly string[];
+        rejectedTargetIds: readonly string[];
+      }[];
+    }).worldFactLedger;
+    expect(ledger).toHaveLength(
+      new Set(BASE_SENTENCE_FOUNDATIONS_MODULE.worldFactIds).size,
+    );
+    for (const lesson of BASE_SENTENCE_FOUNDATIONS_MODULE.lessons) {
+      lesson.activityDesigns.forEach((design, index) => {
+        expect(design.worldFactId).toBeTruthy();
+        expect(BASE_SENTENCE_FOUNDATIONS_MODULE.worldFactIds)
+          .toContain(design.worldFactId);
+        const fact = ledger.find(({ id }) => id === design.worldFactId);
+        expect(fact?.acceptedTargetIds).toContain(
+          design.optionTargetIds[design.correctOptionIndex ?? 0],
+        );
+        expect(fact?.rejectedTargetIds).toContain(
+          design.optionTargetIds[design.correctOptionIndex === 0 ? 1 : 0],
+        );
+        expect(index).toBeGreaterThanOrEqual(0);
+      });
     }
   });
 
@@ -407,11 +529,64 @@ describe("Base sentence-foundations module", () => {
         else if (lengths[correct] < lengths[other]) distribution.shorter += 1;
         else distribution.tie += 1;
       });
+
       expect(distribution.longer).toBeGreaterThanOrEqual(2);
       expect(distribution.shorter).toBeGreaterThanOrEqual(2);
       expect(distribution.tie).toBeGreaterThanOrEqual(2);
     }
     expect(positionFingerprints.size).toBe(4);
+  });
+
+  it("uses distinct, genuinely authored category sequences by lesson", () => {
+    const fingerprints = BASE_SENTENCE_FOUNDATIONS_MODULE.lessons.map((lesson) =>
+      lesson.content.activities.map(({ category }) => category).join("|"),
+    );
+    expect(new Set(fingerprints).size).toBe(4);
+  });
+
+  it("publishes true chunk permutations for every ordering activity", () => {
+    const normalizeTiles = (tokens: readonly { jp: string }[]) =>
+      tokens.map(({ jp }) => jp).sort().join("|");
+    for (const lesson of BASE_SENTENCE_FOUNDATIONS_MODULE.lessons) {
+      for (const design of lesson.activityDesigns.filter(
+        ({ operation }) => operation === "order-chunks",
+      )) {
+        expect(normalizeTiles(design.optionTargets[0].tokens)).toBe(
+          normalizeTiles(design.optionTargets[1].tokens),
+        );
+        expect(
+          design.promptTarget.lexemeIds.every((id) =>
+            design.optionTargets.every(({ lexemeIds }) => lexemeIds.includes(id)),
+          ),
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("uses a complete erroneous noun predicate for post-copula diagnosis", () => {
+    for (const lesson of BASE_SENTENCE_FOUNDATIONS_MODULE.lessons.slice(2)) {
+      const diagnosis = lesson.activityDesigns.find(
+        ({ operation }) => operation === "diagnose-error",
+      );
+      expect(diagnosis?.promptTarget.formIds).toContain(
+        "affirmative-desu",
+      );
+    }
+  });
+
+  it("gives every activity independent localized diagnostic feedback", () => {
+    for (const lesson of BASE_SENTENCE_FOUNDATIONS_MODULE.lessons) {
+      const accepted = lesson.content.activities.map(
+        ({ acceptedFeedbackCopyId }) => acceptedFeedbackCopyId,
+      );
+      const retry = lesson.content.activities.map(
+        ({ retryFeedbackCopyId }) => retryFeedbackCopyId,
+      );
+      expect(new Set(accepted).size).toBe(10);
+      expect(new Set(retry).size).toBe(10);
+      expect(new Set(accepted.map((id) => baseNavigationCopyEn.content[id])).size).toBe(10);
+      expect(new Set(retry.map((id) => baseNavigationCopyIt.content[id])).size).toBe(10);
+    }
   });
 
   it("uses every new lexeme visibly and retrieves it in the same lesson", () => {
@@ -527,7 +702,7 @@ describe("Base sentence-foundations module", () => {
       ["sentence-foundations-3-example-1-translation", "かんごしです", "They're a nurse.", "È infermiere."],
       ["sentence-foundations-3-example-2-translation", "べんごしです", "They're a lawyer.", "È avvocato."],
       ["sentence-foundations-4-example-2-translation", "たなかさん、かんごしです", "As for Tanaka—they're a nurse.", "Quanto a Tanaka, è infermiere."],
-      ["sentence-foundations-4-example-3-translation", "やまださん、べんごしです", "As for Yamada—they're a lawyer.", "Quanto a Yamada, è avvocato."],
+      ["sentence-foundations-4-example-3-translation", "やまださん、ひとです", "As for Yamada—they're a person.", "Quanto a Yamada, è una persona."],
     ] as const;
     const examples = new Map(
       BASE_SENTENCE_FOUNDATIONS_EXAMPLES.map((example) => [

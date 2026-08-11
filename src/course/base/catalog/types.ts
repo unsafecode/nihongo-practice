@@ -188,12 +188,18 @@ export interface BaseExample extends BaseVisibleTarget {
     | "complete-clause"
     | "hanging-topic";
   readonly contextCopyId?: string | null;
+  readonly roleModelId?: string | null;
+  readonly recoverableContextId?: string | null;
 }
 
 export interface BaseDialogueTurn extends BaseVisibleTarget {
   readonly speakerId: string;
   readonly discourseFrameId: string;
   readonly predicateAspect: BasePredicateAspect;
+  readonly utteranceKind?:
+    | "contextual-fragment"
+    | "complete-clause"
+    | "hanging-topic";
 }
 
 export interface BaseDialogue {

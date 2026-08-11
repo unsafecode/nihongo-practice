@@ -625,6 +625,9 @@ function validateActivities(
           optionTarget.referenceId,
           optionTarget.label,
           push,
+          "target",
+          activity.operation === "order-chunks" &&
+            optionTarget.referenceId !== activity.targetId,
         );
       }
     }
@@ -938,6 +941,7 @@ function validateSentenceLikeReferences(
     detail?: string,
   ) => void,
   targetShape: RuntimeVisibleTargetShape = "target",
+  allowIntentionalOrderingError = false,
 ): void {
   const targetIssue = runtimeVisibleTargetIssue(sentence, targetShape);
   if (targetIssue !== undefined) {
@@ -969,7 +973,9 @@ function validateSentenceLikeReferences(
   const conceptIds = target.conceptIds;
   const formIds = target.formIds;
   const patternCellIds = target.patternCellIds;
-  validateTokens(tokens, referenceId, label, push);
+  if (!allowIntentionalOrderingError) {
+    validateTokens(tokens, referenceId, label, push);
+  }
   for (const lexemeId of lexemeIds) {
     validateReference(lexemeId, catalogs.lexemes.has(lexemeId), `${label} lexeme`, push);
     const lexeme = catalogs.lexemes.get(lexemeId);

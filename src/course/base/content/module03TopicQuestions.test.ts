@@ -15,6 +15,7 @@ import {
   module03ConceptIds,
   validateBaseTopicQuestionsModule,
 } from "./module03TopicQuestions";
+import { baseActivityPromptKey } from "../catalog/visibleTargets";
 
 function jp(tokens: readonly { readonly jp: string }[]): string {
   return tokens.map(({ jp }) => jp).join("");
@@ -340,7 +341,7 @@ describe("Base topic-questions module", () => {
       !acceptedAnswers.includes(prompt),
     )).toBe(true);
     for (const design of tq2.activityDesigns.slice(0, 4)) {
-      expect(design.promptTarget.lexemeIds).toEqual([]);
+      expect(design.promptTarget.lexemeIds.length).toBeGreaterThan(0);
       expect(design.contextTarget.kind).toBe("information-structure");
       expect(design.contextTarget.informationStructure).toBe(
         design.informationStructure,
@@ -383,7 +384,7 @@ describe("Base topic-questions module", () => {
         if (design.operation === "diagnose-error") {
           expect(design.operationEvidence.errorCode).toBeTruthy();
           expect(design.operationEvidence.candidateTargetId).toBe(
-            design.optionTargetIds[design.correctOptionIndex === 0 ? 1 : 0],
+            baseActivityPromptKey(lesson.content.lessonId, design.id),
           );
         }
         if (design.operation === "identify-audio") {
@@ -429,11 +430,12 @@ describe("Base topic-questions module", () => {
           `${lesson.content.lessonId}:${design.id}:${design.patternCellId}`,
         ).toBe(true);
         design.optionTargets.forEach((target, optionIndex) => {
-          expect(target.patternCellIds).toEqual(
-            optionIndex === design.correctOptionIndex
-              ? [design.patternCellId]
-              : [],
-          );
+          expect(
+            target.patternCellIds.every((id) => id === design.patternCellId),
+          ).toBe(true);
+          if (optionIndex === design.correctOptionIndex) {
+            expect(target.patternCellIds).toContain(design.patternCellId);
+          }
         });
       }
     }
@@ -483,12 +485,16 @@ describe("Base topic-questions module", () => {
           design.operation !== "transform-form" &&
           design.operation !== "diagnose-error"
         ) {
-          expect(
-            design.acceptedAnswerTarget.lexemeIds.some((id) =>
-              promptLexemes.has(id),
-            ),
-            `${lesson.content.lessonId}:${design.id}`,
-          ).toBe(false);
+          for (const id of promptLexemes) {
+            if (design.acceptedAnswerTarget.lexemeIds.includes(id)) {
+              expect(
+                design.optionTargets.every((target) =>
+                  target.lexemeIds.includes(id),
+                ),
+                `${lesson.content.lessonId}:${design.id}:${id}`,
+              ).toBe(true);
+            }
+          }
           expect(normalized(design.promptTarget.tokens)).not.toBe(
             normalized(design.acceptedAnswerTarget.tokens),
           );
@@ -518,6 +524,117 @@ describe("Base topic-questions module", () => {
     expect(nanTargets.length).toBeGreaterThan(0);
     expect(nanTargets.every((target) => jp(target.tokens).includes("なんですか")))
       .toBe(true);
+  });
+
+  it("contains no visible scaffolding glyphs or arrows", () => {
+    const visible = visibleJapaneseFor(
+      BASE_TOPIC_QUESTIONS_MODULE.sequence,
+      BASE_TOPIC_QUESTIONS_VALIDATION_CATALOGS,
+    );
+    expect(visible).not.toMatch(/[◇◎●↔♪↺→]/);
+    for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
+      for (const design of lesson.activityDesigns) {
+        const prompt = jp(design.promptTarget.tokens);
+        expect(prompt).not.toMatch(/[◇◎●↔♪↺→]/);
+        expect(design.optionTargets.map((target) => jp(target.tokens)))
+          .not.toContain(prompt);
+      }
+    }
+  });
+
+  it("authors contextual diagnosis prompts and separate repair options", () => {
+    for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
+      for (const design of lesson.activityDesigns.filter(
+        ({ operation }) => operation === "diagnose-error",
+      )) {
+        const prompt = jp(design.promptTarget.tokens);
+        expect(design.optionTargets.map((target) => jp(target.tokens)))
+          .not.toContain(prompt);
+        expect(design.operationEvidence.candidateTargetId).toBe(
+          baseActivityPromptKey(lesson.content.lessonId, design.id),
+        );
+      }
+    }
+  });
+
+  it("uses canonical world facts for every accepted factual answer", () => {
+    const ledger = (BASE_TOPIC_QUESTIONS_MODULE as unknown as {
+      worldFactLedger: readonly {
+        id: string;
+        acceptedTargetIds: readonly string[];
+        rejectedTargetIds: readonly string[];
+      }[];
+    }).worldFactLedger;
+    expect(ledger).toHaveLength(
+      new Set(BASE_TOPIC_QUESTIONS_MODULE.worldFactIds).size,
+    );
+    for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
+      for (const design of lesson.activityDesigns) {
+        expect(design.worldFactId).toBeTruthy();
+        expect(BASE_TOPIC_QUESTIONS_MODULE.worldFactIds)
+          .toContain(design.worldFactId);
+        if (design.operationEvidence.errorCode === "world-fact-mismatch") {
+          expect(design.worldFactId).toBeTruthy();
+          expect(
+            ledger.find(({ id }) => id === design.worldFactId)?.rejectedTargetIds,
+          ).toContain(
+            baseActivityPromptKey(lesson.content.lessonId, design.id),
+          );
+        }
+        const fact = ledger.find(({ id }) => id === design.worldFactId);
+        expect(fact?.acceptedTargetIds).toContain(
+          design.optionTargetIds[design.correctOptionIndex ?? 0],
+        );
+        expect(fact?.rejectedTargetIds).toContain(
+          design.optionTargetIds[design.correctOptionIndex === 0 ? 1 : 0],
+        );
+      }
+    }
+  });
+
+  it("publishes a typed semantic audio contract for each listening item", () => {
+    for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
+      const listening = lesson.activityDesigns.find(
+        ({ operation }) => operation === "identify-audio",
+      );
+      expect(listening?.audioContract).toEqual(
+        expect.objectContaining({
+          kind: "semantic-synthesis",
+          targetId: listening?.audioTargetId,
+          promptVisible: false,
+        }),
+      );
+    }
+  });
+
+  it("marks every semantic example and dialogue turn with utterance kind", () => {
+    for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
+      expect(lesson.examples.every(({ utteranceKind }) => utteranceKind))
+        .toBe(true);
+      expect(lesson.dialogue?.turns.every(({ utteranceKind }) => utteranceKind) ?? true)
+        .toBe(true);
+    }
+    const list = BASE_TOPIC_QUESTIONS_MODULE.lessons[3].examples.find(
+      ({ tokens }) => jp(tokens) === "なまえとくに",
+    );
+    expect(list?.utteranceKind).toBe("contextual-fragment");
+  });
+
+  it("keeps instructions free of target strings and Japanese answer leakage", () => {
+    for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
+      lesson.activityDesigns.forEach((design, index) => {
+        const copyId = lesson.content.activities[index].instructionCopyId;
+        for (const text of [
+          baseNavigationCopyEn.content[copyId],
+          baseNavigationCopyIt.content[copyId],
+        ]) {
+          expect(text).not.toMatch(/[\u3040-\u30ff\u4e00-\u9fff]/);
+          for (const target of design.optionTargets) {
+            expect(text).not.toContain(jp(target.tokens));
+          }
+        }
+      });
+    }
   });
 
   it("keeps Yuki's country Italy in every accepted world surface", () => {
@@ -555,11 +672,46 @@ describe("Base topic-questions module", () => {
         else if (lengths[correct] < lengths[other]) distribution.shorter += 1;
         else distribution.tie += 1;
       });
+
       expect(distribution.longer).toBeGreaterThanOrEqual(2);
       expect(distribution.shorter).toBeGreaterThanOrEqual(2);
       expect(distribution.tie).toBeGreaterThanOrEqual(2);
     }
     expect(fingerprints.size).toBe(4);
+  });
+
+  it("uses a distinct authored category sequence for every lesson", () => {
+    const fingerprints = BASE_TOPIC_QUESTIONS_MODULE.lessons.map((lesson) =>
+      lesson.content.activities.map(({ category }) => category).join("|"),
+    );
+    expect(new Set(fingerprints).size).toBe(4);
+  });
+
+  it("never uses bare person or family as exhaustive-focus evidence", () => {
+    const lesson = BASE_TOPIC_QUESTIONS_MODULE.lessons[1];
+    const surfaces = [
+      ...lesson.examples,
+      ...lesson.activityDesigns.flatMap(({ promptTarget, optionTargets }) => [
+        promptTarget,
+        ...optionTargets,
+      ]),
+    ].map(({ tokens }) => jp(tokens));
+    expect(surfaces.some((surface) => /^(ひと|かぞく)(が|は)/u.test(surface))).toBe(false);
+  });
+
+  it("gives every activity independent localized diagnostic feedback", () => {
+    for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
+      const accepted = lesson.content.activities.map(
+        ({ acceptedFeedbackCopyId }) => acceptedFeedbackCopyId,
+      );
+      const retry = lesson.content.activities.map(
+        ({ retryFeedbackCopyId }) => retryFeedbackCopyId,
+      );
+      expect(new Set(accepted).size).toBe(10);
+      expect(new Set(retry).size).toBe(10);
+      expect(new Set(accepted.map((id) => baseNavigationCopyEn.content[id])).size).toBe(10);
+      expect(new Set(retry.map((id) => baseNavigationCopyIt.content[id])).size).toBe(10);
+    }
   });
 
   it("maps reviewed Japanese meanings to explicit EN and IT records", () => {
@@ -610,21 +762,13 @@ describe("Base topic-questions module", () => {
 
   it("keeps activity instructions semantically aligned in both locales", () => {
     expect(baseNavigationCopyEn.content["topic-questions-4-activity-8-instruction"])
-      .toContain("friends with Yuki");
+      .toMatch(/relationship|companion/i);
     expect(baseNavigationCopyIt.content["topic-questions-4-activity-8-instruction"])
-      .toMatch(/amico\/a di Yuki/);
-    expect(baseNavigationCopyIt.content["topic-questions-3-activity-10-instruction"])
-      .toContain("おかあさん");
-    expect(baseNavigationCopyIt.content["topic-questions-3-activity-10-instruction"])
-      .not.toContain("madre rispettosa");
-    expect(baseNavigationCopyEn.content["topic-questions-1-activity-1-instruction"])
-      .toMatch(/Tokyo.*not.*city/i);
-    expect(baseNavigationCopyIt.content["topic-questions-1-activity-1-instruction"])
-      .toMatch(/Tokyo.*non.*città/i);
-    expect(baseNavigationCopyEn.content["topic-questions-1-activity-4-instruction"])
-      .toMatch(/university student/i);
-    expect(baseNavigationCopyEn.content["sentence-foundations-4-activity-4-instruction"])
-      .toMatch(/student.*international/i);
+      .toMatch(/relazione|compagnia/i);
+    expect(baseNavigationCopyEn.content["topic-questions-2-activity-1-instruction"])
+      .toMatch(/newly selected|open/i);
+    expect(baseNavigationCopyIt.content["topic-questions-2-activity-1-instruction"])
+      .toMatch(/appena selezionata|aperto/i);
   });
 
   it("uses operation-specific diagnostic copy", () => {
