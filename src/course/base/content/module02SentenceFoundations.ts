@@ -761,8 +761,8 @@ const LESSON_SPECS: readonly LessonSpec[] = deepFreeze([
       activity(["anchor-shashin"], ["anchor-shashin", "comma", "noun-watashi"], ["anchor-shashin", "comma", "anchor-obaasan"], 0, "sentence-foundations-1-activity-1-instruction", "sf1-identifying-chunk", BASE_MEANING_ACTIVITY_SHAPE),
       activity(["anchor-gakkou"], ["anchor-gakkou", "comma", "noun-gakusei"], ["anchor-gakkou", "comma", "anchor-ryokou"], 0, "sentence-foundations-1-activity-2-instruction", "sf1-identifying-chunk", BASE_FORM_ACTIVITY_SHAPE),
       activity(["anchor-denwa"], ["anchor-denwa", "comma", "noun-sensei"], ["anchor-denwa", "comma", "anchor-kaze"], 1, "sentence-foundations-1-activity-3-instruction", "sf1-identifying-chunk", BASE_MEANING_ACTIVITY_SHAPE),
-      activity(["anchor-shashin"], ["anchor-shashin", "comma", "noun-kazoku"], ["anchor-shashin", "comma", "anchor-obaasan"], 0, "sentence-foundations-1-activity-4-instruction", "sf1-context-chunk", BASE_CONTROLLED_ACTIVITY_SHAPE),
-      activity(["anchor-gakkou"], ["anchor-gakkou", "comma", "anchor-hon"], ["anchor-gakkou", "comma", "anchor-ryokou"], 1, "sentence-foundations-1-activity-5-instruction", "sf1-context-chunk", BASE_CONTEXT_ACTIVITY_SHAPE),
+      activity(["anchor-shashin"], ["anchor-shashin", "comma", "noun-kazoku"], ["anchor-shashin", "comma", "anchor-ryokou"], 0, "sentence-foundations-1-activity-4-instruction", "sf1-context-chunk", BASE_CONTROLLED_ACTIVITY_SHAPE),
+      activity(["anchor-gakkou"], ["anchor-gakkou", "comma", "anchor-hon"], ["anchor-gakkou", "comma", "anchor-obaasan"], 1, "sentence-foundations-1-activity-5-instruction", "sf1-context-chunk", BASE_CONTEXT_ACTIVITY_SHAPE),
       activity(["anchor-denwa", "comma", "anchor-kaze"], ["anchor-denwa", "comma", "name-sakura"], ["anchor-denwa", "comma", "anchor-pan"], 1, "sentence-foundations-1-activity-6-instruction", "sf1-context-chunk", BASE_ERROR_ACTIVITY_SHAPE, null, null, "context-meaning-mismatch"),
       activity(["anchor-kagi"], ["anchor-kagi", "comma", "anchor-gakkou"], ["anchor-kagi", "comma", "anchor-umi"], 0, "sentence-foundations-1-activity-7-instruction", "sf1-context-chunk", BASE_CONTEXT_ACTIVITY_SHAPE),
       activity(["anchor-kippu"], ["anchor-kippu", "comma", "name-ken"], ["anchor-kippu", "comma", "anchor-kaze"], 1, "sentence-foundations-1-activity-8-instruction", "sf1-context-chunk", BASE_RETRIEVAL_ACTIVITY_SHAPE),
@@ -812,11 +812,11 @@ const LESSON_SPECS: readonly LessonSpec[] = deepFreeze([
       activity(["anchor-shashin", "comma", "noun-yamada"], ["noun-yamada", "comma", "noun-hito"], ["anchor-shashin", "comma", "noun-tanaka", "comma", "noun-kazoku"], 0, "sentence-foundations-2-activity-2-instruction", "sf2-recoverable-omission", BASE_FORM_ACTIVITY_SHAPE),
       activity(["anchor-obaasan"], ["anchor-obaasan", "comma", "noun-kazoku"], ["anchor-obaasan", "comma", "noun-sensei"], 0, "sentence-foundations-2-activity-3-instruction", "sf2-predicate-final", BASE_MEANING_ACTIVITY_SHAPE),
       activity(["anchor-gakkou", "comma", "noun-gakusei"], ["noun-gakusei", "comma", "noun-watashi"], ["noun-gakusei", "comma", "anchor-obaasan", "comma", "noun-kazoku"], 1, "sentence-foundations-2-activity-4-instruction", "sf2-recoverable-omission", BASE_CONTROLLED_ACTIVITY_SHAPE),
-      activity(["anchor-denwa", "comma", "noun-sensei"], ["noun-sensei"], ["anchor-kippu"], 0, "sentence-foundations-2-activity-5-instruction", "sf2-recoverable-omission", BASE_CONTROLLED_ACTIVITY_SHAPE),
+      activity(["anchor-denwa", "comma", "noun-sensei"], ["noun-sensei"], ["noun-kazoku"], 0, "sentence-foundations-2-activity-5-instruction", "sf2-recoverable-omission", BASE_CONTROLLED_ACTIVITY_SHAPE),
       activity(["anchor-shashin", "comma", "anchor-kippu"], ["noun-watashi"], ["anchor-umi"], 1, "sentence-foundations-2-activity-6-instruction", "sf2-recoverable-omission", BASE_ERROR_ACTIVITY_SHAPE, null, null, "context-meaning-mismatch"),
       activity(["anchor-shashin", "comma", "anchor-neko"], ["anchor-neko"], ["anchor-kagi"], 1, "sentence-foundations-2-activity-7-instruction", "sf2-recoverable-omission", BASE_CONTEXT_ACTIVITY_SHAPE),
       activity(["anchor-gakkou", "comma", "anchor-hon"], ["anchor-hon"], ["anchor-kippu"], 0, "sentence-foundations-2-activity-8-instruction", "sf2-recoverable-omission", BASE_RETRIEVAL_ACTIVITY_SHAPE),
-      activity(["anchor-kagi"], ["anchor-ie"], ["anchor-umi"], 1, "sentence-foundations-2-activity-9-instruction", "sf2-recoverable-omission", BASE_LISTENING_ACTIVITY_SHAPE),
+      activity(["anchor-kagi"], ["anchor-ie"], ["anchor-asa"], 1, "sentence-foundations-2-activity-9-instruction", "sf2-recoverable-omission", BASE_LISTENING_ACTIVITY_SHAPE),
       activity(["anchor-shashin"], ["anchor-denwa"], ["anchor-kagi"], 0, "sentence-foundations-2-activity-10-instruction", "sf2-recoverable-omission", BASE_SPOKEN_ACTIVITY_SHAPE),
     ],
   },
@@ -874,9 +874,9 @@ const LESSON_SPECS: readonly LessonSpec[] = deepFreeze([
       activity(["anchor-shashin"], ["anchor-gakkou", "desu"], ["anchor-obaasan", "desu"], 0, "sentence-foundations-3-activity-4-instruction", "sf3-polite-copula", BASE_CONTROLLED_ACTIVITY_SHAPE),
       activity(["anchor-asa"], ["anchor-asa", "desu"], ["noun-tomodachi"], 0, "sentence-foundations-3-activity-5-instruction", "sf3-polite-copula", BASE_TRANSFORMATION_ACTIVITY_SHAPE),
       activity(["anchor-pan", "desu"], ["anchor-kagi", "desu"], ["anchor-umi", "desu"], 1, "sentence-foundations-3-activity-6-instruction", "sf3-polite-copula", BASE_ERROR_ACTIVITY_SHAPE, null, null, "context-meaning-mismatch"),
-      activity(["noun-isha"], ["anchor-denwa", "desu"], ["noun-kangoshi"], 0, "sentence-foundations-3-activity-7-instruction", "sf3-polite-copula", BASE_CONTEXT_ACTIVITY_SHAPE),
-      activity(["anchor-kaze"], ["anchor-kyaku", "desu"], ["anchor-umi", "desu"], 1, "sentence-foundations-3-activity-8-instruction", "sf3-polite-copula", BASE_RETRIEVAL_ACTIVITY_SHAPE),
-      activity(["anchor-denwa"], ["anchor-shashin", "desu"], ["anchor-obaasan", "desu"], 1, "sentence-foundations-3-activity-9-instruction", "sf3-polite-copula", BASE_LISTENING_ACTIVITY_SHAPE),
+      activity(["noun-isha"], ["anchor-denwa", "desu"], ["noun-gakusei"], 0, "sentence-foundations-3-activity-7-instruction", "sf3-polite-copula", BASE_CONTEXT_ACTIVITY_SHAPE),
+      activity(["anchor-kaze"], ["anchor-kyaku", "desu"], ["anchor-hon", "desu"], 1, "sentence-foundations-3-activity-8-instruction", "sf3-polite-copula", BASE_RETRIEVAL_ACTIVITY_SHAPE),
+      activity(["anchor-denwa"], ["anchor-shashin", "desu"], ["anchor-obaasan", "comma", "noun-sensei", "desu"], 1, "sentence-foundations-3-activity-9-instruction", "sf3-polite-copula", BASE_LISTENING_ACTIVITY_SHAPE),
       activity(["anchor-kippu"], ["anchor-ryokou", "desu"], ["anchor-obaasan", "desu"], 0, "sentence-foundations-3-activity-10-instruction", "sf3-polite-copula", BASE_SPOKEN_ACTIVITY_SHAPE),
     ],
   },
@@ -943,7 +943,7 @@ const LESSON_SPECS: readonly LessonSpec[] = deepFreeze([
       activity(["noun-sensei", "name-ai", "desu"], ["name-ai", "noun-sensei", "desu"], ["name-ai", "comma", "noun-ryuugakusei", "desu"], 0, "sentence-foundations-4-activity-6-instruction", "sf4-modifier-before-noun", BASE_ERROR_ACTIVITY_SHAPE, null, null, "modifier-order-mismatch"),
       activity(["noun-tomodachi"], ["noun-ryuugakusei", "desu"], ["noun-sensei", "desu"], 1, "sentence-foundations-4-activity-7-instruction", "sf4-complete-short-sentence", BASE_CONTEXT_ACTIVITY_SHAPE, "friend", "friend-role"),
       activity(["anchor-shashin"], ["noun-kazoku", "desu"], ["anchor-neko", "desu"], 0, "sentence-foundations-4-activity-8-instruction", "sf4-complete-short-sentence", BASE_RETRIEVAL_ACTIVITY_SHAPE, "shared-photo", "shared-photo-content"),
-      activity(["noun-tanaka"], ["noun-kangoshi", "desu"], ["noun-sensei", "desu"], 0, "sentence-foundations-4-activity-9-instruction", "sf4-complete-short-sentence", BASE_LISTENING_ACTIVITY_SHAPE, "tanaka", "tanaka-role"),
+      activity(["noun-tanaka"], ["noun-kangoshi", "desu"], ["noun-tomodachi", "desu"], 0, "sentence-foundations-4-activity-9-instruction", "sf4-complete-short-sentence", BASE_LISTENING_ACTIVITY_SHAPE, "tanaka", "tanaka-role"),
       activity(["noun-yamada"], ["noun-bengoshi", "desu"], ["noun-kangoshi", "desu"], 1, "sentence-foundations-4-activity-10-instruction", "sf4-complete-short-sentence", BASE_SPOKEN_ACTIVITY_SHAPE, "yamada", "yamada-role"),
     ],
   },
@@ -1149,7 +1149,10 @@ function targetTokenMultiset(value: unknown): string | undefined {
 }
 
 function normalizedPreAttemptSurface(value: unknown): string | undefined {
-  return targetSurface(value)?.normalize("NFKC").replace(/[、。\s]/g, "");
+  return targetSurface(value)
+    ?.normalize("NFKC")
+    .replace(/\s+/gu, "")
+    .replace(/[、。？！?!]+$/gu, "");
 }
 
 export function worldFactLedgerFor(
@@ -1348,6 +1351,7 @@ export function validatePublishedSemanticActivities(
   }
   const positions: number[] = [];
   const lengthDistribution = { longer: 0, shorter: 0, tie: 0 };
+  const practiceSurfaces = new Set<string>();
   for (let index = 0; index < designs.length; index += 1) {
     const design = plainRecord(designs[index]);
     const activity = plainRecord(activities[index]);
@@ -1407,6 +1411,14 @@ export function validatePublishedSemanticActivities(
       })
     ) {
       return false;
+    }
+    for (const target of [
+      ...optionTargets,
+      ...(isSpoken ? [acceptedTarget] : []),
+    ]) {
+      const surface = normalizedPreAttemptSurface(target);
+      if (!surface || practiceSurfaces.has(surface)) return false;
+      practiceSurfaces.add(surface);
     }
     const promptSurface = targetSurface(design.promptTarget);
     if (

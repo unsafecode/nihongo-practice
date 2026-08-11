@@ -105,7 +105,7 @@ const SENTENCE_FOUNDATIONS_COPY_IT: Readonly<Record<string, string>> = {
       'Un’etichetta di abbinamento richiede il luogo associato alla chiave. Scegli il frammento.',
       'Un’etichetta di biglietto richiede il titolare nominato. Recupera il frammento.',
       'Ascolta il frammento completo di consegna a casa, poi scegli la forma scritta.',
-      'Ricorda la nota del sintomo mattutino e pronuncia il frammento in due blocchi.',
+      'Ricorda la nota sul vento mattutino e pronuncia il frammento in due blocchi.',
     ],
     accepted: [
       "Il frammento identifica il partecipante evidenziato senza fingere di essere una frase completa.",
@@ -117,7 +117,7 @@ const SENTENCE_FOUNDATIONS_COPY_IT: Readonly<Record<string, string>> = {
       "Il valore scuola completa il frammento di assegnazione della chiave.",
       "Il nome del titolare completa il frammento del biglietto.",
       "Il frammento di consegna a casa corrisponde alla registrazione.",
-      "Il frammento orale di cura mattutina conserva l’ordine.",
+      "Il frammento orale sul vento mattutino conserva l’ordine.",
     ],
     retry: [
       "Usa il partecipante evidenziato, non un’altra persona nella stessa scena.",
@@ -129,7 +129,7 @@ const SENTENCE_FOUNDATIONS_COPY_IT: Readonly<Record<string, string>> = {
       "Mantieni prima la chiave e scegli l’edificio assegnato.",
       "Mantieni prima il biglietto e recupera il titolare nominato.",
       "Riascolta entrambi i blocchi della consegna a casa.",
-      "Ricorda i blocchi della cura mattutina; non leggere un’opzione.",
+      "Ricorda i blocchi del vento mattutino; non leggere un’opzione.",
     ],
   }),
   ...semanticLessonCopy("sentence-foundations-2", {
@@ -172,10 +172,10 @@ const SENTENCE_FOUNDATIONS_COPY_IT: Readonly<Record<string, string>> = {
       "Si abbina al precedente omettendo il campo telefono condiviso.",
     ],
     instructions: [
-      'L’etichetta fotografica esplicita è già condivisa. Scegli il nome restante sufficiente.',
-      'Una seconda etichetta fotografica è già condivisa. Scegli il nome restante sufficiente.',
-      'Una scheda di categoria chiede quale partecipante sia evidenziato. Scegli il frammento contestuale.',
-      'La coppia esplicita scuola-ruolo è condivisa. Scegli il ruolo finale sufficiente.',
+      'Trasforma la prima coppia fotografica in una nota persona-categoria di due blocchi.',
+      'Trasforma la seconda coppia in una diversa nota persona-categoria.',
+      'La nonna raffigurata appartiene all’unità familiare. Scegli la nota di relazione.',
+      'L’elenco scolastico chiede quale persona ricopra il ruolo mostrato. Scegli la nota.',
       'La coppia esplicita telefono-ruolo è condivisa. Scegli il ruolo finale sufficiente.',
       'Una coppia fotografica esplicita termina con un oggetto estraneo. Scegli la persona corretta.',
       'Una coppia fotografica esplicita è condivisa. Scegli il valore animale sufficiente.',
@@ -184,10 +184,10 @@ const SENTENCE_FOUNDATIONS_COPY_IT: Readonly<Record<string, string>> = {
       'Ricorda il dispositivo abbinato alla fotografia mostrata e pronuncialo a memoria.',
     ],
     accepted: [
-      "Il campo fotografia è recuperabile, quindi basta il nome corrispondente.",
-      "Il secondo campo fotografia consente la risposta con il nome diverso.",
-      "Il nome di categoria riempie il campo identificativo senza materiale aggiuntivo.",
-      "Il campo scuola è recuperabile e il ruolo scelto resta informazione finale.",
+      "Tanaka resta al primo posto e la categoria persona completa il secondo blocco.",
+      "Yamada resta al primo posto e la categoria persona completa il secondo blocco.",
+      "La nonna è collegata all’unità famiglia; la risposta nomina entrambi i blocchi.",
+      "Il ruolo studente è seguito dall’identità del parlante.",
       "Il campo telefono è recuperabile e il titolo scelto resta informazione finale.",
       "La correzione sostituisce l’oggetto estraneo con la persona richiesta dalla fotografia.",
       "Il valore animale basta perché il campo fotografia è già condiviso.",
@@ -196,10 +196,10 @@ const SENTENCE_FOUNDATIONS_COPY_IT: Readonly<Record<string, string>> = {
       "L’etichetta orale del dispositivo corrisponde alla coppia di schermo stabilita.",
     ],
     retry: [
-      "Ometti soltanto il campo fotografia condiviso e conserva il nome abbinato.",
-      "Tieni distinte le due coppie fotografiche e conserva il secondo nome.",
-      "Il campo richiede una categoria umana, non un oggetto estraneo.",
-      "Ometti il campo scuola condiviso e fornisci soltanto il ruolo.",
+      "Mantieni Tanaka per primo e la categoria persona per seconda.",
+      "Mantieni Yamada per primo e la categoria persona per seconda.",
+      "Usa la relazione familiare, non una categoria professionale.",
+      "Mantieni il ruolo per primo e identifica il parlante nel secondo blocco.",
       "Ometti il campo telefono e conserva il titolo personale, non un elemento di viaggio.",
       "Diagnostica l’oggetto finale come errato prima di scegliere la persona.",
       "Il campo fotografia è già visibile: rispondi soltanto con il valore animale.",
@@ -508,7 +508,7 @@ const TOPIC_QUESTIONS_COPY_IT: Readonly<Record<string, string>> = {
       'Un ruolo professionale è già tema. Scegli il valore-persona stabilito dall’elenco.',
       'Recupera il modello ruolo-come-tema e applicalo alla voce successiva.',
       'Ascolta un ruolo stabilito seguito dal valore-persona, poi scegli la frase esatta.',
-      'Recupera l’autoidentificazione focalizzata della scena d’iscrizione e pronunciala.',
+      'Un elenco d’iscrizione apre il campo persona per il ruolo universitario già stabilito. Dai l’identificazione focalizzata a memoria.',
     ],
     accepted: [
       "La persona appena selezionata riceve il focus e corrisponde al campo aperto dell’elenco.",
@@ -560,7 +560,7 @@ const TOPIC_QUESTIONS_COPY_IT: Readonly<Record<string, string>> = {
       "L’elenco comprende il Giappone e la Cina.",
       "L’elenco comprende Tokyo e Kyoto.",
       "Sono amico di Tanaka.",
-      "È amico mio.",
+      "Questa persona è mia amica o un mio amico.",
     ],
     purposes: [
       "Introduce の possessivo con il parlante e il padre.",
@@ -687,9 +687,9 @@ const TOPIC_QUESTIONS_COPY_IT: Readonly<Record<string, string>> = {
   }),
   "topic-questions-4-clarification-dialogue-outcome":
     "Gli interlocutori apprendono il nome Yuki, confermano il Giappone e l'amicizia con Tanaka.",
-  "topic-questions-4-clarification-dialogue-turn-1-translation": "Chi sei?",
+  "topic-questions-4-clarification-dialogue-turn-1-translation": "Chi è l’insegnante?",
   "topic-questions-4-clarification-dialogue-turn-1-purpose":
-    "Apre lo scambio con una domanda d’identità.",
+    "Apre lo scambio con una domanda aperta sul ruolo.",
   "topic-questions-4-clarification-dialogue-turn-2-translation": "Sono Yuki.",
   "topic-questions-4-clarification-dialogue-turn-2-purpose":
     "Risponde alla domanda aperta con よ assertivo.",

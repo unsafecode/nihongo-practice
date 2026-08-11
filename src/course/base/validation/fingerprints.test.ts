@@ -82,6 +82,7 @@ describe("Base canonical fingerprints", () => {
     const singleToken = example({
       tokens: [token("single", "たべます")],
     });
+
     const segmented = example({
       tokens: [
         token("stem", "たべ", "lexical", "attach"),
@@ -92,6 +93,22 @@ describe("Base canonical fingerprints", () => {
     expect(visibleSurfaceFingerprint(singleToken.tokens)).toBe("たべます");
     expect(visibleSurfaceFingerprint(segmented.tokens)).toBe("たべます");
     expect(semanticFingerprintFor(singleToken)).toBe(semanticFingerprintFor(segmented));
+  });
+
+  it("ignores terminal punctuation and whitespace in visible and semantic fingerprints", () => {
+    const plain = example({ tokens: [token("plain", "なまえはなんですか")] });
+    const punctuated = example({
+      tokens: [
+        token("spaced", " なまえ は なんですか "),
+        token("punctuation", "？！", "punctuation"),
+      ],
+    });
+    expect(visibleSurfaceFingerprint(punctuated.tokens)).toBe(
+      visibleSurfaceFingerprint(plain.tokens),
+    );
+    expect(semanticFingerprintFor(punctuated)).toBe(
+      semanticFingerprintFor(plain),
+    );
   });
 
   it("filters explicit undefined particle values deterministically and rejects the malformed frame", () => {

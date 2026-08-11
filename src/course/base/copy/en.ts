@@ -113,7 +113,7 @@ const SENTENCE_FOUNDATIONS_COPY_EN: Readonly<Record<string, string>> = {
       'A key-matching label needs its associated place. Choose the coherent fragment.',
       'A ticket label needs its named holder. Retrieve the coherent fragment.',
       'Listen to the complete home-delivery fragment, then choose its written match.',
-      'Recall the morning symptom-note and say the full two-chunk fragment from memory.',
+      'Recall the morning wind-note and say the full two-chunk fragment from memory.',
     ],
     accepted: [
       "The fragment identifies the highlighted participant without pretending to be a full clause.",
@@ -125,7 +125,7 @@ const SENTENCE_FOUNDATIONS_COPY_EN: Readonly<Record<string, string>> = {
       "The school value completes the key-assignment fragment.",
       "The holder name completes the ticket fragment.",
       "The written home-delivery fragment matches the recording.",
-      "The spoken morning-care fragment preserves the cue order.",
+      "The spoken morning-wind fragment preserves the cue order.",
     ],
     retry: [
       "Use the highlighted participant, not another person in the same scene.",
@@ -137,7 +137,7 @@ const SENTENCE_FOUNDATIONS_COPY_EN: Readonly<Record<string, string>> = {
       "Keep the key cue first and select its assigned building for the final slot.",
       "Keep the ticket cue first and retrieve its named holder.",
       "Listen to both home-delivery chunks rather than matching one noun.",
-      "Recall the morning-care chunks and their order; do not read a choice.",
+      "Recall the morning-wind chunks and their order; do not read a choice.",
     ],
   }),
   ...semanticLessonCopy("sentence-foundations-2", {
@@ -181,10 +181,10 @@ const SENTENCE_FOUNDATIONS_COPY_EN: Readonly<Record<string, string>> = {
       "Pairs with the prior item to omit the shared phone field.",
     ],
     instructions: [
-      'The explicit photograph label is already shared. Choose the sufficient remaining name.',
-      'A second explicit photograph label is already shared. Choose its sufficient remaining name.',
-      'A category card asks which participant is highlighted. Choose the contextual fragment.',
-      'The explicit school-role pair is shared. Choose the sufficient final role.',
+      'Transfer the first photograph pair into a two-chunk person-category note.',
+      'Transfer the second photograph pair into a different two-chunk person-category note.',
+      'The pictured grandmother belongs to the family unit. Choose the matching relationship note.',
+      'The school roster asks which person holds the displayed role. Choose the two-chunk note.',
       'The explicit phone-routing pair is shared. Choose the sufficient final role.',
       'An explicit photograph pair ends with an unrelated object. Choose the human repair.',
       'An explicit photograph pair is shared. Choose the sufficient animal value.',
@@ -193,10 +193,10 @@ const SENTENCE_FOUNDATIONS_COPY_EN: Readonly<Record<string, string>> = {
       'Recall the device paired with the displayed photograph and say that fragment from memory.',
     ],
     accepted: [
-      "The photograph field is recoverable, so the matching name alone is sufficient.",
-      "The second photograph field licenses its different one-name reply.",
-      "The category noun answers the open identification slot without extra material.",
-      "The school field is recoverable and the selected role remains as final information.",
+      "Tanaka is retained and the human category fills the second chunk.",
+      "Yamada is retained and the human category fills the second chunk.",
+      "Grandmother is related to the family unit; the response names both chunks.",
+      "The student role is followed by the speaker identity in the roster note.",
       "The phone field is recoverable and the selected title remains as final information.",
       "The repair replaces the unrelated object with the person required by the photograph.",
       "The animal value is sufficient because the photograph field is already shared.",
@@ -205,10 +205,10 @@ const SENTENCE_FOUNDATIONS_COPY_EN: Readonly<Record<string, string>> = {
       "The spoken device label matches the screen pair established earlier.",
     ],
     retry: [
-      "Remove only the shared photograph field and preserve its matching name.",
-      "Keep the two photograph pairs distinct and preserve the second name.",
-      "The slot asks for a human category, not an unrelated object.",
-      "Omit the shared school field and supply only its role value.",
+      "Keep Tanaka first and supply the broad person category second.",
+      "Keep Yamada first and supply the broad person category second.",
+      "Use the family relationship, not an occupational category.",
+      "Keep the role first and identify the speaker in the second chunk.",
       "Omit the shared phone field and keep the person title, not a travel item.",
       "Diagnose the final object as wrong for the photograph pair before choosing the person.",
       "The photograph field is already visible, so answer with its animal value only.",
@@ -529,7 +529,7 @@ const TOPIC_QUESTIONS_COPY_EN: Readonly<Record<string, string>> = {
       'An occupational role is already the topic. Choose the person value established by the roster.',
       'Retrieve the earlier role-as-topic pattern and apply it to the next roster entry.',
       'Listen for an established role followed by its person value, then choose the exact statement.',
-      'Recall the focused self-identification from the registration scene and say it from memory.',
+      'A registration roster opens the person slot for the previously established university-student role. Give the focused identification from memory.',
     ],
     accepted: [
       "The newly selected person receives focus marking and matches the roster's open slot.",
@@ -581,7 +581,7 @@ const TOPIC_QUESTIONS_COPY_EN: Readonly<Record<string, string>> = {
       "The list is Japan and China.",
       "The list is Tokyo and Kyoto.",
       "I am friends with Tanaka.",
-      "They are friends with me.",
+      "This person is my friend.",
     ],
     purposes: [
       "Introduces possessive の with the speaker and father.",
@@ -708,9 +708,9 @@ const TOPIC_QUESTIONS_COPY_EN: Readonly<Record<string, string>> = {
   }),
   "topic-questions-4-clarification-dialogue-outcome":
     "The speakers learn Yuki's name, confirm Japan, and confirm the friendship with Tanaka.",
-  "topic-questions-4-clarification-dialogue-turn-1-translation": "Who are you?",
+  "topic-questions-4-clarification-dialogue-turn-1-translation": "Who is the teacher?",
   "topic-questions-4-clarification-dialogue-turn-1-purpose":
-    "Opens the exchange with an identity question.",
+    "Opens the exchange with an open role-identification question.",
   "topic-questions-4-clarification-dialogue-turn-2-translation": "I'm Yuki.",
   "topic-questions-4-clarification-dialogue-turn-2-purpose":
     "Answers the open question with assertive-update よ.",

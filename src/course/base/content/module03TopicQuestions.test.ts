@@ -27,7 +27,10 @@ function normalized(tokens: readonly { readonly jp: string }[]): string {
 }
 
 function surfaceFingerprint(tokens: readonly { readonly jp: string }[]): string {
-  return jp(tokens).normalize("NFKC").replace(/[、。\s]/g, "");
+  return jp(tokens)
+    .normalize("NFKC")
+    .replace(/\s+/g, "")
+    .replace(/[、。？！?!]+$/g, "");
 }
 
 function particleSenses(target: {
@@ -238,6 +241,38 @@ describe("Base topic-questions module", () => {
     }
   });
 
+  it("publishes unique normalized practice surfaces within each lesson", () => {
+    for (const lesson of [
+      ...BASE_SENTENCE_FOUNDATIONS_MODULE.lessons,
+      ...BASE_TOPIC_QUESTIONS_MODULE.lessons,
+    ]) {
+      const surfaces = lesson.activityDesigns.flatMap(
+        ({ optionTargets, acceptedAnswerTarget }) =>
+          [...optionTargets, ...(optionTargets.length === 0 ? [acceptedAnswerTarget] : [])].map((target) =>
+            surfaceFingerprint(target.tokens),
+          ),
+      );
+      const counts = new Map<string, number>();
+      surfaces.forEach((surface) => counts.set(surface, (counts.get(surface) ?? 0) + 1));
+      expect(
+        [...counts].filter(([, count]) => count > 1).map(([surface]) => surface),
+        lesson.content.lessonId,
+      ).toEqual([]);
+    }
+  });
+
+  it("keeps normalized dialogue turns distinct from worked examples", () => {
+    const tq4 = BASE_TOPIC_QUESTIONS_MODULE.lessons[3];
+    const examples = new Set(
+      tq4.examples.map(({ tokens }) => surfaceFingerprint(tokens)),
+    );
+    expect(
+      tq4.dialogue?.turns.filter(({ tokens }) =>
+        examples.has(surfaceFingerprint(tokens)),
+      ),
+    ).toEqual([]);
+  });
+
   it("uses peer countries for TQ3 listing transfer", () => {
     expect(
       jp(
@@ -272,6 +307,25 @@ describe("Base topic-questions module", () => {
     );
     expect(jp(BASE_TOPIC_QUESTIONS_MODULE.lessons[3].activityDesigns[3].optionTargets[1].tokens))
       .toBe("ともだちはだれですか");
+  });
+
+  it("keeps wind, companion gloss, and spoken focus context semantically bounded", () => {
+    expect(baseNavigationCopyEn.content["sentence-foundations-1-activity-10-instruction"])
+      .toMatch(/wind/i);
+    expect(baseNavigationCopyEn.content["sentence-foundations-1-activity-10-instruction"])
+      .not.toMatch(/cold|symptom/i);
+    expect(baseNavigationCopyEn.content["topic-questions-3-example-10-translation"])
+      .toBe("This person is my friend.");
+    expect(baseNavigationCopyIt.content["topic-questions-3-example-10-translation"])
+      .toBe("Questa persona è mia amica o un mio amico.");
+
+    const tq2 = BASE_TOPIC_QUESTIONS_MODULE.lessons[1];
+    const spoken = tq2.activityDesigns[9];
+    expect(surfaceFingerprint(spoken.promptTarget.tokens)).not.toBe(
+      surfaceFingerprint(tq2.examples[9].tokens),
+    );
+    expect(spoken.promptTarget.lexemeIds).not.toContain("noun-watashi");
+    expect(spoken.promptTarget.lexemeIds).not.toContain("noun-daigakusei");
   });
 
   it("requires learner-visible grounding metadata for every world fact", () => {
@@ -318,7 +372,7 @@ describe("Base topic-questions module", () => {
       "かんごし",
       "べんごし",
       "りゅうがくせい",
-      "だいがくせいはわたし",
+      "ひと",
     ]);
   });
 
@@ -419,9 +473,9 @@ describe("Base topic-questions module", () => {
   it("has a coherent six-turn name, country, and companion clarification", () => {
     const dialogue = BASE_TOPIC_QUESTIONS_MODULE.lessons[3].dialogue;
     expect(dialogue?.turns.map(({ tokens }) => jp(tokens))).toEqual([
-      "だれですか",
+      "せんせいはだれですか",
       "ゆきですよ",
-      "くにはにほんですか",
+      "にほんですか",
       "はい、にほんです",
       "たなかさんとともだちですか",
       "はい、そうですよ",

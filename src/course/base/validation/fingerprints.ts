@@ -88,8 +88,8 @@ export function visibleSurfaceFingerprint(
     )
     .join("")
     .normalize("NFKC")
-    .replace(/\s+/gu, " ")
-    .trim();
+    .replace(/\s+/gu, "")
+    .replace(/[、。？！?!]+$/gu, "");
 }
 
 export function canonicalTokenSequence(tokens: readonly AssembledToken[] | unknown): string {
