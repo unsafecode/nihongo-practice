@@ -1614,6 +1614,11 @@ describe("Base time-movement module", () => {
       {
         lesson: BASE_POLITE_VERBS_MODULE.lessons[0],
         locale: "en",
+        instruction: "Listen for the entry titles.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[0],
+        locale: "en",
         instruction: "Listen for the dictionary entry.",
       },
       {
@@ -1624,7 +1629,27 @@ describe("Base time-movement module", () => {
       {
         lesson: BASE_POLITE_VERBS_MODULE.lessons[0],
         locale: "it",
+        instruction: "Ascolta le voci di dizionario.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[0],
+        locale: "it",
+        instruction: "Ascolta la voce.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[0],
+        locale: "it",
+        instruction: "Ascolta il lemma.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[0],
+        locale: "it",
         instruction: "Ascolta la parola d'azione.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[0],
+        locale: "it",
+        instruction: "Ascolta le parole d'azione.",
       },
       {
         lesson: BASE_TIME_MOVEMENT_MODULE.lessons[2],
@@ -1657,6 +1682,46 @@ describe("Base time-movement module", () => {
         instruction: "Ascolta la forma non negativa.",
       },
       {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[2],
+        locale: "it",
+        instruction: "Ascolta la forma affermativa.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[2],
+        locale: "it",
+        instruction: "Ascolta la forma negativa.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[2],
+        locale: "it",
+        instruction: "Ascolta la forma non negativa.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[2],
+        locale: "it",
+        instruction: "Ascolta la forma non affermativa.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[2],
+        locale: "it",
+        instruction: "Ascolta la forma al negativo.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[3],
+        locale: "it",
+        instruction: "Ascolta la forma negativa.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[3],
+        locale: "it",
+        instruction: "Ascolta la forma non affermativa.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[3],
+        locale: "it",
+        instruction: "Ascolta la forma al negativo.",
+      },
+      {
         lesson: BASE_TIME_MOVEMENT_MODULE.lessons[0],
         locale: "en",
         instruction: "Listen for the recurring plan.",
@@ -1687,9 +1752,24 @@ describe("Base time-movement module", () => {
         instruction: "Ascolta la classe.",
       },
       {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[1],
+        locale: "it",
+        instruction: "Ascolta le classi.",
+      },
+      {
         lesson: BASE_POLITE_VERBS_MODULE.lessons[2],
         locale: "it",
         instruction: "Ascolta la radice.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[2],
+        locale: "it",
+        instruction: "Ascolta le radici.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[2],
+        locale: "it",
+        instruction: "Ascolta i temi.",
       },
       {
         lesson: BASE_POLITE_VERBS_MODULE.lessons[2],
@@ -1760,6 +1840,108 @@ describe("Base time-movement module", () => {
     );
   });
 
+  it("rejects impossible listening options and inconsistent analysis evidence", () => {
+    const malformed = structuredClone(
+      BASE_POLITE_VERBS_MODULE.lessons[3],
+    );
+    const malformedDesign = malformed.activityDesigns[8];
+    const malformedOption = malformedDesign.optionTargets[0] as unknown as {
+      tokens: AssembledToken[];
+    };
+    const verbIndex = malformedOption.tokens.findIndex(
+      ({ source }) => source.referenceId === "verb-hataraku",
+    );
+    malformedOption.tokens[verbIndex] = {
+      ...malformedOption.tokens[verbIndex],
+      source: {
+        domain: "catalog",
+        referenceId: "dictionary-plus-masu",
+      },
+    };
+    expect(validateTask11SemanticReview([malformed])).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "listening-option-not-canonical",
+          activityId: malformedDesign.id,
+        }),
+      ]),
+    );
+
+    const forgedSurface = structuredClone(
+      BASE_POLITE_VERBS_MODULE.lessons[3],
+    );
+    const forgedDesign = forgedSurface.activityDesigns[8];
+    const forgedOption = forgedDesign.optionTargets[0] as unknown as {
+      tokens: AssembledToken[];
+    };
+    const forgedVerbIndex = forgedOption.tokens.findIndex(
+      ({ source }) => source.referenceId === "verb-hataraku",
+    );
+    forgedOption.tokens[forgedVerbIndex] = {
+      ...forgedOption.tokens[forgedVerbIndex],
+      jp: "はたらく",
+      romaji: "hataraku",
+    };
+    expect(validateTask11SemanticReview([forgedSurface])).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "listening-option-not-canonical",
+          activityId: forgedDesign.id,
+        }),
+      ]),
+    );
+
+    const falseClass = structuredClone(
+      BASE_POLITE_VERBS_MODULE.lessons[1],
+    );
+    const falseClassDesign = falseClass.activityDesigns[8];
+    (
+      falseClassDesign.optionTargets[0] as unknown as {
+        conceptIds: string[];
+      }
+    ).conceptIds = ["kuru-verb-class"];
+    expect(validateTask11SemanticReview([falseClass])).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "listening-option-not-canonical",
+          activityId: falseClassDesign.id,
+        }),
+      ]),
+    );
+
+    const bogusEvidence = structuredClone(
+      BASE_ARGUMENT_PARTICLES_MODULE.lessons[0],
+    );
+    const bogusDesign = bogusEvidence.activityDesigns[8] as unknown as {
+      id: string;
+      reviewEvidence: { optionAnalysisIds: string[] };
+    };
+    bogusDesign.reviewEvidence.optionAnalysisIds[0] = "bogus-analysis";
+    expect(validateTask11SemanticReview([bogusEvidence])).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "listening-option-analysis-invalid",
+          activityId: bogusDesign.id,
+        }),
+      ]),
+    );
+  });
+
+  it("publishes canonical listening options and consistent option evidence", () => {
+    const lessons = [
+      ...BASE_POLITE_VERBS_MODULE.lessons,
+      ...BASE_ARGUMENT_PARTICLES_MODULE.lessons,
+      ...BASE_TIME_MOVEMENT_MODULE.lessons,
+    ];
+    expect(
+      validateTask11SemanticReview(lessons).filter(
+        ({ code }) =>
+          code === "listening-option-not-canonical" ||
+          code === "listening-option-analysis-invalid",
+      ),
+    ).toEqual([]);
+  });
+
   it("keeps TM2 time-bound instructions factually parallel without naming the cell", () => {
     const lesson = BASE_TIME_MOVEMENT_MODULE.lessons[1];
     const copyId = lesson.content.activities[4].instructionCopyId;
@@ -1784,6 +1966,15 @@ describe("Base time-movement module", () => {
     expect(jp(design.acceptedAnswerTarget.tokens)).toBe(
       "まりさんはとうきょうからおおさかまでりょこうします",
     );
+  });
+
+  it("uses a distinct genuine intercity journey in TM2 E7", () => {
+    const example = BASE_TIME_MOVEMENT_MODULE.lessons[1].examples[6];
+    expect(example.predicateLexemeId).toBe("verb-ryokou-suru");
+    expect(jp(example.tokens)).toBe(
+      "とうきょうからきょうとまでりょこうします",
+    );
+    expect(jp(example.tokens)).not.toContain("えきからだいがくまで");
   });
 
   it("rejects meta-label synonyms for both TM2 bound cells", () => {

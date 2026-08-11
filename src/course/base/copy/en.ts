@@ -868,7 +868,7 @@ const POLITE_VERBS_COPY_EN: Readonly<Record<string, string>> = {
       "The chart has a separate row for the basic verb used to do an action. Choose its stored entry.",
       "The chart has a separate row for the verb used when someone comes. Retrieve its stored entry.",
       "A reading-action lookup card needs a class analysis. Choose the supported analysis.",
-      "Listen to which of the two learner hypotheses is read aloud, then choose its exact written match.",
+      "Listen to which of the two analysis cards is read aloud, then choose its exact written match.",
       "From the displayed verb card, say the hidden class-analysis card from memory.",
     ],
     accepted: [
@@ -1527,7 +1527,7 @@ const TIME_MOVEMENT_COPY_EN: Readonly<Record<string, string>> = {
       "I will rest today.",
       "I will go tomorrow.",
       "I will work from nine until five.",
-      "I will travel from the station as far as the university.",
+      "I will travel from Tokyo as far as Kyoto.",
       "I will work from seven.",
       "I will study until five.",
       "I will return from the station.",

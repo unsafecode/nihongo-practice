@@ -235,7 +235,8 @@ describe("Base polite-verbs module", () => {
           !["meaning", "verb-class", "polite-stem", "polite-form"].includes(
             evidence.contrastAxis,
           ) ||
-          design.optionTargets.length !== 2
+          design.optionTargets.length !== 2 ||
+          design.operation === "identify-audio"
         ) {
           continue;
         }
@@ -376,21 +377,28 @@ describe("Base polite-verbs module", () => {
       pv2.optionTargets.map(({ predicateLexemeId }) => predicateLexemeId),
     ).toEqual(["verb-miru", "verb-miru"]);
     expect(pv2.optionTargets[0].conceptIds).toContain("ichidan-verb-class");
-    expect(pv2.optionTargets[1].conceptIds).toContain("godan-verb-class");
+    expect(pv2.optionTargets[1].conceptIds).toContain("ichidan-verb-class");
+    expect(
+      pv2.optionTargets.some(({ conceptIds }) =>
+        conceptIds.includes("godan-verb-class"),
+      ),
+    ).toBe(false);
     for (const option of pv2.optionTargets) {
       expect(option.tokens[0].source.referenceId).toBe("verb-miru");
-      expect(
-        option.tokens.some(
-          ({ source }) => source.referenceId === "analysis-source",
-        ),
-      ).toBe(true);
     }
+    expect(
+      pv2.optionTargets.map(({ tokens }) =>
+        tokens
+          .filter(({ kind }) => kind !== "punctuation")
+          .at(-1)?.source.referenceId,
+      ),
+    ).toEqual(["analysis-source", "analysis-classification"]);
 
     const pv3 = BASE_POLITE_VERBS_MODULE.lessons[2].activityDesigns[8];
     expect(pv3.operation).toBe("identify-audio");
     expect(
       pv3.optionTargets.map(({ predicateLexemeId }) => predicateLexemeId),
-    ).toEqual(["verb-miru", "verb-miru"]);
+    ).toEqual(["verb-miru", "verb-taberu"]);
     expect(
       pv3.optionTargets.some(({ tokens }) =>
         tokens.some(
@@ -404,7 +412,12 @@ describe("Base polite-verbs module", () => {
           .filter(({ kind }) => kind !== "punctuation")
           .at(-1)?.jp,
       ),
-    ).toEqual(["み", "みり"]);
+    ).toEqual(["み", "たべ"]);
+    expect(
+      pv3.optionTargets.every(({ formIds }) =>
+        formIds.includes("polite-stems"),
+      ),
+    ).toBe(true);
 
     const pv4 = BASE_POLITE_VERBS_MODULE.lessons[3].activityDesigns[8];
     expect(pv4.operation).toBe("identify-audio");

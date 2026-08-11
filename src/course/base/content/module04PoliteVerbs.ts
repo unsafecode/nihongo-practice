@@ -32,6 +32,7 @@ import {
   type BaseTokenSequencePart,
 } from "../forms/composeFormTokens";
 import {
+  BASE_PARTICLE_SENSES,
   baseParticleSurfaceTokens,
   particleProvidedEntries,
   particleSenseFirstTeachContentId,
@@ -419,6 +420,10 @@ const ANALYSIS_LABELS: Readonly<
   "analysis-final-predicate": { kana: "ぶんまつ", romaji: "bunmatsu" },
   "analysis-stem": { kana: "ごかん", romaji: "gokan" },
   "analysis-classification": { kana: "ぶんるい", romaji: "bunrui" },
+  "analysis-pair": {
+    kana: "ふたつのぶんせき",
+    romaji: "futatsu no bunseki",
+  },
   "analysis-suffix-guess": { kana: "おとだけ", romaji: "oto dake" },
   "analysis-source": { kana: "もとのかたち", romaji: "moto no katachi" },
   "analysis-stem-source": { kana: "ごかんのもと", romaji: "gokan no moto" },
@@ -667,6 +672,7 @@ function sourcedClassAnalysisTarget(
   lemmaId: string,
   classId: "godan-verb-class" | "ichidan-verb-class",
   patternCellId: string,
+  analysisId = "analysis-source",
 ): BaseTask11TargetSpec {
   const target = task11ClassAnalysisTarget(
     lemmaId,
@@ -675,7 +681,7 @@ function sourcedClassAnalysisTarget(
   );
   return {
     ...target,
-    parts: [...target.parts, TASK11_COMMA, task11AnalysisLabel("analysis-source")],
+    parts: [...target.parts, TASK11_COMMA, task11AnalysisLabel(analysisId)],
   };
 }
 
@@ -1370,6 +1376,8 @@ export type BaseTask11SemanticReviewErrorCode =
   | "option-punctuation-tell"
   | "kana-boundary-ambiguous"
   | "listening-cue-decisive"
+  | "listening-option-analysis-invalid"
+  | "listening-option-not-canonical"
   | "listening-terms-missing"
   | "instruction-answer-leakage";
 
@@ -1390,6 +1398,100 @@ function canonicalVerbClassConcept(lexemeId: string): string | null {
       : lexeme.verbClass === "suru"
         ? "suru-verb-class"
         : "kuru-verb-class";
+}
+
+function listeningOptionIsCanonical(target: BaseVisibleTarget): boolean {
+  const signature = ({
+    jp,
+    romaji,
+    kind,
+    source,
+  }: AssembledToken): string =>
+    `${source.referenceId}:${kind}:${jp}:${romaji}`;
+  const canonicalSignatures = new Set<string>();
+  const addCanonical = (tokens: readonly AssembledToken[]) => {
+    tokens.forEach((token) => canonicalSignatures.add(signature(token)));
+  };
+  for (const lexemeId of target.lexemeIds) {
+    const lexeme = BASE_LEXEME_BY_ID.get(lexemeId);
+    if (!lexeme) return false;
+    if (lexeme.category !== "verb") {
+      addCanonical(lexicalTokens(lexemeId, "listening-canonical-lexeme"));
+      continue;
+    }
+    for (const form of [
+      "dictionary",
+      "polite-stem",
+      "polite-nonpast",
+      "nonpast-negative",
+      "past-affirmative",
+      "past-negative",
+    ] as const) {
+      addCanonical(formTokens(lexemeId, form));
+    }
+  }
+  Object.keys(ANALYSIS_LABELS).forEach((analysisId) =>
+    addCanonical(
+      analysisTokens(analysisId, "listening-canonical-analysis"),
+    ),
+  );
+  BASE_PARTICLE_SENSES.forEach(({ id }) =>
+    addCanonical(baseParticleSurfaceTokens(id)),
+  );
+  addCanonical(punctuationTokens("comma", "listening-canonical-comma"));
+  addCanonical(punctuationTokens("period", "listening-canonical-period"));
+  if (
+    target.tokens.some((token) => !canonicalSignatures.has(signature(token)))
+  ) {
+    return false;
+  }
+  if (target.predicateLexemeId === null) return true;
+  const containsSequence = (expected: readonly AssembledToken[]) => {
+    const expectedSignatures = expected.map(signature);
+    return target.tokens.some((_, startIndex) =>
+      expectedSignatures.every(
+        (expectedSignature, offset) =>
+          target.tokens[startIndex + offset] !== undefined &&
+          signature(target.tokens[startIndex + offset]) === expectedSignature,
+      ),
+    );
+  };
+  if (
+    (target.formIds.includes("dictionary-lemma") &&
+      !containsSequence(formTokens(target.predicateLexemeId, "dictionary"))) ||
+    (target.formIds.includes("polite-stems") &&
+      !containsSequence(formTokens(target.predicateLexemeId, "polite-stem"))) ||
+    (target.formIds.includes("masu-nonpast") &&
+      !containsSequence(
+        formTokens(target.predicateLexemeId, "polite-nonpast"),
+      )) ||
+    (target.formIds.includes("four-polite-tense-cells") &&
+      ![
+        formTokens(target.predicateLexemeId, "nonpast-negative"),
+        formTokens(target.predicateLexemeId, "past-affirmative"),
+        formTokens(target.predicateLexemeId, "past-negative"),
+      ].some(containsSequence))
+  ) {
+    return false;
+  }
+  const canonicalClass = canonicalVerbClassConcept(target.predicateLexemeId);
+  return target.conceptIds
+    .filter((conceptId) => conceptId.endsWith("-verb-class"))
+    .every((conceptId) => conceptId === canonicalClass);
+}
+
+function listeningOptionAnalysisIsConsistent(
+  target: BaseVisibleTarget,
+  analysisId: string,
+): boolean {
+  return (
+    target.conceptIds.includes(analysisId) ||
+    target.formIds.includes(analysisId) ||
+    target.patternCellIds.includes(analysisId) ||
+    target.predicateSenseId === analysisId ||
+    target.predicateLexemeId === analysisId ||
+    target.tokens.some(({ source }) => source.referenceId === analysisId)
+  );
 }
 
 function normalizedTask11Surface(target: BaseVisibleTarget): string {
@@ -1806,15 +1908,29 @@ export function validateTask11SemanticReview(
         ["headword", "entry title", "dictionary entry", "lookup analysis"],
       ],
       ["analysis-verb", ["verb analysis", "action word"]],
-      ["stem-hypothesis", ["stem hypothesis", "alternative stem"]],
+      [
+        "analysis-source",
+        ["source-form label", "original-form label"],
+      ],
+      [
+        "analysis-classification",
+        ["classification", "classification label"],
+      ],
     ]),
     it: new Map<string, readonly string[]>([
       [
         "analysis-headword",
-        ["analisi di consultazione", "voce di dizionario"],
+        ["analisi di consultazione", "lemma", "voce", "voce di dizionario"],
       ],
       ["analysis-verb", ["analisi verbale", "parola d'azione"]],
-      ["stem-hypothesis", ["ipotesi di radice", "forma alternativa"]],
+      [
+        "analysis-source",
+        ["etichetta della forma di partenza", "forma originale"],
+      ],
+      [
+        "analysis-classification",
+        ["classificazione", "etichetta di classificazione"],
+      ],
     ]),
   };
   const listeningParticleTerms = {
@@ -1869,6 +1985,7 @@ export function validateTask11SemanticReview(
           "affermativo",
           "affermativa",
           "non negato",
+          "non negativo",
           "non negativa",
           "programmato",
           "pianificato",
@@ -1877,7 +1994,13 @@ export function validateTask11SemanticReview(
       ],
       [
         "verb-polite-nonpast-negative",
-        ["negativo", "annullato", "non avverrà"],
+        [
+          "negativo",
+          "annullato",
+          "non affermativo",
+          "al negativo",
+          "non avverrà",
+        ],
       ],
       [
         "verb-polite-past-affirmative",
@@ -1886,13 +2009,20 @@ export function validateTask11SemanticReview(
           "al passato",
           "completata",
           "concluso",
+          "non negativo",
           "avvenuto",
           "scrittura di ieri",
         ],
       ],
       [
         "verb-polite-past-negative",
-        ["negativo", "non avvenuto", "assente"],
+        [
+          "negativo",
+          "non affermativo",
+          "al negativo",
+          "non avvenuto",
+          "assente",
+        ],
       ],
     ]),
   };
@@ -2117,19 +2247,46 @@ export function validateTask11SemanticReview(
       .replace(/[^\p{L}\p{N}\u3040-\u30ff]+/gu, " ")
       .trim()
       .replace(/\s+/gu, " ");
-  const copyContainsTerm = (copy: string, term: string): boolean => {
-    const normalizedCopy = normalizeListeningText(copy);
-    const normalizedTerm = normalizeListeningText(term);
-    if (!normalizedTerm) return false;
-    if (normalizedTerm.includes(" ")) {
-      return ` ${normalizedCopy} `.includes(` ${normalizedTerm} `);
-    }
-    const words = normalizedCopy.split(" ");
-    return words.some(
-      (word) =>
-        word === normalizedTerm ||
-        word === `${normalizedTerm}s` ||
-        word === `${normalizedTerm}es`,
+  const copyContainsTerm = (
+    copy: string,
+    term: string,
+    locale: "en" | "it",
+  ): boolean => {
+    const copyWords = normalizeListeningText(copy).split(" ").filter(Boolean);
+    const termWords = normalizeListeningText(term).split(" ").filter(Boolean);
+    if (termWords.length === 0) return false;
+    const variants = (word: string): ReadonlySet<string> => {
+      const values = new Set([word]);
+      if (locale === "en") {
+        values.add(`${word}s`);
+        values.add(`${word}es`);
+        if (word.endsWith("y") && word.length > 1) {
+          values.add(`${word.slice(0, -1)}ies`);
+        }
+      } else {
+        if (word.endsWith("o")) {
+          values.add(`${word.slice(0, -1)}a`);
+          values.add(`${word.slice(0, -1)}i`);
+          values.add(`${word.slice(0, -1)}e`);
+        }
+        if (word.endsWith("a")) {
+          values.add(`${word.slice(0, -1)}o`);
+          values.add(`${word.slice(0, -1)}i`);
+          values.add(`${word.slice(0, -1)}e`);
+        }
+        if (word.endsWith("e")) {
+          values.add(`${word.slice(0, -1)}i`);
+        }
+      }
+      return values;
+    };
+    return copyWords.some((_, startIndex) =>
+      (termWords[0] === "non" || copyWords[startIndex - 1] !== "non") &&
+      termWords.every(
+        (termWord, offset) =>
+          copyWords[startIndex + offset] !== undefined &&
+          variants(termWord).has(copyWords[startIndex + offset]),
+      ),
     );
   };
 
@@ -2169,11 +2326,33 @@ export function validateTask11SemanticReview(
             cueRevealsAnswer ? "visible-cue" : "context-metadata",
           );
         }
+        if (
+          design.optionTargets.length !== 2 ||
+          design.optionTargets.some(
+            (target) => !listeningOptionIsCanonical(target),
+          )
+        ) {
+          push("listening-option-not-canonical");
+        }
+        if (
+          design.reviewEvidence.optionAnalysisIds.length !==
+            design.optionTargets.length ||
+          design.reviewEvidence.optionAnalysisIds.some(
+            (analysisId, optionIndex) =>
+              !listeningOptionAnalysisIsConsistent(
+                design.optionTargets[optionIndex],
+                analysisId,
+              ),
+          )
+        ) {
+          push("listening-option-analysis-invalid");
+        }
       }
 
       if (
         lesson.content.lessonId === "polite-verbs-2" &&
-        design.operation !== "produce-spoken"
+        design.operation !== "produce-spoken" &&
+        design.operation !== "identify-audio"
       ) {
         const held = design.reviewEvidence.heldConstantPredicateLexemeId;
         const canonicalClass = held ? canonicalVerbClassConcept(held) : null;
@@ -2201,7 +2380,10 @@ export function validateTask11SemanticReview(
         }
       }
 
-      if (design.optionTargets.length === 2) {
+      if (
+        design.optionTargets.length === 2 &&
+        design.operation !== "identify-audio"
+      ) {
         const held = design.reviewEvidence.heldConstantPredicateLexemeId;
         if (
           held === null ||
@@ -2558,10 +2740,12 @@ export function validateTask11SemanticReview(
             ? /\b(?:first|last|final|before|after|left|right|precede(?:s|d)?|position)\b|at the end|without (?:re)?moving/iu
             : /\b(?:prima|dopo|ultimo|ultima|finale|posizione|sinistra|destra)\b|alla fine|in fondo|senza (?:ri)?spostar/iu;
         const leaked = [...forbidden].find(
-          (value) => value.length > 0 && copyContainsTerm(copy, value),
+          (value) =>
+            value.length > 0 && copyContainsTerm(copy, value, locale),
         );
         const retryLeaked = [...retryForbidden].find(
-          (value) => value.length > 0 && copyContainsTerm(retryCopy, value),
+          (value) =>
+            value.length > 0 && copyContainsTerm(retryCopy, value, locale),
         );
         if (leaked) push("instruction-answer-leakage", `${locale}:${leaked}`);
         if (retryLeaked) {
@@ -2602,15 +2786,17 @@ export function validateTask11SemanticReview(
           const commonTerms = listeningCommonTermsFor(design, locale);
           const namesOneSide = (value: string) => {
             const namesAccepted = acceptedTerms.some((term) =>
-              copyContainsTerm(value, term),
+              copyContainsTerm(value, term, locale),
             );
             const namesAlternative = alternativeTerms.some((term) =>
-              copyContainsTerm(value, term),
+              copyContainsTerm(value, term, locale),
             );
             return namesAccepted !== namesAlternative;
           };
           const namesCommon = (value: string) =>
-            commonTerms.some((term) => copyContainsTerm(value, term));
+            commonTerms.some((term) =>
+              copyContainsTerm(value, term, locale),
+            );
           if (
             namesOneSide(copy) ||
             namesOneSide(retryCopy) ||
@@ -2919,30 +3105,6 @@ function stemDerivationTarget(
   };
 }
 
-function stemHypothesisTarget(
-  lemmaId: string,
-  kana: string,
-  romaji: string,
-  patternCellId: string,
-): BaseTask11TargetSpec {
-  return task11Target(
-    [
-      task11VerbForm(lemmaId, "dictionary"),
-      C,
-      task11DiagnosticForm(lemmaId, kana, romaji, "stem-hypothesis"),
-    ],
-    {
-      conceptIds: ["polite-stems"],
-      patternCellIds: [patternCellId],
-      semanticRoleIds: [],
-      interpretationTags: ["metalinguistic"],
-      predicateSenseId: lemmaId.slice("verb-".length),
-      predicateLexemeId: lemmaId,
-      predicateAspect: "dynamic",
-    },
-  );
-}
-
 function dictionaryAnalysisTarget(
   lemmaId: string,
   patternCellId: string,
@@ -3175,7 +3337,7 @@ const L2: BaseTask11LessonSpec = {
     act(task11Cue(task11VerbForm("verb-suru", "dictionary"), C, task11AnalysisLabel("analysis-source")), task11ClassAnalysisTarget("verb-suru", "suru-verb-class", [SPECIAL_CELL]), task11ClassAnalysisTarget("verb-suru", "godan-verb-class", [GODAN_CELL]), 1, "polite-verbs-2-activity-6-instruction", SPECIAL_CELL, BASE_CONTEXT_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-suru", optionAnalysisIds: ["suru-verb-class", "godan-verb-class"] }),
     act(task11Cue(task11VerbForm("verb-kuru", "dictionary"), C, task11AnalysisLabel("analysis-source")), task11ClassAnalysisTarget("verb-kuru", "kuru-verb-class", [SPECIAL_CELL]), task11ClassAnalysisTarget("verb-kuru", "ichidan-verb-class", [ICHIDAN_CELL]), 0, "polite-verbs-2-activity-7-instruction", SPECIAL_CELL, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-kuru", optionAnalysisIds: ["kuru-verb-class", "ichidan-verb-class"] }),
     act(task11Cue(task11VerbForm("verb-yomu", "dictionary"), C, task11AnalysisLabel("analysis-source")), task11ClassAnalysisTarget("verb-yomu", "godan-verb-class", [GODAN_CELL]), task11ClassAnalysisTarget("verb-yomu", "ichidan-verb-class", [ICHIDAN_CELL]), 1, "polite-verbs-2-activity-8-instruction", GODAN_CELL, BASE_MEANING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-yomu", optionAnalysisIds: ["godan-verb-class", "ichidan-verb-class"] }),
-    act(task11Cue(task11VerbForm("verb-miru", "dictionary"), C, task11AnalysisLabel("analysis-classification")), sourcedClassAnalysisTarget("verb-miru", "ichidan-verb-class", ICHIDAN_CELL), sourcedClassAnalysisTarget("verb-miru", "godan-verb-class", ICHIDAN_CELL), 0, "polite-verbs-2-activity-9-instruction", ICHIDAN_CELL, BASE_LISTENING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-miru", optionAnalysisIds: ["ichidan-verb-class", "godan-verb-class"] }),
+    act(task11Cue(task11VerbForm("verb-miru", "dictionary"), C, task11AnalysisLabel("ichidan-verb-class"), C, task11AnalysisLabel("analysis-pair")), sourcedClassAnalysisTarget("verb-miru", "ichidan-verb-class", ICHIDAN_CELL, "analysis-source"), sourcedClassAnalysisTarget("verb-miru", "ichidan-verb-class", ICHIDAN_CELL, "analysis-classification"), 0, "polite-verbs-2-activity-9-instruction", ICHIDAN_CELL, BASE_LISTENING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-miru", optionAnalysisIds: ["analysis-source", "analysis-classification"] }),
     act(task11Cue(task11VerbForm("verb-hataraku", "dictionary")), task11ClassAnalysisTarget("verb-hataraku", "godan-verb-class", [GODAN_CELL]), task11ClassAnalysisTarget("verb-hataraku", "ichidan-verb-class", [ICHIDAN_CELL]), 1, "polite-verbs-2-activity-10-instruction", GODAN_CELL, BASE_SPOKEN_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-hataraku", optionAnalysisIds: ["godan-verb-class", "ichidan-verb-class"] }),
   ],
   dialogue: null,
@@ -3245,7 +3407,7 @@ const L3: BaseTask11LessonSpec = {
     act(task11Target([task11VerbForm("verb-kaeru", "dictionary"), C, task11DiagnosticForm("verb-kaeru", "かえ", "kae", "incorrect-ichidan-stem")], { conceptIds: ["verb-class-exceptions"], patternCellIds: [], semanticRoleIds: [], interpretationTags: ["metalinguistic"], predicateSenseId: "kaeru", predicateLexemeId: "verb-kaeru", predicateAspect: "dynamic" }), stemDerivationTarget("verb-kaeru", GODAN_STEM), dictionaryAnalysisTarget("verb-kaeru", GODAN_STEM), 1, "polite-verbs-3-activity-6-instruction", GODAN_STEM, BASE_ERROR_ACTIVITY_SHAPE, null, null, "incorrect-ichidan-stem", { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-kaeru", errorDefectAxis: "form", changedTokenSourceIds: ["incorrect-ichidan-stem", "verb-kaeru"] }),
     act(task11Cue(task11VerbForm("verb-denwa-suru", "dictionary"), C, task11AnalysisLabel("analysis-stem-source")), stemDerivationTarget("verb-denwa-suru", SURU_STEM), dictionaryAnalysisTarget("verb-denwa-suru", SURU_STEM), 0, "polite-verbs-3-activity-7-instruction", SURU_STEM, BASE_CONTEXT_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-denwa-suru" }),
     act(task11Cue(task11VerbForm("verb-sanpo-suru", "dictionary"), C, task11AnalysisLabel("analysis-stem-source")), stemDerivationTarget("verb-sanpo-suru", SURU_STEM), dictionaryAnalysisTarget("verb-sanpo-suru", SURU_STEM), 1, "polite-verbs-3-activity-8-instruction", SURU_STEM, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-sanpo-suru" }),
-    act(task11Cue(task11VerbForm("verb-miru", "dictionary"), C, task11AnalysisLabel("analysis-stem-source")), stemDerivationTarget("verb-miru", ICHIDAN_STEM), stemHypothesisTarget("verb-miru", "みり", "miri", ICHIDAN_STEM), 0, "polite-verbs-3-activity-9-instruction", ICHIDAN_STEM, BASE_LISTENING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-miru" }),
+    act(task11Cue(task11AnalysisLabel("analysis-stem-source")), stemDerivationTarget("verb-miru", ICHIDAN_STEM), stemDerivationTarget("verb-taberu", ICHIDAN_STEM), 0, "polite-verbs-3-activity-9-instruction", ICHIDAN_STEM, BASE_LISTENING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: null, optionAnalysisIds: ["polite-stems", "polite-stems"] }),
     act(task11Cue(task11VerbForm("verb-yomu", "dictionary")), stemDerivationTarget("verb-yomu", GODAN_STEM), dictionaryAnalysisTarget("verb-yomu", GODAN_STEM), 1, "polite-verbs-3-activity-10-instruction", GODAN_STEM, BASE_SPOKEN_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-yomu" }),
   ],
   dialogue: null,

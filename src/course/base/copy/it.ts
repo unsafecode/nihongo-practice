@@ -847,7 +847,7 @@ const POLITE_VERBS_COPY_IT: Readonly<Record<string, string>> = {
       "La tabella ha una riga separata per il verbo di base usato per fare un'azione. Scegli la voce registrata.",
       "La tabella ha una riga separata per il verbo usato quando qualcuno viene. Recupera la voce registrata.",
       "Una scheda sull’azione di leggere richiede un’analisi di classe. Scegli quella sostenuta.",
-      "Ascolta quale delle due ipotesi degli studenti viene letta, poi scegli la corrispondenza scritta esatta.",
+      "Ascolta quale delle due schede di analisi viene letta, poi scegli la corrispondenza scritta esatta.",
       "Dalla scheda verbale mostrata, pronuncia a memoria la scheda nascosta di analisi della classe.",
     ],
     accepted: [
@@ -1506,7 +1506,7 @@ const TIME_MOVEMENT_COPY_IT: Readonly<Record<string, string>> = {
       "Oggi riposerò.",
       "Andrò domani.",
       "Lavorerò dalle nove alle cinque.",
-      "Viaggerò dalla stazione fino all'università.",
+      "Viaggerò da Tokyo fino a Kyoto.",
       "Lavorerò dalle sette.",
       "Studierò fino alle cinque.",
       "Tornerò dalla stazione.",
