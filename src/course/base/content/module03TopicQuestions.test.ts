@@ -23,7 +23,11 @@ function jp(tokens: readonly { readonly jp: string }[]): string {
 }
 
 function normalized(tokens: readonly { readonly jp: string }[]): string {
-  return jp(tokens).normalize("NFKC").replace(/[、◇◎●♪↺]/g, "").replace(/ですか?$/, "");
+  return jp(tokens).normalize("NFKC").replace(/[、。◇◎●♪↺]/g, "").replace(/ですか?$/, "");
+}
+
+function surfaceFingerprint(tokens: readonly { readonly jp: string }[]): string {
+  return jp(tokens).normalize("NFKC").replace(/[、。\s]/g, "");
 }
 
 function particleSenses(target: {
@@ -137,8 +141,8 @@ describe("Base topic-questions module", () => {
       BASE_TOPIC_QUESTIONS_MODULE.sequence,
       BASE_TOPIC_QUESTIONS_VALIDATION_CATALOGS,
     );
-    expect(visible).toContain("あめりか");
-    expect(visible).toContain("いたりあ");
+    expect(visible).toContain("にほん");
+    expect(visible).toContain("ちゅうごく");
     expect(visible).not.toMatch(/[\u30A0-\u30FF]/u);
   });
 
@@ -149,7 +153,7 @@ describe("Base topic-questions module", () => {
     );
     const tq4 = BASE_TOPIC_QUESTIONS_MODULE.lessons[3];
     expect(jp(tq4.activityDesigns[5].acceptedAnswerTarget.tokens)).toBe(
-      "いいえ、いたりあですよ",
+      "いいえ、くにはにほんですよ",
     );
     expect(jp(tq4.activityDesigns[6].acceptedAnswerTarget.tokens)).not.toBe(
       jp(tq4.activityDesigns[5].acceptedAnswerTarget.tokens),
@@ -190,11 +194,62 @@ describe("Base topic-questions module", () => {
     const seen = new Map<string, string>();
     for (const lesson of allLessons) {
       for (const example of lesson.examples) {
-        const surface = normalized(example.tokens);
+        const surface = surfaceFingerprint(example.tokens);
         expect(seen.get(surface), surface).toBeUndefined();
         seen.set(surface, lesson.content.lessonId);
       }
     }
+  });
+
+  it("never reuses a worked example or dialogue fingerprint as an accepted answer", () => {
+    const duplicates: string[] = [];
+    for (const lesson of BASE_TOPIC_QUESTIONS_MODULE.lessons) {
+      const preAttempt = new Set([
+        ...lesson.examples.map(({ tokens }) => surfaceFingerprint(tokens)),
+        ...(lesson.dialogue?.turns.map(({ tokens }) => surfaceFingerprint(tokens)) ?? []),
+      ]);
+      for (const { acceptedAnswerTarget } of lesson.activityDesigns) {
+        if (preAttempt.has(surfaceFingerprint(acceptedAnswerTarget.tokens))) {
+          duplicates.push(`${lesson.content.lessonId}:${jp(acceptedAnswerTarget.tokens)}`);
+        }
+      }
+    }
+    expect(duplicates).toEqual([]);
+  });
+
+  it("grounds the two spoken recalls in visible lesson facts", () => {
+    const sf2 = BASE_SENTENCE_FOUNDATIONS_MODULE.lessons[1].activityDesigns[9];
+    expect(jp(sf2.promptTarget.tokens)).toBe("しゃしん");
+    expect(jp(sf2.acceptedAnswerTarget.tokens)).toBe("でんわ");
+
+    const tq1 = BASE_TOPIC_QUESTIONS_MODULE.lessons[0].activityDesigns[9];
+    expect(jp(tq1.promptTarget.tokens)).toBe("きっぷ");
+    expect(jp(tq1.acceptedAnswerTarget.tokens)).toBe("おおさかです");
+    expect(tq1.worldFactId).toBe("ticket-destination-osaka");
+  });
+
+  it("uses native hiragana-first country nouns instead of loanword spellings", () => {
+    const visible = visibleJapaneseFor(
+      BASE_TOPIC_QUESTIONS_MODULE.sequence,
+      BASE_TOPIC_QUESTIONS_VALIDATION_CATALOGS,
+    );
+    expect(visible).toContain("にほん");
+    expect(visible).toContain("ちゅうごく");
+    expect(visible).not.toMatch(/アメリカ|イタリア|あめりか|いたりあ/u);
+  });
+
+  it("authors distinct, semantically linked TQ2 prompts", () => {
+    const tq2 = BASE_TOPIC_QUESTIONS_MODULE.lessons[1];
+    const prompts = tq2.activityDesigns.map(({ promptTarget }) =>
+      normalized(promptTarget.tokens),
+    );
+    expect(new Set(prompts).size).toBe(prompts.length);
+    expect(prompts.slice(6)).toEqual([
+      "かんごし",
+      "べんごし",
+      "りゅうがくせい",
+      "わたしはだいがくせい",
+    ]);
   });
 
   it("links selection prompts to every option or to an explicit shared fact", () => {
@@ -286,7 +341,7 @@ describe("Base topic-questions module", () => {
       satou: "student",
       suzuki: "teacher",
       mari: "doctor",
-      yukiCountry: "italy",
+      yukiCountry: "japan",
       speakerCity: "tokyo",
     });
   });
@@ -294,17 +349,17 @@ describe("Base topic-questions module", () => {
   it("has a coherent six-turn name, country, and companion clarification", () => {
     const dialogue = BASE_TOPIC_QUESTIONS_MODULE.lessons[3].dialogue;
     expect(dialogue?.turns.map(({ tokens }) => jp(tokens))).toEqual([
-      "なまえはなんですか",
+      "だれですか",
       "ゆきですよ",
-      "くにはいたりあですか",
-      "はい、いたりあです",
+      "くにはにほんですか",
+      "はい、にほんです",
       "たなかさんとともだちですか",
       "はい、そうですよ",
     ]);
     expect(dialogue?.referentLedger).toEqual({
       learner: "speaker",
       partner: "yuki",
-      country: "italy",
+      country: "japan",
       companion: "tanaka",
     });
   });
@@ -562,6 +617,7 @@ describe("Base topic-questions module", () => {
     const expectedSenseByCell: Readonly<Record<string, readonly string[]>> = {
       "tq1-topic-comment": ["topic-wa"],
       "tq1-topic-contrast": ["topic-wa"],
+      "tq1-grounded-answer": ["grounded-response"],
       "tq2-focused-subject": ["focus-subject-ga"],
       "tq2-wa-ga-contrast": ["topic-wa"],
       "tq3-attributive-no": ["possessive-attributive-no"],
@@ -580,6 +636,9 @@ describe("Base topic-questions module", () => {
         const senses = particleSenses(design.acceptedAnswerTarget);
         const realizedSenses = [
           ...senses,
+          ...(design.patternCellId === "tq1-grounded-answer"
+            ? ["grounded-response"]
+            : []),
           ...(design.acceptedAnswerTarget.lexemeIds.some((id) =>
             ["expression-hai", "expression-iie"].includes(id),
           )
@@ -646,7 +705,8 @@ describe("Base topic-questions module", () => {
         const promptLexemes = new Set(design.promptTarget.lexemeIds);
         if (
           design.operation !== "transform-form" &&
-          design.operation !== "diagnose-error"
+          design.operation !== "diagnose-error" &&
+          design.operation !== "order-chunks"
         ) {
           for (const id of promptLexemes) {
             if (design.acceptedAnswerTarget.lexemeIds.includes(id)) {
@@ -804,17 +864,17 @@ describe("Base topic-questions module", () => {
     }
   });
 
-  it("keeps Yuki's country Italy in every accepted world surface", () => {
+  it("keeps Yuki's country Japan in every accepted world surface", () => {
     const tq4 = BASE_TOPIC_QUESTIONS_MODULE.lessons[3];
     for (const design of tq4.activityDesigns.filter(
       ({ worldFactId }) => worldFactId === "yuki-country",
     )) {
       const accepted = jp(design.acceptedAnswerTarget.tokens);
-      expect(accepted).not.toContain("アメリカ");
+      expect(accepted).not.toContain("ちゅうごく");
       if (design.worldFactId === "yuki-country") {
-        expect(accepted).toContain("いたりあ");
+        expect(accepted).toContain("にほん");
         if (design.operationEvidence.errorCode === "world-fact-mismatch") {
-          expect(jp(design.promptTarget.tokens)).toContain("あめりか");
+          expect(jp(design.promptTarget.tokens)).toContain("ちゅうごく");
         }
       }
     }

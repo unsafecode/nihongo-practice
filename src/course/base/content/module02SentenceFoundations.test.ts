@@ -14,6 +14,7 @@ import {
   BASE_SENTENCE_FOUNDATIONS_LESSONS,
   BASE_SENTENCE_FOUNDATIONS_MODULE,
   BASE_SENTENCE_FOUNDATIONS_VALIDATION_CATALOGS,
+  validateNewLexemeMeaningCopies,
   validateBaseSentenceFoundationsModule,
 } from "./module02SentenceFoundations";
 
@@ -757,6 +758,7 @@ describe("Base sentence-foundations module", () => {
         ids.add(teachingPurposeCopyId);
         if ("copyId" in translationCopy) ids.add(translationCopy.copyId);
       });
+
       lesson.content.activities.forEach(
         ({ instructionCopyId, acceptedFeedbackCopyId, retryFeedbackCopyId }) => {
           ids.add(instructionCopyId);
@@ -778,6 +780,38 @@ describe("Base sentence-foundations module", () => {
         (id) => baseNavigationCopyEn.content[id] !== baseNavigationCopyIt.content[id],
       ).length,
     ).toBeGreaterThan(ids.size * 0.9);
+  });
+
+  it("resolves bilingual meaning copy for every newly taught lexeme", () => {
+    const lessons = BASE_SENTENCE_FOUNDATIONS_MODULE.lessons;
+    expect(
+      validateNewLexemeMeaningCopies(
+        lessons,
+        BASE_SENTENCE_FOUNDATIONS_VALIDATION_CATALOGS,
+        baseNavigationCopyEn.content,
+        baseNavigationCopyIt.content,
+      ),
+    ).toBe(true);
+    const meaningId = "noun-gakusei-meaning";
+    const withoutEn = { ...baseNavigationCopyEn.content, [meaningId]: "" };
+    const withoutIt = { ...baseNavigationCopyIt.content };
+    delete withoutIt[meaningId];
+    expect(
+      validateNewLexemeMeaningCopies(
+        lessons,
+        BASE_SENTENCE_FOUNDATIONS_VALIDATION_CATALOGS,
+        withoutEn,
+        baseNavigationCopyIt.content,
+      ),
+    ).toBe(false);
+    expect(
+      validateNewLexemeMeaningCopies(
+        lessons,
+        BASE_SENTENCE_FOUNDATIONS_VALIDATION_CATALOGS,
+        baseNavigationCopyEn.content,
+        withoutIt,
+      ),
+    ).toBe(false);
   });
 
   it("keeps reviewed Japanese, English, and Italian meanings aligned", () => {

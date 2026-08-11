@@ -796,20 +796,20 @@ const LESSON_SPECS: readonly LessonSpec[] = deepFreeze([
       example(["noun-hito", "period"], "person-omitted-context", "sf2-recoverable-omission", "contextual-fragment", "sentence-foundations-2-example-6-context", "sf2-pair-person"),
       example(["anchor-gakkou", "comma", "noun-gakusei", "period"], "student-explicit-context", "sf2-predicate-final", "contextual-fragment", "sentence-foundations-2-example-7-context", "sf2-pair-student"),
       example(["noun-gakusei", "period"], "student-omitted-context", "sf2-recoverable-omission", "contextual-fragment", "sentence-foundations-2-example-8-context", "sf2-pair-student"),
-      example(["anchor-denwa", "comma", "noun-sensei", "period"], "teacher-explicit-context", "sf2-predicate-final", "contextual-fragment", "sentence-foundations-2-example-9-context", "sf2-pair-teacher"),
-      example(["noun-sensei", "period"], "teacher-omitted-context", "sf2-recoverable-omission", "contextual-fragment", "sentence-foundations-2-example-10-context", "sf2-pair-teacher"),
+      example(["anchor-denwa", "comma", "anchor-shashin", "period"], "screen-explicit-context", "sf2-predicate-final", "contextual-fragment", "sentence-foundations-2-example-9-context", "sf2-pair-screen"),
+      example(["anchor-shashin", "period"], "screen-omitted-context", "sf2-recoverable-omission", "contextual-fragment", "sentence-foundations-2-example-10-context", "sf2-pair-screen"),
     ],
     activities: [
-      activity(["anchor-shashin", "comma", "noun-tanaka"], ["noun-tanaka"], ["anchor-denwa"], 1, "sentence-foundations-2-activity-1-instruction", "sf2-recoverable-omission", BASE_CONTEXT_ACTIVITY_SHAPE),
+      activity(["anchor-shashin", "comma", "noun-tanaka"], ["noun-tanaka"], ["anchor-umi"], 1, "sentence-foundations-2-activity-1-instruction", "sf2-recoverable-omission", BASE_CONTEXT_ACTIVITY_SHAPE),
       activity(["anchor-shashin", "comma", "noun-yamada"], ["noun-yamada"], ["anchor-kagi"], 0, "sentence-foundations-2-activity-2-instruction", "sf2-recoverable-omission", BASE_FORM_ACTIVITY_SHAPE),
-      activity(["anchor-obaasan"], ["noun-hito"], ["anchor-denwa"], 0, "sentence-foundations-2-activity-3-instruction", "sf2-predicate-final", BASE_MEANING_ACTIVITY_SHAPE),
+      activity(["anchor-obaasan"], ["noun-hito"], ["anchor-ryokou"], 0, "sentence-foundations-2-activity-3-instruction", "sf2-predicate-final", BASE_MEANING_ACTIVITY_SHAPE),
       activity(["anchor-gakkou", "comma", "noun-gakusei"], ["noun-gakusei"], ["anchor-obaasan"], 1, "sentence-foundations-2-activity-4-instruction", "sf2-recoverable-omission", BASE_CONTROLLED_ACTIVITY_SHAPE),
       activity(["anchor-denwa", "comma", "noun-sensei"], ["noun-sensei"], ["anchor-kippu"], 0, "sentence-foundations-2-activity-5-instruction", "sf2-recoverable-omission", BASE_CONTROLLED_ACTIVITY_SHAPE),
       activity(["anchor-shashin", "comma", "anchor-kippu"], ["noun-watashi"], ["anchor-umi"], 1, "sentence-foundations-2-activity-6-instruction", "sf2-recoverable-omission", BASE_ERROR_ACTIVITY_SHAPE, null, null, "context-meaning-mismatch"),
       activity(["anchor-shashin", "comma", "anchor-neko"], ["anchor-neko"], ["anchor-kagi"], 1, "sentence-foundations-2-activity-7-instruction", "sf2-recoverable-omission", BASE_CONTEXT_ACTIVITY_SHAPE),
       activity(["anchor-gakkou", "comma", "anchor-hon"], ["anchor-hon"], ["anchor-kippu"], 0, "sentence-foundations-2-activity-8-instruction", "sf2-recoverable-omission", BASE_RETRIEVAL_ACTIVITY_SHAPE),
       activity(["anchor-kagi"], ["anchor-ie"], ["anchor-umi"], 1, "sentence-foundations-2-activity-9-instruction", "sf2-recoverable-omission", BASE_LISTENING_ACTIVITY_SHAPE),
-      activity(["anchor-denwa"], ["anchor-shashin"], ["anchor-kagi"], 0, "sentence-foundations-2-activity-10-instruction", "sf2-recoverable-omission", BASE_SPOKEN_ACTIVITY_SHAPE),
+      activity(["anchor-shashin"], ["anchor-denwa"], ["anchor-kagi"], 0, "sentence-foundations-2-activity-10-instruction", "sf2-recoverable-omission", BASE_SPOKEN_ACTIVITY_SHAPE),
     ],
   },
   {
@@ -1134,7 +1134,12 @@ function targetTokenMultiset(value: unknown): string | undefined {
     if (!record || typeof record.jp !== "string") return undefined;
     parts.push(record.jp);
   }
+
   return parts.sort().join("|");
+}
+
+function normalizedPreAttemptSurface(value: unknown): string | undefined {
+  return targetSurface(value)?.normalize("NFKC").replace(/[、。\s]/g, "");
 }
 
 export function worldFactLedgerFor(
@@ -1210,6 +1215,7 @@ export function validatePublishedWorldFactLedger(moduleValue: unknown): boolean 
       ) {
         return false;
       }
+
       if (design.worldFactId === null) continue;
       const correct = design.correctOptionIndex;
       const expected = expectedRecords.get(design.worldFactId) ?? {
@@ -1227,6 +1233,7 @@ export function validatePublishedWorldFactLedger(moduleValue: unknown): boolean 
       );
       expectedRecords.set(design.worldFactId, expected);
     }
+
   }
   const expected: BaseWorldFactRecord[] = [...expectedRecords].map(
     ([id, record]) => ({
@@ -1266,6 +1273,34 @@ export function validatePublishedWorldFactLedger(moduleValue: unknown): boolean 
   });
 }
 
+export function validateNewLexemeMeaningCopies(
+  lessonsValue: unknown,
+  catalogs: BaseValidationCatalogs,
+  enCopyValue: unknown,
+  itCopyValue: unknown,
+): boolean {
+  const lessons = denseArray(lessonsValue);
+  const en = plainRecord(enCopyValue);
+  const it = plainRecord(itCopyValue);
+  if (!lessons || !en || !it) return false;
+  return lessons.every((lessonValue) => {
+    const lesson = plainRecord(lessonValue);
+    const content = lesson ? plainRecord(lesson.content) : undefined;
+    const ids = content ? denseArray(content.newLexemeIds) : undefined;
+    return (
+      !!ids &&
+      ids.every((id) => {
+        if (typeof id !== "string") return false;
+        const lexeme = catalogs.lexemes.get(id);
+        if (!lexeme) return false;
+        return [en[lexeme.meaningCopyId], it[lexeme.meaningCopyId]].every(
+          (copy) => typeof copy === "string" && copy.trim().length > 0,
+        );
+      })
+    );
+  });
+}
+
 export function validatePublishedSemanticActivities(
   lessonValue: unknown,
 ): boolean {
@@ -1274,16 +1309,32 @@ export function validatePublishedSemanticActivities(
   const activities = content ? denseArray(content.activities) : undefined;
   const designs = lesson ? denseArray(lesson.activityDesigns) : undefined;
   const cells = lesson ? denseArray(lesson.patternCellIds) : undefined;
+  const examples = lesson ? denseArray(lesson.examples) : undefined;
   if (
     !lesson ||
     !content ||
     !activities ||
     !designs ||
     !cells ||
+    !examples ||
     activities.length !== 10 ||
     designs.length !== activities.length
   ) {
     return false;
+  }
+  const preAttempt = new Set(
+    examples.flatMap((example) => {
+      const surface = normalizedPreAttemptSurface(example);
+      return surface ? [surface] : [];
+    }),
+  );
+  const dialogue = plainRecord(lesson.dialogue);
+  const dialogueTurns = dialogue ? denseArray(dialogue.turns) : [];
+  if (dialogue && !dialogueTurns) return false;
+  for (const turn of dialogueTurns ?? []) {
+    const surface = normalizedPreAttemptSurface(turn);
+    if (!surface) return false;
+    preAttempt.add(surface);
   }
   const positions: number[] = [];
   const lengthDistribution = { longer: 0, shorter: 0, tie: 0 };
@@ -1327,7 +1378,11 @@ export function validatePublishedSemanticActivities(
       return false;
     }
     const acceptedTarget = design.acceptedAnswerTarget;
+    const acceptedSurface = normalizedPreAttemptSurface(acceptedTarget);
     if (
+      !acceptedSurface ||
+      (String(content.lessonId).startsWith("topic-questions-") &&
+        preAttempt.has(acceptedSurface)) ||
       typeof design.acceptedAnswerTargetId !== "string" ||
       (isSpoken
         ? design.acceptedAnswerTargetId !== activity.targetId ||
@@ -1473,6 +1528,16 @@ export function validateBaseSentenceFoundationsModule(
   }
   if (!validatePublishedWorldFactLedger(module)) {
     errors.add("invalid-module-shape");
+  }
+  if (
+    !validateNewLexemeMeaningCopies(
+      lessons,
+      BASE_SENTENCE_FOUNDATIONS_VALIDATION_CATALOGS,
+      baseNavigationCopyEn.content,
+      baseNavigationCopyIt.content,
+    )
+  ) {
+    errors.add("invalid-copy");
   }
   const expectedIds = LESSON_SPECS.map(({ lessonId }) => lessonId);
   if (
