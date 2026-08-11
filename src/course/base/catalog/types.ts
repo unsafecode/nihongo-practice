@@ -59,6 +59,8 @@ export interface BaseActivityDefinition {
   readonly retryFeedbackCopyId: string;
   readonly assessedConceptIds: readonly string[];
   readonly assessedLexemeIds: readonly string[];
+  /** Every learner-visible choice, in rendered order. */
+  readonly optionTargetIds?: readonly string[];
 }
 
 export interface BaseLessonCommon {
@@ -180,6 +182,12 @@ export interface BaseExample extends BaseVisibleTarget {
   readonly teachingPurposeCopyId: string;
   readonly translationCopy: BaseTranslationCopy;
   readonly predicateAspect: BasePredicateAspect;
+  readonly utteranceKind?:
+    | "contextual-fragment"
+    | "anatomy-model"
+    | "complete-clause"
+    | "hanging-topic";
+  readonly contextCopyId?: string | null;
 }
 
 export interface BaseDialogueTurn extends BaseVisibleTarget {
@@ -444,7 +452,8 @@ function hasActivityFields(value: unknown): boolean {
     isNonemptyString(value.acceptedFeedbackCopyId) &&
     isNonemptyString(value.retryFeedbackCopyId) &&
     isStringArray(value.assessedConceptIds) &&
-    isStringArray(value.assessedLexemeIds)
+    isStringArray(value.assessedLexemeIds) &&
+    (!hasOwn(value, "optionTargetIds") || isStringArray(value.optionTargetIds))
   );
 }
 

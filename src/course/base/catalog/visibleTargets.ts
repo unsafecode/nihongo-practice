@@ -71,6 +71,7 @@ export function activityTargetReferenceFor(
       ...(!isStrictRuntimeExample(example) ? { invalidReason: "invalid-example" as const } : {}),
     };
   }
+
   const acceptedAnswer = catalogs.acceptedAnswerTargets.get(targetId);
   if (acceptedAnswer) {
     return targetReference(
@@ -85,6 +86,23 @@ export function activityTargetReferenceFor(
     return targetReference(audioTarget, targetId, "activity audio target", "audio");
   }
   return undefined;
+}
+
+/** Resolves every learner-visible choice through the canonical target catalog. */
+export function activityOptionTargetReferencesFor(
+  activity: BaseActivityDefinition,
+  catalogs: BaseValidationCatalogs,
+): readonly BaseVisibleTargetReference[] {
+  if (!isPlainDataRecord(activity)) return [];
+  const optionTargetIds = ownDataValue(activity, "optionTargetIds");
+  if (!Array.isArray(optionTargetIds)) return [];
+  return optionTargetIds.flatMap((rawId) => {
+    if (typeof rawId !== "string") return [];
+    const target = catalogs.acceptedAnswerTargets.get(rawId);
+    return target
+      ? [targetReference(target, rawId, "activity option target", "accepted-answer")]
+      : [];
+  });
 }
 
 /** Resolves prompt provenance by the lesson-scoped canonical prompt key. */

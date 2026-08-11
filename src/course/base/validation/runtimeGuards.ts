@@ -123,6 +123,8 @@ const BASE_EXAMPLE_KEYS = new Set([
   "id",
   "teachingPurposeCopyId",
   "translationCopy",
+  "utteranceKind",
+  "contextCopyId",
 ]);
 const BASE_DIALOGUE_TURN_KEYS = new Set([
   ...BASE_VISIBLE_TARGET_KEYS,
@@ -657,13 +659,25 @@ export function strictRuntimeExample(value: unknown): BaseExample | undefined {
   );
   const predicateAspect = ownDataValue(example, "predicateAspect");
   const discourseFrameId = ownDataValue(example, "discourseFrameId");
+  const utteranceKind = ownDataValue(example, "utteranceKind");
+  const contextCopyId = ownDataValue(example, "contextCopyId");
   if (
     !target ||
     typeof id !== "string" ||
     typeof teachingPurposeCopyId !== "string" ||
     !translationCopy ||
     typeof predicateAspect !== "string" ||
-    typeof discourseFrameId !== "string"
+    typeof discourseFrameId !== "string" ||
+    (utteranceKind !== undefined &&
+      ![
+        "contextual-fragment",
+        "anatomy-model",
+        "complete-clause",
+        "hanging-topic",
+      ].includes(utteranceKind as string)) ||
+    (contextCopyId !== undefined &&
+      contextCopyId !== null &&
+      typeof contextCopyId !== "string")
   ) {
     return undefined;
   }
@@ -674,6 +688,12 @@ export function strictRuntimeExample(value: unknown): BaseExample | undefined {
     translationCopy: translationCopy as BaseTranslationCopy,
     predicateAspect: predicateAspect as BaseExample["predicateAspect"],
     discourseFrameId,
+    ...(typeof utteranceKind === "string"
+      ? { utteranceKind: utteranceKind as BaseExample["utteranceKind"] }
+      : {}),
+    ...(contextCopyId === null || typeof contextCopyId === "string"
+      ? { contextCopyId }
+      : {}),
   });
 }
 
@@ -769,13 +789,17 @@ export function strictRuntimeActivity(
   const assessedLexemeIds = runtimeStringArrayValues(
     ownDataValue(value, "assessedLexemeIds"),
   );
+  const optionTargetIds = hasOwnDataValue(value, "optionTargetIds")
+    ? runtimeStringArrayValues(ownDataValue(value, "optionTargetIds"))
+    : undefined;
   if (
     !isBaseActivityKind(category) ||
     !isBaseInteractionKind(interactionKind) ||
     !isBaseActivityMode(mode) ||
     !isBaseActivityOperation(operation) ||
     !assessedConceptIds ||
-    !assessedLexemeIds
+    !assessedLexemeIds ||
+    (hasOwnDataValue(value, "optionTargetIds") && !optionTargetIds)
   ) {
     return undefined;
   }
@@ -791,6 +815,7 @@ export function strictRuntimeActivity(
     retryFeedbackCopyId: ownDataValue(value, "retryFeedbackCopyId") as string,
     assessedConceptIds,
     assessedLexemeIds,
+    ...(optionTargetIds ? { optionTargetIds } : {}),
   });
 }
 

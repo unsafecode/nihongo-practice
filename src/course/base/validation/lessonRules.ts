@@ -17,6 +17,7 @@ import type {
 } from "../catalog/types";
 import {
   activityPromptTargetReferenceFor,
+  activityOptionTargetReferencesFor,
   activityTargetReferenceFor,
   audioTargetReferenceFor,
   baseActivityPromptKey,
@@ -512,6 +513,17 @@ function validateActivities(
       );
     }
     const activityTarget = activityTargetReferenceFor(activity, catalogs);
+    const optionTargets = activityOptionTargetReferencesFor(activity, catalogs);
+    if (
+      activity.optionTargetIds !== undefined &&
+      optionTargets.length !== activity.optionTargetIds.length
+    ) {
+      for (const optionTargetId of activity.optionTargetIds) {
+        if (!catalogs.acceptedAnswerTargets.has(optionTargetId)) {
+          push("unresolved-reference", optionTargetId, "activity option target");
+        }
+      }
+    }
     if (!activityTarget?.invalidReason) {
       const targetOperation = activityTargetOperationFingerprintFor(
         lesson.lessonId,
@@ -598,6 +610,24 @@ function validateActivities(
         push,
       );
     }
+    for (const optionTarget of optionTargets) {
+      if (optionTarget.invalidReason) {
+        reportInvalidVisibleTarget(
+          optionTarget.invalidReason,
+          optionTarget.referenceId,
+          optionTarget.label,
+          push,
+        );
+      } else {
+        validateSentenceLikeReferences(
+          optionTarget.target,
+          catalogs,
+          optionTarget.referenceId,
+          optionTarget.label,
+          push,
+        );
+      }
+    }
     validateReference(
       activity.instructionCopyId,
       catalogs.copyIds.has(activity.instructionCopyId),
@@ -644,7 +674,7 @@ function validateActivities(
     }
     const visibleLexemeIds = new Set<string>();
     const visibleContentIds = new Set<string>();
-    for (const provenance of [promptTarget, activityTarget]) {
+    for (const provenance of [promptTarget, activityTarget, ...optionTargets]) {
       if (!provenance) continue;
       targetStringField(provenance.target, "lexemeIds").forEach((id) =>
         visibleLexemeIds.add(id),
@@ -1204,6 +1234,9 @@ function collectDeclaredContentEvidence(
     if (prompt) addRetrieved(prompt.target);
     const target = activityTargetReferenceFor(activity, catalogs);
     if (target) addRetrieved(target.target);
+    for (const option of activityOptionTargetReferencesFor(activity, catalogs)) {
+      addRetrieved(option.target);
+    }
   }
   return {
     visibleLexemeIds,

@@ -22,6 +22,7 @@ import {
 } from "../catalog/types";
 import {
   activityPromptTargetReferenceFor,
+  activityOptionTargetReferencesFor,
   activityTargetReferenceFor,
   audioTargetReferenceFor,
   baseActivityPromptKey,
@@ -679,6 +680,18 @@ export function validateFirstTeachOrder(
       } else if (target && target.source !== "example") {
         validateSentence(lesson, target.target, target.referenceId, target.label);
       }
+      for (const option of activityOptionTargetReferencesFor(activity, catalogs)) {
+        if (option.invalidReason) {
+          push(
+            lesson.lessonId,
+            "invalid-visible-target-shape",
+            option.referenceId,
+            option.label,
+          );
+        } else {
+          validateSentence(lesson, option.target, option.referenceId, option.label);
+        }
+      }
     }
     if (lesson.contract !== "phonetic") {
       for (const exampleId of lesson.workedExampleIds) {
@@ -952,6 +965,17 @@ export function visibleJapaneseFor(
           `activity-prompt:${lesson.lessonId}:${activity.id}`,
           promptTarget.target.tokens,
         );
+      }
+      for (const optionTarget of activityOptionTargetReferencesFor(
+        activity,
+        catalogs,
+      )) {
+        if (!optionTarget.invalidReason) {
+          append(
+            `activity-option:${optionTarget.referenceId}`,
+            optionTarget.target.tokens,
+          );
+        }
       }
       appendActivityTarget(activity);
     }
