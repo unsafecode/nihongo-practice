@@ -2918,6 +2918,47 @@ describe("Task7 Base catalog integrity regressions", () => {
 });
 
 describe("Base malformed runtime guard regressions", () => {
+  it("rejects hostile option-id arrays without invoking traps", () => {
+    const base = {
+      ...activity(1, "meaning-comprehension"),
+      optionTargetIds: ["answer-1"],
+    };
+    const accessor = { ...base };
+    Object.defineProperty(accessor, "optionTargetIds", {
+      enumerable: true,
+      get: () => {
+        throw new Error("option getter executed");
+      },
+    });
+    const sparse = { ...base, optionTargetIds: new Array(1) };
+    const foreignIds = ["answer-1"];
+    Object.setPrototypeOf(foreignIds, null);
+    const foreign = { ...base, optionTargetIds: foreignIds };
+    const elementGetterIds: string[] = [];
+    Object.defineProperty(elementGetterIds, "0", {
+      enumerable: true,
+      get: () => {
+        throw new Error("element getter executed");
+      },
+    });
+    Object.defineProperty(elementGetterIds, "length", { value: 1 });
+    const elementGetter = { ...base, optionTargetIds: elementGetterIds };
+
+    for (const hostile of [accessor, sparse, foreign, elementGetter]) {
+      expect(() =>
+        visibleTargets.activityOptionTargetReferencesFor(
+          hostile as BaseActivityDefinition,
+          CATALOGS,
+        ),
+      ).not.toThrow();
+      expect(
+        visibleTargets.activityOptionTargetReferencesFor(
+          hostile as BaseActivityDefinition,
+          CATALOGS,
+        ),
+      ).toEqual([]);
+    }
+  });
   it("reports undefined prerequisite arrays without throwing", () => {
     const malformed = {
       ...phoneticLesson(),

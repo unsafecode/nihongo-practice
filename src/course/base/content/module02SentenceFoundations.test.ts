@@ -686,6 +686,44 @@ describe("Base sentence-foundations module", () => {
     ).toContain("invalid-token-sequence");
   });
 
+  it("does not suppress malformed punctuation inside scrambled candidates", () => {
+    const lesson = BASE_SENTENCE_FOUNDATIONS_MODULE.lessons[2];
+    const activity = lesson.content.activities.find(
+      ({ operation }) => operation === "order-chunks",
+    )!;
+    const distractorId = activity.optionTargetIds?.find(
+      (id) => id !== activity.targetId,
+    )!;
+    const original =
+      BASE_SENTENCE_FOUNDATIONS_VALIDATION_CATALOGS.acceptedAnswerTargets.get(
+        distractorId,
+      )!;
+    const forged = {
+      ...original,
+      tokens: original.tokens.map((token, index) =>
+        index === 1
+          ? {
+              ...token,
+              jp: "、",
+              romaji: ",",
+              kind: "punctuation" as const,
+              boundaryBefore: "space" as const,
+            }
+          : token,
+      ),
+    };
+    const acceptedAnswerTargets = new Map(
+      BASE_SENTENCE_FOUNDATIONS_VALIDATION_CATALOGS.acceptedAnswerTargets,
+    );
+    acceptedAnswerTargets.set(distractorId, forged);
+    expect(
+      validateBaseLessonDepth(lesson.content, {
+        ...BASE_SENTENCE_FOUNDATIONS_VALIDATION_CATALOGS,
+        acceptedAnswerTargets,
+      }).map(({ code }) => code),
+    ).toContain("invalid-token-sequence");
+  });
+
   it("uses a complete erroneous noun predicate for post-copula diagnosis", () => {
     for (const lesson of BASE_SENTENCE_FOUNDATIONS_MODULE.lessons.slice(2)) {
       const diagnosis = lesson.activityDesigns.find(

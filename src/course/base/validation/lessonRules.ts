@@ -984,7 +984,7 @@ function validateSentenceLikeReferences(
     label,
     push,
     allowIntentionalOrderingError
-      ? new Set(["invalid-first-boundary", "illegal-punctuation-spacing"])
+      ? new Set(["invalid-first-boundary"])
       : new Set(),
   );
   for (const lexemeId of lexemeIds) {

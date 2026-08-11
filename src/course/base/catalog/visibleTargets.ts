@@ -10,6 +10,7 @@ import {
 import {
   isPlainDataRecord,
   isStrictRuntimeExample,
+  ownDataArrayValues,
   ownDataValue,
   runtimeVisibleTargetIssue,
   type RuntimeVisibleTargetIssue,
@@ -94,8 +95,15 @@ export function activityOptionTargetReferencesFor(
   catalogs: BaseValidationCatalogs,
 ): readonly BaseVisibleTargetReference[] {
   if (!isPlainDataRecord(activity)) return [];
-  const optionTargetIds = ownDataValue(activity, "optionTargetIds");
-  if (!Array.isArray(optionTargetIds)) return [];
+  const optionTargetIds = ownDataArrayValues(
+    ownDataValue(activity, "optionTargetIds"),
+  );
+  if (
+    !optionTargetIds ||
+    optionTargetIds.some((rawId) => typeof rawId !== "string")
+  ) {
+    return [];
+  }
   return optionTargetIds.flatMap((rawId) => {
     if (typeof rawId !== "string") return [];
     const target = catalogs.acceptedAnswerTargets.get(rawId);
