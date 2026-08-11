@@ -18,6 +18,9 @@ import {
   BASE_POLITE_VERBS_LESSONS,
   BASE_POLITE_VERBS_MODULE,
   BASE_POLITE_VERBS_VALIDATION_CATALOGS,
+  task11Cue,
+  task11Lexeme,
+  task11Particle,
   validateBasePoliteVerbsModule,
 } from "./module04PoliteVerbs";
 
@@ -109,6 +112,21 @@ function requiredCopyIds(): readonly string[] {
 }
 
 describe("Base polite-verbs module", () => {
+  it("derives exact discourse and argument semantics for authored cue particles", () => {
+    expect(
+      task11Cue(
+        task11Lexeme("noun-daigaku"),
+        task11Particle("direction-he", "goal", "noun-daigaku"),
+        task11Lexeme("noun-tanaka"),
+        task11Particle("focus-subject-ga", "focus-subject", "noun-tanaka"),
+        task11Lexeme("noun-yamada"),
+        task11Particle("possessive-attributive-no", "possessor", "noun-yamada"),
+        task11Lexeme("noun-mari"),
+        task11Particle("listing-to", "listing", "noun-mari"),
+      ).semanticRoleIds,
+    ).toEqual(["direction", "focus-subject", "possessor", "listing"]);
+  });
+
   it("publishes the exact lesson order, contracts, and prerequisites", () => {
     expect(
       BASE_POLITE_VERBS_LESSONS.map(
@@ -363,17 +381,24 @@ describe("Base polite-verbs module", () => {
     expect(pv3[3].promptTarget.lexemeIds).not.toContain("noun-satou");
   });
 
-  it("makes PV1 ordering uniquely resolvable from each localized instruction", () => {
+  it("uses a genuine multi-part semantic operation for PV1 A5", () => {
+    const design = BASE_POLITE_VERBS_MODULE.lessons[0].activityDesigns[4];
+    expect(design.operation).not.toBe("order-chunks");
+    for (const option of design.optionTargets) {
+      expect(
+        option.tokens.filter(({ kind }) => kind !== "punctuation").length,
+      ).toBeGreaterThanOrEqual(3);
+    }
     expect(
       baseNavigationCopyEn.content[
         "polite-verbs-1-activity-5-instruction"
       ].toLowerCase(),
-    ).toMatch(/(?:left|first|begins)/u);
+    ).not.toMatch(/(?:left|first|begins|order)/u);
     expect(
       baseNavigationCopyIt.content[
         "polite-verbs-1-activity-5-instruction"
       ].toLowerCase(),
-    ).toMatch(/(?:sinistr|prima|inizia)/u);
+    ).not.toMatch(/(?:sinistr|prima|inizia|ordina)/u);
   });
 
   it("does not derive half of PV4 practice by swapping only wa and mo", () => {
@@ -396,6 +421,38 @@ describe("Base polite-verbs module", () => {
         examples.has(normalizeDiscourse(design.acceptedAnswerTarget)),
         design.id,
       ).toBe(false);
+    }
+  });
+
+  it("uses full same-lemma clauses for every PV4 form competitor", () => {
+    const lesson = BASE_POLITE_VERBS_MODULE.lessons[3];
+    for (const index of [0, 1, 3, 4, 5, 6, 7, 8]) {
+      const design = lesson.activityDesigns[index];
+      expect(design.optionTargets).toHaveLength(2);
+      expect(
+        design.optionTargets.map(({ predicateLexemeId }) => predicateLexemeId),
+        design.id,
+      ).toEqual([
+        design.reviewEvidence.heldConstantPredicateLexemeId,
+        design.reviewEvidence.heldConstantPredicateLexemeId,
+      ]);
+      for (const option of design.optionTargets) {
+        expect(
+          option.semanticRoleIds.some(
+            (role) => role === "topic" || role === "additive-topic",
+          ),
+          design.id,
+        ).toBe(true);
+        expect(
+          option.tokens.some(
+            ({ source }) =>
+              source.referenceId === "topic-wa" ||
+              source.referenceId === "additive-mo",
+          ),
+          `${design.id}:${jp(option.tokens)}`,
+        ).toBe(true);
+        expect(jp(option.tokens).length).toBeGreaterThan(4);
+      }
     }
   });
 

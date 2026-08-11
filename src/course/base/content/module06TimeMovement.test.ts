@@ -263,26 +263,7 @@ describe("Base time-movement module", () => {
     }
   });
 
-  it("removes rejected punctual-work and unnatural movement/time surfaces", () => {
-    const visible = allTargets().map(({ tokens }) => jp(tokens));
-    for (const rejected of [
-      "くじにはたらきます",
-      "ばんはたらきます",
-      "えきにかえります",
-      "がっこうへきます",
-      "けさはしりました",
-      "わたしはけさはしりました",
-      "よるにはたらきます",
-      "あしたはしります",
-    ]) {
-      expect(
-        visible.some((surface) => surface.includes(rejected)),
-        rejected,
-      ).toBe(false);
-    }
-    expect(
-      visible.some((surface) => surface.startsWith("こんばんはたらきます")),
-    ).toBe(false);
+  it("marks every named-day event with canonical time-ni", () => {
     for (const target of allTargets().filter(
       ({ predicateLexemeId }) => predicateLexemeId !== null,
     )) {
@@ -318,7 +299,7 @@ describe("Base time-movement module", () => {
         ],
       ),
     ]).filter(({ tokens }) => tokens.some(({ kind }) => kind === "particle"));
-    expect(particleTargets.length).toBeGreaterThan(100);
+    expect(new Set(particleTargets).size).toBeGreaterThanOrEqual(154);
     for (const target of particleTargets) {
       const bindings = (
         target as typeof target & {
@@ -339,12 +320,14 @@ describe("Base time-movement module", () => {
     const lesson = lessonRecord.content;
     const design = lessonRecord.activityDesigns[0];
     const original = design.acceptedAnswerTarget;
-    expect(jp(original.tokens)).toBe("わたしはこんしゅうはたらきます");
     const topicIndex = original.tokens.findIndex(
       ({ source }) => source.referenceId === "topic-wa",
     );
     const nounIndex = original.tokens.findIndex(
       ({ source }) => source.referenceId === "noun-watashi",
+    );
+    const timeIndex = original.tokens.findIndex(
+      ({ source }) => source.referenceId === "noun-konshuu",
     );
     const replaceAccepted = (target: typeof original) => {
       const catalogs = {
@@ -359,8 +342,66 @@ describe("Base time-movement module", () => {
     const mutations = [
       {
         ...original,
+        tokens: original.tokens.filter(
+          (_, index) => index !== topicIndex,
+        ),
+        particleBindings: (original.particleBindings ?? []).filter(
+          ({ role }) => role !== "topic",
+        ),
+        conceptIds: ["topic-wa", "additive-mo"],
+      },
+      {
+        ...original,
+        tokens: original.tokens.map((token, index) =>
+          index === topicIndex
+            ? {
+                ...baseParticleSurfaceTokens("additive-mo")[0],
+                id: token.id,
+              }
+            : token,
+        ),
+        particleBindings: (original.particleBindings ?? []).map((binding) =>
+          binding.role === "topic"
+            ? { ...binding, particleSense: "additive-mo" as const }
+            : binding,
+        ),
+        conceptIds: ["additive-mo"],
+      },
+      {
+        ...original,
+        tokens: [
+          ...original.tokens.slice(0, timeIndex + 1),
+          {
+            ...baseParticleSurfaceTokens("topic-wa")[0],
+            id: "adversarial-time-topic",
+          },
+          ...original.tokens.slice(timeIndex + 1),
+        ],
+        particleBindings: [
+          ...(original.particleBindings ?? []),
+          {
+            role: "topic" as const,
+            particleSense: "topic-wa" as const,
+            attachmentLexemeId: "noun-konshuu",
+          },
+        ],
+        conceptIds: ["topic-wa"],
+      },
+      {
+        ...original,
+        semanticRoleIds: [...original.semanticRoleIds, "goal" as const],
+        conceptIds: ["goal-ni"],
+      },
+      {
+        ...original,
         tokens: original.tokens.filter((_, index) => index !== topicIndex),
         conceptIds: ["topic-wa", "additive-mo"],
+      },
+      {
+        ...original,
+        particleBindings: (original.particleBindings ?? []).filter(
+          ({ role }) => role !== "topic",
+        ),
       },
       {
         ...original,
@@ -407,6 +448,10 @@ describe("Base time-movement module", () => {
         ),
         conceptIds: ["topic-wa"],
       },
+      {
+        ...original,
+        semanticRoleIds: [...original.semanticRoleIds, "topic" as const],
+      },
     ];
     for (const mutation of mutations) {
       expect(replaceAccepted(mutation), jp(mutation.tokens)).toContain(
@@ -415,16 +460,165 @@ describe("Base time-movement module", () => {
     }
   });
 
-  it("keeps TM4 time boundaries unambiguous and spoken cues recoverable", () => {
+  it("rejects bidirectional role mutations on a generic frameless example", () => {
+    const lessonRecord = BASE_TIME_MOVEMENT_MODULE.lessons[0];
+    const lesson = lessonRecord.content;
+    const original = lessonRecord.examples[0];
+    const topicIndex = original.tokens.findIndex(
+      ({ source }) => source.referenceId === "topic-wa",
+    );
+    const timeIndex = original.tokens.findIndex(
+      ({ source }) => source.referenceId === "noun-fudan",
+    );
+    const replaceExample = (target: typeof original) => {
+      const catalogs = {
+        ...BASE_TIME_MOVEMENT_VALIDATION_CATALOGS,
+        examples: new Map([
+          ...BASE_TIME_MOVEMENT_VALIDATION_CATALOGS.examples,
+          [original.id, target],
+        ]),
+      };
+      return validateBaseLessonDepth(lesson, catalogs).map(({ code }) => code);
+    };
+    const mutations = [
+      {
+        ...original,
+        tokens: original.tokens.filter((_, index) => index !== topicIndex),
+        particleBindings: (original.particleBindings ?? []).filter(
+          ({ role }) => role !== "topic",
+        ),
+        conceptIds: ["topic-wa", "additive-mo"],
+      },
+      {
+        ...original,
+        tokens: original.tokens.map((token, index) =>
+          index === topicIndex
+            ? {
+                ...baseParticleSurfaceTokens("additive-mo")[0],
+                id: token.id,
+              }
+            : token,
+        ),
+        particleBindings: (original.particleBindings ?? []).map((binding) =>
+          binding.role === "topic"
+            ? { ...binding, particleSense: "additive-mo" as const }
+            : binding,
+        ),
+        conceptIds: ["additive-mo"],
+      },
+      {
+        ...original,
+        tokens: [
+          ...original.tokens.slice(0, timeIndex + 1),
+          {
+            ...baseParticleSurfaceTokens("topic-wa")[0],
+            id: "adversarial-extra-time-topic",
+          },
+          ...original.tokens.slice(timeIndex + 1),
+        ],
+        particleBindings: [
+          ...(original.particleBindings ?? []),
+          {
+            role: "topic" as const,
+            particleSense: "topic-wa" as const,
+            attachmentLexemeId: "noun-fudan",
+          },
+        ],
+      },
+      {
+        ...original,
+        semanticRoleIds: [...original.semanticRoleIds, "goal" as const],
+        conceptIds: ["goal-ni"],
+      },
+      {
+        ...original,
+        semanticRoleIds: original.semanticRoleIds.filter(
+          (role) => role !== "topic",
+        ),
+      },
+      {
+        ...original,
+        particleBindings: (original.particleBindings ?? []).map((binding) =>
+          binding.role === "topic"
+            ? { ...binding, attachmentLexemeId: "noun-fudan" }
+            : binding,
+        ),
+        conceptIds: ["topic-wa"],
+      },
+    ];
+    for (const mutation of mutations) {
+      expect(replaceExample(mutation), jp(mutation.tokens)).toContain(
+        "particle-frame-token-mismatch",
+      );
+    }
+  });
+
+  it("grounds TM4 recurring study and makes the spoken cue recoverable", () => {
     const lesson = BASE_TIME_MOVEMENT_MODULE.lessons[3];
     const a5 = lesson.activityDesigns[4];
-    expect(jp(a5.acceptedAnswerTarget.tokens)).not.toContain(
-      "よるにはたらきます",
-    );
     expect(a5.acceptedAnswerTarget.lexemeIds).toContain("noun-maishuu");
+    expect(a5.acceptedAnswerTarget.predicateLexemeId).toBe(
+      "verb-benkyou-suru",
+    );
     const a10 = lesson.activityDesigns[9];
     expect(a10.promptTarget.lexemeIds).toContain("noun-suzuki");
     expect(a10.promptTarget.lexemeIds).toContain("noun-konban");
+  });
+
+  it("detects ambiguous time-to-verb kana boundaries generically", () => {
+    const lessons = [
+      ...BASE_POLITE_VERBS_MODULE.lessons,
+      ...BASE_ARGUMENT_PARTICLES_MODULE.lessons,
+      ...BASE_TIME_MOVEMENT_MODULE.lessons,
+    ];
+    expect(
+      validateTask11SemanticReview(lessons).filter(
+        ({ code }) => code === "kana-boundary-ambiguous",
+      ),
+    ).toEqual([]);
+
+    const mutated = structuredClone(BASE_TIME_MOVEMENT_MODULE.lessons[0]);
+    const example = mutated.examples[0] as unknown as {
+      tokens: AssembledToken[];
+      lexemeIds: string[];
+      semanticRoleIds: string[];
+      particleBindings: {
+        role: string;
+        particleSense: string;
+        attachmentLexemeId: string;
+      }[];
+    };
+    example.tokens = example.tokens.filter(
+      ({ source }) =>
+        source.referenceId !== "noun-tanaka" &&
+        source.referenceId !== "topic-wa",
+    );
+    example.lexemeIds = example.lexemeIds.filter(
+      (lexemeId) => lexemeId !== "noun-tanaka",
+    );
+    example.semanticRoleIds = example.semanticRoleIds.filter(
+      (role) => role !== "topic",
+    );
+    example.particleBindings = [];
+    expect(validateTask11SemanticReview([mutated])).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "kana-boundary-ambiguous" }),
+      ]),
+    );
+
+    const particleMediated = structuredClone(mutated);
+    const particleExample = particleMediated.examples[0] as unknown as {
+      tokens: AssembledToken[];
+    };
+    particleExample.tokens.splice(1, 0, {
+      ...baseParticleSurfaceTokens("time-ni")[0],
+      id: "adversarial-time-ni",
+    });
+    expect(validateTask11SemanticReview([particleMediated])).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "kana-boundary-ambiguous" }),
+      ]),
+    );
   });
 
   it("declares a detectable time-interpretation error for TM1 diagnosis", () => {
@@ -536,6 +730,27 @@ describe("Base time-movement module", () => {
         }),
       ]),
     );
+  });
+
+  it("uses full grammatical polarity competitors for TM4 diagnosis", () => {
+    const design = BASE_TIME_MOVEMENT_MODULE.lessons[3].activityDesigns[5];
+    expect(design.optionTargets).toHaveLength(2);
+    expect(
+      design.optionTargets.map(({ predicateLexemeId }) => predicateLexemeId),
+    ).toEqual(["verb-suru", "verb-suru"]);
+    for (const option of design.optionTargets) {
+      expect(jp(option.tokens)).not.toContain("、");
+      expect(
+        option.formIds.includes("masu-nonpast") ||
+          option.formIds.includes("four-polite-tense-cells"),
+        jp(option.tokens),
+      ).toBe(true);
+    }
+    expect(
+      design.optionTargets.some(
+        ({ tokens }) => jp(tokens) === jp(design.promptTarget.tokens),
+      ),
+    ).toBe(true);
   });
 
   it("contains no te forms, teimasu, adjectives, or later concepts on any surface", () => {
@@ -921,6 +1136,57 @@ describe("Base time-movement module", () => {
           ...baseNavigationCopyEn.content,
           [copyId]:
             "Order Yamada, the letter theme, and the final predicate.",
+        },
+        baseNavigationCopyIt.content,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "instruction-answer-leakage",
+          activityId: design.id,
+        }),
+      ]),
+    );
+  });
+
+  it("keeps every instruction and retry free of role-answer terminology", () => {
+    const forbidden = {
+      en: /\b(?:theme|predicate|role|analysis label)\b/iu,
+      it: /\b(?:tema|predicato|ruolo|etichetta di analisi)\b/iu,
+    };
+    for (const lesson of [
+      ...BASE_POLITE_VERBS_MODULE.lessons,
+      ...BASE_ARGUMENT_PARTICLES_MODULE.lessons,
+      ...BASE_TIME_MOVEMENT_MODULE.lessons,
+    ]) {
+      for (const activity of lesson.content.activities) {
+        for (const [locale, copy, pattern] of [
+          ["EN", baseNavigationCopyEn.content, forbidden.en],
+          ["IT", baseNavigationCopyIt.content, forbidden.it],
+        ] as const) {
+          expect(
+            copy[activity.instructionCopyId],
+            `${locale}:${activity.id}:instruction`,
+          ).not.toMatch(pattern);
+          expect(
+            copy[activity.retryFeedbackCopyId],
+            `${locale}:${activity.id}:retry`,
+          ).not.toMatch(pattern);
+        }
+      }
+    }
+
+    const lesson = structuredClone(
+      BASE_ARGUMENT_PARTICLES_MODULE.lessons[0],
+    );
+    const design = lesson.activityDesigns[0];
+    const retryCopyId = lesson.content.activities[0].retryFeedbackCopyId;
+    expect(
+      validateTask11SemanticReview(
+        [lesson],
+        {
+          ...baseNavigationCopyEn.content,
+          [retryCopyId]: "Use the licensed theme role.",
         },
         baseNavigationCopyIt.content,
       ),

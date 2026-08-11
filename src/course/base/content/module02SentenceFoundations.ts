@@ -1422,10 +1422,19 @@ export function validatePublishedSemanticActivities(
       practiceSurfaces.add(surface);
     }
     const promptSurface = targetSurface(design.promptTarget);
+    const matchingPromptOptions = optionTargets.filter(
+      (target) => targetSurface(target) === promptSurface,
+    );
     if (
       !promptSurface ||
       /[◇◎●↔♪↺→]/.test(promptSurface) ||
-      optionTargets.some((target) => targetSurface(target) === promptSurface)
+      (matchingPromptOptions.length > 0 &&
+        !(
+          design.operation === "diagnose-error" &&
+          matchingPromptOptions.length === 1 &&
+          optionTargets[correctOptionIndex as number] !==
+            matchingPromptOptions[0]
+        ))
     ) {
       return false;
     }

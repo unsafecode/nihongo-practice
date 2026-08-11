@@ -185,12 +185,18 @@ export type SemanticArgumentRole =
   | "agent"
   | "theme"
   | "topic"
+  | "additive-topic"
+  | "focus-subject"
   | "location"
+  | "action-place"
   | "time"
   | "means"
   | "source"
   | "limit"
+  | "possessor"
+  | "listing"
   | "companion"
+  | "direction"
   | "goal";
 
 /**

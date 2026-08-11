@@ -37,6 +37,7 @@ const PARTICLE_FRAME_ROLES = new Set([
   "theme",
   "goal",
   "topic",
+  "additive-topic",
   "focus-subject",
   "action-place",
   "means",

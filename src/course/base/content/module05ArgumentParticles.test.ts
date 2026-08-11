@@ -149,7 +149,9 @@ describe("Base argument-particles module", () => {
           ),
           jp(target.tokens),
         ).toMatchObject({ ok: true });
-        for (const role of Object.keys(target.particleFrame?.provided ?? {})) {
+        for (const [role, particleSense] of Object.entries(
+          target.particleFrame?.provided ?? {},
+        )) {
           if (
             ![
               "theme",
@@ -165,7 +167,9 @@ describe("Base argument-particles module", () => {
             continue;
           }
           expect(target.semanticRoleIds).toContain(
-            role === "action-place" ? "location" : role,
+            role === "goal" && particleSense === "direction-he"
+              ? "direction"
+              : role,
           );
         }
       }
@@ -429,6 +433,17 @@ describe("Base argument-particles module", () => {
         .map(({ code }) => code)
         .filter((code) => code === "particle-frame-token-mismatch"),
     ).toEqual(expect.arrayContaining(["particle-frame-token-mismatch"]));
+
+    const forgedSemanticRole = {
+      ...original,
+      semanticRoleIds: [...original.semanticRoleIds, "goal" as const],
+      conceptIds: ["goal-ni"],
+    };
+    expect(
+      replaceAccepted(forgedSemanticRole)
+        .map(({ code }) => code)
+        .filter((code) => code === "particle-frame-token-mismatch"),
+    ).toEqual(expect.arrayContaining(["particle-frame-token-mismatch"]));
   });
 
   it("teaches transitive theme o and a licensed topicalized theme", () => {
@@ -443,6 +458,63 @@ describe("Base argument-particles module", () => {
           predicateSenseId !== null,
       ),
     ).toBe(true);
+  });
+
+  it("rejects an unrealized semantic role on a framed example", () => {
+    const lesson = BASE_ARGUMENT_PARTICLES_MODULE.lessons[0].content;
+    const original = BASE_ARGUMENT_PARTICLES_MODULE.lessons[0].examples[0];
+    const mutated = {
+      ...original,
+      semanticRoleIds: [...original.semanticRoleIds, "goal" as const],
+      conceptIds: ["goal-ni"],
+    };
+    const catalogs = {
+      ...BASE_ARGUMENT_PARTICLES_VALIDATION_CATALOGS,
+      examples: new Map([
+        ...BASE_ARGUMENT_PARTICLES_VALIDATION_CATALOGS.examples,
+        [original.id, mutated],
+      ]),
+    };
+    expect(
+      validateBaseLessonDepth(lesson, catalogs).map(({ code }) => code),
+    ).toContain("particle-frame-token-mismatch");
+  });
+
+  it("keeps goal-ni, direction-he, and action-place roles semantically exact", () => {
+    const movementRecord = BASE_ARGUMENT_PARTICLES_MODULE.lessons[1];
+    const direction = movementRecord.examples[2];
+    const forgedGoal = {
+      ...direction,
+      semanticRoleIds: direction.semanticRoleIds.map((role) =>
+        role === "direction" ? ("goal" as const) : role,
+      ),
+    };
+    expect(
+      validateBaseLessonDepth(movementRecord.content, {
+        ...BASE_ARGUMENT_PARTICLES_VALIDATION_CATALOGS,
+        examples: new Map([
+          ...BASE_ARGUMENT_PARTICLES_VALIDATION_CATALOGS.examples,
+          [direction.id, forgedGoal],
+        ]),
+      }).map(({ code }) => code),
+    ).toContain("particle-frame-token-mismatch");
+
+    const placeRecord = BASE_ARGUMENT_PARTICLES_MODULE.lessons[2];
+    for (const target of [
+      ...placeRecord.examples,
+      ...placeRecord.activityDesigns.flatMap(
+        ({ promptTarget, optionTargets, acceptedAnswerTarget }) => [
+          promptTarget,
+          ...optionTargets,
+          acceptedAnswerTarget,
+        ],
+      ),
+    ].filter((target) =>
+      target.particleBindings?.some(({ role }) => role === "action-place"),
+    )) {
+      expect(target.semanticRoleIds, jp(target.tokens)).toContain("action-place");
+      expect(target.semanticRoleIds, jp(target.tokens)).not.toContain("location");
+    }
   });
 
   it("makes AP1 packaging contexts determinate without later particles", () => {
@@ -477,6 +549,26 @@ describe("Base argument-particles module", () => {
       ]),
     );
     expect(jp(listening.optionTargets[0].tokens)).not.toContain("ね");
+  });
+
+  it("holds AP1 A4 constant except for object versus topical packaging", () => {
+    const lesson = BASE_ARGUMENT_PARTICLES_MODULE.lessons[0];
+    const design = lesson.activityDesigns[3];
+    const structuralSources = design.optionTargets.map(({ tokens }) =>
+      tokens
+        .filter(
+          ({ source }) =>
+            source.referenceId !== "object-o" &&
+            source.referenceId !== "topic-wa",
+        )
+        .map(({ source }) => source.referenceId),
+    );
+    expect(structuralSources[0]).toEqual(structuralSources[1]);
+    expect(
+      baseNavigationCopyEn.content[
+        lesson.content.activities[3].instructionCopyId
+      ].toLowerCase(),
+    ).toMatch(/(?:new information|neutral)/u);
   });
 
   it("uses genuine clause contrasts instead of label-only AP3 choices", () => {

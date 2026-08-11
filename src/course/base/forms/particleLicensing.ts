@@ -42,6 +42,7 @@ export type BaseParticleSense =
 export type BaseParticleRole =
   | Extract<SemanticArgumentRole, "theme" | "goal">
   | "topic"
+  | "additive-topic"
   | "focus-subject"
   | "action-place"
   | "means"
@@ -316,7 +317,8 @@ const AUTHORED_ARGUMENT_PARTICLES_BY_PREDICATE: Readonly<
 const AUTHORED_DISCOURSE_PARTICLE_SENSES_BY_ROLE: Readonly<
   Partial<Record<BaseParticleRole, readonly BaseParticleSense[]>>
 > = deepFreeze({
-  topic: ["topic-wa", "additive-mo"],
+  topic: ["topic-wa"],
+  "additive-topic": ["additive-mo"],
   "focus-subject": ["focus-subject-ga"],
   possessor: ["possessive-attributive-no"],
   companion: ["companion-to"],
@@ -699,6 +701,7 @@ const BASE_PARTICLE_ROLE_BY_ID: ReadonlyMap<BaseParticleRole, BaseParticleRole> 
       "theme",
       "goal",
       "topic",
+      "additive-topic",
       "focus-subject",
       "action-place",
       "means",

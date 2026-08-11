@@ -919,19 +919,72 @@ const PREDICATE_FRAME_PARTICLE_ROLES = new Set([
 ]);
 const TASK11_REFERENCE_PREFIX =
   /^(?:polite-verbs|argument-particles|time-movement)-/u;
-const SEMANTIC_ROLE_BY_PARTICLE_ROLE: Readonly<
-  Partial<Record<BaseParticleRole, SemanticArgumentRole>>
+const SEMANTIC_ROLES_BY_PARTICLE_ROLE: Readonly<
+  Partial<Record<BaseParticleRole, readonly SemanticArgumentRole[]>>
 > = {
-  topic: "topic",
-  theme: "theme",
-  goal: "goal",
-  "action-place": "location",
-  means: "means",
-  time: "time",
-  source: "source",
-  limit: "limit",
-  companion: "companion",
+  topic: ["topic"],
+  "additive-topic": ["additive-topic"],
+  "focus-subject": ["focus-subject"],
+  theme: ["theme"],
+  goal: ["goal", "direction"],
+  "action-place": ["action-place"],
+  means: ["means"],
+  time: ["time"],
+  source: ["source"],
+  limit: ["limit"],
+  possessor: ["possessor"],
+  listing: ["listing"],
+  companion: ["companion"],
 };
+const PARTICLE_SENSES_BY_BINDING_ROLE: Readonly<
+  Partial<Record<BaseParticleRole, readonly string[]>>
+> = {
+  topic: ["topic-wa"],
+  "additive-topic": ["additive-mo"],
+  "focus-subject": ["focus-subject-ga"],
+  theme: ["object-o", "topic-wa"],
+  goal: ["goal-ni", "direction-he"],
+  "action-place": ["action-place-de"],
+  means: ["means-de"],
+  time: ["time-ni"],
+  source: ["source-kara"],
+  limit: ["limit-made"],
+  possessor: ["possessive-attributive-no"],
+  listing: ["listing-to"],
+  companion: ["companion-to"],
+  question: ["question-ka"],
+  interaction: ["interactional-ne", "interactional-yo"],
+};
+const PARTICLE_ROLES_BY_SEMANTIC_ROLE: Readonly<
+  Partial<Record<SemanticArgumentRole, readonly BaseParticleRole[]>>
+> = {
+  topic: ["topic"],
+  "additive-topic": ["additive-topic"],
+  "focus-subject": ["focus-subject"],
+  theme: ["theme"],
+  goal: ["goal"],
+  direction: ["goal"],
+  "action-place": ["action-place"],
+  time: ["time"],
+  means: ["means"],
+  source: ["source"],
+  limit: ["limit"],
+  possessor: ["possessor"],
+  listing: ["listing"],
+  companion: ["companion"],
+};
+const PARTICLELESS_TIME_LEXEME_IDS = new Set([
+  "noun-fudan",
+  "noun-maishuu",
+  "noun-ashita",
+  "noun-kyou",
+  "noun-kinou",
+  "noun-senshuu",
+  "noun-konshuu",
+  "noun-raishuu",
+  "noun-kesa",
+  "noun-konban",
+]);
 
 function validateParticleTokenMultiset(
   target: BaseVisibleTarget,
@@ -970,6 +1023,15 @@ function validateParticleTokenMultiset(
         `${particleSense}@${attachmentLexemeId}`,
     )
     .sort();
+  const semanticRolesAreUnique =
+    new Set(target.semanticRoleIds).size === target.semanticRoleIds.length;
+  const bindingsAreUnique =
+    new Set(
+      bindings.map(
+        ({ role, particleSense, attachmentLexemeId }) =>
+          `${role}:${particleSense}@${attachmentLexemeId}`,
+      ),
+    ).size === bindings.length;
   const attachmentsAreCanonical = bindings.every(
     ({ role, attachmentLexemeId }) =>
       CLAUSE_FINAL_PARTICLE_ROLES.has(role)
@@ -977,10 +1039,40 @@ function validateParticleTokenMultiset(
         : target.lexemeIds.includes(attachmentLexemeId) &&
           BASE_LEXEME_BY_ID.get(attachmentLexemeId)?.category === "noun",
   );
-  const semanticRolesAgree = bindings.every(({ role }) => {
-    const semanticRole = SEMANTIC_ROLE_BY_PARTICLE_ROLE[role];
-    return !semanticRole || target.semanticRoleIds.includes(semanticRole);
+  const bindingRolesAgree = bindings.every(({ role, particleSense }) => {
+    const semanticRoles = SEMANTIC_ROLES_BY_PARTICLE_ROLE[role];
+    const allowedSenses = PARTICLE_SENSES_BY_BINDING_ROLE[role];
+    return (
+      (!semanticRoles ||
+        semanticRoles.some((semanticRole) =>
+          target.semanticRoleIds.includes(semanticRole),
+        )) &&
+      allowedSenses?.includes(particleSense) === true
+    );
   });
+  const semanticRolesRealized = target.semanticRoleIds.every(
+    (semanticRole) => {
+      const expectedRoles = PARTICLE_ROLES_BY_SEMANTIC_ROLE[semanticRole];
+      if (!expectedRoles) return true;
+      const matchingBindings = bindings.filter(({ role, particleSense }) => {
+        if (!expectedRoles.includes(role)) return false;
+        if (semanticRole === "goal") return particleSense === "goal-ni";
+        if (semanticRole === "direction") return particleSense === "direction-he";
+        return true;
+      });
+      if (matchingBindings.length === 1) return true;
+      if (semanticRole !== "time" || matchingBindings.length !== 0) {
+        return false;
+      }
+      return (
+        (target.conceptIds.includes("relative-time-omission") ||
+          target.conceptIds.includes("habit-future-time-cues")) &&
+        target.lexemeIds.some((lexemeId) =>
+          PARTICLELESS_TIME_LEXEME_IDS.has(lexemeId),
+        )
+      );
+    },
+  );
   const frameEntries = target.particleFrame
     ? particleProvidedEntries(target.particleFrame.provided).entries
     : [];
@@ -1024,7 +1116,10 @@ function validateParticleTokenMultiset(
       });
   if (
     !attachmentsAreCanonical ||
-    !semanticRolesAgree ||
+    !semanticRolesAreUnique ||
+    !bindingsAreUnique ||
+    !bindingRolesAgree ||
+    !semanticRolesRealized ||
     !frameBindingsAgree ||
     visible.length !== declared.length ||
     visible.some((sense, index) => sense !== declared[index])
