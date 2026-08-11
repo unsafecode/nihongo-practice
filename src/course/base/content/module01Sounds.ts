@@ -204,6 +204,8 @@ const BASE_KANA_ROMAJI = new Map(
 BASE_KANA_ROMAJI.set("ゃ", "ya");
 BASE_KANA_ROMAJI.set("ゅ", "yu");
 BASE_KANA_ROMAJI.set("ょ", "yo");
+BASE_KANA_ROMAJI.set("ぢ", "di");
+BASE_KANA_ROMAJI.set("づ", "du");
 
 function hiraganaFor(character: string): string {
   const codePoint = character.codePointAt(0);
@@ -213,6 +215,14 @@ function hiraganaFor(character: string): string {
 }
 
 export function romanizeBaseSoundSurface(kana: string): string {
+  if (kana.includes("・")) {
+    const morae = kana.split("・");
+    return morae
+      .map((mora) =>
+        mora === "っ" ? "q" : romanizeBaseSoundSurface(mora),
+      )
+      .join(morae.includes("っ") ? " · " : " ");
+  }
   const normalized = [...kana].map(hiraganaFor).join("");
   const parts: string[] = [];
   let geminate = false;
@@ -244,6 +254,42 @@ export function romanizeBaseSoundSurface(kana: string): string {
     if (pairRomaji) index += 1;
   }
   return parts.join("").replace(/\s+/g, " ").trim();
+}
+
+const BASE_SOUND_SURFACE_PUNCTUATION = new Set([" ", "　", "・", "＿"]);
+
+function lessonOwnedKana(lessonId: string): ReadonlySet<string> | undefined {
+  const basic = [...BASIC_HIRAGANA];
+  if (lessonId === "sounds-1") return new Set(basic);
+  const voiced = [...basic, ...DAKUTEN_HIRAGANA, ...HANDAKUTEN_HIRAGANA];
+  if (lessonId === "sounds-2") return new Set(voiced);
+  if (lessonId === "sounds-3") return new Set([...voiced, "っ"]);
+  if (lessonId === "sounds-4") {
+    return new Set([
+      ...voiced,
+      "っ",
+      "ゃ",
+      "ゅ",
+      "ょ",
+      ...KATAKANA_BRIDGE,
+    ]);
+  }
+  return undefined;
+}
+
+export function isBaseSoundSurfaceOwnedByLesson(
+  lessonId: string,
+  surface: string,
+): boolean {
+  const owned = lessonOwnedKana(lessonId);
+  return (
+    owned !== undefined &&
+    [...surface].every(
+      (character) =>
+        BASE_SOUND_SURFACE_PUNCTUATION.has(character) ||
+        owned.has(character),
+    )
+  );
 }
 
 function contrast(
@@ -446,36 +492,36 @@ const ACTIVITY_SURFACES: Readonly<
   Record<string, BaseSoundActivitySurfaceSeed>
 > = {
   "snd1-discriminate-vowels": { prompt: "あ　＿", options: ["い", "え"], correctIndex: 0 },
-  "snd1-segment-asa": { prompt: "あさ", options: ["あ・さ", "あ・あ・さ"], correctIndex: 0 },
-  "snd1-recognize-gojuon": { prompt: "さ　し　す　せ　そ", options: ["たちつてと", "さしすせそ"], correctIndex: 1 },
+  "snd1-segment-asa": { prompt: "あさ　ああさ", options: ["あ・さ", "あ・あ・さ"], correctIndex: 0 },
+  "snd1-recognize-gojuon": { prompt: "さ　＿　す　＿　そ", options: ["たちつてと", "さしすせそ"], correctIndex: 1 },
   "snd1-map-hiragana-row": { prompt: "か　き　く　け　＿", options: ["さしすせそ", "かきくけこ"], correctIndex: 1 },
-  "snd1-match-ie": { prompt: "い・え", options: ["うえ", "いえ"], correctIndex: 1 },
-  "snd1-assemble-umi": { prompt: "う・み", options: ["うに", "うみ"], correctIndex: 1 },
-  "snd1-listen-u": { prompt: "きいて　えらぶ", options: ["お", "う"], correctIndex: 1 },
+  "snd1-match-ie": { prompt: "＿・え　い", options: ["いえ", "うえ"], correctIndex: 0 },
+  "snd1-assemble-umi": { prompt: "み・う", options: ["うに", "うみ"], correctIndex: 1 },
+  "snd1-listen-u": { prompt: "う　お", options: ["う", "お"], correctIndex: 0 },
   "snd1-read-neko": { prompt: "ねこ", options: [], correctIndex: null, spokenAnswer: "ねこ" },
-  "snd2-discriminate-kaga": { prompt: "か　が", options: ["か・が", "か・ざ"], correctIndex: 0 },
-  "snd2-segment-kagi": { prompt: "かぎ", options: ["か・き", "か・ぎ"], correctIndex: 1 },
-  "snd2-recognize-jidi": { prompt: "じ　ぢ　ず　づ", options: ["じ・じ・ず・ず", "じ・ぢ・ず・づ"], correctIndex: 1 },
+  "snd2-discriminate-kaga": { prompt: "か　＿", options: ["か・が", "か・ざ"], correctIndex: 0 },
+  "snd2-segment-kagi": { prompt: "かぎ　かき", options: ["か・き", "か・ぎ"], correctIndex: 1 },
+  "snd2-recognize-jidi": { prompt: "じ　＿　ず　＿", options: ["じ・じ・ず・ず", "じ・ぢ・ず・づ"], correctIndex: 1 },
   "snd2-map-dakuten": { prompt: "た　＿　は　ば　＿", options: ["だ・ぱ", "ざ・な"], correctIndex: 0 },
-  "snd2-match-kaze": { prompt: "か・ぜ", options: ["かせ", "かぜ"], correctIndex: 1 },
-  "snd2-assemble-denwa": { prompt: "で・ん・わ", options: ["でわ", "でんわ"], correctIndex: 1 },
-  "snd2-listen-kaga": { prompt: "きいて　えらぶ", options: ["か", "が"], correctIndex: 1 },
+  "snd2-match-kaze": { prompt: "＿・ぜ　か", options: ["かぜ", "かせ"], correctIndex: 0 },
+  "snd2-assemble-denwa": { prompt: "わ・で・ん", options: ["でわ", "でんわ"], correctIndex: 1 },
+  "snd2-listen-kaga": { prompt: "か　が", options: ["が", "か"], correctIndex: 0 },
   "snd2-read-panpu": { prompt: "ぱ　ぷ", options: [], correctIndex: null, spokenAnswer: "ぱ　ぷ" },
-  "snd3-discriminate-obasan": { prompt: "おばさん　＿", options: ["おばあさん", "おじさん"], correctIndex: 0 },
-  "snd3-segment-gakkou": { prompt: "がっこう", options: ["が・こ・う", "が・っ・こ・う"], correctIndex: 1 },
-  "snd3-recognize-small-tsu": { prompt: "きて　きって", options: ["きて", "きって"], correctIndex: 1 },
-  "snd3-map-moraic-n": { prompt: "か　＿", options: ["ん", "な"], correctIndex: 0 },
-  "snd3-match-hon": { prompt: "ほ・ん", options: ["ほ", "ほん"], correctIndex: 1 },
-  "snd3-assemble-kippu": { prompt: "き・っ・ぷ", options: ["きぷ", "きっぷ"], correctIndex: 1 },
-  "snd3-listen-kan": { prompt: "きいて　えらぶ", options: ["かん", "か"], correctIndex: 0 },
+  "snd3-discriminate-obasan": { prompt: "お・ば・＿・さ・ん", options: ["おばあさん", "おばさん"], correctIndex: 0 },
+  "snd3-segment-gakkou": { prompt: "がっこう　がこう", options: ["が・こ・う", "が・っ・こ・う"], correctIndex: 1 },
+  "snd3-recognize-small-tsu": { prompt: "き・＿・て", options: ["きて", "きって"], correctIndex: 1 },
+  "snd3-map-moraic-n": { prompt: "ほ　ん　　か　＿", options: ["ん", "な"], correctIndex: 0 },
+  "snd3-match-hon": { prompt: "ん　ほ・＿", options: ["ほ", "ほん"], correctIndex: 1 },
+  "snd3-assemble-kippu": { prompt: "ぷ・き・っ", options: ["きぷ", "きっぷ"], correctIndex: 1 },
+  "snd3-listen-kan": { prompt: "か　かん", options: ["かん", "か"], correctIndex: 0 },
   "snd3-read-obaasan": { prompt: "おばあさん", options: [], correctIndex: null, spokenAnswer: "お・ば・あ・さ・ん" },
-  "snd4-discriminate-yoon": { prompt: "きゃ　＿", options: ["しや", "しゃ", "ちゃ"], correctIndex: 1 },
-  "snd4-segment-ryokou": { prompt: "りょこう", options: ["りょ・こ・う", "り・ょ・こ・う"], correctIndex: 0 },
-  "snd4-recognize-small-yoon": { prompt: "にゆ　にゅ", options: ["にゅ・にゆ", "にゆ・にゅ"], correctIndex: 1 },
-  "snd4-map-katakana": { prompt: "あ　か　こ", options: ["オ・サ・ソ", "ア・カ・コ"], correctIndex: 1 },
-  "snd4-match-shashin": { prompt: "しゃ・し・ん", options: ["しやしん", "しゃしん"], correctIndex: 1 },
-  "snd4-assemble-kyaku": { prompt: "きゃ・く", options: ["きやく", "きゃく"], correctIndex: 1 },
-  "snd4-listen-nyuryo": { prompt: "きいて　えらぶ", options: ["りょ", "にゅ"], correctIndex: 1 },
+  "snd4-discriminate-yoon": { prompt: "きゃ　しゃ　＿", options: ["ちゃ", "ちや", "じゃ"], correctIndex: 0 },
+  "snd4-segment-ryokou": { prompt: "りょこう　りよこう", options: ["りょ・こ・う", "り・ょ・こ・う"], correctIndex: 0 },
+  "snd4-recognize-small-yoon": { prompt: "きゅ　＿", options: ["にゅ　みゅ", "にゆ　みゆ"], correctIndex: 0 },
+  "snd4-map-katakana": { prompt: "あ　か　こ", options: ["イ・キ・ク", "ア・カ・コ"], correctIndex: 1 },
+  "snd4-match-shashin": { prompt: "＿・し・ん　しゃ", options: ["しゃしん", "しやしん"], correctIndex: 0 },
+  "snd4-assemble-kyaku": { prompt: "く・きゃ", options: ["きやく", "きゃく"], correctIndex: 1 },
+  "snd4-listen-nyuryo": { prompt: "にゅ　りょ", options: ["りょ", "にゅ"], correctIndex: 1 },
   "snd4-read-chuui": { prompt: "ちゅうい", options: [], correctIndex: null, spokenAnswer: "ちゅうい" },
 };
 
@@ -544,7 +590,7 @@ const SOUND_3_ACTIVITY_DESIGNS: readonly BaseSoundActivityDesign[] = [
   design("snd3-discriminate-obasan", 0, "anchor-obaasan", ["snd3-obasan", "snd3-obasan-obaasan"]),
   design("snd3-segment-gakkou", 1, "anchor-gakkou", []),
   design("snd3-recognize-small-tsu", 2, "anchor-kippu", ["snd3-kite", "snd3-kite-kitte"]),
-  design("snd3-map-moraic-n", 3, "anchor-hon", ["snd3-ka"]),
+  design("snd3-map-moraic-n", 3, "anchor-hon", ["snd3-ka", "snd3-ho"]),
   design("snd3-match-hon", 4, "anchor-hon", ["snd3-ho"]),
   design("snd3-assemble-kippu", 5, "anchor-kippu", []),
   design("snd3-listen-kan", 6, "anchor-gakkou", ["snd3-ka", "snd3-ka-kan"], "snd3-ka-kan"),
@@ -1213,7 +1259,7 @@ export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidati
 
     const designs = densePlainArray(own(definition, "activityDesigns"));
     const activityValues = densePlainArray(own(content, "activities"));
-    const correctPositions = new Set<number>();
+    const correctPositions: number[] = [];
     if (!designs || !activityValues || designs.length !== 8 || activityValues.length !== 8) {
       errors.add("invalid-phonetic-activities");
     } else {
@@ -1265,7 +1311,7 @@ export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidati
           typeof correctOptionTargetId === "string"
             ? (optionTargetIds ?? []).indexOf(correctOptionTargetId)
             : -1;
-        if (correctPosition >= 0) correctPositions.add(correctPosition);
+        if (correctPosition >= 0) correctPositions.push(correctPosition);
         const expectedAnswerKana =
           correctPosition >= 0
             ? optionTargets[correctPosition]?.kana
@@ -1315,13 +1361,41 @@ export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidati
                   .filter((hash): hash is string => typeof hash === "string"),
               )
             : null;
-        const promptScriptValid =
-          promptTarget !== undefined &&
-          !/[\u3400-\u9fff]/.test(promptTarget.kana) &&
-          (lessonIndex === 3 ||
-            !/[\u30a1-\u30fa\u30fc]/.test(promptTarget.kana));
+        const targetScriptValid = typedTargets.every(
+          (target) =>
+            target !== undefined &&
+            typeof lessonId === "string" &&
+            isBaseSoundSurfaceOwnedByLesson(lessonId, target.kana),
+        );
         const noMetaAnswers = typedTargets.every(
           (target) => target !== undefined && !/[≠＝→]/.test(target.kana),
+        );
+        const promptRequiresTransformation =
+          operation === "produce-spoken" ||
+          normalizedActivitySurface(promptTarget?.kana ?? "") !==
+            normalizedActivitySurface(answerTarget?.kana ?? "");
+        const instructionId = own(activityRecord, "instructionCopyId");
+        const instructionEn =
+          typeof instructionId === "string"
+            ? baseNavigationCopyEn.content[instructionId]
+            : undefined;
+        const instructionIt =
+          typeof instructionId === "string"
+            ? baseNavigationCopyIt.content[instructionId]
+            : undefined;
+        const forbiddenKana = [
+          answerTarget?.kana,
+          anchorTarget?.kana,
+          typeof canonicalAudioId === "string"
+            ? baseAudioRecordById(canonicalAudioId)?.kana
+            : undefined,
+        ].filter((surface): surface is string => typeof surface === "string");
+        const instructionLeakFree = [instructionEn, instructionIt].every(
+          (instruction) =>
+            typeof instruction === "string" &&
+            instruction.trim().length > 0 &&
+            !/[\u3040-\u30ff\u3400-\u9fff]/.test(instruction) &&
+            forbiddenKana.every((surface) => !instruction.includes(surface)),
         );
         const semanticEvidenceValid =
           (operation !== "discriminate-sound" || (contrastIds?.length ?? 0) >= 2) &&
@@ -1361,14 +1435,26 @@ export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidati
           contrastIds.some((id) => !itemIds.includes(id)) ||
           !linkedItemsVisible ||
           !targetRomajiValid ||
-          !promptScriptValid ||
+          !targetScriptValid ||
           !noMetaAnswers ||
+          !promptRequiresTransformation ||
+          !instructionLeakFree ||
           !semanticEvidenceValid
         ) {
           errors.add("invalid-activity-evidence");
         }
       });
-      if (!correctPositions.has(0) || !correctPositions.has(1)) {
+      const zeroPositions = correctPositions.filter(
+        (position) => position === 0,
+      ).length;
+      const onePositions = correctPositions.filter(
+        (position) => position === 1,
+      ).length;
+      if (
+        correctPositions.length !== 7 ||
+        Math.abs(zeroPositions - onePositions) !== 1 ||
+        zeroPositions + onePositions !== 7
+      ) {
         errors.add("invalid-activity-evidence");
       }
     }

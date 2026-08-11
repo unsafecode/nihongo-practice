@@ -40,6 +40,180 @@ function assertDeepFrozen(value: unknown, seen = new Set<object>()): void {
 }
 
 describe("Base module 1 complete sound system", () => {
+  it("keeps every pre-attempt instruction neutral and free of answer surfaces", () => {
+    const japanese = /[\u3040-\u30ff\u3400-\u9fff]/;
+    for (const locale of ["en", "it"] as const) {
+      const copy = getCourseCopy(locale).baseContent;
+      for (const definition of BASE_SOUND_MODULE.lessons) {
+        for (const design of definition.activityDesigns) {
+          const instruction = copy[`${design.activityId}-instruction`];
+          const answer =
+            soundModule.BASE_SOUND_TARGET_BY_ID.get(design.answerTargetId)?.kana ??
+            "";
+          const anchor =
+            soundModule.BASE_SOUND_TARGET_BY_ID.get(design.anchorTargetId)?.kana ??
+            "";
+          const audio =
+            BASE_AUDIO_CATALOG.find(
+              (record) => record.id === design.canonicalAudioId,
+            )?.kana ?? "";
+          expect(instruction, `${locale}:${design.activityId}`).not.toMatch(
+            japanese,
+          );
+          for (const leaked of [answer, anchor, audio].filter(Boolean)) {
+            expect(instruction).not.toContain(leaked);
+          }
+        }
+      }
+    }
+  });
+
+  it("uses neutral listening instructions that never identify the answer", () => {
+    for (const locale of ["en", "it"] as const) {
+      const copy = getCourseCopy(locale).baseContent;
+      for (const definition of BASE_SOUND_MODULE.lessons) {
+        const listening = definition.activityDesigns.find(
+          (design) => design.operation === "identify-audio",
+        )!;
+        const instruction = copy[`${listening.activityId}-instruction`];
+        const answer = BASE_SOUND_VALIDATION_CATALOGS.audioTargets.get(
+          listening.canonicalAudioId!,
+        )!.tokens[0];
+        expect(instruction).not.toContain(answer.jp);
+        expect(
+          instruction.toLowerCase().match(/[a-z]+/g) ?? [],
+        ).not.toContain(answer.romaji);
+      }
+    }
+  });
+
+  it("distinguishes orthographic じ/ぢ and ず/づ in optional romaji", () => {
+    expect(soundModule.romanizeBaseSoundSurface("じ・ぢ・ず・づ")).toBe(
+      "ji di zu du",
+    );
+    const orthography = BASE_SOUND_MODULE.lessons[1].activityDesigns.find(
+      (design) => design.activityId === "snd2-recognize-jidi",
+    )!;
+    const optionRomaji = orthography.optionTargetIds.map(
+      (id) => soundModule.BASE_SOUND_TARGET_BY_ID.get(id)?.romaji,
+    );
+    expect(new Set(optionRomaji).size).toBe(optionRomaji.length);
+  });
+
+  it("keeps small っ as its own segment in mora-delimited romaji", () => {
+    expect(soundModule.romanizeBaseSoundSurface("が・っ・こ・う")).toBe(
+      "ga · q · ko · u",
+    );
+    expect(soundModule.romanizeBaseSoundSurface("き・っ・ぷ")).toBe(
+      "ki · q · pu",
+    );
+    expect(soundModule.romanizeBaseSoundSurface("がっこう")).toBe("gakkou");
+    for (const kana of ["が・っ・こ・う", "ぷ・き・っ"]) {
+      const target = [...soundModule.BASE_SOUND_TARGET_BY_ID.values()].find(
+        (entry) => entry.kana === kana,
+      )!;
+      expect(target.romaji.split(" · ")).toHaveLength(kana.split("・").length);
+    }
+  });
+
+  it("gives vowel discrimination a unique non-answer criterion", () => {
+    const activity = BASE_SOUND_MODULE.lessons[0].activityDesigns.find(
+      (design) => design.activityId === "snd1-discriminate-vowels",
+    )!;
+    const options = activity.optionTargetIds.map(
+      (id) => soundModule.BASE_SOUND_TARGET_BY_ID.get(id)?.kana,
+    );
+    expect(options).toEqual(["い", "え"]);
+    expect(getCourseCopy("en").baseContent[`${activity.activityId}-instruction`])
+      .toContain("close");
+    expect(getCourseCopy("it").baseContent[`${activity.activityId}-instruction`])
+      .toContain("chiusa");
+  });
+
+  it("identifies small yoon against a full-size kana without copying prompt order", () => {
+    const activity = BASE_SOUND_MODULE.lessons[3].activityDesigns.find(
+      (design) => design.activityId === "snd4-recognize-small-yoon",
+    )!;
+    const prompt = soundModule.BASE_SOUND_TARGET_BY_ID.get(
+      activity.promptTargetId,
+    )!;
+    const options = activity.optionTargetIds.map(
+      (id) => soundModule.BASE_SOUND_TARGET_BY_ID.get(id)?.kana,
+    );
+    expect(prompt.kana).toBe("きゅ　＿");
+    expect(options).toEqual(["にゅ　みゅ", "にゆ　みゆ"]);
+    expect(
+      soundModule.BASE_SOUND_TARGET_BY_ID.get(activity.answerTargetId)?.kana,
+    ).toBe("にゅ　みゅ");
+  });
+
+  it("enforces each lesson's owned kana inventory for every typed surface", () => {
+    const owns = (
+      soundModule as unknown as {
+        isBaseSoundSurfaceOwnedByLesson?: (
+          lessonId: string,
+          surface: string,
+        ) => boolean;
+      }
+    ).isBaseSoundSurfaceOwnedByLesson;
+    expect(owns).toBeTypeOf("function");
+    expect(owns?.("sounds-1", "きいて　えらぶ")).toBe(false);
+    expect(owns?.("sounds-1", "う　お")).toBe(true);
+    expect(owns?.("sounds-2", "か　が")).toBe(true);
+    expect(owns?.("sounds-4", "ア・カ・コ")).toBe(true);
+    for (const definition of BASE_SOUND_MODULE.lessons) {
+      for (const design of definition.activityDesigns) {
+        for (const id of [
+          design.promptTargetId,
+          ...design.optionTargetIds,
+          design.answerTargetId,
+          design.anchorTargetId,
+        ]) {
+          expect(
+            owns?.(
+              definition.content.lessonId,
+              soundModule.BASE_SOUND_TARGET_BY_ID.get(id)?.kana ?? "",
+            ),
+            `${definition.content.lessonId}:${id}`,
+          ).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("requires a nontrivial prompt transformation for every non-spoken answer", () => {
+    const fingerprint = (value: string) => value.replace(/[\s・／＿]/g, "");
+    for (const definition of BASE_SOUND_MODULE.lessons) {
+      for (const design of definition.activityDesigns) {
+        if (design.operation === "produce-spoken") continue;
+        const prompt = soundModule.BASE_SOUND_TARGET_BY_ID.get(
+          design.promptTargetId,
+        )!;
+        const answer = soundModule.BASE_SOUND_TARGET_BY_ID.get(
+          design.answerTargetId,
+        )!;
+        expect(
+          fingerprint(prompt.kana),
+          design.activityId,
+        ).not.toBe(fingerprint(answer.kana));
+      }
+    }
+  });
+
+  it("balances correct choice positions within one item per lesson", () => {
+    for (const definition of BASE_SOUND_MODULE.lessons) {
+      const positions = definition.activityDesigns
+        .filter((design) => design.correctOptionTargetId !== null)
+        .map((design) =>
+          design.optionTargetIds.indexOf(design.correctOptionTargetId!),
+        );
+      expect(positions).toHaveLength(7);
+      const zero = positions.filter((position) => position === 0).length;
+      const one = positions.filter((position) => position === 1).length;
+      expect(Math.abs(zero - one)).toBe(1);
+    }
+  });
+
   it("uses an audible か/が listening contrast and keeps ず/づ spelling-only", () => {
     const sounds2 = BASE_SOUND_MODULE.lessons[1];
     const listening = sounds2.activityDesigns.find(
