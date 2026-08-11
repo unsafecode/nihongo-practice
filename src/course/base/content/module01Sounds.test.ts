@@ -21,6 +21,71 @@ import {
   validateBaseSoundModule,
 } from "./module01Sounds";
 
+const EXPECTED_SOUND_COPY_IDS = [
+  "base-audio-failed",
+  "base-audio-retry",
+  "base-audio-unavailable",
+  "base-sounds-feedback-accepted",
+  "base-sounds-feedback-retry",
+  ...["sounds-1", "sounds-2", "sounds-3", "sounds-4"].flatMap((lessonId) => [
+    `${lessonId}-recap`,
+    `${lessonId}-phonetic-explanation`,
+    `${lessonId}-contrast-map`,
+  ]),
+  ...[
+    "anchor-asa",
+    "anchor-ie",
+    "anchor-umi",
+    "anchor-neko",
+    "anchor-kagi",
+    "anchor-kaze",
+    "anchor-denwa",
+    "anchor-pan",
+    "anchor-obaasan",
+    "anchor-gakkou",
+    "anchor-hon",
+    "anchor-kippu",
+    "anchor-kyaku",
+    "anchor-shashin",
+    "anchor-chuui",
+    "anchor-ryokou",
+  ].map((id) => `${id}-meaning`),
+  ...[
+    "snd1-discriminate-vowels",
+    "snd1-segment-asa",
+    "snd1-recognize-gojuon",
+    "snd1-map-hiragana-row",
+    "snd1-match-ie",
+    "snd1-assemble-umi",
+    "snd1-listen-u",
+    "snd1-read-neko",
+    "snd2-discriminate-kaga",
+    "snd2-segment-kagi",
+    "snd2-recognize-jidi",
+    "snd2-map-dakuten",
+    "snd2-match-kaze",
+    "snd2-assemble-denwa",
+    "snd2-listen-kaga",
+    "snd2-read-panpu",
+    "snd3-discriminate-obasan",
+    "snd3-segment-gakkou",
+    "snd3-recognize-small-tsu",
+    "snd3-map-moraic-n",
+    "snd3-match-hon",
+    "snd3-assemble-kippu",
+    "snd3-listen-kan",
+    "snd3-read-obaasan",
+    "snd4-discriminate-yoon",
+    "snd4-segment-ryokou",
+    "snd4-recognize-small-yoon",
+    "snd4-map-katakana",
+    "snd4-match-shashin",
+    "snd4-assemble-kyaku",
+    "snd4-listen-nyuryo",
+    "snd4-read-chuui",
+  ].map((id) => `${id}-instruction`),
+] as const;
+
 type Mutable<T> = {
   -readonly [Key in keyof T]: T[Key] extends readonly (infer Item)[]
     ? Mutable<Item>[]
@@ -546,13 +611,51 @@ describe("Base module 1 complete sound system", () => {
   });
 
   it("resolves every learner-facing lesson, anchor, and audio-state copy in both runtime locales", () => {
+    expect([...BASE_SOUND_COPY_IDS].sort()).toEqual(
+      [...EXPECTED_SOUND_COPY_IDS].sort(),
+    );
     for (const locale of ["en", "it"] as const) {
       const runtimeCopy = getCourseCopy(locale).baseContent;
-      expect(Object.keys(runtimeCopy).sort()).toEqual([...BASE_SOUND_COPY_IDS].sort());
-      for (const copyId of BASE_SOUND_COPY_IDS) {
-        expect(runtimeCopy[copyId]?.trim(), `${locale}:${copyId}`).not.toBe("");
+      for (const copyId of EXPECTED_SOUND_COPY_IDS) {
+        expect(runtimeCopy).toHaveProperty(copyId);
+        expect(typeof runtimeCopy[copyId]).toBe("string");
+        expect(runtimeCopy[copyId].trim(), `${locale}:${copyId}`).not.toBe("");
       }
     }
+  });
+
+  it("fails copy validation when canonical contrast or anchor copy disappears", () => {
+    const mutableEn = { ...getCourseCopy("en").baseContent };
+    const mutableIt = { ...getCourseCopy("it").baseContent };
+    delete mutableEn["sounds-1-contrast-map"];
+    expect(
+      soundModule.validateBaseSoundCopyRegistry(mutableEn, mutableIt).errors,
+    ).toContain("missing-contrast-copy");
+
+    delete mutableIt["sounds-1-contrast-map"];
+    expect(
+      soundModule.validateBaseSoundCopyRegistry(mutableEn, mutableIt).errors,
+    ).toContain("missing-contrast-copy");
+
+    const noAnchorEn = { ...getCourseCopy("en").baseContent };
+    const noAnchorIt = { ...getCourseCopy("it").baseContent };
+    delete noAnchorEn["anchor-asa-meaning"];
+    delete noAnchorIt["anchor-asa-meaning"];
+    expect(
+      soundModule.validateBaseSoundCopyRegistry(noAnchorEn, noAnchorIt).errors,
+    ).toContain("missing-anchor-copy");
+  });
+
+  it("fails anchor validation when canonical lexeme romaji diverges", () => {
+    const lexemes = new Map(BASE_LEXEME_BY_ID);
+    const anchor = lexemes.get("anchor-asa")!;
+    lexemes.set("anchor-asa", { ...anchor, romaji: "wrong" });
+    expect(
+      soundModule.validateBaseSoundModule(
+        structuredClone(BASE_SOUND_MODULE),
+        { lexemes },
+      ).errors,
+    ).toContain("invalid-lesson-shape");
   });
 
   it("publishes all four lessons through the canonical Base depth pipeline", () => {
@@ -862,8 +965,12 @@ describe("Base module 1 complete sound system", () => {
         expect(item.explanation.it).not.toBe("");
       }
       for (const anchor of definition.anchorWords) {
-        expect(getCourseCopy("en").baseContent[anchor.meaningCopyId]).not.toBe("");
-        expect(getCourseCopy("it").baseContent[anchor.meaningCopyId]).not.toBe("");
+        for (const locale of ["en", "it"] as const) {
+          const copy = getCourseCopy(locale).baseContent;
+          expect(copy).toHaveProperty(anchor.meaningCopyId);
+          expect(typeof copy[anchor.meaningCopyId]).toBe("string");
+          expect(copy[anchor.meaningCopyId].trim()).not.toBe("");
+        }
         expect(anchor.status.en).toContain("anchor");
         expect(anchor.status.it).toContain("ancor");
       }
@@ -874,7 +981,10 @@ describe("Base module 1 complete sound system", () => {
         "base-audio-unavailable",
         "base-audio-retry",
       ]) {
-        expect(getCourseCopy(locale).baseContent[id]).not.toBe("");
+        const copy = getCourseCopy(locale).baseContent;
+        expect(copy).toHaveProperty(id);
+        expect(typeof copy[id]).toBe("string");
+        expect(copy[id].trim()).not.toBe("");
       }
     }
   });

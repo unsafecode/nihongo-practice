@@ -3,7 +3,8 @@ import { immutableReadonlyMap } from "../../foundations/immutableReadonlyMap";
 
 export interface BaseAudioRecord {
   readonly id: string;
-  readonly src: string;
+  /** Stable app-root logical path. Resolve with `resolveBaseAudioAssetUrl`. */
+  readonly src: BaseAudioLogicalPath;
   readonly sha256: string;
   readonly kana: string;
   readonly morae: readonly string[];
@@ -17,6 +18,8 @@ export interface BaseAudioRecord {
   }>;
   readonly canonicalPlayback: "asset-only-no-tts-fallback";
 }
+
+export type BaseAudioLogicalPath = `/audio/base/${string}.wav`;
 
 export type BaseAudioCatalogError =
   | "invalid-catalog-shape"
@@ -132,6 +135,42 @@ function localizedPair(value: unknown): value is Readonly<{ en: string; it: stri
 
 const HASH = /^[a-f0-9]{64}$/;
 const LOCAL_WAV = /^\/audio\/base\/[a-z0-9-]+\.wav$/;
+
+/**
+ * Converts a validated app-root logical audio path into a deploy URL.
+ * Consumers should use this rather than treating `BaseAudioRecord.src` as a
+ * browser URL; `src` remains stable for hashing and release review.
+ */
+export function resolveBaseAudioAssetUrl(
+  logicalPath: unknown,
+  baseUrl: unknown = import.meta.env.BASE_URL,
+): string | null {
+  if (
+    typeof logicalPath !== "string" ||
+    !LOCAL_WAV.test(logicalPath) ||
+    /(?:^|\/)\.\.(?:\/|$)/.test(logicalPath) ||
+    /%2e/i.test(logicalPath) ||
+    typeof baseUrl !== "string" ||
+    !baseUrl.startsWith("/") ||
+    baseUrl.startsWith("//") ||
+    baseUrl.includes("?") ||
+    baseUrl.includes("#") ||
+    /(?:^|\/)\.\.(?:\/|$)/.test(baseUrl) ||
+    /%2e/i.test(baseUrl)
+  ) {
+    return null;
+  }
+  const normalizedBase =
+    baseUrl === "/" ? "" : `/${baseUrl.split("/").filter(Boolean).join("/")}`;
+  if (
+    normalizedBase &&
+    (logicalPath === normalizedBase ||
+      logicalPath.startsWith(`${normalizedBase}/`))
+  ) {
+    return null;
+  }
+  return `${normalizedBase}${logicalPath}`;
+}
 
 function normalizedPhoneticMora(mora: string): string {
   return [...mora]

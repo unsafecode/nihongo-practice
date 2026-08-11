@@ -1,6 +1,7 @@
 import {
   defineBaseLessonContent,
   type BaseActivityDefinition,
+  type BaseLexeme,
   type BasePhoneticLessonContent,
   type BaseValidationCatalogs,
   type BaseVisibleTarget,
@@ -999,20 +1000,93 @@ const audioTargetEntries = BASE_AUDIO_CATALOG.map((record) => [
   ),
 ] as const);
 
-const enCopyIds = Object.keys(baseNavigationCopyEn.content);
-const itCopyIds = Object.keys(baseNavigationCopyIt.content);
-if (
-  enCopyIds.length !== itCopyIds.length ||
-  enCopyIds.some(
-    (copyId) =>
-      !Object.prototype.hasOwnProperty.call(baseNavigationCopyIt.content, copyId),
-  )
-) {
-  throw new Error("Base sound copy IDs must resolve independently in EN and IT.");
+const REQUIRED_SOUND_CONTRAST_COPY_IDS = [
+  "sounds-1-contrast-map",
+  "sounds-2-contrast-map",
+  "sounds-3-contrast-map",
+  "sounds-4-contrast-map",
+] as const;
+const REQUIRED_SOUND_ANCHOR_COPY_IDS = [
+  "anchor-asa-meaning",
+  "anchor-ie-meaning",
+  "anchor-umi-meaning",
+  "anchor-neko-meaning",
+  "anchor-kagi-meaning",
+  "anchor-kaze-meaning",
+  "anchor-denwa-meaning",
+  "anchor-pan-meaning",
+  "anchor-obaasan-meaning",
+  "anchor-gakkou-meaning",
+  "anchor-hon-meaning",
+  "anchor-kippu-meaning",
+  "anchor-kyaku-meaning",
+  "anchor-shashin-meaning",
+  "anchor-chuui-meaning",
+  "anchor-ryokou-meaning",
+] as const;
+
+export type BaseSoundCopyRegistryError =
+  | "copy-parity"
+  | "missing-contrast-copy"
+  | "missing-anchor-copy"
+  | "blank-copy";
+
+export function validateBaseSoundCopyRegistry(
+  en: Readonly<Record<string, unknown>>,
+  it: Readonly<Record<string, unknown>>,
+): Readonly<{
+  readonly ok: boolean;
+  readonly errors: readonly BaseSoundCopyRegistryError[];
+}> {
+  const errors = new Set<BaseSoundCopyRegistryError>();
+  const enIds = Object.keys(en);
+  const itIds = Object.keys(it);
+  if (
+    enIds.length !== itIds.length ||
+    enIds.some((id) => !Object.prototype.hasOwnProperty.call(it, id))
+  ) {
+    errors.add("copy-parity");
+  }
+  const validateRequired = (
+    ids: readonly string[],
+    code: BaseSoundCopyRegistryError,
+  ) => {
+    for (const id of ids) {
+      if (
+        !Object.prototype.hasOwnProperty.call(en, id) ||
+        !Object.prototype.hasOwnProperty.call(it, id)
+      ) {
+        errors.add(code);
+      }
+    }
+  };
+  validateRequired(REQUIRED_SOUND_CONTRAST_COPY_IDS, "missing-contrast-copy");
+  validateRequired(REQUIRED_SOUND_ANCHOR_COPY_IDS, "missing-anchor-copy");
+  for (const id of new Set([...enIds, ...itIds])) {
+    if (
+      typeof en[id] !== "string" ||
+      en[id].trim().length === 0 ||
+      typeof it[id] !== "string" ||
+      it[id].trim().length === 0
+    ) {
+      errors.add("blank-copy");
+    }
+  }
+  return { ok: errors.size === 0, errors: [...errors] };
+}
+
+const baseSoundCopyRegistryValidation = validateBaseSoundCopyRegistry(
+  baseNavigationCopyEn.content,
+  baseNavigationCopyIt.content,
+);
+if (!baseSoundCopyRegistryValidation.ok) {
+  throw new Error(
+    `Invalid Base sound copy registry: ${baseSoundCopyRegistryValidation.errors.join(", ")}`,
+  );
 }
 
 export const BASE_SOUND_COPY_IDS: readonly string[] = deepFreeze(
-  [...enCopyIds].sort(),
+  [...Object.keys(baseNavigationCopyEn.content)].sort(),
 );
 
 export const BASE_SOUND_VALIDATION_CATALOGS: BaseValidationCatalogs =
@@ -1026,8 +1100,8 @@ export const BASE_SOUND_VALIDATION_CATALOGS: BaseValidationCatalogs =
     activityPromptTargets: immutableReadonlyMap(activityPromptEntries),
     copyIds: immutableReadonlySet(BASE_SOUND_COPY_IDS),
     contrastMapIds: immutableReadonlySet(
-      RAW_BASE_SOUND_MODULE.lessons.map(
-        (definition) => definition.content.contrastMapId,
+      REQUIRED_SOUND_CONTRAST_COPY_IDS.filter((id) =>
+        BASE_SOUND_COPY_IDS.includes(id),
       ),
     ),
     referenceSnapshots: BASE_REFERENCE_SNAPSHOT_BY_ID,
@@ -1157,7 +1231,13 @@ function isTruthfulBaseRomaji(kana: unknown, romaji: unknown): boolean {
   }
 }
 
-export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidation {
+export function validateBaseSoundModule(
+  value: unknown,
+  dependencies: Readonly<{
+    readonly lexemes?: ReadonlyMap<string, BaseLexeme>;
+  }> = {},
+): BaseSoundModuleValidation {
+  const lexemes = dependencies.lexemes ?? BASE_LEXEME_BY_ID;
   const module = plainRecord(value);
   const lessons = module ? densePlainArray(own(module, "lessons")) : undefined;
   if (!module || own(module, "id") !== "sounds" || !lessons || lessons.length !== 4) {
@@ -1278,10 +1358,11 @@ export function validateBaseSoundModule(value: unknown): BaseSoundModuleValidati
       } else {
         anchorIds.push(anchorId);
         anchorMoraeById.set(anchorId, morae);
-        const lexeme = BASE_LEXEME_BY_ID.get(anchorId);
+        const lexeme = lexemes.get(anchorId);
         if (
           !lexeme ||
           lexeme.kana !== own(anchorRecord, "kana") ||
+          lexeme.romaji !== own(anchorRecord, "romaji") ||
           lexeme.meaningCopyId !== own(anchorRecord, "meaningCopyId")
         ) {
           errors.add("invalid-lesson-shape");

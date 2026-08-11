@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { getCourseCopy } from "../../i18n/catalog";
 import {
   BASE_AUDIO_CATALOG,
+  resolveBaseAudioAssetUrl,
   validateBaseAudioCatalog,
 } from "./catalog";
 import {
@@ -30,6 +31,39 @@ function assertDeepFrozen(value: unknown, seen = new Set<object>()): void {
 }
 
 describe("Base canonical audio catalog", () => {
+  it("resolves logical asset paths for root and GitHub Pages bases", () => {
+    const logicalPath = BASE_AUDIO_CATALOG[0].src;
+    expect(resolveBaseAudioAssetUrl(logicalPath, "/")).toBe(logicalPath);
+    expect(resolveBaseAudioAssetUrl(logicalPath, "/nihongo-practice/")).toBe(
+      `/nihongo-practice${logicalPath}`,
+    );
+    expect(resolveBaseAudioAssetUrl(logicalPath, "/nihongo-practice")).toBe(
+      `/nihongo-practice${logicalPath}`,
+    );
+    expect(
+      resolveBaseAudioAssetUrl(
+        "/nihongo-practice/audio/base/already-prefixed.wav",
+        "/nihongo-practice/",
+      ),
+    ).toBeNull();
+  });
+
+  it("rejects external, traversal, malformed, and double-prefixed asset paths", () => {
+    for (const unsafe of [
+      "https://example.com/audio.wav",
+      "//example.com/audio.wav",
+      "/audio/base/../secret.wav",
+      "/audio/base/%2e%2e/secret.wav",
+      "/nihongo-practice/audio/base/file.wav",
+      "audio/base/file.wav",
+    ]) {
+      expect(
+        resolveBaseAudioAssetUrl(unsafe, "/nihongo-practice/"),
+        unsafe,
+      ).toBeNull();
+    }
+  });
+
   it("resolves every local asset with exact bytes and a pending review entry", () => {
     expect(BASE_AUDIO_CATALOG.length).toBeGreaterThanOrEqual(40);
     expect(BASE_AUDIO_REVIEW_LEDGER).toHaveLength(BASE_AUDIO_CATALOG.length);
@@ -142,7 +176,8 @@ describe("Base canonical audio catalog", () => {
     expect(validateBaseAudioCatalog(malformedHash).errors).toContain("malformed-sha256");
 
     const remotePath = cloneCatalog();
-    remotePath[0].src = "https://example.com/audio.wav";
+    (remotePath[0] as { src: string }).src =
+      "https://example.com/audio.wav";
     expect(validateBaseAudioCatalog(remotePath).errors).toContain("invalid-local-path");
 
     const missingSource = cloneCatalog();
