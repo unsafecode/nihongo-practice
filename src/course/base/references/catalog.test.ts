@@ -116,8 +116,10 @@ describe("Base reference catalog", () => {
       ).toContain("polite-stems");
     }
     const sequential = cellsFor("base-verb-sequential-te")[0];
-    expect(sequential?.sourceContentIds).toContain("sequential-te");
-    expect(sequential?.sourceContentIds).not.toContain("te-allomorphy");
+    expect(sequential?.sourceContentIds).toContain(
+      "base-construction-sequential-te",
+    );
+    expect(sequential?.sourceContentIds).not.toContain("base-form-te");
   });
 
   it("resolves every consumed copy ID and assigns examples only at eligible owners", () => {
@@ -604,8 +606,10 @@ describe("Base reference catalog", () => {
       sourceContentIds: string[];
       canonicalFormCells: { sourceContentIds: string[] }[];
     };
-    early.sourceContentIds.push("te-imasu");
-    early.canonicalFormCells[0].sourceContentIds.push("te-imasu");
+    early.sourceContentIds.push("base-construction-te-imasu");
+    early.canonicalFormCells[0].sourceContentIds.push(
+      "base-construction-te-imasu",
+    );
     expect(validateBaseReferenceCatalog(futureSource)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ code: "future-source-reference" }),

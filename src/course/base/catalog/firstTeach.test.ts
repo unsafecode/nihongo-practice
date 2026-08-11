@@ -359,13 +359,15 @@ describe("Base first-teach ownership", () => {
     });
 
     expect(
-      BASE_FIRST_TEACH_OWNER_BY_KEY.get(firstTeachOwnerKey("form", "te-imasu")),
+      BASE_FIRST_TEACH_OWNER_BY_KEY.get(
+        firstTeachOwnerKey("form", "base-construction-te-imasu"),
+      ),
     ).toMatchObject({ lessonId: "requests-connection-4", kind: "form" });
     expect(
       BASE_FIRST_TEACH_OWNER_BY_KEY.get(
         firstTeachOwnerKey("reference-entry", "reference-te-forms"),
       ),
-    ).toMatchObject({ lessonId: "requests-connection-4" });
+    ).toMatchObject({ lessonId: "requests-connection-1" });
   });
 
   it("publishes concepts through frozen arrays and an immutable map view", () => {
@@ -565,8 +567,12 @@ describe("Base first-teach ownership", () => {
     expect(owner("concept", "godan-verb-class")).toBe("polite-verbs-2");
     expect(owner("form", "four-polite-tense-cells")).toBe("time-movement-3");
     expect(owner("concept", "existence-location-frame")).toBe("existence-location-1");
-    expect(owner("form", "te-kudasai")).toBe("requests-connection-2");
-    expect(owner("form", "sequential-te")).toBe("requests-connection-3");
+    expect(owner("form", "base-construction-te-kudasai")).toBe(
+      "requests-connection-2",
+    );
+    expect(owner("form", "base-construction-sequential-te")).toBe(
+      "requests-connection-3",
+    );
   });
 
   it("locks the Task7 verb and adjective first-teach sequence to exact owners", () => {
@@ -800,7 +806,8 @@ describe("Base first-teach ownership", () => {
         : owner,
     );
     const kindMismatch = BASE_FIRST_TEACH_OWNERS.map((owner) =>
-      owner.kind === "form" && owner.contentId === "te-imasu"
+      owner.kind === "form" &&
+      owner.contentId === "base-construction-te-imasu"
         ? { ...owner, kind: "concept" as const }
         : owner,
     );
@@ -817,7 +824,7 @@ describe("Base first-teach ownership", () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: "owner-catalog-mismatch",
-          contentId: "te-imasu",
+          contentId: "base-construction-te-imasu",
         }),
       ]),
     );

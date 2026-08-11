@@ -94,7 +94,12 @@ export type BasePredicateSenseId =
   | "time-limit"
   | "time-bounds"
   | "aru"
-  | "iru";
+  | "iru"
+  | "aru-topic-location"
+  | "iru-topic-location"
+  | "theme-object-action"
+  | "read-current-question"
+  | "sit-current-question";
 
 export interface BaseParticleSenseDefinition {
   readonly id: BaseParticleSense;
@@ -230,8 +235,8 @@ const PARTICLE_SENSE_CONTENT_ENTRIES: readonly (readonly [
   ["direction-he", "direction-he"],
   ["action-place-de", "action-place-de"],
   ["means-de", "means-de"],
-  ["existence-location-ni", "existence-location-ni"],
-  ["existential-subject-ga", "existential-subject-ga"],
+  ["existence-location-ni", "base-particle-existence-ni"],
+  ["existential-subject-ga", "base-particle-existential-ga"],
   ["time-ni", "time-ni"],
   ["source-kara", "source-kara"],
   ["limit-made", "limit-made"],
@@ -312,6 +317,17 @@ const AUTHORED_ARGUMENT_PARTICLES_BY_PREDICATE: Readonly<
     "existence-location": ["ni"],
     "existential-subject": ["ga"],
   },
+  "aru-topic-location": {
+    "existence-location": ["ni"],
+  },
+  "iru-topic-location": {
+    "existence-location": ["ni"],
+  },
+  "theme-object-action": {
+    theme: ["o"],
+  },
+  "read-current-question": {},
+  "sit-current-question": {},
 });
 
 const AUTHORED_DISCOURSE_PARTICLE_SENSES_BY_ROLE: Readonly<
@@ -624,6 +640,55 @@ const BASE_PREDICATE_PARTICLE_FRAMES: readonly Omit<
       "existential-subject": ["existential-subject-ga"],
     },
     particleOwnerLessonId: "existence-location-2",
+  },
+  {
+    id: "aru-topic-location",
+    allowedPredicateLexemeIds: ["verb-aru"],
+    requiredRoles: ["existence-location"],
+    particleSensesByRole: {
+      "existence-location": ["existence-location-ni"],
+    },
+    particleOwnerLessonId: "existence-location-2",
+  },
+  {
+    id: "iru-topic-location",
+    allowedPredicateLexemeIds: ["verb-iru"],
+    requiredRoles: ["existence-location"],
+    particleSensesByRole: {
+      "existence-location": ["existence-location-ni"],
+    },
+    particleOwnerLessonId: "existence-location-2",
+  },
+  {
+    id: "theme-object-action",
+    allowedPredicateLexemeIds: [
+      "verb-toru",
+      "verb-kesu",
+      "verb-akeru",
+      "verb-shimeru",
+      "verb-miseru",
+      "verb-tetsudau",
+      "verb-yobu",
+      "verb-arau",
+      "verb-kiru",
+    ],
+    requiredRoles: ["theme"],
+    particleSensesByRole: { theme: ["object-o", "topic-wa"] },
+    particleOwnerLessonId: "argument-particles-1",
+  },
+  {
+    id: "read-current-question",
+    allowedPredicateLexemeIds: ["verb-yomu"],
+    requiredRoles: [],
+    particleSensesByRole: {},
+    particleOwnerLessonId: "topic-questions-4",
+  },
+  {
+    id: "sit-current-question",
+    allowedPredicateLexemeIds: ["verb-suwaru"],
+    requiredRoles: [],
+    particleSensesByRole: {},
+    particleOwnerLessonId: "topic-questions-4",
   },
 ]);
 

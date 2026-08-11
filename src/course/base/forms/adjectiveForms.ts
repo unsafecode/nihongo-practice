@@ -324,6 +324,20 @@ export function realizeIAdjectivePredicate(
   );
 }
 
+export function realizeIAdjectiveAttributive(
+  lexemeId: string,
+): BaseAdjectiveFormResult<readonly AssembledToken[]> {
+  const adjective = adjectiveFor(lexemeId, "i");
+  if (!adjective.ok) return adjective;
+  return ok(
+    lexicalTokens(
+      adjective.value.id,
+      adjective.value.kana,
+      adjective.value.romaji,
+    ),
+  );
+}
+
 function validationError(
   code: BasePredicateValidationErrorCode,
   lexemeId: string,

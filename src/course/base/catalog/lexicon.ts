@@ -68,6 +68,23 @@ function noun(
   };
 }
 
+function expression(
+  id: string,
+  kana: string,
+  romaji: string,
+  firstTeachLessonId: string,
+): BaseLexeme {
+  return {
+    id,
+    kana,
+    romaji,
+    meaningCopyId: `${id}-meaning`,
+    firstTeachLessonId,
+    countable: true,
+    category: "expression",
+  };
+}
+
 export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
   verb("verb-kaku", "かく", "kaku", "godan", "dynamic", "polite-verbs-1", DYNAMIC_TE_CONSTRUCTIONS),
   verb("verb-yomu", "よむ", "yomu", "godan", "dynamic", "polite-verbs-1", DYNAMIC_TE_CONSTRUCTIONS),
@@ -161,6 +178,20 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
   verb("verb-hanasu", "はなす", "hanasu", "godan", "dynamic", "polite-verbs-4", DYNAMIC_TE_CONSTRUCTIONS),
   verb("verb-matsu", "まつ", "matsu", "godan", "dynamic", "polite-verbs-3", DYNAMIC_TE_CONSTRUCTIONS),
   verb("verb-shinu", "しぬ", "shinu", "godan", "dynamic", "requests-connection-1", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-toru", "とる", "toru", "godan", "dynamic", "requests-connection-1", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-kesu", "けす", "kesu", "godan", "dynamic", "requests-connection-1", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-akeru", "あける", "akeru", "ichidan", "dynamic", "requests-connection-1", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-shimeru", "しめる", "shimeru", "ichidan", "dynamic", "requests-connection-2", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-miseru", "みせる", "miseru", "ichidan", "dynamic", "requests-connection-2", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-tetsudau", "てつだう", "tetsudau", "godan", "dynamic", "requests-connection-2", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-yobu", "よぶ", "yobu", "godan", "dynamic", "requests-connection-2", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-arau", "あらう", "arau", "godan", "dynamic", "requests-connection-3", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-hairu", "はいる", "hairu", "godan", "dynamic", "requests-connection-3", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-deru", "でる", "deru", "ichidan", "dynamic", "requests-connection-3", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-noru", "のる", "noru", "godan", "dynamic", "requests-connection-3", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-suwaru", "すわる", "suwaru", "godan", "dynamic", "requests-connection-4", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-kiru", "きる", "kiru", "ichidan", "dynamic", "requests-connection-4", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-shiru", "しる", "shiru", "godan", "stative", "requests-connection-4", DYNAMIC_TE_CONSTRUCTIONS),
   verb("verb-hashiru", "はしる", "hashiru", "godan", "dynamic", "time-movement-1", DYNAMIC_TE_CONSTRUCTIONS),
   verb(
     "verb-ryokou-suru",
@@ -281,6 +312,12 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
     category: "adjective",
     adjectiveClass: "na",
   },
+  noun("noun-kaishain", "かいしゃいん", "kaishain", "copula-adjectives-1"),
+  noun("noun-kenkyuusha", "けんきゅうしゃ", "kenkyuusha", "copula-adjectives-1"),
+  noun("noun-ryourinin", "りょうりにん", "ryourinin", "copula-adjectives-1"),
+  noun("noun-enjinia", "えんじにあ", "enjinia", "copula-adjectives-2"),
+  noun("noun-ginkouin", "ぎんこういん", "ginkouin", "copula-adjectives-2"),
+  noun("noun-koumuin", "こうむいん", "koumuin", "copula-adjectives-2"),
   {
     id: "noun-gakusei",
     kana: "がくせい",
@@ -632,6 +669,18 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
     countable: true,
     category: "expression",
   },
+  expression(
+    "expression-sumimasen",
+    "すみません",
+    "sumimasen",
+    "requests-connection-2",
+  ),
+  expression(
+    "expression-onegaishimasu",
+    "おねがいします",
+    "onegaishimasu",
+    "requests-connection-2",
+  ),
   {
     id: "noun-yuki",
     kana: "ゆき",
@@ -688,6 +737,30 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
   noun("noun-kesa", "けさ", "kesa", "time-movement-4", "relative"),
   noun("noun-konban", "こんばん", "konban", "time-movement-4", "relative"),
   noun("noun-nichiyoubi", "にちようび", "nichiyoubi", "time-movement-4", "specific"),
+  noun("noun-tsukue", "つくえ", "tsukue", "existence-location-1"),
+  noun("noun-inu", "いぬ", "inu", "existence-location-1"),
+  noun("noun-kuruma", "くるま", "kuruma", "existence-location-1"),
+  noun("noun-heya", "へや", "heya", "existence-location-2"),
+  noun("noun-niwa", "にわ", "niwa", "existence-location-2"),
+  noun("noun-isu", "いす", "isu", "existence-location-2"),
+  noun("noun-kodomo", "こども", "kodomo", "existence-location-2"),
+  noun("noun-kyoushitsu", "きょうしつ", "kyoushitsu", "existence-location-3"),
+  noun("noun-uchi", "うち", "uchi", "existence-location-3"),
+  noun("noun-sakana", "さかな", "sakana", "existence-location-3"),
+  noun("noun-hana", "はな", "hana", "existence-location-3"),
+  noun("noun-doko", "どこ", "doko", "existence-location-4"),
+  noun("noun-uketsuke", "うけつけ", "uketsuke", "existence-location-4"),
+  noun("noun-toire", "といれ", "toire", "existence-location-4"),
+  noun("noun-konbini", "こんびに", "konbini", "existence-location-4"),
+  noun("noun-basutei", "ばすてい", "basutei", "existence-location-4"),
+  noun("noun-chizu", "ちず", "chizu", "existence-location-4"),
+  noun("noun-kaban", "かばん", "kaban", "existence-location-4"),
+  noun("noun-keisatsukan", "けいさつかん", "keisatsukan", "existence-location-4"),
+  noun("noun-ekiin", "えきいん", "ekiin", "existence-location-4"),
+  noun("noun-mado", "まど", "mado", "requests-connection-2"),
+  noun("noun-shorui", "しょるい", "shorui", "requests-connection-2"),
+  noun("noun-nimotsu", "にもつ", "nimotsu", "requests-connection-2"),
+  noun("noun-shio", "しお", "shio", "requests-connection-2"),
   {
     id: "anchor-asa",
     kana: "あさ",
@@ -930,6 +1003,103 @@ export const BASE_TASK11_LEXEME_RECURRENCE_BY_ID: ReadonlyMap<
   BaseLexemeRecurrencePlan
 > = immutableReadonlyMap(
   BASE_TASK11_LEXEME_RECURRENCE_PLANS.map((plan) => [plan.lexemeId, plan]),
+);
+
+export const BASE_TASK12_LEXEME_RECURRENCE_PLANS: readonly BaseLexemeRecurrencePlan[] =
+  deepFreeze([
+    ...recurrence(
+      ["noun-kaishain", "noun-kenkyuusha", "noun-ryourinin"],
+      [],
+      ["base-synthesis-3"],
+    ),
+    ...recurrence(
+      ["noun-enjinia", "noun-ginkouin", "noun-koumuin"],
+      [],
+      ["base-synthesis-3"],
+    ),
+    ...recurrence(
+      ["adjective-takai", "adjective-oishii", "adjective-ii"],
+      [],
+      ["base-synthesis-3"],
+    ),
+    ...recurrence(
+      [
+        "adjective-shizuka",
+        "adjective-kirei",
+        "adjective-yuumei",
+        "adjective-kirai",
+      ],
+      [],
+      ["base-synthesis-3"],
+    ),
+    ...recurrence(
+      ["verb-aru", "verb-iru", "noun-tsukue", "noun-inu", "noun-kuruma"],
+      [],
+      ["base-synthesis-3"],
+    ),
+    ...recurrence(
+      ["noun-heya", "noun-niwa", "noun-isu", "noun-kodomo"],
+      [],
+      ["base-synthesis-3"],
+    ),
+    ...recurrence(
+      ["noun-kyoushitsu", "noun-uchi", "noun-sakana", "noun-hana"],
+      [],
+      ["base-synthesis-3"],
+    ),
+    ...recurrence(
+      [
+        "noun-doko",
+        "noun-uketsuke",
+        "noun-toire",
+        "noun-konbini",
+        "noun-basutei",
+        "noun-chizu",
+        "noun-kaban",
+        "noun-keisatsukan",
+        "noun-ekiin",
+      ],
+      [],
+      ["base-synthesis-3"],
+    ),
+    ...recurrence(
+      ["verb-motte-kuru", "verb-shinu", "verb-toru", "verb-kesu", "verb-akeru"],
+      [],
+      ["base-synthesis-3"],
+    ),
+    ...recurrence(
+      [
+        "verb-shimeru",
+        "verb-miseru",
+        "verb-tetsudau",
+        "verb-yobu",
+        "expression-sumimasen",
+        "expression-onegaishimasu",
+        "noun-mado",
+        "noun-shorui",
+        "noun-nimotsu",
+        "noun-shio",
+      ],
+      [],
+      ["base-synthesis-3"],
+    ),
+    ...recurrence(
+      ["verb-arau", "verb-hairu", "verb-deru", "verb-noru"],
+      [],
+      ["base-synthesis-3"],
+    ),
+    ...recurrence(
+      ["verb-suwaru", "verb-kiru", "verb-shiru"],
+      [],
+      ["base-synthesis-3"],
+    ),
+  ]);
+
+export const BASE_TASK12_LEXEME_RECURRENCE_BY_ID: ReadonlyMap<
+  string,
+  BaseLexemeRecurrencePlan
+> = immutableReadonlyMap(
+  BASE_TASK12_LEXEME_RECURRENCE_PLANS.map((plan) => [plan.lexemeId, plan]),
 );
 
 export function baseLexemeById(id: string): BaseLexeme | undefined {

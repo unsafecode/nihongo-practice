@@ -918,7 +918,7 @@ const PREDICATE_FRAME_PARTICLE_ROLES = new Set([
   "existential-subject",
 ]);
 const TASK11_REFERENCE_PREFIX =
-  /^(?:polite-verbs|argument-particles|time-movement)-/u;
+  /^(?:polite-verbs|argument-particles|time-movement|copula-adjectives|existence-location|requests-connection)-/u;
 const SEMANTIC_ROLES_BY_PARTICLE_ROLE: Readonly<
   Partial<Record<BaseParticleRole, readonly SemanticArgumentRole[]>>
 > = {
@@ -928,6 +928,8 @@ const SEMANTIC_ROLES_BY_PARTICLE_ROLE: Readonly<
   theme: ["theme"],
   goal: ["goal", "direction"],
   "action-place": ["action-place"],
+  "existence-location": ["existence-location"],
+  "existential-subject": ["existential-subject"],
   means: ["means"],
   time: ["time"],
   source: ["source"],
@@ -945,6 +947,8 @@ const PARTICLE_SENSES_BY_BINDING_ROLE: Readonly<
   theme: ["object-o", "topic-wa"],
   goal: ["goal-ni", "direction-he"],
   "action-place": ["action-place-de"],
+  "existence-location": ["existence-location-ni"],
+  "existential-subject": ["existential-subject-ga"],
   means: ["means-de"],
   time: ["time-ni"],
   source: ["source-kara"],
@@ -965,6 +969,8 @@ const PARTICLE_ROLES_BY_SEMANTIC_ROLE: Readonly<
   goal: ["goal"],
   direction: ["goal"],
   "action-place": ["action-place"],
+  "existence-location": ["existence-location"],
+  "existential-subject": ["existential-subject"],
   time: ["time"],
   means: ["means"],
   source: ["source"],

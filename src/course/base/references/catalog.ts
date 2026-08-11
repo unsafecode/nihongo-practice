@@ -42,10 +42,10 @@ const FORM_CONTENT_ID_BY_TOKEN_SOURCE_ID: Readonly<Record<string, string>> = {
   masen: "four-polite-tense-cells",
   mashita: "four-polite-tense-cells",
   "masen-deshita": "four-polite-tense-cells",
-  te: "te-allomorphy",
-  "te-sequence": "sequential-te",
-  kudasai: "te-kudasai",
-  imasu: "te-imasu",
+  te: "base-form-te",
+  "te-sequence": "base-construction-sequential-te",
+  kudasai: "base-construction-te-kudasai",
+  imasu: "base-construction-te-imasu",
   desu: "affirmative-desu",
   "dewa-arimasen": "negative-noun-predicate-copula",
   deshita: "remaining-copula-cells",
@@ -796,7 +796,7 @@ const VERB_ENTRIES = [
   ),
   entry(
     "base-verb-exceptions",
-    "te-allomorphy",
+    "base-form-te",
     ["Explicit exceptions", "Eccezioni esplicite"],
     [
       "Stored exceptions override the regular class path.",
@@ -807,7 +807,7 @@ const VERB_ENTRIES = [
   ),
   entry(
     "base-verb-te-forms",
-    "te-allomorphy",
+    "base-form-te",
     ["Practical て forms", "Forme in て pratiche"],
     [
       "Use the licensed canonical form for connection.",
@@ -818,7 +818,7 @@ const VERB_ENTRIES = [
   ),
   entry(
     "base-verb-sequential-te",
-    "sequential-te",
+    "base-construction-sequential-te",
     ["Sequential て form", "Forma sequenziale in て"],
     [
       "The sequential construction links two short events.",
@@ -837,7 +837,7 @@ const VERB_ENTRIES = [
   ),
   entry(
     "base-verb-te-imasu",
-    "te-imasu",
+    "base-construction-te-imasu",
     ["Progressive/state construction", "Costruzione progressiva/di stato"],
     [
       "This is the Base ongoing or resulting-state construction.",

@@ -66,7 +66,7 @@ const ADJECTIVE_CELL_IDS = new Set([
   "na-adjective-predicate-and-attributive",
 ]);
 const FORBIDDEN_FORM_IDS = new Set(["explanatory-no", "ndesu"]);
-const TE_IMASU_FORM_IDS = new Set(["te-imasu"]);
+const TE_IMASU_FORM_IDS = new Set(["base-construction-te-imasu"]);
 const TE_IMASU_OWNER_LESSON_ID = "requests-connection-4";
 
 function workedExamplesFor(

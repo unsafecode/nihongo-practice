@@ -2,6 +2,7 @@ import type { AssembledToken } from "../../../romaji/types";
 import { deepFreeze } from "../../foundations/deepFreeze";
 import { immutableReadonlyMap } from "../../foundations/immutableReadonlyMap";
 import { immutableReadonlySet } from "../../foundations/immutableReadonlySet";
+import type { SemanticArgumentRole } from "../../foundations/types";
 import {
   defineBaseLessonContent,
   type BaseActivityDefinition,
@@ -40,9 +41,18 @@ import {
   type BaseParticleSense,
 } from "../forms/particleLicensing";
 import {
+  realizeIAdjectivePredicate,
+  realizeIAdjectiveAttributive,
+  realizeNaAdjectiveAttributive,
+  realizeNaAdjectivePredicate,
+  realizeOwnedNounPredicate,
+  type BasePredicateForm,
+} from "../forms/adjectiveForms";
+import {
   realizePoliteGrid,
   realizePoliteNonpast,
   realizePoliteStem,
+  realizeTeConstruction,
   realizeVerbDictionary,
 } from "../forms/verbForms";
 import { validateBaseLessonDepth } from "../validation/lessonRules";
@@ -77,7 +87,16 @@ export type BaseTask11VerbFormKind =
   | "polite-nonpast"
   | "nonpast-negative"
   | "past-affirmative"
-  | "past-negative";
+  | "past-negative"
+  | "te"
+  | "te-request"
+  | "te-sequence"
+  | "te-imasu";
+
+export type BaseTask11PredicateKind =
+  | "noun"
+  | "i-adjective"
+  | "na-adjective";
 
 export type BaseTask11Part =
   | Readonly<{ readonly kind: "lexeme"; readonly lexemeId: string }>
@@ -91,6 +110,20 @@ export type BaseTask11Part =
       readonly kind: "verb-form";
       readonly lemmaId: string;
       readonly form: BaseTask11VerbFormKind;
+    }>
+  | Readonly<{
+      readonly kind: "predicate-form";
+      readonly predicateKind: BaseTask11PredicateKind;
+      readonly lexemeId: string;
+      readonly form: BasePredicateForm;
+    }>
+  | Readonly<{
+      readonly kind: "i-adjective-attributive";
+      readonly lexemeId: string;
+    }>
+  | Readonly<{
+      readonly kind: "na-adjective-attributive";
+      readonly lexemeId: string;
     }>
   | Readonly<{
       readonly kind: "analysis-label";
@@ -109,24 +142,7 @@ export interface BaseTask11TargetSpec {
   readonly parts: readonly BaseTask11Part[];
   readonly conceptIds: readonly string[];
   readonly patternCellIds: readonly string[];
-  readonly semanticRoleIds: readonly (
-    | "agent"
-    | "theme"
-    | "topic"
-    | "additive-topic"
-    | "focus-subject"
-    | "location"
-    | "action-place"
-    | "time"
-    | "means"
-    | "source"
-    | "limit"
-    | "possessor"
-    | "listing"
-    | "companion"
-    | "direction"
-    | "goal"
-  )[];
+  readonly semanticRoleIds: readonly SemanticArgumentRole[];
   readonly interpretationTags: readonly BaseInterpretationTag[];
   readonly predicateSenseId: string | null;
   readonly predicateLexemeId: string | null;
@@ -340,11 +356,30 @@ function formTokens(
   lemmaId: string,
   form: BaseTask11VerbFormKind,
 ): readonly AssembledToken[] {
+  if (
+    form === "te" ||
+    form === "te-request" ||
+    form === "te-sequence" ||
+    form === "te-imasu"
+  ) {
+    const construction =
+      form === "te"
+        ? "te"
+        : form === "te-request"
+          ? "request"
+          : form === "te-sequence"
+            ? "sequence"
+            : "te-imasu";
+    const result = realizeTeConstruction(lemmaId, construction);
+    if (result.ok) return result.value;
+    throw new Error(`Missing canonical Base form ${lemmaId}:${form}.`);
+  }
   if (form === "dictionary") {
     const result = realizeVerbDictionary(lemmaId);
     if (result.ok) return result.value;
     throw new Error(`Missing canonical Base form ${lemmaId}:${form}.`);
   }
+
   if (form === "polite-stem") {
     const result = realizePoliteStem(lemmaId);
     if (result.ok) return result.value;
@@ -365,6 +400,45 @@ function formTokens(
     : form === "past-affirmative"
       ? grid.pastAffirmative
       : grid.pastNegative;
+}
+
+function predicateFormTokens(
+  predicateKind: BaseTask11PredicateKind,
+  lexemeId: string,
+  form: BasePredicateForm,
+): readonly AssembledToken[] {
+  const result =
+    predicateKind === "noun"
+      ? realizeOwnedNounPredicate(lexemeId)
+      : predicateKind === "i-adjective"
+        ? realizeIAdjectivePredicate(lexemeId)
+        : realizeNaAdjectivePredicate(lexemeId);
+  if (!result.ok) {
+    throw new Error(`Missing canonical Base predicate form ${lexemeId}:${form}.`);
+  }
+  return result.value[form].tokens;
+}
+
+function naAdjectiveAttributiveTokens(
+  lexemeId: string,
+): readonly AssembledToken[] {
+  const result = realizeNaAdjectiveAttributive(lexemeId);
+  if (!result.ok) {
+    throw new Error(`Missing canonical Base attributive form ${lexemeId}.`);
+  }
+  return result.value;
+}
+
+function iAdjectiveAttributiveTokens(
+  lexemeId: string,
+): readonly AssembledToken[] {
+  const result = realizeIAdjectiveAttributive(lexemeId);
+  if (!result.ok) {
+    throw new Error(
+      `Missing canonical Base i-adjective attributive form ${lexemeId}.`,
+    );
+  }
+  return result.value;
 }
 
 function lexicalTokens(lexemeId: string, id: string): readonly AssembledToken[] {
@@ -469,6 +543,28 @@ function sequencePart(part: BaseTask11Part, id: string): BaseTokenSequencePart {
   if (part.kind === "verb-form") {
     return { tokens: formTokens(part.lemmaId, part.form), boundaryBefore: "space" };
   }
+  if (part.kind === "predicate-form") {
+    return {
+      tokens: predicateFormTokens(
+        part.predicateKind,
+        part.lexemeId,
+        part.form,
+      ),
+      boundaryBefore: "space",
+    };
+  }
+  if (part.kind === "i-adjective-attributive") {
+    return {
+      tokens: iAdjectiveAttributiveTokens(part.lexemeId),
+      boundaryBefore: "space",
+    };
+  }
+  if (part.kind === "na-adjective-attributive") {
+    return {
+      tokens: naAdjectiveAttributiveTokens(part.lexemeId),
+      boundaryBefore: "space",
+    };
+  }
   if (part.kind === "analysis-label") {
     return { tokens: analysisTokens(part.analysisId, id), boundaryBefore: "space" };
   }
@@ -498,6 +594,10 @@ function partLexemeIds(parts: readonly BaseTask11Part[]): readonly string[] {
           ? [part.lexemeId]
           : part.kind === "verb-form" || part.kind === "diagnostic-form"
             ? [part.lemmaId]
+            : part.kind === "predicate-form" ||
+                part.kind === "i-adjective-attributive" ||
+                part.kind === "na-adjective-attributive"
+              ? [part.lexemeId]
             : [],
       ),
     ),
@@ -508,14 +608,56 @@ function partFormIds(parts: readonly BaseTask11Part[]): readonly string[] {
   return [
     ...new Set(
       parts.flatMap((part) => {
-        if (part.kind !== "verb-form") return [];
+        if (part.kind !== "verb-form") return predicatePartFormIds(part);
         if (part.form === "dictionary") return ["dictionary-lemma"];
         if (part.form === "polite-stem") return ["polite-stems"];
         if (part.form === "polite-nonpast") return ["masu-nonpast"];
+        if (part.form === "te") return ["base-form-te"];
+        if (part.form === "te-request") {
+          return ["base-form-te", "base-construction-te-kudasai"];
+        }
+        if (part.form === "te-sequence") {
+          return ["base-form-te", "base-construction-sequential-te"];
+        }
+        if (part.form === "te-imasu") {
+          return ["base-form-te", "base-construction-te-imasu"];
+        }
         return ["four-polite-tense-cells"];
       }),
     ),
   ];
+}
+
+function predicatePartFormIds(part: BaseTask11Part): readonly string[] {
+  if (part.kind === "na-adjective-attributive") {
+    return ["base-form-na-adjective-attributive"];
+  }
+  if (part.kind === "i-adjective-attributive") {
+    return ["base-form-i-adjective-affirmative"];
+  }
+  if (part.kind !== "predicate-form") return [];
+  if (part.predicateKind === "noun") {
+    return part.form === "affirmative"
+      ? ["affirmative-desu"]
+      : part.form === "negative"
+        ? ["base-form-noun-predicate-negative"]
+        : part.form === "pastAffirmative"
+          ? ["base-form-noun-predicate-past-affirmative"]
+          : ["base-form-noun-predicate-past-negative"];
+  }
+  const stem =
+    part.predicateKind === "i-adjective"
+      ? "base-form-i-adjective"
+      : "base-form-na-adjective";
+  const suffix =
+    part.form === "affirmative"
+      ? "affirmative"
+      : part.form === "negative"
+        ? "negative"
+        : part.form === "pastAffirmative"
+          ? "past-affirmative"
+          : "past-negative";
+  return [`${stem}-${suffix}`];
 }
 
 function partConceptIds(parts: readonly BaseTask11Part[]): readonly string[] {
@@ -568,6 +710,8 @@ export function task11Cue(...parts: readonly BaseTask11Part[]): BaseTask11Target
     theme: "theme",
     goal: "goal",
     "action-place": "action-place",
+    "existence-location": "existence-location",
+    "existential-subject": "existential-subject",
     means: "means",
     time: "time",
     source: "source",

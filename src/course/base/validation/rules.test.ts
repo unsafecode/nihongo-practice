@@ -1551,7 +1551,10 @@ describe("Base lesson depth rules", () => {
       ],
       lexemeIds: ["missing-activity-target-lexeme"],
       conceptIds: ["missing-activity-target-concept"],
-      formIds: ["te-imasu", "missing-activity-target-form"],
+      formIds: [
+        "base-construction-te-imasu",
+        "missing-activity-target-form",
+      ],
       patternCellIds: ["missing-activity-target-cell"],
       predicateAspect: "dynamic",
       interpretationTags: ["future"],
@@ -1624,7 +1627,7 @@ describe("Base lesson depth rules", () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: "first-teach-before-owner",
-          referenceId: "te-imasu",
+          referenceId: "base-construction-te-imasu",
           detail: expect.stringContaining("activity target example"),
         }),
         expect.objectContaining({
@@ -1849,7 +1852,7 @@ describe("Base sequence rules", () => {
   it("rejects forward adjective cells, ongoing dynamic nonpast, forbidden explanatory forms, and unlicensed particles", () => {
     const ongoing = {
       ...EXAMPLES[0],
-      formIds: ["te-imasu"],
+      formIds: ["base-construction-te-imasu"],
       interpretationTags: ["ongoing-now"] as const,
     };
     const dynamicOngoing = {
@@ -1908,19 +1911,19 @@ describe("Base sequence rules", () => {
     const teImasuAtOwner = {
       ...EXAMPLES[1],
       id: "te-imasu-ongoing-owner",
-      formIds: ["te-imasu"],
+      formIds: ["base-construction-te-imasu"],
       interpretationTags: ["ongoing-now"] as const,
     };
     const teImasuEarlier = {
       ...EXAMPLES[2],
       id: "te-imasu-ongoing-earlier",
-      formIds: ["te-imasu"],
+      formIds: ["base-construction-te-imasu"],
       interpretationTags: ["ongoing-now"] as const,
     };
     const teImasuHabitual = {
       ...EXAMPLES[3],
       id: "te-imasu-habitual-owner",
-      formIds: ["te-imasu"],
+      formIds: ["base-construction-te-imasu"],
       interpretationTags: ["habitual"] as const,
     };
     const catalogs: BaseValidationCatalogs = {
@@ -2122,7 +2125,8 @@ describe("Base sequence rules", () => {
       ...phonetic,
       activities: phonetic.activities.map((activity, index) => ({
         ...activity,
-        assessedConceptIds: index === 0 ? ["te-imasu"] : [],
+        assessedConceptIds:
+          index === 0 ? ["base-construction-te-imasu"] : [],
         assessedLexemeIds: index === 0 ? ["verb-taberu"] : [],
       })),
     };
@@ -2151,7 +2155,7 @@ describe("Base sequence rules", () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: "first-teach-before-owner",
-          referenceId: "te-imasu",
+          referenceId: "base-construction-te-imasu",
           detail: expect.stringContaining("activity assessment"),
         }),
         expect.objectContaining({
