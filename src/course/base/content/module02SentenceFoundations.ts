@@ -103,7 +103,7 @@ export interface BaseSemanticContextTarget {
     | "established-topic"
     | "focused-new-subject"
     | "not-applicable";
-  readonly revealsAnswer: false;
+  readonly revealsAnswer: boolean;
   readonly audioRequired: boolean;
   readonly recallRequired: boolean;
 }

@@ -374,12 +374,37 @@ describe("Base polite-verbs module", () => {
     expect(pv2.operation).toBe("identify-audio");
     expect(
       pv2.optionTargets.map(({ predicateLexemeId }) => predicateLexemeId),
-    ).toEqual(["verb-kau", "verb-kau"]);
-    expect(pv2.optionTargets[0].conceptIds).toContain("godan-verb-class");
-    expect(pv2.optionTargets[1].conceptIds).toContain("dictionary-lemma");
-    expect(pv2.optionTargets[1].conceptIds).not.toContain(
-      "ichidan-verb-class",
-    );
+    ).toEqual(["verb-miru", "verb-miru"]);
+    expect(pv2.optionTargets[0].conceptIds).toContain("ichidan-verb-class");
+    expect(pv2.optionTargets[1].conceptIds).toContain("godan-verb-class");
+    for (const option of pv2.optionTargets) {
+      expect(option.tokens[0].source.referenceId).toBe("verb-miru");
+      expect(
+        option.tokens.some(
+          ({ source }) => source.referenceId === "analysis-source",
+        ),
+      ).toBe(true);
+    }
+
+    const pv3 = BASE_POLITE_VERBS_MODULE.lessons[2].activityDesigns[8];
+    expect(pv3.operation).toBe("identify-audio");
+    expect(
+      pv3.optionTargets.map(({ predicateLexemeId }) => predicateLexemeId),
+    ).toEqual(["verb-miru", "verb-miru"]);
+    expect(
+      pv3.optionTargets.some(({ tokens }) =>
+        tokens.some(
+          ({ source }) => source.referenceId === "analysis-dictionary",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      pv3.optionTargets.map(({ tokens }) =>
+        tokens
+          .filter(({ kind }) => kind !== "punctuation")
+          .at(-1)?.jp,
+      ),
+    ).toEqual(["み", "みり"]);
 
     const pv4 = BASE_POLITE_VERBS_MODULE.lessons[3].activityDesigns[8];
     expect(pv4.operation).toBe("identify-audio");
@@ -396,6 +421,23 @@ describe("Base polite-verbs module", () => {
         tokens.some(({ source }) => source.referenceId === "question-ka"),
       ),
     ).toEqual([false, true]);
+  });
+
+  it("makes the PV1 spoken analysis recoverable from a clause context", () => {
+    const lesson = BASE_POLITE_VERBS_MODULE.lessons[0];
+    const spoken = lesson.activityDesigns[9];
+    expect(spoken.operation).toBe("produce-spoken");
+    for (const locale of [
+      baseNavigationCopyEn.content[
+        lesson.content.activities[9].instructionCopyId
+      ],
+      baseNavigationCopyIt.content[
+        lesson.content.activities[9].instructionCopyId
+      ],
+    ]) {
+      expect(locale).toMatch(/(?:clause|frase)/iu);
+      expect(locale).not.toContain(spoken.acceptedAnswers[0]);
+    }
   });
 
   it("grounds PV2/PV3 prompts in the exact verb being analyzed", () => {

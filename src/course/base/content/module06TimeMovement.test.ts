@@ -1331,6 +1331,18 @@ describe("Base time-movement module", () => {
         retry: "Pronuncia へ come e.",
       },
       {
+        lesson: BASE_ARGUMENT_PARTICLES_MODULE.lessons[1],
+        index: 0,
+        locale: "it",
+        retry: "Scegli la meta.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[1],
+        index: 5,
+        locale: "it",
+        retry: "Usa il rapporto origine-limite.",
+      },
+      {
         lesson: BASE_TIME_MOVEMENT_MODULE.lessons[2],
         index: 0,
         locale: "it",
@@ -1420,7 +1432,8 @@ describe("Base time-movement module", () => {
     expect(
       validateTask11SemanticReview(lessons).filter(
         ({ code, activityId }) =>
-          code === "instruction-answer-leakage" &&
+          (code === "instruction-answer-leakage" ||
+            code === "listening-terms-missing") &&
           listeningIds.has(activityId),
       ),
     ).toEqual([]);
@@ -1440,6 +1453,80 @@ describe("Base time-movement module", () => {
         `IT:${design.id}`,
       ).toMatch(/\bascolta\b/iu);
     }
+  });
+
+  it("keeps every visible listening cue shared by both options or neither", () => {
+    const lessons = [
+      ...BASE_POLITE_VERBS_MODULE.lessons,
+      ...BASE_ARGUMENT_PARTICLES_MODULE.lessons,
+      ...BASE_TIME_MOVEMENT_MODULE.lessons,
+    ];
+    for (const lesson of lessons) {
+      const design = lesson.activityDesigns.find(
+        ({ operation }) => operation === "identify-audio",
+      )!;
+      expect(design.contextTarget.revealsAnswer, design.id).toBe(false);
+      for (const token of design.promptTarget.tokens.filter(
+        ({ kind }) => kind !== "punctuation",
+      )) {
+        const occurrence = design.optionTargets.map((option) =>
+          option.tokens.some(
+            ({ source }) =>
+              source.referenceId === token.source.referenceId,
+          ),
+        );
+        expect(occurrence[0], `${design.id}:${token.jp}`).toBe(occurrence[1]);
+      }
+      const promptSurface = jp(design.promptTarget.tokens).replace(/[、。\s]/gu, "");
+      if (promptSurface.length > 1) {
+        const occurrence = design.optionTargets.map(({ tokens }) =>
+          jp(tokens).replace(/[、。\s]/gu, "").includes(promptSurface),
+        );
+        expect(occurrence[0], `${design.id}:${promptSurface}`).toBe(
+          occurrence[1],
+        );
+      }
+    }
+  });
+
+  it("rejects an accepted-only token forged into a listening cue", () => {
+    const lesson = structuredClone(
+      BASE_ARGUMENT_PARTICLES_MODULE.lessons[0],
+    );
+    const design = lesson.activityDesigns[8];
+    const acceptedOnly = design.acceptedAnswerTarget.tokens.find(
+      ({ source }) => source.referenceId === "object-o",
+    )!;
+    (
+      design.promptTarget as unknown as {
+        tokens: AssembledToken[];
+      }
+    ).tokens = [{ ...acceptedOnly, id: "adversarial-listening-cue" }];
+    expect(validateTask11SemanticReview([lesson])).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "listening-cue-decisive",
+          activityId: design.id,
+        }),
+      ]),
+    );
+
+    const metadataOnly = structuredClone(
+      BASE_ARGUMENT_PARTICLES_MODULE.lessons[0],
+    );
+    (
+      metadataOnly.activityDesigns[8].contextTarget as unknown as {
+        revealsAnswer: boolean;
+      }
+    ).revealsAnswer = true;
+    expect(validateTask11SemanticReview([metadataOnly])).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "listening-cue-decisive",
+          activityId: metadataOnly.activityDesigns[8].id,
+        }),
+      ]),
+    );
   });
 
   it("rejects accepted-side listening synonyms in both locales", () => {
@@ -1514,31 +1601,163 @@ describe("Base time-movement module", () => {
         instruction:
           "Ascolta il viaggio in treno programmato e scegli la forma scritta.",
       },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[0],
+        locale: "en",
+        instruction: "Listen for the headword.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[0],
+        locale: "en",
+        instruction: "Listen for the entry title.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[0],
+        locale: "en",
+        instruction: "Listen for the dictionary entry.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[0],
+        locale: "it",
+        instruction: "Ascolta la voce di dizionario.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[0],
+        locale: "it",
+        instruction: "Ascolta la parola d'azione.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[2],
+        locale: "en",
+        instruction: "Listen for the past form.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[2],
+        locale: "en",
+        instruction: "Listen for the past-tense form.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[2],
+        locale: "it",
+        instruction: "Ascolta la forma al passato.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[2],
+        locale: "it",
+        instruction: "Ascolta la frase completata.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[3],
+        locale: "it",
+        instruction: "Ascolta la forma affermativa.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[3],
+        locale: "it",
+        instruction: "Ascolta la forma non negativa.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[0],
+        locale: "en",
+        instruction: "Listen for the recurring plan.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[0],
+        locale: "en",
+        instruction: "Listen for the routine.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[0],
+        locale: "en",
+        instruction: "Listen for the one-off plan.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[0],
+        locale: "it",
+        instruction: "Ascolta la lettura ricorrente.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[0],
+        locale: "it",
+        instruction: "Ascolta la lettura abituale.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[1],
+        locale: "it",
+        instruction: "Ascolta la classe.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[2],
+        locale: "it",
+        instruction: "Ascolta la radice.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[2],
+        locale: "en",
+        instruction: "Listen for the stems.",
+      },
+      {
+        lesson: BASE_POLITE_VERBS_MODULE.lessons[2],
+        locale: "en",
+        instruction: "Listen for the pre‑masu form.",
+      },
+      {
+        lesson: BASE_TIME_MOVEMENT_MODULE.lessons[1],
+        locale: "it",
+        instruction: "Ascolta la forma programmata per il giorno dopo.",
+      },
     ] as const;
 
     for (const { lesson, locale, instruction } of scenarios) {
       const activity = lesson.content.activities[8];
-      const copyId = activity.instructionCopyId;
-      const en = {
-        ...baseNavigationCopyEn.content,
-        ...(locale === "en" ? { [copyId]: instruction } : {}),
-      };
-      const it = {
-        ...baseNavigationCopyIt.content,
-        ...(locale === "it" ? { [copyId]: instruction } : {}),
-      };
-      expect(
-        validateTask11SemanticReview([lesson], en, it),
-        `${locale}:${activity.id}:${instruction}`,
-      ).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            code: "instruction-answer-leakage",
-            activityId: activity.id,
-          }),
-        ]),
-      );
+      for (const copyId of [
+        activity.instructionCopyId,
+        activity.retryFeedbackCopyId,
+      ]) {
+        const en = {
+          ...baseNavigationCopyEn.content,
+          ...(locale === "en" ? { [copyId]: instruction } : {}),
+        };
+        const it = {
+          ...baseNavigationCopyIt.content,
+          ...(locale === "it" ? { [copyId]: instruction } : {}),
+        };
+        expect(
+          validateTask11SemanticReview([lesson], en, it),
+          `${locale}:${activity.id}:${copyId}:${instruction}`,
+        ).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              code: "instruction-answer-leakage",
+              activityId: activity.id,
+            }),
+          ]),
+        );
+      }
     }
+  });
+
+  it("rejects listening contrasts with no derivable semantic terms", () => {
+    const lesson = structuredClone(
+      BASE_POLITE_VERBS_MODULE.lessons[0],
+    );
+    const design = lesson.activityDesigns[8] as unknown as {
+      optionTargets: typeof lesson.activityDesigns[8]["optionTargets"];
+      acceptedAnswerTarget: typeof lesson.activityDesigns[8]["acceptedAnswerTarget"];
+      id: string;
+    };
+    design.optionTargets = [
+      design.acceptedAnswerTarget,
+      structuredClone(design.acceptedAnswerTarget),
+    ];
+    expect(validateTask11SemanticReview([lesson])).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "listening-terms-missing",
+          activityId: design.id,
+        }),
+      ]),
+    );
   });
 
   it("keeps TM2 time-bound instructions factually parallel without naming the cell", () => {
@@ -1552,6 +1771,18 @@ describe("Base time-movement module", () => {
     );
     expect(baseNavigationCopyIt.content[copyId]).not.toMatch(
       /lettura delimitata/iu,
+    );
+  });
+
+  it("uses genuine intercity travel for the bounded route repair", () => {
+    const design = BASE_TIME_MOVEMENT_MODULE.lessons[1].activityDesigns[5];
+    expect(design.promptTarget.predicateLexemeId).toBe("verb-ryokou-suru");
+    expect(design.acceptedAnswerTarget.predicateLexemeId).toBe(
+      "verb-ryokou-suru",
+    );
+    expect(jp(design.promptTarget.tokens)).not.toContain("えきから");
+    expect(jp(design.acceptedAnswerTarget.tokens)).toBe(
+      "まりさんはとうきょうからおおさかまでりょこうします",
     );
   });
 
