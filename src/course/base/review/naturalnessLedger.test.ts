@@ -6,9 +6,13 @@ import {
 } from "../audio/reviewLedger";
 import {
   BASE_NATURALNESS_REVIEW_INVENTORY,
+  BASE_NATURALNESS_REVIEW_APPROVAL,
+  BASE_NATURALNESS_REVIEW_APPROVAL_VALIDATION,
   BASE_NATURALNESS_REVIEW_VALIDATION,
   BASE_NATURALNESS_CURRENT_CORPUS_FINGERPRINT,
+  baseNaturalnessReviewInventoryForApproval,
   baseNaturalnessCorpusFingerprintForSources,
+  validateBaseNaturalnessReviewApproval,
   validateBaseNaturalnessReviewInventory,
 } from "./naturalnessLedger";
 import * as naturalnessLedger from "./naturalnessLedger";
@@ -204,11 +208,94 @@ describe("independent Base naturalness inventory", () => {
       expect(entry.en.trim(), `${entry.contentId}:en`).not.toBe("");
       expect(entry.it.trim(), `${entry.contentId}:it`).not.toBe("");
       expect(entry.fingerprint).toMatch(/^[a-f0-9]{64}$/u);
-      expect(entry.status).toBe("pending");
-      expect(entry).not.toHaveProperty("reviewerIdentity");
-      expect(entry).not.toHaveProperty("reviewedAt");
+      expect(entry.status).toBe("accepted");
+      expect(entry).toMatchObject({
+        reviewerIdentity: "base-naturalness-final-delta-reviewer",
+        reviewedAt: "2026-08-12",
+      });
     }
     expect(BASE_NATURALNESS_REVIEW_VALIDATION.errors).toEqual([]);
+  });
+
+  it("records the authorized aggregate approval and fails closed on drift", () => {
+    expect(BASE_NATURALNESS_REVIEW_APPROVAL).toEqual({
+      reviewerIdentity: "base-naturalness-final-delta-reviewer",
+      reviewedAt: "2026-08-12",
+      aggregateFingerprint:
+        "24e1932284b50b5cf631d726dcd87b7715ba3bb978140f02fbefe6db8bb5495d",
+      acceptedEntryCount: 4_946,
+    });
+    expect(BASE_NATURALNESS_REVIEW_APPROVAL_VALIDATION).toEqual({
+      ok: true,
+      errors: [],
+    });
+    expect(BASE_NATURALNESS_REVIEW_APPROVAL.aggregateFingerprint).toBe(
+      BASE_NATURALNESS_CURRENT_CORPUS_FINGERPRINT,
+    );
+
+    const staleFingerprint = {
+      ...BASE_NATURALNESS_REVIEW_APPROVAL,
+      aggregateFingerprint: "0".repeat(64),
+    };
+    expect(
+      validateBaseNaturalnessReviewApproval(staleFingerprint).errors,
+    ).toContain("aggregate-fingerprint-mismatch");
+    expect(
+      baseNaturalnessReviewInventoryForApproval(staleFingerprint).every(
+        ({ status }) => status === "pending",
+      ),
+    ).toBe(true);
+
+    const staleCount = {
+      ...BASE_NATURALNESS_REVIEW_APPROVAL,
+      acceptedEntryCount: 4_945,
+    };
+    expect(validateBaseNaturalnessReviewApproval(staleCount).errors).toContain(
+      "accepted-entry-count-mismatch",
+    );
+    expect(
+      baseNaturalnessReviewInventoryForApproval(staleCount).every(
+        ({ status }) => status === "pending",
+      ),
+    ).toBe(true);
+
+    for (const malformed of [
+      null,
+      "approved",
+      { ...BASE_NATURALNESS_REVIEW_APPROVAL, reviewerIdentity: "  " },
+      { ...BASE_NATURALNESS_REVIEW_APPROVAL, reviewedAt: "12-08-2026" },
+      { ...BASE_NATURALNESS_REVIEW_APPROVAL, aggregateFingerprint: "abc" },
+      { ...BASE_NATURALNESS_REVIEW_APPROVAL, acceptedEntryCount: -1 },
+      { ...BASE_NATURALNESS_REVIEW_APPROVAL, extra: true },
+    ]) {
+      expect(
+        validateBaseNaturalnessReviewApproval(malformed).errors,
+      ).toContain("invalid-approval-shape");
+      expect(
+        baseNaturalnessReviewInventoryForApproval(malformed).every(
+          ({ status }) => status === "pending",
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("completes naturalness review without accepting any audio", () => {
+    expect(
+      BASE_NATURALNESS_REVIEW_INVENTORY.filter(
+        ({ status }) => status === "pending",
+      ),
+    ).toHaveLength(0);
+    expect(
+      BASE_NATURALNESS_REVIEW_INVENTORY.filter(
+        ({ status }) => status === "accepted",
+      ),
+    ).toHaveLength(4_946);
+    expect(
+      BASE_AUDIO_REVIEW_INVENTORY.filter(({ status }) => status === "pending"),
+    ).toHaveLength(86);
+    expect(
+      BASE_AUDIO_REVIEW_INVENTORY.filter(({ status }) => status !== "pending"),
+    ).toHaveLength(0);
   });
 
   it("covers every independently reachable localized copy and excludes only dead operation feedback", () => {
@@ -316,7 +403,9 @@ describe("independent Base naturalness inventory", () => {
           en: copy.en[field],
           it: copy.it[field],
           sourceKind: "localized-copy",
-          status: "pending",
+          status: "accepted",
+          reviewerIdentity: "base-naturalness-final-delta-reviewer",
+          reviewedAt: "2026-08-12",
         });
       }
     };

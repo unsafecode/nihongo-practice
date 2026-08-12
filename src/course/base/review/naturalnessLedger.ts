@@ -73,15 +73,37 @@ interface ReviewSource extends Omit<BaseNaturalnessReviewEntryCommon, "fingerpri
   readonly payload: unknown;
 }
 
-interface ExternalAcceptance {
-  readonly contentId: string;
-  readonly fingerprint: string;
+export interface BaseNaturalnessReviewApproval {
   readonly reviewerIdentity: string;
   readonly reviewedAt: string;
+  readonly aggregateFingerprint: string;
+  readonly acceptedEntryCount: number;
 }
 
-// Populated only from an independently supplied review handoff.
-const EXTERNAL_ACCEPTANCES: readonly ExternalAcceptance[] = deepFreeze([]);
+/**
+ * The independently supplied naturalness review handoff. This is an *aggregate*
+ * approval: one reviewer signing one corpus, pinned to that corpus's fingerprint
+ * and entry count. It is deliberately not a list of per-entry acceptances,
+ * because a per-entry list can drift silently — an entry could keep its
+ * acceptance while its text changed underneath. Here, if the corpus moves at all
+ * the fingerprint stops matching and every entry falls back to `pending`.
+ *
+ * Recorded after the focused delta review compared this corpus against the
+ * previously approved 9a84ac6 corpus (4,944 / 5d040b91…4564a) and found exactly
+ * 2 added, 19 changed and 0 removed entries, approving all of them along with
+ * the unchanged remainder.
+ *
+ * It covers naturalness only. The 86 canonical audio items are a separate
+ * ledger and remain pending human-ear sign-off.
+ */
+export const BASE_NATURALNESS_REVIEW_APPROVAL: BaseNaturalnessReviewApproval =
+  deepFreeze({
+    reviewerIdentity: "base-naturalness-final-delta-reviewer",
+    reviewedAt: "2026-08-12",
+    aggregateFingerprint:
+      "24e1932284b50b5cf631d726dcd87b7715ba3bb978140f02fbefe6db8bb5495d",
+    acceptedEntryCount: 4_946,
+  });
 
 const SEMANTIC_LESSONS = [
   ...BASE_SENTENCE_FOUNDATIONS_MODULE.lessons,
@@ -972,51 +994,108 @@ export const BASE_NATURALNESS_CURRENT_CORPUS_FINGERPRINT =
 
 /**
  * Fingerprint of the corpus that was inventoried for external naturalness
- * review. Re-taken when the learner-visible Japanese surface set changes so the
- * ledger keeps enumerating the *current* corpus. Re-inventorying is not
- * acceptance: `EXTERNAL_ACCEPTANCES` above is still empty, so every entry
- * (including any newly surfaced one) stays `pending` until a reviewer signs it.
+ * review, and the corpus the aggregate approval above is pinned to. Re-taken
+ * whenever the learner-visible Japanese surface set changes, so the ledger keeps
+ * enumerating the *current* corpus.
  *
- * Last re-taken when the 2026-08-06 Base content review fixes landed: the two
- * synthesis dialogue turns that answered with bare 「そう、」 now answer
- * 「そうです、」, and `polite-verbs-2-activity-8` now names the godan class
- * 「ごだんどうし」 (with a かへんどうし distractor) instead of 「ごだんのどうし」.
- * Those edits changed the learner-visible Japanese surface set, so the corpus
- * had to be re-inventoried. Re-inventorying is not acceptance: every affected
- * surface is enumerated again and stays `pending`.
+ * Re-taking it is not acceptance. It is derived from
+ * `BASE_NATURALNESS_REVIEW_APPROVAL.aggregateFingerprint`, so if content moves
+ * without a fresh signature the approval no longer matches the live corpus, the
+ * inventory falls back to `pending` in full, and `validateBaseNaturalnessReview`
+ * reports `stale-review-approval`. Editing content can therefore only ever
+ * *withdraw* acceptance, never silently retain it.
  *
- * Re-taken again when the four approved naturalness fixes (R1-R4) were
- * reconciled into this branch: the softened acceptance now reads
- * "Excuse me-yes, please." in both the lesson source and the copy dictionary,
- * the past-polarity contrast uses 休む/Yamada instead of 死ぬ/a flower, and the
- * synthesis family descriptions address the interlocutor's family
- * (おとうさん/おかあさん) rather than mislabelling them as the speaker's own.
- * Re-taken again when the focused naturalness delta review rejected
- * `copula-adjectives-4-example-9`: 「こうえんはいいです」 had been moved to
- * *"Il parco è buono."* by an earlier content review, but *buono* is not what an
- * Italian speaker says about a park, so it is restored to the approved
- * *"Il parco è bello."* Against the approved 9a84ac6 corpus
- * (4,944 / 5d040b91…4564a) this branch is 2 added, 19 changed, 0 removed by
- * entry fingerprint. The two added entries are the reviewed tense-polarity cell
- * label and explanation; the 19 changed are the later content and review fixes
- * that are still awaiting focused approval.
- *
- * Because that content changed after the independent naturalness review was
- * recorded, the review's aggregate approval is deliberately NOT imported here:
- * every surface stays `pending` until it is signed against this corpus.
+ * History of the corpus this fingerprint has covered: the 2026-08-06 content
+ * review fixes (「そうです、」 in the two synthesis dialogue turns,
+ * `polite-verbs-2-activity-8` naming 「ごだんどうし」 with a かへんどうし
+ * distractor); the four reconciled naturalness fixes R1-R4; and the restoration
+ * of `copula-adjectives-4-example-9` to *"Il parco è bello."* The focused delta
+ * review then compared this corpus against the approved 9a84ac6 corpus
+ * (4,944 / 5d040b91…4564a), found exactly 2 added, 19 changed and 0 removed
+ * entries, and approved them together with the unchanged remainder.
  */
 const INVENTORIED_CORPUS_FINGERPRINT =
-  "24e1932284b50b5cf631d726dcd87b7715ba3bb978140f02fbefe6db8bb5495d";
+  BASE_NATURALNESS_REVIEW_APPROVAL.aggregateFingerprint;
 
-const acceptanceByContentId = new Map(
-  EXTERNAL_ACCEPTANCES.map((acceptance) => [acceptance.contentId, acceptance]),
-);
+export type BaseNaturalnessReviewApprovalError =
+  | "invalid-approval-shape"
+  | "aggregate-fingerprint-mismatch"
+  | "accepted-entry-count-mismatch";
 
-export const BASE_NATURALNESS_REVIEW_INVENTORY: readonly BaseNaturalnessReviewEntry[] =
-  deepFreeze(
+export interface BaseNaturalnessReviewApprovalValidation {
+  readonly ok: boolean;
+  readonly errors: readonly BaseNaturalnessReviewApprovalError[];
+}
+
+function readNaturalnessReviewApproval(
+  value: unknown,
+): BaseNaturalnessReviewApproval | null {
+  const record = plainEntry(value);
+  if (!record) return null;
+  const keys = Object.keys(record).sort();
+  if (
+    keys.length !== 4 ||
+    keys[0] !== "acceptedEntryCount" ||
+    keys[1] !== "aggregateFingerprint" ||
+    keys[2] !== "reviewedAt" ||
+    keys[3] !== "reviewerIdentity" ||
+    typeof record.reviewerIdentity !== "string" ||
+    !record.reviewerIdentity.trim() ||
+    typeof record.reviewedAt !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}$/u.test(record.reviewedAt) ||
+    typeof record.aggregateFingerprint !== "string" ||
+    !/^[a-f0-9]{64}$/u.test(record.aggregateFingerprint) ||
+    typeof record.acceptedEntryCount !== "number" ||
+    !Number.isSafeInteger(record.acceptedEntryCount) ||
+    record.acceptedEntryCount < 0
+  ) {
+    return null;
+  }
+  return {
+    reviewerIdentity: record.reviewerIdentity,
+    reviewedAt: record.reviewedAt,
+    aggregateFingerprint: record.aggregateFingerprint,
+    acceptedEntryCount: record.acceptedEntryCount,
+  };
+}
+
+export function validateBaseNaturalnessReviewApproval(
+  value: unknown,
+): BaseNaturalnessReviewApprovalValidation {
+  const approval = readNaturalnessReviewApproval(value);
+  if (!approval) {
+    return { ok: false, errors: deepFreeze(["invalid-approval-shape"]) };
+  }
+  const errors: BaseNaturalnessReviewApprovalError[] = [];
+  if (
+    approval.aggregateFingerprint !== BASE_NATURALNESS_CURRENT_CORPUS_FINGERPRINT
+  ) {
+    errors.push("aggregate-fingerprint-mismatch");
+  }
+  if (approval.acceptedEntryCount !== REVIEW_SOURCES.length) {
+    errors.push("accepted-entry-count-mismatch");
+  }
+  return { ok: errors.length === 0, errors: deepFreeze(errors) };
+}
+
+export const BASE_NATURALNESS_REVIEW_APPROVAL_VALIDATION =
+  validateBaseNaturalnessReviewApproval(BASE_NATURALNESS_REVIEW_APPROVAL);
+
+/**
+ * Builds the inventory for a candidate approval. An approval that fails
+ * validation for any reason yields a fully `pending` inventory rather than a
+ * partially accepted one, so drift can never leave a subset of entries looking
+ * signed.
+ */
+export function baseNaturalnessReviewInventoryForApproval(
+  value: unknown,
+): readonly BaseNaturalnessReviewEntry[] {
+  const approval = readNaturalnessReviewApproval(value);
+  const acceptedApproval = validateBaseNaturalnessReviewApproval(value).ok
+    ? approval
+    : null;
+  return deepFreeze(
     REVIEW_SOURCES.map((source): BaseNaturalnessReviewEntry => {
-      const fingerprint = fingerprintFor(source);
-      const acceptance = acceptanceByContentId.get(source.contentId);
       const common = {
         contentId: source.contentId,
         lessonId: source.lessonId,
@@ -1025,18 +1104,22 @@ export const BASE_NATURALNESS_REVIEW_INVENTORY: readonly BaseNaturalnessReviewEn
         jp: source.jp,
         en: source.en,
         it: source.it,
-        fingerprint,
+        fingerprint: fingerprintFor(source),
       };
-      return acceptance && acceptance.fingerprint === fingerprint
+      return acceptedApproval
         ? {
             ...common,
             status: "accepted",
-            reviewerIdentity: acceptance.reviewerIdentity,
-            reviewedAt: acceptance.reviewedAt,
+            reviewerIdentity: acceptedApproval.reviewerIdentity,
+            reviewedAt: acceptedApproval.reviewedAt,
           }
         : { ...common, status: "pending" };
     }),
   );
+}
+
+export const BASE_NATURALNESS_REVIEW_INVENTORY: readonly BaseNaturalnessReviewEntry[] =
+  baseNaturalnessReviewInventoryForApproval(BASE_NATURALNESS_REVIEW_APPROVAL);
 
 export type BaseNaturalnessReviewError =
   | "invalid-inventory-shape"
@@ -1044,6 +1127,7 @@ export type BaseNaturalnessReviewError =
   | "duplicate-entry"
   | "missing-entry"
   | "stale-entry"
+  | "stale-review-approval"
   | "stale-corpus-fingerprint";
 
 export interface BaseNaturalnessReviewValidation {
@@ -1163,6 +1247,9 @@ export function validateBaseNaturalnessReviewInventory(
     INVENTORIED_CORPUS_FINGERPRINT
   ) {
     errors.add("stale-corpus-fingerprint");
+  }
+  if (!BASE_NATURALNESS_REVIEW_APPROVAL_VALIDATION.ok) {
+    errors.add("stale-review-approval");
   }
   return {
     ok: errors.size === 0,
