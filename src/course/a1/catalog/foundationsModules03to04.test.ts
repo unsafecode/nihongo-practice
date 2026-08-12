@@ -108,9 +108,9 @@ describe("published Foundations modules 03–04", () => {
     ).toEqual(EXPECTED_LESSON_IDS.map((id) => A1_EXPANDED_CANONICAL_POSITIONS[id]));
     expect(
       a1FoundationCatalogs.modules.some(({ id }) => id === "polite-verbs" || id === "time-movement"),
-    ).toBe(true);
-    expect(a1FoundationCatalogs.modules).toHaveLength(16);
-    expect(a1FoundationCatalogs.lessonPositions).toHaveLength(64);
+    ).toBe(false);
+    expect(a1FoundationCatalogs.modules).toHaveLength(11);
+    expect(a1FoundationCatalogs.lessonPositions).toHaveLength(44);
   });
 
   it("authors exactly eight models and five transfers for every Foundations lesson", () => {

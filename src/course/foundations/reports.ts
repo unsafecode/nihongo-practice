@@ -1,4 +1,5 @@
 import type { CourseLevelId, VariationAxis } from "./types";
+import { COURSE_LEVEL_IDS } from "../levels/types";
 
 /**
  * Machine-readable coverage reports and deterministic Markdown rendering for
@@ -143,11 +144,12 @@ export function sortAxes(axes: Iterable<VariationAxis>): readonly VariationAxis[
   return AXIS_ORDER.filter((axis) => set.has(axis));
 }
 
-const LEVEL_ORDER: readonly CourseLevelId[] = ["a1", "a2"];
+const LEVEL_RANK_BY_ID: ReadonlyMap<CourseLevelId, number> = new Map(
+  COURSE_LEVEL_IDS.map((level, index) => [level, index]),
+);
 
 function levelRank(level: CourseLevelId): number {
-  const index = LEVEL_ORDER.indexOf(level);
-  return index === -1 ? LEVEL_ORDER.length : index;
+  return LEVEL_RANK_BY_ID.get(level) ?? COURSE_LEVEL_IDS.length;
 }
 
 /** Stable string comparison (code-point order) used everywhere ids are sorted. */

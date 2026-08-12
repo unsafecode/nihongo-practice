@@ -200,15 +200,15 @@ describe("validateA1Curriculum — attributed broken fixtures", () => {
     const result = contentsFixture((contents) => {
       const lesson = mutableLesson(contents, "introductions-2");
       lesson.newLexemeIds = [
-        "a1-lexeme-watashi",
+        "a1-lexeme-aatisuto",
         ...lesson.newLexemeIds.slice(1),
       ];
     });
 
     expectAttributed(result, "duplicate-lexeme-introduction", {
       lessonId: "introductions-2",
-      id: "a1-lexeme-watashi",
-      referenceId: "sentence-foundations-1",
+      id: "a1-lexeme-aatisuto",
+      referenceId: "introductions-1",
       stage: "lexical",
     });
   });
@@ -259,19 +259,24 @@ describe("validateA1Curriculum — attributed broken fixtures", () => {
   it("reports grammar-prerequisite-order for a note requiring a future concept", () => {
     const notes = clone(a1LearningNotes);
     const note = notes.find((entry) => entry.id === "a1-note-particle-ga")! as Mutable<A1LearningNote>;
-    note.requiredConceptIds = ["a1-concept-transport-de"];
+    note.requiredConceptIds = ["a1-concept-existence-aru-iru"];
 
     const result = validateA1Curriculum({ learningNotes: notes });
 
     expectAttributed(result, "grammar-prerequisite-order", {
-      lessonId: "topic-questions-2",
+      lessonId: "essential-questions-4",
       id: "a1-note-particle-ga",
-      referenceId: "a1-concept-transport-de",
+      referenceId: "a1-concept-existence-aru-iru",
       stage: "grammar",
     });
   });
 
-  it("reports grammar-explanation-missing when a first-use concept is no longer explained", () => {
+  it("reports grammar-explanation-missing when an inherited Base concept loses its explanation", () => {
+    // `a1-note-sentence-chunks` belongs to the rehomed `sentence-foundations-1`,
+    // so retained A1 inherits `a1-concept-topic-wa` from it. Strip the
+    // explanation and the very first retained model that uses は must fail —
+    // the inherited claim is derived from the note catalog under test, never
+    // asserted unconditionally.
     const notes = clone(a1LearningNotes);
     const note = notes.find((entry) => entry.id === "a1-note-sentence-chunks")! as Mutable<A1LearningNote>;
     note.explainedConceptIds = note.explainedConceptIds.filter(
@@ -281,30 +286,35 @@ describe("validateA1Curriculum — attributed broken fixtures", () => {
     const result = validateA1Curriculum({ learningNotes: notes });
 
     expectAttributed(result, "grammar-explanation-missing", {
-      lessonId: "sentence-foundations-1",
+      lessonId: "introductions-1",
       referenceId: "a1-concept-topic-wa",
       stage: "grammar",
     });
   });
 
-  it("does not let an incidental early object explanation unlock use before polite-verbs-2", () => {
+  it("does not let an incidental early quantity explanation unlock use before shopping-2", () => {
+    // `a1-concept-quantity` is first taught by `a1-note-quantity` in
+    // `shopping-2`. An *incidental* mention of the concept in an earlier
+    // lesson's note must not unlock it: only the canonical first-teaching note
+    // does.
     const notes = clone(a1LearningNotes);
     const note = notes.find(
-      (entry) => entry.id === "a1-note-sentence-chunks",
+      (entry) => entry.id === "a1-note-sentence-shape-omission",
     )! as Mutable<A1LearningNote>;
-    note.explainedConceptIds = [...note.explainedConceptIds, "a1-concept-object-wo"];
+    note.explainedConceptIds = [...note.explainedConceptIds, "a1-concept-quantity"];
     const catalogs = clone(a1FoundationCatalogs);
-    const earlyObjectVariant = catalogs.sentenceVariants.find(
-      (entry) => entry.id === "topic-questions-4-m7",
+    const earlyQuantityVariant = catalogs.sentenceVariants.find(
+      (entry) => entry.id === "introductions-1-m7",
     ) as unknown as {
       sentenceFamilyId: string;
       slotValues: Record<string, string>;
     };
-    earlyObjectVariant.sentenceFamilyId = "a1-family-object-action";
-    earlyObjectVariant.slotValues = {
-      subject: "a1-value-kore",
-      predicate: "a1-value-eat",
-      object: "a1-value-obj-bread",
+    earlyQuantityVariant.sentenceFamilyId = "a1-family-quantified-action";
+    earlyQuantityVariant.slotValues = {
+      subject: "a1-value-yuki",
+      predicate: "a1-value-buy",
+      object: "a1-value-obj-apple",
+      quantity: "a1-value-qty-3",
     };
 
     const result = validateA1Curriculum({
@@ -313,9 +323,9 @@ describe("validateA1Curriculum — attributed broken fixtures", () => {
     });
 
     expectAttributed(result, "grammar-explanation-missing", {
-      lessonId: "topic-questions-4",
-      id: "topic-questions-4-m7",
-      referenceId: "a1-concept-object-wo",
+      lessonId: "introductions-1",
+      id: "introductions-1-m7",
+      referenceId: "a1-concept-quantity",
       stage: "grammar",
     });
   });

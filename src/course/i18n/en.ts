@@ -1,6 +1,11 @@
 import type { CourseCopy } from "./types";
 import { assembledCourseCopy } from "../catalog/assembleCourse";
 import {
+  baseNavigationCopyEn,
+  mergeBaseNavigationDictionary,
+} from "../base/copy/en";
+import { courseModulesByLevel } from "../data/course";
+import {
   a1RuntimeLessonCopy,
   a1RuntimeModuleCopy,
   a1RuntimeObjectiveCopy,
@@ -43,6 +48,12 @@ const enUi = {
     courseShape: (moduleCount: number, lessonCount: number) =>
       `${moduleCount} modules, ${lessonCount} lessons`,
   },
+  progressMutation: {
+    title: "Progress was not updated",
+    body: (lessonId: string) =>
+      `We could not safely record progress for lesson “${lessonId}”. Please return to the course and try again.`,
+    dismiss: "Dismiss",
+  },
   canDoSummary: {
     heading: "What you can do so far",
     demonstratedCount: (demonstrated: number, total: number) =>
@@ -61,16 +72,38 @@ const enUi = {
   },
   courseLevels: {
     selectorLabel: "Course level",
+    recommendedMarker: "Recommended",
+    base: "Base",
     a1: "A1",
     a2: "A2",
+    baseHeading: "Base course",
     a1Heading: "A1 course",
     a2Heading: "A2 course",
+    baseBadge: "Base, product-authored foundations for practical A1 Can-dos",
+    a1Badge: "A1, everyday practice built on the Base foundations",
     a2Badge: "A2, our alignment to JF/CEFR Can-do descriptors",
+    baseAvailableHint:
+      "Foundations for sound, kana, and first sentence patterns.",
+    baseRecommendedHint:
+      "Start here if you are new to the course and want foundations first.",
+    a1AvailableHint:
+      "A1 remains open and applies the foundations in everyday situations.",
+    a1RecommendedHint:
+      "A1 is recommended for learners ready to apply Base foundations in everyday situations.",
     a2AvailableHint:
-      "A2 is available whenever you like. It builds on A1, so working through A1 first helps — but nothing is locked.",
+      "A2 remains open and builds connected conversation.",
     a2RecommendedHint:
-      "You have worked through the A1 checkpoint, so A2 is a good next step. It was open all along — nothing was locked.",
+      "A2 remains open as a good next step after A1 and builds connected conversation.",
+    baseCheckpointHeading: "Base checkpoint",
+    a1CheckpointHeading: "A1 checkpoint",
     a2CheckpointHeading: "A2 checkpoint",
+    descriptorUnavailableTitle: "Can-do details unavailable",
+    descriptorUnavailableBody:
+      "This Can-do description is unavailable right now. Your course map and lesson links remain available.",
+    checkpointNotAttempted: (levelLabel: string) =>
+      `No ${levelLabel} checkpoint attempt is recorded yet.`,
+    checkpointAttemptRecorded: (levelLabel: string) =>
+      `A ${levelLabel} checkpoint attempt is recorded.`,
     resetLevel: (levelLabel: string) => `Reset ${levelLabel} progress`,
     resetLevelConfirm: (levelLabel: string) =>
       `Do you really want to reset your ${levelLabel} course progress? Your other level's progress is kept.`,
@@ -228,6 +261,82 @@ const enUi = {
       meaningsAndFormsLabel: "Meanings and forms",
       retrievalCueLabel: "Retrieval cue",
       reviewExceptionLabel: "Review note",
+      baseReferencesLabel: "Base systems you are reusing",
+      baseReferencesHint:
+        "This lesson applies these systems rather than teaching them; open a reference to see the whole pattern again.",
+    },
+  },
+  baseLesson: {
+    sections: {
+      rule: "Rule",
+      vocabulary: "Vocabulary",
+      grammar: "Grammar",
+      comparison: "Examples",
+      explore: "Practice",
+      recap: "Recap",
+    },
+    unavailableTitle: "This lesson could not be prepared",
+    unavailableBody:
+      "Some of this lesson's content could not be built right now. Nothing was shown so you never practice against a broken example.",
+    vocabulary: {
+      heading: "Vocabulary",
+      newWordsHeading: "New words",
+      reviewWordsHeading: "Known words to reuse",
+      meaningLabel: "Meaning",
+    },
+    explanation: {
+      mainLabel: "How it works",
+      constructionLabel: "Construction",
+      constraintsLabel: "Where this applies",
+      commonErrorLabel: "Common mistake",
+      nearestContrastLabel: "Nearest contrast",
+      phoneticLabel: "Sound explanation",
+      contrastMapHeading: "Sound contrasts",
+    },
+    examples: {
+      heading: "Worked examples",
+      dialogueHeading: "Dialogue",
+      translationLabel: "Natural translation",
+      turnLabel: (position: number) => `Turn ${position}`,
+    },
+    reference: {
+      heading: "Reference so far",
+    },
+    practice: {
+      heading: "Practice",
+      intro: "Work through every step in order; each one builds on the lesson above.",
+      stageNonSpokenHeading: "Build and recognize",
+      stageListeningHeading: "Listen",
+      stageSpokenHeading: "Speak",
+      submit: "Check",
+      accepted: "Correct",
+      retry: "Not yet — try again.",
+      optionsLabel: "Choose one",
+      tileBankLabel: "Available tiles",
+      tileAnswerLabel: "Your answer",
+      revealAnswer: "Show the answer",
+      selfCheckPrompt: "Did you get it right?",
+      selfCheckCorrect: "Yes, I had it right",
+      selfCheckRetry: "Not quite — I need more practice",
+    },
+    audio: {
+      idle: "Play audio",
+      playing: "Playing…",
+      stopped: "Stopped",
+      unavailable: "Audio is unavailable in this browser.",
+      blocked: "Audio playback was blocked. Try again.",
+      failed: "Audio playback failed. Try again.",
+      retry: "Try again",
+      statusLabel: "Audio status",
+    },
+    listening: {
+      heading: "Listening",
+      instruction: "Listen, then choose the option that matches what you heard.",
+    },
+    recap: {
+      heading: "Recap",
+      vocabularyHeading: "Vocabulary from this lesson",
+      canDoLabel: "You can now",
     },
   },
   practice: {
@@ -374,7 +483,46 @@ const enUi = {
     helpBody:
       "An earlier version of this course tracked progress differently. When the structure changed, any lesson visit that safely matches the new structure carries over automatically. Practice attempts, saved review items, and checkpoint results tied to exercises that were redesigned may need to be completed again, since they no longer match the new exercises exactly. Any older visit without a safe match in the new structure is retained as recovery data rather than shown as an equivalent visited lesson.",
   },
-} satisfies Pick<CourseCopy, "home" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "a1Lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
+  baseReferencePage: {
+    unknownReferenceTitle: "Reference not found",
+    unknownReferenceBody:
+      "This reference does not exist. Go back to the course and try again from a lesson's link.",
+    invalidThroughLessonTitle: "Invalid link",
+    invalidThroughLessonBody:
+      "This reference's link named a lesson that is not recognized, so nothing was shown. Open this reference from a lesson in the Base course.",
+    unavailableTitle: "This reference is not available",
+    unavailableBody:
+      "This reference could not be prepared right now. Nothing was shown, so you never see an incomplete table.",
+    tableViewLabel: "Table view",
+    cardsViewLabel: "Card view",
+    whenToUseLabel: "When to use it",
+  },
+  baseDiagnostic: {
+    heading: "Where should you start?",
+    intro:
+      "Answer a few quick questions to find out where to start. This is optional — you can skip it and choose your level any time from the course map.",
+    dimensions: {
+      "mora-timing": "Can you already read hiragana and katakana with steady, mora-by-mora timing?",
+      "sentence-anatomy": "Can you already spot the topic, verb, and complements in a simple sentence?",
+      "particle-sense":
+        "Do you already know the meaning of the basic particles (wa, o, ni, de, to)?",
+      "polite-verb-form": "Can you already build a verb's polite -masu form?",
+    },
+    yes: "Yes",
+    no: "No",
+    skip: "Skip",
+    submit: "See recommendation",
+    skippedNotice:
+      "No problem — you can choose your level any time from the course map.",
+    continueToCourse: "Go to the course map",
+    resultHeading: "Here's where to start",
+    resultBody: (recommendedLevel) =>
+      recommendedLevel === "a0"
+        ? "We recommend starting with the Base course, to build these foundations first."
+        : "You already know the Base foundations — you can start directly with A1.",
+    goToRecommendation: "Go to the recommended lesson",
+  },
+} satisfies Pick<CourseCopy, "home" | "progressMutation" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "a1Lesson" | "baseLesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration" | "baseReferencePage" | "baseDiagnostic">;
 
 const enCourseMap: CourseCopy["courseMap"] = {
   heading: "The course",
@@ -415,6 +563,32 @@ const enCourseAreas: CourseCopy["courseAreas"] = {
   },
 };
 
+function retainedA1Copy<T>(
+  source: Readonly<Record<string, T>>,
+  keys: readonly string[],
+): Record<string, T> {
+  return Object.fromEntries(keys.map((key) => [key, source[key]!]));
+}
+
+const enRetainedA1Modules = courseModulesByLevel.a1;
+const enRetainedA1ModuleCopy = retainedA1Copy(
+  a1RuntimeModuleCopy("en"),
+  enRetainedA1Modules.map((module) => module.id),
+);
+const enRetainedA1LessonCopy = retainedA1Copy(
+  a1RuntimeLessonCopy("en"),
+  enRetainedA1Modules.flatMap((module) => module.lessons.map((lesson) => lesson.titleCopyId)),
+);
+const enRetainedA1ObjectiveCopy = retainedA1Copy(
+  a1RuntimeObjectiveCopy("en"),
+  enRetainedA1Modules.flatMap((module) =>
+    module.lessons.flatMap((lesson) => lesson.objectiveCopyIds),
+  ),
+);
+const enRetainedA1OutcomeCopy = retainedA1Copy(
+  a1RuntimeOutcomeCopy("en"),
+  enRetainedA1Modules.flatMap((module) => module.outcomeCopyIds),
+);
 
 export const en = {
   ...enUi,
@@ -431,15 +605,34 @@ export const en = {
   // from — so they're kept from the legacy course copy, still genuinely used
   // by the legacy `spokenAttemptModel`/`TransformComparison`/`GuidedToolLink`
   // consumers. `journeyScenes` has no shipped content in either pipeline.
-  // A1 and A2 module/lesson/objective/outcome copy are merged into one map
-  // per dictionary (Phase 3 Task 8). The two levels' module and lesson id
-  // namespaces are disjoint (A2 ids are all `${a2Module}-${n}` prefixes A1
-  // never uses), so the merge never collides; the i18n orphan/coverage checks
-  // derive their known-id sets from both levels' `courseModulesByLevel`.
-  modules: { ...a1RuntimeModuleCopy("en"), ...a2RuntimeModuleCopy("en") },
-  lessons: { ...a1RuntimeLessonCopy("en"), ...a2RuntimeLessonCopy("en") },
-  objectives: { ...a1RuntimeObjectiveCopy("en"), ...a2RuntimeObjectiveCopy("en") },
-  outcomes: { ...a1RuntimeOutcomeCopy("en"), ...a2RuntimeOutcomeCopy("en") },
+  // Retained A1 and A2 navigation copy is merged with Base copy per dictionary.
+  // Base deliberately wins only for the reviewed stable rehomes; the merge
+  // helper throws for every other collision.
+  modules: mergeBaseNavigationDictionary(
+    "modules",
+    enRetainedA1ModuleCopy,
+    a2RuntimeModuleCopy("en"),
+    baseNavigationCopyEn.modules,
+  ),
+  lessons: mergeBaseNavigationDictionary(
+    "lessons",
+    enRetainedA1LessonCopy,
+    a2RuntimeLessonCopy("en"),
+    baseNavigationCopyEn.lessons,
+  ),
+  objectives: mergeBaseNavigationDictionary(
+    "objectives",
+    enRetainedA1ObjectiveCopy,
+    a2RuntimeObjectiveCopy("en"),
+    baseNavigationCopyEn.objectives,
+  ),
+  outcomes: mergeBaseNavigationDictionary(
+    "outcomes",
+    enRetainedA1OutcomeCopy,
+    a2RuntimeOutcomeCopy("en"),
+    baseNavigationCopyEn.outcomes,
+  ),
+  baseContent: { ...baseNavigationCopyEn.content },
   blocks: assembledCourseCopy.en.blocks,
   examples: assembledCourseCopy.en.examples,
   journeyScenes: {} as CourseCopy["journeyScenes"],

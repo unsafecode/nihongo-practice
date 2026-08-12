@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import { lessonPlans } from "../catalog/lessonPlans";
 import { courseModules as legacyAssembledCourseModules } from "../catalog/assembleCourse";
-import { courseModulesByLevel } from "../data/course";
+import { courseModulesByLevel, legacyA1CourseModules } from "../data/course";
 import { getLessonExercises } from "../components/lessonExerciseModel";
 import { A1_LESSON_IDS } from "../a1/manifest";
+import { V4_REHOMED_LESSON_IDS } from "../base/migration/v4OwnershipMap";
 import {
   A1_V3_LESSON_ID_MAP,
   A1_V3_PUBLISHED_LESSON_IDS,
@@ -12,9 +13,12 @@ import {
   acknowledgeMigrationNotice,
   clearAll,
   clearLevel,
+  CURRENT_COURSE_PROGRESS_CATALOG_VERSION,
   emptyLevelProgress,
   emptyProgressV4,
+  emptyProgressV5,
   migrateV4Catalog,
+  migrateV4ToV5,
   migrateV3ToV4,
   parseProgress,
   recordCanDoEvidence,
@@ -24,11 +28,18 @@ import {
   type CheckpointAttempt,
   type CourseProgressV3,
   type CourseProgressV4,
+  type CourseProgressV5,
   type LevelProgress,
   type ModuleOutline,
   type StoredCourseProgressV4,
 } from "./progress";
 import { reviewKeyFor } from "./reviewQueue";
+
+type Assert<T extends true> = T;
+type IsAssignable<From, To> = [From] extends [To] ? true : false;
+type V5DoesNotMatchV4 = Assert<
+  IsAssignable<CourseProgressV5, CourseProgressV4> extends false ? true : false
+>;
 
 const T0 = "2026-07-16T10:00:00.000Z";
 const T1 = "2026-07-16T11:00:00.000Z";
@@ -71,7 +82,7 @@ type CatalogSets = {
 function currentCatalogSets(): CatalogSets {
   const knownLessonIdsByLevel = {
     a1: new Set(
-      courseModulesByLevel.a1.flatMap((module) =>
+      legacyA1CourseModules.flatMap((module) =>
         module.lessons.map((lesson) => lesson.id),
       ),
     ),
@@ -102,6 +113,14 @@ function currentCatalogSets(): CatalogSets {
   };
 }
 
+const preSplitA1LessonIds = new Set(A1_LESSON_IDS);
+const rehomedPreSplitLessonIds = new Set<string>(V4_REHOMED_LESSON_IDS);
+const legacyV1V2RuntimeIds = {
+  a0: rehomedPreSplitLessonIds,
+  a1: new Set(A1_LESSON_IDS.filter((lessonId) => !rehomedPreSplitLessonIds.has(lessonId))),
+  a2: new Set<string>(),
+};
+
 function exerciseIds(lessonId: string): string[] {
   const model = getLessonExercises(lessonId);
   if (!model) throw new Error(`fixture requires exercises for ${lessonId}`);
@@ -125,10 +144,26 @@ function reviewEntry(
 }
 
 describe("A1_V3_PUBLISHED_LESSON_IDS / A1_V3_SAFE_SOURCE_LESSON_IDS / A1_V3_LESSON_ID_MAP / A1_V4_DESTINATION_LESSON_IDS", () => {
-  it("keeps the current A1 runtime destination catalog at the exact 16-module / 64-lesson manifest shape", () => {
+  it("keeps V4 and V5 schema/catalog discriminants independent", () => {
+    expectTypeOf<V5DoesNotMatchV4>().toEqualTypeOf<true>();
+    expectTypeOf<StoredCourseProgressV4>().toMatchTypeOf(emptyProgressV4());
+
+    if (false) {
+      // @ts-expect-error V5 progress cannot enter the V4 catalog migrator.
+      migrateV4Catalog(emptyProgressV5());
+    }
+
+    expect(emptyProgressV4()).toMatchObject({
+      schemaVersion: 4,
+      catalogVersion: CURRENT_COURSE_PROGRESS_CATALOG_VERSION,
+    });
+  });
+
+  it("keeps the active A1 runtime at 11 modules / 44 lessons while V4 retains its legacy source catalog", () => {
     const current = currentCatalogSets();
 
-    expect(courseModulesByLevel.a1).toHaveLength(16);
+    expect(courseModulesByLevel.a1).toHaveLength(11);
+    expect(courseModulesByLevel.a1.flatMap((module) => module.lessons)).toHaveLength(44);
     expect(current.knownLessonIdsByLevel.a1).toHaveLength(64);
     expect([...current.knownLessonIdsByLevel.a1].sort()).toEqual(
       [...A1_LESSON_IDS].sort(),
@@ -840,7 +875,7 @@ describe("v4 catalog v1/v2 → v3 normalization", () => {
     ]);
   });
 
-  it("accepts catalog v2 through parseProgress and keeps an already reconciled catalog-v3 record by reference", () => {
+  it("accepts catalog v2 through parseProgress into V5 while keeping V4 catalog normalization reference-stable", () => {
     const legacy = {
       ...v1Fixture(),
       catalogVersion: "a1-a2-v2" as const,
@@ -856,7 +891,7 @@ describe("v4 catalog v1/v2 → v3 normalization", () => {
     expect(parsed).toMatchObject({
       corrupted: false,
       migrated: true,
-      progress: { catalogVersion: "a1-a2-v3" },
+      progress: { catalogVersion: "base-a1-a2-v1", schemaVersion: 5 },
     });
 
     const currentV3 = emptyProgressV4();
@@ -892,7 +927,7 @@ describe("v4 catalog v1/v2 → v3 normalization", () => {
     ).toBe(once);
   });
 
-  it("normalizes a valid v4 catalog-v1 payload through parsing and rejects an unknown future catalog revision", () => {
+  it("normalizes a valid V4 catalog-v1 payload through V5 parsing and rejects an unknown future catalog revision", () => {
     const source = v1Fixture();
     const current = currentCatalogSets();
     const parsed = parseProgress(
@@ -904,7 +939,7 @@ describe("v4 catalog v1/v2 → v3 normalization", () => {
 
     expect(parsed.corrupted).toBe(false);
     expect(parsed.migrated).toBe(true);
-    expect(parsed.progress.catalogVersion).toBe("a1-a2-v3");
+    expect(parsed.progress.catalogVersion).toBe("base-a1-a2-v1");
     expect(parsed.progress.levels.a1.orphanedReviewKeys).toContain(
       source.levels.a1.reviewQueue[1]!.reviewKey,
     );
@@ -913,40 +948,192 @@ describe("v4 catalog v1/v2 → v3 normalization", () => {
         JSON.stringify({ ...source, catalogVersion: "a1-a2-v99" }),
       ),
     ).toEqual({
-      progress: emptyProgressV4(),
+      progress: emptyProgressV5(),
       corrupted: true,
       migrated: false,
     });
   });
 });
 
-describe("parseProgress → CourseProgressV4", () => {
-  it("treats null storage content as empty v4 progress", () => {
+describe("parseProgress → CourseProgressV5", () => {
+  describe("V1/V2 pre-split current-id migration", () => {
+    const allPreSplitVisits = [...A1_LESSON_IDS];
+
+    function parseLegacyV1V2(
+      schemaVersion: 1 | 2,
+      visitedLessonIds: readonly string[],
+      lastVisitedLessonId: string | null,
+    ) {
+      const payload = schemaVersion === 1
+        ? {
+            schemaVersion,
+            completedLessonIds: visitedLessonIds,
+            lastVisitedLessonId,
+            updatedAt: T1,
+          }
+        : {
+            schemaVersion,
+            visitedLessonIds,
+            lastVisitedLessonId,
+            updatedAt: T1,
+          };
+      return parseProgress(
+        JSON.stringify(payload),
+        preSplitA1LessonIds,
+        { a0: new Set(), a1: new Set(), a2: new Set() },
+        legacyV1V2RuntimeIds,
+      );
+    }
+
+    it.each([1, 2] as const)(
+      "preserves every injected pre-split current lesson visit from V%s without fabricated evidence",
+      (schemaVersion) => {
+        const parsed = parseLegacyV1V2(schemaVersion, allPreSplitVisits, "time-movement-4");
+        const { progress } = parsed;
+        const activeLessonIds = [
+          ...Object.keys(progress.levels.a0.lessons),
+          ...Object.keys(progress.levels.a1.lessons),
+        ];
+
+        expect(parsed).toMatchObject({ corrupted: false, migrated: true });
+        expect(Object.keys(progress.levels.a0.lessons)).toHaveLength(20);
+        expect(Object.keys(progress.levels.a1.lessons)).toHaveLength(44);
+        expect(activeLessonIds.sort()).toEqual([...A1_LESSON_IDS].sort());
+        expect(Object.keys(progress.levels.a0.lessons).sort()).toEqual(
+          [...V4_REHOMED_LESSON_IDS].sort(),
+        );
+        expect(progress.levels.a0.lastVisitedLessonId).toBe("time-movement-4");
+        expect(progress.levels.a1.lastVisitedLessonId).not.toBeNull();
+        expect(
+          progress.levels.a1.lessons[progress.levels.a1.lastVisitedLessonId!],
+        ).toBeDefined();
+
+        for (const lessonId of A1_LESSON_IDS) {
+          const record =
+            progress.levels.a0.lessons[lessonId] ?? progress.levels.a1.lessons[lessonId];
+          expect(record).toEqual({
+            visitedAt: T1,
+            practicedAt: null,
+            consolidatedAt: null,
+            attemptedExerciseIds: [],
+            acceptedExerciseIds: [],
+          });
+          for (const levelId of ["a0", "a1", "a2"] as const) {
+            expect(progress.levels[levelId].orphanedLessonIds).not.toContain(lessonId);
+            expect(progress.levels[levelId].orphanedLessonRecords[lessonId]).toBeUndefined();
+          }
+        }
+
+        const again = parseLegacyV1V2(schemaVersion, allPreSplitVisits, "time-movement-4");
+        expect(again).toEqual(parsed);
+        expect(parseProgress(JSON.stringify(progress))).toEqual({
+          progress,
+          corrupted: false,
+          migrated: false,
+        });
+      },
+    );
+
+    it.each([1, 2] as const)(
+      "retains reviewed V3 aliases while orphaning orientation and opaque V%s ids",
+      (schemaVersion) => {
+        const parsed = parseLegacyV1V2(
+          schemaVersion,
+          [
+            "sounds-4",
+            "sounds-5",
+            "sounds-5",
+            "capstones-self-introduction",
+            "capstones-everyday-outing",
+            "capstones-travel-day",
+            "capstones-orientation",
+            "opaque-legacy-id",
+          ],
+          "sounds-5",
+        );
+        const { progress } = parsed;
+
+        expect(Object.keys(progress.levels.a0.lessons)).toEqual(["sounds-4"]);
+        expect(Object.keys(progress.levels.a1.lessons).sort()).toEqual([
+          "capstones-1",
+          "capstones-2",
+          "capstones-3",
+        ]);
+        expect(progress.levels.a0.lastVisitedLessonId).toBe("sounds-4");
+        expect(progress.levels.a1.lessons["sounds-5"]).toBeUndefined();
+        expect(progress.levels.a1.orphanedLessonIds).toEqual([
+          "capstones-orientation",
+          "opaque-legacy-id",
+        ]);
+        expect(progress.levels.a1.orphanedLessonRecords).toEqual({});
+        for (const record of [
+          ...Object.values(progress.levels.a0.lessons),
+          ...Object.values(progress.levels.a1.lessons),
+        ]) {
+          expect(record).toEqual({
+            visitedAt: T1,
+            practicedAt: null,
+            consolidatedAt: null,
+            attemptedExerciseIds: [],
+            acceptedExerciseIds: [],
+          });
+        }
+      },
+    );
+
+    it.each([1, 2] as const)(
+      "resolves V%s last-visited pointers without inventing a visit record",
+      (schemaVersion) => {
+        const knownPointer = parseLegacyV1V2(
+          schemaVersion,
+          ["introductions-1"],
+          "time-movement-4",
+        ).progress;
+        expect(knownPointer.levels.a0.lastVisitedLessonId).toBe("time-movement-4");
+        expect(knownPointer.levels.a0.lessons["time-movement-4"]).toBeUndefined();
+        expect(knownPointer.levels.a1.lessons["introductions-1"]?.visitedAt).toBe(T1);
+
+        const unknownPointer = parseLegacyV1V2(
+          schemaVersion,
+          ["introductions-1"],
+          "opaque-last-visited-id",
+        ).progress;
+        expect(unknownPointer.levels.a0.lastVisitedLessonId).toBeNull();
+        expect(unknownPointer.levels.a1.lastVisitedLessonId).toBeNull();
+        expect(unknownPointer.levels.a1.orphanedLessonIds).toEqual([
+          "opaque-last-visited-id",
+        ]);
+        expect(unknownPointer.levels.a1.orphanedLessonRecords).toEqual({});
+      },
+    );
+  });
+
+  it("treats null storage content as empty V5 progress", () => {
     expect(parseProgress(null)).toEqual({
-      progress: emptyProgressV4(),
+      progress: emptyProgressV5(),
       corrupted: false,
       migrated: false,
     });
   });
 
-  it("passes a valid v4 payload through unchanged, by reference, with no migration", () => {
+  it("migrates a valid V4 payload losslessly into V5", () => {
     const progress = emptyProgressV4();
     const raw = JSON.stringify(progress);
     const parsed = parseProgress(raw);
     expect(parsed.corrupted).toBe(false);
-    expect(parsed.migrated).toBe(false);
-    expect(parsed.progress).toEqual(progress);
+    expect(parsed.migrated).toBe(true);
+    expect(parsed.progress).toEqual(migrateV4ToV5(progress));
   });
 
-  it("migrates a valid v3 payload directly into v4", () => {
+  it("migrates a valid V3 payload through V4 into V5", () => {
     const v3 = v3Fixture({ lessons: { "sounds-1": v3Lesson({ visitedAt: T0 }) } });
     const parsed = parseProgress(JSON.stringify(v3));
     expect(parsed.corrupted).toBe(false);
     expect(parsed.migrated).toBe(true);
-    expect(parsed.progress).toEqual(migrateV3ToV4(v3));
+    expect(parsed.progress).toEqual(migrateV4ToV5(migrateV3ToV4(v3)));
   });
 
-  it("migrates a valid v2 payload all the way through v3 into v4", () => {
+  it("migrates a valid v2 payload all the way through V3/V4 into V5", () => {
     const parsed = parseProgress(
       JSON.stringify({
         schemaVersion: 2,
@@ -958,12 +1145,12 @@ describe("parseProgress → CourseProgressV4", () => {
     );
     expect(parsed.corrupted).toBe(false);
     expect(parsed.migrated).toBe(true);
-    expect(parsed.progress.schemaVersion).toBe(4);
-    expect(parsed.progress.levels.a1.lessons["sounds-1"].visitedAt).toBe(T0);
-    expect(parsed.progress.levels.a1.lastVisitedLessonId).toBe("sounds-1");
+    expect(parsed.progress.schemaVersion).toBe(5);
+    expect(parsed.progress.levels.a0.lessons["sounds-1"].visitedAt).toBe(T0);
+    expect(parsed.progress.levels.a0.lastVisitedLessonId).toBe("sounds-1");
   });
 
-  it("migrates a valid v1 payload all the way through v3 into v4", () => {
+  it("migrates a valid v1 payload all the way through V3/V4 into V5", () => {
     const parsed = parseProgress(
       JSON.stringify({
         schemaVersion: 1,
@@ -975,8 +1162,8 @@ describe("parseProgress → CourseProgressV4", () => {
     );
     expect(parsed.corrupted).toBe(false);
     expect(parsed.migrated).toBe(true);
-    expect(parsed.progress.schemaVersion).toBe(4);
-    expect(parsed.progress.levels.a1.lessons["sounds-1"].visitedAt).toBe(T0);
+    expect(parsed.progress.schemaVersion).toBe(5);
+    expect(parsed.progress.levels.a0.lessons["sounds-1"].visitedAt).toBe(T0);
   });
 
   describe("migration notice conditions across v1/v2/v3 (Phase 2 Task 5 quality-review Important fix)", () => {
@@ -998,7 +1185,7 @@ describe("parseProgress → CourseProgressV4", () => {
       );
       expect(parsed.migrated).toBe(true);
       expect(parsed.progress.migrationNotice).not.toBeNull();
-      expect(parsed.progress.migrationNotice?.resetEvidenceLessonIds).toEqual([]);
+      expect(parsed.progress.migrationNotice?.priorNotice?.resetEvidenceLessonIds).toEqual([]);
       expect(parsed.progress.levels.a1.orphanedLessonIds).toEqual([]);
     });
 
@@ -1014,7 +1201,7 @@ describe("parseProgress → CourseProgressV4", () => {
       );
       expect(parsed.migrated).toBe(true);
       expect(parsed.progress.migrationNotice).not.toBeNull();
-      expect(parsed.progress.migrationNotice?.resetEvidenceLessonIds).toEqual([]);
+      expect(parsed.progress.migrationNotice?.priorNotice?.resetEvidenceLessonIds).toEqual([]);
       expect(parsed.progress.levels.a1.orphanedLessonIds).toEqual([]);
     });
 
@@ -1025,22 +1212,22 @@ describe("parseProgress → CourseProgressV4", () => {
       const parsed = parseProgress(JSON.stringify(v3));
       expect(parsed.migrated).toBe(true);
       expect(parsed.progress.migrationNotice).not.toBeNull();
-      expect(parsed.progress.migrationNotice?.resetEvidenceLessonIds).toEqual([]);
+      expect(parsed.progress.migrationNotice?.priorNotice?.resetEvidenceLessonIds).toEqual([]);
       expect(parsed.progress.levels.a1.orphanedLessonIds).toEqual([]);
     });
   });
 
   it("rejects malformed JSON as corrupted", () => {
     expect(parseProgress("{bad")).toEqual({
-      progress: emptyProgressV4(),
+      progress: emptyProgressV5(),
       corrupted: true,
       migrated: false,
     });
   });
 
-  it("rejects a future/unknown schema version (5) without throwing", () => {
-    expect(parseProgress(JSON.stringify({ schemaVersion: 5 }))).toEqual({
-      progress: emptyProgressV4(),
+  it("rejects a future/unknown schema version (6) without throwing", () => {
+    expect(parseProgress(JSON.stringify({ schemaVersion: 6 }))).toEqual({
+      progress: emptyProgressV5(),
       corrupted: true,
       migrated: false,
     });
@@ -1049,7 +1236,7 @@ describe("parseProgress → CourseProgressV4", () => {
   it("rejects a malformed v4 shape (wrong number of levels) as corrupted", () => {
     const malformed = { ...emptyProgressV4(), levels: { a1: emptyLevelProgress() } };
     expect(parseProgress(JSON.stringify(malformed))).toEqual({
-      progress: emptyProgressV4(),
+      progress: emptyProgressV5(),
       corrupted: true,
       migrated: false,
     });
@@ -1065,22 +1252,22 @@ describe("parseProgress → CourseProgressV4", () => {
     const parsed = parseProgress(JSON.stringify(withoutMigrationNotice));
     expect(parsed.corrupted).toBe(true);
     expect(parsed.migrated).toBe(false);
-    expect(parsed.progress).toEqual(emptyProgressV4());
+    expect(parsed.progress).toEqual(emptyProgressV5());
     expect(parsed.progress.migrationNotice).not.toBeUndefined();
   });
 
-  it("still accepts a valid v4 payload whose migrationNotice is explicitly null", () => {
+  it("migrates a valid V4 payload whose migrationNotice is explicitly null", () => {
     const progress = { ...emptyProgressV4(), migrationNotice: null };
     const parsed = parseProgress(JSON.stringify(progress));
     expect(parsed.corrupted).toBe(false);
-    expect(parsed.migrated).toBe(false);
-    expect(parsed.progress).toEqual(progress);
+    expect(parsed.migrated).toBe(true);
+    expect(parsed.progress).toEqual(migrateV4ToV5(progress));
   });
 
   it("rejects an invalid timestamp type in v4 as corrupted", () => {
     const malformed = { ...emptyProgressV4(), updatedAt: 12345 };
     expect(parseProgress(JSON.stringify(malformed))).toEqual({
-      progress: emptyProgressV4(),
+      progress: emptyProgressV5(),
       corrupted: true,
       migrated: false,
     });

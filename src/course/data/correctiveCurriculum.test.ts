@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { courseModules } from "./course";
+import { legacyA1CourseModules as courseModules } from "./course";
 import { examples } from "./examples";
 import { loanwords } from "./loanwords";
 import { referencedExampleOrder } from "./validate";

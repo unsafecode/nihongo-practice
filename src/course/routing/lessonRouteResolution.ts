@@ -26,7 +26,10 @@
  * an orphan (progress.ts), while the route layer owns the navigation aliasing.
  */
 
+import { BASE_LESSON_IDS } from "../base/manifest";
+import { courseModulesByLevel } from "../data/course";
 import type { CourseModule, Lesson, ModuleId } from "../data/types";
+import { COURSE_LEVEL_IDS, type CourseLevelId } from "../levels/types";
 
 /**
  * One retired v2.1 lesson id and the current lesson it now maps to.
@@ -159,6 +162,132 @@ export function resolveLessonRoute(
   }
 
   return INVALID_RESOLUTION;
+}
+
+/**
+ * Total-ownership lesson route resolution (Task 15). `resolveLessonRoute`
+ * above stays a pure single-level-list resolver (still used by
+ * `guidedLessonReturn.ts` against the legacy A1-only catalog); this resolver
+ * instead answers "which of the three published levels — Base (`a0`), A1, or
+ * A2 — owns this URL?" without ever falling back to a binary `a2 ? a2 : a1`
+ * guess. Every published module belongs to exactly one level
+ * (`courseModulesByLevel`), so:
+ *
+ * - An unrecognized `moduleId` is always `{ kind: "invalid", reason:
+ *   "unknown-module" }` — it is never silently treated as A1.
+ * - A legacy alias is validated *before* owner-specific matching: an alias's
+ *   destination is looked up by its globally-unique lesson id across every
+ *   level, so a retired module segment that no longer owns anything (or
+ *   never did, e.g. the old `capstone`/`traps` chapter ids) still redirects
+ *   correctly instead of failing the module-ownership check first.
+ * - A current lesson id paired with any module other than its real owning
+ *   module is invalid, even when both ids are individually real.
+ * - A lesson rehomed into the Base curriculum (e.g. `sounds-1`,
+ *   `sentence-foundations-1`) now resolves with `levelId: "a0"`.
+ */
+export type LessonRouteReason =
+  | "missing-params"
+  | "unknown-module"
+  | "unknown-lesson"
+  | "wrong-module";
+
+export type OwnedLessonRouteResolution =
+  | { readonly kind: "match"; readonly levelId: CourseLevelId; readonly courseModule: CourseModule; readonly lesson: Lesson }
+  | {
+      readonly kind: "redirect";
+      readonly levelId: CourseLevelId;
+      readonly courseModule: CourseModule;
+      readonly lesson: Lesson;
+      readonly moduleChanged: boolean;
+      readonly consolidated: boolean;
+    }
+  | { readonly kind: "invalid"; readonly reason?: LessonRouteReason };
+
+/**
+ * The single level whose published modules include `moduleId`, or `null` if
+ * no level currently owns it. Scans in `COURSE_LEVEL_IDS` order (`a0`, `a1`,
+ * `a2`); since a module id belongs to at most one level, order never affects
+ * the result.
+ */
+export function levelOwningModule(moduleId: string): CourseLevelId | null {
+  for (const levelId of COURSE_LEVEL_IDS) {
+    if (courseModulesByLevel[levelId].some((courseModule) => courseModule.id === moduleId)) {
+      return levelId;
+    }
+  }
+  return null;
+}
+
+function findOwnedLessonEntry(
+  lessonId: string,
+): { readonly levelId: CourseLevelId; readonly courseModule: CourseModule; readonly lesson: Lesson } | null {
+  for (const levelId of COURSE_LEVEL_IDS) {
+    const entry = findLessonEntry(lessonId, courseModulesByLevel[levelId]);
+    if (entry) return { levelId, ...entry };
+  }
+  return null;
+}
+
+/**
+ * Resolves a `(moduleId, lessonId)` URL pair against the total three-level
+ * ownership table. See the doc comment above for the resolution order.
+ */
+export function resolveOwnedLessonRoute(
+  moduleId: string | undefined,
+  lessonId: string | undefined,
+): OwnedLessonRouteResolution {
+  if (!moduleId || !lessonId) return { kind: "invalid", reason: "missing-params" };
+
+  // Validate the global alias registry before owner-specific matching: an
+  // alias's (possibly retired/removed) module segment is not resolved
+  // against current ownership — only the alias's own uniquely-named
+  // lessonId is.
+  const alias = legacyAliasByLessonId.get(lessonId);
+  if (alias) {
+    const owned = findOwnedLessonEntry(alias.lessonId);
+    if (owned && owned.courseModule.id === alias.moduleId) {
+      return {
+        kind: "redirect",
+        levelId: owned.levelId,
+        courseModule: owned.courseModule,
+        lesson: owned.lesson,
+        moduleChanged: alias.legacyModuleId !== owned.courseModule.id,
+        consolidated: alias.consolidated ?? false,
+      };
+    }
+    return { kind: "invalid" };
+  }
+
+  const levelId = levelOwningModule(moduleId);
+  if (levelId === null) return { kind: "invalid", reason: "unknown-module" };
+
+  const entry = findLessonEntry(lessonId, courseModulesByLevel[levelId]);
+  if (!entry) return { kind: "invalid", reason: "unknown-lesson" };
+  if (entry.courseModule.id !== moduleId) return { kind: "invalid", reason: "wrong-module" };
+
+  return { kind: "match", levelId, courseModule: entry.courseModule, lesson: entry.lesson };
+}
+
+export interface BaseLessonNeighbors {
+  readonly previousLessonId: string | null;
+  readonly nextLessonId: string | null;
+}
+
+/**
+ * Base previous/next navigation is exclusively the ordered 40-lesson Base
+ * list (`BASE_LESSON_IDS`), never a single module's own four lessons: the
+ * last lesson of one module (e.g. `time-movement-4`) advances into the next
+ * module's first lesson (`copula-adjectives-1`) instead of dead-ending at a
+ * module boundary. Returns nulls for an id outside the Base list.
+ */
+export function baseNeighbors(lessonId: string): BaseLessonNeighbors {
+  const index = BASE_LESSON_IDS.indexOf(lessonId);
+  if (index === -1) return { previousLessonId: null, nextLessonId: null };
+  return {
+    previousLessonId: index > 0 ? BASE_LESSON_IDS[index - 1] : null,
+    nextLessonId:
+      index < BASE_LESSON_IDS.length - 1 ? BASE_LESSON_IDS[index + 1] : null,
+  };
 }
 
 /** Router `location.state` shape carried on a one-time legacy-module redirect. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { A1_LESSON_IDS, A1_LESSON_MANIFEST } from "../manifest";
+import { A1_LESSON_MANIFEST, A1_RETAINED_LESSON_IDS } from "../manifest";
 import { a1AllVariants, a1SemanticBuiltLessons } from "../catalog/catalog";
 import {
   A1_CONCEPT_IDS,
@@ -16,6 +16,7 @@ import { a1LexemeById, a1LexemeByValueId } from "./lexicon";
 import { semanticBlueprint } from "./lessonContentHelpers";
 import { a1Modules09to12LessonContent } from "./modules09to12";
 import { a1LessonContents } from "./catalog";
+import { inheritedBaseLexemeIds } from "./inheritedBase";
 import { realizeVariant } from "../../foundations/realizeFamily";
 import type { A1LessonContent, A1PracticeActivity } from "./types";
 
@@ -182,7 +183,7 @@ describe("A1 modules 09–12 lesson content", () => {
     const firstLessonByLexemeId = new Map<string, string>();
     const duplicateIntroductions: string[] = [];
     const canonicalLessons = a1LessonContents;
-    expect(canonicalLessons.map(({ lessonId }) => lessonId)).toEqual(A1_LESSON_IDS);
+    expect(canonicalLessons.map(({ lessonId }) => lessonId)).toEqual(A1_RETAINED_LESSON_IDS);
 
     for (const content of canonicalLessons) {
       const isCapstone = content.lessonId.startsWith("capstones-");
@@ -226,11 +227,14 @@ describe("A1 modules 09–12 lesson content", () => {
   });
 
   it("keeps worked examples and dialogue within cumulative lexical closure", () => {
-    const availableLexemeIds = new Set<string>(
-      a1LessonContents
+    // The five modules Base rehomed teach their vocabulary before retained A1
+    // begins (Task 16 containment); it is reviewed here, never reintroduced.
+    const availableLexemeIds = new Set<string>([
+      ...inheritedBaseLexemeIds(),
+      ...a1LessonContents
         .slice(0, a1LessonContents.findIndex(({ lessonId }) => lessonId === "descriptions-1"))
         .flatMap(({ newLexemeIds }) => newLexemeIds),
-    );
+    ]);
 
     for (const content of a1Modules09to12LessonContent) {
       for (const lexemeId of content.newLexemeIds) availableLexemeIds.add(lexemeId);
@@ -315,6 +319,7 @@ describe("A1 modules 09–12 lesson content", () => {
       a1Modules09to12LessonContent.slice(0, 12).flatMap(({ newLexemeIds }) => newLexemeIds),
     );
     const priorLexemes = new Set([
+      ...inheritedBaseLexemeIds(),
       ...a1LessonContents
         .slice(0, a1LessonContents.findIndex(({ lessonId }) => lessonId === "capstones-1"))
         .flatMap(({ newLexemeIds }) => newLexemeIds),

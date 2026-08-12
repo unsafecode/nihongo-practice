@@ -1,8 +1,8 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
-  A1_MODULE_IDS,
-  A1_LESSON_IDS,
   A1_LESSON_MANIFEST,
+  A1_RETAINED_LESSON_IDS,
+  A1_RETAINED_MODULE_IDS,
 } from "../../src/course/a1/manifest";
 import { buildA1CurriculumViewModel } from "../../src/course/a1/curriculum/buildA1CurriculumViewModel";
 import type { ExercisePrompt } from "../../src/course/exercises/types";
@@ -27,12 +27,20 @@ import {
 
 const IT = getCourseCopy("it");
 const EN = getCourseCopy("en");
-const A1_ROUTE_ENTRIES = A1_LESSON_IDS.map((lessonId) => A1_LESSON_MANIFEST[lessonId]);
+/**
+ * The routes A1 *still owns* after the Base ownership split (Tasks 16-18).
+ * The four former Sounds/Foundations modules are published by Base now and are
+ * covered by the Base suites (`base-level`/`base-accessibility`), so exercising
+ * them here would assert an A1 learning contract against a Base page.
+ */
+const A1_ROUTE_ENTRIES = A1_RETAINED_LESSON_IDS.map(
+  (lessonId) => A1_LESSON_MANIFEST[lessonId],
+);
 const REPRESENTATIVES = [
-  { moduleId: "sentence-foundations", lessonId: "sentence-foundations-1" },
-  { moduleId: "time-movement", lessonId: "time-movement-4" },
   { moduleId: "introductions", lessonId: "introductions-1" },
+  { moduleId: "actions", lessonId: "actions-2" },
   { moduleId: "shopping", lessonId: "shopping-4" },
+  { moduleId: "capstones", lessonId: "capstones-1" },
 ] as const;
 
 function curriculumFor(lessonId: string) {
@@ -370,15 +378,15 @@ async function assertRailScroll(page: Page, sectionId: string): Promise<void> {
 test.describe("A1 foundations curriculum — exhaustive production routes", () => {
   test.skip(
     ({ viewport }) => !viewport || viewport.width < 700,
-    "the 64-route contract runs once on desktop",
+    "the retained 44-route contract runs once on desktop",
   );
 
-  test("imports the complete 16-module / 64-route A1 manifest before exercising it", () => {
-    expect(A1_MODULE_IDS).toHaveLength(16);
-    expect(A1_ROUTE_ENTRIES).toHaveLength(64);
-    expect(new Set(A1_ROUTE_ENTRIES.map((entry) => entry.lessonId)).size).toBe(64);
+  test("imports the complete retained 11-module / 44-route A1 manifest before exercising it", () => {
+    expect(A1_RETAINED_MODULE_IDS).toHaveLength(11);
+    expect(A1_ROUTE_ENTRIES).toHaveLength(44);
+    expect(new Set(A1_ROUTE_ENTRIES.map((entry) => entry.lessonId)).size).toBe(44);
     expect(A1_ROUTE_ENTRIES.map((entry) => entry.moduleId)).toEqual(
-      A1_MODULE_IDS.flatMap((moduleId) => Array.from({ length: 4 }, () => moduleId)),
+      A1_RETAINED_MODULE_IDS.flatMap((moduleId) => Array.from({ length: 4 }, () => moduleId)),
     );
   });
 
@@ -648,7 +656,7 @@ test.describe("A1 foundations curriculum — representative learner behavior", (
       const beforeReload = await page.evaluate(() => localStorage.getItem("nihongo.course.progress"));
       expect(beforeReload).not.toBeNull();
       const parsed = JSON.parse(beforeReload!);
-      expect(parsed.catalogVersion).toBe("a1-a2-v3");
+      expect(parsed.catalogVersion).toBe("base-a1-a2-v1");
       expect(parsed.levels.a1.lessons[lesson.lessonId].visitedAt).toMatch(/\S/);
       await page.addInitScript((stored: string) => {
         localStorage.setItem("nihongo.course.progress", stored);

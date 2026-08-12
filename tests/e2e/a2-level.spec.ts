@@ -38,8 +38,8 @@ const A1_REP_LESSON_URL = routeUrls.lesson("introductions", "introductions-1");
 
 const PROGRESS_STORAGE_KEY = "nihongo.course.progress";
 
-const A1_MODULE_COUNT = 16;
-const A1_LESSON_COUNT = 64;
+const A1_MODULE_COUNT = 11;
+const A1_LESSON_COUNT = 44;
 const A2_MODULE_COUNT = 15;
 const A2_LESSON_COUNT = 60;
 
@@ -175,9 +175,11 @@ function emptyLevel() {
 // 1. Runtime level selector: URL, structure, history, focus, deep link.
 // ---------------------------------------------------------------------------
 test.describe("A2 level selector on the built preview", () => {
-  test("defaults to A1 with A2 enabled, and selecting A2 routes to ?livello=a2 with the exact A2 shape", async ({ page }) => {
+  test("opens on A1 when asked, with A2 enabled, and selecting A2 routes to ?livello=a2 with the exact A2 shape", async ({ page }) => {
     const observers = await setupPageObservers(page);
-    await gotoReady(page, routeUrls.home);
+    // A fresh learner now lands on Base (Task 16), so this A2-focused test asks
+    // for A1 explicitly rather than asserting a default that Base owns.
+    await gotoReady(page, `${routeUrls.home}?livello=a1`);
 
     // The Pages base is exactly the shipped one.
     expect(new URL(page.url()).pathname).toBe(PREVIEW_BASE_PATH);
@@ -212,7 +214,7 @@ test.describe("A2 level selector on the built preview", () => {
 
   test("browser Back returns to A1 and Forward returns to A2, each moving focus to the level heading", async ({ page }) => {
     const observers = await setupPageObservers(page);
-    await gotoReady(page, routeUrls.home);
+    await gotoReady(page, `${routeUrls.home}?livello=a1`);
 
     await page.locator('.level-selector__option[data-level="a2"]').click();
     await expect(page.locator(".module-card")).toHaveCount(A2_MODULE_COUNT);
@@ -381,7 +383,7 @@ test.describe("A2 progress isolation and persistence on the built preview", () =
     await page.locator("#root >> :is(main, .lab-page)").first().waitFor({ state: "visible" });
 
     const progress = await readProgress(page);
-    expect(progress?.schemaVersion).toBe(4);
+    expect(progress?.schemaVersion).toBe(5);
     const a1Lessons = Object.keys(progress?.levels?.a1?.lessons ?? {});
     const a2Lessons = Object.keys(progress?.levels?.a2?.lessons ?? {});
     // Each visit landed in its own level's slice — no cross-contamination.
@@ -416,7 +418,9 @@ test.describe("A2 progress isolation and persistence on the built preview", () =
 
     // SPA-navigate (never a full reload, which the observer would clear) to the
     // course map, then to the A2 view via the level selector.
-    await page.locator('.lesson-footer a[href$="#/percorso"]').click();
+    // The map link now carries the owning level (`#/percorso?livello=a2`), so
+    // it is addressed by its own inline-action role rather than an exact href.
+    await page.locator(".lesson-footer a.action--inline").click();
     await expect(page.locator(".course-home")).toBeVisible();
     await page.locator('.level-selector__option[data-level="a2"]').click();
     await expect(page.locator(".module-card")).toHaveCount(A2_MODULE_COUNT);

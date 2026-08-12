@@ -4,6 +4,7 @@ import type {
 } from "../../routing/lessonSections";
 import type { ContrastDimension, ModuleId } from "../data/types";
 import type { A1PracticeFunction } from "../a1/curriculum/types";
+import type { BaseDiagnosticDimensionId } from "../base/diagnostic/model";
 
 export interface BlockCopy {
   eyebrow?: string;
@@ -66,6 +67,12 @@ export interface CourseCopy {
      * shape, never a completion/progress claim (that is `lessonsProgress`). */
     courseShape: (moduleCount: number, lessonCount: number) => string;
   };
+  /** A fail-closed progress mutation could not be recorded for this lesson. */
+  progressMutation: {
+    title: string;
+    body: (lessonId: string) => string;
+    dismiss: string;
+  };
   /**
    * The Course Home Can-do evidence summary (design spec §8/§17, Phase 2
    * Task 6): one line per authored Can-do, each showing only its recorded
@@ -95,30 +102,51 @@ export interface CourseCopy {
     evidenceLink: string;
   };
   /**
-   * The URL-reflected level dimension (Phase 3 Task 8, design spec §5). The
-   * level selector and the A2-specific Course Home sections (hero badge, level
-   * heading, checkpoint) resolve their copy here. A2 is always selectable and
-   * directly routable — the two hints are soft, non-blocking guidance only
-   * (A2 is never locked or gated). Every string is alignment/practice copy,
-   * never a certification/mastery/"passed" claim.
+   * The URL-reflected level dimension. The selector renders Base/A1/A2 as
+   * enabled links with soft recommendations only. Every string is alignment/
+   * practice copy, never a certification/mastery/"passed" claim.
    */
   courseLevels: {
-    /** Accessible name for the two-option level selector group. */
+    /** Visible accessible name for the three-option level selector group. */
     selectorLabel: string;
-    /** Selector option labels (short, e.g. "A1" / "A2"). */
+    /** Visible marker appended to the softly recommended option. */
+    recommendedMarker: string;
+    /** Selector option labels (short, e.g. "Base" / "A1" / "A2"). */
+    base: string;
     a1: string;
     a2: string;
     /** Level map headings (the focus target when the level changes). */
+    baseHeading: string;
     a1Heading: string;
     a2Heading: string;
+    /** Base hero alignment badge. */
+    baseBadge: string;
+    /** A1 hero badge for the retained everyday-situations course. */
+    a1Badge: string;
     /** A2 hero alignment badge — states the level + its JF/CEFR alignment claim. */
     a2Badge: string;
-    /** Soft hint shown before the A1 checkpoint is attempted (A2 still selectable). */
+    /** Base hint when not recommended. */
+    baseAvailableHint: string;
+    /** Soft hint recommending Base to fresh learners. */
+    baseRecommendedHint: string;
+    /** A1 hint: remains open and applies foundations in situations. */
+    a1AvailableHint: string;
+    /** Soft hint recommending A1 after Base foundations are ready. */
+    a1RecommendedHint: string;
+    /** A2 hint: remains open and builds connected conversation. */
     a2AvailableHint: string;
     /** Soft "recommended next" hint shown once the A1 checkpoint is attempted. */
     a2RecommendedHint: string;
-    /** A2 checkpoint attempt-state section copy (separate from A1's). */
+    /** Level-specific checkpoint headings. */
+    baseCheckpointHeading: string;
+    a1CheckpointHeading: string;
     a2CheckpointHeading: string;
+    /** Fail-closed explanation when a configured Can-do descriptor is absent. */
+    descriptorUnavailableTitle: string;
+    descriptorUnavailableBody: string;
+    /** Checkpoint state is observational: it reports attempts, never a result. */
+    checkpointNotAttempted: (levelLabel: string) => string;
+    checkpointAttemptRecorded: (levelLabel: string) => string;
     /**
      * Level-scoped destructive-reset copy (Phase 3 Task 8 spec-fix, ISSUE 3).
      * `resetLevel` is the button label and `resetLevelConfirm` the
@@ -283,6 +311,87 @@ export interface CourseCopy {
       meaningsAndFormsLabel: string;
       retrievalCueLabel: string;
       reviewExceptionLabel: string;
+      /**
+       * Heading for the Base progressive references a retained A1 lesson
+       * reviews (Task 16). The reference labels themselves come from Base's
+       * own catalog copy — this is only the surrounding chrome.
+       */
+      baseReferencesLabel: string;
+      /** Short explanation that these systems are reviewed, not introduced. */
+      baseReferencesHint: string;
+    };
+  };
+  /**
+   * Localized chrome for the Base level's deep lesson page (Task 14). Base
+   * reuses A1's stable six-section anchor order
+   * (`rule`/`vocabulary`/`grammar`/`comparison`/`explore`/`recap`); the
+   * Japanese/meaning content itself always comes from
+   * `buildBaseLessonViewModel`/`buildBasePracticeModel` — these values are
+   * surrounding UI labels only, never a canonical answer or translation.
+   */
+  baseLesson: {
+    sections: Record<A1LessonSectionId, string>;
+    unavailableTitle: string;
+    unavailableBody: string;
+    vocabulary: {
+      heading: string;
+      newWordsHeading: string;
+      reviewWordsHeading: string;
+      meaningLabel: string;
+    };
+    explanation: {
+      mainLabel: string;
+      constructionLabel: string;
+      constraintsLabel: string;
+      commonErrorLabel: string;
+      nearestContrastLabel: string;
+      phoneticLabel: string;
+      contrastMapHeading: string;
+    };
+    examples: {
+      heading: string;
+      dialogueHeading: string;
+      translationLabel: string;
+      turnLabel: (position: number) => string;
+    };
+    reference: {
+      heading: string;
+    };
+    practice: {
+      heading: string;
+      intro: string;
+      stageNonSpokenHeading: string;
+      stageListeningHeading: string;
+      stageSpokenHeading: string;
+      submit: string;
+      accepted: string;
+      retry: string;
+      optionsLabel: string;
+      tileBankLabel: string;
+      tileAnswerLabel: string;
+      revealAnswer: string;
+      selfCheckPrompt: string;
+      selfCheckCorrect: string;
+      selfCheckRetry: string;
+    };
+    audio: {
+      idle: string;
+      playing: string;
+      stopped: string;
+      unavailable: string;
+      blocked: string;
+      failed: string;
+      retry: string;
+      statusLabel: string;
+    };
+    listening: {
+      heading: string;
+      instruction: string;
+    };
+    recap: {
+      heading: string;
+      vocabularyHeading: string;
+      canDoLabel: string;
     };
   };
   practice: {
@@ -536,6 +645,48 @@ export interface CourseCopy {
     /** Always-available explanation of the migration, shown in progress help. */
     helpBody: string;
   };
+  /**
+   * Localized chrome for the standalone Base reference surfaces (Task 15,
+   * `/riferimenti/base/:referenceId`). The real reference content itself
+   * (label/explanation/column and row headers) always comes from
+   * `buildBaseReferenceViewModel`'s own localized catalog copy — these
+   * values are only the surrounding page chrome (fail-closed notices and
+   * the table/card view labels), never a stand-in for real content.
+   */
+  baseReferencePage: {
+    unknownReferenceTitle: string;
+    unknownReferenceBody: string;
+    invalidThroughLessonTitle: string;
+    invalidThroughLessonBody: string;
+    unavailableTitle: string;
+    unavailableBody: string;
+    tableViewLabel: string;
+    cardsViewLabel: string;
+    /** Header of the trailing UI-chrome column carrying each entry's explanation. */
+    whenToUseLabel: string;
+  };
+  /**
+   * Localized chrome for the optional, skippable Base entry diagnostic
+   * (Task 15, `/percorso/diagnostica-base`). It only ever asks
+   * content-independent self-assessment questions and writes its own
+   * separate `nihongo.course.baseDiagnostic` setting — never learner
+   * progress or Can-do evidence — so none of this copy may reference
+   * evidence, checkpoints, or consolidation.
+   */
+  baseDiagnostic: {
+    heading: string;
+    intro: string;
+    dimensions: Record<BaseDiagnosticDimensionId, string>;
+    yes: string;
+    no: string;
+    skip: string;
+    submit: string;
+    skippedNotice: string;
+    continueToCourse: string;
+    resultHeading: string;
+    resultBody: (recommendedLevel: "a0" | "a1") => string;
+    goToRecommendation: string;
+  };
   /** Keyed by CourseModule.id. */
   modules: Record<ModuleId, ModuleCopy>;
   /** Keyed by Lesson.titleCopyId. */
@@ -544,6 +695,8 @@ export interface CourseCopy {
   objectives: Record<string, string>;
   /** Keyed by entries in CourseModule.outcomeCopyIds. */
   outcomes: Record<string, string>;
+  /** Learner-facing Base lesson/activity/audio-state copy keyed by stable copy ID. */
+  baseContent: Record<string, string>;
   blocks: Record<string, BlockCopy>;
   examples: Record<string, ExampleCopy>;
   /**

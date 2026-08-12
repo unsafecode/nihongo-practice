@@ -47,6 +47,14 @@ jobs:
         env:
           GITHUB_PAGES: "true"
 
+      # Task 17: the per-chunk size budget is a release gate, not a local
+      # convenience. Running it here — against the same Pages build that is
+      # about to be uploaded — means a Base/A1/A2 catalogue that grows past
+      # the 500 KiB per-chunk ceiling fails the deploy instead of silently
+      # shipping a chunk no browser can cache independently.
+      - name: Check bundle budget
+        run: npm run check:bundle
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 

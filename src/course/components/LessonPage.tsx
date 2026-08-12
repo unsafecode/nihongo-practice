@@ -15,46 +15,87 @@ import {
   lessonSectionAnchorId,
   type LessonSectionId,
 } from "../../routing/lessonSections";
+import { coursePathForLevel } from "../../routing/routePaths";
 import { lessonPath, routePaths } from "../../routing/routes";
-import { courseModulesByLevel } from "../data/course";
-import type { CourseModule } from "../data/types";
-import { A2_MODULE_IDS } from "../a2/manifest";
+import type { CourseModule, Lesson } from "../data/types";
 import { getCourseCopy } from "../i18n/catalog";
+import { LEVEL_RUNTIME_CONFIG } from "../levels/runtimeConfig";
+import { COURSE_LEVEL_IDS, type CourseLevelId } from "../levels/types";
 import {
   isLegacyConsolidatedRedirectState,
   isLegacyModuleRedirectState,
   LEGACY_CONSOLIDATED_REDIRECT_STATE,
   LEGACY_MODULE_REDIRECT_STATE,
-  resolveLessonRoute,
+  levelOwningModule,
+  resolveOwnedLessonRoute,
 } from "../routing/lessonRouteResolution";
 import { useProgress } from "../progress/ProgressContext";
 import { A1LessonSection } from "./A1LessonPage";
 import { A2LessonSection } from "./A2LessonPage";
+import { BaseLessonSection } from "./BaseLessonPage";
 import { LessonRail } from "./LessonRail";
 import { useActiveSection } from "./useActiveSection";
 
-/**
- * Resolves which level (and therefore which module set + section renderer) a
- * lesson URL belongs to (Phase 3 Task 8). A2 module ids are disjoint from
- * A1's, so an A2 module id in the URL selects the A2 course + A2 renderer;
- * everything else (including A1 legacy module aliases) resolves against A1.
- */
-const a2ModuleIdSet = new Set<string>(A2_MODULE_IDS);
-
-function levelForModule(moduleId: string | undefined): "a1" | "a2" {
-  return moduleId !== undefined && a2ModuleIdSet.has(moduleId) ? "a2" : "a1";
+interface LessonSectionRendererProps {
+  readonly lessonId: string;
+  readonly sectionId: LessonSectionId;
 }
 
-const orderedLessonsByLevel: Readonly<
-  Record<"a1" | "a2", readonly { courseModule: CourseModule; lesson: CourseModule["lessons"][number] }[]>
+/**
+ * One section renderer per published course level (Task 15). Total over
+ * {@link CourseLevelId} — never a binary `a2 ? a2 : a1` guess — so adding a
+ * level requires extending this table, not hoping every call site remembers
+ * it. Base (`a0`) and A1 share the same six stable section ids; each level's
+ * renderer still guards with its own type predicate and returns `null` for a
+ * section id it does not use, exactly like the pre-existing A1/A2 renderers.
+ */
+const LESSON_SECTION_RENDERER_BY_LEVEL: Readonly<
+  Record<CourseLevelId, (props: LessonSectionRendererProps) => ReturnType<typeof A1LessonSection> | null>
 > = {
-  a1: courseModulesByLevel.a1.flatMap((courseModule) =>
-    courseModule.lessons.map((lesson) => ({ courseModule, lesson })),
-  ),
-  a2: courseModulesByLevel.a2.flatMap((courseModule) =>
-    courseModule.lessons.map((lesson) => ({ courseModule, lesson })),
-  ),
+  a0: ({ lessonId, sectionId }) =>
+    isA1LessonSectionId(sectionId) ? (
+      <BaseLessonSection lessonId={lessonId} sectionId={sectionId} />
+    ) : null,
+  a1: ({ lessonId, sectionId }) =>
+    isA1LessonSectionId(sectionId) ? (
+      <A1LessonSection lessonId={lessonId} sectionId={sectionId} />
+    ) : null,
+  a2: ({ lessonId, sectionId }) =>
+    isA2LessonSectionId(sectionId) ? (
+      <A2LessonSection lessonId={lessonId} sectionId={sectionId} />
+    ) : null,
 };
+
+/** Base and A1 render the same six stable section anchors; A2 keeps its four. */
+const LESSON_SECTION_IDS_BY_LEVEL: Readonly<Record<CourseLevelId, readonly LessonSectionId[]>> = {
+  a0: A1_LESSON_SECTION_IDS,
+  a1: A1_LESSON_SECTION_IDS,
+  a2: A2_LESSON_SECTION_IDS,
+};
+
+interface OrderedLessonEntry {
+  readonly courseModule: CourseModule;
+  readonly lesson: Lesson;
+}
+
+/**
+ * Previous/next navigation for every level is exclusively that level's own
+ * ordered lesson list (each level's runtime-config modules, flattened in
+ * module order) — for Base this is exactly the 40-lesson canonical order
+ * (`BASE_LESSON_IDS`), so a lesson at the end of one module (e.g.
+ * `time-movement-4`) advances into the next module's first lesson
+ * (`copula-adjectives-1`) instead of dead-ending at a module boundary, and it
+ * never reaches into another level's lessons.
+ */
+const orderedLessonsByLevel: Readonly<Record<CourseLevelId, readonly OrderedLessonEntry[]>> =
+  Object.fromEntries(
+    COURSE_LEVEL_IDS.map((levelId) => [
+      levelId,
+      LEVEL_RUNTIME_CONFIG[levelId].modules.flatMap((courseModule) =>
+        courseModule.lessons.map((lesson) => ({ courseModule, lesson })),
+      ),
+    ]),
+  ) as unknown as Record<CourseLevelId, readonly OrderedLessonEntry[]>;
 
 export function LessonPage() {
   // The URL's `:moduleId` segment must name either the lesson's real
@@ -62,7 +103,8 @@ export function LessonPage() {
   // routing/lessonRouteResolution.ts): a lesson is never accepted by its
   // `lessonId` alone, so a mismatched module (e.g. an unrelated module
   // paired with someone else's lesson) resolves invalid instead of
-  // silently rendering the wrong module's lesson.
+  // silently rendering the wrong module's lesson. An unrecognized module id
+  // is likewise always invalid — it is never guessed as A1.
   const { moduleId, lessonId } = useParams<{
     moduleId: string;
     lessonId: string;
@@ -73,16 +115,19 @@ export function LessonPage() {
   const copy = getCourseCopy(locale);
   const { supported, japaneseVoiceAvailable, playbackFailed } = useSpeech();
   const { markVisited } = useProgress();
-  // The A2 module ids are disjoint from A1's, so the URL's module segment
-  // selects the level: an A2 module resolves against the A2 course and renders
-  // through the A2 section renderer, everything else against A1 (unchanged).
-  const level = levelForModule(moduleId);
-  const sectionIds: readonly LessonSectionId[] =
-    level === "a2" ? A2_LESSON_SECTION_IDS : A1_LESSON_SECTION_IDS;
+  // A pure guess of which level this URL's module belongs to, used only to
+  // pick which section-id list to give the (unconditionally-called)
+  // scrollspy hook below. It is never the source of truth for rendering —
+  // `resolution.levelId` from `resolveOwnedLessonRoute` is — but for every
+  // "match" outcome the two always agree, since both resolve module
+  // ownership the same way. For an invalid/redirect outcome the guess (which
+  // defaults to "a1" for an unrecognized/legacy module id) only affects this
+  // transient scroll state; the page navigates away before rendering.
+  const guessedLevelId: CourseLevelId =
+    (moduleId && levelOwningModule(moduleId)) || "a1";
+  const sectionIds = LESSON_SECTION_IDS_BY_LEVEL[guessedLevelId];
   const activeSectionId = useActiveSection(sectionIds);
-  const modules = courseModulesByLevel[level];
-  const orderedLessons = orderedLessonsByLevel[level];
-  const resolution = resolveLessonRoute(moduleId, lessonId, modules);
+  const resolution = resolveOwnedLessonRoute(moduleId, lessonId);
   // A stable primitive derived from `resolution`, used (instead of the
   // `resolution` object itself, which is a fresh reference every render) as
   // the effect dependency below: it only actually changes when the matched
@@ -120,7 +165,10 @@ export function LessonPage() {
     );
   }
 
-  const { courseModule, lesson } = resolution;
+  const { levelId, courseModule, lesson } = resolution;
+  const runtimeConfig = LEVEL_RUNTIME_CONFIG[levelId];
+  const modules = runtimeConfig.modules;
+  const orderedLessons = orderedLessonsByLevel[levelId];
   const showLegacyModuleNotice = isLegacyModuleRedirectState(location.state);
   const showConsolidatedNotice = isLegacyConsolidatedRedirectState(
     location.state,
@@ -136,30 +184,25 @@ export function LessonPage() {
     .map((id) => copy.objectives[id])
     .join(" ");
 
-  const renderSectionBody = (sectionId: LessonSectionId) => {
-    if (level === "a2") {
-      return isA2LessonSectionId(sectionId) ? (
-        <A2LessonSection lessonId={lesson.id} sectionId={sectionId} />
-      ) : null;
-    }
-    return isA1LessonSectionId(sectionId) ? (
-      <A1LessonSection lessonId={lesson.id} sectionId={sectionId} />
-    ) : null;
-  };
+  const renderSectionBody = (sectionId: LessonSectionId) =>
+    LESSON_SECTION_RENDERER_BY_LEVEL[levelId]({ lessonId: lesson.id, sectionId });
 
-  const sectionLabel = (sectionId: LessonSectionId): string =>
-    level === "a2" && isA2LessonSectionId(sectionId)
-      ? copy.lesson.sections[sectionId]
-      : isA1LessonSectionId(sectionId)
-        ? copy.a1Lesson.sections[sectionId]
-        : "";
+  const sectionLabel = (sectionId: LessonSectionId): string => {
+    if (levelId === "a2") {
+      return isA2LessonSectionId(sectionId) ? copy.lesson.sections[sectionId] : "";
+    }
+    if (levelId === "a0") {
+      return isA1LessonSectionId(sectionId) ? copy.baseLesson.sections[sectionId] : "";
+    }
+    return isA1LessonSectionId(sectionId) ? copy.a1Lesson.sections[sectionId] : "";
+  };
 
   return (
     <main className="lesson-layout">
       <LessonRail
         moduleId={courseModule.id}
         lessonId={lesson.id}
-        level={level}
+        level={levelId}
         sections={sectionIds}
         activeSectionId={activeSectionId}
       />
@@ -243,7 +286,7 @@ export function LessonPage() {
           ) : (
             <span />
           )}
-          <ActionLink variant="inline" to={routePaths.course}>
+          <ActionLink variant="inline" to={coursePathForLevel(levelId)}>
             {copy.lesson.map}
           </ActionLink>
           {next ? (

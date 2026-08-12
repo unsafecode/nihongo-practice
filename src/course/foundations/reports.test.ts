@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { foundationCatalogs, foundationCopy } from "./fixtures";
 import type { FoundationCatalogs } from "./types";
-import { sortAxes, sortedUnique, foundationReportMarkdown } from "./reports";
+import {
+  aggregateFoundationReports,
+  sortAxes,
+  sortedUnique,
+  foundationReportMarkdown,
+  type AggregateReportsInput,
+  type LessonCoverageReport,
+} from "./reports";
 import { validateFoundations, type ValidateFoundationsResult } from "./validateFoundations";
 
 // ---------------------------------------------------------------------------
@@ -86,6 +93,95 @@ describe("reports ordering helpers", () => {
 
   it("dedupes and sorts arbitrary string sets deterministically", () => {
     expect(sortedUnique(["b", "a", "b", "c", "a"])).toEqual(["a", "b", "c"]);
+  });
+
+  it("orders mixed A0/A1/A2 report rows by shared canonical level order", () => {
+    const row = (
+      level: "a0" | "a1" | "a2",
+      lessonId: string,
+      moduleId: string,
+    ): LessonCoverageReport => ({
+      lessonId,
+      level,
+      moduleId,
+      position: 1,
+      modelCount: 0,
+      modelSemanticFingerprints: [],
+      familyIds: [],
+      variationAxes: [],
+      productiveSenseIds: [],
+      receptiveSenseIds: [],
+      predicateSenseIds: [],
+      roleIds: [],
+      omittedSubjectCount: 0,
+      contextIds: [],
+      exerciseCount: 0,
+      visibleTargetCounts: {},
+      uniqueVisibleTargetCount: 0,
+      maximumVisibleReuse: 0,
+      transferTargetIds: [],
+      modelDuplicateTransferIds: [],
+      primaryCanDoId: `${level}-can-do`,
+      supportingCanDoIds: [],
+      validationErrorCodes: [],
+      complete: true,
+    });
+    const input: AggregateReportsInput = {
+      lessonRows: [
+        row("a2", "fixture-a2-lesson", "fixture-a2-module"),
+        row("a0", "fixture-a0-lesson", "fixture-a0-module"),
+        row("a1", "fixture-a1-lesson", "fixture-a1-module"),
+      ],
+      modules: [
+        { id: "fixture-a2-module", level: "a2", order: 1, canDoIds: ["a2-can-do"] },
+        { id: "fixture-a0-module", level: "a0", order: 1, canDoIds: ["a0-can-do"] },
+        { id: "fixture-a1-module", level: "a1", order: 1, canDoIds: ["a1-can-do"] },
+      ],
+      levels: [
+        { level: "a2", moduleIds: ["fixture-a2-module"], canDoIds: ["a2-can-do"] },
+        { level: "a0", moduleIds: ["fixture-a0-module"], canDoIds: ["a0-can-do"] },
+        { level: "a1", moduleIds: ["fixture-a1-module"], canDoIds: ["a1-can-do"] },
+      ],
+      verbUse: [],
+      checkpoints: [
+        {
+          checkpointId: "fixture-a2-checkpoint",
+          level: "a2",
+          sampledCanDoIds: ["a2-can-do"],
+          minAcceptedTransferTargetsPerCanDo: 1,
+          canDoEvidenceMins: {},
+          validationErrorCodes: [],
+        },
+        {
+          checkpointId: "fixture-a0-checkpoint",
+          level: "a0",
+          sampledCanDoIds: ["a0-can-do"],
+          minAcceptedTransferTargetsPerCanDo: 1,
+          canDoEvidenceMins: {},
+          validationErrorCodes: [],
+        },
+        {
+          checkpointId: "fixture-a1-checkpoint",
+          level: "a1",
+          sampledCanDoIds: ["a1-can-do"],
+          minAcceptedTransferTargetsPerCanDo: 1,
+          canDoEvidenceMins: {},
+          validationErrorCodes: [],
+        },
+      ],
+    };
+
+    const reports = aggregateFoundationReports(input);
+    const markdown = foundationReportMarkdown(reports);
+
+    expect(Object.keys(reports.byLevel)).toEqual(["a0", "a1", "a2"]);
+    expect(markdown.indexOf("| fixture-a0-lesson |")).toBeLessThan(
+      markdown.indexOf("| fixture-a1-lesson |"),
+    );
+    expect(markdown.indexOf("| fixture-a1-lesson |")).toBeLessThan(
+      markdown.indexOf("| fixture-a2-lesson |"),
+    );
+    expect(reports.checkpoints.map((checkpoint) => checkpoint.level)).toEqual(["a0", "a1", "a2"]);
   });
 });
 

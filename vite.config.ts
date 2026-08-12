@@ -53,6 +53,62 @@ export default defineConfig(({ mode }) => {
             ) {
               return "course-foundations";
             }
+            // Base copy is leaf localization data imported by the course i18n
+            // catalog. It has no runtime import back into that catalog, so this
+            // narrow split trims the entry without creating a static chunk
+            // cycle. It stays *ahead* of the broader Base rule below so the
+            // localization payload keeps its own independently cacheable chunk.
+            if (id.includes("/src/course/base/copy/")) return "course-base-copy";
+            // Task 16: the rest of the Base level — manifest, catalog, content,
+            // references, audio and view models — is its own chunk, matched
+            // before any general course rule so a Base module can never be
+            // absorbed into an A1/A2 chunk. Base's heavy source-only gates
+            // (`validateBase*`, the naturalness ledger and the audio review
+            // ledger) are never imported by the runtime, so Rollup tree-shakes
+            // them out entirely; `src/course/data/prodBundle.test.ts` proves it
+            // against the real production build.
+            // Task 16: the Base level is split into three cycle-free chunks,
+            // all matched ahead of the general course rules so a Base module
+            // can never be absorbed into an A1/A2 chunk.
+            //
+            //   course-base-content  the authored lesson content (the largest
+            //                        subtree, and the reason a single Base
+            //                        chunk would exceed the 500 KiB budget);
+            //   course-base-catalog  the shared leaf layer — manifest, catalog
+            //                        types/concepts/lexicon/first-teach/visible
+            //                        targets/activity contracts/Can-dos/
+            //                        checkpoint, the progressive references,
+            //                        form realization, the validation rule
+            //                        modules and the audio catalog. Nothing in
+            //                        it imports lesson content or the assembled
+            //                        catalog, so the graph stays acyclic:
+            //                        content → catalog-leaf, and the assembled
+            //                        catalog → content, never back. `data/
+            //                        course.ts` reaches Base only through this
+            //                        layer (manifest + Can-dos), which is why
+            //                        the level-ownership import chain cannot
+            //                        close a cycle back into `course-base`;
+            //   course-base          the assembled catalog, view models,
+            //                        diagnostic, migration and review ledgers.
+            //
+            // Base's editorial review ledgers are never imported by the
+            // runtime, so Rollup tree-shakes them out entirely;
+            // `src/course/data/prodBundle.test.ts` proves that, and the chunk
+            // budget, against the real production build.
+            if (id.includes("/src/course/base/content/")) return "course-base-content";
+            if (
+              /\/src\/course\/base\/(?:manifest|types)\.ts$/.test(id) ||
+              /\/src\/course\/base\/catalog\/(?:types|concepts|lexicon|firstTeach|visibleTargets|activityContracts|canDos|checkpoint)\.ts$/.test(
+                id,
+              ) ||
+              id.includes("/src/course/base/forms/") ||
+              id.includes("/src/course/base/references/") ||
+              id.includes("/src/course/base/validation/") ||
+              id.endsWith("/src/course/base/audio/catalog.ts")
+            ) {
+              return "course-base-catalog";
+            }
+            if (id.includes("/src/course/base/")) return "course-base";
             if (id.includes("/src/course/a1/catalog/")) return "course-a1-catalog";
             if (id.includes("/src/course/a2/content/")) return "course-a2-content";
             if (id.includes("node_modules")) {

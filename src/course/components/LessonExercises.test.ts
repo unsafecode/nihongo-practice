@@ -6,7 +6,16 @@ import { LocaleProvider } from "../../i18n/LocaleContext";
 import { ScriptProvider } from "../../settings/ScriptContext";
 import type { AssembledToken } from "../../romaji/types";
 import { formatRomaji } from "../../romaji/formatRomaji";
-import { ProgressProvider } from "../progress/ProgressContext";
+import {
+  ProgressContext,
+  ProgressProvider,
+  type ProgressContextValue,
+} from "../progress/ProgressContext";
+import {
+  emptyProgress,
+  emptyProgressV5,
+  type CourseProgressV5,
+} from "../progress/progress";
 import { en as enCopy } from "../i18n/en";
 import { it as itCopy } from "../i18n/it";
 import {
@@ -469,6 +478,82 @@ function renderLessonExercises(lessonId: string): string {
   );
 }
 
+function renderLessonExercisesWithBaseEvidence(): string {
+  const progress = emptyProgressV5();
+  const progressV5: CourseProgressV5 = {
+    ...progress,
+    levels: {
+      ...progress.levels,
+      a0: {
+        ...progress.levels.a0,
+        lessons: {
+          "sounds-1": {
+            visitedAt: "2026-08-06T12:00:00.000Z",
+            practicedAt: null,
+            consolidatedAt: null,
+            attemptedExerciseIds: [],
+            acceptedExerciseIds: [],
+          },
+        },
+      },
+    },
+  };
+  const value: ProgressContextValue = {
+    progress: emptyProgress(),
+    corrupted: false,
+    persistenceAvailable: true,
+    markVisited: () => {},
+    recordAttempt: () => {},
+    resolveReview: () => {},
+    dismissCorruption: () => {},
+    reset: () => {},
+    clearLevel: () => {},
+    migrationNotice: null,
+    acknowledgeMigrationNotice: () => {},
+    levelSummary: {
+      level: "a1",
+      visitedLessonCount: 0,
+      totalLessonCount: 44,
+      visitedPercent: 0,
+      recommendedContinuationLessonId: null,
+    },
+    canDoEvidence: {},
+    checkpointAttempts: [],
+    progressV5,
+    lessonEvidence: (lessonId) => progressV5.levels.a0.lessons[lessonId],
+    levelSummaryFor: () => ({
+      level: "a0",
+      visitedLessonCount: 1,
+      totalLessonCount: 40,
+      visitedPercent: 3,
+      recommendedContinuationLessonId: "sounds-1",
+    }),
+    canDoEvidenceFor: () => ({}),
+    checkpointAttemptsFor: () => [],
+    mutationError: null,
+    clearMutationError: () => {},
+  };
+  return renderToStaticMarkup(
+    createElement(
+      MemoryRouter,
+      null,
+      createElement(
+        LocaleProvider,
+        null,
+        createElement(
+          ScriptProvider,
+          null,
+          createElement(
+            ProgressContext.Provider,
+            { value },
+            createElement(LessonExercises, { lessonId: "sounds-1" }),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 describe("LessonExercises — renders a lesson's 3-5 exercises", () => {
   it("renders the localized practice heading and one card per authored exercise", () => {
     const html = renderLessonExercises("introductions-1");
@@ -529,6 +614,12 @@ describe("LessonExercises — evidence-based lesson status (spec §11.1)", () =>
     expect(enCopy.exercises.statusPracticed).not.toBe(
       enCopy.exercises.statusConsolidated,
     );
+  });
+
+  it("reads a rehomed Base lesson's evidence from its canonical owner level", () => {
+    const html = renderLessonExercisesWithBaseEvidence();
+    expect(html).toContain('data-state="visited"');
+    expect(html).toContain(itCopy.exercises.statusVisited);
   });
 });
 

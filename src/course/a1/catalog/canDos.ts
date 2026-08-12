@@ -2,21 +2,19 @@
  * A1 Can-do catalogue (§8) — the product-authored, JF/CEFR-aligned outcome
  * statements the level reports against.
  *
- * The stub `a1CanDos` in `shared.ts` fixes each Can-do's identity, domain,
- * descriptor copy and evidence rule, but carries empty `lessonIds`/`contextIds`
- * because the shared layer is authored before the modules exist. This module
- * closes that gap *from the real lessons*: `lessonIds` come from the authored
- * lesson→primary map (which every lesson's `primaryCanDoId` must agree with),
- * and `contextIds` are computed from the actual sentence variants those lessons
- * teach — never hand-invented. Each entry also records the alignment claim
- * explicitly (`sourceNote`) rather than implying a certification.
- *
- * Two views are exported:
- *   • `a1CanDosAuthored` — all nineteen Can-dos (the fifteen module outcomes plus
- *     the four capstone-scenario outcomes) for the level/checkpoint/report.
- *   • `a1NonPhoneticCanDos` — the same set minus `a1-can-do-sounds`, for the
- *     foundation-wrap catalog whose transfer-coverage gate cannot see the
- *     phonetic module's non-sentence lessons.
+ * The stub `a1CanDos` in `shared.ts` fixes every Can-do's identity, domain,
+ * descriptor copy and evidence rule — including the five now Base-owned
+ * outcomes (`a1-can-do-sounds`, `-sentence-foundations`, `-topic-questions`,
+ * `-polite-verbs`, `-time-movement`), kept there as the one immutable stub
+ * source both levels' catalogs read from. Base authors its own `CanDo`
+ * records for those five ids (`level: "a0"`, `base/catalog/canDos.ts`); A1's
+ * released catalog (Task 16 containment) excludes them entirely, closing the
+ * remaining fourteen from the real retained lessons: `lessonIds` come from
+ * the authored lesson→primary map (which every lesson's `primaryCanDoId`
+ * must agree with), and `contextIds` are computed from the actual sentence
+ * variants those lessons teach — never hand-invented. Each entry also
+ * records the alignment claim explicitly (`sourceNote`) rather than implying
+ * a certification.
  */
 
 import { deepFreeze } from "../../foundations/deepFreeze";
@@ -34,33 +32,23 @@ import { module9Lessons } from "./module09Descriptions";
 import { module10Lessons } from "./module10Shopping";
 import { module11Lessons } from "./module11ExistenceNeeds";
 import { module12Lessons } from "./module12Capstones";
-import { moduleSentenceFoundationsLessons } from "./moduleSentenceFoundations";
-import { moduleTopicQuestionsLessons } from "./moduleTopicQuestions";
-import { modulePoliteVerbsLessons } from "./modulePoliteVerbs";
-import { moduleTimeMovementLessons } from "./moduleTimeMovement";
-import { A1_LESSON_IDS_BY_MODULE } from "../manifest";
 
-/** The phonetic module's lesson ids (no sentence variants; contexts stay []). */
-export const A1_SOUND_LESSON_IDS: readonly LessonId[] = Object.freeze([
-  "sounds-1",
-  "sounds-2",
-  "sounds-3",
-  "sounds-4",
+/** The five Base-owned Can-do ids A1's released catalog no longer authors. */
+const BASE_OWNED_CANDO_IDS: ReadonlySet<string> = new Set([
+  "a1-can-do-sounds",
+  "a1-can-do-sentence-foundations",
+  "a1-can-do-topic-questions",
+  "a1-can-do-polite-verbs",
+  "a1-can-do-time-movement",
 ]);
 
 /**
- * Authored Can-do → lesson map. Every non-phonetic lesson's `primaryCanDoId`
- * must name a Can-do whose list includes that lesson (validated by
- * `checkCanDos`), so this table is the single source of truth the modules were
- * authored against.
+ * Authored Can-do → lesson map (the fourteen A1-owned outcomes only). Every
+ * retained lesson's `primaryCanDoId` must name a Can-do whose list includes
+ * that lesson (validated by `checkCanDos`), so this table is the single
+ * source of truth the retained modules were authored against.
  */
 const CANDO_LESSONS: Readonly<Record<string, readonly LessonId[]>> = {
-  "a1-can-do-sounds": A1_SOUND_LESSON_IDS,
-  "a1-can-do-sentence-foundations":
-    A1_LESSON_IDS_BY_MODULE["sentence-foundations"],
-  "a1-can-do-topic-questions": A1_LESSON_IDS_BY_MODULE["topic-questions"],
-  "a1-can-do-polite-verbs": A1_LESSON_IDS_BY_MODULE["polite-verbs"],
-  "a1-can-do-time-movement": A1_LESSON_IDS_BY_MODULE["time-movement"],
   "a1-can-do-identity": ["introductions-1", "introductions-2", "introductions-4"],
   "a1-can-do-origins": ["introductions-2"],
   "a1-can-do-questions": [
@@ -107,13 +95,9 @@ const CANDO_LESSONS: Readonly<Record<string, readonly LessonId[]>> = {
   "a1-can-do-scenario-4": ["capstones-4"],
 };
 
-// Every semantic (non-phonetic) built lesson, keyed by lesson id, so context
-// coverage can be read straight from the variants each lesson actually teaches.
+// Every retained built lesson, keyed by lesson id, so context coverage can be
+// read straight from the variants each lesson actually teaches.
 const semanticBuilt: readonly A1BuiltLesson[] = [
-  ...moduleSentenceFoundationsLessons,
-  ...moduleTopicQuestionsLessons,
-  ...modulePoliteVerbsLessons,
-  ...moduleTimeMovementLessons,
   ...module2Lessons,
   ...module3Lessons,
   ...module4Lessons,
@@ -149,22 +133,29 @@ function contextsForCanDo(lessonIds: readonly LessonId[]): readonly ContextId[] 
 }
 
 /**
- * The nineteen authored Can-dos, in the canonical stub order, each enriched with
- * its lesson mapping, computed context coverage, and the JF/CEFR alignment note.
+ * The fourteen A1-owned authored Can-dos (ten module outcomes + four
+ * capstone-scenario outcomes), in canonical stub order, each enriched with
+ * its lesson mapping, computed context coverage, and the JF/CEFR alignment
+ * note. The five Base-owned stub entries (`a1CanDos` still carries all
+ * nineteen, since it is the one shared identity source both levels read
+ * from) are filtered out here — Base authors its own `CanDo` records for
+ * them.
  */
 export const a1CanDosAuthored: readonly CanDo[] = deepFreeze(
-  a1CanDos.map((stub): CanDo => {
-    const lessonIds = CANDO_LESSONS[stub.id];
-    if (!lessonIds) {
-      throw new Error(`canDos: no lesson mapping authored for ${stub.id}`);
-    }
-    return {
-      ...stub,
-      lessonIds,
-      contextIds: contextsForCanDo(lessonIds),
-      sourceNote: "product-authored-jf-cefr-aligned",
-    };
-  }),
+  a1CanDos
+    .filter((stub) => !BASE_OWNED_CANDO_IDS.has(stub.id))
+    .map((stub): CanDo => {
+      const lessonIds = CANDO_LESSONS[stub.id];
+      if (!lessonIds) {
+        throw new Error(`canDos: no lesson mapping authored for ${stub.id}`);
+      }
+      return {
+        ...stub,
+        lessonIds,
+        contextIds: contextsForCanDo(lessonIds),
+        sourceNote: "product-authored-jf-cefr-aligned",
+      };
+    }),
 );
 
 /** Fast lookup by id. */
@@ -173,15 +164,13 @@ export const a1CanDoById: ReadonlyMap<string, CanDo> = new Map(
 );
 
 /**
- * The Can-dos exposed to the foundation-wrap catalog: every authored outcome
- * except `a1-can-do-sounds`, whose only lessons are phonetic and therefore have
- * no transfer variant to satisfy `checkCanDos`' transfer-coverage gate.
+ * @deprecated Every authored A1 Can-do; there is no more phonetic module to
+ * exclude, so this is the same set as {@link a1CanDosAuthored}. Kept for
+ * existing importers (the foundation-wrap catalog alias in `catalog.ts`).
  */
-export const a1NonPhoneticCanDos: readonly CanDo[] = deepFreeze(
-  a1CanDosAuthored.filter((canDo) => canDo.id !== "a1-can-do-sounds"),
-);
+export const a1NonPhoneticCanDos: readonly CanDo[] = a1CanDosAuthored;
 
-/** The fifteen module (non-scenario) outcome ids, in catalogue order. */
+/** The ten module (non-scenario) outcome ids, in catalogue order. */
 export const A1_MODULE_CANDO_IDS: readonly string[] = Object.freeze(
   a1CanDosAuthored
     .map((canDo) => canDo.id)
@@ -196,21 +185,16 @@ export const A1_SCENARIO_CANDO_IDS: readonly string[] = Object.freeze([
   "a1-can-do-scenario-4",
 ]);
 
-/** The four published Foundations Can-dos, in module order. */
-export const A1_FOUNDATION_CANDO_IDS: readonly string[] = deepFreeze([
-  "a1-can-do-sentence-foundations",
-  "a1-can-do-topic-questions",
-  "a1-can-do-polite-verbs",
-  "a1-can-do-time-movement",
-]);
-
 /**
- * Foundations Can-dos projected from the published registry. Their lesson and
- * context membership is computed from the real authored variants above.
+ * @deprecated The four Foundations Can-dos are Base-owned as of Task 16 (see
+ * `base/catalog/canDos.ts`); A1's own catalog no longer authors them, so
+ * this is permanently empty. Kept only so a stale importer fails loudly with
+ * an empty result rather than a missing-export build error.
  */
-export const a1FoundationCanDos: readonly CanDo[] = deepFreeze(
-  a1CanDosAuthored.filter((canDo) => A1_FOUNDATION_CANDO_IDS.includes(canDo.id)),
-);
+export const A1_FOUNDATION_CANDO_IDS: readonly string[] = deepFreeze([]);
+
+/** @deprecated Permanently empty; see {@link A1_FOUNDATION_CANDO_IDS}. */
+export const a1FoundationCanDos: readonly CanDo[] = deepFreeze([]);
 
 /** @deprecated Use {@link A1_FOUNDATION_CANDO_IDS}; this is the same IDs. */
 export const A1_EXPANDED_FOUNDATION_CANDO_IDS = A1_FOUNDATION_CANDO_IDS;

@@ -5,8 +5,11 @@ import { reviewKeyFor } from "../progress/reviewQueue";
 import { getLessonExercises } from "./lessonExerciseModel";
 import { buildReviewQueueView } from "./reviewQueueModel";
 import { a1FoundationCatalogs } from "../a1/catalog/catalog";
-import { a1LessonContentById } from "../a1/curriculum/catalog";
-import { courseModulesByLevel } from "../data/course";
+// These historical paths cover every published A1 route, including the
+// twenty Base rehomed in Task 16.
+import { legacyA1LessonContentById as a1LessonContentById } from "../a1/curriculum/catalog";
+import { legacyA1CourseModules } from "../data/course";
+import { A1_RETAINED_LESSON_IDS } from "../a1/manifest";
 import { validateReviewRetrievalPair } from "../a1/curriculum/validateA1Curriculum";
 
 /**
@@ -199,13 +202,21 @@ describe("buildReviewQueueView — empty and populated", () => {
       ).toBeUndefined();
     });
 
-    it("finds a safe generated alternate for every semantic and phonetic A1 source", () => {
-      const lessonIds = courseModulesByLevel.a1.flatMap((module) =>
+    it("finds a safe generated alternate for every A1-owned semantic and phonetic source", () => {
+      // Task 16: the sixteen Foundations routes belong to Base, whose own
+      // review path serves them; A1's queue still covers its forty-four
+      // retained routes plus the four historical phonetic ones.
+      const publishedLessonIds = legacyA1CourseModules.flatMap((module) =>
         module.lessons.map((lesson) => lesson.id),
       );
-      expect(lessonIds).toHaveLength(64);
+      const lessonIds = publishedLessonIds.filter(
+        (lessonId) =>
+          lessonId.startsWith("sounds-") || A1_RETAINED_LESSON_IDS.includes(lessonId),
+      );
+      expect(publishedLessonIds).toHaveLength(64);
+      expect(lessonIds).toHaveLength(48);
       expect(lessonIds.filter((lessonId) => lessonId.startsWith("sounds-"))).toHaveLength(4);
-      expect(lessonIds.filter((lessonId) => !lessonId.startsWith("sounds-"))).toHaveLength(60);
+      expect(lessonIds.filter((lessonId) => !lessonId.startsWith("sounds-"))).toHaveLength(44);
 
       for (const lessonId of lessonIds) {
         const exercises = getLessonExercises(lessonId)!.exercises;
@@ -233,17 +244,21 @@ describe("buildReviewQueueView — empty and populated", () => {
       }
     });
 
-    it("finds safe alternates for all 256 legacy-shaped A1 entries without rewriting stored evidence", () => {
-      const lessonIds = courseModulesByLevel.a1.flatMap((module) =>
-        module.lessons.map((lesson) => lesson.id),
-      );
+    it("finds safe alternates for all 192 legacy-shaped A1-owned entries without rewriting stored evidence", () => {
+      const lessonIds = legacyA1CourseModules
+        .flatMap((module) => module.lessons.map((lesson) => lesson.id))
+        .filter(
+          (lessonId) =>
+            lessonId.startsWith("sounds-") ||
+            A1_RETAINED_LESSON_IDS.includes(lessonId),
+        );
       const sources = lessonIds.flatMap((lessonId) =>
         getLessonExercises(lessonId)!.exercises.map((exercise) => ({
           lessonId,
           exercise,
         })),
       );
-      expect(sources).toHaveLength(256);
+      expect(sources).toHaveLength(192);
 
       for (const { lessonId, exercise: source } of sources) {
         const content = a1LessonContentById[lessonId]!;

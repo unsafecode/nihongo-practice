@@ -1,11 +1,14 @@
-import { courseModulesByLevel } from "../data/course";
+import { courseModulesByLevel, legacyA1CourseModules } from "../data/course";
 import type { Locale } from "../../i18n/LocaleContext";
-import type { CourseLevelId, ReviewQueueEntry } from "../progress/progress";
+import type { ReviewQueueEntry } from "../progress/progress";
+import type { CourseLevelId } from "../levels/types";
 import { orderedReviewQueue } from "../progress/reviewQueue";
 import type { GeneratedExercise } from "./lessonExerciseModel";
 import type { ExercisePrompt } from "../exercises/types";
 import { getLessonExercises } from "./lessonExerciseModel";
-import { a1LessonContentById } from "../a1/curriculum/catalog";
+// Stored review entries may name any published A1 route, including the twenty
+// Base rehomed in Task 16; reconcile them against the legacy-route index.
+import { legacyA1LessonContentById as a1LessonContentById } from "../a1/curriculum/catalog";
 import {
   validateReviewRetrievalPair,
   type A1ReviewRetrievalTarget,
@@ -96,8 +99,9 @@ export interface ReviewQueueView {
 }
 
 const moduleIdByLessonForLevel: Readonly<Record<CourseLevelId, ReadonlyMap<string, string>>> = {
+  a0: new Map(),
   a1: new Map(
-    courseModulesByLevel.a1.flatMap((courseModule) =>
+    legacyA1CourseModules.flatMap((courseModule) =>
       courseModule.lessons.map((lesson) => [lesson.id, courseModule.id]),
     ),
   ),

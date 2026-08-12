@@ -1,172 +1,157 @@
 import type { CourseModule } from "./types";
 
-/**
- * The production runtime's own fail-closed structural gate (Phase 2 Task 6,
- * finding I3). `data/course.ts` calls this instead of the full
- * `validateA1Release()` content validator, so the shipped browser bundle
- * never carries `validateFoundations.ts`/`validateA1.ts` (2500+ lines of
- * catalog-cross-referencing content validation, still run in full by the
- * `prebuild` npm script via `scripts/validateA1Release.ts`, and by the test
- * suite via `validateA1.test.ts`).
- *
- * This is deliberately *not* a content validator: it never cross-references
- * the example/Can-do/verb-recurrence catalogs the full validator does — it
- * only asserts the already-assembled `courseModules` shape itself is sane
- * (every id present, every count positive, every id unique). That is exactly
- * the class of defect a genuine runtime assembly bug (a broken manifest
- * import, an empty lessons array, a duplicate id from a bad merge) would
- * produce, and exactly what this module can check without re-importing the
- * content it would otherwise have to duplicate. A production bundle that
- * somehow reached an invalid shape still throws here rather than exporting
- * `courseModules` partially or silently — the same fail-closed guarantee,
- * just split across build time (full content) and runtime (structural
- * sanity) instead of both living in one always-bundled call.
- */
+interface ShapeSpec {
+  readonly level: "a0" | "a1" | "a2";
+  readonly modules: number;
+  readonly lessons: number;
+  readonly makeError: (message: string) => Error;
+}
 
-/**
- * The published A1 runtime has sixteen modules and sixty-four lessons.
- */
-const EXPECTED_A1_RUNTIME_MODULE_COUNT = 16;
-const EXPECTED_A1_RUNTIME_LESSON_COUNT = 64;
+const BASE_SHAPE: ShapeSpec = {
+  level: "a0",
+  modules: 10,
+  lessons: 40,
+  makeError: (message) => new BaseCourseShapeError(message),
+};
 
-/** The fixed A2 release totals (Phase 3 Task 8): 15 modules × 4 lessons. */
-const EXPECTED_A2_MODULE_COUNT = 15;
-const EXPECTED_A2_LESSON_COUNT = 60;
+const A1_SHAPE: ShapeSpec = {
+  level: "a1",
+  modules: 11,
+  lessons: 44,
+  makeError: (message) => new A1CourseShapeError(message),
+};
+
+const A2_SHAPE: ShapeSpec = {
+  level: "a2",
+  modules: 15,
+  lessons: 60,
+  makeError: (message) => new A2CourseShapeError(message),
+};
+
+export class BaseCourseShapeError extends Error {
+  constructor(message: string) {
+    super(`data/course: refusing to export an invalid a0 course shape — ${message}`);
+    this.name = "BaseCourseShapeError";
+  }
+}
 
 export class A1CourseShapeError extends Error {
   constructor(message: string) {
-    super(`data/course: refusing to export an invalid course shape — ${message}`);
+    super(`data/course: refusing to export an invalid a1 course shape — ${message}`);
     this.name = "A1CourseShapeError";
   }
 }
 
 export class A2CourseShapeError extends Error {
   constructor(message: string) {
-    super(`data/course: refusing to export an invalid A2 course shape — ${message}`);
+    super(`data/course: refusing to export an invalid a2 course shape — ${message}`);
     this.name = "A2CourseShapeError";
   }
 }
 
 /**
- * Shared, level-agnostic structural core for {@link assertA1CourseShape} and
- * {@link assertA2CourseShape}. Checks every module/lesson id is present and
- * unique, every required field is non-empty, every lesson names its owning
- * module, orders are positive integers, and the level's fixed module/lesson
- * totals hold — throwing the level-specific `makeError` rather than exporting
- * anything partial. It never cross-references content catalogs (that is the
- * build-time `validate*Release()` gate's job); it only proves the assembled
- * `modules` shape itself is sane.
+ * The always-bundled gate deliberately validates only assembled navigation
+ * structure. Editorial/deep-content validation stays in the release checks.
  */
 function assertCourseShapeCore(
   modules: readonly CourseModule[],
-  expectedModuleCount: number,
-  expectedLessonCount: number,
-  makeError: (message: string) => Error,
+  spec: ShapeSpec,
 ): void {
   if (modules.length === 0) {
-    throw makeError("courseModules resolved to an empty array.");
+    throw spec.makeError("courseModules resolved to an empty array.");
+  }
+  if (modules.length !== spec.modules) {
+    throw spec.makeError(`expected exactly ${spec.modules} modules, got ${modules.length}.`);
   }
 
-  const seenModuleIds = new Set<string>();
-  const seenLessonIds = new Set<string>();
-  let totalLessons = 0;
+  const moduleIds = new Set<string>();
+  const lessonIds = new Set<string>();
+  let lessonCount = 0;
 
-  for (const courseModule of modules) {
-    if (!courseModule.id) {
-      throw makeError("a module has no id.");
+  for (const [moduleIndex, courseModule] of modules.entries()) {
+    if (!courseModule.id) throw spec.makeError("a module has no id.");
+    if (moduleIds.has(courseModule.id)) {
+      throw spec.makeError(`duplicate module id "${courseModule.id}".`);
     }
-    if (seenModuleIds.has(courseModule.id)) {
-      throw makeError(`duplicate module id "${courseModule.id}".`);
+    if (courseModule.order !== moduleIndex + 1) {
+      throw spec.makeError(
+        `module "${courseModule.id}" has an invalid module order (${courseModule.order}).`,
+      );
     }
-    seenModuleIds.add(courseModule.id);
-
     if (!courseModule.iconId) {
-      throw makeError(`module "${courseModule.id}" has no iconId.`);
+      throw spec.makeError(`module "${courseModule.id}" has no iconId.`);
     }
-    if (!Array.isArray(courseModule.outcomeCopyIds) || courseModule.outcomeCopyIds.length === 0) {
-      throw makeError(`module "${courseModule.id}" has no outcomeCopyIds.`);
+    if (
+      !Array.isArray(courseModule.outcomeCopyIds) ||
+      courseModule.outcomeCopyIds.length === 0 ||
+      courseModule.outcomeCopyIds.some((id) => !id)
+    ) {
+      throw spec.makeError(`module "${courseModule.id}" has no outcomeCopyIds.`);
     }
-    if (!Array.isArray(courseModule.lessons) || courseModule.lessons.length === 0) {
-      throw makeError(`module "${courseModule.id}" has no lessons.`);
+    if (!Array.isArray(courseModule.lessons) || courseModule.lessons.length !== 4) {
+      throw spec.makeError(`module "${courseModule.id}" must have exactly four lessons.`);
     }
 
-    for (const lesson of courseModule.lessons) {
-      totalLessons += 1;
+    for (const prerequisiteId of courseModule.prerequisiteIds) {
+      if (!moduleIds.has(prerequisiteId)) {
+        throw spec.makeError(
+          `module "${courseModule.id}" prerequisite "${prerequisiteId}" is unknown or not earlier.`,
+        );
+      }
+    }
+
+    for (const [lessonIndex, lesson] of courseModule.lessons.entries()) {
+      lessonCount += 1;
       if (!lesson.id) {
-        throw makeError(`module "${courseModule.id}" has a lesson with no id.`);
+        throw spec.makeError(`module "${courseModule.id}" has a lesson with no id.`);
       }
-      if (seenLessonIds.has(lesson.id)) {
-        throw makeError(`duplicate lesson id "${lesson.id}".`);
+      if (lessonIds.has(lesson.id)) {
+        throw spec.makeError(`duplicate lesson id "${lesson.id}".`);
       }
-      seenLessonIds.add(lesson.id);
-
       if (lesson.moduleId !== courseModule.id) {
-        throw makeError(
+        throw spec.makeError(
           `lesson "${lesson.id}" names moduleId "${lesson.moduleId}", not its owning module "${courseModule.id}".`,
         );
       }
-      if (!Number.isInteger(lesson.order) || lesson.order < 1) {
-        throw makeError(`lesson "${lesson.id}" has an invalid order (${lesson.order}).`);
+      if (lesson.order !== lessonIndex + 1) {
+        throw spec.makeError(`lesson "${lesson.id}" has an invalid lesson order (${lesson.order}).`);
       }
       if (!lesson.titleCopyId) {
-        throw makeError(`lesson "${lesson.id}" has no titleCopyId.`);
+        throw spec.makeError(`lesson "${lesson.id}" has no titleCopyId.`);
       }
-      if (!Array.isArray(lesson.objectiveCopyIds) || lesson.objectiveCopyIds.length === 0) {
-        throw makeError(`lesson "${lesson.id}" has no objectiveCopyIds.`);
+      if (
+        !Array.isArray(lesson.objectiveCopyIds) ||
+        lesson.objectiveCopyIds.length === 0 ||
+        lesson.objectiveCopyIds.some((id) => !id)
+      ) {
+        throw spec.makeError(`lesson "${lesson.id}" has no objectiveCopyIds.`);
       }
+      lessonIds.add(lesson.id);
     }
+    moduleIds.add(courseModule.id);
   }
 
-  // Structural correctness (ids present/unique, required fields non-empty) is
-  // checked above, per-module/per-lesson, so those specific defects are
-  // reported precisely. Only once the whole shape is otherwise sound do we
-  // check it also matches the release's known fixed totals — this catches a
-  // manifest/build regression that silently drops or duplicates whole
-  // modules/lessons without masking the more specific error above it.
-  if (modules.length !== expectedModuleCount) {
-    throw makeError(
-      `expected exactly ${expectedModuleCount} modules, got ${modules.length}.`,
-    );
-  }
-  if (totalLessons !== expectedLessonCount) {
-    throw makeError(
-      `expected exactly ${expectedLessonCount} lessons across all modules, got ${totalLessons}.`,
+  if (lessonCount !== spec.lessons) {
+    throw spec.makeError(
+      `expected exactly ${spec.lessons} lessons across all modules, got ${lessonCount}.`,
     );
   }
 }
 
-/**
- * Throws {@link A1CourseShapeError} unless `modules` is a structurally sane,
- * non-empty course: every module/lesson id present and unique, every count
- * positive, and the published runtime's fixed module/lesson totals
- * (16 modules, 64 lessons — 60 semantic + 4 phonetic) hold.
- */
+export function assertBaseCourseShape(
+  modules: readonly CourseModule[],
+): asserts modules is readonly CourseModule[] {
+  assertCourseShapeCore(modules, BASE_SHAPE);
+}
+
 export function assertA1CourseShape(
   modules: readonly CourseModule[],
 ): asserts modules is readonly CourseModule[] {
-  assertCourseShapeCore(
-    modules,
-    EXPECTED_A1_RUNTIME_MODULE_COUNT,
-    EXPECTED_A1_RUNTIME_LESSON_COUNT,
-    (message) => new A1CourseShapeError(message),
-  );
+  assertCourseShapeCore(modules, A1_SHAPE);
 }
 
-/**
- * Throws {@link A2CourseShapeError} unless `modules` is a structurally sane,
- * non-empty A2 course: every module/lesson id present and unique, every count
- * positive, and the A2 release's fixed totals (15 modules, 60 lessons) hold.
- * Mirrors {@link assertA1CourseShape} exactly, just with the A2 totals and
- * error type, so a corrupted A2 assembly throws here rather than shipping a
- * partial `a2CourseModules` export.
- */
 export function assertA2CourseShape(
   modules: readonly CourseModule[],
 ): asserts modules is readonly CourseModule[] {
-  assertCourseShapeCore(
-    modules,
-    EXPECTED_A2_MODULE_COUNT,
-    EXPECTED_A2_LESSON_COUNT,
-    (message) => new A2CourseShapeError(message),
-  );
+  assertCourseShapeCore(modules, A2_SHAPE);
 }

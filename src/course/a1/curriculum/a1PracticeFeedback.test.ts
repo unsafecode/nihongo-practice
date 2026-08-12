@@ -103,16 +103,21 @@ describe("buildA1PracticeFeedback", () => {
     }
   });
 
+  // `a1-sense-study-bare`, `a1-sense-rest-routine` and `a1-sense-return-bare`
+  // are Base-owned (their lessons moved with `polite-verbs`/`time-movement`);
+  // the retained A1 catalog resolves the polite senses it still teaches.
   it.each([
-    ["a1-sense-study-bare", "to study", "studiare"],
     ["a1-sense-study-routine", "to study", "studiare"],
-    ["a1-sense-rest-routine", "to rest; take a break", "riposarsi; fare una pausa"],
-    ["a1-sense-return-bare", "to return; go home", "tornare"],
+    ["a1-sense-study", "to study", "studiare"],
+    ["a1-sense-return", "to return; go home", "tornare"],
+    ["a1-sense-eat-routine", "to eat", "mangiare"],
   ] as const)(
     "resolves the published lexeme meaning for %s",
     (senseId, englishMeaning, italianMeaning) => {
+      // `polite-verbs-1` moved to Base in Task 16; `actions-1` is the retained
+      // A1 lesson that teaches these verb senses in the polite -ます form.
       const feedback = buildA1PracticeFeedback(
-        "polite-verbs-1",
+        "actions-1",
         "meaning-comprehension",
         [senseId],
         [],

@@ -34,6 +34,7 @@ import {
   type FamilyPracticeContext,
 } from "./practiceEngine";
 import { validateRuntimeAliases } from "../data/personas";
+import { COURSE_LEVEL_IDS } from "../levels/types";
 import {
   aggregateFoundationReports,
   type CheckpointReportRow,
@@ -190,8 +191,12 @@ const STAGE = {
 // Small helpers
 // ---------------------------------------------------------------------------
 
+const LEVEL_RANK_BY_ID: ReadonlyMap<CourseLevelId, number> = new Map(
+  COURSE_LEVEL_IDS.map((level, index) => [level, index]),
+);
+
 function levelRank(level: CourseLevelId): number {
-  return level === "a1" ? 0 : level === "a2" ? 1 : 2;
+  return LEVEL_RANK_BY_ID.get(level) ?? COURSE_LEVEL_IDS.length;
 }
 
 function byId<T extends { readonly id: string }>(items: readonly T[]): Map<string, T> {

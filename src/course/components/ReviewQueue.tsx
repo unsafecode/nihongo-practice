@@ -4,8 +4,9 @@ import { ActionButton, ActionLink } from "../../components/actions/Action";
 import { useLocale } from "../../i18n/LocaleContext";
 import { lessonPath } from "../../routing/routes";
 import { getCourseCopy } from "../i18n/catalog";
+import { lessonOwner } from "../levels/ownership";
 import { useProgress } from "../progress/ProgressContext";
-import type { CourseLevelId } from "../progress/progress";
+import type { CourseLevelId } from "../levels/types";
 import { Exercise } from "./Exercise";
 import type { GeneratedExercise } from "./lessonExerciseModel";
 import { buildReviewQueueView } from "./reviewQueueModel";
@@ -23,19 +24,14 @@ import type { ReviewQueueItem } from "./reviewQueueModel";
  *
  * Level-aware (Phase 3 Task 8 spec-fix, BLOCKER 1): `level` selects *which*
  * level's queue this surface shows. It defaults to `"a1"`, reading the
- * A1 v3-compat `progress` projection so Practice Home's existing A1 review is
- * byte-for-byte unchanged. Course Home passes its selected level, so the A2
- * view reads `progressV4.levels.a2` and resolves every entry (title, module
- * deep link, engine prompt) against the A2 catalog — never A1's. The mutation
- * callbacks (`resolveReview`/`recordAttempt`) already infer the owning level
- * from each entry's lesson id, so an A2 entry's "practice" action genuinely
- * resolves the A2 queue: nothing here is inert data dressed up as actionable.
+ * selected V5 level slice. Each entry is checked against the canonical owner
+ * registry before it becomes actionable, so a historical or mismatched key is
+ * shown only as an orphan and can never default into A1.
  */
 
 export interface ReviewQueueProps {
   /**
-   * Which level's review queue to show. Defaults to `"a1"`, reading the
-   * A1 v3-compat `progress` projection (Practice Home's existing behavior).
+   * Which level's review queue to show. Defaults to `"a1"`.
    */
   readonly level?: CourseLevelId;
 }
@@ -44,14 +40,22 @@ export function ReviewQueue({ level = "a1" }: ReviewQueueProps): ReactElement {
   const { locale } = useLocale();
   const copy = getCourseCopy(locale);
   const reviewCopy = copy.review;
-  const { progress, progressV4, persistenceAvailable, recordAttempt, resolveReview } =
+  const { progressV5, persistenceAvailable, recordAttempt, resolveReview } =
     useProgress();
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [resolvedNotice, setResolvedNotice] = useState(false);
 
-  // A1 reads the v3-compat projection (unchanged); every other level reads its
-  // own independent `levels[level]` slice — never the other level's queue.
-  const source = level === "a1" ? progress : progressV4.levels[level];
+  const levelProgress = progressV5.levels[level];
+  const ownerMismatchedKeys = levelProgress.reviewQueue
+    .filter((entry) => lessonOwner(entry.lessonId)?.levelId !== level)
+    .map((entry) => entry.reviewKey);
+  const source = {
+    ...levelProgress,
+    reviewQueue: levelProgress.reviewQueue.filter(
+      (entry) => lessonOwner(entry.lessonId)?.levelId === level,
+    ),
+    orphanedReviewKeys: [...levelProgress.orphanedReviewKeys, ...ownerMismatchedKeys],
+  };
   const view = buildReviewQueueView(source, level);
 
   const handleAttempt = (item: ReviewQueueItem) => (

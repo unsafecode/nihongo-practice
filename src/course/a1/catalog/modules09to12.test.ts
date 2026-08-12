@@ -20,7 +20,7 @@
  *     targets, reuse ≤2, ≥2 constructing transfers) in EN and IT;
  *   • the four capstones introduce NO new content — every value, sense,
  *     concept, form, role and context is drawn from the modules 1–11 prior set;
- *   • the 40-record release recurrence table (each sense reused ≥2× later);
+ *   • the 25-record retained release recurrence table (each sense reused ≥2× later);
  *   • bilingual copy parity/coverage with no Japanese and no cert language;
  *   • a Modules 2–8 realization regression (prior content unchanged).
  */
@@ -49,6 +49,7 @@ import { module11Lessons } from "./module11ExistenceNeeds";
 import { module12Lessons } from "./module12Capstones";
 import { a1ReleaseVerbUseRecords } from "./recurrence";
 import { a1SemanticBuiltLessons } from "./catalog";
+import { a1AllStagedFoundationsBuiltLessons } from "../curriculum/foundationsArea03to04";
 import { a1CopyEn } from "../copy/en";
 import { a1CopyIt } from "../copy/it";
 import { realizeVariant } from "../../foundations/realizeFamily";
@@ -680,7 +681,15 @@ describe("A1 modules 9–12 · capstone no-new-content synthesis", () => {
       context: new Set<string>(),
     };
     const capstones: SentenceVariant[] = [];
-    for (const v of a1SemanticBuiltLessons.flatMap((built) => built.variants)) {
+    // Task 16: the four Foundations modules are Base's now, but Base still
+    // teaches them *before* A1, so their variants remain genuine prior content
+    // for the capstones (e.g. `a1-value-time-7`, taught by Base's
+    // `time-movement-2`). They are included as prior, never as capstone input.
+    const priorVariants = [
+      ...a1AllStagedFoundationsBuiltLessons.flatMap((built) => built.variants),
+      ...a1SemanticBuiltLessons.flatMap((built) => built.variants),
+    ];
+    for (const v of priorVariants) {
       if (isCapstone(v.id)) {
         capstones.push(v);
         continue;
@@ -879,17 +888,18 @@ describe("A1 modules 9–12 · capstone required scenario coverage", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 7. Release recurrence — 44 sense records, each reused ≥2× later.
+// 7. Release recurrence — 25 retained sense records, each reused ≥2× later.
+//    (Task 16 moved the other nineteen to Base with the Foundations modules.)
 // ---------------------------------------------------------------------------
 
 describe("A1 modules 9–12 · release recurrence completeness", () => {
-  it("wires every productive sense to ≥2 later uses (44 records)", () => {
-    expect(a1ReleaseVerbUseRecords.length).toBe(44);
+  it("wires every productive sense to ≥2 later uses (25 records)", () => {
+    expect(a1ReleaseVerbUseRecords.length).toBe(25);
     for (const record of a1ReleaseVerbUseRecords) {
       expect(record.laterUses.length, record.id).toBeGreaterThanOrEqual(2);
     }
     const ids = new Set(a1ReleaseVerbUseRecords.map((r) => r.id));
-    expect(ids.size, "record ids unique").toBe(44);
+    expect(ids.size, "record ids unique").toBe(25);
   });
 });
 

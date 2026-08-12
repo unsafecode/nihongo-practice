@@ -5,7 +5,7 @@ import {
   resetStoredProgress,
   STORAGE_KEY,
 } from "./ProgressContext";
-import { emptyProgressV4 } from "./progress";
+import { emptyProgressV5, type CourseProgressV5 } from "./progress";
 import { getLessonExercises } from "../components/lessonExerciseModel";
 import { reviewKeyFor } from "./reviewQueue";
 
@@ -118,9 +118,9 @@ function catalogV2Payload(): string {
 describe("progress persistence results", () => {
   it("distinguishes saved, removed, and unavailable outcomes", () => {
     const storage = memoryStorage();
-    expect(persistProgress(storage, emptyProgressV4())).toEqual({ status: "saved" });
+    expect(persistProgress(storage, emptyProgressV5())).toEqual({ status: "saved" });
     expect(resetStoredProgress(storage)).toEqual({ status: "removed" });
-    expect(persistProgress(null, emptyProgressV4())).toEqual({
+    expect(persistProgress(null, emptyProgressV5())).toEqual({
       status: "unavailable",
     });
   });
@@ -139,7 +139,7 @@ describe("progress persistence results", () => {
     expect(loadProgress(storage).loadStatus).toBe("migrated");
   });
 
-  it("normalizes a stored v4 catalog-v2 payload to v3 and persists the reconciled result", () => {
+  it("migrates a stored V4 catalog-v2 payload to V5 and persists the reconciled result", () => {
     const rawV2 = catalogV2Payload();
     const storage = memoryStorage();
     storage.setItem(STORAGE_KEY, rawV2);
@@ -149,7 +149,7 @@ describe("progress persistence results", () => {
     expect(loaded.corrupted).toBe(false);
     expect(loaded.migrated).toBe(true);
     expect(loaded.persistenceAvailable).toBe(true);
-    expect(loaded.progress.catalogVersion).toBe("a1-a2-v3");
+    expect(loaded.progress.catalogVersion).toBe("base-a1-a2-v1");
     expect(loaded.progress.levels.a1.lessons["introductions-1"]?.attemptedExerciseIds).toEqual(
       JSON.parse(rawV2).levels.a1.lessons["introductions-1"].attemptedExerciseIds,
     );
@@ -159,11 +159,11 @@ describe("progress persistence results", () => {
       reviewKeyFor("introductions-1", "introductions-1-round-1-8"),
     ]);
     expect(JSON.parse(storage.getItem(STORAGE_KEY)!).catalogVersion).toBe(
-      "a1-a2-v3",
+      "base-a1-a2-v1",
     );
   });
 
-  it("keeps the normalized v4 catalog result in memory and raw catalog-v2 bytes on disk when write-back fails", () => {
+  it("keeps the normalized V5 result in memory and raw catalog-v2 bytes on disk when write-back fails", () => {
     const rawV2 = catalogV2Payload();
     const storage = writeBlockedMemoryStorage({ [STORAGE_KEY]: rawV2 });
 
@@ -172,7 +172,7 @@ describe("progress persistence results", () => {
     expect(loaded.corrupted).toBe(false);
     expect(loaded.migrated).toBe(true);
     expect(loaded.persistenceAvailable).toBe(false);
-    expect(loaded.progress.catalogVersion).toBe("a1-a2-v3");
+    expect(loaded.progress.catalogVersion).toBe("base-a1-a2-v1");
     expect(storage.getItem(STORAGE_KEY)).toBe(rawV2);
   });
 
@@ -212,8 +212,8 @@ describe("progress persistence results", () => {
     expect(loaded.corrupted).toBe(false);
     expect(loaded.loadStatus).toBe("migrated");
     expect(loaded.persistenceAvailable).toBe(false);
-    expect(loaded.progress.schemaVersion).toBe(4);
-    expect(loaded.progress.levels.a1.lessons["sounds-1"]).toEqual({
+    expect(loaded.progress.schemaVersion).toBe(5);
+    expect((loaded.progress as unknown as CourseProgressV5).levels.a0.lessons["sounds-1"]).toEqual({
       visitedAt: "2026-07-13T10:00:00.000Z",
       practicedAt: null,
       consolidatedAt: null,
@@ -235,11 +235,11 @@ describe("progress persistence results", () => {
     // storage adapter, not a mock of reconcileReviewQueueEntries itself).
     const storage = memoryStorage();
     const stored = {
-      ...emptyProgressV4(),
+      ...emptyProgressV5(),
       levels: {
-        ...emptyProgressV4().levels,
+        ...emptyProgressV5().levels,
         a1: {
-          ...emptyProgressV4().levels.a1,
+          ...emptyProgressV5().levels.a1,
           reviewQueue: [
             {
               reviewKey: "ghost-lesson:ghost-lesson-x1",
@@ -265,7 +265,7 @@ describe("progress persistence results", () => {
     // Catalog reconciliation is a normalization, so the existing migration
     // persistence path writes the usable catalog-v3 result back to storage.
     expect(JSON.parse(storage.getItem("nihongo.course.progress")!)).toMatchObject({
-      catalogVersion: "a1-a2-v3",
+      catalogVersion:       "base-a1-a2-v1",
       levels: {
         a1: {
           reviewQueue: [],

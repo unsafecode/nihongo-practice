@@ -10,6 +10,7 @@ import { lessonSectionTarget } from "../../routing/lessonSectionTarget";
 import { courseModulesByLevel } from "../data/course";
 import type { LessonId, ModuleId } from "../data/types";
 import { getCourseCopy } from "../i18n/catalog";
+import type { CourseLevelId } from "../levels/types";
 
 /**
  * Normative props (design spec §6.1). The rail is told which sections exist
@@ -17,7 +18,7 @@ import { getCourseCopy } from "../i18n/catalog";
  * icon) so it can never disagree with the page it navigates.
  */
 export interface LessonRailProps {
-  readonly level: "a1" | "a2";
+  readonly level: CourseLevelId;
   readonly moduleId: ModuleId;
   readonly lessonId: LessonId;
   readonly sections: readonly LessonSectionId[];
@@ -25,9 +26,10 @@ export interface LessonRailProps {
 }
 
 /**
- * Lesson rail / scrollspy navigation. A1's six vocabulary-first labels and
- * A2's established four labels each drive both a desktop sticky rail and a
- * mobile sticky context bar; the active step carries
+ * Lesson rail / scrollspy navigation. Base (`a0`) and A1 share the same six
+ * vocabulary-first section anchors (each with its own localized labels), and
+ * A2 keeps its established four labels; each drives both a desktop sticky
+ * rail and a mobile sticky context bar. The active step carries
  * `aria-current="step"`, every step is a router-safe link built through the
  * shared `lessonSectionTarget` helper (so a link and `RouteScrollManager` can
  * never disagree), and the module's semantic icon is shown for orientation.
@@ -45,17 +47,19 @@ export function LessonRail({
     (item) => item.id === moduleId,
   );
 
+  const sectionLabel = (sectionId: LessonSectionId): string => {
+    if (level === "a2") return isA2LessonSectionId(sectionId) ? copy.lesson.sections[sectionId] : "";
+    if (level === "a0") return isA1LessonSectionId(sectionId) ? copy.baseLesson.sections[sectionId] : "";
+    return isA1LessonSectionId(sectionId) ? copy.a1Lesson.sections[sectionId] : "";
+  };
+
   const steps = sections.map((sectionId, index) => ({
     sectionId,
     index: index + 1,
-    label:
-      level === "a1" && isA1LessonSectionId(sectionId)
-        ? copy.a1Lesson.sections[sectionId]
-        : isA2LessonSectionId(sectionId)
-          ? copy.lesson.sections[sectionId]
-          : "",
+    label: sectionLabel(sectionId),
     target: lessonSectionTarget(moduleId, lessonId, sectionId),
   }));
+
 
   const renderSteps = (variant: string) => (
     <ol className={`${variant}__list`}>

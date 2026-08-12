@@ -19,7 +19,9 @@ import { A1VocabularySection } from "./A1VocabularySection";
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const SEMANTIC_LESSON = "introductions-1";
-const PHONETIC_LESSON = "sounds-1";
+// Task 16: `sounds-*` is Base-owned and rendered by the Base section
+// components (`src/course/components/base/*`), which have their own coverage.
+// A1's renderers are exercised over the routes A1 still owns.
 
 function modelFor(lessonId: string) {
   const result = buildA1CurriculumViewModel(lessonId, "it");
@@ -142,8 +144,10 @@ describe("A1 curriculum section renderers", () => {
   });
 
   it("shows dictionary, polite, and class labels for every verb vocabulary entry", () => {
-    const model = modelFor("polite-verbs-2");
-    const html = renderSection("polite-verbs-2", "vocabulary");
+    // `polite-verbs-2` moved to Base; `routines-1` is the retained A1 lesson
+    // whose vocabulary carries the same verb metadata.
+    const model = modelFor("routines-1");
+    const html = renderSection("routines-1", "vocabulary");
     const verbs = model.vocabulary.filter((item) => item.verb);
 
     expect(verbs.length).toBeGreaterThan(0);
@@ -182,22 +186,35 @@ describe("A1 curriculum section renderers", () => {
     expect(generated).toHaveLength(4);
   });
 
-  it("renders phonetic lessons through the same six-section flow", () => {
-    const model = modelFor(PHONETIC_LESSON);
-    expect(renderSection(PHONETIC_LESSON, "rule")).toContain(
-      "a1-lesson-overview",
-    );
-    expect(renderSection(PHONETIC_LESSON, "vocabulary")).toContain(
-      "a1-vocabulary",
-    );
-    const examples = renderSection(PHONETIC_LESSON, "comparison");
-    expect(examples).toContain("a1-worked-examples");
-    for (const example of model.examples) {
-      expect(examples).toContain(example.spokenJapanese);
+  it("renders every retained A1 lesson through the same six-section flow", () => {
+    for (const lessonId of ["past-negative-1", "shopping-2", "existence-needs-3"]) {
+      const model = modelFor(lessonId);
+      expect(renderSection(lessonId, "rule")).toContain("a1-lesson-overview");
+      expect(renderSection(lessonId, "vocabulary")).toContain("a1-vocabulary");
+      const examples = renderSection(lessonId, "comparison");
+      expect(examples).toContain("a1-worked-examples");
+      for (const example of model.examples) {
+        expect(examples).toContain(example.spokenJapanese);
+      }
+      const practice = renderSection(lessonId, "explore");
+      expect(practice.match(/class="lesson-exercise"/g)).toHaveLength(4);
+      expect(practice.match(/class="spoken-attempt"/g)).toHaveLength(1);
     }
-    const practice = renderSection(PHONETIC_LESSON, "explore");
-    expect(practice.match(/class="lesson-exercise"/g)).toHaveLength(4);
-    expect(practice.match(/class="spoken-attempt"/g)).toHaveLength(1);
+  });
+
+  it("links the recap's reviewed Base systems to their Base reference pages", () => {
+    // Task 16: `introductions-2` applies the topic particle and the copula,
+    // both of which Base first teaches.
+    const model = modelFor("introductions-2");
+    const html = renderSection("introductions-2", "recap");
+
+    expect(model.recap.reviewedBaseReferences.length).toBeGreaterThan(0);
+    expect(html).toContain('class="a1-curriculum-recap__base-references"');
+    for (const entry of model.recap.reviewedBaseReferences) {
+      expect(html).toContain(`data-concept-id="${entry.conceptId}"`);
+      expect(html).toContain(`href="${entry.href}"`);
+      expect(html).toContain(entry.label);
+    }
   });
 
   it("identifies capstone vocabulary as review rather than new words", () => {

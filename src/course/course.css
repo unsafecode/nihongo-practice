@@ -170,6 +170,11 @@
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
   gap: var(--space-4);
   min-width: 0;
+  /* Grid items stretch to their row by default, so a collapsed module sharing
+   * a row with the expanded (recommended) one was forced to the expanded
+   * card's full height and rendered as a giant, mostly-empty card. Every card
+   * stays content-sized instead (design spec §13.3). */
+  align-items: start;
 }
 
 .course-phase {
@@ -540,6 +545,16 @@
   .can-do-summary__item {
     flex-direction: column;
     align-items: flex-start;
+  }
+  /*
+   * The stacked layout turns the main axis vertical, so the descriptor's
+   * `flex: 1 1 20rem` row basis would become a 320px minimum *height* and
+   * leave a large empty gap under every Can-do statement (the tier label was
+   * pushed to the bottom of a 361px-tall card). In this direction the
+   * descriptor must simply be content-sized.
+   */
+  .can-do-summary__descriptor {
+    flex: 0 0 auto;
   }
 }
 
@@ -1981,8 +1996,22 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+  /* A flex track's default `min-width: auto` refuses to shrink below its
+   * content, which is how a three-level segmented control starts pushing the
+   * page wider than 320px (and at 200% zoom). Allowing the track to shrink
+   * keeps the wrap the only overflow response. */
+  min-width: 0;
 }
-.level-selector__option-item { margin: 0; }
+.level-selector__option-item {
+  margin: 0;
+  /* A flex item's default `min-width: auto` refuses to shrink below its own
+   * min-content width. At the 320px reflow floor the three-level option's
+   * label + recommended marker + hint made that min-content 290px inside a
+   * 248px track, pushing the whole page 6px wider than the viewport. Letting
+   * the item shrink (and letting the option's own contents wrap, below) makes
+   * wrapping the only overflow response at every viewport. */
+  min-width: 0;
+}
 .level-selector__option {
   /* Explicit ≥44px target in addition to the shared `.action` sizing, so the
    * segmented control stays touch/keyboard friendly on every viewport. */
@@ -1991,6 +2020,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
+}
+.level-selector__option-label,
+.level-selector__recommended {
+  /* Keep the short label/marker atomic while the long hint below wraps. */
+  flex: 0 0 auto;
 }
 .level-selector__option.is-selected {
   border-color: var(--course-coral);
@@ -2000,6 +2035,12 @@
   margin: 0;
   color: var(--course-muted);
   max-width: 60ch;
+  /* The hint is the only long string in the option; it must be free to wrap
+   * (and to shrink below its own longest word) so the option never forces the
+   * page wider than the viewport. */
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
 }
 
 /*
@@ -2191,9 +2232,17 @@
 
 .a1-vocabulary__item {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  /*
+   * At the shared 860px reading measure the list renders three ~281px cards,
+   * which is far too narrow for three side-by-side internal columns: the
+   * word collapsed to one character per line, the meanings broke mid-word,
+   * and the "CATEGORIA" label was clipped by the audio control. The word and
+   * its playback control share the first row; the metadata takes its own
+   * full-width row underneath.
+   */
+  grid-template-columns: minmax(0, 1fr) auto;
   min-width: 0;
-  gap: var(--space-3);
+  gap: var(--space-2) var(--space-3);
   align-items: start;
   border: 1px solid var(--course-line);
   border-radius: var(--radius);
@@ -2521,4 +2570,448 @@
   .a1-worked-examples__pattern > summary {
     transition: none;
   }
+}
+
+
+/* ── Base (a0) level layout (Task 16) ─────────────────────────────────────── */
+
+/*
+ * Every Base track that holds long Japanese/rōmaji pairs opts out of the
+ * `min-width: auto` default so its content can wrap instead of forcing the
+ * page wider. Without this a single long reference cell or dialogue turn
+ * introduces page-level horizontal scrolling at 320px and at 200% zoom.
+ */
+.base-reference-grid {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-3);
+  overflow-wrap: anywhere;
+}
+
+/*
+ * The wide reference table is the default presentation; the stacked cards are
+ * its narrow-viewport equivalent, generated one-for-one from the same rows.
+ * Exactly one of the two is displayed at a time, so a learner never sees the
+ * same content twice and the table never forces a horizontal scrollbar.
+ */
+.base-reference-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.base-reference-cards {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/*
+ * Presentation for the generated reference grids. Both presentations show the
+ * same cells, so both must separate the kana from its rōmaji: rendered as two
+ * sibling spans they would otherwise run together ("がくせいgakusei") and be
+ * unreadable. Stacking them keeps the Japanese primary and the reading
+ * secondary in either presentation.
+ */
+.base-reference-page__header {
+  margin-bottom: var(--space-4);
+}
+.base-reference-page__explanation {
+  margin: var(--space-2) 0 0;
+  max-width: 60ch;
+  color: var(--course-muted);
+}
+.base-reference-table caption {
+  text-align: left;
+  font-weight: 700;
+  padding-bottom: var(--space-2);
+}
+.base-reference-table th,
+.base-reference-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: var(--space-2) var(--space-3);
+}
+/* The separator lives on the row, not the cell: a row that legitimately has
+ * fewer cells than columns (progressive disclosure drops later columns) would
+ * otherwise draw a rule that stops halfway across the table. */
+.base-reference-table tbody tr {
+  border-bottom: 1px solid var(--course-line);
+}
+.base-reference-table thead tr {
+  border-bottom: 2px solid var(--course-line);
+}
+.base-reference-table thead th {
+  color: var(--course-muted);
+  font-size: var(--text-1);
+}
+.base-reference-table tbody th[scope="row"] {
+  font-weight: 700;
+  color: var(--course-ink);
+}
+.base-reference-page__cell-japanese,
+.base-reference-page__cell-romaji {
+  display: block;
+}
+/* The trailing explanation column absorbs the table's remaining width, so a
+ * reference with a single narrow form column reads as a taught system rather
+ * than a mostly-blank grid. It stays the least prominent thing in the row. */
+.base-reference-table td.base-reference-page__explanation {
+  margin: 0;
+  width: 55%;
+  font-size: var(--text-1);
+}
+.base-reference-page__stacked-card > .base-reference-page__explanation {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-1);
+}
+.base-reference-page__cell-romaji {
+  color: var(--course-muted);
+  font-size: var(--text-1);
+}
+.base-reference-page__stacked-card {
+  border: 1px solid var(--course-line);
+  border-radius: 0.65rem;
+  background: var(--course-surface);
+  padding: var(--space-3);
+}
+.base-reference-page__stacked-card-heading {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-3);
+}
+.base-reference-page__stacked-card-cells {
+  margin: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.base-reference-page__stacked-card-cells dt {
+  margin: 0;
+  color: var(--course-muted);
+  font-size: var(--text-1);
+  font-weight: 700;
+}
+.base-reference-page__stacked-card-cells dd {
+  margin: 0;
+}
+
+.base-practice-sequence {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.base-dialogue {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * Base lesson surfaces. Without these the vocabulary, worked examples and
+ * practice cards fall back to browser defaults, which run the kana, its rōmaji
+ * and its meaning label together as one unreadable string
+ * ("どこdokoSignificato: dove"). Each part is given its own line/row, mirroring
+ * the A1 vocabulary card language so the two levels read the same way.
+ */
+.base-vocabulary,
+.base-explanation,
+.base-worked-examples,
+.base-practice-sequence,
+.base-recap {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-4);
+}
+.base-vocabulary__group {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.base-vocabulary__group-heading {
+  margin: 0;
+  color: var(--course-muted);
+  font-size: var(--text-1);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.base-vocabulary__list,
+.base-contrast-map__list,
+.base-reference-snapshot__list,
+.base-worked-examples__list,
+.base-worked-examples__dialogue ol,
+.base-practice-sequence ol {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* A reference the lesson offers is a real destination, so it must look and
+ * behave like one and meet the same touch-target floor as other controls. */
+.base-reference-snapshot__item a {
+  display: inline-block;
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  color: var(--accent-dark);
+  text-decoration: underline;
+}
+.base-vocabulary__item,
+.base-contrast-map__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr);
+  align-items: start;
+  gap: var(--space-3);
+  min-width: 0;
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  background: var(--card);
+}
+.base-vocabulary__kana,
+.base-contrast-map__kana {
+  font-family: var(--font-jp);
+  font-size: var(--text-3);
+  min-width: 0;
+}
+.base-vocabulary__romaji,
+.base-contrast-map__romaji {
+  color: var(--course-muted);
+  min-width: 0;
+}
+.base-vocabulary__meaning,
+.base-contrast-map__explanation {
+  min-width: 0;
+}
+.base-vocabulary__meaning-label {
+  color: var(--course-muted);
+  font-size: var(--text-1);
+  font-weight: 800;
+}
+.base-explanation__details {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+}
+.base-explanation__details dt {
+  margin: 0;
+  color: var(--course-muted);
+  font-size: var(--text-1);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.base-explanation__details dd {
+  margin: var(--space-1) 0 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.base-worked-examples__card {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  background: var(--card);
+}
+.base-worked-examples__japanese {
+  margin: 0;
+  font-family: var(--font-jp);
+  font-size: var(--text-3);
+}
+.base-worked-examples__romaji {
+  margin: 0;
+  color: var(--course-muted);
+}
+.base-worked-examples__translation {
+  margin: 0;
+}
+.base-worked-examples__turn {
+  margin: 0 0 var(--space-1);
+  color: var(--course-muted);
+  font-size: var(--text-1);
+  font-weight: 800;
+}
+.base-practice-activity,
+.base-listening-activity,
+.base-spoken-activity {
+  display: grid;
+  gap: var(--space-2);
+  align-items: start;
+  justify-items: start;
+  min-width: 0;
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  background: var(--card);
+}
+.base-practice-activity__options,
+.base-listening-activity__options {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.base-practice-activity__bank,
+.base-practice-activity__answer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.base-practice-activity__answer {
+  min-height: var(--action-target-min);
+  border: 1px dashed var(--course-line);
+  border-radius: var(--radius);
+  padding: var(--space-1);
+  width: 100%;
+}
+.base-practice-activity__bank button,
+.base-practice-activity__answer button {
+  border: 1px solid var(--course-line);
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-3);
+  background: var(--surface);
+  font-family: var(--font-jp);
+  font-size: var(--text-2);
+}
+.base-practice-activity__status,
+.base-listening-activity__status {
+  margin: 0;
+  font-weight: 700;
+}
+.base-audio-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.base-audio-button__status {
+  color: var(--course-muted);
+  font-size: var(--text-1);
+}
+.base-spoken-activity__target {
+  margin: 0;
+  font-family: var(--font-jp);
+  font-size: var(--text-3);
+}
+.base-lesson-overview,
+.base-recap__list {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.base-lesson-overview__can-do-label,
+.base-recap__can-do-label {
+  color: var(--course-muted);
+  font-size: var(--text-1);
+  font-weight: 800;
+}
+
+@media (max-width: 720px) {
+  .base-vocabulary__item,
+  .base-contrast-map__item {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+  }
+}
+
+/* The shared ≥44px action-target contract, restated explicitly for the Base
+ * controls so a Base-only regression cannot slip past the audit. Every option
+ * label is the real hit target for its native radio, so the label — not the
+ * 13px input glyph — is what has to satisfy the minimum. */
+.base-practice-activity__option {
+  min-height: var(--action-target-min);
+  min-width: var(--action-target-min);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.base-listening-activity__option,
+.base-diagnostic__option {
+  min-height: var(--action-target-min);
+  min-width: var(--action-target-min);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+/* A tile is a real, tappable control even though it carries only a glyph. */
+.base-practice-activity__bank button,
+.base-practice-activity__answer button {
+  min-height: var(--action-target-min);
+  min-width: var(--action-target-min);
+}
+.base-audio-button__control {
+  min-height: var(--action-target-min);
+  min-width: var(--action-target-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+.base-audio-button__control:focus-visible,
+.base-practice-activity__option:focus-within,
+.base-listening-activity__option:focus-within,
+.base-diagnostic__option:focus-within {
+  outline: var(--focus-ring-width, 2px) solid var(--course-coral);
+  outline-offset: 2px;
+}
+
+@media (max-width: 40rem) {
+  .base-reference-table {
+    display: none;
+  }
+  .base-reference-cards {
+    display: grid;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .base-progress,
+  .base-activity {
+    scroll-behavior: auto;
+    transition: none;
+  }
+}
+
+/* The Base practice instruction is a real, readable prompt (also the group's
+ * accessible name) — never an `aria-label` a sighted learner cannot see. */
+.base-practice-activity__instruction {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* A `<legend>` is painted on its fieldset's border by default, which made the
+ * listening activity's authored instruction straddle the card edge. Floating
+ * it to full width places it as ordinary leading content inside the card,
+ * where it reads as the prompt it is. */
+.base-listening-activity > legend,
+.base-practice-activity__options > legend {
+  float: left;
+  width: 100%;
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  font-weight: 600;
+}
+.base-listening-activity > legend + *,
+.base-practice-activity__options > legend + * {
+  clear: both;
+}
+
+/* See `.a1-vocabulary__item`: the word and its playback control occupy the
+ * first row; the category/meaning metadata takes a full-width row below, so a
+ * narrow card never squeezes three columns into ~65px each. */
+.a1-vocabulary__item > .a1-vocabulary__word {
+  grid-column: 1;
+  grid-row: 1;
+}
+.a1-vocabulary__item > .a1-audio-button {
+  grid-column: 2;
+  grid-row: 1;
+}
+.a1-vocabulary__item > .a1-vocabulary__metadata {
+  grid-column: 1 / -1;
+  grid-row: 2;
 }

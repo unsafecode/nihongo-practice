@@ -4,7 +4,7 @@ import {
   type CourseMapAreaOutline,
   type CourseMapModuleOutline,
 } from "./courseMapModel";
-import { courseModules } from "../data/course";
+import { legacyA1CourseModules as courseModules } from "../data/course";
 import { A1_AREAS } from "../a1/areas";
 
 /**

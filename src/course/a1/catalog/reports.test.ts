@@ -1,8 +1,13 @@
 /**
- * Whole-level coverage report contract. Asserts the combined 64-lesson release
+ * Whole-level coverage report contract. Asserts the retained 44-lesson release
  * view exposes exact structural metrics, that every table is deterministically
  * ordered, that the rendered Markdown is byte-stable across rebuilds, and that
  * the printed report is gated behind `A1_REPORT=1`.
+ *
+ * Task 16 rehomed the phonetic `sounds` module and the four Foundations
+ * modules to Base, which reports on them itself; A1's report covers exactly
+ * the eleven modules / forty-four routes A1 still owns, at their unchanged
+ * canonical positions 21–64.
  *
  * No fixture imports: all figures derive from the frozen release catalogs.
  */
@@ -15,30 +20,11 @@ import { buildA1Reports, a1ReportMarkdown } from "./reports";
 const reports = buildA1Reports();
 
 describe("buildA1Reports – exact level metrics", () => {
-  it("derives four complete area rows from the authored partition and actual module rows", () => {
+  it("derives two complete area rows from the retained partition and actual module rows", () => {
     const areas = reports.byArea;
 
-    expect(areas).toHaveLength(4);
+    expect(areas).toHaveLength(2);
     expect(areas).toEqual([
-      expect.objectContaining({
-        areaId: "sounds",
-        moduleIds: ["sounds"],
-        moduleCount: 1,
-        lessonCount: 4,
-        semanticLessonCount: 0,
-        phoneticLessonCount: 4,
-        capstoneLessonCount: 0,
-        complete: true,
-      }),
-      expect.objectContaining({
-        areaId: "foundations",
-        moduleCount: 4,
-        lessonCount: 16,
-        semanticLessonCount: 16,
-        phoneticLessonCount: 0,
-        capstoneLessonCount: 0,
-        complete: true,
-      }),
       expect.objectContaining({
         areaId: "situations",
         moduleCount: 10,
@@ -61,16 +47,16 @@ describe("buildA1Reports – exact level metrics", () => {
     ]);
   });
 
-  it("combines 60 semantic + 4 phonetic lessons into 64 routed rows", () => {
-    expect(reports.byLesson.length).toBe(64);
-    expect(reports.byLesson.filter((row) => row.kind === "semantic").length).toBe(60);
-    expect(reports.byLesson.filter((row) => row.kind === "phonetic").length).toBe(4);
+  it("routes exactly the 44 retained semantic lessons and no phonetic row", () => {
+    expect(reports.byLesson.length).toBe(44);
+    expect(reports.byLesson.filter((row) => row.kind === "semantic").length).toBe(44);
+    expect(reports.byLesson.filter((row) => row.kind === "phonetic").length).toBe(0);
   });
 
-  it("reports 16 modules, one level row, 44 verb records, 19 Can-dos, 1 checkpoint, 1 alias", () => {
-    expect(reports.byModule.length).toBe(16);
-    expect(reports.verbUse.length).toBe(44);
-    expect(reports.canDos.length).toBe(19);
+  it("reports 11 modules, one level row, 25 verb records, 14 Can-dos, 1 checkpoint, 1 alias", () => {
+    expect(reports.byModule.length).toBe(11);
+    expect(reports.verbUse.length).toBe(25);
+    expect(reports.canDos.length).toBe(14);
     expect(reports.checkpoints.length).toBe(1);
     expect(reports.aliases.length).toBe(1);
   });
@@ -78,17 +64,17 @@ describe("buildA1Reports – exact level metrics", () => {
   it("aggregates the exact level totals", () => {
     expect(reports.level).toEqual({
       level: "a1",
-      moduleCount: 16,
-      areaCount: 4,
-      lessonCount: 64,
-      semanticLessonCount: 60,
-      phoneticLessonCount: 4,
+      moduleCount: 11,
+      areaCount: 2,
+      lessonCount: 44,
+      semanticLessonCount: 44,
+      phoneticLessonCount: 0,
       capstoneLessonCount: 4,
-      modelCount: 480,
-      exerciseCount: 280,
-      transferCount: 120,
-      phoneticItemCount: 40,
-      verbRecordCount: 44,
+      modelCount: 352,
+      exerciseCount: 176,
+      transferCount: 88,
+      phoneticItemCount: 0,
+      verbRecordCount: 25,
       complete: true,
     });
   });
@@ -100,25 +86,21 @@ describe("buildA1Reports – exact level metrics", () => {
     expect(reports.validation.foundationDiagnostics).toEqual([]);
   });
 
-  it("classifies Can-dos as 15 module + 4 scenario", () => {
-    expect(reports.canDos.filter((row) => row.scope === "module").length).toBe(15);
+  it("classifies Can-dos as 10 module + 4 scenario", () => {
+    expect(reports.canDos.filter((row) => row.scope === "module").length).toBe(10);
     expect(reports.canDos.filter((row) => row.scope === "scenario").length).toBe(4);
   });
 
-  it("gives every phonetic lesson meaningful sound-specific fields", () => {
-    const phonetic = reports.byLesson.filter((row) => row.phonetic);
-    expect(phonetic.length).toBe(4);
-    for (const row of phonetic) {
-      expect(row.kind).toBe("phonetic");
-      expect(row.phonetic!.itemCount).toBe(10);
-      expect(row.phonetic!.exerciseRefCount).toBe(10);
-      expect(row.exerciseCount).toBe(10);
-      expect(row.phonetic!.contrastFeatures.length).toBeGreaterThan(0);
-      expect(row.phonetic!.glyphs.length).toBe(10);
-      // Phonetic lessons carry no sentence-level metrics.
-      expect(row.modelCount).toBe(0);
-      expect(row.transferCount).toBe(0);
-    }
+  it("claims no phonetic lesson, item, or Can-do that Base now owns", () => {
+    expect(reports.byLesson.filter((row) => row.phonetic !== undefined)).toEqual([]);
+    expect(reports.level.phoneticItemCount).toBe(0);
+    expect(reports.byModule.every((row) => row.phoneticItemCount === 0)).toBe(true);
+    expect(reports.byLesson.some((row) => row.lessonId.startsWith("sounds-"))).toBe(
+      false,
+    );
+    expect(reports.canDos.some((row) => row.canDoId === "a1-can-do-sounds")).toBe(
+      false,
+    );
   });
 
   it("gives every semantic lesson eight models and no phonetic block", () => {
@@ -131,14 +113,15 @@ describe("buildA1Reports – exact level metrics", () => {
 });
 
 describe("buildA1Reports – deterministic ordering", () => {
-  it("orders lessons by strictly ascending position 1..64", () => {
+  it("orders lessons by strictly ascending canonical position 21..64", () => {
+    // Retained A1 keeps its published canonical positions; Base owns 1–20.
     const positions = reports.byLesson.map((row) => row.position);
-    expect(positions).toEqual(Array.from({ length: 64 }, (_, index) => index + 1));
+    expect(positions).toEqual(Array.from({ length: 44 }, (_, index) => index + 21));
   });
 
-  it("orders modules by ascending order 1..16", () => {
+  it("orders modules by ascending order 1..11", () => {
     const orders = reports.byModule.map((row) => row.order);
-    expect(orders).toEqual(Array.from({ length: 16 }, (_, index) => index + 1));
+    expect(orders).toEqual(Array.from({ length: 11 }, (_, index) => index + 1));
   });
 
   it("keeps a stable build: two independent builds are deeply equal", () => {
@@ -171,7 +154,7 @@ describe("a1ReportMarkdown – stable rendering", () => {
     ]) {
       expect(markdown).toContain(heading);
     }
-    // 64 lesson rows + 16 module rows must all appear.
+    // 44 lesson rows + 11 module rows must all appear.
     for (const row of reports.byLesson) {
       expect(markdown).toContain(`| ${row.lessonId} |`);
     }

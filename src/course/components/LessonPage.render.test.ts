@@ -48,7 +48,7 @@ function render(path: string): string {
 }
 
 const A1_LESSON = "/percorso/introductions/introductions-1";
-const PHONETIC_A1_LESSON = "/percorso/sounds/sounds-1";
+const PHONETIC_BASE_LESSON = "/percorso/sounds/sounds-1";
 const A2_LESSON = "/percorso/sequencing-ongoing/sequencing-ongoing-3";
 
 describe("LessonPage — A1 vocabulary-first section dispatcher", () => {
@@ -87,16 +87,33 @@ describe("LessonPage — A1 vocabulary-first section dispatcher", () => {
     expect(html.match(/class="lesson-rail__step"/g)).toHaveLength(6);
     expect(html.match(/class="lesson-rail-mobile__step"/g)).toHaveLength(6);
   });
+});
 
-  it("uses the same six anchors for a phonetic lesson, with its sound note and fifth spoken activity", () => {
-    const html = render(PHONETIC_A1_LESSON);
-    expect(html.match(/class="lesson-section lesson-section-anchor"/g)).toHaveLength(
-      6,
+describe("LessonPage — Base renders rehomed lessons through its own six-section dispatcher", () => {
+  it("renders the phonetic sounds-1 lesson's real content, with Base's own section labels (not A1's)", () => {
+    const html = render(PHONETIC_BASE_LESSON);
+    const sections = html.match(
+      /class="lesson-section lesson-section-anchor"/g,
     );
-    expect(html).toContain('data-note-kind="phonetic"');
-    expect(html).toContain('class="a1-vocabulary"');
-    expect(html.match(/class="lesson-exercise"/g)).toHaveLength(4);
-    expect(html.match(/class="spoken-attempt"/g)).toHaveLength(1);
+    expect(sections).toHaveLength(6);
+
+    const positions = A1_LESSON_SECTION_IDS.map((sectionId) => {
+      expect(html).toContain(
+        `<h2 id="${lessonSectionAnchorId(sectionId)}-heading" class="lesson-section__landmark">${itCopy.baseLesson.sections[sectionId]}</h2>`,
+      );
+      return html.indexOf(`id="${lessonSectionAnchorId(sectionId)}"`);
+    });
+    expect(positions.every((position) => position >= 0)).toBe(true);
+    expect(positions).toEqual([...positions].sort((left, right) => left - right));
+    // Real phonetic content — not a blank/placeholder section.
+    expect(html).toMatch(/data-contrast-id="/);
+    expect(html).toMatch(/data-vocabulary-id="/);
+  });
+
+  it("renders six desktop and six mobile rail steps for a Base lesson", () => {
+    const html = render(PHONETIC_BASE_LESSON);
+    expect(html.match(/class="lesson-rail__step"/g)).toHaveLength(6);
+    expect(html.match(/class="lesson-rail-mobile__step"/g)).toHaveLength(6);
   });
 });
 

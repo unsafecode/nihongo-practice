@@ -3,7 +3,9 @@ import {
   resolveA1LessonVariantSource,
 } from "../a1/a1LessonViewModel";
 import { module1ItemsByLesson } from "../a1/catalog/module01Sounds";
-import { a1LessonContentById } from "../a1/curriculum/catalog";
+// Covers every published A1 route, including the twenty Base rehomed, so the
+// historical 64-route practice paths keep resolving (Task 16).
+import { legacyA1LessonContentById as a1LessonContentById } from "../a1/curriculum/catalog";
 import { phoneticItemForPracticeTarget } from "../a1/curriculum/lessonContentHelpers";
 import type {
   A1PracticeActivity,

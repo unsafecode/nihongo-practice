@@ -13,11 +13,15 @@ import { en as enCopy } from "./en";
 import type { CourseCopy } from "./types";
 import { A1_LESSON_SECTION_IDS } from "../../routing/lessonSections";
 import { A1_AREAS } from "../a1/areas";
+import { baseNavigationCopyEn } from "../base/copy/en";
+import { baseNavigationCopyIt } from "../base/copy/it";
+import { BASE_LESSON_IDS, BASE_MODULE_IDS } from "../base/manifest";
 
 /** Every runtime course module across both levels (A1 + A2) — the merged copy
  * catalog (Phase 3 Task 8) covers both, so the coverage/orphan checks below
  * derive their known-id sets from both levels rather than A1 alone. */
 const allRuntimeModules = [
+  ...courseModulesByLevel.a0,
   ...courseModulesByLevel.a1,
   ...courseModulesByLevel.a2,
 ];
@@ -150,6 +154,27 @@ function orphanKeys(
 }
 
 describe("locale parity", () => {
+  it("ships complete, matching, Japanese-free Base navigation copy", () => {
+    const japanese = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff66-\uff9f]/;
+    for (const dictionary of ["modules", "lessons", "objectives", "outcomes"] as const) {
+      expect(Object.keys(baseNavigationCopyEn[dictionary]).sort()).toEqual(
+        Object.keys(baseNavigationCopyIt[dictionary]).sort(),
+      );
+      for (const value of Object.values(baseNavigationCopyEn[dictionary])) {
+        const text = typeof value === "string" ? value : value.title;
+        expect(text.trim()).not.toBe("");
+        expect(text).not.toMatch(japanese);
+      }
+      for (const value of Object.values(baseNavigationCopyIt[dictionary])) {
+        const text = typeof value === "string" ? value : value.title;
+        expect(text.trim()).not.toBe("");
+        expect(text).not.toMatch(japanese);
+      }
+    }
+    expect(Object.keys(baseNavigationCopyEn.modules).sort()).toEqual([...BASE_MODULE_IDS].sort());
+    expect(Object.keys(baseNavigationCopyEn.lessons).sort()).toEqual([...BASE_LESSON_IDS].sort());
+  });
+
   it("shares identical key sets between it and en for every dictionary", () => {
     const dictionaries: Array<
       keyof Pick<
@@ -309,11 +334,18 @@ describe("A2 runtime copy (Phase 3 Task 8): level selector + kanji chrome", () =
     const c = copy.courseLevels;
     return [
       c.selectorLabel,
+      c.recommendedMarker,
+      c.base,
       c.a1,
       c.a2,
+      c.baseHeading,
       c.a1Heading,
       c.a2Heading,
+      c.baseBadge,
       c.a2Badge,
+      c.baseAvailableHint,
+      c.baseRecommendedHint,
+      c.a1AvailableHint,
       c.a2AvailableHint,
       c.a2RecommendedHint,
       c.a2CheckpointHeading,
@@ -358,9 +390,9 @@ describe("A2 runtime copy (Phase 3 Task 8): level selector + kanji chrome", () =
 
   it("keeps the checkpoint copy an alignment claim, never certification/mastery", () => {
     for (const copy of [enCopy, itCopy]) {
-      const body = `${copy.checkpoint.notMet} ${copy.checkpoint.met}`;
+      const body = `${copy.checkpoint.notMet} ${copy.checkpoint.met} ${courseLevelStrings(copy).join(" ")}`;
       expect(body.toLowerCase()).not.toMatch(
-        /\b(certif|mastered|mastery|fluent|passed|superato|certificato|padronanza)\b/,
+        /\b(lock|locked|certif|mastered|mastery|fluent|passed|superato|certificato|padronanza|bloccat)\b/,
       );
     }
   });

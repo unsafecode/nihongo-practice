@@ -16,6 +16,7 @@ import { a1LexemeById, a1LexemeByValueId } from "./lexicon";
 import { semanticBlueprint } from "./lessonContentHelpers";
 import { a1Modules05to08LessonContent } from "./modules05to08";
 import { a1LessonContents } from "./catalog";
+import { inheritedBaseLexemeIds } from "./inheritedBase";
 import { realizeVariant } from "../../foundations/realizeFamily";
 import type { A1PracticeActivity } from "./types";
 
@@ -242,11 +243,14 @@ describe("A1 modules 05–08 lesson content", () => {
   });
 
   it("keeps worked examples and dialogue within cumulative lexical closure", () => {
-    const availableLexemeIds = new Set(
-      a1LessonContents
+    // The five modules Base rehomed teach their vocabulary before retained A1
+    // begins (Task 16 containment); it is reviewed here, never reintroduced.
+    const availableLexemeIds = new Set([
+      ...inheritedBaseLexemeIds(),
+      ...a1LessonContents
         .slice(0, a1LessonContents.findIndex(({ lessonId }) => lessonId === "routines-1"))
         .flatMap(({ newLexemeIds }) => newLexemeIds),
-    );
+    ]);
 
     for (const content of a1Modules05to08LessonContent) {
       for (const lexemeId of content.newLexemeIds) availableLexemeIds.add(lexemeId);

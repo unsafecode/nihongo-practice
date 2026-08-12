@@ -41,15 +41,19 @@ import {
 } from "../curriculum/validateA1Curriculum";
 import {
   A1_MANIFEST_SPEC,
-  A1_MODULE_IDS,
-  A1_LESSON_IDS,
-  A1_LESSON_IDS_BY_MODULE,
+  A1_RETAINED_MODULE_IDS,
+  A1_RETAINED_LESSON_IDS,
+  A1_RETAINED_LESSON_IDS_BY_MODULE,
   A1_CANONICAL_POSITIONS,
   A1_CAPSTONE_LESSON_IDS,
   A1_LEGACY_LESSON_ALIASES,
   validateA1ManifestSpec,
 } from "../manifest";
-import { A1_AREAS, validateA1Areas } from "../areas";
+import {
+  A1_AREA_IDS,
+  A1_RETAINED_AREAS,
+  validateA1RetainedAreas,
+} from "../areas";
 import type {
   CanDo,
   FoundationCatalogs,
@@ -59,7 +63,9 @@ import type {
   VerbUseRecord,
 } from "../../foundations/types";
 import type { CourseModule } from "../../data/types";
-import { courseModules } from "../../data/course";
+// The *runtime* A1 modules — the eleven Base did not rehome — are what the
+// release ships and therefore what the area gate must check.
+import { courseModulesByLevel } from "../../data/course";
 import { en as enCourseCopy } from "../../i18n/en";
 import { it as itCourseCopy } from "../../i18n/it";
 import {
@@ -76,8 +82,9 @@ import {
 } from "./catalog";
 import { a1CanDosAuthored } from "./canDos";
 import { a1Checkpoint, A1_CHECKPOINT_MIN_TRANSFER_TARGETS } from "./checkpoint";
+import { A1_INHERITED_BASE_CONTENT } from "./inheritedBaseContent";
 import { a1ReleaseVerbUseRecords } from "./recurrence";
-import { module1ItemsByLesson, module1Lessons, type A1PhoneticItem } from "./module01Sounds";
+import type { A1PhoneticItem } from "./module01Sounds";
 import type { A1PhoneticLessonRecipe } from "../types";
 import {
   A1_RELEASE_CATALOG_VERSION,
@@ -97,13 +104,21 @@ import {
 // for exercise.
 export { A1_RELEASE_CATALOG_VERSION, A1_RELEASE_SEED };
 
-/** Exact structural totals the assembled A1 level must exhibit. */
-export const A1_EXPECTED_MODULE_COUNT = 16 as const;
+/**
+ * Exact structural totals the assembled A1 level must exhibit.
+ *
+ * Task 16 rehomed five modules (the phonetic `sounds` plus the four
+ * Foundations modules) to Base, so the canonical A1 release is eleven modules /
+ * forty-four routes, every one of them semantic, and the level has no phonetic
+ * lessons of its own left. The published route *ids* are unchanged: A1 keeps
+ * the exact forty-four it always owned, and Base keeps the other twenty.
+ */
+export const A1_EXPECTED_MODULE_COUNT = 11 as const;
 export const A1_EXPECTED_LESSONS_PER_MODULE = 4 as const;
-export const A1_EXPECTED_ROUTE_COUNT = 64 as const;
-export const A1_EXPECTED_AREA_COUNT = 4 as const;
-export const A1_EXPECTED_SEMANTIC_LESSON_COUNT = 60 as const;
-export const A1_EXPECTED_PHONETIC_LESSON_COUNT = 4 as const;
+export const A1_EXPECTED_ROUTE_COUNT = 44 as const;
+export const A1_EXPECTED_AREA_COUNT = 2 as const;
+export const A1_EXPECTED_SEMANTIC_LESSON_COUNT = 44 as const;
+export const A1_EXPECTED_PHONETIC_LESSON_COUNT = 0 as const;
 export const A1_EXPECTED_CAPSTONE_LESSON_COUNT = 4 as const;
 
 // ---------------------------------------------------------------------------
@@ -324,7 +339,14 @@ function addAreaCopyErrors(
   areaCopy: A1AreaCopyByLocale,
   push: (error: A1ValidationError) => void,
 ): void {
-  const knownAreaIds = new Set(areas.map((area) => area.id));
+  // Copy must exist for every area the release *ships*, but a copy entry for a
+  // canonical A1 area Base now owns (`sounds`, `foundations`) is not a typo —
+  // it stays authored for the unchanged area contract. Only an id outside the
+  // canonical partition entirely is an unknown-copy defect.
+  const knownAreaIds = new Set<string>([
+    ...areas.map((area) => area.id),
+    ...A1_AREA_IDS,
+  ]);
   for (const area of areas) {
     for (const locale of ["en", "it"] as const) {
       const entry = areaCopy[locale][area.id];
@@ -348,7 +370,7 @@ function addAreaCopyErrors(
 
   for (const locale of ["en", "it"] as const) {
     for (const areaId of Object.keys(areaCopy[locale])) {
-      if (!knownAreaIds.has(areaId as A1CourseArea["id"])) {
+      if (!knownAreaIds.has(areaId)) {
         push({
           code: "area-copy-parity",
           id: areaId,
@@ -368,14 +390,15 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
   const full = input.fullCatalogs ?? a1FoundationCatalogs;
   const semantic = input.semanticCatalogs ?? a1SemanticFoundationCatalogs;
   const copy = input.foundationCopy ?? a1FoundationCopy;
-  const phoneticItemsByLesson = input.phoneticItemsByLesson ?? module1ItemsByLesson;
-  const phoneticLessons = input.phoneticLessons ?? module1Lessons;
+  // Base owns the phonetic module; A1 authors no phonetic lessons or items.
+  const phoneticItemsByLesson = input.phoneticItemsByLesson ?? {};
+  const phoneticLessons = input.phoneticLessons ?? [];
   const releaseRecords = input.releaseVerbUseRecords ?? a1ReleaseVerbUseRecords;
   const manifestSpec = input.manifestSpec ?? A1_MANIFEST_SPEC;
   const checkpoint = input.checkpoint ?? a1Checkpoint;
   const authoredCanDos = input.authoredCanDos ?? a1CanDosAuthored;
-  const areas = input.areas ?? A1_AREAS;
-  const runtimeModules = input.runtimeModules ?? courseModules;
+  const areas = input.areas ?? A1_RETAINED_AREAS;
+  const runtimeModules = input.runtimeModules ?? courseModulesByLevel.a1;
   const areaCopy: A1AreaCopyByLocale = input.areaCopy ?? {
     en: enCourseCopy.courseAreas,
     it: itCourseCopy.courseAreas,
@@ -471,7 +494,29 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
     string,
     { conceptIds: string[]; senseIds: string[]; semanticValueIds: string[]; forms: string[] }
   > = {};
-  const cumulative: ModelContent = { values: new Set(), senses: new Set(), concepts: new Set(), forms: new Set() };
+  // Task 16 containment: Base models the four rehomed Foundations modules
+  // before retained A1 opens, so the cumulative walk starts from that inherited
+  // content rather than from nothing. The seed is intersected with the catalog
+  // under validation, so it can only ever unlock ids this catalog genuinely
+  // contains — never a reference the availability gate could not check.
+  const cumulative: ModelContent = {
+    values: new Set(
+      A1_INHERITED_BASE_CONTENT.semanticValueIds.filter((id) =>
+        semantic.semanticValues.some((value) => value.id === id),
+      ),
+    ),
+    senses: new Set(
+      A1_INHERITED_BASE_CONTENT.senseIds.filter((id) =>
+        semantic.learningTargetSenses.some((sense) => sense.id === id),
+      ),
+    ),
+    concepts: new Set(
+      A1_INHERITED_BASE_CONTENT.conceptIds.filter((id) =>
+        semantic.sentenceFamilies.some((family) => family.requiredConceptIds.includes(id)),
+      ),
+    ),
+    forms: new Set(A1_INHERITED_BASE_CONTENT.forms),
+  };
   for (const lessonId of orderedLessonIds) {
     const content = perLessonModelContent.get(lessonId);
     if (content) {
@@ -523,20 +568,29 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
       actual: semantic.lessons.length,
     });
   }
-  if (phoneticLessons.length !== A1_EXPECTED_PHONETIC_LESSON_COUNT) {
+  // A1 authors no phonetic lessons of its own any more (Base owns `sounds`),
+  // so the *release* path must supply none. The phonetic rule engine below is
+  // kept fully intact for callers that hand it a phonetic roster explicitly:
+  // for those, the two rosters must still agree lesson-for-lesson.
+  const suppliedPhoneticInput =
+    input.phoneticLessons !== undefined || input.phoneticItemsByLesson !== undefined;
+  const phoneticItemLessonIds = Object.keys(phoneticItemsByLesson);
+  const expectedPhoneticLessonCount = suppliedPhoneticInput
+    ? Math.max(phoneticLessons.length, phoneticItemLessonIds.length)
+    : A1_EXPECTED_PHONETIC_LESSON_COUNT;
+  if (phoneticLessons.length !== expectedPhoneticLessonCount) {
     push({
       code: "phonetic-lesson-mismatch",
       dimension: "lesson-count",
-      expected: A1_EXPECTED_PHONETIC_LESSON_COUNT,
+      expected: expectedPhoneticLessonCount,
       actual: phoneticLessons.length,
     });
   }
-  const phoneticItemLessonIds = Object.keys(phoneticItemsByLesson);
-  if (phoneticItemLessonIds.length !== A1_EXPECTED_PHONETIC_LESSON_COUNT) {
+  if (phoneticItemLessonIds.length !== expectedPhoneticLessonCount) {
     push({
       code: "phonetic-lesson-mismatch",
       dimension: "item-lesson-count",
-      expected: A1_EXPECTED_PHONETIC_LESSON_COUNT,
+      expected: expectedPhoneticLessonCount,
       actual: phoneticItemLessonIds.length,
     });
   }
@@ -553,7 +607,7 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
   }
 
   // --- 2. Unknown / duplicate lesson ids + manifest agreement --------------
-  const manifestLessonSet = new Set(A1_LESSON_IDS);
+  const manifestLessonSet = new Set(A1_RETAINED_LESSON_IDS);
   const seenPositionLessons = new Set<string>();
   for (const record of full.lessonPositions) {
     if (!manifestLessonSet.has(record.lessonId)) {
@@ -574,20 +628,20 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
       });
     }
   }
-  // Every manifest lesson must appear exactly once as a route.
-  for (const lessonId of A1_LESSON_IDS) {
+  // Every retained manifest lesson must appear exactly once as a route.
+  for (const lessonId of A1_RETAINED_LESSON_IDS) {
     if (!seenPositionLessons.has(lessonId)) {
       push({ code: "manifest-mismatch", id: lessonId, dimension: "missing-route" });
     }
   }
   // Module → lesson membership must equal the manifest, in order.
-  const manifestModuleSet = new Set<string>(A1_MODULE_IDS);
+  const manifestModuleSet = new Set<string>(A1_RETAINED_MODULE_IDS);
   for (const module of full.modules) {
     if (!manifestModuleSet.has(module.id)) {
       push({ code: "manifest-mismatch", id: module.id, dimension: "unknown-module" });
       continue;
     }
-    const expectedLessons = A1_LESSON_IDS_BY_MODULE[module.id];
+    const expectedLessons = A1_RETAINED_LESSON_IDS_BY_MODULE[module.id] ?? [];
     if (expectedLessons.join(",") !== module.lessonIds.join(",")) {
       push({
         code: "manifest-mismatch",
@@ -616,7 +670,7 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
       underlyingCode: "release-area-count",
     });
   }
-  const areaResult = validateA1Areas(areas);
+  const areaResult = validateA1RetainedAreas(areas);
   if (!areaResult.ok) {
     addAreaValidationErrors(areaResult.errors, push);
   } else {
@@ -659,11 +713,15 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
   }
 
   // --- 6. Capstone no-new-content (strict prior taught-content sets) --------
+  // Base models the four rehomed Foundations modules before retained A1 opens,
+  // so their content is genuine prior content for the capstones (for example
+  // `a1-value-time-7`, modelled by Base's `time-movement-2`). The seed is
+  // derived from those lessons' own model variants — never hand-listed.
   const prior = {
-    value: new Set<string>(),
-    sense: new Set<string>(),
-    concept: new Set<string>(),
-    form: new Set<string>(),
+    value: new Set<string>(A1_INHERITED_BASE_CONTENT.semanticValueIds),
+    sense: new Set<string>(A1_INHERITED_BASE_CONTENT.senseIds),
+    concept: new Set<string>(A1_INHERITED_BASE_CONTENT.conceptIds),
+    form: new Set<string>(A1_INHERITED_BASE_CONTENT.forms),
     role: new Set<string>(),
     context: new Set<string>(),
   };
@@ -931,10 +989,11 @@ export function validateA1(input: ValidateA1Input = {}): ValidateA1Result {
       push({ code: "cando-supporting-overflow", id: lesson.id, actual: lesson.supportingCanDoIds.length });
     }
   }
-  // The sounds primary is taught only in the phonetic module (positions, not
-  // authored lessons), so assert it is sampled directly.
-  if (!sampledCanDos.has("a1-can-do-sounds")) {
-    push({ code: "cando-not-sampled", id: "a1-can-do-sounds", referenceId: "sounds" });
+  // `a1-can-do-sounds` moved to Base with the phonetic module; Base's own
+  // checkpoint samples it. A1 must NOT claim it — that would report evidence
+  // for an outcome this level no longer teaches.
+  if (sampledCanDos.has("a1-can-do-sounds")) {
+    push({ code: "cando-not-sampled", id: "a1-can-do-sounds", referenceId: "sounds", dimension: "rehomed-to-base" });
   }
   // Transfer evidence: every non-phonetic Can-do needs a transfer variant,
   // from one of the four capstone scenario lessons, whose family lists it.

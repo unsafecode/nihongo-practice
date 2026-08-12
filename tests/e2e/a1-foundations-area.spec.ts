@@ -2,13 +2,19 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { A1_AREAS } from "../../src/course/a1/areas";
 import {
   A1_LESSON_IDS,
-  A1_LESSON_IDS_BY_MODULE,
   A1_MODULE_IDS,
+  A1_RETAINED_LESSON_IDS,
+  A1_RETAINED_MODULE_IDS,
 } from "../../src/course/a1/manifest";
 import { buildA1PracticeModel } from "../../src/course/components/a1PracticeModel";
 import { getLessonExercises } from "../../src/course/components/lessonExerciseModel";
 import {
+  BASE_LESSON_IDS_BY_MODULE,
+  BASE_MODULE_IDS,
+} from "../../src/course/base/manifest";
+import {
   CURRENT_COURSE_PROGRESS_CATALOG_VERSION,
+  CURRENT_COURSE_PROGRESS_V5_CATALOG_VERSION,
 } from "../../src/course/progress/progress";
 import { reviewKeyFor } from "../../src/course/progress/reviewQueue";
 import {
@@ -21,10 +27,28 @@ import {
 
 const STORAGE_KEY = "nihongo.course.progress";
 const AT = "2026-08-05T12:00:00.000Z";
-const AREA_IDS = ["sounds", "foundations", "situations", "synthesis"] as const;
-const AREA_MODULE_COUNTS = [1, 4, 10, 1] as const;
-const IT_AREA_TITLES = ["Suoni", "Fondamentali", "Situazioni quotidiane", "Sintesi"] as const;
-const EN_AREA_TITLES = ["Sounds", "Foundations", "Everyday situations", "Synthesis"] as const;
+/**
+ * Post-Base-integration reality (Tasks 16-18): the four former A1 "Sounds" and
+ * "Foundations" modules are published by Base now, so the retained A1 map keeps
+ * only its two remaining semantic areas, and the sixteen foundation routes are
+ * reached through the Base level instead. Both halves are asserted below.
+ */
+const AREA_IDS = ["situations", "synthesis"] as const;
+const AREA_MODULE_COUNTS = [10, 1] as const;
+const IT_AREA_TITLES = ["Situazioni quotidiane", "Sintesi"] as const;
+const EN_AREA_TITLES = ["Everyday situations", "Synthesis"] as const;
+
+/** The Base modules that now publish the foundation sound/sentence systems. */
+const BASE_FOUNDATION_MODULE_IDS = [
+  "sounds",
+  "sentence-foundations",
+  "topic-questions",
+  "polite-verbs",
+  "time-movement",
+] as const;
+
+const A1_COURSE_URL = `${routeUrls.home}?livello=a1`;
+const BASE_COURSE_URL = `${routeUrls.home}?livello=base`;
 
 function emptyLevel() {
   return {
@@ -66,6 +90,26 @@ function currentProgress(overrides: Record<string, unknown> = {}) {
   };
 }
 
+/** The additive schema-V5 level shape (Base ownership split, Task 3/16). */
+function emptyLevelV5() {
+  return {
+    ...emptyLevel(),
+    orphanedLessonRecords: {},
+    historicalActivityDispositions: [],
+  };
+}
+
+function currentProgressV5(overrides: Record<string, unknown> = {}) {
+  return {
+    schemaVersion: 5,
+    catalogVersion: CURRENT_COURSE_PROGRESS_V5_CATALOG_VERSION,
+    levels: { a0: emptyLevelV5(), a1: emptyLevelV5(), a2: emptyLevelV5() },
+    migrationNotice: null,
+    updatedAt: AT,
+    ...overrides,
+  };
+}
+
 async function seedProgress(page: Page, value: unknown): Promise<void> {
   await page.addInitScript(
     ({ key, value: serialized }: { key: string; value: string }) => {
@@ -73,6 +117,18 @@ async function seedProgress(page: Page, value: unknown): Promise<void> {
     },
     { key: STORAGE_KEY, value: JSON.stringify(value) },
   );
+}
+
+/** Opens every collapsed module disclosure so all lesson rows are present. */
+async function expandAllBaseModules(page: Page): Promise<void> {
+  const disclosures = page.locator(".module-card__disclosure");
+  const count = await disclosures.count();
+  for (let index = 0; index < count; index += 1) {
+    const disclosure = disclosures.nth(index);
+    if ((await disclosure.getAttribute("aria-expanded")) === "false") {
+      await disclosure.click();
+    }
+  }
 }
 
 async function readProgress(page: Page): Promise<any> {
@@ -137,22 +193,28 @@ function a2ReviewFixture(lessonId: string) {
   };
 }
 
-test.describe("A1 Foundations area on the built Course Map", () => {
-  test("renders four ordered, labelled areas with 16 Foundation links and non-color hierarchy cues", async ({
+test.describe("Retained A1 areas and rehomed Base foundations on the built Course Map", () => {
+  test("renders the two retained A1 areas and the sixteen foundation routes now published by Base", async ({
     page,
   }) => {
     const observers = await setupPageObservers(page);
-    await gotoReady(page, routeUrls.home);
+    await gotoReady(page, A1_COURSE_URL);
 
+    expect(A1_RETAINED_MODULE_IDS).toHaveLength(11);
+    expect(A1_RETAINED_LESSON_IDS).toHaveLength(44);
     expect(A1_MODULE_IDS).toHaveLength(16);
     expect(A1_LESSON_IDS).toHaveLength(64);
-    expect(A1_AREAS.map((area) => area.id)).toEqual([...AREA_IDS]);
-    expect(A1_AREAS.map((area) => area.moduleIds.length)).toEqual(
-      [...AREA_MODULE_COUNTS],
-    );
+    // The published A1 area definition still describes the whole authored A1
+    // catalog; the runtime map below renders only what A1 still owns.
+    expect(A1_AREAS.map((area) => area.id)).toEqual([
+      "sounds",
+      "foundations",
+      "situations",
+      "synthesis",
+    ]);
 
     const areas = page.locator(".course-area");
-    await expect(areas).toHaveCount(4);
+    await expect(areas).toHaveCount(AREA_IDS.length);
     const shape = await areas.evaluateAll((nodes) =>
       nodes.map((area) => {
         const heading = area.querySelector<HTMLElement>(".course-area__heading");
@@ -182,62 +244,80 @@ test.describe("A1 Foundations area on the built Course Map", () => {
         modules: AREA_MODULE_COUNTS[index],
       })),
     );
-    expect(shape.map((area) => area.description.length > 0)).toEqual([true, true, true, true]);
-    expect(shape[1]?.lessonLinks).toBe(16);
-
-    const foundations = page.locator(".course-area--foundations");
-    const foundationsPrecedeSituations = await page.evaluate(() => {
-      const finalFoundationLink = document.querySelector(
-        '.course-area--foundations .module-card__lesson-link[href$="/time-movement/time-movement-4"]',
-      );
-      const situations = document.querySelector('[aria-labelledby="course-area-situations"]');
-      return Boolean(
-        finalFoundationLink &&
-          situations &&
-          (finalFoundationLink.compareDocumentPosition(situations) &
-            Node.DOCUMENT_POSITION_FOLLOWING),
-      );
-    });
-    expect(foundationsPrecedeSituations).toBe(true);
+    expect(shape.map((area) => area.description.length > 0)).toEqual([true, true]);
     await expect(
       page.locator('[aria-labelledby="course-area-situations"] .module-card__title').first(),
     ).toHaveText("Presentazioni");
 
-    const foundationCue = await foundations.evaluate((area) => {
+    // Non-color hierarchy cues on the retained areas: a real labelled heading
+    // element plus its own description, and a marker glyph on every module
+    // card — never a colour difference alone. (The extra underline/icon
+    // emphasis belonged to the Foundations area, which Base publishes now.)
+    const situations = page.locator('.course-area[aria-labelledby="course-area-situations"]');
+    const areaCue = await situations.evaluate((area) => {
       const heading = area.querySelector<HTMLElement>(".course-area__heading");
-      const icon = area.querySelector<HTMLElement>(".course-area__icon");
+      const description = area.querySelector<HTMLElement>(".course-area__description");
+      const markers = area.querySelectorAll(".module-card__marker svg[aria-hidden='true']");
       return {
-        headingDecoration: heading ? getComputedStyle(heading).textDecorationLine : "",
-        iconBorderWidth: icon ? Number.parseFloat(getComputedStyle(icon).borderTopWidth) : 0,
-        iconHidden: icon?.getAttribute("aria-hidden"),
-        iconSvgHidden: icon?.querySelector("svg")?.getAttribute("aria-hidden"),
+        headingTag: heading?.tagName.toLowerCase() ?? "",
+        headingWeight: heading ? getComputedStyle(heading).fontWeight : "",
+        headingText: heading?.textContent?.trim() ?? "",
+        descriptionText: description?.textContent?.trim() ?? "",
+        markers: markers.length,
+        moduleCards: area.querySelectorAll(".module-card").length,
       };
     });
-    expect(foundationCue.headingDecoration).toContain("underline");
-    expect(foundationCue.iconBorderWidth).toBeGreaterThanOrEqual(2);
-    expect(foundationCue.iconHidden).toBe("true");
-    expect(foundationCue.iconSvgHidden).toBe("true");
+    expect(areaCue.headingTag).toBe("h3");
+    expect(Number.parseInt(areaCue.headingWeight, 10)).toBeGreaterThanOrEqual(600);
+    expect(areaCue.headingText.length).toBeGreaterThan(0);
+    expect(areaCue.descriptionText.length).toBeGreaterThan(0);
+    expect(areaCue.markers).toBe(areaCue.moduleCards);
 
     await setLocale(page, "EN");
     await expect(page.locator(".course-area__heading")).toHaveText([...EN_AREA_TITLES]);
+    await setLocale(page, "IT");
+
+    // The sixteen foundation routes are still published, now by Base, and the
+    // Base map lists them in its own module order.
+    await gotoReady(page, BASE_COURSE_URL);
+    expect(BASE_MODULE_IDS).toHaveLength(10);
+    await expect(page.locator(".module-card")).toHaveCount(10);
+    const foundationRoutes = BASE_FOUNDATION_MODULE_IDS.filter(
+      (moduleId) => moduleId !== "sounds",
+    ).flatMap((moduleId) =>
+      BASE_LESSON_IDS_BY_MODULE[moduleId]!.map(
+        (lessonId) => `#/percorso/${moduleId}/${lessonId}`,
+      ),
+    );
+    expect(foundationRoutes).toHaveLength(16);
+    await expandAllBaseModules(page);
+    for (const href of foundationRoutes) {
+      await expect(
+        page.locator(`.module-card__lesson-link[href="${href}"]`),
+        `${href} is published on the Base map`,
+      ).toHaveCount(1);
+    }
 
     await assertNoRuntimeErrors(page, observers);
     assertLocalOnlyNetwork(observers);
   });
 
-  test("expands new Foundation modules by pointer and keyboard before following their real routes", async ({
+  test("expands rehomed Base foundation modules by pointer and keyboard before following their real routes", async ({
     page,
   }) => {
     const observers = await setupPageObservers(page);
-    await gotoReady(page, routeUrls.home);
+    await gotoReady(page, BASE_COURSE_URL);
 
-    const foundations = page.locator(".course-area--foundations");
-    const sentenceFoundations = foundations.locator(".module-card").nth(0);
+    const sentenceFoundations = page.locator(
+      '.module-card:has(.module-card__lesson-link[href$="/sentence-foundations/sentence-foundations-1"])',
+    );
     const sentenceDisclosure = sentenceFoundations.locator(".module-card__disclosure");
     await expect(sentenceDisclosure).toHaveAttribute("aria-expanded", "false");
     await sentenceDisclosure.click();
     await expect(sentenceDisclosure).toHaveAttribute("aria-expanded", "true");
-    await expect(sentenceFoundations.locator(".module-card__lesson-link")).toHaveCount(4);
+    await expect(
+      sentenceFoundations.locator(".module-card__lesson-link").filter({ visible: true }),
+    ).toHaveCount(4);
     await sentenceFoundations
       .locator('.module-card__lesson-link[href$="/sentence-foundations/sentence-foundations-1"]')
       .click();
@@ -246,7 +326,9 @@ test.describe("A1 Foundations area on the built Course Map", () => {
 
     await page.goBack();
     await expect(page.locator(".course-home")).toBeVisible();
-    const timeMovement = page.locator(".course-area--foundations .module-card").nth(3);
+    const timeMovement = page.locator(
+      '.module-card:has(.module-card__lesson-link[href$="/time-movement/time-movement-4"])',
+    );
     const timeDisclosure = timeMovement.locator(".module-card__disclosure");
     await expect(timeDisclosure).toHaveAttribute("aria-expanded", "false");
     await timeDisclosure.focus();
@@ -265,28 +347,31 @@ test.describe("A1 Foundations area on the built Course Map", () => {
   });
 });
 
-test.describe("A1 Foundations continuation and catalog-v3 progress", () => {
+test.describe("Base foundation continuation and catalog progress normalization", () => {
   test("starts at sounds, advances to sentence foundations after Sounds, and resumes a returning introduction", async ({
     page,
   }) => {
     const observers = await setupPageObservers(page);
-    await gotoReady(page, routeUrls.home);
+    await gotoReady(page, BASE_COURSE_URL);
     const primary = page.locator(".course-hero__actions a.action--primary");
     await expect(primary).toHaveAttribute("href", /#\/percorso\/sounds\/sounds-1$/);
 
+    // Sounds is a Base module now, so its completed evidence is seeded on the
+    // Base level and the Base map is what advances.
     const completedSounds = Object.fromEntries(
-      A1_LESSON_IDS_BY_MODULE.sounds.map((lessonId) => [lessonId, lessonEvidence()]),
+      BASE_LESSON_IDS_BY_MODULE.sounds!.map((lessonId) => [lessonId, lessonEvidence()]),
     );
     await seedProgress(
       page,
-      currentProgress({
+      currentProgressV5({
         levels: {
-          a1: {
-            ...emptyLevel(),
+          a0: {
+            ...emptyLevelV5(),
             lessons: completedSounds,
             lastVisitedLessonId: null,
           },
-          a2: emptyLevel(),
+          a1: emptyLevelV5(),
+          a2: emptyLevelV5(),
         },
       }),
     );
@@ -306,7 +391,7 @@ test.describe("A1 Foundations continuation and catalog-v3 progress", () => {
     assertLocalOnlyNetwork(observers);
   });
 
-  test("normalizes a v2 catalog payload to v3 without losing A1/A2 evidence and records removed reviews as orphans", async ({
+  test("normalizes a legacy catalog payload into schema-V5 without losing A1/A2 evidence and records removed reviews as orphans", async ({
     page,
   }) => {
     const a1Review = a1ReviewFixture("introductions-1");
@@ -381,17 +466,19 @@ test.describe("A1 Foundations continuation and catalog-v3 progress", () => {
 
     const observers = await setupPageObservers(page);
     await seedProgress(page, oldCatalogProgress);
-    await gotoReady(page, routeUrls.home);
+    await gotoReady(page, A1_COURSE_URL);
 
     await expect
       .poll(async () => (await readProgress(page))?.catalogVersion)
-      .toBe(CURRENT_COURSE_PROGRESS_CATALOG_VERSION);
+      .toBe(CURRENT_COURSE_PROGRESS_V5_CATALOG_VERSION);
     let migrated = await readProgress(page);
-    expect(migrated.schemaVersion).toBe(4);
+    expect(migrated.schemaVersion).toBe(5);
     expect(migrated.levels.a1.lessons["introductions-1"]).toEqual(a1Lesson);
-    expect(migrated.levels.a1.canDos["preserved-a1-can-do"]).toEqual(
-      oldCatalogProgress.levels.a1.canDos["preserved-a1-can-do"],
-    );
+    // The additive V5 field is the only change to preserved Can-do evidence.
+    expect(migrated.levels.a1.canDos["preserved-a1-can-do"]).toEqual({
+      ...oldCatalogProgress.levels.a1.canDos["preserved-a1-can-do"],
+      historicalCheckpointRefs: [],
+    });
     expect(migrated.levels.a1.checkpointAttempts).toEqual(
       oldCatalogProgress.levels.a1.checkpointAttempts,
     );
@@ -401,27 +488,38 @@ test.describe("A1 Foundations continuation and catalog-v3 progress", () => {
       "existing-a1-orphan-review",
       "removed-review-key",
     ]);
-    expect(migrated.levels.a2).toEqual(oldCatalogProgress.levels.a2);
-    const foundationLessonIds = A1_AREAS.find((area) => area.id === "foundations")!.moduleIds.flatMap(
-      (moduleId) => A1_LESSON_IDS_BY_MODULE[moduleId],
+    expect(migrated.levels.a2).toEqual({
+      ...oldCatalogProgress.levels.a2,
+      canDos: {
+        "preserved-a2-can-do": {
+          ...oldCatalogProgress.levels.a2.canDos["preserved-a2-can-do"],
+          historicalCheckpointRefs: [],
+        },
+      },
+      orphanedLessonRecords: {},
+      historicalActivityDispositions: [],
+    });
+    // The sixteen foundation routes are Base-owned now, so they can never
+    // appear as A1 lesson records after the migration.
+    const foundationLessonIds = BASE_FOUNDATION_MODULE_IDS.flatMap(
+      (moduleId) => BASE_LESSON_IDS_BY_MODULE[moduleId]!,
     );
-    expect(foundationLessonIds).toHaveLength(16);
+    expect(foundationLessonIds).toHaveLength(20);
     expect(
       foundationLessonIds.every((lessonId) => migrated.levels.a1.lessons[lessonId] === undefined),
-      "the 16 new Foundations routes begin unvisited after catalog migration",
+      "the rehomed foundation routes are never A1 records after migration",
     ).toBe(true);
     await expect(page.locator(".course-hero__actions a.action--primary")).toHaveAttribute(
       "href",
-      /#\/percorso\/introductions\/introductions-1$/,
+      /#\/percorso\/introductions\/introductions-\d$/,
     );
 
     await seedProgress(page, migrated);
     await page.reload({ waitUntil: "load" });
     await page.locator("#root >> main").first().waitFor({ state: "visible" });
     migrated = await readProgress(page);
-    expect(migrated.catalogVersion).toBe(CURRENT_COURSE_PROGRESS_CATALOG_VERSION);
+    expect(migrated.catalogVersion).toBe(CURRENT_COURSE_PROGRESS_V5_CATALOG_VERSION);
     expect(migrated.levels.a1.lessons["introductions-1"]).toEqual(a1Lesson);
-    expect(migrated.levels.a2).toEqual(oldCatalogProgress.levels.a2);
     expect(migrated.levels.a1.orphanedReviewKeys).toContain("removed-review-key");
 
     await assertNoRuntimeErrors(page, observers);

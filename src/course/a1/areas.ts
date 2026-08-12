@@ -6,7 +6,7 @@
  */
 
 import { deepFreeze } from "../foundations/deepFreeze";
-import { A1_MODULE_IDS } from "./manifest";
+import { A1_MODULE_IDS, A1_RETAINED_MODULE_IDS } from "./manifest";
 import type {
   A1AreaId,
   A1AreaValidationError,
@@ -71,12 +71,57 @@ export const A1_AREAS: readonly A1CourseArea[] = deepFreeze([
 ]);
 
 /**
+ * The exact canonical A1 area partition restricted to modules Base has not
+ * rehomed (Task 16 containment). `sounds` and `foundations` lose every
+ * module they authored (Base owns all five) and drop out entirely; the
+ * remaining two areas keep their id/order/copy unchanged with only
+ * Base-owned modules filtered from `moduleIds`.
+ */
+export const A1_RETAINED_AREAS: readonly A1CourseArea[] = deepFreeze(
+  A1_AREAS.flatMap((area) => {
+    const moduleIds = area.moduleIds.filter((moduleId) =>
+      A1_RETAINED_MODULE_IDS.includes(moduleId),
+    );
+    return moduleIds.length === 0 ? [] : [{ ...area, moduleIds }];
+  }),
+);
+
+/** The retained A1 area ids, in canonical navigation order. */
+export const A1_RETAINED_AREA_IDS: readonly A1AreaId[] = deepFreeze(
+  A1_RETAINED_AREAS.map((area) => area.id),
+);
+
+/**
  * Validate an arbitrary canonical A1 area partition without normalizing it. Each
  * diagnostic preserves the authored ID/order problem so callers can report
  * every defect.
  */
 export function validateA1Areas(
   areas: readonly A1CourseArea[],
+): A1AreaValidationResult {
+  return validateA1AreaPartition(areas, A1_AREA_IDS, A1_MODULE_IDS);
+}
+
+/**
+ * Validate the *retained* A1 area partition — the canonical partition with the
+ * modules Base rehomed (Task 16) removed. It runs the identical rule set, only
+ * against the retained area/module universe, so the released level's area
+ * presentation is gated exactly as strictly as the authoring contract is.
+ */
+export function validateA1RetainedAreas(
+  areas: readonly A1CourseArea[],
+): A1AreaValidationResult {
+  return validateA1AreaPartition(
+    areas,
+    A1_RETAINED_AREA_IDS,
+    A1_RETAINED_MODULE_IDS,
+  );
+}
+
+function validateA1AreaPartition(
+  areas: readonly A1CourseArea[],
+  expectedAreaIds: readonly A1AreaId[],
+  expectedModuleIds: readonly string[],
 ): A1AreaValidationResult {
   const errors: A1AreaValidationError[] = [];
   const push = (
@@ -87,17 +132,17 @@ export function validateA1Areas(
   let hasAreaIdentityError = false;
   let hasModuleMembershipError = false;
 
-  if (areas.length !== A1_AREA_IDS.length) {
+  if (areas.length !== expectedAreaIds.length) {
     hasAreaIdentityError = true;
     push(
       "area-count",
-      `Expected exactly ${A1_AREA_IDS.length} canonical A1 areas, received ${areas.length}.`,
+      `Expected exactly ${expectedAreaIds.length} canonical A1 areas, received ${areas.length}.`,
     );
   }
 
   const seenAreaIds = new Set<string>();
   const seenModuleIds = new Set<string>();
-  const canonicalModuleIds = new Set<string>(A1_MODULE_IDS);
+  const canonicalModuleIds = new Set<string>(expectedModuleIds);
   const authoredModuleIds: string[] = [];
 
   for (const area of areas) {
@@ -112,7 +157,7 @@ export function validateA1Areas(
     }
     seenAreaIds.add(areaId);
 
-    if (!A1_AREA_IDS.includes(areaId)) {
+    if (!expectedAreaIds.includes(areaId)) {
       hasAreaIdentityError = true;
       push("unknown-area-id", `Area id "${areaId}" is not recognized.`, areaId);
     }
@@ -144,7 +189,7 @@ export function validateA1Areas(
     }
   }
 
-  for (const areaId of A1_AREA_IDS) {
+  for (const areaId of expectedAreaIds) {
     if (!seenAreaIds.has(areaId)) {
       hasAreaIdentityError = true;
       push("missing-area-id", `Required area "${areaId}" is missing.`, areaId);
@@ -153,17 +198,17 @@ export function validateA1Areas(
 
   if (!hasAreaIdentityError) {
     for (const [index, area] of areas.entries()) {
-      if (area.id !== A1_AREA_IDS[index]) {
+      if (area.id !== expectedAreaIds[index]) {
         push(
           "area-order",
-          `Area at position ${index + 1} must be "${A1_AREA_IDS[index]}".`,
+          `Area at position ${index + 1} must be "${expectedAreaIds[index]}".`,
           area.id,
         );
       }
     }
   }
 
-  for (const moduleId of A1_MODULE_IDS) {
+  for (const moduleId of expectedModuleIds) {
     if (!seenModuleIds.has(moduleId)) {
       hasModuleMembershipError = true;
       push(
@@ -177,15 +222,15 @@ export function validateA1Areas(
   if (
     !hasModuleMembershipError &&
     (
-      authoredModuleIds.length !== A1_MODULE_IDS.length ||
+      authoredModuleIds.length !== expectedModuleIds.length ||
       authoredModuleIds.some(
-        (moduleId, index) => moduleId !== A1_MODULE_IDS[index],
+        (moduleId, index) => moduleId !== expectedModuleIds[index],
       )
     )
   ) {
     push(
       "module-union-order",
-      "A1 area module membership must equal A1_MODULE_IDS in canonical order.",
+      "A1 area module membership must equal the expected module order.",
     );
   }
 

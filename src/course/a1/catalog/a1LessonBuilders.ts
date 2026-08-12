@@ -50,6 +50,10 @@ import type {
   VerbUseRecord,
 } from "../../foundations/types";
 import { A1_CANONICAL_POSITIONS } from "../manifest";
+import {
+  A1_REHOMED_LESSON_IDS,
+  partitionA1AuthoredConceptIds,
+} from "../inheritedBaseConcepts";
 import { defineA1Lesson, variantFromTuple } from "../authoring";
 import type { A1LessonRecipe } from "../types";
 import type { Bilingual } from "./a1CopyGloss";
@@ -235,6 +239,30 @@ export interface AssembleA1CatalogsInput {
  * `FoundationLessonDefinition` conversion and lesson-position derivation
  * delegate to the shared, level-agnostic kit helpers.
  */
+/**
+ * Task 16: partition an authored recipe's concept list before validation, so a
+ * concept Base first teaches is recorded as reviewed rather than introduced.
+ * Derived from the rehomed lessons' own notes — never a hand-maintained list.
+ */
+function defineA1LessonWithBaseReview(
+  candidate: Parameters<typeof defineA1Lesson>[0],
+): ReturnType<typeof defineA1Lesson> {
+  // A rehomed lesson is the canonical first teaching of its own concepts, so
+  // it keeps them as introduced; only the retained lessons review them.
+  if (A1_REHOMED_LESSON_IDS.has(candidate.id)) {
+    return defineA1Lesson({ ...candidate, reviewedConceptIds: [] });
+  }
+  const partition = partitionA1AuthoredConceptIds([
+    ...candidate.introducedConceptIds,
+    ...(candidate.reviewedConceptIds ?? []),
+  ]);
+  return defineA1Lesson({
+    ...candidate,
+    introducedConceptIds: partition.introduced,
+    reviewedConceptIds: partition.reviewed,
+  });
+}
+
 export function assembleA1FoundationCatalogs(
   input: AssembleA1CatalogsInput,
 ): FoundationCatalogs {
@@ -374,7 +402,7 @@ export const A1_INSTRUCTIONAL_KIT_CONFIG: InstructionalLessonKitConfig<A1LessonR
   roundOneExerciseKinds: A1_ROUND_ONE_KINDS,
   roundTwoExerciseKinds: A1_ROUND_TWO_KINDS,
   selectionPolicyId: "a1-selection-default",
-  defineLesson: defineA1Lesson,
+  defineLesson: defineA1LessonWithBaseReview,
 };
 
 /**

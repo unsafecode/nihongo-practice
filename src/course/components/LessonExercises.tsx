@@ -49,12 +49,12 @@ export function LessonExercises({
   const { locale } = useLocale();
   const copy = getCourseCopy(locale);
   const exerciseCopy = copy.exercises;
-  const { progress, recordAttempt } = useProgress();
+  const { lessonEvidence, recordAttempt, mutationError, clearMutationError } = useProgress();
 
   const model = getLessonExercises(lessonId);
   if (!model) return null;
 
-  const state = evidenceState(progress.lessons[lessonId]);
+  const state = evidenceState(lessonEvidence(lessonId));
   const stateLabel =
     state === "consolidated"
       ? exerciseCopy.statusConsolidated
@@ -95,6 +95,16 @@ export function LessonExercises({
       </div>
 
       <p className="lesson-exercises__intro">{exerciseCopy.intro}</p>
+
+      {mutationError?.lessonId === lessonId ? (
+        <Notice
+          tone="error"
+          title={copy.progressMutation.title}
+          body={copy.progressMutation.body(lessonId)}
+          dismissLabel={copy.progressMutation.dismiss}
+          onDismiss={clearMutationError}
+        />
+      ) : null}
 
       {model.errors.length > 0 ? (
         <Notice

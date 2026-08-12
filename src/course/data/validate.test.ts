@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { semanticIconIds } from "../../components/icons/Icon";
 import { lessonPath } from "../../routing/routePaths";
-import { courseModules } from "./course";
+import { legacyA1CourseModules as courseModules } from "./course";
 import { A1_LESSON_IDS } from "../a1/manifest";
 import { courseModules as legacyCourseModules } from "../catalog/assembleCourse";
 import { examples } from "./examples";

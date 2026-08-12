@@ -9,6 +9,7 @@ import { ScriptProvider } from "../../settings/ScriptContext";
 import { ProgressProvider } from "../progress/ProgressContext";
 import { LEGACY_LESSON_ALIASES } from "../routing/lessonRouteResolution";
 import { lessonPath } from "../../routing/routes";
+import { courseModulesByLevel } from "../data/course";
 import { LessonPage } from "./LessonPage";
 
 vi.mock("react-router", async () => {
@@ -99,10 +100,10 @@ function renderHashPath(path: string): string {
 }
 
 describe("LessonPage legacy redirect navigation", () => {
-  it("replaces a same-module alias without carrying a different-module notice state", () => {
-    const html = render("/percorso/sounds/sounds-core");
+  it("replaces a retained same-module alias without carrying a different-module notice state", () => {
+    const html = render("/percorso/actions/actions-object");
 
-    expect(html).toContain('data-to="/percorso/sounds/sounds-1"');
+    expect(html).toContain('data-to="/percorso/actions/actions-1"');
     expect(html).toContain('data-replace="true"');
     expect(html).toContain('data-state="null"');
   });
@@ -117,8 +118,13 @@ describe("LessonPage legacy redirect navigation", () => {
     );
   });
 
-  it("redirects every published legacy #/percorso deep link to its canonical current route", () => {
-    for (const alias of LEGACY_LESSON_ALIASES) {
+  it("redirects every retained-A1 legacy deep link to its canonical current route", () => {
+    const retainedLessonIds = new Set(
+      courseModulesByLevel.a1.flatMap((module) => module.lessons.map((lesson) => lesson.id)),
+    );
+    for (const alias of LEGACY_LESSON_ALIASES.filter((item) =>
+      retainedLessonIds.has(item.lessonId),
+    )) {
       const html = renderHashPath(
         `#/percorso/${alias.legacyModuleId}/${alias.legacyLessonId}`,
       );

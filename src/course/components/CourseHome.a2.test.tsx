@@ -8,14 +8,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "../../i18n/LocaleContext";
 import { coursePathForLevel } from "../../routing/routePaths";
 import { lessonPath } from "../../routing/routes";
+import { COURSE_LEVEL_PREFERENCE_KEY } from "../levels/selection";
 import { a2CanDoDescriptorCopy } from "../a2/catalog/canDos";
 import { a2CanDosAuthored } from "../a2/catalog/catalog";
 import { courseModulesByLevel } from "../data/course";
 import { it as itCopy } from "../i18n/it";
+import { LEVEL_RUNTIME_CONFIG } from "../levels/runtimeConfig";
 import {
-  emptyProgressV4,
-  emptyLevelProgress,
-  type CourseProgressV4,
+  emptyProgressV5,
+  emptyLevelProgressV5,
+  type CourseProgressV5,
   type ReviewQueueEntry,
 } from "../progress/progress";
 import { reviewKeyFor } from "../progress/reviewQueue";
@@ -32,13 +34,31 @@ import { escapeHtmlText } from "./renderTestUtils";
 const a2Modules = courseModulesByLevel.a2;
 const a2Lessons = a2Modules.flatMap((m) => m.lessons);
 
+function memoryStorage(): Storage {
+  const values = new Map<string, string>();
+  return {
+    get length(): number {
+      return values.size;
+    },
+    clear: () => values.clear(),
+    getItem: (key) => values.get(key) ?? null,
+    key: (index) => [...values.keys()][index] ?? null,
+    removeItem: (key) => {
+      values.delete(key);
+    },
+    setItem: (key, value) => {
+      values.set(key, value);
+    },
+  };
+}
+
 function makeProgressValue(
-  progressV4: CourseProgressV4 = emptyProgressV4(),
+  progressV5: CourseProgressV5 = emptyProgressV5(),
 ): ProgressContextValue {
   // Project the v3-compat `progress` surface from levels.a1, exactly as the
   // real ProgressContext does — so a level-scoped review surface reading
-  // `progress` for A1 and `progressV4.levels.a2` for A2 sees consistent data.
-  const a1 = progressV4.levels.a1;
+  // `progress` for A1 and `progressV5.levels.a2` for A2 see consistent data.
+  const a1 = progressV5.levels.a1;
   return {
     progress: {
       schemaVersion: 3,
@@ -48,7 +68,7 @@ function makeProgressValue(
       reviewQueue: [...a1.reviewQueue],
       orphanedLessonIds: [...a1.orphanedLessonIds],
       orphanedReviewKeys: [...a1.orphanedReviewKeys],
-      updatedAt: progressV4.updatedAt,
+      updatedAt: progressV5.updatedAt,
     },
     corrupted: false,
     persistenceAvailable: true,
@@ -69,9 +89,9 @@ function makeProgressValue(
     },
     canDoEvidence: {},
     checkpointAttempts: [],
-    progressV4,
+    progressV5,
     lessonEvidence: (lessonId) =>
-      progressV4.levels.a2.lessons[lessonId] ?? progressV4.levels.a1.lessons[lessonId],
+      progressV5.levels.a2.lessons[lessonId] ?? progressV5.levels.a1.lessons[lessonId],
     levelSummaryFor: (level) => ({
       level,
       visitedLessonCount: 0,
@@ -79,8 +99,10 @@ function makeProgressValue(
       visitedPercent: 0,
       recommendedContinuationLessonId: null,
     }),
-    canDoEvidenceFor: (level) => progressV4.levels[level].canDos,
-    checkpointAttemptsFor: (level) => progressV4.levels[level].checkpointAttempts,
+    canDoEvidenceFor: (level) => progressV5.levels[level].canDos,
+    checkpointAttemptsFor: (level) => progressV5.levels[level].checkpointAttempts,
+    mutationError: null,
+    clearMutationError: () => {},
   };
 }
 
@@ -100,6 +122,45 @@ function renderAt(path: string, value = makeProgressValue()): string {
       ),
     ),
   );
+}
+
+async function renderClientAt(path: string, value = makeProgressValue()) {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  await act(async () => {
+    root.render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: [path] },
+        createElement(
+          LocaleProvider,
+          null,
+          createElement(
+            ProgressContext.Provider,
+            { value },
+            createElement(
+              Routes,
+              null,
+              createElement(Route, {
+                path: "/percorso",
+                element: createElement(CourseHome),
+              }),
+            ),
+          ),
+        ),
+      ),
+    );
+  });
+  return { container, root };
+}
+
+async function waitForPreference(expected: string) {
+  for (let attempts = 0; attempts < 25; attempts += 1) {
+    if (window.localStorage.getItem(COURSE_LEVEL_PREFERENCE_KEY) === expected) return;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  expect(window.localStorage.getItem(COURSE_LEVEL_PREFERENCE_KEY)).toBe(expected);
 }
 
 describe("CourseHome — A2 level view via ?livello=a2 (Phase 3 Task 8)", () => {
@@ -132,7 +193,9 @@ describe("CourseHome — A2 level view via ?livello=a2 (Phase 3 Task 8)", () => 
 
   it("lists the A2 Can-do descriptors and the A2 checkpoint section", () => {
     expect(html).toContain(itCopy.courseLevels.a2CheckpointHeading);
-    expect(html).toContain(escapeHtmlText(itCopy.checkpoint.notMet));
+    expect(html).toContain(
+      escapeHtmlText(itCopy.courseLevels.checkpointNotAttempted(itCopy.courseLevels.a2)),
+    );
     expect(html).toContain(
       itCopy.canDoSummary.demonstratedCount(0, a2CanDosAuthored.length),
     );
@@ -146,19 +209,83 @@ describe("CourseHome — A2 level view via ?livello=a2 (Phase 3 Task 8)", () => 
     expect(html).not.toContain("aria-disabled");
   });
 
-  it("keeps the bare /percorso view on A1 (stable default)", () => {
-    const a1 = renderAt("/percorso");
-    expect(a1).toContain(itCopy.home.levelBadge);
-    expect(a1).toContain(itCopy.modules.sounds.title);
-    expect(a1).toContain(itCopy.home.courseShape(16, 64));
+  it("selects Base for a fresh bare /percorso view", () => {
+    const base = renderAt("/percorso");
+    expect(base).toContain(itCopy.courseLevels.baseBadge);
+    expect(base).toContain(itCopy.modules["argument-particles"].title);
+    expect(base).toContain(itCopy.home.courseShape(10, 40));
+  });
+
+  it("honors every explicit level URL and treats an invalid level as non-explicit", () => {
+    expect(renderAt(coursePathForLevel("a0"))).toContain(itCopy.home.courseShape(10, 40));
+    expect(renderAt(coursePathForLevel("a1"))).toContain(itCopy.home.courseShape(11, 44));
+    expect(renderAt(coursePathForLevel("a2"))).toContain(itCopy.home.courseShape(15, 60));
+    expect(renderAt("/percorso?livello=unknown")).toContain(itCopy.home.courseShape(10, 40));
+  });
+
+  it("uses a valid stored preference for a bare URL and returns to A1 for existing evidence", () => {
+    const original = Object.getOwnPropertyDescriptor(window, "localStorage");
+    const storage = memoryStorage();
+    storage.setItem(COURSE_LEVEL_PREFERENCE_KEY, "a2");
+    Object.defineProperty(window, "localStorage", { value: storage, configurable: true });
+    Object.defineProperty(globalThis, "localStorage", { value: storage, configurable: true });
+
+    expect(renderAt("/percorso")).toContain(itCopy.home.courseShape(15, 60));
+    storage.removeItem(COURSE_LEVEL_PREFERENCE_KEY);
+    expect(
+      renderAt(
+        "/percorso",
+        makeProgressValue(progressV5WithLevelVisit("a2", "connected-conversation-1")),
+      ),
+    ).toContain(itCopy.home.courseShape(11, 44));
+
+    if (original) Object.defineProperty(window, "localStorage", original);
+    else delete (window as { localStorage?: Storage }).localStorage;
+  });
+
+  it("fails closed on a missing configured descriptor without hiding Base navigation", () => {
+    const resolver = vi
+      .spyOn(LEVEL_RUNTIME_CONFIG.a0, "resolveDescriptor")
+      .mockReturnValue(null);
+    const html = renderAt(coursePathForLevel("a0"));
+    expect(html).toContain(itCopy.courseLevels.descriptorUnavailableTitle);
+    expect(html).toContain(itCopy.modules["argument-particles"].title);
+    expect(html).toContain(lessonPath("argument-particles", "argument-particles-1"));
+    resolver.mockRestore();
+  });
+
+  it("writes Base preference from the explicit Base URL and renders Base", async () => {
+    const original = Object.getOwnPropertyDescriptor(window, "localStorage");
+    const storage = memoryStorage();
+    Object.defineProperty(window, "localStorage", {
+      value: storage,
+      configurable: true,
+    });
+    Object.defineProperty(globalThis, "localStorage", {
+      value: storage,
+      configurable: true,
+    });
+
+    const { container, root } = await renderClientAt(coursePathForLevel("a0"));
+    await waitForPreference("a0");
+    expect(container.textContent).toContain(itCopy.courseLevels.baseBadge);
+    expect(container.textContent).toContain(itCopy.modules["argument-particles"].title);
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+
+    if (original) Object.defineProperty(window, "localStorage", original);
+    else delete (window as { localStorage?: Storage }).localStorage;
   });
 });
 
-function progressV4WithLevelVisit(
+function progressV5WithLevelVisit(
   level: "a1" | "a2",
   lessonId: string,
-): CourseProgressV4 {
-  const base = emptyProgressV4();
+): CourseProgressV5 {
+  const base = emptyProgressV5();
   return {
     ...base,
     levels: {
@@ -191,7 +318,7 @@ describe("CourseHome — level-scoped reset on the A2 view (ISSUE 3)", () => {
   it("enables the A2 reset once the A2 level itself has visited progress", () => {
     const html = renderAt(
       coursePathForLevel("a2"),
-      makeProgressValue(progressV4WithLevelVisit("a2", "connected-conversation-1")),
+      makeProgressValue(progressV5WithLevelVisit("a2", "connected-conversation-1")),
     );
     expect(html).toMatch(/class="action action--destructive[^"]*">Azzera i progressi di A2</);
     expect(html).not.toMatch(/class="action action--destructive[^"]*" disabled=""/);
@@ -200,17 +327,17 @@ describe("CourseHome — level-scoped reset on the A2 view (ISSUE 3)", () => {
   it("keeps the A2 reset disabled when only A1 has progress — the enabled state follows the SELECTED level, never the other", () => {
     const html = renderAt(
       coursePathForLevel("a2"),
-      makeProgressValue(progressV4WithLevelVisit("a1", "sounds-1")),
+      makeProgressValue(progressV5WithLevelVisit("a1", "introductions-1")),
     );
     expect(html).toMatch(
       /class="action action--destructive[^"]*" disabled=""[^>]*>Azzera i progressi di A2</,
     );
   });
 
-  it("keeps the A1 reset disabled on the default view when only A2 has progress", () => {
+  it("keeps the A1 reset disabled when only A2 has progress", () => {
     const html = renderAt(
-      "/percorso",
-      makeProgressValue(progressV4WithLevelVisit("a2", "connected-conversation-1")),
+      coursePathForLevel("a1"),
+      makeProgressValue(progressV5WithLevelVisit("a2", "connected-conversation-1")),
     );
     expect(html).toMatch(
       /class="action action--destructive[^"]*" disabled=""[^>]*>Azzera i progressi di A1</,
@@ -234,15 +361,16 @@ function reviewEntry(lessonId: string, exerciseDefinitionId: string, at: string)
   };
 }
 
-function progressV4WithReviews(
+function progressV5WithReviews(
   entries: Partial<Record<"a1" | "a2", ReviewQueueEntry[]>>,
-): CourseProgressV4 {
-  const base = emptyProgressV4();
+): CourseProgressV5 {
+  const base = emptyProgressV5();
   return {
     ...base,
     levels: {
-      a1: { ...emptyLevelProgress(), reviewQueue: entries.a1 ?? [] },
-      a2: { ...emptyLevelProgress(), reviewQueue: entries.a2 ?? [] },
+      a0: base.levels.a0,
+      a1: { ...emptyLevelProgressV5(), reviewQueue: entries.a1 ?? [] },
+      a2: { ...emptyLevelProgressV5(), reviewQueue: entries.a2 ?? [] },
     },
   };
 }
@@ -261,7 +389,7 @@ describe("CourseHome — selected-level review surface (Phase 3 Task 8 spec-fix,
     const html = renderAt(
       coursePathForLevel("a2"),
       makeProgressValue(
-        progressV4WithReviews({
+        progressV5WithReviews({
           a2: [reviewEntry("connected-conversation-1", a2ReviewExerciseId, "2026-02-01T00:00:00.000Z")],
         }),
       ),
@@ -276,7 +404,7 @@ describe("CourseHome — selected-level review surface (Phase 3 Task 8 spec-fix,
     const html = renderAt(
       coursePathForLevel("a2"),
       makeProgressValue(
-        progressV4WithReviews({
+        progressV5WithReviews({
           a1: [reviewEntry("introductions-1", a1ReviewExerciseId, "2026-01-01T00:00:00.000Z")],
         }),
       ),
@@ -287,11 +415,11 @@ describe("CourseHome — selected-level review surface (Phase 3 Task 8 spec-fix,
     expect(html).toContain("niente da ripassare");
   });
 
-  it("renders the A1 level's own review entry on the default A1 view", () => {
+  it("renders the A1 level's own review entry on the explicit A1 view", () => {
     const html = renderAt(
-      "/percorso",
+      coursePathForLevel("a1"),
       makeProgressValue(
-        progressV4WithReviews({
+        progressV5WithReviews({
           a1: [reviewEntry("introductions-1", a1ReviewExerciseId, "2026-01-01T00:00:00.000Z")],
         }),
       ),
@@ -300,8 +428,8 @@ describe("CourseHome — selected-level review surface (Phase 3 Task 8 spec-fix,
     expect(html).toContain(a1From);
   });
 
-  it("shows the truthful empty review state on a fresh A1 view", () => {
-    const html = renderAt("/percorso");
+  it("shows the truthful empty review state on a fresh explicit A1 view", () => {
+    const html = renderAt(coursePathForLevel("a1"));
     expect(html).toContain(itCopy.review.title);
     expect(html).toContain("niente da ripassare");
   });
@@ -333,7 +461,7 @@ describe("CourseHome — selecting a level moves focus and is back/forward safe"
         link.dispatchEvent(
           new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }),
         );
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 20));
       });
     };
 
@@ -341,7 +469,7 @@ describe("CourseHome — selecting a level moves focus and is back/forward safe"
       root.render(
         createElement(
           MemoryRouter,
-          { initialEntries: ["/percorso"] },
+          { initialEntries: [coursePathForLevel("a1")] },
           createElement(
             LocaleProvider,
             null,
@@ -395,7 +523,7 @@ describe("CourseHome — selecting a level moves focus and is back/forward safe"
     document.body.append(container);
     const root = createRoot(container);
     const value = makeProgressValue(
-      progressV4WithReviews({
+      progressV5WithReviews({
         a1: [reviewEntry("introductions-1", a1ReviewExerciseId, "2026-01-01T00:00:00.000Z")],
         a2: [reviewEntry("connected-conversation-1", a2ReviewExerciseId, "2026-02-01T00:00:00.000Z")],
       }),
@@ -406,7 +534,7 @@ describe("CourseHome — selecting a level moves focus and is back/forward safe"
         link.dispatchEvent(
           new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }),
         );
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 20));
       });
     };
 
@@ -414,7 +542,7 @@ describe("CourseHome — selecting a level moves focus and is back/forward safe"
       root.render(
         createElement(
           MemoryRouter,
-          { initialEntries: ["/percorso"] },
+          { initialEntries: [coursePathForLevel("a1")] },
           createElement(
             LocaleProvider,
             null,

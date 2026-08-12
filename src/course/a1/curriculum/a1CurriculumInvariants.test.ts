@@ -9,8 +9,8 @@ import {
 import { a1TranslationCopyId } from "../catalog/shared";
 import {
   A1_CAPSTONE_LESSON_IDS,
-  A1_LESSON_IDS,
   A1_LESSON_MANIFEST,
+  A1_RETAINED_LESSON_IDS,
 } from "../manifest";
 import { buildA1PracticeModel } from "../../components/a1PracticeModel";
 import { courseModulesByLevel } from "../../data/course";
@@ -71,16 +71,19 @@ describe("A1 learner curriculum invariants", () => {
 
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual([]);
-    expect(result.reports.byLesson).toHaveLength(64);
-    expect(result.reports.byLesson.map((row) => row.lessonId)).toEqual(A1_LESSON_IDS);
+    expect(result.reports.byLesson).toHaveLength(44);
+    expect(result.reports.byLesson.map((row) => row.lessonId)).toEqual(A1_RETAINED_LESSON_IDS);
     expect(reportedIntroductions).toEqual(productionIntroductions);
     // This reviewed inventory changes only with an intentional editorial
-    // vocabulary review, not when report assembly happens to change.
-    expect(reportedFirstUses).toHaveLength(252);
+    // vocabulary review, not when report assembly happens to change. It fell
+    // from 252 to 170 exactly once, when Task 16 rehomed five modules to Base;
+    // the 82 difference is the vocabulary those twenty lessons introduce, which
+    // retained A1 now inherits and reviews instead of introducing.
+    expect(reportedFirstUses).toHaveLength(170);
     expect(
       result.reports.byLesson.reduce((total, row) => total + row.newLexemeCount, 0),
-    ).toBe(252);
-    expect(new Set(reportedFirstUses).size).toBe(252);
+    ).toBe(170);
+    expect(new Set(reportedFirstUses).size).toBe(170);
     for (const [index, row] of result.reports.byLesson.entries()) {
       const production = productionVocabulary[index]!;
       expect(production.lessonId).toBe(row.lessonId);
@@ -146,7 +149,7 @@ describe("A1 learner curriculum invariants", () => {
     }
   });
 
-  it("only omits a named dialogue subject when the immediately prior turn explicitly establishes it across all 64 lessons", () => {
+  it("only omits a named dialogue subject when the immediately prior turn explicitly establishes it across all 44 retained lessons", () => {
     const variantById = new Map(
       a1AllVariants.map((variant) => [variant.id, variant]),
     );
@@ -172,7 +175,7 @@ describe("A1 learner curriculum invariants", () => {
       }),
     );
 
-    expect(a1LessonContents).toHaveLength(64);
+    expect(a1LessonContents).toHaveLength(44);
     expect(violations).toEqual([]);
   });
 
@@ -189,7 +192,7 @@ describe("A1 learner curriculum invariants", () => {
   it("builds every canonical A1 learner view in both locales and every real practice model without partial success", () => {
     const capstones = new Set<string>(A1_CAPSTONE_LESSON_IDS);
 
-    for (const lessonId of A1_LESSON_IDS) {
+    for (const lessonId of A1_RETAINED_LESSON_IDS) {
       const content = a1LessonContentById[lessonId];
       expect(content, lessonId).toBeDefined();
       if (!content) continue;

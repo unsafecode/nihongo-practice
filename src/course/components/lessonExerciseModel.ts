@@ -2,13 +2,14 @@ import type { Locale } from "../../i18n/LocaleContext";
 import type { AssembledToken } from "../../romaji/types";
 import { buildA1LessonViewModel } from "../a1/a1LessonViewModel";
 import { a1FoundationCatalogs } from "../a1/catalog/catalog";
-import { a1LessonContentById } from "../a1/curriculum/catalog";
+// Covers every published A1 route, including the twenty Base rehomed (Task 16).
+import { legacyA1LessonContentById as a1LessonContentById } from "../a1/curriculum/catalog";
 import { buildA1PracticeFeedback } from "../a1/curriculum/a1PracticeFeedback";
 import { reviewRetrievalConceptIds } from "../a1/curriculum/lessonContentHelpers";
 import type { A1PracticeFunction } from "../a1/curriculum/types";
 import { a2FoundationCatalogs } from "../a2/catalog/catalog";
 import { buildA2FoundationViewModel } from "../a2/view/buildA2LessonViewModel";
-import { courseModulesByLevel } from "../data/course";
+import { courseModulesByLevel, legacyA1CourseModules } from "../data/course";
 import type { ExercisePrompt } from "../exercises/types";
 import type {
   FoundationLessonViewModel,
@@ -265,7 +266,7 @@ function buildModel(lessonId: string): LessonExercisesModel {
 }
 
 const allCourseLessonIds = [
-  ...courseModulesByLevel.a1,
+  ...legacyA1CourseModules,
   ...courseModulesByLevel.a2,
 ].flatMap((courseModule) => courseModule.lessons.map((lesson) => lesson.id));
 

@@ -1,0 +1,197 @@
+/** @vitest-environment jsdom */
+
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { LocaleProvider } from "../../i18n/LocaleContext";
+import { ScriptProvider } from "../../settings/ScriptContext";
+import { ProgressProvider } from "../progress/ProgressContext";
+import { SpeechRecognitionProvider } from "../speech/SpeechRecognitionContext";
+import { lessonSectionAnchorId } from "../../routing/lessonSections";
+import { BASE_LESSON_IDS } from "../base/manifest";
+import { buildBaseLessonViewModel } from "../base/view/buildBaseLessonViewModel";
+import { buildBasePracticeModel } from "../base/view/buildBasePracticeModel";
+import { escapeHtmlText } from "./renderTestUtils";
+import { BaseLessonPage } from "./BaseLessonPage";
+
+function installStorage(initial: Readonly<Record<string, string>> = {}): void {
+  const values = new Map<string, string>(Object.entries(initial));
+  const storage: Storage = {
+    get length() {
+      return values.size;
+    },
+    clear: () => values.clear(),
+    getItem: (key) => values.get(key) ?? null,
+    key: (index) => [...values.keys()][index] ?? null,
+    removeItem: (key) => {
+      values.delete(key);
+    },
+    setItem: (key, value) => {
+      values.set(key, value);
+    },
+  };
+  Object.defineProperty(window, "localStorage", { value: storage, configurable: true });
+}
+
+beforeEach(() => {
+  installStorage({ "nihongo.locale.primary": "en" });
+});
+afterEach(() => {
+  installStorage({ "nihongo.locale.primary": "en" });
+});
+
+function render(lessonId: string): string {
+  return renderToStaticMarkup(
+    createElement(
+      MemoryRouter,
+      { initialEntries: [`/percorso/base/${lessonId}`] },
+      createElement(
+      SpeechRecognitionProvider,
+      null,
+      createElement(
+        LocaleProvider,
+        null,
+        createElement(
+          ScriptProvider,
+          null,
+          createElement(
+            ProgressProvider,
+            null,
+            createElement(BaseLessonPage, { lessonId }),
+          ),
+        ),
+      ),
+    ),
+    ),
+  );
+}
+
+const SIX_SECTIONS = ["rule", "vocabulary", "grammar", "comparison", "explore", "recap"] as const;
+
+describe("BaseLessonPage", () => {
+  it("renders the six stable section anchors for a semantic lesson", () => {
+    const html = render("sentence-foundations-1");
+    for (const sectionId of SIX_SECTIONS) {
+      expect(html).toContain(`id="${lessonSectionAnchorId(sectionId)}"`);
+    }
+  });
+
+  it("renders the complete promised content for a semantic lesson", () => {
+    const lessonId = "sentence-foundations-1";
+    const html = render(lessonId);
+    const viewResult = buildBaseLessonViewModel(lessonId, "en");
+    expect(viewResult.ok).toBe(true);
+    if (!viewResult.ok || viewResult.model.contract === "phonetic") return;
+    const model = viewResult.model;
+
+    // Vocabulary.
+    for (const item of model.vocabulary) {
+      expect(html).toContain(`data-vocabulary-id="${item.id}"`);
+    }
+    // Explanation: construction, constraints/common error, nearest contrast.
+    expect(html).toContain(escapeHtmlText(model.explanation.construction));
+    expect(html).toContain(escapeHtmlText(model.explanation.constraints));
+    expect(html).toContain(escapeHtmlText(model.explanation.commonError));
+    expect(html).toContain(escapeHtmlText(model.explanation.nearestContrast));
+    // Progressive reference snapshot.
+    expect(model.referenceSnapshots.length).toBeGreaterThan(0);
+    for (const snapshot of model.referenceSnapshots) {
+      expect(html).toContain(`data-reference-id="${snapshot.id}"`);
+    }
+    // 6-14 worked examples.
+    expect(model.examples.length).toBeGreaterThanOrEqual(1);
+    for (const example of model.examples) {
+      expect(html).toContain(`data-example-id="${example.id}"`);
+    }
+    // Cumulative recap.
+    expect(html).toContain(escapeHtmlText(model.recap));
+
+    // Staged practice: non-spoken + exactly one listening + one spoken.
+    const practiceResult = buildBasePracticeModel(lessonId, "en");
+    expect(practiceResult.ok).toBe(true);
+    if (!practiceResult.ok) return;
+    for (const activity of practiceResult.model.activities) {
+      expect(html).toContain(`data-activity-id="${activity.id}"`);
+    }
+    expect(html.match(/base-listening-activity"/g)?.length ?? 0).toBe(1);
+  });
+
+  it("renders the complete promised content for a phonetic lesson, including the contrast map", () => {
+    const lessonId = "sounds-1";
+    const html = render(lessonId);
+    const viewResult = buildBaseLessonViewModel(lessonId, "en");
+    expect(viewResult.ok).toBe(true);
+    if (!viewResult.ok || viewResult.model.contract !== "phonetic") return;
+    const model = viewResult.model;
+
+    expect(html).toContain(escapeHtmlText(model.phoneticExplanation));
+    for (const item of model.contrastMap.items) {
+      expect(html).toContain(`data-contrast-id="${item.id}"`);
+    }
+    for (const item of model.vocabulary) {
+      expect(html).toContain(`data-vocabulary-id="${item.id}"`);
+    }
+  });
+
+  it("shows an honest unavailable notice for an unknown lesson id rather than a broken page", () => {
+    const html = render("not-a-real-lesson");
+    expect(html).not.toContain("base-lesson-page__sections");
+    expect(html.toLowerCase()).toMatch(/could not be prepared|non è disponibile/);
+  });
+
+  it("gives every section a distinct accessible heading", () => {
+    const html = render("sentence-foundations-1");
+    const headingMatches = [...html.matchAll(/<h2[^>]*id="([^"]+)-heading"/g)];
+    const ids = headingMatches.map((match) => match[1]);
+    expect(new Set(ids).size).toBe(SIX_SECTIONS.length);
+  });
+
+  it("never skips a heading level (h2 is always followed by h3 before any h4, both for a semantic and a phonetic lesson)", () => {
+    for (const lessonId of ["sentence-foundations-1", "sounds-1"]) {
+      const html = render(lessonId);
+      const levels = [...html.matchAll(/<h([1-6])[ >]/g)].map((match) => Number(match[1]));
+      expect(levels.length).toBeGreaterThan(0);
+      // A proper (stack-based) outline check: each new heading's level must
+      // be at most one deeper than its nearest still-open ancestor, so an
+      // earlier, unrelated h3 elsewhere on the page can never "unlock" a
+      // later h2 section jumping straight to h4.
+      const openLevels: number[] = [];
+      for (const level of levels) {
+        while (openLevels.length > 0 && openLevels[openLevels.length - 1] >= level) {
+          openLevels.pop();
+        }
+        const parentLevel = openLevels.length > 0 ? openLevels[openLevels.length - 1] : 0;
+        expect(level).toBeLessThanOrEqual(parentLevel + 1);
+        openLevels.push(level);
+      }
+    }
+  });
+
+  it("links every offered reference to its own lesson, so progressive disclosure actually runs", () => {
+    // The reference surfaces exist and gate their content on `throughLessonId`,
+    // but a learner can only benefit if the lesson that promises a reference
+    // links to it *at that lesson*. Rendering the titles as inert text leaves
+    // the whole progressive-disclosure system unreachable, and opening a
+    // reference without the parameter silently shows the end-of-course view.
+    let linkedLessons = 0;
+    for (const lessonId of BASE_LESSON_IDS) {
+      const model = buildBaseLessonViewModel(lessonId, "en");
+      expect(model.ok, lessonId).toBe(true);
+      if (!model.ok) continue;
+      const snapshots = model.model.referenceSnapshots;
+      if (snapshots.length === 0) continue;
+      linkedLessons += 1;
+      const html = render(lessonId);
+      for (const snapshot of snapshots) {
+        expect(
+          html,
+          `${lessonId} links reference ${snapshot.id} at its own lesson`,
+        ).toContain(
+          `href="/riferimenti/base/${snapshot.id}?throughLessonId=${lessonId}"`,
+        );
+      }
+    }
+    expect(linkedLessons).toBeGreaterThan(0);
+  });
+});

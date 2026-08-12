@@ -4,6 +4,9 @@ import type {
   RomajiBoundaryBefore,
   RomajiTokenKind,
 } from "../../romaji/types";
+import type { CourseLevelId } from "../levels/types";
+
+export type { CourseLevelId } from "../levels/types";
 
 /**
  * Locale-independent sentence-family/Can-do foundation contracts (design spec
@@ -17,8 +20,6 @@ import type {
  * The only shared imports are the exercise-kind vocabulary and the romaji
  * token contract, per the task's import boundary.
  */
-
-export type CourseLevelId = "a1" | "a2";
 
 export type ModuleId = string;
 export type LessonId = string;
@@ -184,9 +185,22 @@ export type SemanticArgumentRole =
   | "agent"
   | "theme"
   | "topic"
+  | "additive-topic"
+  | "focus-subject"
   | "location"
+  | "existence-location"
+  | "existential-subject"
+  | "interaction"
+  | "question"
+  | "action-place"
   | "time"
+  | "means"
+  | "source"
+  | "limit"
+  | "possessor"
+  | "listing"
   | "companion"
+  | "direction"
   | "goal";
 
 /**

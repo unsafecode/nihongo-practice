@@ -12,20 +12,19 @@ import {
 } from "./helpers";
 
 const ZOOM_FACTOR = 2;
+/**
+ * Retained A1 lessons only (Tasks 16-18): the former Sounds/Foundations
+ * modules are published by Base now and are covered at zoom by
+ * `base-accessibility.spec.ts`, so asserting the A1 six-section learning
+ * surface on them would measure a Base page.
+ */
 const A1_ZOOM_LESSONS = [
-  {
-    moduleId: "sentence-foundations",
-    lessonId: "sentence-foundations-1",
-    kind: "sentence foundations",
-  },
-  {
-    moduleId: "time-movement",
-    lessonId: "time-movement-4",
-    kind: "time and movement",
-  },
+  { moduleId: "introductions", lessonId: "introductions-1", kind: "identity" },
+  { moduleId: "actions", lessonId: "actions-2", kind: "actions" },
   { moduleId: "shopping", lessonId: "shopping-4", kind: "semantic" },
-  { moduleId: "sounds", lessonId: "sounds-1", kind: "phonetic" },
+  { moduleId: "capstones", lessonId: "capstones-2", kind: "synthesis" },
 ] as const;
+const A1_COURSE_URL = `${routeUrls.home}?livello=a1`;
 const A2_COURSE_URL = `${routeUrls.home}?livello=a2`;
 const A2_LESSON = {
   moduleId: "sequencing-ongoing",
@@ -133,7 +132,7 @@ async function assertFocusAndReducedMotion(page: Page): Promise<void> {
 
 async function assertCourseMapZoomSurface(page: Page): Promise<void> {
   const areas = page.locator(".course-area");
-  await expect(areas).toHaveCount(4);
+  await expect(areas).toHaveCount(2);
   const areaShape = await areas.evaluateAll((nodes) =>
     nodes.map((area) => ({
       id: area.getAttribute("aria-labelledby")?.replace("course-area-", "") ?? "",
@@ -141,14 +140,12 @@ async function assertCourseMapZoomSurface(page: Page): Promise<void> {
     })),
   );
   expect(areaShape).toEqual([
-    { id: "sounds", modules: 1 },
-    { id: "foundations", modules: 4 },
     { id: "situations", modules: 10 },
     { id: "synthesis", modules: 1 },
   ]);
 
-  const foundations = page.locator(".course-area--foundations");
-  const disclosures = foundations.locator(".module-card__disclosure");
+  const situations = page.locator('.course-area[aria-labelledby="course-area-situations"]');
+  const disclosures = situations.locator(".module-card__disclosure");
   for (let index = 0; index < await disclosures.count(); index += 1) {
     const disclosure = disclosures.nth(index);
     if ((await disclosure.getAttribute("aria-expanded")) === "false") {
@@ -157,8 +154,8 @@ async function assertCourseMapZoomSurface(page: Page): Promise<void> {
     }
   }
   await expect(
-    foundations.locator(".module-card__lesson-link").filter({ visible: true }),
-  ).toHaveCount(16);
+    situations.locator(".module-card__lesson-link").filter({ visible: true }),
+  ).toHaveCount(40);
   await expect(page.locator('[role="status"]').first()).toBeVisible();
 
   let focus: { outlineStyle: string; outlineWidth: number } | null = null;
@@ -201,11 +198,11 @@ async function assertCourseMapZoomSurface(page: Page): Promise<void> {
 }
 
 test.describe("A1 Course Map at real 200% zoom", () => {
-  test("keeps the four-area Foundation hierarchy, focus, live status, and touch targets usable", async ({
+  test("keeps the retained two-area hierarchy, focus, live status, and touch targets usable", async ({
     page,
   }) => {
     const observers = await setupPageObservers(page);
-    await gotoReady(page, routeUrls.home);
+    await gotoReady(page, A1_COURSE_URL);
 
     const evidence = await applyBrowserZoom(page, ZOOM_FACTOR);
     assertZoomApplied(evidence);
@@ -248,11 +245,12 @@ for (const lesson of A1_ZOOM_LESSONS) {
   });
 }
 
-test.describe("A1 and A2 at the 320px reflow floor", () => {
-  test("keeps the A1 areas, new Foundation lessons, migrated shopping scenario, A2 map, and A2 lesson within the page viewport", async ({
+test.describe("Base, A1 and A2 at the 320px reflow floor", () => {
+  // Runs under both projects: the viewport is set explicitly below, so the
+  // measurement is identical either way and nothing is conditionally skipped.
+  test("keeps the Base map and lesson, the retained A1 areas and lessons, the A2 map, and an A2 lesson within the page viewport", async ({
     page,
-  }, testInfo) => {
-    test.skip(testInfo.project.name !== "desktop-1440", "the explicit 320px floor runs once");
+  }) => {
     const observers = await setupPageObservers(page);
     await page.setViewportSize({ width: 320, height: 640 });
 
@@ -260,6 +258,7 @@ test.describe("A1 and A2 at the 320px reflow floor", () => {
       routeUrls.home,
       routeUrls.lesson("sentence-foundations", "sentence-foundations-1"),
       routeUrls.lesson("time-movement", "time-movement-4"),
+      A1_COURSE_URL,
       routeUrls.lesson("introductions", "introductions-1"),
       routeUrls.lesson("shopping", "shopping-4"),
       A2_COURSE_URL,
@@ -268,8 +267,13 @@ test.describe("A1 and A2 at the 320px reflow floor", () => {
     for (const url of screens) {
       await gotoReady(page, url);
       if (url === routeUrls.home) {
-        await expect(page.locator(".course-area")).toHaveCount(4);
-        await expect(page.locator(".course-area--foundations .module-card")).toHaveCount(4);
+        // A fresh learner lands on Base: a flat ten-module map, no areas.
+        await expect(page.locator(".course-area")).toHaveCount(0);
+        await expect(page.locator(".module-card")).toHaveCount(10);
+      }
+      if (url === A1_COURSE_URL) {
+        await expect(page.locator(".course-area")).toHaveCount(2);
+        await expect(page.locator(".module-card")).toHaveCount(11);
       }
       await assertNoHorizontalOverflow(page);
       const targets = await auditTouchTargets(page);

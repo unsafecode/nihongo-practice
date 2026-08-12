@@ -439,11 +439,21 @@ export const a1FoundationsVerbUseRecords: readonly VerbUseRecord[] =
   ]);
 
 /**
- * The full published A1 recurrence view. It combines Foundations records with
- * the existing instructional and capstone recurrence records.
+ * The published *retained* A1 recurrence view: the instructional and capstone
+ * records whose introduction lesson and every later use both live inside the
+ * forty-four routes A1 still owns.
+ *
+ * Task 16 rehomed the four Foundations modules to Base, so their nineteen
+ * records — and the citations that reach into `sentence-foundations-*`,
+ * `topic-questions-*`, `polite-verbs-*` and `time-movement-*` variants — are no
+ * longer part of A1's release; Base owns their introduction and their spaced
+ * reuse. They remain exported as {@link a1FoundationsVerbUseRecords} so the
+ * rehomed authoring provenance (and the staged Foundations catalogs that still
+ * validate it) is preserved intact rather than deleted. Nothing here is
+ * weakened: every remaining record keeps its own genuine ≥2 later uses, all of
+ * which realize the record's sense inside retained A1 content.
  */
 export const a1ReleaseVerbUseRecords: readonly VerbUseRecord[] = Object.freeze([
-  ...a1FoundationsVerbUseRecords,
   ...a1AugmentedVerbUseRecords,
   ...augment(descriptiveModuleRawRecords),
 ]);

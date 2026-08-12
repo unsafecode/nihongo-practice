@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   a1LearningNoteById,
-  a1LessonContentById,
   a1LessonContents,
   a1LexemeById,
+  // Covers every published A1 route, including the twenty Base rehomed.
+  legacyA1LessonContentById as a1LessonContentById,
 } from "../a1/curriculum/catalog";
 import { a1FoundationCatalogs } from "../a1/catalog/catalog";
 import { module1ItemsByLesson, module1Lessons } from "../a1/catalog/module01Sounds";
-import { A1_LESSON_IDS } from "../a1/manifest";
+import { A1_LESSON_IDS, A1_RETAINED_LESSON_IDS } from "../a1/manifest";
 import { buildA1LessonViewModel } from "../a1/a1LessonViewModel";
 import {
   buildA1PracticeModel,
@@ -158,10 +159,18 @@ describe("buildA1PracticeModel — phonetic targets", () => {
 });
 
 describe("buildA1PracticeModel — complete canonical A1 coverage", () => {
-  it("builds exactly five non-empty activities for every one of the 64 manifest lesson ids", () => {
+  it("builds exactly five non-empty activities for every retained and phonetic lesson id", () => {
+    // Task 16 moved the four Foundations modules to Base, which owns their
+    // practice; the phonetic `sounds-*` routes are also Base's, but their
+    // exercises are still assembled here for the historical legacy path.
     expect(A1_LESSON_IDS).toHaveLength(64);
+    const coveredLessonIds = [
+      ...A1_RETAINED_LESSON_IDS,
+      ...module1Lessons.map((lesson) => lesson.id),
+    ];
+    expect(coveredLessonIds).toHaveLength(48);
 
-    for (const lessonId of A1_LESSON_IDS) {
+    for (const lessonId of coveredLessonIds) {
       const content = a1LessonContentById[lessonId];
       expect(content, lessonId).toBeDefined();
       if (!content) continue;

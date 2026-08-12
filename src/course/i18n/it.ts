@@ -1,5 +1,8 @@
 import type { CourseCopy } from "./types";
 import { assembledCourseCopy } from "../catalog/assembleCourse";
+import { mergeBaseNavigationDictionary } from "../base/copy/en";
+import { baseNavigationCopyIt } from "../base/copy/it";
+import { courseModulesByLevel } from "../data/course";
 import {
   a1RuntimeLessonCopy,
   a1RuntimeModuleCopy,
@@ -43,6 +46,12 @@ const itUi = {
     courseShape: (moduleCount: number, lessonCount: number) =>
       `${moduleCount} moduli, ${lessonCount} lezioni`,
   },
+  progressMutation: {
+    title: "I progressi non sono stati aggiornati",
+    body: (lessonId: string) =>
+      `Non è stato possibile registrare in modo sicuro i progressi per la lezione “${lessonId}”. Torna al percorso e riprova.`,
+    dismiss: "Chiudi",
+  },
   canDoSummary: {
     heading: "Cosa sai già fare",
     demonstratedCount: (demonstrated: number, total: number) =>
@@ -61,16 +70,38 @@ const itUi = {
   },
   courseLevels: {
     selectorLabel: "Livello del corso",
+    recommendedMarker: "Consigliato",
+    base: "Base",
     a1: "A1",
     a2: "A2",
+    baseHeading: "Corso Base",
     a1Heading: "Corso A1",
     a2Heading: "Corso A2",
+    baseBadge: "Base, fondamenta create dal prodotto per Can-do pratici A1",
+    a1Badge: "A1, pratica quotidiana costruita sulle fondamenta Base",
     a2Badge: "A2, il nostro allineamento ai descrittori Can-do JF/CEFR",
+    baseAvailableHint:
+      "Fondamentali per suoni, kana e primi schemi di frase.",
+    baseRecommendedHint:
+      "Inizia da qui se il corso è nuovo per te e vuoi prima i fondamentali.",
+    a1AvailableHint:
+      "A1 resta aperto e applica i fondamentali nelle situazioni quotidiane.",
+    a1RecommendedHint:
+      "A1 è consigliato per chi è pronto ad applicare le basi del Base nelle situazioni quotidiane.",
     a2AvailableHint:
-      "A2 è disponibile quando vuoi. Si basa su A1, quindi affrontare prima A1 aiuta — ma nulla è bloccato.",
+      "A2 resta aperto e costruisce conversazioni collegate.",
     a2RecommendedHint:
-      "Hai affrontato la verifica A1, quindi A2 è un buon passo successivo. Era comunque sempre aperto — nulla era bloccato.",
+      "A2 resta aperto come buon passo successivo dopo A1 e costruisce conversazioni collegate.",
+    baseCheckpointHeading: "Verifica Base",
+    a1CheckpointHeading: "Verifica A1",
     a2CheckpointHeading: "Verifica A2",
+    descriptorUnavailableTitle: "Dettagli Can-do non disponibili",
+    descriptorUnavailableBody:
+      "La descrizione di questo Can-do non è disponibile ora. La mappa del corso e i collegamenti alle lezioni restano disponibili.",
+    checkpointNotAttempted: (levelLabel: string) =>
+      `Non è ancora registrato alcun tentativo della verifica ${levelLabel}.`,
+    checkpointAttemptRecorded: (levelLabel: string) =>
+      `È registrato un tentativo della verifica ${levelLabel}.`,
     resetLevel: (levelLabel: string) => `Azzera i progressi di ${levelLabel}`,
     resetLevelConfirm: (levelLabel: string) =>
       `Vuoi davvero azzerare i progressi del corso ${levelLabel}? I progressi dell'altro livello vengono mantenuti.`,
@@ -230,6 +261,82 @@ const itUi = {
       meaningsAndFormsLabel: "Significati e forme",
       retrievalCueLabel: "Richiamo per il ripasso",
       reviewExceptionLabel: "Nota di ripasso",
+      baseReferencesLabel: "Sistemi Base che stai riutilizzando",
+      baseReferencesHint:
+        "Questa lezione applica questi sistemi invece di insegnarli: apri un riferimento per rivedere l'intero schema.",
+    },
+  },
+  baseLesson: {
+    sections: {
+      rule: "Regola",
+      vocabulary: "Vocabolario",
+      grammar: "Grammatica",
+      comparison: "Esempi",
+      explore: "Pratica",
+      recap: "Riepilogo",
+    },
+    unavailableTitle: "Questa lezione non è disponibile",
+    unavailableBody:
+      "Non è stato possibile preparare parte del contenuto di questa lezione. Non è stato mostrato nulla, così non ti eserciti mai su un esempio non funzionante.",
+    vocabulary: {
+      heading: "Vocabolario",
+      newWordsHeading: "Parole nuove",
+      reviewWordsHeading: "Parole già note da riutilizzare",
+      meaningLabel: "Significato",
+    },
+    explanation: {
+      mainLabel: "Come funziona",
+      constructionLabel: "Costruzione",
+      constraintsLabel: "Dove si applica",
+      commonErrorLabel: "Errore comune",
+      nearestContrastLabel: "Contrasto più vicino",
+      phoneticLabel: "Spiegazione del suono",
+      contrastMapHeading: "Contrasti sonori",
+    },
+    examples: {
+      heading: "Esempi svolti",
+      dialogueHeading: "Dialogo",
+      translationLabel: "Traduzione naturale",
+      turnLabel: (position: number) => `Turno ${position}`,
+    },
+    reference: {
+      heading: "Riferimento finora",
+    },
+    practice: {
+      heading: "Pratica",
+      intro: "Svolgi ogni passaggio in ordine; ognuno si basa sulla lezione qui sopra.",
+      stageNonSpokenHeading: "Costruisci e riconosci",
+      stageListeningHeading: "Ascolta",
+      stageSpokenHeading: "Parla",
+      submit: "Verifica",
+      accepted: "Corretto",
+      retry: "Non ancora — riprova.",
+      optionsLabel: "Scegline una",
+      tileBankLabel: "Tasselli disponibili",
+      tileAnswerLabel: "La tua risposta",
+      revealAnswer: "Mostra la risposta",
+      selfCheckPrompt: "L'hai indovinata?",
+      selfCheckCorrect: "Sì, l'avevo giusta",
+      selfCheckRetry: "Non proprio — mi serve altra pratica",
+    },
+    audio: {
+      idle: "Riproduci audio",
+      playing: "Riproduzione…",
+      stopped: "Fermato",
+      unavailable: "L'audio non è disponibile in questo browser.",
+      blocked: "La riproduzione audio è stata bloccata. Riprova.",
+      failed: "La riproduzione audio non è riuscita. Riprova.",
+      retry: "Riprova",
+      statusLabel: "Stato dell'audio",
+    },
+    listening: {
+      heading: "Ascolto",
+      instruction: "Ascolta, poi scegli l'opzione che corrisponde a quello che hai sentito.",
+    },
+    recap: {
+      heading: "Riepilogo",
+      vocabularyHeading: "Vocabolario di questa lezione",
+      canDoLabel: "Ora sai",
     },
   },
   practice: {
@@ -377,7 +484,46 @@ const itUi = {
     helpBody:
       "Una versione precedente di questo percorso teneva traccia dei progressi in modo diverso. Quando la struttura è cambiata, ogni visita a una lezione che corrisponde in modo sicuro alla nuova struttura viene mantenuta automaticamente. I tentativi di pratica, gli elementi di ripasso salvati e i risultati delle verifiche legati agli esercizi rinnovati potrebbero dover essere completati di nuovo, perché non corrispondono più esattamente ai nuovi esercizi. Ogni vecchia visita senza una corrispondenza sicura nella nuova struttura è conservata come dati di recupero, senza essere considerata una lezione visitata equivalente.",
   },
-} satisfies Pick<CourseCopy, "home" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "a1Lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
+  baseReferencePage: {
+    unknownReferenceTitle: "Riferimento non trovato",
+    unknownReferenceBody:
+      "Questo riferimento non esiste. Torna al percorso e riprova dal collegamento della lezione.",
+    invalidThroughLessonTitle: "Collegamento non valido",
+    invalidThroughLessonBody:
+      "Il collegamento a questo riferimento indicava una lezione non riconosciuta, quindi non è stato mostrato nulla. Apri il riferimento da una lezione del percorso Base.",
+    unavailableTitle: "Questo riferimento non è disponibile",
+    unavailableBody:
+      "Non è stato possibile preparare questo riferimento ora. Non è stato mostrato nulla, così non vedi mai una tabella incompleta.",
+    tableViewLabel: "Vista tabella",
+    cardsViewLabel: "Vista schede",
+    whenToUseLabel: "Quando si usa",
+  },
+  baseDiagnostic: {
+    heading: "Da dove iniziare?",
+    intro:
+      "Rispondi ad alcune domande veloci per scoprire da dove conviene iniziare. È facoltativo: puoi saltarlo e scegliere il livello quando vuoi dalla mappa del percorso.",
+    dimensions: {
+      "mora-timing": "Riesci già a leggere hiragana e katakana con un ritmo regolare, mora per mora?",
+      "sentence-anatomy": "Riesci già a riconoscere tema, verbo e complementi in una frase semplice?",
+      "particle-sense":
+        "Conosci già il significato delle particelle di base (wa, o, ni, de, to)?",
+      "polite-verb-form": "Riesci già a costruire la forma cortese -masu di un verbo?",
+    },
+    yes: "Sì",
+    no: "No",
+    skip: "Salta",
+    submit: "Vedi il consiglio",
+    skippedNotice:
+      "Nessun problema: puoi scegliere il livello quando vuoi dalla mappa del percorso.",
+    continueToCourse: "Vai alla mappa del percorso",
+    resultHeading: "Ecco da dove iniziare",
+    resultBody: (recommendedLevel) =>
+      recommendedLevel === "a0"
+        ? "Ti consigliamo di iniziare dal corso Base, per costruire prima queste fondamenta."
+        : "Conosci già le fondamenta Base: puoi iniziare direttamente da A1.",
+    goToRecommendation: "Vai alla lezione consigliata",
+  },
+} satisfies Pick<CourseCopy, "home" | "progressMutation" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "a1Lesson" | "baseLesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration" | "baseReferencePage" | "baseDiagnostic">;
 
 const itCourseMap: CourseCopy["courseMap"] = {
   heading: "Il percorso",
@@ -418,6 +564,32 @@ const itCourseAreas: CourseCopy["courseAreas"] = {
   },
 };
 
+function retainedA1Copy<T>(
+  source: Readonly<Record<string, T>>,
+  keys: readonly string[],
+): Record<string, T> {
+  return Object.fromEntries(keys.map((key) => [key, source[key]!]));
+}
+
+const itRetainedA1Modules = courseModulesByLevel.a1;
+const itRetainedA1ModuleCopy = retainedA1Copy(
+  a1RuntimeModuleCopy("it"),
+  itRetainedA1Modules.map((module) => module.id),
+);
+const itRetainedA1LessonCopy = retainedA1Copy(
+  a1RuntimeLessonCopy("it"),
+  itRetainedA1Modules.flatMap((module) => module.lessons.map((lesson) => lesson.titleCopyId)),
+);
+const itRetainedA1ObjectiveCopy = retainedA1Copy(
+  a1RuntimeObjectiveCopy("it"),
+  itRetainedA1Modules.flatMap((module) =>
+    module.lessons.flatMap((lesson) => lesson.objectiveCopyIds),
+  ),
+);
+const itRetainedA1OutcomeCopy = retainedA1Copy(
+  a1RuntimeOutcomeCopy("it"),
+  itRetainedA1Modules.flatMap((module) => module.outcomeCopyIds),
+);
 
 export const it = {
   ...itUi,
@@ -434,10 +606,33 @@ export const it = {
   // from — so they're kept from the legacy course copy, still genuinely used
   // by the legacy `spokenAttemptModel`/`TransformComparison`/`GuidedToolLink`
   // consumers. `journeyScenes` has no shipped content in either pipeline.
-  modules: { ...a1RuntimeModuleCopy("it"), ...a2RuntimeModuleCopy("it") },
-  lessons: { ...a1RuntimeLessonCopy("it"), ...a2RuntimeLessonCopy("it") },
-  objectives: { ...a1RuntimeObjectiveCopy("it"), ...a2RuntimeObjectiveCopy("it") },
-  outcomes: { ...a1RuntimeOutcomeCopy("it"), ...a2RuntimeOutcomeCopy("it") },
+  // Base deliberately wins only for the reviewed stable rehomes; the merge
+  // helper throws for every other navigation-copy collision.
+  modules: mergeBaseNavigationDictionary(
+    "modules",
+    itRetainedA1ModuleCopy,
+    a2RuntimeModuleCopy("it"),
+    baseNavigationCopyIt.modules,
+  ),
+  lessons: mergeBaseNavigationDictionary(
+    "lessons",
+    itRetainedA1LessonCopy,
+    a2RuntimeLessonCopy("it"),
+    baseNavigationCopyIt.lessons,
+  ),
+  objectives: mergeBaseNavigationDictionary(
+    "objectives",
+    itRetainedA1ObjectiveCopy,
+    a2RuntimeObjectiveCopy("it"),
+    baseNavigationCopyIt.objectives,
+  ),
+  outcomes: mergeBaseNavigationDictionary(
+    "outcomes",
+    itRetainedA1OutcomeCopy,
+    a2RuntimeOutcomeCopy("it"),
+    baseNavigationCopyIt.outcomes,
+  ),
+  baseContent: { ...baseNavigationCopyIt.content },
   blocks: assembledCourseCopy.it.blocks,
   examples: assembledCourseCopy.it.examples,
   journeyScenes: {} as CourseCopy["journeyScenes"],

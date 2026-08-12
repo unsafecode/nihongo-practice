@@ -68,7 +68,7 @@ export function FoundationFixtureLoading() {
 }
 
 /**
- * The six real navigation destinations, each lazily loaded into its own
+ * The eight real navigation destinations, each lazily loaded into its own
  * chunk (Phase 2 Task 6, finding I3). Unlike the compile-time-gated
  * {@link FoundationFixturePage}, these always ship — they just load on
  * demand behind the route the user actually visits, instead of every page's
@@ -103,6 +103,17 @@ const Phrasebook = lazy(() =>
     default: module.Phrasebook,
   })),
 );
+const BaseReferencePage = lazy(() =>
+  import("../course/components/BaseReferencePage").then((module) => ({
+    default: module.BaseReferencePage,
+  })),
+);
+const BaseDiagnostic = lazy(() =>
+  import("../course/components/BaseDiagnostic").then((module) => ({
+    default: module.BaseDiagnostic,
+  })),
+);
+
 
 /**
  * Accessible, network-free loading shell shown while a route's chunk
@@ -190,6 +201,22 @@ export function AppRoutes() {
           element={
             <Suspense fallback={<RouteLoading />}>
               <LessonPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path={routePaths.baseDiagnostic}
+          element={
+            <Suspense fallback={<RouteLoading />}>
+              <BaseDiagnostic />
+            </Suspense>
+          }
+        />
+        <Route
+          path={routePaths.reference}
+          element={
+            <Suspense fallback={<RouteLoading />}>
+              <BaseReferencePage />
             </Suspense>
           }
         />

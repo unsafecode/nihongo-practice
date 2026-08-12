@@ -186,7 +186,15 @@ function assertRoundShape(practice: LessonPracticeDefinition): void {
  * the exact model count, unique model IDs, round shape, unique target refs, and
  * that a synthesis lesson introduces no new concept/sense — then freezes.
  */
-export function defineA1Lesson(recipe: A1LessonRecipe): A1LessonRecipe {
+/**
+ * The authored shape `defineA1Lesson` accepts. `reviewedConceptIds` is optional
+ * because it is *derived*: authors keep listing every concept a lesson leans on
+ * under `introducedConceptIds`, and the definer partitions them.
+ */
+export type A1LessonRecipeInput = Omit<A1LessonRecipe, "reviewedConceptIds"> &
+  Partial<Pick<A1LessonRecipe, "reviewedConceptIds">>;
+
+export function defineA1Lesson(recipe: A1LessonRecipeInput): A1LessonRecipe {
   assertNoForbiddenContent(recipe, "lesson");
 
   if (recipe.modelVariantIds.length !== A1_INSTRUCTIONAL_MODEL_COUNT) {
@@ -211,7 +219,14 @@ export function defineA1Lesson(recipe: A1LessonRecipe): A1LessonRecipe {
     );
   }
 
-  return deepFreeze(recipe);
+  // Task 16: `reviewedConceptIds` is derived by the builder
+  // (`partitionA1AuthoredConceptIds`) before a recipe reaches this validator;
+  // an author-supplied recipe that omits it reviews nothing.
+  return deepFreeze(
+    recipe.reviewedConceptIds === undefined
+      ? { ...recipe, reviewedConceptIds: [] }
+      : (recipe as A1LessonRecipe),
+  );
 }
 
 /**

@@ -3,7 +3,13 @@
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it } from "vitest";
-import { ProgressProvider, STORAGE_KEY, useProgress, type ProgressContextValue } from "./ProgressContext";
+import {
+  LEVEL_RUNTIME,
+  ProgressProvider,
+  STORAGE_KEY,
+  useProgress,
+  type ProgressContextValue,
+} from "./ProgressContext";
 import { getLessonExercises } from "../components/lessonExerciseModel";
 import { a1Checkpoint, A1_CHECKPOINT_SCENARIO_LESSON_IDS } from "../a1/catalog/checkpoint";
 
@@ -115,7 +121,7 @@ async function acceptAllExercises(
   }
 }
 
-describe("ProgressContext V4 exposure (Phase 2 Task 6)", () => {
+describe("ProgressContext V5 exposure", () => {
   it("starts with no migration notice, empty Can-do evidence, and no checkpoint attempts for a fresh learner", async () => {
     await withMountedProvider({}, (get) => {
       const value = get();
@@ -123,18 +129,19 @@ describe("ProgressContext V4 exposure (Phase 2 Task 6)", () => {
       expect(value.canDoEvidence).toEqual({});
       expect(value.checkpointAttempts).toEqual([]);
       expect(value.levelSummary.level).toBe("a1");
-      expect(value.levelSummary.totalLessonCount).toBe(64);
+      expect(value.levelSummary.totalLessonCount).toBe(44);
       expect(value.levelSummary.visitedLessonCount).toBe(0);
     });
   });
 
-  it("records visited Can-do evidence for the correct Can-do id when a phonetic lesson is visited", async () => {
+  it("records a phonetic lesson visit only in Base's canonical Can-do evidence", async () => {
     await withMountedProvider({}, async (get) => {
       await act(async () => get().markVisited("sounds-1"));
-      const evidence = get().canDoEvidence["a1-can-do-sounds"];
+      const evidence = get().canDoEvidenceFor("a0")["a1-can-do-sounds"];
       expect(evidence).toBeDefined();
       expect(evidence!.visitedLessonIds).toEqual(["sounds-1"]);
-      expect(get().levelSummary.visitedLessonCount).toBe(1);
+      expect(get().levelSummaryFor("a0").visitedLessonCount).toBe(1);
+      expect(get().levelSummary.visitedLessonCount).toBe(0);
     });
   });
 
@@ -167,23 +174,23 @@ describe("ProgressContext V4 exposure (Phase 2 Task 6)", () => {
     });
   });
 
-  it("records practiced Can-do evidence once a phonetic lesson's four selected exercises are all attempted", async () => {
+  it("does not reactivate retired phonetic exercise definitions as current Base requirements", async () => {
     await withMountedProvider({}, async (get) => {
       const model = getLessonExercises("sounds-1")!;
       expect(model.exercises.length).toBe(4);
 
       await acceptAllExercises(get, "sounds-1");
 
-      // v3-compat surface advances exactly like a semantic lesson.
-      expect(get().progress.lessons["sounds-1"]?.practicedAt).not.toBeNull();
-
-      const evidence = get().canDoEvidence["a1-can-do-sounds"];
-      expect(evidence).toBeDefined();
-      expect(evidence!.practicedLessonIds).toContain("sounds-1");
+      expect(get().mutationError).toEqual({
+        code: "unknown-exercise-definition",
+        lessonId: "sounds-1",
+      });
+      expect(get().progressV5.levels.a0.lessons["sounds-1"]).toBeUndefined();
+      expect(get().canDoEvidenceFor("a0")["a1-can-do-sounds"]).toBeUndefined();
     });
   });
 
-  it("records exactly one idempotent checkpoint attempt once all four capstone lessons are consolidated, sampling every taught Can-do honestly", async () => {
+  it("records exactly one idempotent checkpoint attempt once all four capstone lessons are consolidated, sampling retained A1 Can-dos honestly", async () => {
     await withMountedProvider({}, async (get) => {
       expect(A1_CHECKPOINT_SCENARIO_LESSON_IDS.length).toBe(4);
       for (const lessonId of A1_CHECKPOINT_SCENARIO_LESSON_IDS) {
@@ -195,7 +202,7 @@ describe("ProgressContext V4 exposure (Phase 2 Task 6)", () => {
       const attempt = get().checkpointAttempts[0]!;
       expect(attempt.checkpointId).toBe(a1Checkpoint.id);
       expect([...attempt.sampledCanDoIds].sort()).toEqual(
-        [...a1Checkpoint.sampledCanDoIds].sort(),
+        [...LEVEL_RUNTIME.a1.checkpoint.sampledCanDoIds].sort(),
       );
       const expectedAccepted = A1_CHECKPOINT_SCENARIO_LESSON_IDS.flatMap(
         (lessonId) => get().progress.lessons[lessonId]!.acceptedExerciseIds,
@@ -244,7 +251,7 @@ describe("ProgressContext V4 exposure (Phase 2 Task 6)", () => {
       await act(async () => get().acknowledgeMigrationNotice());
       expect(get().migrationNotice!.acknowledgedAt).not.toBeNull();
       // Acknowledging never deletes the record — "what changed" stays visible.
-      expect(get().migrationNotice!.fromSchemaVersion).toBe(3);
+      expect(get().migrationNotice!.fromSchemaVersion).toBe(4);
     });
   });
 });

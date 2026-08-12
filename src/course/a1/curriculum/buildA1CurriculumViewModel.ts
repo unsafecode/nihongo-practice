@@ -1,4 +1,10 @@
 import type { Locale } from "../../../i18n/LocaleContext";
+import {
+  BASE_REFERENCE_CATALOG,
+  type BaseReferenceId,
+} from "../../base/references/catalog";
+import { baseReferencePath } from "../../../routing/routePaths";
+import { BASE_REFERENCE_ID_BY_INHERITED_CONCEPT } from "./inheritedBase";
 import type { AssembledToken } from "../../../romaji/types";
 import {
   buildA1LessonViewModel,
@@ -106,7 +112,23 @@ export interface A1CurriculumViewModel {
   readonly recap: Readonly<{
     vocabulary: readonly A1CurriculumVocabularyItem[];
     retrievalCue: string;
+    /**
+     * The Base-owned grammar concepts this retained A1 lesson *reviews and
+     * applies* rather than introduces (Task 16), each linked to the Base
+     * progressive reference that actually teaches it. Derived from the
+     * lesson's own note prerequisites, so it can never claim a concept the
+     * lesson does not lean on, nor omit one it does.
+     */
+    reviewedBaseReferences: readonly A1ReviewedBaseReference[];
   }>;
+}
+
+/** One Base progressive reference a retained A1 lesson sends the learner to. */
+export interface A1ReviewedBaseReference {
+  readonly conceptId: string;
+  readonly referenceId: BaseReferenceId;
+  readonly href: string;
+  readonly label: string;
 }
 
 export type A1CurriculumViewModelErrorCode =
@@ -504,6 +526,38 @@ function resolvePractice(
  * canonical catalogs and production realization. Any unresolved dependency
  * returns one typed error; no partial success is ever returned.
  */
+/**
+ * The Base progressive references a retained A1 lesson points back to.
+ *
+ * Only concepts the lesson genuinely requires — from its learning note's
+ * prerequisites and its authored `prerequisiteConceptIds` — and only those Base
+ * first-teaches (Task 16 containment). The result is deduplicated and sorted so
+ * the recap renders deterministically in both locales.
+ */
+function reviewedBaseReferencesFor(
+  requiredConceptIds: readonly string[],
+  prerequisiteConceptIds: readonly string[],
+  locale: Locale,
+): readonly A1ReviewedBaseReference[] {
+  const conceptIds = [
+    ...new Set([...requiredConceptIds, ...prerequisiteConceptIds]),
+  ]
+    .filter((conceptId) => BASE_REFERENCE_ID_BY_INHERITED_CONCEPT[conceptId] !== undefined)
+    .sort();
+
+  return conceptIds.flatMap((conceptId) => {
+    const referenceId = BASE_REFERENCE_ID_BY_INHERITED_CONCEPT[conceptId]!;
+    const definition = BASE_REFERENCE_CATALOG.find(
+      (candidate) => candidate.id === referenceId,
+    );
+    // Base owns the label; A1 never restates it in a locale file.
+    const label = definition?.copy[locale].label;
+    return label === undefined
+      ? []
+      : [{ conceptId, referenceId, href: baseReferencePath(referenceId), label }];
+  });
+}
+
 export function buildA1CurriculumViewModel(
   lessonId: string,
   locale: Locale,
@@ -647,6 +701,11 @@ export function buildA1CurriculumViewModel(
       recap: {
         vocabulary: vocabularyResult.items,
         retrievalCue: content.retrievalCue[locale],
+        reviewedBaseReferences: reviewedBaseReferencesFor(
+          noteResult.source.requiredConceptIds,
+          content.prerequisiteConceptIds,
+          locale,
+        ),
       },
     },
   };

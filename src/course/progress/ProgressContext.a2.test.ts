@@ -8,7 +8,7 @@ import {
   useProgress,
   type ProgressContextValue,
 } from "./ProgressContext";
-import { emptyLevelProgress } from "./progress";
+import { emptyLevelProgressV5 } from "./progress";
 import { getLessonExercises } from "../components/lessonExerciseModel";
 import { a2Checkpoint } from "../a2/catalog/checkpoint";
 import { A2_SYNTHESIS_LESSON_IDS } from "../a2/manifest";
@@ -114,7 +114,7 @@ describe("ProgressContext — level-aware A2 evidence (Phase 3 Task 8)", () => {
 
   it("records an A2 lesson visit into levels.a2 and leaves levels.a1 byte-identical", async () => {
     await withMountedProvider(async (get) => {
-      const a1Before = JSON.stringify(get().progressV4.levels.a1);
+      const a1Before = JSON.stringify(get().progressV5.levels.a1);
 
       await act(async () => get().markVisited("connected-conversation-1"));
 
@@ -122,13 +122,13 @@ describe("ProgressContext — level-aware A2 evidence (Phase 3 Task 8)", () => {
       expect(get().levelSummaryFor("a1").visitedLessonCount).toBe(0);
       expect(get().lessonEvidence("connected-conversation-1")?.visitedAt).not.toBeNull();
       // A1 evidence never contaminated by an A2 mutation.
-      expect(JSON.stringify(get().progressV4.levels.a1)).toBe(a1Before);
+      expect(JSON.stringify(get().progressV5.levels.a1)).toBe(a1Before);
     });
   });
 
   it("records A2 Can-do + practiced evidence into levels.a2 while levels.a1 stays byte-identical", async () => {
     await withMountedProvider(async (get) => {
-      const a1Before = JSON.stringify(get().progressV4.levels.a1);
+      const a1Before = JSON.stringify(get().progressV5.levels.a1);
 
       await acceptAllExercises(get, "connected-conversation-1");
 
@@ -137,7 +137,7 @@ describe("ProgressContext — level-aware A2 evidence (Phase 3 Task 8)", () => {
       // The A1 Can-do evidence surface must remain completely empty.
       expect(get().canDoEvidence).toEqual({});
       expect(get().lessonEvidence("connected-conversation-1")?.practicedAt).not.toBeNull();
-      expect(JSON.stringify(get().progressV4.levels.a1)).toBe(a1Before);
+      expect(JSON.stringify(get().progressV5.levels.a1)).toBe(a1Before);
     });
   });
 
@@ -170,35 +170,35 @@ describe("ProgressContext — level-scoped clearLevel (Phase 3 Task 8 spec-fix, 
     await withMountedProvider(async (get) => {
       // Real evidence in both levels (disjoint lesson-id namespaces route each
       // visit to its own level).
-      await act(async () => get().markVisited("sounds-1"));
+      await act(async () => get().markVisited("introductions-1"));
       await act(async () => get().markVisited("connected-conversation-1"));
       expect(get().levelSummaryFor("a1").visitedLessonCount).toBe(1);
       expect(get().levelSummaryFor("a2").visitedLessonCount).toBe(1);
 
-      const a1Before = JSON.stringify(get().progressV4.levels.a1);
+      const a1Before = JSON.stringify(get().progressV5.levels.a1);
 
       await act(async () => get().clearLevel("a2"));
 
       // A2 wiped back to empty…
       expect(get().levelSummaryFor("a2").visitedLessonCount).toBe(0);
-      expect(get().progressV4.levels.a2).toEqual(emptyLevelProgress());
+      expect(get().progressV5.levels.a2).toEqual(emptyLevelProgressV5());
       // …while A1 is preserved byte-for-byte.
-      expect(JSON.stringify(get().progressV4.levels.a1)).toBe(a1Before);
+      expect(JSON.stringify(get().progressV5.levels.a1)).toBe(a1Before);
       expect(get().levelSummaryFor("a1").visitedLessonCount).toBe(1);
     });
   });
 
   it("clears ONLY the selected A1 level and leaves A2 untouched", async () => {
     await withMountedProvider(async (get) => {
-      await act(async () => get().markVisited("sounds-1"));
+      await act(async () => get().markVisited("introductions-1"));
       await act(async () => get().markVisited("connected-conversation-1"));
-      const a2Before = JSON.stringify(get().progressV4.levels.a2);
+      const a2Before = JSON.stringify(get().progressV5.levels.a2);
 
       await act(async () => get().clearLevel("a1"));
 
       expect(get().levelSummaryFor("a1").visitedLessonCount).toBe(0);
-      expect(get().progressV4.levels.a1).toEqual(emptyLevelProgress());
-      expect(JSON.stringify(get().progressV4.levels.a2)).toBe(a2Before);
+      expect(get().progressV5.levels.a1).toEqual(emptyLevelProgressV5());
+      expect(JSON.stringify(get().progressV5.levels.a2)).toBe(a2Before);
       expect(get().levelSummaryFor("a2").visitedLessonCount).toBe(1);
     });
   });
@@ -206,7 +206,7 @@ describe("ProgressContext — level-scoped clearLevel (Phase 3 Task 8 spec-fix, 
   it("persists the cleared level so the other level survives a reload byte-identical (no destructive whole-store wipe)", async () => {
     const storage = memoryStorage({});
     await withMountedProvider(async (get) => {
-      await act(async () => get().markVisited("sounds-1"));
+      await act(async () => get().markVisited("introductions-1"));
       await act(async () => get().markVisited("connected-conversation-1"));
       await act(async () => get().clearLevel("a2"));
     }, storage);
@@ -260,17 +260,17 @@ describe("ProgressContext — A2 review actions infer and mutate the A2 level (B
 
       // A wrong attempt on an A2 exercise queues a review entry — into A2 only.
       await act(async () => get().recordAttempt({ ...input, outcome: "retry" }));
-      expect(get().progressV4.levels.a2.reviewQueue.length).toBe(1);
-      expect(get().progressV4.levels.a1.reviewQueue.length).toBe(0);
+      expect(get().progressV5.levels.a2.reviewQueue.length).toBe(1);
+      expect(get().progressV5.levels.a1.reviewQueue.length).toBe(0);
 
-      const a1Before = JSON.stringify(get().progressV4.levels.a1);
+      const a1Before = JSON.stringify(get().progressV5.levels.a1);
 
       // Resolving in review mode (the surface's "practice" action) clears the
       // A2 entry — proving the resolution mutation inferred the A2 level from
       // the lesson id, so the A2 review surface is genuinely actionable.
       await act(async () => get().resolveReview(input));
-      expect(get().progressV4.levels.a2.reviewQueue.length).toBe(0);
-      expect(JSON.stringify(get().progressV4.levels.a1)).toBe(a1Before);
+      expect(get().progressV5.levels.a2.reviewQueue.length).toBe(0);
+      expect(JSON.stringify(get().progressV5.levels.a1)).toBe(a1Before);
     });
   });
 });
