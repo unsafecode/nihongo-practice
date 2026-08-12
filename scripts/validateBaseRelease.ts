@@ -19,10 +19,9 @@
  *
  * ## Deliberate exit behaviour
  *
- * The Base naturalness ledger and the canonical-audio human-ear sign-off are
- * genuinely still `pending`: external review is happening in parallel with
- * this release. This script therefore separates two different things, and
- * treats them differently on purpose:
+ * The Base naturalness ledger now carries its independent aggregate approval;
+ * the canonical-audio human-ear sign-off remains genuinely `pending`. This
+ * script separates two different things and treats them differently on purpose:
  *
  *  - **Stale review — exit 1.** If the shipped content no longer matches what
  *    a ledger inventoried (changed Japanese, changed asset hash, drifted
@@ -31,12 +30,9 @@
  *    `naturalness-review-stale` / `audio-review-stale` and the build is
  *    refused.
  *  - **Pending external acceptance — exit 0, reported loudly.** A `pending`
- *    entry only means the external reviewer has not signed off yet. Failing
- *    the build on it would make the gate permanently red for a reason no
- *    change to this repository can fix, and quietly flipping it to `accepted`
- *    would be a fabricated pass. So the count is printed as an explicit
- *    warning *and* carried in the success line as `unresolved=N`. Nothing
- *    here writes, infers or upgrades an acceptance.
+ *    entry only means the external reviewer has not signed off yet. The count
+ *    is printed as an explicit warning and carried in the success line as
+ *    `unresolved=N`. Nothing here writes, infers or upgrades an acceptance.
  *
  * Run directly with `npx vite-node scripts/validateBaseRelease.ts`.
  */
@@ -64,6 +60,8 @@ if (!result.valid) {
 }
 
 const report = result.report;
+const naturalnessAccepted =
+  report.naturalnessReviews - report.pendingNaturalnessReviews;
 
 if (report.unresolvedFindings > 0) {
   console.warn(
@@ -79,5 +77,7 @@ console.log(
     `lexemes=${report.lexemes}; examples=${report.examples}; dialogueTurns=${report.dialogueTurns}; ` +
     `activities=${report.activities}; categories=${formatDistribution(report.categories)}; ` +
     `patternCells=${report.patternCells}; references=${report.referenceEntries}; ` +
-    `reviewedAudio=${report.reviewedAudio}; unresolved=${report.unresolvedFindings}).`,
+    `reviewedAudio=${report.reviewedAudio}; naturalnessAccepted=${naturalnessAccepted}; ` +
+    `pendingNaturalness=${report.pendingNaturalnessReviews}; pendingAudio=${report.pendingAudioReviews}; ` +
+    `unresolved=${report.unresolvedFindings}).`,
 );

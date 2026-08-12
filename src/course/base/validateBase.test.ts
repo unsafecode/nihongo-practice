@@ -112,12 +112,11 @@ describe("validateBaseRelease — the real release", () => {
     expect(result.report.referenceEntries).toBeGreaterThan(0);
   });
 
-  it("reports unresolved external-review findings without fabricating acceptance", () => {
-    // The naturalness ledger and the human-ear audio sign-off are genuinely
-    // still `pending` while external review runs in parallel. That is an
-    // *unresolved finding count*, never a fabricated pass and never a hard
-    // error — only a stale (content-changed-after-review) entry is an error.
-    expect(result.report.unresolvedFindings).toBeGreaterThan(0);
+  it("reports final naturalness approval separately from pending audio review", () => {
+    expect(result.report.naturalnessReviews).toBe(4_946);
+    expect(result.report.pendingNaturalnessReviews).toBe(0);
+    expect(result.report.pendingAudioReviews).toBe(86);
+    expect(result.report.unresolvedFindings).toBe(86);
     expect(result.report.reviewedAudio).toBe(
       result.report.audioReviews - result.report.pendingAudioReviews,
     );

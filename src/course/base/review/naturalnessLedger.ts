@@ -1043,39 +1043,56 @@ function readNaturalnessReviewApproval(
     !record.reviewerIdentity.trim() ||
     typeof record.reviewedAt !== "string" ||
     !/^\d{4}-\d{2}-\d{2}$/u.test(record.reviewedAt) ||
-    typeof record.aggregateFingerprint !== "string" ||
-    !/^[a-f0-9]{64}$/u.test(record.aggregateFingerprint) ||
     typeof record.acceptedEntryCount !== "number" ||
     !Number.isSafeInteger(record.acceptedEntryCount) ||
-    record.acceptedEntryCount < 0
+    record.acceptedEntryCount < 0 ||
+    typeof record.aggregateFingerprint !== "string" ||
+    !/^[a-f0-9]{64}$/u.test(record.aggregateFingerprint)
   ) {
     return null;
   }
   return {
     reviewerIdentity: record.reviewerIdentity,
     reviewedAt: record.reviewedAt,
-    aggregateFingerprint: record.aggregateFingerprint,
     acceptedEntryCount: record.acceptedEntryCount,
+    aggregateFingerprint: record.aggregateFingerprint,
   };
 }
 
-export function validateBaseNaturalnessReviewApproval(
+function reviewSourcesFor(
+  overrides: Partial<BaseNaturalnessSourceInputs>,
+): readonly ReviewSource[] {
+  return Object.keys(overrides).length === 0
+    ? REVIEW_SOURCES
+    : buildReviewSources({ ...DEFAULT_SOURCE_INPUTS, ...overrides });
+}
+
+function validateNaturalnessReviewApprovalForSources(
   value: unknown,
+  sources: readonly ReviewSource[],
 ): BaseNaturalnessReviewApprovalValidation {
   const approval = readNaturalnessReviewApproval(value);
   if (!approval) {
     return { ok: false, errors: deepFreeze(["invalid-approval-shape"]) };
   }
   const errors: BaseNaturalnessReviewApprovalError[] = [];
-  if (
-    approval.aggregateFingerprint !== BASE_NATURALNESS_CURRENT_CORPUS_FINGERPRINT
-  ) {
+  if (approval.aggregateFingerprint !== corpusFingerprint(sources)) {
     errors.push("aggregate-fingerprint-mismatch");
   }
-  if (approval.acceptedEntryCount !== REVIEW_SOURCES.length) {
+  if (approval.acceptedEntryCount !== sources.length) {
     errors.push("accepted-entry-count-mismatch");
   }
   return { ok: errors.length === 0, errors: deepFreeze(errors) };
+}
+
+export function validateBaseNaturalnessReviewApproval(
+  value: unknown,
+  sourceOverrides: Partial<BaseNaturalnessSourceInputs> = {},
+): BaseNaturalnessReviewApprovalValidation {
+  return validateNaturalnessReviewApprovalForSources(
+    value,
+    reviewSourcesFor(sourceOverrides),
+  );
 }
 
 export const BASE_NATURALNESS_REVIEW_APPROVAL_VALIDATION =
@@ -1089,13 +1106,17 @@ export const BASE_NATURALNESS_REVIEW_APPROVAL_VALIDATION =
  */
 export function baseNaturalnessReviewInventoryForApproval(
   value: unknown,
+  sourceOverrides: Partial<BaseNaturalnessSourceInputs> = {},
 ): readonly BaseNaturalnessReviewEntry[] {
+  const sources = reviewSourcesFor(sourceOverrides);
   const approval = readNaturalnessReviewApproval(value);
-  const acceptedApproval = validateBaseNaturalnessReviewApproval(value).ok
-    ? approval
-    : null;
+  const acceptedApproval =
+    validateNaturalnessReviewApprovalForSources(value, sources).ok
+      ? approval
+      : null;
   return deepFreeze(
-    REVIEW_SOURCES.map((source): BaseNaturalnessReviewEntry => {
+    sources.map((source): BaseNaturalnessReviewEntry => {
+      const fingerprint = fingerprintFor(source);
       const common = {
         contentId: source.contentId,
         lessonId: source.lessonId,
@@ -1104,7 +1125,7 @@ export function baseNaturalnessReviewInventoryForApproval(
         jp: source.jp,
         en: source.en,
         it: source.it,
-        fingerprint: fingerprintFor(source),
+        fingerprint,
       };
       return acceptedApproval
         ? {

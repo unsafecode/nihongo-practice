@@ -298,6 +298,27 @@ describe("independent Base naturalness inventory", () => {
     ).toHaveLength(0);
   });
 
+  it("fails closed when learner-visible corpus content changes", () => {
+    const copyEn = {
+      ...structuredClone(baseNavigationCopyEn),
+      content: { ...baseNavigationCopyEn.content },
+    };
+    copyEn.content[BASE_LEXICON[0].meaningCopyId] += " changed";
+
+    expect(
+      validateBaseNaturalnessReviewApproval(
+        BASE_NATURALNESS_REVIEW_APPROVAL,
+        { copyEn },
+      ).errors,
+    ).toContain("aggregate-fingerprint-mismatch");
+    expect(
+      baseNaturalnessReviewInventoryForApproval(
+        BASE_NATURALNESS_REVIEW_APPROVAL,
+        { copyEn },
+      ).every(({ status }) => status === "pending"),
+    ).toBe(true);
+  });
+
   it("covers every independently reachable localized copy and excludes only dead operation feedback", () => {
     const expected = independentlyReachableCopySourceIds();
     const actual = new Set(
@@ -705,6 +726,24 @@ describe("independent Base naturalness inventory", () => {
       expect(baseNavigationCopyEn.content[id], `${id}:en`).toBe(copy.en);
       expect(baseNavigationCopyIt.content[id], `${id}:it`).toBe(copy.it);
     }
+  });
+
+  it("completes naturalness review without changing pending audio review", () => {
+    expect(
+      BASE_NATURALNESS_REVIEW_INVENTORY.filter(
+        ({ status }) => status === "accepted",
+      ),
+    ).toHaveLength(4_946);
+    expect(
+      BASE_NATURALNESS_REVIEW_INVENTORY.filter(
+        ({ status }) => status === "pending",
+      ),
+    ).toHaveLength(0);
+    expect(
+      BASE_AUDIO_REVIEW_INVENTORY.filter(
+        ({ status }) => status === "pending",
+      ),
+    ).toHaveLength(86);
   });
 });
 

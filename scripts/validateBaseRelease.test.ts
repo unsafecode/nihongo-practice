@@ -90,6 +90,9 @@ describe("scripts/validateBaseRelease — the Base prebuild release gate", () =>
     expect(output).toContain("patternCells=57");
     expect(output).toContain("references=41");
     expect(output).toContain("reviewedAudio=0");
+    expect(output).toContain("naturalnessAccepted=0");
+    expect(output).toContain("pendingNaturalness=900");
+    expect(output).toContain("pendingAudio=120");
     expect(output).toContain("unresolved=1020");
   });
 
@@ -112,6 +115,8 @@ describe("scripts/validateBaseRelease — the Base prebuild release gate", () =>
     // Reported, explicitly, as an unresolved external finding — never
     // silently upgraded into an acceptance, never a fabricated pass.
     expect(warned).toContain("1020");
+    expect(warned).toContain("900 naturalness");
+    expect(warned).toContain("120 canonical audio");
     expect(warned).toMatch(/pending external review/i);
     expect(logSpy.mock.calls.flat().join(" ")).toContain("unresolved=1020");
   });
