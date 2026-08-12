@@ -263,6 +263,79 @@ const itUi = {
       reviewExceptionLabel: "Nota di ripasso",
     },
   },
+  baseLesson: {
+    sections: {
+      rule: "Regola",
+      vocabulary: "Vocabolario",
+      grammar: "Grammatica",
+      comparison: "Esempi",
+      explore: "Pratica",
+      recap: "Riepilogo",
+    },
+    unavailableTitle: "Questa lezione non è disponibile",
+    unavailableBody:
+      "Non è stato possibile preparare parte del contenuto di questa lezione. Non è stato mostrato nulla, così non ti eserciti mai su un esempio non funzionante.",
+    vocabulary: {
+      heading: "Vocabolario",
+      newWordsHeading: "Parole nuove",
+      reviewWordsHeading: "Parole già note da riutilizzare",
+      meaningLabel: "Significato",
+    },
+    explanation: {
+      mainLabel: "Come funziona",
+      constructionLabel: "Costruzione",
+      constraintsLabel: "Dove si applica",
+      commonErrorLabel: "Errore comune",
+      nearestContrastLabel: "Contrasto più vicino",
+      phoneticLabel: "Spiegazione del suono",
+      contrastMapHeading: "Contrasti sonori",
+    },
+    examples: {
+      heading: "Esempi svolti",
+      dialogueHeading: "Dialogo",
+      translationLabel: "Traduzione naturale",
+      turnLabel: (position: number) => `Turno ${position}`,
+    },
+    reference: {
+      heading: "Riferimento finora",
+    },
+    practice: {
+      heading: "Pratica",
+      intro: "Svolgi ogni passaggio in ordine; ognuno si basa sulla lezione qui sopra.",
+      stageNonSpokenHeading: "Costruisci e riconosci",
+      stageListeningHeading: "Ascolta",
+      stageSpokenHeading: "Parla",
+      submit: "Verifica",
+      accepted: "Corretto",
+      retry: "Non ancora — riprova.",
+      optionsLabel: "Scegline una",
+      tileBankLabel: "Tasselli disponibili",
+      tileAnswerLabel: "La tua risposta",
+      revealAnswer: "Mostra la risposta",
+      selfCheckPrompt: "L'hai indovinata?",
+      selfCheckCorrect: "Sì, l'avevo giusta",
+      selfCheckRetry: "Non proprio — mi serve altra pratica",
+    },
+    audio: {
+      idle: "Riproduci audio",
+      playing: "Riproduzione…",
+      stopped: "Fermato",
+      unavailable: "L'audio non è disponibile in questo browser.",
+      blocked: "La riproduzione audio è stata bloccata. Riprova.",
+      failed: "La riproduzione audio non è riuscita. Riprova.",
+      retry: "Riprova",
+      statusLabel: "Stato dell'audio",
+    },
+    listening: {
+      heading: "Ascolto",
+      instruction: "Ascolta, poi scegli l'opzione che corrisponde a quello che hai sentito.",
+    },
+    recap: {
+      heading: "Riepilogo",
+      vocabularyHeading: "Vocabolario di questa lezione",
+      canDoLabel: "Ora sai",
+    },
+  },
   practice: {
     eyebrow: "Pratica libera",
     title: "Esplora senza perdere il filo.",
@@ -408,7 +481,7 @@ const itUi = {
     helpBody:
       "Una versione precedente di questo percorso teneva traccia dei progressi in modo diverso. Quando la struttura è cambiata, ogni visita a una lezione che corrisponde in modo sicuro alla nuova struttura viene mantenuta automaticamente. I tentativi di pratica, gli elementi di ripasso salvati e i risultati delle verifiche legati agli esercizi rinnovati potrebbero dover essere completati di nuovo, perché non corrispondono più esattamente ai nuovi esercizi. Ogni vecchia visita senza una corrispondenza sicura nella nuova struttura è conservata come dati di recupero, senza essere considerata una lezione visitata equivalente.",
   },
-} satisfies Pick<CourseCopy, "home" | "progressMutation" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "a1Lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
+} satisfies Pick<CourseCopy, "home" | "progressMutation" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "a1Lesson" | "baseLesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
 
 const itCourseMap: CourseCopy["courseMap"] = {
   heading: "Il percorso",

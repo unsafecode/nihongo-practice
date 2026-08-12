@@ -263,6 +263,79 @@ const enUi = {
       reviewExceptionLabel: "Review note",
     },
   },
+  baseLesson: {
+    sections: {
+      rule: "Rule",
+      vocabulary: "Vocabulary",
+      grammar: "Grammar",
+      comparison: "Examples",
+      explore: "Practice",
+      recap: "Recap",
+    },
+    unavailableTitle: "This lesson could not be prepared",
+    unavailableBody:
+      "Some of this lesson's content could not be built right now. Nothing was shown so you never practice against a broken example.",
+    vocabulary: {
+      heading: "Vocabulary",
+      newWordsHeading: "New words",
+      reviewWordsHeading: "Known words to reuse",
+      meaningLabel: "Meaning",
+    },
+    explanation: {
+      mainLabel: "How it works",
+      constructionLabel: "Construction",
+      constraintsLabel: "Where this applies",
+      commonErrorLabel: "Common mistake",
+      nearestContrastLabel: "Nearest contrast",
+      phoneticLabel: "Sound explanation",
+      contrastMapHeading: "Sound contrasts",
+    },
+    examples: {
+      heading: "Worked examples",
+      dialogueHeading: "Dialogue",
+      translationLabel: "Natural translation",
+      turnLabel: (position: number) => `Turn ${position}`,
+    },
+    reference: {
+      heading: "Reference so far",
+    },
+    practice: {
+      heading: "Practice",
+      intro: "Work through every step in order; each one builds on the lesson above.",
+      stageNonSpokenHeading: "Build and recognize",
+      stageListeningHeading: "Listen",
+      stageSpokenHeading: "Speak",
+      submit: "Check",
+      accepted: "Correct",
+      retry: "Not yet — try again.",
+      optionsLabel: "Choose one",
+      tileBankLabel: "Available tiles",
+      tileAnswerLabel: "Your answer",
+      revealAnswer: "Show the answer",
+      selfCheckPrompt: "Did you get it right?",
+      selfCheckCorrect: "Yes, I had it right",
+      selfCheckRetry: "Not quite — I need more practice",
+    },
+    audio: {
+      idle: "Play audio",
+      playing: "Playing…",
+      stopped: "Stopped",
+      unavailable: "Audio is unavailable in this browser.",
+      blocked: "Audio playback was blocked. Try again.",
+      failed: "Audio playback failed. Try again.",
+      retry: "Try again",
+      statusLabel: "Audio status",
+    },
+    listening: {
+      heading: "Listening",
+      instruction: "Listen, then choose the option that matches what you heard.",
+    },
+    recap: {
+      heading: "Recap",
+      vocabularyHeading: "Vocabulary from this lesson",
+      canDoLabel: "You can now",
+    },
+  },
   practice: {
     eyebrow: "Free practice",
     title: "Explore without losing the thread.",
@@ -407,7 +480,7 @@ const enUi = {
     helpBody:
       "An earlier version of this course tracked progress differently. When the structure changed, any lesson visit that safely matches the new structure carries over automatically. Practice attempts, saved review items, and checkpoint results tied to exercises that were redesigned may need to be completed again, since they no longer match the new exercises exactly. Any older visit without a safe match in the new structure is retained as recovery data rather than shown as an equivalent visited lesson.",
   },
-} satisfies Pick<CourseCopy, "home" | "progressMutation" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "a1Lesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
+} satisfies Pick<CourseCopy, "home" | "progressMutation" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "a1Lesson" | "baseLesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
 
 const enCourseMap: CourseCopy["courseMap"] = {
   heading: "The course",

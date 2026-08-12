@@ -312,6 +312,79 @@ export interface CourseCopy {
       reviewExceptionLabel: string;
     };
   };
+  /**
+   * Localized chrome for the Base level's deep lesson page (Task 14). Base
+   * reuses A1's stable six-section anchor order
+   * (`rule`/`vocabulary`/`grammar`/`comparison`/`explore`/`recap`); the
+   * Japanese/meaning content itself always comes from
+   * `buildBaseLessonViewModel`/`buildBasePracticeModel` — these values are
+   * surrounding UI labels only, never a canonical answer or translation.
+   */
+  baseLesson: {
+    sections: Record<A1LessonSectionId, string>;
+    unavailableTitle: string;
+    unavailableBody: string;
+    vocabulary: {
+      heading: string;
+      newWordsHeading: string;
+      reviewWordsHeading: string;
+      meaningLabel: string;
+    };
+    explanation: {
+      mainLabel: string;
+      constructionLabel: string;
+      constraintsLabel: string;
+      commonErrorLabel: string;
+      nearestContrastLabel: string;
+      phoneticLabel: string;
+      contrastMapHeading: string;
+    };
+    examples: {
+      heading: string;
+      dialogueHeading: string;
+      translationLabel: string;
+      turnLabel: (position: number) => string;
+    };
+    reference: {
+      heading: string;
+    };
+    practice: {
+      heading: string;
+      intro: string;
+      stageNonSpokenHeading: string;
+      stageListeningHeading: string;
+      stageSpokenHeading: string;
+      submit: string;
+      accepted: string;
+      retry: string;
+      optionsLabel: string;
+      tileBankLabel: string;
+      tileAnswerLabel: string;
+      revealAnswer: string;
+      selfCheckPrompt: string;
+      selfCheckCorrect: string;
+      selfCheckRetry: string;
+    };
+    audio: {
+      idle: string;
+      playing: string;
+      stopped: string;
+      unavailable: string;
+      blocked: string;
+      failed: string;
+      retry: string;
+      statusLabel: string;
+    };
+    listening: {
+      heading: string;
+      instruction: string;
+    };
+    recap: {
+      heading: string;
+      vocabularyHeading: string;
+      canDoLabel: string;
+    };
+  };
   practice: {
     eyebrow: string;
     title: string;
