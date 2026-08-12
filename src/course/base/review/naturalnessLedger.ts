@@ -957,8 +957,23 @@ function buildReviewSources(
   );
 }
 
+/**
+ * A source's fingerprint is a pure function of that source, and every source in
+ * `REVIEW_SOURCES` is a frozen module constant, so the result can safely be
+ * cached against the source object itself.
+ *
+ * This is worth caching because the inventory is not built only once: every
+ * candidate approval validated through `baseNaturalnessReviewInventoryForApproval`
+ * rebuilds all ~4,900 entries, and hashing each source's payload dominates that
+ * cost. Without the cache, exercising the fail-closed paths re-hashes the whole
+ * corpus once per candidate, which is slow enough to time out under load.
+ */
+const fingerprintCache = new WeakMap<ReviewSource, string>();
+
 function fingerprintFor(source: ReviewSource): string {
-  return canonicalReviewFingerprint({
+  const cached = fingerprintCache.get(source);
+  if (cached !== undefined) return cached;
+  const fingerprint = canonicalReviewFingerprint({
     contentId: source.contentId,
     lessonId: source.lessonId,
     sourceId: source.sourceId,
@@ -968,6 +983,8 @@ function fingerprintFor(source: ReviewSource): string {
     it: source.it,
     payload: source.payload,
   });
+  fingerprintCache.set(source, fingerprint);
+  return fingerprint;
 }
 
 function corpusFingerprint(sources: readonly ReviewSource[]): string {
