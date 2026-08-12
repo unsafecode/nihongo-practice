@@ -302,16 +302,16 @@ const SENTENCE_FOUNDATIONS_COPY_EN: Readonly<Record<string, string>> = {
     construction:
       "For a name-title unit, place the bare name first and the title second. For a complete short predicate, place the identifying noun before です.",
     constraints:
-      "The name-title unit is a bounded modifier-head model. Possessive の and productive noun modification begin in TQ3.",
+      "The name-title unit is a bounded modifier-head model. Possessive の and productive noun modification begin in “Noun relations with の, も, and と.”",
     commonError:
       "Do not reverse title and name, insert さん before せんせい, or put です before its noun.",
     nearestContrast:
-      "SF2 showed what context can omit; SF4 shows internal modifier-head order and a complete short predicate.",
+      "“Predicate-final order and recoverable omission” showed what context can omit; this lesson shows internal modifier-head order and a complete short predicate.",
     recap:
       "Retrieve the bare names and student roles; put a name before せんせい and an identifying noun before です.",
     translations: [
-      "This is Professor Sakura.",
-      "This is Professor Ken.",
+      "This is Sakura, the teacher.",
+      "This is Ken, the teacher.",
       "It is a book.",
       "It is a ticket.",
       "As for me—I'm a university student.",
@@ -364,8 +364,8 @@ const SENTENCE_FOUNDATIONS_COPY_EN: Readonly<Record<string, string>> = {
       "A bare role remains a fragment here; choose the form completed by です.",
       "Choose the broad human category, not the narrower student role.",
       "Diagnose the reversed title unit, then restore modifier-before-head order.",
-      "Use the role stored for the friend, not an unrelated title.",
-      "Retrieve the group value stored for the photograph.",
+      "Use the friend’s established role, not an unrelated title.",
+      "Retrieve the established group value for the photograph.",
       "Listen again for the occupation noun and the complete predicate ending.",
       "Recall the professional profile and produce the predicate without reading a choice.",
     ],
@@ -497,7 +497,7 @@ const TOPIC_QUESTIONS_COPY_EN: Readonly<Record<string, string>> = {
       "Retrieve さとうさん, すずきさん, and まりさん, then choose が for a focused answer and は for an established topic.",
     translations: [
       "Tanaka is the one who is the nurse.",
-      "No—Yamada is the one who is the lawyer.",
+      "Yamada is the one who is the lawyer.",
       "My friend is the one who is an international student.",
       "The student is Satou.",
       "The teacher is Suzuki.",
@@ -776,7 +776,7 @@ const POLITE_VERBS_COPY_EN: Readonly<Record<string, string>> = {
       "Separates lemma identity from time reference.",
       "Shows an explicit metalinguistic label before the verb.",
       "Recognizes the longer verb as one lemma.",
-      "Completes the six authored lookup lemmas.",
+      "Completes the six selected lookup lemmas.",
       "Names the verb's sentence role without making a bare pseudo-sentence.",
       "Uses an explicit grammatical analysis label.",
       "Recognizes the complete predicate item.",
@@ -820,17 +820,17 @@ const POLITE_VERBS_COPY_EN: Readonly<Record<string, string>> = {
     ],
   }),
   ...semanticLessonCopy("polite-verbs-2", {
-    title: "Verb classes come from the stored lemma",
+    title: "Verb classes from the complete dictionary form",
     objective:
       "Distinguish godan, ichidan, する, and くる classes while treating -iru/-eru spellings cautiously.",
     main:
       "Verb class is canonical lexical information. Many -iru/-eru verbs are ichidan, but an explicit exception such as かえる remains godan.",
     construction:
-      "Compare the complete dictionary form with its stored class, then keep する and くる in their own special classes.",
+      "Compare the complete dictionary form with its verb class, then keep する and くる in their own special classes.",
     constraints:
       "Final る alone never proves ichidan. This lesson classifies forms; it does not yet ask you to produce stems.",
     commonError:
-      "Do not strip る from every -iru/-eru verb: godan かえる must follow its stored class.",
+      "Do not strip る from every -iru/-eru verb: かえる follows the godan pattern.",
     nearestContrast:
       "たべる is ichidan and かえる is godan even though both visibly end in -eru.",
     recap:
@@ -840,58 +840,58 @@ const POLITE_VERBS_COPY_EN: Readonly<Record<string, string>> = {
       "かえる is a reviewed -eru exception: it is godan.",
       "たべる is ichidan.",
       "みる is ichidan.",
-      "する has its own stored class.",
-      "くる has its own stored class.",
+      "する belongs to its own special verb class.",
+      "くる belongs to its own special verb class.",
       "Compare たべる (ichidan) with かえる (godan).",
       "Compare みる (ichidan) with special する.",
       "The godan label precedes およぐ.",
       "The くる-class label precedes くる.",
     ],
     purposes: [
-      "Classifies from the stored verb class, not the final sound alone.",
+      "Classifies the whole verb rather than relying on the final sound alone.",
       "Makes the explicit -eru exception visible.",
       "Contrasts an ordinary -eru ichidan verb with かえる.",
       "Adds an owned -iru ichidan form.",
       "Names the special class before deriving its stem.",
       "Keeps くる separate from final-sound guessing.",
       "Shows why -eru spelling alone cannot decide the class.",
-      "Requires the stored class for two similar-looking endings.",
+      "Distinguishes two similar-looking endings by checking the complete verb.",
       "Applies class recognition in an explicit analysis card.",
       "Retrieves くる with its own explicit class label.",
     ],
     instructions: [
-      "A sea-scene lookup card needs a class analysis. Choose the analysis supported by its stored lemma.",
+      "A sea-scene lookup card needs a class analysis. Choose the analysis supported by the complete dictionary form.",
       "A viewing-scene lookup card needs a class analysis. Choose the supported analysis.",
-      "A menu card shows the verb used for eating. Choose the classification supported by its stored entry.",
-      "The reviewed -eru exception card needs its stored analysis. Choose the supported analysis.",
+      "A menu card shows the verb used for eating. Choose the classification supported by the complete dictionary form.",
+      "The reviewed -eru exception card needs a class analysis. Choose the class that fits the complete verb.",
       "The displayed return card was guessed from spelling alone. Choose the repair.",
-      "The chart has a separate row for the basic verb used to do an action. Choose its stored entry.",
-      "The chart has a separate row for the verb used when someone comes. Retrieve its stored entry.",
+      "The chart has a separate row for the basic verb used to do an action. Choose the matching row.",
+      "The chart has a separate row for the verb used when someone comes. Retrieve the matching row.",
       "A reading-action lookup card needs a class analysis. Choose the supported analysis.",
       "Listen to which of the two analysis cards is read aloud, then choose its exact written match.",
       "From the displayed verb card, say the hidden class-analysis card from memory.",
     ],
     accepted: [
       "およぐ is correctly classified as godan.",
-      "みる follows the stored ichidan class.",
-      "The eating verb follows its stored ichidan classification.",
+      "みる follows the ichidan class.",
+      "The eating verb follows the ichidan classification.",
       "かえる remains godan despite its -eru spelling.",
       "The repair uses lexical class information instead of a suffix guess.",
       "する is kept in its explicit special class.",
       "くる is retrieved as its own special class.",
       "The reading-action lookup card is correctly analyzed.",
       "The written class card matches the recording.",
-      "The spoken card gives the stored godan analysis for the displayed verb.",
+      "The spoken card gives the godan analysis for the displayed verb.",
     ],
     retry: [
-      "Use the stored entry rather than the scene’s meaning.",
-      "Check the complete stored entry rather than its visible spelling alone.",
+      "Use the complete dictionary form rather than the scene’s meaning.",
+      "Check the complete dictionary form rather than its visible ending alone.",
       "Compare the complete eating lemma with the two proposed classifications.",
       "Use the exception note attached to the displayed entry.",
       "Identify the suffix-only guess as the error.",
       "Use the chart row reserved for the displayed entry.",
       "Retrieve the separate chart row for the displayed entry.",
-      "Compare the complete stored lemma against both proposed analyses.",
+      "Compare the complete dictionary form against both proposed analyses.",
       "Replay the complete recording and compare both written cards.",
       "Produce the hidden class card rather than reading a choice.",
     ],
@@ -901,7 +901,7 @@ const POLITE_VERBS_COPY_EN: Readonly<Record<string, string>> = {
     objective:
       "Derive godan and ichidan polite stems and use the explicit する→し and くる→き mappings.",
     main:
-      "The polite stem is generated from the stored verb class. Godan moves to the i-row, ichidan removes る, する uses し, and くる uses き.",
+      "The polite stem follows the verb class. Godan moves to the i-row, ichidan removes る, する uses し, and くる uses き.",
     construction:
       "Start from the owned dictionary lemma, follow its class rule once, and stop at the stem; ます is not attached until the next lesson.",
     constraints:
@@ -925,9 +925,9 @@ const POLITE_VERBS_COPY_EN: Readonly<Record<string, string>> = {
       "さんぽする becomes さんぽし.",
     ],
     purposes: [
-      "Derives a godan stem through the canonical engine.",
+      "Derives a godan stem with the godan rule.",
       "Shows the godan つ-to-ち row change.",
-      "Applies the stored exception class honestly.",
+      "Applies the special exception correctly.",
       "Removes the owned ichidan る.",
       "Confirms the short ichidan stem.",
       "Teaches the required する→し mapping.",
@@ -949,8 +949,8 @@ const POLITE_VERBS_COPY_EN: Readonly<Record<string, string>> = {
       "From the displayed reading lookup form, say the hidden stem analysis.",
     ],
     accepted: [
-      "The godan engine yields かき.",
-      "The godan engine changes まつ to まち.",
+      "The godan rule yields かき.",
+      "The godan rule changes まつ to まち.",
       "The study stem remains one final predicate piece.",
       "The source する is correctly transformed to し.",
       "The explicit くる mapping yields き.",
@@ -961,12 +961,12 @@ const POLITE_VERBS_COPY_EN: Readonly<Record<string, string>> = {
       "The spoken card reproduces the hidden よむ→よみ analysis.",
     ],
     retry: [
-      "Reapply the stored transformation rule to the displayed lookup form.",
-      "Reapply the stored transformation rule to the waiting card.",
+      "Reapply the transformation rule to the displayed dictionary form.",
+      "Reapply the transformation rule to the displayed waiting verb.",
       "Re-check how the displayed study card maps onto one complete analysis.",
       "Reapply the exceptional mapping shown in this lesson; the later ending is outside this task.",
       "Reapply the separate mapping shown for the coming card.",
-      "Use the stored exception note rather than the regular-looking shortcut.",
+      "Use the exception note rather than the regular-looking shortcut.",
       "Reapply the compound rule to the displayed telephone card.",
       "Reapply the compound rule to the displayed walking card.",
       "Replay the entire recording and compare both complete cards.",
@@ -1183,7 +1183,7 @@ const ARGUMENT_PARTICLES_COPY_EN: Readonly<Record<string, string>> = {
     construction:
       "Identify go, come, or return; decide whether the message focuses on arrival or direction; then place に or へ after the destination.",
     constraints:
-      "へ is pronounced e. に and へ are not cosmetic substitutes in these authored targets.",
+      "へ is pronounced e. に and へ are not cosmetic substitutes in these practice sentences.",
     commonError:
       "Do not memorize both particles as a single English “to” and swap them without changing the intended frame.",
     nearestContrast:
@@ -1200,7 +1200,7 @@ const ARGUMENT_PARTICLES_COPY_EN: Readonly<Record<string, string>> = {
       "Suzuki also heads toward Tokyo.",
       "Does Mari come to Kyoto?",
       "Yamada heads toward Osaka.",
-      "They return home.",
+      "I return home.",
     ],
     purposes: [
       "Uses に for a concrete endpoint licensed by going.",
@@ -1350,7 +1350,7 @@ const ARGUMENT_PARTICLES_COPY_EN: Readonly<Record<string, string>> = {
       "I buy an umbrella.",
       "I write a diary.",
       "I head toward the station.",
-      "They come to the office.",
+      "I come to the office.",
       "I return by train.",
       "As for the book, I read it.",
       "I eat fruit.",
@@ -1459,7 +1459,7 @@ const TIME_MOVEMENT_COPY_EN: Readonly<Record<string, string>> = {
       "Uses ふだん as real habitual evidence.",
       "Uses あした as real future evidence.",
       "Adds habitual evidence to a する compound.",
-      "Uses an authored future time without ongoing meaning.",
+      "Uses an explicit future time without ongoing meaning.",
       "Shows future nonpast with natural omission.",
       "Keeps the planned group implicit.",
       "Combines an explicit topic with weekly evidence.",
@@ -1511,7 +1511,7 @@ const TIME_MOVEMENT_COPY_EN: Readonly<Record<string, string>> = {
     main:
       "Specific scheduled times can take に. Relative expressions such as きょう and あした normally stand without obligatory に. Here から and まで only mark temporal or movement bounds.",
     construction:
-      "Classify the time expression, then add に only for the authored specific-time target; use から for a start and まで for an endpoint.",
+      "Classify the time expression, then add に only to the selected specific-time sentence; use から for a start and まで for an endpoint.",
     constraints:
       "から never means cause here, and まで never introduces an advanced extension. Their bounds are explicit in context.",
     commonError:
@@ -1586,7 +1586,7 @@ const TIME_MOVEMENT_COPY_EN: Readonly<Record<string, string>> = {
     objective:
       "Use ます, ません, ました, and ませんでした in the canonical four-cell order.",
     main:
-      "The Task 7 form engine supplies exactly four polite cells: nonpast affirmative, nonpast negative, past affirmative, and past negative.",
+      "Polite verbs have exactly four cells here: nonpast affirmative, nonpast negative, past affirmative, and past negative.",
     construction:
       "Choose time first, then polarity, and retrieve the generated ending without editing its token string.",
     constraints:
@@ -1721,7 +1721,7 @@ const TIME_MOVEMENT_COPY_EN: Readonly<Record<string, string>> = {
       "Lunch is the licensed theme of eating.",
       "The sentence states both every week and night.",
       "The repair uses future negative ません.",
-      "Sunday takes に in the authored routine.",
+      "Sunday takes に in the stated routine.",
       "The schedule is the theme of checking.",
       "The selected route matches the complete recording.",
       "The spoken plan is future and affirmative.",
@@ -1955,7 +1955,7 @@ const COPULA_ADJECTIVES_COPY_EN: Readonly<Record<string, string>> = {
     construction:
       "For おいしい, use おいしい, おいしくない, おいしかった, or おいしくなかった before polite です. Before a noun, keep the dictionary adjective directly before that noun.",
     constraints:
-      "Never add plain だ after an い-adjective. The stored adjective engine also supplies the irregular よ- forms of いい.",
+      "Never add plain だ after an い-adjective. The reviewed adjective forms also include the irregular よ- forms of いい.",
     commonError:
       "たかいだ is not a valid い-adjective predicate; repair only that ending.",
     nearestContrast:
@@ -1981,7 +1981,7 @@ const COPULA_ADJECTIVES_COPY_EN: Readonly<Record<string, string>> = {
       "Shows the full past-negative adjective ending.",
       "Keeps です as politeness, never plain だ.",
       "Changes only adjective polarity.",
-      "Uses the stored irregular stem for いい.",
+      "Uses the irregular stem for いい.",
       "Completes the irregular いい grid.",
       "Uses an い-adjective directly before a noun.",
       "Contrasts attributive use with predicative politeness.",
@@ -2047,7 +2047,7 @@ const COPULA_ADJECTIVES_COPY_EN: Readonly<Record<string, string>> = {
       "Satou is famous.",
       "I am not well.",
       "It is a quiet office.",
-      "It is a pretty student.",
+      "They are a well-presented student.",
       "The park is nice.",
       "It is an expensive umbrella.",
     ],
@@ -2291,9 +2291,9 @@ const EXISTENCE_LOCATION_COPY_EN: Readonly<Record<string, string>> = {
       "I study in the classroom.",
       "There is a dog at home.",
       "I work at home.",
-      "There is a fish in the garden.",
+      "There is a child in the garden.",
       "There is a flower in the room.",
-      "As for the fish, it is in the garden.",
+      "As for the fish, it is at home.",
       "As for the flower, it is in the room.",
       "I play in the garden.",
       "The teacher is in the office.",
@@ -2303,9 +2303,9 @@ const EXISTENCE_LOCATION_COPY_EN: Readonly<Record<string, string>> = {
       "Contrasts action-place で.",
       "Keeps an animate existence frame.",
       "Uses で with working.",
-      "Classifies a living fish.",
+      "Uses いる for a child in a plausible outdoor setting.",
       "Classifies a flower for ある.",
-      "Continues an established topic.",
+      "Continues a household fish as the established topic.",
       "Contrasts topic and existential focus.",
       "Shows another action place.",
       "Returns to a stative location.",
@@ -2313,13 +2313,13 @@ const EXISTENCE_LOCATION_COPY_EN: Readonly<Record<string, string>> = {
     instructions: [
       "A home card describes what is present rather than an activity. Choose the matching statement.",
       "A classroom card identifies what is present there. Choose the supported statement.",
-      "Arrange the displayed fish-location chunks into one complete statement.",
+      "Arrange the displayed chunks that place the fish at home into one complete statement.",
       "A conversation continues talking about the displayed flower. Complete the response.",
       "Change an activity card into the presence report shown beside it.",
       "The displayed room line introduces a new dog but uses the continuing-topic marking. Choose the one-change repair.",
       "A workplace schedule reports an activity. Choose the matching statement.",
       "Retrieve the location statement for the already established teacher.",
-      "Listen to the complete fish-location statement, then choose its exact written match.",
+      "Listen to the complete Yuki-location statement, then choose its exact written match.",
       "Recall the hidden study-location card and say the full statement.",
     ],
     accepted: [
@@ -2343,7 +2343,7 @@ const EXISTENCE_LOCATION_COPY_EN: Readonly<Record<string, string>> = {
       "Repair only the marking contradicted by the introduction context.",
       "Return to the visible workplace schedule.",
       "Keep the teacher established while retrieving the location.",
-      "Replay the whole recording before comparing the places.",
+      "Replay the whole recording before comparing locations.",
       "Recall the study card without reading an option.",
     ],
   }),
@@ -2443,7 +2443,7 @@ const EXISTENCE_LOCATION_COPY_EN: Readonly<Record<string, string>> = {
     objective:
       "Produce the practical te form for every Base verb class and ending family.",
     main:
-      "The te form follows a verb's stored class and ending: う・つ・る become って; む・ぶ・ぬ become んで; く becomes いて; ぐ becomes いで; and す becomes して.",
+      "The te form follows a verb's class and ending: う・つ・る become って; む・ぶ・ぬ become んで; く becomes いて; ぐ becomes いで; and す becomes して.",
     construction:
       "For ichidan verbs replace final る with て. Store する→して and くる→きて separately, and retain the reviewed exception いく→いって.",
     constraints:
@@ -2453,7 +2453,7 @@ const EXISTENCE_LOCATION_COPY_EN: Readonly<Record<string, string>> = {
     nearestContrast:
       "The dictionary form names the lexical entry; the te form is the linked form used by the three constructions that follow.",
     recap:
-      "Choose the stored class and final-sound family, apply its one canonical change, and keep いく as いって.",
+      "Choose the verb class and final-sound family, apply the matching change, and remember that いく becomes いって.",
     translations: [
       "かう becomes かって.",
       "まつ becomes まって.",
@@ -2481,20 +2481,20 @@ const EXISTENCE_LOCATION_COPY_EN: Readonly<Record<string, string>> = {
       "Shows the ぐ to いで change.",
       "Shows the す to して change.",
       "Shows the ichidan る replacement.",
-      "Keeps する as a stored special form.",
-      "Keeps くる as a stored special form.",
+      "Keeps する as a special form.",
+      "Keeps くる as a special form.",
       "Records いって instead of overgeneralized いいて.",
-      "Applies the stored くる change inside a compound.",
+      "Applies the くる change inside a compound.",
     ],
     instructions: [
       "Use the displayed action card to complete its linked change.",
       "Keep the action fixed and choose the matching result card.",
       "Build the comparison card from all the displayed pieces.",
-      "Use the stored card for the action of turning something off.",
+      "Use the card for the action of turning something off.",
       "Complete the displayed change for opening.",
       "The travel card disagrees with the reviewed travel form. Repair only that form.",
       "Retrieve the linked form for bringing something.",
-      "Recall the stored form for coming.",
+      "Recall the special form for coming.",
       "Listen to the whole recording, then choose the matching complete card.",
       "Recall the linked spoken form without reading an option.",
     ],
@@ -2504,21 +2504,21 @@ const EXISTENCE_LOCATION_COPY_EN: Readonly<Record<string, string>> = {
       "Right: the source and result are in a usable order.",
       "Right: けす links to けして.",
       "Right: あける links to あけて.",
-      "Right: the stored travel form is いって.",
+      "Right: the travel form is いって.",
       "Right: もってくる links to もってきて.",
       "Right: くる links to きて.",
       "Right: that card matches the recording.",
       "Right: はなす links to はなして.",
     ],
     retry: [
-      "Keep the same action and revisit its stored ending family.",
+      "Keep the same action and revisit its ending family.",
       "Keep the source card fixed before trying again.",
       "Use every displayed piece once.",
       "Return to the visible action card.",
       "Keep the opening action unchanged.",
       "Compare the whole travel card with the reviewed exception.",
       "Keep the compound action intact.",
-      "Return to the stored special action.",
+      "Return to the special action.",
       "Replay the whole recording before choosing.",
       "Recall the displayed action without adding another one.",
     ],
@@ -2548,7 +2548,7 @@ const EXISTENCE_LOCATION_COPY_EN: Readonly<Record<string, string>> = {
       "Please show me the book.",
       "Please take the luggage.",
       "Please open the window.",
-      "Excuse me—please do.",
+      "Excuse me—please.",
     ],
     purposes: [
       "Softens one explicit request without claiming universal politeness.",
@@ -2860,14 +2860,14 @@ const SYNTHESIS_ACCEPTED_EN = [
 ] as const;
 
 const SYNTHESIS_RETRY_EN = [
-  "Re-read the whole situation and compare both choices before trying again.",
+  "Re-read the whole situation, compare both choices, and try again.",
   "Compare only the requested contrast, then try again.",
-  "Rebuild the complete utterance from the visible chunks before retrying.",
+  "Rebuild the complete utterance from the visible chunks, then retry.",
   "Check every visible cue without adding new information, then retry.",
   "Locate the single visible defect and try again.",
-  "Return to the stated situation before choosing again.",
+  "Return to the stated situation and choose again.",
   "Review how the supplied details work together, then retry.",
-  "Review the whole word bank, return to the sentence-level cue, and try again.",
+  "Return to the sentence-level cue, compare both complete choices, and try again.",
   "Replay the recording and compare the full utterances, then retry.",
   "Review the visible cues, then make one new attempt.",
 ] as const;
@@ -2880,7 +2880,7 @@ const SYNTHESIS_COPY_EN: Readonly<Record<string, string>> = {
     main:
       "A natural description establishes a topic once, then adds identity or quality information without repeating an explicit pronoun in every turn.",
     construction:
-      "Use the reviewed topic, noun-predicate, adjective, modification, and existence patterns as complete authored units.",
+      "Use the reviewed topic, noun-predicate, adjective, modification, and existence patterns in complete sentences.",
     constraints:
       "Omit a topic only while the same person or thing remains uniquely recoverable from the exchange.",
     commonError:
@@ -2890,68 +2890,78 @@ const SYNTHESIS_COPY_EN: Readonly<Record<string, string>> = {
     recap:
       "You maintained one coherent topic chain while combining identity, quality, and location descriptions.",
     translations: [
-      "Tanaka is a famous researcher.",
-      "Suzuki is an energetic engineer.",
-      "Yamada is a quiet cook.",
-      "Mari is a smartly presented bank clerk.",
-      "It is an expensive desk.",
+      "Next week, Ken's plan is a meeting.",
+      "My name is Yuki.",
+      "Ken is a famous, good customer.",
+      "My father is a quiet cook.",
+      "My mother is an energetic bank clerk.",
       "The company employee's lunch is tasty.",
-      "There is a chair in the house.",
+      "Is the convenience store at the bus stop?",
       "There is a flower in the office.",
-      "Satou is a civil servant.",
+      "There is a hospital in Mika's city.",
+      "There is a police officer at the station.",
     ],
     purposes: [
-      "Keeps the topic once, then places な before the profession.",
-      "Combines a stable topic with a な-adjective noun description.",
-      "Uses one coherent description rather than repeating a pronoun.",
-      "Reviews attributive な inside an identity statement.",
-      "Places an い-adjective directly before its noun.",
+      "Combines a relative time with a familiar person's meeting plan.",
+      "Uses the possessive name frame for a first-person introduction.",
+      "Combines familiar な- and い-adjectives before one noun.",
+      "Places the familiar な-adjective before a profession in a family description.",
+      "Continues the family description with a different person and profession.",
       "Maintains the possessed lunch as the topic of the evaluation.",
-      "Reviews an inanimate existence frame within a description.",
+      "Checks one proposed location for an established destination.",
       "Keeps place に and existential が in their established roles.",
-      "Reviews a direct noun-predicate identity.",
+      "Uses a possessive place inside a complete existence frame.",
+      "Retrieves an animate existence frame in a plausible public place.",
     ],
     instructions: [
-      "Review the visible word bank. A child is energetic in the shared description; choose the sentence that preserves that fact.",
-      "Review the visible word bank. The car is not expensive in this situation; choose the matching sentence.",
-      "Review the visible word bank, then choose the sentence whose chunks form one natural description of Satou.",
-      "Review the visible word bank. The police officer is a civil servant here; complete the response.",
-      "Review the visible word bank, then repair the one malformed polite past ending.",
-      "Review the visible word bank. The map is already the item being discussed; choose the matching location statement.",
-      "Review every item in the description word bank. Yuki is feeling well in this situation; choose the matching sentence.",
-      "Review every item in the people-and-roles word bank, then choose the sentence that introduces the employee at the office.",
+      "The researcher is not famous in this situation. Choose the matching description.",
+      "Ai is not from Japan in this situation. Choose the matching sentence.",
+      "Choose the sentence whose visible chunks form one natural description of Satou.",
+      "The speaker's mother is a bank clerk. Complete the matching response.",
+      "Repair the one malformed polite past ending.",
+      "The flower is already being discussed and is at the station. Choose the matching location statement.",
+      "Yuki is feeling well here. Choose the sentence that matches that fact.",
+      "An employee is being introduced at the office. Choose the matching sentence.",
       "Listen once or replay, then choose the sentence you actually hear.",
-      "Use the two items in their shown order: identify the first as the second in one polite sentence.",
+      "Use the two visible items in their shown order to say that Tanaka is a station employee.",
     ],
     accepted: SYNTHESIS_ACCEPTED_EN,
     retry: SYNTHESIS_RETRY_EN,
   }),
   "base-synthesis-1-practical-dialogue-outcome":
-    "Maintain one person's description without repetitive pronouns or an ambiguous omission.",
+    "Exchange connected information about two parents while omitting only a uniquely recoverable topic.",
   "base-synthesis-1-practical-dialogue-turn-1-translation":
-    "Tanaka is a quiet researcher.",
+    "What is your father's name?",
   "base-synthesis-1-practical-dialogue-turn-1-purpose":
-    "Establishes Tanaka as the single topic.",
+    "Opens a family exchange with one explicit name question.",
   "base-synthesis-1-practical-dialogue-turn-2-translation":
-    "Is he well?",
+    "My father's name is Sora.",
   "base-synthesis-1-practical-dialogue-turn-2-purpose":
-    "Omits only the already established person.",
+    "Answers with the corresponding in-group family term.",
   "base-synthesis-1-practical-dialogue-turn-3-translation":
-    "Yes, he is well.",
+    "Is your mother a researcher?",
   "base-synthesis-1-practical-dialogue-turn-3-purpose":
-    "Continues the same recoverable topic naturally.",
+    "Moves clearly from the father to the mother.",
   "base-synthesis-1-practical-dialogue-turn-4-translation":
-    "Is he an engineer?",
+    "That's right, she is a researcher.",
   "base-synthesis-1-practical-dialogue-turn-4-purpose":
-    "Asks a second property without adding an unclear referent.",
+    "Confirms the mother's profession while she remains recoverable.",
   "base-synthesis-1-practical-dialogue-turn-5-translation":
-    "No, he is a researcher.",
+    "Is your mother's office clean?",
   "base-synthesis-1-practical-dialogue-turn-5-purpose":
-    "Answers the same topic with a corrected profession.",
+    "Introduces the mother's workplace explicitly.",
   "base-synthesis-1-practical-dialogue-turn-6-translation":
-    "He is famous.",
+    "Yes, it is clean.",
   "base-synthesis-1-practical-dialogue-turn-6-purpose":
-    "Closes the coherent description chain without a repeated pronoun.",
+    "Keeps the office as the uniquely recoverable topic.",
+  "base-synthesis-1-practical-dialogue-turn-7-translation":
+    "Is your mother's umbrella expensive?",
+  "base-synthesis-1-practical-dialogue-turn-7-purpose":
+    "Introduces one related possession without an ambiguous referent.",
+  "base-synthesis-1-practical-dialogue-turn-8-translation":
+    "No, it is not expensive.",
+  "base-synthesis-1-practical-dialogue-turn-8-purpose":
+    "Answers about the same umbrella without repeating its owner.",
 
   ...semanticLessonCopy("base-synthesis-2", {
     title: "Coordinating a routine and a plan",
@@ -2960,7 +2970,7 @@ const SYNTHESIS_COPY_EN: Readonly<Record<string, string>> = {
     main:
       "A routine uses dynamic nonpast for a repeated pattern; a plan uses it for a future event. Past and negative forms remain separate choices.",
     construction:
-      "Attach に to a specific clock time, use から and まで for two bounds, and realize every verb through its stored class.",
+      "Attach に to a specific clock time, use から and まで for two bounds, and form every verb according to its familiar class.",
     constraints:
       "Do not interpret a dynamic nonpast event as an unmarked action happening right now.",
     commonError:
@@ -2971,69 +2981,77 @@ const SYNTHESIS_COPY_EN: Readonly<Record<string, string>> = {
       "You coordinated a routine and a future plan using time points, time bounds, and the four polite cells.",
     translations: [
       "Tomorrow, I will write.",
-      "I do not usually write.",
+      "I do not write every week.",
       "Yesterday, I wrote.",
       "Last week, I did not write.",
-      "The cook will read at nine.",
-      "The company employee will study from seven until nine.",
-      "I will open it and then close it.",
-      "I will take the documents.",
-      "Yamada reads at seven.",
-      "I will remove the name.",
+      "I will go out on Monday.",
+      "My father will study from seven until nine.",
+      "I wore the clothes.",
+      "Will you listen and then make it tomorrow?",
+      "Ken is a good customer.",
+      "I will sleep at nine.",
     ],
     purposes: [
       "Uses dynamic nonpast only for a future event.",
       "Uses dynamic nonpast negative for a habitual pattern.",
       "Retrieves the polite past affirmative cell.",
       "Completes the four-cell set with polite past negative.",
-      "Attaches に only to the specific clock time.",
+      "Places one future outing on a stated weekday.",
       "Keeps から and まで as the two limits of one plan.",
-      "Connects two planned actions with bounded sequential て.",
-      "Keeps the document argument visibly licensed by を.",
-      "Retrieves the godan polite nonpast form as a stable state.",
-      "Keeps the item being removed explicit with を.",
+      "Keeps the clothing argument visibly licensed by を.",
+      "Connects two planned actions while keeping their order explicit.",
+      "Uses a familiar い-adjective directly before one noun.",
+      "Places a familiar future action at a specific time.",
     ],
     instructions: [
-      "Review the visible word bank. The researcher is preparing a later demonstration; choose the sentence that fits that plan.",
-      "Review the visible word bank. The person will remain alive tomorrow; choose the statement that fits.",
-      "Review the visible word bank. The engineer gets dressed before sitting down; choose the matching utterance.",
-      "Review the visible word bank. The clothes are part of the next plan; complete the matching statement.",
-      "Review the visible word bank, then repair the single malformed sound in the polite past ending.",
-      "Review the visible word bank. The speaker learned the plan yesterday; choose the matching completed statement.",
-      "Review every item in the future-action word bank, then use the time cue to choose the matching sentence.",
-      "Review every item in the routine word bank. Suzuki reads as part of that routine; choose the matching sentence.",
+      "Sora will write tomorrow. Choose the sentence that fits that plan.",
+      "Tanaka will not sing at night. Choose the matching statement.",
+      "The plan is to listen and then make it. Choose the matching utterance.",
+      "The speaker plans to wear the clothes. Complete the matching statement.",
+      "Repair the single malformed sound in the polite past ending.",
+      "The speaker learned it yesterday. Choose the matching completed statement.",
+      "The speaker does not usually work. Choose the matching sentence.",
+      "The flower died yesterday. Choose the matching completed statement.",
       "Listen to the complete time statement, then choose the exact match.",
-      "Use every item in the visible schedule word bank to produce one complete polite response.",
+      "Use the visible request cues to ask politely for the name to be erased.",
     ],
     accepted: SYNTHESIS_ACCEPTED_EN,
     retry: SYNTHESIS_RETRY_EN,
   }),
   "base-synthesis-2-practical-dialogue-outcome":
-    "Coordinate a short study and document plan with routine and future time cues.",
+    "Introduce yourself, discuss a work routine and two plans, then respond to a document request.",
   "base-synthesis-2-practical-dialogue-turn-1-translation":
-    "Do you usually study?",
+    "I am Yuki.",
   "base-synthesis-2-practical-dialogue-turn-1-purpose":
-    "Opens a practical schedule exchange with a habitual question.",
+    "Introduces the learner before the schedule exchange begins.",
   "base-synthesis-2-practical-dialogue-turn-2-translation":
-    "I study from seven until nine.",
+    "Do you usually work?",
   "base-synthesis-2-practical-dialogue-turn-2-purpose":
-    "Answers with the two established time bounds.",
+    "Opens the schedule exchange with a habitual question.",
   "base-synthesis-2-practical-dialogue-turn-3-translation":
-    "Will you go to the office at nine tomorrow?",
+    "That's right, I work.",
   "base-synthesis-2-practical-dialogue-turn-3-purpose":
-    "Moves from the routine to one specific future arrival.",
+    "Answers with the same licensed work object and habitual reading.",
   "base-synthesis-2-practical-dialogue-turn-4-translation":
-    "Yes, I will go at nine.",
+    "I will sing at night.",
   "base-synthesis-2-practical-dialogue-turn-4-purpose":
-    "Confirms the same future time without changing the event.",
+    "Adds one clear future plan after the work routine.",
   "base-synthesis-2-practical-dialogue-turn-5-translation":
-    "Will you show the documents?",
+    "Will you call and then meet at five?",
   "base-synthesis-2-practical-dialogue-turn-5-purpose":
-    "Asks about the licensed object in the shared plan.",
+    "Moves from the routine to two ordered actions at five.",
   "base-synthesis-2-practical-dialogue-turn-6-translation":
-    "Yes, I will bring them and show them.",
+    "No, I will call and then meet tomorrow.",
   "base-synthesis-2-practical-dialogue-turn-6-purpose":
-    "Closes with a coherent two-action document plan.",
+    "Keeps both actions in order while correcting the time.",
+  "base-synthesis-2-practical-dialogue-turn-7-translation":
+    "The documents, please.",
+  "base-synthesis-2-practical-dialogue-turn-7-purpose":
+    "Makes a concise request for the documents needed for the plan.",
+  "base-synthesis-2-practical-dialogue-turn-8-translation":
+    "Understood, I will bring them.",
+  "base-synthesis-2-practical-dialogue-turn-8-purpose":
+    "Accepts the request while the documents remain recoverable.",
 
   ...semanticLessonCopy("base-synthesis-3", {
     title: "Finding things and making a request",
@@ -3052,42 +3070,46 @@ const SYNTHESIS_COPY_EN: Readonly<Record<string, string>> = {
     recap:
       "You located people and things, distinguished に from で, and completed a practical request sequence.",
     translations: [
-      "There is a desk in the room.",
-      "There is a child in the garden.",
-      "The chair is in the house.",
-      "I play in the classroom.",
-      "Excuse me, please open the window.",
-      "I will close it and then leave.",
-      "There is a child at reception.",
-      "Please show the bag.",
+      "Is there salt in the shop?",
+      "Yuki is in the garden.",
+      "The luggage, please.",
+      "I will play in the classroom today.",
+      "Excuse me, Suzuki, please close the window.",
+      "Will you bring the map to the office?",
+      "Who is the station attendant?",
+      "Excuse me, please show me the bag.",
+      "Excuse me, please wash the clothes.",
+      "Will you board and then leave?",
     ],
     purposes: [
       "Uses location に and existential が for an inanimate entity.",
       "Selects います for an animate entity.",
-      "Contrasts a known chair topic with an existential introduction.",
+      "Uses a concise familiar request for the luggage already under discussion.",
       "Uses で for the place where an action happens.",
       "Makes a bounded practical request with てください.",
-      "Uses sequential て while keeping the final verb finite.",
-      "Introduces a person with existential が.",
-      "Keeps the requested object licensed by を.",
+      "Asks whether the map will be brought to the stated destination.",
+      "Asks for the identity of the station attendant.",
+      "Keeps the requested object licensed by を in a polite request.",
+      "Places すみません before a practical request with a licensed object.",
+      "Keeps the boarding action first and the finite movement action last.",
     ],
     instructions: [
-      "Review the visible word bank. The car is being introduced as newly present in the garden; choose the matching statement.",
-      "Review the visible word bank. The bag is the object of a practical washing request; choose the matching utterance.",
-      "Review the visible word bank. Call the child before leaving; choose the utterance that fits.",
-      "Review the visible word bank, then turn the clothing cue into one polite practical request.",
-      "Review the visible word bank, then repair only the malformed ending in the visible past form.",
-      "Review the visible word bank. The police officer is speaking at this moment; choose the matching statement.",
-      "Review every item in the room-and-place word bank, then choose the statement about the already discussed map.",
-      "Review every item in the practical-location word bank, then choose the polite request about the bag.",
+      "Salt is being introduced as present in the shop. Choose the matching statement.",
+      "The luggage is already understood. Ask Tanaka to bring it to the office.",
+      "Board and then leave. Choose the utterance that keeps that order.",
+      "Invite someone politely to come in tonight.",
+      "Repair only the malformed ending in the visible clothes-washing statement.",
+      "The police officer is speaking at this moment. Choose the matching statement.",
+      "The map is already being discussed and is at the office. Choose the matching location statement.",
+      "Ask Tanaka politely to close the window.",
       "Listen to the complete reading statement, then select the exact sentence.",
-      "Use every item in the visible word bank to make one polite request.",
+      "Use the visible bag and action cues to ask someone to open the bag and then take it.",
     ],
     accepted: SYNTHESIS_ACCEPTED_EN,
     retry: SYNTHESIS_RETRY_EN,
   }),
   "base-synthesis-3-practical-dialogue-outcome":
-    "Find two familiar places and request a map in one coherent exchange.",
+    "Find two familiar places, confirm a travel plan, and request a map in one coherent exchange.",
   "base-synthesis-3-practical-dialogue-turn-1-translation":
     "Where is the convenience store?",
   "base-synthesis-3-practical-dialogue-turn-1-purpose":
@@ -3101,99 +3123,115 @@ const SYNTHESIS_COPY_EN: Readonly<Record<string, string>> = {
   "base-synthesis-3-practical-dialogue-turn-3-purpose":
     "Keeps the same practical location exchange.",
   "base-synthesis-3-practical-dialogue-turn-4-translation":
-    "The restroom is at the station.",
+    "Today, the restroom is at reception.",
   "base-synthesis-3-practical-dialogue-turn-4-purpose":
     "Supplies the requested place without changing the frame.",
   "base-synthesis-3-practical-dialogue-turn-5-translation":
-    "Please show me the map.",
+    "Will you travel on Monday night this week?",
   "base-synthesis-3-practical-dialogue-turn-5-purpose":
-    "Turns the location exchange into a practical request.",
+    "Connects the location exchange to a specific travel plan.",
   "base-synthesis-3-practical-dialogue-turn-6-translation":
-    "Yes, I will show it.",
+    "Yes, I will travel on Monday night this week.",
   "base-synthesis-3-practical-dialogue-turn-6-purpose":
+    "Confirms the same weekday and time of day.",
+  "base-synthesis-3-practical-dialogue-turn-7-translation":
+    "Excuse me, Tanaka, please show me the map.",
+  "base-synthesis-3-practical-dialogue-turn-7-purpose":
+    "Turns the location exchange into a practical request addressed to Tanaka.",
+  "base-synthesis-3-practical-dialogue-turn-8-translation":
+    "Understood, I will show it.",
+  "base-synthesis-3-practical-dialogue-turn-8-purpose":
     "Closes the request with an appropriate response.",
 
   ...semanticLessonCopy("base-synthesis-4", {
-    title: "Combining the foundation mechanics",
+    title: "Putting the foundations together",
     objective:
-      "Use all five reference surfaces in a mixed interaction without treating it as certification.",
+      "Use the sentence patterns, particles, verb forms, and descriptions reviewed so far in one guided interaction.",
     main:
-      "This synthesis samples sentence anatomy, particles, verb classes, tense and polarity, and adjective-copula forms in one supported interaction.",
+      "This lesson brings together sentence structure, particles, verb types, tense and polarity, adjectives, and です.",
     construction:
-      "Keep each reviewed form on its approved realization path and each particle attached to its exact licensed role.",
+      "Use each familiar form and particle in the role practiced earlier.",
     constraints:
-      "This interaction records only observed practice evidence; it does not certify or unlock a level.",
+      "This is practice only; it does not certify a level or unlock new content.",
     commonError:
       "Do not collapse ongoing ています and a resulting ています state into one interpretation.",
     nearestContrast:
       "Compare an action visibly underway with the current result of a completed change.",
     recap:
-      "You combined all five reference surfaces in a mixed checkpoint-style interaction without introducing new content.",
+      "You brought the familiar foundations together in one guided interaction without introducing new content.",
     translations: [
-      "I am not a student.",
-      "Tanaka is quiet.",
-      "I did not read a book.",
-      "I do not eat rice.",
-      "I will do it.",
-      "I will go to school.",
-      "There is a friend at the station.",
-      "The station attendant is speaking now.",
-      "The friend is seated on a chair.",
-      "Today, I did not write.",
+      "What is my mother's name?",
+      "Suzuki knows the famous engineer.",
+      "I did not read yesterday.",
+      "Ai will not eat rice this week.",
+      "My mother cooked this morning.",
+      "I usually sing.",
+      "Is there a hospital in a city in the country?",
+      "Suzuki is speaking now.",
+      "Is Yuki seated on a chair?",
+      "Is Mika's plan at nine next week a meeting?",
     ],
     purposes: [
-      "Samples sentence anatomy through a complete identity clause.",
-      "Samples the adjective and copula reference surface.",
-      "Samples a licensed object and a godan polite form.",
-      "Samples the ichidan class through an approved generated form.",
-      "Samples the stored する class without inventing a form.",
-      "Samples goal に and dynamic future nonpast.",
-      "Samples the animate existence frame.",
+      "Samples sentence anatomy through a complete family-name question.",
+      "Uses attributive な and the current knowledge-state reading of ています.",
+      "Samples a past-negative godan polite form with a visible time.",
+      "Samples the ichidan class through a familiar generated form.",
+      "Reviews the special する class in a complete polite form.",
+      "Uses dynamic nonpast for a familiar repeated activity.",
+      "Uses a possessive place inside a complete inanimate existence question.",
       "Reads ています as an action currently in progress.",
       "Reads ています as the current result of sitting down.",
-      "Samples the past-negative cell with a relative-time anchor.",
+      "Checks a familiar person's meeting plan with relative and clock-time cues.",
     ],
     instructions: [
-      "Review the visible word bank, then use the lookup cue to choose the matching classification.",
-      "Review the visible word bank. The shop is clean in this situation; choose the matching description.",
-      "Review the visible word bank. Read before going; choose the utterance that fits.",
-      "Review the visible word bank. The bag is already being discussed; choose the matching location statement.",
-      "Review the visible word bank, then remove the one extra final sound from the malformed polite past ending.",
-      "Review the visible word bank. Suzuki is studying at this moment; choose the matching statement.",
-      "Review every item in the people-and-study word bank, then choose the statement for an action underway now.",
-      "Review every item in the action-and-location word bank, then choose the statement about the already discussed diary.",
+      "The energetic civil servant runs on Sunday. Choose the matching statement.",
+      "The speaker's mother's name is Haru. Choose the matching statement.",
+      "Listen and then help. Choose the utterance that keeps that order.",
+      "The child's fish is already being discussed and is at home. Choose the matching location statement.",
+      "Complete the malformed polite past ending in last week's diary-reading statement.",
+      "Suzuki will cook at five rather than nine. Choose the matching statement.",
+      "The speaker currently knows the famous engineer. Choose the matching statement.",
+      "Yuki is seated on a chair now. Choose the matching statement.",
       "Listen to the complete activity statement, then select the exact match.",
-      "Use every item in the visible word bank to make one polite reading request.",
+      "Use the visible magazine and reading cues to make one polite request.",
     ],
     accepted: SYNTHESIS_ACCEPTED_EN,
     retry: SYNTHESIS_RETRY_EN,
   }),
   "base-synthesis-4-practical-dialogue-outcome":
-    "Complete one mixed foundation interaction while recording practice evidence only.",
+    "Identify and locate Sakura's friend, then make a motivated request to call her.",
   "base-synthesis-4-practical-dialogue-turn-1-translation":
-    "My friend is a student.",
+    "I am Sakura.",
   "base-synthesis-4-practical-dialogue-turn-1-purpose":
-    "Establishes the person for the mixed interaction.",
+    "Opens the exchange with Sakura's direct first-person introduction.",
   "base-synthesis-4-practical-dialogue-turn-2-translation":
-    "They study at school.",
+    "I am Haru.",
   "base-synthesis-4-practical-dialogue-turn-2-purpose":
-    "Checks action-place で inside the shared scenario.",
+    "Returns the introduction before another person is mentioned.",
   "base-synthesis-4-practical-dialogue-turn-3-translation":
-    "They will go to the office today.",
+    "Excuse me, who is your friend?",
   "base-synthesis-4-practical-dialogue-turn-3-purpose":
-    "Adds a future movement goal.",
+    "Asks Sakura to identify the friend who will anchor the exchange.",
   "base-synthesis-4-practical-dialogue-turn-4-translation":
-    "My friend is at the office.",
+    "My friend is Yuki.",
   "base-synthesis-4-practical-dialogue-turn-4-purpose":
-    "Checks the existential frame before the request.",
+    "Identifies Yuki respectfully as ゆきさん.",
   "base-synthesis-4-practical-dialogue-turn-5-translation":
-    "Please read the book.",
+    "Is Yuki at the office?",
   "base-synthesis-4-practical-dialogue-turn-5-purpose":
-    "Adds one practical, bounded request.",
+    "Checks one possible location for the friend just identified.",
   "base-synthesis-4-practical-dialogue-turn-6-translation":
-    "Yes, I will read it today.",
+    "No, Yuki is at school.",
   "base-synthesis-4-practical-dialogue-turn-6-purpose":
-    "Closes with an observed plan, not a level decision.",
+    "Corrects the proposed location while keeping Yuki as the same friend.",
+  "base-synthesis-4-practical-dialogue-turn-7-translation":
+    "Excuse me, please call Yuki.",
+  "base-synthesis-4-practical-dialogue-turn-7-purpose":
+    "Makes a motivated request to call the friend whose location was established.",
+  "base-synthesis-4-practical-dialogue-turn-8-translation":
+    "Understood, I will call her.",
+  "base-synthesis-4-practical-dialogue-turn-8-purpose":
+    "Accepts the request with Yuki still uniquely recoverable.",
 };
 
 const SEMANTIC_OPERATION_COPY_EN: Readonly<Record<string, string>> = {
@@ -3454,7 +3492,7 @@ export const baseNavigationCopyEn: BaseNavigationCopy = deepFreeze({
     "base-module-outcome-requests-connection":
       "Take part in a small practical exchange with a request and response.",
     "base-module-outcome-base-synthesis":
-      "Use the foundation mechanics together in a supported everyday exchange.",
+      "Use the foundations together in a supported everyday exchange.",
   },
   content: {
     ...SENTENCE_FOUNDATIONS_COPY_EN,

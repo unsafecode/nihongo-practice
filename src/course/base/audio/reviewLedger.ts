@@ -192,7 +192,7 @@ const RAW_BASE_AUDIO_REVIEW_LEDGER: readonly BaseAudioReviewEntry[] = [
     "status": "pending"
   },
   {
-    "fingerprint": "511509b9c1cbf267c29fd9904cdef453ccfc9a53da07127596073e2f9a4ebe1f",
+    "fingerprint": "d62db3209ac3f7d8d11b9c5103e97b7ba062590895f405db5b16a93749ff6395",
     "status": "pending"
   },
   {
@@ -512,7 +512,7 @@ export const BASE_AUDIO_CURRENT_SEMANTIC_CORPUS_FINGERPRINT =
   );
 
 const INVENTORIED_SEMANTIC_AUDIO_CORPUS_FINGERPRINT =
-  "7057c010c4ac849e3bcb707f2bc4cdaaa2277646aa12d7e9715d370e2d9aee7b";
+  "5bda0a3a2913e071de799e3f6d93730674030c3a58dedde3ae21680a32be76c3";
 
 export const BASE_AUDIO_REVIEW_INVENTORY: readonly BaseAudioReviewInventoryEntry[] =
   deepFreeze([...physicalInventory, ...semanticInventory]);

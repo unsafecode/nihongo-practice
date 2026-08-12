@@ -80,7 +80,7 @@ describe("canonical Base catalog", () => {
     expect(baseCanonicalCatalog.copyById.size).toBe(
       baseCanonicalCatalog.copies.length,
     );
-    expect(baseCanonicalCatalog.examples).toHaveLength(361);
+    expect(baseCanonicalCatalog.examples).toHaveLength(364);
     expect(baseCanonicalCatalog.dialogues).toHaveLength(10);
     expect(baseCanonicalCatalog.activities).toHaveLength(392);
     expect(

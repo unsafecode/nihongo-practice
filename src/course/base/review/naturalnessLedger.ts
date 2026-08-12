@@ -1,11 +1,22 @@
 import { deepFreeze } from "../../foundations/deepFreeze";
-import type { BaseVisibleTarget } from "../catalog/types";
-import { BASE_AUDIO_CATALOG } from "../audio/catalog";
-import { baseNavigationCopyEn } from "../copy/en";
+import type {
+  BaseLexeme,
+  BaseReferenceSnapshotDefinition,
+  BaseVisibleTarget,
+} from "../catalog/types";
+import {
+  BASE_AUDIO_CATALOG,
+  type BaseAudioRecord,
+} from "../audio/catalog";
+import {
+  baseNavigationCopyEn,
+  type BaseNavigationCopy,
+} from "../copy/en";
 import { baseNavigationCopyIt } from "../copy/it";
 import {
   BASE_SOUND_MODULE,
   BASE_SOUND_TARGET_BY_ID,
+  type BaseSoundModule,
 } from "../content/module01Sounds";
 import { BASE_SENTENCE_FOUNDATIONS_MODULE } from "../content/module02SentenceFoundations";
 import { BASE_TOPIC_QUESTIONS_MODULE } from "../content/module03TopicQuestions";
@@ -18,6 +29,13 @@ import { BASE_COPULA_ADJECTIVES_MODULE } from "../content/module07CopulaAdjectiv
 import { BASE_EXISTENCE_LOCATION_MODULE } from "../content/module08ExistenceLocation";
 import { BASE_REQUESTS_CONNECTION_MODULE } from "../content/module09RequestsConnection";
 import { BASE_SYNTHESIS_MODULE } from "../content/module10Synthesis";
+import { BASE_REFERENCE_SNAPSHOTS } from "../catalog/concepts";
+import { BASE_LEXICON } from "../catalog/lexicon";
+import {
+  BASE_REFERENCE_CATALOG,
+  type BaseReferenceCatalog,
+  type BaseReferenceCopy,
+} from "../references/catalog";
 import { canonicalReviewFingerprint } from "./fingerprint";
 
 export type BaseNaturalnessSourceKind =
@@ -77,16 +95,229 @@ const SEMANTIC_LESSONS = [
   ...BASE_SYNTHESIS_MODULE.lessons,
 ];
 
+type BaseNaturalnessSemanticLesson = (typeof SEMANTIC_LESSONS)[number];
+
+interface BaseNaturalnessSourceInputs {
+  readonly copyEn: BaseNavigationCopy;
+  readonly copyIt: BaseNavigationCopy;
+  readonly soundModule: BaseSoundModule;
+  readonly semanticLessons: readonly BaseNaturalnessSemanticLesson[];
+  readonly lexemes: readonly BaseLexeme[];
+  readonly referenceSnapshots: readonly BaseReferenceSnapshotDefinition[];
+  readonly referenceCatalog: BaseReferenceCatalog;
+  readonly audioCatalog: readonly BaseAudioRecord[];
+}
+
+const DEFAULT_SOURCE_INPUTS: BaseNaturalnessSourceInputs = {
+  copyEn: baseNavigationCopyEn,
+  copyIt: baseNavigationCopyIt,
+  soundModule: BASE_SOUND_MODULE,
+  semanticLessons: SEMANTIC_LESSONS,
+  lexemes: BASE_LEXICON,
+  referenceSnapshots: BASE_REFERENCE_SNAPSHOTS,
+  referenceCatalog: BASE_REFERENCE_CATALOG,
+  audioCatalog: BASE_AUDIO_CATALOG,
+};
+
 function japanese(target: BaseVisibleTarget): string {
   return target.tokens.map(({ jp }) => jp).join("");
 }
 
-function copyPair(copyId: string): Readonly<{ en: string; it: string }> {
-  const en = baseNavigationCopyEn.content[copyId];
-  const it = baseNavigationCopyIt.content[copyId];
+function copyPair(
+  copyId: string,
+  inputs: BaseNaturalnessSourceInputs,
+): Readonly<{ en: string; it: string }> {
+  const en = inputs.copyEn.content[copyId];
+  const it = inputs.copyIt.content[copyId];
   return {
     en: typeof en === "string" ? en : "",
     it: typeof it === "string" ? it : "",
+  };
+}
+
+const TOKEN_GLOSSES: Readonly<
+  Record<string, Readonly<{ readonly en: string; readonly it: string }>>
+> = deepFreeze({
+  "topic-wa": { en: "topic marker", it: "marcatore di tema" },
+  "focus-subject-ga": {
+    en: "focused-subject marker",
+    it: "marcatore del soggetto focalizzato",
+  },
+  "existential-subject-ga": {
+    en: "newly introduced entity marker",
+    it: "marcatore dell'entità appena introdotta",
+  },
+  "object-o": { en: "object marker", it: "marcatore dell'oggetto" },
+  "goal-ni": { en: "destination marker", it: "marcatore della meta" },
+  "direction-he": {
+    en: "direction marker",
+    it: "marcatore della direzione",
+  },
+  "action-place-de": {
+    en: "action-place marker",
+    it: "marcatore del luogo dell'azione",
+  },
+  "means-de": { en: "means marker", it: "marcatore del mezzo" },
+  "time-ni": {
+    en: "specific-time marker",
+    it: "marcatore del tempo specifico",
+  },
+  "source-kara": { en: "starting-point marker", it: "marcatore dell'inizio" },
+  "limit-made": { en: "end-point marker", it: "marcatore del limite" },
+  "possessive-attributive-no": {
+    en: "linking の",
+    it: "の di collegamento",
+  },
+  "additive-mo": { en: "also marker", it: "marcatore di «anche»" },
+  "listing-to": { en: "and marker", it: "marcatore di «e»" },
+  "nominal-to": { en: "quotation marker", it: "marcatore di citazione" },
+  "companion-to": {
+    en: "companion marker",
+    it: "marcatore della compagnia",
+  },
+  "existence-location-ni": {
+    en: "existence-location marker",
+    it: "marcatore del luogo di esistenza",
+  },
+  "question-ka": { en: "question marker", it: "marcatore interrogativo" },
+  "interactional-ne": {
+    en: "shared-confirmation marker",
+    it: "marcatore di conferma condivisa",
+  },
+  "interactional-yo": {
+    en: "assertive marker",
+    it: "marcatore assertivo",
+  },
+  desu: { en: "polite copula", it: "copula cortese" },
+  "affirmative-desu": { en: "polite copula", it: "copula cortese" },
+  "dewa-arimasen": {
+    en: "polite negative copula",
+    it: "copula negativa cortese",
+  },
+  deshita: { en: "polite past copula", it: "copula passata cortese" },
+  "dewa-arimasen-deshita": {
+    en: "polite past-negative copula",
+    it: "copula passata negativa cortese",
+  },
+  masu: { en: "polite nonpast", it: "forma cortese non passata" },
+  masen: {
+    en: "polite nonpast negative",
+    it: "forma cortese non passata negativa",
+  },
+  mashita: {
+    en: "polite past affirmative",
+    it: "forma cortese passata affermativa",
+  },
+  "masen-deshita": {
+    en: "polite past negative",
+    it: "forma cortese passata negativa",
+  },
+  te: { en: "te form", it: "forma in て" },
+  "te-sequence": { en: "sequencing te form", it: "forma in て sequenziale" },
+  kudasai: { en: "please", it: "per favore" },
+  imasu: {
+    en: "ongoing or current-state ending",
+    it: "terminazione di azione in corso o stato attuale",
+  },
+  kunai: { en: "not", it: "non" },
+  katta: { en: "was", it: "era" },
+  kunakatta: { en: "was not", it: "non era" },
+  na: { en: "attributive な", it: "な attributivo" },
+  "godan-verb-class": { en: "godan verb", it: "verbo godan" },
+  "godan-verb-class-expanded": { en: "godan verb", it: "verbo godan" },
+  "ichidan-verb-class": { en: "ichidan verb", it: "verbo ichidan" },
+  "suru-verb-class": { en: "suru verb", it: "verbo in する" },
+  "kuru-verb-class": { en: "kuru verb", it: "verbo くる" },
+  "dictionary-lemma": {
+    en: "dictionary form",
+    it: "forma di dizionario",
+  },
+  "analysis-habitual": {
+    en: "habitual reading",
+    it: "lettura abituale",
+  },
+  "analysis-future": { en: "future reading", it: "lettura futura" },
+  "analysis-action-place": {
+    en: "action place",
+    it: "luogo dell'azione",
+  },
+  "analysis-means": { en: "means", it: "mezzo" },
+  "analysis-dictionary": {
+    en: "dictionary form",
+    it: "forma di dizionario",
+  },
+  "analysis-headword": { en: "headword", it: "lemma di consultazione" },
+  "analysis-lemma": { en: "base form", it: "forma base" },
+  "analysis-predicate": { en: "predicate", it: "predicato" },
+  "analysis-verb": { en: "verb", it: "verbo" },
+  "analysis-final-predicate": {
+    en: "clause-final predicate",
+    it: "predicato finale della frase",
+  },
+  "analysis-stem": { en: "polite stem", it: "tema cortese" },
+  "analysis-classification": {
+    en: "verb classification",
+    it: "classificazione verbale",
+  },
+  "analysis-class-question": {
+    en: "which verb type?",
+    it: "quale tipo di verbo?",
+  },
+  "analysis-pair": { en: "please listen", it: "ascolta, per favore" },
+  "analysis-suffix-guess": {
+    en: "ending only",
+    it: "soltanto la terminazione",
+  },
+  "analysis-source": {
+    en: "dictionary form",
+    it: "forma di dizionario",
+  },
+  "analysis-stem-source": {
+    en: "dictionary form to polite stem",
+    it: "dalla forma di dizionario al tema cortese",
+  },
+  "verb-class-exceptions": { en: "exception", it: "eccezione" },
+  "analysis-goal": { en: "arrival point", it: "punto d'arrivo" },
+  "analysis-direction": { en: "direction", it: "direzione" },
+  "polite-stems": { en: "polite stem", it: "tema cortese" },
+  "japanese-comma": { en: ",", it: "," },
+  "japanese-period": { en: ".", it: "." },
+});
+
+function reviewGloss(
+  target: BaseVisibleTarget,
+  inputs: BaseNaturalnessSourceInputs,
+): Readonly<{ readonly en: string; readonly it: string }> {
+  const lexemes = new Map(inputs.lexemes.map((lexeme) => [lexeme.id, lexeme]));
+  const glossToken = (
+    token: BaseVisibleTarget["tokens"][number],
+    locale: "en" | "it",
+  ): string => {
+    const lexeme = lexemes.get(token.source.referenceId);
+    if (lexeme) {
+      const meaning = copyPair(lexeme.meaningCopyId, inputs)[locale].trim();
+      if (meaning) return meaning;
+    }
+    const known = TOKEN_GLOSSES[token.source.referenceId]?.[locale];
+    if (known) return known;
+    return `「${token.jp}」`;
+  };
+  const en = target.tokens.map((token) => glossToken(token, "en")).join(" · ");
+  const it = target.tokens.map((token) => glossToken(token, "it")).join(" · ");
+  return {
+    en: `Literal review gloss: ${en || `「${japanese(target)}」`}.`,
+    it: `Glossa letterale di revisione: ${it || `「${japanese(target)}」`}.`,
+  };
+}
+
+function soundReviewGloss(
+  kana: string,
+  romaji: string,
+): Readonly<{ readonly en: string; readonly it: string }> {
+  const reading = romaji.trim() ? ` (${romaji})` : "";
+  return {
+    en: `Kana review display: ${kana}${reading}.`,
+    it: `Elemento kana da revisionare: ${kana}${reading}.`,
   };
 }
 
@@ -117,8 +348,9 @@ function localizedSource(
   copyId: string,
   jp: string,
   payload: unknown,
+  inputs: BaseNaturalnessSourceInputs,
 ): ReviewSource | null {
-  const { en, it } = copyPair(copyId);
+  const { en, it } = copyPair(copyId, inputs);
   if (!en || !it) return null;
   return {
     contentId: `copy:${copyId}`,
@@ -132,7 +364,28 @@ function localizedSource(
   };
 }
 
-function buildReviewSources(): readonly ReviewSource[] {
+function inlineLocalizedSource(
+  lessonId: string,
+  sourceId: string,
+  jp: string,
+  localized: Readonly<{ readonly en: string; readonly it: string }>,
+  payload: unknown,
+): ReviewSource {
+  return {
+    contentId: `copy:${sourceId}`,
+    lessonId,
+    sourceId,
+    sourceKind: "localized-copy",
+    jp,
+    en: localized.en,
+    it: localized.it,
+    payload: { sourceId, source: payload },
+  };
+}
+
+function buildReviewSources(
+  inputs: BaseNaturalnessSourceInputs = DEFAULT_SOURCE_INPUTS,
+): readonly ReviewSource[] {
   const sources: ReviewSource[] = [];
   const localized = new Map<string, ReviewSource>();
   const addLocalized = (
@@ -142,14 +395,85 @@ function buildReviewSources(): readonly ReviewSource[] {
     payload: unknown,
   ): void => {
     if (!copyId || localized.has(copyId)) return;
-    const source = localizedSource(lessonId, copyId, jp, payload);
+    const source = localizedSource(lessonId, copyId, jp, payload, inputs);
     if (source) localized.set(copyId, source);
   };
+  const addInlineLocalized = (
+    lessonId: string,
+    sourceId: string,
+    jp: string,
+    value: Readonly<{ readonly en: string; readonly it: string }>,
+    payload: unknown,
+  ): void => {
+    if (localized.has(sourceId)) return;
+    localized.set(
+      sourceId,
+      inlineLocalizedSource(lessonId, sourceId, jp, value, payload),
+    );
+  };
+  const addReferenceCopy = (
+    lessonId: string,
+    sourceId: string,
+    jp: string,
+    copy: BaseReferenceCopy,
+    payload: unknown,
+  ): void => {
+    for (const field of ["label", "explanation"] as const) {
+      addInlineLocalized(
+        lessonId,
+        `${sourceId}:${field}`,
+        jp,
+        { en: copy.en[field], it: copy.it[field] },
+        { field, source: payload },
+      );
+    }
+  };
 
-  for (const lesson of BASE_SOUND_MODULE.lessons) {
+  for (const lesson of inputs.soundModule.lessons) {
     const lessonId = lesson.content.lessonId;
+    const lessonAnchor = lesson.anchorWords[0]?.kana ?? lessonId;
+    addLocalized(lessonId, lesson.content.recapCopyId, lessonAnchor, lesson.content);
+    addLocalized(
+      lessonId,
+      lesson.content.phoneticExplanationCopyId,
+      lessonAnchor,
+      lesson.content,
+    );
+    addLocalized(
+      lessonId,
+      lesson.content.contrastMapId,
+      lessonAnchor,
+      lesson.content,
+    );
+    addInlineLocalized(
+      lessonId,
+      `inline:${lessonId}:scope-note`,
+      lessonAnchor,
+      lesson.scopeNote,
+      lesson.scopeNote,
+    );
+    for (const item of lesson.contrastiveItems) {
+      addInlineLocalized(
+        lessonId,
+        `inline:${lessonId}:contrast:${item.id}:explanation`,
+        item.kana,
+        item.explanation,
+        item,
+      );
+    }
+    for (const coverage of lesson.inventoryCoverage) {
+      if (coverage.rationale) {
+        addInlineLocalized(
+          lessonId,
+          `inline:${lessonId}:coverage:${coverage.inventoryId}:rationale`,
+          coverage.represented.join("") || lessonAnchor,
+          coverage.rationale,
+          coverage,
+        );
+      }
+    }
     for (const anchor of lesson.anchorWords) {
-      const meaning = copyPair(anchor.meaningCopyId);
+      const meaning = copyPair(anchor.meaningCopyId, inputs);
       sources.push({
         contentId: `${lessonId}:example:${anchor.id}`,
         lessonId,
@@ -161,6 +485,13 @@ function buildReviewSources(): readonly ReviewSource[] {
         payload: anchor,
       });
       addLocalized(lessonId, anchor.meaningCopyId, anchor.kana, anchor);
+      addInlineLocalized(
+        lessonId,
+        `inline:${lessonId}:anchor:${anchor.id}:status`,
+        anchor.kana,
+        anchor.status,
+        anchor,
+      );
     }
     for (const design of lesson.activityDesigns) {
       const activity = lesson.content.activities.find(
@@ -171,30 +502,33 @@ function buildReviewSources(): readonly ReviewSource[] {
       if (!activity || !prompt || !accepted) {
         throw new Error(`Incomplete sound review source "${design.activityId}".`);
       }
+      const promptGloss = soundReviewGloss(prompt.kana, prompt.romaji);
       sources.push({
         contentId: `${design.activityId}:prompt`,
         lessonId,
         sourceId: design.promptTargetId,
         sourceKind: "prompt",
         jp: prompt.kana,
-        en: "",
-        it: "",
+        en: promptGloss.en,
+        it: promptGloss.it,
         payload: prompt,
       });
       design.optionTargetIds.forEach((id, index) => {
         const option = BASE_SOUND_TARGET_BY_ID.get(id);
         if (!option) throw new Error(`Missing sound option "${id}".`);
+        const optionGloss = soundReviewGloss(option.kana, option.romaji);
         sources.push({
           contentId: `${design.activityId}:option:${index + 1}`,
           lessonId,
           sourceId: id,
           sourceKind: "option",
           jp: option.kana,
-          en: "",
-          it: "",
+          en: optionGloss.en,
+          it: optionGloss.it,
           payload: option,
         });
       });
+      const acceptedGloss = soundReviewGloss(accepted.kana, accepted.romaji);
       sources.push({
         contentId: `${design.activityId}:${
           design.correctOptionTargetId === null ? "spoken" : "accepted"
@@ -206,8 +540,8 @@ function buildReviewSources(): readonly ReviewSource[] {
             ? "spoken-answer"
             : "accepted-answer",
         jp: accepted.kana,
-        en: "",
-        it: "",
+        en: acceptedGloss.en,
+        it: acceptedGloss.it,
         payload: accepted,
       });
       addLocalized(
@@ -230,15 +564,24 @@ function buildReviewSources(): readonly ReviewSource[] {
       );
     }
   }
+  const soundAnchor =
+    inputs.soundModule.lessons[0]?.anchorWords[0]?.kana ?? "にほんご";
+  addInlineLocalized(
+    "sounds",
+    "inline:sounds:out-of-scope",
+    soundAnchor,
+    inputs.soundModule.outOfScope,
+    inputs.soundModule,
+  );
 
-  for (const lesson of SEMANTIC_LESSONS) {
+  for (const lesson of inputs.semanticLessons) {
     const lessonId = lesson.content.lessonId;
     lesson.examples.forEach((example) => {
       const translationCopyId =
         "copyId" in example.translationCopy
           ? example.translationCopy.copyId
           : example.translationCopy.enCopyId;
-      const translation = copyPair(translationCopyId);
+      const translation = copyPair(translationCopyId, inputs);
       const jp = japanese(example);
       sources.push(
         targetSource(
@@ -267,7 +610,7 @@ function buildReviewSources(): readonly ReviewSource[] {
       lesson.dialogue.turns.forEach((turn, index) => {
         const copy = lesson.dialogue?.turnCopy[index];
         const translation = copy
-          ? copyPair(copy.translationCopyId)
+          ? copyPair(copy.translationCopyId, inputs)
           : { en: "", it: "" };
         const sourceId = `${lesson.dialogue?.id}-turn-${index + 1}`;
         const jp = japanese(turn);
@@ -290,6 +633,7 @@ function buildReviewSources(): readonly ReviewSource[] {
     lesson.activityDesigns.forEach((design, index) => {
       const activity = lesson.content.activities[index];
       const promptJp = japanese(design.promptTarget);
+      const promptGloss = reviewGloss(design.promptTarget, inputs);
       sources.push(
         targetSource(
           `${activity.id}:prompt`,
@@ -297,12 +641,13 @@ function buildReviewSources(): readonly ReviewSource[] {
           `${activity.id}:prompt`,
           "prompt",
           design.promptTarget,
-          "",
-          "",
+          promptGloss.en,
+          promptGloss.it,
           design.contextTarget,
         ),
       );
       design.optionTargets.forEach((option, optionIndex) => {
+        const optionGloss = reviewGloss(option, inputs);
         sources.push(
           targetSource(
             `${activity.id}:option:${optionIndex + 1}`,
@@ -310,8 +655,8 @@ function buildReviewSources(): readonly ReviewSource[] {
             design.optionTargetIds[optionIndex],
             "option",
             option,
-            "",
-            "",
+            optionGloss.en,
+            optionGloss.it,
             {
               factStatus: design.optionFactStatus[optionIndex],
               reviewEvidence:
@@ -321,6 +666,7 @@ function buildReviewSources(): readonly ReviewSource[] {
         );
       });
       const spoken = design.correctOptionIndex === null;
+      const answerGloss = reviewGloss(design.acceptedAnswerTarget, inputs);
       sources.push(
         targetSource(
           `${activity.id}:${spoken ? "spoken" : "accepted"}`,
@@ -328,8 +674,8 @@ function buildReviewSources(): readonly ReviewSource[] {
           design.acceptedAnswerTargetId,
           spoken ? "spoken-answer" : "accepted-answer",
           design.acceptedAnswerTarget,
-          "",
-          "",
+          answerGloss.en,
+          answerGloss.it,
           {
             operationEvidence: design.operationEvidence,
             reviewEvidence:
@@ -345,8 +691,8 @@ function buildReviewSources(): readonly ReviewSource[] {
             design.audioContract.targetId,
             "audio-string",
             design.acceptedAnswerTarget,
-            "",
-            "",
+            answerGloss.en,
+            answerGloss.it,
             design.audioContract,
           ),
         );
@@ -410,7 +756,94 @@ function buildReviewSources(): readonly ReviewSource[] {
     addLocalized(lessonId, lesson.content.recapCopyId, anchorJp, lesson.content);
   }
 
-  for (const record of BASE_AUDIO_CATALOG) {
+  for (const lexeme of inputs.lexemes) {
+    addLocalized(
+      lexeme.firstTeachLessonId,
+      lexeme.meaningCopyId,
+      lexeme.kana,
+      lexeme,
+    );
+  }
+
+  for (const snapshot of inputs.referenceSnapshots) {
+    addLocalized(
+      snapshot.firstTeachLessonId,
+      snapshot.titleCopyId,
+      snapshot.id,
+      snapshot,
+    );
+  }
+
+  for (const reference of inputs.referenceCatalog) {
+    const prefix = `inline:reference:${reference.id}`;
+    const referenceAnchor =
+      reference.cells[0]?.tokens.map(({ jp }) => jp).join("") || soundAnchor;
+    addReferenceCopy(
+      reference.firstTeachLessonId,
+      `${prefix}:definition`,
+      referenceAnchor,
+      reference.copy,
+      reference,
+    );
+    for (const column of reference.columns) {
+      const columnAnchor =
+        reference.cells
+          .find(({ columnId }) => columnId === column.id)
+          ?.tokens.map(({ jp }) => jp)
+          .join("") || referenceAnchor;
+      addReferenceCopy(
+        reference.firstTeachLessonId,
+        `${prefix}:column:${column.id}`,
+        columnAnchor,
+        column.copy,
+        column,
+      );
+    }
+    for (const entry of reference.entries) {
+      const entryAnchor =
+        entry.canonicalFormCells[0]?.tokens.map(({ jp }) => jp).join("") ||
+        referenceAnchor;
+      addReferenceCopy(
+        entry.firstTeachLessonId,
+        `${prefix}:entry:${entry.semanticId}`,
+        entryAnchor,
+        entry.copy,
+        entry,
+      );
+    }
+    for (const cell of reference.cells) {
+      const owner = reference.entries.find(({ canonicalFormCells }) =>
+        canonicalFormCells.some(({ id }) => id === cell.id),
+      );
+      addReferenceCopy(
+        owner?.firstTeachLessonId ?? reference.firstTeachLessonId,
+        `${prefix}:cell:${cell.id}`,
+        cell.tokens.map(({ jp }) => jp).join("") || referenceAnchor,
+        cell.copy,
+        cell,
+      );
+    }
+  }
+
+  for (const record of inputs.audioCatalog) {
+    addLocalized(
+      record.id.replace(/^snd(\d+)-.*$/u, "sounds-$1"),
+      record.failureStateIds.failed,
+      record.kana,
+      record,
+    );
+    addLocalized(
+      record.id.replace(/^snd(\d+)-.*$/u, "sounds-$1"),
+      record.failureStateIds.unavailable,
+      record.kana,
+      record,
+    );
+    addLocalized(
+      record.id.replace(/^snd(\d+)-.*$/u, "sounds-$1"),
+      record.failureStateIds.retryControl,
+      record.kana,
+      record,
+    );
     sources.push({
       contentId: `audio-string:${record.id}`,
       lessonId: record.id.replace(/^snd(\d+)-.*$/u, "sounds-$1"),
@@ -429,13 +862,77 @@ function buildReviewSources(): readonly ReviewSource[] {
     });
   }
 
+  const lessonAnchorById = new Map<string, string>();
+  for (const lesson of inputs.soundModule.lessons) {
+    lessonAnchorById.set(
+      lesson.content.lessonId,
+      lesson.anchorWords[0]?.kana ?? soundAnchor,
+    );
+  }
+  for (const lesson of inputs.semanticLessons) {
+    lessonAnchorById.set(
+      lesson.content.lessonId,
+      lesson.examples[0] ? japanese(lesson.examples[0]) : soundAnchor,
+    );
+  }
+  const firstAnchor = lessonAnchorById.values().next().value ?? soundAnchor;
+  for (const [moduleId, en] of Object.entries(inputs.copyEn.modules)) {
+    const it = inputs.copyIt.modules[moduleId];
+    if (!it) continue;
+    const lessonId = Object.keys(inputs.copyEn.lessons).find(
+      (candidate) =>
+        candidate.startsWith(`${moduleId}-`) ||
+        (moduleId === "base-synthesis" &&
+          candidate.startsWith("base-synthesis-")),
+    );
+    const sourceId = `navigation:module:${moduleId}:title`;
+    addInlineLocalized(
+      lessonId ?? moduleId,
+      sourceId,
+      (lessonId && lessonAnchorById.get(lessonId)) ?? firstAnchor,
+      { en: en.title, it: it.title },
+      { section: "modules", moduleId },
+    );
+  }
+  for (const [lessonId, en] of Object.entries(inputs.copyEn.lessons)) {
+    const it = inputs.copyIt.lessons[lessonId];
+    if (!it) continue;
+    addInlineLocalized(
+      lessonId,
+      `navigation:lesson:${lessonId}:title`,
+      lessonAnchorById.get(lessonId) ?? firstAnchor,
+      { en: en.title, it: it.title },
+      { section: "lessons", lessonId },
+    );
+  }
+  for (const [copyId, en] of Object.entries(inputs.copyEn.objectives)) {
+    const it = inputs.copyIt.objectives[copyId];
+    if (typeof it !== "string") continue;
+    addInlineLocalized(
+      "base-curriculum",
+      `navigation:objective:${copyId}`,
+      firstAnchor,
+      { en, it },
+      { section: "objectives", copyId },
+    );
+  }
+  for (const [copyId, en] of Object.entries(inputs.copyEn.outcomes)) {
+    const it = inputs.copyIt.outcomes[copyId];
+    if (typeof it !== "string") continue;
+    addInlineLocalized(
+      "base-curriculum",
+      `navigation:outcome:${copyId}`,
+      firstAnchor,
+      { en, it },
+      { section: "outcomes", copyId },
+    );
+  }
+
   sources.push(...localized.values());
   return deepFreeze(
     sources.sort((left, right) => left.contentId.localeCompare(right.contentId)),
   );
 }
-
-const REVIEW_SOURCES = buildReviewSources();
 
 function fingerprintFor(source: ReviewSource): string {
   return canonicalReviewFingerprint({
@@ -450,16 +947,30 @@ function fingerprintFor(source: ReviewSource): string {
   });
 }
 
-export const BASE_NATURALNESS_CURRENT_CORPUS_FINGERPRINT =
-  canonicalReviewFingerprint(
-    REVIEW_SOURCES.map((source) => ({
+function corpusFingerprint(sources: readonly ReviewSource[]): string {
+  return canonicalReviewFingerprint(
+    sources.map((source) => ({
       contentId: source.contentId,
       fingerprint: fingerprintFor(source),
     })),
   );
+}
+
+export function baseNaturalnessCorpusFingerprintForSources(
+  overrides: Partial<BaseNaturalnessSourceInputs> = {},
+): string {
+  return corpusFingerprint(
+    buildReviewSources({ ...DEFAULT_SOURCE_INPUTS, ...overrides }),
+  );
+}
+
+const REVIEW_SOURCES = buildReviewSources();
+
+export const BASE_NATURALNESS_CURRENT_CORPUS_FINGERPRINT =
+  corpusFingerprint(REVIEW_SOURCES);
 
 const INVENTORIED_CORPUS_FINGERPRINT =
-  "5f846dde60bf049f231a5d8940c17707fefc2db6fc596972ada0d5c6a5b588ee";
+  "1063d25205837c4df49d04596f257ee7ca385bda058d7d1832200a6fc07aaec2";
 
 const acceptanceByContentId = new Map(
   EXTERNAL_ACCEPTANCES.map((acceptance) => [acceptance.contentId, acceptance]),

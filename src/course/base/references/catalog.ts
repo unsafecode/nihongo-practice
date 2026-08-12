@@ -802,8 +802,8 @@ const VERB_ENTRIES = [
     "base-form-te",
     ["Explicit exceptions", "Eccezioni esplicite"],
     [
-      "Stored exceptions override the regular class path.",
-      "Le eccezioni registrate sostituiscono il percorso regolare.",
+      "Explicit exceptions take precedence over the regular pattern.",
+      "Le eccezioni esplicite hanno la precedenza sullo schema regolare.",
     ],
     [cell("verb-exception-iku", "form", "Exception", "Eccezione", IKU_TE_FORM)],
     ["base-verb-class-godan"],

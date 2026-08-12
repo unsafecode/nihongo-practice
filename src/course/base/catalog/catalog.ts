@@ -1,5 +1,6 @@
 import { deepFreeze } from "../../foundations/deepFreeze";
 import { immutableReadonlyMap } from "../../foundations/immutableReadonlyMap";
+import { immutableReadonlySet } from "../../foundations/immutableReadonlySet";
 import type { BaseActivityDefinition, BaseConcept, BaseDialogue, BaseExample, BaseLexeme } from "./types";
 import { BASE_CONCEPTS } from "./concepts";
 import { BASE_LEXICON } from "./lexicon";
@@ -341,6 +342,36 @@ const VISIBLE_LEXEME_IDS_BY_LESSON: ReadonlyMap<string, ReadonlySet<string>> =
     return immutableReadonlyMap(entries);
   })();
 
+const SYNTHESIS_SURFACES_BY_LEXEME: ReadonlyMap<string, ReadonlySet<string>> =
+  (() => {
+    const surfacesByLexeme = new Map<string, Set<string>>();
+    for (const lesson of BASE_SYNTHESIS_MODULE.lessons) {
+      const targets = [
+        ...lesson.examples,
+        ...(lesson.dialogue?.turns ?? []),
+        ...lesson.activityDesigns.flatMap((design) => [
+          design.promptTarget,
+          design.acceptedAnswerTarget,
+          ...design.optionTargets,
+        ]),
+      ];
+      for (const target of targets) {
+        const surface = target.tokens.map(({ jp }) => jp).join("");
+        for (const lexemeId of target.lexemeIds) {
+          const surfaces = surfacesByLexeme.get(lexemeId) ?? new Set<string>();
+          surfaces.add(surface);
+          surfacesByLexeme.set(lexemeId, surfaces);
+        }
+      }
+    }
+    return immutableReadonlyMap(
+      [...surfacesByLexeme].map(([lexemeId, surfaces]) => [
+        lexemeId,
+        immutableReadonlySet(surfaces),
+      ]),
+    );
+  })();
+
 export function validateBaseLexemeRecurrence(
   value: unknown,
 ): BaseLexemeRecurrenceValidation {
@@ -378,7 +409,9 @@ export function validateBaseLexemeRecurrence(
         position > firstPosition &&
         VISIBLE_LEXEME_IDS_BY_LESSON.get(lessonId)?.has(lexeme.id) === true,
     );
-    if (laterLessons.length < 2) {
+    const synthesisSurfaceCount =
+      SYNTHESIS_SURFACES_BY_LEXEME.get(lexeme.id)?.size ?? 0;
+    if (laterLessons.length < 2 && synthesisSurfaceCount < 2) {
       errors.push({
         code: "insufficient-later-retrieval",
         lexemeId: lexeme.id,

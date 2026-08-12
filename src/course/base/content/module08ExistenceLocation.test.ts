@@ -12,6 +12,9 @@ import {
   validateBaseExistenceLocationModule,
 } from "./module08ExistenceLocation";
 
+const jp = (target: { readonly tokens: readonly { readonly jp: string }[] }) =>
+  target.tokens.map(({ jp: text }) => text).join("");
+
 describe("Task 12 existence-particle ownership", () => {
   it.each([
     ["base-particle-existence-ni", "concept"],
@@ -397,6 +400,30 @@ describe("Task 12 existence-particle ownership", () => {
     );
     expect(baseNavigationCopyIt.content[classroomEmployeeId]).toMatch(
       /aula/iu,
+    );
+  });
+
+  it("uses plausible animate locations instead of placing fish in a garden", () => {
+    const lesson = BASE_EXISTENCE_LOCATION_MODULE.lessons[2];
+    const japanese = [
+      ...lesson.examples.map(jp),
+      ...lesson.activityDesigns.flatMap((activity) => [
+        jp(activity.promptTarget),
+        ...activity.optionTargets.map(jp),
+        jp(activity.acceptedAnswerTarget),
+      ]),
+    ];
+
+    expect(japanese.some((surface) => /にわ.*さかな|さかな.*にわ/u.test(surface))).toBe(
+      false,
+    );
+    expect(jp(lesson.examples[4])).toBe("にわにこどもがいます");
+    expect(jp(lesson.examples[6])).toBe("さかなはうちにいます");
+    expect(jp(lesson.activityDesigns[2].acceptedAnswerTarget)).toBe(
+      "うちにさかながいます",
+    );
+    expect(jp(lesson.activityDesigns[8].acceptedAnswerTarget)).toBe(
+      "うちにゆきさんがいます",
     );
   });
 });

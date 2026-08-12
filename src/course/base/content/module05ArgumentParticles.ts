@@ -30,7 +30,6 @@ import {
   BASE_POLITE_VERBS_VALIDATION_CATALOGS,
   TASK11_COMMA,
   buildTask11Lesson,
-  task11AnalysisLabel,
   task11Cue,
   task11Lexeme,
   task11Particle,
@@ -208,20 +207,6 @@ function withFinalParticle(
         [role]: target.predicateLexemeId,
       },
     },
-  };
-}
-
-function roleAnnotated(
-  target: BaseTask11TargetSpec,
-  analysisId:
-    | "analysis-action-place"
-    | "analysis-means"
-    | "analysis-goal"
-    | "analysis-direction",
-): BaseTask11TargetSpec {
-  return {
-    ...target,
-    parts: [...target.parts, TASK11_COMMA, task11AnalysisLabel(analysisId)],
   };
 }
 
@@ -452,13 +437,13 @@ const L2: BaseTask11LessonSpec = {
     ex(motion("noun-tokyo", "verb-iku", "go-direction", "noun-suzuki", "additive-mo"), "tokyo-direction", "Suzuki also heads toward Tokyo.", "Anche Suzuki si dirige verso Tokyo.", "Combines an additive topic with a route direction.", "Combina un tema additivo con una direzione di percorso.", "direction-e"),
     ex(withFinalParticle(motion("noun-kyoto", "verb-kuru", "come-goal", "noun-mari"), "question", "question-ka"), "kyoto-arrival", "Does Mari come to Kyoto?", "Mari viene a Kyoto?", "Turns the coming endpoint into a confirmation question.", "Trasforma la meta d'arrivo in una domanda di conferma.", "goal-ni"),
     ex(withFinalParticle(motion("noun-osaka", "verb-iku", "go-direction", "noun-yamada"), "interaction", "interactional-yo"), "osaka-go-direction", "Yamada heads toward Osaka.", "Yamada si dirige verso Osaka.", "Presents Yamada's route direction as an update.", "Presenta come informazione nuova la direzione di Yamada.", "direction-e"),
-    ex(motion("anchor-ie", "verb-kaeru", "return-goal"), "home-return-goal", "They return home.", "Tornano a casa.", "Uses home as the natural endpoint of returning.", "Usa casa come meta naturale del ritorno.", "goal-ni"),
+    ex(motion("anchor-ie", "verb-kaeru", "return-goal"), "home-return-goal", "I return home.", "Torno a casa.", "Uses home as the natural endpoint of returning.", "Usa casa come meta naturale del ritorno.", "goal-ni"),
   ],
   activities: [
-    act(task11Cue(L("noun-eki")), roleAnnotated(motion("noun-eki", "verb-iku", "go-goal", "noun-watashi"), "analysis-goal"), roleAnnotated(motion("noun-eki", "verb-iku", "go-direction", "noun-watashi"), "analysis-direction"), 0, "argument-particles-2", 1, GOAL_NI, BASE_MEANING_ACTIVITY_SHAPE, "learner", "learner-goes-station"),
-    act(task11Cue(L("noun-daigaku")), roleAnnotated(motion("noun-daigaku", "verb-iku", "go-direction", "noun-tanaka"), "analysis-direction"), roleAnnotated(motion("noun-daigaku", "verb-iku", "go-goal", "noun-tanaka"), "analysis-goal"), 1, "argument-particles-2", 2, DIRECTION_E, BASE_FORM_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-eki")), motion("noun-eki", "verb-iku", "go-goal", "noun-watashi"), motion("noun-eki", "verb-iku", "go-direction", "noun-watashi"), 0, "argument-particles-2", 1, GOAL_NI, BASE_MEANING_ACTIVITY_SHAPE, "learner", "learner-goes-station"),
+    act(task11Cue(L("noun-daigaku")), motion("noun-daigaku", "verb-iku", "go-direction", "noun-tanaka"), motion("noun-daigaku", "verb-iku", "go-goal", "noun-tanaka"), 1, "argument-particles-2", 2, DIRECTION_E, BASE_FORM_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-byouin")), motion("noun-byouin", "verb-iku", "go-goal", "noun-yamada"), permutedArgumentTarget("verb-iku", "go-goal", { goal: "goal-ni", topic: "topic-wa" }, { goal: "noun-byouin", topic: "noun-yamada" }, [L("noun-yamada"), P("topic-wa", "topic", "noun-yamada"), task11VerbForm("verb-iku", "polite-nonpast"), L("noun-byouin"), P("goal-ni", "goal", "noun-byouin")], GOAL_NI, ["topic", "goal"]), 0, "argument-particles-2", 3, GOAL_NI, BASE_ORDERING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "word-order" }),
-    act(task11Cue(L("noun-mise")), roleAnnotated(motion("noun-mise", "verb-iku", "go-direction", "noun-satou"), "analysis-direction"), roleAnnotated(motion("noun-mise", "verb-iku", "go-goal", "noun-satou"), "analysis-goal"), 1, "argument-particles-2", 4, DIRECTION_E, BASE_CONTROLLED_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-mise")), motion("noun-mise", "verb-iku", "go-direction", "noun-satou"), motion("noun-mise", "verb-iku", "go-goal", "noun-satou"), 1, "argument-particles-2", 4, DIRECTION_E, BASE_CONTROLLED_ACTIVITY_SHAPE),
     act(promptOf(motion("anchor-gakkou", "verb-iku", "go-goal", "noun-suzuki")), motion("anchor-gakkou", "verb-iku", "go-direction", "noun-suzuki"), motion("anchor-gakkou", "verb-iku", "go-goal", "noun-suzuki"), 1, "argument-particles-2", 5, DIRECTION_E, BASE_TRANSFORMATION_ACTIVITY_SHAPE),
     act(promptOf(motion("anchor-ie", "verb-iku", "go-direction", "noun-mari")), motion("anchor-ie", "verb-iku", "go-goal", "noun-mari"), motion("anchor-ie", "verb-iku", "go-direction", "noun-mari"), 0, "argument-particles-2", 6, GOAL_NI, BASE_ERROR_ACTIVITY_SHAPE, "mari", "mari-goes-home", "goal-direction-context-mismatch"),
     act(task11Cue(L("noun-tokyo")), motion("noun-tokyo", "verb-iku", "go-direction", "noun-tanaka"), motion("noun-tokyo", "verb-iku", "go-goal", "noun-tanaka"), 0, "argument-particles-2", 7, DIRECTION_E, BASE_CONTEXT_ACTIVITY_SHAPE),
@@ -593,11 +578,11 @@ const L3: BaseTask11LessonSpec = {
     act(task11Cue(L("noun-densha")), means("noun-densha", "verb-iku", "travel-means", "noun-yamada"), permutedArgumentTarget("verb-iku", "travel-means", { means: "means-de", topic: "topic-wa" }, { means: "noun-densha", topic: "noun-yamada" }, [L("noun-yamada"), P("topic-wa", "topic", "noun-yamada"), task11VerbForm("verb-iku", "polite-nonpast"), L("noun-densha"), P("means-de", "means", "noun-densha")], MEANS, ["topic", "means"]), 0, "argument-particles-3", 3, MEANS, BASE_ORDERING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "word-order" }),
     act(task11Cue(L("noun-jitensha")), means("noun-jitensha", "verb-iku", "travel-means", "noun-satou"), means("noun-densha", "verb-iku", "travel-means", "noun-satou"), 1, "argument-particles-3", 4, MEANS, BASE_CONTROLLED_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "meaning" }),
     act(task11Cue(L("noun-enpitsu")), means("noun-enpitsu", "verb-kaku", "write-means", "noun-suzuki"), place("noun-mise", "verb-kaku", "write-place", "noun-suzuki"), 0, "argument-particles-3", 5, MEANS, BASE_CONTEXT_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "meaning" }),
-    act(promptOf(roleAnnotated(place("noun-mise", "verb-kaku", "write-place", "noun-mari"), "analysis-means")), roleAnnotated(place("noun-mise", "verb-kaku", "write-place", "noun-mari"), "analysis-action-place"), roleAnnotated(place("noun-mise", "verb-kaku", "write-place", "noun-mari"), "analysis-means"), 0, "argument-particles-3", 6, ACTION_PLACE, BASE_ERROR_ACTIVITY_SHAPE, "mari", "mari-writes-shop", "de-role-context-mismatch"),
+    act(promptOf(means("noun-enpitsu", "verb-kaku", "write-means", "noun-mari")), place("noun-mise", "verb-kaku", "write-place", "noun-mari"), means("noun-enpitsu", "verb-kaku", "write-means", "noun-mari"), 0, "argument-particles-3", 6, ACTION_PLACE, BASE_ERROR_ACTIVITY_SHAPE, "mari", "mari-writes-shop", "de-place-context-mismatch", { contrastAxis: "meaning" }),
     act(task11Cue(L("noun-kouen")), place("noun-kouen", "verb-kaku", "write-place", "noun-satou"), means("noun-enpitsu", "verb-kaku", "write-means", "noun-satou"), 1, "argument-particles-3", 7, ACTION_PLACE, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "meaning" }),
     act(task11Cue(L("anchor-gakkou")), place("anchor-gakkou", "verb-kaku", "write-place", "noun-yamada"), means("noun-enpitsu", "verb-kaku", "write-means", "noun-yamada"), 1, "argument-particles-3", 8, ACTION_PLACE, BASE_CONTROLLED_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "meaning" }),
     act(task11Cue(L("noun-mari"), TASK11_COMMA, task11VerbForm("verb-iku", "polite-nonpast")), means("noun-densha", "verb-iku", "travel-means", "noun-mari"), means("noun-jitensha", "verb-iku", "travel-means", "noun-mari"), 0, "argument-particles-3", 9, MEANS, BASE_LISTENING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "meaning" }),
-    act(task11Cue(L("noun-enpitsu")), means("noun-enpitsu", "verb-kaku", "write-means", "noun-mari"), place("noun-kouen", "verb-kaku", "write-place", "noun-mari"), 1, "argument-particles-3", 10, MEANS, BASE_SPOKEN_ACTIVITY_SHAPE),
+    act(task11Cue(L("noun-jitensha")), means("noun-jitensha", "verb-iku", "travel-means", "noun-tanaka"), means("noun-densha", "verb-iku", "travel-means", "noun-tanaka"), 1, "argument-particles-3", 10, MEANS, BASE_SPOKEN_ACTIVITY_SHAPE),
   ],
   dialogue: null,
 };
@@ -622,6 +607,7 @@ const L4: BaseTask11LessonSpec = {
     "noun-eki",
     "noun-daigaku",
     "noun-kouen",
+    "noun-toshokan",
     "noun-densha",
     "noun-gohan",
     "noun-mizu",
@@ -664,7 +650,7 @@ const L4: BaseTask11LessonSpec = {
     ex(object("noun-kasa", "verb-kau", "buy"), "umbrella-buy", "I buy an umbrella.", "Compro un ombrello.", "The buying sense selects theme を.", "Il senso comprare seleziona を di tema.", "predicate-led"),
     ex(object("noun-nikki", "verb-kaku", "write"), "diary-write", "I write a diary.", "Scrivo un diario.", "The writing sense selects the diary as theme.", "Il senso scrivere seleziona il diario come tema.", "predicate-led"),
     ex(mixed(motion("noun-eki", "verb-iku", "go-direction")), "station-direction", "I head toward the station.", "Mi dirigo verso la stazione.", "Chooses directional へ for a route view.", "Sceglie へ direzionale per una prospettiva di percorso.", "predicate-led"),
-    ex(mixed(motion("noun-jimusho", "verb-kuru", "come-goal")), "office-arrival", "They come to the office.", "Vengono in ufficio.", "Chooses goal に for an arrival endpoint.", "Sceglie に di meta per un punto d'arrivo.", "predicate-led"),
+    ex(mixed(motion("noun-jimusho", "verb-kuru", "come-goal")), "office-arrival", "I come to the office.", "Vengo in ufficio.", "Chooses goal に for an arrival endpoint.", "Sceglie に di meta per un punto d'arrivo.", "predicate-led"),
     ex(mixed(means("noun-densha", "verb-kaeru", "travel-means")), "train-return", "I return by train.", "Torno in treno.", "Selects means で from the transport context.", "Seleziona で di mezzo dal contesto di trasporto.", "predicate-led"),
     ex(mixed(object("anchor-hon", "verb-yomu", "read", TOPICALIZED_OBJECT)), "book-topic", "As for the book, I read it.", "Quanto al libro, lo leggo.", "Keeps the reading theme licensed under topicalization.", "Mantiene il tema di leggere ammesso sotto topicalizzazione.", "predicate-led"),
     ex(mixed(object("noun-kudamono", "verb-taberu", "eat")), "fruit-object", "I eat fruit.", "Mangio della frutta.", "Retrieves the eating theme with a different object.", "Recupera il tema di mangiare con un oggetto diverso.", "predicate-led"),
@@ -672,13 +658,13 @@ const L4: BaseTask11LessonSpec = {
   ],
   activities: [
     act(task11Cue(L("noun-shokudou")), mixed(motion("noun-shokudou", "verb-iku", "go-goal", "noun-watashi", "focus-subject-ga")), mixed(motion("noun-shokudou", "verb-iku", "go-direction", "noun-watashi", "focus-subject-ga")), 0, "argument-particles-4", 1, MIXED, BASE_MEANING_ACTIVITY_SHAPE, "learner", "learner-goes-cafeteria"),
-    act(task11Cue(L("noun-jimusho")), mixed(roleAnnotated(place("noun-jimusho", "verb-kaku", "write-place", "noun-tanaka"), "analysis-action-place")), mixed(roleAnnotated(means("noun-enpitsu", "verb-kaku", "write-means", "noun-tanaka"), "analysis-means")), 1, "argument-particles-4", 2, MIXED, BASE_FORM_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "meaning" }),
+    act(task11Cue(L("noun-jimusho")), mixed(place("noun-jimusho", "verb-kaku", "write-place", "noun-yamada")), mixed(place("noun-toshokan", "verb-kaku", "write-place", "noun-yamada")), 1, "argument-particles-4", 2, MIXED, BASE_FORM_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "meaning" }),
     act(task11Cue(L("noun-kasa")), mixed(object("noun-kasa", "verb-kau", "buy", OBJECT_O, "noun-yamada")), permutedArgumentTarget("verb-kau", "buy", { theme: "object-o", topic: "topic-wa" }, { theme: "noun-kasa", topic: "noun-yamada" }, [L("noun-yamada"), P("topic-wa", "topic", "noun-yamada"), task11VerbForm("verb-kau", "polite-nonpast"), L("noun-kasa"), P("object-o", "theme", "noun-kasa")], MIXED, ["topic", "theme"], ["predicate-led-particle-selection"]), 0, "argument-particles-4", 3, MIXED, BASE_ORDERING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "word-order" }),
     act(task11Cue(L("noun-gohan")), mixed(focusedObject("noun-gohan", "verb-taberu", "eat", OBJECT_O, "noun-satou")), mixed(focusedObject("noun-gohan", "verb-taberu", "eat", TOPICALIZED_OBJECT, "noun-satou")), 1, "argument-particles-4", 4, MIXED, BASE_CONTROLLED_ACTIVITY_SHAPE, "satou", "satou-eats-rice"),
     act(task11Cue(L("noun-eki")), mixed(motion("noun-eki", "verb-iku", "go-direction", "noun-suzuki")), mixed(motion("noun-eki", "verb-iku", "go-goal", "noun-suzuki")), 0, "argument-particles-4", 5, MIXED, BASE_CONTEXT_ACTIVITY_SHAPE),
     act(promptOf(mixed(withFinalParticle(means("noun-kasa", "verb-kaku", "write-means", "noun-mari"), "interaction", "interactional-ne"))), mixed(withFinalParticle(means("noun-enpitsu", "verb-kaku", "write-means", "noun-mari"), "interaction", "interactional-ne")), mixed(withFinalParticle(means("noun-kasa", "verb-kaku", "write-means", "noun-mari"), "interaction", "interactional-yo")), 1, "argument-particles-4", 6, MIXED, BASE_ERROR_ACTIVITY_SHAPE, "mari", "mari-writes-pencil", "means-context-mismatch", { contrastAxis: "meaning" }),
     act(task11Cue(L("noun-nikki")), mixed(object("noun-nikki", "verb-yomu", "read", TOPICALIZED_OBJECT)), mixed(object("noun-nikki", "verb-yomu", "read", OBJECT_O)), 1, "argument-particles-4", 7, MIXED, BASE_RETRIEVAL_ACTIVITY_SHAPE),
-    act(task11Cue(L("noun-daigaku")), mixed(roleAnnotated(motion("noun-daigaku", "verb-iku", "go-goal", "noun-yamada"), "analysis-goal")), mixed(roleAnnotated(motion("noun-daigaku", "verb-iku", "go-direction", "noun-yamada"), "analysis-direction")), 0, "argument-particles-4", 8, MIXED, BASE_CONTROLLED_ACTIVITY_SHAPE, "yamada", "yamada-goes-university"),
+    act(task11Cue(L("noun-daigaku")), mixed(motion("noun-daigaku", "verb-iku", "go-goal", "noun-yamada")), mixed(motion("noun-daigaku", "verb-iku", "go-direction", "noun-yamada")), 0, "argument-particles-4", 8, MIXED, BASE_CONTROLLED_ACTIVITY_SHAPE, "yamada", "yamada-goes-university"),
     act(task11Cue(L("noun-kouen")), mixed(motion("noun-kouen", "verb-iku", "go-direction", "noun-satou")), mixed(motion("noun-kouen", "verb-iku", "go-goal", "noun-satou")), 0, "argument-particles-4", 9, MIXED, BASE_LISTENING_ACTIVITY_SHAPE),
     act(task11Cue(L("noun-kasa")), mixed(object("noun-kasa", "verb-kau", "buy", OBJECT_O, "noun-suzuki")), mixed(object("noun-nikki", "verb-kaku", "write", OBJECT_O, "noun-suzuki")), 1, "argument-particles-4", 10, MIXED, BASE_SPOKEN_ACTIVITY_SHAPE, "suzuki", "suzuki-buys-umbrella"),
   ],

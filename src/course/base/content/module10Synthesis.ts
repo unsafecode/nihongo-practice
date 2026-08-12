@@ -33,8 +33,6 @@ import {
   BASE_POLITE_VERBS_MODULE,
   TASK11_COMMA,
   buildTask11Lesson,
-  task11AnalysisLabel,
-  task11ClassAnalysisTarget,
   task11Cue,
   task11DiagnosticForm,
   task11Lexeme,
@@ -64,6 +62,7 @@ import { BASE_EXISTENCE_LOCATION_MODULE } from "./module08ExistenceLocation";
 import {
   BASE_REQUESTS_CONNECTION_MODULE,
   BASE_REQUESTS_CONNECTION_VALIDATION_CATALOGS,
+  seatedTarget,
 } from "./module09RequestsConnection";
 
 export interface BaseSynthesisModule {
@@ -117,6 +116,7 @@ const CELLS = deepFreeze({
   sequenceFinal: "sequential-final-polite",
   teImasuOngoing: "te-imasu-ongoing-action",
   teImasuState: "te-imasu-current-state",
+  teImasuNonpastContrast: "te-imasu-vs-ordinary-nonpast",
 });
 
 function predicatePart(
@@ -207,28 +207,6 @@ function relativeTimeTarget(
   );
 }
 
-function predicateQuestionTarget(
-  predicateKind: BaseTask11PredicateKind,
-  lexemeId: string,
-  cellId: string,
-  extraConceptIds: readonly string[] = [],
-): BaseTask11TargetSpec {
-  const target = predicateTarget(
-    predicateKind,
-    lexemeId,
-    "affirmative",
-    cellId,
-    null,
-    [],
-    extraConceptIds,
-  );
-  return {
-    ...target,
-    parts: [...target.parts, P("question-ka", "question", lexemeId)],
-    semanticRoleIds: [...target.semanticRoleIds, "question"],
-  };
-}
-
 function modifierTarget(
   adjectiveKind: "i-adjective" | "na-adjective",
   adjectiveId: string,
@@ -267,6 +245,34 @@ function modifierTarget(
   );
 }
 
+function famousGoodGuestTarget(): BaseTask11TargetSpec {
+  return task11Target(
+    [
+      L("name-ken"),
+      P("topic-wa", "topic", "name-ken"),
+      naAttributive("adjective-yuumei"),
+      iAttributive("adjective-ii"),
+      predicatePart("noun", "anchor-kyaku", "affirmative"),
+    ],
+    {
+      conceptIds: [
+        "i-adjective-class",
+        "i-adjective-tense-polarity",
+        "na-adjective-class",
+        "na-adjective-predicate-and-attributive",
+        "modifier-before-noun",
+        "topic-wa",
+      ],
+      patternCellIds: [CELLS.naAttributive],
+      semanticRoleIds: ["topic"],
+      interpretationTags: ["present-state"],
+      predicateSenseId: "modified-noun-predicate",
+      predicateLexemeId: "anchor-kyaku",
+      predicateAspect: "nominal",
+    },
+  );
+}
+
 function possessedTopicPredicate(
   ownerId: string,
   topicId: string,
@@ -292,6 +298,116 @@ function possessedTopicPredicate(
       interpretationTags: ["present-state"],
       predicateSenseId: `${predicateKind}-predicate`,
       predicateLexemeId: predicateId,
+      predicateAspect: "adjectival",
+    },
+  );
+}
+
+function possessedNounPredicate(
+  ownerId: string,
+  topicId: string,
+  predicateId: string,
+  form: PredicateForm = "affirmative",
+): BaseTask11TargetSpec {
+  return task11Target(
+    [
+      L(ownerId),
+      P("possessive-attributive-no", "possessor", ownerId),
+      L(topicId),
+      P("topic-wa", "topic", topicId),
+      predicatePart("noun", predicateId, form),
+    ],
+    {
+      conceptIds: [
+        "sentence-order",
+        "possessive-no",
+        "topic-wa",
+        form === "negative"
+          ? "negative-noun-predicate-copula"
+          : "affirmative-desu",
+      ],
+      patternCellIds: [
+        form === "negative" ? CELLS.nounNegative : CELLS.nounAffirmative,
+      ],
+      semanticRoleIds: ["possessor", "topic"],
+      interpretationTags: [
+        "present-state",
+        ...(form === "negative" ? (["negative"] as const) : []),
+      ],
+      predicateSenseId: "noun-predicate",
+      predicateLexemeId: predicateId,
+      predicateAspect: "nominal",
+    },
+  );
+}
+
+function timedMeetingPlanTarget(
+  ownerId: string,
+  timeId: string,
+  form: "affirmative" | "negative",
+): BaseTask11TargetSpec {
+  return task11Target(
+    [
+      L(timeId),
+      P("time-ni", "time", timeId),
+      TASK11_COMMA,
+      L(ownerId),
+      P("possessive-attributive-no", "possessor", ownerId),
+      L("noun-yotei"),
+      P("topic-wa", "topic", "noun-yotei"),
+      predicatePart("noun", "noun-kaigi", form),
+    ],
+    {
+      conceptIds: [
+        "sentence-order",
+        "possessive-no",
+        "topic-wa",
+        "time-ni",
+        form === "negative"
+          ? "negative-noun-predicate-copula"
+          : "affirmative-desu",
+      ],
+      patternCellIds: [
+        form === "negative" ? CELLS.nounNegative : CELLS.nounAffirmative,
+      ],
+      semanticRoleIds: ["time", "possessor", "topic"],
+      interpretationTags: [
+        "future",
+        ...(form === "negative" ? (["negative"] as const) : []),
+      ],
+      predicateSenseId: null,
+      predicateLexemeId: "noun-kaigi",
+      predicateAspect: "nominal",
+    },
+  );
+}
+
+function possessedAdjectivePredicate(
+  ownerId: string,
+  topicId: string,
+  adjectiveId: string,
+): BaseTask11TargetSpec {
+  return task11Target(
+    [
+      L(ownerId),
+      P("possessive-attributive-no", "possessor", ownerId),
+      L(topicId),
+      P("topic-wa", "topic", topicId),
+      predicatePart("na-adjective", adjectiveId, "affirmative"),
+    ],
+    {
+      conceptIds: [
+        "sentence-order",
+        "possessive-no",
+        "topic-wa",
+        "na-adjective-class",
+        "na-adjective-predicate-and-attributive",
+      ],
+      patternCellIds: [CELLS.naAffirmative],
+      semanticRoleIds: ["possessor", "topic"],
+      interpretationTags: ["present-state"],
+      predicateSenseId: "na-adjective-predicate",
+      predicateLexemeId: adjectiveId,
       predicateAspect: "adjectival",
     },
   );
@@ -371,6 +487,45 @@ function objectVerbTarget(
   );
 }
 
+function describedObjectVerbTarget(
+  subjectId: string,
+  adjectiveId: string,
+  objectId: string,
+  lemmaId: string,
+  form: BaseTask11VerbFormKind,
+  cellId: string,
+  interpretation: BaseInterpretationTag,
+): BaseTask11TargetSpec {
+  const predicateSenseId = themeSense(lemmaId);
+  return task11Target(
+    [
+      L(subjectId),
+      P("topic-wa", "topic", subjectId),
+      naAttributive(adjectiveId),
+      L(objectId),
+      P("object-o", "theme", objectId),
+      task11VerbForm(lemmaId, form),
+    ],
+    {
+      conceptIds: [
+        "na-adjective-predicate-and-attributive",
+        ...(form === "te-imasu" ? ["base-construction-te-imasu"] : []),
+      ],
+      patternCellIds: [cellId],
+      semanticRoleIds: ["topic", "theme"],
+      interpretationTags: [interpretation],
+      predicateSenseId,
+      predicateLexemeId: lemmaId,
+      predicateAspect: "dynamic",
+      particleFrame: {
+        predicateSenseId,
+        provided: { topic: "topic-wa", theme: "object-o" },
+        attachmentLexemeIdByRole: { topic: subjectId, theme: objectId },
+      },
+    },
+  );
+}
+
 function actionTimeTarget(
   subjectId: string | null,
   timeId: string,
@@ -421,6 +576,76 @@ function actionTimeTarget(
   );
 }
 
+function describedSubjectActionTimeTarget(
+  adjectiveId: string,
+  subjectId: string,
+  timeId: string,
+  lemmaId: string,
+  form: "polite-nonpast" | "nonpast-negative",
+): BaseTask11TargetSpec {
+  return task11Target(
+    [
+      naAttributive(adjectiveId),
+      L(subjectId),
+      P("topic-wa", "topic", subjectId),
+      L(timeId),
+      P("time-ni", "time", timeId),
+      TASK11_COMMA,
+      task11VerbForm(lemmaId, form),
+    ],
+    {
+      conceptIds: [
+        "na-adjective-predicate-and-attributive",
+        "time-ni",
+        "dynamic-nonpast-semantics",
+      ],
+      patternCellIds: [CELLS.timeNi],
+      semanticRoleIds: ["topic", "time"],
+      interpretationTags: ["future"],
+      predicateSenseId: "action-time",
+      predicateLexemeId: lemmaId,
+      predicateAspect: "dynamic",
+      particleFrame: {
+        predicateSenseId: "action-time",
+        provided: { topic: "topic-wa", time: "time-ni" },
+        attachmentLexemeIdByRole: { topic: subjectId, time: timeId },
+      },
+    },
+  );
+}
+
+function dayNightTravelTarget(dayId: string): BaseTask11TargetSpec {
+  return task11Target(
+    [
+      L(dayId),
+      P("possessive-attributive-no", "possessor", dayId),
+      L("noun-yoru"),
+      P("time-ni", "time", "noun-yoru"),
+      task11VerbForm("verb-ryokou-suru", "polite-nonpast"),
+    ],
+    {
+      conceptIds: ["possessive-no", "time-ni", "dynamic-nonpast-semantics"],
+      patternCellIds: [CELLS.timeNi],
+      semanticRoleIds: ["possessor", "time"],
+      interpretationTags: ["future"],
+      predicateSenseId: "action-time",
+      predicateLexemeId: "verb-ryokou-suru",
+      predicateAspect: "dynamic",
+      particleFrame: {
+        predicateSenseId: "action-time",
+        provided: {
+          possessor: "possessive-attributive-no",
+          time: "time-ni",
+        },
+        attachmentLexemeIdByRole: {
+          possessor: dayId,
+          time: "noun-yoru",
+        },
+      },
+    },
+  );
+}
+
 function timeBoundsTarget(
   subjectId: string | null,
   sourceId: string,
@@ -462,51 +687,6 @@ function timeBoundsTarget(
           ...(subjectId ? { topic: subjectId } : {}),
           source: sourceId,
           limit: limitId,
-        },
-      },
-    },
-  );
-}
-
-function goTimeGoalQuestion(
-  relativeTimeId: string,
-  timeId: string,
-  goalId: string,
-): BaseTask11TargetSpec {
-  return task11Target(
-    [
-      L(relativeTimeId),
-      L(timeId),
-      P("time-ni", "time", timeId),
-      L(goalId),
-      P("goal-ni", "goal", goalId),
-      task11VerbForm("verb-iku", "polite-nonpast"),
-      P("question-ka", "question", "verb-iku"),
-    ],
-    {
-      conceptIds: [
-        "time-ni",
-        "goal-ni",
-        "dynamic-nonpast-semantics",
-        "relative-time-omission",
-      ],
-      patternCellIds: [CELLS.timeNi],
-      semanticRoleIds: ["time", "goal", "question"],
-      interpretationTags: ["future"],
-      predicateSenseId: "go-time-goal",
-      predicateLexemeId: "verb-iku",
-      predicateAspect: "dynamic",
-      particleFrame: {
-        predicateSenseId: "go-time-goal",
-        provided: {
-          time: "time-ni",
-          goal: "goal-ni",
-          question: "question-ka",
-        },
-        attachmentLexemeIdByRole: {
-          time: timeId,
-          goal: goalId,
-          question: "verb-iku",
         },
       },
     },
@@ -631,7 +811,7 @@ function whereQuestion(
 
 function goalTarget(
   placeId: string,
-  lemmaId: "verb-iku" | "verb-kuru" | "verb-kaeru",
+  lemmaId: "verb-iku" | "verb-kuru" | "verb-kaeru" | "verb-motte-kuru",
   form: BaseTask11VerbFormKind,
   interpretation: "future" | "habitual" | "past",
   prefix: readonly BaseTask11Part[] = [],
@@ -641,7 +821,9 @@ function goalTarget(
       ? "go-goal"
       : lemmaId === "verb-kuru"
         ? "come-goal"
-        : "return-goal";
+        : lemmaId === "verb-motte-kuru"
+          ? "come"
+          : "return-goal";
   return task11Target(
     [
       ...prefix,
@@ -714,6 +896,115 @@ function withPrefix(
   return { ...target, parts: [...prefix, ...target.parts] };
 }
 
+function withTopic(
+  target: BaseTask11TargetSpec,
+  topicId: string,
+): BaseTask11TargetSpec {
+  const particleFrame = target.particleFrame
+    ? {
+        ...target.particleFrame,
+        provided: {
+          ...target.particleFrame.provided,
+          topic: "topic-wa" as const,
+        },
+        attachmentLexemeIdByRole: {
+          ...target.particleFrame.attachmentLexemeIdByRole,
+          topic: topicId,
+        },
+      }
+    : undefined;
+  return {
+    ...withPrefix(target, [L(topicId), P("topic-wa", "topic", topicId)]),
+    semanticRoleIds: [...target.semanticRoleIds, "topic"],
+    ...(particleFrame ? { particleFrame } : {}),
+  };
+}
+
+function withPossessor(
+  target: BaseTask11TargetSpec,
+  possessorId: string,
+): BaseTask11TargetSpec {
+  const particleFrame = target.particleFrame
+    ? {
+        ...target.particleFrame,
+        provided: {
+          ...target.particleFrame.provided,
+          possessor: "possessive-attributive-no" as const,
+        },
+        attachmentLexemeIdByRole: {
+          ...target.particleFrame.attachmentLexemeIdByRole,
+          possessor: possessorId,
+        },
+      }
+    : undefined;
+  return {
+    ...withPrefix(target, [
+      L(possessorId),
+      P("possessive-attributive-no", "possessor", possessorId),
+    ]),
+    semanticRoleIds: [...target.semanticRoleIds, "possessor"],
+    ...(particleFrame ? { particleFrame } : {}),
+  };
+}
+
+function withUnmarkedTime(
+  target: BaseTask11TargetSpec,
+  timeId: string,
+  conceptId: "habit-future-time-cues" | "relative-time-omission",
+): BaseTask11TargetSpec {
+  return {
+    ...withPrefix(target, [L(timeId)]),
+    conceptIds: [...target.conceptIds, conceptId],
+    semanticRoleIds: [...target.semanticRoleIds, "time"],
+  };
+}
+
+function withSeparatedUnmarkedTime(
+  target: BaseTask11TargetSpec,
+  timeId: string,
+  conceptId: "habit-future-time-cues" | "relative-time-omission",
+): BaseTask11TargetSpec {
+  return withLeadingSeparator(withUnmarkedTime(target, timeId, conceptId));
+}
+
+function withAdditionalRelativeTime(
+  target: BaseTask11TargetSpec,
+  timeId: string,
+): BaseTask11TargetSpec {
+  return withLeadingSeparator({
+    ...withPrefix(target, [L(timeId)]),
+    conceptIds: [...target.conceptIds, "relative-time-omission"],
+  });
+}
+
+function withLeadingSeparator(
+  target: BaseTask11TargetSpec,
+): BaseTask11TargetSpec {
+  return {
+    ...target,
+    parts: [target.parts[0]!, TASK11_COMMA, ...target.parts.slice(1)],
+  };
+}
+
+function withTimeNiSeparator(
+  target: BaseTask11TargetSpec,
+): BaseTask11TargetSpec {
+  const timeParticleIndex = target.parts.findIndex(
+    (part) => part.kind === "particle" && part.sense === "time-ni",
+  );
+  if (timeParticleIndex < 0) {
+    throw new Error("A time に separator requires a licensed time particle.");
+  }
+  return {
+    ...target,
+    parts: [
+      ...target.parts.slice(0, timeParticleIndex + 1),
+      TASK11_COMMA,
+      ...target.parts.slice(timeParticleIndex + 1),
+    ],
+  };
+}
+
 function actionPlace(
   placeId: string,
   verbId: "verb-asobu" | "verb-benkyou-suru" | "verb-hataraku",
@@ -758,6 +1049,68 @@ function requestTarget(
   );
 }
 
+function goalRequestTarget(
+  placeId: string,
+  lemmaId: "verb-motte-kuru",
+  prefix: readonly BaseTask11Part[] = [],
+): BaseTask11TargetSpec {
+  return task11Target(
+    [
+      ...prefix,
+      L(placeId),
+      P("goal-ni", "goal", placeId),
+      task11VerbForm(lemmaId, "te-request"),
+    ],
+    {
+      conceptIds: ["goal-ni", "base-construction-te-kudasai"],
+      patternCellIds: [CELLS.request],
+      semanticRoleIds: ["goal"],
+      interpretationTags: ["future"],
+      predicateSenseId: "come",
+      predicateLexemeId: lemmaId,
+      predicateAspect: "dynamic",
+      particleFrame: {
+        predicateSenseId: "come",
+        provided: { goal: "goal-ni" },
+        attachmentLexemeIdByRole: { goal: placeId },
+      },
+    },
+  );
+}
+
+function simpleRequestTarget(
+  lemmaId: string,
+  prefix: readonly BaseTask11Part[] = [],
+): BaseTask11TargetSpec {
+  return task11Target(
+    [...prefix, task11VerbForm(lemmaId, "te-request")],
+    {
+      conceptIds: ["base-construction-te-kudasai"],
+      patternCellIds: [CELLS.request],
+      semanticRoleIds: [],
+      interpretationTags: ["future"],
+      predicateSenseId: lemmaId,
+      predicateLexemeId: lemmaId,
+      predicateAspect: "dynamic",
+    },
+  );
+}
+
+function expressionTarget(
+  expressionId: string,
+  prefix: readonly BaseTask11Part[] = [],
+): BaseTask11TargetSpec {
+  return task11Target([...prefix, L(expressionId)], {
+    conceptIds: ["sentence-omission"],
+    patternCellIds: [CELLS.requestResponse],
+    semanticRoleIds: [],
+    interpretationTags: ["future"],
+    predicateSenseId: expressionId,
+    predicateLexemeId: expressionId,
+    predicateAspect: "dynamic",
+  });
+}
+
 function sequenceTarget(
   firstLemmaId: string,
   finalLemmaId: string,
@@ -776,6 +1129,107 @@ function sequenceTarget(
         : [CELLS.sequence, CELLS.sequenceFinal],
       semanticRoleIds: [],
       interpretationTags: ["future"],
+      predicateSenseId: finalLemmaId,
+      predicateLexemeId: finalLemmaId,
+      predicateAspect: "dynamic",
+    },
+  );
+}
+
+function objectSequenceRequestTarget(
+  objectId: string,
+  firstLemmaId: string,
+  finalLemmaId: string,
+): BaseTask11TargetSpec {
+  const predicateSenseId = themeSense(finalLemmaId);
+  return task11Target(
+    [
+      L(objectId),
+      P("object-o", "theme", objectId),
+      task11VerbForm(firstLemmaId, "te-sequence"),
+      TASK11_COMMA,
+      task11VerbForm(finalLemmaId, "te-request"),
+    ],
+    {
+      conceptIds: [
+        "licensed-object-o",
+        "base-construction-sequential-te",
+        "base-construction-te-kudasai",
+      ],
+      patternCellIds: [CELLS.request],
+      semanticRoleIds: ["theme"],
+      interpretationTags: ["future"],
+      predicateSenseId,
+      predicateLexemeId: finalLemmaId,
+      predicateAspect: "dynamic",
+      particleFrame: {
+        predicateSenseId,
+        provided: { theme: "object-o" },
+        attachmentLexemeIdByRole: { theme: objectId },
+      },
+    },
+  );
+}
+
+function timedSequenceTarget(
+  timeId: string,
+  firstLemmaId: string,
+  finalLemmaId: string,
+): BaseTask11TargetSpec {
+  return task11Target(
+    [
+      L(timeId),
+      P("time-ni", "time", timeId),
+      task11VerbForm(firstLemmaId, "te-sequence"),
+      TASK11_COMMA,
+      task11VerbForm(finalLemmaId, "polite-nonpast"),
+    ],
+    {
+      conceptIds: [
+        "time-ni",
+        "dynamic-nonpast-semantics",
+        "base-construction-sequential-te",
+      ],
+      patternCellIds: [CELLS.timeNi, CELLS.sequence, CELLS.sequenceFinal],
+      semanticRoleIds: ["time"],
+      interpretationTags: ["future"],
+      predicateSenseId: "action-time",
+      predicateLexemeId: finalLemmaId,
+      predicateAspect: "dynamic",
+      particleFrame: {
+        predicateSenseId: "action-time",
+        provided: { time: "time-ni" },
+        attachmentLexemeIdByRole: { time: timeId },
+      },
+    },
+  );
+}
+
+function pastSequenceTarget(
+  firstLemmaId: string,
+  finalLemmaId: string,
+  finalForm: "past-affirmative" | "past-negative",
+  activityCellId?: string,
+): BaseTask11TargetSpec {
+  return task11Target(
+    [
+      task11VerbForm(firstLemmaId, "te-sequence"),
+      TASK11_COMMA,
+      task11VerbForm(finalLemmaId, finalForm),
+    ],
+    {
+      conceptIds: [
+        "base-construction-sequential-te",
+        "four-polite-tense-cells",
+      ],
+      patternCellIds: activityCellId
+        ? [activityCellId]
+        : [CELLS.sequence, CELLS.pastAffirmative],
+      semanticRoleIds: [],
+      interpretationTags: [
+        "past",
+        ...(finalForm === "past-negative" ? (["negative"] as const) : []),
+      ],
       predicateSenseId: finalLemmaId,
       predicateLexemeId: finalLemmaId,
       predicateAspect: "dynamic",
@@ -842,6 +1296,7 @@ function anchoredTeImasu(
       L(subjectId),
       P("topic-wa", "topic", subjectId),
       L("noun-ima"),
+      TASK11_COMMA,
       task11VerbForm(lemmaId, "te-imasu"),
     ],
     {
@@ -957,24 +1412,55 @@ function errorTarget(
   );
 }
 
+function objectErrorTarget(
+  objectId: string,
+  lemmaId: string,
+  kana: string,
+  romaji: string,
+  errorCode: string,
+): BaseTask11TargetSpec {
+  const predicateSenseId = themeSense(lemmaId);
+  return task11Target(
+    [
+      L(objectId),
+      P("object-o", "theme", objectId),
+      task11DiagnosticForm(lemmaId, kana, romaji, errorCode),
+    ],
+    {
+      conceptIds: ["four-polite-tense-cells"],
+      patternCellIds: [],
+      semanticRoleIds: ["theme"],
+      interpretationTags: ["past"],
+      predicateSenseId,
+      predicateLexemeId: lemmaId,
+      predicateAspect: "dynamic",
+      particleFrame: {
+        predicateSenseId,
+        provided: { theme: "object-o" },
+        attachmentLexemeIdByRole: { theme: objectId },
+      },
+    },
+  );
+}
+
 const SYNTHESIS_1: BaseTask11LessonSpec = {
   lessonId: "base-synthesis-1",
   contract: "synthesis",
   prerequisiteLessonIds: ["requests-connection-4"],
   newLexemeIds: [],
   reviewLexemeIds: [
-    "adjective-takai",
-    "adjective-oishii",
-    "adjective-shizuka",
-    "adjective-kirei",
+    "noun-eki",
+    "verb-aru",
+    "noun-jimusho",
+    "verb-iru",
+    "noun-kenkyuusha",
+    "noun-hana",
     "adjective-yuumei",
+    "noun-ryourinin",
+    "noun-ginkouin",
+    "adjective-shizuka",
     "adjective-genki",
     "noun-kaishain",
-    "noun-kenkyuusha",
-    "noun-ryourinin",
-    "noun-enjinia",
-    "noun-ginkouin",
-    "noun-koumuin",
   ],
   introducedConceptIds: [],
   reviewedConceptIds: [
@@ -1020,34 +1506,35 @@ const SYNTHESIS_1: BaseTask11LessonSpec = {
   ],
   examples: [
     ex(
-      modifierTarget(
-        "na-adjective",
-        "adjective-yuumei",
-        "noun-kenkyuusha",
-        CELLS.naAffirmative,
-        "noun-tanaka",
+      withSeparatedUnmarkedTime(
+        possessedNounPredicate("name-ken", "noun-yotei", "noun-kaigi"),
+        "noun-raishuu",
+        "habit-future-time-cues",
       ),
-      "known-researcher",
-      "Tanaka is a famous researcher.",
-      "Tanaka è un ricercatore famoso.",
-      "Keeps the topic once, then places な before the profession.",
-      "Mantiene il tema una volta e colloca な prima della professione.",
-      "identity-famous-researcher",
+      "ken-meeting-plan",
+      "Next week, Ken's plan is a meeting.",
+      "La prossima settimana il programma di Ken prevede una riunione.",
+      "Combines a relative time with a familiar person's meeting plan.",
+      "Combina un tempo relativo con il programma di riunione di una persona nota.",
+      "future-ken-meeting-plan",
     ),
     ex(
-      modifierTarget(
-        "na-adjective",
-        "adjective-genki",
-        "noun-enjinia",
-        CELLS.naAffirmative,
-        "noun-suzuki",
-      ),
-      "engineer-description",
-      "Suzuki is an energetic engineer.",
-      "Suzuki è un ingegnere pieno di energia.",
-      "Combines a stable topic with a な-adjective noun description.",
-      "Combina un tema stabile con una descrizione nominale in な.",
-      "identity-energetic-engineer",
+      possessedNounPredicate("noun-watashi", "noun-namae", "noun-yuki"),
+      "self-yuki-name",
+      "My name is Yuki.",
+      "Mi chiamo Yuki.",
+      "Uses the possessive name frame for a first-person introduction.",
+      "Usa la struttura possessiva del nome per una presentazione in prima persona.",
+      "identity-self-yuki",
+    ),
+    ex(
+      famousGoodGuestTarget(),
+      "famous-good-guest",
+      "Ken is a famous, good customer.",
+      "Ken è un cliente famoso e apprezzato.",
+      "Combines familiar な- and い-adjectives before one noun.",
+      "Combina aggettivi noti in な e in い prima di un unico nome.",
+      "identity-famous-good-guest",
     ),
     ex(
       modifierTarget(
@@ -1055,43 +1542,29 @@ const SYNTHESIS_1: BaseTask11LessonSpec = {
         "adjective-shizuka",
         "noun-ryourinin",
         CELLS.naAttributive,
-        "noun-yamada",
+        "noun-otousan",
       ),
-      "cook-description",
-      "Yamada is a quiet cook.",
-      "Yamada è un cuoco tranquillo.",
-      "Uses one coherent description rather than repeating a pronoun.",
-      "Usa una descrizione coerente senza ripetere un pronome.",
-      "identity-quiet-cook",
+      "father-description",
+      "My father is a quiet cook.",
+      "Mio padre è un cuoco tranquillo.",
+      "Places the familiar な-adjective before the profession in a family description.",
+      "Colloca l'aggettivo in な già noto prima della professione in una descrizione familiare.",
+      "identity-quiet-father",
     ),
     ex(
       modifierTarget(
         "na-adjective",
-        "adjective-kirei",
+        "adjective-genki",
         "noun-ginkouin",
         CELLS.naAttributive,
-        "noun-mari",
+        "noun-okaasan",
       ),
-      "bank-clerk-description",
-      "Mari is a smartly presented bank clerk.",
-      "Mari è un'impiegata di banca dall'aspetto curato.",
-      "Reviews attributive な inside an identity statement.",
-      "Ripassa な attributivo in una frase d'identità.",
-      "identity-presentable-clerk",
-    ),
-    ex(
-      modifierTarget(
-        "i-adjective",
-        "adjective-takai",
-        "noun-tsukue",
-        CELLS.iAttributive,
-      ),
-      "office-furniture",
-      "It is an expensive desk.",
-      "È una scrivania costosa.",
-      "Places an い-adjective directly before its noun.",
-      "Colloca un aggettivo in い direttamente prima del nome.",
-      "description-expensive-desk",
+      "mother-description",
+      "My mother is an energetic bank clerk.",
+      "Mia madre è un'impiegata di banca piena di energia.",
+      "Continues the family description with a different person and profession.",
+      "Continua la descrizione familiare con una persona e una professione diverse.",
+      "identity-energetic-mother",
     ),
     ex(
       possessedTopicPredicate(
@@ -1109,37 +1582,46 @@ const SYNTHESIS_1: BaseTask11LessonSpec = {
       "description-tasty-lunch",
     ),
     ex(
-      fullExistence("noun-uchi", "noun-isu", "verb-aru"),
-      "room-inventory",
-      "There is a chair in the house.",
-      "Nella casa c'è una sedia.",
-      "Reviews an inanimate existence frame within a description.",
-      "Ripassa una struttura di esistenza inanimata nella descrizione.",
-      "room-chair-existence",
+      asQuestion(
+        topicLocation("noun-konbini", "noun-basutei", "verb-aru"),
+        "verb-aru",
+      ),
+      "convenience-store-at-bus-stop-question",
+      "Is the convenience store at the bus stop?",
+      "Il minimarket è alla fermata dell'autobus?",
+      "Checks one proposed location for an established destination.",
+      "Verifica un luogo proposto per una destinazione già nota.",
+      "location-convenience-store",
     ),
     ex(
       fullExistence("noun-jimusho", "noun-hana", "verb-aru"),
-      "garden-inventory",
+      "office-flower",
       "There is a flower in the office.",
       "Nell'ufficio c'è un fiore.",
       "Keeps place に and existential が in their established roles.",
       "Mantiene に di luogo e が esistenziale nei ruoli già appresi.",
-      "garden-flower-existence",
+      "office-flower-existence",
     ),
     ex(
-      predicateTarget(
-        "noun",
-        "noun-koumuin",
-        "affirmative",
-        CELLS.nounAffirmative,
-        "noun-satou",
+      withPossessor(
+        fullExistence("noun-toshi", "noun-byouin", "verb-aru"),
+        "name-mika",
       ),
-      "civil-servant-identity",
-      "Satou is a civil servant.",
-      "Satou è un dipendente pubblico.",
-      "Reviews a direct noun-predicate identity.",
-      "Ripassa un'identità diretta con predicato nominale.",
-      "identity-civil-servant",
+      "hospital-in-mika-city",
+      "There is a hospital in Mika's city.",
+      "Nella città di Mika c'è un ospedale.",
+      "Uses a possessive place inside a complete existence frame.",
+      "Usa un luogo possessivo in una struttura di esistenza completa.",
+      "existence-mika-city-hospital",
+    ),
+    ex(
+      fullExistence("noun-eki", "noun-keisatsukan", "verb-iru"),
+      "officer-at-station",
+      "There is a police officer at the station.",
+      "Alla stazione c'è un poliziotto.",
+      "Retrieves an animate existence frame in a plausible public place.",
+      "Recupera una struttura di esistenza animata in un luogo pubblico plausibile.",
+      "existence-station-officer",
     ),
   ],
   activities: [
@@ -1147,33 +1629,25 @@ const SYNTHESIS_1: BaseTask11LessonSpec = {
       "base-synthesis-1",
       1,
       task11Cue(
-        L("noun-kodomo"),
+        L("noun-kenkyuusha"),
         TASK11_COMMA,
-        L("noun-inu"),
-        TASK11_COMMA,
-        L("name-mika"),
-        TASK11_COMMA,
-        L("name-sora"),
-        TASK11_COMMA,
-        L("name-haru"),
-        TASK11_COMMA,
-        L("name-ai"),
+        L("adjective-yuumei"),
       ),
       predicateTarget(
         "na-adjective",
-        "adjective-genki",
-        "affirmative",
-        CELLS.naAffirmative,
-        "noun-kodomo",
-      ),
-      predicateTarget(
-        "na-adjective",
-        "adjective-genki",
+        "adjective-yuumei",
         "negative",
         CELLS.naAffirmative,
-        "noun-kodomo",
+        "noun-kenkyuusha",
       ),
-      1,
+      predicateTarget(
+        "na-adjective",
+        "adjective-yuumei",
+        "affirmative",
+        CELLS.naAffirmative,
+        "noun-kenkyuusha",
+      ),
+      0,
       CELLS.naAffirmative,
       BASE_MEANING_ACTIVITY_SHAPE,
       { contrastAxis: "polite-form" },
@@ -1182,34 +1656,21 @@ const SYNTHESIS_1: BaseTask11LessonSpec = {
       "base-synthesis-1",
       2,
       task11Cue(
-        L("noun-kuruma"),
-        TASK11_COMMA,
-        L("noun-kaban"),
-        TASK11_COMMA,
-        L("noun-nihon"),
-        TASK11_COMMA,
-        L("noun-chuugoku"),
+        L("name-ai"),
         TASK11_COMMA,
         L("noun-kuni"),
         TASK11_COMMA,
-        L("noun-toshi"),
+        L("noun-nihon"),
       ),
-      predicateTarget(
-        "i-adjective",
-        "adjective-takai",
+      possessedNounPredicate(
+        "name-ai",
+        "noun-kuni",
+        "noun-nihon",
         "negative",
-        CELLS.iAffirmative,
-        "noun-kuruma",
       ),
-      predicateTarget(
-        "i-adjective",
-        "adjective-takai",
-        "affirmative",
-        CELLS.iAffirmative,
-        "noun-kuruma",
-      ),
+      possessedNounPredicate("name-ai", "noun-kuni", "noun-nihon"),
       1,
-      CELLS.iAffirmative,
+      CELLS.nounNegative,
       BASE_FORM_ACTIVITY_SHAPE,
       { contrastAxis: "polite-form" },
     ),
@@ -1217,22 +1678,16 @@ const SYNTHESIS_1: BaseTask11LessonSpec = {
       "base-synthesis-1",
       3,
       task11Cue(
-        L("noun-uchi"),
+        L("noun-satou"),
         TASK11_COMMA,
-        L("noun-kyoushitsu"),
+        L("adjective-shizuka"),
         TASK11_COMMA,
-        L("noun-chichi"),
-        TASK11_COMMA,
-        L("noun-haha"),
-        TASK11_COMMA,
-        L("noun-otousan"),
-        TASK11_COMMA,
-        L("noun-okaasan"),
+        L("noun-ryourinin"),
       ),
       modifierTarget(
         "na-adjective",
         "adjective-shizuka",
-        "noun-enjinia",
+        "noun-ryourinin",
         CELLS.naAttributive,
         "noun-satou",
       ),
@@ -1240,14 +1695,14 @@ const SYNTHESIS_1: BaseTask11LessonSpec = {
         ...modifierTarget(
           "na-adjective",
           "adjective-shizuka",
-          "noun-enjinia",
+          "noun-ryourinin",
           CELLS.naAttributive,
           "noun-satou",
         ),
         parts: [
           L("noun-satou"),
           P("topic-wa", "topic", "noun-satou"),
-          predicatePart("noun", "noun-enjinia", "affirmative"),
+          predicatePart("noun", "noun-ryourinin", "affirmative"),
           naAttributive("adjective-shizuka"),
         ],
       },
@@ -1260,29 +1715,23 @@ const SYNTHESIS_1: BaseTask11LessonSpec = {
       "base-synthesis-1",
       4,
       task11Cue(
-        L("noun-uketsuke"),
+        L("noun-okaasan"),
         TASK11_COMMA,
-        L("noun-jimusho"),
-        TASK11_COMMA,
-        L("name-sakura"),
-        TASK11_COMMA,
-        L("name-ken"),
-        TASK11_COMMA,
-        L("noun-namae"),
+        L("noun-ginkouin"),
       ),
       predicateTarget(
         "noun",
-        "noun-koumuin",
+        "noun-ginkouin",
         "affirmative",
         CELLS.nounAffirmative,
-        "noun-keisatsukan",
+        "noun-okaasan",
       ),
       predicateTarget(
         "noun",
-        "noun-koumuin",
+        "noun-ginkouin",
         "negative",
         CELLS.nounAffirmative,
-        "noun-keisatsukan",
+        "noun-okaasan",
       ),
       1,
       CELLS.nounAffirmative,
@@ -1292,16 +1741,11 @@ const SYNTHESIS_1: BaseTask11LessonSpec = {
     act(
       "base-synthesis-1",
       5,
-      task11Cue(
-        L("noun-toire"),
-        TASK11_COMMA,
-        L("noun-konbini"),
-        TASK11_COMMA,
-        L("noun-dare"),
-        TASK11_COMMA,
-        L("noun-nan"),
-        TASK11_COMMA,
-        L("expression-sou"),
+      errorTarget(
+        "verb-kaku",
+        "かきますた",
+        "kakimasuta",
+        "synthesis-past-suffix",
       ),
       simpleVerbTarget(
         "verb-kaku",
@@ -1328,16 +1772,12 @@ const SYNTHESIS_1: BaseTask11LessonSpec = {
       "base-synthesis-1",
       6,
       task11Cue(
-        L("noun-basutei"),
+        L("noun-hana"),
         TASK11_COMMA,
-        L("noun-doko"),
-        TASK11_COMMA,
-        L("anchor-kyaku"),
-        TASK11_COMMA,
-        L("anchor-chuui"),
+        L("noun-eki"),
       ),
-      topicLocation("noun-chizu", "noun-eki", "verb-aru"),
-      fullExistence("noun-eki", "noun-chizu", "verb-aru"),
+      topicLocation("noun-hana", "noun-eki", "verb-aru"),
+      fullExistence("noun-eki", "noun-hana", "verb-aru"),
       1,
       CELLS.existenceTopicContrast,
       BASE_CONTEXT_ACTIVITY_SHAPE,
@@ -1347,41 +1787,23 @@ const SYNTHESIS_1: BaseTask11LessonSpec = {
       "base-synthesis-1",
       7,
       task11Cue(
-        L("expression-hai"),
-        TASK11_COMMA,
-        L("adjective-takai"),
-        TASK11_COMMA,
-        L("adjective-oishii"),
-        TASK11_COMMA,
-        L("adjective-shizuka"),
-        TASK11_COMMA,
-        L("verb-denwa-suru"),
-        TASK11_COMMA,
-        L("verb-sanpo-suru"),
-        TASK11_COMMA,
-        L("verb-neru"),
-        TASK11_COMMA,
-        L("adjective-kirei"),
-        TASK11_COMMA,
-        L("adjective-yuumei"),
+        L("noun-yuki-san"),
         TASK11_COMMA,
         L("adjective-genki"),
-        TASK11_COMMA,
-        L("adjective-ii"),
       ),
       predicateTarget(
         "na-adjective",
         "adjective-genki",
         "affirmative",
         CELLS.naAffirmative,
-        "noun-yuki",
+        "noun-yuki-san",
       ),
       predicateTarget(
         "na-adjective",
         "adjective-genki",
         "negative",
         CELLS.naAffirmative,
-        "noun-yuki",
+        "noun-yuki-san",
       ),
       0,
       CELLS.naAffirmative,
@@ -1392,19 +1814,9 @@ const SYNTHESIS_1: BaseTask11LessonSpec = {
       "base-synthesis-1",
       8,
       task11Cue(
+        L("noun-jimusho"),
+        TASK11_COMMA,
         L("noun-kaishain"),
-        TASK11_COMMA,
-        L("noun-kenkyuusha"),
-        TASK11_COMMA,
-        L("noun-ryourinin"),
-        TASK11_COMMA,
-        L("noun-enjinia"),
-        TASK11_COMMA,
-        L("noun-ginkouin"),
-        TASK11_COMMA,
-        L("noun-koumuin"),
-        TASK11_COMMA,
-        L("noun-sakana"),
       ),
       fullExistence(
         "noun-jimusho",
@@ -1421,20 +1833,24 @@ const SYNTHESIS_1: BaseTask11LessonSpec = {
     act(
       "base-synthesis-1",
       9,
-      task11Cue(task11AnalysisLabel("analysis-pair")),
-      predicateTarget(
-        "i-adjective",
-        "adjective-oishii",
-        "negative",
-        CELLS.iAffirmative,
-        "noun-sakana",
+      task11Cue(
+        L("noun-hirugohan"),
+        TASK11_COMMA,
+        L("adjective-oishii"),
       ),
       predicateTarget(
         "i-adjective",
         "adjective-oishii",
         "affirmative",
         CELLS.iAffirmative,
-        "noun-sakana",
+        "noun-hirugohan",
+      ),
+      predicateTarget(
+        "i-adjective",
+        "adjective-oishii",
+        "negative",
+        CELLS.iNegative,
+        "noun-hirugohan",
       ),
       0,
       CELLS.iAffirmative,
@@ -1444,22 +1860,26 @@ const SYNTHESIS_1: BaseTask11LessonSpec = {
     act(
       "base-synthesis-1",
       10,
-      task11Cue(L("noun-ekiin"), TASK11_COMMA, L("noun-ginkouin")),
+      task11Cue(
+        L("noun-tanaka"),
+        TASK11_COMMA,
+        L("noun-ekiin"),
+      ),
       predicateTarget(
         "noun",
-        "noun-ginkouin",
+        "noun-ekiin",
         "affirmative",
         CELLS.nounAffirmative,
-        "noun-ekiin",
+        "noun-tanaka",
       ),
       predicateTarget(
         "noun",
-        "noun-ginkouin",
+        "noun-ekiin",
         "negative",
         CELLS.nounAffirmative,
-        "noun-ekiin",
+        "noun-tanaka",
       ),
-      1,
+      0,
       CELLS.nounAffirmative,
       BASE_SPOKEN_ACTIVITY_SHAPE,
       { contrastAxis: "polite-form" },
@@ -1468,98 +1888,138 @@ const SYNTHESIS_1: BaseTask11LessonSpec = {
   dialogue: [
     turn(
       "partner",
-      modifierTarget(
-        "na-adjective",
-        "adjective-shizuka",
-        "noun-kenkyuusha",
-        CELLS.naAttributive,
-        "noun-tanaka",
+      asQuestion(
+        possessedNounPredicate(
+          "noun-otousan",
+          "noun-namae",
+          "noun-nan",
+        ),
+        "noun-nan",
       ),
-      "introduce-tanaka",
-      "Tanaka is a quiet researcher.",
-      "Tanaka è un ricercatore tranquillo.",
-      "Establishes Tanaka as the single topic.",
-      "Stabilisce Tanaka come unico tema.",
+      "ask-father-name",
+      "What is your father's name?",
+      "Come si chiama tuo padre?",
+      "Opens a practical family exchange with one explicit name topic.",
+      "Apre uno scambio pratico sulla famiglia con il tema esplicito del nome.",
     ),
     turn(
       "learner",
-      predicateQuestionTarget(
-        "na-adjective",
-        "adjective-genki",
-        CELLS.sentenceOmission,
-        ["sentence-omission"],
+      possessedNounPredicate(
+        "noun-chichi",
+        "noun-namae",
+        "name-sora",
       ),
-      "ask-omitted-topic",
-      "Is he well?",
-      "Sta bene?",
-      "Omits only the already established person.",
-      "Omette soltanto la persona già stabilita.",
-      "complete-clause",
+      "give-father-name",
+      "My father's name is Sora.",
+      "Mio padre si chiama Sora.",
+      "Answers with the corresponding in-group family term and the same name topic.",
+      "Risponde con il termine familiare del proprio gruppo e lo stesso tema del nome.",
     ),
     turn(
       "partner",
+      asQuestion(
+        predicateTarget(
+          "noun",
+          "noun-kenkyuusha",
+          "affirmative",
+          CELLS.nounAffirmative,
+          "noun-okaasan",
+        ),
+        "noun-kenkyuusha",
+      ),
+      "ask-mother-profession",
+      "Is your mother a researcher?",
+      "Tua madre è una ricercatrice?",
+      "Moves to one related family profession without changing the interlocutor.",
+      "Passa a una professione familiare collegata senza cambiare interlocutore.",
+    ),
+    turn(
+      "learner",
+      withPrefix(
+        predicateTarget(
+          "noun",
+          "noun-kenkyuusha",
+          "affirmative",
+          CELLS.sentenceOmission,
+          null,
+          [],
+          ["sentence-omission"],
+        ),
+        [L("expression-sou"), TASK11_COMMA],
+      ),
+      "confirm-mother-profession",
+      "That's right, she is a researcher.",
+      "Esatto, è una ricercatrice.",
+      "Confirms the same family fact with a brief familiar response.",
+      "Conferma lo stesso dato familiare con una breve risposta familiare.",
+    ),
+    turn(
+      "partner",
+      asQuestion(
+        possessedAdjectivePredicate(
+          "noun-okaasan",
+          "noun-jimusho",
+          "adjective-kirei",
+        ),
+        "adjective-kirei",
+      ),
+      "ask-office-clean",
+      "Is your mother's office clean?",
+      "L'ufficio di tua madre è pulito?",
+      "Asks one connected question about the mother's workplace.",
+      "Fa una domanda collegata sul luogo di lavoro della madre.",
+    ),
+    turn(
+      "learner",
       predicateTarget(
         "na-adjective",
-        "adjective-genki",
+        "adjective-kirei",
         "affirmative",
         CELLS.sentenceOmission,
         null,
         [L("expression-hai"), TASK11_COMMA],
         ["sentence-omission"],
       ),
-      "confirm-omitted-topic",
-      "Yes, he is well.",
-      "Sì, sta bene.",
-      "Continues the same recoverable topic naturally.",
-      "Continua naturalmente lo stesso tema recuperabile.",
-    ),
-    turn(
-      "learner",
-      predicateQuestionTarget(
-        "noun",
-        "noun-enjinia",
-        CELLS.sentenceOmission,
-        ["sentence-omission"],
-      ),
-      "ask-profession",
-      "Is he an engineer?",
-      "È un ingegnere?",
-      "Asks a second property without adding an unclear referent.",
-      "Chiede una seconda proprietà senza introdurre un referente ambiguo.",
+      "confirm-office-clean",
+      "Yes, it is clean.",
+      "Sì, è pulito.",
+      "Closes the topic chain with the same recoverable office.",
+      "Chiude la catena tematica mantenendo recuperabile lo stesso ufficio.",
     ),
     turn(
       "partner",
+      asQuestion(
+        possessedTopicPredicate(
+          "noun-okaasan",
+          "noun-kasa",
+          "i-adjective",
+          "adjective-takai",
+          CELLS.iAffirmative,
+        ),
+        "adjective-takai",
+      ),
+      "ask-mother-umbrella-price",
+      "Is your mother's umbrella expensive?",
+      "L'ombrello di tua madre è costoso?",
+      "Continues with one related possession and one clear adjective question.",
+      "Continua con un possesso collegato e una chiara domanda aggettivale.",
+    ),
+    turn(
+      "learner",
       predicateTarget(
-        "noun",
-        "noun-kenkyuusha",
-        "affirmative",
+        "i-adjective",
+        "adjective-takai",
+        "negative",
         CELLS.sentenceOmission,
         null,
         [L("expression-iie"), TASK11_COMMA],
         ["sentence-omission"],
       ),
-      "correct-profession",
-      "No, he is a researcher.",
-      "No, è un ricercatore.",
-      "Answers while retaining the same recoverable omitted topic.",
-      "Risponde mantenendo lo stesso tema omesso e recuperabile.",
-    ),
-    turn(
-      "learner",
-      predicateTarget(
-        "na-adjective",
-        "adjective-yuumei",
-        "affirmative",
-        CELLS.sentenceOmission,
-        null,
-        [],
-        ["sentence-omission"],
-      ),
-      "close-description",
-      "He is famous.",
-      "È famoso.",
-      "Closes the coherent description chain without a repeated pronoun.",
-      "Chiude la catena descrittiva coerente senza ripetere il pronome.",
+      "answer-mother-umbrella-price",
+      "No, it is not expensive.",
+      "No, non è costoso.",
+      "Answers about the same umbrella without repeating its recoverable owner.",
+      "Risponde sullo stesso ombrello senza ripeterne la proprietaria recuperabile.",
     ),
   ],
 };
@@ -1570,18 +2030,18 @@ const SYNTHESIS_2: BaseTask11LessonSpec = {
   prerequisiteLessonIds: ["base-synthesis-1"],
   newLexemeIds: [],
   reviewLexemeIds: [
+    "noun-ashita",
     "verb-kaku",
-    "verb-yomu",
-    "verb-benkyou-suru",
-    "verb-akeru",
-    "verb-shimeru",
-    "verb-toru",
-    "verb-kesu",
-    "noun-shichiji",
-    "verb-iku",
-    "verb-motte-kuru",
-    "verb-miseru",
-    "noun-shorui",
+    "noun-kinou",
+    "noun-fudan",
+    "noun-shigoto",
+    "verb-suru",
+    "verb-utau",
+    "noun-yoru",
+    "verb-kiku",
+    "verb-tsukuru",
+    "noun-fuku",
+    "verb-kiru",
   ],
   introducedConceptIds: [],
   reviewedConceptIds: [
@@ -1599,6 +2059,9 @@ const SYNTHESIS_2: BaseTask11LessonSpec = {
     "masu-nonpast",
     "base-construction-sequential-te",
     "base-construction-te-kudasai",
+    "i-adjective-class",
+    "modifier-before-noun",
+    "affirmative-desu",
   ],
   patternCellIds: [
     CELLS.habitual,
@@ -1616,6 +2079,8 @@ const SYNTHESIS_2: BaseTask11LessonSpec = {
     CELLS.requestResponse,
     CELLS.sequence,
     CELLS.sequenceFinal,
+    CELLS.iAttributive,
+    CELLS.nounAffirmative,
   ],
   referenceSnapshotIds: [
     "particle-atlas",
@@ -1646,17 +2111,17 @@ const SYNTHESIS_2: BaseTask11LessonSpec = {
     ),
     ex(
       relativeTimeTarget(
-        "noun-fudan",
+        "noun-maishuu",
         "verb-kaku",
         "nonpast-negative",
         CELLS.nonpastNegative,
         "habitual",
       ),
       "habitual-negative-writing",
-      "I do not usually write.",
-      "Di solito non scrivo.",
-      "Uses dynamic nonpast negative for a habitual pattern.",
-      "Usa il non-passato negativo dinamico per un'abitudine.",
+      "I do not write every week.",
+      "Non scrivo ogni settimana.",
+      "Uses dynamic nonpast negative only for a repeated weekly pattern.",
+      "Usa il non-passato negativo dinamico soltanto per un'abitudine settimanale.",
       "four-cell-nonpast-negative",
     ),
     ex(
@@ -1690,88 +2155,99 @@ const SYNTHESIS_2: BaseTask11LessonSpec = {
       "four-cell-past-negative",
     ),
     ex(
-      actionTimeTarget(
-        "noun-ryourinin",
-        "noun-kuji",
-        "verb-yomu",
-        "polite-nonpast",
-        CELLS.timeNi,
-        "future",
+      withTimeNiSeparator(
+        actionTimeTarget(
+          null,
+          "noun-getsuyoubi",
+          "verb-dekakeru",
+          "polite-nonpast",
+          CELLS.timeNi,
+          "future",
+        ),
       ),
-      "specific-time-plan",
-      "The cook will read at nine.",
-      "Il cuoco leggerà alle nove.",
-      "Attaches に only to the specific clock time.",
-      "Collega に soltanto all'ora specifica.",
-      "specific-time-future",
+      "monday-outing",
+      "I will go out on Monday.",
+      "Uscirò lunedì.",
+      "Places one future outing on a stated weekday.",
+      "Colloca un'uscita futura in un giorno della settimana indicato.",
+      "future-monday-outing",
     ),
     ex(
       timeBoundsTarget(
-        "noun-kaishain",
+        "noun-chichi",
         "noun-shichiji",
         "noun-kuji",
       ),
       "bounded-study-plan",
-      "The company employee will study from seven until nine.",
-      "L'impiegato studierà dalle sette alle nove.",
+      "My father will study from seven until nine.",
+      "Mio padre studierà dalle sette alle nove.",
       "Keeps から and まで as the two limits of one plan.",
       "Mantiene から e まで come i due limiti di un unico piano.",
       "time-bounds-future",
     ),
     ex(
-      sequenceTarget("verb-akeru", "verb-shimeru"),
-      "open-then-close",
-      "I will open it and then close it.",
-      "Lo aprirò e poi lo chiuderò.",
-      "Connects two planned actions with bounded sequential て.",
-      "Collega due azioni programmate con て sequenziale circoscritto.",
-      "plan-open-close",
-    ),
-    ex(
       objectVerbTarget(
-        "noun-shorui",
-        "verb-toru",
-        "polite-nonpast",
-        CELLS.future,
-        "future",
+        "noun-fuku",
+        "verb-kiru",
+        "past-affirmative",
+        CELLS.pastAffirmative,
+        "past",
       ),
-      "take-documents",
-      "I will take the documents.",
-      "Prenderò i documenti.",
-      "Keeps the document argument visibly licensed by を.",
-      "Mantiene l'argomento dei documenti visibilmente autorizzato da を.",
-      "plan-take-documents",
+      "wore-clothes",
+      "I wore the clothes.",
+      "Ho indossato i vestiti.",
+      "Keeps the clothing argument licensed by を in a completed action.",
+      "Mantiene l'argomento dei vestiti retto da を in un'azione conclusa.",
+      "past-wore-clothes",
     ),
     ex(
-      actionTimeTarget(
-        "noun-yamada",
-        "noun-shichiji",
-        "verb-yomu",
-        "polite-nonpast",
-        CELLS.habitual,
-        "habitual",
+      asQuestion(
+        withUnmarkedTime(
+          sequenceTarget("verb-kiku", "verb-tsukuru"),
+          "noun-ashita",
+          "habit-future-time-cues",
+        ),
+        "verb-tsukuru",
       ),
-      "known-office-routine",
-      "Yamada reads at seven.",
-      "Yamada legge alle sette.",
-      "Retrieves a godan polite nonpast form in a habitual time frame.",
-      "Recupera una forma cortese non-passata godan in un contesto abituale.",
-      "routine-reading",
+      "listen-then-make",
+      "Will you listen and then make it tomorrow?",
+      "Domani ascolterai e poi lo farai?",
+      "Connects two planned actions while keeping their order explicit.",
+      "Collega due azioni programmate mantenendone esplicito l'ordine.",
+      "future-listen-make",
     ),
     ex(
-      objectVerbTarget(
-        "noun-namae",
-        "verb-kesu",
-        "polite-nonpast",
-        CELLS.future,
-        "future",
+      modifierTarget(
+        "i-adjective",
+        "adjective-ii",
+        "anchor-kyaku",
+        CELLS.iAttributive,
+        "name-ken",
       ),
-      "remove-name",
-      "I will remove the name.",
-      "Cancellerò il nome.",
-      "Keeps the item being removed explicit with を.",
-      "Mantiene esplicito con を l'elemento da cancellare.",
-      "plan-remove-name",
+      "good-guest",
+      "Ken is a good customer.",
+      "Ken è un buon cliente.",
+      "Uses a familiar い-adjective directly before one noun.",
+      "Usa un aggettivo noto in い direttamente prima di un nome.",
+      "description-good-guest",
+    ),
+    ex(
+      withTimeNiSeparator(
+        actionTimeTarget(
+          null,
+          "noun-kuji",
+          "verb-neru",
+          "polite-nonpast",
+          CELLS.timeNi,
+          "future",
+        ),
+      ),
+      "sleep-at-nine",
+      "I will sleep at nine.",
+      "Dormirò alle nove.",
+      "Places a familiar future action at a specific time.",
+      "Colloca un'azione futura già nota a un'ora specifica.",
+      "future-sleep-time",
     ),
   ],
   activities: [
@@ -1779,29 +2255,37 @@ const SYNTHESIS_2: BaseTask11LessonSpec = {
       "base-synthesis-2",
       1,
       task11Cue(
-        L("adjective-takai"),
+        L("noun-ashita"),
         TASK11_COMMA,
-        L("adjective-oishii"),
+        L("name-sora"),
         TASK11_COMMA,
-        L("adjective-shizuka"),
+        L("verb-kaku"),
       ),
-      simpleVerbTarget(
-        "verb-miseru",
-        "polite-nonpast",
-        CELLS.future,
-        "future",
-        "noun-kenkyuusha",
-        [],
-        ["dynamic-nonpast-semantics"],
+      withSeparatedUnmarkedTime(
+        simpleVerbTarget(
+          "verb-kaku",
+          "polite-nonpast",
+          CELLS.future,
+          "future",
+          "name-sora",
+          [],
+          ["sentence-order", "dynamic-nonpast-semantics"],
+        ),
+        "noun-ashita",
+        "habit-future-time-cues",
       ),
-      simpleVerbTarget(
-        "verb-miseru",
-        "past-affirmative",
-        CELLS.future,
-        "past",
-        "noun-kenkyuusha",
-        [],
-        ["four-polite-tense-cells"],
+      withSeparatedUnmarkedTime(
+        simpleVerbTarget(
+          "verb-kaku",
+          "past-affirmative",
+          CELLS.future,
+          "past",
+          "name-sora",
+          [],
+          ["sentence-order", "four-polite-tense-cells"],
+        ),
+        "noun-ashita",
+        "habit-future-time-cues",
       ),
       1,
       CELLS.future,
@@ -1812,31 +2296,27 @@ const SYNTHESIS_2: BaseTask11LessonSpec = {
       "base-synthesis-2",
       2,
       task11Cue(
-        L("adjective-kirei"),
+        L("noun-tanaka"),
         TASK11_COMMA,
-        L("adjective-yuumei"),
+        L("noun-yoru"),
         TASK11_COMMA,
-        L("adjective-genki"),
-        TASK11_COMMA,
-        L("verb-shinu"),
-        TASK11_COMMA,
-        L("verb-kiku"),
-        TASK11_COMMA,
-        L("verb-tsukuru"),
-        TASK11_COMMA,
-        L("verb-hashiru"),
+        L("verb-utau"),
       ),
-      simpleVerbTarget(
-        "verb-shinu",
+      actionTimeTarget(
+        "noun-tanaka",
+        "noun-yoru",
+        "verb-utau",
         "nonpast-negative",
         CELLS.nonpastNegative,
         "future",
       ),
-      simpleVerbTarget(
-        "verb-shinu",
-        "past-negative",
+      actionTimeTarget(
+        "noun-tanaka",
+        "noun-yoru",
+        "verb-utau",
+        "polite-nonpast",
         CELLS.nonpastNegative,
-        "past",
+        "future",
       ),
       1,
       CELLS.nonpastNegative,
@@ -1847,22 +2327,12 @@ const SYNTHESIS_2: BaseTask11LessonSpec = {
       "base-synthesis-2",
       3,
       task11Cue(
-        L("noun-ryourinin"),
+        L("verb-kiku"),
         TASK11_COMMA,
-        L("noun-enjinia"),
-        TASK11_COMMA,
-        L("verb-kiru"),
-        TASK11_COMMA,
-        L("verb-suwaru"),
-        TASK11_COMMA,
-        L("verb-au"),
-        TASK11_COMMA,
-        L("verb-utau"),
-        TASK11_COMMA,
-        L("verb-noru"),
+        L("verb-tsukuru"),
       ),
-      sequenceTarget("verb-kiru", "verb-suwaru", CELLS.sequenceFinal),
-      reversedSequenceTarget("verb-kiru", "verb-suwaru", CELLS.sequenceFinal),
+      sequenceTarget("verb-kiku", "verb-tsukuru", CELLS.sequenceFinal),
+      reversedSequenceTarget("verb-kiku", "verb-tsukuru", CELLS.sequenceFinal),
       0,
       CELLS.sequenceFinal,
       BASE_ORDERING_ACTIVITY_SHAPE,
@@ -1872,17 +2342,9 @@ const SYNTHESIS_2: BaseTask11LessonSpec = {
       "base-synthesis-2",
       4,
       task11Cue(
-        L("noun-ginkouin"),
-        TASK11_COMMA,
-        L("noun-koumuin"),
-        TASK11_COMMA,
         L("noun-fuku"),
         TASK11_COMMA,
-        L("verb-ryokou-suru"),
-        TASK11_COMMA,
-        L("verb-ryouri-suru"),
-        TASK11_COMMA,
-        L("verb-dekakeru"),
+        L("verb-kiru"),
       ),
       objectVerbTarget(
         "noun-fuku",
@@ -1906,18 +2368,11 @@ const SYNTHESIS_2: BaseTask11LessonSpec = {
     act(
       "base-synthesis-2",
       5,
-      task11Cue(
-        L("noun-shorui"),
-        TASK11_COMMA,
-        L("verb-miseru"),
-        TASK11_COMMA,
-        L("noun-maishuu"),
-        TASK11_COMMA,
-        L("noun-getsuyoubi"),
-        TASK11_COMMA,
-        L("noun-konshuu"),
-        TASK11_COMMA,
-        L("noun-raishuu"),
+      errorTarget(
+        "verb-miseru",
+        "みせましだ",
+        "misemashida",
+        "synthesis-past-voicing",
       ),
       simpleVerbTarget(
         "verb-miseru",
@@ -1944,38 +2399,32 @@ const SYNTHESIS_2: BaseTask11LessonSpec = {
       "base-synthesis-2",
       6,
       task11Cue(
-        L("expression-onegaishimasu"),
-        TASK11_COMMA,
-        L("noun-nimotsu"),
-        TASK11_COMMA,
-        L("noun-shio"),
-        TASK11_COMMA,
-        L("verb-arau"),
-        TASK11_COMMA,
-        L("noun-kaigi"),
-        TASK11_COMMA,
-        L("noun-shigoto"),
-        TASK11_COMMA,
-        L("noun-yotei"),
-        TASK11_COMMA,
-        L("noun-yoru"),
-        TASK11_COMMA,
         L("noun-kinou"),
+        TASK11_COMMA,
+        L("verb-shiru"),
       ),
-      simpleVerbTarget(
-        "verb-shiru",
-        "past-affirmative",
-        CELLS.habitual,
-        "past",
+      withUnmarkedTime(
+        simpleVerbTarget(
+          "verb-shiru",
+          "past-affirmative",
+          CELLS.pastAffirmative,
+          "past",
+        ),
+        "noun-kinou",
+        "relative-time-omission",
       ),
-      simpleVerbTarget(
-        "verb-shiru",
-        "polite-nonpast",
-        CELLS.habitual,
-        "habitual",
+      withUnmarkedTime(
+        simpleVerbTarget(
+          "verb-shiru",
+          "past-negative",
+          CELLS.pastAffirmative,
+          "past",
+        ),
+        "noun-kinou",
+        "relative-time-omission",
       ),
-      1,
-      CELLS.habitual,
+      0,
+      CELLS.pastAffirmative,
       BASE_CONTEXT_ACTIVITY_SHAPE,
       { contrastAxis: "polite-form" },
     ),
@@ -1983,106 +2432,33 @@ const SYNTHESIS_2: BaseTask11LessonSpec = {
       "base-synthesis-2",
       7,
       task11Cue(
-        task11AnalysisLabel("analysis-future"),
+        L("noun-fudan"),
         TASK11_COMMA,
-        L("verb-kaku"),
+        L("noun-shigoto"),
         TASK11_COMMA,
-        L("verb-yomu"),
-        TASK11_COMMA,
-        L("verb-benkyou-suru"),
-        TASK11_COMMA,
-        L("verb-akeru"),
-        TASK11_COMMA,
-        L("verb-shimeru"),
-        TASK11_COMMA,
-        L("verb-toru"),
-        TASK11_COMMA,
-        L("noun-kesa"),
-        TASK11_COMMA,
-        L("noun-konban"),
-        TASK11_COMMA,
-        L("noun-nichiyoubi"),
-        TASK11_COMMA,
-        L("noun-shichiji"),
+        L("verb-suru"),
       ),
-      actionTimeTarget(
-        "noun-kenkyuusha",
-        "noun-goji",
-        "verb-kaku",
-        "polite-nonpast",
-        CELLS.timeNi,
-        "future",
+      withUnmarkedTime(
+        objectVerbTarget(
+          "noun-shigoto",
+          "verb-suru",
+          "nonpast-negative",
+          CELLS.habitual,
+          "habitual",
+        ),
+        "noun-fudan",
+        "habit-future-time-cues",
       ),
-      actionTimeTarget(
-        "noun-kenkyuusha",
-        "noun-goji",
-        "verb-kaku",
-        "past-affirmative",
-        CELLS.timeNi,
-        "past",
-      ),
-      0,
-      CELLS.timeNi,
-      BASE_RETRIEVAL_ACTIVITY_SHAPE,
-      { contrastAxis: "polite-form" },
-    ),
-    act(
-      "base-synthesis-2",
-      8,
-      task11Cue(
-        task11AnalysisLabel("analysis-habitual"),
-        TASK11_COMMA,
-        L("verb-kesu"),
-        TASK11_COMMA,
-        L("verb-shiru"),
-        TASK11_COMMA,
-        L("verb-iku"),
-        TASK11_COMMA,
-        L("verb-motte-kuru"),
-        TASK11_COMMA,
-        L("verb-miseru"),
-        TASK11_COMMA,
-        L("noun-shorui"),
-        TASK11_COMMA,
-        L("verb-tetsudau"),
-        TASK11_COMMA,
-        L("verb-yobu"),
-        TASK11_COMMA,
-        L("verb-hairu"),
-        TASK11_COMMA,
-        L("verb-deru"),
-        TASK11_COMMA,
-        L("expression-sumimasen"),
-        TASK11_COMMA,
-        L("expression-douzo"),
-      ),
-      simpleVerbTarget(
-        "verb-yomu",
-        "polite-nonpast",
-        CELLS.habitual,
-        "habitual",
-        "noun-suzuki",
-        [],
-        [
-          "sentence-order",
-          "dynamic-nonpast-semantics",
-          "godan-verb-class",
-          "masu-nonpast",
-        ],
-      ),
-      simpleVerbTarget(
-        "verb-yomu",
-        "nonpast-negative",
-        CELLS.habitual,
-        "habitual",
-        "noun-suzuki",
-        [],
-        [
-          "sentence-order",
-          "dynamic-nonpast-semantics",
-          "godan-verb-class",
-          "masu-nonpast",
-        ],
+      withUnmarkedTime(
+        objectVerbTarget(
+          "noun-shigoto",
+          "verb-suru",
+          "polite-nonpast",
+          CELLS.habitual,
+          "habitual",
+        ),
+        "noun-fudan",
+        "habit-future-time-cues",
       ),
       0,
       CELLS.habitual,
@@ -2091,23 +2467,70 @@ const SYNTHESIS_2: BaseTask11LessonSpec = {
     ),
     act(
       "base-synthesis-2",
-      9,
-      task11Cue(task11AnalysisLabel("analysis-pair")),
-      actionTimeTarget(
-        "noun-koumuin",
-        "noun-kuji",
-        "verb-yomu",
-        "past-negative",
-        CELLS.pastAffirmative,
-        "past",
+      8,
+      task11Cue(
+        L("noun-kinou"),
+        TASK11_COMMA,
+        L("noun-hana"),
+        TASK11_COMMA,
+        L("verb-shinu"),
       ),
-      actionTimeTarget(
-        "noun-koumuin",
-        "noun-kuji",
-        "verb-yomu",
-        "past-affirmative",
-        CELLS.pastAffirmative,
-        "past",
+      withSeparatedUnmarkedTime(
+        simpleVerbTarget(
+          "verb-shinu",
+          "past-affirmative",
+          CELLS.pastAffirmative,
+          "past",
+          "noun-hana",
+        ),
+        "noun-kinou",
+        "relative-time-omission",
+      ),
+      withSeparatedUnmarkedTime(
+        simpleVerbTarget(
+          "verb-shinu",
+          "past-negative",
+          CELLS.pastAffirmative,
+          "past",
+          "noun-hana",
+        ),
+        "noun-kinou",
+        "relative-time-omission",
+      ),
+      0,
+      CELLS.pastAffirmative,
+      BASE_RETRIEVAL_ACTIVITY_SHAPE,
+      { contrastAxis: "polite-form" },
+    ),
+    act(
+      "base-synthesis-2",
+      9,
+      task11Cue(
+        L("noun-kesa"),
+        TASK11_COMMA,
+        L("verb-sanpo-suru"),
+        TASK11_COMMA,
+        L("verb-hashiru"),
+      ),
+      withSeparatedUnmarkedTime(
+        pastSequenceTarget(
+          "verb-sanpo-suru",
+          "verb-hashiru",
+          "past-affirmative",
+          CELLS.pastAffirmative,
+        ),
+        "noun-kesa",
+        "relative-time-omission",
+      ),
+      withSeparatedUnmarkedTime(
+        pastSequenceTarget(
+          "verb-sanpo-suru",
+          "verb-hashiru",
+          "past-negative",
+          CELLS.pastAffirmative,
+        ),
+        "noun-kesa",
+        "relative-time-omission",
       ),
       1,
       CELLS.pastAffirmative,
@@ -2118,115 +2541,172 @@ const SYNTHESIS_2: BaseTask11LessonSpec = {
       "base-synthesis-2",
       10,
       task11Cue(
-        L("noun-enjinia"),
+        L("expression-sumimasen"),
         TASK11_COMMA,
-        L("noun-shichiji"),
+        L("noun-namae"),
         TASK11_COMMA,
-        L("noun-kuji"),
-        TASK11_COMMA,
-        L("verb-benkyou-suru"),
-        TASK11_COMMA,
-        L("expression-wakarimashita"),
+        L("verb-kesu"),
       ),
-      withPrefix(
-        timeBoundsTarget("noun-enjinia", "noun-shichiji", "noun-kuji"),
-        [L("expression-wakarimashita"), TASK11_COMMA],
-      ),
-      timeBoundsTarget(
-        "noun-enjinia",
-        "noun-shichiji",
-        "noun-kuji",
-        "past-affirmative",
+      requestTarget("noun-namae", "verb-kesu", [
+        L("expression-sumimasen"),
+        TASK11_COMMA,
+      ]),
+      objectVerbTarget(
+        "noun-namae",
+        "verb-kesu",
+        "polite-nonpast",
+        CELLS.request,
+        "future",
+        [L("expression-sumimasen"), TASK11_COMMA],
       ),
       0,
-      CELLS.timeBounds,
+      CELLS.request,
       BASE_SPOKEN_ACTIVITY_SHAPE,
       { contrastAxis: "polite-form" },
     ),
   ],
   dialogue: [
     turn(
+      "learner",
+      predicateTarget(
+        "noun",
+        "noun-yuki",
+        "affirmative",
+        CELLS.nounAffirmative,
+        "noun-watashi",
+      ),
+      "introduce-yuki",
+      "I am Yuki.",
+      "Sono Yuki.",
+      "Introduces the learner before the schedule exchange begins.",
+      "Presenta lo studente prima dell'inizio dello scambio sugli orari.",
+    ),
+    turn(
       "partner",
       asQuestion(
-        relativeTimeTarget(
-          "noun-fudan",
-          "verb-benkyou-suru",
+        withUnmarkedTime(
+          objectVerbTarget(
+          "noun-shigoto",
+          "verb-suru",
           "polite-nonpast",
           CELLS.habitual,
           "habitual",
+          [],
+          ["dynamic-nonpast-semantics"],
+          ),
+          "noun-fudan",
+          "habit-future-time-cues",
         ),
-        "verb-benkyou-suru",
+        "verb-suru",
       ),
-      "ask-study-routine",
-      "Do you usually study?",
-      "Di solito studi?",
-      "Opens a practical schedule exchange with a habitual question.",
-      "Apre uno scambio pratico sull'orario con una domanda abituale.",
+      "ask-work-routine",
+      "Do you usually work?",
+      "Di solito lavori?",
+      "Opens a practical schedule exchange with a habitual work question.",
+      "Apre uno scambio pratico sugli orari con una domanda sul lavoro abituale.",
     ),
     turn(
       "learner",
-      timeBoundsTarget(null, "noun-shichiji", "noun-kuji"),
-      "state-study-routine",
-      "I study from seven until nine.",
-      "Studio dalle sette alle nove.",
-      "Answers with the two established time bounds.",
-      "Risponde con i due limiti temporali già appresi.",
-    ),
-    turn(
-      "partner",
-      goTimeGoalQuestion("noun-ashita", "noun-kuji", "noun-jimusho"),
-      "ask-arrival-plan",
-      "Will you go to the office at nine tomorrow?",
-      "Andrai in ufficio domani alle nove?",
-      "Moves from the routine to one specific future arrival.",
-      "Passa dall'abitudine a un arrivo futuro a un'ora precisa.",
-    ),
-    turn(
-      "learner",
-      actionTimeTarget(
-        null,
-        "noun-kuji",
-        "verb-iku",
-        "polite-nonpast",
-        CELLS.timeNi,
-        "future",
-        [L("expression-hai"), TASK11_COMMA],
-      ),
-      "confirm-arrival-plan",
-      "Yes, I will go at nine.",
-      "Sì, andrò alle nove.",
-      "Confirms the same future time without changing the event.",
-      "Conferma lo stesso orario futuro senza cambiare l'evento.",
-    ),
-    turn(
-      "partner",
-      asQuestion(
+      withPrefix(
         objectVerbTarget(
-          "noun-shorui",
-          "verb-miseru",
+          "noun-shigoto",
+          "verb-suru",
+          "polite-nonpast",
+          CELLS.habitual,
+          "habitual",
+          [],
+          ["dynamic-nonpast-semantics"],
+        ),
+        [L("expression-sou"), TASK11_COMMA],
+      ),
+      "confirm-work-routine",
+      "That's right, I work.",
+      "Esatto, lavoro.",
+      "Answers with the same licensed work object and habitual reading.",
+      "Risponde con lo stesso oggetto del lavoro e la stessa lettura abituale.",
+    ),
+    turn(
+      "learner",
+      withTimeNiSeparator(
+        actionTimeTarget(
+          null,
+          "noun-yoru",
+          "verb-utau",
           "polite-nonpast",
           CELLS.future,
           "future",
         ),
-        "verb-miseru",
       ),
-      "ask-document-plan",
-      "Will you show the documents?",
-      "Mostrerai i documenti?",
-      "Asks about the licensed object in the shared plan.",
-      "Chiede dell'oggetto retto nel piano condiviso.",
+      "state-evening-plan",
+      "I will sing tonight.",
+      "Canterò stasera.",
+      "Adds one clear future plan after the work routine.",
+      "Aggiunge un piano futuro chiaro dopo la routine di lavoro.",
+    ),
+    turn(
+      "partner",
+      asQuestion(
+        withTimeNiSeparator(
+          timedSequenceTarget(
+            "noun-goji",
+            "verb-denwa-suru",
+            "verb-au",
+          ),
+        ),
+        "verb-au",
+      ),
+      "ask-call-meeting-plan",
+      "I see. Will you call and then meet at five?",
+      "Capisco. Telefonerai e poi vi incontrerete alle cinque?",
+      "Acknowledges the routine, then asks about two ordered actions at five.",
+      "Riconosce l'abitudine, poi chiede di due azioni ordinate alle cinque.",
     ),
     turn(
       "learner",
-      withPrefix(sequenceTarget("verb-motte-kuru", "verb-miseru"), [
-        L("expression-hai"),
+      withPrefix(
+        withLeadingSeparator(
+          withUnmarkedTime(
+            sequenceTarget("verb-denwa-suru", "verb-au", CELLS.sequenceFinal),
+            "noun-ashita",
+            "relative-time-omission",
+          ),
+        ),
+        [L("expression-iie"), TASK11_COMMA],
+      ),
+      "move-call-meeting-plan",
+      "No, I will call and then meet tomorrow.",
+      "No, telefonerò e poi ci incontreremo domani.",
+      "Keeps both actions in order while correcting only the date.",
+      "Mantiene entrambe le azioni in ordine correggendo soltanto la data.",
+    ),
+    turn(
+      "partner",
+      expressionTarget("expression-onegaishimasu", [
+        L("noun-shorui"),
         TASK11_COMMA,
       ]),
-      "confirm-document-plan",
-      "Yes, I will bring them and show them.",
-      "Sì, li porterò e li mostrerò.",
-      "Closes with a coherent two-action document plan.",
-      "Chiude con un piano coerente di due azioni sui documenti.",
+      "request-documents",
+      "The documents, please.",
+      "I documenti, per favore.",
+      "Makes a concise request for the documents needed for the plan.",
+      "Formula una richiesta concisa dei documenti necessari per il piano.",
+    ),
+    turn(
+      "learner",
+      withPrefix(
+        simpleVerbTarget(
+          "verb-motte-kuru",
+          "polite-nonpast",
+          CELLS.requestResponse,
+          "future",
+        ),
+        [L("expression-wakarimashita"), TASK11_COMMA],
+      ),
+      "accept-document-request",
+      "Understood, I will bring them.",
+      "Ho capito, li porterò.",
+      "Accepts the request while the documents remain recoverable.",
+      "Accetta la richiesta mantenendo recuperabili i documenti.",
     ),
   ],
 };
@@ -2237,18 +2717,18 @@ const SYNTHESIS_3: BaseTask11LessonSpec = {
   prerequisiteLessonIds: ["base-synthesis-2"],
   newLexemeIds: [],
   reviewLexemeIds: [
-    "noun-heya",
-    "noun-niwa",
-    "noun-tsukue",
-    "noun-isu",
-    "noun-kyoushitsu",
-    "noun-uchi",
-    "noun-uketsuke",
-    "noun-toire",
-    "noun-konbini",
-    "noun-basutei",
+    "noun-mise",
+    "noun-shio",
+    "verb-aru",
     "noun-chizu",
-    "noun-kaban",
+    "noun-jimusho",
+    "noun-mado",
+    "verb-shimeru",
+    "verb-arau",
+    "verb-noru",
+    "verb-deru",
+    "verb-motte-kuru",
+    "noun-tanaka",
   ],
   introducedConceptIds: [],
   reviewedConceptIds: [
@@ -2277,6 +2757,7 @@ const SYNTHESIS_3: BaseTask11LessonSpec = {
     CELLS.sequenceFinal,
     CELLS.pastAffirmative,
     CELLS.teImasuOngoing,
+    CELLS.nounAffirmative,
   ],
   referenceSnapshotIds: [
     "sentence-anatomy",
@@ -2291,86 +2772,142 @@ const SYNTHESIS_3: BaseTask11LessonSpec = {
   ],
   examples: [
     ex(
-      fullExistence("noun-heya", "noun-tsukue", "verb-aru"),
-      "room-desk",
-      "There is a desk in the room.",
-      "Nella stanza c'è una scrivania.",
+      asQuestion(
+        fullExistence("noun-mise", "noun-shio", "verb-aru"),
+        "verb-aru",
+      ),
+      "shop-salt-question",
+      "Is there salt in the shop?",
+      "C'è del sale nel negozio?",
       "Uses location に and existential が for an inanimate entity.",
       "Usa に di luogo e が esistenziale per un'entità inanimata.",
-      "existence-room-desk",
+      "existence-shop-salt",
     ),
     ex(
-      fullExistence("noun-niwa", "noun-kodomo", "verb-iru"),
-      "garden-dog",
-      "There is a child in the garden.",
-      "Nel giardino c'è un bambino.",
+      fullExistence("noun-niwa", "noun-yuki-san", "verb-iru"),
+      "yuki-in-garden",
+      "Yuki is in the garden.",
+      "Yuki è in giardino.",
       "Selects います for an animate entity.",
       "Seleziona います per un'entità animata.",
-      "existence-garden-dog",
+      "existence-yuki-garden",
     ),
     ex(
-      topicLocation("noun-isu", "noun-uchi", "verb-aru"),
-      "chair-location",
-      "The chair is in the house.",
-      "La sedia è nella casa.",
-      "Contrasts a known chair topic with an existential introduction.",
-      "Contrappone una sedia già nota a un'introduzione esistenziale.",
-      "topic-chair-location",
+      expressionTarget("expression-onegaishimasu", [
+        L("noun-nimotsu"),
+        TASK11_COMMA,
+      ]),
+      "luggage-please",
+      "The luggage, please.",
+      "Il bagaglio, per favore.",
+      "Uses a concise familiar request for the luggage already under discussion.",
+      "Usa una richiesta concisa già nota per il bagaglio al centro del discorso.",
+      "request-luggage",
     ),
     ex(
-      actionPlace(
-        "noun-kyoushitsu",
-        "verb-asobu",
-        "play-place",
+      withSeparatedUnmarkedTime(
+        actionPlace(
+          "noun-kyoushitsu",
+          "verb-asobu",
+          "play-place",
+        ),
+        "noun-kyou",
+        "relative-time-omission",
       ),
-      "classroom-action",
-      "I play in the classroom.",
-      "Gioco in aula.",
+      "classroom-action-today",
+      "I will play in the classroom today.",
+      "Oggi giocherò in aula.",
       "Uses で for the place where an action happens.",
       "Usa で per il luogo in cui avviene un'azione.",
       "action-place-classroom",
     ),
     ex(
-      requestTarget("noun-mado", "verb-akeru", [
+      requestTarget("noun-mado", "verb-shimeru", [
         L("expression-sumimasen"),
+        TASK11_COMMA,
+        L("noun-suzuki"),
         TASK11_COMMA,
       ]),
       "window-request",
-      "Excuse me, please open the window.",
-      "Scusi, apra la finestra, per favore.",
+      "Excuse me, Suzuki, please close the window.",
+      "Mi scusi, Suzuki, chiuda la finestra, per favore.",
       "Makes a bounded practical request with てください.",
       "Formula una richiesta pratica circoscritta con てください.",
-      "request-open-window",
+      "request-close-window",
     ),
     ex(
-      sequenceTarget("verb-shimeru", "verb-deru"),
-      "close-then-leave",
-      "I will close it and then leave.",
-      "Lo chiuderò e poi uscirò.",
-      "Uses sequential て while keeping the final verb finite.",
-      "Usa て sequenziale mantenendo finito il verbo finale.",
-      "sequence-close-leave",
+      asQuestion(
+        withTopic(
+          goalTarget(
+            "noun-jimusho",
+            "verb-motte-kuru",
+            "polite-nonpast",
+            "future",
+          ),
+          "noun-chizu",
+        ),
+        "verb-motte-kuru",
+      ),
+      "bring-map-question",
+      "Will you bring the map to the office?",
+      "Porterai la mappa in ufficio?",
+      "Asks whether the map will be brought to the meeting place.",
+      "Chiede se la mappa verrà portata al luogo dell'incontro.",
+      "future-bring-map",
     ),
     ex(
-      fullExistence("noun-uketsuke", "noun-kodomo", "verb-iru"),
-      "reception-attendant",
-      "There is a child at reception.",
-      "Alla reception c'è un bambino.",
-      "Introduces a person with existential が.",
-      "Introduce una persona con が esistenziale.",
-      "existence-reception-attendant",
+      asQuestion(
+        predicateTarget(
+          "noun",
+          "noun-dare",
+          "affirmative",
+          CELLS.nounAffirmative,
+          "noun-ekiin",
+        ),
+        "noun-dare",
+      ),
+      "identify-station-attendant",
+      "Who is the station attendant?",
+      "Chi è l'addetto della stazione?",
+      "Asks for the identity of the station attendant.",
+      "Chiede l'identità dell'addetto della stazione.",
+      "identity-station-attendant",
     ),
     ex(
       requestTarget("noun-kaban", "verb-miseru", [
-        L("expression-onegaishimasu"),
+        L("expression-sumimasen"),
         TASK11_COMMA,
       ]),
-      "bag-request",
-      "Please show the bag.",
-      "Mostri la borsa, per favore.",
-      "Keeps the requested object licensed by を.",
-      "Mantiene l'oggetto richiesto retto da を.",
+      "show-bag-request",
+      "Excuse me, please show me the bag.",
+      "Mi scusi, mi mostri la borsa, per favore.",
+      "Keeps the requested object licensed by を in a polite request.",
+      "Mantiene l'oggetto richiesto retto da を in una richiesta cortese.",
       "request-show-bag",
+    ),
+    ex(
+      requestTarget("noun-fuku", "verb-arau", [
+        L("expression-sumimasen"),
+        TASK11_COMMA,
+      ]),
+      "wash-clothes-request",
+      "Excuse me, please wash the clothes.",
+      "Mi scusi, lavi i vestiti, per favore.",
+      "Places すみません before a practical request with a licensed object.",
+      "Colloca すみません prima di una richiesta pratica con un oggetto retto.",
+      "request-wash-clothes",
+    ),
+    ex(
+      asQuestion(
+        sequenceTarget("verb-noru", "verb-deru"),
+        "verb-deru",
+      ),
+      "board-then-leave",
+      "Will you board and then leave?",
+      "Salirai a bordo e poi partirai?",
+      "Keeps the boarding action first and the finite movement action last.",
+      "Mantiene prima l'azione di salire a bordo e per ultima l'azione di movimento finita.",
+      "sequence-board-leave",
     ),
   ],
   activities: [
@@ -2378,18 +2915,12 @@ const SYNTHESIS_3: BaseTask11LessonSpec = {
       "base-synthesis-3",
       1,
       task11Cue(
-        L("noun-kuruma"),
+        L("noun-shio"),
         TASK11_COMMA,
-        L("noun-hana"),
-        TASK11_COMMA,
-        L("verb-motte-kuru"),
-        TASK11_COMMA,
-        L("expression-douzo"),
-        TASK11_COMMA,
-        L("expression-wakarimashita"),
+        L("noun-mise"),
       ),
-      fullExistence("noun-niwa", "noun-kuruma", "verb-aru"),
-      topicLocation("noun-kuruma", "noun-niwa", "verb-aru"),
+      fullExistence("noun-mise", "noun-shio", "verb-aru"),
+      topicLocation("noun-shio", "noun-mise", "verb-aru"),
       1,
       CELLS.existenceFrame,
       BASE_MEANING_ACTIVITY_SHAPE,
@@ -2399,23 +2930,35 @@ const SYNTHESIS_3: BaseTask11LessonSpec = {
       "base-synthesis-3",
       2,
       task11Cue(
-        L("noun-kaban"),
+        L("noun-tanaka"),
         TASK11_COMMA,
-        L("verb-arau"),
+        L("noun-nimotsu"),
         TASK11_COMMA,
-        L("noun-byouin"),
+        L("noun-jimusho"),
         TASK11_COMMA,
-        L("noun-toshokan"),
-        TASK11_COMMA,
-        L("noun-nikki"),
+        L("verb-motte-kuru"),
       ),
-      requestTarget("noun-kaban", "verb-arau"),
-      objectVerbTarget(
-        "noun-kaban",
-        "verb-arau",
-        "polite-nonpast",
-        CELLS.request,
-        "future",
+      withPrefix(
+        withTopic(
+          goalRequestTarget("noun-jimusho", "verb-motte-kuru"),
+          "noun-nimotsu",
+        ),
+        [L("noun-tanaka"), TASK11_COMMA],
+      ),
+      withPrefix(
+        withTopic(
+          {
+            ...goalTarget(
+              "noun-jimusho",
+              "verb-motte-kuru",
+              "polite-nonpast",
+              "future",
+            ),
+            patternCellIds: [CELLS.request],
+          },
+          "noun-nimotsu",
+        ),
+        [L("noun-tanaka"), TASK11_COMMA],
       ),
       1,
       CELLS.request,
@@ -2426,16 +2969,12 @@ const SYNTHESIS_3: BaseTask11LessonSpec = {
       "base-synthesis-3",
       3,
       task11Cue(
-        L("noun-kodomo"),
-        TASK11_COMMA,
-        L("noun-sakana"),
-        TASK11_COMMA,
-        L("verb-yobu"),
+        L("verb-noru"),
         TASK11_COMMA,
         L("verb-deru"),
       ),
-      sequenceTarget("verb-yobu", "verb-deru", CELLS.sequenceFinal),
-      reversedSequenceTarget("verb-yobu", "verb-deru", CELLS.sequenceFinal),
+      sequenceTarget("verb-noru", "verb-deru", CELLS.sequenceFinal),
+      reversedSequenceTarget("verb-noru", "verb-deru", CELLS.sequenceFinal),
       0,
       CELLS.sequenceFinal,
       BASE_ORDERING_ACTIVITY_SHAPE,
@@ -2445,21 +2984,32 @@ const SYNTHESIS_3: BaseTask11LessonSpec = {
       "base-synthesis-3",
       4,
       task11Cue(
-        L("noun-fuku"),
+        L("noun-konban"),
         TASK11_COMMA,
-        L("noun-shio"),
+        L("expression-douzo"),
         TASK11_COMMA,
-        L("verb-arau"),
-        TASK11_COMMA,
-        L("verb-tetsudau"),
+        L("verb-hairu"),
       ),
-      requestTarget("noun-fuku", "verb-arau"),
-      objectVerbTarget(
-        "noun-fuku",
-        "verb-arau",
-        "polite-nonpast",
-        CELLS.request,
-        "future",
+      withSeparatedUnmarkedTime(
+        simpleRequestTarget("verb-hairu", [
+          L("expression-douzo"),
+          TASK11_COMMA,
+        ]),
+        "noun-konban",
+        "habit-future-time-cues",
+      ),
+      asQuestion(
+        withSeparatedUnmarkedTime(
+          simpleVerbTarget(
+            "verb-hairu",
+            "polite-nonpast",
+            CELLS.request,
+            "future",
+          ),
+          "noun-konban",
+          "habit-future-time-cues",
+        ),
+        "verb-hairu",
       ),
       1,
       CELLS.request,
@@ -2469,14 +3019,22 @@ const SYNTHESIS_3: BaseTask11LessonSpec = {
     act(
       "base-synthesis-3",
       5,
-      task11Cue(L("noun-fuku"), TASK11_COMMA, L("verb-arau")),
-      simpleVerbTarget(
+      objectErrorTarget(
+        "noun-fuku",
+        "verb-arau",
+        "あらいましたた",
+        "araimashitata",
+        "synthesis-past-ending",
+      ),
+      objectVerbTarget(
+        "noun-fuku",
         "verb-arau",
         "past-affirmative",
         CELLS.pastAffirmative,
         "past",
       ),
-      errorTarget(
+      objectErrorTarget(
+        "noun-fuku",
         "verb-arau",
         "あらいましたた",
         "araimashitata",
@@ -2497,9 +3055,9 @@ const SYNTHESIS_3: BaseTask11LessonSpec = {
       task11Cue(
         L("noun-keisatsukan"),
         TASK11_COMMA,
-        L("verb-suwaru"),
+        L("noun-ima"),
         TASK11_COMMA,
-        L("verb-shiru"),
+        L("verb-hanasu"),
       ),
       anchoredTeImasu(
         "noun-keisatsukan",
@@ -2513,7 +3071,7 @@ const SYNTHESIS_3: BaseTask11LessonSpec = {
         "habitual",
         "noun-keisatsukan",
       ),
-      1,
+      0,
       CELLS.teImasuOngoing,
       BASE_CONTEXT_ACTIVITY_SHAPE,
       { contrastAxis: "interpretation" },
@@ -2522,30 +3080,11 @@ const SYNTHESIS_3: BaseTask11LessonSpec = {
       "base-synthesis-3",
       7,
       task11Cue(
-        L("noun-heya"),
+        L("noun-chizu"),
         TASK11_COMMA,
-        L("noun-niwa"),
-        TASK11_COMMA,
-        L("noun-tsukue"),
-        TASK11_COMMA,
-        L("noun-isu"),
-        TASK11_COMMA,
-        L("noun-kyoushitsu"),
-        TASK11_COMMA,
-        L("noun-uchi"),
-        TASK11_COMMA,
-        L("verb-shinu"),
+        L("noun-jimusho"),
       ),
-      {
-        ...topicLocation("noun-chizu", "noun-jimusho", "verb-aru"),
-        conceptIds: [
-          "sentence-order",
-          "topic-wa",
-          "aru-existence",
-          "existence-location-frame",
-          "base-particle-existence-ni",
-        ],
-      },
+      topicLocation("noun-chizu", "noun-jimusho", "verb-aru"),
       fullExistence("noun-jimusho", "noun-chizu", "verb-aru"),
       0,
       CELLS.existenceTopicContrast,
@@ -2556,31 +3095,23 @@ const SYNTHESIS_3: BaseTask11LessonSpec = {
       "base-synthesis-3",
       8,
       task11Cue(
-        L("noun-uketsuke"),
+        L("noun-tanaka"),
         TASK11_COMMA,
-        L("noun-toire"),
+        L("noun-mado"),
         TASK11_COMMA,
-        L("noun-konbini"),
-        TASK11_COMMA,
-        L("noun-basutei"),
-        TASK11_COMMA,
-        L("noun-chizu"),
-        TASK11_COMMA,
-        L("noun-kaban"),
-        TASK11_COMMA,
-        L("verb-kiru"),
-        TASK11_COMMA,
-        L("verb-kesu"),
-        TASK11_COMMA,
-        L("verb-hairu"),
+        L("verb-shimeru"),
       ),
-      requestTarget("noun-kaban", "verb-toru"),
+      requestTarget("noun-mado", "verb-shimeru", [
+        L("noun-tanaka"),
+        TASK11_COMMA,
+      ]),
       objectVerbTarget(
-        "noun-kaban",
-        "verb-toru",
+        "noun-mado",
+        "verb-shimeru",
         "polite-nonpast",
         CELLS.request,
         "future",
+        [L("noun-tanaka"), TASK11_COMMA],
       ),
       1,
       CELLS.request,
@@ -2590,16 +3121,20 @@ const SYNTHESIS_3: BaseTask11LessonSpec = {
     act(
       "base-synthesis-3",
       9,
-      task11Cue(task11AnalysisLabel("analysis-pair")),
+      task11Cue(
+        L("anchor-chuui"),
+        TASK11_COMMA,
+        L("verb-yomu"),
+      ),
       objectVerbTarget(
-        "noun-chizu",
+        "anchor-chuui",
         "verb-yomu",
         "polite-nonpast",
         CELLS.request,
         "future",
       ),
       objectVerbTarget(
-        "noun-chizu",
+        "anchor-chuui",
         "verb-yomu",
         "nonpast-negative",
         CELLS.request,
@@ -2616,20 +3151,27 @@ const SYNTHESIS_3: BaseTask11LessonSpec = {
       task11Cue(
         L("expression-sumimasen"),
         TASK11_COMMA,
-        L("noun-nimotsu"),
+        L("noun-kaban"),
+        TASK11_COMMA,
+        L("verb-akeru"),
         TASK11_COMMA,
         L("verb-toru"),
       ),
-      requestTarget("noun-nimotsu", "verb-toru", [
-        L("expression-sumimasen"),
-        TASK11_COMMA,
-      ]),
-      objectVerbTarget(
-        "noun-nimotsu",
-        "verb-toru",
-        "polite-nonpast",
-        CELLS.request,
-        "future",
+      withPrefix(
+        objectSequenceRequestTarget(
+          "noun-kaban",
+          "verb-akeru",
+          "verb-toru",
+        ),
+        [L("expression-sumimasen"), TASK11_COMMA],
+      ),
+      withPrefix(
+        objectSequenceRequestTarget(
+          "noun-kaban",
+          "verb-toru",
+          "verb-akeru",
+        ),
+        [L("expression-sumimasen"), TASK11_COMMA],
       ),
       0,
       CELLS.request,
@@ -2670,24 +3212,60 @@ const SYNTHESIS_3: BaseTask11LessonSpec = {
     ),
     turn(
       "partner",
-      topicLocation("noun-toire", "noun-eki", "verb-aru"),
+      withSeparatedUnmarkedTime(
+        topicLocation("noun-toire", "noun-uketsuke", "verb-aru"),
+        "noun-kyou",
+        "relative-time-omission",
+      ),
       "locate-restroom",
-      "The restroom is at the station.",
-      "Il bagno è alla stazione.",
+      "Today, the restroom is at reception.",
+      "Oggi il bagno è alla reception.",
       "Supplies the requested place without changing the frame.",
       "Fornisce il luogo richiesto senza cambiare struttura.",
     ),
     turn(
       "learner",
+      asQuestion(
+        withAdditionalRelativeTime(
+          dayNightTravelTarget("noun-getsuyoubi"),
+          "noun-konshuu",
+        ),
+        "verb-ryokou-suru",
+      ),
+      "ask-travel-plan",
+      "Will you travel on Monday night this week?",
+      "Viaggerai lunedì sera questa settimana?",
+      "Connects the location exchange to a specific travel plan.",
+      "Collega lo scambio sui luoghi a un programma di viaggio specifico.",
+    ),
+    turn(
+      "partner",
+      withPrefix(
+        withAdditionalRelativeTime(
+          dayNightTravelTarget("noun-getsuyoubi"),
+          "noun-konshuu",
+        ),
+        [L("expression-hai"), TASK11_COMMA],
+      ),
+      "confirm-travel-plan",
+      "Yes, I will travel on Monday night this week.",
+      "Sì, viaggerò lunedì sera questa settimana.",
+      "Confirms the same weekday and time of day.",
+      "Conferma lo stesso giorno della settimana e momento della giornata.",
+    ),
+    turn(
+      "learner",
       requestTarget("noun-chizu", "verb-miseru", [
-        L("expression-onegaishimasu"),
+        L("expression-sumimasen"),
+        TASK11_COMMA,
+        L("noun-tanaka"),
         TASK11_COMMA,
       ]),
       "request-map",
-      "Please show me the map.",
-      "Mi mostri la mappa, per favore.",
-      "Turns the location exchange into a practical request.",
-      "Trasforma lo scambio sulla posizione in una richiesta pratica.",
+      "Excuse me, Tanaka, please show me the map.",
+      "Mi scusi, Tanaka, mi mostri la mappa, per favore.",
+      "Turns the location exchange into a practical request addressed to Tanaka.",
+      "Trasforma lo scambio sulla posizione in una richiesta pratica rivolta a Tanaka.",
     ),
     turn(
       "partner",
@@ -2697,12 +3275,12 @@ const SYNTHESIS_3: BaseTask11LessonSpec = {
         CELLS.requestResponse,
         "future",
         null,
-        [L("expression-hai"), TASK11_COMMA],
+        [L("expression-wakarimashita"), TASK11_COMMA],
         ["sentence-omission"],
       ),
       "offer-map",
-      "Yes, I will show it.",
-      "Sì, la mostrerò.",
+      "Understood, I will show it.",
+      "Ho capito, la mostrerò.",
       "Closes the request with an appropriate response.",
       "Chiude la richiesta con una risposta appropriata.",
     ),
@@ -2715,18 +3293,19 @@ const SYNTHESIS_4: BaseTask11LessonSpec = {
   prerequisiteLessonIds: ["base-synthesis-3"],
   newLexemeIds: [],
   reviewLexemeIds: [
-    "noun-gakusei",
-    "anchor-gakkou",
-    "anchor-hon",
     "noun-watashi",
-    "noun-tanaka",
-    "noun-tomodachi",
-    "verb-kaku",
+    "noun-namae",
+    "name-haru",
+    "adjective-yuumei",
+    "noun-enjinia",
+    "verb-shiru",
+    "verb-iru",
+    "verb-ryouri-suru",
     "verb-yomu",
-    "verb-iku",
-    "verb-benkyou-suru",
-    "noun-eki",
-    "noun-kyou",
+    "noun-suzuki",
+    "noun-yuki-san",
+    "verb-suwaru",
+    "noun-ima",
   ],
   introducedConceptIds: [],
   reviewedConceptIds: [
@@ -2754,7 +3333,10 @@ const SYNTHESIS_4: BaseTask11LessonSpec = {
     CELLS.godan,
     CELLS.ichidan,
     CELLS.special,
+    CELLS.habitual,
     CELLS.future,
+    CELLS.timeNi,
+    CELLS.pastAffirmative,
     CELLS.pastNegative,
     CELLS.existenceFrame,
     CELLS.existenceTopicContrast,
@@ -2763,6 +3345,7 @@ const SYNTHESIS_4: BaseTask11LessonSpec = {
     CELLS.sequenceFinal,
     CELLS.teImasuOngoing,
     CELLS.teImasuState,
+    CELLS.teImasuNonpastContrast,
   ],
   referenceSnapshotIds: [
     "sentence-anatomy",
@@ -2779,152 +3362,171 @@ const SYNTHESIS_4: BaseTask11LessonSpec = {
   ],
   examples: [
     ex(
-      predicateTarget(
-        "noun",
-        "noun-gakusei",
-        "negative",
-        CELLS.nounNegative,
-        "noun-watashi",
-        [],
-        ["sentence-order"],
+      asQuestion(
+        possessedNounPredicate("noun-haha", "noun-namae", "noun-nan"),
+        "noun-nan",
       ),
-      "speaker-identity",
-      "I am not a student.",
-      "Non sono uno studente.",
-      "Samples sentence anatomy through a complete identity clause.",
-      "Campiona l'anatomia della frase con una clausola d'identità completa.",
+      "mother-name-question",
+      "What is my mother's name?",
+      "Come si chiama mia madre?",
+      "Samples sentence anatomy through a complete family-name question.",
+      "Campiona l'anatomia della frase con una domanda completa sul nome di un familiare.",
       "checkpoint-identity",
     ),
     ex(
-      predicateTarget(
-        "na-adjective",
-        "adjective-shizuka",
-        "affirmative",
-        CELLS.naAffirmative,
-        "noun-tanaka",
+      describedObjectVerbTarget(
+        "noun-suzuki",
+        "adjective-yuumei",
+        "noun-enjinia",
+        "verb-shiru",
+        "te-imasu",
+        CELLS.teImasuState,
+        "resulting-state",
       ),
-      "tanaka-description",
-      "Tanaka is quiet.",
-      "Tanaka è tranquillo.",
-      "Samples the adjective and copula reference surface.",
-      "Campiona la superficie di riferimento di aggettivi e copula.",
+      "known-famous-engineer",
+      "Suzuki knows the famous engineer.",
+      "Suzuki conosce l'ingegnere famoso.",
+      "Uses attributive な and the current knowledge-state reading of ています.",
+      "Usa il な attributivo e la lettura di stato attuale di ています.",
       "checkpoint-adjective",
     ),
     ex(
-      objectVerbTarget(
-        "anchor-hon",
+      relativeTimeTarget(
+        "noun-kinou",
         "verb-yomu",
         "past-negative",
         CELLS.godan,
         "past",
-        [],
-        ["godan-verb-class", "masu-nonpast"],
       ),
-      "godan-reading",
-      "I did not read a book.",
-      "Non ho letto un libro.",
-      "Samples a licensed object and a godan polite form.",
-      "Campiona un oggetto retto correttamente e una forma cortese godan.",
+      "yesterday-reading",
+      "I did not read yesterday.",
+      "Ieri non ho letto.",
+      "Samples a past-negative godan polite form with a visible time.",
+      "Campiona una forma cortese godan passata negativa con un tempo visibile.",
       "checkpoint-godan",
     ),
     ex(
-      objectVerbTarget(
-        "noun-gohan",
-        "verb-taberu",
-        "nonpast-negative",
-        CELLS.ichidan,
-        "habitual",
-        [],
-        ["ichidan-verb-class", "masu-nonpast"],
+      withSeparatedUnmarkedTime(
+        withTopic(
+          objectVerbTarget(
+            "noun-gohan",
+            "verb-taberu",
+            "nonpast-negative",
+            CELLS.ichidan,
+            "future",
+            [],
+            ["ichidan-verb-class", "masu-nonpast"],
+          ),
+          "name-ai",
+        ),
+        "noun-konshuu",
+        "habit-future-time-cues",
       ),
       "ichidan-eating",
-      "I do not eat rice.",
-      "Non mangio riso.",
+      "Ai will not eat rice this week.",
+      "Ai non mangerà riso questa settimana.",
       "Samples the ichidan class through an approved generated form.",
       "Campiona la classe ichidan con una forma generata approvata.",
       "checkpoint-ichidan",
     ),
     ex(
-      simpleVerbTarget(
-        "verb-suru",
-        "polite-nonpast",
-        CELLS.special,
-        "future",
-        null,
-        [],
-        ["suru-verb-class", "masu-nonpast"],
+      withSeparatedUnmarkedTime(
+        simpleVerbTarget(
+          "verb-ryouri-suru",
+          "past-affirmative",
+          CELLS.special,
+          "past",
+          "noun-okaasan",
+          [],
+          ["suru-verb-class", "four-polite-tense-cells"],
+        ),
+        "noun-kesa",
+        "relative-time-omission",
       ),
       "suru-class",
-      "I will do it.",
-      "Lo farò.",
-      "Samples the stored する class without inventing a form.",
-      "Campiona la classe registrata di する senza inventare una forma.",
+      "My mother cooked this morning.",
+      "Mia madre ha cucinato stamattina.",
+      "Reviews the special する class in a complete polite form.",
+      "Ripassa la classe speciale di する in una forma cortese completa.",
       "checkpoint-suru",
     ),
     ex(
-      goalTarget(
-        "anchor-gakkou",
-        "verb-iku",
-        "polite-nonpast",
-        "future",
+      withSeparatedUnmarkedTime(
+        simpleVerbTarget(
+          "verb-utau",
+          "polite-nonpast",
+          CELLS.habitual,
+          "habitual",
+        ),
+        "noun-fudan",
+        "habit-future-time-cues",
       ),
-      "school-plan",
-      "I will go to school.",
-      "Andrò a scuola.",
-      "Samples goal に and dynamic future nonpast.",
-      "Campiona に di meta e il non-passato dinamico futuro.",
-      "checkpoint-goal",
+      "usual-singing",
+      "I usually sing.",
+      "Di solito canto.",
+      "Uses dynamic nonpast for a familiar repeated activity.",
+      "Usa il non-passato dinamico per un'attività abituale già nota.",
+      "checkpoint-habitual",
     ),
     ex(
-      fullExistence("noun-eki", "noun-tomodachi", "verb-iru"),
-      "friend-at-station",
-      "There is a friend at the station.",
-      "Alla stazione c'è un amico.",
-      "Samples the animate existence frame.",
-      "Campiona la struttura di esistenza animata.",
+      asQuestion(
+        withPossessor(
+          fullExistence("noun-toshi", "noun-byouin", "verb-aru"),
+          "noun-kuni",
+        ),
+        "verb-aru",
+      ),
+      "country-city-hospital-question",
+      "Is there a hospital in a city in the country?",
+      "C'è un ospedale in una città del paese?",
+      "Uses a possessive place inside a complete inanimate existence question.",
+      "Usa un luogo possessivo in una domanda completa di esistenza inanimata.",
       "checkpoint-existence",
     ),
     ex(
       anchoredTeImasu(
-        "noun-ekiin",
+        "noun-suzuki",
         "verb-hanasu",
         "ongoing-now",
       ),
       "ongoing-speaking",
-      "The station attendant is speaking now.",
-      "L'addetto della stazione sta parlando adesso.",
+      "Suzuki is speaking now.",
+      "Suzuki sta parlando adesso.",
       "Reads ています as an action currently in progress.",
       "Legge ています come azione attualmente in corso.",
       "checkpoint-teimasu-ongoing",
     ),
     ex(
-      anchoredTeImasu(
-        "noun-tomodachi",
+      asQuestion(
+        anchoredTeImasu(
+          "noun-yuki-san",
+          "verb-suwaru",
+          "resulting-state",
+          "noun-isu",
+        ),
         "verb-suwaru",
-        "resulting-state",
-        "noun-isu",
       ),
       "seated-state",
-      "The friend is seated on a chair.",
-      "L'amico è seduto su una sedia.",
+      "Is Yuki seated on a chair?",
+      "Yuki è seduta su una sedia?",
       "Reads ています as the current result of sitting down.",
       "Legge ています come risultato attuale dell'atto di sedersi.",
       "checkpoint-teimasu-state",
     ),
     ex(
-      relativeTimeTarget(
-        "noun-kyou",
-        "verb-kaku",
-        "past-negative",
-        CELLS.pastNegative,
-        "past",
+      asQuestion(
+        withAdditionalRelativeTime(
+          timedMeetingPlanTarget("name-mika", "noun-kuji", "affirmative"),
+          "noun-raishuu",
+        ),
+        "noun-kaigi",
       ),
-      "today-past-negative",
-      "Today, I did not write.",
-      "Oggi non ho scritto.",
-      "Samples the past-negative cell with a relative-time anchor.",
-      "Campiona la cella passata negativa con un riferimento temporale relativo.",
-      "checkpoint-past-negative",
+      "mika-meeting-plan-question",
+      "Is Mika's plan at nine next week a meeting?",
+      "Il programma di Mika alle nove della prossima settimana è una riunione?",
+      "Checks a familiar person's meeting plan with relative and clock-time cues.",
+      "Verifica il programma di riunione di una persona nota con indizi di tempo relativo e d'orologio.",
+      "checkpoint-meeting-plan",
     ),
   ],
   activities: [
@@ -2932,67 +3534,56 @@ const SYNTHESIS_4: BaseTask11LessonSpec = {
       "base-synthesis-4",
       1,
       task11Cue(
-        task11VerbForm("verb-benkyou-suru", "dictionary"),
+        L("adjective-genki"),
         TASK11_COMMA,
-        task11AnalysisLabel("analysis-source"),
+        L("noun-koumuin"),
         TASK11_COMMA,
-        L("verb-sanpo-suru"),
-        TASK11_COMMA,
-        L("verb-kiku"),
-        TASK11_COMMA,
-        L("verb-tsukuru"),
-        TASK11_COMMA,
-        L("verb-au"),
-        TASK11_COMMA,
-        L("verb-utau"),
-        TASK11_COMMA,
-        L("verb-noru"),
+        L("noun-nichiyoubi"),
         TASK11_COMMA,
         L("verb-hashiru"),
       ),
-      task11ClassAnalysisTarget("verb-benkyou-suru", "suru-verb-class", [
-        CELLS.special,
-      ]),
-      task11ClassAnalysisTarget("verb-benkyou-suru", "kuru-verb-class", [
-        CELLS.special,
-      ]),
+      describedSubjectActionTimeTarget(
+        "adjective-genki",
+        "noun-koumuin",
+        "noun-nichiyoubi",
+        "verb-hashiru",
+        "polite-nonpast",
+      ),
+      describedSubjectActionTimeTarget(
+        "adjective-genki",
+        "noun-koumuin",
+        "noun-nichiyoubi",
+        "verb-hashiru",
+        "nonpast-negative",
+      ),
       1,
-      CELLS.special,
+      CELLS.timeNi,
       BASE_MEANING_ACTIVITY_SHAPE,
-      { contrastAxis: "verb-class" },
+      { contrastAxis: "polite-form" },
     ),
     act(
       "base-synthesis-4",
       2,
       task11Cue(
-        L("adjective-kirei"),
+        L("noun-haha"),
         TASK11_COMMA,
-        L("noun-mise"),
-        TASK11_COMMA,
-        L("name-mika"),
-        TASK11_COMMA,
-        L("name-sora"),
+        L("noun-namae"),
         TASK11_COMMA,
         L("name-haru"),
-        TASK11_COMMA,
-        L("name-ai"),
       ),
-      predicateTarget(
-        "na-adjective",
-        "adjective-kirei",
-        "affirmative",
-        CELLS.naAffirmative,
-        "noun-mise",
+      possessedNounPredicate(
+        "noun-haha",
+        "noun-namae",
+        "name-haru",
       ),
-      predicateTarget(
-        "na-adjective",
-        "adjective-kirei",
+      possessedNounPredicate(
+        "noun-haha",
+        "noun-namae",
+        "name-haru",
         "negative",
-        CELLS.naAffirmative,
-        "noun-mise",
       ),
       1,
-      CELLS.naAffirmative,
+      CELLS.nounAffirmative,
       BASE_FORM_ACTIVITY_SHAPE,
       { contrastAxis: "polite-form" },
     ),
@@ -3000,20 +3591,12 @@ const SYNTHESIS_4: BaseTask11LessonSpec = {
       "base-synthesis-4",
       3,
       task11Cue(
-        L("verb-yomu"),
+        L("verb-kiku"),
         TASK11_COMMA,
-        L("verb-iku"),
-        TASK11_COMMA,
-        L("noun-chichi"),
-        TASK11_COMMA,
-        L("noun-haha"),
-        TASK11_COMMA,
-        L("noun-otousan"),
-        TASK11_COMMA,
-        L("noun-okaasan"),
+        L("verb-tetsudau"),
       ),
-      sequenceTarget("verb-yomu", "verb-iku", CELLS.sequenceFinal),
-      reversedSequenceTarget("verb-yomu", "verb-iku", CELLS.sequenceFinal),
+      sequenceTarget("verb-kiku", "verb-tetsudau", CELLS.sequenceFinal),
+      reversedSequenceTarget("verb-kiku", "verb-tetsudau", CELLS.sequenceFinal),
       0,
       CELLS.sequenceFinal,
       BASE_ORDERING_ACTIVITY_SHAPE,
@@ -3023,24 +3606,22 @@ const SYNTHESIS_4: BaseTask11LessonSpec = {
       "base-synthesis-4",
       4,
       task11Cue(
-        L("noun-jimusho"),
+        L("noun-kodomo"),
         TASK11_COMMA,
-        L("noun-kaban"),
+        L("noun-sakana"),
         TASK11_COMMA,
-        L("noun-toshi"),
+        L("noun-uchi"),
         TASK11_COMMA,
-        L("noun-kuni"),
-        TASK11_COMMA,
-        L("noun-namae"),
-        TASK11_COMMA,
-        L("noun-dare"),
-        TASK11_COMMA,
-        L("noun-nan"),
-        TASK11_COMMA,
-        L("expression-sou"),
+        L("noun-uketsuke"),
       ),
-      topicLocation("noun-kaban", "noun-jimusho", "verb-aru"),
-      fullExistence("noun-jimusho", "noun-kaban", "verb-aru"),
+      withPossessor(
+        topicLocation("noun-sakana", "noun-uchi", "verb-iru"),
+        "noun-kodomo",
+      ),
+      withPossessor(
+        topicLocation("noun-sakana", "noun-uketsuke", "verb-iru"),
+        "noun-kodomo",
+      ),
       1,
       CELLS.existenceTopicContrast,
       BASE_CONTROLLED_ACTIVITY_SHAPE,
@@ -3049,35 +3630,41 @@ const SYNTHESIS_4: BaseTask11LessonSpec = {
     act(
       "base-synthesis-4",
       5,
-      task11Cue(
-        L("noun-kyou"),
-        TASK11_COMMA,
-        L("verb-yomu"),
-        TASK11_COMMA,
-        L("noun-fudan"),
-        TASK11_COMMA,
-        L("noun-kuji"),
-        TASK11_COMMA,
-        L("noun-goji"),
-        TASK11_COMMA,
-        L("noun-kinou"),
-        TASK11_COMMA,
-        L("noun-senshuu"),
+      withSeparatedUnmarkedTime(
+        objectErrorTarget(
+          "noun-nikki",
+          "verb-yomu",
+          "よみまし",
+          "yomimashi",
+          "synthesis-missing-past-final",
+        ),
+        "noun-senshuu",
+        "relative-time-omission",
       ),
-      simpleVerbTarget(
-        "verb-yomu",
-        "past-affirmative",
-        CELLS.pastNegative,
-        "past",
+      withSeparatedUnmarkedTime(
+        objectVerbTarget(
+          "noun-nikki",
+          "verb-yomu",
+          "past-affirmative",
+          CELLS.pastAffirmative,
+          "past",
+        ),
+        "noun-senshuu",
+        "relative-time-omission",
       ),
-      errorTarget(
-        "verb-yomu",
-        "よみましたた",
-        "yomimashitata",
-        "synthesis-missing-past-final",
+      withSeparatedUnmarkedTime(
+        objectErrorTarget(
+          "noun-nikki",
+          "verb-yomu",
+          "よみまし",
+          "yomimashi",
+          "synthesis-missing-past-final",
+        ),
+        "noun-senshuu",
+        "relative-time-omission",
       ),
       0,
-      CELLS.pastNegative,
+      CELLS.pastAffirmative,
       BASE_ERROR_ACTIVITY_SHAPE,
       {
         contrastAxis: "polite-form",
@@ -3089,130 +3676,112 @@ const SYNTHESIS_4: BaseTask11LessonSpec = {
       "base-synthesis-4",
       6,
       task11Cue(
-        L("noun-ima"),
-        TASK11_COMMA,
         L("noun-suzuki"),
         TASK11_COMMA,
-        L("noun-konshuu"),
+        L("noun-goji"),
         TASK11_COMMA,
-        L("noun-raishuu"),
+        L("noun-kuji"),
         TASK11_COMMA,
-        L("noun-kaigi"),
-        TASK11_COMMA,
-        L("noun-yotei"),
-        TASK11_COMMA,
-        L("noun-yoru"),
+        L("verb-ryouri-suru"),
       ),
-      anchoredTeImasu(
+      actionTimeTarget(
         "noun-suzuki",
-        "verb-benkyou-suru",
-        "ongoing-now",
-      ),
-      simpleVerbTarget(
-        "verb-benkyou-suru",
+        "noun-goji",
+        "verb-ryouri-suru",
         "polite-nonpast",
-        CELLS.teImasuOngoing,
-        "habitual",
+        CELLS.timeNi,
+        "future",
+      ),
+      actionTimeTarget(
         "noun-suzuki",
+        "noun-kuji",
+        "verb-ryouri-suru",
+        "polite-nonpast",
+        CELLS.timeNi,
+        "future",
       ),
       1,
-      CELLS.teImasuOngoing,
+      CELLS.timeNi,
       BASE_CONTEXT_ACTIVITY_SHAPE,
-      { contrastAxis: "interpretation" },
+      { contrastAxis: "meaning" },
     ),
     act(
       "base-synthesis-4",
       7,
       task11Cue(
-        L("noun-gakusei"),
-        TASK11_COMMA,
-        L("anchor-gakkou"),
-        TASK11_COMMA,
-        L("anchor-hon"),
-        TASK11_COMMA,
         L("noun-watashi"),
         TASK11_COMMA,
-        L("noun-tanaka"),
+        L("adjective-yuumei"),
         TASK11_COMMA,
-        L("noun-tomodachi"),
+        L("noun-enjinia"),
         TASK11_COMMA,
-        L("noun-kesa"),
-        TASK11_COMMA,
-        L("noun-konban"),
-        TASK11_COMMA,
-        L("noun-nichiyoubi"),
+        L("verb-shiru"),
       ),
-      {
-        ...anchoredTeImasu(
-          "noun-tanaka",
-          "verb-benkyou-suru",
-          "ongoing-now",
-        ),
-        conceptIds: [
-          "sentence-order",
-          "topic-wa",
-          "suru-verb-class",
-          "masu-nonpast",
-          "base-construction-te-imasu",
-          "relative-time-omission",
-        ],
-      },
-      simpleVerbTarget(
-        "verb-benkyou-suru",
+      describedObjectVerbTarget(
+        "noun-watashi",
+        "adjective-yuumei",
+        "noun-enjinia",
+        "verb-shiru",
+        "te-imasu",
+        CELLS.teImasuState,
+        "resulting-state",
+      ),
+      describedObjectVerbTarget(
+        "noun-watashi",
+        "adjective-yuumei",
+        "noun-enjinia",
+        "verb-shiru",
         "polite-nonpast",
-        CELLS.teImasuOngoing,
-        "habitual",
-        "noun-tanaka",
+        CELLS.teImasuState,
+        "future",
       ),
       0,
-      CELLS.teImasuOngoing,
+      CELLS.teImasuState,
       BASE_RETRIEVAL_ACTIVITY_SHAPE,
-      { contrastAxis: "interpretation" },
+      { contrastAxis: "polite-form" },
     ),
     act(
       "base-synthesis-4",
       8,
       task11Cue(
-        L("verb-kaku"),
+        L("noun-ima"),
         TASK11_COMMA,
-        L("verb-yomu"),
+        L("noun-yuki-san"),
         TASK11_COMMA,
-        L("verb-iku"),
+        L("noun-isu"),
         TASK11_COMMA,
-        L("verb-benkyou-suru"),
-        TASK11_COMMA,
-        L("noun-eki"),
-        TASK11_COMMA,
-        L("noun-kyou"),
-        TASK11_COMMA,
-        L("noun-nikki"),
-        TASK11_COMMA,
-        L("noun-mado"),
-        TASK11_COMMA,
-        L("anchor-chuui"),
+        L("verb-suwaru"),
       ),
-      topicLocation("noun-nikki", "noun-jimusho", "verb-aru"),
-      fullExistence("noun-jimusho", "noun-nikki", "verb-aru"),
-      1,
-      CELLS.existenceTopicContrast,
+      withSeparatedUnmarkedTime(
+        seatedTarget("noun-yuki-san", "te-imasu"),
+        "noun-ima",
+        "relative-time-omission",
+      ),
+      withSeparatedUnmarkedTime(
+        seatedTarget("noun-yuki-san", "polite-nonpast"),
+        "noun-ima",
+        "relative-time-omission",
+      ),
+      0,
+      CELLS.teImasuState,
       BASE_RETRIEVAL_ACTIVITY_SHAPE,
-      { contrastAxis: "information-structure" },
+      { contrastAxis: "interpretation" },
     ),
     act(
       "base-synthesis-4",
       9,
-      task11Cue(task11AnalysisLabel("analysis-pair")),
-      anchoredTeImasu(
-        "noun-yuki",
-        "verb-hataraku",
-        "ongoing-now",
+      task11Cue(
+        L("noun-yuki-san"),
+        TASK11_COMMA,
+        L("verb-hataraku"),
       ),
+      anchoredTeImasu("noun-yuki-san", "verb-hataraku", "ongoing-now"),
       simpleVerbTarget(
         "verb-hataraku",
         "polite-nonpast",
         CELLS.teImasuOngoing,
         "habitual",
-        "noun-yuki",
+        "noun-yuki-san",
       ),
       0,
       CELLS.teImasuOngoing,
@@ -3223,14 +3792,14 @@ const SYNTHESIS_4: BaseTask11LessonSpec = {
       "base-synthesis-4",
       10,
       task11Cue(
+        L("expression-sumimasen"),
+        TASK11_COMMA,
         L("noun-zasshi"),
         TASK11_COMMA,
         L("verb-yomu"),
-        TASK11_COMMA,
-        L("expression-onegaishimasu"),
       ),
       requestTarget("noun-zasshi", "verb-yomu", [
-        L("expression-onegaishimasu"),
+        L("expression-sumimasen"),
         TASK11_COMMA,
       ]),
       objectVerbTarget(
@@ -3239,6 +3808,7 @@ const SYNTHESIS_4: BaseTask11LessonSpec = {
         "polite-nonpast",
         CELLS.request,
         "future",
+        [L("expression-sumimasen"), TASK11_COMMA],
       ),
       0,
       CELLS.request,
@@ -3251,87 +3821,119 @@ const SYNTHESIS_4: BaseTask11LessonSpec = {
       "partner",
       predicateTarget(
         "noun",
-        "noun-gakusei",
+        "name-sakura",
         "affirmative",
         CELLS.nounAffirmative,
-        "noun-tomodachi",
+        "noun-watashi",
       ),
-      "introduce-friend",
-      "My friend is a student.",
-      "Il mio amico è uno studente.",
-      "Establishes the person for the mixed interaction.",
-      "Stabilisce la persona per l'interazione mista.",
+      "introduce-sakura",
+      "I am Sakura.",
+      "Sono Sakura.",
+      "Opens the exchange with Sakura's direct first-person introduction.",
+      "Apre lo scambio con l'autopresentazione diretta di Sakura.",
     ),
     turn(
       "learner",
-      actionPlace(
-        "anchor-gakkou",
-        "verb-benkyou-suru",
-        "study-place",
+      predicateTarget(
+        "noun",
+        "name-haru",
+        "affirmative",
+        CELLS.nounAffirmative,
+        "noun-watashi",
       ),
-      "school-routine",
-      "They study at school.",
-      "Studia a scuola.",
-      "Checks action-place で inside the shared scenario.",
-      "Verifica で di luogo d'azione nello scenario condiviso.",
-    ),
-    turn(
-      "partner",
-      {
-        ...goalTarget(
-          "noun-jimusho",
-          "verb-iku",
-          "polite-nonpast",
-          "future",
-          [L("noun-kyou")],
-        ),
-        conceptIds: ["goal-ni", "dynamic-nonpast-semantics", "relative-time-omission"],
-        semanticRoleIds: ["time", "goal"],
-      },
-      "station-plan",
-      "They will go to the office.",
-      "Andrà in ufficio.",
-      "Adds a future movement goal.",
-      "Aggiunge una meta di movimento futura.",
-    ),
-    turn(
-      "learner",
-      topicLocation("noun-tomodachi", "noun-jimusho", "verb-iru"),
-      "friend-at-office",
-      "My friend is at the office.",
-      "Il mio amico è in ufficio.",
-      "Checks the existential frame before the request.",
-      "Verifica la struttura esistenziale prima della richiesta.",
-    ),
-    turn(
-      "partner",
-      requestTarget("anchor-hon", "verb-yomu", [
-        L("expression-onegaishimasu"),
-        TASK11_COMMA,
-      ]),
-      "reading-request",
-      "Please read the book.",
-      "Legga il libro, per favore.",
-      "Adds one practical, bounded request.",
-      "Aggiunge una richiesta pratica e circoscritta.",
+      "introduce-haru",
+      "I am Haru.",
+      "Sono Haru.",
+      "Returns the introduction before either speaker mentions another person.",
+      "Ricambia la presentazione prima che uno dei due introduca un'altra persona.",
     ),
     turn(
       "learner",
       withPrefix(
-        relativeTimeTarget(
-          "noun-kyou",
-          "verb-yomu",
-          "polite-nonpast",
-          CELLS.future,
-          "future",
+        asQuestion(
+          predicateTarget(
+            "noun",
+            "noun-dare",
+            "affirmative",
+            CELLS.nounAffirmative,
+            "noun-tomodachi",
+          ),
+          "noun-dare",
         ),
-        [L("expression-hai"), TASK11_COMMA],
+        [L("expression-sumimasen"), TASK11_COMMA],
       ),
-      "reading-response",
-      "Yes, I will read it today.",
-      "Sì, lo leggerò oggi.",
-      "Closes with an observed plan, not a level decision.",
-      "Chiude con un piano osservato, non con una decisione di livello.",
+      "ask-friend",
+      "Excuse me, who is your friend?",
+      "Scusa, chi è il tuo amico?",
+      "Asks Sakura to identify the friend who will anchor the rest of the exchange.",
+      "Chiede a Sakura di identificare l'amica che resterà il riferimento dello scambio.",
+    ),
+    turn(
+      "partner",
+      predicateTarget(
+        "noun",
+        "noun-yuki-san",
+        "affirmative",
+        CELLS.nounAffirmative,
+      ),
+      "identify-yuki-friend",
+      "My friend is Yuki.",
+      "La mia amica è Yuki.",
+      "Identifies Yuki with the respectful form ゆきさん.",
+      "Identifica Yuki con la forma rispettosa ゆきさん.",
+    ),
+    turn(
+      "learner",
+      asQuestion(
+        topicLocation("noun-yuki-san", "noun-jimusho", "verb-iru"),
+        "verb-iru",
+      ),
+      "ask-friend-location",
+      "Is Yuki at the office?",
+      "Yuki è in ufficio?",
+      "Checks one possible location for the friend just identified.",
+      "Verifica un possibile luogo per l'amica appena identificata.",
+    ),
+    turn(
+      "partner",
+      withPrefix(
+        topicLocation("noun-yuki-san", "anchor-gakkou", "verb-iru"),
+        [L("expression-iie"), TASK11_COMMA],
+      ),
+      "locate-friend-at-school",
+      "No, Yuki is at school.",
+      "No, Yuki è a scuola.",
+      "Corrects the proposed location while keeping Yuki as the same friend.",
+      "Corregge il luogo proposto mantenendo Yuki come la stessa amica.",
+    ),
+    turn(
+      "learner",
+      requestTarget("noun-yuki-san", "verb-yobu", [
+        L("expression-sumimasen"),
+        TASK11_COMMA,
+      ]),
+      "request-friend-call",
+      "Excuse me, please call Yuki.",
+      "Mi scusi, chiami Yuki, per favore.",
+      "Makes a motivated request to call the friend whose location was established.",
+      "Formula una richiesta motivata di chiamare l'amica di cui è stato stabilito il luogo.",
+    ),
+    turn(
+      "partner",
+      simpleVerbTarget(
+        "verb-yobu",
+        "polite-nonpast",
+        CELLS.requestResponse,
+        "future",
+        null,
+        [L("expression-wakarimashita"), TASK11_COMMA],
+        ["sentence-omission"],
+      ),
+      "accept-friend-call",
+      "Understood, I will call her.",
+      "Ho capito, la chiamerò.",
+      "Accepts the request with Yuki still uniquely recoverable.",
+      "Accetta la richiesta mantenendo Yuki come referente univoco.",
     ),
   ],
 };
@@ -3358,6 +3960,115 @@ export const BASE_SYNTHESIS_VALIDATION_CATALOGS: BaseValidationCatalogs =
     BASE_REQUESTS_CONNECTION_VALIDATION_CATALOGS,
     BUILT,
   );
+
+export interface BaseSynthesisCueFinding {
+  readonly lessonId: string;
+  readonly activityId: string;
+  readonly lexemeId: string;
+}
+
+function dataRecord(value: unknown): Readonly<Record<string, unknown>> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Readonly<Record<string, unknown>>)
+    : null;
+}
+
+function dataStringArray(value: unknown): readonly string[] | null {
+  return Array.isArray(value) && value.every((entry) => typeof entry === "string")
+    ? value
+    : null;
+}
+
+const SYNTHESIS_TIME_CUE_TAGS: Readonly<Record<string, "future" | "past">> =
+  deepFreeze({
+    "noun-ashita": "future",
+    "noun-kinou": "past",
+  });
+
+export function validateSynthesisCueRelevance(
+  value: unknown,
+): readonly BaseSynthesisCueFinding[] {
+  const sanitized = task11PlainDataSnapshot(value);
+  const moduleRecord = sanitized ? dataRecord(sanitized.value) : null;
+  const lessons = moduleRecord?.lessons;
+  if (!Array.isArray(lessons)) {
+    return deepFreeze([
+      { lessonId: "", activityId: "", lexemeId: "invalid-shape" },
+    ]);
+  }
+
+  const findings: BaseSynthesisCueFinding[] = [];
+  for (const lessonValue of lessons) {
+    const lesson = dataRecord(lessonValue);
+    const content = dataRecord(lesson?.content);
+    const lessonId = content?.lessonId;
+    const designs = lesson?.activityDesigns;
+    if (typeof lessonId !== "string" || !Array.isArray(designs)) {
+      findings.push({
+        lessonId: typeof lessonId === "string" ? lessonId : "",
+        activityId: "",
+        lexemeId: "invalid-shape",
+      });
+      continue;
+    }
+    for (const designValue of designs) {
+      const design = dataRecord(designValue);
+      const activityId = design?.id;
+      const prompt = dataRecord(design?.promptTarget);
+      const accepted = dataRecord(design?.acceptedAnswerTarget);
+      const optionTargets = design?.optionTargets;
+      const promptLexemes = dataStringArray(prompt?.lexemeIds);
+      const acceptedLexemes = dataStringArray(accepted?.lexemeIds);
+      if (
+        typeof activityId !== "string" ||
+        !promptLexemes ||
+        !acceptedLexemes ||
+        !Array.isArray(optionTargets)
+      ) {
+        findings.push({
+          lessonId,
+          activityId: typeof activityId === "string" ? activityId : "",
+          lexemeId: "invalid-shape",
+        });
+        continue;
+      }
+      const allowed = new Set(acceptedLexemes);
+      const acceptedTags =
+        dataStringArray(accepted?.interpretationTags) ?? [];
+      const optionTagSets: ReadonlySet<string>[] = [];
+      let optionsAreValid = true;
+      for (const optionValue of optionTargets) {
+        const option = dataRecord(optionValue);
+        const optionLexemes = dataStringArray(option?.lexemeIds);
+        const optionTags = dataStringArray(option?.interpretationTags);
+        if (!optionLexemes || !optionTags) {
+          optionsAreValid = false;
+          break;
+        }
+        optionLexemes.forEach((lexemeId) => allowed.add(lexemeId));
+        optionTagSets.push(new Set(optionTags));
+      }
+      if (!optionsAreValid) {
+        findings.push({ lessonId, activityId, lexemeId: "invalid-shape" });
+        continue;
+      }
+      promptLexemes
+        .filter((lexemeId) => {
+          if (allowed.has(lexemeId)) return false;
+          const expectedTag = SYNTHESIS_TIME_CUE_TAGS[lexemeId];
+          return !(
+            expectedTag &&
+            acceptedTags.includes(expectedTag) &&
+            optionTagSets.some((tags) => !tags.has(expectedTag))
+          );
+        })
+        .forEach((lexemeId) =>
+          findings.push({ lessonId, activityId, lexemeId }),
+        );
+    }
+  }
+  return deepFreeze(findings);
+}
 
 const RAW_SYNTHESIS_MODULE: BaseSynthesisModule = {
   id: "base-synthesis",
@@ -3388,6 +4099,9 @@ export function validateBaseSynthesisModule(
     BASE_SYNTHESIS_VALIDATION_CATALOGS,
   );
   if (!base.ok) return base;
+  if (validateSynthesisCueRelevance(sanitized.value).length > 0) {
+    return { ok: false, errors: ["irrelevant-activity-cue"] };
+  }
   const snapshot = strictTask11ModuleSnapshot(sanitized.value);
   const collisions = validateTask11CorpusDistinctness(
     [

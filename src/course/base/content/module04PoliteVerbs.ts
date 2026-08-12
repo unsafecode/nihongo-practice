@@ -308,7 +308,8 @@ export type BaseTask11ModuleError =
   | "invalid-lesson-shape"
   | "invalid-lesson-allocation"
   | "invalid-copy"
-  | "canonical-depth-failure";
+  | "canonical-depth-failure"
+  | "irrelevant-activity-cue";
 
 export interface BasePoliteVerbsModule {
   readonly id: "polite-verbs";
@@ -492,35 +493,46 @@ function punctuationTokens(
 const ANALYSIS_LABELS: Readonly<
   Record<string, Readonly<{ readonly kana: string; readonly romaji: string }>>
 > = {
-  "godan-verb-class": { kana: "ごだん", romaji: "godan" },
-  "ichidan-verb-class": { kana: "いちだん", romaji: "ichidan" },
-  "suru-verb-class": { kana: "するぐみ", romaji: "suru-gumi" },
-  "kuru-verb-class": { kana: "くるぐみ", romaji: "kuru-gumi" },
+  "godan-verb-class": { kana: "ごだんどうし", romaji: "godan doushi" },
+  "godan-verb-class-expanded": {
+    kana: "ごだんのどうし",
+    romaji: "godan no doushi",
+  },
+  "ichidan-verb-class": { kana: "いちだんどうし", romaji: "ichidan doushi" },
+  "suru-verb-class": { kana: "さへんどうし", romaji: "sahen doushi" },
+  "kuru-verb-class": { kana: "かへんどうし", romaji: "kahen doushi" },
   "analysis-habitual": { kana: "しゅうかん", romaji: "shuukan" },
   "analysis-future": { kana: "これから", romaji: "korekara" },
   "analysis-action-place": { kana: "ばしょ", romaji: "basho" },
   "analysis-means": { kana: "しゅだん", romaji: "shudan" },
-  "analysis-dictionary": { kana: "じしょ", romaji: "jisho" },
-  "analysis-headword": { kana: "みだし", romaji: "midashi" },
+  "analysis-dictionary": { kana: "じしょけい", romaji: "jishokei" },
+  "analysis-headword": { kana: "みだしご", romaji: "midashigo" },
   "analysis-lemma": { kana: "げんけい", romaji: "genkei" },
   "analysis-predicate": { kana: "じゅつご", romaji: "jutsugo" },
   "analysis-verb": { kana: "どうし", romaji: "doushi" },
-  "analysis-final-predicate": { kana: "ぶんまつ", romaji: "bunmatsu" },
-  "analysis-stem": { kana: "ごかん", romaji: "gokan" },
-  "analysis-classification": { kana: "ぶんるい", romaji: "bunrui" },
-  "analysis-pair": {
-    kana: "ふたつのぶんせき",
-    romaji: "futatsu no bunseki",
+  "analysis-final-predicate": {
+    kana: "ぶんまつのじゅつご",
+    romaji: "bunmatsu no jutsugo",
   },
-  "analysis-suffix-guess": { kana: "おとだけ", romaji: "oto dake" },
-  "analysis-source": { kana: "もとのかたち", romaji: "moto no katachi" },
-  "analysis-stem-source": { kana: "ごかんのもと", romaji: "gokan no moto" },
+  "analysis-stem": { kana: "れんようけい", romaji: "renyoukei" },
+  "analysis-classification": {
+    kana: "どうしのぶんるい",
+    romaji: "doushi no bunrui",
+  },
+  "analysis-class-question": {
+    kana: "どのしゅるいですか",
+    romaji: "dono shurui desu ka",
+  },
+  "analysis-pair": { kana: "きいてください", romaji: "kiite kudasai" },
+  "analysis-suffix-guess": { kana: "ごびだけ", romaji: "gobi dake" },
+  "analysis-source": { kana: "じしょけい", romaji: "jishokei" },
+  "analysis-stem-source": {
+    kana: "じしょけいかられんようけい",
+    romaji: "jishokei kara renyoukei",
+  },
   "verb-class-exceptions": { kana: "れいがい", romaji: "reigai" },
-  "analysis-goal": { kana: "もくてきち", romaji: "mokutekichi" },
-  "analysis-direction": {
-    kana: "しんこうほうこう",
-    romaji: "shinkou houkou",
-  },
+  "analysis-goal": { kana: "とうちゃくてん", romaji: "touchakuten" },
+  "analysis-direction": { kana: "ほうこう", romaji: "houkou" },
 };
 
 function analysisTokens(analysisId: string, id: string): readonly AssembledToken[] {
@@ -1680,6 +1692,24 @@ function listeningOptionIsCanonical(target: BaseVisibleTarget): boolean {
     if (!lexeme) return false;
     if (lexeme.category !== "verb") {
       addCanonical(lexicalTokens(lexemeId, "listening-canonical-lexeme"));
+      const predicateKind =
+        lexeme.category === "noun"
+          ? "noun"
+          : lexeme.category === "adjective"
+            ? lexeme.adjectiveClass === "i"
+              ? "i-adjective"
+              : "na-adjective"
+            : null;
+      if (predicateKind !== null) {
+        for (const form of [
+          "affirmative",
+          "negative",
+          "pastAffirmative",
+          "pastNegative",
+        ] as const) {
+          addCanonical(predicateFormTokens(predicateKind, lexemeId, form));
+        }
+      }
       continue;
     }
     for (const form of [
@@ -1689,6 +1719,10 @@ function listeningOptionIsCanonical(target: BaseVisibleTarget): boolean {
       "nonpast-negative",
       "past-affirmative",
       "past-negative",
+      "te",
+      "te-request",
+      "te-sequence",
+      "te-imasu",
     ] as const) {
       addCanonical(formTokens(lexemeId, form));
     }
@@ -1922,6 +1956,12 @@ const TASK11_ERROR_CHANGED_SOURCES: Readonly<Record<string, readonly string[]>> 
       "analysis-means",
       "analysis-action-place",
     ],
+    "de-place-context-mismatch": [
+      "action-place-de",
+      "means-de",
+      "noun-enpitsu",
+      "noun-mise",
+    ],
     "means-context-mismatch": ["noun-kasa", "noun-enpitsu"],
     "dynamic-nonpast-interpretation-mismatch": [
       "noun-maishuu",
@@ -1929,15 +1969,43 @@ const TASK11_ERROR_CHANGED_SOURCES: Readonly<Record<string, readonly string[]>> 
       "interpretation-tag",
     ],
     "movement-bound-incomplete": ["noun-osaka", "limit-made"],
+    "movement-bound-destination-mismatch": ["noun-chuugoku", "noun-osaka"],
     "time-form-mismatch": ["mashita", "masen", "interpretation-tag"],
     "polarity-mismatch": ["masu", "masen", "interpretation-tag"],
+    "synthesis-past-suffix": [
+      "synthesis-past-suffix",
+      "verb-kaku",
+      "mashita",
+    ],
+    "synthesis-past-voicing": [
+      "synthesis-past-voicing",
+      "verb-miseru",
+      "mashita",
+    ],
+    "synthesis-past-ending": [
+      "synthesis-past-ending",
+      "verb-arau",
+      "mashita",
+    ],
+    "synthesis-toru-past-ending": [
+      "synthesis-toru-past-ending",
+      "verb-toru",
+      "mashita",
+    ],
+    "synthesis-missing-past-final": [
+      "synthesis-missing-past-final",
+      "verb-yomu",
+      "mashita",
+    ],
   });
 const TASK11_POSITIONAL_REPLACEMENT_ERRORS = new Set([
   "analysis-role-mismatch",
   "object-topicalization-mismatch",
   "goal-direction-context-mismatch",
   "de-role-context-mismatch",
+  "de-place-context-mismatch",
   "means-context-mismatch",
+  "movement-bound-destination-mismatch",
   "dynamic-nonpast-interpretation-mismatch",
   "time-form-mismatch",
   "polarity-mismatch",
@@ -2155,6 +2223,8 @@ export function validateTask11SemanticReview(
     en: new Map<string, readonly string[]>([
       ["polite-stems", ["stem", "stems", "viewing-stem", "pre-masu", "pre-ます"]],
       ["dictionary-lemma", ["dictionary", "lookup", "headword"]],
+      ["base-form-i-adjective-affirmative", ["affirmative", "positive"]],
+      ["base-form-i-adjective-negative", ["negative", "not"]],
     ]),
     it: new Map<string, readonly string[]>([
       [
@@ -2162,6 +2232,8 @@ export function validateTask11SemanticReview(
         ["tema", "radice", "base pre-masu", "base pre-ます", "base cortese"],
       ],
       ["dictionary-lemma", ["dizionario", "consultazione", "lemma"]],
+      ["base-form-i-adjective-affirmative", ["affermativo", "positivo"]],
+      ["base-form-i-adjective-negative", ["negativo", "non"]],
     ]),
   };
   const listeningAnalysisTerms = {
@@ -2307,10 +2379,14 @@ export function validateTask11SemanticReview(
     en: new Map<string, readonly string[]>([
       ["future", ["future", "one-off", "one off"]],
       ["habitual", ["habitual", "recurring", "routine"]],
+      ["ongoing-now", ["ongoing", "in progress", "right now"]],
+      ["resulting-state", ["resulting state", "current state", "seated"]],
     ]),
     it: new Map<string, readonly string[]>([
       ["future", ["futuro", "singolo", "una tantum"]],
       ["habitual", ["abituale", "ricorrente", "routine"]],
+      ["ongoing-now", ["in corso", "in questo momento", "adesso"]],
+      ["resulting-state", ["stato risultante", "stato attuale", "seduto"]],
     ]),
   };
   const listeningClauseTerms = {
@@ -3388,6 +3464,48 @@ function dictionaryAnalysisTarget(
   };
 }
 
+function labeledStemDerivationTarget(
+  lemmaId: string,
+  patternCellId: string,
+): BaseTask11TargetSpec {
+  const target = stemDerivationTarget(lemmaId, patternCellId);
+  return {
+    ...target,
+    parts: [...target.parts, C, task11AnalysisLabel("analysis-stem")],
+  };
+}
+
+function labeledDictionaryAnalysisTarget(
+  lemmaId: string,
+  patternCellId: string,
+): BaseTask11TargetSpec {
+  const target = dictionaryAnalysisTarget(lemmaId, patternCellId);
+  return {
+    ...target,
+    parts: [...target.parts, C, task11AnalysisLabel("analysis-lemma")],
+  };
+}
+
+function expandedGodanClassTarget(
+  lemmaId: string,
+  patternCellIds: readonly string[],
+): BaseTask11TargetSpec {
+  const target = task11ClassAnalysisTarget(
+    lemmaId,
+    "godan-verb-class",
+    patternCellIds,
+  );
+  return {
+    ...target,
+    parts: target.parts.map((part) =>
+      part.kind === "analysis-label" &&
+      part.analysisId === "godan-verb-class"
+        ? task11AnalysisLabel("godan-verb-class-expanded")
+        : part,
+    ),
+  };
+}
+
 function politeTarget(
   lemmaId: string,
   patternCellId: string,
@@ -3515,7 +3633,7 @@ const L1: BaseTask11LessonSpec = {
     ex(pv1AnalysisTarget("verb-nomu", "analysis-lemma", LOOKUP_CELL), "lookup-drink", "のむ is the base lemma.", "のむ è il lemma di base.", "Separates lemma identity from time reference.", "Separa l'identità del lemma dal riferimento temporale.", "lookup"),
     ex(pv1AnalysisTarget("verb-kau", "analysis-headword", LOOKUP_CELL, true), "lookup-buy", "The headword is かう.", "Il lemma di consultazione è かう.", "Shows an explicit metalinguistic label before the verb.", "Mostra un'etichetta metalinguistica esplicita prima del verbo.", "lookup"),
     ex(pv1AnalysisTarget("verb-hataraku", "analysis-dictionary", LOOKUP_CELL, true), "lookup-work", "The dictionary form is はたらく.", "La forma dizionario è はたらく.", "Recognizes the longer verb as one lemma.", "Riconosce il verbo più lungo come un solo lemma.", "lookup"),
-    ex(pv1AnalysisTarget("verb-asobu", "analysis-lemma", LOOKUP_CELL, true), "lookup-play", "The base lemma is あそぶ.", "Il lemma di base è あそぶ.", "Completes the six authored lookup lemmas.", "Completa i sei lemmi di consultazione.", "lookup"),
+    ex(pv1AnalysisTarget("verb-asobu", "analysis-lemma", LOOKUP_CELL, true), "lookup-play", "The base lemma is あそぶ.", "Il lemma di base è あそぶ.", "Completes the six lookup lemmas.", "Completa i sei lemmi di consultazione.", "lookup"),
     ex(pv1AnalysisTarget("verb-kaku", "analysis-predicate", PREDICATE_CELL), "write-predicate-card", "かく is identified as the predicate.", "かく è identificato come predicato.", "Names the verb's sentence role without making a bare pseudo-sentence.", "Nomina il ruolo del verbo senza creare una pseudo-frase.", "predicate-recognition"),
     ex(pv1AnalysisTarget("verb-yomu", "analysis-verb", PREDICATE_CELL), "read-verb-card", "よむ is identified as a verb.", "よむ è identificato come verbo.", "Uses an explicit grammatical analysis label.", "Usa un'etichetta di analisi grammaticale esplicita.", "predicate-recognition"),
     ex(pv1AnalysisTarget("verb-hataraku", "analysis-final-predicate", PREDICATE_CELL), "work-final-card", "はたらく can occupy the predicate-final slot.", "はたらく può occupare la posizione predicativa finale.", "Recognizes the complete predicate item.", "Riconosce l'elemento predicativo completo.", "predicate-recognition"),
@@ -3580,27 +3698,27 @@ const L2: BaseTask11LessonSpec = {
     "verb-classes-conjugation",
   ],
   examples: [
-    ex(classTarget("verb-oyogu", GODAN_CELL), "godan-oyogu", "およぐ is godan: its final row changes in polite forms.", "およぐ è godan: la riga finale cambia nelle forme cortesi.", "Classifies from the stored verb class, not the final sound alone.", "Classifica dalla classe registrata, non dal solo suono finale.", "godan"),
+    ex(classTarget("verb-oyogu", GODAN_CELL), "godan-oyogu", "およぐ is godan: its final row changes in polite forms.", "およぐ è godan: la riga finale cambia nelle forme cortesi.", "Classifies the whole verb rather than relying on the final sound alone.", "Classifica il verbo intero, non soltanto il suono finale.", "godan"),
     ex(classTarget("verb-kaeru", GODAN_CELL, ["verb-class-exceptions"]), "godan-kaeru", "かえる is a reviewed -eru exception: it is godan.", "かえる è un'eccezione in -eru già esaminata: è godan.", "Makes the explicit -eru exception visible.", "Rende visibile l'eccezione esplicita in -eru.", "godan-exception"),
     ex(classTarget("verb-taberu", ICHIDAN_CELL), "ichidan-taberu", "たべる is ichidan.", "たべる è ichidan.", "Contrasts an ordinary -eru ichidan verb with かえる.", "Contrappone un normale verbo ichidan in -eru a かえる.", "ichidan"),
     ex(classTarget("verb-miru", ICHIDAN_CELL), "ichidan-miru", "みる is ichidan.", "みる è ichidan.", "Adds an owned -iru ichidan form.", "Aggiunge una forma ichidan in -iru.", "ichidan"),
-    ex(classTarget("verb-suru", SPECIAL_CELL), "special-suru", "する has its own stored class.", "する ha una classe registrata propria.", "Names the special class before deriving its stem.", "Nomina la classe speciale prima di derivarne il tema.", "special-class"),
-    ex(classTarget("verb-kuru", SPECIAL_CELL), "special-kuru", "くる has its own stored class.", "くる ha una classe registrata propria.", "Keeps くる separate from final-sound guessing.", "Tiene くる separato dalle supposizioni basate sul suono finale.", "special-class"),
+    ex(classTarget("verb-suru", SPECIAL_CELL), "special-suru", "する belongs to its own special verb class.", "する appartiene a una classe verbale speciale propria.", "Names the special class before deriving its stem.", "Nomina la classe speciale prima di derivarne il tema.", "special-class"),
+    ex(classTarget("verb-kuru", SPECIAL_CELL), "special-kuru", "くる belongs to its own special verb class.", "くる appartiene a una classe verbale speciale propria.", "Keeps くる separate from final-sound guessing.", "Tiene くる separato dalle supposizioni basate sul suono finale.", "special-class"),
     ex(task11Target([task11VerbForm("verb-taberu", "dictionary"), C, task11VerbForm("verb-kaeru", "dictionary")], { conceptIds: ["ichidan-verb-class", "godan-verb-class", "verb-class-exceptions"], patternCellIds: [EXCEPTION_CELL], semanticRoleIds: [], interpretationTags: ["metalinguistic"], predicateSenseId: null, predicateLexemeId: null, predicateAspect: "dynamic" }), "eru-comparison", "Compare たべる (ichidan) with かえる (godan).", "Confronta たべる (ichidan) e かえる (godan).", "Shows why -eru spelling alone cannot decide the class.", "Mostra perché la grafia in -eru non basta a decidere la classe.", "class-contrast"),
-    ex(task11Target([task11VerbForm("verb-miru", "dictionary"), C, task11VerbForm("verb-suru", "dictionary")], { conceptIds: ["ichidan-verb-class", "suru-verb-class", "verb-class-exceptions"], patternCellIds: [EXCEPTION_CELL], semanticRoleIds: [], interpretationTags: ["metalinguistic"], predicateSenseId: null, predicateLexemeId: null, predicateAspect: "dynamic" }), "iru-special-comparison", "Compare みる (ichidan) with special する.", "Confronta みる (ichidan) con lo speciale する.", "Requires the stored class for two similar-looking endings.", "Richiede la classe registrata per due finali simili.", "class-contrast"),
+    ex(task11Target([task11VerbForm("verb-miru", "dictionary"), C, task11VerbForm("verb-suru", "dictionary")], { conceptIds: ["ichidan-verb-class", "suru-verb-class", "verb-class-exceptions"], patternCellIds: [EXCEPTION_CELL], semanticRoleIds: [], interpretationTags: ["metalinguistic"], predicateSenseId: null, predicateLexemeId: null, predicateAspect: "dynamic" }), "iru-special-comparison", "Compare みる (ichidan) with special する.", "Confronta みる (ichidan) con lo speciale する.", "Distinguishes two similar-looking endings by checking the complete verb.", "Distingue due terminazioni simili controllando il verbo completo.", "class-contrast"),
     ex(labelFirstClassAnalysisTarget("verb-oyogu", "godan-verb-class", GODAN_CELL), "label-first-godan", "The godan label precedes およぐ.", "L'etichetta godan precede およぐ.", "Applies class recognition in an explicit analysis card.", "Applica il riconoscimento della classe in una scheda di analisi esplicita.", "godan"),
     ex(labelFirstClassAnalysisTarget("verb-kuru", "kuru-verb-class", SPECIAL_CELL), "label-first-kuru", "The くる-class label precedes くる.", "L'etichetta della classe くる precede くる.", "Retrieves くる with its own explicit class label.", "Recupera くる con la propria etichetta di classe esplicita.", "special-class"),
   ],
   activities: [
-    act(task11Cue(task11VerbForm("verb-oyogu", "dictionary"), C, task11AnalysisLabel("analysis-source")), task11ClassAnalysisTarget("verb-oyogu", "godan-verb-class", [GODAN_CELL]), task11ClassAnalysisTarget("verb-oyogu", "ichidan-verb-class", [ICHIDAN_CELL]), 1, "polite-verbs-2-activity-1-instruction", GODAN_CELL, BASE_MEANING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-oyogu", optionAnalysisIds: ["godan-verb-class", "ichidan-verb-class"] }),
-    act(task11Cue(task11VerbForm("verb-miru", "dictionary"), C, task11AnalysisLabel("analysis-source")), task11ClassAnalysisTarget("verb-miru", "ichidan-verb-class", [ICHIDAN_CELL]), task11ClassAnalysisTarget("verb-miru", "kuru-verb-class", [SPECIAL_CELL]), 0, "polite-verbs-2-activity-2-instruction", ICHIDAN_CELL, BASE_FORM_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-miru", optionAnalysisIds: ["ichidan-verb-class", "kuru-verb-class"] }),
-    act(task11Cue(task11VerbForm("verb-taberu", "dictionary"), C, task11AnalysisLabel("analysis-source")), task11ClassAnalysisTarget("verb-taberu", "ichidan-verb-class", [ICHIDAN_CELL]), task11ClassAnalysisTarget("verb-taberu", "godan-verb-class", [GODAN_CELL]), 0, "polite-verbs-2-activity-3-instruction", ICHIDAN_CELL, BASE_CONTROLLED_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-taberu", optionAnalysisIds: ["ichidan-verb-class", "godan-verb-class"] }),
-    act(task11Cue(task11VerbForm("verb-kaeru", "dictionary"), C, task11AnalysisLabel("analysis-source")), task11ClassAnalysisTarget("verb-kaeru", "godan-verb-class", [EXCEPTION_CELL]), task11ClassAnalysisTarget("verb-kaeru", "ichidan-verb-class", [ICHIDAN_CELL]), 1, "polite-verbs-2-activity-4-instruction", EXCEPTION_CELL, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-kaeru", optionAnalysisIds: ["godan-verb-class", "ichidan-verb-class"] }),
+    act(task11Cue(task11VerbForm("verb-oyogu", "dictionary"), C, task11AnalysisLabel("analysis-class-question")), task11ClassAnalysisTarget("verb-oyogu", "godan-verb-class", [GODAN_CELL]), task11ClassAnalysisTarget("verb-oyogu", "ichidan-verb-class", [ICHIDAN_CELL]), 1, "polite-verbs-2-activity-1-instruction", GODAN_CELL, BASE_MEANING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-oyogu", optionAnalysisIds: ["godan-verb-class", "ichidan-verb-class"] }),
+    act(task11Cue(task11VerbForm("verb-miru", "dictionary"), C, task11AnalysisLabel("analysis-class-question")), task11ClassAnalysisTarget("verb-miru", "ichidan-verb-class", [ICHIDAN_CELL]), task11ClassAnalysisTarget("verb-miru", "kuru-verb-class", [SPECIAL_CELL]), 0, "polite-verbs-2-activity-2-instruction", ICHIDAN_CELL, BASE_FORM_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-miru", optionAnalysisIds: ["ichidan-verb-class", "kuru-verb-class"] }),
+    act(task11Cue(task11VerbForm("verb-taberu", "dictionary"), C, task11AnalysisLabel("analysis-class-question")), task11ClassAnalysisTarget("verb-taberu", "ichidan-verb-class", [ICHIDAN_CELL]), task11ClassAnalysisTarget("verb-taberu", "godan-verb-class", [GODAN_CELL]), 0, "polite-verbs-2-activity-3-instruction", ICHIDAN_CELL, BASE_CONTROLLED_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-taberu", optionAnalysisIds: ["ichidan-verb-class", "godan-verb-class"] }),
+    act(task11Cue(task11VerbForm("verb-kaeru", "dictionary"), C, task11AnalysisLabel("analysis-class-question")), task11ClassAnalysisTarget("verb-kaeru", "godan-verb-class", [EXCEPTION_CELL]), task11ClassAnalysisTarget("verb-kaeru", "ichidan-verb-class", [ICHIDAN_CELL]), 1, "polite-verbs-2-activity-4-instruction", EXCEPTION_CELL, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-kaeru", optionAnalysisIds: ["godan-verb-class", "ichidan-verb-class"] }),
     act((() => { const target = task11ClassAnalysisTarget("verb-kaeru", "ichidan-verb-class", []); return { ...target, parts: [...target.parts, C, task11AnalysisLabel("analysis-suffix-guess")] }; })(), exceptionClassAnalysisTarget("verb-kaeru", [EXCEPTION_CELL]), (() => { const target = task11ClassAnalysisTarget("verb-kaeru", "ichidan-verb-class", [ICHIDAN_CELL]); return { ...target, parts: [...target.parts, C, task11AnalysisLabel("analysis-dictionary")] }; })(), 0, "polite-verbs-2-activity-5-instruction", EXCEPTION_CELL, BASE_ERROR_ACTIVITY_SHAPE, null, null, "verb-class-mismatch", { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-kaeru", optionAnalysisIds: ["verb-class-exceptions", "ichidan-verb-class"], errorDefectAxis: "form", changedTokenSourceIds: ["ichidan-verb-class", "godan-verb-class", "verb-class-exceptions", "analysis-suffix-guess"] }),
-    act(task11Cue(task11VerbForm("verb-suru", "dictionary"), C, task11AnalysisLabel("analysis-source")), task11ClassAnalysisTarget("verb-suru", "suru-verb-class", [SPECIAL_CELL]), task11ClassAnalysisTarget("verb-suru", "godan-verb-class", [GODAN_CELL]), 1, "polite-verbs-2-activity-6-instruction", SPECIAL_CELL, BASE_CONTEXT_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-suru", optionAnalysisIds: ["suru-verb-class", "godan-verb-class"] }),
-    act(task11Cue(task11VerbForm("verb-kuru", "dictionary"), C, task11AnalysisLabel("analysis-source")), task11ClassAnalysisTarget("verb-kuru", "kuru-verb-class", [SPECIAL_CELL]), task11ClassAnalysisTarget("verb-kuru", "ichidan-verb-class", [ICHIDAN_CELL]), 0, "polite-verbs-2-activity-7-instruction", SPECIAL_CELL, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-kuru", optionAnalysisIds: ["kuru-verb-class", "ichidan-verb-class"] }),
-    act(task11Cue(task11VerbForm("verb-yomu", "dictionary"), C, task11AnalysisLabel("analysis-source")), task11ClassAnalysisTarget("verb-yomu", "godan-verb-class", [GODAN_CELL]), task11ClassAnalysisTarget("verb-yomu", "ichidan-verb-class", [ICHIDAN_CELL]), 1, "polite-verbs-2-activity-8-instruction", GODAN_CELL, BASE_MEANING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-yomu", optionAnalysisIds: ["godan-verb-class", "ichidan-verb-class"] }),
-    act(task11Cue(task11VerbForm("verb-miru", "dictionary"), C, task11AnalysisLabel("ichidan-verb-class"), C, task11AnalysisLabel("analysis-pair")), sourcedClassAnalysisTarget("verb-miru", "ichidan-verb-class", ICHIDAN_CELL, "analysis-source"), sourcedClassAnalysisTarget("verb-miru", "ichidan-verb-class", ICHIDAN_CELL, "analysis-classification"), 0, "polite-verbs-2-activity-9-instruction", ICHIDAN_CELL, BASE_LISTENING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-miru", optionAnalysisIds: ["analysis-source", "analysis-classification"] }),
+    act(task11Cue(task11VerbForm("verb-suru", "dictionary"), C, task11AnalysisLabel("analysis-class-question")), task11ClassAnalysisTarget("verb-suru", "suru-verb-class", [SPECIAL_CELL]), task11ClassAnalysisTarget("verb-suru", "godan-verb-class", [GODAN_CELL]), 1, "polite-verbs-2-activity-6-instruction", SPECIAL_CELL, BASE_CONTEXT_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-suru", optionAnalysisIds: ["suru-verb-class", "godan-verb-class"] }),
+    act(task11Cue(task11VerbForm("verb-kuru", "dictionary"), C, task11AnalysisLabel("analysis-class-question")), task11ClassAnalysisTarget("verb-kuru", "kuru-verb-class", [SPECIAL_CELL]), task11ClassAnalysisTarget("verb-kuru", "ichidan-verb-class", [ICHIDAN_CELL]), 0, "polite-verbs-2-activity-7-instruction", SPECIAL_CELL, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-kuru", optionAnalysisIds: ["kuru-verb-class", "ichidan-verb-class"] }),
+    act(task11Cue(task11VerbForm("verb-yomu", "dictionary"), C, task11AnalysisLabel("analysis-classification")), expandedGodanClassTarget("verb-yomu", [GODAN_CELL]), task11ClassAnalysisTarget("verb-yomu", "ichidan-verb-class", [ICHIDAN_CELL]), 1, "polite-verbs-2-activity-8-instruction", GODAN_CELL, BASE_MEANING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-yomu", optionAnalysisIds: ["godan-verb-class", "ichidan-verb-class"] }),
+    act(task11Cue(task11VerbForm("verb-miru", "dictionary"), C, task11AnalysisLabel("analysis-pair")), sourcedClassAnalysisTarget("verb-miru", "ichidan-verb-class", ICHIDAN_CELL, "analysis-source"), sourcedClassAnalysisTarget("verb-miru", "ichidan-verb-class", ICHIDAN_CELL, "analysis-classification"), 0, "polite-verbs-2-activity-9-instruction", ICHIDAN_CELL, BASE_LISTENING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-miru", optionAnalysisIds: ["analysis-source", "analysis-classification"] }),
     act(task11Cue(task11VerbForm("verb-hataraku", "dictionary")), task11ClassAnalysisTarget("verb-hataraku", "godan-verb-class", [GODAN_CELL]), task11ClassAnalysisTarget("verb-hataraku", "ichidan-verb-class", [ICHIDAN_CELL]), 1, "polite-verbs-2-activity-10-instruction", GODAN_CELL, BASE_SPOKEN_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-hataraku", optionAnalysisIds: ["godan-verb-class", "ichidan-verb-class"] }),
   ],
   dialogue: null,
@@ -3650,27 +3768,27 @@ const L3: BaseTask11LessonSpec = {
     "verb-classes-conjugation",
   ],
   examples: [
-    ex(stemTarget("verb-kaku", GODAN_STEM), "stem-kaku", "かく changes to the polite stem かき.", "かく passa al tema cortese かき.", "Derives a godan stem through the canonical engine.", "Deriva un tema godan con il motore canonico.", "godan-stem"),
+    ex(stemTarget("verb-kaku", GODAN_STEM), "stem-kaku", "かく changes to the polite stem かき.", "かく passa al tema cortese かき.", "Derives a godan stem through the regular godan pattern.", "Deriva un tema godan con lo schema regolare dei verbi godan.", "godan-stem"),
     ex(stemTarget("verb-matsu", GODAN_STEM), "stem-matsu", "まつ changes to まち.", "まつ passa a まち.", "Shows the godan つ-to-ち row change.", "Mostra il cambio di riga godan da つ a ち.", "godan-stem"),
-    ex(stemTarget("verb-kaeru", GODAN_STEM), "stem-kaeru", "Godan かえる changes to かえり.", "Il godan かえる passa a かえり.", "Applies the stored exception class honestly.", "Applica correttamente la classe eccezionale registrata.", "godan-stem"),
+    ex(stemTarget("verb-kaeru", GODAN_STEM), "stem-kaeru", "Godan かえる changes to かえり.", "Il godan かえる passa a かえり.", "Applies the special exception correctly.", "Applica correttamente l'eccezione speciale.", "godan-stem"),
     ex(stemTarget("verb-taberu", ICHIDAN_STEM), "stem-taberu", "Ichidan たべる changes to たべ.", "L'ichidan たべる passa a たべ.", "Removes the owned ichidan る.", "Rimuove il る dell'ichidan conosciuto.", "ichidan-stem"),
     ex(stemTarget("verb-miru", ICHIDAN_STEM), "stem-miru", "Ichidan みる changes to み.", "L'ichidan みる passa a み.", "Confirms the short ichidan stem.", "Conferma il tema ichidan breve.", "ichidan-stem"),
     ex(stemTarget("verb-suru", SURU_STEM), "stem-suru", "する has the explicit polite stem し.", "する ha il tema cortese esplicito し.", "Teaches the required する→し mapping.", "Insegna la corrispondenza richiesta する→し.", "suru-stem"),
     ex(stemTarget("verb-kuru", KURU_STEM), "stem-kuru", "くる has the explicit polite stem き.", "くる ha il tema cortese esplicito き.", "Teaches the required くる→き mapping.", "Insegna la corrispondenza richiesta くる→き.", "kuru-stem"),
     ex(stemTarget("verb-benkyou-suru", SURU_STEM), "stem-study", "べんきょうする keeps its noun and uses し.", "べんきょうする conserva il nome e usa し.", "Derives a compound する stem without duplicating a string.", "Deriva un tema composto in する senza duplicare stringhe.", "suru-compound-stem"),
-    ex(stemTarget("verb-denwa-suru", SURU_STEM), "stem-call", "でんわする becomes でんわし.", "でんわする diventa でんわし.", "Applies the same canonical compound rule to calling.", "Applica la stessa regola canonica al telefonare.", "suru-compound-stem"),
+    ex(stemTarget("verb-denwa-suru", SURU_STEM), "stem-call", "でんわする becomes でんわし.", "でんわする diventa でんわし.", "Applies the same compound pattern to calling.", "Applica lo stesso schema dei composti al verbo «telefonare».", "suru-compound-stem"),
     ex(stemTarget("verb-sanpo-suru", SURU_STEM), "stem-walk", "さんぽする becomes さんぽし.", "さんぽする diventa さんぽし.", "Adds a distinct compound-stem meaning.", "Aggiunge un significato distinto con tema composto.", "suru-compound-stem"),
   ],
   activities: [
     act(task11Cue(task11VerbForm("verb-kaku", "dictionary")), stemDerivationTarget("verb-kaku", GODAN_STEM), dictionaryAnalysisTarget("verb-kaku", GODAN_STEM), 0, "polite-verbs-3-activity-1-instruction", GODAN_STEM, BASE_FORM_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-kaku" }),
     act(task11Cue(task11VerbForm("verb-matsu", "dictionary")), stemDerivationTarget("verb-matsu", GODAN_STEM), dictionaryAnalysisTarget("verb-matsu", GODAN_STEM), 0, "polite-verbs-3-activity-2-instruction", GODAN_STEM, BASE_MEANING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-matsu" }),
     act(task11Cue(task11VerbForm("verb-benkyou-suru", "dictionary"), C, task11AnalysisLabel("analysis-stem-source")), stemDerivationTarget("verb-benkyou-suru", SURU_STEM), permutedVerbTarget("verb-benkyou-suru", [task11VerbForm("verb-benkyou-suru", "polite-stem"), C, task11VerbForm("verb-benkyou-suru", "dictionary")], SURU_STEM, ["suru-verb-class"]), 1, "polite-verbs-3-activity-3-instruction", SURU_STEM, BASE_ORDERING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-benkyou-suru" }),
-    act(task11Cue(task11VerbForm("verb-suru", "dictionary"), C, task11AnalysisLabel("analysis-stem-source")), stemDerivationTarget("verb-suru", SURU_STEM), dictionaryAnalysisTarget("verb-suru", SURU_STEM), 1, "polite-verbs-3-activity-4-instruction", SURU_STEM, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-suru" }),
-    act(task11Cue(task11VerbForm("verb-kuru", "dictionary"), C, task11AnalysisLabel("analysis-stem-source")), stemDerivationTarget("verb-kuru", KURU_STEM), dictionaryAnalysisTarget("verb-kuru", KURU_STEM), 0, "polite-verbs-3-activity-5-instruction", KURU_STEM, BASE_CONTROLLED_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-kuru" }),
-    act(task11Target([task11VerbForm("verb-kaeru", "dictionary"), C, task11DiagnosticForm("verb-kaeru", "かえ", "kae", "incorrect-ichidan-stem")], { conceptIds: ["verb-class-exceptions"], patternCellIds: [], semanticRoleIds: [], interpretationTags: ["metalinguistic"], predicateSenseId: "kaeru", predicateLexemeId: "verb-kaeru", predicateAspect: "dynamic" }), stemDerivationTarget("verb-kaeru", GODAN_STEM), dictionaryAnalysisTarget("verb-kaeru", GODAN_STEM), 1, "polite-verbs-3-activity-6-instruction", GODAN_STEM, BASE_ERROR_ACTIVITY_SHAPE, null, null, "incorrect-ichidan-stem", { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-kaeru", errorDefectAxis: "form", changedTokenSourceIds: ["incorrect-ichidan-stem", "verb-kaeru"] }),
-    act(task11Cue(task11VerbForm("verb-denwa-suru", "dictionary"), C, task11AnalysisLabel("analysis-stem-source")), stemDerivationTarget("verb-denwa-suru", SURU_STEM), dictionaryAnalysisTarget("verb-denwa-suru", SURU_STEM), 0, "polite-verbs-3-activity-7-instruction", SURU_STEM, BASE_CONTEXT_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-denwa-suru" }),
-    act(task11Cue(task11VerbForm("verb-sanpo-suru", "dictionary"), C, task11AnalysisLabel("analysis-stem-source")), stemDerivationTarget("verb-sanpo-suru", SURU_STEM), dictionaryAnalysisTarget("verb-sanpo-suru", SURU_STEM), 1, "polite-verbs-3-activity-8-instruction", SURU_STEM, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-sanpo-suru" }),
-    act(task11Cue(task11AnalysisLabel("analysis-stem-source")), stemDerivationTarget("verb-miru", ICHIDAN_STEM), stemDerivationTarget("verb-taberu", ICHIDAN_STEM), 0, "polite-verbs-3-activity-9-instruction", ICHIDAN_STEM, BASE_LISTENING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: null, optionAnalysisIds: ["polite-stems", "polite-stems"] }),
+    act(task11Cue(task11VerbForm("verb-suru", "dictionary"), C, task11AnalysisLabel("analysis-stem-source"), C, task11AnalysisLabel("analysis-stem")), stemDerivationTarget("verb-suru", SURU_STEM), dictionaryAnalysisTarget("verb-suru", SURU_STEM), 1, "polite-verbs-3-activity-4-instruction", SURU_STEM, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-suru" }),
+    act(task11Cue(task11VerbForm("verb-kuru", "dictionary"), C, task11AnalysisLabel("analysis-stem-source"), C, task11AnalysisLabel("analysis-stem")), stemDerivationTarget("verb-kuru", KURU_STEM), dictionaryAnalysisTarget("verb-kuru", KURU_STEM), 0, "polite-verbs-3-activity-5-instruction", KURU_STEM, BASE_CONTROLLED_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-kuru" }),
+    act(task11Target([task11VerbForm("verb-kaeru", "dictionary"), C, task11DiagnosticForm("verb-kaeru", "かえ", "kae", "incorrect-ichidan-stem"), C, task11AnalysisLabel("analysis-stem")], { conceptIds: ["verb-class-exceptions"], patternCellIds: [], semanticRoleIds: [], interpretationTags: ["metalinguistic"], predicateSenseId: "kaeru", predicateLexemeId: "verb-kaeru", predicateAspect: "dynamic" }), labeledStemDerivationTarget("verb-kaeru", GODAN_STEM), labeledDictionaryAnalysisTarget("verb-kaeru", GODAN_STEM), 1, "polite-verbs-3-activity-6-instruction", GODAN_STEM, BASE_ERROR_ACTIVITY_SHAPE, null, null, "incorrect-ichidan-stem", { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-kaeru", errorDefectAxis: "form", changedTokenSourceIds: ["incorrect-ichidan-stem", "verb-kaeru"] }),
+    act(task11Cue(task11VerbForm("verb-denwa-suru", "dictionary"), C, task11AnalysisLabel("analysis-stem-source")), labeledStemDerivationTarget("verb-denwa-suru", SURU_STEM), labeledDictionaryAnalysisTarget("verb-denwa-suru", SURU_STEM), 0, "polite-verbs-3-activity-7-instruction", SURU_STEM, BASE_CONTEXT_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-denwa-suru" }),
+    act(task11Cue(task11VerbForm("verb-sanpo-suru", "dictionary"), C, task11AnalysisLabel("analysis-stem-source")), labeledStemDerivationTarget("verb-sanpo-suru", SURU_STEM), labeledDictionaryAnalysisTarget("verb-sanpo-suru", SURU_STEM), 1, "polite-verbs-3-activity-8-instruction", SURU_STEM, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-sanpo-suru" }),
+    act(task11Cue(task11AnalysisLabel("analysis-pair")), stemDerivationTarget("verb-miru", ICHIDAN_STEM), stemDerivationTarget("verb-taberu", ICHIDAN_STEM), 0, "polite-verbs-3-activity-9-instruction", ICHIDAN_STEM, BASE_LISTENING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: null, optionAnalysisIds: ["polite-stems", "polite-stems"] }),
     act(task11Cue(task11VerbForm("verb-yomu", "dictionary")), stemDerivationTarget("verb-yomu", GODAN_STEM), dictionaryAnalysisTarget("verb-yomu", GODAN_STEM), 1, "polite-verbs-3-activity-10-instruction", GODAN_STEM, BASE_SPOKEN_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "polite-stem", heldConstantPredicateLexemeId: "verb-yomu" }),
   ],
   dialogue: null,

@@ -895,8 +895,8 @@ describe("Base sentence-foundations module", () => {
     const reviewed = [
       ["sentence-foundations-3-example-1-translation", "かんごしです", "They're a nurse.", "È infermiere."],
       ["sentence-foundations-3-example-2-translation", "べんごしです", "They're a lawyer.", "È avvocato."],
-      ["sentence-foundations-4-example-1-translation", "さくらせんせいです。", "This is Professor Sakura.", "È la professoressa Sakura."],
-      ["sentence-foundations-4-example-2-translation", "けんせんせいです。", "This is Professor Ken.", "È il professor Ken."],
+      ["sentence-foundations-4-example-1-translation", "さくらせんせいです。", "This is Sakura, the teacher.", "Questa è Sakura, l'insegnante."],
+      ["sentence-foundations-4-example-2-translation", "けんせんせいです。", "This is Ken, the teacher.", "Questo è Ken, l'insegnante."],
     ] as const;
     const examples = new Map(
       BASE_SENTENCE_FOUNDATIONS_EXAMPLES.map((example) => [

@@ -1103,21 +1103,20 @@ const RAW_AUDIO_CATALOG: readonly BaseAudioRecord[] = [
     "canonicalPlayback": "asset-only-no-tts-fallback"
   },
   {
-    "id": "snd3-hoon",
-    "src": "/audio/base/snd3-hoon.wav",
-    "sha256": "0f4d81055165cccb156deb262a393e1e257cde1bfdffad1352b9be4353c993e6",
-    "kana": "ほおん",
+    "id": "snd3-hon",
+    "src": "/audio/base/snd3-hon.wav",
+    "sha256": "2faa92cb862178ec1596e90990149c6d5f4d4e428d8775e4974b77f914e0a6aa",
+    "kana": "ほん",
     "morae": [
       "ほ",
-      "お",
       "ん"
     ],
     "meaning": {
-      "en": "Canonical sound exemplar for ほおん.",
-      "it": "Esempio sonoro canonico per ほおん."
+      "en": "Canonical sound exemplar for the real word ほん ('book').",
+      "it": "Esempio sonoro canonico per la parola ほん («libro»)."
     },
     "sourceNote": "Original locally generated with the operating-system Japanese speech synthesizer (Kyoko); no human speaker and pending independent listening review.",
-    "fingerprint": "511509b9c1cbf267c29fd9904cdef453ccfc9a53da07127596073e2f9a4ebe1f",
+    "fingerprint": "d62db3209ac3f7d8d11b9c5103e97b7ba062590895f405db5b16a93749ff6395",
     "failureStateIds": {
       "failed": "base-audio-failed",
       "unavailable": "base-audio-unavailable",

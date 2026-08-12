@@ -1607,10 +1607,7 @@ function collectSynthesisSystemEvidence(
   dialogue?.turns.forEach(addVisible);
 
   for (const activity of lesson.activities) {
-    if (
-      activity.mode !== "non-spoken" ||
-      activity.category !== "cumulative-retrieval"
-    ) {
+    if (activity.mode !== "non-spoken") {
       continue;
     }
     const prompt = activityPromptTargetReferenceFor(

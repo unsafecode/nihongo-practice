@@ -640,7 +640,7 @@ function anchoredTeImasuSubjectTarget(
   );
 }
 
-function anchoredObjectVerbTarget(
+export function anchoredObjectVerbTarget(
   subjectId: string | null,
   objectId: string,
   lemmaId: string,
@@ -702,9 +702,9 @@ function anchoredObjectVerbTarget(
   );
 }
 
-function seatedTarget(
+export function seatedTarget(
   subjectId: string | null,
-  form: "polite-nonpast" | "te-imasu",
+  form: "polite-nonpast" | "nonpast-negative" | "te-imasu",
   question = false,
   prefix: readonly BaseTask11Part[] = [],
 ): BaseTask11TargetSpec {
@@ -936,10 +936,10 @@ const L1: BaseTask11LessonSpec = {
     ex(teMappingTarget("verb-oyogu", TE_IDE), "oyogu-ide", "およぐ becomes およいで.", "およぐ diventa およいで.", "Shows the ぐ to いで change.", "Mostra il passaggio da ぐ a いで.", "te-ide", "anatomy-model"),
     ex(teMappingTarget("verb-kesu", TE_SHITE), "kesu-shite", "けす becomes けして.", "けす diventa けして.", "Shows the す to して change.", "Mostra il passaggio da す a して.", "te-shite", "anatomy-model"),
     ex(teMappingTarget("verb-akeru", TE_ICHIDAN), "akeru-te", "あける becomes あけて.", "あける diventa あけて.", "Shows the ichidan る replacement.", "Mostra la sostituzione di る negli ichidan.", "te-ichidan", "anatomy-model"),
-    ex(teMappingTarget("verb-suru", TE_SURU), "suru-shite", "する becomes して.", "する diventa して.", "Keeps する as a stored special form.", "Mantiene する come forma speciale registrata.", "te-special", "anatomy-model"),
-    ex(teMappingTarget("verb-kuru", TE_KURU), "kuru-kite", "くる becomes きて.", "くる diventa きて.", "Keeps くる as a stored special form.", "Mantiene くる come forma speciale registrata.", "te-special", "anatomy-model"),
+    ex(teMappingTarget("verb-suru", TE_SURU), "suru-shite", "する becomes して.", "する diventa して.", "Keeps する as a special form.", "Mantiene する come forma speciale.", "te-special", "anatomy-model"),
+    ex(teMappingTarget("verb-kuru", TE_KURU), "kuru-kite", "くる becomes きて.", "くる diventa きて.", "Keeps くる as a special form.", "Mantiene くる come forma speciale.", "te-special", "anatomy-model"),
     ex(teMappingTarget("verb-iku", TE_EXCEPTION), "iku-itte", "いく becomes いって.", "いく diventa いって.", "Records いって instead of overgeneralized いいて.", "Registra いって invece della generalizzazione いいて.", "te-exception", "anatomy-model"),
-    ex(teMappingTarget("verb-motte-kuru", TE_KURU), "motte-kite", "もってくる becomes もってきて.", "もってくる diventa もってきて.", "Applies the stored くる change inside a compound.", "Applica il cambiamento registrato di くる in un composto.", "te-special", "anatomy-model"),
+    ex(teMappingTarget("verb-motte-kuru", TE_KURU), "motte-kite", "もってくる becomes もってきて.", "もってくる diventa もってきて.", "Applies the くる change inside a compound.", "Applica il cambiamento di くる all'interno di un composto.", "te-special", "anatomy-model"),
   ],
   activities: [
     act(task11Cue(task11VerbForm("verb-toru", "dictionary")), teTarget("verb-toru", TE_TTE), plainVerbTarget("verb-toru", "polite-nonpast", [], [TE_SOURCE], ["habitual"]), 0, "requests-connection-1", 1, TE_TTE, BASE_MEANING_ACTIVITY_SHAPE, null, { contrastAxis: "polite-form", heldConstantPredicateLexemeId: "verb-toru" }),

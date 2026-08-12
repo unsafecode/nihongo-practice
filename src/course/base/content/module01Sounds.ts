@@ -417,7 +417,7 @@ const SOUND_3_ITEMS: readonly BaseSoundContrastiveItem[] = [
   contrast("snd3-ka", "か", ["か"], "One mora without final ん.", "Una mora senza ん finale."),
   contrast("snd3-ka-kan", "かん", ["か", "ん"], "Moraic ん is its own timing unit.", "La ん moraica è un'unità ritmica autonoma."),
   contrast("snd3-ho", "ほ", ["ほ"], "One short mora.", "Una mora breve."),
-  contrast("snd3-hoon", "ほおん", ["ほ", "お", "ん"], "Long-vowel timing plus moraic ん gives three morae.", "Vocale lunga più ん moraica: tre more."),
+  contrast("snd3-hon", "ほん", ["ほ", "ん"], "The word ほん has two morae: ほ and moraic ん.", "La parola ほん ha due more: ほ e la ん moraica."),
 ];
 
 const SOUND_4_ITEMS: readonly BaseSoundContrastiveItem[] = [

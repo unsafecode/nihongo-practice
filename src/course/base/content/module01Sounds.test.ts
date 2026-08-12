@@ -668,6 +668,23 @@ describe("Base module 1 complete sound system", () => {
     }
   });
 
+  it("uses the real word ほん rather than the coined ほおん sound exemplar", () => {
+    const soundIds = BASE_AUDIO_CATALOG.map(({ id }) => id);
+    const hon = BASE_AUDIO_CATALOG.find(({ id }) => id === "snd3-hon");
+
+    expect(soundIds).not.toContain("snd3-hoon");
+    expect(hon).toMatchObject({
+      kana: "ほん",
+      morae: ["ほ", "ん"],
+      src: "/audio/base/snd3-hon.wav",
+    });
+    expect(
+      BASE_SOUND_MODULE.lessons
+        .flatMap(({ contrastiveItems }) => contrastiveItems)
+        .some(({ id, kana }) => id === "snd3-hon" && kana === "ほん"),
+    ).toBe(true);
+  });
+
   it("exposes canonical sound catalogs through mutation-free runtime views", () => {
     for (const map of [
       BASE_SOUND_VALIDATION_CATALOGS.audioTargets,
