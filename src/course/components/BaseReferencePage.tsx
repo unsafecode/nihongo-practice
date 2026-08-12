@@ -131,18 +131,31 @@ export function BaseReferencePage(): ReactElement {
           {model.grid.rows.map((row) => (
             <tr key={row.id} data-row-id={row.id}>
               <th scope="row">{row.header}</th>
-              {row.cells.map((cell) => (
-                <td key={cell.columnId} data-column-id={cell.columnId}>
-                  <span className="base-reference-page__cell-japanese" lang="ja">
-                    {cell.value.map((token) => (
-                      <JapaneseSegmentText key={token.id} jp={token.jp} reading={token.reading} />
-                    ))}
-                  </span>
-                  <span className="base-reference-page__cell-romaji">
-                    <RomajiSequence tokens={cell.value} errorText={errorText} />
-                  </span>
-                </td>
-              ))}
+              {/*
+                A cell is placed by its own `columnId`, never by its position in
+                `row.cells`: progressive disclosure legitimately omits columns a
+                row has not reached yet, so rendering the cells sequentially
+                would slide later forms under earlier headers and teach the
+                wrong mapping (e.g. the polite negative under "Form").
+              */}
+              {model.grid.columns.map((column) => {
+                const cell = row.cells.find((candidate) => candidate.columnId === column.id);
+                if (!cell) {
+                  return <td key={column.id} data-column-id={column.id} />;
+                }
+                return (
+                  <td key={column.id} data-column-id={cell.columnId}>
+                    <span className="base-reference-page__cell-japanese" lang="ja">
+                      {cell.value.map((token) => (
+                        <JapaneseSegmentText key={token.id} jp={token.jp} reading={token.reading} />
+                      ))}
+                    </span>
+                    <span className="base-reference-page__cell-romaji">
+                      <RomajiSequence tokens={cell.value} errorText={errorText} />
+                    </span>
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>

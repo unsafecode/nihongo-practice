@@ -66,6 +66,11 @@ export function BaseAudioButton({
     failed: copy.failed,
   };
   const buttonLabel = status === "playing" ? copy.playing : copy.idle;
+  // The status region carries only what the button label does *not* already
+  // say. Repeating "Play audio" next to a "Play audio" button is visual noise
+  // and a duplicated announcement; the region itself always stays in the DOM
+  // so a later state change is announced politely in place.
+  const statusText = status === "idle" || status === "playing" ? "" : label[status];
 
   return (
     <span className="base-audio-button" data-audio-status={status} data-id-base={idBase}>
@@ -93,7 +98,7 @@ export function BaseAudioButton({
         role="status"
         aria-live="polite"
       >
-        {label[status]}
+        {statusText}
       </span>
     </span>
   );

@@ -161,7 +161,17 @@ describe("Base practice authored instruction/feedback rendering", () => {
       const { container, unmount } = renderBaseActivity(lessonId, index);
       const legend = container.querySelector("legend");
       const group = container.querySelector('[role="group"]');
-      const accessibleLabel = legend?.textContent ?? group?.getAttribute("aria-label") ?? null;
+      // A group may be named either by an `aria-label` or — better — by the
+      // id of the visible instruction it renders, exactly as a `<legend>`
+      // names a fieldset with text a sighted learner can also read.
+      const labelledById = group?.getAttribute("aria-labelledby");
+      const labelledByText = labelledById
+        ? (Array.from(container.querySelectorAll("[id]")).find(
+            (element) => element.id === labelledById,
+          )?.textContent ?? null)
+        : null;
+      const accessibleLabel =
+        legend?.textContent ?? labelledByText ?? group?.getAttribute("aria-label") ?? null;
       expect(accessibleLabel).toBe(activity.instruction);
       unmount();
     }

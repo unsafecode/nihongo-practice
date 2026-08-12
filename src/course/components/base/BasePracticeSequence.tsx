@@ -147,8 +147,13 @@ function TileOrderingCard({
       data-activity-id={activity.id}
       data-category={activity.category}
       role="group"
-      aria-label={activity.instruction}
+      aria-labelledby={`${idBase}-instruction`}
     >
+      {/* The instruction is rendered, not just announced: a sighted learner
+          must be able to read what this tile bank is asking for. */}
+      <p className="base-practice-activity__instruction" id={`${idBase}-instruction`}>
+        {activity.instruction}
+      </p>
       <div
         className="base-practice-activity__bank"
         id={`${idBase}-bank`}
@@ -223,8 +228,11 @@ function RevealCard({
       data-activity-id={activity.id}
       data-category={activity.category}
       role="group"
-      aria-label={activity.instruction}
+      aria-labelledby={`${activity.id}-instruction`}
     >
+      <p className="base-practice-activity__instruction" id={`${activity.id}-instruction`}>
+        {activity.instruction}
+      </p>
       {activity.promptTokens ? (
         <p className="base-practice-activity__prompt" lang="ja">
           {activity.promptTokens.map((token) => (
@@ -356,8 +364,11 @@ function SpokenCard({
       className="base-spoken-activity"
       data-activity-id={activity.id}
       role="group"
-      aria-label={activity.instruction}
+      aria-labelledby={`${idBase}-instruction`}
     >
+      <p className="base-practice-activity__instruction" id={`${idBase}-instruction`}>
+        {activity.instruction}
+      </p>
       <p className="base-spoken-activity__target" lang="ja">
         <RomajiSequence
           tokens={activity.tokens}
@@ -424,7 +435,11 @@ function SpokenCard({
             </button>
           </div>
         ) : (
-          <button type="button" onClick={handlers.onRequestConsent}>
+          <button
+            type="button"
+            className="action action--primary"
+            onClick={handlers.onRequestConsent}
+          >
             {spokenCopy.tryButton}
           </button>
         )

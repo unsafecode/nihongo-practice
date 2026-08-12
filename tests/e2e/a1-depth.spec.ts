@@ -7,6 +7,7 @@ import { buildA1PracticeModel } from "../../src/course/components/a1PracticeMode
 import type { ExercisePrompt } from "../../src/course/exercises/types";
 import {
   CURRENT_COURSE_PROGRESS_CATALOG_VERSION,
+  CURRENT_COURSE_PROGRESS_V5_CATALOG_VERSION,
   type CourseProgressV4,
 } from "../../src/course/progress/progress";
 import {
@@ -53,6 +54,20 @@ function emptyLevel() {
     reviewQueue: [],
     orphanedLessonIds: [],
     orphanedReviewKeys: [],
+  };
+}
+
+/**
+ * The empty *schema-V5* level shape (Task 16/18): the V4 level fields plus the
+ * two additive Base-ownership fields. Legacy payloads seeded below are still
+ * written in their own historical schema — the app migrates them forward, so
+ * every assertion reads the V5 result the runtime actually persists.
+ */
+function emptyLevelV5() {
+  return {
+    ...emptyLevel(),
+    orphanedLessonRecords: {},
+    historicalActivityDispositions: [],
   };
 }
 
@@ -241,13 +256,16 @@ test.describe("V3 to V4 A1 migration remains live and idempotent", () => {
     );
     await gotoReady(page, routeUrls.home);
 
+    // The runtime now runs the whole V3 -> V4 -> V5 chain in one load, so the
+    // persisted result is schema-V5: `sounds-4` is a Base (a0) lesson under the
+    // Task 3 ownership move, while the capstones stay in retained A1.
     const progress = await readProgress(page);
-    expect(progress.schemaVersion).toBe(4);
-    expect(progress.catalogVersion).toBe(CURRENT_COURSE_PROGRESS_CATALOG_VERSION);
-    expect(progress.levels.a1.lessons["sounds-4"].visitedAt).toBe(
+    expect(progress.schemaVersion).toBe(5);
+    expect(progress.catalogVersion).toBe(CURRENT_COURSE_PROGRESS_V5_CATALOG_VERSION);
+    expect(progress.levels.a0.lessons["sounds-4"].visitedAt).toBe(
       "2025-01-01T00:00:00.000Z",
     );
-    expect(progress.levels.a1.lessons["sounds-4"].consolidatedAt).toBeNull();
+    expect(progress.levels.a0.lessons["sounds-4"].consolidatedAt).toBeNull();
     expect(progress.levels.a1.lessons["capstones-1"].visitedAt).toBe(
       "2025-02-01T00:00:00.000Z",
     );
@@ -263,7 +281,12 @@ test.describe("V3 to V4 A1 migration remains live and idempotent", () => {
     );
     expect(progress.levels.a1.reviewQueue).toEqual([]);
     expect(progress.levels.a1.orphanedReviewKeys).toEqual([]);
-    expect(progress.levels.a2).toEqual(emptyLevel());
+    expect(progress.levels.a2).toEqual(emptyLevelV5());
+    // The V4 notice this chain produced is retained as the V5 notice's prior
+    // record, so the earlier rebuild is never silently forgotten.
+    expect(progress.migrationNotice.fromSchemaVersion).toBe(4);
+    expect(progress.migrationNotice.priorNotice.fromSchemaVersion).toBe(3);
+    expect(progress.migrationNotice.movedLessonIds).toContain("sounds-4");
     await expect(page.locator(".notice--info")).toBeVisible();
 
     await assertNoRuntimeErrors(page, observers);
@@ -297,7 +320,11 @@ test.describe("V3 to V4 A1 migration remains live and idempotent", () => {
     expect(migrated.consolidatedAt).toBeNull();
     expect(migrated.attemptedExerciseIds).toEqual([]);
     expect(migrated.acceptedExerciseIds).toEqual([]);
-    expect(progress.migrationNotice.resetEvidenceLessonIds).toContain("introductions-1");
+    // `introductions-1` stays in A1, so the reset-evidence accounting lives on
+    // the retained V3 notice the V5 record carries forward.
+    expect(progress.migrationNotice.priorNotice.resetEvidenceLessonIds).toContain(
+      "introductions-1",
+    );
 
     const saved = JSON.stringify(progress);
     await page.addInitScript((value: string) => {
@@ -306,7 +333,7 @@ test.describe("V3 to V4 A1 migration remains live and idempotent", () => {
     await page.reload({ waitUntil: "load" });
     await page.locator("#root >> main").first().waitFor({ state: "visible" });
     progress = await readProgress(page);
-    expect(progress.catalogVersion).toBe(CURRENT_COURSE_PROGRESS_CATALOG_VERSION);
+    expect(progress.catalogVersion).toBe(CURRENT_COURSE_PROGRESS_V5_CATALOG_VERSION);
     expect(progress.levels.a1.lessons["introductions-1"].visitedAt).toBe(
       "2025-01-01T00:00:00.000Z",
     );
@@ -338,8 +365,30 @@ test.describe("V3 to V4 A1 migration remains live and idempotent", () => {
     await seedProgress(page, current);
     await gotoReady(page, routeUrls.home);
     let progress = await readProgress(page);
-    expect(progress).toEqual(current);
-    await expect(page.locator(".notice--info").filter({ hasText: "ricostruiti" })).toHaveCount(0);
+    // A schema-V4 payload is migrated once into schema-V5 without losing any
+    // evidence: `introductions-1` is a retained A1 lesson, so it moves nowhere.
+    expect(progress).toEqual({
+      schemaVersion: 5,
+      catalogVersion: CURRENT_COURSE_PROGRESS_V5_CATALOG_VERSION,
+      levels: {
+        a0: emptyLevelV5(),
+        a1: {
+          ...emptyLevelV5(),
+          lessons: { "introductions-1": lessonEvidence([], [], false) },
+          lastVisitedLessonId: "introductions-1",
+        },
+        a2: emptyLevelV5(),
+      },
+      migrationNotice: {
+        fromSchemaVersion: 4,
+        movedLessonIds: [],
+        historicalActivityIds: [],
+        resumeLevel: "a1",
+        priorNotice: null,
+        acknowledgedAt: null,
+      },
+      updatedAt: AT,
+    });
 
     const saved = JSON.stringify(progress);
     await page.addInitScript((value: string) => {

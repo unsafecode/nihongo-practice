@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { ActionLink } from "../../../components/actions/Action";
 import type { A1CurriculumViewModel } from "../../a1/curriculum/buildA1CurriculumViewModel";
 import type { CourseCopy } from "../../i18n/types";
 import { A1VerbForms } from "./A1VocabularySection";
@@ -65,9 +66,15 @@ export function A1LessonRecap({
           <ul>
             {recap.reviewedBaseReferences.map((entry) => (
               <li key={entry.conceptId} data-concept-id={entry.conceptId}>
-                <a className="action" href={entry.href}>
+                {/*
+                  A real in-app router link: the app is a HashRouter served
+                  under the Pages base, so a bare `href="/riferimenti/..."`
+                  would leave the application entirely and 404. `ActionLink`
+                  renders the same styled control as a router `Link`.
+                */}
+                <ActionLink variant="secondary" to={entry.href}>
                   {entry.label}
-                </a>
+                </ActionLink>
               </li>
             ))}
           </ul>

@@ -1,8 +1,8 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
-  A1_LESSON_IDS,
-  A1_MODULE_IDS,
   A1_LESSON_MANIFEST,
+  A1_RETAINED_LESSON_IDS,
+  A1_RETAINED_MODULE_IDS,
 } from "../../src/course/a1/manifest";
 import { buildA1PracticeModel } from "../../src/course/components/a1PracticeModel";
 import { getA1SpokenAttemptModel } from "../../src/course/components/a1SpokenAttemptModel";
@@ -20,8 +20,22 @@ import {
 } from "./helpers";
 
 const INTRODUCTION = { moduleId: "introductions", lessonId: "introductions-1" } as const;
-const SOUND_BRIDGE = { moduleId: "sounds", lessonId: "sounds-4" } as const;
-const SOUND_BRIDGE_TILE_TARGET = ["レ", "ス", "ト", "ラ", "ン"] as const;
+const A1_COURSE_URL = `${routeUrls.home}?livello=a1`;
+/**
+ * The katakana bridge moved with the Sounds module into Base (Tasks 16-18), so
+ * the *retained* A1 lesson that still teaches an authentic katakana loanword
+ * (コーヒー) is the everyday-outing capstone; the Base-owned sounds lessons are
+ * covered by the Base suites instead.
+ */
+const KATAKANA_BRIDGE = { moduleId: "capstones", lessonId: "capstones-2" } as const;
+const KATAKANA_BRIDGE_WORD = "コーヒー";
+const KATAKANA_BRIDGE_ROMAJI = /koohii/i;
+/**
+ * The retained A1 tile-ordering exercise the keyboard test drives, with the
+ * bank's presentation order and the canonical answer both taken straight from
+ * the shipped practice model rather than re-typed here.
+ */
+const TILE_LESSON = { moduleId: "actions", lessonId: "actions-2" } as const;
 const TILE_EXERCISE_COPY = getCourseCopy("it").exercises;
 const CHECKPOINT_COPY = getCourseCopy("it").checkpoint;
 
@@ -112,8 +126,10 @@ async function answerPrompt(card: Locator, prompt: ExercisePrompt, correct: bool
 }
 
 test.describe("navigation and settings", () => {
-  test("the mobile settings drawer traps focus and restores the trigger", async ({ page, viewport }) => {
-    test.skip(!viewport || !isMobile(viewport.width), "mobile-only overlay behavior");
+  test("the mobile settings drawer traps focus and restores the trigger", async ({ page }) => {
+    // Forces the mobile reference viewport so the overlay contract is measured
+    // under both projects rather than conditionally skipped on desktop.
+    await page.setViewportSize({ width: 390, height: 844 });
     const observers = await setupPageObservers(page);
     await gotoReady(page, routeUrls.home);
 
@@ -195,12 +211,12 @@ test.describe("navigation and settings", () => {
 });
 
 test.describe("complete published A1 routes", () => {
-  test("the Course map exposes the manifest's 64 canonical lesson links in order", async ({ page }) => {
+  test("the Course map exposes the retained manifest's 44 canonical lesson links in order", async ({ page }) => {
     const observers = await setupPageObservers(page);
-    await gotoReady(page, routeUrls.home);
+    await gotoReady(page, A1_COURSE_URL);
 
-    expect(A1_MODULE_IDS).toHaveLength(16);
-    expect(A1_LESSON_IDS).toHaveLength(64);
+    expect(A1_RETAINED_MODULE_IDS).toHaveLength(11);
+    expect(A1_RETAINED_LESSON_IDS).toHaveLength(44);
     const disclosures = page.locator(".module-card__disclosure");
     for (let index = 0; index < await disclosures.count(); index += 1) {
       if ((await disclosures.nth(index).getAttribute("aria-expanded")) === "false") {
@@ -210,7 +226,7 @@ test.describe("complete published A1 routes", () => {
     const links = await page.locator(".module-card__lesson-link").evaluateAll((items) =>
       items.map((item) => item.getAttribute("href") ?? ""),
     );
-    const expected = A1_LESSON_IDS.map((lessonId) => {
+    const expected = A1_RETAINED_LESSON_IDS.map((lessonId) => {
       const entry = A1_LESSON_MANIFEST[lessonId];
       return `#/percorso/${entry.moduleId}/${lessonId}`;
     });
@@ -237,13 +253,13 @@ test.describe("A1 foundation lesson navigation and current practice", () => {
     page,
   }) => {
     const observers = await setupPageObservers(page);
-    await gotoReady(page, routeUrls.lesson(SOUND_BRIDGE.moduleId, SOUND_BRIDGE.lessonId));
+    await gotoReady(page, routeUrls.lesson(KATAKANA_BRIDGE.moduleId, KATAKANA_BRIDGE.lessonId));
 
     const coffee = page
       .locator(".a1-vocabulary__item")
-      .filter({ has: page.locator(".a1-vocabulary__kana", { hasText: "コーヒー" }) });
+      .filter({ has: page.locator(".a1-vocabulary__kana", { hasText: KATAKANA_BRIDGE_WORD }) });
     await expect(coffee).toHaveCount(1);
-    await expect(coffee.locator(".a1-vocabulary__romaji")).toContainText(/koohii/i);
+    await expect(coffee.locator(".a1-vocabulary__romaji")).toContainText(KATAKANA_BRIDGE_ROMAJI);
 
     let settings = await visibleSettings(page);
     await settings.locator(".localetoggle button", { hasText: "EN" }).click();
@@ -255,8 +271,8 @@ test.describe("A1 foundation lesson navigation and current practice", () => {
     settings = await visibleSettings(page);
     await settings.locator(".scripttoggle button", { hasText: "Rōmaji" }).click();
     await closeMobileSettings(page);
-    await expect(coffee.locator(".a1-vocabulary__kana")).toHaveText("コーヒー");
-    await expect(coffee.locator(".a1-vocabulary__romaji")).toContainText(/koohii/i);
+    await expect(coffee.locator(".a1-vocabulary__kana")).toHaveText(KATAKANA_BRIDGE_WORD);
+    await expect(coffee.locator(".a1-vocabulary__romaji")).toContainText(KATAKANA_BRIDGE_ROMAJI);
 
     const rail = page.locator(".lesson-rail__step:visible, .lesson-rail-mobile__step:visible");
     await expect(rail).toHaveCount(6);
@@ -278,71 +294,68 @@ test.describe("A1 foundation lesson navigation and current practice", () => {
     page,
   }) => {
     const observers = await setupPageObservers(page);
-    await gotoReady(page, routeUrls.lesson(SOUND_BRIDGE.moduleId, SOUND_BRIDGE.lessonId));
+    await gotoReady(page, routeUrls.lesson(TILE_LESSON.moduleId, TILE_LESSON.lessonId));
 
-    const rosterItem = page
-      .locator(".a1-vocabulary__item")
-      .filter({ hasText: "レストラン" });
-    await expect(rosterItem, "the target word is visible in the current A1 lesson").toHaveCount(1);
-    const card = await currentTileExerciseCard(page, SOUND_BRIDGE_TILE_TARGET[0]);
+    // The bank order and the canonical answer come from the shipped practice
+    // model, so this test can never drift from what the lesson really renders.
+    const tilePrompt = generatedActivities(TILE_LESSON.lessonId)
+      .map((exercise) => exercise.prompt)
+      .filter((prompt): prompt is Extract<ExercisePrompt, { kind: "tile-ordering" }> =>
+        prompt.kind === "tile-ordering",
+      )
+      .find((prompt) => prompt.tiles.length === 6);
+    expect(tilePrompt, `${TILE_LESSON.lessonId} publishes a six-tile ordering exercise`).toBeTruthy();
+    const bankOrder = tilePrompt!.tiles.map((tile) => tile.jp);
+    const targetOrder = tilePrompt!.correctTileIds.map(
+      (tileId) => tilePrompt!.tiles.find((tile) => tile.id === tileId)!.jp,
+    );
+    expect(new Set(bankOrder).size, "every tile glyph is distinct").toBe(bankOrder.length);
+
+    const card = await currentTileExerciseCard(page, bankOrder[0]!);
     const add = (tile: string) =>
-      card.getByRole("button", {
-        name: TILE_EXERCISE_COPY.addTile(tile),
-        exact: true,
-      });
+      card.getByRole("button", { name: TILE_EXERCISE_COPY.addTile(tile), exact: true });
     const remove = (tile: string) =>
-      card.getByRole("button", {
-        name: TILE_EXERCISE_COPY.removeTile(tile),
-        exact: true,
-      });
+      card.getByRole("button", { name: TILE_EXERCISE_COPY.removeTile(tile), exact: true });
     const moveBack = (tile: string) =>
-      card.getByRole("button", {
-        name: TILE_EXERCISE_COPY.moveTileBack(tile),
-        exact: true,
-      });
+      card.getByRole("button", { name: TILE_EXERCISE_COPY.moveTileBack(tile), exact: true });
     const moveForward = (tile: string) =>
-      card.getByRole("button", {
-        name: TILE_EXERCISE_COPY.moveTileForward(tile),
-        exact: true,
-      });
-    const bank = card.getByRole("list", {
-      name: TILE_EXERCISE_COPY.bankLabel,
-      exact: true,
-    });
-    const answer = card.getByRole("list", {
-      name: TILE_EXERCISE_COPY.answerAreaLabel,
-      exact: true,
-    });
+      card.getByRole("button", { name: TILE_EXERCISE_COPY.moveTileForward(tile), exact: true });
+    const bank = card.getByRole("list", { name: TILE_EXERCISE_COPY.bankLabel, exact: true });
+    const answer = card.getByRole("list", { name: TILE_EXERCISE_COPY.answerAreaLabel, exact: true });
     const feedback = card.locator(".lesson-exercise__feedback");
+    const placedGlyphs = () =>
+      card.locator(".lesson-exercise__placed").evaluateAll((tiles) =>
+        tiles.map((tile) =>
+          tile.querySelector(".lesson-exercise__glyph-primary")?.textContent?.trim(),
+        ),
+      );
 
-    // Start with a genuinely wrong non-final tile. The bank's presentation
-    // order makes ス the first remaining control; the canonical first answer
-    // remains レ, which must not be placed or focused as a side effect.
-    await add("ン").focus();
-    await expectActiveControl(page, add("ン"));
+    // Start with a genuinely wrong tile: the canonical *last* chunk placed
+    // first. Focus follows to the next remaining bank control, and the
+    // canonical first chunk is never placed or focused as a side effect.
+    const lastTile = targetOrder[targetOrder.length - 1]!;
+    const firstTile = targetOrder[0]!;
+    const nextBankTile = bankOrder.find((tile) => tile !== lastTile)!;
+    await add(lastTile).focus();
+    await expectActiveControl(page, add(lastTile));
     await page.keyboard.press("Enter");
-    await expect(answer).toContainText("ン");
-    await expect(answer).not.toContainText("レ");
-    await expectActiveControl(page, add("ス"));
-    await expect(add("レ")).not.toBeFocused();
+    await expect(answer).toContainText(lastTile);
+    await expect(answer).not.toContainText(firstTile);
+    await expectActiveControl(page, add(nextBankTile));
+    await expect(add(firstTile)).not.toBeFocused();
     await expect(feedback).toHaveClass("lesson-exercise__feedback");
     await expect(feedback).toBeEmpty();
 
-    // Clear the wrong partial answer before exercising the existing full
-    // keyboard reorder path.
-    const clear = card.getByRole("button", {
-      name: TILE_EXERCISE_COPY.clear,
-      exact: true,
-    });
+    // Clear the wrong partial answer before exercising the full keyboard path.
+    const clear = card.getByRole("button", { name: TILE_EXERCISE_COPY.clear, exact: true });
     await clear.focus();
     await page.keyboard.press("Enter");
-    await expect(bank.getByRole("button")).toHaveCount(5);
+    await expect(bank.getByRole("button")).toHaveCount(bankOrder.length);
     await expect(answer.locator(".lesson-exercise__placed")).toHaveCount(0);
     await expect(feedback).toHaveClass("lesson-exercise__feedback");
 
-    // The target word is learner-visible in the current production exercise;
-    // this deliberately locates the card by its accessible bank, not card order.
-    for (const tile of ["ス", "レ", "ン", "ト", "ラ"] as const) {
+    // Place every tile in the bank's own (deliberately not canonical) order.
+    for (const tile of bankOrder) {
       const control = add(tile);
       await expect(control).toBeVisible();
       await control.focus();
@@ -350,54 +363,54 @@ test.describe("A1 foundation lesson navigation and current practice", () => {
       await page.keyboard.press("Enter");
     }
     await expect(bank).toBeEmpty();
-    await expectActiveControl(page, remove("ラ"));
+    // Emptying the bank leaves focus on the last-placed tile's remove control.
+    await expectActiveControl(page, remove(bankOrder[bankOrder.length - 1]!));
+    expect(await placedGlyphs()).toEqual(bankOrder);
 
-    // Moving a middle tile to the first boundary leaves focus on its enabled
-    // forward control; returning it to the middle leaves focus on move-back.
-    await moveBack("レ").focus();
-    await page.keyboard.press("Enter");
-    await expect(moveBack("レ")).toBeDisabled();
-    await expectActiveControl(page, moveForward("レ"));
-    await page.keyboard.press("Enter");
-    await expectActiveControl(page, moveBack("レ"));
-
-    // Moving a middle tile to the last boundary similarly follows the tile.
-    await moveForward("ト").focus();
-    await page.keyboard.press("Enter");
-    await expect(moveForward("ト")).toBeDisabled();
-    await expectActiveControl(page, moveBack("ト"));
-    await page.keyboard.press("Enter");
-    await expectActiveControl(page, moveForward("ト"));
-
-    // Removing a focused tile restores focus to its bank control, then keyboard
-    // re-addition can continue the same non-pointer path.
-    await remove("ス").focus();
-    await page.keyboard.press("Enter");
-    await expectActiveControl(page, add("ス"));
-    await page.keyboard.press("Enter");
-    await expectActiveControl(page, remove("ス"));
-
-    for (let index = 0; index < 3; index += 1) {
-      await moveBack("ス").focus();
+    // Reorder into the canonical answer with the keyboard alone, asserting the
+    // focus contract at every step: a move-back leaves focus on the same tile's
+    // forward control (and vice versa), so focus always follows the tile.
+    let current = [...bankOrder];
+    const moveTile = async (tile: string, direction: "back" | "forward") => {
+      const control = direction === "back" ? moveBack(tile) : moveForward(tile);
+      await control.focus();
       await page.keyboard.press("Enter");
-      await expectActiveControl(page, moveForward("ス"));
-    }
-    for (let index = 0; index < 2; index += 1) {
-      await moveForward("ン").focus();
-      await page.keyboard.press("Enter");
-      await expectActiveControl(page, moveBack("ン"));
-    }
+      const index = current.indexOf(tile);
+      const nextIndex = direction === "back" ? index - 1 : index + 1;
+      current.splice(index, 1);
+      current.splice(nextIndex, 0, tile);
+      const settled = direction === "back" ? moveForward(tile) : moveBack(tile);
+      await expectActiveControl(page, settled);
+      expect(await placedGlyphs()).toEqual(current);
+    };
 
-    expect(
-      await card.locator(".lesson-exercise__placed").evaluateAll((tiles) =>
-        tiles.map((tile) => tile.querySelector(".lesson-exercise__glyph-primary")?.textContent?.trim()),
-      ),
-    ).toEqual(SOUND_BRIDGE_TILE_TARGET);
+    for (const tile of targetOrder) {
+      const from = current.indexOf(tile);
+      const to = targetOrder.indexOf(tile);
+      for (let step = from; step > to; step -= 1) await moveTile(tile, "back");
+      for (let step = from; step < to; step += 1) await moveTile(tile, "forward");
+    }
+    expect(await placedGlyphs()).toEqual(targetOrder);
+    // The boundary controls really are disabled at each end.
+    await expect(moveBack(targetOrder[0]!)).toBeDisabled();
+    await expect(moveForward(lastTile)).toBeDisabled();
 
-    const submit = card.getByRole("button", {
-      name: TILE_EXERCISE_COPY.submit,
-      exact: true,
-    });
+    // Removing a focused tile restores focus to its bank control, and keyboard
+    // re-addition continues the same non-pointer path.
+    const middleTile = targetOrder[2]!;
+    await remove(middleTile).focus();
+    await page.keyboard.press("Enter");
+    await expectActiveControl(page, add(middleTile));
+    await page.keyboard.press("Enter");
+    await expectActiveControl(page, remove(middleTile));
+    current = [...targetOrder.filter((tile) => tile !== middleTile), middleTile];
+    expect(await placedGlyphs()).toEqual(current);
+    for (let step = current.indexOf(middleTile); step > 2; step -= 1) {
+      await moveTile(middleTile, "back");
+    }
+    expect(await placedGlyphs()).toEqual(targetOrder);
+
+    const submit = card.getByRole("button", { name: TILE_EXERCISE_COPY.submit, exact: true });
     await submit.focus();
     await page.keyboard.press("Enter");
     await expect(card.locator(".lesson-exercise__feedback")).toHaveClass(
