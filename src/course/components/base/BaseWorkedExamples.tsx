@@ -90,7 +90,7 @@ export function BaseWorkedExamples({
                 <ExampleCard
                   id={`${lessonId}-turn-${index}`}
                   tokens={turn.tokens}
-                  translation={turn.translation ?? ""}
+                  translation={turn.translation}
                   copy={copy}
                 />
               </li>

@@ -50,6 +50,22 @@ describe("BaseAudioButton", () => {
     }
   });
 
+  it("exposes the actual per-status label text to accessibility APIs (never a static overriding aria-label)", () => {
+    for (const status of STATUSES) {
+      const html = renderStatic(status);
+      const statusRegionMatch = html.match(
+        /<span id="[^"]*" class="base-audio-button__status"[^>]*>([^<]*)<\/span>/,
+      );
+      expect(statusRegionMatch).not.toBeNull();
+      // The accessible name of a `role="status"` region with no `aria-label`
+      // is its text content — so the rendered node must carry no
+      // `aria-label` attribute that would otherwise hide the real, distinct
+      // per-status text (a fixed "Audio status" label on every state would
+      // make every state announce identically).
+      expect(html).not.toMatch(/class="base-audio-button__status"[^>]*aria-label=/);
+    }
+  });
+
   it("calls onPlay when the play control is activated", () => {
     const container = document.createElement("div");
     document.body.appendChild(container);

@@ -49,11 +49,12 @@ function cachedLessonViewModel(lessonId: string, locale: Locale): BaseLessonView
   return result;
 }
 
-function cachedPracticeModel(lessonId: string): BasePracticeModelResult {
-  const cached = practiceModelCache.get(lessonId);
+function cachedPracticeModel(lessonId: string, locale: Locale): BasePracticeModelResult {
+  const key = `${lessonId}:${locale}`;
+  const cached = practiceModelCache.get(key);
   if (cached) return cached;
-  const result = buildBasePracticeModel(lessonId);
-  practiceModelCache.set(lessonId, result);
+  const result = buildBasePracticeModel(lessonId, locale);
+  practiceModelCache.set(key, result);
   return result;
 }
 
@@ -72,7 +73,10 @@ export function BaseLessonPage({ lessonId }: BaseLessonPageProps): ReactElement 
     () => cachedLessonViewModel(lessonId, locale),
     [lessonId, locale],
   );
-  const practiceResult = useMemo(() => cachedPracticeModel(lessonId), [lessonId]);
+  const practiceResult = useMemo(
+    () => cachedPracticeModel(lessonId, locale),
+    [lessonId, locale],
+  );
 
   if (!viewResult.ok) {
     return (

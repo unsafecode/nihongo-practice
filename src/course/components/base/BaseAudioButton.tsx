@@ -92,7 +92,6 @@ export function BaseAudioButton({
         className="base-audio-button__status"
         role="status"
         aria-live="polite"
-        aria-label={copy.statusLabel}
       >
         {label[status]}
       </span>

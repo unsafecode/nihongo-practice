@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BASE_LESSON_IDS, BASE_LESSON_MANIFEST } from "../manifest";
+import { baseCanonicalCatalog } from "../catalog/catalog";
 import { buildBaseLessonViewModel } from "./buildBaseLessonViewModel";
 
 const LOCALES = ["en", "it"] as const;
@@ -27,6 +28,24 @@ describe("buildBaseLessonViewModel", () => {
         expect(result.model.explanation.constraints).not.toBe("");
         expect(result.model.explanation.commonError).not.toBe("");
         expect(result.model.referenceSnapshots.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("never silently drops an authored reference snapshot: every referenceSnapshotId a lesson lists resolves in the rendered model", () => {
+    for (const lessonId of BASE_LESSON_IDS) {
+      const content = baseCanonicalCatalog.lessonById.get(lessonId);
+      if (!content || content.contract === "phonetic") continue;
+      const authoredIds = content.referenceSnapshotIds;
+      if (authoredIds.length === 0) continue;
+      for (const locale of LOCALES) {
+        const result = buildBaseLessonViewModel(lessonId, locale);
+        expect(result.ok).toBe(true);
+        if (!result.ok || result.model.contract === "phonetic") continue;
+        const renderedIds = new Set(result.model.referenceSnapshots.map((s) => s.id));
+        for (const authoredId of authoredIds) {
+          expect(renderedIds.has(authoredId)).toBe(true);
+        }
       }
     }
   });
@@ -61,6 +80,27 @@ describe("buildBaseLessonViewModel", () => {
         }
       }
     }
+  });
+
+  it("resolves a real, non-empty translation for every dialogue turn (never a dangling label)", () => {
+    let dialogueLessonCount = 0;
+    for (const lessonId of BASE_LESSON_IDS) {
+      const manifest = BASE_LESSON_MANIFEST[lessonId];
+      if (manifest.contract === "phonetic") continue;
+      for (const locale of LOCALES) {
+        const result = buildBaseLessonViewModel(lessonId, locale);
+        expect(result.ok).toBe(true);
+        if (!result.ok || !result.model.dialogue) continue;
+        if (locale === "en") dialogueLessonCount += 1;
+        for (const turn of result.model.dialogue) {
+          expect(typeof turn.translation).toBe("string");
+          expect((turn.translation ?? "").length).toBeGreaterThan(0);
+        }
+      }
+    }
+    // At least one lesson in the sample (topic-questions-4, polite-verbs-4)
+    // actually has a dialogue, or this assertion would vacuously pass.
+    expect(dialogueLessonCount).toBeGreaterThan(0);
   });
 
   it("resolves phonetic vocabulary (anchor words) and contrast items with audio ids", () => {

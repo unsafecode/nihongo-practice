@@ -1,6 +1,8 @@
 /** @vitest-environment jsdom */
+import { act } from "react";
 import { describe, expect, it } from "vitest";
 import { BASE_LESSON_IDS, BASE_LESSON_MANIFEST } from "../manifest";
+import { getCourseCopy } from "../../i18n/catalog";
 import { buildBasePracticeModel } from "./buildBasePracticeModel";
 import { canonicalAnswersForActivity, renderBaseActivity } from "./testHarness";
 
@@ -34,7 +36,18 @@ const SAMPLE_LESSONS = [
 describe("Base practice pre-attempt leakage safety", () => {
   it("never discloses the canonical answer in text or any DOM attribute for a sample of lessons (every activity)", () => {
     for (const lessonId of SAMPLE_LESSONS) {
-      const result = buildBasePracticeModel(lessonId);
+      const result = buildBasePracticeModel(lessonId, "en");
+      expect(result.ok).toBe(true);
+      if (!result.ok) continue;
+      for (let index = 0; index < result.model.activities.length; index += 1) {
+        expectNoLeak(lessonId, index);
+      }
+    }
+  });
+
+  it("never discloses the canonical answer in text or any DOM attribute for every activity of every one of the 40 Base lessons", () => {
+    for (const lessonId of BASE_LESSON_IDS) {
+      const result = buildBasePracticeModel(lessonId, "en");
       expect(result.ok).toBe(true);
       if (!result.ok) continue;
       for (let index = 0; index < result.model.activities.length; index += 1) {
@@ -51,7 +64,7 @@ describe("Base practice pre-attempt leakage safety", () => {
 
   it("never discloses the canonical answer for the listening or spoken activity of every Base lesson", () => {
     for (const lessonId of BASE_LESSON_IDS) {
-      const result = buildBasePracticeModel(lessonId);
+      const result = buildBasePracticeModel(lessonId, "en");
       expect(result.ok).toBe(true);
       if (!result.ok) continue;
       const listeningIndex = result.model.activities.findIndex(
@@ -67,8 +80,34 @@ describe("Base practice pre-attempt leakage safety", () => {
     }
   });
 
+  it("never renders a tile-ordering activity's initial bank in the canonical (correct) order, for every lesson", () => {
+    let tileOrderingCount = 0;
+    for (const lessonId of BASE_LESSON_IDS) {
+      const result = buildBasePracticeModel(lessonId, "en");
+      expect(result.ok).toBe(true);
+      if (!result.ok) continue;
+      for (let index = 0; index < result.model.activities.length; index += 1) {
+        const activity = result.model.activities[index];
+        if (activity.interactionKind !== "tile-ordering") continue;
+        tileOrderingCount += 1;
+        if (activity.tiles.length < 2) continue;
+        const { container, unmount } = renderBaseActivity(lessonId, index);
+        const renderedBankIds = [
+          ...container.querySelectorAll(".base-practice-activity__bank [data-tile-id]"),
+        ].map((node) => node.getAttribute("data-tile-id"));
+        expect(renderedBankIds).toHaveLength(activity.correctTileIds.length);
+        const matchesCanonical = renderedBankIds.every(
+          (id, position) => id === activity.correctTileIds[position],
+        );
+        expect(matchesCanonical).toBe(false);
+        unmount();
+      }
+    }
+    expect(tileOrderingCount).toBeGreaterThan(0);
+  });
+
   it("keeps option ids opaque (never the raw catalog target id) in DOM metadata", () => {
-    const result = buildBasePracticeModel("argument-particles-1");
+    const result = buildBasePracticeModel("argument-particles-1", "en");
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const choiceActivity = result.model.activities.find(
@@ -86,7 +125,7 @@ describe("Base practice pre-attempt leakage safety", () => {
   });
 
   it("does not mark which option is correct via any attribute before submit", () => {
-    const result = buildBasePracticeModel("sentence-foundations-1");
+    const result = buildBasePracticeModel("sentence-foundations-1", "en");
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const choiceActivity = result.model.activities.find(
@@ -108,5 +147,57 @@ describe("Base practice pre-attempt leakage safety", () => {
       SAMPLE_LESSONS.map((lessonId) => BASE_LESSON_MANIFEST[lessonId].contract),
     );
     expect(contracts.size).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe("Base practice authored instruction/feedback rendering", () => {
+  it("exposes every activity's authored instruction as an accessible group/fieldset label (a <legend> or role=group aria-label matching activity.instruction)", () => {
+    const lessonId = "sentence-foundations-1";
+    const result = buildBasePracticeModel(lessonId, "en");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    for (let index = 0; index < result.model.activities.length; index += 1) {
+      const activity = result.model.activities[index];
+      const { container, unmount } = renderBaseActivity(lessonId, index);
+      const legend = container.querySelector("legend");
+      const group = container.querySelector('[role="group"]');
+      const accessibleLabel = legend?.textContent ?? group?.getAttribute("aria-label") ?? null;
+      expect(accessibleLabel).toBe(activity.instruction);
+      unmount();
+    }
+  });
+
+  it("renders authored acceptedFeedback/retryFeedback only after submit, for a choice activity", () => {
+    const lessonId = "sentence-foundations-1";
+    const result = buildBasePracticeModel(lessonId, "en");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const choiceActivity = result.model.activities.find(
+      (activity) => activity.interactionKind === "choice",
+    );
+    expect(choiceActivity).toBeDefined();
+    if (!choiceActivity || choiceActivity.interactionKind !== "choice") return;
+    const index = result.model.activities.indexOf(choiceActivity);
+    const { container, unmount } = renderBaseActivity(lessonId, index);
+
+    // Before submit: neither feedback string appears.
+    expect(container.textContent).not.toContain(choiceActivity.acceptedFeedback);
+    expect(container.textContent).not.toContain(choiceActivity.retryFeedback);
+
+    const correctInput = container.querySelector<HTMLInputElement>(
+      `input[value="${choiceActivity.correctOptionId}"]`,
+    );
+    expect(correctInput).toBeDefined();
+    act(() => {
+      correctInput?.click();
+    });
+    const submitButton = [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === getCourseCopy("en").baseLesson.practice.submit,
+    );
+    act(() => submitButton?.click());
+
+    // After a correct submit: the authored accepted feedback appears.
+    expect(container.textContent).toContain(choiceActivity.acceptedFeedback);
+    unmount();
   });
 });

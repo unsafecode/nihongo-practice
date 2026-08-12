@@ -970,7 +970,7 @@ export const BASE_NATURALNESS_CURRENT_CORPUS_FINGERPRINT =
   corpusFingerprint(REVIEW_SOURCES);
 
 const INVENTORIED_CORPUS_FINGERPRINT =
-  "1063d25205837c4df49d04596f257ee7ca385bda058d7d1832200a6fc07aaec2";
+  "c5d03e11acd4469491feac1c50a04d4f91eb4f58a4813bd4ab047c7f666bea3d";
 
 const acceptanceByContentId = new Map(
   EXTERNAL_ACCEPTANCES.map((acceptance) => [acceptance.contentId, acceptance]),

@@ -2113,6 +2113,7 @@ const COPULA_ADJECTIVES_COPY_EN: Readonly<Record<string, string>> = {
   "adjective-kirei-meaning": "pretty; clean",
   "adjective-yuumei-meaning": "famous",
   "adjective-genki-meaning": "well; energetic",
+  "reference-adjective-grid-title": "Adjective conjugation grid",
 };
 
 const EXISTENCE_LOCATION_COPY_EN: Readonly<Record<string, string>> = {
@@ -2844,6 +2845,7 @@ const EXISTENCE_LOCATION_COPY_EN: Readonly<Record<string, string>> = {
   "noun-kaban-meaning": "bag",
   "noun-keisatsukan-meaning": "police officer",
   "noun-ekiin-meaning": "station employee",
+  "reference-te-forms-title": "Te-form reference",
 };
 
 const SYNTHESIS_ACCEPTED_EN = [

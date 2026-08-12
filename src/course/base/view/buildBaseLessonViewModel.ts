@@ -12,6 +12,7 @@ import type {
 import { BASE_MODULE_MANIFEST, baseLessonManifestEntry } from "../manifest";
 import { baseNavigationCopyEn } from "../copy/en";
 import { baseNavigationCopyIt } from "../copy/it";
+import { resolveBaseCopyText } from "../copy/resolveBaseCopy";
 import { BASE_SOUND_MODULE, type BaseSoundLesson } from "../content/module01Sounds";
 import { BASE_SYNTHESIS_VALIDATION_CATALOGS } from "../content/module10Synthesis";
 
@@ -61,7 +62,7 @@ export interface BaseWorkedExampleView {
 export interface BaseDialogueTurnView {
   readonly speakerId: string;
   readonly tokens: readonly AssembledToken[];
-  readonly translation: string | null;
+  readonly translation: string;
 }
 
 export interface BaseReferenceSnapshotView {
@@ -145,15 +146,7 @@ function failure(
   return { ok: false, error: { code, lessonId, referenceId } };
 }
 
-function localizedCopyContent(locale: Locale): Readonly<Record<string, string>> {
-  return locale === "it" ? baseNavigationCopyIt.content : baseNavigationCopyEn.content;
-}
-
-/** Resolves a copy id to a non-empty localized string, or null when missing/blank. */
-function copyText(locale: Locale, copyId: string): string | null {
-  const value = localizedCopyContent(locale)[copyId];
-  return typeof value === "string" && value.trim().length > 0 ? value : null;
-}
+const copyText = resolveBaseCopyText;
 
 function translationCopyId(translation: BaseTranslationCopy, locale: Locale): string {
   return "copyId" in translation
@@ -276,19 +269,27 @@ function resolveDialogue(
   const dialogue: BaseDialogue | undefined =
     BASE_SYNTHESIS_VALIDATION_CATALOGS.dialogues.get(dialogueId);
   if (!dialogue) return failure("unresolved-reference", lessonId, dialogueId);
-  // Some modules attach a parallel `turnCopy` (translation/purpose copy ids)
-  // alongside `turns`; it is optional runtime metadata this reader tolerates
-  // rather than requires, so a dialogue always renders even if a future
-  // module shape omits it.
-  const turnCopy = (dialogue as { readonly turnCopy?: readonly { readonly translationCopyId?: string }[] })
-    .turnCopy;
-  const turns: BaseDialogueTurnView[] = dialogue.turns.map((turn, index) => {
-    const translationCopyIdForTurn = turnCopy?.[index]?.translationCopyId;
-    const translation = translationCopyIdForTurn
-      ? copyText(locale, translationCopyIdForTurn)
-      : null;
-    return { speakerId: turn.speakerId, tokens: turn.tokens, translation };
-  });
+  // The canonical `BaseDialogue` (the shape every module's dialogue is
+  // published into `BASE_SYNTHESIS_VALIDATION_CATALOGS.dialogues` as) never
+  // carries a `turnCopy` field — only each module's own richer authoring
+  // wrapper does, and that wrapper is not reachable from here. Every
+  // authoring module derives its per-turn translation copy id with the same
+  // stable, deterministic naming rule
+  // (`${dialogueId}-turn-${index+1}-translation`; see
+  // `module03TopicQuestions.ts`'s/`module04PoliteVerbs.ts`'s
+  // `authoredDialogue`/`dialogueFor`), so this reader recomputes the same id
+  // directly from the canonical dialogue's own `id` and each turn's index
+  // rather than depending on metadata that was never actually present. A
+  // turn whose derived id still fails to resolve fails the whole lesson
+  // closed (`missing-copy`) rather than rendering a translation label with
+  // no text after it.
+  const turns: BaseDialogueTurnView[] = [];
+  for (const [index, turn] of dialogue.turns.entries()) {
+    const translationCopyId = `${dialogueId}-turn-${index + 1}-translation`;
+    const translation = copyText(locale, translationCopyId);
+    if (!translation) return failure("missing-copy", lessonId, translationCopyId);
+    turns.push({ speakerId: turn.speakerId, tokens: turn.tokens, translation });
+  }
   return { ok: true, view: turns };
 }
 
@@ -369,15 +370,14 @@ function buildSemanticModel(
     const snapshot = BASE_REFERENCE_SNAPSHOT_BY_ID.get(referenceId);
     if (!snapshot) return failure("unresolved-reference", lessonId, referenceId);
     // A snapshot's own catalog record must always exist (checked above); its
-    // localized title copy is occasionally not yet authored for every
-    // reference-entry concept (a pre-existing content gap outside this
-    // builder's scope to fill in without fabricating naturalness review —
-    // adding new copy would stale the externally reviewed corpus fingerprint
-    // in `naturalnessLedger.ts`). Such a snapshot is skipped from the
-    // rendered progressive list rather than failing the whole lesson; at
-    // least one snapshot per lesson always has a resolvable title today.
+    // localized title copy must resolve too — every authored
+    // `referenceSnapshotIds` entry is a promised, reviewed reference the
+    // lesson page renders, so a missing title fails the whole lesson closed
+    // (`missing-copy`) rather than silently dropping the snapshot from the
+    // progressive list.
     const title2 = copyText(locale, snapshot.titleCopyId);
-    if (title2) referenceSnapshots.push({ id: snapshot.id, title: title2 });
+    if (!title2) return failure("missing-copy", lessonId, snapshot.titleCopyId);
+    referenceSnapshots.push({ id: snapshot.id, title: title2 });
   }
   if (referenceSnapshots.length === 0) {
     return failure("unresolved-reference", lessonId, lessonId);

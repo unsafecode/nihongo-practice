@@ -102,7 +102,7 @@ describe("BaseLessonPage", () => {
     expect(html).toContain(escapeHtmlText(model.recap));
 
     // Staged practice: non-spoken + exactly one listening + one spoken.
-    const practiceResult = buildBasePracticeModel(lessonId);
+    const practiceResult = buildBasePracticeModel(lessonId, "en");
     expect(practiceResult.ok).toBe(true);
     if (!practiceResult.ok) return;
     for (const activity of practiceResult.model.activities) {
@@ -139,5 +139,26 @@ describe("BaseLessonPage", () => {
     const headingMatches = [...html.matchAll(/<h2[^>]*id="([^"]+)-heading"/g)];
     const ids = headingMatches.map((match) => match[1]);
     expect(new Set(ids).size).toBe(SIX_SECTIONS.length);
+  });
+
+  it("never skips a heading level (h2 is always followed by h3 before any h4, both for a semantic and a phonetic lesson)", () => {
+    for (const lessonId of ["sentence-foundations-1", "sounds-1"]) {
+      const html = render(lessonId);
+      const levels = [...html.matchAll(/<h([1-6])[ >]/g)].map((match) => Number(match[1]));
+      expect(levels.length).toBeGreaterThan(0);
+      // A proper (stack-based) outline check: each new heading's level must
+      // be at most one deeper than its nearest still-open ancestor, so an
+      // earlier, unrelated h3 elsewhere on the page can never "unlock" a
+      // later h2 section jumping straight to h4.
+      const openLevels: number[] = [];
+      for (const level of levels) {
+        while (openLevels.length > 0 && openLevels[openLevels.length - 1] >= level) {
+          openLevels.pop();
+        }
+        const parentLevel = openLevels.length > 0 ? openLevels[openLevels.length - 1] : 0;
+        expect(level).toBeLessThanOrEqual(parentLevel + 1);
+        openLevels.push(level);
+      }
+    }
   });
 });

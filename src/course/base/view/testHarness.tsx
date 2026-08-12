@@ -1,9 +1,10 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { LocaleProvider } from "../../../i18n/LocaleContext";
+import { LocaleProvider, type Locale } from "../../../i18n/LocaleContext";
 import { ScriptProvider } from "../../../settings/ScriptContext";
 import { ProgressProvider } from "../../progress/ProgressContext";
 import { SpeechRecognitionProvider } from "../../speech/SpeechRecognitionContext";
+import type { SpeechRecognizer } from "../../speech/SpeechRecognizer";
 import { getCourseCopy } from "../../i18n/catalog";
 import type { BaseActivityCategory } from "../catalog/activityContracts";
 import { BasePracticeActivityCard } from "../../components/base/BasePracticeSequence";
@@ -33,10 +34,18 @@ export interface RenderedBaseActivity {
  * mounts under (`LocaleProvider`/`ScriptProvider`/`ProgressProvider`/
  * `SpeechRecognitionProvider`). Throws if the lesson/index does not resolve
  * — a fixture assumption failure, not a result a leakage test should treat
- * as "nothing to check".
+ * as "nothing to check". An optional `recognizer` lets a spoken-activity
+ * test force a specific speech-recognition state (e.g. `supported: true`,
+ * to reach the microphone-consent flow) instead of the real browser
+ * adapter, which is always unsupported under jsdom.
  */
-export function renderBaseActivity(lessonId: string, index: number): RenderedBaseActivity {
-  const result = buildBasePracticeModel(lessonId);
+export function renderBaseActivity(
+  lessonId: string,
+  index: number,
+  locale: Locale = "en",
+  recognizer?: SpeechRecognizer,
+): RenderedBaseActivity {
+  const result = buildBasePracticeModel(lessonId, locale);
   if (!result.ok) {
     throw new Error(`renderBaseActivity: practice model unavailable for "${lessonId}"`);
   }
@@ -61,13 +70,15 @@ export function renderBaseActivity(lessonId: string, index: number): RenderedBas
             null,
             createElement(
               SpeechRecognitionProvider,
-              null,
-              createElement(BasePracticeActivityCard, {
-                activity,
-                idBase: `${lessonId}-${activity.id}`,
-                copy: getCourseCopy("en"),
-                onAttempt: () => {},
-              }),
+              {
+                recognizer,
+                children: createElement(BasePracticeActivityCard, {
+                  activity,
+                  idBase: `${lessonId}-${activity.id}`,
+                  copy: getCourseCopy(locale),
+                  onAttempt: () => {},
+                }),
+              },
             ),
           ),
         ),
@@ -103,8 +114,9 @@ export function renderBaseActivity(lessonId: string, index: number): RenderedBas
 export function canonicalAnswersForActivity(
   lessonId: string,
   index: number,
+  locale: Locale = "en",
 ): readonly string[] {
-  const result = buildBasePracticeModel(lessonId);
+  const result = buildBasePracticeModel(lessonId, locale);
   if (!result.ok) return [];
   const activity = result.model.activities[index];
   if (!activity) return [];

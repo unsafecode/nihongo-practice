@@ -29,7 +29,7 @@ export function BaseRecap({
       </p>
       <p className="base-recap__body">{recap}</p>
       <section aria-label={recapCopy.vocabularyHeading}>
-        <h4>{recapCopy.vocabularyHeading}</h4>
+        <h3>{recapCopy.vocabularyHeading}</h3>
         <ul className="base-recap__vocabulary">
           {vocabulary.map((item) => (
             <li key={item.id} data-vocabulary-id={item.id}>

@@ -43,7 +43,8 @@ export function BaseListeningActivity({
   }
 
   return (
-    <div className="base-listening-activity" data-activity-id={activity.id}>
+    <fieldset className="base-listening-activity" data-activity-id={activity.id}>
+      <legend>{activity.instruction}</legend>
       <p className="base-listening-activity__instruction">
         {copy.listening.instruction}
       </p>
@@ -53,8 +54,7 @@ export function BaseListeningActivity({
         onPlay={playback.play}
         onRetry={playback.play}
       />
-      <fieldset className="base-listening-activity__options">
-        <legend>{copy.practice.optionsLabel}</legend>
+      <div className="base-listening-activity__options">
         {activity.options.map((option) => (
           <label key={option.id} className="base-listening-activity__option">
             <input
@@ -74,15 +74,15 @@ export function BaseListeningActivity({
             </span>
           </label>
         ))}
-      </fieldset>
+      </div>
       <button type="button" className="action action--primary" onClick={submit}>
         {copy.practice.submit}
       </button>
       {status !== "idle" ? (
         <p className="base-listening-activity__status" role="status" aria-live="polite">
-          {status === "accepted" ? copy.practice.accepted : copy.practice.retry}
+          {status === "accepted" ? activity.acceptedFeedback : activity.retryFeedback}
         </p>
       ) : null}
-    </div>
+    </fieldset>
   );
 }

@@ -4,6 +4,7 @@ import { RomajiSequence } from "../../../romaji/RomajiSequence";
 import type {
   BaseChoicePracticeActivity,
   BasePracticeActivity,
+  BasePracticeTileView,
   BaseRevealPracticeActivity,
   BaseSpokenPracticeActivity,
   BaseTileOrderingPracticeActivity,
@@ -31,15 +32,17 @@ export interface BasePracticeSequenceProps {
 
 function StatusLine({
   status,
-  copy,
+  acceptedText,
+  retryText,
 }: {
   readonly status: "idle" | BaseAttemptOutcome;
-  readonly copy: CourseCopy["baseLesson"];
+  readonly acceptedText: string;
+  readonly retryText: string;
 }): ReactElement | null {
   if (status === "idle") return null;
   return (
     <p className="base-practice-activity__status" role="status" aria-live="polite">
-      {status === "accepted" ? copy.practice.accepted : copy.practice.retry}
+      {status === "accepted" ? acceptedText : retryText}
     </p>
   );
 }
@@ -73,7 +76,7 @@ function ChoiceCard({
       data-category={activity.category}
     >
       <fieldset className="base-practice-activity__options">
-        <legend>{copy.practice.optionsLabel}</legend>
+        <legend>{activity.instruction}</legend>
         {activity.options.map((option) => (
           <label key={option.id} className="base-practice-activity__option">
             <input
@@ -97,7 +100,11 @@ function ChoiceCard({
       <button type="button" className="action action--primary" onClick={submit}>
         {copy.practice.submit}
       </button>
-      <StatusLine status={status} copy={copy} />
+      <StatusLine
+        status={status}
+        acceptedText={activity.acceptedFeedback}
+        retryText={activity.retryFeedback}
+      />
     </div>
   );
 }
@@ -113,15 +120,16 @@ function TileOrderingCard({
   readonly copy: CourseCopy["baseLesson"];
   readonly onAttempt: (outcome: BaseAttemptOutcome) => void;
 }): ReactElement {
-  // The bank order is sorted by each tile's own opaque id — deterministic,
-  // but uncorrelated with the canonical (answer) order, so the bank is never
+  // `bankTileIds` (from `buildBasePracticeModel`) is a deterministic order
+  // that is *provably* different from `correctTileIds` — never merely
+  // "usually" different by coincidence — so the bank is never rendered
   // pre-shuffled into the right answer.
-  const bank = [...activity.tiles].sort((left, right) =>
-    left.id < right.id ? -1 : left.id > right.id ? 1 : 0,
-  );
+  const tileById = new Map(activity.tiles.map((tile) => [tile.id, tile]));
+  const bank = activity.bankTileIds
+    .map((id) => tileById.get(id))
+    .filter((tile): tile is BasePracticeTileView => tile !== undefined);
   const [placedIds, setPlacedIds] = useState<readonly string[]>([]);
   const [status, setStatus] = useState<"idle" | BaseAttemptOutcome>("idle");
-  const tileById = new Map(activity.tiles.map((tile) => [tile.id, tile]));
   const placedSet = new Set(placedIds);
 
   function submit(): void {
@@ -138,6 +146,8 @@ function TileOrderingCard({
       className="base-practice-activity base-practice-activity--tile-ordering"
       data-activity-id={activity.id}
       data-category={activity.category}
+      role="group"
+      aria-label={activity.instruction}
     >
       <div
         className="base-practice-activity__bank"
@@ -186,7 +196,11 @@ function TileOrderingCard({
       <button type="button" className="action action--primary" onClick={submit}>
         {copy.practice.submit}
       </button>
-      <StatusLine status={status} copy={copy} />
+      <StatusLine
+        status={status}
+        acceptedText={activity.acceptedFeedback}
+        retryText={activity.retryFeedback}
+      />
     </div>
   );
 }
@@ -208,6 +222,8 @@ function RevealCard({
       className="base-practice-activity base-practice-activity--reveal"
       data-activity-id={activity.id}
       data-category={activity.category}
+      role="group"
+      aria-label={activity.instruction}
     >
       {activity.promptTokens ? (
         <p className="base-practice-activity__prompt" lang="ja">
@@ -256,7 +272,11 @@ function RevealCard({
           </button>
         </>
       )}
-      <StatusLine status={status} copy={copy} />
+      <StatusLine
+        status={status}
+        acceptedText={activity.acceptedFeedback}
+        retryText={activity.retryFeedback}
+      />
     </div>
   );
 }
@@ -270,6 +290,11 @@ function RevealCard({
  * When recognition is unsupported or the mic is denied, a listen-and-
  * self-check fallback is the only way to complete this step, and it never
  * auto-accepts: `onAttempt` fires only from an explicit self-check click.
+ * The microphone-consent step reuses the same authored consent copy
+ * (`copy.spokenAttempt.consentTitle`/`consentBody`/`consentAcknowledge`/
+ * `consentDismiss`/`micStart`) the standalone spoken-attempt feature already
+ * shows — never a generic self-check control standing in for a privacy
+ * disclosure.
  */
 function SpokenCard({
   activity,
@@ -279,7 +304,7 @@ function SpokenCard({
 }: {
   readonly activity: BaseSpokenPracticeActivity;
   readonly idBase: string;
-  readonly copy: CourseCopy["baseLesson"];
+  readonly copy: CourseCopy;
   readonly onAttempt: (outcome: BaseAttemptOutcome) => void;
 }): ReactElement {
   const speech = useSpeech();
@@ -323,13 +348,20 @@ function SpokenCard({
       : speech.speakingKey === modelKey
         ? ("playing" as const)
         : ("idle" as const);
+  const baseLessonCopy = copy.baseLesson;
+  const spokenCopy = copy.spokenAttempt;
 
   return (
-    <div className="base-spoken-activity" data-activity-id={activity.id}>
+    <div
+      className="base-spoken-activity"
+      data-activity-id={activity.id}
+      role="group"
+      aria-label={activity.instruction}
+    >
       <p className="base-spoken-activity__target" lang="ja">
         <RomajiSequence
           tokens={activity.tokens}
-          errorText={copy.recap.canDoLabel}
+          errorText={baseLessonCopy.recap.canDoLabel}
           renderToken={(token) => (
             <JapaneseSegmentText jp={token.jp} reading={token.reading} />
           )}
@@ -343,7 +375,7 @@ function SpokenCard({
       />
       {unsupported || denied ? (
         <div className="base-spoken-activity__self-check">
-          <p>{copy.practice.selfCheckPrompt}</p>
+          <p>{baseLessonCopy.practice.selfCheckPrompt}</p>
           <button
             type="button"
             className="action action--primary"
@@ -352,7 +384,7 @@ function SpokenCard({
               onAttempt("accepted");
             }}
           >
-            {copy.practice.selfCheckCorrect}
+            {baseLessonCopy.practice.selfCheckCorrect}
           </button>
           <button
             type="button"
@@ -362,22 +394,38 @@ function SpokenCard({
               onAttempt("retry");
             }}
           >
-            {copy.practice.selfCheckRetry}
+            {baseLessonCopy.practice.selfCheckRetry}
           </button>
         </div>
       ) : !recognition.consentAcknowledged ? (
         state.status === "requesting-consent" ? (
-          <div className="base-spoken-activity__consent">
-            <button type="button" onClick={handlers.onAcknowledgeConsent}>
-              {copy.practice.selfCheckCorrect}
+          <div
+            className="base-spoken-activity__consent"
+            role="group"
+            aria-labelledby={`${idBase}-consent-title`}
+          >
+            <h4 id={`${idBase}-consent-title`} className="base-spoken-activity__consent-title">
+              {spokenCopy.consentTitle}
+            </h4>
+            <p className="base-spoken-activity__consent-body">{spokenCopy.consentBody}</p>
+            <button
+              type="button"
+              className="action action--primary"
+              onClick={handlers.onAcknowledgeConsent}
+            >
+              {spokenCopy.consentAcknowledge}
             </button>
-            <button type="button" onClick={handlers.onDismissConsent}>
-              {copy.practice.selfCheckRetry}
+            <button
+              type="button"
+              className="action action--inline"
+              onClick={handlers.onDismissConsent}
+            >
+              {spokenCopy.consentDismiss}
             </button>
           </div>
         ) : (
           <button type="button" onClick={handlers.onRequestConsent}>
-            {copy.practice.submit}
+            {spokenCopy.tryButton}
           </button>
         )
       ) : (
@@ -386,15 +434,19 @@ function SpokenCard({
           className="action action--primary"
           onClick={state.status === "listening" ? handlers.onAbort : handlers.onStart}
         >
-          {copy.practice.submit}
+          {state.status === "listening" ? spokenCopy.micStop : spokenCopy.micStart}
         </button>
       )}
-      <StatusLine status={selfCheckStatus} copy={copy} />
+      <StatusLine
+        status={selfCheckStatus}
+        acceptedText={activity.acceptedFeedback}
+        retryText={activity.retryFeedback}
+      />
       {isResult ? (
         <p role="status" aria-live="polite">
           {state.status === "matched" || state.status === "close"
-            ? copy.practice.accepted
-            : copy.practice.retry}
+            ? activity.acceptedFeedback
+            : activity.retryFeedback}
         </p>
       ) : null}
     </div>
@@ -457,7 +509,7 @@ export function BasePracticeActivityCard({
         <SpokenCard
           activity={activity}
           idBase={idBase}
-          copy={baseLessonCopy}
+          copy={copy}
           onAttempt={handleAttempt}
         />
       );
@@ -489,7 +541,7 @@ export function BasePracticeSequence({
       <p className="base-practice-sequence__intro">{practiceCopy.intro}</p>
 
       <section aria-label={practiceCopy.stageNonSpokenHeading}>
-        <h4>{practiceCopy.stageNonSpokenHeading}</h4>
+        <h3>{practiceCopy.stageNonSpokenHeading}</h3>
         <ol>
           {nonSpoken.map((activity) => (
             <li key={activity.id}>
@@ -505,7 +557,7 @@ export function BasePracticeSequence({
       </section>
 
       <section aria-label={practiceCopy.stageListeningHeading}>
-        <h4>{practiceCopy.stageListeningHeading}</h4>
+        <h3>{practiceCopy.stageListeningHeading}</h3>
         <ol>
           {listening.map((activity) => (
             <li key={activity.id}>
@@ -521,7 +573,7 @@ export function BasePracticeSequence({
       </section>
 
       <section aria-label={practiceCopy.stageSpokenHeading}>
-        <h4>{practiceCopy.stageSpokenHeading}</h4>
+        <h3>{practiceCopy.stageSpokenHeading}</h3>
         <ol>
           {spoken.map((activity) => (
             <li key={activity.id}>
