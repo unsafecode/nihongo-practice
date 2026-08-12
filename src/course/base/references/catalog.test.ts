@@ -69,8 +69,9 @@ describe("Base reference catalog", () => {
     const dictionary = realizeVerbDictionary("verb-kaku");
     const stem = realizePoliteStem("verb-kaku");
     const te = realizeTeConstruction("verb-kaku", "te");
-    expect(dictionary.ok && stem.ok && te.ok).toBe(true);
-    if (!dictionary.ok || !stem.ok || !te.ok) return;
+    const request = realizeTeConstruction("verb-taberu", "request");
+    expect(dictionary.ok && stem.ok && te.ok && request.ok).toBe(true);
+    if (!dictionary.ok || !stem.ok || !te.ok || !request.ok) return;
     const cellsFor = (semanticId: string) =>
       referenceById["verb-classes-conjugation"].entries.find(
         (entry) => entry.semanticId === semanticId,
@@ -78,6 +79,12 @@ describe("Base reference catalog", () => {
     expect(cellsFor("base-verb-dictionary-form")[0]?.tokens).toEqual(dictionary.value);
     expect(cellsFor("base-verb-polite-stems")[0]?.tokens).toEqual(stem.value);
     expect(cellsFor("base-verb-te-forms")[0]?.tokens).toEqual(te.value);
+    expect(cellsFor("base-verb-te-kudasai")[0]?.tokens).toEqual(request.value);
+    expect(
+      referenceById["verb-classes-conjugation"].entries.find(
+        ({ semanticId }) => semanticId === "base-verb-te-kudasai",
+      )?.prerequisiteEntryIds,
+    ).toEqual(["base-verb-te-forms"]);
     expect(cellsFor("base-verb-dictionary-form")[0]?.sourceContentIds).toContain(
       "dictionary-lemma",
     );
@@ -843,6 +850,7 @@ describe("Base reference catalog", () => {
         "base-verb-polite-stem-kuru",
         "base-verb-polite-forms",
         "base-verb-te-forms",
+        "base-verb-te-kudasai",
         "base-verb-te-imasu",
       ]),
     );

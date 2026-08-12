@@ -99,7 +99,10 @@ export type BasePredicateSenseId =
   | "iru-topic-location"
   | "theme-object-action"
   | "read-current-question"
-  | "sit-current-question";
+  | "sit-current-question"
+  | "sit-current-state"
+  | "wait-current-place"
+  | "current-action-topic";
 
 export interface BaseParticleSenseDefinition {
   readonly id: BaseParticleSense;
@@ -328,6 +331,13 @@ const AUTHORED_ARGUMENT_PARTICLES_BY_PREDICATE: Readonly<
   },
   "read-current-question": {},
   "sit-current-question": {},
+  "sit-current-state": {
+    goal: ["ni"],
+  },
+  "wait-current-place": {
+    "action-place": ["de"],
+  },
+  "current-action-topic": {},
 });
 
 const AUTHORED_DISCOURSE_PARTICLE_SENSES_BY_ROLE: Readonly<
@@ -671,6 +681,7 @@ const BASE_PREDICATE_PARTICLE_FRAMES: readonly Omit<
       "verb-yobu",
       "verb-arau",
       "verb-kiru",
+      "verb-shiru",
     ],
     requiredRoles: ["theme"],
     particleSensesByRole: { theme: ["object-o", "topic-wa"] },
@@ -689,6 +700,33 @@ const BASE_PREDICATE_PARTICLE_FRAMES: readonly Omit<
     requiredRoles: [],
     particleSensesByRole: {},
     particleOwnerLessonId: "topic-questions-4",
+  },
+  {
+    id: "sit-current-state",
+    allowedPredicateLexemeIds: ["verb-suwaru"],
+    requiredRoles: ["goal"],
+    particleSensesByRole: { goal: ["goal-ni"] },
+    particleOwnerLessonId: "argument-particles-2",
+  },
+  {
+    id: "wait-current-place",
+    allowedPredicateLexemeIds: ["verb-matsu"],
+    requiredRoles: ["action-place"],
+    particleSensesByRole: { "action-place": ["action-place-de"] },
+    particleOwnerLessonId: "argument-particles-3",
+  },
+  {
+    id: "current-action-topic",
+    allowedPredicateLexemeIds: [
+      "verb-denwa-suru",
+      "verb-oyogu",
+      "verb-benkyou-suru",
+      "verb-hataraku",
+      "verb-hanasu",
+    ],
+    requiredRoles: [],
+    particleSensesByRole: {},
+    particleOwnerLessonId: "topic-questions-1",
   },
 ]);
 

@@ -45,7 +45,7 @@ import {
   BASE_COPULA_ADJECTIVES_MODULE,
   BASE_COPULA_ADJECTIVES_VALIDATION_CATALOGS,
 } from "./module07CopulaAdjectives";
-import { strictTask11ModuleTargets } from "../validation/moduleSnapshots";
+import { strictTask11ModuleSnapshot } from "../validation/moduleSnapshots";
 
 export type BaseExistenceEntityClass = "animate" | "inanimate";
 
@@ -145,6 +145,17 @@ function topicExistence(
       predicateAspect: "stative",
     },
   );
+}
+
+function answeredTopicExistence(
+  entityId: string,
+  verbId: typeof ARU | typeof IRU,
+): BaseTask11TargetSpec {
+  const target = topicExistence(entityId, verbId);
+  return {
+    ...target,
+    parts: [L("expression-hai"), { kind: "punctuation", mark: "comma" }, ...target.parts],
+  };
 }
 
 function fullExistence(
@@ -257,6 +268,24 @@ function whereQuestion(
         question: verbId,
       },
     },
+  };
+}
+
+function placeFirstTopicLocation(
+  placeId: string,
+  entityId: string,
+  verbId: typeof ARU | typeof IRU,
+): BaseTask11TargetSpec {
+  const target = topicLocation(entityId, placeId, verbId);
+  return {
+    ...target,
+    parts: [
+      L(placeId),
+      P("existence-location-ni", "existence-location", placeId),
+      L(entityId),
+      P("topic-wa", "topic", entityId),
+      task11VerbForm(verbId, "polite-nonpast"),
+    ],
   };
 }
 
@@ -394,6 +423,7 @@ const L1: BaseTask11LessonSpec = {
     "noun-suzuki",
     "noun-mari",
     "noun-yuki-san",
+    "expression-hai",
   ],
   introducedConceptIds: [
     "aru-existence",
@@ -415,16 +445,16 @@ const L1: BaseTask11LessonSpec = {
     "tense-polarity",
   ],
   examples: [
-    ex(topicExistence("noun-tsukue", ARU), "desk-exists", "There is a desk.", "C'è una scrivania.", "Pairs an inanimate entity with あります.", "Abbina un'entità inanimata ad あります.", "inanimate-existence"),
-    ex(topicExistence("noun-inu", IRU), "dog-exists", "There is a dog.", "C'è un cane.", "Pairs an animate entity with います.", "Abbina un'entità animata ad います.", "animate-existence"),
-    ex(topicExistence("noun-kuruma", ARU), "car-exists", "There is a car.", "C'è un'auto.", "Uses あります for another object.", "Usa あります per un altro oggetto.", "inanimate-existence"),
-    ex(topicExistence("anchor-hon", ARU), "book-exists", "There is a book.", "C'è un libro.", "Keeps a familiar object in the inanimate class.", "Mantiene un oggetto noto nella classe inanimata.", "inanimate-existence"),
-    ex(topicExistence("noun-tomodachi", IRU), "friend-present", "My friend is here.", "Il mio amico è qui.", "Uses います for a person without progressive meaning.", "Usa います per una persona senza significato progressivo.", "animate-existence"),
-    ex(topicExistence("noun-kasa", ARU), "umbrella-exists", "There is an umbrella.", "C'è un ombrello.", "Classifies an everyday thing independently.", "Classifica autonomamente un oggetto quotidiano.", "inanimate-existence"),
-    ex(topicExistence("noun-sensei", IRU), "teacher-present", "The teacher is here.", "L'insegnante è qui.", "Treats a person as animate.", "Tratta una persona come animata.", "animate-existence"),
-    ex(topicExistence("noun-enpitsu", ARU), "pencil-exists", "There is a pencil.", "C'è una matita.", "Retrieves the inanimate choice.", "Recupera la scelta inanimata.", "inanimate-existence"),
-    ex(topicExistence("noun-tanaka", IRU), "tanaka-present", "Tanaka is here.", "Tanaka è qui.", "Retrieves the animate choice.", "Recupera la scelta animata.", "animate-existence"),
-    ex(topicExistence("noun-jitensha", ARU), "bicycle-exists", "There is a bicycle.", "C'è una bicicletta.", "Closes with a physical object.", "Chiude con un oggetto fisico.", "inanimate-existence"),
+    ex(answeredTopicExistence("noun-tsukue", ARU), "desk-available-answer", "Yes, the desk is available.", "Sì, la scrivania è disponibile.", "Answers about an already requested inanimate item with あります.", "Risponde su un oggetto inanimato già richiesto con あります.", "inanimate-topic-answer"),
+    ex(answeredTopicExistence("noun-inu", IRU), "dog-present-answer", "Yes, the dog is here.", "Sì, il cane è qui.", "Answers about an established animate referent with います.", "Risponde su un referente animato già stabilito con います.", "animate-topic-answer"),
+    ex(topicExistence("noun-kuruma", ARU, ARU_CELL, [P("interactional-ne", "interaction", ARU)]), "car-available-check", "The car is available, right?", "L'auto è disponibile, vero?", "Confirms availability of a known inanimate option.", "Conferma la disponibilità di un'opzione inanimata già nota.", "inanimate-topic-check"),
+    ex(answeredTopicExistence("anchor-hon", ARU), "book-available-answer", "Yes, the book is available.", "Sì, il libro è disponibile.", "Answers about the requested book without introducing it neutrally.", "Risponde sul libro richiesto senza introdurlo in modo neutro.", "inanimate-topic-answer"),
+    ex(topicExistence("noun-tomodachi", IRU, IRU_CELL, [P("interactional-yo", "interaction", IRU)]), "friend-present", "My friend is here.", "Il mio amico è qui.", "Reports the established friend as present.", "Segnala come presente l'amico già stabilito.", "animate-topic-statement"),
+    ex(topicExistence("noun-kasa", ARU, ARU_CELL, [P("question-ka", "question", ARU)]), "umbrella-here-question", "Is the umbrella here?", "L'ombrello è qui?", "Checks for the previously mentioned umbrella.", "Verifica la presenza dell'ombrello già menzionato.", "inanimate-topic-question"),
+    ex(topicExistence("noun-sensei", IRU, IRU_CELL, [P("interactional-ne", "interaction", IRU)]), "teacher-present-check", "The teacher is here, isn't she?", "L'insegnante è qui, vero?", "Confirms the presence of an established person.", "Conferma la presenza di una persona già stabilita.", "animate-topic-check"),
+    ex(answeredTopicExistence("noun-enpitsu", ARU), "pencil-available-answer", "Yes, the pencil is available.", "Sì, la matita è disponibile.", "Answers a stock question about a known item.", "Risponde a una domanda di disponibilità su un oggetto noto.", "inanimate-topic-answer"),
+    ex(topicExistence("noun-tanaka", IRU, IRU_CELL, [P("question-ka", "question", IRU)]), "tanaka-present-question", "Is Tanaka here?", "Tanaka è qui?", "Asks whether the named person is present.", "Chiede se la persona nominata è presente.", "animate-topic-question"),
+    ex(topicExistence("noun-jitensha", ARU, ARU_CELL, [P("interactional-yo", "interaction", ARU)]), "bicycle-available", "The bicycle is available.", "La bicicletta è disponibile.", "Reports availability of an already selected vehicle.", "Segnala la disponibilità di un veicolo già selezionato.", "inanimate-topic-statement"),
   ],
   activities: [
     act(task11Cue(L("noun-inu")), topicExistence("noun-inu", IRU, IRU_CELL, [P("interactional-ne", "interaction", IRU)]), topicExistence("noun-inu", ARU, ARU_CELL, [P("interactional-ne", "interaction", ARU)]), 0, "existence-location-1", 1, IRU_CELL, BASE_MEANING_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: null }),
@@ -496,7 +526,7 @@ const L2: BaseTask11LessonSpec = {
   activities: [
     act(task11Cue(L("noun-isu")), fullExistence("noun-jimusho", "noun-isu", ARU, ARU_CELL), fullExistence("noun-niwa", "noun-isu", ARU, ARU_CELL), 0, "existence-location-2", 1, ARU_CELL, BASE_MEANING_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: ARU }),
     act(task11Cue(L("noun-kodomo")), fullExistence("noun-heya", "noun-kodomo", IRU, IRU_CELL), fullExistence("noun-heya", "noun-kuruma", ARU, ARU_CELL), 1, "existence-location-2", 2, IRU_CELL, BASE_FORM_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: null }),
-    act(task11Cue(L("noun-tsukue")), fullExistence("noun-niwa", "noun-tsukue", ARU), { ...fullExistence("noun-niwa", "noun-tsukue", ARU), parts: [L("noun-tsukue"), P("existential-subject-ga", "existential-subject", "noun-tsukue"), L("noun-niwa"), P("existence-location-ni", "existence-location", "noun-niwa"), task11VerbForm(ARU, "polite-nonpast")] }, 0, "existence-location-2", 3, FRAME_CELL, BASE_ORDERING_ACTIVITY_SHAPE, null, { contrastAxis: "word-order", heldConstantPredicateLexemeId: ARU }),
+    act(task11Cue(L("noun-tsukue")), fullExistence("noun-niwa", "noun-tsukue", ARU), { ...fullExistence("noun-niwa", "noun-tsukue", ARU), parts: [L("noun-niwa"), P("existence-location-ni", "existence-location", "noun-niwa"), task11VerbForm(ARU, "polite-nonpast"), L("noun-tsukue"), P("existential-subject-ga", "existential-subject", "noun-tsukue")] }, 0, "existence-location-2", 3, FRAME_CELL, BASE_ORDERING_ACTIVITY_SHAPE, null, { contrastAxis: "word-order", heldConstantPredicateLexemeId: ARU }),
     act(task11Cue(L("noun-inu")), fullExistence("noun-daigaku", "noun-inu", IRU), fullExistence("noun-eki", "noun-inu", IRU), 1, "existence-location-2", 4, FRAME_CELL, BASE_CONTROLLED_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: IRU }),
     act(task11Cue(L("noun-kasa")), fullExistence("noun-niwa", "noun-kasa", ARU), fullExistence("noun-kouen", "noun-kasa", ARU), 0, "existence-location-2", 5, FRAME_CELL, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: ARU }),
     act(promptOf(fullExistence("noun-heya", "noun-gakusei", ARU)), fullExistence("noun-heya", "noun-gakusei", IRU), fullExistence("noun-heya", "noun-gakusei", ARU), 1, "existence-location-2", 6, FRAME_CELL, BASE_ERROR_ACTIVITY_SHAPE, "animate-existence-mismatch", { contrastAxis: "meaning", heldConstantPredicateLexemeId: null, errorDefectAxis: "entity-class", changedTokenSourceIds: [ARU, IRU] }),
@@ -567,10 +597,10 @@ const L3: BaseTask11LessonSpec = {
   activities: [
     act(task11Cue(L("noun-hana")), fullExistence("noun-uchi", "noun-hana", ARU), actionPlace("noun-uchi", "verb-benkyou-suru", "study-place"), 0, "existence-location-3", 1, FRAME_CELL, BASE_MEANING_ACTIVITY_SHAPE, null, { contrastAxis: "particle", heldConstantPredicateLexemeId: null }),
     act(task11Cue(L("noun-kyoushitsu")), fullExistence("noun-kyoushitsu", "noun-tsukue", ARU), actionPlace("noun-kyoushitsu", "verb-hataraku", "work-place"), 1, "existence-location-3", 2, FRAME_CELL, BASE_FORM_ACTIVITY_SHAPE, null, { contrastAxis: "particle", heldConstantPredicateLexemeId: null }),
-    act(task11Cue(L("noun-sakana")), fullExistence("noun-heya", "noun-sakana", IRU), { ...fullExistence("noun-heya", "noun-sakana", IRU), parts: [L("noun-sakana"), P("existential-subject-ga", "existential-subject", "noun-sakana"), L("noun-heya"), P("existence-location-ni", "existence-location", "noun-heya"), task11VerbForm(IRU, "polite-nonpast")] }, 0, "existence-location-3", 3, FRAME_CELL, BASE_ORDERING_ACTIVITY_SHAPE, null, { contrastAxis: "word-order", heldConstantPredicateLexemeId: IRU }),
+    act(task11Cue(L("noun-sakana")), fullExistence("noun-heya", "noun-sakana", IRU), { ...fullExistence("noun-heya", "noun-sakana", IRU), parts: [L("noun-heya"), P("existence-location-ni", "existence-location", "noun-heya"), task11VerbForm(IRU, "polite-nonpast"), L("noun-sakana"), P("existential-subject-ga", "existential-subject", "noun-sakana")] }, 0, "existence-location-3", 3, FRAME_CELL, BASE_ORDERING_ACTIVITY_SHAPE, null, { contrastAxis: "word-order", heldConstantPredicateLexemeId: IRU }),
     act(task11Cue(L("noun-hana")), topicLocation("noun-hana", "noun-niwa", ARU), fullExistence("noun-niwa", "noun-hana", ARU), 1, "existence-location-3", 4, TOPIC_CONTRAST_CELL, BASE_CONTROLLED_ACTIVITY_SHAPE, null, { contrastAxis: "particle", heldConstantPredicateLexemeId: ARU }),
     act(task11Cue(L("noun-kodomo")), fullExistence("noun-uchi", "noun-kodomo", IRU), actionPlace("noun-uchi", "verb-asobu", "play-place"), 0, "existence-location-3", 5, FRAME_CELL, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, { contrastAxis: "particle", heldConstantPredicateLexemeId: null }),
-    act(promptOf(topicLocation("noun-inu", "noun-heya", IRU)), fullExistence("noun-heya", "noun-inu", IRU), topicLocation("noun-inu", "noun-heya", IRU), 1, "existence-location-3", 6, FRAME_CELL, BASE_ERROR_ACTIVITY_SHAPE, "existential-topic-context-mismatch", { contrastAxis: "particle", heldConstantPredicateLexemeId: IRU, errorDefectAxis: "information-structure", changedTokenSourceIds: ["topic-wa", "existential-subject-ga"] }),
+    act(promptOf(placeFirstTopicLocation("noun-heya", "noun-inu", IRU)), fullExistence("noun-heya", "noun-inu", IRU), placeFirstTopicLocation("noun-heya", "noun-inu", IRU), 1, "existence-location-3", 6, FRAME_CELL, BASE_ERROR_ACTIVITY_SHAPE, "existential-topic-context-mismatch", { contrastAxis: "particle", heldConstantPredicateLexemeId: IRU, errorDefectAxis: "information-structure", changedTokenSourceIds: ["topic-wa", "existential-subject-ga"] }),
     act(task11Cue(L("noun-jimusho")), actionPlace("noun-jimusho", "verb-benkyou-suru", "study-place"), fullExistence("noun-jimusho", "noun-tanaka", IRU), 0, "existence-location-3", 7, ACTION_CONTRAST_CELL, BASE_CONTEXT_ACTIVITY_SHAPE, null, { contrastAxis: "particle", heldConstantPredicateLexemeId: null }),
     act(task11Cue(L("noun-sensei")), topicLocation("noun-sensei", "noun-kyoushitsu", IRU), fullExistence("noun-kyoushitsu", "noun-sensei", IRU), 1, "existence-location-3", 8, TOPIC_CONTRAST_CELL, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, { contrastAxis: "particle", heldConstantPredicateLexemeId: IRU }),
     act(task11Cue(L("noun-sakana")), fullExistence("noun-uchi", "noun-sakana", IRU), fullExistence("noun-kyoushitsu", "noun-sakana", IRU), 0, "existence-location-3", 9, FRAME_CELL, BASE_LISTENING_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: IRU }),
@@ -791,9 +821,9 @@ export function validateBaseExistenceLocationModule(
     BASE_EXISTENCE_LOCATION_VALIDATION_CATALOGS,
   );
   if (!base.ok) return base;
-  const targets = strictTask11ModuleTargets(value);
-  return targets &&
-    targets
+  const snapshot = strictTask11ModuleSnapshot(value);
+  return snapshot &&
+    snapshot.targets
       .filter(({ source }) => source !== "option")
       .every(
         ({ lessonId, target }) =>

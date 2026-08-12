@@ -10,7 +10,10 @@ import {
   realizeIAdjectiveAttributive,
   validateBasePredicate,
 } from "../forms/adjectiveForms";
-import { BASE_SENTENCE_FOUNDATIONS_MODULE } from "./module02SentenceFoundations";
+import {
+  BASE_MEANING_ACTIVITY_SHAPE,
+  BASE_SENTENCE_FOUNDATIONS_MODULE,
+} from "./module02SentenceFoundations";
 import { BASE_TOPIC_QUESTIONS_MODULE } from "./module03TopicQuestions";
 import { BASE_POLITE_VERBS_MODULE } from "./module04PoliteVerbs";
 import {
@@ -166,6 +169,84 @@ describe("Task 12 copula and adjective ownership", () => {
       },
   );
 
+  it("keeps authored fact statuses attached to targets when options reorder", () => {
+    const answer = task11Target(
+      [
+        {
+          kind: "predicate-form",
+          predicateKind: "noun",
+          lexemeId: "noun-gakusei",
+          form: "affirmative",
+        },
+      ],
+      {
+        conceptIds: [],
+        patternCellIds: ["test-cell"],
+        semanticRoleIds: [],
+        interpretationTags: ["present-state"],
+        predicateSenseId: "gakusei",
+        predicateLexemeId: "noun-gakusei",
+        predicateAspect: "nominal",
+      },
+    );
+    const distractor = task11Target(
+      [
+        {
+          kind: "predicate-form",
+          predicateKind: "noun",
+          lexemeId: "noun-sensei",
+          form: "affirmative",
+        },
+      ],
+      {
+        conceptIds: [],
+        patternCellIds: ["test-cell"],
+        semanticRoleIds: [],
+        interpretationTags: ["present-state"],
+        predicateSenseId: "sensei",
+        predicateLexemeId: "noun-sensei",
+        predicateAspect: "nominal",
+      },
+    );
+    const authoredStatuses = {
+      answerFactStatus: "rejected-context",
+      distractorFactStatus: "accepted-world",
+    } as const;
+    const built = buildTask11Lesson({
+      lessonId: "copula-adjectives-1",
+      contract: "system",
+      prerequisiteLessonIds: [],
+      newLexemeIds: [],
+      reviewLexemeIds: ["noun-gakusei", "noun-sensei"],
+      introducedConceptIds: [],
+      reviewedConceptIds: [],
+      patternCellIds: ["test-cell"],
+      referenceSnapshotIds: [],
+      examples: [],
+      activities: [
+        {
+          prompt: answer,
+          answer,
+          distractor,
+          correctOptionIndex: 1,
+          promptContextCopyId: "test-context",
+          patternCellId: "test-cell",
+          shape: BASE_MEANING_ACTIVITY_SHAPE,
+          referentId: "noun-gakusei",
+          worldFactId: "fact-target-bound-status",
+          errorCode: null,
+          ...authoredStatuses,
+        },
+      ],
+      dialogue: null,
+    });
+
+    expect(built.lesson.activityDesigns[0].optionFactStatus).toEqual([
+      "accepted-world",
+      "rejected-context",
+    ]);
+  });
+
   it("allocates three to six genuinely new lexemes to every module 07 lesson", () => {
     expect(
       [1, 2, 3, 4].map(
@@ -285,6 +366,158 @@ describe("Task 12 copula and adjective ownership", () => {
     expect(validateBaseCopulaAdjectivesModule(mutated).ok).toBe(false);
   });
 
+  it("keeps the missing-な diagnosis content-preserving and causally minimal", () => {
+    const diagnosis =
+      BASE_COPULA_ADJECTIVES_MODULE.lessons[3].activityDesigns.find(
+        ({ category }) => category === "error-diagnosis",
+      )!;
+    const distractor =
+      diagnosis.optionTargets[
+        diagnosis.correctOptionIndex === 0 ? 1 : 0
+      ];
+
+    expect(diagnosis.reviewEvidence.error?.changedTokenSourceIds).toEqual([
+      "na",
+    ]);
+    for (const target of [
+      diagnosis.promptTarget,
+      diagnosis.acceptedAnswerTarget,
+      distractor,
+    ]) {
+      expect(target.lexemeIds).toEqual(
+        expect.arrayContaining(["adjective-shizuka", "noun-shokudou"]),
+      );
+    }
+    expect(distractor.patternCellIds).not.toContain(
+      "na-adjective-attributive",
+    );
+  });
+
+  it("rejects adjective-less targets labeled as な-attributive", () => {
+    const mutated = structuredClone(BASE_COPULA_ADJECTIVES_MODULE);
+    const diagnosis = mutated.lessons[3].activityDesigns.find(
+      ({ category }) => category === "error-diagnosis",
+    )!;
+    const target = diagnosis.optionTargets[
+      diagnosis.correctOptionIndex === 0 ? 1 : 0
+    ] as unknown as {
+      patternCellIds: string[];
+      tokens: typeof diagnosis.acceptedAnswerTarget.tokens;
+      lexemeIds: string[];
+      formIds: string[];
+    };
+    const nounOnly = diagnosis.acceptedAnswerTarget.tokens.filter(
+      ({ source }) => source.referenceId !== "adjective-shizuka" &&
+        source.referenceId !== "na",
+    );
+    target.patternCellIds = ["na-adjective-attributive"];
+    target.tokens = nounOnly;
+    target.lexemeIds = ["noun-shokudou"];
+    target.formIds = target.formIds.filter(
+      (id) => id !== "base-form-na-adjective-attributive",
+    );
+
+    expect(validateBaseCopulaAdjectivesModule(mutated).ok).toBe(false);
+  });
+
+  it("fails closed when an authored predicate realization has no known cell", () => {
+    const mutated = structuredClone(BASE_COPULA_ADJECTIVES_MODULE);
+    const target = mutated.lessons[2].examples[0] as unknown as {
+      patternCellIds: string[];
+    };
+    target.patternCellIds = [];
+
+    expect(validateBaseCopulaAdjectivesModule(mutated).ok).toBe(false);
+  });
+
+  it("rejects trailing predicate-form junk after an otherwise canonical cell", () => {
+    const mutated = structuredClone(BASE_COPULA_ADJECTIVES_MODULE);
+    const target = mutated.lessons[2].examples[0] as unknown as {
+      tokens: Array<
+        (typeof BASE_COPULA_ADJECTIVES_MODULE.lessons)[number]["examples"][number]["tokens"][number]
+      >;
+    };
+    target.tokens.push(structuredClone(target.tokens.at(-1)!));
+
+    expect(validateBaseCopulaAdjectivesModule(mutated).ok).toBe(false);
+  });
+
+  it("uses a one-argument な-adjective instead of contradictory きらい roles", () => {
+    const lesson = BASE_COPULA_ADJECTIVES_MODULE.lessons[3];
+    expect(lesson.content.newLexemeIds).toContain("adjective-genki");
+    expect(lesson.content.newLexemeIds).not.toContain("adjective-kirai");
+    expect(
+      [
+        ...lesson.examples,
+        ...lesson.activityDesigns.flatMap((activity) => [
+          activity.promptTarget,
+          activity.acceptedAnswerTarget,
+          ...activity.optionTargets,
+        ]),
+      ].some(({ lexemeIds }) => lexemeIds.includes("adjective-kirai")),
+    ).toBe(false);
+  });
+
+  it("gives every hidden copula/adjective answer a complete recoverable proposition", () => {
+    const expected = [
+      [/Satou.*(?:not.*company employee|company employee.*(?:not|reject))/iu, /Satou.*(?:non.*impiegat|impiegat.*(?:non|escl))/iu],
+      [/(?:cook|chef).*(?:not.*engineer|engineering.*past)/iu, /cuoc.*(?:non.*ingegner|ingegner.*passat)/iu],
+      [/magazine.*(?:was not good|negative review)/iu, /rivista.*(?:non era buona|giudizio negativo)/iu],
+      [/student.*(?:pretty|good-looking).*(?:now|current)/iu, /student.*(?:bell|gradevol).*(?:ora|attual)/iu],
+    ] as const;
+    BASE_COPULA_ADJECTIVES_MODULE.lessons.forEach((lesson, index) => {
+      const spokenIndex = lesson.content.activities.findIndex(
+        ({ operation }) => operation === "produce-spoken",
+      );
+      const activity = lesson.content.activities[spokenIndex];
+      const design = lesson.activityDesigns[spokenIndex];
+      const en = baseNavigationCopyEn.content[activity.instructionCopyId];
+      const it = baseNavigationCopyIt.content[activity.instructionCopyId];
+      expect(en).toMatch(expected[index][0]);
+      expect(it).toMatch(expected[index][1]);
+      expect(en.normalize("NFKC")).not.toContain(japanese(design.acceptedAnswerTarget));
+      expect(it.normalize("NFKC")).not.toContain(japanese(design.acceptedAnswerTarget));
+    });
+  });
+
+  it("grounds lesson 1 activity 7 in an explicit negative company-role fact", () => {
+    const lesson = BASE_COPULA_ADJECTIVES_MODULE.lessons[0];
+    const activity = lesson.content.activities[6];
+    expect(baseNavigationCopyEn.content[activity.instructionCopyId]).toMatch(
+      /friend.*(?:not|crosses out).*company employee/iu,
+    );
+    expect(baseNavigationCopyIt.content[activity.instructionCopyId]).toMatch(
+      /amic.*(?:non|barra).*impiegat/iu,
+    );
+  });
+
+  it("grounds every factual Module 07 choice in authored evidence", () => {
+    const groundedFactIds: string[] = [];
+    for (const lesson of BASE_COPULA_ADJECTIVES_MODULE.lessons) {
+      for (const design of lesson.activityDesigns) {
+        expect(design.worldFactGrounding, design.id).not.toBeNull();
+        expect(design.worldFactId, design.id).toMatch(/^fact-/u);
+        groundedFactIds.push(design.worldFactId!);
+        if (design.correctOptionIndex !== null) {
+          expect(
+            design.optionFactStatus[design.correctOptionIndex],
+            design.id,
+          ).toBe("accepted-world");
+          expect(
+            design.optionFactStatus[design.correctOptionIndex === 0 ? 1 : 0],
+            design.id,
+          ).toBe("rejected-context");
+        }
+      }
+    }
+    expect(BASE_COPULA_ADJECTIVES_MODULE.worldFactIds).toEqual(
+      groundedFactIds,
+    );
+    expect(
+      BASE_COPULA_ADJECTIVES_MODULE.worldFactLedger.map(({ id }) => id),
+    ).toEqual(groundedFactIds);
+  });
+
   it("rejects a cloned predicative な-adjective with its copula omitted", () => {
     const mutated = structuredClone(BASE_COPULA_ADJECTIVES_MODULE);
     const target = mutated.lessons[3].examples.find(
@@ -328,6 +561,18 @@ describe("Task 12 copula and adjective ownership", () => {
     );
     expect(baseNavigationCopyIt.content[naInstructionId]).toMatch(/mensa/iu);
 
+  });
+
+  it("keeps the health-card situation consistent through feedback in both locales", () => {
+    const activity =
+      BASE_COPULA_ADJECTIVES_MODULE.lessons[3].content.activities[3];
+    for (const copyId of [
+      activity.acceptedFeedbackCopyId,
+      activity.retryFeedbackCopyId,
+    ]) {
+      expect(baseNavigationCopyEn.content[copyId]).toMatch(/health card/iu);
+      expect(baseNavigationCopyIt.content[copyId]).toMatch(/scheda sanitaria/iu);
+    }
   });
 
   it("keeps the na-adjective nearest contrast aligned across locales", () => {

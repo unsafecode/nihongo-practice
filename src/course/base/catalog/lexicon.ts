@@ -33,6 +33,10 @@ function verb(
   aspect: BaseVerbLexeme["aspect"],
   firstTeachLessonId: string,
   allowedTeConstructions: BaseVerbLexeme["allowedTeConstructions"],
+  teImasuSemantics?: Readonly<{
+    readonly eventClass?: BaseVerbLexeme["eventClass"];
+    readonly anchor?: NonNullable<BaseVerbLexeme["teImasuAnchor"]>;
+  }>,
 ): BaseVerbLexeme {
   return {
     id,
@@ -44,6 +48,12 @@ function verb(
     category: "verb",
     verbClass,
     aspect,
+    eventClass:
+      teImasuSemantics?.eventClass ??
+      (aspect === "stative" ? "stative" : "activity"),
+    ...(teImasuSemantics?.anchor
+      ? { teImasuAnchor: teImasuSemantics.anchor }
+      : {}),
     allowedTeConstructions,
     dictionaryTokens: dictionaryToken(id, kana, romaji),
   };
@@ -189,9 +199,18 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
   verb("verb-hairu", "はいる", "hairu", "godan", "dynamic", "requests-connection-3", DYNAMIC_TE_CONSTRUCTIONS),
   verb("verb-deru", "でる", "deru", "ichidan", "dynamic", "requests-connection-3", DYNAMIC_TE_CONSTRUCTIONS),
   verb("verb-noru", "のる", "noru", "godan", "dynamic", "requests-connection-3", DYNAMIC_TE_CONSTRUCTIONS),
-  verb("verb-suwaru", "すわる", "suwaru", "godan", "dynamic", "requests-connection-4", DYNAMIC_TE_CONSTRUCTIONS),
-  verb("verb-kiru", "きる", "kiru", "ichidan", "dynamic", "requests-connection-4", DYNAMIC_TE_CONSTRUCTIONS),
-  verb("verb-shiru", "しる", "shiru", "godan", "stative", "requests-connection-4", DYNAMIC_TE_CONSTRUCTIONS),
+  verb("verb-suwaru", "すわる", "suwaru", "godan", "dynamic", "requests-connection-4", DYNAMIC_TE_CONSTRUCTIONS, {
+    eventClass: "change-of-state",
+    anchor: { semanticRole: "goal", lexemeIds: ["noun-isu"] },
+  }),
+  verb("verb-kiru", "きる", "kiru", "ichidan", "dynamic", "requests-connection-4", DYNAMIC_TE_CONSTRUCTIONS, {
+    eventClass: "change-of-state",
+    anchor: { semanticRole: "theme", lexemeIds: ["noun-fuku"] },
+  }),
+  verb("verb-shiru", "しる", "shiru", "godan", "stative", "requests-connection-4", DYNAMIC_TE_CONSTRUCTIONS, {
+    eventClass: "stative",
+    anchor: { semanticRole: "theme" },
+  }),
   verb("verb-hashiru", "はしる", "hashiru", "godan", "dynamic", "time-movement-1", DYNAMIC_TE_CONSTRUCTIONS),
   verb(
     "verb-ryokou-suru",
@@ -303,10 +322,10 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
     adjectiveClass: "na",
   },
   {
-    id: "adjective-kirai",
-    kana: "きらい",
-    romaji: "kirai",
-    meaningCopyId: "adjective-kirai-meaning",
+    id: "adjective-genki",
+    kana: "げんき",
+    romaji: "genki",
+    meaningCopyId: "adjective-genki-meaning",
     firstTeachLessonId: "copula-adjectives-4",
     countable: true,
     category: "adjective",
@@ -681,6 +700,18 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
     "onegaishimasu",
     "requests-connection-2",
   ),
+  expression(
+    "expression-douzo",
+    "どうぞ",
+    "douzo",
+    "requests-connection-2",
+  ),
+  expression(
+    "expression-wakarimashita",
+    "わかりました",
+    "wakarimashita",
+    "requests-connection-2",
+  ),
   {
     id: "noun-yuki",
     kana: "ゆき",
@@ -761,6 +792,8 @@ export const BASE_LEXICON: readonly BaseLexeme[] = deepFreeze([
   noun("noun-shorui", "しょるい", "shorui", "requests-connection-2"),
   noun("noun-nimotsu", "にもつ", "nimotsu", "requests-connection-2"),
   noun("noun-shio", "しお", "shio", "requests-connection-2"),
+  noun("noun-ima", "いま", "ima", "requests-connection-4", "relative"),
+  noun("noun-fuku", "ふく", "fuku", "requests-connection-4"),
   {
     id: "anchor-asa",
     kana: "あさ",
@@ -1027,7 +1060,7 @@ export const BASE_TASK12_LEXEME_RECURRENCE_PLANS: readonly BaseLexemeRecurrenceP
         "adjective-shizuka",
         "adjective-kirei",
         "adjective-yuumei",
-        "adjective-kirai",
+        "adjective-genki",
       ],
       [],
       ["base-synthesis-3"],
@@ -1075,6 +1108,8 @@ export const BASE_TASK12_LEXEME_RECURRENCE_PLANS: readonly BaseLexemeRecurrenceP
         "verb-yobu",
         "expression-sumimasen",
         "expression-onegaishimasu",
+        "expression-douzo",
+        "expression-wakarimashita",
         "noun-mado",
         "noun-shorui",
         "noun-nimotsu",
@@ -1089,7 +1124,7 @@ export const BASE_TASK12_LEXEME_RECURRENCE_PLANS: readonly BaseLexemeRecurrenceP
       ["base-synthesis-3"],
     ),
     ...recurrence(
-      ["verb-suwaru", "verb-kiru", "verb-shiru"],
+      ["verb-suwaru", "verb-kiru", "verb-shiru", "noun-ima", "noun-fuku"],
       [],
       ["base-synthesis-3"],
     ),

@@ -359,6 +359,9 @@ const KAKU_TE_FORM = formValue(realizeTeConstruction("verb-kaku", "te"));
 const TABERU_TE_SEQUENCE = formValue(
   realizeTeConstruction("verb-taberu", "sequence"),
 );
+const TABERU_TE_KUDASAI = formValue(
+  realizeTeConstruction("verb-taberu", "request"),
+);
 const TABERU_TE_IMASU = formValue(realizeTeConstruction("verb-taberu", "te-imasu"));
 const NOUN_GRID = formValue(realizeOwnedNounPredicate("noun-gakusei"));
 const TEACHER_NOUN_GRID = formValue(realizeOwnedNounPredicate("noun-sensei"));
@@ -815,6 +818,25 @@ const VERB_ENTRIES = [
     ],
     [cell("verb-te-kaku", "form", "て form", "Forma in て", KAKU_TE_FORM)],
     ["base-verb-class-godan"],
+  ),
+  entry(
+    "base-verb-te-kudasai",
+    "base-construction-te-kudasai",
+    ["Bounded てください request", "Richiesta delimitata in てください"],
+    [
+      "A generated te form plus ください makes the explicit bounded request taught here.",
+      "Una forma in te generata più ください forma la richiesta esplicita e delimitata insegnata qui.",
+    ],
+    [
+      cell(
+        "verb-te-kudasai-taberu",
+        "form",
+        "Request",
+        "Richiesta",
+        TABERU_TE_KUDASAI,
+      ),
+    ],
+    ["base-verb-te-forms"],
   ),
   entry(
     "base-verb-sequential-te",

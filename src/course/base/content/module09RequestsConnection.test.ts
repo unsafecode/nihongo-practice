@@ -2,12 +2,17 @@ import { describe, expect, it } from "vitest";
 import { BASE_CONCEPTS } from "../catalog/concepts";
 import {
   BASE_LEXICON,
+  BASE_LEXEME_BY_ID,
   BASE_TASK12_LEXEME_RECURRENCE_BY_ID,
   BASE_TASK12_LEXEME_RECURRENCE_PLANS,
 } from "../catalog/lexicon";
 import { baseNavigationCopyEn } from "../copy/en";
 import { baseNavigationCopyIt } from "../copy/it";
 import { realizeTeConstruction } from "../forms/verbForms";
+import {
+  strictTask11ModuleSnapshot,
+  validateTask11CorpusDistinctness,
+} from "../validation/moduleSnapshots";
 import { BASE_SENTENCE_FOUNDATIONS_MODULE } from "./module02SentenceFoundations";
 import { BASE_TOPIC_QUESTIONS_MODULE } from "./module03TopicQuestions";
 import {
@@ -29,10 +34,17 @@ import {
   BASE_TE_ALLOMORPH_EVIDENCE,
   validateBaseRequestsConnectionModule,
 } from "./module09RequestsConnection";
+import * as module09Exports from "./module09RequestsConnection";
 
 function japanese(tokens: readonly { readonly jp: string }[]): string {
   return tokens.map(({ jp }) => jp).join("");
 }
+
+type MutableModuleSnapshot = {
+  lessons: Array<{
+    activityDesigns: Array<Record<string, unknown>>;
+  }>;
+};
 
 const EARLIER_TASK11_MODULES = [
   BASE_SENTENCE_FOUNDATIONS_MODULE,
@@ -101,6 +113,80 @@ describe("Task 12 bounded te ownership", () => {
     expect(realized.ok && japanese(realized.value)).toBe(expected);
   });
 
+  it("anchors the engine to one immutable authored te-allomorph rule table", () => {
+    const rules = (
+      module09Exports as unknown as {
+        readonly BASE_TE_ALLOMORPH_RULES?: readonly unknown[];
+      }
+    ).BASE_TE_ALLOMORPH_RULES;
+
+    expect(rules).toEqual([
+      {
+        endingFamily: "う/つ/る",
+        sourceEndings: ["う", "つ", "る"],
+        replacement: "って",
+        exceptionLemmaId: null,
+      },
+      {
+        endingFamily: "む/ぶ/ぬ",
+        sourceEndings: ["む", "ぶ", "ぬ"],
+        replacement: "んで",
+        exceptionLemmaId: null,
+      },
+      {
+        endingFamily: "く",
+        sourceEndings: ["く"],
+        replacement: "いて",
+        exceptionLemmaId: null,
+      },
+      {
+        endingFamily: "ぐ",
+        sourceEndings: ["ぐ"],
+        replacement: "いで",
+        exceptionLemmaId: null,
+      },
+      {
+        endingFamily: "す",
+        sourceEndings: ["す"],
+        replacement: "して",
+        exceptionLemmaId: null,
+      },
+      {
+        endingFamily: "ichidan",
+        sourceEndings: ["る"],
+        replacement: "て",
+        exceptionLemmaId: null,
+      },
+      {
+        endingFamily: "する",
+        sourceEndings: ["する"],
+        replacement: "して",
+        exceptionLemmaId: null,
+      },
+      {
+        endingFamily: "くる",
+        sourceEndings: ["くる"],
+        replacement: "きて",
+        exceptionLemmaId: null,
+      },
+      {
+        endingFamily: "いく-exception",
+        sourceEndings: ["いく"],
+        replacement: "いって",
+        exceptionLemmaId: "verb-iku",
+      },
+    ]);
+    expect(Object.isFrozen(rules)).toBe(true);
+    for (const rule of rules ?? []) {
+      expect(Object.isFrozen(rule)).toBe(true);
+      expect(
+        Object.isFrozen(
+          (rule as { readonly sourceEndings: readonly string[] }).sourceEndings,
+        ),
+      ).toBe(true);
+    }
+  });
+
   it("publishes generated te constructions through lesson targets", () => {
     const target = task11Target(
       [task11VerbForm("verb-iku", "te" as never)],
@@ -153,7 +239,7 @@ describe("Task 12 bounded te ownership", () => {
               firstTeachLessonId === `requests-connection-${order}`,
           ).length,
       ),
-    ).toEqual([5, 10, 4, 3]);
+    ).toEqual([5, 12, 4, 5]);
   });
 
   it("publishes the required lesson classification and bounded dialogues", () => {
@@ -174,6 +260,90 @@ describe("Task 12 bounded te ownership", () => {
       ok: true,
       errors: [],
     });
+  });
+
+  it("makes the offer-response activity determinate rather than rejecting a natural apology", () => {
+    const lesson = BASE_REQUESTS_CONNECTION_MODULE.lessons[1];
+    const activity = lesson.activityDesigns[0];
+    const rejected =
+      activity.optionTargets[
+        activity.correctOptionIndex === 0 ? 1 : 0
+      ];
+
+    expect(japanese(activity.acceptedAnswerTarget.tokens)).toBe(
+      "おねがいします",
+    );
+    expect(japanese(rejected.tokens)).toBe("いいえ");
+    expect(
+      baseNavigationCopyEn.content[
+        lesson.content.activities[0].instructionCopyId
+      ],
+    ).toMatch(/want.*help|accept.*offer/iu);
+    expect(
+      baseNavigationCopyIt.content[
+        lesson.content.activities[0].instructionCopyId
+      ],
+    ).toMatch(/vuoi.*aiuto|accetta.*offerta/iu);
+  });
+
+  it("uses one coherent alternating office exchange with natural responses", () => {
+    const lesson = BASE_REQUESTS_CONNECTION_MODULE.lessons[1];
+    const dialogue = lesson.dialogue!;
+
+    expect(dialogue.turns.map(({ speakerId }) => speakerId)).toEqual([
+      "learner",
+      "partner",
+      "learner",
+      "partner",
+    ]);
+    expect(dialogue.turns.map(({ tokens }) => japanese(tokens))).toEqual([
+      "すみません、しょるいをみせてください",
+      "はい、どうぞ",
+      "てがみをみせてください",
+      "はい、わかりました",
+    ]);
+    expect(lesson.content.newLexemeIds).toEqual(
+      expect.arrayContaining(["expression-douzo", "expression-wakarimashita"]),
+    );
+  });
+
+  it("tests the くる te form with a grounded same-lemma canonical contrast", () => {
+    const lesson = BASE_REQUESTS_CONNECTION_MODULE.lessons[0];
+    const activity = lesson.activityDesigns[7];
+
+    expect(activity.optionTargets.map(({ tokens }) => japanese(tokens))).toEqual([
+      "えきにきます",
+      "えきにきて",
+    ]);
+    expect(
+      activity.optionTargets.map(({ predicateLexemeId }) => predicateLexemeId),
+    ).toEqual(["verb-kuru", "verb-kuru"]);
+    for (const option of activity.optionTargets) {
+      expect(option.particleBindings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            role: "goal",
+            attachmentLexemeId: "noun-eki",
+          }),
+        ]),
+      );
+    }
+  });
+
+  it("uniquely cues the hidden softened teacher-call request in both locales", () => {
+    const lesson = BASE_REQUESTS_CONNECTION_MODULE.lessons[1];
+    const index = lesson.content.activities.findIndex(
+      ({ operation }) => operation === "produce-spoken",
+    );
+    const activity = lesson.content.activities[index];
+    const target = lesson.activityDesigns[index].acceptedAnswerTarget;
+    const en = baseNavigationCopyEn.content[activity.instructionCopyId];
+    const it = baseNavigationCopyIt.content[activity.instructionCopyId];
+
+    expect(en).toMatch(/attention.*call.*teacher|call.*teacher.*attention/iu);
+    expect(it).toMatch(/attenzione.*chiama.*insegnante|chiama.*insegnante.*attenzione/iu);
+    expect(en.normalize("NFKC")).not.toContain(japanese(target.tokens));
+    expect(it.normalize("NFKC")).not.toContain(japanese(target.tokens));
   });
 
   it("publishes explicit class, allomorph, and いく-exception evidence", () => {
@@ -221,6 +391,132 @@ describe("Task 12 bounded te ownership", () => {
         target.interpretationTags.includes("resulting-state"),
       ),
     ).toBe(true);
+  });
+
+  it("anchors every te-imasu example in a Japanese situation that determines its reading", () => {
+    const examples = BASE_REQUESTS_CONNECTION_MODULE.lessons[3].examples;
+
+    expect(examples.map(({ tokens }) => japanese(tokens))).toEqual([
+      "わたしはいまごはんをたべています",
+      "たなかさんはいまほんをよんでいます",
+      "やまださんはいまてがみをかいています",
+      "すずきさんはいまでんわしています",
+      "たなかさんはいまおよいでいます",
+      "やまださんはいまべんきょうしています",
+      "すずきさんはいまはたらいています",
+      "わたしはやまださんをしっています",
+      "やまださんはふくをきています",
+      "すずきさんはいすにすわっています",
+      "たなかさんはいまえきでまっています",
+      "すずきさんはいまざっしをみています",
+    ]);
+    expect(
+      new Set(examples.map(({ tokens }) => japanese(tokens))).size,
+    ).toBe(examples.length);
+    for (const example of examples) {
+      expect(example.semanticRoleIds).toContain("topic");
+      if (example.interpretationTags.includes("ongoing-now")) {
+        expect(example.lexemeIds).toContain("noun-ima");
+      }
+    }
+  });
+
+  it("makes the te-imasu listening pair full same-verb ongoing clauses", () => {
+    const listening =
+      BASE_REQUESTS_CONNECTION_MODULE.lessons[3].activityDesigns.find(
+        ({ category }) => category === "listening",
+      )!;
+    const surfaces = listening.optionTargets.map(({ tokens }) =>
+      japanese(tokens),
+    );
+
+    expect(
+      listening.optionTargets.map(({ predicateLexemeId }) => predicateLexemeId),
+    ).toEqual(["verb-miru", "verb-miru"]);
+    expect(surfaces).toEqual([
+      "すずきさんはいまほんをみています",
+      "すずきさんはいましょるいをみています",
+    ]);
+    for (const target of listening.optionTargets) {
+      expect(target.semanticRoleIds).toEqual(["topic", "time", "theme"]);
+      expect(target.interpretationTags).toContain("ongoing-now");
+    }
+  });
+
+  it("publishes canonical event classes and state anchors for te-imasu", () => {
+    expect(BASE_LEXEME_BY_ID.get("verb-taberu")).toMatchObject({
+      eventClass: "activity",
+    });
+    expect(BASE_LEXEME_BY_ID.get("verb-suwaru")).toMatchObject({
+      eventClass: "change-of-state",
+      teImasuAnchor: { semanticRole: "goal", lexemeIds: ["noun-isu"] },
+    });
+    expect(BASE_LEXEME_BY_ID.get("verb-kiru")).toMatchObject({
+      eventClass: "change-of-state",
+      teImasuAnchor: { semanticRole: "theme", lexemeIds: ["noun-fuku"] },
+    });
+    expect(BASE_LEXEME_BY_ID.get("verb-shiru")).toMatchObject({
+      eventClass: "stative",
+      teImasuAnchor: { semanticRole: "theme" },
+    });
+  });
+
+  it.each(["verb-shiru", "verb-suwaru"] as const)(
+    "rejects relabeling %s current state as ongoing",
+    (lemmaId) => {
+      const mutated = structuredClone(BASE_REQUESTS_CONNECTION_MODULE);
+      const target = mutated.lessons[3].examples.find(
+        ({ predicateLexemeId }) => predicateLexemeId === lemmaId,
+      ) as unknown as {
+        interpretationTags: string[];
+        patternCellIds: string[];
+      };
+      target.interpretationTags = ["ongoing-now"];
+      target.patternCellIds = ["te-imasu-ongoing-action"];
+
+      expect(validateBaseRequestsConnectionModule(mutated).ok).toBe(false);
+    },
+  );
+
+  it("rejects te-imasu aspect and cell metadata that contradict the lexical event class", () => {
+    const wrongAspect = structuredClone(BASE_REQUESTS_CONNECTION_MODULE);
+    const aspectTarget = wrongAspect.lessons[3].examples.find(
+      ({ predicateLexemeId }) => predicateLexemeId === "verb-suwaru",
+    ) as unknown as { predicateAspect: string };
+    aspectTarget.predicateAspect = "dynamic";
+
+    const wrongCell = structuredClone(BASE_REQUESTS_CONNECTION_MODULE);
+    const cellTarget = wrongCell.lessons[3].examples.find(
+      ({ predicateLexemeId }) => predicateLexemeId === "verb-shiru",
+    ) as unknown as { patternCellIds: string[] };
+    cellTarget.patternCellIds = ["te-imasu-ongoing-action"];
+
+    expect(validateBaseRequestsConnectionModule(wrongAspect).ok).toBe(false);
+    expect(validateBaseRequestsConnectionModule(wrongCell).ok).toBe(false);
+  });
+
+  it("disambiguates wearing with an explicit clothing theme and same-lemma contrast", () => {
+    const lesson = BASE_REQUESTS_CONNECTION_MODULE.lessons[3];
+    const wearingExample = lesson.examples.find(
+      ({ predicateLexemeId }) => predicateLexemeId === "verb-kiru",
+    )!;
+    const activity = lesson.activityDesigns[6];
+
+    expect(wearingExample.particleBindings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: "theme",
+          attachmentLexemeId: "noun-fuku",
+        }),
+      ]),
+    );
+    expect(
+      activity.optionTargets.map(({ predicateLexemeId }) => predicateLexemeId),
+    ).toEqual(["verb-kiru", "verb-kiru"]);
+    expect(activity.optionTargets.map(({ tokens }) => japanese(tokens))).toEqual([
+      "すずきさんはふくをきています",
+      "すずきさんはふくをきます",
+    ]);
   });
 
   it("rejects a cloned module that relabels an ongoing lexical action as a resulting state", () => {
@@ -369,6 +665,151 @@ describe("Task 12 bounded te ownership", () => {
     expect(collisions).toEqual([]);
   });
 
+  it("rejects cross-module example, dialogue, and multi-token prompt corpus collisions", () => {
+    const visibleFields = [
+      "tokens",
+      "lexemeIds",
+      "formIds",
+      "conceptIds",
+      "patternCellIds",
+      "semanticRoleIds",
+      "interpretationTags",
+      "predicateSenseId",
+      "predicateLexemeId",
+      "predicateAspect",
+      "particleFrame",
+    ] as const;
+    const copyVisibleTarget = (
+      target: Record<string, unknown>,
+      source: Record<string, unknown>,
+    ) => {
+      for (const field of visibleFields) {
+        target[field] = structuredClone(source[field]);
+      }
+    };
+
+    const exampleExample = structuredClone(BASE_REQUESTS_CONNECTION_MODULE);
+    copyVisibleTarget(
+      exampleExample.lessons[0].examples[0] as unknown as Record<string, unknown>,
+      BASE_COPULA_ADJECTIVES_MODULE.lessons[2].examples[0] as unknown as Record<
+        string,
+        unknown
+      >,
+    );
+    expect(validateBaseRequestsConnectionModule(exampleExample).ok).toBe(false);
+
+    const exampleDialogue = structuredClone(BASE_REQUESTS_CONNECTION_MODULE);
+    copyVisibleTarget(
+      exampleDialogue.lessons[0].examples[0] as unknown as Record<string, unknown>,
+      BASE_EXISTENCE_LOCATION_MODULE.lessons[3].dialogue
+        ?.turns[1] as unknown as Record<string, unknown>,
+    );
+    expect(validateBaseRequestsConnectionModule(exampleDialogue).ok).toBe(false);
+
+    const dialoguePrompt = structuredClone(BASE_REQUESTS_CONNECTION_MODULE);
+    copyVisibleTarget(
+      dialoguePrompt.lessons[1].activityDesigns[0]
+        .promptTarget as unknown as Record<string, unknown>,
+      dialoguePrompt.lessons[1].dialogue?.turns[0] as unknown as Record<
+        string,
+        unknown
+      >,
+    );
+    expect(validateBaseRequestsConnectionModule(dialoguePrompt).ok).toBe(false);
+  });
+
+  it("keeps every Task 12 corpus surface distinct from modules 02 through 09", () => {
+    const collisions = validateTask11CorpusDistinctness(
+      [...EARLIER_TASK11_MODULES, BASE_REQUESTS_CONNECTION_MODULE],
+      baseNavigationCopyEn.content,
+      baseNavigationCopyIt.content,
+    );
+    expect(collisions).toBeDefined();
+    expect(
+      collisions?.filter(({ lessonId }) =>
+        /^(?:copula-adjectives|existence-location|requests-connection)-/u.test(
+          lessonId,
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  it("snapshots prompts, contexts, audio, and hidden spoken targets for every lesson", () => {
+    for (const module of TASK12_MODULES) {
+      const snapshot = strictTask11ModuleSnapshot(module);
+      expect(snapshot).toBeDefined();
+      expect(
+        snapshot?.corpusTargets.filter(({ source }) => source === "prompt"),
+      ).toHaveLength(40);
+      expect(
+        snapshot?.corpusTargets.filter(({ source }) => source === "audio"),
+      ).toHaveLength(4);
+      expect(
+        snapshot?.corpusTargets.filter(({ source }) => source === "spoken"),
+      ).toHaveLength(4);
+      expect(snapshot?.contexts).toHaveLength(40);
+    }
+  });
+
+  it("rejects hostile copy accessors without invoking them during corpus audit", () => {
+    const contextId =
+      BASE_REQUESTS_CONNECTION_MODULE.lessons[0].activityDesigns[0]
+        .promptContextCopyId;
+    let reads = 0;
+    const hostileCopy = { ...baseNavigationCopyEn.content };
+    Object.defineProperty(hostileCopy, contextId, {
+      enumerable: true,
+      configurable: true,
+      get() {
+        reads += 1;
+        return "きて";
+      },
+    });
+
+    expect(
+      validateTask11CorpusDistinctness(
+        [BASE_REQUESTS_CONNECTION_MODULE],
+        hostileCopy,
+        baseNavigationCopyIt.content,
+      ),
+    ).toBeUndefined();
+    expect(reads).toBe(0);
+  });
+
+  it.each([
+    [
+      "prompt",
+      (module: MutableModuleSnapshot) => {
+        module.lessons[0].activityDesigns[0].promptTarget = undefined;
+      },
+    ],
+    [
+      "context",
+      (module: MutableModuleSnapshot) => {
+        module.lessons[0].activityDesigns[0].contextTarget = undefined;
+      },
+    ],
+    [
+      "audio",
+      (module: MutableModuleSnapshot) => {
+        module.lessons[0].activityDesigns[8].audioTargetId = undefined;
+      },
+    ],
+    [
+      "spoken",
+      (module: MutableModuleSnapshot) => {
+        module.lessons[0].activityDesigns[9].acceptedAnswerTarget = undefined;
+      },
+    ],
+  ] as const)("fails closed on a malformed %s snapshot field", (_, mutate) => {
+    const module = structuredClone(
+      BASE_REQUESTS_CONNECTION_MODULE,
+    ) as unknown as MutableModuleSnapshot;
+    mutate(module);
+
+    expect(validateBaseRequestsConnectionModule(module).ok).toBe(false);
+  });
+
   it("publishes exact EN/IT copy parity and one listening plus one spoken activity per lesson", () => {
     for (const module of TASK12_MODULES) {
       for (const lesson of module.lessons) {
@@ -494,18 +935,27 @@ describe("Task 12 bounded te ownership", () => {
     expect(baseNavigationCopyIt.content[secondRetryId]).toMatch(/programma/iu);
   });
 
-  it("uses a natural declarative offer before accepting help", () => {
+  it("grounds acceptance in a wanted offer without reusing the dialogue", () => {
     const lesson = BASE_REQUESTS_CONNECTION_MODULE.lessons[1];
-    const offer = lesson.dialogue!.turns[4];
-    const activityPrompt = lesson.activityDesigns[0].promptTarget;
-    const translationId = `${lesson.dialogue!.id}-turn-5-translation`;
+    const activity = lesson.activityDesigns[0];
+    const activityPrompt = activity.promptTarget;
+    const accepted = japanese(activity.acceptedAnswerTarget.tokens);
+    const rejected = activity.optionTargets
+      .map(({ tokens }) => japanese(tokens))
+      .find((surface) => surface !== accepted);
 
-    expect(japanese(offer.tokens)).toBe("しごとをてつだいます");
     expect(japanese(activityPrompt.tokens)).toBe("しごとをてつだいます");
-    expect(offer.semanticRoleIds).not.toContain("question");
-    expect(baseNavigationCopyEn.content[translationId]).toMatch(
-      /I'll help/iu,
-    );
+    expect(accepted).toBe("おねがいします");
+    expect(rejected).toBe("いいえ");
+    const contextCopyId = lesson.content.activities[0].instructionCopyId;
+    expect(
+      baseNavigationCopyEn.content[contextCopyId],
+    ).toMatch(/want.*help/iu);
+    expect(
+      baseNavigationCopyIt.content[contextCopyId],
+    ).toMatch(/vuoi.*aiuto/iu);
+    expect(lesson.dialogue!.turns.map(({ tokens }) => japanese(tokens))).not
+      .toContain(japanese(activityPrompt.tokens));
   });
 
   it("orders listening form cards from source to generated result", () => {

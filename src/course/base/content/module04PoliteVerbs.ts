@@ -171,6 +171,12 @@ export interface BaseTask11ActivitySpec {
   readonly shape: BaseSemanticActivityShape;
   readonly referentId: string | null;
   readonly worldFactId: string | null;
+  readonly answerFactStatus?:
+    | "accepted-world"
+    | "rejected-context";
+  readonly distractorFactStatus?:
+    | "accepted-world"
+    | "rejected-context";
   readonly errorCode: string | null;
   readonly contrastAxis?: BaseTask11ContrastAxis;
   readonly heldConstantPredicateLexemeId?: string | null;
@@ -1150,11 +1156,17 @@ function activitiesFor(
       acceptedAnswerTargetId,
       optionTargetIds,
       optionTargets,
-      optionFactStatus: optionTargets.map((_, optionIndex) =>
-        optionIndex === activity.correctOptionIndex
-          ? "accepted-world"
-          : "rejected-context",
-      ),
+      optionFactStatus: isSpoken
+        ? []
+        : activity.correctOptionIndex === 0
+          ? [
+              activity.answerFactStatus ?? "accepted-world",
+              activity.distractorFactStatus ?? "rejected-context",
+            ]
+          : [
+              activity.distractorFactStatus ?? "rejected-context",
+              activity.answerFactStatus ?? "accepted-world",
+            ],
       audioTargetId:
         activity.shape.operation === "identify-audio" ? targetId : null,
       promptContextCopyId: activity.promptContextCopyId,

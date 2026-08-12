@@ -346,6 +346,11 @@ export interface BaseVerbLexeme extends BaseLexemeCommon {
   readonly category: "verb";
   readonly verbClass: "godan" | "ichidan" | "suru" | "kuru";
   readonly aspect: "dynamic" | "stative";
+  readonly eventClass: "activity" | "change-of-state" | "stative";
+  readonly teImasuAnchor?: Readonly<{
+    readonly semanticRole: "theme" | "goal";
+    readonly lexemeIds?: readonly string[];
+  }>;
   readonly allowedTeConstructions: readonly BaseTeConstruction[];
   readonly dictionaryTokens: readonly AssembledToken[];
   readonly teFormException?: Readonly<{

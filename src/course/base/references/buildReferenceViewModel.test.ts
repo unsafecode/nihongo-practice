@@ -169,6 +169,32 @@ describe("buildBaseReferenceViewModel", () => {
     );
   });
 
+  it("reveals the generated てください row exactly at requests-connection-2", () => {
+    const before = buildBaseReferenceViewModel(
+      "verb-classes-conjugation",
+      "requests-connection-1",
+      "en",
+    );
+    const atOwner = buildBaseReferenceViewModel(
+      "verb-classes-conjugation",
+      "requests-connection-2",
+      "en",
+    );
+    expect(before.ok && atOwner.ok).toBe(true);
+    if (!before.ok || !atOwner.ok) return;
+
+    expect(before.model.entries.map(({ semanticId }) => semanticId)).not.toContain(
+      "base-verb-te-kudasai",
+    );
+    const request = atOwner.model.entries.find(
+      ({ semanticId }) => semanticId === "base-verb-te-kudasai",
+    );
+    expect(request?.prerequisiteEntryIds).toEqual(["base-verb-te-forms"]);
+    expect(
+      request?.canonicalFormCells[0]?.value.map(({ jp }) => jp).join(""),
+    ).toBe("たべてください");
+  });
+
   it("keeps predicate cell functions in localized grid and card rows", () => {
     const result = buildBaseReferenceViewModel(
       "adjective-copula",

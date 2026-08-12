@@ -686,7 +686,7 @@ describe("Base first-teach ownership", () => {
         "adjective-shizuka",
         "adjective-kirei",
         "adjective-yuumei",
-        "adjective-kirai",
+        "adjective-genki",
       ].map((id) => [id, lexemeOwner(id)]),
     ).toEqual([
       ["adjective-takai", "copula-adjectives-3"],
@@ -695,7 +695,7 @@ describe("Base first-teach ownership", () => {
       ["adjective-shizuka", "copula-adjectives-4"],
       ["adjective-kirei", "copula-adjectives-4"],
       ["adjective-yuumei", "copula-adjectives-4"],
-      ["adjective-kirai", "copula-adjectives-4"],
+      ["adjective-genki", "copula-adjectives-4"],
     ]);
   });
 
@@ -720,7 +720,7 @@ describe("Base first-teach ownership", () => {
       ["lexeme", "adjective-shizuka"],
       ["lexeme", "adjective-kirei"],
       ["lexeme", "adjective-yuumei"],
-      ["lexeme", "adjective-kirai"],
+      ["lexeme", "adjective-genki"],
       ["concept", "na-adjective-class"],
       ["form", "na-adjective-predicate-and-attributive"],
     ] as const) {

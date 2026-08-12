@@ -108,6 +108,109 @@ describe("Task 12 existence-particle ownership", () => {
     }
   });
 
+  it("uses は only for established-topic questions and answers in lesson 1", () => {
+    const lesson = BASE_EXISTENCE_LOCATION_MODULE.lessons[0];
+
+    expect(lesson.examples.map(({ tokens }) => tokens.map(({ jp }) => jp).join(""))).toEqual([
+      "はい、つくえはあります",
+      "はい、いぬはいます",
+      "くるまはありますね",
+      "はい、ほんはあります",
+      "ともだちはいますよ",
+      "かさはありますか",
+      "せんせいはいますね",
+      "はい、えんぴつはあります",
+      "たなかさんはいますか",
+      "じてんしゃはありますよ",
+    ]);
+    for (const example of lesson.examples) {
+      const copyId =
+        "copyId" in example.translationCopy
+          ? example.translationCopy.copyId
+          : example.translationCopy.enCopyId;
+      expect(baseNavigationCopyEn.content[copyId]).not.toMatch(
+        /^There (?:is|are)\b/iu,
+      );
+      const itCopyId =
+        "copyId" in example.translationCopy
+          ? example.translationCopy.copyId
+          : example.translationCopy.itCopyId;
+      expect(baseNavigationCopyIt.content[itCopyId]).not.toMatch(
+        /^(?:C'è|Ci sono)\b/iu,
+      );
+    }
+    const contrastId =
+      lesson.content.explanationBlockIds.nearestContrast;
+    expect(baseNavigationCopyEn.content[contrastId]).toMatch(
+      /established|already known/iu,
+    );
+    expect(baseNavigationCopyIt.content[contrastId]).toMatch(
+      /già (?:stabilito|noto)/iu,
+    );
+  });
+
+  it.each([1, 2] as const)(
+    "makes lesson %s ordering distractor predicate-nonfinal rather than an alternate grammatical order",
+    (lessonIndex) => {
+      const activity =
+        BASE_EXISTENCE_LOCATION_MODULE.lessons[lessonIndex].activityDesigns[2];
+      const accepted = activity.acceptedAnswerTarget;
+      const distractor =
+        activity.optionTargets[
+          activity.correctOptionIndex === 0 ? 1 : 0
+        ];
+      const multiset = (target: typeof accepted) =>
+        target.tokens.map(({ source }) => source.referenceId).sort();
+
+      expect(multiset(distractor)).toEqual(multiset(accepted));
+      expect(distractor.predicateLexemeId).toBe(
+        accepted.predicateLexemeId,
+      );
+      expect(distractor.tokens.at(-1)?.kind).toBe("particle");
+      expect(accepted.tokens.at(-1)?.kind).toBe("morpheme");
+    },
+  );
+
+  it("repairs the new-entity topic mismatch by changing only は to が", () => {
+    const diagnosis =
+      BASE_EXISTENCE_LOCATION_MODULE.lessons[2].activityDesigns[5];
+    const prompt = diagnosis.promptTarget;
+    const accepted = diagnosis.acceptedAnswerTarget;
+    const differingTokens = prompt.tokens.flatMap((token, index) =>
+      token.source.referenceId === accepted.tokens[index]?.source.referenceId
+        ? []
+        : [[token.source.referenceId, accepted.tokens[index]?.source.referenceId]],
+    );
+
+    expect(prompt.tokens.map(({ jp }) => jp).join("")).toBe(
+      "へやにいぬはいます",
+    );
+    expect(accepted.tokens.map(({ jp }) => jp).join("")).toBe(
+      "へやにいぬがいます",
+    );
+    expect(differingTokens).toEqual([["topic-wa", "existential-subject-ga"]]);
+  });
+
+  it("uniquely cues the hidden police-officer location in both locales", () => {
+    const lesson = BASE_EXISTENCE_LOCATION_MODULE.lessons[3];
+    const index = lesson.content.activities.findIndex(
+      ({ operation }) => operation === "produce-spoken",
+    );
+    const activity = lesson.content.activities[index];
+    const target = lesson.activityDesigns[index].acceptedAnswerTarget;
+    const en = baseNavigationCopyEn.content[activity.instructionCopyId];
+    const it = baseNavigationCopyIt.content[activity.instructionCopyId];
+
+    expect(en).toMatch(/police officer.*station/iu);
+    expect(it).toMatch(/agente.*stazione/iu);
+    expect(en.normalize("NFKC")).not.toContain(
+      target.tokens.map(({ jp }) => jp).join(""),
+    );
+    expect(it.normalize("NFKC")).not.toContain(
+      target.tokens.map(({ jp }) => jp).join(""),
+    );
+  });
+
   it("rejects a cloned accepted target whose existence predicate contradicts its entity class", () => {
     const mutated = structuredClone(BASE_EXISTENCE_LOCATION_MODULE);
     const target = mutated.lessons[0].examples[0] as unknown as {

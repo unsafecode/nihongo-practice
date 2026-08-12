@@ -9,10 +9,14 @@ import type {
   BaseValidationCatalogs,
   BaseVisibleTarget,
 } from "../catalog/types";
+import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
+import { baseNavigationCopyEn } from "../copy/en";
+import { baseNavigationCopyIt } from "../copy/it";
 import { realizeTeConstruction } from "../forms/verbForms";
 import {
   containsExactGeneratedTokenSequence,
-  strictTask11ModuleTargets,
+  strictTask11ModuleSnapshot,
+  validateTask11CorpusDistinctness,
 } from "../validation/moduleSnapshots";
 import {
   BASE_CONTEXT_ACTIVITY_SHAPE,
@@ -28,8 +32,11 @@ import {
   worldFactLedgerFor,
   type BaseSemanticActivityShape,
   type BaseWorldFactRecord,
+  BASE_SENTENCE_FOUNDATIONS_MODULE,
 } from "./module02SentenceFoundations";
+import { BASE_TOPIC_QUESTIONS_MODULE } from "./module03TopicQuestions";
 import {
+  BASE_POLITE_VERBS_MODULE,
   buildTask11Lesson,
   TASK11_COMMA,
   task11AnalysisLabel,
@@ -52,6 +59,9 @@ import {
   type BaseTask11TargetSpec,
   type BaseTask11VerbFormKind,
 } from "./module04PoliteVerbs";
+import { BASE_ARGUMENT_PARTICLES_MODULE } from "./module05ArgumentParticles";
+import { BASE_TIME_MOVEMENT_MODULE } from "./module06TimeMovement";
+import { BASE_COPULA_ADJECTIVES_MODULE } from "./module07CopulaAdjectives";
 import {
   BASE_EXISTENCE_LOCATION_MODULE,
   BASE_EXISTENCE_LOCATION_VALIDATION_CATALOGS,
@@ -73,6 +83,13 @@ export interface BaseTeAllomorphEvidence {
   readonly exception: boolean;
   readonly verbClass: "godan" | "ichidan" | "suru" | "kuru";
   readonly tokens: readonly AssembledToken[];
+}
+
+export interface BaseTeAllomorphRule {
+  readonly endingFamily: BaseTeAllomorphEvidence["endingFamily"];
+  readonly sourceEndings: readonly string[];
+  readonly replacement: string;
+  readonly exceptionLemmaId: string | null;
 }
 
 export interface BaseRequestsConnectionModule {
@@ -112,6 +129,114 @@ function japanese(tokens: readonly AssembledToken[]): string {
   return tokens.map(({ jp }) => jp).join("");
 }
 
+export const BASE_TE_ALLOMORPH_RULES: readonly BaseTeAllomorphRule[] =
+  deepFreeze([
+    {
+      endingFamily: "う/つ/る",
+      sourceEndings: ["う", "つ", "る"],
+      replacement: "って",
+      exceptionLemmaId: null,
+    },
+    {
+      endingFamily: "む/ぶ/ぬ",
+      sourceEndings: ["む", "ぶ", "ぬ"],
+      replacement: "んで",
+      exceptionLemmaId: null,
+    },
+    {
+      endingFamily: "く",
+      sourceEndings: ["く"],
+      replacement: "いて",
+      exceptionLemmaId: null,
+    },
+    {
+      endingFamily: "ぐ",
+      sourceEndings: ["ぐ"],
+      replacement: "いで",
+      exceptionLemmaId: null,
+    },
+    {
+      endingFamily: "す",
+      sourceEndings: ["す"],
+      replacement: "して",
+      exceptionLemmaId: null,
+    },
+    {
+      endingFamily: "ichidan",
+      sourceEndings: ["る"],
+      replacement: "て",
+      exceptionLemmaId: null,
+    },
+    {
+      endingFamily: "する",
+      sourceEndings: ["する"],
+      replacement: "して",
+      exceptionLemmaId: null,
+    },
+    {
+      endingFamily: "くる",
+      sourceEndings: ["くる"],
+      replacement: "きて",
+      exceptionLemmaId: null,
+    },
+    {
+      endingFamily: "いく-exception",
+      sourceEndings: ["いく"],
+      replacement: "いって",
+      exceptionLemmaId: "verb-iku",
+    },
+  ]);
+
+function authoredTeRuleFor(
+  lemmaId: string,
+): BaseTeAllomorphRule | undefined {
+  const lexeme = BASE_LEXEME_BY_ID.get(lemmaId);
+  if (lexeme?.category !== "verb") return undefined;
+  const exception = BASE_TE_ALLOMORPH_RULES.find(
+    ({ exceptionLemmaId }) => exceptionLemmaId === lemmaId,
+  );
+  if (exception) return exception;
+  const family =
+    lexeme.verbClass === "ichidan"
+      ? "ichidan"
+      : lexeme.verbClass === "suru"
+        ? "する"
+        : lexeme.verbClass === "kuru"
+          ? "くる"
+          : lexeme.kana.endsWith("う") ||
+              lexeme.kana.endsWith("つ") ||
+              lexeme.kana.endsWith("る")
+            ? "う/つ/る"
+            : lexeme.kana.endsWith("む") ||
+                lexeme.kana.endsWith("ぶ") ||
+                lexeme.kana.endsWith("ぬ")
+              ? "む/ぶ/ぬ"
+              : lexeme.kana.endsWith("く")
+                ? "く"
+                : lexeme.kana.endsWith("ぐ")
+                  ? "ぐ"
+                  : lexeme.kana.endsWith("す")
+                    ? "す"
+                    : null;
+  return family
+    ? BASE_TE_ALLOMORPH_RULES.find(
+        ({ endingFamily }) => endingFamily === family,
+      )
+    : undefined;
+}
+
+function authoredTeSurface(lemmaId: string): string | undefined {
+  const lexeme = BASE_LEXEME_BY_ID.get(lemmaId);
+  const rule = authoredTeRuleFor(lemmaId);
+  if (lexeme?.category !== "verb" || !rule) return undefined;
+  const sourceEnding = [...rule.sourceEndings]
+    .sort((left, right) => right.length - left.length)
+    .find((ending) => lexeme.kana.endsWith(ending));
+  return sourceEnding
+    ? `${lexeme.kana.slice(0, -sourceEnding.length)}${rule.replacement}`
+    : undefined;
+}
+
 function generatedTeEvidence(
   endingFamily: BaseTeAllomorphEvidence["endingFamily"],
   lemmaId: string,
@@ -122,10 +247,18 @@ function generatedTeEvidence(
   if (!realized.ok) {
     throw new Error(`Missing canonical て form for ${lemmaId}.`);
   }
+  const authoredSurface = authoredTeSurface(lemmaId);
+  if (
+    !authoredSurface ||
+    japanese(realized.value) !== authoredSurface ||
+    authoredTeRuleFor(lemmaId)?.endingFamily !== endingFamily
+  ) {
+    throw new Error(`て engine disagrees with the authored rule for ${lemmaId}.`);
+  }
   return {
     endingFamily,
     lemmaId,
-    surface: japanese(realized.value),
+    surface: authoredSurface,
     exception,
     verbClass,
     tokens: realized.value,
@@ -149,6 +282,17 @@ function predicateSense(lemmaId: string): string {
   return lemmaId.slice("verb-".length);
 }
 
+function lexicalPredicateAspect(
+  lemmaId: string,
+  interpretationTags: readonly BaseInterpretationTag[] = [],
+): BasePredicateAspect {
+  if (interpretationTags.includes("resulting-state")) return "stative";
+  const lexeme = BASE_LEXEME_BY_ID.get(lemmaId);
+  return lexeme?.category === "verb" && lexeme.aspect === "stative"
+    ? "stative"
+    : "dynamic";
+}
+
 function plainVerbTarget(
   lemmaId: string,
   form: BaseTask11VerbFormKind,
@@ -157,8 +301,10 @@ function plainVerbTarget(
   interpretationTags: readonly BaseInterpretationTag[],
   prefix: readonly BaseTask11Part[] = [],
   semanticRoleIds: BaseTask11TargetSpec["semanticRoleIds"] = [],
-  predicateAspect: BasePredicateAspect =
-    lemmaId === "verb-shiru" ? "stative" : "dynamic",
+  predicateAspect: BasePredicateAspect = lexicalPredicateAspect(
+    lemmaId,
+    interpretationTags,
+  ),
 ): BaseTask11TargetSpec {
   return task11Target([...prefix, task11VerbForm(lemmaId, form)], {
     conceptIds,
@@ -205,6 +351,35 @@ function teMappingTarget(
       predicateSenseId: predicateSense(lemmaId),
       predicateLexemeId: lemmaId,
       predicateAspect: "dynamic",
+    },
+  );
+}
+
+function goalVerbFormTarget(
+  placeId: string,
+  lemmaId: string,
+  form: "polite-nonpast" | "te",
+  cellId: string,
+): BaseTask11TargetSpec {
+  return task11Target(
+    [
+      L(placeId),
+      P("goal-ni", "goal", placeId),
+      task11VerbForm(lemmaId, form),
+    ],
+    {
+      conceptIds: form === "te" ? ["base-form-te"] : [],
+      patternCellIds: [form === "te" ? cellId : TE_SOURCE],
+      semanticRoleIds: ["goal"],
+      interpretationTags: [form === "te" ? "metalinguistic" : "future"],
+      predicateSenseId: "come-goal",
+      predicateLexemeId: lemmaId,
+      predicateAspect: "dynamic",
+      particleFrame: {
+        predicateSenseId: "come-goal",
+        provided: { goal: "goal-ni" },
+        attachmentLexemeIdByRole: { goal: placeId },
+      },
     },
   );
 }
@@ -257,7 +432,7 @@ function objectVerbTarget(
       interpretationTags,
       predicateSenseId: sense,
       predicateLexemeId: lemmaId,
-      predicateAspect: lemmaId === "verb-shiru" ? "stative" : "dynamic",
+      predicateAspect: lexicalPredicateAspect(lemmaId, interpretationTags),
       particleFrame: {
         predicateSenseId: sense,
         provided: {
@@ -295,6 +470,37 @@ function requestTarget(
   );
 }
 
+function responseThenActionTarget(
+  responseId: "expression-iie" | "expression-wakarimashita",
+  objectId: string,
+  lemmaId: string,
+): BaseTask11TargetSpec {
+  const sense = themeSense(lemmaId);
+  return task11Target(
+    [
+      L(responseId),
+      TASK11_COMMA,
+      L(objectId),
+      P("object-o", "theme", objectId),
+      task11VerbForm(lemmaId, "polite-nonpast"),
+    ],
+    {
+      conceptIds: [],
+      patternCellIds: [REQUEST_RESPONSE_CELL],
+      semanticRoleIds: ["theme"],
+      interpretationTags: ["future"],
+      predicateSenseId: sense,
+      predicateLexemeId: lemmaId,
+      predicateAspect: "dynamic",
+      particleFrame: {
+        predicateSenseId: sense,
+        provided: { theme: "object-o" },
+        attachmentLexemeIdByRole: { theme: objectId },
+      },
+    },
+  );
+}
+
 function expressionTarget(
   expressionId: string,
   patternCellIds: readonly string[] = [REQUEST_RESPONSE_CELL],
@@ -310,9 +516,26 @@ function expressionTarget(
   });
 }
 
-function acceptedOfferTarget(): BaseTask11TargetSpec {
+function softenedExpressionTarget(expressionId: string): BaseTask11TargetSpec {
   return task11Target(
-    [L("expression-sumimasen"), TASK11_COMMA, L("expression-onegaishimasu")],
+    [L("expression-sumimasen"), TASK11_COMMA, L(expressionId)],
+    {
+      conceptIds: [],
+      patternCellIds: [REQUEST_RESPONSE_CELL],
+      semanticRoleIds: [],
+      interpretationTags: ["present-state"],
+      predicateSenseId: null,
+      predicateLexemeId: null,
+      predicateAspect: "nominal",
+    },
+  );
+}
+
+function acknowledgedResponseTarget(
+  expressionId: "expression-douzo" | "expression-wakarimashita",
+): BaseTask11TargetSpec {
+  return task11Target(
+    [L("expression-hai"), TASK11_COMMA, L(expressionId)],
     {
       conceptIds: [],
       patternCellIds: [REQUEST_RESPONSE_CELL],
@@ -375,6 +598,191 @@ function teImasuTarget(
     [interpretation],
     prefix,
     semanticRoleIds,
+  );
+}
+
+function anchoredTeImasuSubjectTarget(
+  subjectId: string,
+  lemmaId: string,
+): BaseTask11TargetSpec {
+  return task11Target(
+    [
+      L(subjectId),
+      P("topic-wa", "topic", subjectId),
+      L("noun-ima"),
+      task11VerbForm(lemmaId, "te-imasu"),
+    ],
+    {
+      conceptIds: [
+        "base-construction-te-imasu",
+        "relative-time-omission",
+      ],
+      patternCellIds: [TE_IMASU_ONGOING_CELL],
+      semanticRoleIds: ["topic", "time"],
+      interpretationTags: ["ongoing-now"],
+      predicateSenseId: "current-action-topic",
+      predicateLexemeId: lemmaId,
+      predicateAspect: "dynamic",
+      particleFrame: {
+        predicateSenseId: "current-action-topic",
+        provided: { topic: "topic-wa" },
+        attachmentLexemeIdByRole: { topic: subjectId },
+      },
+    },
+  );
+}
+
+function anchoredObjectVerbTarget(
+  subjectId: string | null,
+  objectId: string,
+  lemmaId: string,
+  form: "polite-nonpast" | "te-imasu",
+  interpretation: "future" | "habitual" | "ongoing-now" | "resulting-state",
+  patternCellId: string,
+  options: Readonly<{
+    readonly includeNow?: boolean;
+    readonly question?: boolean;
+    readonly prefix?: readonly BaseTask11Part[];
+  }> = {},
+): BaseTask11TargetSpec {
+  const sense = themeSense(lemmaId);
+  const question = options.question === true;
+  return task11Target(
+    [
+      ...(options.prefix ?? []),
+      ...(subjectId
+        ? [L(subjectId), P("topic-wa", "topic", subjectId)]
+        : []),
+      ...(options.includeNow ? [L("noun-ima")] : []),
+      L(objectId),
+      P("object-o", "theme", objectId),
+      task11VerbForm(lemmaId, form),
+      ...(question ? [P("question-ka", "question", lemmaId)] : []),
+    ],
+    {
+      conceptIds: [
+        ...(form === "te-imasu"
+          ? ["base-construction-te-imasu"]
+          : []),
+        ...(options.includeNow ? ["relative-time-omission"] : []),
+      ],
+      patternCellIds: [patternCellId],
+      semanticRoleIds: [
+        ...(subjectId ? (["topic"] as const) : []),
+        ...(options.includeNow ? (["time"] as const) : []),
+        "theme",
+        ...(question ? (["question"] as const) : []),
+      ],
+      interpretationTags: [interpretation],
+      predicateSenseId: sense,
+      predicateLexemeId: lemmaId,
+      predicateAspect: lexicalPredicateAspect(lemmaId, [interpretation]),
+      particleFrame: {
+        predicateSenseId: sense,
+        provided: {
+          ...(subjectId ? { topic: "topic-wa" as const } : {}),
+          theme: "object-o",
+          ...(question ? { question: "question-ka" as const } : {}),
+        },
+        attachmentLexemeIdByRole: {
+          ...(subjectId ? { topic: subjectId } : {}),
+          theme: objectId,
+          ...(question ? { question: lemmaId } : {}),
+        },
+      },
+    },
+  );
+}
+
+function seatedTarget(
+  subjectId: string | null,
+  form: "polite-nonpast" | "te-imasu",
+  question = false,
+  prefix: readonly BaseTask11Part[] = [],
+): BaseTask11TargetSpec {
+  const interpretation =
+    form === "te-imasu" ? "resulting-state" : "future";
+  return task11Target(
+    [
+      ...prefix,
+      ...(subjectId
+        ? [L(subjectId), P("topic-wa", "topic", subjectId)]
+        : []),
+      L("noun-isu"),
+      P("goal-ni", "goal", "noun-isu"),
+      task11VerbForm("verb-suwaru", form),
+      ...(question
+        ? [P("question-ka", "question", "verb-suwaru")]
+        : []),
+    ],
+    {
+      conceptIds:
+        form === "te-imasu" ? ["base-construction-te-imasu"] : [],
+      patternCellIds: [
+        form === "te-imasu"
+          ? TE_IMASU_STATE_CELL
+          : TE_IMASU_NONPAST_CONTRAST_CELL,
+      ],
+      semanticRoleIds: [
+        ...(subjectId ? (["topic"] as const) : []),
+        "goal",
+        ...(question ? (["question"] as const) : []),
+      ],
+      interpretationTags: [interpretation],
+      predicateSenseId: "sit-current-state",
+      predicateLexemeId: "verb-suwaru",
+      predicateAspect:
+        form === "te-imasu" ? "stative" : "dynamic",
+      particleFrame: {
+        predicateSenseId: "sit-current-state",
+        provided: {
+          ...(subjectId ? { topic: "topic-wa" as const } : {}),
+          goal: "goal-ni",
+          ...(question ? { question: "question-ka" as const } : {}),
+        },
+        attachmentLexemeIdByRole: {
+          ...(subjectId ? { topic: subjectId } : {}),
+          goal: "noun-isu",
+          ...(question ? { question: "verb-suwaru" } : {}),
+        },
+      },
+    },
+  );
+}
+
+function waitingAtStationTarget(subjectId: string): BaseTask11TargetSpec {
+  return task11Target(
+    [
+      L(subjectId),
+      P("topic-wa", "topic", subjectId),
+      L("noun-ima"),
+      L("noun-eki"),
+      P("action-place-de", "action-place", "noun-eki"),
+      task11VerbForm("verb-matsu", "te-imasu"),
+    ],
+    {
+      conceptIds: [
+        "base-construction-te-imasu",
+        "relative-time-omission",
+      ],
+      patternCellIds: [TE_IMASU_ONGOING_CELL],
+      semanticRoleIds: ["topic", "time", "action-place"],
+      interpretationTags: ["ongoing-now"],
+      predicateSenseId: "wait-current-place",
+      predicateLexemeId: "verb-matsu",
+      predicateAspect: "dynamic",
+      particleFrame: {
+        predicateSenseId: "wait-current-place",
+        provided: {
+          topic: "topic-wa",
+          "action-place": "action-place-de",
+        },
+        attachmentLexemeIdByRole: {
+          topic: subjectId,
+          "action-place": "noun-eki",
+        },
+      },
+    },
   );
 }
 
@@ -482,6 +890,7 @@ const L1: BaseTask11LessonSpec = {
     "verb-suru",
     "verb-kuru",
     "verb-iku",
+    "noun-eki",
   ],
   introducedConceptIds: ["base-form-te"],
   reviewedConceptIds: [
@@ -532,7 +941,7 @@ const L1: BaseTask11LessonSpec = {
     act(task11Cue(task11VerbForm("verb-akeru", "dictionary")), teTarget("verb-akeru", TE_ICHIDAN), teTarget("verb-akeru", TE_ICHIDAN, "dictionary"), 0, "requests-connection-1", 5, TE_ICHIDAN, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, { contrastAxis: "polite-form", heldConstantPredicateLexemeId: "verb-akeru" }),
     act(task11Target([task11DiagnosticForm("verb-iku", "いいて", "iite", "te-iku-overgeneralization")], { conceptIds: ["base-form-te"], patternCellIds: [], semanticRoleIds: [], interpretationTags: ["metalinguistic"], predicateSenseId: "iku", predicateLexemeId: "verb-iku", predicateAspect: "dynamic" }), teTarget("verb-iku", TE_EXCEPTION), task11Target([task11DiagnosticForm("verb-iku", "いいて", "iite", "te-iku-overgeneralization")], { conceptIds: ["base-form-te"], patternCellIds: [], semanticRoleIds: [], interpretationTags: ["metalinguistic"], predicateSenseId: "iku", predicateLexemeId: "verb-iku", predicateAspect: "dynamic" }), 1, "requests-connection-1", 6, TE_EXCEPTION, BASE_ERROR_ACTIVITY_SHAPE, "te-iku-overgeneralization", { contrastAxis: "polite-form", heldConstantPredicateLexemeId: "verb-iku", errorDefectAxis: "form", changedTokenSourceIds: ["te-iku-overgeneralization", "verb-iku", "te"] }),
     act(task11Cue(task11VerbForm("verb-motte-kuru", "dictionary"), TASK11_COMMA, task11AnalysisLabel("analysis-source")), teTarget("verb-motte-kuru", TE_KURU), teTarget("verb-motte-kuru", TE_KURU, "dictionary"), 0, "requests-connection-1", 7, TE_KURU, BASE_CONTEXT_ACTIVITY_SHAPE, null, { contrastAxis: "polite-form", heldConstantPredicateLexemeId: "verb-motte-kuru" }),
-    act(task11Cue(task11VerbForm("verb-kuru", "dictionary"), TASK11_COMMA, task11AnalysisLabel("analysis-source")), teTarget("verb-kuru", TE_KURU), teTarget("verb-kuru", TE_KURU, "dictionary"), 1, "requests-connection-1", 8, TE_KURU, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, { contrastAxis: "polite-form", heldConstantPredicateLexemeId: "verb-kuru" }),
+    act(task11Cue(L("noun-eki"), TASK11_COMMA, task11VerbForm("verb-kuru", "dictionary")), goalVerbFormTarget("noun-eki", "verb-kuru", "te", TE_KURU), goalVerbFormTarget("noun-eki", "verb-kuru", "polite-nonpast", TE_KURU), 1, "requests-connection-1", 8, TE_KURU, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, { contrastAxis: "polite-form", heldConstantPredicateLexemeId: "verb-kuru" }),
     act(task11Cue(task11AnalysisLabel("analysis-source")), teMappingTarget("verb-miru", TE_ICHIDAN, false, false), teMappingTarget("verb-taberu", TE_ICHIDAN, false, false), 0, "requests-connection-1", 9, TE_ICHIDAN, BASE_LISTENING_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: null }),
     act(task11Cue(task11VerbForm("verb-hanasu", "dictionary")), teTarget("verb-hanasu", TE_SHITE), teTarget("verb-hanasu", TE_SHITE, "dictionary"), 1, "requests-connection-1", 10, TE_SHITE, BASE_SPOKEN_ACTIVITY_SHAPE, null, { contrastAxis: "polite-form", heldConstantPredicateLexemeId: "verb-hanasu" }),
   ],
@@ -550,6 +959,8 @@ const L2: BaseTask11LessonSpec = {
     "verb-yobu",
     "expression-sumimasen",
     "expression-onegaishimasu",
+    "expression-douzo",
+    "expression-wakarimashita",
     "noun-mado",
     "noun-shorui",
     "noun-nimotsu",
@@ -558,6 +969,7 @@ const L2: BaseTask11LessonSpec = {
   reviewLexemeIds: [
     "verb-toru",
     "verb-akeru",
+    "verb-miru",
     "anchor-hon",
     "noun-shigoto",
     "noun-kasa",
@@ -567,7 +979,9 @@ const L2: BaseTask11LessonSpec = {
     "noun-sensei",
     "noun-keisatsukan",
     "noun-ryuugakusei",
+    "noun-tegami",
     "expression-hai",
+    "expression-iie",
   ],
   introducedConceptIds: ["base-construction-te-kudasai"],
   reviewedConceptIds: [
@@ -591,27 +1005,25 @@ const L2: BaseTask11LessonSpec = {
     ex(requestTarget("anchor-hon", "verb-miseru"), "show-book", "Please show me the book.", "Mi mostri il libro, per favore.", "Reuses a familiar object with the same construction.", "Riutilizza un oggetto noto con la stessa costruzione.", "request"),
     ex(requestTarget("noun-nimotsu", "verb-toru"), "take-luggage", "Please take the luggage.", "Prenda il bagaglio, per favore.", "Keeps the requested action explicit.", "Mantiene esplicita l'azione richiesta.", "request"),
     ex(requestTarget("noun-mado", "verb-akeru"), "open-window", "Please open the window.", "Apra la finestra, per favore.", "Contrasts opening with the earlier closing request.", "Contrappone l'apertura alla precedente richiesta di chiudere.", "request"),
-    ex(expressionTarget("expression-hai"), "accept-request", "Yes.", "Sì.", "Models a brief natural acceptance after a request.", "Modella una breve accettazione naturale dopo una richiesta.", "request-response", "contextual-fragment"),
+    ex(softenedExpressionTarget("expression-onegaishimasu"), "accept-offer", "Excuse me—please do.", "Mi scusi; sì, grazie.", "Models a softened acceptance of a wanted offer.", "Modella un'accettazione attenuata di un'offerta desiderata.", "request-response", "contextual-fragment"),
   ],
   activities: [
-    act(promptOf(objectVerbTarget("noun-shigoto", "verb-tetsudau", "polite-nonpast", [], [], ["future"])), expressionTarget("expression-onegaishimasu"), expressionTarget("expression-sumimasen"), 0, "requests-connection-2", 1, REQUEST_RESPONSE_CELL, BASE_MEANING_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: null }),
+    act(promptOf(objectVerbTarget("noun-shigoto", "verb-tetsudau", "polite-nonpast", [], [], ["future"])), expressionTarget("expression-onegaishimasu"), expressionTarget("expression-iie"), 0, "requests-connection-2", 1, REQUEST_RESPONSE_CELL, BASE_MEANING_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: null }),
     act(task11Cue(L("noun-chizu")), requestTarget("noun-chizu", "verb-miseru", [L("expression-sumimasen"), TASK11_COMMA]), requestTarget("noun-chizu", "verb-miseru"), 1, "requests-connection-2", 2, REQUEST_CELL, BASE_FORM_ACTIVITY_SHAPE, null, { contrastAxis: "interpretation", heldConstantPredicateLexemeId: "verb-miseru" }),
-    act(task11Cue(L("noun-kaban")), requestTarget("noun-kaban", "verb-toru"), { ...requestTarget("noun-kaban", "verb-toru"), parts: [task11VerbForm("verb-toru", "te-request"), L("noun-kaban"), P("object-o", "theme", "noun-kaban")] }, 0, "requests-connection-2", 3, REQUEST_CELL, BASE_ORDERING_ACTIVITY_SHAPE, null, { contrastAxis: "word-order", heldConstantPredicateLexemeId: "verb-toru" }),
-    act(task11Cue(L("noun-keisatsukan")), requestTarget("noun-keisatsukan", "verb-yobu"), requestTarget("noun-ryuugakusei", "verb-yobu"), 1, "requests-connection-2", 4, REQUEST_CELL, BASE_CONTROLLED_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: "verb-yobu" }),
-    act(task11Cue(L("noun-nimotsu")), requestTarget("noun-nimotsu", "verb-miseru"), requestTarget("noun-kaban", "verb-miseru"), 0, "requests-connection-2", 5, REQUEST_CELL, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: "verb-miseru" }),
+    act(task11Cue(L("noun-nimotsu")), requestTarget("noun-nimotsu", "verb-toru", [], [P("interactional-ne", "interaction", "verb-toru")]), { ...requestTarget("noun-nimotsu", "verb-toru", [], [P("interactional-ne", "interaction", "verb-toru")]), parts: [task11VerbForm("verb-toru", "te-request"), L("noun-nimotsu"), P("object-o", "theme", "noun-nimotsu"), P("interactional-ne", "interaction", "verb-toru")] }, 0, "requests-connection-2", 3, REQUEST_CELL, BASE_ORDERING_ACTIVITY_SHAPE, null, { contrastAxis: "word-order", heldConstantPredicateLexemeId: "verb-toru" }),
+    act(promptOf(requestTarget("noun-keisatsukan", "verb-yobu")), responseThenActionTarget("expression-wakarimashita", "noun-keisatsukan", "verb-yobu"), responseThenActionTarget("expression-iie", "noun-keisatsukan", "verb-yobu"), 1, "requests-connection-2", 4, REQUEST_RESPONSE_CELL, BASE_CONTROLLED_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: "verb-yobu" }),
+    act(task11Cue(L("noun-kaban")), requestTarget("noun-kaban", "verb-miseru", [], [P("interactional-ne", "interaction", "verb-miseru")]), requestTarget("noun-shorui", "verb-miseru", [], [P("interactional-ne", "interaction", "verb-miseru")]), 0, "requests-connection-2", 5, REQUEST_CELL, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: "verb-miseru" }),
     act(promptOf(objectVerbTarget("noun-mado", "verb-shimeru", "te", ["base-form-te"], [], ["future"])), requestTarget("noun-mado", "verb-shimeru"), objectVerbTarget("noun-mado", "verb-shimeru", "te", ["base-form-te"], [], ["future"]), 1, "requests-connection-2", 6, REQUEST_CELL, BASE_ERROR_ACTIVITY_SHAPE, "request-ending-missing", { contrastAxis: "polite-form", heldConstantPredicateLexemeId: "verb-shimeru", errorDefectAxis: "construction", changedTokenSourceIds: ["kudasai"] }),
     act(task11Cue(L("noun-shio")), requestTarget("noun-shio", "verb-toru", [], [P("interactional-ne", "interaction", "verb-toru")]), requestTarget("noun-shio", "verb-toru", [], [P("interactional-yo", "interaction", "verb-toru")]), 0, "requests-connection-2", 7, REQUEST_CELL, BASE_CONTEXT_ACTIVITY_SHAPE, null, { contrastAxis: "interpretation", heldConstantPredicateLexemeId: "verb-toru" }),
-    act(task11Cue(L("noun-shorui")), requestTarget("noun-shorui", "verb-miseru", [], [P("interactional-ne", "interaction", "verb-miseru")]), requestTarget("noun-kasa", "verb-miseru"), 1, "requests-connection-2", 8, REQUEST_CELL, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: null }),
+    act(task11Cue(L("noun-kasa")), requestTarget("noun-kasa", "verb-miru", [L("expression-douzo"), TASK11_COMMA]), requestTarget("noun-kasa", "verb-miru"), 1, "requests-connection-2", 8, REQUEST_CELL, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, { contrastAxis: "interpretation", heldConstantPredicateLexemeId: "verb-miru" }),
     act(task11Cue(task11VerbForm("verb-toru", "dictionary")), requestTarget("noun-chizu", "verb-toru"), requestTarget("noun-shorui", "verb-toru"), 0, "requests-connection-2", 9, REQUEST_CELL, BASE_LISTENING_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: "verb-toru" }),
     act(task11Cue(L("noun-sensei")), requestTarget("noun-sensei", "verb-yobu", [L("expression-sumimasen"), TASK11_COMMA]), requestTarget("noun-sensei", "verb-yobu"), 1, "requests-connection-2", 10, REQUEST_CELL, BASE_SPOKEN_ACTIVITY_SHAPE, null, { contrastAxis: "interpretation", heldConstantPredicateLexemeId: "verb-yobu" }),
   ],
   dialogue: [
-    turn("learner", requestTarget("noun-kasa", "verb-miseru", [L("expression-sumimasen"), TASK11_COMMA]), "ask-show-umbrella", "Excuse me, please show me the umbrella.", "Mi scusi, mi mostri l'ombrello, per favore.", "Opens with a softened, explicit request.", "Apre con una richiesta esplicita e attenuata."),
-    turn("partner", plainVerbTarget("verb-miseru", "polite-nonpast", [], [REQUEST_RESPONSE_CELL], ["future"], [L("expression-hai"), TASK11_COMMA]), "agree-show", "Yes, I will show it.", "Sì, glielo mostro.", "Accepts and names the response action.", "Accetta e nomina l'azione di risposta."),
-    turn("learner", requestTarget("anchor-hon", "verb-toru"), "ask-take-book", "Please take the book.", "Prenda il libro, per favore.", "Continues with a second bounded request.", "Continua con una seconda richiesta delimitata."),
-    turn("partner", plainVerbTarget("verb-toru", "polite-nonpast", [], [REQUEST_RESPONSE_CELL], ["future"], [L("expression-hai"), TASK11_COMMA]), "agree-take", "Yes, I will take it.", "Sì, lo prendo.", "Confirms the second action.", "Conferma la seconda azione."),
-    turn("partner", objectVerbTarget("noun-shigoto", "verb-tetsudau", "polite-nonpast", [], [REQUEST_RESPONSE_CELL], ["future"]), "offer-help", "I'll help with the work.", "Le do una mano con il lavoro.", "Offers help rather than treating てください as permission.", "Offre aiuto senza trattare てください come permesso."),
-    turn("learner", acceptedOfferTarget(), "accept-help", "Thank you—yes, please.", "Grazie, sì, per favore.", "Accepts the offered help naturally.", "Accetta naturalmente l'aiuto offerto."),
+    turn("learner", requestTarget("noun-shorui", "verb-miseru", [L("expression-sumimasen"), TASK11_COMMA]), "office-ask-documents", "Excuse me, please show me the documents.", "Mi scusi, mi mostri i documenti, per favore.", "Opens one office exchange with a softened document request.", "Apre un unico scambio in ufficio con una richiesta attenuata dei documenti."),
+    turn("partner", acknowledgedResponseTarget("expression-douzo"), "office-handoff-documents", "Yes, here you are.", "Sì, ecco a lei.", "Responds naturally while handing over the documents.", "Risponde naturalmente mentre consegna i documenti."),
+    turn("learner", requestTarget("noun-tegami", "verb-miseru"), "office-ask-letter", "Please show me the letter.", "Mi mostri la lettera, per favore.", "Makes a second document request in the same office.", "Formula una seconda richiesta di un documento nello stesso ufficio."),
+    turn("partner", acknowledgedResponseTarget("expression-wakarimashita"), "office-agree-letter", "Yes, understood.", "Sì, ho capito.", "Accepts the letter request without unnaturally echoing the verb.", "Accetta la richiesta della lettera senza ripetere artificialmente il verbo."),
   ],
 };
 
@@ -677,49 +1089,34 @@ function teImasuQuestion(
   lemmaId: string,
   interpretation: "ongoing-now" | "resulting-state",
 ): BaseTask11TargetSpec {
-  const sense =
-    lemmaId === "verb-yomu"
-      ? "read-current-question"
-      : "sit-current-question";
-  return task11Target(
-    [
-      L(subjectId),
-      P("topic-wa", "topic", subjectId),
-      task11VerbForm(lemmaId, "te-imasu"),
-      P("question-ka", "question", lemmaId),
-    ],
-    {
-      conceptIds: ["base-construction-te-imasu"],
-      patternCellIds: [
-        interpretation === "ongoing-now"
-          ? TE_IMASU_ONGOING_CELL
-          : TE_IMASU_STATE_CELL,
-      ],
-      semanticRoleIds: ["topic", "question"],
-      interpretationTags: [interpretation],
-      predicateSenseId: sense,
-      predicateLexemeId: lemmaId,
-      predicateAspect: "dynamic",
-      particleFrame: {
-        predicateSenseId: sense,
-        provided: {
-          topic: "topic-wa",
-          question: "question-ka",
-        },
-        attachmentLexemeIdByRole: {
-          topic: subjectId,
-          question: lemmaId,
-        },
-      },
-    },
-  );
+  if (lemmaId === "verb-yomu" && interpretation === "ongoing-now") {
+    return anchoredObjectVerbTarget(
+      subjectId,
+      "anchor-hon",
+      lemmaId,
+      "te-imasu",
+      interpretation,
+      TE_IMASU_ONGOING_CELL,
+      { includeNow: true, question: true },
+    );
+  }
+  if (lemmaId === "verb-suwaru" && interpretation === "resulting-state") {
+    return seatedTarget(subjectId, "te-imasu", true);
+  }
+  throw new Error(`Unsupported ています question for ${lemmaId}.`);
 }
 
 const L4: BaseTask11LessonSpec = {
   lessonId: "requests-connection-4",
   contract: "system",
   prerequisiteLessonIds: ["requests-connection-3", "topic-questions-4"],
-  newLexemeIds: ["verb-suwaru", "verb-kiru", "verb-shiru"],
+  newLexemeIds: [
+    "verb-suwaru",
+    "verb-kiru",
+    "verb-shiru",
+    "noun-ima",
+    "noun-fuku",
+  ],
   reviewLexemeIds: [
     "verb-taberu",
     "verb-miru",
@@ -732,7 +1129,13 @@ const L4: BaseTask11LessonSpec = {
     "verb-matsu",
     "verb-motte-kuru",
     "verb-suru",
+    "verb-denwa-suru",
     "noun-kyou",
+    "noun-watashi",
+    "noun-gohan",
+    "noun-tegami",
+    "noun-eki",
+    "noun-isu",
     "anchor-hon",
     "noun-shorui",
     "noun-zasshi",
@@ -758,36 +1161,36 @@ const L4: BaseTask11LessonSpec = {
     "tense-polarity",
   ],
   examples: [
-    ex(teImasuTarget("verb-taberu", "ongoing-now"), "eating-now", "I am eating now.", "Sto mangiando adesso.", "Tags a dynamic action visibly in progress.", "Contrassegna un'azione dinamica visibilmente in corso.", "ongoing-action"),
-    ex(teImasuTarget("verb-yomu", "ongoing-now"), "reading-now", "I am reading now.", "Sto leggendo adesso.", "Keeps the claim tied to this moment.", "Lega l'affermazione a questo momento.", "ongoing-action"),
-    ex(teImasuTarget("verb-kaku", "ongoing-now"), "writing-now", "I am writing now.", "Sto scrivendo adesso.", "Applies the construction to writing in progress.", "Applica la costruzione alla scrittura in corso.", "ongoing-action"),
-    ex(teImasuTarget("verb-hanasu", "ongoing-now"), "speaking-now", "I am speaking now.", "Sto parlando adesso.", "Applies the construction to speech in progress.", "Applica la costruzione al parlare in corso.", "ongoing-action"),
-    ex(teImasuTarget("verb-oyogu", "ongoing-now"), "swimming-now", "I am swimming now.", "Sto nuotando adesso.", "Uses the voiced allomorph in an ongoing action.", "Usa l'allomorfo sonoro in un'azione in corso.", "ongoing-action"),
-    ex(teImasuTarget("verb-benkyou-suru", "ongoing-now"), "studying-now", "I am studying now.", "Sto studiando adesso.", "Uses しています for current study.", "Usa しています per lo studio in corso.", "ongoing-action"),
-    ex({ ...teImasuTarget("verb-hataraku", "ongoing-now"), patternCellIds: [TE_IMASU_ONGOING_CELL, TE_IMASU_NONPAST_CONTRAST_CELL] }, "working-now", "I am working now.", "Sto lavorando adesso.", "Contrasts a current action with habitual nonpast.", "Contrappone un'azione attuale al non passato abituale.", "ongoing-action"),
-    ex(teImasuTarget("verb-shiru", "resulting-state"), "knowing-state", "I know it.", "Lo so.", "Treats しっています as a current knowledge state.", "Tratta しっています come stato attuale di conoscenza.", "current-state"),
-    ex(teImasuTarget("verb-kiru", "resulting-state"), "wearing-state", "I am wearing it.", "Lo indosso.", "Uses きています for the state after putting clothing on.", "Usa きています per lo stato dopo aver indossato un capo.", "resulting-state"),
-    ex(teImasuTarget("verb-suwaru", "resulting-state"), "seated-state", "I am seated.", "Sono seduto.", "Uses すわっています for a maintained seated state.", "Usa すわっています per uno stato seduto mantenuto.", "resulting-state"),
-    ex(teImasuTarget("verb-matsu", "ongoing-now"), "waiting-now", "I am waiting now.", "Sto aspettando adesso.", "Bounds waiting as the action underway now.", "Delimita l'attesa come azione in corso ora.", "ongoing-action"),
-    ex(teImasuTarget("verb-miru", "ongoing-now"), "watching-now", "I am watching now.", "Sto guardando adesso.", "Uses the construction for a bounded action in progress.", "Usa la costruzione per un'azione delimitata in corso.", "ongoing-action"),
+    ex(anchoredObjectVerbTarget("noun-watashi", "noun-gohan", "verb-taberu", "te-imasu", "ongoing-now", TE_IMASU_ONGOING_CELL, { includeNow: true }), "eating-now", "I am eating rice now.", "Adesso sto mangiando riso.", "The Japanese clause names the current time, eater, and food.", "La frase giapponese nomina il momento attuale, chi mangia e il cibo.", "ongoing-action"),
+    ex(anchoredObjectVerbTarget("noun-tanaka", "anchor-hon", "verb-yomu", "te-imasu", "ongoing-now", TE_IMASU_ONGOING_CELL, { includeNow: true }), "reading-now", "Tanaka is reading a book now.", "Tanaka sta leggendo un libro adesso.", "The visible time and book anchor reading in progress.", "Il tempo visibile e il libro ancorano la lettura in corso.", "ongoing-action"),
+    ex(anchoredObjectVerbTarget("noun-yamada", "noun-tegami", "verb-kaku", "te-imasu", "ongoing-now", TE_IMASU_ONGOING_CELL, { includeNow: true }), "writing-now", "Yamada is writing a letter now.", "Yamada sta scrivendo una lettera adesso.", "The letter and current-time phrase make the ongoing event explicit.", "La lettera e l'espressione temporale rendono esplicito l'evento in corso.", "ongoing-action"),
+    ex(anchoredTeImasuSubjectTarget("noun-suzuki", "verb-denwa-suru"), "calling-now", "Suzuki is on the phone now.", "Suzuki è al telefono adesso.", "The subject and visible current-time phrase anchor the call.", "Il soggetto e l'espressione temporale visibile ancorano la telefonata.", "ongoing-action"),
+    ex(anchoredTeImasuSubjectTarget("noun-tanaka", "verb-oyogu"), "swimming-now", "Tanaka is swimming now.", "Tanaka sta nuotando adesso.", "The visible current-time phrase selects an ongoing swim.", "L'espressione temporale visibile seleziona una nuotata in corso.", "ongoing-action"),
+    ex(anchoredTeImasuSubjectTarget("noun-yamada", "verb-benkyou-suru"), "studying-now", "Yamada is studying now.", "Yamada sta studiando adesso.", "The Japanese subject and time identify current study.", "Il soggetto e il tempo in giapponese identificano lo studio attuale.", "ongoing-action"),
+    ex({ ...anchoredTeImasuSubjectTarget("noun-suzuki", "verb-hataraku"), patternCellIds: [TE_IMASU_ONGOING_CELL, TE_IMASU_NONPAST_CONTRAST_CELL] }, "working-now", "Suzuki is working now.", "Suzuki sta lavorando adesso.", "The visible time distinguishes current work from habitual nonpast.", "Il tempo visibile distingue il lavoro attuale dal non passato abituale.", "ongoing-action"),
+    ex(anchoredObjectVerbTarget("noun-watashi", "noun-yamada", "verb-shiru", "te-imasu", "resulting-state", TE_IMASU_STATE_CELL), "knowing-yamada", "I know Yamada.", "Conosco Yamada.", "The named person is the object of a current knowledge state.", "La persona nominata è l'oggetto di uno stato attuale di conoscenza.", "current-state"),
+    ex(anchoredObjectVerbTarget("noun-yamada", "noun-fuku", "verb-kiru", "te-imasu", "resulting-state", TE_IMASU_STATE_CELL), "wearing-clothes", "Yamada is wearing clothes.", "Yamada indossa dei vestiti.", "The explicit clothing object selects the wearing-state reading.", "L'oggetto vestiti esplicito seleziona la lettura di stato risultante.", "resulting-state"),
+    ex(seatedTarget("noun-suzuki", "te-imasu"), "seated-on-chair", "Suzuki is seated on a chair.", "Suzuki è seduto su una sedia.", "The chair location anchors the state after sitting down.", "La sedia ancora lo stato dopo essersi seduto.", "resulting-state"),
+    ex(waitingAtStationTarget("noun-tanaka"), "waiting-at-station-now", "Tanaka is waiting at the station now.", "Tanaka sta aspettando alla stazione adesso.", "The visible current time and action place anchor waiting as underway.", "Il tempo attuale e il luogo dell'azione visibili ancorano l'attesa in corso.", "ongoing-action"),
+    ex(anchoredObjectVerbTarget("noun-suzuki", "noun-zasshi", "verb-miru", "te-imasu", "ongoing-now", TE_IMASU_ONGOING_CELL, { includeNow: true }), "watching-magazine-now", "Suzuki is looking at a magazine now.", "Suzuki sta guardando una rivista adesso.", "The visible time and object anchor the action in progress.", "Il tempo e l'oggetto visibili ancorano l'azione in corso.", "ongoing-action"),
   ],
   activities: [
-    act(task11Cue(L("noun-yamada")), teImasuTarget("verb-shiru", "resulting-state", [L("noun-yamada"), P("topic-wa", "topic", "noun-yamada")], ["topic"]), teImasuTarget("verb-yomu", "ongoing-now", [L("noun-yamada"), P("topic-wa", "topic", "noun-yamada")], ["topic"]), 0, "requests-connection-4", 1, TE_IMASU_STATE_CELL, BASE_MEANING_ACTIVITY_SHAPE, null, { contrastAxis: "interpretation", heldConstantPredicateLexemeId: null }),
+    act(task11Cue(L("noun-tanaka"), L("noun-yamada")), anchoredObjectVerbTarget("noun-tanaka", "noun-yamada", "verb-shiru", "te-imasu", "resulting-state", TE_IMASU_STATE_CELL), anchoredObjectVerbTarget("noun-tanaka", "noun-zasshi", "verb-yomu", "te-imasu", "ongoing-now", TE_IMASU_ONGOING_CELL, { includeNow: true }), 0, "requests-connection-4", 1, TE_IMASU_STATE_CELL, BASE_MEANING_ACTIVITY_SHAPE, null, { contrastAxis: "interpretation", heldConstantPredicateLexemeId: null }),
     act(task11Cue(task11VerbForm("verb-taberu", "dictionary")), teImasuTarget("verb-taberu", "ongoing-now", [L("noun-yamada"), P("topic-wa", "topic", "noun-yamada")], ["topic"]), plainVerbTarget("verb-taberu", "polite-nonpast", [], [TE_IMASU_NONPAST_CONTRAST_CELL], ["future"], [L("noun-yamada"), P("topic-wa", "topic", "noun-yamada")], ["topic"]), 1, "requests-connection-4", 2, TE_IMASU_ONGOING_CELL, BASE_FORM_ACTIVITY_SHAPE, null, { contrastAxis: "interpretation", heldConstantPredicateLexemeId: "verb-taberu" }),
     act(task11Cue(L("noun-zasshi")), objectVerbTarget("noun-zasshi", "verb-yomu", "te-imasu", ["base-construction-te-imasu"], [TE_IMASU_ONGOING_CELL], ["ongoing-now"]), { ...objectVerbTarget("noun-zasshi", "verb-yomu", "te-imasu", ["base-construction-te-imasu"], [TE_IMASU_ONGOING_CELL], ["ongoing-now"]), parts: [task11VerbForm("verb-yomu", "te-imasu"), L("noun-zasshi"), P("object-o", "theme", "noun-zasshi")] }, 0, "requests-connection-4", 3, TE_IMASU_ONGOING_CELL, BASE_ORDERING_ACTIVITY_SHAPE, null, { contrastAxis: "word-order", heldConstantPredicateLexemeId: "verb-yomu" }),
-    act(task11Cue(L("noun-suzuki")), teImasuTarget("verb-suwaru", "resulting-state", [L("noun-suzuki"), P("topic-wa", "topic", "noun-suzuki")], ["topic"]), teImasuTarget("verb-hanasu", "ongoing-now", [L("noun-suzuki"), P("topic-wa", "topic", "noun-suzuki")], ["topic"]), 1, "requests-connection-4", 4, TE_IMASU_STATE_CELL, BASE_CONTROLLED_ACTIVITY_SHAPE, null, { contrastAxis: "interpretation", heldConstantPredicateLexemeId: null }),
+    act(task11Cue(L("noun-yamada"), L("noun-isu")), seatedTarget("noun-yamada", "te-imasu"), anchoredObjectVerbTarget("noun-yamada", "noun-zasshi", "verb-yomu", "te-imasu", "ongoing-now", TE_IMASU_ONGOING_CELL, { includeNow: true }), 1, "requests-connection-4", 4, TE_IMASU_STATE_CELL, BASE_CONTROLLED_ACTIVITY_SHAPE, null, { contrastAxis: "interpretation", heldConstantPredicateLexemeId: null }),
     act(task11Cue(task11VerbForm("verb-kaku", "dictionary")), teImasuTarget("verb-kaku", "ongoing-now", [L("noun-tanaka"), P("topic-wa", "topic", "noun-tanaka")], ["topic"]), plainVerbTarget("verb-kaku", "polite-nonpast", [], [TE_IMASU_NONPAST_CONTRAST_CELL], ["habitual"], [L("noun-tanaka"), P("topic-wa", "topic", "noun-tanaka")], ["topic"]), 0, "requests-connection-4", 5, TE_IMASU_ONGOING_CELL, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, { contrastAxis: "interpretation", heldConstantPredicateLexemeId: "verb-kaku" }),
     act(promptOf(objectVerbTarget("noun-shorui", "verb-yomu", "polite-nonpast", [], [TE_IMASU_NONPAST_CONTRAST_CELL], ["habitual"])), objectVerbTarget("noun-shorui", "verb-yomu", "te-imasu", ["base-construction-te-imasu"], [TE_IMASU_ONGOING_CELL], ["ongoing-now"]), objectVerbTarget("noun-shorui", "verb-yomu", "polite-nonpast", [], [TE_IMASU_NONPAST_CONTRAST_CELL], ["habitual"]), 1, "requests-connection-4", 6, TE_IMASU_ONGOING_CELL, BASE_ERROR_ACTIVITY_SHAPE, "ongoing-construction-mismatch", { contrastAxis: "interpretation", heldConstantPredicateLexemeId: "verb-yomu", errorDefectAxis: "interpretation", changedTokenSourceIds: ["masu", "te", "imasu"] }),
-    act(task11Cue(L("noun-yamada")), teImasuTarget("verb-kiru", "resulting-state", [L("noun-yamada"), P("topic-wa", "topic", "noun-yamada")], ["topic"]), teImasuTarget("verb-motte-kuru", "ongoing-now", [L("noun-yamada"), P("topic-wa", "topic", "noun-yamada")], ["topic"]), 0, "requests-connection-4", 7, TE_IMASU_STATE_CELL, BASE_CONTEXT_ACTIVITY_SHAPE, null, { contrastAxis: "interpretation", heldConstantPredicateLexemeId: null }),
-    act(task11Cue(L("noun-tanaka")), teImasuTarget("verb-shiru", "resulting-state", [L("noun-tanaka"), P("topic-wa", "topic", "noun-tanaka")], ["topic"]), teImasuTarget("verb-hanasu", "ongoing-now", [L("noun-tanaka"), P("topic-wa", "topic", "noun-tanaka")], ["topic"]), 1, "requests-connection-4", 8, TE_IMASU_STATE_CELL, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, { contrastAxis: "interpretation", heldConstantPredicateLexemeId: null }),
-    act(task11Cue(L("noun-suzuki")), teImasuTarget("verb-miru", "ongoing-now", [L("noun-suzuki"), P("topic-wa", "topic", "noun-suzuki")], ["topic"]), teImasuTarget("verb-benkyou-suru", "ongoing-now", [L("noun-suzuki"), P("topic-wa", "topic", "noun-suzuki")], ["topic"]), 0, "requests-connection-4", 9, TE_IMASU_ONGOING_CELL, BASE_LISTENING_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: null }),
-    act(task11Cue(task11VerbForm("verb-suwaru", "dictionary")), teImasuTarget("verb-suwaru", "resulting-state", [L("noun-tanaka"), P("topic-wa", "topic", "noun-tanaka")], ["topic"]), plainVerbTarget("verb-suwaru", "polite-nonpast", [], [TE_IMASU_NONPAST_CONTRAST_CELL], ["future"], [L("noun-tanaka"), P("topic-wa", "topic", "noun-tanaka")], ["topic"]), 1, "requests-connection-4", 10, TE_IMASU_STATE_CELL, BASE_SPOKEN_ACTIVITY_SHAPE, null, { contrastAxis: "interpretation", heldConstantPredicateLexemeId: "verb-suwaru" }),
+    act(task11Cue(L("noun-suzuki"), L("noun-fuku")), anchoredObjectVerbTarget("noun-suzuki", "noun-fuku", "verb-kiru", "te-imasu", "resulting-state", TE_IMASU_STATE_CELL), anchoredObjectVerbTarget("noun-suzuki", "noun-fuku", "verb-kiru", "polite-nonpast", "future", TE_IMASU_NONPAST_CONTRAST_CELL), 0, "requests-connection-4", 7, TE_IMASU_STATE_CELL, BASE_CONTEXT_ACTIVITY_SHAPE, null, { contrastAxis: "interpretation", heldConstantPredicateLexemeId: "verb-kiru" }),
+    act(task11Cue(L("noun-tanaka"), L("noun-suzuki")), anchoredObjectVerbTarget("noun-tanaka", "noun-suzuki", "verb-shiru", "te-imasu", "resulting-state", TE_IMASU_STATE_CELL), anchoredTeImasuSubjectTarget("noun-tanaka", "verb-hanasu"), 1, "requests-connection-4", 8, TE_IMASU_STATE_CELL, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, { contrastAxis: "interpretation", heldConstantPredicateLexemeId: null }),
+    act(task11Cue(L("noun-suzuki")), anchoredObjectVerbTarget("noun-suzuki", "anchor-hon", "verb-miru", "te-imasu", "ongoing-now", TE_IMASU_ONGOING_CELL, { includeNow: true }), anchoredObjectVerbTarget("noun-suzuki", "noun-shorui", "verb-miru", "te-imasu", "ongoing-now", TE_IMASU_ONGOING_CELL, { includeNow: true }), 0, "requests-connection-4", 9, TE_IMASU_ONGOING_CELL, BASE_LISTENING_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: "verb-miru" }),
+    act(task11Cue(task11VerbForm("verb-suwaru", "dictionary"), L("noun-tanaka"), L("noun-isu")), seatedTarget("noun-tanaka", "te-imasu"), seatedTarget("noun-tanaka", "polite-nonpast"), 1, "requests-connection-4", 10, TE_IMASU_STATE_CELL, BASE_SPOKEN_ACTIVITY_SHAPE, null, { contrastAxis: "interpretation", heldConstantPredicateLexemeId: "verb-suwaru" }),
   ],
   dialogue: [
     turn("learner", teImasuQuestion("noun-tanaka", "verb-yomu", "ongoing-now"), "ask-tanaka-now", "Is Tanaka reading now?", "Tanaka sta leggendo adesso?", "Asks about an action visibly underway.", "Chiede di un'azione visibilmente in corso."),
-    turn("partner", objectVerbTarget("anchor-hon", "verb-yomu", "te-imasu", ["base-construction-te-imasu"], [TE_IMASU_ONGOING_CELL], ["ongoing-now"], [L("expression-hai"), TASK11_COMMA]), "tanaka-reading", "Yes, Tanaka is reading a book.", "Sì, Tanaka sta leggendo un libro.", "Answers with an ongoing dynamic action.", "Risponde con un'azione dinamica in corso."),
+    turn("partner", anchoredObjectVerbTarget(null, "anchor-hon", "verb-yomu", "te-imasu", "ongoing-now", TE_IMASU_ONGOING_CELL, { prefix: [L("expression-hai"), TASK11_COMMA] }), "tanaka-reading", "Yes, Tanaka is reading a book.", "Sì, Tanaka sta leggendo un libro.", "Answers with an ongoing dynamic action.", "Risponde con un'azione dinamica in corso."),
     turn("learner", teImasuQuestion("noun-suzuki", "verb-suwaru", "resulting-state"), "ask-suzuki-now", "Is Suzuki seated now?", "Suzuki è seduto adesso?", "Contrasts the current state with the ongoing action.", "Contrappone lo stato attuale all'azione in corso."),
-    turn("partner", teImasuTarget("verb-suwaru", "resulting-state", [L("expression-hai"), TASK11_COMMA]), "suzuki-seated", "Yes, Suzuki is seated.", "Sì, Suzuki è seduto.", "Answers with the current state after sitting down.", "Risponde con lo stato attuale dopo essersi seduto."),
+    turn("partner", seatedTarget(null, "te-imasu", false, [L("expression-hai"), TASK11_COMMA]), "suzuki-seated", "Yes, Suzuki is seated on a chair.", "Sì, Suzuki è seduto su una sedia.", "Answers with the current state after sitting down.", "Risponde con lo stato attuale dopo essersi seduto."),
   ],
 };
 
@@ -821,12 +1224,6 @@ const RAW_MODULE: BaseRequestsConnectionModule = {
   worldFactLedger: worldFactLedgerFor(RAW_LESSONS),
 };
 
-const RESULT_STATE_LEMMAS = deepFreeze([
-  "verb-shiru",
-  "verb-kiru",
-  "verb-suwaru",
-]);
-
 function hasCanonicalTeRealization(target: BaseVisibleTarget): boolean {
   const construction = target.formIds.includes(
     "base-construction-te-kudasai",
@@ -847,12 +1244,67 @@ function hasCanonicalTeRealization(target: BaseVisibleTarget): boolean {
   );
   if (teLemmaIds.size === 0) return false;
   return [...teLemmaIds].every((lemmaId) => {
+    const baseTe = realizeTeConstruction(lemmaId, "te");
     const realized = realizeTeConstruction(lemmaId, construction);
     return (
+      baseTe.ok &&
+      authoredTeSurface(lemmaId) === japanese(baseTe.value) &&
       realized.ok &&
       containsExactGeneratedTokenSequence(target.tokens, realized.value)
     );
   });
+}
+
+function hasCanonicalTeImasuSemantics(
+  lessonId: string,
+  target: BaseVisibleTarget,
+): boolean {
+  const hasTeImasu = target.formIds.includes(
+    "base-construction-te-imasu",
+  );
+  const constructionTags = target.interpretationTags.filter(
+    (tag) => tag === "ongoing-now" || tag === "resulting-state",
+  );
+  if (!hasTeImasu) return constructionTags.length === 0;
+  if (
+    lessonId !== "requests-connection-4" ||
+    target.predicateLexemeId === null
+  ) {
+    return false;
+  }
+  const lexeme = BASE_LEXEME_BY_ID.get(target.predicateLexemeId);
+  if (lexeme?.category !== "verb") return false;
+  const expectedTag =
+    lexeme.eventClass === "activity"
+      ? "ongoing-now"
+      : "resulting-state";
+  const expectedCell =
+    expectedTag === "ongoing-now"
+      ? TE_IMASU_ONGOING_CELL
+      : TE_IMASU_STATE_CELL;
+  const forbiddenCell =
+    expectedTag === "ongoing-now"
+      ? TE_IMASU_STATE_CELL
+      : TE_IMASU_ONGOING_CELL;
+  if (
+    constructionTags.length !== 1 ||
+    constructionTags[0] !== expectedTag ||
+    (target.patternCellIds.length > 0 &&
+      !target.patternCellIds.includes(expectedCell)) ||
+    target.patternCellIds.includes(forbiddenCell) ||
+    target.predicateAspect !==
+      (expectedTag === "ongoing-now" ? "dynamic" : "stative")
+  ) {
+    return false;
+  }
+  const anchor = lexeme.teImasuAnchor;
+  if (!anchor) return true;
+  return (target.particleBindings ?? []).some(
+    ({ role, attachmentLexemeId }) =>
+      role === anchor.semanticRole &&
+      (anchor.lexemeIds === undefined ||
+        anchor.lexemeIds.includes(attachmentLexemeId)),
+  );
 }
 
 function hasCanonicalTask12Semantics(
@@ -863,21 +1315,7 @@ function hasCanonicalTask12Semantics(
 ): boolean {
   return targets.every(({ lessonId, target }) => {
     if (!hasCanonicalTeRealization(target)) return false;
-    if (
-      target.interpretationTags.includes("ongoing-now") &&
-      lessonId !== "requests-connection-4"
-    ) {
-      return false;
-    }
-    if (target.interpretationTags.includes("resulting-state")) {
-      return (
-        lessonId === "requests-connection-4" &&
-        target.predicateLexemeId !== null &&
-        RESULT_STATE_LEMMAS.includes(target.predicateLexemeId) &&
-        target.formIds.includes("base-construction-te-imasu")
-      );
-    }
-    return true;
+    return hasCanonicalTeImasuSemantics(lessonId, target);
   });
 }
 
@@ -894,8 +1332,29 @@ export function validateBaseRequestsConnectionModule(
     BASE_REQUESTS_CONNECTION_VALIDATION_CATALOGS,
   );
   if (!base.ok) return base;
-  const targets = strictTask11ModuleTargets(value);
-  return targets && hasCanonicalTask12Semantics(targets)
+  const snapshot = strictTask11ModuleSnapshot(value);
+  const corpusCollisions = validateTask11CorpusDistinctness(
+    [
+      BASE_SENTENCE_FOUNDATIONS_MODULE,
+      BASE_TOPIC_QUESTIONS_MODULE,
+      BASE_POLITE_VERBS_MODULE,
+      BASE_ARGUMENT_PARTICLES_MODULE,
+      BASE_TIME_MOVEMENT_MODULE,
+      BASE_COPULA_ADJECTIVES_MODULE,
+      BASE_EXISTENCE_LOCATION_MODULE,
+      value,
+    ],
+    baseNavigationCopyEn.content,
+    baseNavigationCopyIt.content,
+  );
+  const task12CorpusCollisions = corpusCollisions?.filter(({ lessonId }) =>
+    /^(?:copula-adjectives|existence-location|requests-connection)-/u.test(
+      lessonId,
+    ),
+  );
+  return snapshot &&
+    hasCanonicalTask12Semantics(snapshot.targets) &&
+    task12CorpusCollisions?.length === 0
     ? base
     : { ok: false, errors: ["invalid-lesson-shape"] };
 }

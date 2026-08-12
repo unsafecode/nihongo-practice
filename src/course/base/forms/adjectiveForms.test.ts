@@ -179,7 +179,7 @@ describe("Base adjective and copula forms", () => {
     for (const [lexemeId, surface] of [
       ["adjective-kirei", "きれいだ"],
       ["adjective-yuumei", "ゆうめいだ"],
-      ["adjective-kirai", "きらいだ"],
+      ["adjective-genki", "げんきだ"],
     ] as const) {
       expect(
         validateBasePredicate({

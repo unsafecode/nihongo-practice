@@ -17,8 +17,7 @@ import {
   type BasePredicateForm,
 } from "../forms/adjectiveForms";
 import {
-  containsExactGeneratedTokenSequence,
-  strictTask11ModuleTargets,
+  strictTask11ModuleSnapshot,
 } from "../validation/moduleSnapshots";
 import {
   BASE_CONTEXT_ACTIVITY_SHAPE,
@@ -208,6 +207,8 @@ function act(
     readonly optionAnalysisIds?: readonly string[];
     readonly errorDefectAxis?: string | null;
     readonly changedTokenSourceIds?: readonly string[];
+    readonly worldFactId?: string;
+    readonly referentId?: string;
   }> = {},
 ): BaseTask11ActivitySpec {
   return {
@@ -218,8 +219,10 @@ function act(
     promptContextCopyId: `${lessonId}-activity-${index}-instruction`,
     patternCellId,
     shape,
-    referentId: null,
-    worldFactId: null,
+    referentId: evidence.referentId ?? null,
+    worldFactId: evidence.worldFactId ?? null,
+    answerFactStatus: "accepted-world",
+    distractorFactStatus: "rejected-context",
     errorCode,
     ...evidence,
   };
@@ -285,16 +288,16 @@ const L1: BaseTask11LessonSpec = {
     ex(predicateTarget("noun", "noun-bengoshi", "affirmative", NOUN_AFFIRMATIVE, "noun-suzuki"), "suzuki-lawyer", "Suzuki is a lawyer.", "Suzuki è un avvocato.", "Closes with a clear affirmative contrast.", "Chiude con un chiaro contrasto affermativo.", "noun-present-affirmative"),
   ],
   activities: [
-    act(task11Cue(L("noun-yuki-san")), predicateTarget("noun", "noun-kaishain", "affirmative", NOUN_AFFIRMATIVE, "noun-yuki-san"), predicateTarget("noun", "noun-kaishain", "negative", NOUN_NEGATIVE, "noun-yuki-san"), 0, "copula-adjectives-1", 1, NOUN_AFFIRMATIVE, BASE_MEANING_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-mari")), predicateTarget("noun", "noun-kenkyuusha", "negative", NOUN_NEGATIVE, "noun-mari"), predicateTarget("noun", "noun-kenkyuusha", "affirmative", NOUN_AFFIRMATIVE, "noun-mari"), 1, "copula-adjectives-1", 2, NOUN_NEGATIVE, BASE_FORM_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-satou")), predicateTarget("noun", "noun-ryourinin", "affirmative", NOUN_AFFIRMATIVE, "noun-satou"), { ...predicateTarget("noun", "noun-ryourinin", "affirmative", NOUN_AFFIRMATIVE, "noun-satou"), parts: [predicatePart("noun", "noun-ryourinin", "affirmative"), L("noun-satou"), P("topic-wa", "topic", "noun-satou")] }, 0, "copula-adjectives-1", 3, NOUN_AFFIRMATIVE, BASE_ORDERING_ACTIVITY_SHAPE, null, { contrastAxis: "word-order" }),
-    act(task11Cue(L("noun-suzuki")), predicateTarget("noun", "noun-kaishain", "negative", NOUN_NEGATIVE, "noun-suzuki"), predicateTarget("noun", "noun-kaishain", "affirmative", NOUN_AFFIRMATIVE, "noun-suzuki"), 1, "copula-adjectives-1", 4, NOUN_NEGATIVE, BASE_CONTROLLED_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-yamada")), predicateTarget("noun", "noun-ryourinin", "affirmative", NOUN_AFFIRMATIVE, "noun-yamada"), predicateTarget("noun", "noun-ryourinin", "negative", NOUN_NEGATIVE, "noun-yamada"), 0, "copula-adjectives-1", 5, NOUN_AFFIRMATIVE, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(promptOf(predicateTarget("noun", "noun-ryourinin", "affirmative", NOUN_AFFIRMATIVE, "noun-yuki-san")), predicateTarget("noun", "noun-ryourinin", "negative", NOUN_NEGATIVE, "noun-yuki-san"), predicateTarget("noun", "noun-ryourinin", "affirmative", NOUN_AFFIRMATIVE, "noun-yuki-san"), 1, "copula-adjectives-1", 6, NOUN_NEGATIVE, BASE_ERROR_ACTIVITY_SHAPE, "noun-predicate-polarity-mismatch", { contrastAxis: "tense-polarity", errorDefectAxis: "polarity", changedTokenSourceIds: ["desu", "dewa-arimasen"] }),
-    act(task11Cue(L("noun-tomodachi")), predicateTarget("noun", "noun-kaishain", "negative", NOUN_NEGATIVE, "noun-tomodachi"), predicateTarget("noun", "noun-kaishain", "affirmative", NOUN_AFFIRMATIVE, "noun-tomodachi"), 0, "copula-adjectives-1", 7, NOUN_NEGATIVE, BASE_CONTEXT_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-watashi")), predicateTarget("noun", "noun-ryourinin", "affirmative", NOUN_AFFIRMATIVE, "noun-watashi"), predicateTarget("noun", "noun-kaishain", "affirmative", NOUN_AFFIRMATIVE, "noun-watashi"), 1, "copula-adjectives-1", 8, NOUN_AFFIRMATIVE, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: null }),
-    act(task11Cue(L("noun-tanaka")), predicateTarget("noun", "noun-ryourinin", "negative", NOUN_NEGATIVE, "noun-tanaka"), predicateTarget("noun", "noun-ryourinin", "affirmative", NOUN_AFFIRMATIVE, "noun-tanaka"), 0, "copula-adjectives-1", 9, NOUN_NEGATIVE, BASE_LISTENING_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-satou")), predicateTarget("noun", "noun-kaishain", "negative", NOUN_NEGATIVE, "noun-satou"), predicateTarget("noun", "noun-kenkyuusha", "affirmative", NOUN_AFFIRMATIVE, "noun-tanaka"), 1, "copula-adjectives-1", 10, NOUN_NEGATIVE, BASE_SPOKEN_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
+    act(task11Cue(L("noun-yuki-san")), predicateTarget("noun", "noun-kaishain", "affirmative", NOUN_AFFIRMATIVE, "noun-yuki-san"), predicateTarget("noun", "noun-kaishain", "negative", NOUN_NEGATIVE, "noun-yuki-san"), 0, "copula-adjectives-1", 1, NOUN_AFFIRMATIVE, BASE_MEANING_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-yuki-company-employee", referentId: "noun-yuki-san" }),
+    act(task11Cue(L("noun-mari")), predicateTarget("noun", "noun-kenkyuusha", "negative", NOUN_NEGATIVE, "noun-mari"), predicateTarget("noun", "noun-kenkyuusha", "affirmative", NOUN_AFFIRMATIVE, "noun-mari"), 1, "copula-adjectives-1", 2, NOUN_NEGATIVE, BASE_FORM_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-mari-not-researcher", referentId: "noun-mari" }),
+    act(task11Cue(L("noun-satou")), predicateTarget("noun", "noun-ryourinin", "affirmative", NOUN_AFFIRMATIVE, "noun-satou"), { ...predicateTarget("noun", "noun-ryourinin", "affirmative", NOUN_AFFIRMATIVE, "noun-satou"), parts: [predicatePart("noun", "noun-ryourinin", "affirmative"), L("noun-satou"), P("topic-wa", "topic", "noun-satou")] }, 0, "copula-adjectives-1", 3, NOUN_AFFIRMATIVE, BASE_ORDERING_ACTIVITY_SHAPE, null, { contrastAxis: "word-order", worldFactId: "fact-satou-cook", referentId: "noun-satou" }),
+    act(task11Cue(L("noun-suzuki")), predicateTarget("noun", "noun-kaishain", "negative", NOUN_NEGATIVE, "noun-suzuki"), predicateTarget("noun", "noun-kaishain", "affirmative", NOUN_AFFIRMATIVE, "noun-suzuki"), 1, "copula-adjectives-1", 4, NOUN_NEGATIVE, BASE_CONTROLLED_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-suzuki-not-company-employee", referentId: "noun-suzuki" }),
+    act(task11Cue(L("noun-yamada")), predicateTarget("noun", "noun-ryourinin", "affirmative", NOUN_AFFIRMATIVE, "noun-yamada"), predicateTarget("noun", "noun-ryourinin", "negative", NOUN_NEGATIVE, "noun-yamada"), 0, "copula-adjectives-1", 5, NOUN_AFFIRMATIVE, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-yamada-cook-updated", referentId: "noun-yamada" }),
+    act(promptOf(predicateTarget("noun", "noun-ryourinin", "affirmative", NOUN_AFFIRMATIVE, "noun-yuki-san")), predicateTarget("noun", "noun-ryourinin", "negative", NOUN_NEGATIVE, "noun-yuki-san"), predicateTarget("noun", "noun-ryourinin", "affirmative", NOUN_AFFIRMATIVE, "noun-yuki-san"), 1, "copula-adjectives-1", 6, NOUN_NEGATIVE, BASE_ERROR_ACTIVITY_SHAPE, "noun-predicate-polarity-mismatch", { contrastAxis: "tense-polarity", errorDefectAxis: "polarity", changedTokenSourceIds: ["desu", "dewa-arimasen"], worldFactId: "fact-yuki-not-cook", referentId: "noun-yuki-san" }),
+    act(task11Cue(L("noun-tomodachi")), predicateTarget("noun", "noun-kaishain", "negative", NOUN_NEGATIVE, "noun-tomodachi"), predicateTarget("noun", "noun-kaishain", "affirmative", NOUN_AFFIRMATIVE, "noun-tomodachi"), 0, "copula-adjectives-1", 7, NOUN_NEGATIVE, BASE_CONTEXT_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-friend-not-company-employee", referentId: "noun-tomodachi" }),
+    act(task11Cue(L("noun-watashi")), predicateTarget("noun", "noun-ryourinin", "affirmative", NOUN_AFFIRMATIVE, "noun-watashi"), predicateTarget("noun", "noun-kaishain", "affirmative", NOUN_AFFIRMATIVE, "noun-watashi"), 1, "copula-adjectives-1", 8, NOUN_AFFIRMATIVE, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: null, worldFactId: "fact-speaker-cook", referentId: "noun-watashi" }),
+    act(task11Cue(L("noun-tanaka")), predicateTarget("noun", "noun-ryourinin", "negative", NOUN_NEGATIVE, "noun-tanaka"), predicateTarget("noun", "noun-ryourinin", "affirmative", NOUN_AFFIRMATIVE, "noun-tanaka"), 0, "copula-adjectives-1", 9, NOUN_NEGATIVE, BASE_LISTENING_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-audio-tanaka-not-cook", referentId: "noun-tanaka" }),
+    act(task11Cue(L("noun-satou")), predicateTarget("noun", "noun-kaishain", "negative", NOUN_NEGATIVE, "noun-satou"), predicateTarget("noun", "noun-kenkyuusha", "affirmative", NOUN_AFFIRMATIVE, "noun-tanaka"), 1, "copula-adjectives-1", 10, NOUN_NEGATIVE, BASE_SPOKEN_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-hidden-satou-not-company-employee", referentId: "noun-satou" }),
   ],
   dialogue: null,
 };
@@ -352,16 +355,16 @@ const L2: BaseTask11LessonSpec = {
     ex(predicateTarget("noun", "noun-koumuin", "negative", NOUN_NEGATIVE, "noun-satou"), "satou-not-civil-servant-now", "Satou is not a civil servant.", "Satou non è un dipendente pubblico.", "Returns to nonpast negative without changing the noun.", "Ritorna al non-passato negativo senza cambiare nome.", "noun-present-negative"),
   ],
   activities: [
-    act(task11Cue(L("noun-tomodachi")), predicateTarget("noun", "noun-enjinia", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-tomodachi"), predicateTarget("noun", "noun-enjinia", "pastNegative", NOUN_PAST_NEGATIVE, "noun-tomodachi"), 0, "copula-adjectives-2", 1, NOUN_PAST_AFFIRMATIVE, BASE_MEANING_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-mari")), predicateTarget("noun", "noun-ginkouin", "pastNegative", NOUN_PAST_NEGATIVE, "noun-mari"), predicateTarget("noun", "noun-ginkouin", "negative", NOUN_NEGATIVE, "noun-mari"), 1, "copula-adjectives-2", 2, NOUN_PAST_NEGATIVE, BASE_FORM_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-yuki-san")), predicateTarget("noun", "noun-koumuin", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-yuki-san"), { ...predicateTarget("noun", "noun-koumuin", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-yuki-san"), parts: [predicatePart("noun", "noun-koumuin", "pastAffirmative"), L("noun-yuki-san"), P("topic-wa", "topic", "noun-yuki-san")] }, 1, "copula-adjectives-2", 3, NOUN_PAST_AFFIRMATIVE, BASE_ORDERING_ACTIVITY_SHAPE, null, { contrastAxis: "word-order" }),
-    act(task11Cue(L("noun-watashi")), predicateTarget("noun", "noun-enjinia", "pastNegative", NOUN_PAST_NEGATIVE, "noun-watashi"), predicateTarget("noun", "noun-enjinia", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-watashi"), 0, "copula-adjectives-2", 4, NOUN_PAST_NEGATIVE, BASE_CONTROLLED_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-tomodachi")), predicateTarget("noun", "noun-ginkouin", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-tomodachi"), predicateTarget("noun", "noun-ginkouin", "affirmative", NOUN_AFFIRMATIVE, "noun-tomodachi"), 1, "copula-adjectives-2", 5, NOUN_PAST_AFFIRMATIVE, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(promptOf(predicateTarget("noun", "noun-koumuin", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-sensei")), predicateTarget("noun", "noun-koumuin", "pastNegative", NOUN_PAST_NEGATIVE, "noun-sensei"), predicateTarget("noun", "noun-koumuin", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-sensei"), 1, "copula-adjectives-2", 6, NOUN_PAST_NEGATIVE, BASE_ERROR_ACTIVITY_SHAPE, "noun-predicate-past-polarity-mismatch", { contrastAxis: "tense-polarity", errorDefectAxis: "polarity", changedTokenSourceIds: ["deshita", "dewa-arimasen-deshita"] }),
-    act(task11Cue(L("noun-gakusei")), predicateTarget("noun", "noun-enjinia", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-gakusei"), predicateTarget("noun", "noun-enjinia", "pastNegative", NOUN_PAST_NEGATIVE, "noun-gakusei"), 0, "copula-adjectives-2", 7, NOUN_PAST_AFFIRMATIVE, BASE_CONTEXT_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-kaishain")), predicateTarget("noun", "noun-koumuin", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-kaishain"), predicateTarget("noun", "noun-enjinia", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-kaishain"), 0, "copula-adjectives-2", 8, NOUN_PAST_AFFIRMATIVE, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: null }),
-    act(task11Cue(L("noun-kenkyuusha")), predicateTarget("noun", "noun-koumuin", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-kenkyuusha"), predicateTarget("noun", "noun-koumuin", "pastNegative", NOUN_PAST_NEGATIVE, "noun-kenkyuusha"), 1, "copula-adjectives-2", 9, NOUN_PAST_AFFIRMATIVE, BASE_LISTENING_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-ryourinin")), predicateTarget("noun", "noun-enjinia", "pastNegative", NOUN_PAST_NEGATIVE, "noun-ryourinin"), predicateTarget("noun", "noun-ginkouin", "affirmative", NOUN_AFFIRMATIVE, "noun-tanaka"), 1, "copula-adjectives-2", 10, NOUN_PAST_NEGATIVE, BASE_SPOKEN_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
+    act(task11Cue(L("noun-tomodachi")), predicateTarget("noun", "noun-enjinia", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-tomodachi"), predicateTarget("noun", "noun-enjinia", "pastNegative", NOUN_PAST_NEGATIVE, "noun-tomodachi"), 0, "copula-adjectives-2", 1, NOUN_PAST_AFFIRMATIVE, BASE_MEANING_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-friend-former-engineer", referentId: "noun-tomodachi" }),
+    act(task11Cue(L("noun-mari")), predicateTarget("noun", "noun-ginkouin", "pastNegative", NOUN_PAST_NEGATIVE, "noun-mari"), predicateTarget("noun", "noun-ginkouin", "negative", NOUN_NEGATIVE, "noun-mari"), 1, "copula-adjectives-2", 2, NOUN_PAST_NEGATIVE, BASE_FORM_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-mari-not-bank-worker-before", referentId: "noun-mari" }),
+    act(task11Cue(L("noun-yuki-san")), predicateTarget("noun", "noun-koumuin", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-yuki-san"), { ...predicateTarget("noun", "noun-koumuin", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-yuki-san"), parts: [predicatePart("noun", "noun-koumuin", "pastAffirmative"), L("noun-yuki-san"), P("topic-wa", "topic", "noun-yuki-san")] }, 1, "copula-adjectives-2", 3, NOUN_PAST_AFFIRMATIVE, BASE_ORDERING_ACTIVITY_SHAPE, null, { contrastAxis: "word-order", worldFactId: "fact-yuki-former-civil-servant", referentId: "noun-yuki-san" }),
+    act(task11Cue(L("noun-watashi")), predicateTarget("noun", "noun-enjinia", "pastNegative", NOUN_PAST_NEGATIVE, "noun-watashi"), predicateTarget("noun", "noun-enjinia", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-watashi"), 0, "copula-adjectives-2", 4, NOUN_PAST_NEGATIVE, BASE_CONTROLLED_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-speaker-not-former-engineer", referentId: "noun-watashi" }),
+    act(task11Cue(L("noun-tomodachi")), predicateTarget("noun", "noun-ginkouin", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-tomodachi"), predicateTarget("noun", "noun-ginkouin", "affirmative", NOUN_AFFIRMATIVE, "noun-tomodachi"), 1, "copula-adjectives-2", 5, NOUN_PAST_AFFIRMATIVE, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-friend-former-bank-worker", referentId: "noun-tomodachi" }),
+    act(promptOf(predicateTarget("noun", "noun-koumuin", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-sensei")), predicateTarget("noun", "noun-koumuin", "pastNegative", NOUN_PAST_NEGATIVE, "noun-sensei"), predicateTarget("noun", "noun-koumuin", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-sensei"), 1, "copula-adjectives-2", 6, NOUN_PAST_NEGATIVE, BASE_ERROR_ACTIVITY_SHAPE, "noun-predicate-past-polarity-mismatch", { contrastAxis: "tense-polarity", errorDefectAxis: "polarity", changedTokenSourceIds: ["deshita", "dewa-arimasen-deshita"], worldFactId: "fact-teacher-not-former-civil-servant", referentId: "noun-sensei" }),
+    act(task11Cue(L("noun-gakusei")), predicateTarget("noun", "noun-enjinia", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-gakusei"), predicateTarget("noun", "noun-enjinia", "pastNegative", NOUN_PAST_NEGATIVE, "noun-gakusei"), 0, "copula-adjectives-2", 7, NOUN_PAST_AFFIRMATIVE, BASE_CONTEXT_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-student-former-engineer", referentId: "noun-gakusei" }),
+    act(task11Cue(L("noun-kaishain")), predicateTarget("noun", "noun-koumuin", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-kaishain"), predicateTarget("noun", "noun-enjinia", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-kaishain"), 0, "copula-adjectives-2", 8, NOUN_PAST_AFFIRMATIVE, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: null, worldFactId: "fact-company-worker-former-civil-servant", referentId: "noun-kaishain" }),
+    act(task11Cue(L("noun-kenkyuusha")), predicateTarget("noun", "noun-koumuin", "pastAffirmative", NOUN_PAST_AFFIRMATIVE, "noun-kenkyuusha"), predicateTarget("noun", "noun-koumuin", "pastNegative", NOUN_PAST_NEGATIVE, "noun-kenkyuusha"), 1, "copula-adjectives-2", 9, NOUN_PAST_AFFIRMATIVE, BASE_LISTENING_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-audio-researcher-former-civil-servant", referentId: "noun-kenkyuusha" }),
+    act(task11Cue(L("noun-ryourinin")), predicateTarget("noun", "noun-enjinia", "pastNegative", NOUN_PAST_NEGATIVE, "noun-ryourinin"), predicateTarget("noun", "noun-ginkouin", "affirmative", NOUN_AFFIRMATIVE, "noun-tanaka"), 1, "copula-adjectives-2", 10, NOUN_PAST_NEGATIVE, BASE_SPOKEN_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-hidden-cook-not-former-engineer", referentId: "noun-ryourinin" }),
   ],
   dialogue: null,
 };
@@ -421,16 +424,16 @@ const L3: BaseTask11LessonSpec = {
     ex(modifierTarget("i-adjective", "adjective-takai", "noun-jitensha", I_ATTRIBUTIVE), "expensive-bicycle", "It is an expensive bicycle.", "È una bicicletta costosa.", "Contrasts attributive use with predicative politeness.", "Contrappone uso attributivo e cortesia predicativa.", "i-attributive"),
   ],
   activities: [
-    act(task11Cue(L("noun-mizu")), predicateTarget("i-adjective", "adjective-oishii", "affirmative", I_AFFIRMATIVE, "noun-mizu"), predicateTarget("i-adjective", "adjective-oishii", "negative", I_NEGATIVE, "noun-mizu"), 0, "copula-adjectives-3", 1, I_AFFIRMATIVE, BASE_MEANING_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-gohan")), predicateTarget("i-adjective", "adjective-takai", "negative", I_NEGATIVE, "noun-gohan"), predicateTarget("i-adjective", "adjective-takai", "affirmative", I_AFFIRMATIVE, "noun-gohan"), 1, "copula-adjectives-3", 2, I_NEGATIVE, BASE_FORM_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-toshokan")), predicateTarget("i-adjective", "adjective-ii", "pastAffirmative", I_PAST_AFFIRMATIVE, "noun-toshokan"), { ...predicateTarget("i-adjective", "adjective-ii", "pastAffirmative", I_PAST_AFFIRMATIVE, "noun-toshokan"), parts: [predicatePart("i-adjective", "adjective-ii", "pastAffirmative"), L("noun-toshokan"), P("topic-wa", "topic", "noun-toshokan")] }, 0, "copula-adjectives-3", 3, I_PAST_AFFIRMATIVE, BASE_ORDERING_ACTIVITY_SHAPE, null, { contrastAxis: "word-order" }),
-    act(task11Cue(L("noun-gohan")), predicateTarget("i-adjective", "adjective-oishii", "pastNegative", I_PAST_NEGATIVE, "noun-gohan"), predicateTarget("i-adjective", "adjective-oishii", "pastAffirmative", I_PAST_AFFIRMATIVE, "noun-gohan"), 1, "copula-adjectives-3", 4, I_PAST_NEGATIVE, BASE_CONTROLLED_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-jitensha")), predicateTarget("i-adjective", "adjective-takai", "pastAffirmative", I_PAST_AFFIRMATIVE, "noun-jitensha"), predicateTarget("i-adjective", "adjective-takai", "affirmative", I_AFFIRMATIVE, "noun-jitensha"), 0, "copula-adjectives-3", 5, I_PAST_AFFIRMATIVE, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Target([L("noun-mise"), P("topic-wa", "topic", "noun-mise"), task11DiagnosticForm("adjective-takai", "たかいだ", "takai da", "i-adjective-copula-da")], { conceptIds: ["i-adjective-class"], patternCellIds: [], semanticRoleIds: ["topic"], interpretationTags: ["present-state"], predicateSenseId: "i-adjective-predicate", predicateLexemeId: "adjective-takai", predicateAspect: "adjectival" }), predicateTarget("i-adjective", "adjective-takai", "affirmative", I_AFFIRMATIVE, "noun-mise"), predicateTarget("i-adjective", "adjective-takai", "negative", I_NEGATIVE, "noun-mise"), 0, "copula-adjectives-3", 6, I_AFFIRMATIVE, BASE_ERROR_ACTIVITY_SHAPE, "i-adjective-copula-da", { contrastAxis: "tense-polarity", errorDefectAxis: "form", changedTokenSourceIds: ["i-adjective-copula-da", "adjective-takai", "desu"] }),
-    act(task11Cue(L("noun-shokudou")), predicateTarget("i-adjective", "adjective-ii", "negative", I_NEGATIVE, "noun-shokudou"), predicateTarget("i-adjective", "adjective-ii", "affirmative", I_AFFIRMATIVE, "noun-shokudou"), 1, "copula-adjectives-3", 7, I_NEGATIVE, BASE_CONTEXT_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-kudamono")), modifierTarget("i-adjective", "adjective-oishii", "noun-kudamono", I_ATTRIBUTIVE), modifierTarget("i-adjective", "adjective-takai", "noun-hirugohan", I_ATTRIBUTIVE), 0, "copula-adjectives-3", 8, I_ATTRIBUTIVE, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: null }),
-    act(task11Cue(L("noun-enpitsu")), predicateTarget("i-adjective", "adjective-takai", "pastNegative", I_PAST_NEGATIVE, "noun-enpitsu"), predicateTarget("i-adjective", "adjective-takai", "pastAffirmative", I_PAST_AFFIRMATIVE, "noun-enpitsu"), 1, "copula-adjectives-3", 9, I_PAST_NEGATIVE, BASE_LISTENING_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-zasshi")), predicateTarget("i-adjective", "adjective-ii", "pastNegative", I_PAST_NEGATIVE, "noun-zasshi"), predicateTarget("i-adjective", "adjective-oishii", "affirmative", I_AFFIRMATIVE, "noun-mizu"), 1, "copula-adjectives-3", 10, I_PAST_NEGATIVE, BASE_SPOKEN_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
+    act(task11Cue(L("noun-mizu")), predicateTarget("i-adjective", "adjective-oishii", "affirmative", I_AFFIRMATIVE, "noun-mizu"), predicateTarget("i-adjective", "adjective-oishii", "negative", I_NEGATIVE, "noun-mizu"), 0, "copula-adjectives-3", 1, I_AFFIRMATIVE, BASE_MEANING_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-water-tasty", referentId: "noun-mizu" }),
+    act(task11Cue(L("noun-gohan")), predicateTarget("i-adjective", "adjective-takai", "negative", I_NEGATIVE, "noun-gohan"), predicateTarget("i-adjective", "adjective-takai", "affirmative", I_AFFIRMATIVE, "noun-gohan"), 1, "copula-adjectives-3", 2, I_NEGATIVE, BASE_FORM_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-rice-not-expensive", referentId: "noun-gohan" }),
+    act(task11Cue(L("noun-toshokan")), predicateTarget("i-adjective", "adjective-ii", "pastAffirmative", I_PAST_AFFIRMATIVE, "noun-toshokan"), { ...predicateTarget("i-adjective", "adjective-ii", "pastAffirmative", I_PAST_AFFIRMATIVE, "noun-toshokan"), parts: [predicatePart("i-adjective", "adjective-ii", "pastAffirmative"), L("noun-toshokan"), P("topic-wa", "topic", "noun-toshokan")] }, 0, "copula-adjectives-3", 3, I_PAST_AFFIRMATIVE, BASE_ORDERING_ACTIVITY_SHAPE, null, { contrastAxis: "word-order", worldFactId: "fact-library-good-before", referentId: "noun-toshokan" }),
+    act(task11Cue(L("noun-gohan")), predicateTarget("i-adjective", "adjective-oishii", "pastNegative", I_PAST_NEGATIVE, "noun-gohan"), predicateTarget("i-adjective", "adjective-oishii", "pastAffirmative", I_PAST_AFFIRMATIVE, "noun-gohan"), 1, "copula-adjectives-3", 4, I_PAST_NEGATIVE, BASE_CONTROLLED_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-rice-not-tasty-before", referentId: "noun-gohan" }),
+    act(task11Cue(L("noun-jitensha")), predicateTarget("i-adjective", "adjective-takai", "pastAffirmative", I_PAST_AFFIRMATIVE, "noun-jitensha"), predicateTarget("i-adjective", "adjective-takai", "affirmative", I_AFFIRMATIVE, "noun-jitensha"), 0, "copula-adjectives-3", 5, I_PAST_AFFIRMATIVE, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-bicycle-expensive-before", referentId: "noun-jitensha" }),
+    act(task11Target([L("noun-mise"), P("topic-wa", "topic", "noun-mise"), task11DiagnosticForm("adjective-takai", "たかいだ", "takai da", "i-adjective-copula-da")], { conceptIds: ["i-adjective-class"], patternCellIds: [], semanticRoleIds: ["topic"], interpretationTags: ["present-state"], predicateSenseId: "i-adjective-predicate", predicateLexemeId: "adjective-takai", predicateAspect: "adjectival" }), predicateTarget("i-adjective", "adjective-takai", "affirmative", I_AFFIRMATIVE, "noun-mise"), predicateTarget("i-adjective", "adjective-takai", "negative", I_NEGATIVE, "noun-mise"), 0, "copula-adjectives-3", 6, I_AFFIRMATIVE, BASE_ERROR_ACTIVITY_SHAPE, "i-adjective-copula-da", { contrastAxis: "tense-polarity", errorDefectAxis: "form", changedTokenSourceIds: ["i-adjective-copula-da", "adjective-takai", "desu"], worldFactId: "fact-shop-expensive", referentId: "noun-mise" }),
+    act(task11Cue(L("noun-shokudou")), predicateTarget("i-adjective", "adjective-ii", "negative", I_NEGATIVE, "noun-shokudou"), predicateTarget("i-adjective", "adjective-ii", "affirmative", I_AFFIRMATIVE, "noun-shokudou"), 1, "copula-adjectives-3", 7, I_NEGATIVE, BASE_CONTEXT_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-cafeteria-not-good", referentId: "noun-shokudou" }),
+    act(task11Cue(L("noun-kudamono")), modifierTarget("i-adjective", "adjective-oishii", "noun-kudamono", I_ATTRIBUTIVE), modifierTarget("i-adjective", "adjective-takai", "noun-hirugohan", I_ATTRIBUTIVE), 0, "copula-adjectives-3", 8, I_ATTRIBUTIVE, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: null, worldFactId: "fact-fruit-tasty", referentId: "noun-kudamono" }),
+    act(task11Cue(L("noun-enpitsu")), predicateTarget("i-adjective", "adjective-takai", "pastNegative", I_PAST_NEGATIVE, "noun-enpitsu"), predicateTarget("i-adjective", "adjective-takai", "pastAffirmative", I_PAST_AFFIRMATIVE, "noun-enpitsu"), 1, "copula-adjectives-3", 9, I_PAST_NEGATIVE, BASE_LISTENING_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-audio-pencil-not-expensive-before", referentId: "noun-enpitsu" }),
+    act(task11Cue(L("noun-zasshi")), predicateTarget("i-adjective", "adjective-ii", "pastNegative", I_PAST_NEGATIVE, "noun-zasshi"), predicateTarget("i-adjective", "adjective-oishii", "affirmative", I_AFFIRMATIVE, "noun-mizu"), 1, "copula-adjectives-3", 10, I_PAST_NEGATIVE, BASE_SPOKEN_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-hidden-magazine-not-good-before", referentId: "noun-zasshi" }),
   ],
   dialogue: null,
 };
@@ -443,7 +446,7 @@ const L4: BaseTask11LessonSpec = {
     "adjective-shizuka",
     "adjective-kirei",
     "adjective-yuumei",
-    "adjective-kirai",
+    "adjective-genki",
   ],
   reviewLexemeIds: [
     "adjective-oishii",
@@ -493,23 +496,23 @@ const L4: BaseTask11LessonSpec = {
     ex(predicateTarget("na-adjective", "adjective-kirei", "pastAffirmative", NA_PAST_AFFIRMATIVE, "noun-kouen"), "park-was-pretty", "The park was pretty.", "Il parco era bello.", "Uses the past affirmative copula.", "Usa la copula passata affermativa.", "na-past-affirmative"),
     ex(predicateTarget("na-adjective", "adjective-kirei", "pastNegative", NA_PAST_NEGATIVE, "noun-jimusho"), "office-was-not-clean", "The office was not clean.", "L'ufficio non era pulito.", "Uses the complete past-negative copula.", "Usa la copula passata negativa completa.", "na-past-negative"),
     ex(predicateTarget("na-adjective", "adjective-yuumei", "affirmative", NA_AFFIRMATIVE, "noun-satou"), "satou-famous", "Satou is famous.", "Satou è famoso.", "Keeps the nominal-type predicate bounded.", "Mantiene delimitato il predicato di tipo nominale.", "na-present-affirmative"),
-    ex(predicateTarget("na-adjective", "adjective-kirai", "negative", NA_NEGATIVE, "noun-watashi"), "speaker-does-not-dislike-it", "I do not dislike it.", "Non mi dispiace.", "Applies the same nominal-type copula path.", "Applica lo stesso percorso copulare nominale.", "na-present-negative"),
+    ex(predicateTarget("na-adjective", "adjective-genki", "negative", NA_NEGATIVE, "noun-watashi"), "speaker-not-well", "I am not well.", "Non sto bene.", "Applies the same nominal-type copula path to a one-place description.", "Applica lo stesso percorso copulare nominale a una descrizione con un solo argomento.", "na-present-negative"),
     ex(modifierTarget("na-adjective", "adjective-shizuka", "noun-jimusho", NA_ATTRIBUTIVE), "quiet-office", "It is a quiet office.", "È un ufficio tranquillo.", "Requires な before the modified noun.", "Richiede な prima del nome modificato.", "na-attributive"),
     ex(modifierTarget("na-adjective", "adjective-kirei", "noun-gakusei", NA_ATTRIBUTIVE), "pretty-student", "It is a pretty student.", "È uno studente di bell'aspetto.", "Applies attributive な to another adjective.", "Applica il な attributivo a un altro aggettivo.", "na-attributive"),
-    ex(predicateTarget("i-adjective", "adjective-oishii", "affirmative", I_AFFIRMATIVE, "noun-gohan"), "contrast-tasty-rice", "The rice is tasty.", "Il riso è gustoso.", "Keeps the い-adjective path distinct.", "Mantiene distinto il percorso degli aggettivi in い.", "i-present-affirmative"),
+    ex(predicateTarget("i-adjective", "adjective-ii", "affirmative", I_AFFIRMATIVE, "noun-kouen"), "contrast-good-park", "The park is nice.", "Il parco è bello.", "Keeps the い-adjective path distinct.", "Mantiene distinto il percorso degli aggettivi in い.", "i-present-affirmative"),
     ex(modifierTarget("i-adjective", "adjective-takai", "noun-kasa", I_ATTRIBUTIVE), "contrast-expensive-umbrella", "It is an expensive umbrella.", "È un ombrello costoso.", "Shows that an い-adjective never inserts な.", "Mostra che un aggettivo in い non inserisce mai な.", "i-attributive"),
   ],
   activities: [
-    act(task11Cue(L("noun-mari")), predicateTarget("na-adjective", "adjective-shizuka", "affirmative", NA_AFFIRMATIVE, "noun-mari"), predicateTarget("na-adjective", "adjective-shizuka", "negative", NA_NEGATIVE, "noun-mari"), 0, "copula-adjectives-4", 1, NA_AFFIRMATIVE, BASE_MEANING_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-kasa")), predicateTarget("na-adjective", "adjective-kirei", "pastNegative", NA_PAST_NEGATIVE, "noun-kasa"), predicateTarget("na-adjective", "adjective-kirei", "pastAffirmative", NA_PAST_AFFIRMATIVE, "noun-kasa"), 1, "copula-adjectives-4", 2, NA_PAST_NEGATIVE, BASE_FORM_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-watashi")), predicateTarget("na-adjective", "adjective-yuumei", "pastAffirmative", NA_PAST_AFFIRMATIVE, "noun-watashi"), { ...predicateTarget("na-adjective", "adjective-yuumei", "pastAffirmative", NA_PAST_AFFIRMATIVE, "noun-watashi"), parts: [predicatePart("na-adjective", "adjective-yuumei", "pastAffirmative"), L("noun-watashi"), P("topic-wa", "topic", "noun-watashi")] }, 0, "copula-adjectives-4", 3, NA_PAST_AFFIRMATIVE, BASE_ORDERING_ACTIVITY_SHAPE, null, { contrastAxis: "word-order" }),
-    act(task11Cue(L("noun-tomodachi")), predicateTarget("na-adjective", "adjective-kirai", "negative", NA_NEGATIVE, "noun-tomodachi"), predicateTarget("na-adjective", "adjective-kirai", "affirmative", NA_AFFIRMATIVE, "noun-tomodachi"), 1, "copula-adjectives-4", 4, NA_NEGATIVE, BASE_CONTROLLED_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-kouen")), predicateTarget("na-adjective", "adjective-shizuka", "pastAffirmative", NA_PAST_AFFIRMATIVE, "noun-kouen"), predicateTarget("na-adjective", "adjective-shizuka", "affirmative", NA_AFFIRMATIVE, "noun-kouen"), 0, "copula-adjectives-4", 5, NA_PAST_AFFIRMATIVE, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Target([task11DiagnosticForm("adjective-shizuka", "しずか", "shizuka", "na-adjective-missing-na"), predicatePart("noun", "noun-shokudou", "affirmative")], { conceptIds: ["na-adjective-predicate-and-attributive"], patternCellIds: [], semanticRoleIds: [], interpretationTags: ["present-state"], predicateSenseId: "modified-noun-predicate", predicateLexemeId: "noun-shokudou", predicateAspect: "nominal" }), modifierTarget("na-adjective", "adjective-shizuka", "noun-shokudou", NA_ATTRIBUTIVE), { ...predicateTarget("noun", "noun-shokudou", "affirmative", NA_ATTRIBUTIVE), predicateSenseId: "modified-noun-predicate" }, 0, "copula-adjectives-4", 6, NA_ATTRIBUTIVE, BASE_ERROR_ACTIVITY_SHAPE, "na-adjective-missing-na", { contrastAxis: "meaning", heldConstantPredicateLexemeId: "noun-shokudou", errorDefectAxis: "form", changedTokenSourceIds: ["na-adjective-missing-na", "adjective-shizuka", "na"] }),
-    act(task11Cue(L("noun-jimusho")), predicateTarget("na-adjective", "adjective-kirei", "affirmative", NA_AFFIRMATIVE, "noun-jimusho"), predicateTarget("na-adjective", "adjective-kirei", "negative", NA_NEGATIVE, "noun-jimusho"), 1, "copula-adjectives-4", 7, NA_AFFIRMATIVE, BASE_CONTEXT_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-mise")), modifierTarget("na-adjective", "adjective-shizuka", "noun-mise", NA_ATTRIBUTIVE), { ...modifierTarget("na-adjective", "adjective-kirei", "noun-mise", NA_ATTRIBUTIVE), predicateLexemeId: "noun-mise" }, 1, "copula-adjectives-4", 8, NA_ATTRIBUTIVE, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: "noun-mise" }),
-    act(task11Cue(L("noun-mise")), predicateTarget("na-adjective", "adjective-shizuka", "pastNegative", NA_PAST_NEGATIVE, "noun-mise"), predicateTarget("na-adjective", "adjective-shizuka", "pastAffirmative", NA_PAST_AFFIRMATIVE, "noun-mise"), 0, "copula-adjectives-4", 9, NA_PAST_NEGATIVE, BASE_LISTENING_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
-    act(task11Cue(L("noun-gakusei")), predicateTarget("na-adjective", "adjective-kirei", "affirmative", NA_AFFIRMATIVE, "noun-gakusei"), predicateTarget("na-adjective", "adjective-kirai", "negative", NA_NEGATIVE, "noun-yamada"), 1, "copula-adjectives-4", 10, NA_AFFIRMATIVE, BASE_SPOKEN_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity" }),
+    act(task11Cue(L("noun-mari")), predicateTarget("na-adjective", "adjective-shizuka", "affirmative", NA_AFFIRMATIVE, "noun-mari"), predicateTarget("na-adjective", "adjective-shizuka", "negative", NA_NEGATIVE, "noun-mari"), 0, "copula-adjectives-4", 1, NA_AFFIRMATIVE, BASE_MEANING_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-mari-quiet", referentId: "noun-mari" }),
+    act(task11Cue(L("noun-kasa")), predicateTarget("na-adjective", "adjective-kirei", "pastNegative", NA_PAST_NEGATIVE, "noun-kasa"), predicateTarget("na-adjective", "adjective-kirei", "pastAffirmative", NA_PAST_AFFIRMATIVE, "noun-kasa"), 1, "copula-adjectives-4", 2, NA_PAST_NEGATIVE, BASE_FORM_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-umbrella-not-clean-before", referentId: "noun-kasa" }),
+    act(task11Cue(L("noun-watashi")), predicateTarget("na-adjective", "adjective-yuumei", "pastAffirmative", NA_PAST_AFFIRMATIVE, "noun-watashi"), { ...predicateTarget("na-adjective", "adjective-yuumei", "pastAffirmative", NA_PAST_AFFIRMATIVE, "noun-watashi"), parts: [predicatePart("na-adjective", "adjective-yuumei", "pastAffirmative"), L("noun-watashi"), P("topic-wa", "topic", "noun-watashi")] }, 0, "copula-adjectives-4", 3, NA_PAST_AFFIRMATIVE, BASE_ORDERING_ACTIVITY_SHAPE, null, { contrastAxis: "word-order", worldFactId: "fact-speaker-famous-before", referentId: "noun-watashi" }),
+    act(task11Cue(L("noun-tomodachi")), predicateTarget("na-adjective", "adjective-genki", "negative", NA_NEGATIVE, "noun-tomodachi"), predicateTarget("na-adjective", "adjective-genki", "affirmative", NA_AFFIRMATIVE, "noun-tomodachi"), 1, "copula-adjectives-4", 4, NA_NEGATIVE, BASE_CONTROLLED_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-friend-not-well", referentId: "noun-tomodachi" }),
+    act(task11Cue(L("noun-kouen")), predicateTarget("na-adjective", "adjective-shizuka", "pastAffirmative", NA_PAST_AFFIRMATIVE, "noun-kouen"), predicateTarget("na-adjective", "adjective-shizuka", "affirmative", NA_AFFIRMATIVE, "noun-kouen"), 0, "copula-adjectives-4", 5, NA_PAST_AFFIRMATIVE, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-park-quiet-before", referentId: "noun-kouen" }),
+    act(task11Target([L("adjective-shizuka"), predicatePart("noun", "noun-shokudou", "affirmative")], { conceptIds: ["na-adjective-predicate-and-attributive"], patternCellIds: [], semanticRoleIds: [], interpretationTags: ["present-state"], predicateSenseId: "modified-noun-predicate", predicateLexemeId: "noun-shokudou", predicateAspect: "nominal" }), modifierTarget("na-adjective", "adjective-shizuka", "noun-shokudou", NA_ATTRIBUTIVE), { ...modifierTarget("na-adjective", "adjective-shizuka", "noun-shokudou", NA_ATTRIBUTIVE), parts: [naAttributive("adjective-shizuka"), predicatePart("noun", "noun-shokudou", "negative")], patternCellIds: [NOUN_NEGATIVE], interpretationTags: ["present-state", "negative"] }, 0, "copula-adjectives-4", 6, NA_ATTRIBUTIVE, BASE_ERROR_ACTIVITY_SHAPE, "na-adjective-missing-na", { contrastAxis: "meaning", heldConstantPredicateLexemeId: "noun-shokudou", errorDefectAxis: "form", changedTokenSourceIds: ["na"], worldFactId: "fact-cafeteria-quiet", referentId: "noun-shokudou" }),
+    act(task11Cue(L("noun-jimusho")), predicateTarget("na-adjective", "adjective-kirei", "affirmative", NA_AFFIRMATIVE, "noun-jimusho"), predicateTarget("na-adjective", "adjective-kirei", "negative", NA_NEGATIVE, "noun-jimusho"), 1, "copula-adjectives-4", 7, NA_AFFIRMATIVE, BASE_CONTEXT_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-office-clean", referentId: "noun-jimusho" }),
+    act(task11Cue(L("noun-mise")), modifierTarget("na-adjective", "adjective-shizuka", "noun-mise", NA_ATTRIBUTIVE), { ...modifierTarget("na-adjective", "adjective-kirei", "noun-mise", NA_ATTRIBUTIVE), predicateLexemeId: "noun-mise" }, 1, "copula-adjectives-4", 8, NA_ATTRIBUTIVE, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: "noun-mise", worldFactId: "fact-shop-quiet", referentId: "noun-mise" }),
+    act(task11Cue(L("noun-mise")), predicateTarget("na-adjective", "adjective-shizuka", "pastNegative", NA_PAST_NEGATIVE, "noun-mise"), predicateTarget("na-adjective", "adjective-shizuka", "pastAffirmative", NA_PAST_AFFIRMATIVE, "noun-mise"), 0, "copula-adjectives-4", 9, NA_PAST_NEGATIVE, BASE_LISTENING_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-audio-shop-not-quiet-before", referentId: "noun-mise" }),
+    act(task11Cue(L("noun-gakusei")), predicateTarget("na-adjective", "adjective-kirei", "affirmative", NA_AFFIRMATIVE, "noun-gakusei"), predicateTarget("na-adjective", "adjective-genki", "negative", NA_NEGATIVE, "noun-yamada"), 1, "copula-adjectives-4", 10, NA_AFFIRMATIVE, BASE_SPOKEN_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-hidden-student-pretty", referentId: "noun-gakusei" }),
   ],
   dialogue: null,
 };
@@ -576,7 +579,11 @@ const RAW_MODULE: BaseCopulaAdjectivesModule = {
     ...BASE_COPULA_ADJECTIVES_LESSONS,
   ],
   worldFacts: { scope: "predicate-system" },
-  worldFactIds: [],
+  worldFactIds: RAW_LESSONS.flatMap((lesson) =>
+    lesson.activityDesigns.flatMap(({ worldFactId }) =>
+      worldFactId ? [worldFactId] : [],
+    ),
+  ),
   worldFactLedger: worldFactLedgerFor(RAW_LESSONS),
 };
 
@@ -598,6 +605,7 @@ const PREDICATE_FORM_BY_CELL: Readonly<Record<string, BasePredicateForm>> =
 
 function hasCanonicalPredicateRealization(
   target: BaseVisibleTarget,
+  allowFormIdDerivation: boolean,
 ): boolean {
   const cellId = target.patternCellIds.find(
     (id) =>
@@ -605,52 +613,211 @@ function hasCanonicalPredicateRealization(
       id === I_ATTRIBUTIVE ||
       id === NA_ATTRIBUTIVE,
   );
-  if (!cellId) return true;
-  const adjectiveLexemeId =
-    cellId === I_ATTRIBUTIVE || cellId === NA_ATTRIBUTIVE
-      ? target.lexemeIds.find(
-          (id) =>
-            BASE_LEXICON.find(({ id: candidateId }) => candidateId === id)
-              ?.category === "adjective",
-        )
-      : target.predicateLexemeId;
-  if (
-    (cellId === I_ATTRIBUTIVE || cellId === NA_ATTRIBUTIVE) &&
-    !adjectiveLexemeId
-  ) {
-    if (!target.predicateLexemeId) return false;
-    const noun = realizeOwnedNounPredicate(target.predicateLexemeId);
-    return (
-      noun.ok &&
-      containsExactGeneratedTokenSequence(
-        target.tokens,
-        noun.value.affirmative.tokens,
-      )
-    );
-  }
-  const lexemeId = adjectiveLexemeId;
-  if (!lexemeId) return false;
+  type Requirement =
+    | Readonly<{
+        kind: "noun" | "i-adjective" | "na-adjective";
+        lexemeId: string;
+        form: BasePredicateForm;
+      }>
+    | Readonly<{
+        kind: "i-attributive" | "na-attributive";
+        lexemeId: string;
+      }>;
+  const lexemeFor = (lexemeId: string | null) =>
+    lexemeId
+      ? BASE_LEXICON.find(({ id }) => id === lexemeId)
+      : undefined;
+  const adjectiveId = (kind: "i" | "na"): string | undefined =>
+    target.lexemeIds.find((id) => {
+      const lexeme = lexemeFor(id);
+      return (
+        lexeme?.category === "adjective" && lexeme.adjectiveClass === kind
+      );
+    });
+  const predicate = lexemeFor(target.predicateLexemeId);
+  const requirements: Requirement[] = [];
+  const addFinite = (
+    kind: Requirement["kind"],
+    form: BasePredicateForm,
+  ): void => {
+    if (
+      kind === "i-attributive" ||
+      kind === "na-attributive" ||
+      !target.predicateLexemeId
+    ) {
+      return;
+    }
+    requirements.push({
+      kind,
+      lexemeId: target.predicateLexemeId,
+      form,
+    });
+  };
+  const addNounFormId = (formId: string): void => {
+    if (predicate?.category !== "noun") return;
+    const formById: Readonly<Record<string, BasePredicateForm>> = {
+      "affirmative-desu": "affirmative",
+      "base-form-noun-predicate-negative": "negative",
+      "base-form-noun-predicate-past-affirmative": "pastAffirmative",
+      "base-form-noun-predicate-past-negative": "pastNegative",
+    };
+    const form = formById[formId];
+    if (form) addFinite("noun", form);
+  };
+  const addRequirementsFromFormIds = (
+    includeAdjectivePredicate: boolean,
+  ): void => {
+    for (const formId of target.formIds) {
+      addNounFormId(formId);
+      const predicateFormById: Readonly<
+        Record<string, BasePredicateForm>
+      > = {
+        "base-form-i-adjective-affirmative": "affirmative",
+        "base-form-i-adjective-negative": "negative",
+        "base-form-i-adjective-past-affirmative": "pastAffirmative",
+        "base-form-i-adjective-past-negative": "pastNegative",
+        "base-form-na-adjective-affirmative": "affirmative",
+        "base-form-na-adjective-negative": "negative",
+        "base-form-na-adjective-past-affirmative": "pastAffirmative",
+        "base-form-na-adjective-past-negative": "pastNegative",
+      };
+      const form = predicateFormById[formId];
+      if (
+        includeAdjectivePredicate &&
+        form &&
+        predicate?.category === "adjective"
+      ) {
+        addFinite(
+          predicate.adjectiveClass === "i" ? "i-adjective" : "na-adjective",
+          form,
+        );
+      }
+      if (
+        formId === "base-form-i-adjective-affirmative" &&
+        predicate?.category === "noun"
+      ) {
+        const lexemeId = adjectiveId("i");
+        if (lexemeId) requirements.push({ kind: "i-attributive", lexemeId });
+      }
+      if (formId === "base-form-na-adjective-attributive") {
+        const lexemeId = adjectiveId("na");
+        if (lexemeId) requirements.push({ kind: "na-attributive", lexemeId });
+      }
+    }
+  };
   if (cellId === I_ATTRIBUTIVE || cellId === NA_ATTRIBUTIVE) {
-    const result =
-      cellId === I_ATTRIBUTIVE
-        ? realizeIAdjectiveAttributive(lexemeId)
-        : realizeNaAdjectiveAttributive(lexemeId);
-    return (
-      result.ok &&
-      containsExactGeneratedTokenSequence(target.tokens, result.value)
+    const kind = cellId === I_ATTRIBUTIVE ? "i" : "na";
+    const lexemeId = adjectiveId(kind);
+    if (!lexemeId) return false;
+    requirements.push({
+      kind: kind === "i" ? "i-attributive" : "na-attributive",
+      lexemeId,
+    });
+    addRequirementsFromFormIds(false);
+  } else if (cellId) {
+    const form = PREDICATE_FORM_BY_CELL[cellId];
+    if (!form) return false;
+    addFinite(
+      cellId.startsWith("noun-")
+        ? "noun"
+        : cellId.startsWith("i-adjective-")
+          ? "i-adjective"
+          : "na-adjective",
+      form,
     );
+  } else {
+    if (!allowFormIdDerivation) return false;
+    addRequirementsFromFormIds(true);
   }
-  const result = cellId.startsWith("noun-")
-    ? realizeOwnedNounPredicate(lexemeId)
-    : cellId.startsWith("i-adjective-")
-      ? realizeIAdjectivePredicate(lexemeId)
-      : realizeNaAdjectivePredicate(lexemeId);
-  const form = PREDICATE_FORM_BY_CELL[cellId];
-  return (
-    result.ok &&
-    form !== undefined &&
-    containsExactGeneratedTokenSequence(target.tokens, result.value[form].tokens)
-  );
+  const uniqueRequirements = [
+    ...new Map(
+      requirements.map((requirement) => [
+        JSON.stringify(requirement),
+        requirement,
+      ]),
+    ).values(),
+  ];
+  if (uniqueRequirements.length === 0) return false;
+  const tokenMatches = (
+    actual: AssembledToken,
+    expected: AssembledToken,
+    offset: number,
+  ): boolean =>
+    actual.jp === expected.jp &&
+    actual.romaji === expected.romaji &&
+    actual.kind === expected.kind &&
+    (offset === 0 || actual.boundaryBefore === expected.boundaryBefore) &&
+    actual.source.domain === expected.source.domain &&
+    actual.source.referenceId === expected.source.referenceId;
+  const uniqueStart = (
+    expected: readonly AssembledToken[],
+  ): number | undefined => {
+    const starts = target.tokens.flatMap((_, start) =>
+      expected.every((token, offset) => {
+        const actual = target.tokens[start + offset];
+        return actual !== undefined && tokenMatches(actual, token, offset);
+      })
+        ? [start]
+        : [],
+    );
+    return starts.length === 1 ? starts[0] : undefined;
+  };
+  return uniqueRequirements.every((requirement) => {
+    const attributive =
+      requirement.kind === "i-attributive" ||
+      requirement.kind === "na-attributive";
+    let expected: readonly AssembledToken[];
+    if (requirement.kind === "i-attributive") {
+      const realized = realizeIAdjectiveAttributive(requirement.lexemeId);
+      if (!realized.ok) return false;
+      expected = realized.value;
+    } else if (requirement.kind === "na-attributive") {
+      const realized = realizeNaAdjectiveAttributive(requirement.lexemeId);
+      if (!realized.ok) return false;
+      expected = realized.value;
+    } else {
+      const form = "form" in requirement ? requirement.form : undefined;
+      if (!form) return false;
+      const realized =
+        requirement.kind === "noun"
+          ? realizeOwnedNounPredicate(requirement.lexemeId)
+          : requirement.kind === "i-adjective"
+            ? realizeIAdjectivePredicate(requirement.lexemeId)
+            : realizeNaAdjectivePredicate(requirement.lexemeId);
+      if (!realized.ok) return false;
+      expected = realized.value[form].tokens;
+    }
+    const start = uniqueStart(expected);
+    if (start === undefined) return false;
+    const end = start + expected.length;
+    if (attributive) {
+      const modified = target.tokens[end];
+      return (
+        modified?.kind === "lexical" &&
+        lexemeFor(modified.source.referenceId)?.category === "noun"
+      );
+    }
+    const suffixIsClauseFinal = target.tokens.slice(end).every(
+      ({ kind, source }) =>
+        kind === "punctuation" ||
+        (kind === "particle" &&
+          ["question-ka", "interactional-ne", "interactional-yo"].includes(
+            source.referenceId,
+          )),
+    );
+    if (!allowFormIdDerivation) return suffixIsClauseFinal;
+    const generatedMorphemeIds = new Set(
+      expected
+        .filter(({ kind }) => kind !== "lexical")
+        .map(({ source }) => source.referenceId),
+    );
+    return target.tokens.every(
+      ({ kind, source }, index) =>
+        (index >= start && index < end) ||
+        kind === "lexical" ||
+        !generatedMorphemeIds.has(source.referenceId),
+    );
+  });
 }
 
 export function validateBaseCopulaAdjectivesModule(
@@ -666,8 +833,10 @@ export function validateBaseCopulaAdjectivesModule(
     BASE_COPULA_ADJECTIVES_VALIDATION_CATALOGS,
   );
   if (!base.ok) return base;
-  const targets = strictTask11ModuleTargets(value);
-  return targets?.every(({ target }) => hasCanonicalPredicateRealization(target))
+  const snapshot = strictTask11ModuleSnapshot(value);
+  return snapshot?.targets.every(({ source, target }) =>
+    hasCanonicalPredicateRealization(target, source === "option"),
+  )
     ? base
     : { ok: false, errors: ["invalid-lesson-shape"] };
 }
