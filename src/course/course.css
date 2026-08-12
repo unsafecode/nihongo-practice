@@ -2655,6 +2655,18 @@
 .base-reference-page__cell-romaji {
   display: block;
 }
+/* The trailing explanation column absorbs the table's remaining width, so a
+ * reference with a single narrow form column reads as a taught system rather
+ * than a mostly-blank grid. It stays the least prominent thing in the row. */
+.base-reference-table td.base-reference-page__explanation {
+  margin: 0;
+  width: 55%;
+  font-size: var(--text-1);
+}
+.base-reference-page__stacked-card > .base-reference-page__explanation {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-1);
+}
 .base-reference-page__cell-romaji {
   color: var(--course-muted);
   font-size: var(--text-1);

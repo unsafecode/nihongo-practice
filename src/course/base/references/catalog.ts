@@ -166,6 +166,13 @@ export interface ReferenceGridModel {
   readonly rows: readonly {
     readonly id: string;
     readonly header: string;
+    /**
+     * The entry's authored, localized explanation. A grid that renders only
+     * the form cell shows *what* the shape is but never *when* to use it, so
+     * both the table and the stacked cards carry this text: it is what makes
+     * a reference surface actually teach its system.
+     */
+    readonly explanation: string;
     readonly cells: readonly {
       readonly columnId: string;
       readonly label: string;

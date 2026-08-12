@@ -97,6 +97,9 @@ export function BaseReferencePage(): ReactElement {
 
   const { model } = result;
   const errorText = copy.lesson.contentFormattingError;
+  const columnLabelById = new Map(
+    model.grid.columns.map((column) => [column.id, column.label] as const),
+  );
 
   return (
     <main className="base-reference-page" data-reference-id={model.id}>
@@ -125,6 +128,14 @@ export function BaseReferencePage(): ReactElement {
                 {column.label}
               </th>
             ))}
+            {/*
+              A trailing, UI-chrome column (never authored Japanese content)
+              carrying each entry's authored explanation, so the table says
+              *when* to use a form and not only what it looks like.
+            */}
+            <th scope="col" className="base-reference-page__explanation-heading">
+              {pageCopy.whenToUseLabel}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -156,6 +167,7 @@ export function BaseReferencePage(): ReactElement {
                   </td>
                 );
               })}
+              <td className="base-reference-page__explanation">{row.explanation}</td>
             </tr>
           ))}
         </tbody>
@@ -177,10 +189,17 @@ export function BaseReferencePage(): ReactElement {
             data-row-id={row.id}
           >
             <h2 className="base-reference-page__stacked-card-heading">{row.header}</h2>
+            <p className="base-reference-page__explanation">{row.explanation}</p>
             <dl className="base-reference-page__stacked-card-cells">
               {row.cells.map((cell) => (
                 <div key={cell.columnId} data-column-id={cell.columnId}>
-                  <dt>{cell.label}</dt>
+                  {/*
+                    A card cell is labelled by the *column* it sits under, so
+                    the card is a faithful restatement of the table. Using the
+                    cell's own label degenerates to the row heading on
+                    single-column references ("Topic / Topic / は").
+                  */}
+                  <dt>{columnLabelById.get(cell.columnId) ?? cell.label}</dt>
                   <dd lang="ja">
                     <span className="base-reference-page__cell-japanese">
                       {cell.value.map((token) => (

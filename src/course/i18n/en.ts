@@ -495,6 +495,7 @@ const enUi = {
       "This reference could not be prepared right now. Nothing was shown, so you never see an incomplete table.",
     tableViewLabel: "Table view",
     cardsViewLabel: "Card view",
+    whenToUseLabel: "When to use it",
   },
   baseDiagnostic: {
     heading: "Where should you start?",

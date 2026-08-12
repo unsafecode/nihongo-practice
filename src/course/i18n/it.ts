@@ -496,6 +496,7 @@ const itUi = {
       "Non è stato possibile preparare questo riferimento ora. Non è stato mostrato nulla, così non vedi mai una tabella incompleta.",
     tableViewLabel: "Vista tabella",
     cardsViewLabel: "Vista schede",
+    whenToUseLabel: "Quando si usa",
   },
   baseDiagnostic: {
     heading: "Da dove iniziare?",

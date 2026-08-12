@@ -202,6 +202,7 @@ export function buildBaseReferenceViewModel(
   const rows: ReferenceGridModel["rows"] = entries.map((entry) => ({
     id: entry.semanticId,
     header: entry.label,
+    explanation: entry.explanation,
     cells: entry.canonicalFormCells.map(({
       columnId,
       label,

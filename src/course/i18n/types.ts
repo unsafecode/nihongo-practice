@@ -662,6 +662,8 @@ export interface CourseCopy {
     unavailableBody: string;
     tableViewLabel: string;
     cardsViewLabel: string;
+    /** Header of the trailing UI-chrome column carrying each entry's explanation. */
+    whenToUseLabel: string;
   };
   /**
    * Localized chrome for the optional, skippable Base entry diagnostic

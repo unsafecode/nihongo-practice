@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { describe, expect, it } from "vitest";
 import { LocaleProvider } from "../../i18n/LocaleContext";
 import { BASE_REFERENCE_IDS } from "../base/references/catalog";
+import { buildBaseReferenceViewModel } from "../base/references/buildReferenceViewModel";
 import { routePaths } from "../../routing/routePaths";
 import { it as itCopy } from "../i18n/it";
 import { BaseReferencePage } from "./BaseReferencePage";
@@ -29,6 +30,16 @@ function render(path: string): string {
       ),
     ),
   );
+}
+
+/** Escapes text the way React escapes a text child in static markup. */
+function escapeHtmlText(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
 }
 
 /** One `throughLessonId` known to be at/after each reference's first-teach lesson. */
@@ -125,6 +136,59 @@ describe("BaseReferencePage — routes and renders all five real reference surfa
     );
     expect(stackedCards).not.toBeNull();
     expect(stackedCards!.length).toBeGreaterThan(0);
+  });
+
+  it.each(BASE_REFERENCE_IDS)(
+    "teaches %s by showing every visible entry's authored explanation, not just its form",
+    (referenceId) => {
+      const throughLessonId = THROUGH_LESSON_BY_REFERENCE[referenceId]!;
+      const html = render(
+        `/riferimenti/base/${referenceId}?throughLessonId=${throughLessonId}`,
+      );
+      const model = buildBaseReferenceViewModel(referenceId, throughLessonId, "it");
+      expect(model.ok).toBe(true);
+      if (!model.ok) return;
+      expect(model.model.entries.length).toBeGreaterThan(0);
+      // A reference grid that renders only the form cell shows *what* the
+      // shape is but never *when* to use it, so the surface does not teach
+      // the system it promises. Every visible entry's authored explanation
+      // must reach the page.
+      for (const entry of model.model.entries) {
+        expect(entry.explanation).not.toBe("");
+        expect(html, `${referenceId}/${entry.semanticId}`).toContain(
+          escapeHtmlText(entry.explanation),
+        );
+      }
+    },
+  );
+
+  it("labels stacked-card cells with the table's column header, never a copy of the row heading", () => {
+    // The card view is the mobile-equivalent presentation of the same table,
+    // so a cell's label must be the column it sits under. Reusing the cell's
+    // own label degenerates to the row heading on single-column references
+    // (the particle atlas rendered "Tema / Tema / は").
+    const html = render(
+      "/riferimenti/base/particle-atlas?throughLessonId=topic-questions-2",
+    );
+    const model = buildBaseReferenceViewModel(
+      "particle-atlas",
+      "topic-questions-2",
+      "it",
+    );
+    expect(model.ok).toBe(true);
+    if (!model.ok) return;
+    const columnLabelById = new Map(
+      model.model.grid.columns.map((column) => [column.id, column.label]),
+    );
+    for (const row of model.model.stackedRows) {
+      for (const cell of row.cells) {
+        const columnLabel = columnLabelById.get(cell.columnId);
+        expect(columnLabel).toBeDefined();
+        expect(html).toContain(`<dt>${columnLabel}</dt>`);
+        // The row heading must not masquerade as a column label.
+        expect(html).not.toContain(`<dt>${row.header}</dt>`);
+      }
+    }
   });
 
   it("hides a prerequisite entry that has not been taught yet, never showing a future concept", () => {
