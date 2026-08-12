@@ -565,8 +565,13 @@ for (const viewport of A11Y_VIEWPORTS) {
         // Table/card equivalence *by column*, not by position: every row must
         // place each value under the header that actually names it.
         const alignment = await page.evaluate(() => {
+          // Only real grid columns take part in alignment: the trailing
+          // explanation column is UI chrome carried by both presentations
+          // (a `td` here, a `p` on the card), never an authored form column.
           const columnIds = Array.from(
-            document.querySelectorAll(".base-reference-table thead th"),
+            document.querySelectorAll(
+              ".base-reference-table thead th:not(.base-reference-page__explanation-heading)",
+            ),
           )
             .slice(1)
             .map((_, index) => index);
@@ -574,12 +579,15 @@ for (const viewport of A11Y_VIEWPORTS) {
             document.querySelectorAll(".base-reference-table tbody tr"),
           ).map((row) => ({
             id: row.getAttribute("data-row-id"),
-            cells: Array.from(row.querySelectorAll("td")).map((cell) =>
+            cells: Array.from(row.querySelectorAll("td[data-column-id]")).map((cell) =>
               cell.getAttribute("data-column-id"),
             ),
-            filledCells: Array.from(row.querySelectorAll("td"))
+            filledCells: Array.from(row.querySelectorAll("td[data-column-id]"))
               .filter((cell) => (cell.textContent ?? "").trim().length > 0)
               .map((cell) => cell.getAttribute("data-column-id")),
+            explanation: (
+              row.querySelector("td.base-reference-page__explanation")?.textContent ?? ""
+            ).trim(),
           }));
           const headerOrder = Array.from(
             document.querySelectorAll(".base-reference-cards > li"),
@@ -595,7 +603,25 @@ for (const viewport of A11Y_VIEWPORTS) {
             row.cells.length,
             `${referenceId} row ${row.id} spans every column`,
           ).toBe(alignment.columnCount);
+          // A row that shows a form but never says when to use it does not
+          // teach the system the reference promises.
+          expect(
+            row.explanation,
+            `${referenceId} row ${row.id} says when to use the form`,
+          ).not.toBe("");
         }
+        const cardExplanations = await page.evaluate(() =>
+          Array.from(document.querySelectorAll(".base-reference-cards > li")).map(
+            (card) =>
+              (
+                card.querySelector(":scope > .base-reference-page__explanation")
+                  ?.textContent ?? ""
+              ).trim(),
+          ),
+        );
+        expect(cardExplanations, `${referenceId} cards carry the same explanations`).toEqual(
+          alignment.rows.map((row) => row.explanation),
+        );
         // Each stacked card lists only the cells its row really has, in the
         // same column order the table places them in.
         alignment.headerOrder.forEach((cardColumns, index) => {
