@@ -1861,7 +1861,7 @@ const COPULA_ADJECTIVES_COPY_IT: Readonly<Record<string, string>> = {
     commonError:
       "Non usare una terminazione non-passata per un ruolo esplicitamente precedente e non eliminare でした dal passato negativo.",
     nearestContrast:
-      "エンジニアでした dice che il ruolo precedente valeva; エンジニアではありませんでした dice che non valeva.",
+      "えんじにあでした dice che il ruolo precedente valeva; えんじにあではありませんでした dice che non valeva.",
     recap:
       "Recupera tutte e quattro le celle del predicato nominale variando soltanto tempo e polarità.",
     translations: [
@@ -2299,7 +2299,7 @@ const EXISTENCE_LOCATION_COPY_IT: Readonly<Record<string, string>> = {
     commonError:
       "Mantieni distinti l'entità cercata e il luogo della risposta e conserva la classe dell'entità stabilita autonomamente.",
     nearestContrast:
-      "トイレはどこにありますか chiede di una cosa o un luogo; けいさつかんはどこにいますか chiede di una persona.",
+      "といれはどこにありますか chiede di una cosa o un luogo; けいさつかんはどこにいますか chiede di una persona.",
     recap:
       "Recupera la classe dell'entità, chiedi con どこに e rispondi con un luogo d'esistenza coerente.",
     translations: [

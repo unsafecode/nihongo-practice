@@ -12,11 +12,17 @@ import type {
 import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
 import { baseNavigationCopyEn } from "../copy/en";
 import { baseNavigationCopyIt } from "../copy/it";
-import { realizeTeConstruction } from "../forms/verbForms";
 import {
-  containsExactGeneratedTokenSequence,
+  realizePoliteNonpast,
+  realizeTeConstruction,
+} from "../forms/verbForms";
+import {
+  findExactGeneratedTokenSpans,
+  hasAuthoredClauseFinalSuffix,
+  isExactOrderChunkPermutation,
   strictTask11ModuleSnapshot,
   validateTask11CorpusDistinctness,
+  type StrictTask11CorpusTarget,
 } from "../validation/moduleSnapshots";
 import {
   BASE_CONTEXT_ACTIVITY_SHAPE,
@@ -1224,7 +1230,11 @@ const RAW_MODULE: BaseRequestsConnectionModule = {
   worldFactLedger: worldFactLedgerFor(RAW_LESSONS),
 };
 
-function hasCanonicalTeRealization(target: BaseVisibleTarget): boolean {
+function hasCanonicalTeRealization(
+  entry: StrictTask11CorpusTarget,
+  corpusTargets: readonly StrictTask11CorpusTarget[],
+): boolean {
+  const { target } = entry;
   const construction = target.formIds.includes(
     "base-construction-te-kudasai",
   )
@@ -1243,15 +1253,49 @@ function hasCanonicalTeRealization(target: BaseVisibleTarget): boolean {
       .map(({ source }) => source.referenceId),
   );
   if (teLemmaIds.size === 0) return false;
+  const orderPermutation = isExactOrderChunkPermutation(
+    entry,
+    corpusTargets,
+  );
   return [...teLemmaIds].every((lemmaId) => {
     const baseTe = realizeTeConstruction(lemmaId, "te");
     const realized = realizeTeConstruction(lemmaId, construction);
-    return (
-      baseTe.ok &&
-      authoredTeSurface(lemmaId) === japanese(baseTe.value) &&
-      realized.ok &&
-      containsExactGeneratedTokenSequence(target.tokens, realized.value)
+    if (
+      !baseTe.ok ||
+      authoredTeSurface(lemmaId) !== japanese(baseTe.value) ||
+      !realized.ok
+    ) {
+      return false;
+    }
+    const spans = findExactGeneratedTokenSpans(
+      target.tokens,
+      realized.value,
     );
+    if (spans.length !== 1) return false;
+    if (orderPermutation) return true;
+    if (construction !== "sequence") {
+      return spans.some(({ end }) =>
+        hasAuthoredClauseFinalSuffix(target, end),
+      );
+    }
+    if (target.predicateLexemeId === null) return false;
+    const finalPredicate = realizePoliteNonpast(target.predicateLexemeId);
+    if (!finalPredicate.ok) return false;
+    const finalSpans = findExactGeneratedTokenSpans(
+      target.tokens,
+      finalPredicate.value,
+    );
+    return spans.some(({ end }) => {
+      const separator = target.tokens[end];
+      const finalSpan = finalSpans.find(
+        ({ start }) => start === end + 1,
+      );
+      return (
+        separator?.kind === "punctuation" &&
+        finalSpan !== undefined &&
+        hasAuthoredClauseFinalSuffix(target, finalSpan.end)
+      );
+    });
   });
 }
 
@@ -1314,7 +1358,6 @@ function hasCanonicalTask12Semantics(
   }>[],
 ): boolean {
   return targets.every(({ lessonId, target }) => {
-    if (!hasCanonicalTeRealization(target)) return false;
     return hasCanonicalTeImasuSemantics(lessonId, target);
   });
 }
@@ -1353,6 +1396,9 @@ export function validateBaseRequestsConnectionModule(
     ),
   );
   return snapshot &&
+    snapshot.corpusTargets.every((entry) =>
+      hasCanonicalTeRealization(entry, snapshot.corpusTargets),
+    ) &&
     hasCanonicalTask12Semantics(snapshot.targets) &&
     task12CorpusCollisions?.length === 0
     ? base

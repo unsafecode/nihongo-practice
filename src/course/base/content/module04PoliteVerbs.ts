@@ -177,6 +177,7 @@ export interface BaseTask11ActivitySpec {
   readonly distractorFactStatus?:
     | "accepted-world"
     | "rejected-context";
+  readonly preserveDistractorPatternCellIds?: boolean;
   readonly errorCode: string | null;
   readonly contrastAxis?: BaseTask11ContrastAxis;
   readonly heldConstantPredicateLexemeId?: string | null;
@@ -218,6 +219,7 @@ export interface BaseTask11WorldFactGrounding {
 }
 
 export interface BaseTask11ActivityDesign extends BaseSemanticActivityDesign {
+  readonly preservesDistractorPatternCellIds: boolean;
   readonly reviewEvidence: BaseTask11ReviewEvidence;
   readonly worldFactGrounding: BaseTask11WorldFactGrounding | null;
 }
@@ -1056,11 +1058,11 @@ function activitiesFor(
     const isSpoken = activity.shape.operation === "produce-spoken";
     const distractor = {
       ...activity.distractor,
-      patternCellIds: activity.distractor.patternCellIds.includes(
-        activity.patternCellId,
-      )
-        ? [activity.patternCellId]
-        : [],
+      patternCellIds: activity.preserveDistractorPatternCellIds
+        ? activity.distractor.patternCellIds
+        : activity.distractor.patternCellIds.includes(activity.patternCellId)
+          ? [activity.patternCellId]
+          : [],
     };
     const orderedSpecs =
       activity.correctOptionIndex === 0
@@ -1177,6 +1179,8 @@ function activitiesFor(
       mode: activity.shape.mode,
       operation: activity.shape.operation,
       patternCellId: activity.patternCellId,
+      preservesDistractorPatternCellIds:
+        activity.preserveDistractorPatternCellIds === true,
       contextTarget: {
         id: `${id}-context`,
         copyId: activity.promptContextCopyId,

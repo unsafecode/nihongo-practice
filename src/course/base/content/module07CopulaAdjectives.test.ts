@@ -11,6 +11,10 @@ import {
   validateBasePredicate,
 } from "../forms/adjectiveForms";
 import {
+  isExactOrderChunkPermutation,
+  strictTask11ModuleSnapshot,
+} from "../validation/moduleSnapshots";
+import {
   BASE_MEANING_ACTIVITY_SHAPE,
   BASE_SENTENCE_FOUNDATIONS_MODULE,
 } from "./module02SentenceFoundations";
@@ -440,6 +444,65 @@ describe("Task 12 copula and adjective ownership", () => {
     target.tokens.push(structuredClone(target.tokens.at(-1)!));
 
     expect(validateBaseCopulaAdjectivesModule(mutated).ok).toBe(false);
+  });
+
+  it("rejects trailing lexical junk on a canonical predicate option", () => {
+    const mutated = structuredClone(BASE_COPULA_ADJECTIVES_MODULE);
+    const activity = mutated.lessons[0].activityDesigns[0];
+    const distractor = activity.optionTargets[
+      activity.correctOptionIndex === 0 ? 1 : 0
+    ] as unknown as {
+      tokens: Array<
+        (typeof BASE_COPULA_ADJECTIVES_MODULE.lessons)[number]["examples"][number]["tokens"][number]
+      >;
+    };
+    const studentToken = mutated.lessons[3].examples
+      .flatMap(({ tokens }) => tokens)
+      .find(({ source }) => source.referenceId === "noun-gakusei")!;
+    distractor.tokens.push(structuredClone(studentToken));
+
+    expect(validateBaseCopulaAdjectivesModule(mutated).ok).toBe(false);
+  });
+
+  it("publishes each predicate option's own canonical cell", () => {
+    const canonicalCellIds = new Set([
+      ...BASE_COPULA_ADJECTIVES_PREDICATE_CELLS.map(({ id }) => id),
+      "i-adjective-attributive",
+    ]);
+
+    for (const lesson of BASE_COPULA_ADJECTIVES_MODULE.lessons) {
+      for (const activity of lesson.activityDesigns) {
+        for (const [optionIndex, option] of activity.optionTargets.entries()) {
+          if (
+            activity.category === "error-diagnosis" &&
+            optionIndex !== activity.correctOptionIndex
+          ) {
+            continue;
+          }
+          expect(
+            option.patternCellIds.some((id) => canonicalCellIds.has(id)),
+            `${activity.id}:${japanese(option)}`,
+          ).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("limits order-permutation exemptions to the reordered distractor", () => {
+    const snapshot = strictTask11ModuleSnapshot(
+      BASE_COPULA_ADJECTIVES_MODULE,
+    )!;
+    const activityId = "copula-adjectives-1-activity-3";
+    const options = snapshot.corpusTargets.filter(
+      (entry) =>
+        entry.activityId === activityId && entry.source === "option",
+    );
+
+    expect(
+      options.map((entry) =>
+        isExactOrderChunkPermutation(entry, snapshot.corpusTargets),
+      ),
+    ).toEqual([false, true]);
   });
 
   it("uses a one-argument な-adjective instead of contradictory きらい roles", () => {

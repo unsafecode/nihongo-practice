@@ -529,6 +529,43 @@ describe("Task 12 bounded te ownership", () => {
     expect(validateBaseRequestsConnectionModule(mutated).ok).toBe(false);
   });
 
+  it.each([
+    ["spoken answer", "spoken"],
+    ["example", "example"],
+  ] as const)("rejects trailing lexical junk on an RC4 %s", (_, source) => {
+    const mutated = structuredClone(BASE_REQUESTS_CONNECTION_MODULE);
+    const target =
+      source === "spoken"
+        ? mutated.lessons[3].activityDesigns[9].acceptedAnswerTarget
+        : mutated.lessons[3].examples[0];
+    const mutable = target as unknown as {
+      tokens: Array<
+        (typeof BASE_REQUESTS_CONNECTION_MODULE.lessons)[number]["examples"][number]["tokens"][number]
+      >;
+    };
+    const magazineToken = mutated.lessons[3].examples
+      .flatMap(({ tokens }) => tokens)
+      .find(({ source: tokenSource }) => tokenSource.referenceId === "noun-zasshi")!;
+    mutable.tokens.push(structuredClone(magazineToken));
+
+    expect(validateBaseRequestsConnectionModule(mutated).ok).toBe(false);
+  });
+
+  it("rejects an unauthorized particle after a generated te construction", () => {
+    const mutated = structuredClone(BASE_REQUESTS_CONNECTION_MODULE);
+    const target = mutated.lessons[3].examples[0] as unknown as {
+      tokens: Array<
+        (typeof BASE_REQUESTS_CONNECTION_MODULE.lessons)[number]["examples"][number]["tokens"][number]
+      >;
+    };
+    const topicParticle = target.tokens.find(
+      ({ source }) => source.referenceId === "topic-wa",
+    )!;
+    target.tokens.push(structuredClone(topicParticle));
+
+    expect(validateBaseRequestsConnectionModule(mutated).ok).toBe(false);
+  });
+
   it("rejects an overgeneralized いきて target despite canonical-looking provenance", () => {
     const mutated = structuredClone(BASE_REQUESTS_CONNECTION_MODULE);
     const target = mutated.lessons[0].examples.find(
@@ -732,6 +769,53 @@ describe("Task 12 bounded te ownership", () => {
         ),
       ),
     ).toEqual([]);
+  });
+
+  it("uses canonical learner-corpus script in every Task 12 explanation", () => {
+    const corpusSurfaces = TASK12_MODULES.flatMap((module) => {
+      const snapshot = strictTask11ModuleSnapshot(module)!;
+      return snapshot.corpusTargets.map(({ target }) =>
+        japanese(target.tokens),
+      );
+    });
+    const canonicalLexemeSurfaces = BASE_LEXICON.map(({ kana }) => kana);
+    const allowedRecognitionOrNotation = new Set(["じゃありません"]);
+    const mismatches: string[] = [];
+
+    for (const module of TASK12_MODULES) {
+      for (const lesson of module.lessons) {
+        const copyIds = [
+          ...Object.values(lesson.content.explanationBlockIds),
+          lesson.content.recapCopyId,
+          ...lesson.activityDesigns.map(
+            ({ promptContextCopyId }) => promptContextCopyId,
+          ),
+        ];
+        for (const copyId of copyIds) {
+          for (const [locale, copy] of [
+            ["en", baseNavigationCopyEn],
+            ["it", baseNavigationCopyIt],
+          ] as const) {
+            const runs =
+              copy.content[copyId].match(
+                /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}々ー]+/gu,
+              ) ?? [];
+            for (const run of runs) {
+              if (
+                allowedRecognitionOrNotation.has(run) ||
+                corpusSurfaces.some((surface) => surface.includes(run)) ||
+                canonicalLexemeSurfaces.includes(run)
+              ) {
+                continue;
+              }
+              mismatches.push(`${locale}:${copyId}:${run}`);
+            }
+          }
+        }
+      }
+    }
+
+    expect(mismatches).toEqual([]);
   });
 
   it("snapshots prompts, contexts, audio, and hidden spoken targets for every lesson", () => {

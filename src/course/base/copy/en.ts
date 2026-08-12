@@ -1882,7 +1882,7 @@ const COPULA_ADJECTIVES_COPY_EN: Readonly<Record<string, string>> = {
     commonError:
       "Do not use a nonpast ending for an explicitly former role, and do not drop でした from the past negative.",
     nearestContrast:
-      "エンジニアでした says the former role held; エンジニアではありませんでした says it did not.",
+      "えんじにあでした says the former role held; えんじにあではありませんでした says it did not.",
     recap:
       "Retrieve all four noun-predicate cells and vary only time and polarity.",
     translations: [
@@ -2360,7 +2360,7 @@ const EXISTENCE_LOCATION_COPY_EN: Readonly<Record<string, string>> = {
     commonError:
       "Keep the sought entity and the answer's location distinct, and preserve its independently known entity class.",
     nearestContrast:
-      "トイレはどこにありますか asks for a thing or place; けいさつかんはどこにいますか asks for a person.",
+      "といれはどこにありますか asks for a thing or place; けいさつかんはどこにいますか asks for a person.",
     recap:
       "Retrieve the entity class, ask with どこに, and answer with one coherent existence location.",
     translations: [

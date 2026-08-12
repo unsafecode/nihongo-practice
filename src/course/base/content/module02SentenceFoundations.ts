@@ -1441,11 +1441,15 @@ export function validatePublishedSemanticActivities(
     }
     for (let optionIndex = 0; optionIndex < optionTargets.length; optionIndex += 1) {
       const targetCells = targetPatternCells(optionTargets[optionIndex]);
+      const preservesDistractorPatternCellIds =
+        design.preservesDistractorPatternCellIds === true;
       if (
         !targetCells ||
         (optionIndex === correctOptionIndex
           ? targetCells.length !== 1 || targetCells[0] !== patternCellId
-          : targetCells.some((cell) => cell !== patternCellId))
+          : preservesDistractorPatternCellIds
+            ? targetCells.length !== 1 || !cells.includes(targetCells[0])
+            : targetCells.some((cell) => cell !== patternCellId))
       ) {
         return false;
       }

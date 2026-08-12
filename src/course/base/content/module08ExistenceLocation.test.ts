@@ -227,6 +227,21 @@ describe("Task 12 existence-particle ownership", () => {
     expect(validateBaseExistenceLocationModule(mutated).ok).toBe(false);
   });
 
+  it("rejects trailing lexical junk after a canonical existence predicate", () => {
+    const mutated = structuredClone(BASE_EXISTENCE_LOCATION_MODULE);
+    const target = mutated.lessons[0].examples[0] as unknown as {
+      tokens: Array<
+        (typeof BASE_EXISTENCE_LOCATION_MODULE.lessons)[number]["examples"][number]["tokens"][number]
+      >;
+    };
+    const dogToken = mutated.lessons[0].examples
+      .flatMap(({ tokens }) => tokens)
+      .find(({ source }) => source.referenceId === "noun-inu")!;
+    target.tokens.push(structuredClone(dogToken));
+
+    expect(validateBaseExistenceLocationModule(mutated).ok).toBe(false);
+  });
+
   it("rejects a coherently relabeled action-place で on an existence predicate", () => {
     const mutated = structuredClone(BASE_EXISTENCE_LOCATION_MODULE);
     const target = mutated.lessons[1].examples[0] as unknown as {

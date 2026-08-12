@@ -7,6 +7,7 @@ import type {
   BaseValidationCatalogs,
   BaseVisibleTarget,
 } from "../catalog/types";
+import { realizePoliteNonpast } from "../forms/verbForms";
 import {
   BASE_CONTEXT_ACTIVITY_SHAPE,
   BASE_CONTROLLED_ACTIVITY_SHAPE,
@@ -45,7 +46,13 @@ import {
   BASE_COPULA_ADJECTIVES_MODULE,
   BASE_COPULA_ADJECTIVES_VALIDATION_CATALOGS,
 } from "./module07CopulaAdjectives";
-import { strictTask11ModuleSnapshot } from "../validation/moduleSnapshots";
+import {
+  findExactGeneratedTokenSpans,
+  hasAuthoredClauseFinalSuffix,
+  isExactOrderChunkPermutation,
+  strictTask11ModuleSnapshot,
+  type StrictTask11CorpusTarget,
+} from "../validation/moduleSnapshots";
 
 export type BaseExistenceEntityClass = "animate" | "inanimate";
 
@@ -808,6 +815,27 @@ const RAW_MODULE: BaseExistenceLocationModule = {
   worldFactLedger: worldFactLedgerFor(RAW_LESSONS),
 };
 
+function hasExactExistenceRealization(
+  entry: StrictTask11CorpusTarget,
+  corpusTargets: readonly StrictTask11CorpusTarget[],
+): boolean {
+  const { target } = entry;
+  if (
+    target.predicateLexemeId !== ARU &&
+    target.predicateLexemeId !== IRU
+  ) {
+    return true;
+  }
+  const realized = realizePoliteNonpast(target.predicateLexemeId);
+  if (!realized.ok) return false;
+  const spans = findExactGeneratedTokenSpans(target.tokens, realized.value);
+  if (spans.length !== 1) return false;
+  return (
+    hasAuthoredClauseFinalSuffix(target, spans[0].end) ||
+    isExactOrderChunkPermutation(entry, corpusTargets)
+  );
+}
+
 export function validateBaseExistenceLocationModule(
   value: unknown,
 ): Readonly<{
@@ -823,6 +851,9 @@ export function validateBaseExistenceLocationModule(
   if (!base.ok) return base;
   const snapshot = strictTask11ModuleSnapshot(value);
   return snapshot &&
+    snapshot.corpusTargets.every((entry) =>
+      hasExactExistenceRealization(entry, snapshot.corpusTargets),
+    ) &&
     snapshot.targets
       .filter(({ source }) => source !== "option")
       .every(

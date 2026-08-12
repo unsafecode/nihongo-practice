@@ -17,6 +17,8 @@ import {
   type BasePredicateForm,
 } from "../forms/adjectiveForms";
 import {
+  hasAuthoredClauseFinalSuffix,
+  isExactOrderChunkPermutation,
   strictTask11ModuleSnapshot,
 } from "../validation/moduleSnapshots";
 import {
@@ -209,6 +211,7 @@ function act(
     readonly changedTokenSourceIds?: readonly string[];
     readonly worldFactId?: string;
     readonly referentId?: string;
+    readonly preserveDistractorPatternCellIds?: boolean;
   }> = {},
 ): BaseTask11ActivitySpec {
   return {
@@ -223,6 +226,8 @@ function act(
     worldFactId: evidence.worldFactId ?? null,
     answerFactStatus: "accepted-world",
     distractorFactStatus: "rejected-context",
+    preserveDistractorPatternCellIds:
+      evidence.preserveDistractorPatternCellIds ?? true,
     errorCode,
     ...evidence,
   };
@@ -508,7 +513,7 @@ const L4: BaseTask11LessonSpec = {
     act(task11Cue(L("noun-watashi")), predicateTarget("na-adjective", "adjective-yuumei", "pastAffirmative", NA_PAST_AFFIRMATIVE, "noun-watashi"), { ...predicateTarget("na-adjective", "adjective-yuumei", "pastAffirmative", NA_PAST_AFFIRMATIVE, "noun-watashi"), parts: [predicatePart("na-adjective", "adjective-yuumei", "pastAffirmative"), L("noun-watashi"), P("topic-wa", "topic", "noun-watashi")] }, 0, "copula-adjectives-4", 3, NA_PAST_AFFIRMATIVE, BASE_ORDERING_ACTIVITY_SHAPE, null, { contrastAxis: "word-order", worldFactId: "fact-speaker-famous-before", referentId: "noun-watashi" }),
     act(task11Cue(L("noun-tomodachi")), predicateTarget("na-adjective", "adjective-genki", "negative", NA_NEGATIVE, "noun-tomodachi"), predicateTarget("na-adjective", "adjective-genki", "affirmative", NA_AFFIRMATIVE, "noun-tomodachi"), 1, "copula-adjectives-4", 4, NA_NEGATIVE, BASE_CONTROLLED_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-friend-not-well", referentId: "noun-tomodachi" }),
     act(task11Cue(L("noun-kouen")), predicateTarget("na-adjective", "adjective-shizuka", "pastAffirmative", NA_PAST_AFFIRMATIVE, "noun-kouen"), predicateTarget("na-adjective", "adjective-shizuka", "affirmative", NA_AFFIRMATIVE, "noun-kouen"), 0, "copula-adjectives-4", 5, NA_PAST_AFFIRMATIVE, BASE_TRANSFORMATION_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-park-quiet-before", referentId: "noun-kouen" }),
-    act(task11Target([L("adjective-shizuka"), predicatePart("noun", "noun-shokudou", "affirmative")], { conceptIds: ["na-adjective-predicate-and-attributive"], patternCellIds: [], semanticRoleIds: [], interpretationTags: ["present-state"], predicateSenseId: "modified-noun-predicate", predicateLexemeId: "noun-shokudou", predicateAspect: "nominal" }), modifierTarget("na-adjective", "adjective-shizuka", "noun-shokudou", NA_ATTRIBUTIVE), { ...modifierTarget("na-adjective", "adjective-shizuka", "noun-shokudou", NA_ATTRIBUTIVE), parts: [naAttributive("adjective-shizuka"), predicatePart("noun", "noun-shokudou", "negative")], patternCellIds: [NOUN_NEGATIVE], interpretationTags: ["present-state", "negative"] }, 0, "copula-adjectives-4", 6, NA_ATTRIBUTIVE, BASE_ERROR_ACTIVITY_SHAPE, "na-adjective-missing-na", { contrastAxis: "meaning", heldConstantPredicateLexemeId: "noun-shokudou", errorDefectAxis: "form", changedTokenSourceIds: ["na"], worldFactId: "fact-cafeteria-quiet", referentId: "noun-shokudou" }),
+    act(task11Target([L("adjective-shizuka"), predicatePart("noun", "noun-shokudou", "affirmative")], { conceptIds: ["na-adjective-predicate-and-attributive"], patternCellIds: [], semanticRoleIds: [], interpretationTags: ["present-state"], predicateSenseId: "modified-noun-predicate", predicateLexemeId: "noun-shokudou", predicateAspect: "nominal" }), modifierTarget("na-adjective", "adjective-shizuka", "noun-shokudou", NA_ATTRIBUTIVE), { ...modifierTarget("na-adjective", "adjective-shizuka", "noun-shokudou", NA_ATTRIBUTIVE), parts: [naAttributive("adjective-shizuka"), predicatePart("noun", "noun-shokudou", "negative")], patternCellIds: [NOUN_NEGATIVE], interpretationTags: ["present-state", "negative"] }, 0, "copula-adjectives-4", 6, NA_ATTRIBUTIVE, BASE_ERROR_ACTIVITY_SHAPE, "na-adjective-missing-na", { contrastAxis: "meaning", heldConstantPredicateLexemeId: "noun-shokudou", errorDefectAxis: "form", changedTokenSourceIds: ["na"], worldFactId: "fact-cafeteria-quiet", referentId: "noun-shokudou", preserveDistractorPatternCellIds: false }),
     act(task11Cue(L("noun-jimusho")), predicateTarget("na-adjective", "adjective-kirei", "affirmative", NA_AFFIRMATIVE, "noun-jimusho"), predicateTarget("na-adjective", "adjective-kirei", "negative", NA_NEGATIVE, "noun-jimusho"), 1, "copula-adjectives-4", 7, NA_AFFIRMATIVE, BASE_CONTEXT_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-office-clean", referentId: "noun-jimusho" }),
     act(task11Cue(L("noun-mise")), modifierTarget("na-adjective", "adjective-shizuka", "noun-mise", NA_ATTRIBUTIVE), { ...modifierTarget("na-adjective", "adjective-kirei", "noun-mise", NA_ATTRIBUTIVE), predicateLexemeId: "noun-mise" }, 1, "copula-adjectives-4", 8, NA_ATTRIBUTIVE, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: "noun-mise", worldFactId: "fact-shop-quiet", referentId: "noun-mise" }),
     act(task11Cue(L("noun-mise")), predicateTarget("na-adjective", "adjective-shizuka", "pastNegative", NA_PAST_NEGATIVE, "noun-mise"), predicateTarget("na-adjective", "adjective-shizuka", "pastAffirmative", NA_PAST_AFFIRMATIVE, "noun-mise"), 0, "copula-adjectives-4", 9, NA_PAST_NEGATIVE, BASE_LISTENING_ACTIVITY_SHAPE, null, { contrastAxis: "tense-polarity", worldFactId: "fact-audio-shop-not-quiet-before", referentId: "noun-mise" }),
@@ -606,6 +611,7 @@ const PREDICATE_FORM_BY_CELL: Readonly<Record<string, BasePredicateForm>> =
 function hasCanonicalPredicateRealization(
   target: BaseVisibleTarget,
   allowFormIdDerivation: boolean,
+  allowOrderPermutation: boolean,
 ): boolean {
   const cellId = target.patternCellIds.find(
     (id) =>
@@ -726,8 +732,17 @@ function hasCanonicalPredicateRealization(
       form,
     );
   } else {
-    if (!allowFormIdDerivation) return false;
-    addRequirementsFromFormIds(true);
+    const isModeledModifiedNounPredicate =
+      target.predicateSenseId === "modified-noun-predicate" &&
+      predicate?.category === "noun" &&
+      target.formIds.includes("base-form-na-adjective-attributive") &&
+      adjectiveId("na") !== undefined;
+    if (isModeledModifiedNounPredicate) {
+      addRequirementsFromFormIds(false);
+    } else {
+      if (!allowFormIdDerivation) return false;
+      addRequirementsFromFormIds(true);
+    }
   }
   const uniqueRequirements = [
     ...new Map(
@@ -797,15 +812,13 @@ function hasCanonicalPredicateRealization(
         lexemeFor(modified.source.referenceId)?.category === "noun"
       );
     }
-    const suffixIsClauseFinal = target.tokens.slice(end).every(
-      ({ kind, source }) =>
-        kind === "punctuation" ||
-        (kind === "particle" &&
-          ["question-ka", "interactional-ne", "interactional-yo"].includes(
-            source.referenceId,
-          )),
-    );
-    if (!allowFormIdDerivation) return suffixIsClauseFinal;
+    if (
+      !hasAuthoredClauseFinalSuffix(target, end) &&
+      !allowOrderPermutation
+    ) {
+      return false;
+    }
+    if (!allowFormIdDerivation) return true;
     const generatedMorphemeIds = new Set(
       expected
         .filter(({ kind }) => kind !== "lexical")
@@ -834,9 +847,43 @@ export function validateBaseCopulaAdjectivesModule(
   );
   if (!base.ok) return base;
   const snapshot = strictTask11ModuleSnapshot(value);
-  return snapshot?.targets.every(({ source, target }) =>
-    hasCanonicalPredicateRealization(target, source === "option"),
-  )
+  const predicateFormIds = [
+    "affirmative-desu",
+    "base-form-noun-predicate-negative",
+    "base-form-noun-predicate-past-affirmative",
+    "base-form-noun-predicate-past-negative",
+    "base-form-i-adjective-affirmative",
+    "base-form-i-adjective-negative",
+    "base-form-i-adjective-past-affirmative",
+    "base-form-i-adjective-past-negative",
+    "base-form-na-adjective-affirmative",
+    "base-form-na-adjective-negative",
+    "base-form-na-adjective-past-affirmative",
+    "base-form-na-adjective-past-negative",
+    "base-form-na-adjective-attributive",
+  ];
+  return snapshot?.corpusTargets.every((entry) => {
+    const { source, target } = entry;
+    const orderPermutation = isExactOrderChunkPermutation(
+      entry,
+      snapshot.corpusTargets,
+    );
+    const hasPredicateEvidence =
+      target.patternCellIds.some(
+        (id) =>
+          id in PREDICATE_FORM_BY_CELL ||
+          id === I_ATTRIBUTIVE ||
+          id === NA_ATTRIBUTIVE,
+      ) || target.formIds.some((id) => predicateFormIds.includes(id));
+    return (
+      !hasPredicateEvidence ||
+      hasCanonicalPredicateRealization(
+        target,
+        source === "prompt" || orderPermutation,
+        orderPermutation,
+      )
+    );
+  })
     ? base
     : { ok: false, errors: ["invalid-lesson-shape"] };
 }

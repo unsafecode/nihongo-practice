@@ -46,22 +46,98 @@ export interface StrictTask11ModuleSnapshot {
   readonly contexts: readonly StrictTask11CorpusContext[];
 }
 
-export function containsExactGeneratedTokenSequence(
+export interface ExactGeneratedTokenSpan {
+  readonly start: number;
+  readonly end: number;
+}
+
+export function findExactGeneratedTokenSpans(
   target: readonly AssembledToken[],
   expected: readonly AssembledToken[],
+): readonly ExactGeneratedTokenSpan[] {
+  if (expected.length === 0) return Object.freeze([]);
+  return Object.freeze(
+    target.flatMap((_, start) =>
+      expected.every((token, offset) => {
+        const actual = target[start + offset];
+        return (
+          actual?.jp === token.jp &&
+          actual.romaji === token.romaji &&
+          actual.kind === token.kind &&
+          (offset === 0 || actual.boundaryBefore === token.boundaryBefore) &&
+          actual.source.domain === token.source.domain &&
+          actual.source.referenceId === token.source.referenceId
+        );
+      })
+        ? [{ start, end: start + expected.length }]
+        : [],
+    ),
+  );
+}
+
+const LICENSED_CLAUSE_FINAL_PARTICLE_IDS = Object.freeze([
+  "question-ka",
+  "interactional-ne",
+  "interactional-yo",
+]);
+
+export function hasAuthoredClauseFinalSuffix(
+  target: BaseVisibleTarget,
+  end: number,
 ): boolean {
-  return target.some((_, start) =>
-    expected.every((token, offset) => {
-      const actual = target[start + offset];
-      return (
-        actual?.jp === token.jp &&
-        actual.romaji === token.romaji &&
-        actual.kind === token.kind &&
-        (offset === 0 || actual.boundaryBefore === token.boundaryBefore) &&
-        actual.source.domain === token.source.domain &&
-        actual.source.referenceId === token.source.referenceId
-      );
-    }),
+  const authoredParticleIds: ReadonlySet<string> = new Set(
+    (target.particleBindings ?? []).map(({ particleSense }) => particleSense),
+  );
+  return target.tokens.slice(end).every((token) => {
+    if (token.kind === "punctuation") return true;
+    return (
+      token.kind === "particle" &&
+      LICENSED_CLAUSE_FINAL_PARTICLE_IDS.includes(token.source.referenceId) &&
+      authoredParticleIds.has(token.source.referenceId)
+    );
+  });
+}
+
+function tokenIdentity(token: AssembledToken): string {
+  return JSON.stringify([
+    token.jp,
+    token.romaji,
+    token.kind,
+    token.source.domain,
+    token.source.referenceId,
+  ]);
+}
+
+function tokenSequenceSignature(tokens: readonly AssembledToken[]): string {
+  return tokens.map(tokenIdentity).join("\u0000");
+}
+
+function tokenMultisetSignature(tokens: readonly AssembledToken[]): string {
+  return tokens.map(tokenIdentity).sort().join("\u0000");
+}
+
+export function isExactOrderChunkPermutation(
+  entry: StrictTask11CorpusTarget,
+  corpusTargets: readonly StrictTask11CorpusTarget[],
+): boolean {
+  if (
+    entry.source !== "option" ||
+    entry.operation !== "order-chunks" ||
+    entry.activityId === null
+  ) {
+    return false;
+  }
+  const accepted = corpusTargets.find(
+    (candidate) =>
+      candidate.activityId === entry.activityId &&
+      candidate.source === "accepted-answer",
+  );
+  return (
+    accepted !== undefined &&
+    tokenMultisetSignature(entry.target.tokens) ===
+      tokenMultisetSignature(accepted.target.tokens) &&
+    tokenSequenceSignature(entry.target.tokens) !==
+      tokenSequenceSignature(accepted.target.tokens)
   );
 }
 
