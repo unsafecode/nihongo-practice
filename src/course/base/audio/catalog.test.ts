@@ -249,6 +249,13 @@ describe("Base canonical audio catalog", () => {
 
     expect(
       validateBaseAudioReviewLedger(
+        [{ fingerprint: BASE_AUDIO_CATALOG[0].fingerprint, status: "accepted" }],
+        BASE_AUDIO_CATALOG,
+      ).errors,
+    ).toContain("malformed-review-entry");
+
+    expect(
+      validateBaseAudioReviewLedger(
         [{ fingerprint: "f".repeat(64), status: "pending" }],
         BASE_AUDIO_CATALOG,
       ).errors,

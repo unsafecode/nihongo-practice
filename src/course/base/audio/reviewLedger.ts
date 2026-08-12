@@ -1,4 +1,16 @@
 import { deepFreeze } from "../../foundations/deepFreeze";
+import { BASE_SENTENCE_FOUNDATIONS_MODULE } from "../content/module02SentenceFoundations";
+import { BASE_TOPIC_QUESTIONS_MODULE } from "../content/module03TopicQuestions";
+import {
+  BASE_POLITE_VERBS_MODULE,
+} from "../content/module04PoliteVerbs";
+import { BASE_ARGUMENT_PARTICLES_MODULE } from "../content/module05ArgumentParticles";
+import { BASE_TIME_MOVEMENT_MODULE } from "../content/module06TimeMovement";
+import { BASE_COPULA_ADJECTIVES_MODULE } from "../content/module07CopulaAdjectives";
+import { BASE_EXISTENCE_LOCATION_MODULE } from "../content/module08ExistenceLocation";
+import { BASE_REQUESTS_CONNECTION_MODULE } from "../content/module09RequestsConnection";
+import { BASE_SYNTHESIS_MODULE } from "../content/module10Synthesis";
+import { canonicalReviewFingerprint } from "../review/fingerprint";
 import {
   BASE_AUDIO_CATALOG,
   type BaseAudioRecord,
@@ -6,10 +18,17 @@ import {
 
 export type BaseAudioReviewStatus = "pending" | "accepted";
 
-export interface BaseAudioReviewEntry {
-  readonly fingerprint: string;
-  readonly status: BaseAudioReviewStatus;
-}
+export type BaseAudioReviewEntry =
+  | Readonly<{
+      readonly fingerprint: string;
+      readonly status: "pending";
+    }>
+  | Readonly<{
+      readonly fingerprint: string;
+      readonly status: "accepted";
+      readonly reviewerIdentity: string;
+      readonly reviewedAt: string;
+    }>;
 
 export type BaseAudioReviewError =
   | "invalid-ledger-shape"
@@ -250,11 +269,30 @@ function reviewEntry(value: unknown): BaseAudioReviewEntry | undefined {
     const prototype = Object.getPrototypeOf(value);
     if ((prototype !== Object.prototype && prototype !== null) || Object.getOwnPropertySymbols(value).length > 0) return undefined;
     const descriptors = Object.getOwnPropertyDescriptors(value);
-    const names = Object.getOwnPropertyNames(value);
-    if (names.length !== 2 || !descriptors.fingerprint || !descriptors.status || !("value" in descriptors.fingerprint) || !("value" in descriptors.status) || names.some((name) => !descriptors[name].enumerable)) return undefined;
+    const names = Object.getOwnPropertyNames(value).sort();
+    if (!descriptors.fingerprint || !descriptors.status || !("value" in descriptors.fingerprint) || !("value" in descriptors.status) || names.some((name) => !descriptors[name].enumerable || !("value" in descriptors[name]))) return undefined;
     const fingerprint = descriptors.fingerprint.value;
     const status = descriptors.status.value;
-    return typeof fingerprint === "string" && HASH.test(fingerprint) && (status === "pending" || status === "accepted") ? { fingerprint, status } : undefined;
+    if (typeof fingerprint !== "string" || !HASH.test(fingerprint)) return undefined;
+    if (status === "pending") {
+      return names.length === 2 && names[0] === "fingerprint" && names[1] === "status"
+        ? { fingerprint, status }
+        : undefined;
+    }
+    const reviewerIdentity = descriptors.reviewerIdentity?.value;
+    const reviewedAt = descriptors.reviewedAt?.value;
+    return status === "accepted" &&
+      names.length === 4 &&
+      names[0] === "fingerprint" &&
+      names[1] === "reviewedAt" &&
+      names[2] === "reviewerIdentity" &&
+      names[3] === "status" &&
+      typeof reviewerIdentity === "string" &&
+      reviewerIdentity.trim().length > 0 &&
+      typeof reviewedAt === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/u.test(reviewedAt)
+      ? { fingerprint, status, reviewerIdentity, reviewedAt }
+      : undefined;
   } catch { return undefined; }
 }
 
@@ -288,3 +326,246 @@ if (!BASE_AUDIO_REVIEW_LEDGER_VALIDATION.ok) {
     `Invalid Base audio review ledger: ${BASE_AUDIO_REVIEW_LEDGER_VALIDATION.errors.join(", ")}`,
   );
 }
+
+type BaseAudioReviewDecision =
+  | Readonly<{ readonly status: "pending" }>
+  | Readonly<{
+      readonly status: "accepted";
+      readonly reviewerIdentity: string;
+      readonly reviewedAt: string;
+    }>;
+
+export type BaseAudioReviewInventoryEntry = Readonly<
+  (
+    | {
+      contentId: string;
+      sourceKind: "physical-asset";
+      lessonId: string;
+      sourceId: string;
+      assetId: string;
+      assetSha256: string;
+      transcript: string;
+      representedMorae: readonly string[];
+      fingerprint: string;
+      sharedAssetJustification?: string;
+    }
+    | {
+      contentId: string;
+      sourceKind: "semantic-audio";
+      lessonId: string;
+      sourceId: string;
+      assetSha256: null;
+      transcript: string;
+      representedMorae: readonly string[];
+      fingerprint: string;
+    }
+  ) &
+    BaseAudioReviewDecision
+>;
+
+export interface BaseAudioReviewInventoryValidation {
+  readonly ok: boolean;
+  readonly errors: readonly string[];
+}
+
+const SEMANTIC_AUDIO_LESSONS = [
+  ...BASE_SENTENCE_FOUNDATIONS_MODULE.lessons,
+  ...BASE_TOPIC_QUESTIONS_MODULE.lessons,
+  ...BASE_POLITE_VERBS_MODULE.lessons,
+  ...BASE_ARGUMENT_PARTICLES_MODULE.lessons,
+  ...BASE_TIME_MOVEMENT_MODULE.lessons,
+  ...BASE_COPULA_ADJECTIVES_MODULE.lessons,
+  ...BASE_EXISTENCE_LOCATION_MODULE.lessons,
+  ...BASE_REQUESTS_CONNECTION_MODULE.lessons,
+  ...BASE_SYNTHESIS_MODULE.lessons,
+];
+
+const SMALL_KANA = new Set([
+  "ぁ",
+  "ぃ",
+  "ぅ",
+  "ぇ",
+  "ぉ",
+  "ゃ",
+  "ゅ",
+  "ょ",
+  "ゎ",
+]);
+
+function representedMorae(transcript: string): readonly string[] {
+  const morae: string[] = [];
+  for (const character of transcript) {
+    if (!/[\u3041-\u3096ー]/u.test(character)) continue;
+    if (SMALL_KANA.has(character) && morae.length > 0) {
+      morae[morae.length - 1] += character;
+    } else {
+      morae.push(character);
+    }
+  }
+  return deepFreeze(morae);
+}
+
+const SHARED_ASSET_JUSTIFICATION: Readonly<Record<string, string>> = deepFreeze({
+  "snd2-ji":
+    "Modern standard Japanese commonly realizes じ and ぢ alike; the shared bytes are intentional while the spellings remain distinct.",
+  "snd2-di":
+    "Modern standard Japanese commonly realizes ぢ and じ alike; the shared bytes are intentional while the spellings remain distinct.",
+  "snd2-zu":
+    "Modern standard Japanese commonly realizes ず and づ alike; the shared bytes are intentional while the spellings remain distinct.",
+  "snd2-dzu":
+    "Modern standard Japanese commonly realizes づ and ず alike; the shared bytes are intentional while the spellings remain distinct.",
+});
+
+const reviewByPhysicalFingerprint = new Map(
+  BASE_AUDIO_REVIEW_LEDGER.map((entry) => [entry.fingerprint, entry]),
+);
+
+const physicalInventory: readonly BaseAudioReviewInventoryEntry[] =
+  BASE_AUDIO_CATALOG.map((record) => {
+    const review = reviewByPhysicalFingerprint.get(record.fingerprint);
+    if (!review) {
+      throw new Error(`Missing physical audio review "${record.id}".`);
+    }
+    const sharedAssetJustification = SHARED_ASSET_JUSTIFICATION[record.id];
+    return deepFreeze({
+      contentId: `asset:${record.id}`,
+      sourceKind: "physical-asset" as const,
+      lessonId: record.id.replace(/^snd(\d+)-.*$/u, "sounds-$1"),
+      sourceId: record.id,
+      assetId: record.id,
+      assetSha256: record.sha256,
+      transcript: record.kana,
+      representedMorae: [...record.morae],
+      fingerprint: record.fingerprint,
+      ...(review.status === "accepted"
+        ? {
+            status: review.status,
+            reviewerIdentity: review.reviewerIdentity,
+            reviewedAt: review.reviewedAt,
+          }
+        : { status: review.status }),
+      ...(sharedAssetJustification ? { sharedAssetJustification } : {}),
+    });
+  });
+
+type AcceptedAudioReview = Extract<
+  BaseAudioReviewEntry,
+  Readonly<{ status: "accepted" }>
+>;
+
+// Populated only from an independently supplied semantic-audio review handoff.
+const EXTERNAL_SEMANTIC_AUDIO_ACCEPTANCES: readonly AcceptedAudioReview[] =
+  deepFreeze([]);
+const semanticAcceptanceByFingerprint = new Map(
+  EXTERNAL_SEMANTIC_AUDIO_ACCEPTANCES.map((entry) => [
+    entry.fingerprint,
+    entry,
+  ]),
+);
+
+const semanticInventory: readonly BaseAudioReviewInventoryEntry[] =
+  SEMANTIC_AUDIO_LESSONS.flatMap((lesson) =>
+    lesson.activityDesigns.flatMap((design) => {
+      if (!design.audioContract) return [];
+      const transcript = design.acceptedAnswerTarget.tokens
+        .map(({ jp }) => jp)
+        .join("");
+      const morae = representedMorae(transcript);
+      const source = {
+        contentId: `semantic-audio:${design.id}`,
+        sourceKind: "semantic-audio" as const,
+        lessonId: lesson.content.lessonId,
+        sourceId: design.audioContract.targetId,
+        assetSha256: null,
+        transcript,
+        representedMorae: morae,
+      };
+      const fingerprint = canonicalReviewFingerprint({
+        ...source,
+        status: undefined,
+        target: design.acceptedAnswerTarget,
+        audioContract: design.audioContract,
+      });
+      const acceptance = semanticAcceptanceByFingerprint.get(fingerprint);
+      return [
+        deepFreeze({
+          ...source,
+          fingerprint,
+          ...(acceptance
+            ? {
+                status: acceptance.status,
+                reviewerIdentity: acceptance.reviewerIdentity,
+                reviewedAt: acceptance.reviewedAt,
+              }
+            : { status: "pending" as const }),
+        }),
+      ];
+    }),
+  );
+
+export const BASE_AUDIO_CURRENT_SEMANTIC_CORPUS_FINGERPRINT =
+  canonicalReviewFingerprint(
+    semanticInventory.map(({ contentId, fingerprint }) => ({
+      contentId,
+      fingerprint,
+    })),
+  );
+
+const INVENTORIED_SEMANTIC_AUDIO_CORPUS_FINGERPRINT =
+  "7057c010c4ac849e3bcb707f2bc4cdaaa2277646aa12d7e9715d370e2d9aee7b";
+
+export const BASE_AUDIO_REVIEW_INVENTORY: readonly BaseAudioReviewInventoryEntry[] =
+  deepFreeze([...physicalInventory, ...semanticInventory]);
+
+function validateBaseAudioReviewInventory(): BaseAudioReviewInventoryValidation {
+  const errors: string[] = [];
+  if (!BASE_AUDIO_REVIEW_LEDGER_VALIDATION.ok) {
+    errors.push("physical-ledger");
+  }
+  if (physicalInventory.length !== BASE_AUDIO_CATALOG.length) {
+    errors.push("physical-coverage");
+  }
+  if (
+    physicalInventory.some((entry, index) => {
+      const record = BASE_AUDIO_CATALOG[index];
+      return (
+        entry.sourceKind !== "physical-asset" ||
+        entry.assetId !== record.id ||
+        entry.assetSha256 !== record.sha256 ||
+        entry.transcript !== record.kana ||
+        entry.fingerprint !== record.fingerprint ||
+        entry.representedMorae.join("\u0000") !==
+          record.morae.join("\u0000")
+      );
+    })
+  ) {
+    errors.push("stale-physical-asset");
+  }
+  for (const id of Object.keys(SHARED_ASSET_JUSTIFICATION)) {
+    const entry = physicalInventory.find(
+      (candidate) =>
+        candidate.sourceKind === "physical-asset" && candidate.assetId === id,
+    );
+    if (
+      !entry ||
+      entry.sourceKind !== "physical-asset" ||
+      !entry.sharedAssetJustification
+    ) {
+      errors.push("missing-shared-asset-justification");
+    }
+  }
+  if (semanticInventory.length === 0) errors.push("semantic-coverage");
+  if (
+    BASE_AUDIO_CURRENT_SEMANTIC_CORPUS_FINGERPRINT !==
+    INVENTORIED_SEMANTIC_AUDIO_CORPUS_FINGERPRINT
+  ) {
+    errors.push("stale-semantic-audio");
+  }
+  return {
+    ok: errors.length === 0,
+    errors: deepFreeze(errors),
+  };
+}
+
+export const BASE_AUDIO_REVIEW_VALIDATION =
+  validateBaseAudioReviewInventory();

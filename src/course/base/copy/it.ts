@@ -2763,6 +2763,354 @@ const EXISTENCE_LOCATION_COPY_IT: Readonly<Record<string, string>> = {
   "noun-ekiin-meaning": "addetto della stazione",
 };
 
+const SYNTHESIS_ACCEPTED_IT = [
+  "La frase scelta è adatta alla situazione completa.",
+  "Il contrasto scelto è realizzato in modo coerente.",
+  "La frase mantiene la relazione prevista tra le sue parti.",
+  "La risposta completata rimane coerente e cortese.",
+  "La correzione modifica soltanto il difetto visibile.",
+  "La risposta corrisponde al contesto indicato.",
+  "La risposta recupera insieme i sistemi già appresi.",
+  "La risposta mantiene coerenti tutti i dettagli forniti.",
+  "Il testo scelto corrisponde esattamente alla registrazione.",
+  "La risposta orale è ricavabile dagli indizi visibili.",
+] as const;
+
+const SYNTHESIS_RETRY_IT = [
+  "Rileggi l'intera situazione e confronta entrambe le scelte prima di riprovare.",
+  "Confronta soltanto il contrasto richiesto, poi riprova.",
+  "Ricostruisci l'enunciato completo dai blocchi visibili prima di riprovare.",
+  "Controlla ogni indizio visibile senza aggiungere informazioni, poi riprova.",
+  "Individua l'unico difetto visibile e riprova.",
+  "Torna alla situazione indicata prima di scegliere di nuovo.",
+  "Rivedi come funzionano insieme i dettagli forniti, poi riprova.",
+  "Rivedi tutto l'elenco di parole, torna all'indizio della frase e riprova.",
+  "Riascolta la registrazione e confronta gli enunciati completi, poi riprova.",
+  "Rivedi gli indizi visibili, poi fai un nuovo tentativo.",
+] as const;
+
+const SYNTHESIS_COPY_IT: Readonly<Record<string, string>> = {
+  ...semanticLessonCopy("base-synthesis-1", {
+    title: "Mantenere una descrizione naturale",
+    objective:
+      "Sostenere uno scambio su identità e descrizione omettendo soltanto un tema recuperabile.",
+    main:
+      "Una descrizione naturale stabilisce il tema una volta e poi aggiunge identità o qualità senza ripetere un pronome esplicito a ogni turno.",
+    construction:
+      "Usa come unità complete le strutture già apprese per tema, predicato nominale, aggettivi, modificazione ed esistenza.",
+    constraints:
+      "Ometti il tema soltanto finché la stessa persona o cosa rimane recuperabile in modo univoco dallo scambio.",
+    commonError:
+      "Non eliminare il referente dopo che la conversazione è passata a un'altra persona o a un altro oggetto.",
+    nearestContrast:
+      "Confronta un'entità introdotta con が, un tema stabilito con は e un tema omesso ma recuperabile.",
+    recap:
+      "Hai mantenuto una catena tematica coerente combinando descrizioni di identità, qualità e luogo.",
+    translations: [
+      "Tanaka è un ricercatore famoso.",
+      "Suzuki è un ingegnere pieno di energia.",
+      "Yamada è un cuoco tranquillo.",
+      "Mari è un'impiegata di banca dall'aspetto curato.",
+      "È una scrivania costosa.",
+      "Il pranzo dell'impiegato è gustoso.",
+      "Nella casa c'è una sedia.",
+      "Nell'ufficio c'è un fiore.",
+      "Satou è un dipendente pubblico.",
+    ],
+    purposes: [
+      "Mantiene il tema una volta e colloca な prima della professione.",
+      "Combina un tema stabile con una descrizione nominale in な.",
+      "Usa una descrizione coerente senza ripetere un pronome.",
+      "Ripassa な attributivo in una frase d'identità.",
+      "Colloca un aggettivo in い direttamente prima del nome.",
+      "Mantiene il pranzo posseduto come tema della valutazione.",
+      "Ripassa una struttura di esistenza inanimata nella descrizione.",
+      "Mantiene に di luogo e が esistenziale nei ruoli già appresi.",
+      "Ripassa un'identità diretta con predicato nominale.",
+    ],
+    instructions: [
+      "Rivedi l'elenco di parole visibile. Nella descrizione condivisa il bambino è pieno di energia; scegli la frase che mantiene questo dato.",
+      "Rivedi l'elenco di parole visibile. In questa situazione l'auto non è costosa; scegli la frase corrispondente.",
+      "Rivedi l'elenco di parole visibile, poi scegli la frase i cui blocchi formano una descrizione naturale di Satou.",
+      "Rivedi l'elenco di parole visibile. Qui il poliziotto è un dipendente pubblico; completa la risposta.",
+      "Rivedi l'elenco di parole visibile, poi correggi l'unica terminazione passata cortese malformata.",
+      "Rivedi l'elenco di parole visibile. La mappa è già l'oggetto di cui si parla; scegli l'indicazione di luogo corrispondente.",
+      "Rivedi ogni voce dell'elenco di parole descrittive. In questa situazione Yuki sta bene; scegli la frase corrispondente.",
+      "Rivedi ogni voce dell'elenco di parole su persone e ruoli, poi scegli la frase che introduce l'impiegato in ufficio.",
+      "Ascolta una volta o riascolta, poi scegli la frase che senti davvero.",
+      "Usa le due voci nell'ordine mostrato: identifica la prima come la seconda in una frase cortese.",
+    ],
+    accepted: SYNTHESIS_ACCEPTED_IT,
+    retry: SYNTHESIS_RETRY_IT,
+  }),
+  "base-synthesis-1-practical-dialogue-outcome":
+    "Mantenere la descrizione di una persona senza pronomi ripetitivi né omissioni ambigue.",
+  "base-synthesis-1-practical-dialogue-turn-1-translation":
+    "Tanaka è un ricercatore tranquillo.",
+  "base-synthesis-1-practical-dialogue-turn-1-purpose":
+    "Stabilisce Tanaka come unico tema.",
+  "base-synthesis-1-practical-dialogue-turn-2-translation": "Sta bene?",
+  "base-synthesis-1-practical-dialogue-turn-2-purpose":
+    "Omette soltanto la persona già stabilita.",
+  "base-synthesis-1-practical-dialogue-turn-3-translation": "Sì, sta bene.",
+  "base-synthesis-1-practical-dialogue-turn-3-purpose":
+    "Continua naturalmente lo stesso tema recuperabile.",
+  "base-synthesis-1-practical-dialogue-turn-4-translation":
+    "È un ingegnere?",
+  "base-synthesis-1-practical-dialogue-turn-4-purpose":
+    "Chiede una seconda proprietà senza introdurre un referente ambiguo.",
+  "base-synthesis-1-practical-dialogue-turn-5-translation":
+    "No, è un ricercatore.",
+  "base-synthesis-1-practical-dialogue-turn-5-purpose":
+    "Risponde sullo stesso tema con la professione corretta.",
+  "base-synthesis-1-practical-dialogue-turn-6-translation":
+    "È famoso.",
+  "base-synthesis-1-practical-dialogue-turn-6-purpose":
+    "Chiude la catena descrittiva coerente senza ripetere il pronome.",
+
+  ...semanticLessonCopy("base-synthesis-2", {
+    title: "Coordinare un'abitudine e un piano",
+    objective:
+      "Collocare azioni familiari in un'abitudine o in un piano con argomenti retti e tutte le quattro celle cortesi.",
+    main:
+      "Un'abitudine usa il non-passato dinamico per uno schema ripetuto; un piano lo usa per un evento futuro. Le forme passate e negative restano scelte distinte.",
+    construction:
+      "Collega に a un'ora specifica, usa から e まで per due limiti e realizza ogni verbo attraverso la classe registrata.",
+    constraints:
+      "Non interpretare un evento dinamico al non-passato come azione in corso senza un segnale esplicito.",
+    commonError:
+      "Non combinare una base passata con una terminazione non-passata e non trattare un tempo relativo come un'espressione d'ora con に.",
+    nearestContrast:
+      "Confronta non-passato abituale e futuro, poi ciascuno con passato affermativo e passato negativo.",
+    recap:
+      "Hai coordinato un'abitudine e un piano futuro usando punti temporali, limiti e quattro celle cortesi.",
+    translations: [
+      "Domani scriverò.",
+      "Di solito non scrivo.",
+      "Ieri ho scritto.",
+      "La settimana scorsa non ho scritto.",
+      "Il cuoco leggerà alle nove.",
+      "L'impiegato studierà dalle sette alle nove.",
+      "Lo aprirò e poi lo chiuderò.",
+      "Prenderò i documenti.",
+      "Yamada legge alle sette.",
+      "Cancellerò il nome.",
+    ],
+    purposes: [
+      "Usa il non-passato dinamico soltanto per un evento futuro.",
+      "Usa il non-passato negativo dinamico per un'abitudine.",
+      "Recupera la cella cortese passata affermativa.",
+      "Completa le quattro celle con il passato negativo cortese.",
+      "Collega に soltanto all'ora specifica.",
+      "Mantiene から e まで come i due limiti di un unico piano.",
+      "Collega due azioni programmate con て sequenziale circoscritto.",
+      "Mantiene l'argomento dei documenti visibilmente autorizzato da を.",
+      "Recupera il non-passato cortese godan come stato stabile.",
+      "Mantiene esplicito con を l'elemento da cancellare.",
+    ],
+    instructions: [
+      "Rivedi l'elenco di parole visibile. Il ricercatore prepara una dimostrazione successiva; scegli la frase adatta al piano.",
+      "Rivedi l'elenco di parole visibile. La persona sarà ancora viva domani; scegli l'enunciato adatto.",
+      "Rivedi l'elenco di parole visibile. L'ingegnere si veste prima di sedersi; scegli l'enunciato corrispondente.",
+      "Rivedi l'elenco di parole visibile. I vestiti fanno parte del piano successivo; completa l'enunciato corrispondente.",
+      "Rivedi l'elenco di parole visibile, poi correggi l'unico suono malformato nella terminazione passata cortese.",
+      "Rivedi l'elenco di parole visibile. Il parlante ha appreso il piano ieri; scegli l'enunciato concluso corrispondente.",
+      "Rivedi ogni voce dell'elenco di parole sulle azioni future, poi usa l'indizio temporale per scegliere la frase corrispondente.",
+      "Rivedi ogni voce dell'elenco di parole sulla routine. Suzuki legge come parte di questa routine; scegli la frase corrispondente.",
+      "Ascolta l'enunciato temporale completo, poi scegli la corrispondenza esatta.",
+      "Usa ogni voce dell'elenco di parole sull'orario per produrre una risposta cortese completa.",
+    ],
+    accepted: SYNTHESIS_ACCEPTED_IT,
+    retry: SYNTHESIS_RETRY_IT,
+  }),
+  "base-synthesis-2-practical-dialogue-outcome":
+    "Coordinare un breve piano di studio e documenti con indizi abituali e futuri.",
+  "base-synthesis-2-practical-dialogue-turn-1-translation":
+    "Di solito studi?",
+  "base-synthesis-2-practical-dialogue-turn-1-purpose":
+    "Apre uno scambio pratico sull'orario con una domanda abituale.",
+  "base-synthesis-2-practical-dialogue-turn-2-translation":
+    "Studio dalle sette alle nove.",
+  "base-synthesis-2-practical-dialogue-turn-2-purpose":
+    "Risponde con i due limiti temporali già appresi.",
+  "base-synthesis-2-practical-dialogue-turn-3-translation":
+    "Andrai in ufficio domani alle nove?",
+  "base-synthesis-2-practical-dialogue-turn-3-purpose":
+    "Passa dall'abitudine a un arrivo futuro a un'ora precisa.",
+  "base-synthesis-2-practical-dialogue-turn-4-translation":
+    "Sì, andrò alle nove.",
+  "base-synthesis-2-practical-dialogue-turn-4-purpose":
+    "Conferma lo stesso orario futuro senza cambiare l'evento.",
+  "base-synthesis-2-practical-dialogue-turn-5-translation":
+    "Mostrerai i documenti?",
+  "base-synthesis-2-practical-dialogue-turn-5-purpose":
+    "Chiede dell'oggetto retto nel piano condiviso.",
+  "base-synthesis-2-practical-dialogue-turn-6-translation":
+    "Sì, li porterò e li mostrerò.",
+  "base-synthesis-2-practical-dialogue-turn-6-purpose":
+    "Chiude con un piano coerente di due azioni sui documenti.",
+
+  ...semanticLessonCopy("base-synthesis-3", {
+    title: "Trovare oggetti e fare una richiesta",
+    objective:
+      "Distinguere il luogo di esistenza dal luogo d'azione, poi formulare e collegare una richiesta pratica.",
+    main:
+      "L'esistenza usa il luogo con に e あります o います; il luogo d'azione usa で con un verbo d'azione.",
+    construction:
+      "Introduci un'entità con が esistenziale, mantieni un'entità già stabilita con は e usa てください soltanto per la richiesta circoscritta.",
+    constraints:
+      "Non sostituire に di esistenza con で di luogo d'azione e non lasciare incompiuto il verbo finale di una sequenza.",
+    commonError:
+      "Un luogo non determina da solo una particella: sono il predicato e il ruolo previsto a determinarla.",
+    nearestContrast:
+      "Confronta luogo に con predicato di esistenza e luogo で con predicato d'azione.",
+    recap:
+      "Hai localizzato persone e cose, distinto に da で e completato una sequenza pratica di richiesta.",
+    translations: [
+      "Nella stanza c'è una scrivania.",
+      "Nel giardino c'è un bambino.",
+      "La sedia è nella casa.",
+      "Gioco in aula.",
+      "Scusi, apra la finestra, per favore.",
+      "Lo chiuderò e poi uscirò.",
+      "Alla reception c'è un bambino.",
+      "Mostri la borsa, per favore.",
+    ],
+    purposes: [
+      "Usa に di luogo e が esistenziale per un'entità inanimata.",
+      "Seleziona います per un'entità animata.",
+      "Contrappone una sedia già nota a un'introduzione esistenziale.",
+      "Usa で per il luogo in cui avviene un'azione.",
+      "Formula una richiesta pratica circoscritta con てください.",
+      "Usa て sequenziale mantenendo finito il verbo finale.",
+      "Introduce una persona con が esistenziale.",
+      "Mantiene l'oggetto richiesto retto da を.",
+    ],
+    instructions: [
+      "Rivedi l'elenco di parole visibile. L'auto viene introdotta come appena presente nel giardino; scegli l'enunciato corrispondente.",
+      "Rivedi l'elenco di parole visibile. La borsa è l'oggetto di una richiesta pratica di lavaggio; scegli l'enunciato corrispondente.",
+      "Rivedi l'elenco di parole visibile. Chiama il bambino prima di uscire; scegli l'enunciato adatto.",
+      "Rivedi l'elenco di parole visibile, poi trasforma l'indizio sui vestiti in una richiesta pratica cortese.",
+      "Rivedi l'elenco di parole visibile, poi correggi soltanto la terminazione malformata nella forma passata.",
+      "Rivedi l'elenco di parole visibile. Il poliziotto sta parlando in questo momento; scegli l'enunciato corrispondente.",
+      "Rivedi ogni voce dell'elenco di parole su stanze e luoghi, poi scegli l'enunciato sulla mappa già discussa.",
+      "Rivedi ogni voce dell'elenco di parole sui luoghi pratici, poi scegli la richiesta cortese sulla borsa.",
+      "Ascolta l'enunciato completo sulla lettura, poi scegli la frase esatta.",
+      "Usa ogni voce dell'elenco di parole visibile per formulare una richiesta cortese.",
+    ],
+    accepted: SYNTHESIS_ACCEPTED_IT,
+    retry: SYNTHESIS_RETRY_IT,
+  }),
+  "base-synthesis-3-practical-dialogue-outcome":
+    "Trovare due luoghi familiari e chiedere una mappa in uno scambio coerente.",
+  "base-synthesis-3-practical-dialogue-turn-1-translation":
+    "Dov'è il minimarket?",
+  "base-synthesis-3-practical-dialogue-turn-1-purpose":
+    "Chiede la posizione di una destinazione già stabilita.",
+  "base-synthesis-3-practical-dialogue-turn-2-translation":
+    "Il minimarket è alla fermata dell'autobus.",
+  "base-synthesis-3-practical-dialogue-turn-2-purpose":
+    "Risponde con il tema は e il luogo に.",
+  "base-synthesis-3-practical-dialogue-turn-3-translation":
+    "Scusi, dov'è il bagno?",
+  "base-synthesis-3-practical-dialogue-turn-3-purpose":
+    "Mantiene lo stesso scambio pratico sulla posizione.",
+  "base-synthesis-3-practical-dialogue-turn-4-translation":
+    "Il bagno è alla stazione.",
+  "base-synthesis-3-practical-dialogue-turn-4-purpose":
+    "Fornisce il luogo richiesto senza cambiare struttura.",
+  "base-synthesis-3-practical-dialogue-turn-5-translation":
+    "Mi mostri la mappa, per favore.",
+  "base-synthesis-3-practical-dialogue-turn-5-purpose":
+    "Trasforma lo scambio sulla posizione in una richiesta pratica.",
+  "base-synthesis-3-practical-dialogue-turn-6-translation":
+    "Sì, la mostrerò.",
+  "base-synthesis-3-practical-dialogue-turn-6-purpose":
+    "Chiude la richiesta con una risposta appropriata.",
+
+  ...semanticLessonCopy("base-synthesis-4", {
+    title: "Combinare i meccanismi di base",
+    objective:
+      "Usare tutte le cinque superfici di riferimento in un'interazione mista senza trattarla come certificazione.",
+    main:
+      "Questa sintesi campiona anatomia della frase, particelle, classi verbali, tempo e polarità, aggettivi e copula in un'unica interazione guidata.",
+    construction:
+      "Mantieni ogni forma già appresa nel percorso di realizzazione approvato e ogni particella collegata al ruolo esatto retto.",
+    constraints:
+      "Questa interazione registra soltanto evidenze di pratica osservate; non certifica né sblocca un livello.",
+    commonError:
+      "Non ridurre ています in corso e ています di stato risultante a un'unica interpretazione.",
+    nearestContrast:
+      "Confronta un'azione visibilmente in corso con il risultato attuale di un cambiamento completato.",
+    recap:
+      "Hai combinato tutte le cinque superfici di riferimento in un'interazione mista senza introdurre contenuti nuovi.",
+    translations: [
+      "Non sono uno studente.",
+      "Tanaka è tranquillo.",
+      "Non ho letto un libro.",
+      "Non mangio riso.",
+      "Lo farò.",
+      "Andrò a scuola.",
+      "Alla stazione c'è un amico.",
+      "L'addetto della stazione sta parlando adesso.",
+      "L'amico è seduto su una sedia.",
+      "Oggi non ho scritto.",
+    ],
+    purposes: [
+      "Campiona l'anatomia della frase con una clausola d'identità completa.",
+      "Campiona la superficie di riferimento di aggettivi e copula.",
+      "Campiona un oggetto retto correttamente e una forma cortese godan.",
+      "Campiona la classe ichidan con una forma generata approvata.",
+      "Campiona la classe registrata di する senza inventare una forma.",
+      "Campiona に di meta e il non-passato dinamico futuro.",
+      "Campiona la struttura di esistenza animata.",
+      "Legge ています come azione attualmente in corso.",
+      "Legge ています come risultato attuale dell'atto di sedersi.",
+      "Campiona la cella passata negativa con un riferimento temporale relativo.",
+    ],
+    instructions: [
+      "Rivedi l'elenco di parole visibile, poi usa l'indizio di consultazione per scegliere la classificazione corrispondente.",
+      "Rivedi l'elenco di parole visibile. In questa situazione il negozio è pulito; scegli la descrizione corrispondente.",
+      "Rivedi l'elenco di parole visibile. Leggi prima di andare; scegli l'enunciato adatto.",
+      "Rivedi l'elenco di parole visibile. La borsa è già l'argomento della conversazione; scegli l'indicazione di luogo corrispondente.",
+      "Rivedi l'elenco di parole visibile, poi rimuovi l'unico suono finale in più dalla terminazione passata cortese malformata.",
+      "Rivedi l'elenco di parole visibile. Suzuki sta studiando in questo momento; scegli l'enunciato corrispondente.",
+      "Rivedi ogni voce dell'elenco di parole su persone e studio, poi scegli l'enunciato per un'azione in corso adesso.",
+      "Rivedi ogni voce dell'elenco di parole su azioni e luoghi, poi scegli l'enunciato sul diario già discusso.",
+      "Ascolta l'enunciato completo sull'attività, poi scegli la corrispondenza esatta.",
+      "Usa ogni voce dell'elenco di parole visibile per formulare una richiesta cortese di lettura.",
+    ],
+    accepted: SYNTHESIS_ACCEPTED_IT,
+    retry: SYNTHESIS_RETRY_IT,
+  }),
+  "base-synthesis-4-practical-dialogue-outcome":
+    "Completare un'interazione mista di base registrando soltanto evidenze di pratica.",
+  "base-synthesis-4-practical-dialogue-turn-1-translation":
+    "Il mio amico è uno studente.",
+  "base-synthesis-4-practical-dialogue-turn-1-purpose":
+    "Stabilisce la persona per l'interazione mista.",
+  "base-synthesis-4-practical-dialogue-turn-2-translation":
+    "Studia a scuola.",
+  "base-synthesis-4-practical-dialogue-turn-2-purpose":
+    "Verifica で di luogo d'azione nello scenario condiviso.",
+  "base-synthesis-4-practical-dialogue-turn-3-translation":
+    "Oggi andrà in ufficio.",
+  "base-synthesis-4-practical-dialogue-turn-3-purpose":
+    "Aggiunge una meta di movimento futura.",
+  "base-synthesis-4-practical-dialogue-turn-4-translation":
+    "Il mio amico è in ufficio.",
+  "base-synthesis-4-practical-dialogue-turn-4-purpose":
+    "Verifica la struttura esistenziale prima della richiesta.",
+  "base-synthesis-4-practical-dialogue-turn-5-translation":
+    "Legga il libro, per favore.",
+  "base-synthesis-4-practical-dialogue-turn-5-purpose":
+    "Aggiunge una richiesta pratica e circoscritta.",
+  "base-synthesis-4-practical-dialogue-turn-6-translation":
+    "Sì, lo leggerò oggi.",
+  "base-synthesis-4-practical-dialogue-turn-6-purpose":
+    "Chiude con un piano osservato, non con una decisione di livello.",
+};
+
 const SEMANTIC_OPERATION_COPY_IT: Readonly<Record<string, string>> = {
   "recognize-meaning-feedback-accepted":
     "L'enunciato scelto corrisponde al significato stabilito dal contesto.",
@@ -2959,6 +3307,7 @@ export const baseNavigationCopyIt: BaseNavigationCopy = deepFreeze({
     ...TIME_MOVEMENT_COPY_IT,
     ...COPULA_ADJECTIVES_COPY_IT,
     ...EXISTENCE_LOCATION_COPY_IT,
+    ...SYNTHESIS_COPY_IT,
     ...SEMANTIC_OPERATION_COPY_IT,
     ...SENTENCE_EXAMPLE_CONTEXT_COPY_IT,
     "base-audio-failed":

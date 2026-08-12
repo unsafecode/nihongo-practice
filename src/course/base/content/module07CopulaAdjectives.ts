@@ -532,7 +532,12 @@ const RAW_LESSONS = BUILT.map(({ lesson }) => lesson);
 export const BASE_COPULA_ADJECTIVES_LESSONS: readonly (
   | BaseSystemLessonContent
   | BaseContentLessonContent
-)[] = deepFreeze(RAW_LESSONS.map(({ content }) => content));
+)[] = deepFreeze(
+  RAW_LESSONS.map(
+    ({ content }) =>
+      content as BaseSystemLessonContent | BaseContentLessonContent,
+  ),
+);
 
 export const BASE_COPULA_ADJECTIVES_EXAMPLES: readonly BaseExample[] = deepFreeze(
   RAW_LESSONS.flatMap(({ examples }) => examples),

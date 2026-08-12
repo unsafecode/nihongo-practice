@@ -978,7 +978,12 @@ const RAW_TIME_LESSONS = BUILT_TIME_LESSONS.map(({ lesson }) => lesson);
 
 export const BASE_TIME_MOVEMENT_LESSONS: readonly (
   BaseSystemLessonContent | BaseContentLessonContent
-)[] = deepFreeze(RAW_TIME_LESSONS.map(({ content }) => content));
+)[] = deepFreeze(
+  RAW_TIME_LESSONS.map(
+    ({ content }) =>
+      content as BaseSystemLessonContent | BaseContentLessonContent,
+  ),
+);
 
 export const BASE_TIME_MOVEMENT_EXAMPLES: readonly BaseExample[] = deepFreeze(
   RAW_TIME_LESSONS.flatMap(({ examples }) => examples),

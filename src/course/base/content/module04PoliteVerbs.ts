@@ -14,6 +14,7 @@ import {
   type BaseLessonContent,
   type BaseParticleFrame,
   type BasePredicateAspect,
+  type BaseSynthesisLessonContent,
   type BaseSystemLessonContent,
   type BaseValidationCatalogs,
   type BaseVisibleTarget,
@@ -195,6 +196,7 @@ export type BaseTask11ContrastAxis =
   | "time-marking"
   | "tense-polarity"
   | "interpretation"
+  | "information-structure"
   | "word-order"
   | "schedule-route";
 
@@ -237,7 +239,7 @@ export interface BaseTask11DialogueTurnSpec {
 
 export interface BaseTask11LessonSpec {
   readonly lessonId: string;
-  readonly contract: "system" | "content";
+  readonly contract: "system" | "content" | "synthesis";
   readonly prerequisiteLessonIds: readonly string[];
   readonly newLexemeIds: readonly string[];
   readonly reviewLexemeIds: readonly string[];
@@ -245,6 +247,7 @@ export interface BaseTask11LessonSpec {
   readonly reviewedConceptIds: readonly string[];
   readonly patternCellIds: readonly string[];
   readonly referenceSnapshotIds: readonly string[];
+  readonly retrievedSystemIds?: readonly string[];
   readonly examples: readonly BaseTask11ExampleSpec[];
   readonly activities: readonly BaseTask11ActivitySpec[];
   readonly dialogue: readonly BaseTask11DialogueTurnSpec[] | null;
@@ -270,7 +273,10 @@ export interface BaseTask11Dialogue extends BaseDialogue {
 }
 
 export interface BaseTask11Lesson {
-  readonly content: BaseSystemLessonContent | BaseContentLessonContent;
+  readonly content:
+    | BaseSystemLessonContent
+    | BaseContentLessonContent
+    | BaseSynthesisLessonContent;
   readonly titleCopyId: string;
   readonly objectiveCopyId: string;
   readonly explanation: Readonly<{
@@ -1298,7 +1304,10 @@ export function buildTask11Lesson(spec: BaseTask11LessonSpec): BuiltTask11Lesson
     commonErrorCopyId: `${spec.lessonId}-explanation-common-error`,
     nearestContrastId: `${spec.lessonId}-explanation-nearest-contrast`,
   };
-  let content: BaseSystemLessonContent | BaseContentLessonContent;
+  let content:
+    | BaseSystemLessonContent
+    | BaseContentLessonContent
+    | BaseSynthesisLessonContent;
   try {
     content = defineBaseLessonContent({
       lessonId: spec.lessonId,
@@ -1322,8 +1331,11 @@ export function buildTask11Lesson(spec: BaseTask11LessonSpec): BuiltTask11Lesson
       dialogueId: dialogue?.canonical.id ?? null,
       referenceSnapshotIds: spec.referenceSnapshotIds,
       interactive: dialogue !== null,
-      retrievedSystemIds: [],
-    } as BaseSystemLessonContent | BaseContentLessonContent);
+      retrievedSystemIds: spec.retrievedSystemIds ?? [],
+    } as
+      | BaseSystemLessonContent
+      | BaseContentLessonContent
+      | BaseSynthesisLessonContent);
   } catch (error) {
     throw new Error(`Unable to define ${spec.lessonId}: ${String(error)}`);
   }
@@ -3785,7 +3797,12 @@ const RAW_POLITE_LESSONS = BUILT_POLITE_LESSONS.map(({ lesson }) => lesson);
 
 export const BASE_POLITE_VERBS_LESSONS: readonly (
   BaseSystemLessonContent | BaseContentLessonContent
-)[] = deepFreeze(RAW_POLITE_LESSONS.map(({ content }) => content));
+)[] = deepFreeze(
+  RAW_POLITE_LESSONS.map(
+    ({ content }) =>
+      content as BaseSystemLessonContent | BaseContentLessonContent,
+  ),
+);
 
 export const BASE_POLITE_VERBS_EXAMPLES: readonly BaseExample[] = deepFreeze(
   RAW_POLITE_LESSONS.flatMap(({ examples }) => examples),
