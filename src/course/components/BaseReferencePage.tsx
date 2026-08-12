@@ -105,7 +105,17 @@ export function BaseReferencePage(): ReactElement {
         <p className="base-reference-page__explanation">{model.explanation}</p>
       </header>
 
-      <table className="base-reference-page__grid" aria-label={pageCopy.tableViewLabel}>
+      {/*
+        `base-reference-grid` is the min-content-safe wrapper; the table and the
+        stacked cards below are the two mutually exclusive presentations of the
+        same rows (`base-reference-table` above 40rem, `base-reference-cards`
+        below it), so neither can force page-level horizontal scrolling.
+      */}
+      <div className="base-reference-grid">
+      <table
+        className="base-reference-page__grid base-reference-table"
+        aria-label={pageCopy.tableViewLabel}
+      >
         <caption>{model.grid.caption}</caption>
         <thead>
           <tr>
@@ -144,7 +154,7 @@ export function BaseReferencePage(): ReactElement {
         layout always shows exactly the entries the table shows.
       */}
       <ul
-        className="base-reference-page__stacked-cards"
+        className="base-reference-page__stacked-cards base-reference-cards"
         aria-label={pageCopy.cardsViewLabel}
       >
         {model.stackedRows.map((row) => (
@@ -174,6 +184,7 @@ export function BaseReferencePage(): ReactElement {
           </li>
         ))}
       </ul>
+      </div>
     </main>
   );
 }

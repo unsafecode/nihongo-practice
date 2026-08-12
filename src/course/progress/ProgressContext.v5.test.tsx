@@ -339,18 +339,32 @@ describe("ProgressContext V5 canonical ownership", () => {
     const retainedSampledCanDoIds = a1Checkpoint.sampledCanDoIds.filter((id) =>
       retainedA1CanDoIds.has(id),
     );
-    const baseOwnedSampledCanDoIds = a1Checkpoint.sampledCanDoIds.filter(
-      (id) => !retainedA1CanDoIds.has(id),
-    );
+    // Task 16 removed the five Base-owned outcomes from the authored A1
+    // checkpoint, so nothing Base owns is sampled any more. Historical stored
+    // attempts still name them, and must survive untouched — that is what the
+    // fixture below records.
+    const baseOwnedSampledCanDoIds = [
+      "a1-can-do-sounds",
+      "a1-can-do-sentence-foundations",
+      "a1-can-do-topic-questions",
+      "a1-can-do-polite-verbs",
+      "a1-can-do-time-movement",
+    ];
     expect(retainedSampledCanDoIds.length).toBeGreaterThan(0);
-    expect(baseOwnedSampledCanDoIds.length).toBeGreaterThan(0);
+    expect(a1Checkpoint.sampledCanDoIds).toEqual(retainedSampledCanDoIds);
+    for (const canDoId of baseOwnedSampledCanDoIds) {
+      expect(retainedA1CanDoIds.has(canDoId), canDoId).toBe(false);
+    }
 
     const historicalAttempt = {
       id: "legacy-a1-checkpoint-attempt",
       checkpointId: a1Checkpoint.id,
       attemptedAt: "2026-08-06T00:00:00.000Z",
       acceptedExerciseIds: ["legacy-a1-exercise"],
-      sampledCanDoIds: [...a1Checkpoint.sampledCanDoIds],
+      sampledCanDoIds: [
+        ...baseOwnedSampledCanDoIds,
+        ...a1Checkpoint.sampledCanDoIds,
+      ],
     };
     const historicalStore = memoryStorage();
     const v4 = emptyProgressV4();

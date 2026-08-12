@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Locale } from "../../i18n/LocaleContext";
 import { a1FoundationCatalogs } from "./catalog/catalog";
-import { A1_SOUND_LESSON_IDS } from "./catalog/canDos";
 import {
   A1_RELEASE_CATALOG_VERSION,
   A1_RELEASE_SEED,
@@ -10,13 +9,13 @@ import {
 
 const LOCALES: readonly Locale[] = ["en", "it"];
 
-/** The 60 semantic (non-phonetic) lesson ids the release builder resolves. */
+/** The 44 retained A1 lesson ids the release builder resolves. */
 const SEMANTIC_LESSON_IDS = a1FoundationCatalogs.lessons.map(
   (lesson) => lesson.id,
 );
 
 describe("buildA1LessonViewModel", () => {
-  it("resolves every one of the 60 semantic A1 lessons in both locales with no error", () => {
+  it("resolves every one of the 44 retained A1 lessons in both locales with no error", () => {
     for (const locale of LOCALES) {
       for (const lessonId of SEMANTIC_LESSON_IDS) {
         const result = buildA1LessonViewModel(lessonId, locale);
@@ -25,8 +24,8 @@ describe("buildA1LessonViewModel", () => {
     }
   });
 
-  it("never resolves a phonetic sounds-module lesson id (no sentence variants)", () => {
-    for (const lessonId of A1_SOUND_LESSON_IDS) {
+  it("never resolves a Base-owned sounds-module lesson id (rehomed, not A1's)", () => {
+    for (const lessonId of ["sounds-1", "sounds-2", "sounds-3", "sounds-4"]) {
       const result = buildA1LessonViewModel(lessonId, "en");
       expect(result.ok, lessonId).toBe(false);
     }

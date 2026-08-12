@@ -261,6 +261,9 @@ const itUi = {
       meaningsAndFormsLabel: "Significati e forme",
       retrievalCueLabel: "Richiamo per il ripasso",
       reviewExceptionLabel: "Nota di ripasso",
+      baseReferencesLabel: "Sistemi Base che stai riutilizzando",
+      baseReferencesHint:
+        "Questa lezione applica questi sistemi invece di insegnarli: apri un riferimento per rivedere l'intero schema.",
     },
   },
   baseLesson: {
@@ -501,8 +504,9 @@ const itUi = {
     dimensions: {
       "mora-timing": "Riesci già a leggere hiragana e katakana con un ritmo regolare, mora per mora?",
       "sentence-anatomy": "Riesci già a riconoscere tema, verbo e complementi in una frase semplice?",
-      "particle-sense": "Conosci già il significato delle particelle di base (は, を, に, で, と)?",
-      "polite-verb-form": "Riesci già a costruire la forma cortese ~ます di un verbo?",
+      "particle-sense":
+        "Conosci già il significato delle particelle di base (wa, o, ni, de, to)?",
+      "polite-verb-form": "Riesci già a costruire la forma cortese -masu di un verbo?",
     },
     yes: "Sì",
     no: "No",

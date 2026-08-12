@@ -10,6 +10,8 @@ import { describe, expect, it } from "vitest";
 
 import { realizeVariant } from "../../foundations/realizeFamily";
 import type { SentenceFamily, SentenceVariant } from "../../foundations/types";
+import { A1_INHERITED_BASE_CONCEPT_IDS } from "../inheritedBaseConcepts";
+import { partitionA1AuthoredConceptIds } from "../inheritedBaseConcepts";
 import { a1SemanticBuiltLessons } from "./catalog";
 import {
   a1Contexts,
@@ -94,5 +96,57 @@ describe("A1 content invariants", () => {
       (row) => row.en.length === 0 || row.it.length === 0,
     ).map((row) => row.id);
     expect(offenders).toEqual([]);
+  });
+});
+
+describe("A1 recipes never claim a Base-owned first teach (Task 16)", () => {
+  it("moves every inherited concept out of introducedConceptIds and into reviewedConceptIds", () => {
+    const inherited = new Set<string>(A1_INHERITED_BASE_CONCEPT_IDS);
+    let reviewedTotal = 0;
+
+    for (const built of a1SemanticBuiltLessons) {
+      const { recipe } = built;
+      for (const conceptId of recipe.introducedConceptIds) {
+        expect(
+          inherited.has(conceptId),
+          `${recipe.id} claims to introduce Base-owned "${conceptId}"`,
+        ).toBe(false);
+      }
+      for (const conceptId of recipe.reviewedConceptIds) {
+        expect(inherited.has(conceptId), `${recipe.id} → ${conceptId}`).toBe(true);
+      }
+      expect(
+        recipe.introducedConceptIds.filter((id) =>
+          recipe.reviewedConceptIds.includes(id),
+        ),
+        recipe.id,
+      ).toEqual([]);
+      reviewedTotal += recipe.reviewedConceptIds.length;
+    }
+
+    // The split is only meaningful if retained A1 genuinely reuses Base grammar.
+    expect(reviewedTotal).toBeGreaterThan(0);
+  });
+
+  it("partitions an authored concept list without losing or duplicating an id", () => {
+    const authored = [
+      "a1-concept-topic-wa",
+      "a1-concept-adjective",
+      "a1-concept-object-wo",
+      "a1-concept-quantity",
+    ];
+    const partition = partitionA1AuthoredConceptIds(authored);
+
+    expect([...partition.introduced, ...partition.reviewed].sort()).toEqual(
+      [...authored].sort(),
+    );
+    expect(partition.reviewed).toEqual([
+      "a1-concept-topic-wa",
+      "a1-concept-object-wo",
+    ]);
+    expect(partition.introduced).toEqual([
+      "a1-concept-adjective",
+      "a1-concept-quantity",
+    ]);
   });
 });

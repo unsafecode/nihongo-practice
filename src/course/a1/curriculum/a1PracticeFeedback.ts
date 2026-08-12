@@ -2,8 +2,11 @@ import type { Locale } from "../../../i18n/LocaleContext";
 import { a1FoundationCatalogs } from "../catalog/catalog";
 import {
   a1LearningNoteById,
-  a1LessonContentById,
   a1LexemeById,
+  // Every published A1 route, including the twenty Base rehomed in Task 16, so
+  // the historical phonetic and legacy-route exercise paths keep resolving
+  // their authored feedback instead of failing closed.
+  legacyA1LessonContentById as a1LessonContentById,
 } from "./catalog";
 import type { A1PracticeFunction } from "./types";
 

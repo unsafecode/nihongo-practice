@@ -311,6 +311,14 @@ export interface CourseCopy {
       meaningsAndFormsLabel: string;
       retrievalCueLabel: string;
       reviewExceptionLabel: string;
+      /**
+       * Heading for the Base progressive references a retained A1 lesson
+       * reviews (Task 16). The reference labels themselves come from Base's
+       * own catalog copy — this is only the surrounding chrome.
+       */
+      baseReferencesLabel: string;
+      /** Short explanation that these systems are reviewed, not introduced. */
+      baseReferencesHint: string;
     };
   };
   /**

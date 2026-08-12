@@ -1981,6 +1981,11 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+  /* A flex track's default `min-width: auto` refuses to shrink below its
+   * content, which is how a three-level segmented control starts pushing the
+   * page wider than 320px (and at 200% zoom). Allowing the track to shrink
+   * keeps the wrap the only overflow response. */
+  min-width: 0;
 }
 .level-selector__option-item { margin: 0; }
 .level-selector__option {
@@ -2519,6 +2524,90 @@
   .a1-vocabulary__meaning-toggle,
   .a1-audio-button__control,
   .a1-worked-examples__pattern > summary {
+    transition: none;
+  }
+}
+
+
+/* ── Base (a0) level layout (Task 16) ─────────────────────────────────────── */
+
+/*
+ * Every Base track that holds long Japanese/rōmaji pairs opts out of the
+ * `min-width: auto` default so its content can wrap instead of forcing the
+ * page wider. Without this a single long reference cell or dialogue turn
+ * introduces page-level horizontal scrolling at 320px and at 200% zoom.
+ */
+.base-reference-grid {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-3);
+  overflow-wrap: anywhere;
+}
+
+/*
+ * The wide reference table is the default presentation; the stacked cards are
+ * its narrow-viewport equivalent, generated one-for-one from the same rows.
+ * Exactly one of the two is displayed at a time, so a learner never sees the
+ * same content twice and the table never forces a horizontal scrollbar.
+ */
+.base-reference-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.base-reference-cards {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.base-practice-sequence {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.base-dialogue {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The shared ≥44px action-target contract, restated explicitly for the Base
+ * controls so a Base-only regression cannot slip past the audit. */
+.base-practice-activity__option {
+  min-height: var(--action-target-min);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.base-audio-button__control {
+  min-height: var(--action-target-min);
+  min-width: var(--action-target-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+.base-audio-button__control:focus-visible,
+.base-practice-activity__option:focus-within {
+  outline: var(--focus-ring-width, 2px) solid var(--course-coral);
+  outline-offset: 2px;
+}
+
+@media (max-width: 40rem) {
+  .base-reference-table {
+    display: none;
+  }
+  .base-reference-cards {
+    display: grid;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .base-progress,
+  .base-activity {
+    scroll-behavior: auto;
     transition: none;
   }
 }

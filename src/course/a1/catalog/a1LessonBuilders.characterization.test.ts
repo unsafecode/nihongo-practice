@@ -88,6 +88,9 @@ describe("A1 characterization baseline · module 2 (introductions) — pre-kit-e
       guidedVariantIds: built.recipe.guidedVariantIds,
       spokenVariantId: built.recipe.spokenVariantId,
       introducedConceptIds: built.recipe.introducedConceptIds,
+      // Task 16: Base-owned concepts are recorded as reviewed here, so the
+      // pinned baseline shows both halves of the authored concept list.
+      reviewedConceptIds: built.recipe.reviewedConceptIds,
       introducedSenseIds: built.recipe.introducedSenseIds,
       practice: built.recipe.practice,
       diversityConstraints: built.recipe.diversityConstraints,

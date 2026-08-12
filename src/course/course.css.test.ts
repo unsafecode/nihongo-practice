@@ -380,3 +380,52 @@ describe("A1 curriculum section CSS contract", () => {
     );
   });
 });
+
+describe("Base level CSS contract (Task 16)", () => {
+  it("keeps every Base grid, sequence, dialogue, and level-selector track min-content safe", () => {
+    const css = readCourseCss();
+    for (const selector of [
+      ".base-reference-grid",
+      ".base-practice-sequence",
+      ".base-dialogue",
+      ".level-selector__options",
+    ]) {
+      expect(findRule(css, selector), selector).toMatch(/min-width:\s*0/);
+    }
+  });
+
+  it("swaps the Base reference table for stacked cards below 40rem", () => {
+    const block = findMediaBlock(readCourseCss(), "@media (max-width: 40rem)");
+    expect(block).toMatch(/\.base-reference-table\s*{[^}]*display:\s*none/);
+    expect(block).toMatch(/\.base-reference-cards\s*{[^}]*display:\s*grid/);
+  });
+
+  it("shows the Base reference table and hides the cards above the breakpoint", () => {
+    const css = readCourseCss();
+    expect(findRule(css, ".base-reference-cards")).toMatch(/display:\s*none/);
+    expect(findRule(css, ".base-reference-table")).toMatch(/width:\s*100%/);
+  });
+
+  it("stops Base progress and activity motion under prefers-reduced-motion", () => {
+    const reduced = findMediaBlock(
+      readCourseCss(),
+      "@media (prefers-reduced-motion: reduce)",
+    );
+    expect(reduced).toMatch(
+      /\.base-progress\s*,\s*\.base-activity\s*{[^}]*scroll-behavior:\s*auto/,
+    );
+    expect(reduced).toMatch(
+      /\.base-progress\s*,\s*\.base-activity\s*{[^}]*transition:\s*none/,
+    );
+  });
+
+  it("keeps the Base action targets at the shared 44px minimum", () => {
+    const css = readCourseCss();
+    expect(findRule(css, ".base-audio-button__control")).toMatch(
+      /min-height:\s*var\(--action-target-min\)/,
+    );
+    expect(findRule(css, ".base-practice-activity__option")).toMatch(
+      /min-height:\s*var\(--action-target-min\)/,
+    );
+  });
+});

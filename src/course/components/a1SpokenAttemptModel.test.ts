@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { legacyA1CourseModules as courseModules } from "../data/course";
+import {
+  courseModulesByLevel,
+  legacyA1CourseModules as courseModules,
+} from "../data/course";
 import { module1ItemsByLesson } from "../a1/catalog/module01Sounds";
 import { evaluateTranscript } from "../speech/evaluateTranscript";
 import { normalizeTranscript } from "../speech/normalizeTranscript";
@@ -7,26 +10,49 @@ import { getA1SpokenAttemptModel } from "./a1SpokenAttemptModel";
 
 /**
  * The A1-native spoken-attempt model contract (Phase 2 Task 6, master task
- * point 4). Every one of the release's 64 lessons must resolve to a complete
- * `SpokenAttemptModel`, or a structured error — never a partial model, and
- * never a legacy example-catalog lookup. The 60 semantic lessons resolve
- * from their guided-construction target's realized tokens; the 4 phonetic
- * `sounds-*` lessons resolve from their first authored phonetic item, so
- * that every lesson has a target or an explicit phonetic listen/repeat
- * equivalent, honoring the same `SpokenAttemptModel` shape either way.
+ * point 4). Every A1 lesson must resolve to a complete `SpokenAttemptModel`,
+ * or a structured error — never a partial model, and never a legacy
+ * example-catalog lookup. The retained semantic lessons resolve from their
+ * guided-construction target's realized tokens; the 4 phonetic `sounds-*`
+ * lessons resolve from their first authored phonetic item, so that every
+ * lesson has a target or an explicit phonetic listen/repeat equivalent,
+ * honoring the same `SpokenAttemptModel` shape either way.
+ *
+ * Task 16 rehomed the four Foundations modules to Base, which owns their
+ * routes and their spoken practice; A1's model must fail closed on them
+ * rather than serve another level's content from stale authoring data.
  */
 const allLessonIds = courseModules.flatMap((courseModule) =>
   courseModule.lessons.map((lesson) => lesson.id),
 );
+const retainedLessonIds = courseModulesByLevel.a1.flatMap((courseModule) =>
+  courseModule.lessons.map((lesson) => lesson.id),
+);
+const rehomedSemanticLessonIds = allLessonIds.filter(
+  (lessonId) =>
+    !retainedLessonIds.includes(lessonId) && !lessonId.startsWith("sounds-"),
+);
 
 describe("getA1SpokenAttemptModel — every release lesson resolves", () => {
-  it("names exactly 64 lessons across 16 modules", () => {
+  it("names exactly 64 published lessons, 44 of them retained by A1", () => {
     expect(allLessonIds).toHaveLength(64);
+    expect(retainedLessonIds).toHaveLength(44);
+    expect(rehomedSemanticLessonIds).toHaveLength(16);
+  });
+
+  it("fails closed on the Base-owned Foundations routes", () => {
+    for (const lessonId of rehomedSemanticLessonIds) {
+      const result = getA1SpokenAttemptModel(lessonId, "en");
+      expect(result.ok, lessonId).toBe(false);
+    }
   });
 
   for (const locale of ["en", "it"] as const) {
-    it(`builds a complete model for all 64 lessons (${locale})`, () => {
-      for (const lessonId of allLessonIds) {
+    it(`builds a complete model for all 44 retained lessons plus the phonetic four (${locale})`, () => {
+      for (const lessonId of [
+        ...retainedLessonIds,
+        ...Object.keys(module1ItemsByLesson),
+      ]) {
         const result = getA1SpokenAttemptModel(lessonId, locale);
         if (!result.ok) {
           throw new Error(

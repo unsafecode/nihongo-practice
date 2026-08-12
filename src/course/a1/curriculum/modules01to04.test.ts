@@ -14,6 +14,7 @@ import {
 } from "../catalog/a1SemanticCatalog";
 import { a1LearningNoteById } from "./grammar";
 import { a1LexemeById, a1LexemeByValueId } from "./lexicon";
+import { inheritedBaseLexemeIds } from "./inheritedBase";
 import { a1LessonContents } from "./catalog";
 import { a1Modules01to04LessonContent } from "./modules01to04";
 import { realizeVariant } from "../../foundations/realizeFamily";
@@ -260,7 +261,10 @@ describe("A1 modules 01–04 lesson content", () => {
   });
 
   it("keeps worked examples and dialogue within cumulative lexeme availability", () => {
-    const availableLexemeIds = new Set<string>();
+    // The five modules Base rehomed (Task 16 containment) teach their
+    // vocabulary before retained A1 begins, so the cumulative walk starts from
+    // that inherited set — derived from those lessons' own authored content.
+    const availableLexemeIds = inheritedBaseLexemeIds();
 
     for (const content of a1LessonContents) {
       for (const lexemeId of content.newLexemeIds) {

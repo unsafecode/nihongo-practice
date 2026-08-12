@@ -75,8 +75,10 @@ describe("exercise-kind variety", () => {
   // rotation space than the former ten-place sequences, while still requiring
   // enough variation to avoid a dominant prompt pattern.
   it("gives A1 many distinct sequences and no dominant one", () => {
+    // Task 16 rehomed sixteen semantic lessons to Base, which has its own
+    // variety gate; A1's forty-four retained lessons must still rotate.
     const stats = collect(a1Lessons);
-    expect(stats.total).toBe(60);
+    expect(stats.total).toBe(44);
     expect(stats.distinct).toBeGreaterThanOrEqual(Math.ceil(stats.total / 4));
     expect(stats.maxShared).toBeLessThanOrEqual(Math.ceil(stats.total / 4));
   });

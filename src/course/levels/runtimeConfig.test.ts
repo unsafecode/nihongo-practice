@@ -92,12 +92,10 @@ describe("LEVEL_RUNTIME_CONFIG", () => {
     for (const sampledId of LEVEL_RUNTIME_CONFIG.a1.checkpoint.sampledCanDoIds) {
       expect(runtimeCanDoIds.has(sampledId), sampledId).toBe(true);
     }
+    // Task 16 rehomed the five Base-owned outcomes at the *source*: the
+    // authored A1 checkpoint no longer samples them at all, so the runtime
+    // projection has nothing left to filter and both lists agree.
     expect(a1Checkpoint.sampledCanDoIds).toEqual([
-      "a1-can-do-sounds",
-      "a1-can-do-sentence-foundations",
-      "a1-can-do-topic-questions",
-      "a1-can-do-polite-verbs",
-      "a1-can-do-time-movement",
       "a1-can-do-identity",
       "a1-can-do-origins",
       "a1-can-do-questions",
@@ -113,6 +111,9 @@ describe("LEVEL_RUNTIME_CONFIG", () => {
       "a1-can-do-scenario-3",
       "a1-can-do-scenario-4",
     ]);
+    expect(LEVEL_RUNTIME_CONFIG.a1.checkpoint.sampledCanDoIds).toEqual(
+      a1Checkpoint.sampledCanDoIds,
+    );
   });
 
   it("shares the same retained A1 checkpoint projection between runtime config and ProgressContext", () => {

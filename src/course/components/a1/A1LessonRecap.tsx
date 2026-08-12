@@ -50,6 +50,29 @@ export function A1LessonRecap({
           ))}
         </ul>
       </section>
+      {/*
+        Task 16: the grammar systems Base owns are reviewed and applied here,
+        never introduced. Each link goes to the Base progressive reference that
+        actually teaches the system; the label is Base's own catalog copy.
+      */}
+      {recap.reviewedBaseReferences.length > 0 ? (
+        <section
+          className="a1-curriculum-recap__base-references"
+          aria-labelledby="a1-recap-base-references"
+        >
+          <h3 id="a1-recap-base-references">{copy.recap.baseReferencesLabel}</h3>
+          <p>{copy.recap.baseReferencesHint}</p>
+          <ul>
+            {recap.reviewedBaseReferences.map((entry) => (
+              <li key={entry.conceptId} data-concept-id={entry.conceptId}>
+                <a className="action" href={entry.href}>
+                  {entry.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       <section
         className="a1-curriculum-recap__cue"
         aria-labelledby="a1-recap-retrieval-cue"

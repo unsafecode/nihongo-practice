@@ -10,7 +10,7 @@ import {
   buildA1CurriculumViewModel,
   type A1CurriculumViewModel,
 } from "./buildA1CurriculumViewModel";
-import { A1_LESSON_IDS } from "../manifest";
+import { A1_RETAINED_LESSON_IDS } from "../manifest";
 import { a1LexemeByValueId } from "./lexicon";
 import type { A1LessonContent } from "./types";
 
@@ -198,8 +198,8 @@ describe("buildA1CurriculumViewModel — introductions-1", () => {
   });
 });
 
-describe("buildA1CurriculumViewModel — verb, phonetic, and capstone contracts", () => {
-  it.each(["polite-verbs-1", "polite-verbs-2"])(
+describe("buildA1CurriculumViewModel — verb, Base-owned, and capstone contracts", () => {
+  it.each(["actions-2", "routines-1"])(
     "carries canonical dictionary, polite, and class metadata for verb vocabulary in %s",
     (lessonId) => {
       const model = expectOk(lessonId, "en");
@@ -216,28 +216,19 @@ describe("buildA1CurriculumViewModel — verb, phonetic, and capstone contracts"
     },
   );
 
-  it("uses phonetic item IDs for examples while glossing anchor words from canonical vocabulary", () => {
-    const content = contentFor("sounds-4");
-    const model = expectOk("sounds-4", "en");
-    const items = module1ItemsByLesson["sounds-4"]!;
-
-    expect(model.examples.map((example) => example.variantId)).toEqual(
-      content.workedExampleVariantIds,
-    );
-    expect(model.examples.map((example) => example.tokens[0]?.token.source.referenceId)).toEqual(
-      content.workedExampleVariantIds,
-    );
-    expect(model.examples.map((example) => example.spokenJapanese)).toEqual(
-      content.workedExampleVariantIds.map(
-        (id) => items.find((item) => item.id === id)?.glyph,
-      ),
-    );
-    const coffee = model.examples.find((example) => example.variantId === "snd4-koohii");
-    expect(coffee?.tokens[0]).toMatchObject({
-      gloss: a1LexemeById["a1-lexeme-koohii"]?.meaning.en,
-      role: "lexeme",
-    });
-    expect(model.optionalPattern).toBeNull();
+  it("fails closed on the Base-owned phonetic lessons instead of rendering a stale A1 model", () => {
+    // Task 16 rehomed the whole `sounds` module to Base, which owns its
+    // phonetic rendering (`base/view/buildBaseLessonViewModel`). A1's builder
+    // must refuse those ids rather than resolve leftover authoring data.
+    for (const lessonId of ["sounds-1", "sounds-2", "sounds-3", "sounds-4"]) {
+      expect(a1LessonContentById[lessonId], lessonId).toBeUndefined();
+      const result = buildA1CurriculumViewModel(lessonId, "en");
+      expect(result.ok, lessonId).toBe(false);
+      if (result.ok) continue;
+      expect(result.error).toMatchObject({ code: "unknown-lesson", referenceId: lessonId });
+    }
+    // The phonetic item catalog itself still exists as Base's source data.
+    expect(module1ItemsByLesson["sounds-4"]?.length).toBeGreaterThan(0);
   });
 
   it("marks a capstone's deterministic worked vocabulary as review rather than first exposure", () => {
@@ -264,9 +255,9 @@ describe("buildA1CurriculumViewModel — verb, phonetic, and capstone contracts"
 });
 
 describe("buildA1CurriculumViewModel — complete A1 coverage", () => {
-  it("resolves every one of the 64 curriculum rows in both locales without a partial model", () => {
+  it("resolves every one of the 44 retained curriculum rows in both locales without a partial model", () => {
     for (const locale of LOCALES) {
-      for (const lessonId of A1_LESSON_IDS) {
+      for (const lessonId of A1_RETAINED_LESSON_IDS) {
         const content = contentFor(lessonId);
         const model = expectOk(lessonId, locale);
         expect(model.examples.length, lessonId).toBeGreaterThanOrEqual(2);

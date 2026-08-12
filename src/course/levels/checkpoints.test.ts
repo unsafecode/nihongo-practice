@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { a1CanDosAuthored } from "../a1/catalog/canDos";
 import { a1Checkpoint } from "../a1/catalog/checkpoint";
-import type { CheckpointDefinition } from "../foundations/types";
+import type { CanDo, CheckpointDefinition } from "../foundations/types";
 import {
   retainedA1Checkpoint,
   retainedCheckpointProjection,
@@ -17,8 +17,19 @@ describe("retained checkpoint projection", () => {
       a1Checkpoint.sampledCanDoIds.filter((id) => retainedIds.has(id)),
     );
     expect(retainedA1Checkpoint).not.toBe(a1Checkpoint);
-    expect(a1Checkpoint.sampledCanDoIds).toContain("a1-can-do-sounds");
-    expect(retainedA1Checkpoint.sampledCanDoIds).not.toContain("a1-can-do-sounds");
+    // Task 16 removed the Base-owned outcomes from the *authored* checkpoint,
+    // so the projection is now a defence in depth rather than the only guard:
+    // nothing Base owns is sampled at either layer.
+    for (const canDoId of [
+      "a1-can-do-sounds",
+      "a1-can-do-sentence-foundations",
+      "a1-can-do-topic-questions",
+      "a1-can-do-polite-verbs",
+      "a1-can-do-time-movement",
+    ]) {
+      expect(a1Checkpoint.sampledCanDoIds, canDoId).not.toContain(canDoId);
+      expect(retainedA1Checkpoint.sampledCanDoIds, canDoId).not.toContain(canDoId);
+    }
   });
 
   it("fails closed when a checkpoint samples an unknown Can-do", () => {
@@ -33,13 +44,20 @@ describe("retained checkpoint projection", () => {
   });
 
   it("fails closed when no sampled Can-dos remain after retained ownership filtering", () => {
+    // An A1-level Can-do whose only lessons are owned by another level: known
+    // to the catalog, so it passes the unknown-Can-do guard, but not retained.
+    const baseOwnedCanDo: CanDo = {
+      ...a1CanDosAuthored[0]!,
+      id: "a1-can-do-base-owned-fixture",
+      lessonIds: ["sounds-1"],
+    };
     const checkpoint: CheckpointDefinition = {
       ...a1Checkpoint,
-      sampledCanDoIds: ["a1-can-do-sounds"],
+      sampledCanDoIds: [baseOwnedCanDo.id],
     };
 
-    expect(() => retainedCheckpointProjection(checkpoint, a1CanDosAuthored)).toThrow(
-      /no retained sampled Can-dos/,
-    );
+    expect(() =>
+      retainedCheckpointProjection(checkpoint, [...a1CanDosAuthored, baseOwnedCanDo]),
+    ).toThrow(/no retained sampled Can-dos/);
   });
 });

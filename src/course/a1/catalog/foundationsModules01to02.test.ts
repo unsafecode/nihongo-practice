@@ -94,13 +94,13 @@ describe("published Foundations modules 01–02", () => {
     expect(
       a1FoundationsArea01to02Catalogs.lessonPositions.map(({ position }) => position),
     ).toEqual([5, 6, 7, 8, 9, 10, 11, 12]);
-    expect(a1FoundationCatalogs.modules).toHaveLength(16);
-    expect(a1FoundationCatalogs.lessonPositions).toHaveLength(64);
+    expect(a1FoundationCatalogs.modules).toHaveLength(11);
+    expect(a1FoundationCatalogs.lessonPositions).toHaveLength(44);
     expect(
       a1FoundationCatalogs.lessonPositions.some(({ lessonId }) =>
         lessonId.startsWith("sentence-foundations-"),
       ),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("authors exactly eight models and five transfers for every lesson", () => {

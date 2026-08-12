@@ -71,7 +71,7 @@ function ChoiceCard({
 
   return (
     <div
-      className="base-practice-activity base-practice-activity--choice"
+      className="base-practice-activity base-activity base-practice-activity--choice"
       data-activity-id={activity.id}
       data-category={activity.category}
     >
@@ -143,7 +143,7 @@ function TileOrderingCard({
 
   return (
     <div
-      className="base-practice-activity base-practice-activity--tile-ordering"
+      className="base-practice-activity base-activity base-practice-activity--tile-ordering"
       data-activity-id={activity.id}
       data-category={activity.category}
       role="group"
@@ -219,7 +219,7 @@ function RevealCard({
 
   return (
     <div
-      className="base-practice-activity base-practice-activity--reveal"
+      className="base-practice-activity base-activity base-practice-activity--reveal"
       data-activity-id={activity.id}
       data-category={activity.category}
       role="group"

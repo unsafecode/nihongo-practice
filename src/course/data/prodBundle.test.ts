@@ -39,6 +39,31 @@ import { beforeAll, describe, expect, it } from "vitest";
 // See src/course/foundations/validateFoundations.ts's `ValidationErrorCode`.
 const VALIDATOR_ONLY_MARKER = "productive-verb-spaced-reuse";
 
+/**
+ * The same guarantee for the Base level's *editorial-review* artefacts
+ * (Task 16). Each marker is a runtime string literal that exists only inside a
+ * source-only Base ledger, so it cannot be erased at compile time and cannot
+ * plausibly appear anywhere else:
+ *
+ *  - the inventoried corpus fingerprint — a literal that exists only inside
+ *    the Base naturalness review ledger (`base/review/naturalnessLedger.ts`).
+ *  - `base-audio-review-` — the entry-id prefix minted only by the Base audio
+ *    review ledger (`base/audio/reviewLedger.ts`).
+ *
+ * Neither ledger is reachable from the production entry, so Rollup must
+ * tree-shake both out of every shipped chunk. (Base's *lesson* validators are
+ * a different thing: each content module runs its own fail-closed guard at
+ * import time by design, so that code is legitimately part of the runtime and
+ * is not asserted absent here.)
+ */
+const BASE_SOURCE_ONLY_MARKERS: readonly (readonly [string, string])[] = [
+  [
+    "base naturalness ledger",
+    "c5d03e11acd4469491feac1c50a04d4f91eb4f58a4813bd4ab047c7f666bea3d",
+  ],
+  ["base audio review ledger", "base-audio-review-"],
+];
+
 const CONFIG_FILE = fileURLToPath(new URL("../../../vite.config.ts", import.meta.url));
 
 function isRollupOutputArray(
@@ -109,6 +134,33 @@ describe("production bundle — validator tree-shaking + chunk-splitting gate (I
     );
 
     expect(chunksContainingMarker.map((chunk) => chunk.fileName)).toEqual([]);
+  });
+
+  it("never ships a source-only Base review ledger in a production JS chunk", () => {
+    expect(jsChunks.length).toBeGreaterThan(0);
+
+    for (const [label, marker] of BASE_SOURCE_ONLY_MARKERS) {
+      const chunksContainingMarker = jsChunks.filter((chunk) =>
+        chunk.code.includes(marker),
+      );
+      expect(
+        chunksContainingMarker.map((chunk) => chunk.fileName),
+        `${label} leaked into a production chunk`,
+      ).toEqual([]);
+    }
+  });
+
+  it("gives the Base level its own JS chunk", () => {
+    const fileNames = jsChunks.map((chunk) => chunk.fileName);
+
+    expect(
+      fileNames.some((name) => /^assets\/course-base-[^/]*\.js$/.test(name)),
+      `expected a course-base chunk, got: ${fileNames.join(", ")}`,
+    ).toBe(true);
+    expect(
+      fileNames.some((name) => /^assets\/course-base-copy-/.test(name)),
+      `expected a course-base-copy chunk, got: ${fileNames.join(", ")}`,
+    ).toBe(true);
   });
 
   it("splits the vendor dependencies and the lazy-loaded routes into their own chunks", () => {

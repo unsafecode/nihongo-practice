@@ -8,8 +8,7 @@ import {
   buildLessonPositionRecords,
   toFoundationLessonDefinition,
 } from "../../foundations/instructionalLessonKit";
-import { buildA1LessonViewModel } from "../a1LessonViewModel";
-import { a1FoundationCatalogs } from "../catalog/catalog";
+import { buildLessonViewModel } from "../../foundations/buildLessonViewModel";
 import type {
   FoundationCatalogs,
   FoundationModule,
@@ -24,7 +23,7 @@ import {
   a1CanonicalSentenceFamilies,
 } from "../catalog/a1SemanticCatalog";
 import { a1SharedCopy } from "../catalog/a1CopyGloss";
-import { a1ExpandedFoundationCanDos } from "../catalog/canDos";
+import { a1CanDos } from "../catalog/shared";
 import {
   FOUNDATIONS_LEARNING_NOTE_IDS_BY_LESSON,
   FOUNDATIONS_LEXEME_IDS_BY_LESSON,
@@ -44,6 +43,10 @@ import {
   a1StagedFoundationsArea03to04VerbUseRecords,
 } from "../catalog/foundationsRecurrence03to04";
 import { A1_EXPANDED_CANONICAL_POSITIONS } from "../manifest";
+import {
+  A1_RELEASE_CATALOG_VERSION,
+  A1_RELEASE_SEED,
+} from "../releaseIdentity";
 import {
   a1FoundationsArea01to02BuiltLessons,
   a1FoundationsArea01to02Copy,
@@ -85,9 +88,26 @@ const stagedModules: readonly FoundationModule[] = deepFreeze(
   })),
 );
 
-const stagedCanDos = a1ExpandedFoundationCanDos.filter(({ id }) =>
-  ["a1-can-do-polite-verbs", "a1-can-do-time-movement"].includes(id),
-);
+const stagedCanDos = a1CanDos
+  .filter(({ id }) => ["a1-can-do-polite-verbs", "a1-can-do-time-movement"].includes(id))
+  .map((stub) => {
+    const lessonIds = a1FoundationsArea03to04Modules.find(
+      (module) => stub.id === `a1-can-do-${module.id}`,
+    )?.lessonIds;
+    const contextIds = [
+      ...new Set(
+        a1FoundationsArea03to04Variants
+          .filter((variant) => lessonIds?.some((id) => variant.id.startsWith(`${id}-`)))
+          .map((variant) => variant.contextId),
+      ),
+    ].sort();
+    return {
+      ...stub,
+      lessonIds: lessonIds ?? [],
+      contextIds,
+      sourceNote: "product-authored-jf-cefr-aligned" as const,
+    };
+  });
 
 export interface A1FoundationsArea03to04Catalogs extends FoundationCatalogs {
   readonly lexemeByValueId: typeof a1ExpandedFoundationsLexemeByValueId;
@@ -158,7 +178,14 @@ function semanticBlueprint(
   spokenVariantId: string,
   fourth: "transformation" | "contextual-response",
 ): A1PracticeBlueprint {
-  const built = buildA1LessonViewModel(lessonId, "en");
+  const built = buildLessonViewModel({
+    catalogs: a1FoundationsArea03to04Catalogs,
+    copy: a1FoundationsArea03to04Copy,
+    lessonId,
+    locale: "en",
+    catalogVersion: A1_RELEASE_CATALOG_VERSION,
+    seed: A1_RELEASE_SEED,
+  });
   if (!built.ok) {
     throw new Error(
       `Foundations practice blueprint cannot resolve "${lessonId}": ${built.error.code} (${built.error.detail ?? "no detail"}).`,
@@ -183,10 +210,10 @@ function semanticBlueprint(
       round.targets.map((target) => target.visibleTargetKey),
     ),
   );
-  const candidateVariantIds = a1FoundationCatalogs.lessons
+  const candidateVariantIds = a1FoundationsArea03to04Catalogs.lessons
     .find((lesson) => lesson.id === lessonId)
     ?.practice.roundOne.candidateVariantIds.concat(
-      a1FoundationCatalogs.lessons.find((lesson) => lesson.id === lessonId)
+      a1FoundationsArea03to04Catalogs.lessons.find((lesson) => lesson.id === lessonId)
         ?.practice.roundTwo.candidateVariantIds ?? [],
     ) ?? [];
   const spoken =
@@ -508,7 +535,33 @@ export const a1AllStagedFoundationsCatalogs: A1FoundationsArea03to04Catalogs =
       lessonIds: [...module.lessonIds],
     })),
     checkpoints: [],
-    canDos: a1ExpandedFoundationCanDos,
+    canDos: a1CanDos
+      .filter(({ id }) =>
+        [
+          "a1-can-do-sentence-foundations",
+          "a1-can-do-topic-questions",
+          "a1-can-do-polite-verbs",
+          "a1-can-do-time-movement",
+        ].includes(id),
+      )
+      .map((stub) => {
+        const lessonIds = allStagedModules.find(
+          (module) => stub.id === `a1-can-do-${module.id}`,
+        )?.lessonIds;
+        const contextIds = [
+          ...new Set(
+            allStagedVariants
+              .filter((variant) => lessonIds?.some((id) => variant.id.startsWith(`${id}-`)))
+              .map((variant) => variant.contextId),
+          ),
+        ].sort();
+        return {
+          ...stub,
+          lessonIds: lessonIds ?? [],
+          contextIds,
+          sourceNote: "product-authored-jf-cefr-aligned" as const,
+        };
+      }),
     contexts: a1CanonicalContexts,
     personRoles: a1CanonicalPersonRoles,
     referents: a1CanonicalReferents,

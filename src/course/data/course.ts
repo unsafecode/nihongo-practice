@@ -1,5 +1,5 @@
 import type { SemanticIconId } from "../../components/icons/Icon";
-import { A1_AREAS } from "../a1/areas";
+import { A1_AREAS, A1_RETAINED_AREAS } from "../a1/areas";
 import { a1CanDosAuthored } from "../a1/catalog/canDos";
 import {
   A1_MODULE_IDS,
@@ -11,7 +11,6 @@ import { a2CanDosAuthored, a2SemanticBuiltLessons } from "../a2/catalog/catalog"
 import { A2_MODULE_IDS, A2_MODULE_MANIFEST } from "../a2/manifest";
 import { baseCanDos } from "../base/catalog/canDos";
 import { BASE_MODULE_IDS, BASE_MODULE_MANIFEST } from "../base/manifest";
-import type { A1CourseArea } from "../a1/types";
 import type { CourseLevelId } from "../levels/types";
 import {
   assertA1CourseShape,
@@ -134,17 +133,38 @@ function buildBaseModule(moduleId: string): CourseModule {
 export const baseCourseModules: readonly CourseModule[] = BASE_MODULE_IDS.map(buildBaseModule);
 assertBaseCourseShape(baseCourseModules);
 
+/**
+ * Area membership for *every* canonical A1 module, including the five Base has
+ * rehomed, because `legacyA1CourseModules` still assembles all sixteen. The
+ * retained runtime reads the same map, and `A1_RETAINED_AREAS` is exactly
+ * `A1_AREAS` with Base-owned modules filtered out, so retained modules keep
+ * their published area ids unchanged.
+ */
 const a1AreaByModule = new Map(
   A1_AREAS.flatMap((area) => area.moduleIds.map((moduleId) => [moduleId, area.id])),
 );
 
 /** The authored area presentation after Base-owned modules have moved out. */
-export const a1RetainedAreas: readonly A1CourseArea[] = A1_AREAS.flatMap((area) => {
-  const moduleIds = area.moduleIds.filter((moduleId) => A1_RETAINED_MODULE_IDS.includes(moduleId));
-  return moduleIds.length === 0 ? [] : [{ ...area, moduleIds }];
-});
+export const a1RetainedAreas = A1_RETAINED_AREAS;
 
 const a1DescriptorsByLesson = primaryDescriptorByLesson("a1", a1CanDosAuthored);
+
+/**
+ * The legacy full 64-route A1 assembly (`legacyA1CourseModules` below) still
+ * needs an objective descriptor for the twenty lessons Base now owns
+ * (`sounds-*`, `sentence-foundations-*`, `topic-questions-*`,
+ * `polite-verbs-*`, `time-movement-*`) — `a1CanDosAuthored` no longer maps
+ * them (Task 16 containment). Base's own `baseCanDos` publishes the exact
+ * same lesson ids and the exact same historical descriptor copy ids for
+ * those five rehomed Can-dos, so this map layers `baseDescriptorsByLesson`
+ * underneath `a1DescriptorsByLesson`, keeping the legacy assembly's
+ * descriptors identical to what A1 published before the split — never a
+ * fabricated or placeholder string.
+ */
+const legacyA1DescriptorsByLesson = new Map<string, string>([
+  ...baseDescriptorsByLesson,
+  ...a1DescriptorsByLesson,
+]);
 
 function buildA1Module(
   moduleId: string,
@@ -161,6 +181,7 @@ function buildA1Module(
     throw new Error(`data/course: missing A1 runtime metadata for module "${moduleId}".`);
   }
   const retainedIds = new Set(A1_RETAINED_MODULE_IDS);
+  const descriptors = retained ? a1DescriptorsByLesson : legacyA1DescriptorsByLesson;
   return {
     id: moduleId,
     areaId,
@@ -171,7 +192,7 @@ function buildA1Module(
     outcomeCopyIds: [manifest.outcomeCopyId],
     iconId,
     lessons: lessonIds.map((lessonId, index) =>
-      lessonFromDescriptor("a1", a1DescriptorsByLesson, lessonId, moduleId, index + 1),
+      lessonFromDescriptor("a1", descriptors, lessonId, moduleId, index + 1),
     ),
   };
 }

@@ -77,7 +77,7 @@ export function BaseWorkedExamples({
 
       {dialogue ? (
         <section
-          className="base-worked-examples__dialogue"
+          className="base-worked-examples__dialogue base-dialogue"
           aria-labelledby={`${lessonId}-dialogue-heading`}
         >
           <h4 id={`${lessonId}-dialogue-heading`}>{exampleCopy.dialogueHeading}</h4>

@@ -40,7 +40,10 @@ import {
 } from "./catalog";
 import { realizeVariant, type RealizeVariantCatalogs } from "../../foundations/realizeFamily";
 import { a1AllStagedFoundationsBuiltLessons } from "../curriculum/foundationsArea03to04";
-import { A1_EXPANDED_CANONICAL_POSITIONS } from "../manifest";
+import {
+  A1_EXPANDED_CANONICAL_POSITIONS,
+  A1_RETAINED_LESSON_IDS,
+} from "../manifest";
 
 function fakeRecord(senseId: string) {
   return a1VerbUseRecord({
@@ -84,11 +87,18 @@ describe("assertNoStaleLaterUseKeys", () => {
           ],
         }),
       ]);
+      // Task 16: the rehomed Foundations timeline is preserved as authoring
+      // provenance, but it is Base's now — A1's release must not republish it.
+      expect(a1FoundationsVerbUseRecords).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ introductionLessonId: "sentence-foundations-1" }),
+        ]),
+      );
       expect(
         a1ReleaseVerbUseRecords.some((record) =>
           record.introductionLessonId.startsWith("sentence-foundations-"),
         ),
-      ).toBe(true);
+      ).toBe(false);
     });
 
     it("keeps legacy preview aliases equal to the canonical Foundations timeline", () => {
@@ -122,11 +132,18 @@ describe("assertNoStaleLaterUseKeys", () => {
       };
 
       expect(
-        a1ReleaseVerbUseRecords.some((record) =>
+        a1StagedFoundationsArea03to04VerbUseRecords.some((record) =>
           record.introductionLessonId.startsWith("polite-verbs-") ||
           record.introductionLessonId.startsWith("time-movement-"),
         ),
       ).toBe(true);
+      // Base owns these two modules now; A1's release never cites them.
+      expect(
+        a1ReleaseVerbUseRecords.some((record) =>
+          record.introductionLessonId.startsWith("polite-verbs-") ||
+          record.introductionLessonId.startsWith("time-movement-"),
+        ),
+      ).toBe(false);
 
       for (const record of a1StagedFoundationsArea03to04VerbUseRecords) {
         const introductionPosition =
@@ -256,6 +273,26 @@ describe("a1ReleaseVerbUseRecords — later-use sense truthfulness (quality-revi
       }
     }
     expect(violations).toEqual([]);
+  });
+
+  it("never cites a lesson or variant outside the forty-four retained A1 routes", () => {
+    const retained = new Set<string>(A1_RETAINED_LESSON_IDS);
+    const offenders: string[] = [];
+
+    for (const record of a1ReleaseVerbUseRecords) {
+      if (!retained.has(record.introductionLessonId)) {
+        offenders.push(`intro:${record.introductionLessonId}`);
+      }
+      for (const variantId of record.introductionVariantIds) {
+        if (!variantById.has(variantId)) offenders.push(`intro-variant:${variantId}`);
+      }
+      for (const use of record.laterUses) {
+        if (!retained.has(use.lessonId)) offenders.push(`later:${use.lessonId}`);
+        if (!variantById.has(use.variantId)) offenders.push(`later-variant:${use.variantId}`);
+      }
+    }
+
+    expect([...new Set(offenders)].sort()).toEqual([]);
   });
 
   it("every productive record has at least two genuinely-reusing laterUses (not merely two citations)", () => {

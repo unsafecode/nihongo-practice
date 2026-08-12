@@ -2,9 +2,9 @@
  * Whole-level QA reports for the assembled A1 catalog (§16, Phase 2 Task 4).
  *
  * This module combines the 60 semantic lesson rows already computed by
- * `validateFoundations` (surfaced through `validateA1`) with the four phonetic
+ * `validateFoundations` (surfaced through `validateA1`) into the retained
  * sounds lessons — which carry no sentence variants and therefore need their
- * own phonetic-specific fields — into a single 64-row release view, and adds
+ * forty-four-row release view, and adds
  * the module, level, verb-recurrence, Can-do, checkpoint and alias tables a
  * reviewer needs to sign off on the level. Everything here is a *computed*
  * actual, never an authored aggregate: the row order is canonical (by lesson
@@ -25,13 +25,12 @@ import {
 import type { CanDo } from "../../foundations/types";
 import { validateA1, type ValidateA1Result } from "./validateA1";
 import { a1FoundationCatalogs, a1AllLessonPositions } from "./catalog";
-import { module1ItemsByLesson, module1Lessons, type A1PhoneticItem } from "./module01Sounds";
 import { a1CanDosAuthored, A1_SCENARIO_CANDO_IDS } from "./canDos";
 import {
   A1_CAPSTONE_LESSON_IDS,
   A1_LEGACY_LESSON_ALIASES,
 } from "../manifest";
-import { A1_AREAS } from "../areas";
+import { A1_RETAINED_AREAS } from "../areas";
 
 // ---------------------------------------------------------------------------
 // Report row contracts
@@ -154,15 +153,6 @@ export interface A1CoverageReports {
 // Pure builders
 // ---------------------------------------------------------------------------
 
-function phoneticFields(items: readonly A1PhoneticItem[]): A1PhoneticLessonFields {
-  return {
-    itemCount: items.length,
-    contrastFeatures: sortedUnique(items.map((item) => item.contrastFeature)),
-    exerciseKinds: sortedUnique(items.map((item) => item.exerciseKind)),
-    exerciseRefCount: new Set(items.map((item) => item.exerciseRefId)).size,
-    glyphs: items.map((item) => item.glyph),
-  };
-}
 
 /**
  * Builds the combined 64-lesson release report from a `validateA1` result
@@ -198,30 +188,9 @@ export function buildA1Reports(result: ValidateA1Result = validateA1()): A1Cover
     });
   }
 
-  const recipeById = new Map(module1Lessons.map((recipe) => [recipe.id, recipe]));
-  for (const [lessonId, items] of Object.entries(module1ItemsByLesson)) {
-    const position = positionByLesson.get(lessonId);
-    const recipe = recipeById.get(lessonId);
-    const fields = phoneticFields(items);
-    lessonRows.push({
-      lessonId,
-      moduleId: position?.moduleId ?? "sounds",
-      position: position?.position ?? 0,
-      kind: "phonetic",
-      modelCount: 0,
-      familyCount: 0,
-      predicateCount: 0,
-      roleCount: 0,
-      contextCount: 0,
-      exerciseCount: fields.exerciseRefCount,
-      uniqueTargetCount: fields.itemCount,
-      maximumVisibleReuse: 0,
-      transferCount: 0,
-      primaryCanDoId: recipe?.primaryCanDoId ?? "a1-can-do-sounds",
-      phonetic: fields,
-      complete: items.length > 0,
-    });
-  }
+  // Task 16: the phonetic `sounds` module is Base's, and so is its reporting.
+  // A1's release report covers exactly the forty-four routes A1 still owns —
+  // it never restates lessons another level publishes.
 
   lessonRows.sort((left, right) => left.position - right.position || compareStrings(left.lessonId, right.lessonId));
 
@@ -273,7 +242,7 @@ export function buildA1Reports(result: ValidateA1Result = validateA1()): A1Cover
   const foundationLevel = foundation.byLevel["a1"];
   const level: A1LevelReportRow = {
     level: "a1",
-    areaCount: A1_AREAS.length,
+    areaCount: A1_RETAINED_AREAS.length,
     moduleCount: moduleRows.length,
     lessonCount: lessonRows.length,
     semanticLessonCount,
@@ -323,7 +292,7 @@ export function buildA1Reports(result: ValidateA1Result = validateA1()): A1Cover
   const lessonRowById = new Map(
     lessonRows.map((row) => [row.lessonId, row] as const),
   );
-  const areaRows: A1AreaReportRow[] = A1_AREAS.map((area, index) => {
+  const areaRows: A1AreaReportRow[] = A1_RETAINED_AREAS.map((area, index) => {
     const rows = area.moduleIds
       .map((moduleId) => moduleRowById.get(moduleId))
       .filter((row): row is A1ModuleReportRow => row !== undefined);

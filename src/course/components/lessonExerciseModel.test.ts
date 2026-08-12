@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { a1FoundationCatalogs } from "../a1/catalog/catalog";
 import { buildA1LessonViewModel } from "../a1/a1LessonViewModel";
-import { a1LessonContentById } from "../a1/curriculum/catalog";
+// These historical paths cover every published A1 route, including the
+// twenty Base rehomed in Task 16.
+import { legacyA1LessonContentById as a1LessonContentById } from "../a1/curriculum/catalog";
 import {
   module1ItemsByLesson,
   module1Lessons,
@@ -33,8 +35,12 @@ const allLessonIds = legacyA1CourseModules.flatMap((module) =>
 const semanticLessonIds = new Set(
   a1FoundationCatalogs.lessons.map((lesson) => lesson.id),
 );
-const phoneticLessonIds = allLessonIds.filter(
-  (id) => !semanticLessonIds.has(id),
+// Only the four `sounds-*` routes are phonetic. Task 16 also moved the four
+// Foundations modules out of A1's semantic catalog and into Base, so "not in
+// the A1 semantic catalog" no longer implies "phonetic".
+const phoneticLessonIds = allLessonIds.filter((id) => id.startsWith("sounds-"));
+const rehomedSemanticLessonIds = allLessonIds.filter(
+  (id) => !semanticLessonIds.has(id) && !id.startsWith("sounds-"),
 );
 
 describe("getLessonExercises — deterministic prompt generation for every semantic lesson", () => {
@@ -437,21 +443,29 @@ describe("getLessonExercises — A2 lessons resolve through the same model", () 
 });
 
 describe("getLessonExercises — complete release coverage", () => {
-  it("returns error-free generated exercise models for all 124 A1 and A2 routes", () => {
+  it("returns error-free generated exercise models for every A1-owned and A2 route", () => {
     const a1RouteIds = legacyA1CourseModules.flatMap((module) =>
       module.lessons.map((lesson) => lesson.id),
     );
     const a2RouteIds = courseModulesByLevel.a2.flatMap((module) =>
       module.lessons.map((lesson) => lesson.id),
     );
-    const allRouteIds = [...a1RouteIds, ...a2RouteIds];
+    // Task 16: the sixteen Foundations routes are Base's, and Base's own
+    // exercise model serves them; this A1 model must not. The four phonetic
+    // routes stay resolvable here through the historical legacy path.
+    const a1OwnedRouteIds = a1RouteIds.filter(
+      (lessonId) => !rehomedSemanticLessonIds.includes(lessonId),
+    );
+    const allRouteIds = [...a1OwnedRouteIds, ...a2RouteIds];
 
     expect(a1RouteIds).toEqual(A1_LESSON_IDS);
     expect(a2RouteIds).toEqual(A2_LESSON_IDS);
     expect(allLessonIds).toEqual(A1_LESSON_IDS);
     expect(allLessonIds).toHaveLength(64);
+    expect(rehomedSemanticLessonIds).toHaveLength(16);
+    expect(a1OwnedRouteIds).toHaveLength(48);
     expect(a2RouteIds).toHaveLength(60);
-    expect(allRouteIds).toHaveLength(124);
+    expect(allRouteIds).toHaveLength(108);
     for (const lessonId of allRouteIds) {
       const model = getLessonExercises(lessonId);
       expect(model, lessonId).toBeDefined();

@@ -7,7 +7,9 @@ import {
   type A1PhoneticItem,
 } from "../a1/catalog/module01Sounds";
 import { buildA1PracticeFeedback } from "../a1/curriculum/a1PracticeFeedback";
-import { a1LessonContentById } from "../a1/curriculum/catalog";
+// The phonetic routes are Base-owned (Task 16); this historical model still
+// resolves them from the published legacy-route content index.
+import { legacyA1LessonContentById as a1LessonContentById } from "../a1/curriculum/catalog";
 import {
   phoneticItemForPracticeTarget,
   reviewRetrievalConceptIds,

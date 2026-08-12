@@ -75,7 +75,19 @@ export interface A1LessonRecipe {
   readonly spokenVariantId: SentenceVariantId;
   readonly practice: LessonPracticeDefinition;
   readonly diversityConstraints: LessonDiversityConstraints;
+  /**
+   * Concepts this A1 lesson genuinely *first teaches*. Task 16 moved the five
+   * Foundations/phonetic modules to Base, so a concept Base first teaches can
+   * never appear here — {@link defineA1Lesson} moves it to
+   * {@link A1LessonRecipe.reviewedConceptIds} instead.
+   */
   readonly introducedConceptIds: readonly ConceptId[];
+  /**
+   * Base-owned concepts this lesson *reviews and applies*. Derived by
+   * partitioning the authored concept list, so the pair is always exactly the
+   * authored set — nothing is dropped, nothing is invented.
+   */
+  readonly reviewedConceptIds: readonly ConceptId[];
   readonly introducedSenseIds: readonly LexemeSenseId[];
 }
 

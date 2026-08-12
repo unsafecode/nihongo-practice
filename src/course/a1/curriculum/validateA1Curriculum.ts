@@ -4,8 +4,8 @@ import { realizeVariant } from "../../foundations/realizeFamily";
 import { variantTranslationCopyId } from "../../foundations/buildLessonViewModel";
 import {
   A1_CAPSTONE_LESSON_IDS,
-  A1_LESSON_IDS,
   A1_LESSON_MANIFEST,
+  A1_RETAINED_LESSON_IDS,
 } from "../manifest";
 import {
   type A1LessonContract,
@@ -30,6 +30,11 @@ import {
   type A1LearningNote,
 } from "./grammar";
 import { a1LessonContents } from "./catalog";
+import {
+  inheritedBaseConceptIdsFrom,
+  inheritedBaseLexemeIds,
+  inheritedBaseVerbFormsFrom,
+} from "./inheritedBase";
 import { a1LexemeById } from "./lexicon";
 import {
   A1_SEMANTIC_SECTION_ORDER,
@@ -269,7 +274,7 @@ function shouldAnalyzeProductionBuilders(
 function productionBuildReport(
   push: (error: A1CurriculumValidationError) => void,
 ): A1ProductionBuildReport {
-  const semanticLessonIds = A1_LESSON_IDS.filter(
+  const semanticLessonIds = A1_RETAINED_LESSON_IDS.filter(
     (lessonId) => !isPhoneticLesson(lessonId),
   );
   let curriculumViewBuildCount = 0;
@@ -365,7 +370,7 @@ export function validateA1Curriculum(
   };
 
   const reportByLesson = new Map<string, MutableLessonReport>(
-    A1_LESSON_IDS.map((lessonId) => [
+    A1_RETAINED_LESSON_IDS.map((lessonId) => [
       lessonId,
       {
         lessonId,
@@ -399,7 +404,7 @@ export function validateA1Curriculum(
     }
     seenContentIds.add(content.lessonId);
     contentByLesson.set(content.lessonId, content);
-    if (!A1_LESSON_IDS.includes(content.lessonId)) {
+    if (!A1_RETAINED_LESSON_IDS.includes(content.lessonId)) {
       push({
         code: "missing-instructional-content",
         stage: "catalog",
@@ -409,7 +414,7 @@ export function validateA1Curriculum(
       });
     }
   }
-  for (const lessonId of A1_LESSON_IDS) {
+  for (const lessonId of A1_RETAINED_LESSON_IDS) {
     if (!contentByLesson.has(lessonId)) {
       push({
         code: "missing-instructional-content",
@@ -421,14 +426,14 @@ export function validateA1Curriculum(
     }
   }
   if (
-    contentIds.length !== A1_LESSON_IDS.length ||
-    contentIds.some((lessonId, index) => lessonId !== A1_LESSON_IDS[index])
+    contentIds.length !== A1_RETAINED_LESSON_IDS.length ||
+    contentIds.some((lessonId, index) => lessonId !== A1_RETAINED_LESSON_IDS[index])
   ) {
     push({
       code: "missing-instructional-content",
       stage: "catalog",
       dimension: "canonical-order",
-      expected: A1_LESSON_IDS.join(","),
+      expected: A1_RETAINED_LESSON_IDS.join(","),
       actual: contentIds.join(","),
     });
   }
@@ -549,7 +554,7 @@ export function validateA1Curriculum(
   };
 
   const firstIntroductionIndex = new Map<string, number>();
-  for (const [index, lessonId] of A1_LESSON_IDS.entries()) {
+  for (const [index, lessonId] of A1_RETAINED_LESSON_IDS.entries()) {
     const content = contentByLesson.get(lessonId);
     if (!content) continue;
     for (const lexemeId of content.newLexemeIds) {
@@ -560,7 +565,7 @@ export function validateA1Curriculum(
           stage: "lexical",
           lessonId,
           id: lexemeId,
-          referenceId: A1_LESSON_IDS[previous],
+          referenceId: A1_RETAINED_LESSON_IDS[previous],
         });
       } else {
         firstIntroductionIndex.set(lexemeId, index);
@@ -568,13 +573,22 @@ export function validateA1Curriculum(
     }
   }
 
-  const availableLexemeIds = new Set<string>();
-  const canonicallyTaughtGrammarConceptIds = new Set<string>();
-  const explainedVerbFormKeys = new Set<string>();
+  // Task 16 containment: the five rehomed modules are Base's, and Base teaches
+  // their vocabulary, grammar concepts and verb forms before retained A1 opens.
+  // The cumulative walk therefore starts from that inherited state — derived
+  // from the rehomed lessons' own authored content, never hand-listed — so
+  // retained A1 lessons may review and apply it without reintroducing it.
+  const availableLexemeIds = inheritedBaseLexemeIds();
+  const canonicallyTaughtGrammarConceptIds = inheritedBaseConceptIdsFrom((id) =>
+    noteById.get(id),
+  );
+  const explainedVerbFormKeys = new Set<string>(
+    inheritedBaseVerbFormsFrom((id) => noteById.get(id)).map(formKey),
+  );
   const reportedConceptUses = new Set<string>();
   const reportedVerbFormUses = new Set<string>();
 
-  for (const [index, lessonId] of A1_LESSON_IDS.entries()) {
+  for (const [index, lessonId] of A1_RETAINED_LESSON_IDS.entries()) {
     const content = contentByLesson.get(lessonId);
     if (!content) continue;
     const report = reportByLesson.get(lessonId)!;
@@ -902,7 +916,7 @@ export function validateA1Curriculum(
         practiceModelBuildCount: 0,
       };
 
-  const rows: A1LessonCurriculumReport[] = A1_LESSON_IDS.map((lessonId) => {
+  const rows: A1LessonCurriculumReport[] = A1_RETAINED_LESSON_IDS.map((lessonId) => {
     const row = reportByLesson.get(lessonId)!;
     return {
       lessonId: row.lessonId,

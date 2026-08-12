@@ -227,7 +227,9 @@ export function BaseLessonPage({ lessonId }: BaseLessonPageProps): ReactElement 
       <header className="base-lesson-page__header">
         <h1>{model.title}</h1>
       </header>
-      <div className="base-lesson-page__sections">
+      {/* `base-progress` marks the scrolled lesson-progress column: under
+          `prefers-reduced-motion` it stops smooth scrolling and transitions. */}
+      <div className="base-lesson-page__sections base-progress">
         {model.sections.map((sectionId) => {
           const headingId = `${lessonSectionAnchorId(sectionId)}-heading`;
           return (

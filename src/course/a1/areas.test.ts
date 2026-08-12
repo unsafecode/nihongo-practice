@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { A1_MODULE_IDS } from "./manifest";
+import { A1_MODULE_IDS, A1_RETAINED_MODULE_IDS } from "./manifest";
 import {
   A1_AREAS,
   A1_AREA_IDS,
+  A1_RETAINED_AREAS,
+  A1_RETAINED_AREA_IDS,
   validateA1Areas,
+  validateA1RetainedAreas,
 } from "./areas";
 import type { A1CourseArea } from "./types";
 
@@ -169,5 +172,72 @@ describe("A1 areas", () => {
       expect(Object.isFrozen(area)).toBe(true);
       expect(Object.isFrozen(area.moduleIds)).toBe(true);
     }
+  });
+});
+
+describe("A1 retained areas (Task 16 containment)", () => {
+  it("is exactly the canonical partition minus the modules Base rehomed", () => {
+    expect(A1_RETAINED_AREA_IDS).toEqual(["situations", "synthesis"]);
+    expect(A1_RETAINED_AREAS.map((area) => area.id)).toEqual(A1_RETAINED_AREA_IDS);
+    expect(A1_RETAINED_AREAS.flatMap((area) => area.moduleIds)).toEqual(
+      A1_RETAINED_MODULE_IDS,
+    );
+
+    for (const area of A1_RETAINED_AREAS) {
+      const canonical = A1_AREAS.find((candidate) => candidate.id === area.id);
+      expect(canonical, area.id).toBeDefined();
+      // Only membership narrows; identity and copy ids are untouched.
+      expect(area.titleCopyId).toBe(canonical?.titleCopyId);
+      expect(area.descriptionCopyId).toBe(canonical?.descriptionCopyId);
+      expect(canonical?.moduleIds).toEqual(
+        expect.arrayContaining([...area.moduleIds]),
+      );
+    }
+  });
+
+  it("accepts the retained partition and rejects a canonical one", () => {
+    expect(validateA1RetainedAreas(A1_RETAINED_AREAS)).toEqual({ ok: true });
+
+    const canonicalResult = validateA1RetainedAreas(A1_AREAS);
+    expect(canonicalResult.ok).toBe(false);
+    if (!canonicalResult.ok) {
+      expect(canonicalResult.errors.map((error) => error.code)).toContain(
+        "unknown-area-id",
+      );
+    }
+  });
+
+  it("rejects a retained partition that drops or reorders a retained module", () => {
+    const dropped = A1_RETAINED_AREAS.map((area) => ({
+      ...area,
+      moduleIds: area.moduleIds.filter((moduleId) => moduleId !== "places"),
+    }));
+    const droppedResult = validateA1RetainedAreas(dropped);
+    expect(droppedResult.ok).toBe(false);
+    if (!droppedResult.ok) {
+      expect(droppedResult.errors.map((error) => error.code)).toContain(
+        "missing-module-membership",
+      );
+    }
+
+    const reordered = A1_RETAINED_AREAS.map((area) =>
+      area.id === "situations"
+        ? { ...area, moduleIds: [...area.moduleIds].reverse() }
+        : area,
+    );
+    const reorderedResult = validateA1RetainedAreas(reordered);
+    expect(reorderedResult.ok).toBe(false);
+    if (!reorderedResult.ok) {
+      expect(reorderedResult.errors.map((error) => error.code)).toContain(
+        "module-union-order",
+      );
+    }
+  });
+
+  it("still rejects a canonical partition that drops a rehomed module", () => {
+    const withoutSounds = cloneAreas().map((area) =>
+      area.id === "sounds" ? { ...area, moduleIds: [] } : area,
+    );
+    expectAreaError(withoutSounds, "missing-module-membership");
   });
 });

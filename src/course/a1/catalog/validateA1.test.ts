@@ -32,13 +32,15 @@ import {
   A1_LESSON_IDS,
   A1_MANIFEST_SPEC,
   A1_MODULE_IDS,
+  A1_RETAINED_LESSON_IDS,
+  A1_RETAINED_MODULE_IDS,
 } from "../manifest";
-import { A1_AREAS } from "../areas";
+import { A1_RETAINED_AREAS } from "../areas";
 import type { A1CourseArea } from "../types";
 import { A1_RELEASE_ERROR_CODES, type A1ReleaseErrorCode } from "../types";
 import { a1LearningTargetSenses } from "./a1SemanticCatalog";
 import { a1LexemeById } from "../curriculum/lexicon";
-import { legacyA1CourseModules as courseModules } from "../../data/course";
+import { courseModulesByLevel } from "../../data/course";
 import { en as enCourseCopy } from "../../i18n/en";
 import { it as itCourseCopy } from "../../i18n/it";
 
@@ -66,11 +68,14 @@ function verbClone(): VerbUseRecord[] {
 function phoneticItemsClone(): Record<string, A1PhoneticItem[]> {
   return clone(module1ItemsByLesson) as Record<string, A1PhoneticItem[]>;
 }
+/** The retained area partition the release actually ships (Task 16). */
 function areasClone(): A1CourseArea[] {
-  return clone(A1_AREAS) as A1CourseArea[];
+  return clone(A1_RETAINED_AREAS) as A1CourseArea[];
 }
 function runtimeModulesClone() {
-  return clone(courseModules);
+  return clone(courseModulesByLevel.a1) as Array<
+    (typeof courseModulesByLevel.a1)[number]
+  >;
 }
 function areaCopyClone() {
   return {
@@ -131,11 +136,14 @@ describe("validateA1 – baseline release", () => {
   });
 
   it("keeps real shared lexeme senses contextually distinct and resolvable", () => {
+    // `a1-sense-study-bare`, `a1-sense-rest-routine` and `a1-sense-return-bare`
+    // are realized only by lessons Base rehomed, so the retained catalog no
+    // longer carries them. The same-orthography grouping is exercised over the
+    // senses A1 does still teach — the gate is unchanged, only its subject is.
     const realLexemeIdBySense = {
-      "a1-sense-study-bare": "a1-lexeme-benkyou-suru",
+      "a1-sense-study": "a1-lexeme-benkyou-suru",
       "a1-sense-study-routine": "a1-lexeme-benkyou-suru",
-      "a1-sense-rest-routine": "a1-lexeme-yasumu",
-      "a1-sense-return-bare": "a1-lexeme-kaeru",
+      "a1-sense-return": "a1-lexeme-kaeru",
     } as const;
     const semantic = semanticClone();
 
@@ -161,21 +169,30 @@ describe("validateA1 – baseline release", () => {
     for (const sense of a1LearningTargetSenses) {
       expect(a1LexemeById[sense.lexemeId], sense.id).toBeDefined();
     }
+    // The retained catalog carries only senses retained content realizes.
+    for (const sense of a1SemanticFoundationCatalogs.learningTargetSenses) {
+      expect(a1LearningTargetSenses, sense.id).toContainEqual(sense);
+    }
   });
 
   it("wraps validateFoundations at the fixed release version and seed", () => {
     const result = validateA1();
     // The foundation report exists and carries per-lesson coverage rows.
-    expect(Object.keys(result.foundationReport.reports.byLesson).length).toBe(60);
+    expect(Object.keys(result.foundationReport.reports.byLesson).length).toBe(44);
   });
 
-  it("guards the canonical 16-module / 64-route release split into 60 semantic, 4 phonetic, and 4 capstone lessons", () => {
+  it("guards the canonical 11-module / 44-route release split into 40 scenario and 4 capstone lessons", () => {
     const result = validateA1Release();
 
+    // The published 64 A1 route ids are unchanged; Base owns twenty of them.
     expect(A1_MODULE_IDS).toHaveLength(16);
     expect(A1_LESSON_IDS).toHaveLength(64);
-    expect(Object.keys(result.foundationReport.reports.byLesson)).toHaveLength(60);
-    expect(module1Lessons).toHaveLength(4);
+    expect(A1_RETAINED_MODULE_IDS).toHaveLength(11);
+    expect(A1_RETAINED_LESSON_IDS).toHaveLength(44);
+    expect(
+      A1_RETAINED_LESSON_IDS.filter((id) => A1_LESSON_IDS.includes(id)),
+    ).toHaveLength(44);
+    expect(Object.keys(result.foundationReport.reports.byLesson)).toHaveLength(44);
     expect(A1_CAPSTONE_LESSON_IDS).toHaveLength(4);
   });
 
@@ -223,6 +240,8 @@ describe("validateA1 – structural mutations", () => {
     const semantic = semanticClone();
     (semantic as unknown as { lessons: FoundationCatalogs["lessons"] }).lessons =
       semantic.lessons.filter((lesson) => lesson.id !== "capstones-4");
+    // Base owns the phonetic roster now, so A1's own release must carry none:
+    // supplying three is itself the drift this asserts.
     const phoneticLessons = clone(module1Lessons).slice(0, 3);
 
     const result = validateA1({
@@ -235,14 +254,14 @@ describe("validateA1 – structural mutations", () => {
         expect.objectContaining({
           code: "manifest-mismatch",
           dimension: "semantic-lesson-count",
-          expected: 60,
-          actual: 59,
+          expected: 44,
+          actual: 43,
         }),
         expect.objectContaining({
           code: "phonetic-lesson-mismatch",
-          dimension: "lesson-count",
-          expected: 4,
-          actual: 3,
+          dimension: "item-lesson-count",
+          expected: 3,
+          actual: 0,
         }),
         expect.objectContaining({
           code: "capstone-structure",
@@ -619,8 +638,11 @@ describe("validateA1 – capstone required-scenario coverage", () => {
 // ---------------------------------------------------------------------------
 
 describe("validateA1 – recurrence completeness", () => {
-  it("baseline: all 44 release verb-use records carry >= 2 later uses", () => {
-    expect(a1ReleaseVerbUseRecords.length).toBe(44);
+  it("baseline: all 25 retained release verb-use records carry >= 2 later uses", () => {
+    // Nineteen of the original forty-four records moved to Base with the four
+    // Foundations modules (Task 16); the twenty-five A1 retains still each
+    // carry their own genuine spaced reuses.
+    expect(a1ReleaseVerbUseRecords.length).toBe(25);
     for (const record of a1ReleaseVerbUseRecords) {
       expect(record.laterUses.length).toBeGreaterThanOrEqual(2);
     }
@@ -755,9 +777,9 @@ describe("validateA1Release – A1 area integration", () => {
   it("reports area-count with missing-area attribution without a different area-code collision", () => {
     const areas = areasClone();
     const removed = areas.pop()!;
-    areas[2] = {
-      ...areas[2]!,
-      moduleIds: [...areas[2]!.moduleIds, ...removed.moduleIds],
+    areas[0] = {
+      ...areas[0]!,
+      moduleIds: [...areas[0]!.moduleIds, ...removed.moduleIds],
     };
 
     expectOnlyAreaReleaseCode(
@@ -770,28 +792,28 @@ describe("validateA1Release – A1 area integration", () => {
 
   it.each([
     ["duplicate", (areas: A1CourseArea[]) => {
-      areas[1] = {
-        ...areas[1]!,
-        moduleIds: [...areas[1]!.moduleIds, "sounds"],
+      areas[0] = {
+        ...areas[0]!,
+        moduleIds: [...areas[0]!.moduleIds, "introductions"],
       };
-    }, "duplicate-module-membership", "sounds"],
+    }, "duplicate-module-membership", "introductions"],
     ["unknown", (areas: A1CourseArea[]) => {
-      areas[1] = {
-        ...areas[1]!,
+      areas[0] = {
+        ...areas[0]!,
         moduleIds: [
           "not-an-a1-module",
-          ...areas[1]!.moduleIds.slice(1),
+          ...areas[0]!.moduleIds.slice(1),
         ] as A1CourseArea["moduleIds"],
       };
     }, "unknown-module-membership", "not-an-a1-module"],
     ["omitted", (areas: A1CourseArea[]) => {
-      areas[1] = {
-        ...areas[1]!,
-        moduleIds: areas[1]!.moduleIds.filter(
-          (moduleId) => moduleId !== "polite-verbs",
+      areas[0] = {
+        ...areas[0]!,
+        moduleIds: areas[0]!.moduleIds.filter(
+          (moduleId) => moduleId !== "places",
         ),
       };
-    }, "missing-module-membership", "polite-verbs"],
+    }, "missing-module-membership", "places"],
   ])(
     "reports area-module-membership for %s membership with no different area-code collision",
     (_label, mutate, underlyingCode, id) => {
@@ -809,9 +831,9 @@ describe("validateA1Release – A1 area integration", () => {
 
   it("reports area-order for reordered membership with real order attribution", () => {
     const areas = areasClone();
-    const moduleIds = [...areas[1]!.moduleIds];
+    const moduleIds = [...areas[0]!.moduleIds];
     [moduleIds[0], moduleIds[1]] = [moduleIds[1]!, moduleIds[0]!];
-    areas[1] = { ...areas[1]!, moduleIds };
+    areas[0] = { ...areas[0]!, moduleIds };
 
     expectOnlyAreaReleaseCode(
       validateWithAreaInputs({ areas }),
@@ -822,20 +844,20 @@ describe("validateA1Release – A1 area integration", () => {
 
   it("checks the real runtime module area assignment rather than trusting the area declaration alone", () => {
     const runtimeModules = runtimeModulesClone();
-    runtimeModules[1] = { ...runtimeModules[1]!, areaId: "sounds" };
+    runtimeModules[1] = { ...runtimeModules[1]!, areaId: "synthesis" };
 
     expectOnlyAreaReleaseCode(
       validateWithAreaInputs({ runtimeModules }),
       "area-module-membership",
       "runtime-area-mismatch",
-      "sentence-foundations",
+      "essential-questions",
     );
   });
 
   it.each([
     ["duplicate", (runtimeModules: ReturnType<typeof runtimeModulesClone>) => {
       runtimeModules[1] = { ...runtimeModules[0]! };
-    }, "runtime-duplicate-module", "sounds"],
+    }, "runtime-duplicate-module", "introductions"],
     ["unknown", (runtimeModules: ReturnType<typeof runtimeModulesClone>) => {
       runtimeModules[1] = {
         ...runtimeModules[1]!,
@@ -844,7 +866,7 @@ describe("validateA1Release – A1 area integration", () => {
     }, "runtime-unknown-module", "unknown-runtime-module"],
     ["omitted", (runtimeModules: ReturnType<typeof runtimeModulesClone>) => {
       runtimeModules.splice(1, 1);
-    }, "runtime-missing-module", "sentence-foundations"],
+    }, "runtime-missing-module", "essential-questions"],
   ])(
     "reports area-module-membership for a %s runtime module without a different area-code collision",
     (_label, mutate, underlyingCode, id) => {
@@ -875,8 +897,8 @@ describe("validateA1Release – A1 area integration", () => {
   });
 
   it.each([
-    ["en", "sounds", "title", "a1-area-sounds-title"],
-    ["it", "foundations", "description", "a1-area-foundations-description"],
+    ["en", "situations", "title", "a1-area-situations-title"],
+    ["it", "synthesis", "description", "a1-area-synthesis-description"],
   ] as const)(
     "reports area-copy-parity for a missing %s %s",
     (locale, areaId, field, copyId) => {
@@ -947,7 +969,7 @@ describe("validateA1 – phonetic contracts", () => {
     const items = phoneticItemsClone();
     const lessonId = module1Lessons[0].id;
     items[lessonId] = [];
-    const result = validateA1({ phoneticItemsByLesson: items });
+    const result = validateA1({ phoneticItemsByLesson: items, phoneticLessons: module1Lessons });
     expect(codesOf(result)).toContain("phonetic-missing-items");
   });
 
@@ -955,7 +977,7 @@ describe("validateA1 – phonetic contracts", () => {
     const items = phoneticItemsClone();
     const lessonId = module1Lessons[0].id;
     (items[lessonId][0] as { contrastWithId: string }).contrastWithId = "no-such-item";
-    const result = validateA1({ phoneticItemsByLesson: items });
+    const result = validateA1({ phoneticItemsByLesson: items, phoneticLessons: module1Lessons });
     expect(codesOf(result)).toContain("phonetic-dangling-contrast");
   });
 
@@ -965,7 +987,7 @@ describe("validateA1 – phonetic contracts", () => {
     const lessonBId = module1Lessons[1].id;
     const realItemFromAnotherLesson = items[lessonBId][0].id;
     (items[lessonAId][0] as { contrastWithId: string }).contrastWithId = realItemFromAnotherLesson;
-    const result = validateA1({ phoneticItemsByLesson: items });
+    const result = validateA1({ phoneticItemsByLesson: items, phoneticLessons: module1Lessons });
     const codes = codesOf(result);
     expect(codes).toContain("phonetic-contrast-cross-lesson");
     expect(codes).not.toContain("phonetic-dangling-contrast");
@@ -976,7 +998,7 @@ describe("validateA1 – phonetic contracts", () => {
     const lessonId = module1Lessons[0].id;
     const ref = items[lessonId][0].exerciseRefId;
     (items[lessonId][1] as { exerciseRefId: string }).exerciseRefId = ref;
-    const result = validateA1({ phoneticItemsByLesson: items });
+    const result = validateA1({ phoneticItemsByLesson: items, phoneticLessons: module1Lessons });
     expect(codesOf(result)).toContain("phonetic-duplicate-exercise");
   });
 
@@ -984,7 +1006,7 @@ describe("validateA1 – phonetic contracts", () => {
     const items = phoneticItemsClone();
     const lessonId = module1Lessons[0].id;
     (items[lessonId][0] as { roman: string }).roman = "";
-    const result = validateA1({ phoneticItemsByLesson: items });
+    const result = validateA1({ phoneticItemsByLesson: items, phoneticLessons: module1Lessons });
     expect(codesOf(result)).toContain("phonetic-item-incomplete");
   });
 

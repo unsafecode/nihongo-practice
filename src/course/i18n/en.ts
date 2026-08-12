@@ -261,6 +261,9 @@ const enUi = {
       meaningsAndFormsLabel: "Meanings and forms",
       retrievalCueLabel: "Retrieval cue",
       reviewExceptionLabel: "Review note",
+      baseReferencesLabel: "Base systems you are reusing",
+      baseReferencesHint:
+        "This lesson applies these systems rather than teaching them; open a reference to see the whole pattern again.",
     },
   },
   baseLesson: {
@@ -500,8 +503,9 @@ const enUi = {
     dimensions: {
       "mora-timing": "Can you already read hiragana and katakana with steady, mora-by-mora timing?",
       "sentence-anatomy": "Can you already spot the topic, verb, and complements in a simple sentence?",
-      "particle-sense": "Do you already know the meaning of the basic particles (は, を, に, で, と)?",
-      "polite-verb-form": "Can you already build a verb's polite ~ます form?",
+      "particle-sense":
+        "Do you already know the meaning of the basic particles (wa, o, ni, de, to)?",
+      "polite-verb-form": "Can you already build a verb's polite -masu form?",
     },
     yes: "Yes",
     no: "No",

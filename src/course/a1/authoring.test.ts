@@ -523,6 +523,7 @@ function instructionalRecipe(
     practice: practice(id),
     diversityConstraints: DIVERSITY,
     introducedConceptIds: ["a1-concept-copula"],
+    reviewedConceptIds: [],
     introducedSenseIds: ["a1-sense-be"],
     ...overrides,
   };

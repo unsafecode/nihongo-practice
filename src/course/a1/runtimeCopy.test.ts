@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { legacyA1CourseModules as courseModules } from "../data/course";
+import {
+  courseModulesByLevel,
+  legacyA1CourseModules as courseModules,
+} from "../data/course";
 import {
   a1RuntimeLessonCopy,
   a1RuntimeModuleCopy,
@@ -209,8 +212,14 @@ describe("A1 runtime copy", () => {
   });
 
   it("resolves exactly the referenced Can-do objective copy ids, non-blank", () => {
+    // Objective copy is resolved from A1's *authored* Can-dos, which after
+    // Task 16 are the fourteen the retained level publishes. The runtime A1
+    // modules are the matching route set; the legacy 64-route assembly still
+    // carries the five Base-owned descriptors, which Base's own copy resolves.
     const knownObjectiveIds = new Set(
-      courseModules.flatMap((m) => m.lessons.flatMap((l) => l.objectiveCopyIds ?? [])),
+      courseModulesByLevel.a1.flatMap((m) =>
+        m.lessons.flatMap((l) => l.objectiveCopyIds ?? []),
+      ),
     );
     for (const locale of locales) {
       const objectives = a1RuntimeObjectiveCopy(locale);

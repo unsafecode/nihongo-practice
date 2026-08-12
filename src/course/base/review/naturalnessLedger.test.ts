@@ -387,7 +387,11 @@ describe("independent Base naturalness inventory", () => {
           fingerprint !== BASE_NATURALNESS_CURRENT_CORPUS_FINGERPRINT,
       ),
     ).toBe(true);
-  });
+    // This case re-hashes the whole localized corpus once per registry section
+    // and upstream source. It runs in ~3s alone but can exceed the 5s default
+    // under a fully parallel suite, which made the full run flaky; the explicit
+    // budget is generous headroom, not a relaxed assertion.
+  }, 30_000);
 
   it("detects stale fingerprints without invoking hostile accessors", () => {
     const [first, ...rest] = BASE_NATURALNESS_REVIEW_INVENTORY;
