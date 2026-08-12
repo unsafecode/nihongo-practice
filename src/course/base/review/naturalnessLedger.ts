@@ -348,9 +348,11 @@ function localizedSource(
   jp: string,
   payload: unknown,
   inputs: BaseNaturalnessSourceInputs,
-): ReviewSource | null {
+): ReviewSource {
   const { en, it } = copyPair(copyId, inputs);
-  if (!en || !it) return null;
+  if (!en.trim() || !it.trim()) {
+    throw new Error(`Missing localized Base copy "${copyId}".`);
+  }
   return {
     contentId: `copy:${copyId}`,
     lessonId,
@@ -395,7 +397,7 @@ function buildReviewSources(
   ): void => {
     if (!copyId || localized.has(copyId)) return;
     const source = localizedSource(lessonId, copyId, jp, payload, inputs);
-    if (source) localized.set(copyId, source);
+    localized.set(copyId, source);
   };
   const addInlineLocalized = (
     lessonId: string,
@@ -982,9 +984,19 @@ export const BASE_NATURALNESS_CURRENT_CORPUS_FINGERPRINT =
  * Those edits changed the learner-visible Japanese surface set, so the corpus
  * had to be re-inventoried. Re-inventorying is not acceptance: every affected
  * surface is enumerated again and stays `pending`.
+ *
+ * Re-taken again when the four approved naturalness fixes (R1-R4) were
+ * reconciled into this branch: the softened acceptance now reads
+ * "Excuse me-yes, please." in both the lesson source and the copy dictionary,
+ * the past-polarity contrast uses 休む/Yamada instead of 死ぬ/a flower, and the
+ * synthesis family descriptions address the interlocutor's family
+ * (おとうさん/おかあさん) rather than mislabelling them as the speaker's own.
+ * Because that content changed after the independent naturalness review was
+ * recorded, the review's aggregate approval is deliberately NOT imported here:
+ * every surface stays `pending` until it is signed against this corpus.
  */
 const INVENTORIED_CORPUS_FINGERPRINT =
-  "49a8082ab0025f5e8171af2f199562fb06c1dfb3d3db741bfea46d3dca7e5219";
+  "7aa0c7d56974809f71b4a7ec3343b29350c0bb57a536de75b70fa27fdfd6190c";
 
 const acceptanceByContentId = new Map(
   EXTERNAL_ACCEPTANCES.map((acceptance) => [acceptance.contentId, acceptance]),

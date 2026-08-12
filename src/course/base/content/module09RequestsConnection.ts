@@ -1013,7 +1013,7 @@ const L2: BaseTask11LessonSpec = {
     ex(requestTarget("anchor-hon", "verb-miseru"), "show-book", "Please show me the book.", "Mi mostri il libro, per favore.", "Reuses a familiar object with the same construction.", "Riutilizza un oggetto noto con la stessa costruzione.", "request"),
     ex(requestTarget("noun-nimotsu", "verb-toru"), "take-luggage", "Please take the luggage.", "Prenda il bagaglio, per favore.", "Keeps the requested action explicit.", "Mantiene esplicita l'azione richiesta.", "request"),
     ex(requestTarget("noun-mado", "verb-akeru"), "open-window", "Please open the window.", "Apra la finestra, per favore.", "Contrasts opening with the earlier closing request.", "Contrappone l'apertura alla precedente richiesta di chiudere.", "request"),
-    ex(softenedExpressionTarget("expression-onegaishimasu"), "accept-offer", "Excuse me—please do.", "Mi scusi; sì, grazie.", "Models a softened acceptance of a wanted offer.", "Modella un'accettazione attenuata di un'offerta desiderata.", "request-response", "contextual-fragment"),
+    ex(softenedExpressionTarget("expression-onegaishimasu"), "accept-offer", "Excuse me—yes, please.", "Mi scusi; sì, grazie.", "Models a softened acceptance of a wanted offer.", "Modella un'accettazione attenuata di un'offerta desiderata.", "request-response", "contextual-fragment"),
   ],
   activities: [
     act(promptOf(objectVerbTarget("noun-shigoto", "verb-tetsudau", "polite-nonpast", [], [], ["future"])), expressionTarget("expression-onegaishimasu"), expressionTarget("expression-iie"), 0, "requests-connection-2", 1, REQUEST_RESPONSE_CELL, BASE_MEANING_ACTIVITY_SHAPE, null, { contrastAxis: "meaning", heldConstantPredicateLexemeId: null }),

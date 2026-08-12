@@ -2092,7 +2092,6 @@ const COPULA_ADJECTIVES_COPY_IT: Readonly<Record<string, string>> = {
   "adjective-kirei-meaning": "bello; pulito",
   "adjective-yuumei-meaning": "famoso",
   "adjective-genki-meaning": "in salute; energico",
-  "reference-adjective-grid-title": "Griglia di coniugazione degli aggettivi",
 };
 
 const EXISTENCE_LOCATION_COPY_IT: Readonly<Record<string, string>> = {
@@ -2528,7 +2527,7 @@ const EXISTENCE_LOCATION_COPY_IT: Readonly<Record<string, string>> = {
       "Mi mostri il libro, per favore.",
       "Prenda il bagaglio, per favore.",
       "Apra la finestra, per favore.",
-      "Mi scusi, per favore.",
+      "Mi scusi; sì, grazie.",
     ],
     purposes: [
       "Attenua una richiesta esplicita senza affermare una cortesia universale.",
@@ -2824,7 +2823,6 @@ const EXISTENCE_LOCATION_COPY_IT: Readonly<Record<string, string>> = {
   "noun-kaban-meaning": "borsa",
   "noun-keisatsukan-meaning": "agente di polizia",
   "noun-ekiin-meaning": "addetto della stazione",
-  "reference-te-forms-title": "Riferimento della forma in -te",
 };
 
 const SYNTHESIS_ACCEPTED_IT = [
@@ -2874,8 +2872,8 @@ const SYNTHESIS_COPY_IT: Readonly<Record<string, string>> = {
       "La prossima settimana il programma di Ken prevede una riunione.",
       "Mi chiamo Yuki.",
       "Ken è un cliente famoso e apprezzato.",
-      "Mio padre è un cuoco tranquillo.",
-      "Mia madre è un'impiegata di banca piena di energia.",
+      "Tuo padre è un cuoco tranquillo.",
+      "Tua madre è un'impiegata di banca piena di energia.",
       "Il pranzo dell'impiegato è gustoso.",
       "Il minimarket è alla fermata dell'autobus?",
       "Nell'ufficio c'è un fiore.",
@@ -2992,7 +2990,7 @@ const SYNTHESIS_COPY_IT: Readonly<Record<string, string>> = {
       "Correggi l'unico suono malformato nella terminazione passata cortese.",
       "Il parlante lo ha saputo ieri. Scegli l'enunciato concluso corrispondente.",
       "Il parlante di solito non lavora. Scegli la frase corrispondente.",
-      "Il fiore è morto ieri. Scegli l'enunciato concluso corrispondente.",
+      "Yamada ha riposato ieri. Scegli l'enunciato concluso corrispondente.",
       "Ascolta l'enunciato temporale completo, poi scegli la corrispondenza esatta.",
       "Usa gli indizi visibili della richiesta per chiedere cortesemente di cancellare il nome.",
     ],
@@ -3141,11 +3139,11 @@ const SYNTHESIS_COPY_IT: Readonly<Record<string, string>> = {
     recap:
       "Hai riunito le basi già note in un'unica interazione guidata senza introdurre contenuti nuovi.",
     translations: [
-      "Come si chiama mia madre?",
+      "Come si chiama tua madre?",
       "Suzuki conosce l'ingegnere famoso.",
       "Ieri non ho letto.",
       "Ai non mangerà riso questa settimana.",
-      "Mia madre ha cucinato stamattina.",
+      "Tua madre ha cucinato stamattina.",
       "Di solito canto.",
       "C'è un ospedale in una città del paese?",
       "Suzuki sta parlando adesso.",
@@ -3414,6 +3412,10 @@ export const baseNavigationCopyIt: BaseNavigationCopy = deepFreeze({
     ...SYNTHESIS_COPY_IT,
     ...SEMANTIC_OPERATION_COPY_IT,
     ...SENTENCE_EXAMPLE_CONTEXT_COPY_IT,
+    "reference-sentence-order-title": "Ordine della frase",
+    "reference-topic-particles-title": "Particelle di tema e focus",
+    "reference-adjective-grid-title": "Forme di aggettivi e copula",
+    "reference-te-forms-title": "Forme e costruzioni in て",
     "base-audio-failed":
       "La registrazione canonica non è stata riprodotta. Kana, divisione in more e significato restano visibili.",
     "base-audio-unavailable":

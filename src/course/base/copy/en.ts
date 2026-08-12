@@ -2113,7 +2113,6 @@ const COPULA_ADJECTIVES_COPY_EN: Readonly<Record<string, string>> = {
   "adjective-kirei-meaning": "pretty; clean",
   "adjective-yuumei-meaning": "famous",
   "adjective-genki-meaning": "well; energetic",
-  "reference-adjective-grid-title": "Adjective conjugation grid",
 };
 
 const EXISTENCE_LOCATION_COPY_EN: Readonly<Record<string, string>> = {
@@ -2549,7 +2548,7 @@ const EXISTENCE_LOCATION_COPY_EN: Readonly<Record<string, string>> = {
       "Please show me the book.",
       "Please take the luggage.",
       "Please open the window.",
-      "Excuse me—please.",
+      "Excuse me—yes, please.",
     ],
     purposes: [
       "Softens one explicit request without claiming universal politeness.",
@@ -2845,7 +2844,6 @@ const EXISTENCE_LOCATION_COPY_EN: Readonly<Record<string, string>> = {
   "noun-kaban-meaning": "bag",
   "noun-keisatsukan-meaning": "police officer",
   "noun-ekiin-meaning": "station employee",
-  "reference-te-forms-title": "Te-form reference",
 };
 
 const SYNTHESIS_ACCEPTED_EN = [
@@ -2895,8 +2893,8 @@ const SYNTHESIS_COPY_EN: Readonly<Record<string, string>> = {
       "Next week, Ken's plan is a meeting.",
       "My name is Yuki.",
       "Ken is a famous, good customer.",
-      "My father is a quiet cook.",
-      "My mother is an energetic bank clerk.",
+      "Your father is a quiet cook.",
+      "Your mother is an energetic bank clerk.",
       "The company employee's lunch is tasty.",
       "Is the convenience store at the bus stop?",
       "There is a flower in the office.",
@@ -3013,7 +3011,7 @@ const SYNTHESIS_COPY_EN: Readonly<Record<string, string>> = {
       "Repair the single malformed sound in the polite past ending.",
       "The speaker learned it yesterday. Choose the matching completed statement.",
       "The speaker does not usually work. Choose the matching sentence.",
-      "The flower died yesterday. Choose the matching completed statement.",
+      "Yamada rested yesterday. Choose the matching completed statement.",
       "Listen to the complete time statement, then choose the exact match.",
       "Use the visible request cues to ask politely for the name to be erased.",
     ],
@@ -3162,11 +3160,11 @@ const SYNTHESIS_COPY_EN: Readonly<Record<string, string>> = {
     recap:
       "You brought the familiar foundations together in one guided interaction without introducing new content.",
     translations: [
-      "What is my mother's name?",
+      "What is your mother's name?",
       "Suzuki knows the famous engineer.",
       "I did not read yesterday.",
       "Ai will not eat rice this week.",
-      "My mother cooked this morning.",
+      "Your mother cooked this morning.",
       "I usually sing.",
       "Is there a hospital in a city in the country?",
       "Suzuki is speaking now.",
@@ -3507,6 +3505,10 @@ export const baseNavigationCopyEn: BaseNavigationCopy = deepFreeze({
     ...SYNTHESIS_COPY_EN,
     ...SEMANTIC_OPERATION_COPY_EN,
     ...SENTENCE_EXAMPLE_CONTEXT_COPY_EN,
+    "reference-sentence-order-title": "Sentence order",
+    "reference-topic-particles-title": "Topic and focus particles",
+    "reference-adjective-grid-title": "Adjective and copula forms",
+    "reference-te-forms-title": "て forms and constructions",
     "base-audio-failed":
       "The canonical recording could not play. Kana, mora breaks, and meaning remain visible.",
     "base-audio-unavailable":

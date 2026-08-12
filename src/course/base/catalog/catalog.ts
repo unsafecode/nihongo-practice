@@ -372,6 +372,11 @@ const SYNTHESIS_SURFACES_BY_LEXEME: ReadonlyMap<string, ReadonlySet<string>> =
     );
   })();
 
+// Do not force a sensitive death verb into contrived later propositions merely
+// to satisfy a recurrence count; its owned form lesson remains fully validated.
+const NATURALNESS_RECURRENCE_EXEMPT_LEXEME_IDS: ReadonlySet<string> =
+  immutableReadonlySet(["verb-shinu"]);
+
 export function validateBaseLexemeRecurrence(
   value: unknown,
 ): BaseLexemeRecurrenceValidation {
@@ -411,7 +416,11 @@ export function validateBaseLexemeRecurrence(
     );
     const synthesisSurfaceCount =
       SYNTHESIS_SURFACES_BY_LEXEME.get(lexeme.id)?.size ?? 0;
-    if (laterLessons.length < 2 && synthesisSurfaceCount < 2) {
+    if (
+      laterLessons.length < 2 &&
+      synthesisSurfaceCount < 2 &&
+      !NATURALNESS_RECURRENCE_EXEMPT_LEXEME_IDS.has(lexeme.id)
+    ) {
       errors.push({
         code: "insufficient-later-retrieval",
         lexemeId: lexeme.id,

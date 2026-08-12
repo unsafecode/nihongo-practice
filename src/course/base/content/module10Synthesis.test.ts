@@ -252,7 +252,7 @@ describe("Base Module 10 synthesis", () => {
     expect(two.activityDesigns[5]?.prompt).toContain("きのう");
     expect(two.activityDesigns[5]?.acceptedAnswers).toEqual(["きのうしりました"]);
     expect(two.activityDesigns[7]?.acceptedAnswers).toEqual([
-      "きのう、はなはしにました",
+      "きのう、やまださんはやすみました",
     ]);
     expect(
       baseNavigationCopyEn.content[
@@ -310,7 +310,7 @@ describe("Base Module 10 synthesis", () => {
       ["base-synthesis-1-activity-6", "はな、えき"],
       ["base-synthesis-2-activity-1", "あした、そら、かく"],
       ["base-synthesis-2-activity-6", "きのう、しる"],
-      ["base-synthesis-2-activity-8", "きのう、はな、しぬ"],
+      ["base-synthesis-2-activity-8", "きのう、やまださん、やすむ"],
       ["base-synthesis-3-activity-7", "ちず、じむしょ"],
     ]);
 
@@ -380,9 +380,71 @@ describe("Base Module 10 synthesis", () => {
     expect(activities.get("base-synthesis-2-activity-2")?.prompt).not.toContain(
       "しぬ",
     );
+    expect(activities.get("base-synthesis-2-activity-8")).toMatchObject({
+      prompt: "きのう、やまださん、やすむ",
+      options: [
+        "きのう、やまださんはやすみました",
+        "きのう、やまださんはやすみませんでした",
+      ],
+      acceptedAnswers: ["きのう、やまださんはやすみました"],
+      audioContract: null,
+      optionFactStatus: ["accepted-world", "rejected-context"],
+    });
     expect(activities.get("base-synthesis-3-activity-7")?.prompt).not.toContain(
       "しぬ",
     );
+    const synthesisSurfaces = BASE_SYNTHESIS_LESSONS.flatMap((lesson) => [
+      ...lesson.examples.map(jp),
+      ...(lesson.dialogue?.turns.map(jp) ?? []),
+      ...lesson.activityDesigns.flatMap((activity) => [
+        activity.prompt,
+        ...activity.options,
+        ...activity.acceptedAnswers,
+      ]),
+    ]);
+    expect(synthesisSurfaces.some((surface) => surface.includes("しぬ"))).toBe(
+      false,
+    );
+  });
+
+  it("keeps family terms and translations in the same register", () => {
+    const [one, , , four] = BASE_SYNTHESIS_LESSONS;
+    const translated = (
+      lesson: (typeof BASE_SYNTHESIS_LESSONS)[number],
+      index: number,
+    ) => {
+      const example = lesson.examples[index];
+      const copyId =
+        "copyId" in example.translationCopy
+          ? example.translationCopy.copyId
+          : example.translationCopy.enCopyId;
+      return {
+        jp: jp(example),
+        en: baseNavigationCopyEn.content[copyId],
+        it: baseNavigationCopyIt.content[copyId],
+      };
+    };
+
+    expect(translated(one, 3)).toEqual({
+      jp: "おとうさんはしずかなりょうりにんです",
+      en: "Your father is a quiet cook.",
+      it: "Tuo padre è un cuoco tranquillo.",
+    });
+    expect(translated(one, 4)).toEqual({
+      jp: "おかあさんはげんきなぎんこういんです",
+      en: "Your mother is an energetic bank clerk.",
+      it: "Tua madre è un'impiegata di banca piena di energia.",
+    });
+    expect(translated(four, 0)).toEqual({
+      jp: "おかあさんのなまえはなんですか",
+      en: "What is your mother's name?",
+      it: "Come si chiama tua madre?",
+    });
+    expect(translated(four, 4)).toEqual({
+      jp: "けさ、おかあさんはりょうりしました",
+      en: "Your mother cooked this morning.",
+      it: "Tua madre ha cucinato stamattina.",
+    });
   });
 
   it("places すみません before synthesis requests", () => {

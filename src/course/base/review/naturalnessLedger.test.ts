@@ -8,6 +8,7 @@ import {
   BASE_NATURALNESS_REVIEW_INVENTORY,
   BASE_NATURALNESS_REVIEW_VALIDATION,
   BASE_NATURALNESS_CURRENT_CORPUS_FINGERPRINT,
+  baseNaturalnessCorpusFingerprintForSources,
   validateBaseNaturalnessReviewInventory,
 } from "./naturalnessLedger";
 import * as naturalnessLedger from "./naturalnessLedger";
@@ -174,7 +175,12 @@ describe("independent Base naturalness inventory", () => {
   });
 
   it("enumerates every required learner-visible Japanese surface with provenance", () => {
-    expect(BASE_NATURALNESS_REVIEW_INVENTORY.length).toBeGreaterThan(0);
+    // 4_944 at the naturalness review + 2: reconciling R1-R4 into this branch
+    // restored the two reference titles this branch was missing
+    // (`copy:reference-sentence-order-title`,
+    // `copy:reference-topic-particles-title`); the other two R2 titles already
+    // existed here, which is why the delta is +2 and not +4.
+    expect(BASE_NATURALNESS_REVIEW_INVENTORY).toHaveLength(4_946);
     expect(
       new Set(BASE_NATURALNESS_REVIEW_INVENTORY.map(({ sourceKind }) => sourceKind)),
     ).toEqual(
@@ -239,6 +245,50 @@ describe("independent Base naturalness inventory", () => {
         .sort(),
     );
     expect(dead.some((id) => actual.has(id))).toBe(false);
+  });
+
+  it("includes every reference snapshot title and fails loudly when one is missing", () => {
+    const expected = {
+      "reference-sentence-order-title": {
+        en: "Sentence order",
+        it: "Ordine della frase",
+      },
+      "reference-topic-particles-title": {
+        en: "Topic and focus particles",
+        it: "Particelle di tema e focus",
+      },
+      "reference-adjective-grid-title": {
+        en: "Adjective and copula forms",
+        it: "Forme di aggettivi e copula",
+      },
+      "reference-te-forms-title": {
+        en: "て forms and constructions",
+        it: "Forme e costruzioni in て",
+      },
+    } as const;
+    const localizedSourceIds = new Set(
+      BASE_NATURALNESS_REVIEW_INVENTORY.filter(
+        ({ sourceKind }) => sourceKind === "localized-copy",
+      ).map(({ sourceId }) => sourceId),
+    );
+
+    for (const snapshot of BASE_REFERENCE_SNAPSHOTS) {
+      expect(baseNavigationCopyEn.content[snapshot.titleCopyId]).toBeDefined();
+      expect(baseNavigationCopyIt.content[snapshot.titleCopyId]).toBeDefined();
+      expect(localizedSourceIds.has(snapshot.titleCopyId)).toBe(true);
+    }
+    for (const [copyId, copy] of Object.entries(expected)) {
+      expect(baseNavigationCopyEn.content[copyId], `${copyId}:en`).toBe(copy.en);
+      expect(baseNavigationCopyIt.content[copyId], `${copyId}:it`).toBe(copy.it);
+    }
+
+    const copyEn = structuredClone(baseNavigationCopyEn);
+    delete (copyEn.content as Record<string, string>)[
+      "reference-sentence-order-title"
+    ];
+    expect(() =>
+      baseNaturalnessCorpusFingerprintForSources({ copyEn }),
+    ).toThrow(/reference-sentence-order-title/u);
   });
 
   it("covers every localized field rendered by the five reference view models", () => {
@@ -533,8 +583,8 @@ describe("independent Base naturalness inventory", () => {
   it("keeps reviewed zero-subject, title, person, focus, and request translations exact", () => {
     const expected = {
       "requests-connection-2-example-9-translation": {
-        en: "Excuse me—please.",
-        it: "Mi scusi, per favore.",
+        en: "Excuse me—yes, please.",
+        it: "Mi scusi; sì, grazie.",
       },
       "copula-adjectives-4-example-8-translation": {
         en: "They are a well-presented student.",
@@ -580,6 +630,7 @@ describe("independent Base audio inventory", () => {
 
     expect(physical).toHaveLength(50);
     expect(semantic.length).toBeGreaterThan(0);
+    expect(BASE_AUDIO_REVIEW_INVENTORY).toHaveLength(86);
     expect(BASE_AUDIO_REVIEW_VALIDATION.errors).toEqual([]);
     expect(
       BASE_AUDIO_REVIEW_INVENTORY.every(({ status }) => status === "pending"),

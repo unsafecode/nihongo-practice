@@ -72,6 +72,32 @@ function normalizedCorpusSurface(target: {
 }
 
 describe("Task 12 bounded te ownership", () => {
+  it("keeps every request example dictionary synchronized with its authored translation", () => {
+    for (const lesson of BASE_REQUESTS_CONNECTION_MODULE.lessons) {
+      lesson.examples.forEach((example, index) => {
+        const copyId =
+          "copyId" in example.translationCopy
+            ? example.translationCopy.copyId
+            : example.translationCopy.enCopyId;
+        expect(baseNavigationCopyEn.content[copyId], `${copyId}:en`).toBe(
+          lesson.reviewedTranslations[index]?.en,
+        );
+        expect(baseNavigationCopyIt.content[copyId], `${copyId}:it`).toBe(
+          lesson.reviewedTranslations[index]?.it,
+        );
+      });
+    }
+
+    const acceptance = BASE_REQUESTS_CONNECTION_MODULE.lessons[1].examples[8];
+    expect(japanese(acceptance.tokens)).toBe("すみません、おねがいします");
+    expect(baseNavigationCopyEn.content[
+      "requests-connection-2-example-9-translation"
+    ]).toBe("Excuse me—yes, please.");
+    expect(baseNavigationCopyIt.content[
+      "requests-connection-2-example-9-translation"
+    ]).toBe("Mi scusi; sì, grazie.");
+  });
+
   it("publishes exactly the four bounded module 09 construction IDs", () => {
     const ownedIds = BASE_CONCEPTS.filter(
       ({ firstTeachLessonId, kind }) =>
