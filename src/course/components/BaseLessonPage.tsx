@@ -5,10 +5,12 @@ import { lessonSectionAnchorId } from "../../routing/lessonSections";
 import {
   buildBaseLessonViewModel,
   type BaseLessonSectionId,
+  type BaseLessonViewModel,
   type BaseLessonViewModelResult,
 } from "../base/view/buildBaseLessonViewModel";
 import {
   buildBasePracticeModel,
+  type BasePracticeModel,
   type BasePracticeModelResult,
 } from "../base/view/buildBasePracticeModel";
 import { getCourseCopy } from "../i18n/catalog";
@@ -23,11 +25,13 @@ import { BaseWorkedExamples } from "./base/BaseWorkedExamples";
  * The Base level's deep lesson page (Task 14): the single fail-closed source
  * (`buildBaseLessonViewModel`/`buildBasePracticeModel`) rendered through the
  * six stable A1-style section anchors
- * (`rule`/`vocabulary`/`grammar`/`comparison`/`explore`/`recap`). This
- * component is deliberately a standalone whole-page renderer (not yet wired
- * into the shared `LessonPage.tsx` shell/router — that is Task 15's
- * responsibility) so its own content/leakage/accessibility contracts are
- * independently testable.
+ * (`rule`/`vocabulary`/`grammar`/`comparison`/`explore`/`recap`). It is a
+ * standalone whole-page renderer with its own content/leakage/accessibility
+ * contracts, independently testable. `LessonPage.tsx` renders Base lessons
+ * through {@link BaseLessonSection} below instead (Task 15) — the same
+ * per-section dispatch contract `A1LessonSection`/`A2LessonSection` already
+ * use — so the shared lesson shell (rail, header, previous/next footer)
+ * stays one implementation across all three levels.
  *
  * Both view models are cached per `(lessonId, locale)` (view model) /
  * `lessonId` (practice model, locale-independent) at the component-module
@@ -60,6 +64,122 @@ function cachedPracticeModel(lessonId: string, locale: Locale): BasePracticeMode
 
 export interface BaseLessonPageProps {
   readonly lessonId: string;
+}
+
+/**
+ * The section body for one Base lesson section, shared by the whole-page
+ * {@link BaseLessonPage} and the per-section {@link BaseLessonSection}
+ * dispatcher LessonPage.tsx uses (Task 15) — a single switch so both call
+ * sites can never disagree about what a given section renders.
+ */
+function baseLessonSectionBody(
+  sectionId: BaseLessonSectionId,
+  model: BaseLessonViewModel,
+  practiceModel: BasePracticeModel,
+  lessonId: string,
+  copy: ReturnType<typeof getCourseCopy>,
+  baseLessonCopy: ReturnType<typeof getCourseCopy>["baseLesson"],
+): ReactElement | null {
+  switch (sectionId) {
+    case "rule":
+      return (
+        <BaseLessonOverview title={model.title} canDo={model.canDo} copy={baseLessonCopy} />
+      );
+    case "vocabulary":
+      return (
+        <BaseVocabularySection vocabulary={model.vocabulary} copy={baseLessonCopy} />
+      );
+    case "grammar":
+      return model.contract === "phonetic" ? (
+        <BaseExplanation
+          contract="phonetic"
+          phoneticExplanation={model.phoneticExplanation}
+          contrastMap={model.contrastMap}
+          copy={baseLessonCopy}
+        />
+      ) : (
+        <BaseExplanation
+          contract={model.contract}
+          explanation={model.explanation}
+          referenceSnapshots={model.referenceSnapshots}
+          copy={baseLessonCopy}
+        />
+      );
+    case "comparison":
+      return (
+        <BaseWorkedExamples
+          lessonId={lessonId}
+          examples={model.examples}
+          dialogue={model.dialogue}
+          copy={copy}
+        />
+      );
+    case "explore":
+      return (
+        <BasePracticeSequence
+          lessonId={lessonId}
+          activities={practiceModel.activities}
+          copy={copy}
+        />
+      );
+    case "recap":
+      return (
+        <BaseRecap
+          canDo={model.canDo}
+          recap={model.recap}
+          vocabulary={model.vocabulary}
+          copy={baseLessonCopy}
+        />
+      );
+  }
+}
+
+/**
+ * Base's per-section dispatcher (Task 15): `LessonPage.tsx` renders one
+ * section at a time through this, exactly mirroring `A1LessonSection`'s and
+ * `A2LessonSection`'s contract. It independently resolves the same
+ * memoized/cached lesson + practice view models `BaseLessonPage` uses, so an
+ * unavailable model surfaces the same honest, fail-closed notice no matter
+ * which section is asked for first.
+ */
+export function BaseLessonSection({
+  lessonId,
+  sectionId,
+}: {
+  readonly lessonId: string;
+  readonly sectionId: BaseLessonSectionId;
+}): ReactElement | null {
+  const { locale } = useLocale();
+  const copy = getCourseCopy(locale);
+  const baseLessonCopy = copy.baseLesson;
+
+  const viewResult = useMemo(
+    () => cachedLessonViewModel(lessonId, locale),
+    [lessonId, locale],
+  );
+  const practiceResult = useMemo(
+    () => cachedPracticeModel(lessonId, locale),
+    [lessonId, locale],
+  );
+
+  if (!viewResult.ok || !practiceResult.ok) {
+    return (
+      <Notice
+        tone="warning"
+        title={baseLessonCopy.unavailableTitle}
+        body={baseLessonCopy.unavailableBody}
+      />
+    );
+  }
+
+  return baseLessonSectionBody(
+    sectionId,
+    viewResult.model,
+    practiceResult.model,
+    lessonId,
+    copy,
+    baseLessonCopy,
+  );
 }
 
 export function BaseLessonPage({ lessonId }: BaseLessonPageProps): ReactElement {
@@ -102,61 +222,6 @@ export function BaseLessonPage({ lessonId }: BaseLessonPageProps): ReactElement 
   const sectionLabel = (sectionId: BaseLessonSectionId): string =>
     baseLessonCopy.sections[sectionId];
 
-  function sectionBody(sectionId: BaseLessonSectionId): ReactElement | null {
-    switch (sectionId) {
-      case "rule":
-        return (
-          <BaseLessonOverview title={model.title} canDo={model.canDo} copy={baseLessonCopy} />
-        );
-      case "vocabulary":
-        return (
-          <BaseVocabularySection vocabulary={model.vocabulary} copy={baseLessonCopy} />
-        );
-      case "grammar":
-        return model.contract === "phonetic" ? (
-          <BaseExplanation
-            contract="phonetic"
-            phoneticExplanation={model.phoneticExplanation}
-            contrastMap={model.contrastMap}
-            copy={baseLessonCopy}
-          />
-        ) : (
-          <BaseExplanation
-            contract={model.contract}
-            explanation={model.explanation}
-            referenceSnapshots={model.referenceSnapshots}
-            copy={baseLessonCopy}
-          />
-        );
-      case "comparison":
-        return (
-          <BaseWorkedExamples
-            lessonId={lessonId}
-            examples={model.examples}
-            dialogue={model.dialogue}
-            copy={copy}
-          />
-        );
-      case "explore":
-        return (
-          <BasePracticeSequence
-            lessonId={lessonId}
-            activities={practiceModel.activities}
-            copy={copy}
-          />
-        );
-      case "recap":
-        return (
-          <BaseRecap
-            canDo={model.canDo}
-            recap={model.recap}
-            vocabulary={model.vocabulary}
-            copy={baseLessonCopy}
-          />
-        );
-    }
-  }
-
   return (
     <article className="base-lesson-page" data-lesson-id={lessonId}>
       <header className="base-lesson-page__header">
@@ -175,7 +240,7 @@ export function BaseLessonPage({ lessonId }: BaseLessonPageProps): ReactElement 
               <h2 id={headingId} className="base-lesson-page__section-heading">
                 {sectionLabel(sectionId)}
               </h2>
-              {sectionBody(sectionId)}
+              {baseLessonSectionBody(sectionId, model, practiceModel, lessonId, copy, baseLessonCopy)}
             </section>
           );
         })}

@@ -480,7 +480,44 @@ const enUi = {
     helpBody:
       "An earlier version of this course tracked progress differently. When the structure changed, any lesson visit that safely matches the new structure carries over automatically. Practice attempts, saved review items, and checkpoint results tied to exercises that were redesigned may need to be completed again, since they no longer match the new exercises exactly. Any older visit without a safe match in the new structure is retained as recovery data rather than shown as an equivalent visited lesson.",
   },
-} satisfies Pick<CourseCopy, "home" | "progressMutation" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "a1Lesson" | "baseLesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
+  baseReferencePage: {
+    unknownReferenceTitle: "Reference not found",
+    unknownReferenceBody:
+      "This reference does not exist. Go back to the course and try again from a lesson's link.",
+    invalidThroughLessonTitle: "Invalid link",
+    invalidThroughLessonBody:
+      "This reference's link named a lesson that is not recognized, so nothing was shown. Open this reference from a lesson in the Base course.",
+    unavailableTitle: "This reference is not available",
+    unavailableBody:
+      "This reference could not be prepared right now. Nothing was shown, so you never see an incomplete table.",
+    tableViewLabel: "Table view",
+    cardsViewLabel: "Card view",
+  },
+  baseDiagnostic: {
+    heading: "Where should you start?",
+    intro:
+      "Answer a few quick questions to find out where to start. This is optional — you can skip it and choose your level any time from the course map.",
+    dimensions: {
+      "mora-timing": "Can you already read hiragana and katakana with steady, mora-by-mora timing?",
+      "sentence-anatomy": "Can you already spot the topic, verb, and complements in a simple sentence?",
+      "particle-sense": "Do you already know the meaning of the basic particles (は, を, に, で, と)?",
+      "polite-verb-form": "Can you already build a verb's polite ~ます form?",
+    },
+    yes: "Yes",
+    no: "No",
+    skip: "Skip",
+    submit: "See recommendation",
+    skippedNotice:
+      "No problem — you can choose your level any time from the course map.",
+    continueToCourse: "Go to the course map",
+    resultHeading: "Here's where to start",
+    resultBody: (recommendedLevel) =>
+      recommendedLevel === "a0"
+        ? "We recommend starting with the Base course, to build these foundations first."
+        : "You already know the Base foundations — you can start directly with A1.",
+    goToRecommendation: "Go to the recommended lesson",
+  },
+} satisfies Pick<CourseCopy, "home" | "progressMutation" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "a1Lesson" | "baseLesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration" | "baseReferencePage" | "baseDiagnostic">;
 
 const enCourseMap: CourseCopy["courseMap"] = {
   heading: "The course",

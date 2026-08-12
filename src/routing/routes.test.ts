@@ -24,6 +24,8 @@ describe("routePaths", () => {
       lab: "/pratica/laboratorio",
       syllabary: "/pratica/sillabario",
       phrasebook: "/frasario",
+      reference: "/riferimenti/base/:referenceId",
+      baseDiagnostic: "/percorso/diagnostica-base",
     });
   });
 
@@ -89,5 +91,30 @@ describe("FoundationFixtureLoading", () => {
     const html = renderToStaticMarkup(createElement(FoundationFixtureLoading));
     expect(html).toMatch(/^<main\b/);
     expect(html).toMatch(/aria-busy="true"/);
+  });
+});
+
+describe("routes source contract: Base reference and diagnostic routes are wired lazily", () => {
+  it("never statically imports BaseReferencePage or BaseDiagnostic", () => {
+    expect(routesSource).not.toMatch(
+      /import\s+\{[^}]*BaseReferencePage[^}]*\}\s+from/,
+    );
+    expect(routesSource).not.toMatch(
+      /import\s+\{[^}]*BaseDiagnostic[^}]*\}\s+from/,
+    );
+  });
+
+  it("loads both through a lazy dynamic import, each behind its own Suspense", () => {
+    expect(routesSource).toMatch(
+      /import\(\s*["'][^"']*course\/components\/BaseReferencePage["']\s*\)/,
+    );
+    expect(routesSource).toMatch(
+      /import\(\s*["'][^"']*course\/components\/BaseDiagnostic["']\s*\)/,
+    );
+  });
+
+  it("registers both routes using the shared routePaths constants, not literal duplicated strings", () => {
+    expect(routesSource).toMatch(/path=\{routePaths\.reference\}/);
+    expect(routesSource).toMatch(/path=\{routePaths\.baseDiagnostic\}/);
   });
 });

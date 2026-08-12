@@ -4,6 +4,7 @@ import type {
 } from "../../routing/lessonSections";
 import type { ContrastDimension, ModuleId } from "../data/types";
 import type { A1PracticeFunction } from "../a1/curriculum/types";
+import type { BaseDiagnosticDimensionId } from "../base/diagnostic/model";
 
 export interface BlockCopy {
   eyebrow?: string;
@@ -635,6 +636,46 @@ export interface CourseCopy {
     helpTitle: string;
     /** Always-available explanation of the migration, shown in progress help. */
     helpBody: string;
+  };
+  /**
+   * Localized chrome for the standalone Base reference surfaces (Task 15,
+   * `/riferimenti/base/:referenceId`). The real reference content itself
+   * (label/explanation/column and row headers) always comes from
+   * `buildBaseReferenceViewModel`'s own localized catalog copy — these
+   * values are only the surrounding page chrome (fail-closed notices and
+   * the table/card view labels), never a stand-in for real content.
+   */
+  baseReferencePage: {
+    unknownReferenceTitle: string;
+    unknownReferenceBody: string;
+    invalidThroughLessonTitle: string;
+    invalidThroughLessonBody: string;
+    unavailableTitle: string;
+    unavailableBody: string;
+    tableViewLabel: string;
+    cardsViewLabel: string;
+  };
+  /**
+   * Localized chrome for the optional, skippable Base entry diagnostic
+   * (Task 15, `/percorso/diagnostica-base`). It only ever asks
+   * content-independent self-assessment questions and writes its own
+   * separate `nihongo.course.baseDiagnostic` setting — never learner
+   * progress or Can-do evidence — so none of this copy may reference
+   * evidence, checkpoints, or consolidation.
+   */
+  baseDiagnostic: {
+    heading: string;
+    intro: string;
+    dimensions: Record<BaseDiagnosticDimensionId, string>;
+    yes: string;
+    no: string;
+    skip: string;
+    submit: string;
+    skippedNotice: string;
+    continueToCourse: string;
+    resultHeading: string;
+    resultBody: (recommendedLevel: "a0" | "a1") => string;
+    goToRecommendation: string;
   };
   /** Keyed by CourseModule.id. */
   modules: Record<ModuleId, ModuleCopy>;

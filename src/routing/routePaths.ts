@@ -14,7 +14,28 @@ export const routePaths = {
   lab: "/pratica/laboratorio",
   syllabary: "/pratica/sillabario",
   phrasebook: "/frasario",
+  reference: "/riferimenti/base/:referenceId",
+  baseDiagnostic: "/percorso/diagnostica-base",
 } as const;
+
+/**
+ * Builds a Base reference URL. `referenceId` is validated against
+ * {@link import("../course/base/references/catalog").BASE_REFERENCE_IDS} by
+ * `BaseReferencePage`; an unrecognized id renders a visible alert rather than
+ * an invalid-route redirect, since the reference route is not lesson-shaped.
+ * `throughLessonId` is optional — when present, `BaseReferencePage` validates
+ * it against the Base lesson's progressive ownership (never a silent
+ * default) before showing only the entries taught at or before it.
+ */
+export function baseReferencePath(
+  referenceId: string,
+  throughLessonId?: string,
+): string {
+  const path = `/riferimenti/base/${encodeURIComponent(referenceId)}`;
+  if (!throughLessonId) return path;
+  const params = new URLSearchParams({ throughLessonId });
+  return `${path}?${params.toString()}`;
+}
 
 /**
  * Builds a lesson URL. `moduleId` is validated by

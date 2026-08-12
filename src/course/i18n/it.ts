@@ -481,7 +481,44 @@ const itUi = {
     helpBody:
       "Una versione precedente di questo percorso teneva traccia dei progressi in modo diverso. Quando la struttura è cambiata, ogni visita a una lezione che corrisponde in modo sicuro alla nuova struttura viene mantenuta automaticamente. I tentativi di pratica, gli elementi di ripasso salvati e i risultati delle verifiche legati agli esercizi rinnovati potrebbero dover essere completati di nuovo, perché non corrispondono più esattamente ai nuovi esercizi. Ogni vecchia visita senza una corrispondenza sicura nella nuova struttura è conservata come dati di recupero, senza essere considerata una lezione visitata equivalente.",
   },
-} satisfies Pick<CourseCopy, "home" | "progressMutation" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "a1Lesson" | "baseLesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration">;
+  baseReferencePage: {
+    unknownReferenceTitle: "Riferimento non trovato",
+    unknownReferenceBody:
+      "Questo riferimento non esiste. Torna al percorso e riprova dal collegamento della lezione.",
+    invalidThroughLessonTitle: "Collegamento non valido",
+    invalidThroughLessonBody:
+      "Il collegamento a questo riferimento indicava una lezione non riconosciuta, quindi non è stato mostrato nulla. Apri il riferimento da una lezione del percorso Base.",
+    unavailableTitle: "Questo riferimento non è disponibile",
+    unavailableBody:
+      "Non è stato possibile preparare questo riferimento ora. Non è stato mostrato nulla, così non vedi mai una tabella incompleta.",
+    tableViewLabel: "Vista tabella",
+    cardsViewLabel: "Vista schede",
+  },
+  baseDiagnostic: {
+    heading: "Da dove iniziare?",
+    intro:
+      "Rispondi ad alcune domande veloci per scoprire da dove conviene iniziare. È facoltativo: puoi saltarlo e scegliere il livello quando vuoi dalla mappa del percorso.",
+    dimensions: {
+      "mora-timing": "Riesci già a leggere hiragana e katakana con un ritmo regolare, mora per mora?",
+      "sentence-anatomy": "Riesci già a riconoscere tema, verbo e complementi in una frase semplice?",
+      "particle-sense": "Conosci già il significato delle particelle di base (は, を, に, で, と)?",
+      "polite-verb-form": "Riesci già a costruire la forma cortese ~ます di un verbo?",
+    },
+    yes: "Sì",
+    no: "No",
+    skip: "Salta",
+    submit: "Vedi il consiglio",
+    skippedNotice:
+      "Nessun problema: puoi scegliere il livello quando vuoi dalla mappa del percorso.",
+    continueToCourse: "Vai alla mappa del percorso",
+    resultHeading: "Ecco da dove iniziare",
+    resultBody: (recommendedLevel) =>
+      recommendedLevel === "a0"
+        ? "Ti consigliamo di iniziare dal corso Base, per costruire prima queste fondamenta."
+        : "Conosci già le fondamenta Base: puoi iniziare direttamente da A1.",
+    goToRecommendation: "Vai alla lezione consigliata",
+  },
+} satisfies Pick<CourseCopy, "home" | "progressMutation" | "canDoSummary" | "checkpoint" | "courseLevels" | "kanji" | "lesson" | "a1Lesson" | "baseLesson" | "practice" | "exercises" | "review" | "spokenAttempt" | "foundation" | "progressMigration" | "baseReferencePage" | "baseDiagnostic">;
 
 const itCourseMap: CourseCopy["courseMap"] = {
   heading: "Il percorso",
