@@ -2027,7 +2027,7 @@ const COPULA_ADJECTIVES_COPY_IT: Readonly<Record<string, string>> = {
       "Non sto bene.",
       "È un ufficio tranquillo.",
       "È uno studente dall'aspetto curato.",
-      "Il parco è buono.",
+      "Il parco è bello.",
       "È un ombrello costoso.",
     ],
     purposes: [

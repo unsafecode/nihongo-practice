@@ -991,12 +991,22 @@ export const BASE_NATURALNESS_CURRENT_CORPUS_FINGERPRINT =
  * the past-polarity contrast uses 休む/Yamada instead of 死ぬ/a flower, and the
  * synthesis family descriptions address the interlocutor's family
  * (おとうさん/おかあさん) rather than mislabelling them as the speaker's own.
+ * Re-taken again when the focused naturalness delta review rejected
+ * `copula-adjectives-4-example-9`: 「こうえんはいいです」 had been moved to
+ * *"Il parco è buono."* by an earlier content review, but *buono* is not what an
+ * Italian speaker says about a park, so it is restored to the approved
+ * *"Il parco è bello."* Against the approved 9a84ac6 corpus
+ * (4,944 / 5d040b91…4564a) this branch is 2 added, 19 changed, 0 removed by
+ * entry fingerprint. The two added entries are the reviewed tense-polarity cell
+ * label and explanation; the 19 changed are the later content and review fixes
+ * that are still awaiting focused approval.
+ *
  * Because that content changed after the independent naturalness review was
  * recorded, the review's aggregate approval is deliberately NOT imported here:
  * every surface stays `pending` until it is signed against this corpus.
  */
 const INVENTORIED_CORPUS_FINGERPRINT =
-  "7aa0c7d56974809f71b4a7ec3343b29350c0bb57a536de75b70fa27fdfd6190c";
+  "24e1932284b50b5cf631d726dcd87b7715ba3bb978140f02fbefe6db8bb5495d";
 
 const acceptanceByContentId = new Map(
   EXTERNAL_ACCEPTANCES.map((acceptance) => [acceptance.contentId, acceptance]),

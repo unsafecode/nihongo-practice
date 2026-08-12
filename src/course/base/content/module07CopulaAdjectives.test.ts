@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import {
   BASE_FIRST_TEACH_OWNER_BY_KEY,
   firstTeachOwnerKey,
@@ -760,21 +761,46 @@ describe("copula-adjectives-4 keeps the な / い adjective contrast in both loc
   const KIREI_PAST = "copula-adjectives-4-example-3-translation";
   const II_NONPAST = "copula-adjectives-4-example-9-translation";
 
-  it("does not render きれいでした and いいです with the same Italian adjective", () => {
-    const kirei = baseNavigationCopyIt.content[KIREI_PAST];
-    const ii = baseNavigationCopyIt.content[II_NONPAST];
-    expect(kirei).toBe("Il parco era bello.");
-    expect(ii).not.toMatch(/bell[aeio]/iu);
+  /**
+   * 「こうえんはいいです」 is *"Il parco è bello."* in Italian. An earlier content
+   * review moved it to *"Il parco è buono."* so that the い-adjective would not
+   * reuse the same adjective as the きれい sibling, but *buono* describes taste,
+   * quality or moral worth — it is not what an Italian says about a park, and
+   * the focused naturalness delta review rejected it. The contrast the lesson
+   * teaches is carried below by the English pair and by the two Italian lexeme
+   * glosses, neither of which needs an unidiomatic example sentence to survive.
+   */
+  it("translates いいです with the Italian a speaker would actually use", () => {
+    expect(baseNavigationCopyIt.content[II_NONPAST]).toBe("Il parco è bello.");
+    expect(baseNavigationCopyIt.content[II_NONPAST]).not.toMatch(
+      /buon[aeio]?/iu,
+    );
   });
 
-  it("renders each Italian adjective consistently with its own lexeme gloss", () => {
-    expect(baseNavigationCopyIt.content[KIREI_PAST]).toMatch(/bell[aeio]/iu);
+  it("authors that translation identically in the lesson source", () => {
+    const source = readFileSync(
+      new URL("./module07CopulaAdjectives.ts", import.meta.url),
+      "utf8",
+    );
+    const authored = source
+      .split("\n")
+      .find((line) => line.includes('"contrast-good-park"'));
+    expect(authored).toBeDefined();
+    expect(authored).toContain('"Il parco è bello."');
+    expect(authored).toContain('"The park is nice."');
+    expect(authored).not.toContain("buono");
+  });
+
+  it("keeps the two lexeme glosses apart so the adjective classes stay distinct", () => {
+    expect(baseNavigationCopyIt.content[KIREI_PAST]).toBe("Il parco era bello.");
     expect(baseNavigationCopyIt.content["adjective-kirei-meaning"]).toMatch(
       /bell[aeio]/iu,
     );
-    expect(baseNavigationCopyIt.content[II_NONPAST]).toMatch(/buon[aeio]?/iu);
     expect(baseNavigationCopyIt.content["adjective-ii-meaning"]).toMatch(
       /buon[aeio]?/iu,
+    );
+    expect(baseNavigationCopyIt.content["adjective-kirei-meaning"]).not.toBe(
+      baseNavigationCopyIt.content["adjective-ii-meaning"],
     );
   });
 

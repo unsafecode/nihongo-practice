@@ -138,19 +138,33 @@ should be fixed before release; the rest are polish.
   `it.ts:2092` `"adjective-kirei-meaning": "bello; pulito"`. Correct Italian for example 9
   is *"Il parco è buono."* or, more idiomatically for いい applied to a place,
   *"Il parco va bene."* / *"Il parco è un bel posto."* — anything that does not reuse *bello*.
-- Resolution: FIXED (2026-08-06). `copula-adjectives-4-example-9` 「こうえんはいいです」 is now
-  translated `"Il parco è buono."` instead of `"Il parco è bello."`
-  (`src/course/base/copy/it.ts` translations index 8, plus the mirrored authoring string in
-  `src/course/base/content/module07CopulaAdjectives.ts:510`). `example-3`
-  「こうえんはきれいでした」 keeps `"Il parco era bello."`, so the な-adjective and the
-  い-adjective now render with different Italian adjectives, each matching its own IT lexeme
-  gloss (`adjective-kirei-meaning` = "bello; pulito", `adjective-ii-meaning` = "buono") and
-  matching how いい is already translated elsewhere in the module ("Il negozio era buono.",
-  "La mensa non era buona."). EN is unchanged ("The park was pretty." / "The park is nice.").
-  Proving test: `src/course/base/content/module07CopulaAdjectives.test.ts` → "copula-adjectives-4
-  keeps the な / い adjective contrast in both locales" (3 cases). Before the fix it failed with
-  `expected 'Il parco è bello.' not to match /bell[aeio]/iu` and
-  `expected 'Il parco è bello.' to match /buon[aeio]?/iu`.
+- Resolution: SUPERSEDED (2026-08-12) by the focused independent naturalness delta
+  review, which rejected the fix as a naturalness regression. The finding's own
+  wording conceded that `"Il parco è buono."` was the *less* idiomatic of the
+  options it listed, and that is the one that shipped: *buono* describes taste,
+  quality or moral worth, so `"Il parco è buono."` is not what an Italian speaker
+  says about a park. `copula-adjectives-4-example-9` 「こうえんはいいです」 is
+  restored to the approved `"Il parco è bello."` in both
+  `src/course/base/content/module07CopulaAdjectives.ts:510` and
+  `src/course/base/copy/it.ts` (translations index 8).
+
+  The contrast this finding legitimately cared about is not abandoned — it is
+  asserted where it can hold without deforming the Italian. The English pair keeps
+  「きれいでした」 and 「いいです」 apart ("The park was pretty." / "The park is
+  nice."), and the two Italian lexeme glosses stay distinct
+  (`adjective-kirei-meaning` = "bello; pulito", `adjective-ii-meaning` = "buono"),
+  which is what the lesson's vocabulary list actually shows the learner. What the
+  finding got wrong was demanding that an example *sentence* carry that load at the
+  cost of idiomatic Italian.
+
+  Proving tests: `src/course/base/content/module07CopulaAdjectives.test.ts` →
+  "translates いいです with the Italian a speaker would actually use",
+  "authors that translation identically in the lesson source" (reads the module
+  source, so the R1 class of source/dictionary divergence cannot recur here),
+  "keeps the two lexeme glosses apart so the adjective classes stay distinct",
+  "keeps the same contrast in English". Before the restoration the first two failed
+  with `expected 'Il parco è buono.' to be 'Il parco è bello.'` and
+  `expected '    ex(predicateTarget("i-adjective",…' to contain '"Il parco è bello."'.
 
 ### F-C4 — One accepted answer teaches a non-standard variant of a class label the same lesson otherwise teaches as 「ごだんどうし」
 - Severity: low
