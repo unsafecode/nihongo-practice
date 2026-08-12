@@ -277,7 +277,12 @@ describe("independent Base naturalness inventory", () => {
         ),
       ).toBe(true);
     }
-  });
+    // Rebuilding the inventory for each candidate approval is cheap now that
+    // source fingerprints are cached, but this case still walks the whole
+    // ~4,900-entry corpus nine times. A CI runner under a fully parallel suite
+    // has already tripped the 5s default here once; the explicit budget is
+    // generous headroom, not a relaxed assertion.
+  }, 30_000);
 
   it("completes naturalness review without accepting any audio", () => {
     expect(
