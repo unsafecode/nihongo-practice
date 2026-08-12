@@ -277,12 +277,13 @@ describe("independent Base naturalness inventory", () => {
         ),
       ).toBe(true);
     }
-    // Rebuilding the inventory for each candidate approval is cheap now that
-    // source fingerprints are cached, but this case still walks the whole
-    // ~4,900-entry corpus nine times. A CI runner under a fully parallel suite
-    // has already tripped the 5s default here once; the explicit budget is
-    // generous headroom, not a relaxed assertion.
-  }, 30_000);
+    // This case rebuilds the whole ~4,900-entry corpus nine times, which is what
+    // tripped the 5s default on CI before source fingerprints were cached
+    // (measured: 1.5s locally uncached, over 5s on a loaded two-core runner,
+    // versus 9ms cached). It deliberately keeps the default budget rather than
+    // an inflated one: at that margin the default can only fail if the cache
+    // regresses, so this test is the tripwire for exactly that regression.
+  });
 
   it("completes naturalness review without accepting any audio", () => {
     expect(
