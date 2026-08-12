@@ -812,6 +812,7 @@ test.describe("no answer leakage before an attempt", () => {
     await installSpeechFake(page);
     await gotoReady(page, ALL_KINDS_LESSON_ROUTE);
 
+    const correctOptionIndices: number[] = [];
     for (const activity of PRACTICE.activities) {
       const selector = `[data-activity-id="${activity.id}"]`;
       const surface = await collectLeakageSurface(page, selector);
@@ -838,10 +839,14 @@ test.describe("no answer leakage before an attempt", () => {
         names.filter((name) => FORBIDDEN_ATTRIBUTE_NAMES.test(name)),
         `${activity.id}: answer-revealing attribute names`,
       ).toEqual([]);
+      // The names are covered above; here the *values* are scanned, so an
+      // attribute like `data-state="correct-option"` cannot slip through.
       for (const value of [...surface.dataAttributes, ...surface.attributeValues]) {
+        const separator = value.indexOf("=");
+        const attributeValue = separator === -1 ? value : value.slice(separator + 1);
         expect(
-          FORBIDDEN_ATTRIBUTE_NAMES.test(value.split("=")[0] ?? ""),
-          `${activity.id}: ${value}`,
+          FORBIDDEN_ATTRIBUTE_NAMES.test(attributeValue),
+          `${activity.id}: answer-revealing attribute value in ${value}`,
         ).toBe(false);
       }
 
@@ -881,6 +886,7 @@ test.describe("no answer leakage before an attempt", () => {
           { sel: selector, correctId: (activity as { correctOptionId: string }).correctOptionId },
         );
         expect(correctIndex, `${activity.id}: the correct option is rendered`).toBeGreaterThanOrEqual(0);
+        correctOptionIndices.push(correctIndex);
       }
 
       // 4. A tile bank is never pre-arranged into the answer.
@@ -904,6 +910,15 @@ test.describe("no answer leakage before an attempt", () => {
         ).toHaveCount(0);
       }
     }
+
+    // Position itself must not encode the answer: a build that rendered the
+    // correct option first every time would satisfy every per-activity check
+    // above, so the distribution across activities is asserted directly.
+    expect(correctOptionIndices.length, "choice activities were inspected").toBeGreaterThan(1);
+    expect(
+      new Set(correctOptionIndices).size,
+      `the correct option's position varies (saw ${correctOptionIndices.join(",")})`,
+    ).toBeGreaterThan(1);
 
     assertNoRuntimeErrors(recording);
     assertSameOriginStaticAssetsOnly(recording);

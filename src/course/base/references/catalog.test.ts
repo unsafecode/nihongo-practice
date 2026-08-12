@@ -287,6 +287,33 @@ describe("Base reference catalog", () => {
     ]);
   });
 
+  it("keeps the tense-polarity paradigm row complete while the earlier row keeps first-teach ownership", () => {
+    const expected = realizePoliteGrid("verb-kaku");
+    expect(expected.ok).toBe(true);
+    if (!expected.ok) return;
+    const grid = referenceById["tense-polarity"].entries.find(
+      ({ semanticId }) => semanticId === "base-tense-polite-grid",
+    )!;
+    expect(grid.canonicalFormCells.map(({ columnId }) => columnId)).toEqual([
+      "affirmative",
+      "negative",
+      "pastAffirmative",
+      "pastNegative",
+    ]);
+    expect(grid.canonicalFormCells.map(({ tokens }) => tokens)).toEqual(
+      Object.values(expected.value),
+    );
+    // The repeated affirmative is attributed to this row's own owner, and the
+    // canonical cell id stays with the earlier row that first teaches it.
+    expect(grid.canonicalFormCells[0].id).not.toBe(
+      "verb-polite-nonpast-affirmative",
+    );
+    expect(grid.canonicalFormCells[0].sourceContentIds).toContain(
+      "four-polite-tense-cells",
+    );
+    expect(inspectBaseReferenceCatalog().errors).toEqual([]);
+  });
+
   it("derives tense-polarity cells exactly from the canonical writing verb", () => {
     const expected = realizePoliteGrid("verb-kaku");
     expect(expected.ok).toBe(true);
@@ -300,16 +327,21 @@ describe("Base reference catalog", () => {
     expect(dynamic.canonicalFormCells.map(({ tokens }) => tokens)).toEqual([
       expected.value.affirmative,
     ]);
+    // The paradigm row carries the whole 2 x 2 (see the completeness test
+    // above); both rows are still derived cell-for-cell from the canonical
+    // かく polite grid and never hand-written.
     expect(grid.canonicalFormCells.map(({ tokens }) => tokens)).toEqual(
-      Object.values(expected.value).slice(1),
-    );
-    expect(referenceById["tense-polarity"].cells.map(({ tokens }) => tokens)).toEqual(
       Object.values(expected.value),
     );
+    expect(referenceById["tense-polarity"].cells.map(({ tokens }) => tokens)).toEqual([
+      expected.value.affirmative,
+      ...Object.values(expected.value),
+    ]);
     expect(
       referenceById["tense-polarity"].cells.map(({ id }) => id),
     ).toEqual([
       "verb-polite-nonpast-affirmative",
+      "verb-polite-nonpast-affirmative-reviewed",
       "verb-polite-nonpast-negative",
       "verb-polite-past-affirmative",
       "verb-polite-past-negative",
@@ -329,7 +361,7 @@ describe("Base reference catalog", () => {
         expected.map(({ sourceContentIds }) => sourceContentIds),
       );
     }
-    expect(referenceById["tense-polarity"].cells).toHaveLength(4);
+    expect(referenceById["tense-polarity"].cells).toHaveLength(5);
     expect(referenceById["tense-polarity"].cells[0].sourceContentIds).toContain(
       "dynamic-nonpast-semantics",
     );

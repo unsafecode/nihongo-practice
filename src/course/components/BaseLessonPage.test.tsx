@@ -2,12 +2,14 @@
 
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { LocaleProvider } from "../../i18n/LocaleContext";
 import { ScriptProvider } from "../../settings/ScriptContext";
 import { ProgressProvider } from "../progress/ProgressContext";
 import { SpeechRecognitionProvider } from "../speech/SpeechRecognitionContext";
 import { lessonSectionAnchorId } from "../../routing/lessonSections";
+import { BASE_LESSON_IDS } from "../base/manifest";
 import { buildBaseLessonViewModel } from "../base/view/buildBaseLessonViewModel";
 import { buildBasePracticeModel } from "../base/view/buildBasePracticeModel";
 import { escapeHtmlText } from "./renderTestUtils";
@@ -42,6 +44,9 @@ afterEach(() => {
 function render(lessonId: string): string {
   return renderToStaticMarkup(
     createElement(
+      MemoryRouter,
+      { initialEntries: [`/percorso/base/${lessonId}`] },
+      createElement(
       SpeechRecognitionProvider,
       null,
       createElement(
@@ -57,6 +62,7 @@ function render(lessonId: string): string {
           ),
         ),
       ),
+    ),
     ),
   );
 }
@@ -160,5 +166,32 @@ describe("BaseLessonPage", () => {
         openLevels.push(level);
       }
     }
+  });
+
+  it("links every offered reference to its own lesson, so progressive disclosure actually runs", () => {
+    // The reference surfaces exist and gate their content on `throughLessonId`,
+    // but a learner can only benefit if the lesson that promises a reference
+    // links to it *at that lesson*. Rendering the titles as inert text leaves
+    // the whole progressive-disclosure system unreachable, and opening a
+    // reference without the parameter silently shows the end-of-course view.
+    let linkedLessons = 0;
+    for (const lessonId of BASE_LESSON_IDS) {
+      const model = buildBaseLessonViewModel(lessonId, "en");
+      expect(model.ok, lessonId).toBe(true);
+      if (!model.ok) continue;
+      const snapshots = model.model.referenceSnapshots;
+      if (snapshots.length === 0) continue;
+      linkedLessons += 1;
+      const html = render(lessonId);
+      for (const snapshot of snapshots) {
+        expect(
+          html,
+          `${lessonId} links reference ${snapshot.id} at its own lesson`,
+        ).toContain(
+          `href="/riferimenti/base/${snapshot.id}?throughLessonId=${lessonId}"`,
+        );
+      }
+    }
+    expect(linkedLessons).toBeGreaterThan(0);
   });
 });

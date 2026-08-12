@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { BASE_LESSON_IDS } from "../manifest";
+import type { BaseVisibleTarget } from "../catalog/types";
 import {
   BASE_CANONICAL_CATALOG_VALIDATION,
   BASE_LEXEME_RECURRENCE_VALIDATION,
@@ -126,5 +127,31 @@ describe("canonical Base catalog", () => {
     ).toBe(false);
     expect(validateBaseLexemeRecurrence(undefined).ok).toBe(false);
     expect(validateBaseLexemeRecurrence(Array(40)).ok).toBe(false);
+  });
+});
+
+describe("Base affirmative register consistency", () => {
+  const renderJp = (target: {
+    readonly tokens: readonly { readonly jp: string }[];
+  }) => target.tokens.map(({ jp }) => jp).join("");
+
+  it("never realizes そう as a bare plain-form affirmative response", () => {
+    const offenders: string[] = [];
+    const inspect = (id: string, target: BaseVisibleTarget) => {
+      const jp = renderJp(target);
+      if (!jp.includes("そう")) return;
+      if (/そう(?!です)/u.test(jp)) offenders.push(`${id}: ${jp}`);
+    };
+
+    for (const example of baseCanonicalCatalog.examples) {
+      inspect(example.id, example);
+    }
+    for (const dialogue of baseCanonicalCatalog.dialogues) {
+      dialogue.turns.forEach((turn, index) => {
+        inspect(`${dialogue.id}:turn-${index + 1}`, turn);
+      });
+    }
+
+    expect(offenders).toEqual([]);
   });
 });

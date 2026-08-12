@@ -806,3 +806,24 @@ describe("Base polite-verbs module", () => {
     expect(validateBasePoliteVerbsModule(hostile)).toMatchObject({ ok: false });
   });
 });
+
+describe("polite-verbs-2 names the godan class consistently", () => {
+  it("uses ごだんどうし in every accepted answer that names the godan class", () => {
+    const lesson = BASE_POLITE_VERBS_MODULE.lessons.find(
+      ({ content }) => content.lessonId === "polite-verbs-2",
+    );
+    expect(lesson).toBeDefined();
+    const godanAnswers = (lesson?.activityDesigns ?? [])
+      .map(({ id, acceptedAnswers }) => ({
+        id,
+        answers: acceptedAnswers.filter((answer) => answer.includes("ごだん")),
+      }))
+      .filter(({ answers }) => answers.length > 0);
+    expect(godanAnswers.length).toBeGreaterThan(1);
+    expect(
+      godanAnswers.filter(({ answers }) =>
+        answers.some((answer) => !answer.includes("ごだんどうし")),
+      ),
+    ).toEqual([]);
+  });
+});

@@ -224,7 +224,6 @@ const TOKEN_GLOSSES: Readonly<
   kunakatta: { en: "was not", it: "non era" },
   na: { en: "attributive な", it: "な attributivo" },
   "godan-verb-class": { en: "godan verb", it: "verbo godan" },
-  "godan-verb-class-expanded": { en: "godan verb", it: "verbo godan" },
   "ichidan-verb-class": { en: "ichidan verb", it: "verbo ichidan" },
   "suru-verb-class": { en: "suru verb", it: "verbo in する" },
   "kuru-verb-class": { en: "kuru verb", it: "verbo くる" },
@@ -969,8 +968,23 @@ const REVIEW_SOURCES = buildReviewSources();
 export const BASE_NATURALNESS_CURRENT_CORPUS_FINGERPRINT =
   corpusFingerprint(REVIEW_SOURCES);
 
+/**
+ * Fingerprint of the corpus that was inventoried for external naturalness
+ * review. Re-taken when the learner-visible Japanese surface set changes so the
+ * ledger keeps enumerating the *current* corpus. Re-inventorying is not
+ * acceptance: `EXTERNAL_ACCEPTANCES` above is still empty, so every entry
+ * (including any newly surfaced one) stays `pending` until a reviewer signs it.
+ *
+ * Last re-taken when the 2026-08-06 Base content review fixes landed: the two
+ * synthesis dialogue turns that answered with bare 「そう、」 now answer
+ * 「そうです、」, and `polite-verbs-2-activity-8` now names the godan class
+ * 「ごだんどうし」 (with a かへんどうし distractor) instead of 「ごだんのどうし」.
+ * Those edits changed the learner-visible Japanese surface set, so the corpus
+ * had to be re-inventoried. Re-inventorying is not acceptance: every affected
+ * surface is enumerated again and stays `pending`.
+ */
 const INVENTORIED_CORPUS_FINGERPRINT =
-  "c5d03e11acd4469491feac1c50a04d4f91eb4f58a4813bd4ab047c7f666bea3d";
+  "49a8082ab0025f5e8171af2f199562fb06c1dfb3d3db741bfea46d3dca7e5219";
 
 const acceptanceByContentId = new Map(
   EXTERNAL_ACCEPTANCES.map((acceptance) => [acceptance.contentId, acceptance]),

@@ -9,6 +9,7 @@ import { BASE_REFERENCE_IDS } from "../base/references/catalog";
 import { buildBaseReferenceViewModel } from "../base/references/buildReferenceViewModel";
 import { routePaths } from "../../routing/routePaths";
 import { it as itCopy } from "../i18n/it";
+import { escapeHtmlText } from "./renderTestUtils";
 import { BaseReferencePage } from "./BaseReferencePage";
 
 function render(path: string): string {
@@ -30,16 +31,6 @@ function render(path: string): string {
       ),
     ),
   );
-}
-
-/** Escapes text the way React escapes a text child in static markup. */
-function escapeHtmlText(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
 }
 
 /** One `throughLessonId` known to be at/after each reference's first-teach lesson. */

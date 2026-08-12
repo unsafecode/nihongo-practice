@@ -217,12 +217,22 @@ export function buildBaseReferenceViewModel(
       ...(desuFunction === undefined ? {} : { desuFunction }),
     })),
   }));
+  const filledColumnIds = new Set(
+    rows.flatMap(({ cells }) => cells.map(({ columnId }) => columnId)),
+  );
   const grid: ReferenceGridModel = {
     caption: definition.copy[locale].label,
-    columns: definition.columns.map((referenceColumn) => ({
-      id: referenceColumn.id,
-      label: referenceColumn.copy[locale].label,
-    })),
+    // Progressive disclosure narrows the rows to what has been taught, which
+    // can leave a declared column with no cell beneath it. Such a heading
+    // advertises a distinction the learner has not met yet, so it is dropped
+    // until some visible row reaches it. Sparse columns (filled by only some
+    // rows) are kept: the gap there is the paradigm's own shape.
+    columns: definition.columns
+      .filter((referenceColumn) => filledColumnIds.has(referenceColumn.id))
+      .map((referenceColumn) => ({
+        id: referenceColumn.id,
+        label: referenceColumn.copy[locale].label,
+      })),
     rows,
   };
 

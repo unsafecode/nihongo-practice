@@ -437,6 +437,26 @@ const KAKU_POLITE_CELLS = politeCells("tense-kaku", KAKU_POLITE_GRID).map(
     ][index],
   }),
 );
+
+/**
+ * The `tense-polarity` reference exists to make one system visible: the 2 × 2
+ * grid of nonpast/past × affirmative/negative. Its "Four polite forms" row
+ * therefore carries all four cells, including the affirmative かきます that
+ * the earlier "Dynamic nonpast" row introduces.
+ *
+ * The two rows mean different things — one says *what dynamic nonpast means*,
+ * the other *is the paradigm* — so the repetition is the point, not an
+ * accident. First-teach ownership is still honoured honestly rather than by
+ * bypassing a validator: the canonical cell id `verb-polite-nonpast-affirmative`
+ * stays with the earlier row that owns it, and the paradigm row's repeat gets
+ * its own id and is attributed to its own owner (`four-polite-tense-cells`)
+ * in `sourceContentIds`. That keeps the catalog's `duplicate-cell-id` guard —
+ * which rejects one id carrying two different fingerprints — fully in force.
+ */
+const TENSE_POLARITY_PARADIGM_CELLS: readonly BaseReferenceCanonicalCell[] = [
+  { ...KAKU_POLITE_CELLS[0], id: "verb-polite-nonpast-affirmative-reviewed" },
+  ...KAKU_POLITE_CELLS.slice(1),
+];
 const STUDENT_NOUN = NOUN_GRID.affirmative.tokens.slice(0, 1);
 const TEACHER_NOUN = TEACHER_NOUN_GRID.affirmative.tokens.slice(0, 1);
 const SAKURA_NAME_LEXEME = BASE_LEXEME_BY_ID.get("name-sakura");
@@ -899,7 +919,7 @@ const TENSE_ENTRIES = [
       "Compare nonpast and past across affirmative and negative polarity.",
       "Confronta non-passato e passato nelle polarità affermativa e negativa.",
     ],
-    KAKU_POLITE_CELLS.slice(1),
+    TENSE_POLARITY_PARADIGM_CELLS,
     ["base-tense-dynamic-nonpast"],
   ),
 ] as const;

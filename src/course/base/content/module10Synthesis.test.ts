@@ -113,7 +113,7 @@ describe("Base Module 10 synthesis", () => {
         "Tua madre è una ricercatrice?",
       ],
       [
-        "そう、けんきゅうしゃです",
+        "そうです、けんきゅうしゃです",
         "That's right, she is a researcher.",
         "Esatto, è una ricercatrice.",
       ],
@@ -142,7 +142,7 @@ describe("Base Module 10 synthesis", () => {
         "Di solito lavori?",
       ],
       [
-        "そう、しごとをします",
+        "そうです、しごとをします",
         "That's right, I work.",
         "Esatto, lavoro.",
       ],

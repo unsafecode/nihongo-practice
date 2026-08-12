@@ -2746,6 +2746,15 @@
   padding: 0;
   list-style: none;
 }
+/* A reference the lesson offers is a real destination, so it must look and
+ * behave like one and meet the same touch-target floor as other controls. */
+.base-reference-snapshot__item a {
+  display: inline-block;
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  color: var(--accent-dark);
+  text-decoration: underline;
+}
 .base-vocabulary__item,
 .base-contrast-map__item {
   display: grid;

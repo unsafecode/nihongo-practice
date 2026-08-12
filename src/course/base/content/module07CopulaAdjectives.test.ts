@@ -755,3 +755,34 @@ describe("Task 12 copula and adjective ownership", () => {
     );
   });
 });
+
+describe("copula-adjectives-4 keeps the な / い adjective contrast in both locales", () => {
+  const KIREI_PAST = "copula-adjectives-4-example-3-translation";
+  const II_NONPAST = "copula-adjectives-4-example-9-translation";
+
+  it("does not render きれいでした and いいです with the same Italian adjective", () => {
+    const kirei = baseNavigationCopyIt.content[KIREI_PAST];
+    const ii = baseNavigationCopyIt.content[II_NONPAST];
+    expect(kirei).toBe("Il parco era bello.");
+    expect(ii).not.toMatch(/bell[aeio]/iu);
+  });
+
+  it("renders each Italian adjective consistently with its own lexeme gloss", () => {
+    expect(baseNavigationCopyIt.content[KIREI_PAST]).toMatch(/bell[aeio]/iu);
+    expect(baseNavigationCopyIt.content["adjective-kirei-meaning"]).toMatch(
+      /bell[aeio]/iu,
+    );
+    expect(baseNavigationCopyIt.content[II_NONPAST]).toMatch(/buon[aeio]?/iu);
+    expect(baseNavigationCopyIt.content["adjective-ii-meaning"]).toMatch(
+      /buon[aeio]?/iu,
+    );
+  });
+
+  it("keeps the same contrast in English", () => {
+    expect(baseNavigationCopyEn.content[KIREI_PAST]).toBe("The park was pretty.");
+    expect(baseNavigationCopyEn.content[II_NONPAST]).toBe("The park is nice.");
+    expect(baseNavigationCopyEn.content[KIREI_PAST]).not.toBe(
+      baseNavigationCopyEn.content[II_NONPAST],
+    );
+  });
+});

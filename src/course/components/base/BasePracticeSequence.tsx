@@ -372,7 +372,7 @@ function SpokenCard({
       <p className="base-spoken-activity__target" lang="ja">
         <RomajiSequence
           tokens={activity.tokens}
-          errorText={baseLessonCopy.recap.canDoLabel}
+          errorText={copy.lesson.contentFormattingError}
           renderToken={(token) => (
             <JapaneseSegmentText jp={token.jp} reading={token.reading} />
           )}

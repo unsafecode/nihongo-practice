@@ -130,6 +130,7 @@ export type BaseTask11Part =
       readonly kind: "analysis-label";
       readonly analysisId: string;
     }>
+  | Readonly<{ readonly kind: "copula"; readonly form: "affirmative" }>
   | Readonly<{
       readonly kind: "diagnostic-form";
       readonly lemmaId: string;
@@ -366,6 +367,11 @@ export const TASK11_PERIOD: BaseTask11Part = deepFreeze({
   kind: "punctuation",
   mark: "period",
 });
+/** Polite affirmative copula attached to a non-nominal lexeme such as そう. */
+export const TASK11_DESU: BaseTask11Part = deepFreeze({
+  kind: "copula",
+  form: "affirmative",
+});
 
 function formTokens(
   lemmaId: string,
@@ -494,10 +500,6 @@ const ANALYSIS_LABELS: Readonly<
   Record<string, Readonly<{ readonly kana: string; readonly romaji: string }>>
 > = {
   "godan-verb-class": { kana: "ごだんどうし", romaji: "godan doushi" },
-  "godan-verb-class-expanded": {
-    kana: "ごだんのどうし",
-    romaji: "godan no doushi",
-  },
   "ichidan-verb-class": { kana: "いちだんどうし", romaji: "ichidan doushi" },
   "suru-verb-class": { kana: "さへんどうし", romaji: "sahen doushi" },
   "kuru-verb-class": { kana: "かへんどうし", romaji: "kahen doushi" },
@@ -594,6 +596,21 @@ function sequencePart(part: BaseTask11Part, id: string): BaseTokenSequencePart {
   if (part.kind === "analysis-label") {
     return { tokens: analysisTokens(part.analysisId, id), boundaryBefore: "space" };
   }
+  if (part.kind === "copula") {
+    return {
+      tokens: deepFreeze([
+        {
+          id,
+          jp: "です",
+          romaji: "desu",
+          kind: "morpheme",
+          boundaryBefore: "attach",
+          source: { domain: "catalog", referenceId: "affirmative-desu" },
+        },
+      ]),
+      boundaryBefore: "space",
+    };
+  }
   if (part.kind === "diagnostic-form") {
     return {
       tokens: deepFreeze([
@@ -655,6 +672,7 @@ function partFormIds(parts: readonly BaseTask11Part[]): readonly string[] {
 }
 
 function predicatePartFormIds(part: BaseTask11Part): readonly string[] {
+  if (part.kind === "copula") return ["affirmative-desu"];
   if (part.kind === "na-adjective-attributive") {
     return ["base-form-na-adjective-attributive"];
   }
@@ -3486,26 +3504,6 @@ function labeledDictionaryAnalysisTarget(
   };
 }
 
-function expandedGodanClassTarget(
-  lemmaId: string,
-  patternCellIds: readonly string[],
-): BaseTask11TargetSpec {
-  const target = task11ClassAnalysisTarget(
-    lemmaId,
-    "godan-verb-class",
-    patternCellIds,
-  );
-  return {
-    ...target,
-    parts: target.parts.map((part) =>
-      part.kind === "analysis-label" &&
-      part.analysisId === "godan-verb-class"
-        ? task11AnalysisLabel("godan-verb-class-expanded")
-        : part,
-    ),
-  };
-}
-
 function politeTarget(
   lemmaId: string,
   patternCellId: string,
@@ -3717,7 +3715,7 @@ const L2: BaseTask11LessonSpec = {
     act((() => { const target = task11ClassAnalysisTarget("verb-kaeru", "ichidan-verb-class", []); return { ...target, parts: [...target.parts, C, task11AnalysisLabel("analysis-suffix-guess")] }; })(), exceptionClassAnalysisTarget("verb-kaeru", [EXCEPTION_CELL]), (() => { const target = task11ClassAnalysisTarget("verb-kaeru", "ichidan-verb-class", [ICHIDAN_CELL]); return { ...target, parts: [...target.parts, C, task11AnalysisLabel("analysis-dictionary")] }; })(), 0, "polite-verbs-2-activity-5-instruction", EXCEPTION_CELL, BASE_ERROR_ACTIVITY_SHAPE, null, null, "verb-class-mismatch", { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-kaeru", optionAnalysisIds: ["verb-class-exceptions", "ichidan-verb-class"], errorDefectAxis: "form", changedTokenSourceIds: ["ichidan-verb-class", "godan-verb-class", "verb-class-exceptions", "analysis-suffix-guess"] }),
     act(task11Cue(task11VerbForm("verb-suru", "dictionary"), C, task11AnalysisLabel("analysis-class-question")), task11ClassAnalysisTarget("verb-suru", "suru-verb-class", [SPECIAL_CELL]), task11ClassAnalysisTarget("verb-suru", "godan-verb-class", [GODAN_CELL]), 1, "polite-verbs-2-activity-6-instruction", SPECIAL_CELL, BASE_CONTEXT_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-suru", optionAnalysisIds: ["suru-verb-class", "godan-verb-class"] }),
     act(task11Cue(task11VerbForm("verb-kuru", "dictionary"), C, task11AnalysisLabel("analysis-class-question")), task11ClassAnalysisTarget("verb-kuru", "kuru-verb-class", [SPECIAL_CELL]), task11ClassAnalysisTarget("verb-kuru", "ichidan-verb-class", [ICHIDAN_CELL]), 0, "polite-verbs-2-activity-7-instruction", SPECIAL_CELL, BASE_RETRIEVAL_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-kuru", optionAnalysisIds: ["kuru-verb-class", "ichidan-verb-class"] }),
-    act(task11Cue(task11VerbForm("verb-yomu", "dictionary"), C, task11AnalysisLabel("analysis-classification")), expandedGodanClassTarget("verb-yomu", [GODAN_CELL]), task11ClassAnalysisTarget("verb-yomu", "ichidan-verb-class", [ICHIDAN_CELL]), 1, "polite-verbs-2-activity-8-instruction", GODAN_CELL, BASE_MEANING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-yomu", optionAnalysisIds: ["godan-verb-class", "ichidan-verb-class"] }),
+    act(task11Cue(task11VerbForm("verb-yomu", "dictionary"), C, task11AnalysisLabel("analysis-classification")), task11ClassAnalysisTarget("verb-yomu", "godan-verb-class", [GODAN_CELL]), task11ClassAnalysisTarget("verb-yomu", "kuru-verb-class", [SPECIAL_CELL]), 1, "polite-verbs-2-activity-8-instruction", GODAN_CELL, BASE_MEANING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-yomu", optionAnalysisIds: ["godan-verb-class", "kuru-verb-class"] }),
     act(task11Cue(task11VerbForm("verb-miru", "dictionary"), C, task11AnalysisLabel("analysis-pair")), sourcedClassAnalysisTarget("verb-miru", "ichidan-verb-class", ICHIDAN_CELL, "analysis-source"), sourcedClassAnalysisTarget("verb-miru", "ichidan-verb-class", ICHIDAN_CELL, "analysis-classification"), 0, "polite-verbs-2-activity-9-instruction", ICHIDAN_CELL, BASE_LISTENING_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-miru", optionAnalysisIds: ["analysis-source", "analysis-classification"] }),
     act(task11Cue(task11VerbForm("verb-hataraku", "dictionary")), task11ClassAnalysisTarget("verb-hataraku", "godan-verb-class", [GODAN_CELL]), task11ClassAnalysisTarget("verb-hataraku", "ichidan-verb-class", [ICHIDAN_CELL]), 1, "polite-verbs-2-activity-10-instruction", GODAN_CELL, BASE_SPOKEN_ACTIVITY_SHAPE, null, null, null, { contrastAxis: "verb-class", heldConstantPredicateLexemeId: "verb-hataraku", optionAnalysisIds: ["godan-verb-class", "ichidan-verb-class"] }),
   ],

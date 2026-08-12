@@ -59,7 +59,7 @@ const VALIDATOR_ONLY_MARKER = "productive-verb-spaced-reuse";
 const BASE_SOURCE_ONLY_MARKERS: readonly (readonly [string, string])[] = [
   [
     "base naturalness ledger",
-    "c5d03e11acd4469491feac1c50a04d4f91eb4f58a4813bd4ab047c7f666bea3d",
+    "81d6d141bb02569b4328b3265d2a49fd9152834ca9c32ebade4d11a7092bd218",
   ],
   ["base audio review ledger", "base-audio-review-"],
 ];

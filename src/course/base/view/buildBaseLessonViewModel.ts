@@ -162,12 +162,37 @@ function lessonTitle(locale: Locale, lessonId: string): string | null {
   return typeof title === "string" && title.trim().length > 0 ? title : null;
 }
 
+/**
+ * The module-level Can-do descriptor. It is the whole module's framing, so a
+ * lesson may only use it when that lesson authors no objective of its own —
+ * see {@link lessonObjectiveCopyId}.
+ */
 function moduleCanDo(locale: Locale, moduleId: string): string | null {
   const copy = locale === "it" ? baseNavigationCopyIt : baseNavigationCopyEn;
   const manifestEntry = BASE_MODULE_MANIFEST[moduleId as keyof typeof BASE_MODULE_MANIFEST];
   if (!manifestEntry) return null;
   const value = copy.outcomes[manifestEntry.outcomeCopyId];
   return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+/**
+ * Every semantic Base lesson authors its own objective in both locales —
+ * `semanticLessonCopy` in `copy/en.ts`/`copy/it.ts` emits a
+ * `` `${lessonId}-objective` `` entry for all 36 of them, and each authoring
+ * module records the identical id in its own `objectiveCopyId` field. That
+ * copy id is derived here from the lesson id by the same stable, deterministic
+ * naming rule the authoring modules use (exactly as `resolveDialogue`
+ * recomputes each turn's translation copy id), because the canonical
+ * `BaseLessonContent` never carries the authoring wrapper's `objectiveCopyId`.
+ *
+ * Showing the module descriptor instead made all four lessons of a module
+ * advertise one identical line while the sharper authored objective shipped as
+ * dead copy. A locale that is missing the string fails the lesson closed
+ * (`missing-copy`) rather than falling back to the module descriptor: a silent
+ * fallback is exactly the bug this replaces.
+ */
+function lessonObjectiveCopyId(lessonId: string): string {
+  return `${lessonId}-objective`;
 }
 
 const soundLessonByLessonId: ReadonlyMap<string, BaseSoundLesson> = new Map(
@@ -185,6 +210,8 @@ function buildPhoneticModel(
 
   const title = lessonTitle(locale, lessonId);
   if (!title) return failure("missing-copy", lessonId, `lessons.${lessonId}.title`);
+  // The phonetic contract authors no per-lesson objective in either locale, so
+  // here the module descriptor genuinely is this lesson's framing.
   const canDo = moduleCanDo(locale, moduleId);
   if (!canDo) return failure("missing-copy", lessonId, `outcomes.${moduleId}`);
   const recap = copyText(locale, content.recapCopyId);
@@ -297,12 +324,12 @@ function buildSemanticModel(
   lessonId: string,
   locale: Locale,
   content: Exclude<BaseLessonContent, { readonly contract: "phonetic" }>,
-  moduleId: string,
 ): BaseLessonViewModelResult {
   const title = lessonTitle(locale, lessonId);
   if (!title) return failure("missing-copy", lessonId, `lessons.${lessonId}.title`);
-  const canDo = moduleCanDo(locale, moduleId);
-  if (!canDo) return failure("missing-copy", lessonId, `outcomes.${moduleId}`);
+  const objectiveCopyId = lessonObjectiveCopyId(lessonId);
+  const canDo = copyText(locale, objectiveCopyId);
+  if (!canDo) return failure("missing-copy", lessonId, objectiveCopyId);
   const recap = copyText(locale, content.recapCopyId);
   if (!recap) return failure("missing-copy", lessonId, content.recapCopyId);
 
@@ -424,5 +451,5 @@ export function buildBaseLessonViewModel(
   if (content.contract === "phonetic") {
     return buildPhoneticModel(lessonId, locale, content, manifest.moduleId);
   }
-  return buildSemanticModel(lessonId, locale, content, manifest.moduleId);
+  return buildSemanticModel(lessonId, locale, content);
 }

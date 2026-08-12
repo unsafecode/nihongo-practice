@@ -10,6 +10,65 @@ import { BASE_LEXEME_BY_ID } from "../catalog/lexicon";
 import { BASE_LESSON_IDS, baseCanonicalPosition } from "../manifest";
 
 describe("buildBaseReferenceViewModel", () => {
+  it("renders the complete 2x2 paradigm in the tense-polarity row that promises the four polite forms", () => {
+    for (const locale of ["en", "it"] as const) {
+      const result = buildBaseReferenceViewModel(
+        "tense-polarity",
+        "base-synthesis-4",
+        locale,
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) continue;
+      const paradigm = result.model.grid.rows.find(
+        ({ id }) => id === "base-tense-polite-grid",
+      );
+      expect(paradigm).toBeDefined();
+      if (!paradigm) continue;
+      // Every column the reference declares must carry a real form in the row
+      // labelled "Four polite forms": a paradigm reference with a hole where
+      // かきます belongs never shows the system it exists to show.
+      expect(paradigm.cells.map(({ columnId }) => columnId)).toEqual(
+        result.model.grid.columns.map(({ id }) => id),
+      );
+      expect(
+        paradigm.cells.map(({ value }) => value.map(({ jp }) => jp).join("")),
+      ).toEqual(["かきます", "かきません", "かきました", "かきませんでした"]);
+    }
+  });
+
+  it("never advertises a column no visible row has reached yet", () => {
+    // Progressive disclosure narrows the rows to what the learner has been
+    // taught. A column heading with no cell beneath it in any visible row
+    // promises a distinction the learner has never met and reads, on a
+    // beginner reference, as content that is missing rather than not-yet-due.
+    const offenders: string[] = [];
+    for (const reference of BASE_REFERENCE_CATALOG) {
+      for (const throughLessonId of BASE_LESSON_IDS) {
+        for (const locale of ["en", "it"] as const) {
+          const result = buildBaseReferenceViewModel(
+            reference.id,
+            throughLessonId,
+            locale,
+          );
+          if (!result.ok) continue;
+          const { grid } = result.model;
+          if (grid.rows.length === 0) continue;
+          const filled = new Set(
+            grid.rows.flatMap(({ cells }) => cells.map(({ columnId }) => columnId)),
+          );
+          for (const column of grid.columns) {
+            if (!filled.has(column.id)) {
+              offenders.push(
+                `${reference.id} @ ${throughLessonId} (${locale}): empty column "${column.id}"`,
+              );
+            }
+          }
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it("builds all five references through the final Base lesson", () => {
     for (const reference of BASE_REFERENCE_CATALOG) {
       const result = buildBaseReferenceViewModel(reference.id, "base-synthesis-4", "en");

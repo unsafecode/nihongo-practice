@@ -1,11 +1,92 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { BASE_LESSON_IDS, BASE_LESSON_MANIFEST } from "../manifest";
 import { baseCanonicalCatalog } from "../catalog/catalog";
+import { resolveBaseCopyText } from "../copy/resolveBaseCopy";
+import { baseNavigationCopyEn } from "../copy/en";
+import { baseNavigationCopyIt } from "../copy/it";
+import { BASE_MODULE_MANIFEST } from "../manifest";
 import { buildBaseLessonViewModel } from "./buildBaseLessonViewModel";
+
+const suppressedCopyIds = vi.hoisted(() => new Set<string>());
+
+vi.mock("../copy/resolveBaseCopy", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../copy/resolveBaseCopy")>();
+  return {
+    ...actual,
+    resolveBaseCopyText: (locale: "en" | "it", copyId: string) =>
+      suppressedCopyIds.has(copyId) ? null : actual.resolveBaseCopyText(locale, copyId),
+  };
+});
 
 const LOCALES = ["en", "it"] as const;
 
+function moduleOutcome(locale: (typeof LOCALES)[number], moduleId: string): string {
+  const copy = locale === "it" ? baseNavigationCopyIt : baseNavigationCopyEn;
+  return copy.outcomes[
+    BASE_MODULE_MANIFEST[moduleId as keyof typeof BASE_MODULE_MANIFEST].outcomeCopyId
+  ];
+}
+
 describe("buildBaseLessonViewModel", () => {
+  it("advertises each semantic lesson's own authored objective instead of repeating the module can-do", () => {
+    const perModule = new Map<string, Set<string>>();
+    for (const lessonId of BASE_LESSON_IDS) {
+      const manifest = BASE_LESSON_MANIFEST[lessonId];
+      if (manifest.contract === "phonetic") continue;
+      for (const locale of LOCALES) {
+        const objective = resolveBaseCopyText(locale, `${lessonId}-objective`);
+        expect(objective).not.toBeNull();
+        const result = buildBaseLessonViewModel(lessonId, locale);
+        expect(result.ok).toBe(true);
+        if (!result.ok) continue;
+        expect(result.model.canDo).toBe(objective);
+        expect(result.model.canDo).not.toBe(moduleOutcome(locale, manifest.moduleId));
+        const key = `${manifest.moduleId}:${locale}`;
+        const seen = perModule.get(key) ?? new Set<string>();
+        seen.add(result.model.canDo);
+        perModule.set(key, seen);
+      }
+    }
+    // Nine semantic modules x two locales, four distinct lesson objectives each:
+    // no module may hand its four lessons the same line any more.
+    expect(perModule.size).toBe(18);
+    for (const [key, seen] of perModule) {
+      expect(seen.size, key).toBe(4);
+    }
+  });
+
+  it("fails closed when a lesson's authored objective is missing in a locale", () => {
+    suppressedCopyIds.add("topic-questions-1-objective");
+    try {
+      for (const locale of LOCALES) {
+        expect(buildBaseLessonViewModel("topic-questions-1", locale)).toEqual({
+          ok: false,
+          error: {
+            code: "missing-copy",
+            lessonId: "topic-questions-1",
+            referenceId: "topic-questions-1-objective",
+          },
+        });
+      }
+    } finally {
+      suppressedCopyIds.delete("topic-questions-1-objective");
+    }
+  });
+
+  it("keeps the module can-do only on the phonetic lessons, which author no per-lesson objective", () => {
+    for (const lessonId of BASE_LESSON_IDS) {
+      const manifest = BASE_LESSON_MANIFEST[lessonId];
+      if (manifest.contract !== "phonetic") continue;
+      for (const locale of LOCALES) {
+        expect(resolveBaseCopyText(locale, `${lessonId}-objective`)).toBeNull();
+        const result = buildBaseLessonViewModel(lessonId, locale);
+        expect(result.ok).toBe(true);
+        if (!result.ok) continue;
+        expect(result.model.canDo).toBe(moduleOutcome(locale, manifest.moduleId));
+      }
+    }
+  });
+
   it.each(BASE_LESSON_IDS)("builds %s in EN/IT without fallback", (lessonId) => {
     for (const locale of LOCALES) {
       const result = buildBaseLessonViewModel(lessonId, locale);

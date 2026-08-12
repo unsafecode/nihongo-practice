@@ -102,6 +102,7 @@ function baseLessonSectionBody(
           contract={model.contract}
           explanation={model.explanation}
           referenceSnapshots={model.referenceSnapshots}
+          lessonId={lessonId}
           copy={baseLessonCopy}
         />
       );

@@ -1,4 +1,6 @@
 import type { ReactElement } from "react";
+import { Link } from "react-router";
+import { baseReferencePath } from "../../../routing/routePaths";
 import type {
   BaseContrastMapView,
   BaseReferenceSnapshotView,
@@ -11,6 +13,13 @@ export interface BaseSemanticExplanationProps {
   readonly contract: "content" | "system" | "synthesis";
   readonly explanation: BaseSemanticExplanationView;
   readonly referenceSnapshots: readonly BaseReferenceSnapshotView[];
+  /**
+   * The lesson offering these references. It is required, not optional: a
+   * reference opened without it falls back to the end-of-course view, which
+   * would show a beginner every later grammar point the progressive surface
+   * exists to withhold.
+   */
+  readonly lessonId: string;
   readonly copy: CourseCopy["baseLesson"];
 }
 
@@ -108,7 +117,9 @@ export function BaseExplanation(props: BaseExplanationProps): ReactElement {
               className="base-reference-snapshot__item"
               data-reference-id={snapshot.id}
             >
-              {snapshot.title}
+              <Link to={baseReferencePath(snapshot.id, props.lessonId)}>
+                {snapshot.title}
+              </Link>
             </li>
           ))}
         </ul>
