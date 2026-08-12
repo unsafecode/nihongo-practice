@@ -566,6 +566,31 @@ describe("Task 12 bounded te ownership", () => {
     expect(validateBaseRequestsConnectionModule(mutated).ok).toBe(false);
   });
 
+  it("uses canonical equality as the final defense for context drift", () => {
+    const mutated = structuredClone(BASE_REQUESTS_CONNECTION_MODULE);
+    const context = mutated.lessons[0].activityDesigns[0]
+      .contextTarget as unknown as { id: string };
+    context.id = `${context.id}-forged`;
+
+    expect(validateBaseRequestsConnectionModule(mutated)).toEqual({
+      ok: false,
+      errors: ["invalid-module-shape"],
+    });
+  });
+
+  it("sanitizes raw module input before reading semantic fields", () => {
+    const hostile = new Proxy(BASE_REQUESTS_CONNECTION_MODULE, {
+      get() {
+        throw new Error("raw module property read");
+      },
+    });
+
+    expect(validateBaseRequestsConnectionModule(hostile)).toEqual({
+      ok: true,
+      errors: [],
+    });
+  });
+
   it("rejects an overgeneralized いきて target despite canonical-looking provenance", () => {
     const mutated = structuredClone(BASE_REQUESTS_CONNECTION_MODULE);
     const target = mutated.lessons[0].examples.find(

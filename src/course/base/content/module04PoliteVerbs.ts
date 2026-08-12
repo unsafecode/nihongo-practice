@@ -1465,10 +1465,109 @@ function plainRecord(value: unknown): Readonly<Record<string, unknown>> | undefi
   }
 }
 
-export function task11PlainDataEqual(
+const INVALID_TASK11_PLAIN_DATA = Symbol("invalid-task11-plain-data");
+
+function snapshotTask11PlainDataValue(
+  value: unknown,
+  active: WeakSet<object>,
+  seen: WeakMap<object, unknown>,
+): unknown | typeof INVALID_TASK11_PLAIN_DATA {
+  if (value === null) return null;
+  if (typeof value !== "object") {
+    return ["undefined", "boolean", "number", "string"].includes(typeof value)
+      ? value
+      : INVALID_TASK11_PLAIN_DATA;
+  }
+  if (active.has(value)) return INVALID_TASK11_PLAIN_DATA;
+  if (seen.has(value)) return seen.get(value);
+  active.add(value);
+  try {
+    const isArray = Array.isArray(value);
+    if (
+      Object.getPrototypeOf(value) !==
+      (isArray ? Array.prototype : Object.prototype)
+    ) {
+      return INVALID_TASK11_PLAIN_DATA;
+    }
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    if (Reflect.ownKeys(descriptors).some((key) => typeof key === "symbol")) {
+      return INVALID_TASK11_PLAIN_DATA;
+    }
+    if (isArray) {
+      const lengthDescriptor = descriptors.length;
+      if (
+        !lengthDescriptor ||
+        !("value" in lengthDescriptor) ||
+        typeof lengthDescriptor.value !== "number" ||
+        Object.keys(descriptors).length !== lengthDescriptor.value + 1
+      ) {
+        return INVALID_TASK11_PLAIN_DATA;
+      }
+      const entries: unknown[] = [];
+      for (let index = 0; index < lengthDescriptor.value; index += 1) {
+        const descriptor = descriptors[String(index)];
+        if (
+          !descriptor ||
+          !("value" in descriptor) ||
+          !descriptor.enumerable
+        ) {
+          return INVALID_TASK11_PLAIN_DATA;
+        }
+        const snapshot = snapshotTask11PlainDataValue(
+          descriptor.value,
+          active,
+          seen,
+        );
+        if (snapshot === INVALID_TASK11_PLAIN_DATA) {
+          return INVALID_TASK11_PLAIN_DATA;
+        }
+        entries.push(snapshot);
+      }
+      const snapshot = Object.freeze(entries);
+      seen.set(value, snapshot);
+      return snapshot;
+    }
+    const entries: [string, unknown][] = [];
+    for (const [key, descriptor] of Object.entries(descriptors)) {
+      if (!("value" in descriptor) || !descriptor.enumerable) {
+        return INVALID_TASK11_PLAIN_DATA;
+      }
+      const snapshot = snapshotTask11PlainDataValue(
+        descriptor.value,
+        active,
+        seen,
+      );
+      if (snapshot === INVALID_TASK11_PLAIN_DATA) {
+        return INVALID_TASK11_PLAIN_DATA;
+      }
+      entries.push([key, snapshot]);
+    }
+    const snapshot = Object.freeze(Object.fromEntries(entries));
+    seen.set(value, snapshot);
+    return snapshot;
+  } catch {
+    return INVALID_TASK11_PLAIN_DATA;
+  } finally {
+    active.delete(value);
+  }
+}
+
+export function task11PlainDataSnapshot(
+  value: unknown,
+): Readonly<{ readonly value: unknown }> | undefined {
+  const snapshot = snapshotTask11PlainDataValue(
+    value,
+    new WeakSet(),
+    new WeakMap(),
+  );
+  return snapshot === INVALID_TASK11_PLAIN_DATA
+    ? undefined
+    : Object.freeze({ value: snapshot });
+}
+
+function task11PlainDataSnapshotsEqual(
   actual: unknown,
   expected: unknown,
-  active: WeakSet<object> = new WeakSet(),
 ): boolean {
   if (
     actual === null ||
@@ -1478,52 +1577,44 @@ export function task11PlainDataEqual(
   ) {
     return Object.is(actual, expected);
   }
-  if (active.has(actual)) return false;
-  active.add(actual);
-  try {
-    const actualArray = denseArray(actual);
-    const expectedArray = denseArray(expected);
-    if (actualArray || expectedArray) {
-      return (
-        actualArray !== undefined &&
-        expectedArray !== undefined &&
-        actualArray.length === expectedArray.length &&
-        actualArray.every((value, index) =>
-          task11PlainDataEqual(value, expectedArray[index], active),
-        )
-      );
-    }
-    const actualRecord = plainRecord(actual);
-    const expectedRecord = plainRecord(expected);
-    if (!actualRecord || !expectedRecord) return false;
-    const actualKeys = Object.keys(actualRecord).sort();
-    const expectedKeys = Object.keys(expectedRecord).sort();
-    if (
-      actualKeys.length !== expectedKeys.length ||
-      actualKeys.some((key, index) => key !== expectedKeys[index])
-    ) {
-      return false;
-    }
-    return actualKeys.every((key) => {
-      const actualDescriptor = Object.getOwnPropertyDescriptor(actualRecord, key);
-      const expectedDescriptor = Object.getOwnPropertyDescriptor(expectedRecord, key);
-      return (
-        actualDescriptor !== undefined &&
-        expectedDescriptor !== undefined &&
-        "value" in actualDescriptor &&
-        "value" in expectedDescriptor &&
-        task11PlainDataEqual(
-          actualDescriptor.value,
-          expectedDescriptor.value,
-          active,
-        )
-      );
-    });
-  } catch {
-    return false;
-  } finally {
-    active.delete(actual);
+  if (Array.isArray(actual) || Array.isArray(expected)) {
+    return (
+      Array.isArray(actual) &&
+      Array.isArray(expected) &&
+      actual.length === expected.length &&
+      actual.every((value, index) =>
+        task11PlainDataSnapshotsEqual(value, expected[index]),
+      )
+    );
   }
+  const actualRecord = actual as Readonly<Record<string, unknown>>;
+  const expectedRecord = expected as Readonly<Record<string, unknown>>;
+  const actualKeys = Object.keys(actualRecord).sort();
+  const expectedKeys = Object.keys(expectedRecord).sort();
+  return (
+    actualKeys.length === expectedKeys.length &&
+    actualKeys.every(
+      (key, index) =>
+        key === expectedKeys[index] &&
+        task11PlainDataSnapshotsEqual(actualRecord[key], expectedRecord[key]),
+    )
+  );
+}
+
+export function task11PlainDataEqual(
+  actual: unknown,
+  expected: unknown,
+): boolean {
+  const actualSnapshot = task11PlainDataSnapshot(actual);
+  if (!actualSnapshot) return false;
+  const expectedSnapshot = task11PlainDataSnapshot(expected);
+  return (
+    expectedSnapshot !== undefined &&
+    task11PlainDataSnapshotsEqual(
+      actualSnapshot.value,
+      expectedSnapshot.value,
+    )
+  );
 }
 
 export type BaseTask11SemanticReviewErrorCode =
@@ -3731,8 +3822,12 @@ const RAW_POLITE_VERBS_MODULE: BasePoliteVerbsModule = {
 export function validateBasePoliteVerbsModule(
   value: unknown,
 ): Readonly<{ readonly ok: boolean; readonly errors: readonly BaseTask11ModuleError[] }> {
+  const snapshot = task11PlainDataSnapshot(value);
+  if (!snapshot) {
+    return { ok: false, errors: ["invalid-module-shape"] };
+  }
   const result = validateTask11ModuleBase(
-    value,
+    snapshot.value,
     "polite-verbs",
     POLITE_SPECS.map(({ lessonId }) => lessonId),
     BASE_POLITE_VERBS_VALIDATION_CATALOGS,
@@ -3749,7 +3844,7 @@ export function validateBasePoliteVerbsModule(
         : ["invalid-lesson-shape"],
     };
   }
-  return result.ok && !task11PlainDataEqual(value, RAW_POLITE_VERBS_MODULE)
+  return !task11PlainDataEqual(snapshot.value, RAW_POLITE_VERBS_MODULE)
     ? { ok: false, errors: ["invalid-module-shape"] }
     : result;
 }

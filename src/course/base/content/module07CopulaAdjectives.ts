@@ -20,6 +20,7 @@ import {
   hasAuthoredClauseFinalSuffix,
   isExactOrderChunkPermutation,
   strictTask11ModuleSnapshot,
+  type StrictTask11CorpusTarget,
 } from "../validation/moduleSnapshots";
 import {
   BASE_CONTEXT_ACTIVITY_SHAPE,
@@ -42,6 +43,8 @@ import {
   task11DiagnosticForm,
   task11Lexeme,
   task11Particle,
+  task11PlainDataEqual,
+  task11PlainDataSnapshot,
   task11Target,
   task11ValidationCatalogs,
   validateTask11ModuleBase,
@@ -576,7 +579,7 @@ export const BASE_COPULA_ADJECTIVES_PREDICATE_CELLS: readonly Readonly<{
   { lessonId: "copula-adjectives-4", id: NA_ATTRIBUTIVE, tokens: NA_ATTR.value },
 ]);
 
-const RAW_MODULE: BaseCopulaAdjectivesModule = {
+const RAW_COPULA_ADJECTIVES_MODULE: BaseCopulaAdjectivesModule = {
   id: "copula-adjectives",
   lessons: RAW_LESSONS,
   sequence: [
@@ -608,17 +611,98 @@ const PREDICATE_FORM_BY_CELL: Readonly<Record<string, BasePredicateForm>> =
     [NA_PAST_NEGATIVE]: "pastNegative",
   });
 
+const PREDICATE_FORM_ID_BY_CELL: Readonly<Record<string, string>> = deepFreeze({
+  [NOUN_AFFIRMATIVE]: "affirmative-desu",
+  [NOUN_NEGATIVE]: "base-form-noun-predicate-negative",
+  [NOUN_PAST_AFFIRMATIVE]: "base-form-noun-predicate-past-affirmative",
+  [NOUN_PAST_NEGATIVE]: "base-form-noun-predicate-past-negative",
+  [I_AFFIRMATIVE]: "base-form-i-adjective-affirmative",
+  [I_NEGATIVE]: "base-form-i-adjective-negative",
+  [I_PAST_AFFIRMATIVE]: "base-form-i-adjective-past-affirmative",
+  [I_PAST_NEGATIVE]: "base-form-i-adjective-past-negative",
+  [NA_AFFIRMATIVE]: "base-form-na-adjective-affirmative",
+  [NA_NEGATIVE]: "base-form-na-adjective-negative",
+  [NA_PAST_AFFIRMATIVE]: "base-form-na-adjective-past-affirmative",
+  [NA_PAST_NEGATIVE]: "base-form-na-adjective-past-negative",
+  [I_ATTRIBUTIVE]: "base-form-i-adjective-affirmative",
+  [NA_ATTRIBUTIVE]: "base-form-na-adjective-attributive",
+});
+
+const PREDICATE_FORM_IDS = deepFreeze([
+  ...new Set(Object.values(PREDICATE_FORM_ID_BY_CELL)),
+]);
+
+const PREDICATE_MORPHEME_SOURCE_IDS = deepFreeze([
+  ...new Set(
+    BASE_COPULA_ADJECTIVES_PREDICATE_CELLS.flatMap(({ tokens }) =>
+      tokens
+        .filter(({ kind }) => kind === "morpheme")
+        .map(({ source }) => source.referenceId),
+    ),
+  ),
+]);
+
+function hasExactPredicateFormMetadata(
+  target: BaseVisibleTarget,
+  cellId: string,
+): boolean {
+  const requiredFormId = PREDICATE_FORM_ID_BY_CELL[cellId];
+  if (!requiredFormId) return false;
+  const expected =
+    cellId === I_ATTRIBUTIVE || cellId === NA_ATTRIBUTIVE
+      ? [requiredFormId, "affirmative-desu"].sort()
+      : [requiredFormId];
+  const actual = target.formIds
+    .filter((id) => PREDICATE_FORM_IDS.includes(id))
+    .sort();
+  return (
+    actual.length === expected.length &&
+    actual.every((id, index) => id === expected[index])
+  );
+}
+
+function hasPredicateTokenEvidence(target: BaseVisibleTarget): boolean {
+  return (
+    target.tokens.some(({ source }) =>
+      PREDICATE_MORPHEME_SOURCE_IDS.includes(source.referenceId),
+    ) ||
+    target.lexemeIds.some(
+      (id) => BASE_LEXICON.find((lexeme) => lexeme.id === id)?.category === "adjective",
+    ) ||
+    target.tokens.some(
+      ({ source }) =>
+        BASE_LEXICON.find((lexeme) => lexeme.id === source.referenceId)
+          ?.category === "adjective",
+    )
+  );
+}
+
+function isDeclaredPredicateDiagnostic(
+  entry: StrictTask11CorpusTarget,
+): boolean {
+  return (
+    entry.source === "prompt" &&
+    entry.operation === "diagnose-error" &&
+    entry.target.tokens.some(
+      ({ source }) => source.referenceId === "i-adjective-copula-da",
+    )
+  );
+}
+
 function hasCanonicalPredicateRealization(
   target: BaseVisibleTarget,
   allowFormIdDerivation: boolean,
   allowOrderPermutation: boolean,
 ): boolean {
-  const cellId = target.patternCellIds.find(
+  const cellIds = target.patternCellIds.filter(
     (id) =>
       id in PREDICATE_FORM_BY_CELL ||
       id === I_ATTRIBUTIVE ||
       id === NA_ATTRIBUTIVE,
   );
+  if (cellIds.length > 1) return false;
+  const cellId = cellIds[0];
+  if (cellId && !hasExactPredicateFormMetadata(target, cellId)) return false;
   type Requirement =
     | Readonly<{
         kind: "noun" | "i-adjective" | "na-adjective";
@@ -839,53 +923,47 @@ export function validateBaseCopulaAdjectivesModule(
   readonly ok: boolean;
   readonly errors: readonly BaseTask11ModuleError[];
 }> {
+  const sanitized = task11PlainDataSnapshot(value);
+  if (!sanitized) {
+    return { ok: false, errors: ["invalid-module-shape"] };
+  }
   const base = validateTask11ModuleBase(
-    value,
+    sanitized.value,
     "copula-adjectives",
     SPECS.map(({ lessonId }) => lessonId),
     BASE_COPULA_ADJECTIVES_VALIDATION_CATALOGS,
   );
   if (!base.ok) return base;
-  const snapshot = strictTask11ModuleSnapshot(value);
-  const predicateFormIds = [
-    "affirmative-desu",
-    "base-form-noun-predicate-negative",
-    "base-form-noun-predicate-past-affirmative",
-    "base-form-noun-predicate-past-negative",
-    "base-form-i-adjective-affirmative",
-    "base-form-i-adjective-negative",
-    "base-form-i-adjective-past-affirmative",
-    "base-form-i-adjective-past-negative",
-    "base-form-na-adjective-affirmative",
-    "base-form-na-adjective-negative",
-    "base-form-na-adjective-past-affirmative",
-    "base-form-na-adjective-past-negative",
-    "base-form-na-adjective-attributive",
-  ];
-  return snapshot?.corpusTargets.every((entry) => {
+  const snapshot = strictTask11ModuleSnapshot(sanitized.value);
+  const semanticInvariantHolds = snapshot?.corpusTargets.every((entry) => {
     const { source, target } = entry;
     const orderPermutation = isExactOrderChunkPermutation(
       entry,
       snapshot.corpusTargets,
     );
     const hasPredicateEvidence =
-      target.patternCellIds.some(
-        (id) =>
-          id in PREDICATE_FORM_BY_CELL ||
-          id === I_ATTRIBUTIVE ||
-          id === NA_ATTRIBUTIVE,
-      ) || target.formIds.some((id) => predicateFormIds.includes(id));
+      hasPredicateTokenEvidence(target) ||
+      target.patternCellIds.some((id) => id in PREDICATE_FORM_ID_BY_CELL) ||
+      target.formIds.some((id) => PREDICATE_FORM_IDS.includes(id));
     return (
       !hasPredicateEvidence ||
+      isDeclaredPredicateDiagnostic(entry) ||
       hasCanonicalPredicateRealization(
         target,
         source === "prompt" || orderPermutation,
         orderPermutation,
       )
     );
-  })
+  });
+  if (!semanticInvariantHolds) {
+    return { ok: false, errors: ["invalid-lesson-shape"] };
+  }
+  return task11PlainDataEqual(
+    sanitized.value,
+    RAW_COPULA_ADJECTIVES_MODULE,
+  )
     ? base
-    : { ok: false, errors: ["invalid-lesson-shape"] };
+    : { ok: false, errors: ["invalid-module-shape"] };
 }
 
 export const module07ConceptIds = deepFreeze(
@@ -893,4 +971,4 @@ export const module07ConceptIds = deepFreeze(
 );
 
 export const BASE_COPULA_ADJECTIVES_MODULE: BaseCopulaAdjectivesModule =
-  deepFreeze(RAW_MODULE);
+  deepFreeze(RAW_COPULA_ADJECTIVES_MODULE);

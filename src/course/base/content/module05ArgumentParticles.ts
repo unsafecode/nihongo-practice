@@ -35,6 +35,7 @@ import {
   task11Lexeme,
   task11Particle,
   task11PlainDataEqual,
+  task11PlainDataSnapshot,
   task11Target,
   task11ValidationCatalogs,
   task11VerbForm,
@@ -727,8 +728,12 @@ const RAW_ARGUMENT_PARTICLES_MODULE: BaseArgumentParticlesModule = {
 export function validateBaseArgumentParticlesModule(
   value: unknown,
 ): Readonly<{ readonly ok: boolean; readonly errors: readonly BaseTask11ModuleError[] }> {
+  const snapshot = task11PlainDataSnapshot(value);
+  if (!snapshot) {
+    return { ok: false, errors: ["invalid-module-shape"] };
+  }
   const base = validateTask11ModuleBase(
-    value,
+    snapshot.value,
     "argument-particles",
     ARGUMENT_SPECS.map(({ lessonId }) => lessonId),
     BASE_ARGUMENT_PARTICLES_VALIDATION_CATALOGS,
@@ -748,7 +753,7 @@ export function validateBaseArgumentParticlesModule(
         : ["invalid-lesson-shape"],
     };
   }
-  if (!task11PlainDataEqual(value, RAW_ARGUMENT_PARTICLES_MODULE)) {
+  if (!task11PlainDataEqual(snapshot.value, RAW_ARGUMENT_PARTICLES_MODULE)) {
     return { ok: false, errors: ["invalid-module-shape"] };
   }
   const licensingFailure = RAW_ARGUMENT_LESSONS.some((lesson) =>

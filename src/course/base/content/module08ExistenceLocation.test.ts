@@ -242,6 +242,97 @@ describe("Task 12 existence-particle ownership", () => {
     expect(validateBaseExistenceLocationModule(mutated).ok).toBe(false);
   });
 
+  it("derives ある evidence after predicate metadata is stripped", () => {
+    const mutated = structuredClone(BASE_EXISTENCE_LOCATION_MODULE);
+    const target = mutated.lessons[1].examples[0] as unknown as {
+      predicateLexemeId: string | null;
+      tokens: Array<{
+        jp: string;
+        romaji: string;
+        source: { referenceId: string };
+      }>;
+    };
+    target.predicateLexemeId = null;
+    const stem = target.tokens.find(
+      ({ source }) => source.referenceId === "verb-aru",
+    )!;
+    stem.jp = "い";
+    stem.romaji = "i";
+
+    expect(validateBaseExistenceLocationModule(mutated)).toEqual({
+      ok: false,
+      errors: ["invalid-lesson-shape"],
+    });
+  });
+
+  it.each(["example", "option", "audio", "spoken", "context"] as const)(
+    "rejects stripped existence predicate metadata on a %s target",
+    (source) => {
+      const mutated = structuredClone(BASE_EXISTENCE_LOCATION_MODULE);
+      const firstLesson = mutated.lessons[0];
+      const listening = firstLesson.activityDesigns[8];
+      const target =
+        source === "example"
+          ? firstLesson.examples[0]
+          : source === "option"
+            ? firstLesson.activityDesigns[0].optionTargets[0]
+            : source === "audio"
+              ? listening.optionTargets[listening.correctOptionIndex!]
+              : source === "spoken"
+                ? firstLesson.activityDesigns[9].acceptedAnswerTarget
+                : firstLesson.activityDesigns[5].promptTarget;
+      (
+        target as unknown as { predicateLexemeId: string | null }
+      ).predicateLexemeId = null;
+
+      expect(validateBaseExistenceLocationModule(mutated)).toEqual({
+        ok: false,
+        errors: ["invalid-lesson-shape"],
+      });
+    },
+  );
+
+  it("rejects forged option predicates that disagree with lexical evidence", () => {
+    const mutated = structuredClone(BASE_EXISTENCE_LOCATION_MODULE);
+    const activity = mutated.lessons[0].activityDesigns[0];
+    const target = activity.optionTargets[
+      activity.correctOptionIndex!
+    ] as unknown as {
+      lexemeIds: string[];
+    };
+    target.lexemeIds.push("verb-aru");
+
+    expect(validateBaseExistenceLocationModule(mutated)).toEqual({
+      ok: false,
+      errors: ["invalid-lesson-shape"],
+    });
+  });
+
+  it("uses canonical equality as the final defense for context drift", () => {
+    const mutated = structuredClone(BASE_EXISTENCE_LOCATION_MODULE);
+    const context = mutated.lessons[0].activityDesigns[0]
+      .contextTarget as unknown as { id: string };
+    context.id = `${context.id}-forged`;
+
+    expect(validateBaseExistenceLocationModule(mutated)).toEqual({
+      ok: false,
+      errors: ["invalid-module-shape"],
+    });
+  });
+
+  it("sanitizes raw module input before reading semantic fields", () => {
+    const hostile = new Proxy(BASE_EXISTENCE_LOCATION_MODULE, {
+      get() {
+        throw new Error("raw module property read");
+      },
+    });
+
+    expect(validateBaseExistenceLocationModule(hostile)).toEqual({
+      ok: true,
+      errors: [],
+    });
+  });
+
   it("rejects a coherently relabeled action-place で on an existence predicate", () => {
     const mutated = structuredClone(BASE_EXISTENCE_LOCATION_MODULE);
     const target = mutated.lessons[1].examples[0] as unknown as {

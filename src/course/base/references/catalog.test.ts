@@ -241,7 +241,9 @@ describe("Base reference catalog", () => {
 
     const supplied = mutableCatalog();
     const first = inspectBaseReferenceCatalog(supplied);
-    (supplied[0].entries[0].sourceContentIds as string[]).push("te-imasu");
+    (supplied[0].entries[0].sourceContentIds as string[]).push(
+      "base-construction-te-imasu",
+    );
     const second = inspectBaseReferenceCatalog(supplied);
     expect(second).not.toBe(first);
     expect(second.catalog).toBeNull();

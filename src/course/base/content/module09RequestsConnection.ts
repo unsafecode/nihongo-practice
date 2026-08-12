@@ -50,6 +50,8 @@ import {
   task11DiagnosticForm,
   task11Lexeme,
   task11Particle,
+  task11PlainDataEqual,
+  task11PlainDataSnapshot,
   task11Target,
   task11ValidationCatalogs,
   task11VerbForm,
@@ -1218,7 +1220,7 @@ export const BASE_REQUESTS_CONNECTION_VALIDATION_CATALOGS: BaseValidationCatalog
     BUILT,
   );
 
-const RAW_MODULE: BaseRequestsConnectionModule = {
+const RAW_REQUESTS_CONNECTION_MODULE: BaseRequestsConnectionModule = {
   id: "requests-connection",
   lessons: RAW_LESSONS,
   sequence: [
@@ -1368,14 +1370,18 @@ export function validateBaseRequestsConnectionModule(
   readonly ok: boolean;
   readonly errors: readonly BaseTask11ModuleError[];
 }> {
+  const sanitized = task11PlainDataSnapshot(value);
+  if (!sanitized) {
+    return { ok: false, errors: ["invalid-module-shape"] };
+  }
   const base = validateTask11ModuleBase(
-    value,
+    sanitized.value,
     "requests-connection",
     SPECS.map(({ lessonId }) => lessonId),
     BASE_REQUESTS_CONNECTION_VALIDATION_CATALOGS,
   );
   if (!base.ok) return base;
-  const snapshot = strictTask11ModuleSnapshot(value);
+  const snapshot = strictTask11ModuleSnapshot(sanitized.value);
   const corpusCollisions = validateTask11CorpusDistinctness(
     [
       BASE_SENTENCE_FOUNDATIONS_MODULE,
@@ -1385,7 +1391,7 @@ export function validateBaseRequestsConnectionModule(
       BASE_TIME_MOVEMENT_MODULE,
       BASE_COPULA_ADJECTIVES_MODULE,
       BASE_EXISTENCE_LOCATION_MODULE,
-      value,
+      sanitized.value,
     ],
     baseNavigationCopyEn.content,
     baseNavigationCopyIt.content,
@@ -1395,14 +1401,22 @@ export function validateBaseRequestsConnectionModule(
       lessonId,
     ),
   );
-  return snapshot &&
+  const semanticInvariantHolds =
+    snapshot &&
     snapshot.corpusTargets.every((entry) =>
       hasCanonicalTeRealization(entry, snapshot.corpusTargets),
     ) &&
     hasCanonicalTask12Semantics(snapshot.targets) &&
-    task12CorpusCollisions?.length === 0
+    task12CorpusCollisions?.length === 0;
+  if (!semanticInvariantHolds) {
+    return { ok: false, errors: ["invalid-lesson-shape"] };
+  }
+  return task11PlainDataEqual(
+    sanitized.value,
+    RAW_REQUESTS_CONNECTION_MODULE,
+  )
     ? base
-    : { ok: false, errors: ["invalid-lesson-shape"] };
+    : { ok: false, errors: ["invalid-module-shape"] };
 }
 
 export const module09ConceptIds = deepFreeze(
@@ -1410,4 +1424,4 @@ export const module09ConceptIds = deepFreeze(
 );
 
 export const BASE_REQUESTS_CONNECTION_MODULE: BaseRequestsConnectionModule =
-  deepFreeze(RAW_MODULE);
+  deepFreeze(RAW_REQUESTS_CONNECTION_MODULE);

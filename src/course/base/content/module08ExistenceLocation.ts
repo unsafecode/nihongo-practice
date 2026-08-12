@@ -28,6 +28,8 @@ import {
   task11Cue,
   task11Lexeme,
   task11Particle,
+  task11PlainDataEqual,
+  task11PlainDataSnapshot,
   task11Target,
   task11ValidationCatalogs,
   task11VerbForm,
@@ -803,7 +805,7 @@ function hasCanonicalExistenceLicensing(
   );
 }
 
-const RAW_MODULE: BaseExistenceLocationModule = {
+const RAW_EXISTENCE_LOCATION_MODULE: BaseExistenceLocationModule = {
   id: "existence-location",
   lessons: RAW_LESSONS,
   sequence: [
@@ -820,13 +822,21 @@ function hasExactExistenceRealization(
   corpusTargets: readonly StrictTask11CorpusTarget[],
 ): boolean {
   const { target } = entry;
+  const predicateEvidence = [
+    ...new Set(
+      [...target.lexemeIds, ...target.tokens.map(({ source }) => source.referenceId)]
+        .filter((id) => id === ARU || id === IRU),
+    ),
+  ];
+  if (predicateEvidence.length === 0) return true;
   if (
-    target.predicateLexemeId !== ARU &&
-    target.predicateLexemeId !== IRU
+    predicateEvidence.length !== 1 ||
+    target.predicateLexemeId !== predicateEvidence[0] ||
+    !target.lexemeIds.includes(predicateEvidence[0])
   ) {
-    return true;
+    return false;
   }
-  const realized = realizePoliteNonpast(target.predicateLexemeId);
+  const realized = realizePoliteNonpast(predicateEvidence[0]);
   if (!realized.ok) return false;
   const spans = findExactGeneratedTokenSpans(target.tokens, realized.value);
   if (spans.length !== 1) return false;
@@ -842,15 +852,20 @@ export function validateBaseExistenceLocationModule(
   readonly ok: boolean;
   readonly errors: readonly BaseTask11ModuleError[];
 }> {
+  const sanitized = task11PlainDataSnapshot(value);
+  if (!sanitized) {
+    return { ok: false, errors: ["invalid-module-shape"] };
+  }
   const base = validateTask11ModuleBase(
-    value,
+    sanitized.value,
     "existence-location",
     SPECS.map(({ lessonId }) => lessonId),
     BASE_EXISTENCE_LOCATION_VALIDATION_CATALOGS,
   );
   if (!base.ok) return base;
-  const snapshot = strictTask11ModuleSnapshot(value);
-  return snapshot &&
+  const snapshot = strictTask11ModuleSnapshot(sanitized.value);
+  const semanticInvariantHolds =
+    snapshot &&
     snapshot.corpusTargets.every((entry) =>
       hasExactExistenceRealization(entry, snapshot.corpusTargets),
     ) &&
@@ -860,9 +875,16 @@ export function validateBaseExistenceLocationModule(
         ({ lessonId, target }) =>
           hasCorrectEntityClass(target) &&
           hasCanonicalExistenceLicensing(lessonId, target),
-      )
+      );
+  if (!semanticInvariantHolds) {
+    return { ok: false, errors: ["invalid-lesson-shape"] };
+  }
+  return task11PlainDataEqual(
+    sanitized.value,
+    RAW_EXISTENCE_LOCATION_MODULE,
+  )
     ? base
-    : { ok: false, errors: ["invalid-lesson-shape"] };
+    : { ok: false, errors: ["invalid-module-shape"] };
 }
 
 export const module08ConceptIds = deepFreeze(
@@ -870,4 +892,4 @@ export const module08ConceptIds = deepFreeze(
 );
 
 export const BASE_EXISTENCE_LOCATION_MODULE: BaseExistenceLocationModule =
-  deepFreeze(RAW_MODULE);
+  deepFreeze(RAW_EXISTENCE_LOCATION_MODULE);

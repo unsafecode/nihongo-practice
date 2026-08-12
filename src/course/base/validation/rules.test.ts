@@ -682,7 +682,7 @@ describe("Base lesson depth rules", () => {
     const futureComponentExample: BaseExample = {
       ...EXAMPLES[0],
       id: "future-system-component-example",
-      formIds: ["te-imasu"],
+      formIds: ["base-construction-te-imasu"],
       discourseFrameId: "future-system-component-frame",
     };
     const catalogs: BaseValidationCatalogs = {
@@ -697,7 +697,10 @@ describe("Base lesson depth rules", () => {
           {
             id: "progressive-system",
             firstTeachLessonId: "sentence-foundations-2",
-            componentContentIds: ["sentence-chunks", "te-imasu"],
+            componentContentIds: [
+              "sentence-chunks",
+              "base-construction-te-imasu",
+            ],
           },
         ],
       ]),
@@ -1317,7 +1320,7 @@ describe("Base lesson depth rules", () => {
     const semanticallyDistinct = {
       ...EXAMPLES[1],
       tokens: [token("distinct-token", "例1")],
-      formIds: ["te-imasu"],
+      formIds: ["base-construction-te-imasu"],
       semanticRoleIds: ["topic"],
       discourseFrameId: "different-frame",
     } as unknown as BaseExample;
@@ -1335,7 +1338,7 @@ describe("Base lesson depth rules", () => {
     const sameSurfaceDifferentSemantics: BaseExample = {
       ...EXAMPLES[1],
       tokens: [token("same-surface-different-semantics", "例1")],
-      formIds: ["te-imasu"],
+      formIds: ["base-construction-te-imasu"],
       semanticRoleIds: ["topic"],
       discourseFrameId: "different-frame",
     };
@@ -3339,7 +3342,7 @@ describe("Task7 remaining Base validation boundaries", () => {
     const futureTeImasu = {
       ...EXAMPLES[0],
       id: "unknown-lesson-future-teimasu",
-      formIds: ["te-imasu"],
+      formIds: ["base-construction-te-imasu"],
       interpretationTags: ["ongoing-now"],
     } as BaseExample;
     const catalogs: BaseValidationCatalogs = {

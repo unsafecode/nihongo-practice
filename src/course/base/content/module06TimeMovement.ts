@@ -16,6 +16,7 @@ import type {
 } from "../catalog/types";
 import { realizePoliteGrid } from "../forms/verbForms";
 import { validateBaseLessonDepth } from "../validation/lessonRules";
+import { strictTask11ModuleSnapshot } from "../validation/moduleSnapshots";
 import {
   BASE_CONTEXT_ACTIVITY_SHAPE,
   BASE_CONTROLLED_ACTIVITY_SHAPE,
@@ -41,6 +42,7 @@ import {
   task11Lexeme,
   task11Particle,
   task11PlainDataEqual,
+  task11PlainDataSnapshot,
   task11Target,
   task11VerbNeedsKanaSeparator,
   task11ValidationCatalogs,
@@ -1083,8 +1085,28 @@ export function validateTask11RecurrencePlans(
 export function validateBaseTimeMovementModule(
   value: unknown,
 ): Readonly<{ readonly ok: boolean; readonly errors: readonly BaseTask11ModuleError[] }> {
+  const sanitized = task11PlainDataSnapshot(value);
+  if (!sanitized) {
+    return { ok: false, errors: ["invalid-module-shape"] };
+  }
+  const snapshot = strictTask11ModuleSnapshot(sanitized.value);
+  const forbiddenFormIds = [
+    "base-form-te",
+    "base-construction-te-kudasai",
+    "base-construction-sequential-te",
+    "base-construction-te-imasu",
+  ];
+  if (
+    snapshot?.corpusTargets.some(
+      ({ target }) =>
+        target.formIds.some((id) => forbiddenFormIds.includes(id)) ||
+        target.interpretationTags.includes("ongoing-now"),
+    )
+  ) {
+    return { ok: false, errors: ["invalid-lesson-shape"] };
+  }
   const base = validateTask11ModuleBase(
-    value,
+    sanitized.value,
     "time-movement",
     TIME_SPECS.map(({ lessonId }) => lessonId),
     BASE_TIME_MOVEMENT_VALIDATION_CATALOGS,
@@ -1117,29 +1139,10 @@ export function validateBaseTimeMovementModule(
         : ["invalid-lesson-shape"],
     };
   }
-  if (!task11PlainDataEqual(value, RAW_TIME_MOVEMENT_MODULE)) {
+  if (!task11PlainDataEqual(sanitized.value, RAW_TIME_MOVEMENT_MODULE)) {
     return { ok: false, errors: ["invalid-module-shape"] };
   }
-  const forbidden = RAW_TIME_LESSONS.some((lesson) =>
-    [
-      ...lesson.examples,
-      ...(lesson.dialogue?.turns ?? []),
-      ...lesson.activityDesigns.flatMap(
-        ({ promptTarget, optionTargets, acceptedAnswerTarget }) => [
-          promptTarget,
-          ...optionTargets,
-          acceptedAnswerTarget,
-        ],
-      ),
-    ].some(
-      (target) =>
-        target.formIds.includes("te-imasu") ||
-        target.interpretationTags.includes("ongoing-now"),
-    ),
-  );
-  return forbidden
-    ? { ok: false, errors: ["invalid-lesson-shape"] }
-    : base;
+  return base;
 }
 
 export const module06ConceptIds = deepFreeze(

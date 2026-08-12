@@ -20,6 +20,7 @@ import {
   BASE_POLITE_VERBS_VALIDATION_CATALOGS,
   task11Cue,
   task11Lexeme,
+  task11PlainDataEqual,
   task11Particle,
   validateBasePoliteVerbsModule,
 } from "./module04PoliteVerbs";
@@ -679,10 +680,47 @@ describe("Base polite-verbs module", () => {
           ),
         ).toBe(false);
         expect(target.formIds).not.toContain("four-polite-tense-cells");
-        expect(target.formIds).not.toContain("te-imasu");
+        expect(target.formIds).toEqual(
+          expect.not.arrayContaining([
+            "base-form-te",
+            "base-construction-te-kudasai",
+            "base-construction-sequential-te",
+            "base-construction-te-imasu",
+          ]),
+        );
         expect(target.interpretationTags).not.toContain("ongoing-now");
       }
     }
+  });
+
+  it("snapshots hostile plain-data input once before comparing it", () => {
+    const expected = { nested: { value: "canonical" } };
+    let descriptorReads = 0;
+    const actual = new Proxy(expected, {
+      getOwnPropertyDescriptor(target, property) {
+        descriptorReads += 1;
+        if (descriptorReads > 1) {
+          throw new Error("raw input reread");
+        }
+        return Reflect.getOwnPropertyDescriptor(target, property);
+      },
+    });
+
+    expect(task11PlainDataEqual(actual, expected)).toBe(true);
+    expect(descriptorReads).toBe(1);
+  });
+
+  it("sanitizes raw module input before reading semantic fields", () => {
+    const hostile = new Proxy(BASE_POLITE_VERBS_MODULE, {
+      get() {
+        throw new Error("raw module property read");
+      },
+    });
+
+    expect(validateBasePoliteVerbsModule(hostile)).toEqual({
+      ok: true,
+      errors: [],
+    });
   });
 
   it("uses only owned masu predicates in the practical lesson", () => {

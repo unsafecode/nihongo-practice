@@ -853,10 +853,10 @@ describe("Base time-movement module", () => {
 
   it("contains no te forms, teimasu, adjectives, or later concepts on any surface", () => {
     const forbidden = new Set([
-      "te-allomorphy",
-      "te-kudasai",
-      "sequential-te",
-      "te-imasu",
+      "base-form-te",
+      "base-construction-te-kudasai",
+      "base-construction-sequential-te",
+      "base-construction-te-imasu",
       "negative-noun-predicate-copula",
       "remaining-copula-cells",
       "i-adjective-tense-polarity",
@@ -871,6 +871,34 @@ describe("Base time-movement module", () => {
         jp(target.tokens),
       ).toBe(false);
     }
+  });
+
+  it("rejects resulting-state ています metadata without an ongoing-now tag", () => {
+    const mutated = structuredClone(BASE_TIME_MOVEMENT_MODULE);
+    const target = mutated.lessons[0].examples[0] as unknown as {
+      formIds: string[];
+      interpretationTags: string[];
+    };
+    target.formIds.push("base-construction-te-imasu");
+    target.interpretationTags = ["resulting-state"];
+
+    expect(validateBaseTimeMovementModule(mutated)).toEqual({
+      ok: false,
+      errors: ["invalid-lesson-shape"],
+    });
+  });
+
+  it("sanitizes raw module input before reading semantic fields", () => {
+    const hostile = new Proxy(BASE_TIME_MOVEMENT_MODULE, {
+      get() {
+        throw new Error("raw module property read");
+      },
+    });
+
+    expect(validateBaseTimeMovementModule(hostile)).toEqual({
+      ok: true,
+      errors: [],
+    });
   });
 
   it("advances the exact four reference snapshots without future rows", () => {

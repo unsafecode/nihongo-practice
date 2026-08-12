@@ -464,6 +464,81 @@ describe("Task 12 copula and adjective ownership", () => {
     expect(validateBaseCopulaAdjectivesModule(mutated).ok).toBe(false);
   });
 
+  it("rejects stripped noun-predicate evidence and an out-of-scope plain copula", () => {
+    const mutated = structuredClone(BASE_COPULA_ADJECTIVES_MODULE);
+    const target = mutated.lessons[0].examples[0] as unknown as {
+      patternCellIds: string[];
+      formIds: string[];
+      tokens: Array<{
+        jp: string;
+        romaji: string;
+        source: { referenceId: string };
+      }>;
+    };
+    target.patternCellIds = [];
+    target.formIds = [];
+    const copula = target.tokens.find(
+      ({ source }) => source.referenceId === "desu",
+    )!;
+    copula.jp = "だ";
+    copula.romaji = "da";
+
+    expect(validateBaseCopulaAdjectivesModule(mutated)).toEqual({
+      ok: false,
+      errors: ["invalid-lesson-shape"],
+    });
+  });
+
+  it.each(["example", "option", "audio", "spoken", "context"] as const)(
+    "derives predicate evidence when %s form metadata is stripped",
+    (source) => {
+      const mutated = structuredClone(BASE_COPULA_ADJECTIVES_MODULE);
+      const firstLesson = mutated.lessons[0];
+      const listening = firstLesson.activityDesigns[8];
+      const target =
+        source === "example"
+          ? firstLesson.examples[0]
+          : source === "option"
+            ? firstLesson.activityDesigns[0].optionTargets[0]
+            : source === "audio"
+              ? listening.optionTargets[listening.correctOptionIndex!]
+              : source === "spoken"
+                ? firstLesson.activityDesigns[9].acceptedAnswerTarget
+                : firstLesson.activityDesigns[5].promptTarget;
+      (target as unknown as { formIds: string[] }).formIds = [];
+
+      expect(validateBaseCopulaAdjectivesModule(mutated)).toEqual({
+        ok: false,
+        errors: ["invalid-lesson-shape"],
+      });
+    },
+  );
+
+  it("uses canonical equality as the final defense for context drift", () => {
+    const mutated = structuredClone(BASE_COPULA_ADJECTIVES_MODULE);
+    const context = mutated.lessons[0].activityDesigns[0]
+      .contextTarget as unknown as { id: string };
+    context.id = `${context.id}-forged`;
+
+    expect(validateBaseCopulaAdjectivesModule(mutated)).toEqual({
+      ok: false,
+      errors: ["invalid-module-shape"],
+    });
+  });
+
+  it("sanitizes raw module input before reading semantic fields", () => {
+    const hostile = new Proxy(BASE_COPULA_ADJECTIVES_MODULE, {
+      get() {
+        throw new Error("raw module property read");
+      },
+    });
+
+    expect(validateBaseCopulaAdjectivesModule(hostile)).toEqual({
+      ok: true,
+      errors: [],
+    });
+  });
+
   it("publishes each predicate option's own canonical cell", () => {
     const canonicalCellIds = new Set([
       ...BASE_COPULA_ADJECTIVES_PREDICATE_CELLS.map(({ id }) => id),

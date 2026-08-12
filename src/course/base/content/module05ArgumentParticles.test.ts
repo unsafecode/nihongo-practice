@@ -844,13 +844,32 @@ describe("Base argument-particles module", () => {
     for (const lesson of BASE_ARGUMENT_PARTICLES_MODULE.lessons) {
       for (const target of targetsForLesson(lesson)) {
         expect(target.formIds).toEqual(
-          expect.not.arrayContaining(["four-polite-tense-cells", "te-imasu"]),
+          expect.not.arrayContaining([
+            "four-polite-tense-cells",
+            "base-form-te",
+            "base-construction-te-kudasai",
+            "base-construction-sequential-te",
+            "base-construction-te-imasu",
+          ]),
         );
         expect(target.interpretationTags).not.toContain("ongoing-now");
         expect(jp(target.tokens)).not.toContain("ています");
         expect(target.predicateAspect).not.toBe("adjectival");
       }
     }
+  });
+
+  it("sanitizes raw module input before reading semantic fields", () => {
+    const hostile = new Proxy(BASE_ARGUMENT_PARTICLES_MODULE, {
+      get() {
+        throw new Error("raw module property read");
+      },
+    });
+
+    expect(validateBaseArgumentParticlesModule(hostile)).toEqual({
+      ok: true,
+      errors: [],
+    });
   });
 
   it("publishes natural copy and keeps accepted targets distinct from demonstrations", () => {

@@ -69,7 +69,7 @@ describe("Base canonical fingerprints", () => {
 
   it("keeps form, role, and discourse distinctions in the canonical semantic key", () => {
     const first = example();
-    const form = example({ formIds: ["te-imasu"] });
+    const form = example({ formIds: ["base-construction-te-imasu"] });
     const roles = example({ semanticRoleIds: ["topic"] });
     const discourse = example({ discourseFrameId: "one-off-2" });
 
