@@ -113,10 +113,16 @@ export const konbiniImmersion: Lesson = {
         {
           speaker: "ひと",
           line: {
-            kana: "はい、どうぞ",
-            romaji: "hai, douzo",
-            literal: { it: "sì, prego", en: "yes, here you are" },
-            natural: { it: "Sì, ecco a lei.", en: "Yes, here you are." },
+            kana: "はい、どうぞ。ざっしをかいますか",
+            romaji: "hai, douzo. zasshi o kaimasu ka",
+            literal: {
+              it: "sì, prego. rivista-OGGETTO comprare-CORTESE-DOMANDA",
+              en: "yes, here you are. magazine-OBJECT buy-POLITE-QUESTION",
+            },
+            natural: {
+              it: "Sì, ecco a lei. Prende anche una rivista?",
+              en: "Yes, here you are. Are you buying a magazine?",
+            },
           },
         },
         {

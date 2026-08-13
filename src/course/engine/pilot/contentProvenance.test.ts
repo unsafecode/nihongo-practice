@@ -70,3 +70,53 @@ describe("pilot content provenance", () => {
     });
   }
 });
+
+/**
+ * A lesson's `teaches` list drives what the learner is told they are getting.
+ * Listing a particle the lesson never actually shows is a silent lie: the
+ * konbini pilot originally claimed `question-ka` while its dialogue contained
+ * no question at all.
+ *
+ * The obvious check — does the particle appear anywhere in the text — is
+ * useless, because か also sits inside かいます and わかりました, and は inside
+ * はい. So the particle must appear either as a standalone token the lesson
+ * has actually segmented (a breakdown chunk or a guidedBuild fragment), or
+ * sentence-finally, which is the only position that identifies か as the
+ * question particle rather than a syllable.
+ *
+ * Only particle concepts are checked, because only they have a single
+ * unambiguous surface.
+ */
+const PARTICLE_SURFACE: Readonly<Record<string, string>> = {
+  "topic-wa": "は",
+  "question-ka": "か",
+  "object-o": "を",
+  "goal-ni": "に",
+};
+
+function segmentedTokens(lesson: Lesson): string[] {
+  const tokens: string[] = [];
+  for (const step of lesson.steps) {
+    if (step.kind === "breakdown") tokens.push(...step.parts.map((part) => part.chunk));
+    if (step.kind === "guidedBuild") tokens.push(...step.fragments, ...step.distractors);
+  }
+  return tokens;
+}
+
+describe("pilot lessons show the particles they claim to teach", () => {
+  for (const lesson of [politePresentBlock, konbiniImmersion] as Lesson[]) {
+    it(`${lesson.id}: every taught particle appears in a position that identifies it`, () => {
+      const tokens = segmentedTokens(lesson);
+      const lines = surfaces(lesson);
+      const unshown = lesson.teaches
+        .filter((concept) => concept in PARTICLE_SURFACE)
+        .filter((concept) => {
+          const particle = PARTICLE_SURFACE[concept]!;
+          const segmented = tokens.includes(particle);
+          const sentenceFinal = lines.some((s) => s.length > 1 && s.endsWith(particle));
+          return !segmented && !sentenceFinal;
+        });
+      expect(unshown).toEqual([]);
+    });
+  }
+});
