@@ -85,3 +85,30 @@ test.describe("reviewed A2 release baselines", () => {
     await expect(kanji).toHaveScreenshot("a2-kanji-assessed.png");
   });
 });
+
+// Task 14 — reviewed lesson-engine pilot baselines. The lesson engine (Tasks
+// 11-13) renders one step at a time instead of one long scrolling page, and
+// its DOM shape varies by archetype rather than by hand-authored per-lesson
+// markup. These two baselines document the first step of each pilot's
+// archetype-driven layout so any future engine.css or layout regression is
+// caught visually: the editorial layout (two-column shell with a section
+// rail down the side, used by "new-block" archetypes) and the stage layout
+// (single-column shell with a progress meter bar, used by "immersion"
+// archetypes). Storage is cleared first so both always land on step one of
+// their lesson, keeping the captures deterministic.
+const PILOT_EDITORIAL_URL = routeUrls.pilot("polite-present-block");
+const PILOT_STAGE_URL = routeUrls.pilot("konbini-immersion");
+
+test.describe("reviewed lesson-engine pilot baselines", () => {
+  test("pilot editorial layout (polite present block)", async ({ page }) => {
+    await setupPageObservers(page);
+    await gotoReady(page, PILOT_EDITORIAL_URL);
+    await expect(page).toHaveScreenshot("pilot-editorial-polite-present.png", { fullPage: true });
+  });
+
+  test("pilot stage layout (konbini immersion)", async ({ page }) => {
+    await setupPageObservers(page);
+    await gotoReady(page, PILOT_STAGE_URL);
+    await expect(page).toHaveScreenshot("pilot-stage-konbini-immersion.png", { fullPage: true });
+  });
+});
