@@ -135,6 +135,16 @@
   outline-offset: 2px;
 }
 
+/*
+ * Quiz options are the Japanese forms under test: `QuizStep.options` is
+ * `string`, and the view marks them `lang="ja"`. Comprehension options share
+ * this class but are `LocalizedText` prose, so the face is scoped to the quiz
+ * step rather than applied to `.engine-option` generally.
+ */
+.lesson-engine .engine-step--quiz .engine-option {
+  font-family: var(--engine-font-jp);
+}
+
 .lesson-engine .engine-feedback {
   min-height: var(--engine-size-ui-body);
   font-size: var(--engine-size-ui-small);
@@ -278,6 +288,7 @@
 }
 
 .lesson-engine .engine-turn__speaker {
+  font-family: var(--engine-font-jp);
   font-size: var(--engine-size-label);
   font-weight: 700;
   text-transform: uppercase;
