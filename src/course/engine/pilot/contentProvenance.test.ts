@@ -120,3 +120,87 @@ describe("pilot lessons show the particles they claim to teach", () => {
     });
   }
 });
+
+/**
+ * The guard above proves every kana surface is catalog-verified material. It
+ * says nothing about the romaji sitting beside it, and a wrong reading next to
+ * right kana is the least visible content defect there is: the Japanese looks
+ * correct, so review slides past it, and the learner is taught a wrong reading.
+ *
+ * Irregular polite stems are where this actually bites — はなす → はなします is
+ * "hanashimasu", not "hanasimasu", and まつ → まちます is "machimasu". So the
+ * expected reading is not hand-written either: it comes from the same
+ * morphology engine that realizes the forms, decomposed longest-match the way
+ * the kana guard decomposes surfaces.
+ */
+const PARTICLE_ROMAJI: Readonly<Record<string, string>> = {
+  は: "wa", を: "o", か: "ka", に: "ni", へ: "e", で: "de", "、": ",", "。": ".",
+};
+
+function buildReadings(): Map<string, string> {
+  const readings = new Map<string, string>(Object.entries(PARTICLE_ROMAJI));
+  for (const [id, lex] of BASE_LEXEME_BY_ID) {
+    const entry = lex as { kana: string; romaji?: string };
+    if (entry.romaji) readings.set(entry.kana, entry.romaji);
+    const grid = realizePoliteGrid(id);
+    if (grid.ok) {
+      for (const cell of Object.values(grid.value) as { jp: string; romaji: string }[][]) {
+        readings.set(cell.map((t) => t.jp).join(""), cell.map((t) => t.romaji).join(""));
+      }
+    }
+  }
+  return readings;
+}
+
+function readingFor(kana: string, readings: Map<string, string>): string | undefined {
+  let rest = kana;
+  const parts: string[] = [];
+  while (rest.length > 0) {
+    let matched = 0;
+    for (let len = rest.length; len > 0; len--) {
+      if (readings.has(rest.slice(0, len))) { matched = len; break; }
+    }
+    if (matched === 0) return undefined;
+    parts.push(readings.get(rest.slice(0, matched))!);
+    rest = rest.slice(matched);
+  }
+  return parts.join("");
+}
+
+function japaneseLines(lesson: Lesson): { kana: string; romaji: string }[] {
+  const found: { kana: string; romaji: string }[] = [];
+  const walk = (v: unknown): void => {
+    if (!v || typeof v !== "object") return;
+    const node = v as Record<string, unknown>;
+    if (typeof node.kana === "string" && typeof node.romaji === "string")
+      found.push({ kana: node.kana, romaji: node.romaji });
+    for (const n of Object.values(node)) walk(n);
+  };
+  walk(lesson);
+  return found;
+}
+
+describe("pilot romaji matches the readings the morphology engine realizes", () => {
+  const readings = buildReadings();
+  // Spacing and case are presentation choices; the reading itself is not.
+  const bare = (s: string): string => s.toLowerCase().replace(/[^a-z]/g, "");
+
+  for (const lesson of [politePresentBlock, konbiniImmersion] as Lesson[]) {
+    it(`${lesson.id}: every line's romaji is the canonical reading of its kana`, () => {
+      const lines = japaneseLines(lesson);
+      expect(lines.length).toBeGreaterThan(0);
+      const mismatched = lines
+        .map((line) => ({ ...line, expected: readingFor(line.kana, readings) }))
+        .filter((line) => line.expected !== undefined && bare(line.expected) !== bare(line.romaji))
+        .map((line) => `${line.kana}: "${line.romaji}" should read "${line.expected!}"`);
+      expect(mismatched).toEqual([]);
+    });
+
+    it(`${lesson.id}: every line's kana resolves to a known reading`, () => {
+      const unresolvable = japaneseLines(lesson)
+        .filter((line) => readingFor(line.kana, readings) === undefined)
+        .map((line) => line.kana);
+      expect(unresolvable).toEqual([]);
+    });
+  }
+});
