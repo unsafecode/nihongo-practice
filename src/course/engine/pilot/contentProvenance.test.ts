@@ -14,6 +14,10 @@
  */
 import { describe, expect, it } from "vitest";
 import { BASE_LEXEME_BY_ID } from "../../base/catalog/lexicon";
+import {
+  BASE_PARTICLE_SENSES,
+  baseParticleSurfaceTokens,
+} from "../../base/forms/particleLicensing";
 import { realizePoliteGrid } from "../../base/forms/verbForms";
 import { politePresentBlock } from "./politePresentBlock";
 import { konbiniImmersion } from "./konbiniImmersion";
@@ -21,14 +25,39 @@ import type { Lesson } from "../types";
 
 const KANA = /[\u3040-\u30FF]+/gu;
 
+/**
+ * The taught particles are derived, never written down here. BASE_PARTICLE_SENSES
+ * is the curriculum's own register of what Base teaches, so deriving from it
+ * keeps this guard tracking the curriculum instead of drifting from it.
+ *
+ * This started as a hand-written set and drifted exactly as predicted: it
+ * omitted six taught surfaces — が, の, も, と, ね, よ — so a pilot line as
+ * ordinary as ひとがかいます was reported as invented. A false positive here is
+ * worse than a gap, because it pushes the next author to "correct" real content
+ * or to widen the list by hand again.
+ *
+ * Keyed by surface because senses share one: three (companion, listing, nominal)
+ * all realize と, and both subject senses realize が.
+ */
+const TAUGHT_PARTICLES: ReadonlyMap<string, string> = new Map(
+  BASE_PARTICLE_SENSES.map((sense) => {
+    const tokens = baseParticleSurfaceTokens(sense.id);
+    return [tokens.map((t) => t.jp).join(""), tokens.map((t) => t.romaji).join("")] as const;
+  }),
+);
+
 function buildAllowed(): Set<string> {
-  const allowed = new Set<string>(["は", "を", "か", "に", "ます", "ません", "へ", "で", "から", "まで"]);
+  const allowed = new Set<string>(TAUGHT_PARTICLES.keys());
   for (const [id, lex] of BASE_LEXEME_BY_ID) {
     allowed.add(lex.kana);
     const grid = realizePoliteGrid(id);
     if (grid.ok) {
       for (const cell of Object.values(grid.value) as { jp: string }[][]) {
         allowed.add(cell.map((t) => t.jp).join(""));
+        // A breakdown step legitimately shows a form in pieces — かいます split
+        // into かい and ます — so the engine's own segmentation is allowed too,
+        // rather than hand-listing the suffixes and getting them wrong.
+        for (const token of cell) allowed.add(token.jp);
       }
     }
   }
@@ -133,12 +162,15 @@ describe("pilot lessons show the particles they claim to teach", () => {
  * morphology engine that realizes the forms, decomposed longest-match the way
  * the kana guard decomposes surfaces.
  */
-const PARTICLE_ROMAJI: Readonly<Record<string, string>> = {
-  は: "wa", を: "o", か: "ka", に: "ni", へ: "e", で: "de", "、": ",", "。": ".",
-};
+// Punctuation is the only reading written by hand; particles come from
+// TAUGHT_PARTICLES, which the morphology engine supplies.
+const PUNCTUATION_ROMAJI: Readonly<Record<string, string>> = { "、": ",", "。": "." };
 
 function buildReadings(): Map<string, string> {
-  const readings = new Map<string, string>(Object.entries(PARTICLE_ROMAJI));
+  const readings = new Map<string, string>([
+    ...TAUGHT_PARTICLES,
+    ...Object.entries(PUNCTUATION_ROMAJI),
+  ]);
   for (const [id, lex] of BASE_LEXEME_BY_ID) {
     const entry = lex as { kana: string; romaji?: string };
     if (entry.romaji) readings.set(entry.kana, entry.romaji);
@@ -146,6 +178,7 @@ function buildReadings(): Map<string, string> {
     if (grid.ok) {
       for (const cell of Object.values(grid.value) as { jp: string; romaji: string }[][]) {
         readings.set(cell.map((t) => t.jp).join(""), cell.map((t) => t.romaji).join(""));
+        for (const token of cell) readings.set(token.jp, token.romaji);
       }
     }
   }
@@ -203,4 +236,38 @@ describe("pilot romaji matches the readings the morphology engine realizes", () 
       expect(unresolvable).toEqual([]);
     });
   }
+});
+
+/**
+ * The guards above are only as good as their allow-list, and the failure mode is
+ * silent: a taught particle missing from the seed does not weaken the guard, it
+ * makes it reject real content, which pressures the next author into "fixing"
+ * correct Japanese or hand-widening the list again.
+ *
+ * So assert the derivation actually covers the curriculum. This is the test that
+ * would have caught the original hand-written seed, which was missing が, の, も,
+ * と, ね and よ.
+ */
+describe("the provenance allow-list tracks the curriculum", () => {
+  it("covers every particle surface Base teaches", () => {
+    const allowed = buildAllowed();
+    const missing = BASE_PARTICLE_SENSES.map((sense) => ({
+      sense: sense.id,
+      surface: baseParticleSurfaceTokens(sense.id).map((token) => token.jp).join(""),
+    })).filter((entry) => !allowed.has(entry.surface));
+    expect(missing).toEqual([]);
+  });
+
+  it("knows a reading for every particle surface Base teaches", () => {
+    const readings = buildReadings();
+    const unread = BASE_PARTICLE_SENSES.map((sense) =>
+      baseParticleSurfaceTokens(sense.id).map((token) => token.jp).join(""),
+    ).filter((surface) => !readings.has(surface));
+    expect(unread).toEqual([]);
+  });
+
+  it("derives from a non-empty curriculum, so the checks above cannot pass vacuously", () => {
+    expect(BASE_PARTICLE_SENSES.length).toBeGreaterThan(0);
+    expect(TAUGHT_PARTICLES.size).toBeGreaterThan(0);
+  });
 });
