@@ -16,6 +16,13 @@ export const routePaths = {
   phrasebook: "/frasario",
   reference: "/riferimenti/base/:referenceId",
   baseDiagnostic: "/percorso/diagnostica-base",
+  /**
+   * Preview route for the lesson-engine pilot lessons (Phase 0 Task 13). The
+   * `:pilotId` slug is resolved by `PilotLessonPage`'s own pilot catalog — it
+   * is never a lesson id, so this route intentionally cannot collide with
+   * `lesson` above.
+   */
+  pilotLesson: "/anteprima/:pilotId",
 } as const;
 
 /**
