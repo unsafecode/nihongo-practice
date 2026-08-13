@@ -244,8 +244,15 @@ Motion: step transitions carry direction so progress is felt. All motion respect
 `prefers-reduced-motion`.
 
 Accessibility: existing commitments are retained without exception — keyboard
-operability, visible focus, live regions for audio state, `KanjiRubyText`
-furigana, no colour-only signalling.
+operability, visible focus, live regions for audio state, no colour-only
+signalling.
+
+Furigana note: `KanjiRubyText` stays where it is, serving A2. It is coupled to
+the A2 kanji *assessment* model (it requires a `KanjiExposure` and stage-specific
+copy), not a general-purpose ruby renderer, so the engine does not adopt it. Base
+and the new engine's pilot content are hiragana-only, as they are today. Whether
+Intermedio renders kanji through that component, a generalised successor, or
+neither is a Phase 2 decision.
 
 ## 8. Review process change
 

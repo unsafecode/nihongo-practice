@@ -84,6 +84,29 @@ describe("routePaths: Base reference and diagnostic routes", () => {
   });
 });
 
+describe("routePaths: lesson-engine preview route", () => {
+  it("registers the pilot preview under its own top-level segment, never nested under the course path", () => {
+    expect(routePaths.pilotLesson).toBe("/anteprima/:pilotId");
+    // `/percorso/...` is the live course tree, whose two-segment lesson route
+    // would otherwise swallow a preview URL. Keeping the preview on its own
+    // first segment is what lets Phase 0 ship alongside the current Base
+    // experience without touching a single existing route.
+    expect(routePaths.pilotLesson.startsWith("/percorso")).toBe(false);
+    const [, firstSegment] = routePaths.pilotLesson.split("/");
+    for (const live of [routePaths.lesson, routePaths.baseDiagnostic, routePaths.reference]) {
+      expect(
+        live.split("/")[1],
+        `the preview segment "${firstSegment}" collides with the live route ${live}`,
+      ).not.toBe(firstSegment);
+    }
+  });
+
+  it("takes exactly one dynamic slug so it cannot shadow a two-segment route", () => {
+    expect(routePaths.pilotLesson.split("/")).toHaveLength(3);
+    expect(routePaths.pilotLesson.match(/:/g)).toHaveLength(1);
+  });
+});
+
 describe("baseReferencePath", () => {
   it("builds a bare reference URL with no query when throughLessonId is omitted", () => {
     expect(baseReferencePath("particle-atlas")).toBe(
