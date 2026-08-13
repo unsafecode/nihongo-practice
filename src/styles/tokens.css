@@ -106,6 +106,13 @@
   --engine-radius: 10px;
   --engine-step-transition: 220ms cubic-bezier(0.32, 0.72, 0, 1);
 
+  /* Layout shell geometry for the lesson engine's two Phase 0 layouts. The
+     stage layout centres a single reading column; the editorial layout adds a
+     fixed-width section rail beside a wider content column. */
+  --engine-rail-width: 12rem;
+  --engine-shell-reading: 42rem;
+  --engine-shell-wide: 60rem;
+
   /* The engine's own copy of the 44px minimum touch target the Playwright
      audit enforces. Declared here so engine.css depends only on --engine-*
      tokens and never reaches into styles.css or course.css. */
