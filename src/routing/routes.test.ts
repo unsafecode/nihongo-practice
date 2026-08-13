@@ -26,6 +26,7 @@ describe("routePaths", () => {
       phrasebook: "/frasario",
       reference: "/riferimenti/base/:referenceId",
       baseDiagnostic: "/percorso/diagnostica-base",
+      pilotLesson: "/anteprima/:pilotId",
     });
   });
 
@@ -116,5 +117,32 @@ describe("routes source contract: Base reference and diagnostic routes are wired
   it("registers both routes using the shared routePaths constants, not literal duplicated strings", () => {
     expect(routesSource).toMatch(/path=\{routePaths\.reference\}/);
     expect(routesSource).toMatch(/path=\{routePaths\.baseDiagnostic\}/);
+  });
+});
+
+describe("routes source contract: pilot lesson preview route is wired lazily", () => {
+  it("never statically imports PilotLessonPage", () => {
+    expect(routesSource).not.toMatch(
+      /import\s+\{[^}]*PilotLessonPage[^}]*\}\s+from/,
+    );
+    expect(routesSource).not.toMatch(
+      /import\s+PilotLessonPage\s+from/,
+    );
+  });
+
+  it("loads it through a lazy dynamic import behind its own Suspense", () => {
+    // Named by module path (not `.then((m) => ({ default: m.X }))`) so the
+    // page's own default export is what Rollup splits into its own chunk —
+    // the bundle-budget risk this test guards against is the import silently
+    // becoming static and landing the engine in an existing large chunk.
+    expect(routesSource).toMatch(
+      /import\(\s*["'][^"']*course\/engine\/pilot\/PilotLessonPage["']\s*\)/,
+    );
+    expect(routesSource).toMatch(/\blazy\(/);
+    expect(routesSource).toMatch(/\bSuspense\b/);
+  });
+
+  it("registers the route using the shared routePaths constant, not a duplicated literal string", () => {
+    expect(routesSource).toMatch(/path=\{routePaths\.pilotLesson\}/);
   });
 });

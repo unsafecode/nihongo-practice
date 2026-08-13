@@ -19,6 +19,10 @@ export const routeUrls = {
   syllabary: `${PREVIEW_ORIGIN}${PREVIEW_BASE_PATH}#/pratica/sillabario`,
   lesson: (moduleId: string, lessonId: string) =>
     `${PREVIEW_ORIGIN}${PREVIEW_BASE_PATH}#/percorso/${moduleId}/${lessonId}`,
+  /** The lesson-engine pilot preview route (Phase 0 Task 13,
+   * `#/anteprima/:pilotId`). `slug` is the preview's own public identifier
+   * (see `pilotCatalog.ts`), distinct from the lesson's internal id. */
+  pilot: (slug: string) => `${PREVIEW_ORIGIN}${PREVIEW_BASE_PATH}#/anteprima/${slug}`,
 } as const;
 
 /**

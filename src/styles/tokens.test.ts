@@ -14,6 +14,34 @@ function readCssCustomProperties(): Record<string, string> {
   return props;
 }
 
+describe('engine palette tokens', () => {
+  const css = readFileSync(tokensCssPath, 'utf8');
+
+  const required: ReadonlyArray<readonly [string, string]> = [
+    ['--engine-ink', '#14181f'],
+    ['--engine-ink-soft', '#3d4654'],
+    ['--engine-paper', '#faf8f4'],
+    ['--engine-surface', '#ffffff'],
+    ['--engine-accent', '#c8382f'],
+    ['--engine-accent-cool', '#1d6d6a'],
+    ['--engine-gold', '#b8894a'],
+  ];
+
+  it.each(required)('defines %s as %s', (token, value) => {
+    expect(css).toContain(`${token}: ${value}`);
+  });
+
+  it('defines a modular type scale with a Japanese display size', () => {
+    for (const token of ['--engine-size-jp-display', '--engine-size-jp-body', '--engine-size-ui-body']) {
+      expect(css).toContain(token);
+    }
+  });
+
+  it('keeps Japanese text on a Japanese-capable family', () => {
+    expect(css).toMatch(/--engine-font-jp:[^;]*Noto Sans JP/);
+  });
+});
+
 describe("visualTokens", () => {
   it("declares the finite spacing scale", () => {
     expect(visualTokens.spacingPx).toEqual([4, 8, 12, 16, 24, 32, 48, 64]);

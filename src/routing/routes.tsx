@@ -68,7 +68,7 @@ export function FoundationFixtureLoading() {
 }
 
 /**
- * The eight real navigation destinations, each lazily loaded into its own
+ * The nine real navigation destinations, each lazily loaded into its own
  * chunk (Phase 2 Task 6, finding I3). Unlike the compile-time-gated
  * {@link FoundationFixturePage}, these always ship — they just load on
  * demand behind the route the user actually visits, instead of every page's
@@ -114,6 +114,15 @@ const BaseDiagnostic = lazy(() =>
   })),
 );
 
+/**
+ * The lesson-engine pilot preview page (Phase 0 Task 13, `#/anteprima/:pilotId`).
+ * Unlike the other lazy pages above, this one has its own default export, so
+ * `lazy()` needs no `.then()` mapping — `React.lazy` already resolves a
+ * dynamic import's `module.default`. It is still its own dynamic `import()`
+ * naming the module path, so Rollup still splits it into its own chunk and
+ * it never lands inside an existing (bundle-budget-constrained) chunk.
+ */
+const PilotLessonPage = lazy(() => import("../course/engine/pilot/PilotLessonPage"));
 
 /**
  * Accessible, network-free loading shell shown while a route's chunk
@@ -262,6 +271,14 @@ export function AppRoutes() {
             }
           />
         ) : null}
+        <Route
+          path={routePaths.pilotLesson}
+          element={
+            <Suspense fallback={<RouteLoading />}>
+              <PilotLessonPage />
+            </Suspense>
+          }
+        />
         <Route path="*" element={<InvalidRoute />} />
       </Routes>
     </>

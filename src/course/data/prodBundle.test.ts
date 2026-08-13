@@ -185,6 +185,38 @@ describe("production bundle — validator tree-shaking + chunk-splitting gate (I
     expect(jsChunks.length).toBeGreaterThan(5);
   });
 
+  it("keeps the lesson engine out of the first-paint graph", () => {
+    // The engine is a preview surface behind the lazy `/anteprima/:pilotId`
+    // route, so no visitor to any other page should pay for it. That holds
+    // only while every chunk carrying engine code is reached exclusively
+    // through a dynamic import: the moment one is *statically* imported by
+    // another chunk, Vite emits a `<link rel="modulepreload">` for it in
+    // index.html and the whole thing is downloaded at first paint.
+    //
+    // A `manualChunks` rule for `/src/course/engine/` looks like it would
+    // isolate the engine but does the opposite: naming the chunk makes Rollup
+    // use it as the home for modules shared with the rest of the app (i18n,
+    // catalog, runtime copy), after which every chunk statically depends on
+    // it. This test is the guard against reintroducing that.
+    const engineChunks = jsChunks.filter((chunk) =>
+      Object.keys(chunk.modules).some((id) => id.includes("/src/course/engine/")),
+    );
+    expect(
+      engineChunks.length,
+      "expected at least one chunk to carry lesson-engine modules",
+    ).toBeGreaterThan(0);
+
+    for (const engineChunk of engineChunks) {
+      const staticImporters = jsChunks
+        .filter((chunk) => chunk.imports.includes(engineChunk.fileName))
+        .map((chunk) => chunk.fileName);
+      expect(
+        staticImporters,
+        `${engineChunk.fileName} carries lesson-engine code but is statically imported by ${staticImporters.join(", ")}, so it loads at first paint`,
+      ).toEqual([]);
+    }
+  });
+
   it("emits an acyclic static chunk graph so first paint cannot hit a temporal-dead-zone", () => {
     expect(circularChunkPaths(jsChunks)).toEqual([]);
   });

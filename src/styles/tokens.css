@@ -74,3 +74,53 @@
     );
   }
 }
+
+:root {
+  /* Lesson engine palette — see 2026-08-13 design, §7 */
+  --engine-ink: #14181f;
+  --engine-ink-soft: #3d4654;
+  --engine-muted: #8a93a3;
+  --engine-line: #e4e2dc;
+  --engine-paper: #faf8f4;
+  --engine-surface: #ffffff;
+  --engine-accent: #c8382f;
+  --engine-accent-cool: #1d6d6a;
+  --engine-gold: #b8894a;
+
+  --engine-font-jp: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --engine-font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --engine-size-jp-display: clamp(2rem, 1.4rem + 2.4vw, 3.25rem);
+  --engine-size-jp-body: clamp(1.15rem, 1rem + 0.5vw, 1.4rem);
+  --engine-size-ui-body: 1rem;
+  --engine-size-ui-small: 0.85rem;
+  --engine-size-label: 0.72rem;
+
+  --engine-space-1: 0.25rem;
+  --engine-space-2: 0.5rem;
+  --engine-space-3: 0.875rem;
+  --engine-space-4: 1.5rem;
+  --engine-space-5: 2.5rem;
+  --engine-space-6: 4rem;
+
+  --engine-radius: 10px;
+  --engine-step-transition: 220ms cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Layout shell geometry for the lesson engine's two Phase 0 layouts. The
+     stage layout centres a single reading column; the editorial layout adds a
+     fixed-width section rail beside a wider content column. */
+  --engine-rail-width: 12rem;
+  --engine-shell-reading: 42rem;
+  --engine-shell-wide: 60rem;
+
+  /* The engine's own copy of the 44px minimum touch target the Playwright
+     audit enforces. Declared here so engine.css depends only on --engine-*
+     tokens and never reaches into styles.css or course.css. */
+  --engine-target-min: 44px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --engine-step-transition: 0ms;
+  }
+}

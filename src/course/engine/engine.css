@@ -1,0 +1,543 @@
+/* Lesson engine styles — scoped under .lesson-engine.
+   Uses only --engine-* tokens from src/styles/tokens.css.
+   Never references course.css tokens. */
+
+.lesson-engine .engine-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--engine-space-3);
+  padding: var(--engine-space-4);
+  background: var(--engine-surface);
+  border-radius: var(--engine-radius);
+  font-family: var(--engine-font-ui);
+  color: var(--engine-ink);
+}
+
+.lesson-engine .engine-label {
+  font-size: var(--engine-size-label);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--engine-muted);
+  margin: 0;
+}
+
+.lesson-engine .engine-situation,
+.lesson-engine .engine-cando,
+.lesson-engine .engine-rule,
+.lesson-engine .engine-boundary,
+.lesson-engine .engine-counter {
+  font-size: var(--engine-size-ui-body);
+  color: var(--engine-ink-soft);
+  margin: 0;
+}
+
+.lesson-engine .engine-lexgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--engine-space-3);
+}
+
+.lesson-engine .engine-lexrow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--engine-space-1);
+  padding: var(--engine-space-2);
+  background: var(--engine-paper);
+  border-radius: var(--engine-radius);
+}
+
+.lesson-engine .engine-lexrow__kana {
+  font-family: var(--engine-font-jp);
+  font-size: var(--engine-size-jp-body);
+  color: var(--engine-ink);
+}
+
+.lesson-engine .engine-lexrow__romaji {
+  font-size: var(--engine-size-ui-small);
+  color: var(--engine-ink-soft);
+}
+
+.lesson-engine .engine-lexrow__gloss {
+  font-size: var(--engine-size-ui-small);
+  color: var(--engine-muted);
+  font-style: italic;
+}
+
+.lesson-engine .engine-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--engine-target-min);
+  min-width: var(--engine-target-min);
+  padding: var(--engine-space-2) var(--engine-space-4);
+  background: var(--engine-accent);
+  color: var(--engine-surface);
+  border: none;
+  border-radius: var(--engine-radius);
+  font-family: var(--engine-font-ui);
+  font-size: var(--engine-size-ui-body);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--engine-step-transition);
+  align-self: flex-start;
+}
+
+.lesson-engine .engine-primary:hover {
+  opacity: 0.88;
+}
+
+.lesson-engine .engine-primary:focus-visible {
+  outline: 2px solid var(--engine-accent-cool);
+  outline-offset: 2px;
+}
+
+/* --- Interactive prompts: quiz + comprehension --- */
+
+.lesson-engine .engine-prompt,
+.lesson-engine .engine-question {
+  font-size: var(--engine-size-ui-body);
+  color: var(--engine-ink);
+  margin: 0;
+}
+
+.lesson-engine .engine-options {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--engine-space-2);
+  margin: 0;
+  padding: 0;
+}
+
+.lesson-engine .engine-option {
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--engine-target-min);
+  padding: var(--engine-space-2) var(--engine-space-3);
+  background: var(--engine-paper);
+  color: var(--engine-ink);
+  border: 1px solid var(--engine-line);
+  border-radius: var(--engine-radius);
+  font-family: var(--engine-font-ui);
+  font-size: var(--engine-size-ui-body);
+  cursor: pointer;
+  transition: opacity var(--engine-step-transition);
+}
+
+.lesson-engine .engine-option:hover {
+  opacity: 0.88;
+}
+
+.lesson-engine .engine-option:focus-visible {
+  outline: 2px solid var(--engine-accent-cool);
+  outline-offset: 2px;
+}
+
+/*
+ * Quiz options are the Japanese forms under test: `QuizStep.options` is
+ * `string`, and the view marks them `lang="ja"`. Comprehension options share
+ * this class but are `LocalizedText` prose, so the face is scoped to the quiz
+ * step rather than applied to `.engine-option` generally.
+ */
+.lesson-engine .engine-step--quiz .engine-option {
+  font-family: var(--engine-font-jp);
+}
+
+.lesson-engine .engine-feedback {
+  min-height: var(--engine-size-ui-body);
+  font-size: var(--engine-size-ui-small);
+  color: var(--engine-accent);
+  margin: 0;
+}
+
+/* --- Guided build --- */
+
+.lesson-engine .engine-goal {
+  font-size: var(--engine-size-ui-body);
+  color: var(--engine-ink);
+  margin: 0;
+}
+
+.lesson-engine .engine-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--engine-space-2);
+  min-height: var(--engine-target-min);
+  padding: var(--engine-space-2);
+  background: var(--engine-paper);
+  border: 1px dashed var(--engine-line);
+  border-radius: var(--engine-radius);
+}
+
+.lesson-engine .engine-tray__item {
+  font-family: var(--engine-font-jp);
+  font-size: var(--engine-size-jp-body);
+  color: var(--engine-ink);
+}
+
+.lesson-engine .engine-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--engine-space-2);
+}
+
+.lesson-engine .engine-chip {
+  min-height: var(--engine-target-min);
+  padding: var(--engine-space-2) var(--engine-space-3);
+  background: var(--engine-surface);
+  color: var(--engine-ink);
+  border: 1px solid var(--engine-line);
+  border-radius: var(--engine-radius);
+  font-family: var(--engine-font-jp);
+  font-size: var(--engine-size-jp-body);
+  cursor: pointer;
+  transition: opacity var(--engine-step-transition);
+}
+
+.lesson-engine .engine-chip:hover {
+  opacity: 0.88;
+}
+
+.lesson-engine .engine-chip:focus-visible {
+  outline: 2px solid var(--engine-accent-cool);
+  outline-offset: 2px;
+}
+
+.lesson-engine .engine-controls {
+  display: flex;
+  gap: var(--engine-space-2);
+}
+
+.lesson-engine .engine-reset,
+.lesson-engine .engine-undo,
+.lesson-engine .engine-reveal {
+  min-height: var(--engine-target-min);
+  padding: var(--engine-space-2) var(--engine-space-3);
+  background: transparent;
+  color: var(--engine-accent-cool);
+  border: 1px solid var(--engine-accent-cool);
+  border-radius: var(--engine-radius);
+  font-family: var(--engine-font-ui);
+  font-size: var(--engine-size-ui-small);
+  cursor: pointer;
+  transition: opacity var(--engine-step-transition);
+}
+
+.lesson-engine .engine-reset:hover,
+.lesson-engine .engine-undo:hover,
+.lesson-engine .engine-reveal:hover {
+  opacity: 0.88;
+}
+
+.lesson-engine .engine-reset:focus-visible,
+.lesson-engine .engine-undo:focus-visible,
+.lesson-engine .engine-reveal:focus-visible {
+  outline: 2px solid var(--engine-accent-cool);
+  outline-offset: 2px;
+}
+
+.lesson-engine .engine-solution {
+  font-family: var(--engine-font-jp);
+  font-size: var(--engine-size-jp-body);
+  color: var(--engine-accent-cool);
+  margin: 0;
+}
+
+/* --- Examples + dialogue --- */
+
+.lesson-engine .engine-examples,
+.lesson-engine .engine-dialogue {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--engine-space-3);
+  margin: 0;
+  padding: 0;
+}
+
+.lesson-engine .engine-example,
+.lesson-engine .engine-turn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--engine-space-1);
+  padding: var(--engine-space-2);
+  background: var(--engine-paper);
+  border-radius: var(--engine-radius);
+}
+
+.lesson-engine .engine-example__kana,
+.lesson-engine .engine-turn__kana {
+  font-family: var(--engine-font-jp);
+  font-size: var(--engine-size-jp-body);
+  color: var(--engine-ink);
+}
+
+.lesson-engine .engine-example__romaji,
+.lesson-engine .engine-turn__romaji {
+  font-size: var(--engine-size-ui-small);
+  color: var(--engine-ink-soft);
+}
+
+.lesson-engine .engine-example__natural,
+.lesson-engine .engine-turn__natural {
+  font-size: var(--engine-size-ui-small);
+  color: var(--engine-muted);
+  font-style: italic;
+}
+
+.lesson-engine .engine-turn__speaker {
+  font-family: var(--engine-font-jp);
+  font-size: var(--engine-size-label);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--engine-accent-cool);
+}
+
+.lesson-engine .engine-setting {
+  font-size: var(--engine-size-ui-body);
+  color: var(--engine-ink-soft);
+  font-style: italic;
+  margin: 0;
+}
+
+/* --- Recap --- */
+
+.lesson-engine .engine-recap__learned {
+  display: flex;
+  flex-direction: column;
+  gap: var(--engine-space-1);
+  margin: 0;
+  padding-left: var(--engine-space-4);
+  color: var(--engine-ink-soft);
+  font-size: var(--engine-size-ui-body);
+}
+
+.lesson-engine .engine-recap__next {
+  font-size: var(--engine-size-ui-body);
+  font-weight: 600;
+  color: var(--engine-gold);
+  margin: 0;
+}
+
+/* --- Breakdown --- */
+
+.lesson-engine .engine-breakdown__meaning {
+  font-size: var(--engine-size-ui-body);
+  color: var(--engine-ink);
+  margin: 0;
+}
+
+.lesson-engine .engine-breakdown__parts {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--engine-space-2);
+  margin: 0;
+  padding: 0;
+}
+
+.lesson-engine .engine-breakdown__part {
+  display: flex;
+  align-items: baseline;
+  gap: var(--engine-space-2);
+  padding: var(--engine-space-2);
+  background: var(--engine-paper);
+  border-radius: var(--engine-radius);
+}
+
+.lesson-engine .engine-breakdown__chunk {
+  font-family: var(--engine-font-jp);
+  font-size: var(--engine-size-jp-body);
+  color: var(--engine-ink);
+}
+
+.lesson-engine .engine-breakdown__role {
+  font-size: var(--engine-size-ui-small);
+  color: var(--engine-accent-cool);
+}
+
+.lesson-engine .engine-breakdown__line {
+  font-family: var(--engine-font-jp);
+  font-size: var(--engine-size-jp-body);
+  color: var(--engine-ink);
+  margin: 0;
+}
+
+/* ============================================================
+   Layout shells (Task 10) — the runner delegates all chrome to
+   one of these two layouts. Every selector stays scoped under
+   .lesson-engine and references only --engine-* tokens.
+   ============================================================ */
+
+.lesson-engine {
+  color: var(--engine-ink);
+  font-family: var(--engine-font-ui);
+}
+
+.lesson-engine__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--engine-space-4);
+}
+
+.lesson-engine__topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--engine-space-3);
+}
+
+.lesson-engine .engine-rail__count {
+  margin: 0;
+  margin-left: auto;
+  font-size: var(--engine-size-ui-small);
+  font-weight: 600;
+  color: var(--engine-muted);
+}
+
+.lesson-engine__back {
+  min-height: var(--engine-target-min);
+  padding: var(--engine-space-2) var(--engine-space-3);
+  background: transparent;
+  color: var(--engine-accent-cool);
+  border: 1px solid var(--engine-accent-cool);
+  border-radius: var(--engine-radius);
+  font-family: var(--engine-font-ui);
+  font-size: var(--engine-size-ui-small);
+  cursor: pointer;
+  transition: opacity var(--engine-step-transition);
+}
+
+.lesson-engine__back:hover {
+  opacity: 0.88;
+}
+
+.lesson-engine__back:focus-visible {
+  outline: 2px solid var(--engine-accent-cool);
+  outline-offset: 2px;
+}
+
+/* --- Stage: one centred column, rail reduced to a thin meter --- */
+
+.lesson-engine--stage .lesson-engine__main {
+  max-width: var(--engine-shell-reading);
+  margin: 0 auto;
+}
+
+.lesson-engine__meter {
+  height: var(--engine-space-1);
+  background: var(--engine-line);
+  border-radius: var(--engine-radius);
+  overflow: hidden;
+}
+
+.lesson-engine__meter-fill {
+  display: block;
+  height: 100%;
+  background: var(--engine-accent);
+  transition: width var(--engine-step-transition);
+}
+
+.lesson-engine__stage-center {
+  display: flex;
+  flex-direction: column;
+  gap: var(--engine-space-4);
+}
+
+/* --- Editorial: two columns with a persistent labelled section rail --- */
+
+.lesson-engine--editorial .lesson-engine__shell {
+  display: grid;
+  grid-template-columns: var(--engine-rail-width) minmax(0, 1fr);
+  gap: var(--engine-space-5);
+  max-width: var(--engine-shell-wide);
+  margin: 0 auto;
+  align-items: start;
+}
+
+.lesson-engine__rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--engine-space-2);
+  padding-right: var(--engine-space-4);
+  border-right: 1px solid var(--engine-line);
+}
+
+.lesson-engine__rail-title {
+  margin: 0;
+  font-size: var(--engine-size-label);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--engine-muted);
+}
+
+.lesson-engine__rail-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--engine-space-1);
+  margin: 0;
+  padding: 0;
+}
+
+.lesson-engine__rail-item {
+  padding: var(--engine-space-1) var(--engine-space-2);
+  border-radius: var(--engine-radius);
+  font-size: var(--engine-size-ui-small);
+  color: var(--engine-ink-soft);
+}
+
+.lesson-engine__rail-item[aria-current="step"] {
+  font-weight: 700;
+  color: var(--engine-accent-cool);
+  background: var(--engine-paper);
+}
+
+/* Below 720px the side rail collapses into a horizontal strip above the step. */
+@media (max-width: 720px) {
+  .lesson-engine--editorial .lesson-engine__shell {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--engine-space-4);
+  }
+
+  .lesson-engine__rail {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    padding-right: 0;
+    padding-bottom: var(--engine-space-3);
+    border-right: none;
+    border-bottom: 1px solid var(--engine-line);
+  }
+
+  .lesson-engine__rail-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--engine-space-2);
+  }
+}
+
+/* --- Runner step wrapper: optional entrance motion --- */
+
+.lesson-engine .engine-runner__step {
+  display: block;
+}
+
+.lesson-engine .engine-runner__step--animated {
+  animation: engine-step-in var(--engine-step-transition);
+}
+
+@keyframes engine-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--engine-space-2));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
