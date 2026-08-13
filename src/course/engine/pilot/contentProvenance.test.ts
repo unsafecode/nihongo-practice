@@ -46,6 +46,23 @@ const TAUGHT_PARTICLES: ReadonlyMap<string, string> = new Map(
   }),
 );
 
+/**
+ * There are two acceptance paths, and collapsing them into one opens a hole.
+ *
+ * `buildAllowed` is the set a *running* surface may decompose into: lexemes,
+ * whole realized forms, taught particles. Bare conjugation suffixes are
+ * deliberately absent. With greedy longest-match, admitting ます as a decomposition
+ * unit makes any taught noun plus any suffix decompose cleanly — みずます,
+ * ざっしません, ぱんます — chimeras that look like conjugations and are not
+ * Japanese. Those are precisely the plausible invention this file exists to
+ * catch, so a suffix must never be available as glue.
+ *
+ * `buildMorphemes` is the engine's own segmentation of each form (かい, ます,
+ * ません). A surface that is *entirely* one of these is legitimate on its own:
+ * these lessons name the suffix they teach — "attaches ます to the polite stem" —
+ * and a breakdown step shows a form in pieces. Accepted as a whole string, a
+ * morpheme still cannot act as glue inside a longer one.
+ */
 function buildAllowed(): Set<string> {
   const allowed = new Set<string>(TAUGHT_PARTICLES.keys());
   for (const [id, lex] of BASE_LEXEME_BY_ID) {
@@ -54,14 +71,23 @@ function buildAllowed(): Set<string> {
     if (grid.ok) {
       for (const cell of Object.values(grid.value) as { jp: string }[][]) {
         allowed.add(cell.map((t) => t.jp).join(""));
-        // A breakdown step legitimately shows a form in pieces — かいます split
-        // into かい and ます — so the engine's own segmentation is allowed too,
-        // rather than hand-listing the suffixes and getting them wrong.
-        for (const token of cell) allowed.add(token.jp);
       }
     }
   }
   return allowed;
+}
+
+function buildMorphemes(): Set<string> {
+  const morphemes = new Set<string>();
+  for (const [id] of BASE_LEXEME_BY_ID) {
+    const grid = realizePoliteGrid(id);
+    if (grid.ok) {
+      for (const cell of Object.values(grid.value) as { jp: string }[][]) {
+        for (const token of cell) morphemes.add(token.jp);
+      }
+    }
+  }
+  return morphemes;
 }
 
 function surfaces(lesson: Lesson): string[] {
@@ -77,7 +103,9 @@ function surfaces(lesson: Lesson): string[] {
   return found;
 }
 
-function isExplained(s: string, allowed: Set<string>): boolean {
+function isExplained(s: string, allowed: Set<string>, morphemes: Set<string>): boolean {
+  // A bare morpheme is acceptable as an entire surface, never as a component.
+  if (morphemes.has(s)) return true;
   let rest = s;
   while (rest.length > 0) {
     let matched = 0;
@@ -92,9 +120,12 @@ function isExplained(s: string, allowed: Set<string>): boolean {
 
 describe("pilot content provenance", () => {
   const allowed = buildAllowed();
+  const morphemes = buildMorphemes();
   for (const lesson of [politePresentBlock, konbiniImmersion] as Lesson[]) {
     it(`${lesson.id}: every kana surface is catalog-verified material`, () => {
-      const unexplained = [...new Set(surfaces(lesson))].filter((s) => !isExplained(s, allowed));
+      const unexplained = [...new Set(surfaces(lesson))].filter(
+        (s) => !isExplained(s, allowed, morphemes),
+      );
       expect(unexplained).toEqual([]);
     });
   }
@@ -269,5 +300,38 @@ describe("the provenance allow-list tracks the curriculum", () => {
   it("derives from a non-empty curriculum, so the checks above cannot pass vacuously", () => {
     expect(BASE_PARTICLE_SENSES.length).toBeGreaterThan(0);
     expect(TAUGHT_PARTICLES.size).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * The chimera hole, pinned. Greedy longest-match makes a bare conjugation suffix
+ * dangerous the moment it becomes a decomposition unit: みずます decomposes as
+ * みず + ます and passes, though no lesson teaches it and it is not Japanese.
+ * It is invisible by inspection — it reads like a conjugation — which is why it
+ * gets a named test rather than a comment.
+ *
+ * The positive cases are as important as the negative ones: they pin the reason
+ * the suffixes cannot simply be deleted. These lessons *name* the morpheme they
+ * teach in their own prose, and a breakdown step shows a form in pieces.
+ */
+describe("bare morphemes are surfaces, never glue", () => {
+  const allowed = buildAllowed();
+  const morphemes = buildMorphemes();
+
+  for (const chimera of ["みずます", "ざっしません", "ぱんます", "ひとます"]) {
+    it(`rejects the chimera ${chimera}, which no lesson teaches`, () => {
+      expect(isExplained(chimera, allowed, morphemes)).toBe(false);
+    });
+  }
+
+  for (const legitimate of ["ます", "ません", "かい", "かいます", "かいません"]) {
+    it(`still accepts ${legitimate} as a whole surface`, () => {
+      expect(isExplained(legitimate, allowed, morphemes)).toBe(true);
+    });
+  }
+
+  it("keeps the suffixes out of the decomposition set entirely", () => {
+    expect([...allowed].filter((s) => s === "ます" || s === "ません")).toEqual([]);
+    expect(morphemes.has("ます")).toBe(true);
   });
 });
