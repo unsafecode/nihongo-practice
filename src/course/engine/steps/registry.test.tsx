@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { LocaleProvider } from "../../../i18n/LocaleContext";
 import { STEP_COMPONENTS, renderStep } from "./registry";
+import { tokensForLexeme } from "./LexBatchStepView";
 
 const noop = () => {};
 
@@ -62,5 +63,43 @@ describe("step registry", () => {
       renderStep({ id: "x", kind: "transform", estimateSeconds: 10 } as never,
         { locale: "it", onComplete: noop }),
     ).toThrow(/no component registered/i);
+  });
+});
+
+describe("lexBatch audio tokens", () => {
+  it("gives every non-verb lexeme real synthesis tokens carrying its kana", () => {
+    // Regression: an earlier implementation passed an empty token array for
+    // every non-verb, so useBaseAudioPlayback would have synthesized "" for
+    // the entire konbini vocabulary (all nouns and expressions).
+    // Asserted on the tokens, not on the rendered control: jsdom exposes no
+    // speechSynthesis, so every status is "unavailable" there and a DOM-level
+    // assertion would pass vacuously.
+    for (const [id, kana] of [
+      ["noun-mizu", "みず"],
+      ["expression-sumimasen", "すみません"],
+      ["noun-konbini", "こんびに"],
+      ["expression-douzo", "どうぞ"],
+    ] as const) {
+      const { tokens, kana: surface } = tokensForLexeme(id);
+      expect(tokens.length, id).toBeGreaterThan(0);
+      expect(tokens.map((t) => t.jp).join(""), id).toBe(kana);
+      expect(surface, id).toBe(kana);
+    }
+  });
+
+  it("realizes the polite masu form for verbs through the catalog morphology", () => {
+    expect(tokensForLexeme("verb-nomu").kana).toBe("のみます");
+    expect(tokensForLexeme("verb-nomu").romaji).toBe("nomimasu");
+    expect(tokensForLexeme("verb-matsu").kana).toBe("まちます");
+    expect(tokensForLexeme("verb-hanasu").romaji).toBe("hanashimasu");
+  });
+
+  it("skips an unknown lexeme id instead of throwing or rendering undefined", () => {
+    const markup = html({
+      id: "l", kind: "lexBatch", estimateSeconds: 120,
+      lexemes: ["noun-mizu", "definitely-not-a-lexeme", "noun-konbini", "expression-douzo"],
+    });
+    expect(markup).toContain("みず");
+    expect(markup).not.toContain("undefined");
   });
 });

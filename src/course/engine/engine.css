@@ -68,8 +68,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: var(--action-target-min, 44px);
-  min-width: var(--action-target-min, 44px);
+  min-height: var(--engine-target-min);
+  min-width: var(--engine-target-min);
   padding: var(--engine-space-2) var(--engine-space-4);
   background: var(--engine-accent);
   color: var(--engine-surface);

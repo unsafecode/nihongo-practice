@@ -105,6 +105,11 @@
 
   --engine-radius: 10px;
   --engine-step-transition: 220ms cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* The engine's own copy of the 44px minimum touch target the Playwright
+     audit enforces. Declared here so engine.css depends only on --engine-*
+     tokens and never reaches into styles.css or course.css. */
+  --engine-target-min: 44px;
 }
 
 @media (prefers-reduced-motion: reduce) {
