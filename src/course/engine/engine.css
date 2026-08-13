@@ -1,0 +1,93 @@
+/* Lesson engine styles — scoped under .lesson-engine.
+   Uses only --engine-* tokens from src/styles/tokens.css.
+   Never references course.css tokens. */
+
+.lesson-engine .engine-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--engine-space-3);
+  padding: var(--engine-space-4);
+  background: var(--engine-surface);
+  border-radius: var(--engine-radius);
+  font-family: var(--engine-font-ui);
+  color: var(--engine-ink);
+}
+
+.lesson-engine .engine-label {
+  font-size: var(--engine-size-label);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--engine-muted);
+  margin: 0;
+}
+
+.lesson-engine .engine-situation,
+.lesson-engine .engine-cando,
+.lesson-engine .engine-rule,
+.lesson-engine .engine-boundary,
+.lesson-engine .engine-counter {
+  font-size: var(--engine-size-ui-body);
+  color: var(--engine-ink-soft);
+  margin: 0;
+}
+
+.lesson-engine .engine-lexgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--engine-space-3);
+}
+
+.lesson-engine .engine-lexrow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--engine-space-1);
+  padding: var(--engine-space-2);
+  background: var(--engine-paper);
+  border-radius: var(--engine-radius);
+}
+
+.lesson-engine .engine-lexrow__kana {
+  font-family: var(--engine-font-jp);
+  font-size: var(--engine-size-jp-body);
+  color: var(--engine-ink);
+}
+
+.lesson-engine .engine-lexrow__romaji {
+  font-size: var(--engine-size-ui-small);
+  color: var(--engine-ink-soft);
+}
+
+.lesson-engine .engine-lexrow__gloss {
+  font-size: var(--engine-size-ui-small);
+  color: var(--engine-muted);
+  font-style: italic;
+}
+
+.lesson-engine .engine-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--action-target-min, 44px);
+  min-width: var(--action-target-min, 44px);
+  padding: var(--engine-space-2) var(--engine-space-4);
+  background: var(--engine-accent);
+  color: var(--engine-surface);
+  border: none;
+  border-radius: var(--engine-radius);
+  font-family: var(--engine-font-ui);
+  font-size: var(--engine-size-ui-body);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--engine-step-transition);
+  align-self: flex-start;
+}
+
+.lesson-engine .engine-primary:hover {
+  opacity: 0.88;
+}
+
+.lesson-engine .engine-primary:focus-visible {
+  outline: 2px solid var(--engine-accent-cool);
+  outline-offset: 2px;
+}
