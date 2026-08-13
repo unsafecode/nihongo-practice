@@ -126,3 +126,37 @@ describe("PilotLessonPage", () => {
     expect(() => renderAt("/anteprima/nonsense-slug")).not.toThrow();
   });
 });
+
+/**
+ * `BaseAudioButton` reads the locale from context via `useLocale()`, while the
+ * step views receive it as a prop from `LessonRunner`. Those are two different
+ * paths to the same value, so they can silently disagree — a hardcoded locale
+ * on the runner, or a second provider mounted inside the engine, would leave an
+ * English audio control sitting inside an Italian lesson.
+ *
+ * `PilotLessonPage` is the single point where the two are tied together, so
+ * assert the whole surface speaks one language rather than checking any one
+ * string. Both directions are covered: the expected locale's copy must appear
+ * *and* the other locale's must not, so the test cannot pass by rendering both.
+ */
+describe("PilotLessonPage locale wiring", () => {
+  // Prose rendered by a step view (locale arrives as a prop) paired with the
+  // audio control's accessible name (locale arrives from context).
+  const copy = {
+    it: { scene: "Scena", audio: "Riproduci audio" },
+    en: { scene: "Scene", audio: "Play audio" },
+  } as const;
+
+  for (const locale of ["it", "en"] as const) {
+    const other = locale === "it" ? "en" : "it";
+
+    it(`renders step prose and the audio control in the same language (${locale})`, () => {
+      window.localStorage.setItem("nihongo.locale.primary", locale);
+      const html = renderAt("/anteprima/konbini-immersion");
+
+      expect(html).toContain(copy[locale].scene);
+      expect(html).toContain(copy[locale].audio);
+      expect(html).not.toContain(copy[other].audio);
+    });
+  }
+});
