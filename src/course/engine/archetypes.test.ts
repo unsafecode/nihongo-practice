@@ -41,3 +41,27 @@ describe('archetypes', () => {
     expect(() => archetypeById('nope')).toThrow(/unknown archetype/i);
   });
 });
+
+/**
+ * Phase `name` is a machine key used in validation messages and React keys.
+ * The rail renders phase labels to the learner, so every phase needs real
+ * localized copy: rendering the raw key put untranslated English ids
+ * ("open", "teach", "apply") into an otherwise fully Italian UI.
+ */
+describe("archetype phases carry learner-facing labels", () => {
+  for (const archetype of ARCHETYPES) {
+    it(`${archetype.id}: every phase has non-empty it and en copy`, () => {
+      for (const phase of archetype.phases) {
+        expect(phase.label.it.trim(), `${phase.name}.it`).not.toBe("");
+        expect(phase.label.en.trim(), `${phase.name}.en`).not.toBe("");
+      }
+    });
+
+    it(`${archetype.id}: no label is just the machine key`, () => {
+      const lazy = archetype.phases.filter(
+        (phase) => phase.label.it === phase.name || phase.label.en === phase.name,
+      );
+      expect(lazy.map((phase) => phase.name)).toEqual([]);
+    });
+  }
+});

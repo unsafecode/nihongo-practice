@@ -43,9 +43,9 @@ const syntheticEditorial = (): Archetype =>
     minSteps: 3,
     maxSteps: 9,
     phases: [
-      { name: "alpha", kinds: ["hook"], min: 1, max: 2 },
-      { name: "beta", kinds: ["rule"], min: 1, max: 2 },
-      { name: "gamma", kinds: ["recap"], min: 1, max: 2 },
+      { name: "alpha", label: { it: "Alfa", en: "Alpha" }, kinds: ["hook"], min: 1, max: 2 },
+      { name: "beta", label: { it: "Beta", en: "Bravo" }, kinds: ["rule"], min: 1, max: 2 },
+      { name: "gamma", label: { it: "Gamma", en: "Charlie" }, kinds: ["recap"], min: 1, max: 2 },
     ],
   }) as unknown as Archetype;
 
@@ -108,7 +108,7 @@ describe("EditorialLayout", () => {
     expect(container.querySelector("nav")).not.toBeNull();
   });
 
-  it("lists exactly the archetype's phase names as section entries", () => {
+  it("lists exactly the archetype's phase labels as section entries", () => {
     const archetype = archetypeById("new-block");
     const { container } = mount(
       createElement(EditorialLayout, props({ archetype })),
@@ -116,7 +116,10 @@ describe("EditorialLayout", () => {
     const entries = Array.from(container.querySelectorAll("nav li")).map(
       (item) => item.textContent,
     );
-    expect(entries).toEqual(archetype.phases.map((phase) => phase.name));
+    // Labels, never the machine `name`: rendering the key put raw English
+    // ids into the Italian UI.
+    expect(entries).toEqual(archetype.phases.map((phase) => phase.label.it));
+    expect(entries).not.toContain("alpha");
   });
 
   it("derives the rail from any archetype's phases, not a hard-coded list", () => {
@@ -125,7 +128,7 @@ describe("EditorialLayout", () => {
       createElement(EditorialLayout, props({ archetype, phaseIndex: 1 })),
     );
     const entries = Array.from(container.querySelectorAll("nav li"));
-    expect(entries.map((item) => item.textContent)).toEqual(["alpha", "beta", "gamma"]);
+    expect(entries.map((item) => item.textContent)).toEqual(["Alfa", "Beta", "Gamma"]);
   });
 
   it("marks the current phase entry with aria-current='step'", () => {

@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import { useLocale } from "../../../i18n/LocaleContext";
+import { pick } from "../steps/stepView";
 import type { LayoutProps } from "./layout";
 
 /**
@@ -35,7 +36,7 @@ export function EditorialLayout({
                 className="lesson-engine__rail-item"
                 aria-current={index === phaseIndex ? "step" : undefined}
               >
-                {phase.name}
+                {pick(phase.label, locale)}
               </li>
             ))}
           </ol>

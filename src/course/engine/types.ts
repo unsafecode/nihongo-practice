@@ -118,7 +118,14 @@ export interface Lesson {
 }
 
 export interface PhaseSpec {
+  /** Machine key. Appears in validation messages, never on screen. */
   readonly name: string;
+  /**
+   * What the learner sees in the section rail. Separate from `name` because
+   * the key is English and stable while the label is translated copy — a
+   * layout that renders `name` leaks untranslated ids into the UI.
+   */
+  readonly label: LocalizedText;
   readonly kinds: readonly StepKind[];
   readonly min: number;
   readonly max: number;
