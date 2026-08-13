@@ -80,6 +80,19 @@ describe("GuidedBuildStepView", () => {
     expect(completed).toBe(1);
   });
 
+  it("does not complete when the correct fragments are assembled in the wrong order", () => {
+    // Guards the "in order" half of the contract. Assembling a wrong *chip*
+    // cannot prove this: the sequence never reaches full length, so a
+    // length-only comparison would still pass. These are the three real
+    // fragments, all present, only permuted.
+    let completed = 0;
+    const { container } = mount(() => { completed += 1; });
+    clickChip(container, "みずを");
+    clickChip(container, "わたしは");
+    clickChip(container, "のみます");
+    expect(completed).toBe(0);
+  });
+
   it("does not complete on a wrong order and can be reset", () => {
     let completed = 0;
     const { container } = mount(() => { completed += 1; });
