@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { LocaleProvider } from "../../../i18n/LocaleContext";
 import { DialogueSceneStepView } from "./DialogueSceneStepView";
+import { konbiniImmersion } from "../pilot/konbiniImmersion";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -81,5 +82,32 @@ describe("DialogueSceneStepView", () => {
     const { container } = mount(() => { completed += 1; });
     clickPrimary(container);
     expect(completed).toBe(1);
+  });
+});
+
+/**
+ * Speaker labels in the shipped pilot are kana (きゃく, ひと), so they need the
+ * same lang="ja" the kana line beside them already carries — without it a screen
+ * reader pronounces them with the document language, which is Italian.
+ *
+ * Asserted against the real lesson rather than the fixture above, whose speakers
+ * are romaji and so cannot exhibit the defect.
+ */
+describe("dialogue speaker labels", () => {
+  const scene = konbiniImmersion.steps.find((s) => s.kind === "dialogueScene");
+
+  it("marks every kana speaker label as Japanese", () => {
+    expect(scene).toBeDefined();
+    const markup = renderToStaticMarkup(
+      createElement(LocaleProvider, null,
+        createElement(DialogueSceneStepView, {
+          step: scene as never, locale: "it", onComplete: () => {},
+        })),
+    );
+    const openingTags = [...markup.matchAll(/<span class="engine-turn__speaker"[^>]*>/g)].map(
+      (m) => m[0],
+    );
+    expect(openingTags.length).toBeGreaterThan(0);
+    for (const tag of openingTags) expect(tag, tag).toContain('lang="ja"');
   });
 });

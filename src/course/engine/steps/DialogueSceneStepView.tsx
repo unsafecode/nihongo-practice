@@ -15,7 +15,9 @@ export function DialogueSceneStepView({
       <ol className="engine-dialogue">
         {step.turns.map((turn, index) => (
           <li key={index} className="engine-turn">
-            <span className="engine-turn__speaker">{turn.speaker}</span>
+            <span className="engine-turn__speaker" lang="ja">
+              {turn.speaker}
+            </span>
             <span className="engine-turn__kana" lang="ja">
               {turn.line.kana}
             </span>
