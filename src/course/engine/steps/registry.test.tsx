@@ -20,7 +20,10 @@ function html(step: unknown): string {
 
 describe("step registry", () => {
   it("registers every Phase 0 step kind", () => {
-    for (const kind of ["hook", "rule", "lexBatch"] as const) {
+    for (const kind of [
+      "hook", "rule", "lexBatch", "guidedBuild", "examples",
+      "dialogueScene", "comprehension", "breakdown", "quiz", "recap",
+    ] as const) {
       expect(STEP_COMPONENTS[kind]).toBeDefined();
     }
   });

@@ -91,3 +91,266 @@
   outline: 2px solid var(--engine-accent-cool);
   outline-offset: 2px;
 }
+
+/* --- Interactive prompts: quiz + comprehension --- */
+
+.lesson-engine .engine-prompt,
+.lesson-engine .engine-question {
+  font-size: var(--engine-size-ui-body);
+  color: var(--engine-ink);
+  margin: 0;
+}
+
+.lesson-engine .engine-options {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--engine-space-2);
+  margin: 0;
+  padding: 0;
+}
+
+.lesson-engine .engine-option {
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--engine-target-min);
+  padding: var(--engine-space-2) var(--engine-space-3);
+  background: var(--engine-paper);
+  color: var(--engine-ink);
+  border: 1px solid var(--engine-line);
+  border-radius: var(--engine-radius);
+  font-family: var(--engine-font-ui);
+  font-size: var(--engine-size-ui-body);
+  cursor: pointer;
+  transition: opacity var(--engine-step-transition);
+}
+
+.lesson-engine .engine-option:hover {
+  opacity: 0.88;
+}
+
+.lesson-engine .engine-option:focus-visible {
+  outline: 2px solid var(--engine-accent-cool);
+  outline-offset: 2px;
+}
+
+.lesson-engine .engine-feedback {
+  min-height: var(--engine-size-ui-body);
+  font-size: var(--engine-size-ui-small);
+  color: var(--engine-accent);
+  margin: 0;
+}
+
+/* --- Guided build --- */
+
+.lesson-engine .engine-goal {
+  font-size: var(--engine-size-ui-body);
+  color: var(--engine-ink);
+  margin: 0;
+}
+
+.lesson-engine .engine-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--engine-space-2);
+  min-height: var(--engine-target-min);
+  padding: var(--engine-space-2);
+  background: var(--engine-paper);
+  border: 1px dashed var(--engine-line);
+  border-radius: var(--engine-radius);
+}
+
+.lesson-engine .engine-tray__item {
+  font-family: var(--engine-font-jp);
+  font-size: var(--engine-size-jp-body);
+  color: var(--engine-ink);
+}
+
+.lesson-engine .engine-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--engine-space-2);
+}
+
+.lesson-engine .engine-chip {
+  min-height: var(--engine-target-min);
+  padding: var(--engine-space-2) var(--engine-space-3);
+  background: var(--engine-surface);
+  color: var(--engine-ink);
+  border: 1px solid var(--engine-line);
+  border-radius: var(--engine-radius);
+  font-family: var(--engine-font-jp);
+  font-size: var(--engine-size-jp-body);
+  cursor: pointer;
+  transition: opacity var(--engine-step-transition);
+}
+
+.lesson-engine .engine-chip:hover {
+  opacity: 0.88;
+}
+
+.lesson-engine .engine-chip:focus-visible {
+  outline: 2px solid var(--engine-accent-cool);
+  outline-offset: 2px;
+}
+
+.lesson-engine .engine-controls {
+  display: flex;
+  gap: var(--engine-space-2);
+}
+
+.lesson-engine .engine-reset,
+.lesson-engine .engine-undo,
+.lesson-engine .engine-reveal {
+  min-height: var(--engine-target-min);
+  padding: var(--engine-space-2) var(--engine-space-3);
+  background: transparent;
+  color: var(--engine-accent-cool);
+  border: 1px solid var(--engine-accent-cool);
+  border-radius: var(--engine-radius);
+  font-family: var(--engine-font-ui);
+  font-size: var(--engine-size-ui-small);
+  cursor: pointer;
+  transition: opacity var(--engine-step-transition);
+}
+
+.lesson-engine .engine-reset:hover,
+.lesson-engine .engine-undo:hover,
+.lesson-engine .engine-reveal:hover {
+  opacity: 0.88;
+}
+
+.lesson-engine .engine-reset:focus-visible,
+.lesson-engine .engine-undo:focus-visible,
+.lesson-engine .engine-reveal:focus-visible {
+  outline: 2px solid var(--engine-accent-cool);
+  outline-offset: 2px;
+}
+
+.lesson-engine .engine-solution {
+  font-family: var(--engine-font-jp);
+  font-size: var(--engine-size-jp-body);
+  color: var(--engine-accent-cool);
+  margin: 0;
+}
+
+/* --- Examples + dialogue --- */
+
+.lesson-engine .engine-examples,
+.lesson-engine .engine-dialogue {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--engine-space-3);
+  margin: 0;
+  padding: 0;
+}
+
+.lesson-engine .engine-example,
+.lesson-engine .engine-turn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--engine-space-1);
+  padding: var(--engine-space-2);
+  background: var(--engine-paper);
+  border-radius: var(--engine-radius);
+}
+
+.lesson-engine .engine-example__kana,
+.lesson-engine .engine-turn__kana {
+  font-family: var(--engine-font-jp);
+  font-size: var(--engine-size-jp-body);
+  color: var(--engine-ink);
+}
+
+.lesson-engine .engine-example__romaji,
+.lesson-engine .engine-turn__romaji {
+  font-size: var(--engine-size-ui-small);
+  color: var(--engine-ink-soft);
+}
+
+.lesson-engine .engine-example__natural,
+.lesson-engine .engine-turn__natural {
+  font-size: var(--engine-size-ui-small);
+  color: var(--engine-muted);
+  font-style: italic;
+}
+
+.lesson-engine .engine-turn__speaker {
+  font-size: var(--engine-size-label);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--engine-accent-cool);
+}
+
+.lesson-engine .engine-setting {
+  font-size: var(--engine-size-ui-body);
+  color: var(--engine-ink-soft);
+  font-style: italic;
+  margin: 0;
+}
+
+/* --- Recap --- */
+
+.lesson-engine .engine-recap__learned {
+  display: flex;
+  flex-direction: column;
+  gap: var(--engine-space-1);
+  margin: 0;
+  padding-left: var(--engine-space-4);
+  color: var(--engine-ink-soft);
+  font-size: var(--engine-size-ui-body);
+}
+
+.lesson-engine .engine-recap__next {
+  font-size: var(--engine-size-ui-body);
+  font-weight: 600;
+  color: var(--engine-gold);
+  margin: 0;
+}
+
+/* --- Breakdown --- */
+
+.lesson-engine .engine-breakdown__meaning {
+  font-size: var(--engine-size-ui-body);
+  color: var(--engine-ink);
+  margin: 0;
+}
+
+.lesson-engine .engine-breakdown__parts {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--engine-space-2);
+  margin: 0;
+  padding: 0;
+}
+
+.lesson-engine .engine-breakdown__part {
+  display: flex;
+  align-items: baseline;
+  gap: var(--engine-space-2);
+  padding: var(--engine-space-2);
+  background: var(--engine-paper);
+  border-radius: var(--engine-radius);
+}
+
+.lesson-engine .engine-breakdown__chunk {
+  font-family: var(--engine-font-jp);
+  font-size: var(--engine-size-jp-body);
+  color: var(--engine-ink);
+}
+
+.lesson-engine .engine-breakdown__role {
+  font-size: var(--engine-size-ui-small);
+  color: var(--engine-accent-cool);
+}
+
+.lesson-engine .engine-breakdown__line {
+  font-family: var(--engine-font-jp);
+  font-size: var(--engine-size-jp-body);
+  color: var(--engine-ink);
+  margin: 0;
+}
