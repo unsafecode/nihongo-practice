@@ -247,12 +247,11 @@ Accessibility: existing commitments are retained without exception — keyboard
 operability, visible focus, live regions for audio state, no colour-only
 signalling.
 
-Furigana note: `KanjiRubyText` stays where it is, serving A2. It is coupled to
-the A2 kanji *assessment* model (it requires a `KanjiExposure` and stage-specific
-copy), not a general-purpose ruby renderer, so the engine does not adopt it. Base
-and the new engine's pilot content are hiragana-only, as they are today. Whether
-Intermedio renders kanji through that component, a generalised successor, or
-neither is a Phase 2 decision.
+Note on furigana: the engine does **not** use `KanjiRubyText`. That component is
+coupled to the A2 kanji *assessment* model (it requires a `KanjiExposure` plus
+assessment copy), not a general ruby renderer. Base and the Phase 0 pilot are
+hiragana-only, so no furigana renderer is needed. Kanji presentation is an
+Intermedio question and is deferred to Phase 2.
 
 ## 8. Review process change
 
